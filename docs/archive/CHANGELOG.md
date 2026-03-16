@@ -4,9 +4,167 @@ Complete development history and achievement details for the MakanMakan restaura
 
 ---
 
+## 2026-03-16: Unified Error Response & Drizzle ORM Migration
+
+**Status**: ✅ Complete
+
+### Unified Error Handling System
+
+Comprehensive refactoring of all API error handling to a single unified pattern.
+
+- **ApiError class** with factory functions (`notFound()`, `badRequest()`, `unauthorized()`, `forbidden()`, `conflict()`)
+- **Global error handler** rewritten to unified format (`{ success: false, error: { code, message, details? } }`)
+- **All routes migrated** — removed feature-level `onError` handlers, deleted unused error utilities
+- **zValidator replaced** with custom middleware across api, ai-analytics, realtime, backup, auth
+- **Admin dashboard** error parser updated for unified API error format
+
+### Drizzle ORM Migration (Stage 2)
+
+- Migrated **19 services** from raw D1 SQL (`db.prepare()`) to Drizzle ORM
+- Type-safe queries with compile-time column validation
+
+### Management API Security
+
+- Added AES encryption for sensitive data
+- Auth middleware implementation
+- Real deployment configuration
+
+### Test Coverage Expansion
+
+- ~400+ new tests: seats (~45), forecast (~25), ai-analytics (~95), waiting-list (~47), integrations (~55), verification (~45)
+
+---
+
+## 2026-03-14: Discovery & Forecast Systems
+
+**Status**: ✅ Complete
+
+### Discovery System (Full-Stack)
+
+Restaurant and dish search with full-text indexing.
+
+- **Database**: `dish_search_index` table, discovery columns on restaurants
+- **Backend**: DiscoveryService, SearchIndexSyncService, Zod validation, API routes
+- **Frontend**: Customer app — DiscoveryView, API client, Pinia store, UI components
+
+### Forecast System (Full-Stack)
+
+Demand forecasting with Weighted Moving Average algorithm.
+
+- **Database**: `forecast_cache`, `ingredient_definitions`, `menu_item_ingredients` tables
+- **Backend**: ForecastService (WMA algorithm), ingredient-level forecasting, daily cron warmup
+- **Frontend**: Admin dashboard — forecast view, components, API client
+- **Testing**: Unit tests (red phase → green), route integration tests, edge case tests
+
+### Ingredient Management
+
+- Ingredient definitions and menu item ingredient linking
+- Ingredient-level demand forecasting
+
+---
+
+## 2026-02-13: Documentation Sync & Feature Completion
+
+**Status**: ✅ Complete
+
+- CLAUDE.md comprehensive update: 11 apps, 8 packages, 69 tables, 29 API groups
+- Documented all new systems: POS, Coupon, Group Orders, Verification
+- Added Hybrid Deployment, Onboarding, Backup, Print Agent documentation
+
+---
+
+## 2026-02-06: Testing Infrastructure Phase 2-3 & API Docs
+
+**Status**: ✅ Complete
+
+- **Testing Phase 2**: 48/45 test files (107% target) — Kitchen Display (28), Realtime Services (20)
+- **API Documentation Phase 3**: 16/16 endpoint groups documented (120+ OpenAPI routes)
+- **880 new tests** added, 268 failing tests fixed
+
+---
+
+## 2026-01: Hybrid Deployment & Multi-Tenant Architecture
+
+**Status**: ✅ Complete
+
+### Hybrid Deployment Strategy (Phase 1-3)
+
+- **Management Portal**: Multi-tenant management UI (Vue.js)
+- **Management API**: Tenant provisioning, deployment management, license management, monitoring
+- **Onboarding System**: Dedicated onboarding app with real API endpoints
+
+### Infrastructure Improvements
+
+- ESLint flat config migration (ESLint 9)
+- KV usage optimization with parallelization, resilience, and security
+- Cross-platform compatibility fixes
+- Technical debt resolution across 6 phases
+
+---
+
+## 2025-12: Database Modernization & Realtime Enhancement
+
+**Status**: ✅ Complete
+
+### UUID v7 Migration
+
+- Unified ID strategy — replaced CUID2 with UUID v7 across all modules
+- Restaurant ID type migration from number to string
+- FK type standardization across all schema files
+
+### Timestamp Standardization
+
+- Migrated to millisecond timestamps across all tables
+- Removed legacy timestamp columns
+- Added missing indexes and JSON type safety
+
+### Schema Reorganization
+
+- Split large schemas into subdirectories: partnerships (4 files), leaves (5 files), scheduling (6 files)
+
+### Realtime Enhancement
+
+- Token blacklist support
+- Group order real-time events
+- Monitoring capabilities
+
+---
+
+## 2025-11-24: Documentation Restructuring
+
+**Status**: ✅ Complete
+
+- Comprehensive documentation restructuring for better organization
+- Created clear category structure (architecture, features, guides, testing)
+- Added factory pattern testing documentation and pilot migration plan
+
+---
+
+## 2025-11-15: Partnership System & Testing
+
+**Status**: ✅ Complete
+
+### Partnership System (Full-Stack)
+
+- Merchant Partnership implementation (3,163 lines, 83 test cases)
+- Partnership plans, verified members, usage logging
+
+### Verification System
+
+- Password reset, email/phone verification with token management
+- VerificationService, API endpoints, Customer App UI, Admin Dashboard UI
+- MailChannels integration as default email provider
+
+### Package Manager Cleanup
+
+- Unified pnpm usage, removed all legacy npm commands
+- TypeScript compliance: 0 errors across all packages
+
+---
+
 ## 2025-10-11: Employee Scheduling System (In Progress)
 
-**Status**: 🔄 43% Complete
+**Status**: ✅ Complete (updated — was 43% at time of writing, now 100%)
 
 Smart scheduling system with shift management and labor compliance.
 
@@ -772,6 +930,6 @@ tests/e2e/                              # End-to-end tests
 
 ---
 
-**Last Updated**: 2025-10-11
-**Total Achievements**: 15 major milestones
-**Current Focus**: Employee Management System (Scheduling + Leave)
+**Last Updated**: 2026-03-16
+**Total Achievements**: 25+ major milestones
+**Current Focus**: Realtime Services (final 10%), POS Frontend, Reservations

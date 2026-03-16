@@ -212,6 +212,11 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ├── scheduling/      # Employee scheduling
 ├── analytics/       # Business analytics
 ├── ai-analytics/    # AI-powered insights
+├── forecast/        # Demand forecasting (WMA algorithm + ingredient-level)
+├── discovery/       # Restaurant/dish search with full-text indexing
+├── ingredients/     # Ingredient management
+├── integrations/    # Platform integrations & webhooks
+├── guest-orders/    # Guest ordering (no account required)
 ├── qr/              # QR code generation and templates
 ├── realtime/        # Realtime WebSocket authentication
 ├── partnerships/    # Partnership & merchant collaboration
@@ -282,13 +287,16 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 
 ### Production-Ready Features
 
-- Core API infrastructure with 29 endpoint groups
+- Core API infrastructure with 34 feature modules, 29+ endpoint groups
 - JWT-based multi-role authentication with bcrypt password hashing
+- **Unified Error Handling**: ApiError class + global handler, all routes migrated (2026-03)
 - **Verification System**: Password reset, email/phone verification with token management
 - QR code service (advanced generation with templates)
 - **Shop QR System**: Full-stack shop-level ordering (table-free mode)
 - **Seat Management**: Dual-mode QR (table-level or seat-level)
 - **AI Analytics**: Complete backend + frontend UI (4 LLM providers)
+- **Demand Forecasting**: WMA algorithm with ingredient-level forecasting + admin dashboard UI
+- **Discovery System**: Restaurant/dish search with full-text indexing, customer app integration
 - **Multi-language Support (i18n)**: 6-language system (zh-TW, zh-CN, en-US, ja-JP, vi-VN, id-ID)
 - **Employee Scheduling System**: 100% complete (full-stack with testing)
 - **Leave Management System**: 100% complete (full-stack with notification, export, analytics)
@@ -306,7 +314,9 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 - **Backup & Recovery**: Automated D1 backup scheduler with R2 storage
 - **Print Agent**: Local receipt printing via Express + WebSocket
 - **Image Processing**: Dedicated image optimization worker
+- **Drizzle ORM Migration (Stage 2)**: 19 services migrated from raw D1 SQL to Drizzle ORM
 - Customer authentication and profile management
+- Account management page (owner + admin tabs)
 - PWA with 95/100 performance score
 - Comprehensive error monitoring and logging
 - Complete test coverage and CI/CD pipeline
@@ -448,7 +458,7 @@ const results = await db
 
 **Reference implementation:** `apps/api/src/features/integrations/services/PlatformIntegrationService.ts`
 
-**Existing legacy code:** Raw SQL in existing services (forecast, POS, etc.) is acceptable until those services are individually migrated. Do not refactor them unless you are already modifying that service for other reasons.
+**Migration status:** Stage 2 completed (2026-03) — 19 services migrated to Drizzle ORM. Remaining raw SQL in a few legacy services is acceptable until those services are individually modified.
 
 ## Error Handling
 
@@ -469,64 +479,69 @@ const results = await db
 
 **For detailed changelog, see: `docs/archive/CHANGELOG.md`**
 
-### Latest (2026-02-13)
+### Latest (2026-03-16)
+
+- **Unified Error Response System**: ApiError class with factory functions, global error handler rewrite, all routes migrated to unified format, zValidator replaced with custom middleware
+- **Drizzle ORM Migration Stage 2**: 19 services migrated from raw D1 SQL to Drizzle ORM
+- **Management API Security**: AES encryption, auth middleware, real deployment configuration
+- **Documentation Restructuring**: Completed feature docs moved to archive, simplified navigation
+
+### Previous (2026-03-14)
+
+- **Discovery System**: Full-stack restaurant/dish search with full-text indexing, customer app UI
+- **Forecast System**: Demand forecasting with WMA algorithm, ingredient-level forecasting, admin dashboard
+- **Ingredient Management**: Ingredient definitions, menu item ingredients linking
+- **Test Coverage Expansion**: ~400+ new tests across seats, forecast, ai-analytics, waiting-list, integrations, verification
+
+### Previous (2026-02-13)
 
 - **CLAUDE.md Sync with Reality**: Comprehensive documentation update
   - Updated project structure (11 apps, 8 packages + i18n)
   - Documented UUID v7 migration, 69 database tables across 21 schema files
-  - Added POS, Coupon, Group Orders, Verification systems
-  - Added Hybrid Deployment (management portal + API), Onboarding, Backup, Print Agent
-  - Documented 29 API endpoint groups + Management API
 
 ### Previous (2026-02-06)
 
 - **Testing Infrastructure Phase 2 Complete**: 48/45 test files (107% of target)
-  - Kitchen Display: 28 test files, Realtime Services: 20 test files
 - **API Documentation Phase 3 Complete**: 16/16 endpoint groups documented (120+ OpenAPI routes)
-
-### Previous (2025-01-24)
-
-- **Package Manager Cleanup**: Unified pnpm usage, removed legacy npm commands
-- **Partnership System**: Full-stack merchant collaboration (3,163 lines, 83 test cases)
-- **TypeScript Compliance**: 0 errors across all packages
 
 ## Documentation
 
-### Architecture & Technical
+See `docs/README.md` for full documentation navigation.
+
+### Key References
 
 - `docs/architecture/technical-documentation.md` - Technical specifications
 - `docs/requirements.md` - Product requirements
+- `docs/archive/CHANGELOG.md` - Development changelog
 
-### Implementation Guides
+### Active Feature Docs
 
-- `docs/EMPLOYEE_SCHEDULING_IMPLEMENTATION.md` - Scheduling system (2,100+ lines)
-- `docs/LEAVE_MANAGEMENT_IMPLEMENTATION.md` - Leave management (1,865 lines)
-- `docs/AI_ANALYTICS_IMPLEMENTATION.md` - AI analytics (750+ lines)
-- `docs/REALTIME_SERVICES_IMPLEMENTATION.md` - Realtime services (detailed architecture & deployment)
-- `docs/TESTING_AND_API_DOCS_IMPLEMENTATION_PLAN.md` - Testing & API docs enhancement (1,000+ lines)
-- `docs/TESTING_INFRASTRUCTURE_PHASE1_COMPLETION.md` - Phase 1 completion report
+- `docs/features/realtime-services/` - Realtime services (Phase 4 pending)
+- `docs/superpowers/plans/` - Current implementation plans
 
 ### User Manuals
 
-- `docs/user-manuals/SCHEDULING_MANUAL.md` - Employee scheduling user manual (1,000+ lines, bilingual)
-- `docs/user-manuals/LEAVE_MANAGEMENT_MANUAL.md` - Leave management user manual (1,800+ lines, bilingual)
+- `docs/user-manuals/SCHEDULING_MANUAL.md` - Employee scheduling (bilingual)
+- `docs/user-manuals/LEAVE_MANAGEMENT_MANUAL.md` - Leave management (bilingual)
+- `docs/user-manuals/AI_ANALYTICS_USER_MANUAL.md` - AI analytics
+- `docs/user-manuals/{locale}/` - Role-specific guides (7 languages)
 
-### Additional Resources
+### Completed Feature Docs (Archived)
 
-- Feature docs: `docs/features/`
-- Performance guides: `docs/performance/`
-- Migration guides: `docs/migration/`
-- Deployment guides: `docs/deployment/`
-- API guides: `docs/api/`
-- Changelog: `docs/archive/CHANGELOG.md`
+- `docs/archive/completed-features/employee-management/` - Scheduling & leave implementation
+- `docs/archive/completed-features/ai-analytics/` - AI analytics implementation
+- `docs/archive/completed-features/partnership-system/` - Partnership implementation
+- `docs/archive/completed-features/shop-qr/` - Shop QR implementation
+- `docs/archive/completed-features/seat-management/` - Seat management guide
+- `docs/archive/completed-features/realtime-services/` - Realtime Phase 1-3 docs
 
 ---
 
-**Last Updated**: 2026-02-13
+**Last Updated**: 2026-03-16
 **Architecture**: 2.0 (Cloudflare Serverless + Hybrid Deployment)
 **Status**: Production Ready | ✅ 0 TypeScript Errors | ✅ 0 ESLint Errors | 95/100 PWA Score
-**Systems**: 11 apps, 8 packages, 21 schema files (69 tables), 29 API endpoint groups, UUID v7
-**Complete**: Employee Management | Partnership | POS | Coupons | Group Orders | Verification | Testing Phase 1-3
+**Systems**: 11 apps, 8 packages, 21 schema files (69+ tables), 34 feature modules, UUID v7
+**Complete**: Employee Management | Partnership | POS | Coupons | Group Orders | Verification | Forecast | Discovery | Testing Phase 1-3 | Unified Error Handling | Drizzle ORM Stage 2
 **In Progress**: Realtime Services (90%) | POS Frontend | Reservations
 
 - Always use context7 when I need code generation, setup or configuration steps, or
