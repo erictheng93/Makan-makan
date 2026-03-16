@@ -226,9 +226,9 @@
                         {{ t("groupOrders.orderTotal") }}
                       </p>
                       <div class="flex items-center mt-1">
-                        <span class="text-2xl font-bold text-green-900"
-                          >RM{{ formatMoney(groupOrder.totalAmount) }}</span
-                        >
+                        <span class="text-2xl font-bold text-green-900">{{
+                          formatPrice(groupOrder.totalAmount)
+                        }}</span>
                       </div>
                       <div class="text-xs text-green-600 mt-1">
                         {{ groupOrder.itemCount }} {{ t("groupOrders.items") }}
@@ -433,8 +433,8 @@
                         </p>
                         <p class="text-xs text-gray-500">
                           {{ member.itemCount }}
-                          {{ t("groupOrders.items") }}・RM{{
-                            formatMoney(member.totalAmount)
+                          {{ t("groupOrders.items") }}・{{
+                            formatPrice(member.totalAmount)
                           }}
                         </p>
                       </div>
@@ -465,35 +465,29 @@
                     <span class="text-gray-600"
                       >{{ t("groupOrders.subtotal") }}:</span
                     >
-                    <span
-                      >RM{{ formatMoney(selectedGroupOrder.subtotal) }}</span
-                    >
+                    <span>{{ formatPrice(selectedGroupOrder.subtotal) }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600"
                       >{{ t("groupOrders.serviceCharge") }}:</span
                     >
-                    <span
-                      >RM{{
-                        formatMoney(selectedGroupOrder.serviceCharge)
-                      }}</span
-                    >
+                    <span>{{
+                      formatPrice(selectedGroupOrder.serviceCharge)
+                    }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600"
                       >{{ t("groupOrders.tax") }}:</span
                     >
-                    <span
-                      >RM{{ formatMoney(selectedGroupOrder.taxAmount) }}</span
-                    >
+                    <span>{{ formatPrice(selectedGroupOrder.taxAmount) }}</span>
                   </div>
                   <div
                     class="flex justify-between font-bold text-lg pt-2 border-t border-gray-200"
                   >
                     <span>{{ t("groupOrders.total") }}:</span>
-                    <span class="text-green-600"
-                      >RM{{ formatMoney(selectedGroupOrder.totalAmount) }}</span
-                    >
+                    <span class="text-green-600">{{
+                      formatPrice(selectedGroupOrder.totalAmount)
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -812,8 +806,10 @@ import {
 import QrCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import ShareIcon from "@heroicons/vue/24/outline/ShareIcon";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // 類別定義
 interface GroupOrderMember {
@@ -1004,7 +1000,6 @@ const canCreateGroupOrder = computed(() => {
 });
 
 // 工具函數
-const formatMoney = (amount: number) => amount.toFixed(2);
 const formatTime = (dateTime: string) =>
   new Date(dateTime).toLocaleTimeString("zh-TW", {
     hour: "2-digit",

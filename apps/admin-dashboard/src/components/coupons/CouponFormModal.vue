@@ -124,7 +124,9 @@
                     "
                   />
                   <div class="absolute right-3 top-2 text-gray-500 text-sm">
-                    {{ form.discountType === "percentage" ? "%" : "RM" }}
+                    {{
+                      form.discountType === "percentage" ? "%" : currencySymbol
+                    }}
                   </div>
                 </div>
               </div>
@@ -143,7 +145,7 @@
                     placeholder="50.00"
                   />
                   <div class="absolute right-3 top-2 text-gray-500 text-sm">
-                    RM
+                    {{ currencySymbol }}
                   </div>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">
@@ -165,7 +167,7 @@
                     placeholder="0.00"
                   />
                   <div class="absolute right-3 top-2 text-gray-500 text-sm">
-                    RM
+                    {{ currencySymbol }}
                   </div>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">
@@ -305,14 +307,14 @@
                           class="text-xs text-gray-500 block"
                         >
                           {{
-                            t("couponForm.maxRM", {
-                              amount: form.maxDiscountAmount,
+                            t("couponForm.maxDiscount", {
+                              amount: formatPrice(form.maxDiscountAmount),
                             })
                           }}
                         </span>
                       </span>
                       <span v-else
-                        >RM{{ form.discountValue }}
+                        >{{ formatPrice(form.discountValue) }}
                         {{ t("couponForm.discount") }}</span
                       >
                     </div>
@@ -322,7 +324,8 @@
                   class="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500 space-y-1"
                 >
                   <div v-if="form.minOrderAmount > 0">
-                    {{ t("couponForm.minSpend") }}: RM{{ form.minOrderAmount }}
+                    {{ t("couponForm.minSpend") }}:
+                    {{ formatPrice(form.minOrderAmount) }}
                   </div>
                   <div v-if="form.validFrom && form.validTo">
                     {{ t("couponForm.validity") }}:
@@ -395,9 +398,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 import { XMarkIcon } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const { formatPrice, currencySymbol } = useCurrency();
 
 // Props
 interface Props {

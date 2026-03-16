@@ -1365,6 +1365,23 @@ const enUS: Messages = {
     ingredients: "Ingredients",
   },
 
+  // Platform Overview
+  platform: {
+    title: "Platform Overview",
+    description:
+      "Manage all restaurants from a single dashboard. Select a restaurant to access its full management interface.",
+    totalRestaurants: "Total Restaurants",
+    active: "Active",
+    inactive: "Inactive",
+    noRestaurants: "No restaurants",
+    noRestaurantsDesc: "No restaurants found in the system.",
+    manage: "Manage",
+    selectRestaurant: "Select Restaurant...",
+    searchRestaurants: "Search restaurants...",
+    loading: "Loading...",
+    noResults: "No restaurants found",
+  },
+
   // Authentication
   auth: {
     adminLogin: "Admin Dashboard Login",
@@ -1836,9 +1853,8 @@ const enUS: Messages = {
       currencyDesc: "Select system currency",
       currencies: {
         myr: "Malaysian Ringgit (RM)",
-        sgd: "Singapore Dollar (S$)",
-        usd: "US Dollar (US$)",
-        thb: "Thai Baht (฿)",
+        twd: "New Taiwan Dollar (NT$)",
+        vnd: "Vietnamese Dong (₫)",
       },
       autoLogout: "Auto-Logout Time",
       autoLogoutDesc: "Automatically logout after inactivity",
@@ -2387,8 +2403,8 @@ const enUS: Messages = {
       validity: "Validity",
       status: "Status",
       actions: "Actions",
-      maxDiscount: "Max RM{amount}",
-      minOrder: "Min order RM{amount}",
+      maxDiscount: "Max {amount}",
+      minOrder: "Min order {amount}",
       unlimited: "Unlimited",
       validTo: "To {date}",
     },
@@ -2731,7 +2747,7 @@ const enUS: Messages = {
       "Disabled coupons cannot be used. Hidden coupons are not visible to customers but can be used via code",
     preview: "Coupon Preview",
     discount: "Off",
-    maxRM: "Max RM{amount}",
+    maxDiscount: "Max {amount}",
     minSpend: "Min Spend",
     validity: "Validity",
     perUserLimitPreview: "Limit {count} per user",

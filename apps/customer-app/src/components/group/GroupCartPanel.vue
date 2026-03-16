@@ -10,6 +10,7 @@ import type {
   GroupMember,
   SplitBillConfig,
 } from "@/composables/useGroupOrder";
+import { useCurrency } from "@/composables/useCurrency";
 
 // Props
 interface Props {
@@ -56,11 +57,9 @@ const memberById = computed(() => {
   return map;
 });
 
-// Methods
-function formatPrice(price: number): string {
-  return `$${price.toFixed(0)}`;
-}
+const { formatAmount: formatPrice } = useCurrency();
 
+// Methods
 function canModifyItem(item: GroupCartItem): boolean {
   return item.addedBy === props.currentUserId || props.isHost;
 }

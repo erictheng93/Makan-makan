@@ -14,9 +14,8 @@
             {{ currentRegister?.name || t("pos.notSelected") }}
           </p>
           <p class="text-xs text-green-600">
-            {{ t("pos.balance") }}: RM{{
-              formatMoney(currentRegister?.currentBalance || 0)
-            }}
+            {{ t("pos.balance") }}:
+            {{ formatPrice(currentRegister?.currentBalance || 0) }}
           </p>
         </div>
 
@@ -81,7 +80,7 @@
               {{ t("pos.todayRevenue") }}
             </p>
             <p class="text-2xl font-semibold text-gray-900">
-              RM{{ formatMoney(todayStats.revenue) }}
+              {{ formatPrice(todayStats.revenue) }}
             </p>
           </div>
         </div>
@@ -184,9 +183,9 @@
                     <span class="text-gray-600"
                       >{{ t("pos.currentBalance") }}:</span
                     >
-                    <span class="font-semibold"
-                      >RM{{ formatMoney(register.currentBalance) }}</span
-                    >
+                    <span class="font-semibold">{{
+                      formatPrice(register.currentBalance)
+                    }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600"
@@ -294,9 +293,8 @@
                         : 'text-red-600',
                     ]"
                   >
-                    {{ transaction.amount >= 0 ? "+" : "" }}RM{{
-                      formatMoney(Math.abs(transaction.amount))
-                    }}
+                    {{ transaction.amount >= 0 ? "+" : "-"
+                    }}{{ formatPrice(Math.abs(transaction.amount)) }}
                   </p>
                   <p class="text-xs text-gray-500">
                     {{ transaction.registerId }}
@@ -347,7 +345,9 @@
                   t("pos.amount")
                 }}</label>
                 <div class="relative">
-                  <span class="absolute left-3 top-3 text-gray-500">RM</span>
+                  <span class="absolute left-3 top-3 text-gray-500">{{
+                    currencySymbol
+                  }}</span>
                   <input
                     v-model.number="quickPayment.amount"
                     type="number"
@@ -424,7 +424,7 @@
                     {{
                       promotion.discountType === "percentage"
                         ? `${promotion.discountValue}%`
-                        : `RM${promotion.discountValue}`
+                        : formatPrice(promotion.discountValue)
                     }}
                   </span>
                 </div>
@@ -478,9 +478,9 @@
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">{{ t("pos.totalRevenue") }}:</span>
-                <span class="font-medium text-green-600"
-                  >RM{{ formatMoney(currentShift.totalRevenue) }}</span
-                >
+                <span class="font-medium text-green-600">{{
+                  formatPrice(currentShift.totalRevenue)
+                }}</span>
               </div>
             </div>
 
@@ -543,7 +543,9 @@
                 t("pos.amount")
               }}</label>
               <div class="relative">
-                <span class="absolute left-3 top-3 text-gray-500">RM</span>
+                <span class="absolute left-3 top-3 text-gray-500">{{
+                  currencySymbol
+                }}</span>
                 <input
                   v-model.number="cashMovement.amount"
                   type="number"
@@ -646,7 +648,7 @@
                   {{
                     promotion.discountType === "percentage"
                       ? `${promotion.discountValue}%`
-                      : `RM${promotion.discountValue}`
+                      : formatPrice(promotion.discountValue)
                   }}
                 </span>
 
@@ -693,8 +695,10 @@ import PlusIcon from "@heroicons/vue/24/solid/PlusIcon";
 import MinusIcon from "@heroicons/vue/24/solid/MinusIcon";
 import AdjustmentsHorizontalIcon from "@heroicons/vue/24/solid/AdjustmentsHorizontalIcon";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 
 const { t } = useI18n();
+const { formatPrice, currencySymbol } = useCurrency();
 
 // 類型定義
 interface CashRegister {
@@ -849,7 +853,6 @@ const canProcessCashMovement = computed(() => {
 });
 
 // 輔助函數
-const formatMoney = (amount: number) => amount.toFixed(2);
 const formatTime = (dateTime: string) =>
   new Date(dateTime).toLocaleTimeString("zh-TW", {
     hour: "2-digit",

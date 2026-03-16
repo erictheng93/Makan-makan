@@ -6,7 +6,7 @@
     >
       <Store class="w-4 h-4 text-gray-500" />
       <span class="max-w-32 truncate text-gray-700">
-        {{ authStore.selectedRestaurantName || "Select Restaurant..." }}
+        {{ authStore.selectedRestaurantName || t("platform.selectRestaurant") }}
       </span>
       <ChevronDown class="w-3 h-3 text-gray-400" />
     </button>
@@ -20,7 +20,7 @@
         <input
           v-model="searchText"
           type="text"
-          placeholder="Search restaurants..."
+          :placeholder="t('platform.searchRestaurants')"
           class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
           @click.stop
         />
@@ -32,13 +32,13 @@
           v-if="isLoadingList"
           class="px-4 py-3 text-sm text-gray-500 text-center"
         >
-          Loading...
+          {{ t("platform.loading") }}
         </div>
         <div
           v-else-if="filteredRestaurants.length === 0"
           class="px-4 py-3 text-sm text-gray-500 text-center"
         >
-          No restaurants found
+          {{ t("platform.noResults") }}
         </div>
         <button
           v-for="restaurant in filteredRestaurants"
@@ -60,7 +60,11 @@
                 : 'bg-gray-100 text-gray-500'
             "
           >
-            {{ restaurant.isActive !== false ? "Active" : "Inactive" }}
+            {{
+              restaurant.isActive !== false
+                ? t("platform.active")
+                : t("platform.inactive")
+            }}
           </span>
         </button>
       </div>
@@ -71,6 +75,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
 import { Store, ChevronDown } from "lucide-vue-next";
@@ -81,6 +86,7 @@ interface RestaurantItem {
   isActive?: boolean;
 }
 
+const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 

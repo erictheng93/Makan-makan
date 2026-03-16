@@ -144,9 +144,9 @@
               <h3 class="text-lg font-semibold text-gray-900 line-clamp-1">
                 {{ item.name }}
               </h3>
-              <span class="text-lg font-bold text-blue-600"
-                >RM{{ item.price }}</span
-              >
+              <span class="text-lg font-bold text-blue-600">{{
+                formatPrice(item.price)
+              }}</span>
             </div>
 
             <p class="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -478,8 +478,10 @@ import {
   EyeSlashIcon,
   CakeIcon,
 } from "@heroicons/vue/24/outline";
+import { useCurrency } from "@/composables/useCurrency";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // 虛擬滾動配置
 const MENU_ITEM_HEIGHT = 330; // 每個菜品卡片的高度 (圖片 192px + 內容 138px)

@@ -92,3 +92,14 @@ export {
   forbidden,
   conflict,
 } from "./api-error";
+
+// Currency utilities
+export {
+  formatCurrency,
+  getCurrencySymbol,
+  getCurrencyConfig,
+  CURRENCY_CONFIGS,
+  DEFAULT_CURRENCY,
+  type CurrencyFormatConfig,
+  type CurrencyCode,
+} from "./currency";

@@ -167,14 +167,11 @@
               <option value="MYR">
                 {{ t("settings.general.currencies.myr") }}
               </option>
-              <option value="SGD">
-                {{ t("settings.general.currencies.sgd") }}
+              <option value="TWD">
+                {{ t("settings.general.currencies.twd") }}
               </option>
-              <option value="USD">
-                {{ t("settings.general.currencies.usd") }}
-              </option>
-              <option value="THB">
-                {{ t("settings.general.currencies.thb") }}
+              <option value="VND">
+                {{ t("settings.general.currencies.vnd") }}
               </option>
             </select>
           </div>
@@ -1230,8 +1227,13 @@ import { ref, reactive, onMounted } from "vue";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
+import { api } from "@/services/api";
+import { setRestaurantCurrency } from "@/composables/useCurrency";
+import type { CurrencyCode } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 
 // 分頁選項
 const tabs = [
@@ -1333,10 +1335,14 @@ const defaultSettings = { ...settings };
 // 方法
 const saveSettings = async () => {
   try {
-    // 這裡應該調用API保存設定
-    console.log("Saving settings:", settings, deliverySettings);
+    const restaurantId = authStore.restaurantId;
+    if (restaurantId) {
+      await api.put(`/restaurants/${restaurantId}`, {
+        settings: { currency: settings.system.currency },
+      });
+      setRestaurantCurrency(settings.system.currency as CurrencyCode);
+    }
 
-    // 顯示成功訊息
     showSuccessMessage.value = true;
     setTimeout(() => {
       showSuccessMessage.value = false;
@@ -1355,10 +1361,17 @@ const resetToDefaults = () => {
 
 const loadSettings = async () => {
   try {
-    // 這裡應該從API載入設定
-    console.log("Loading settings...");
-    // 初始化外帶/外送設定 (從API載入後更新)
-    // Object.assign(deliverySettings, data.deliverySettings);
+    const restaurantId = authStore.restaurantId;
+    if (restaurantId) {
+      const response = await api.get<{ settings?: { currency?: string } }>(
+        `/restaurants/${restaurantId}`,
+      );
+      const data = response.data?.data;
+      if (data?.settings?.currency) {
+        settings.system.currency = data.settings.currency;
+        setRestaurantCurrency(data.settings.currency as CurrencyCode);
+      }
+    }
   } catch (error) {
     console.error("Failed to load settings:", error);
   }

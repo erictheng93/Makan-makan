@@ -5,8 +5,27 @@ import { UserRole } from "@/types";
 import { api } from "@/services/api";
 import { t } from "@/i18n";
 
+// Hydrate user from localStorage for instant restore on refresh
+const hydrateUser = (): User | null => {
+  try {
+    const saved = localStorage.getItem("auth_user");
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    localStorage.removeItem("auth_user");
+    return null;
+  }
+};
+
+const persistUser = (u: User | null) => {
+  if (u) {
+    localStorage.setItem("auth_user", JSON.stringify(u));
+  } else {
+    localStorage.removeItem("auth_user");
+  }
+};
+
 export const useAuthStore = defineStore("auth", () => {
-  const user = ref<User | null>(null);
+  const user = ref<User | null>(hydrateUser());
   const token = ref<string | null>(localStorage.getItem("auth_token"));
   const isLoading = ref(false);
 
@@ -182,6 +201,7 @@ export const useAuthStore = defineStore("auth", () => {
         user.value = response.data.data.user;
 
         localStorage.setItem("auth_token", token.value!);
+        persistUser(user.value);
         api.setAuthToken(token.value!);
 
         return { success: true };
@@ -211,6 +231,7 @@ export const useAuthStore = defineStore("auth", () => {
       token.value = null;
       clearRestaurant();
       localStorage.removeItem("auth_token");
+      persistUser(null);
       api.setAuthToken(null);
     }
   };
@@ -224,12 +245,27 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (response.data.success && response.data.data) {
         user.value = response.data.data;
+        persistUser(user.value);
         return true;
       }
-    } catch (error) {
-      console.warn("Auth check failed:", error);
+    } catch (error: any) {
+      const status = error?.response?.status ?? error?.status;
+
+      // Only logout on definitive auth failures (401/403).
+      // Transient errors (429 rate-limit, 5xx, network) should NOT
+      // wipe the session — the hydrated user from localStorage is
+      // good enough until the next successful revalidation.
+      if (status === 401 || status === 403) {
+        await logout();
+        return false;
+      }
+
+      console.warn("Auth revalidation failed (non-auth error):", status);
+      // Keep the hydrated user — session is still valid locally
+      return !!user.value;
     }
 
+    // Server responded but user data was missing — token likely invalid
     await logout();
     return false;
   };

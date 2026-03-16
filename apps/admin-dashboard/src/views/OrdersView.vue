@@ -1,65 +1,65 @@
 <template>
   <div class="orders-view">
     <!-- 訂單統計卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow p-4 lg:p-6">
         <div class="flex items-center">
           <div class="p-2 bg-yellow-100 rounded-lg">
-            <ClockIcon class="h-6 w-6 text-yellow-600" />
+            <ClockIcon class="h-5 w-5 lg:h-6 lg:w-6 text-yellow-600" />
           </div>
-          <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">
+          <div class="ml-3 lg:ml-4 min-w-0">
+            <h3 class="text-sm lg:text-lg font-semibold text-gray-900 truncate">
               {{ t("orders.stats.pending") }}
             </h3>
-            <p class="text-2xl font-bold text-yellow-600">
+            <p class="text-xl lg:text-2xl font-bold text-yellow-600">
               {{ stats.pending }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow p-4 lg:p-6">
         <div class="flex items-center">
           <div class="p-2 bg-blue-100 rounded-lg">
-            <ShoppingBagIcon class="h-6 w-6 text-blue-600" />
+            <ShoppingBagIcon class="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
           </div>
-          <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">
+          <div class="ml-3 lg:ml-4 min-w-0">
+            <h3 class="text-sm lg:text-lg font-semibold text-gray-900 truncate">
               {{ t("orders.stats.preparing") }}
             </h3>
-            <p class="text-2xl font-bold text-blue-600">
+            <p class="text-xl lg:text-2xl font-bold text-blue-600">
               {{ stats.preparing }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow p-4 lg:p-6">
         <div class="flex items-center">
           <div class="p-2 bg-green-100 rounded-lg">
-            <CheckCircleIcon class="h-6 w-6 text-green-600" />
+            <CheckCircleIcon class="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
           </div>
-          <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">
+          <div class="ml-3 lg:ml-4 min-w-0">
+            <h3 class="text-sm lg:text-lg font-semibold text-gray-900 truncate">
               {{ t("orders.stats.completed") }}
             </h3>
-            <p class="text-2xl font-bold text-green-600">
+            <p class="text-xl lg:text-2xl font-bold text-green-600">
               {{ stats.completed }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow p-4 lg:p-6">
         <div class="flex items-center">
           <div class="p-2 bg-red-100 rounded-lg">
-            <XCircleIcon class="h-6 w-6 text-red-600" />
+            <XCircleIcon class="h-5 w-5 lg:h-6 lg:w-6 text-red-600" />
           </div>
-          <div class="ml-4">
-            <h3 class="text-lg font-semibold text-gray-900">
+          <div class="ml-3 lg:ml-4 min-w-0">
+            <h3 class="text-sm lg:text-lg font-semibold text-gray-900 truncate">
               {{ t("orders.stats.cancelled") }}
             </h3>
-            <p class="text-2xl font-bold text-red-600">
+            <p class="text-xl lg:text-2xl font-bold text-red-600">
               {{ stats.cancelled }}
             </p>
           </div>
@@ -69,26 +69,26 @@
 
     <!-- 訂單篩選和搜索 -->
     <div class="bg-white rounded-lg shadow mb-6">
-      <div class="p-6">
-        <div
-          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-        >
-          <div class="flex flex-col sm:flex-row gap-4">
-            <div class="relative">
-              <MagnifyingGlassIcon
-                class="absolute left-3 top-3 h-4 w-4 text-gray-400"
-              />
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="t('orders.searchPlaceholder')"
-                class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+      <div class="p-4 lg:p-6">
+        <div class="flex flex-col gap-3">
+          <!-- Search -->
+          <div class="relative">
+            <MagnifyingGlassIcon
+              class="absolute left-3 top-3 h-4 w-4 text-gray-400"
+            />
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="t('orders.searchPlaceholder')"
+              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
 
+          <!-- Filters row -->
+          <div class="flex flex-wrap gap-2">
             <select
               v-model="statusFilter"
-              class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex-1 min-w-[120px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">{{ t("orders.filter.allStatus") }}</option>
               <option value="pending">{{ t("orders.status.pending") }}</option>
@@ -110,7 +110,7 @@
 
             <select
               v-model="typeFilter"
-              class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex-1 min-w-[120px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">{{ t("orders.filter.allTypes") }}</option>
               <option value="dine_in">{{ t("orders.type.dineIn") }}</option>
@@ -120,84 +120,188 @@
 
             <select
               v-model="sourceFilter"
-              class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex-1 min-w-[120px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">{{ t("orders.filter.allSources") }}</option>
               <option value="direct">{{ t("orders.source.direct") }}</option>
               <option value="uber_eats">Uber Eats</option>
               <option value="foodpanda">Foodpanda</option>
             </select>
-          </div>
 
-          <button
-            class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            @click="refreshOrders"
-          >
-            <ArrowPathIcon class="h-4 w-4 mr-2" />
-            {{ t("orders.refresh") }}
-          </button>
+            <button
+              class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm whitespace-nowrap"
+              @click="refreshOrders"
+            >
+              <ArrowPathIcon class="h-4 w-4 mr-1.5" />
+              {{ t("orders.refresh") }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 訂單列表 -->
     <div class="bg-white rounded-lg shadow">
-      <div class="p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-6">
+      <div class="p-4 lg:p-6">
+        <h2 class="text-lg lg:text-xl font-semibold text-gray-900 mb-4 lg:mb-6">
           {{ t("orders.orderList") }}
         </h2>
 
-        <!-- 表格標題 -->
-        <div
-          class="grid grid-cols-9 gap-4 px-6 py-3 bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider mb-4 rounded-t-lg"
-        >
-          <div>{{ t("orders.columns.orderNumber") }}</div>
-          <div>{{ t("orders.columns.tableNumber") }}</div>
-          <div>{{ t("orders.columns.customer") }}</div>
-          <div>{{ t("orders.columns.type") }}</div>
-          <div>{{ t("orders.columns.source") }}</div>
-          <div>{{ t("orders.columns.status") }}</div>
-          <div>{{ t("orders.columns.total") }}</div>
-          <div>{{ t("orders.columns.orderTime") }}</div>
-          <div>{{ t("orders.columns.actions") }}</div>
-        </div>
-
-        <!-- 虛擬滾動訂單列表 (已修復 TypeScript 類型問題) -->
-        <div
-          v-if="filteredOrders.length > 0"
-          ref="containerRef"
-          class="overflow-y-auto"
-          :style="{ height: CONTAINER_HEIGHT + 'px' }"
-          @scroll="handleScroll"
-        >
-          <!-- 虛擬滾動容器 -->
+        <!-- ==================== Desktop Table (lg+) ==================== -->
+        <div class="hidden lg:block">
+          <!-- 表格標題 -->
           <div
-            class="relative"
-            :style="{ height: totalHeight + 'px', minHeight: '100%' }"
+            class="grid grid-cols-[minmax(100px,1fr)_60px_90px_70px_70px_80px_80px_minmax(120px,1.2fr)_auto] gap-3 px-4 py-3 bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider rounded-t-lg"
           >
-            <!-- 偏移定位的可見項目 -->
+            <div>{{ t("orders.columns.orderNumber") }}</div>
+            <div>{{ t("orders.columns.tableNumber") }}</div>
+            <div>{{ t("orders.columns.customer") }}</div>
+            <div>{{ t("orders.columns.type") }}</div>
+            <div>{{ t("orders.columns.source") }}</div>
+            <div>{{ t("orders.columns.status") }}</div>
+            <div>{{ t("orders.columns.total") }}</div>
+            <div>{{ t("orders.columns.orderTime") }}</div>
+            <div class="text-right">{{ t("orders.columns.actions") }}</div>
+          </div>
+
+          <!-- 虛擬滾動訂單列表 -->
+          <div
+            v-if="filteredOrders.length > 0"
+            ref="containerRef"
+            class="overflow-y-auto"
+            :style="{ height: CONTAINER_HEIGHT + 'px' }"
+            @scroll="handleScroll"
+          >
             <div
-              :style="{
-                transform: `translateY(${offsetY}px)`,
-                willChange: 'transform',
-              }"
+              class="relative"
+              :style="{ height: totalHeight + 'px', minHeight: '100%' }"
             >
               <div
-                v-for="{ item: order } in visibleItems"
-                :key="order.id"
-                class="grid grid-cols-9 gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-200 items-center"
-                :style="{ height: ITEM_HEIGHT + 'px' }"
+                :style="{
+                  transform: `translateY(${offsetY}px)`,
+                  willChange: 'transform',
+                }"
               >
-                <div class="text-sm font-medium text-gray-900">
+                <div
+                  v-for="{ item: order } in visibleItems"
+                  :key="order.id"
+                  class="grid grid-cols-[minmax(100px,1fr)_60px_90px_70px_70px_80px_80px_minmax(120px,1.2fr)_auto] gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-200 items-center"
+                  :style="{ height: ITEM_HEIGHT + 'px' }"
+                >
+                  <div class="text-sm font-medium text-gray-900 truncate">
+                    {{ getOrderNumber(order) }}
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    {{ getTableNumber(order) }}
+                  </div>
+                  <div class="text-sm text-gray-500 truncate">
+                    {{ getCustomerName(order) }}
+                  </div>
+                  <div>
+                    <span
+                      :class="getTypeClass(getOrderType(order))"
+                      class="px-1.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                    >
+                      {{ getTypeText(getOrderType(order)) }}
+                    </span>
+                  </div>
+                  <div>
+                    <span
+                      v-if="order.orderSource && order.orderSource !== 'direct'"
+                      :class="getSourceClass(order.orderSource)"
+                      class="px-1.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                    >
+                      {{ getSourceText(order.orderSource) }}
+                    </span>
+                    <span v-else class="text-xs text-gray-400">{{
+                      t("orders.source.direct")
+                    }}</span>
+                  </div>
+                  <div>
+                    <span
+                      :class="getStatusClass(order.status)"
+                      class="px-1.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                    >
+                      {{ getStatusText(order.status) }}
+                    </span>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    {{ formatPrice(order.totalAmount) }}
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ formatDateTime(order.createdAt) }}
+                  </div>
+                  <!-- Desktop actions: icon buttons -->
+                  <div class="flex items-center justify-end gap-1">
+                    <button
+                      class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      :title="t('orders.actions.view')"
+                      @click="viewOrderDetails(order)"
+                    >
+                      <EyeIcon class="h-4 w-4" />
+                    </button>
+                    <button
+                      v-if="canUpdateStatus(order.status)"
+                      class="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                      :title="t('orders.actions.update')"
+                      @click="updateOrderStatus(order)"
+                    >
+                      <ArrowPathIcon class="h-4 w-4" />
+                    </button>
+                    <button
+                      v-if="canCancel(order.status)"
+                      class="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      :title="t('orders.actions.cancel')"
+                      @click="cancelOrder(order)"
+                    >
+                      <XCircleIcon class="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Mobile/Tablet Card List (<lg) ==================== -->
+        <div class="lg:hidden">
+          <div v-if="filteredOrders.length > 0" class="space-y-3">
+            <div
+              v-for="order in filteredOrders"
+              :key="order.id"
+              class="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+            >
+              <!-- Card header: order number + status -->
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-semibold text-gray-900">
                   {{ getOrderNumber(order) }}
+                </span>
+                <span
+                  :class="getStatusClass(order.status)"
+                  class="px-2 py-0.5 text-xs font-semibold rounded-full"
+                >
+                  {{ getStatusText(order.status) }}
+                </span>
+              </div>
+
+              <!-- Card body: key info in 2-col grid -->
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm mb-3">
+                <div class="text-gray-500">
+                  {{ t("orders.columns.customer") }}
                 </div>
-                <div class="text-sm text-gray-500">
-                  {{ getTableNumber(order) }}
-                </div>
-                <div class="text-sm text-gray-500">
+                <div class="text-gray-900 text-right">
                   {{ getCustomerName(order) }}
                 </div>
-                <div>
+
+                <div class="text-gray-500">
+                  {{ t("orders.columns.tableNumber") }}
+                </div>
+                <div class="text-gray-900 text-right">
+                  {{ getTableNumber(order) }}
+                </div>
+
+                <div class="text-gray-500">{{ t("orders.columns.type") }}</div>
+                <div class="text-right">
                   <span
                     :class="getTypeClass(getOrderType(order))"
                     class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
@@ -205,78 +309,69 @@
                     {{ getTypeText(getOrderType(order)) }}
                   </span>
                 </div>
-                <div>
-                  <span
-                    v-if="order.orderSource && order.orderSource !== 'direct'"
-                    :class="getSourceClass(order.orderSource)"
-                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                  >
-                    {{ getSourceText(order.orderSource) }}
-                  </span>
-                  <span v-else class="text-xs text-gray-400">{{
-                    t("orders.source.direct")
-                  }}</span>
+
+                <div class="text-gray-500">{{ t("orders.columns.total") }}</div>
+                <div class="text-gray-900 font-semibold text-right">
+                  {{ formatPrice(order.totalAmount) }}
                 </div>
-                <div>
-                  <span
-                    :class="getStatusClass(order.status)"
-                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                  >
-                    {{ getStatusText(order.status) }}
-                  </span>
+
+                <div class="text-gray-500">
+                  {{ t("orders.columns.orderTime") }}
                 </div>
-                <div class="text-sm text-gray-500">
-                  RM{{ order.totalAmount }}
-                </div>
-                <div class="text-sm text-gray-500">
+                <div class="text-gray-500 text-right text-xs">
                   {{ formatDateTime(order.createdAt) }}
                 </div>
-                <div class="text-sm font-medium">
-                  <div class="flex items-center space-x-2">
-                    <button
-                      class="text-blue-600 hover:text-blue-900"
-                      @click="viewOrderDetails(order)"
-                    >
-                      {{ t("orders.actions.view") }}
-                    </button>
-                    <button
-                      v-if="canUpdateStatus(order.status)"
-                      class="text-green-600 hover:text-green-900"
-                      @click="updateOrderStatus(order)"
-                    >
-                      {{ t("orders.actions.update") }}
-                    </button>
-                    <button
-                      v-if="canCancel(order.status)"
-                      class="text-red-600 hover:text-red-900"
-                      @click="cancelOrder(order)"
-                    >
-                      {{ t("orders.actions.cancel") }}
-                    </button>
-                  </div>
-                </div>
               </div>
-            </div>
-          </div>
 
-          <!-- 載入指示器 -->
-          <div
-            v-if="isLoading"
-            class="absolute bottom-0 left-0 right-0 p-4 bg-white text-center"
-          >
-            <div class="flex items-center justify-center">
+              <!-- Card footer: action buttons -->
               <div
-                class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"
-              />
-              <span class="ml-2 text-sm text-gray-600">{{
-                t("common.loading")
-              }}</span>
+                class="flex items-center gap-2 pt-3 border-t border-gray-100"
+              >
+                <button
+                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  @click="viewOrderDetails(order)"
+                >
+                  <EyeIcon class="h-4 w-4" />
+                  {{ t("orders.actions.view") }}
+                </button>
+                <button
+                  v-if="canUpdateStatus(order.status)"
+                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                  @click="updateOrderStatus(order)"
+                >
+                  <ArrowPathIcon class="h-4 w-4" />
+                  {{ t("orders.actions.update") }}
+                </button>
+                <button
+                  v-if="canCancel(order.status)"
+                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                  @click="cancelOrder(order)"
+                >
+                  <XCircleIcon class="h-4 w-4" />
+                  {{ t("orders.actions.cancel") }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
+        <!-- 載入指示器 -->
+        <div v-if="isLoading" class="p-4 text-center">
+          <div class="flex items-center justify-center">
+            <div
+              class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"
+            />
+            <span class="ml-2 text-sm text-gray-600">{{
+              t("common.loading")
+            }}</span>
+          </div>
+        </div>
+
         <!-- 空狀態 -->
-        <div v-if="filteredOrders.length === 0" class="text-center py-12">
+        <div
+          v-if="filteredOrders.length === 0 && !isLoading"
+          class="text-center py-12"
+        >
           <ShoppingBagIcon class="mx-auto h-12 w-12 text-gray-400" />
           <h3 class="mt-2 text-sm font-medium text-gray-900">
             {{ t("orders.empty.title") }}
@@ -296,7 +391,7 @@
           @click="selectedOrder = null"
         />
         <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full">
-          <div class="p-6">
+          <div class="p-4 sm:p-6">
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-2">
                 <h3 class="text-lg font-semibold">
@@ -412,9 +507,9 @@
                     <span class="text-gray-500">{{
                       t("orders.detail.deliveryFee")
                     }}</span>
-                    <span class="font-semibold"
-                      >NT$ {{ selectedOrder.deliveryInfo.deliveryFee }}</span
-                    >
+                    <span class="font-semibold">{{
+                      formatPrice(selectedOrder.deliveryInfo.deliveryFee)
+                    }}</span>
                   </template>
                 </div>
               </div>
@@ -438,7 +533,9 @@
                           {{ t("orders.detail.quantity") }}: {{ item.quantity }}
                         </p>
                       </div>
-                      <p class="font-medium">RM{{ getItemTotalPrice(item) }}</p>
+                      <p class="font-medium">
+                        {{ formatPrice(item.unitPrice * item.quantity) }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -450,11 +547,13 @@
                   class="flex justify-between text-sm text-gray-500 mb-2"
                 >
                   <span>{{ t("orders.detail.deliveryFee") }}</span>
-                  <span>NT$ {{ selectedOrder.deliveryInfo.deliveryFee }}</span>
+                  <span>{{
+                    formatPrice(selectedOrder.deliveryInfo.deliveryFee)
+                  }}</span>
                 </div>
                 <div class="flex justify-between text-lg font-semibold">
                   <span>{{ t("orders.detail.totalAmount") }}</span>
-                  <span>RM{{ selectedOrder.totalAmount }}</span>
+                  <span>{{ formatPrice(selectedOrder.totalAmount) }}</span>
                 </div>
               </div>
             </div>
@@ -468,6 +567,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 import { useOrderStore } from "@/stores/order";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import type { Order } from "@/types";
@@ -480,9 +580,11 @@ import {
   ArrowPathIcon,
   ShoppingBagIcon,
   XMarkIcon,
+  EyeIcon,
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 const orderStore = useOrderStore();
 
 // 響應式數據
@@ -523,8 +625,6 @@ const getSourceText = (source: string) => {
   return texts[source] || source;
 };
 const getMenuItemName = (item: any) => `菜品 #${item.menuItemId}`; // In real app, would lookup from menu
-const getItemTotalPrice = (item: any) =>
-  (item.unitPrice * item.quantity).toFixed(2);
 
 // 計算屬性
 const stats = computed(() => ({
@@ -573,8 +673,8 @@ const filteredOrders = computed(() => {
 });
 
 // 虛擬滾動配置
-const ITEM_HEIGHT = 60; // 每個訂單行的固定高度 (px)
-const CONTAINER_HEIGHT = 500; // 容器高度 (px)
+const ITEM_HEIGHT = 52;
+const CONTAINER_HEIGHT = 500;
 
 const {
   containerRef: _containerRef,
@@ -692,12 +792,12 @@ onMounted(() => {
 
 <style scoped>
 .orders-view {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 1024px) {
   .orders-view {
-    padding: 1rem;
+    padding: 1.5rem;
   }
 }
 </style>

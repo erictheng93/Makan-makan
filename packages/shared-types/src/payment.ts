@@ -1,6 +1,14 @@
 export type CountryCode = "TW" | "MY" | "VN";
 export type CurrencyCode = "TWD" | "MYR" | "VND";
 
+export interface CurrencyFormatConfig {
+  symbol: string;
+  position: "before" | "after";
+  space: boolean;
+  decimals: number;
+  locale: string;
+}
+
 export type PaymentMethod =
   | "credit_card"
   | "debit_card"

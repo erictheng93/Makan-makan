@@ -174,7 +174,7 @@
                           {{ item.menuItem.name }}
                         </h3>
                         <p class="text-sm text-gray-600 mt-1">
-                          ${{ formatPrice(item.price) }}
+                          {{ formatPrice(item.price) }}
                         </p>
 
                         <!-- Customizations -->
@@ -298,7 +298,7 @@
                         </button>
                       </div>
                       <div class="text-lg font-bold text-gray-900">
-                        ${{ formatPrice(item.totalPrice) }}
+                        {{ formatPrice(item.totalPrice) }}
                       </div>
                     </div>
                   </div>
@@ -318,7 +318,7 @@
                 class="flex justify-between text-sm text-gray-500"
               >
                 <span>{{ t("shopCart.subtotal") }}</span>
-                <span>NT$ {{ formatPrice(shopCartStore.subtotal) }}</span>
+                <span>{{ formatPrice(shopCartStore.subtotal) }}</span>
               </div>
               <div
                 v-if="
@@ -328,13 +328,13 @@
                 class="flex justify-between text-sm text-gray-500"
               >
                 <span>{{ t("shopCart.deliveryFee") }}</span>
-                <span>NT$ {{ formatPrice(shopCartStore.deliveryFee) }}</span>
+                <span>{{ formatPrice(shopCartStore.deliveryFee) }}</span>
               </div>
               <div class="flex justify-between font-bold text-lg">
                 <span>{{ t("shopCart.total") }}</span>
-                <span class="text-gray-900"
-                  >NT$ {{ formatPrice(shopCartStore.totalWithDelivery) }}</span
-                >
+                <span class="text-gray-900">{{
+                  formatPrice(shopCartStore.totalWithDelivery)
+                }}</span>
               </div>
 
               <!-- Customer Info -->
@@ -423,9 +423,9 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useShopCartStore } from "@/stores/shopCart";
-import { formatPrice } from "@/utils/format";
 import { apiClient } from "@/services/api";
 import { useI18n } from "@/composables/useI18n";
+import { useCurrency } from "@/composables/useCurrency";
 
 const props = defineProps<{
   show: boolean;
@@ -440,6 +440,7 @@ const emit = defineEmits<{
 const router = useRouter();
 const toast = useToast();
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 const shopCartStore = useShopCartStore();
 const isSubmitting = ref(false);
 

@@ -64,7 +64,7 @@
               {{ t("coupons.stats.totalSavings") }}
             </p>
             <p class="text-2xl font-bold text-gray-900">
-              RM{{ formatMoney(stats.totalSavings) }}
+              {{ formatPrice(stats.totalSavings / 100) }}
             </p>
           </div>
         </div>
@@ -195,13 +195,13 @@
                     <span v-if="coupon.maxDiscountAmount" class="text-gray-500">
                       ({{
                         t("coupons.table.maxDiscount", {
-                          amount: formatMoney(coupon.maxDiscountAmount),
+                          amount: formatPrice(coupon.maxDiscountAmount / 100),
                         })
                       }})
                     </span>
                   </span>
                   <span v-else>
-                    RM{{ formatMoney(coupon.discountValue) }}
+                    {{ formatPrice(coupon.discountValue / 100) }}
                   </span>
                 </div>
                 <div
@@ -210,7 +210,7 @@
                 >
                   {{
                     t("coupons.table.minOrder", {
-                      amount: formatMoney(coupon.minOrderAmount),
+                      amount: formatPrice(coupon.minOrderAmount / 100),
                     })
                   }}
                 </div>
@@ -431,6 +431,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 import {
   PlusIcon,
   TicketIcon,
@@ -445,6 +446,7 @@ import {
 import { useAsyncModals } from "@/composables/useAsyncModals";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // 異步加載 Modal 組件
 const { CouponFormModal, CouponStatsModal } = useAsyncModals();
@@ -550,10 +552,6 @@ const visiblePages = computed(() => {
 });
 
 // Methods
-const formatMoney = (amount: number) => {
-  return (amount / 100).toFixed(2);
-};
-
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("zh-TW", {
     year: "numeric",

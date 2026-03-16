@@ -45,13 +45,12 @@
                       v-if="coupon?.maxDiscountAmount"
                       class="text-gray-500"
                     >
-                      ({{ t("couponStats.maxDiscount") }} RM{{
-                        formatMoney(coupon?.maxDiscountAmount)
-                      }})
+                      ({{ t("couponStats.maxDiscount") }}
+                      {{ formatPrice((coupon?.maxDiscountAmount || 0) / 100) }})
                     </span>
                   </span>
                   <span v-else>
-                    RM{{ formatMoney(coupon?.discountValue) }}
+                    {{ formatPrice((coupon?.discountValue || 0) / 100) }}
                   </span>
                 </p>
               </div>
@@ -108,7 +107,7 @@
 
               <div class="bg-green-50 rounded-lg p-4">
                 <div class="text-2xl font-bold text-green-600">
-                  RM{{ formatMoney(stats.totalDiscount || 0) }}
+                  {{ formatPrice((stats.totalDiscount || 0) / 100) }}
                 </div>
                 <div class="text-sm text-green-700">
                   {{ t("couponStats.totalDiscount") }}
@@ -117,7 +116,7 @@
 
               <div class="bg-purple-50 rounded-lg p-4">
                 <div class="text-2xl font-bold text-purple-600">
-                  RM{{ formatMoney(stats.avgDiscount || 0) }}
+                  {{ formatPrice((stats.avgDiscount || 0) / 100) }}
                 </div>
                 <div class="text-sm text-purple-700">
                   {{ t("couponStats.avgDiscount") }}
@@ -254,6 +253,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 import {
   XMarkIcon,
   CheckCircleIcon,
@@ -262,6 +262,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 interface Coupon {
   id: number;
@@ -302,10 +303,6 @@ const usageRate = computed(() => {
 });
 
 // Utility functions
-const formatMoney = (amount: number) => {
-  return (amount / 100).toFixed(2);
-};
-
 const formatDateTime = (dateString: string | undefined) => {
   if (!dateString) return "-";
   return new Date(dateString).toLocaleString("zh-TW", {

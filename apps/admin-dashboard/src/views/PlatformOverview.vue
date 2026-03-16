@@ -2,29 +2,36 @@
   <div class="space-y-6">
     <!-- Header -->
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Platform Overview</h1>
+      <h1 class="text-2xl font-bold text-gray-900">
+        {{ t("platform.title") }}
+      </h1>
       <p class="mt-1 text-sm text-gray-500">
-        Manage all restaurants from a single dashboard. Select a restaurant to
-        access its full management interface.
+        {{ t("platform.description") }}
       </p>
     </div>
 
     <!-- Stats Row -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="text-sm font-medium text-gray-500">Total Restaurants</div>
+        <div class="text-sm font-medium text-gray-500">
+          {{ t("platform.totalRestaurants") }}
+        </div>
         <div class="mt-1 text-2xl font-bold text-gray-900">
           {{ restaurants.length }}
         </div>
       </div>
       <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="text-sm font-medium text-gray-500">Active</div>
+        <div class="text-sm font-medium text-gray-500">
+          {{ t("platform.active") }}
+        </div>
         <div class="mt-1 text-2xl font-bold text-green-600">
           {{ activeCount }}
         </div>
       </div>
       <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="text-sm font-medium text-gray-500">Inactive</div>
+        <div class="text-sm font-medium text-gray-500">
+          {{ t("platform.inactive") }}
+        </div>
         <div class="mt-1 text-2xl font-bold text-gray-400">
           {{ restaurants.length - activeCount }}
         </div>
@@ -47,9 +54,11 @@
       class="text-center py-12 bg-white rounded-lg border border-gray-200"
     >
       <Store class="mx-auto h-12 w-12 text-gray-400" />
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No restaurants</h3>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">
+        {{ t("platform.noRestaurants") }}
+      </h3>
       <p class="mt-1 text-sm text-gray-500">
-        No restaurants found in the system.
+        {{ t("platform.noRestaurantsDesc") }}
       </p>
     </div>
 
@@ -80,7 +89,11 @@
                 : 'bg-gray-100 text-gray-500'
             "
           >
-            {{ restaurant.isActive !== false ? "Active" : "Inactive" }}
+            {{
+              restaurant.isActive !== false
+                ? t("platform.active")
+                : t("platform.inactive")
+            }}
           </span>
         </div>
 
@@ -88,7 +101,7 @@
           class="mt-4 w-full px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
           @click="manageRestaurant(restaurant)"
         >
-          Manage
+          {{ t("platform.manage") }}
         </button>
       </div>
     </div>
@@ -98,6 +111,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
 import { Store } from "lucide-vue-next";
@@ -109,6 +123,7 @@ interface RestaurantItem {
   isActive?: boolean;
 }
 
+const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 

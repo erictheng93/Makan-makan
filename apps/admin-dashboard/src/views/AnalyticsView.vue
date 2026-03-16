@@ -45,7 +45,7 @@
               {{ t("analytics.metrics.totalRevenue") }}
             </p>
             <p class="text-2xl font-bold text-gray-900">
-              RM{{ formatMoney(metrics.totalRevenue) }}
+              {{ formatPrice(metrics.totalRevenue) }}
             </p>
             <p
               :class="
@@ -107,7 +107,7 @@
               {{ t("analytics.metrics.averageOrderValue") }}
             </p>
             <p class="text-2xl font-bold text-gray-900">
-              RM{{ formatMoney(metrics.averageOrderValue) }}
+              {{ formatPrice(metrics.averageOrderValue) }}
             </p>
             <p
               :class="
@@ -247,7 +247,7 @@
               </div>
               <div class="text-right">
                 <p class="text-sm font-medium text-gray-900">
-                  RM{{ formatMoney(item.revenue) }}
+                  {{ formatPrice(item.revenue) }}
                 </p>
                 <div class="w-32 bg-gray-200 rounded-full h-2 mt-1">
                   <div
@@ -349,10 +349,10 @@
                   {{ day.orders }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  RM{{ formatMoney(day.revenue) }}
+                  {{ formatPrice(day.revenue) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  RM{{ formatMoney(day.averageOrder) }}
+                  {{ formatPrice(day.averageOrder) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {{ day.tableUtilization }}%
@@ -369,6 +369,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 import {
   CurrencyDollarIcon,
   ShoppingBagIcon,
@@ -382,6 +383,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // 響應式數據
 const selectedPeriod = ref("today");
@@ -474,13 +476,6 @@ const dailyData = ref([
 ]);
 
 // 方法
-const formatMoney = (amount: number) => {
-  return amount.toLocaleString("en-MY", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
 const getBusinessHourColor = (percentage: number) => {
   if (percentage >= 60) return "bg-green-500";
   if (percentage >= 40) return "bg-yellow-500";

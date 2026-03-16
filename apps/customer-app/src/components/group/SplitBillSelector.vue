@@ -6,6 +6,7 @@
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { SplitBillConfig, GroupMember } from "@/composables/useGroupOrder";
+import { useCurrency } from "@/composables/useCurrency";
 
 // Props
 interface Props {
@@ -138,9 +139,7 @@ function selectPayer(memberId: string): void {
   });
 }
 
-function formatPrice(price: number): string {
-  return `$${price.toFixed(0)}`;
-}
+const { formatAmount: formatPrice } = useCurrency();
 
 function getMemberShareAmount(memberId: string): number {
   const share = customShares.value[memberId] || 0;

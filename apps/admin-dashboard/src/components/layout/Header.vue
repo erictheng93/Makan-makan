@@ -153,7 +153,8 @@ const user = computed(() => authStore.user);
 const unreadNotifications = computed(() => notificationStore.unreadCount);
 
 const pageTitle = computed(() => {
-  return (route.meta.title as string) || t("header.title");
+  const titleKey = route.meta.titleKey as string | undefined;
+  return titleKey ? t(titleKey) : t("header.title");
 });
 
 const breadcrumbs = computed(() => {
@@ -164,6 +165,7 @@ const breadcrumbs = computed(() => {
 
   if (pathSegments.length > 1) {
     const routeMapping: Record<string, string> = {
+      platform: t("platform.title"),
       orders: t("header.breadcrumb.orders"),
       menu: t("header.breadcrumb.menu"),
       tables: t("header.breadcrumb.tables"),

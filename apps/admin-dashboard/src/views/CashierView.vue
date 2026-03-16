@@ -25,7 +25,7 @@
             {{ t("cashier.todayPerformance") }}
           </p>
           <p class="text-lg font-semibold text-green-600">
-            RM{{ formatMoney(todayRevenue) }}
+            {{ formatPrice(todayRevenue) }}
           </p>
         </div>
 
@@ -134,7 +134,7 @@
                 </div>
                 <div class="text-right">
                   <p class="text-xl font-bold text-gray-900">
-                    RM{{ formatMoney(order.totalAmount) }}
+                    {{ formatPrice(order.totalAmount) }}
                   </p>
                   <p class="text-sm text-gray-500">
                     {{ t("cashier.itemCount", { count: order.items.length }) }}
@@ -219,7 +219,7 @@
                         >x{{ item.quantity }}</span
                       >
                     </div>
-                    <span>RM{{ formatMoney(item.totalPrice) }}</span>
+                    <span>{{ formatPrice(item.totalPrice) }}</span>
                   </div>
                 </div>
               </div>
@@ -228,15 +228,15 @@
               <div class="border-t border-gray-200 pt-4 space-y-2">
                 <div class="flex justify-between text-sm">
                   <span>{{ t("cashier.subtotal") }}:</span>
-                  <span>RM{{ formatMoney(selectedOrder.subtotal) }}</span>
+                  <span>{{ formatPrice(selectedOrder.subtotal) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>{{ t("cashier.serviceCharge") }}:</span>
-                  <span>RM{{ formatMoney(selectedOrder.serviceCharge) }}</span>
+                  <span>{{ formatPrice(selectedOrder.serviceCharge) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>{{ t("cashier.tax") }}:</span>
-                  <span>RM{{ formatMoney(selectedOrder.taxAmount) }}</span>
+                  <span>{{ formatPrice(selectedOrder.taxAmount) }}</span>
                 </div>
                 <div
                   v-if="selectedOrder.discountAmount > 0"
@@ -250,7 +250,7 @@
                     </span>
                     <span v-else>{{ t("cashier.discount") }}:</span>
                     <span
-                      >-RM{{ formatMoney(selectedOrder.discountAmount) }}</span
+                      >-{{ formatPrice(selectedOrder.discountAmount) }}</span
                     >
                   </div>
                 </div>
@@ -258,7 +258,7 @@
                   class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200"
                 >
                   <span>{{ t("cashier.total") }}:</span>
-                  <span>RM{{ formatMoney(selectedOrder.totalAmount) }}</span>
+                  <span>{{ formatPrice(selectedOrder.totalAmount) }}</span>
                 </div>
               </div>
             </div>
@@ -302,7 +302,9 @@
                 t("cashier.amountReceived")
               }}</label>
               <div class="relative">
-                <span class="absolute left-3 top-3 text-gray-500">RM</span>
+                <span class="absolute left-3 top-3 text-gray-500">{{
+                  currencySymbol
+                }}</span>
                 <input
                   v-model.number="cashReceived"
                   type="number"
@@ -318,15 +320,15 @@
               >
                 <div class="flex justify-between text-sm">
                   <span>{{ t("cashier.amountDue") }}:</span>
-                  <span class="font-medium"
-                    >RM{{ formatMoney(selectedOrder.totalAmount) }}</span
-                  >
+                  <span class="font-medium">{{
+                    formatPrice(selectedOrder.totalAmount)
+                  }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span>{{ t("cashier.received") }}:</span>
-                  <span class="font-medium"
-                    >RM{{ formatMoney(cashReceived) }}</span
-                  >
+                  <span class="font-medium">{{
+                    formatPrice(cashReceived)
+                  }}</span>
                 </div>
                 <div
                   class="flex justify-between text-lg font-bold mt-1 pt-1 border-t border-gray-200"
@@ -335,7 +337,7 @@
                   <span
                     :class="change >= 0 ? 'text-green-600' : 'text-red-600'"
                   >
-                    RM{{ formatMoney(change) }}
+                    {{ formatPrice(change) }}
                   </span>
                 </div>
               </div>
@@ -418,24 +420,20 @@
                 </h4>
                 <div class="text-sm text-green-800 space-y-1">
                   <p>
-                    {{ t("cashier.cash") }}: RM{{
-                      formatMoney(shiftReport.cashTotal)
-                    }}
+                    {{ t("cashier.cash") }}:
+                    {{ formatPrice(shiftReport.cashTotal) }}
                   </p>
                   <p>
-                    {{ t("cashier.card") }}: RM{{
-                      formatMoney(shiftReport.cardTotal)
-                    }}
+                    {{ t("cashier.card") }}:
+                    {{ formatPrice(shiftReport.cardTotal) }}
                   </p>
                   <p>
-                    {{ t("cashier.digitalPayment") }}: RM{{
-                      formatMoney(shiftReport.digitalTotal)
-                    }}
+                    {{ t("cashier.digitalPayment") }}:
+                    {{ formatPrice(shiftReport.digitalTotal) }}
                   </p>
                   <p class="font-bold text-lg pt-1 border-t border-green-200">
-                    {{ t("cashier.total") }}: RM{{
-                      formatMoney(shiftReport.totalRevenue)
-                    }}
+                    {{ t("cashier.total") }}:
+                    {{ formatPrice(shiftReport.totalRevenue) }}
                   </p>
                 </div>
               </div>
@@ -460,7 +458,7 @@
                     {{ t("cashier.avgOrderValue") }}
                   </p>
                   <p class="text-2xl font-bold text-gray-900">
-                    RM{{ formatMoney(shiftReport.avgOrderValue) }}
+                    {{ formatPrice(shiftReport.avgOrderValue) }}
                   </p>
                 </div>
                 <div class="bg-gray-50 p-3 rounded">
@@ -486,7 +484,7 @@
                     >{{ t("cashier.systemAmount") }}</label
                   >
                   <div class="text-lg font-bold text-yellow-900">
-                    RM{{ formatMoney(shiftReport.systemCashAmount) }}
+                    {{ formatPrice(shiftReport.systemCashAmount) }}
                   </div>
                 </div>
                 <div>
@@ -517,10 +515,10 @@
                       ? t("cashier.cashMatch")
                       : cashDifference > 0
                         ? t("cashier.cashOver", {
-                            amount: formatMoney(Math.abs(cashDifference)),
+                            amount: formatPrice(Math.abs(cashDifference)),
                           })
                         : t("cashier.cashShort", {
-                            amount: formatMoney(Math.abs(cashDifference)),
+                            amount: formatPrice(Math.abs(cashDifference)),
                           })
                   }}
                 </p>
@@ -590,7 +588,9 @@
                 t("cashier.refundAmount")
               }}</label>
               <div class="relative">
-                <span class="absolute left-3 top-3 text-gray-500">RM</span>
+                <span class="absolute left-3 top-3 text-gray-500">{{
+                  currencySymbol
+                }}</span>
                 <input
                   v-model.number="refundData.amount"
                   type="number"
@@ -717,8 +717,10 @@ import {
   BuildingLibraryIcon,
 } from "@heroicons/vue/24/solid";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 
 const { t } = useI18n();
+const { formatPrice, currencySymbol } = useCurrency();
 
 // Type definitions
 interface OrderItem {
@@ -968,10 +970,6 @@ const selectOrder = (order: CashierOrder) => {
   selectedPaymentMethod.value = "cash";
 };
 
-const formatMoney = (amount: number) => {
-  return amount.toFixed(2);
-};
-
 const formatTime = (dateTime: string) => {
   return new Date(dateTime).toLocaleTimeString("zh-TW", {
     hour: "2-digit",
@@ -1106,7 +1104,7 @@ const processRefund = async () => {
     alert(
       t("cashier.alerts.refundSuccess", {
         orderNumber: refundData.value.orderNumber,
-        amount: formatMoney(refundData.value.amount),
+        amount: formatPrice(refundData.value.amount),
         reason: getRefundReasonText(refundData.value.reason),
       }),
     );

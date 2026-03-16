@@ -121,6 +121,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -164,6 +165,7 @@ interface Props {
 }
 
 const { t } = useI18n();
+const { formatPrice, currencySymbol } = useCurrency();
 
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,
@@ -376,7 +378,7 @@ const getMetricLabel = (metric: string) => {
   const labels: Record<string, string> = {
     completion_rate: t("performanceChart.completionRatePercent"),
     avg_prep_time: t("performanceChart.avgPrepTimeMinutes"),
-    revenue: t("performanceChart.revenueRM"),
+    revenue: `${t("performanceChart.revenue")} (${currencySymbol.value})`,
     total_orders: t("performanceChart.totalOrders"),
   };
   return labels[metric] || metric;
@@ -399,7 +401,7 @@ const formatValue = (value: number, metric: string) => {
     case "avg_prep_time":
       return t("performanceChart.minutesValue", { value: Math.round(value) });
     case "revenue":
-      return `RM${value.toFixed(2)}`;
+      return formatPrice(value);
     case "total_orders":
       return t("performanceChart.ordersValue", { value });
     default:

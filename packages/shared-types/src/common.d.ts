@@ -4,18 +4,13 @@ export interface ApiResponse<T = any> {
     error?: {
         code: string;
         message: string;
-        details?: any;
+        details?: unknown;
     };
     pagination?: {
         page: number;
         limit: number;
         total: number;
         totalPages: number;
-    };
-    meta?: {
-        timestamp: string;
-        requestId: string;
-        version: string;
     };
 }
 export interface BaseEntity {
