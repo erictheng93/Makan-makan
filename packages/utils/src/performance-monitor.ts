@@ -4,6 +4,10 @@
  * Track and analyze application performance metrics
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Browser-only module: declare types missing in Workers environments
+declare const window: any;
+
 export interface PerformanceMetric {
   name: string;
   value: number;
@@ -108,7 +112,7 @@ export class PerformanceMonitor {
     Pick<PerformanceMonitorOptions, "onReport">;
   private metrics: PerformanceMetric[] = [];
   private webVitals: WebVitals = {};
-  private observer: PerformanceObserver | null = null;
+  private observer: any = null;
 
   constructor(options: PerformanceMonitorOptions = {}) {
     this.options = {
@@ -184,7 +188,7 @@ export class PerformanceMonitor {
    */
   mark(name: string): void {
     if (!this.options.enabled) return;
-    performance.mark(name);
+    (performance as any).mark(name);
   }
 
   /**
@@ -194,8 +198,8 @@ export class PerformanceMonitor {
     if (!this.options.enabled) return;
 
     try {
-      performance.measure(name, startMark, endMark);
-      const measure = performance.getEntriesByName(name, "measure")[0];
+      (performance as any).measure(name, startMark, endMark);
+      const measure = (performance as any).getEntriesByName(name, "measure")[0];
 
       if (measure) {
         this.trackMetric({
@@ -229,9 +233,9 @@ export class PerformanceMonitor {
   getResourceTimings(): ResourceTiming[] {
     if (!this.options.trackResources) return [];
 
-    const resources = performance.getEntriesByType(
+    const resources = (performance as any).getEntriesByType(
       "resource",
-    ) as PerformanceResourceTiming[];
+    ) as any[];
 
     return resources.map((resource) => ({
       name: resource.name,
@@ -279,8 +283,8 @@ export class PerformanceMonitor {
   clear(): void {
     this.metrics = [];
     this.webVitals = {};
-    performance.clearMarks();
-    performance.clearMeasures();
+    (performance as any).clearMarks();
+    (performance as any).clearMeasures();
   }
 
   /**
@@ -319,7 +323,7 @@ export class PerformanceMonitor {
   private trackWebVitalsMetrics(): void {
     // Use PerformanceObserver for Web Vitals
     if ("PerformanceObserver" in window) {
-      this.observer = new PerformanceObserver((list) => {
+      this.observer = new PerformanceObserver((list: any) => {
         for (const entry of list.getEntries()) {
           if (entry.entryType === "largest-contentful-paint") {
             this.webVitals.LCP = entry.startTime;
@@ -331,7 +335,7 @@ export class PerformanceMonitor {
           }
 
           if (entry.entryType === "first-input") {
-            const fidEntry = entry as PerformanceEventTiming;
+            const fidEntry = entry as any;
             this.webVitals.FID = fidEntry.processingStart - fidEntry.startTime;
             this.trackMetric({
               name: "FID",
@@ -378,9 +382,10 @@ export class PerformanceMonitor {
     }
 
     // Track TTFB from Navigation Timing
-    if (performance.timing) {
+    if ((performance as any).timing) {
       const ttfb =
-        performance.timing.responseStart - performance.timing.requestStart;
+        (performance as any).timing.responseStart -
+        (performance as any).timing.requestStart;
       this.webVitals.TTFB = ttfb;
       this.trackMetric({ name: "TTFB", value: ttfb, unit: "ms" });
     }
@@ -430,7 +435,7 @@ export class PerformanceMonitor {
   private trackTimeToInteractive(): void {
     // Simple TTI heuristic: when there's a 5-second window of no long tasks
     let lastLongTaskEnd = 0;
-    const longTaskObserver = new PerformanceObserver((list) => {
+    const longTaskObserver = new PerformanceObserver((list: any) => {
       for (const entry of list.getEntries()) {
         lastLongTaskEnd = entry.startTime + entry.duration;
       }
@@ -456,9 +461,7 @@ export class PerformanceMonitor {
   /**
    * Categorize resource type
    */
-  private categorizeResource(
-    resource: PerformanceResourceTiming,
-  ): ResourceTiming["type"] {
+  private categorizeResource(resource: any): ResourceTiming["type"] {
     const name = resource.name.toLowerCase();
     const initiatorType = resource.initiatorType;
 

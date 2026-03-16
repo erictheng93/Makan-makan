@@ -56,7 +56,7 @@ describe("Group Orders E2E Tests", () => {
       id: 2,
       username: "owner",
       role: 1,
-      restaurantId: 1, // Must match transformed restaurantId (number) from statisticsQuerySchema
+      restaurantId: "1", // Must match transformed restaurantId from statisticsQuerySchema
     });
 
     // Seed test data

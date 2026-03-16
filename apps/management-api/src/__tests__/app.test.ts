@@ -47,7 +47,7 @@ describe("Management API - App", () => {
     it("should return healthy status", async () => {
       const res = await fetchApp("/health");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.status).toBe("healthy");
       expect(body.data.service).toBe("management-api");
@@ -56,13 +56,13 @@ describe("Management API - App", () => {
     it("should include API version from env", async () => {
       const env = createMockEnv({ API_VERSION: "v2" });
       const res = await fetchApp("/health", { env });
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.version).toBe("v2");
     });
 
     it("should include ISO timestamp", async () => {
       const res = await fetchApp("/health");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.timestamp).toBeDefined();
       // Validate it parses as a date
       expect(new Date(body.data.timestamp).getTime()).not.toBeNaN();
@@ -73,7 +73,7 @@ describe("Management API - App", () => {
     it("should return API information", async () => {
       const res = await fetchApp("/info");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.name).toBe("MakanMakan Management API");
       expect(body.features).toBeInstanceOf(Array);
       expect(body.features.length).toBeGreaterThan(0);
@@ -81,7 +81,7 @@ describe("Management API - App", () => {
 
     it("should list all available endpoint groups", async () => {
       const res = await fetchApp("/info");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.endpoints).toHaveProperty("tenants");
       expect(body.endpoints).toHaveProperty("deployments");
       expect(body.endpoints).toHaveProperty("licenses");
@@ -104,7 +104,7 @@ describe("Management API - App", () => {
     it("should return 404 for unknown routes", async () => {
       const res = await fetchApp("/api/v1/nonexistent");
       expect(res.status).toBe(404);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("NOT_FOUND");
     });

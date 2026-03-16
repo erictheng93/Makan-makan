@@ -113,7 +113,7 @@ describe("Scheduling Feature", () => {
     const { default: schedulingRoutes } = await import("../routes/index");
     app = new Hono();
     app.route("/scheduling", schedulingRoutes);
-    app.onError((err, c) => {
+    app.onError((err: any, c: any) => {
       if (err instanceof ApiError) {
         return c.json(
           { success: false, error: { code: err.code, message: err.message } },

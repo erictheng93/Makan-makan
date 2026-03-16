@@ -129,7 +129,7 @@ class ApiClient {
         if (!error.response) {
           throw new ApiException(
             "NETWORK_ERROR" as ApiErrorCode,
-            i18n.global.t("messages.networkError"),
+            (i18n.global as any).t("messages.networkError"),
             error.message,
           );
         }
@@ -141,7 +141,7 @@ class ApiClient {
           await this.handleAuthError();
           throw new ApiException(
             "UNAUTHORIZED" as ApiErrorCode,
-            i18n.global.t("messages.sessionExpired"),
+            (i18n.global as any).t("messages.sessionExpired"),
             data,
             status,
           );
@@ -174,7 +174,9 @@ class ApiClient {
   }
 
   private getErrorMessage(status: number): string {
-    const t = i18n.global.t.bind(i18n.global);
+    const t = (i18n.global as any).t.bind(i18n.global) as (
+      key: string,
+    ) => string;
     const messages: Record<number, string> = {
       400: t("errors.badRequest"),
       403: t("errors.forbidden"),
@@ -200,7 +202,7 @@ class ApiClient {
       }
       throw new ApiException(
         "INTERNAL_SERVER_ERROR" as ApiErrorCode,
-        i18n.global.t("errors.requestFailed"),
+        (i18n.global as any).t("errors.requestFailed"),
         error,
       );
     }
@@ -309,5 +311,5 @@ export const handleApiError = (error: unknown): string => {
     return error.message;
   }
 
-  return i18n.global.t("errors.unknown");
+  return (i18n.global as any).t("errors.unknown");
 };

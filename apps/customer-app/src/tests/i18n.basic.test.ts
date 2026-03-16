@@ -2,9 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { i18n, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from "@/i18n";
 
 // Helper to avoid vue-i18n's excessively deep type instantiation in tests
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const tGlobal = (key: string, params?: Record<string, any>): string =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params ? (i18n.global as any).t(key, params) : (i18n.global as any).t(key);
 
 describe("Basic i18n Configuration", () => {

@@ -6,7 +6,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import LicensesView from "@/views/LicensesView.vue";
-import { useTenantsStore } from "@/stores/tenants";
 
 vi.mock("@/services/api", () => ({
   tenantsApi: {
@@ -43,8 +42,6 @@ vi.mock("@/services/api", () => ({
     upgrade: vi.fn(),
   },
 }));
-
-import { licensesApi } from "@/services/api";
 
 describe("LicensesView", () => {
   beforeEach(() => {

@@ -63,7 +63,7 @@ describe("Updates Routes", () => {
     it("should return available releases", async () => {
       const res = await fetchApp("/api/v1/updates/releases");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.releases).toBeInstanceOf(Array);
       expect(body.data.releases.length).toBeGreaterThan(0);
@@ -72,7 +72,7 @@ describe("Updates Routes", () => {
 
     it("should return releases in descending order", async () => {
       const res = await fetchApp("/api/v1/updates/releases");
-      const body = await res.json();
+      const body: any = await res.json();
       const versions = body.data.releases.map(
         (r: { version: string }) => r.version,
       );
@@ -82,7 +82,7 @@ describe("Updates Routes", () => {
 
     it("should include changelog in each release", async () => {
       const res = await fetchApp("/api/v1/updates/releases");
-      const body = await res.json();
+      const body: any = await res.json();
       for (const release of body.data.releases) {
         expect(release.changelog).toBeInstanceOf(Array);
         expect(release.changelog.length).toBeGreaterThan(0);
@@ -118,7 +118,7 @@ describe("Updates Routes", () => {
 
       const res = await fetchApp("/api/v1/updates/pending?targetVersion=1.2.0");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.targetVersion).toBe("1.2.0");
       expect(body.data.tenants).toBeInstanceOf(Array);
@@ -132,7 +132,7 @@ describe("Updates Routes", () => {
       db.prepare.mockReturnValue(stmt);
 
       const res = await fetchApp("/api/v1/updates/pending");
-      const body = await res.json();
+      const body: any = await res.json();
       // Should use latest release version (1.2.0 from hardcoded releases)
       expect(body.data.targetVersion).toBe("1.2.0");
     });
@@ -156,7 +156,7 @@ describe("Updates Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.id).toBeDefined();
       expect(body.data.targetVersion).toBe("1.2.0");
@@ -176,7 +176,7 @@ describe("Updates Routes", () => {
         }),
       );
 
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.strategy).toBe("rolling");
     });
 
@@ -221,7 +221,7 @@ describe("Updates Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.error).toContain("not found");
     });
 
@@ -271,7 +271,7 @@ describe("Updates Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.planId).toBe("plan-123");
       expect(body.data.totalTenants).toBe(1);
@@ -309,7 +309,7 @@ describe("Updates Routes", () => {
       const res = await fetchApp("/api/v1/updates/plans/plan-123/progress");
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.totalTenants).toBe(5);
       expect(body.data.completedTenants).toBe(3);
@@ -350,7 +350,7 @@ describe("Updates Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
 
       // Should update KV with cancelled status
@@ -375,7 +375,7 @@ describe("Updates Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.error).toContain("in-progress");
     });
   });
@@ -396,7 +396,7 @@ describe("Updates Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.count).toBe(0);
     });
@@ -463,7 +463,7 @@ describe("Updates Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.planId).toBeDefined();
     });

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import axios from "axios";
+import "axios";
 
 // Mock axios before importing api module
 vi.mock("axios", () => {
@@ -27,9 +27,6 @@ vi.mock("axios", () => {
     __mockInstance: mockInstance,
   };
 });
-
-// We need to get the mock instance that was created
-const mockAxiosCreate = vi.mocked(axios.create);
 
 describe("API Service", () => {
   let mockInstance: any;
@@ -210,7 +207,7 @@ describe("API Service", () => {
       const deployment = { id: "d1", status: "completed" };
       mockInstance.post.mockResolvedValue({ data: { data: deployment } });
 
-      const result = await deploymentsApi.rollback("t1", "1.0.0");
+      await deploymentsApi.rollback("t1", "1.0.0");
 
       expect(mockInstance.post).toHaveBeenCalledWith(
         "/deployments/t1/rollback",
@@ -264,7 +261,7 @@ describe("API Service", () => {
       const license = { id: "l1", expiresAt: "2027-01-01" };
       mockInstance.post.mockResolvedValue({ data: { data: license } });
 
-      const result = await licensesApi.renew("t1", "2027-01-01");
+      await licensesApi.renew("t1", "2027-01-01");
 
       expect(mockInstance.post).toHaveBeenCalledWith("/licenses/t1/renew", {
         expiresAt: "2027-01-01",
@@ -276,7 +273,7 @@ describe("API Service", () => {
       const license = { id: "l1", tier: "professional" };
       mockInstance.post.mockResolvedValue({ data: { data: license } });
 
-      const result = await licensesApi.upgrade("t1", "professional");
+      await licensesApi.upgrade("t1", "professional");
 
       expect(mockInstance.post).toHaveBeenCalledWith("/licenses/t1/upgrade", {
         tier: "professional",

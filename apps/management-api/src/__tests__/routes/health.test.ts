@@ -94,7 +94,7 @@ describe("Health Routes", () => {
 
       const res = await fetchApp("/api/v1/health/tenants");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.tenants).toHaveLength(3);
       expect(body.data.summary.total).toBe(3);
@@ -110,7 +110,7 @@ describe("Health Routes", () => {
       db.prepare.mockReturnValue(stmt);
 
       const res = await fetchApp("/api/v1/health/tenants");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.tenants).toEqual([]);
       expect(body.data.summary.total).toBe(0);
     });
@@ -123,7 +123,7 @@ describe("Health Routes", () => {
 
       const res = await fetchApp("/api/v1/health/tenants");
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("GET_HEALTH_FAILED");
     });
   });
@@ -172,7 +172,7 @@ describe("Health Routes", () => {
 
       const res = await fetchApp("/api/v1/health/tenants/T-1");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.tenant.name).toBe("Restaurant A");
       expect(body.data.health.uptimePercentage).toBeCloseTo(66.67, 1);
@@ -211,7 +211,7 @@ describe("Health Routes", () => {
       });
 
       const res = await fetchApp("/api/v1/health/tenants/T-1");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.health.issues).toBeDefined();
       expect(body.data.health.issues).toContain("Service is currently down");
       expect(body.data.health.issues).toContain("High response time detected");
@@ -250,7 +250,7 @@ describe("Health Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.tenantId).toBe("T-1");
       expect(body.data.status).toBe("healthy");
@@ -290,7 +290,7 @@ describe("Health Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -329,7 +329,7 @@ describe("Health Routes", () => {
       );
 
       expect(res.status).toBe(404);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("NOT_FOUND");
     });
 
@@ -370,7 +370,7 @@ describe("Health Routes", () => {
         const res = await fetchApp("/api/v1/health/check/T-1", jsonBody({}));
 
         expect(res.status).toBe(200);
-        const body = await res.json();
+        const body: any = await res.json();
         expect(body.success).toBe(true);
         expect(body.data.tenantId).toBe("T-1");
         expect(["healthy", "degraded"]).toContain(body.data.status);
@@ -412,7 +412,7 @@ describe("Health Routes", () => {
         const res = await fetchApp("/api/v1/health/check/T-1", jsonBody({}));
 
         expect(res.status).toBe(200);
-        const body = await res.json();
+        const body: any = await res.json();
         expect(body.data.status).toBe("down");
       } finally {
         globalThis.fetch = originalFetch;

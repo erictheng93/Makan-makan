@@ -234,9 +234,7 @@ describe("SuccessView", () => {
     it("should render admin dashboard link", () => {
       const wrapper = mountComponent();
 
-      const adminLink = wrapper.find(
-        'a[href="https://myrestaurant.makanmakan.app/admin"]',
-      );
+      wrapper.find('a[href="https://myrestaurant.makanmakan.app/admin"]');
       // The link is constructed dynamically, let's check text
       expect(wrapper.text()).toContain("前往管理後台");
     });

@@ -46,13 +46,10 @@ vi.mock("@/services/api", () => ({
 }));
 
 describe("DashboardView", () => {
-  let tenantsStore: ReturnType<typeof useTenantsStore>;
-  let healthStore: ReturnType<typeof useHealthStore>;
-
   beforeEach(() => {
     setActivePinia(createPinia());
-    tenantsStore = useTenantsStore();
-    healthStore = useHealthStore();
+    useTenantsStore();
+    useHealthStore();
   });
 
   const mountView = () => {

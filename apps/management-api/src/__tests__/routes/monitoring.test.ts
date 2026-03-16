@@ -104,7 +104,7 @@ describe("Monitoring Routes", () => {
 
       const res = await fetchApp("/api/v1/monitoring/overview");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.tenants).toBeDefined();
       expect(body.data.tenants.total).toBe(10);
@@ -151,7 +151,7 @@ describe("Monitoring Routes", () => {
 
       const res = await fetchApp("/api/v1/monitoring/health/timeline?hours=24");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.timeline).toBeInstanceOf(Array);
       expect(body.data.hours).toBe(24);
@@ -164,7 +164,7 @@ describe("Monitoring Routes", () => {
       db.prepare.mockReturnValue(stmt);
 
       const res = await fetchApp("/api/v1/monitoring/health/timeline");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.hours).toBe(24);
     });
   });
@@ -205,7 +205,7 @@ describe("Monitoring Routes", () => {
 
       const res = await fetchApp("/api/v1/monitoring/performance");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.overall).toBeDefined();
       expect(body.data.overall.totalTenants).toBe(2);
@@ -221,7 +221,7 @@ describe("Monitoring Routes", () => {
       db.prepare.mockReturnValue(stmt);
 
       const res = await fetchApp("/api/v1/monitoring/performance");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.overall.totalTenants).toBe(0);
       expect(body.data.tenants).toEqual([]);
     });
@@ -253,7 +253,7 @@ describe("Monitoring Routes", () => {
 
       const res = await fetchApp("/api/v1/monitoring/alerts");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.alerts).toBeInstanceOf(Array);
       expect(body.data.total).toBeDefined();
@@ -300,7 +300,7 @@ describe("Monitoring Routes", () => {
       db.prepare.mockReturnValue(stmt);
 
       const res = await fetchApp("/api/v1/monitoring/alerts?status=all");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.alerts[0].details).toEqual({
         api: "slow",
         db: "ok",
@@ -365,7 +365,7 @@ describe("Monitoring Routes", () => {
 
       const res = await fetchApp("/api/v1/monitoring/versions");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.latestVersion).toBe("1.2.0");
       expect(body.data.distribution).toHaveLength(2);
@@ -381,7 +381,7 @@ describe("Monitoring Routes", () => {
       db.prepare.mockReturnValue(stmt);
 
       const res = await fetchApp("/api/v1/monitoring/versions");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.latestVersion).toBeNull();
     });
   });

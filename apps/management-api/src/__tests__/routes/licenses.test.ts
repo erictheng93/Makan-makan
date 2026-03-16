@@ -80,7 +80,7 @@ describe("License Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.licenseKey).toMatch(/^MKM-PRO-/);
       expect(body.data.tier).toBe("professional");
@@ -104,7 +104,7 @@ describe("License Routes", () => {
         }),
       );
 
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.licenseKey).toMatch(/^MKM-STD-/);
       expect(body.data.features.maxRestaurants).toBe(1);
       expect(body.data.features.aiAnalytics).toBe(false);
@@ -126,7 +126,7 @@ describe("License Routes", () => {
         }),
       );
 
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.licenseKey).toMatch(/^MKM-ENT-/);
       expect(body.data.features.maxRestaurants).toBe(10);
       expect(body.data.features.apiAccess).toBe(true);
@@ -140,7 +140,7 @@ describe("License Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -186,7 +186,7 @@ describe("License Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("GENERATE_FAILED");
     });
   });
@@ -220,7 +220,7 @@ describe("License Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.valid).toBe(true);
       expect(body.tier).toBe("standard");
       expect(body.features).toBeDefined();
@@ -242,7 +242,7 @@ describe("License Routes", () => {
         }),
       );
 
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.valid).toBe(false);
       expect(body.error).toContain("Invalid license");
     });
@@ -271,7 +271,7 @@ describe("License Routes", () => {
         }),
       );
 
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.valid).toBe(false);
       expect(body.error).toContain("suspended");
     });
@@ -298,7 +298,7 @@ describe("License Routes", () => {
         }),
       );
 
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.valid).toBe(false);
       expect(body.error).toContain("expired");
     });
@@ -338,7 +338,7 @@ describe("License Routes", () => {
 
       const res = await fetchApp("/api/v1/licenses/T-123");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.tier).toBe("professional");
       expect(body.data.isExpired).toBe(false);
@@ -358,7 +358,7 @@ describe("License Routes", () => {
       db.prepare.mockReturnValue(stmt);
 
       const res = await fetchApp("/api/v1/licenses/T-123");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.isExpired).toBe(true);
     });
 
@@ -406,7 +406,7 @@ describe("License Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.addedMonths).toBe(12);
       expect(body.data.tier).toBe("standard");
@@ -433,7 +433,7 @@ describe("License Routes", () => {
 
       const res = await fetchApp("/api/v1/licenses/T-123/renew", jsonBody({}));
 
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.addedMonths).toBe(12);
     });
 
@@ -481,7 +481,7 @@ describe("License Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.previousTier).toBe("standard");
       expect(body.data.newTier).toBe("professional");
@@ -496,7 +496,7 @@ describe("License Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 

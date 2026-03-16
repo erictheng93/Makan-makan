@@ -8,9 +8,8 @@ import {
 import type { SupportedLanguage } from "@/i18n";
 
 // Helper to avoid TS2589
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const tGlobal = (key: string, params?: Record<string, any>): string =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params ? (i18n.global as any).t(key, params) : (i18n.global as any).t(key);
 
 const ALL_LOCALES: SupportedLanguage[] = [

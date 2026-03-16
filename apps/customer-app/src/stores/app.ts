@@ -4,7 +4,7 @@ import type { Restaurant } from "@makanmakan/shared-types";
 import { i18n } from "@/i18n";
 
 // Helper to avoid deep type inference issues with vue-i18n
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const translate = (key: string): string =>
   (i18n.global as any).t(key) as string;
 

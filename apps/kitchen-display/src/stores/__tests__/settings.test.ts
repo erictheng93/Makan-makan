@@ -52,33 +52,25 @@ describe("Settings Store", () => {
 
   describe("Setting Updates", () => {
     it("should update language setting", () => {
-      let language: string;
-
-      language = "en-US";
+      const language: string = "en-US";
 
       expect(language).toBe("en-US");
     });
 
     it("should update theme setting", () => {
-      let theme: string;
-
-      theme = "dark";
+      const theme: string = "dark";
 
       expect(theme).toBe("dark");
     });
 
     it("should update sound settings", () => {
-      let soundEnabled: boolean;
-
-      soundEnabled = false;
+      const soundEnabled: boolean = false;
 
       expect(soundEnabled).toBe(false);
     });
 
     it("should update volume level", () => {
-      let volume: number;
-
-      volume = 0.5;
+      const volume: number = 0.5;
 
       expect(volume).toBe(0.5);
       expect(volume).toBeGreaterThanOrEqual(0);

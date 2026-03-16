@@ -7,6 +7,9 @@ import {
 } from "@/i18n";
 import type { SupportedLanguage } from "@/i18n";
 
+// Cast to avoid TS2589 "excessively deep type instantiation" from vue-i18n generics
+const t = i18n.global.t as (key: string, params?: any) => string;
+
 describe("Comprehensive i18n Tests", () => {
   beforeEach(() => {
     // Reset to default state
@@ -82,7 +85,7 @@ describe("Comprehensive i18n Tests", () => {
     it("should have all common keys in Traditional Chinese", () => {
       switchLanguage("zh-TW");
       commonKeys.forEach((key) => {
-        const translation = i18n.global.t(key);
+        const translation = t(key);
         expect(translation).not.toBe(key);
         expect(translation).toBeTruthy();
         expect(typeof translation).toBe("string");
@@ -92,7 +95,7 @@ describe("Comprehensive i18n Tests", () => {
     it("should have all common keys in Simplified Chinese", () => {
       switchLanguage("zh-CN");
       commonKeys.forEach((key) => {
-        const translation = i18n.global.t(key);
+        const translation = t(key);
         expect(translation).not.toBe(key);
         expect(translation).toBeTruthy();
         expect(typeof translation).toBe("string");
@@ -102,7 +105,7 @@ describe("Comprehensive i18n Tests", () => {
     it("should have all common keys in English", () => {
       switchLanguage("en-US");
       commonKeys.forEach((key) => {
-        const translation = i18n.global.t(key);
+        const translation = t(key);
         expect(translation).not.toBe(key);
         expect(translation).toBeTruthy();
         expect(typeof translation).toBe("string");
@@ -112,7 +115,7 @@ describe("Comprehensive i18n Tests", () => {
     it("should have all common keys in Vietnamese", () => {
       switchLanguage("vi-VN");
       commonKeys.forEach((key) => {
-        const translation = i18n.global.t(key);
+        const translation = t(key);
         expect(translation).not.toBe(key);
         expect(translation).toBeTruthy();
         expect(typeof translation).toBe("string");
@@ -123,44 +126,44 @@ describe("Comprehensive i18n Tests", () => {
   describe("Specific Translation Validation", () => {
     it("should have correct translations for common.confirm", () => {
       switchLanguage("zh-TW");
-      expect(i18n.global.t("common.confirm")).toBe("確認");
+      expect(t("common.confirm")).toBe("確認");
 
       switchLanguage("zh-CN");
-      expect(i18n.global.t("common.confirm")).toBe("确认");
+      expect(t("common.confirm")).toBe("确认");
 
       switchLanguage("en-US");
-      expect(i18n.global.t("common.confirm")).toBe("Confirm");
+      expect(t("common.confirm")).toBe("Confirm");
 
       switchLanguage("vi-VN");
-      expect(i18n.global.t("common.confirm")).toBe("Xác nhận");
+      expect(t("common.confirm")).toBe("Xác nhận");
     });
 
     it("should have correct translations for home.title", () => {
       switchLanguage("zh-TW");
-      expect(i18n.global.t("home.title")).toBe("歡迎來到 MakanMakan");
+      expect(t("home.title")).toBe("歡迎來到 MakanMakan");
 
       switchLanguage("zh-CN");
-      expect(i18n.global.t("home.title")).toBe("欢迎来到 MakanMakan");
+      expect(t("home.title")).toBe("欢迎来到 MakanMakan");
 
       switchLanguage("en-US");
-      expect(i18n.global.t("home.title")).toBe("Welcome to MakanMakan");
+      expect(t("home.title")).toBe("Welcome to MakanMakan");
 
       switchLanguage("vi-VN");
-      expect(i18n.global.t("home.title")).toBe("Chào mừng đến với MakanMakan");
+      expect(t("home.title")).toBe("Chào mừng đến với MakanMakan");
     });
 
     it("should have correct translations for menu.addToCart", () => {
       switchLanguage("zh-TW");
-      expect(i18n.global.t("menu.addToCart")).toBe("加入購物車");
+      expect(t("menu.addToCart")).toBe("加入購物車");
 
       switchLanguage("zh-CN");
-      expect(i18n.global.t("menu.addToCart")).toBe("加入购物车");
+      expect(t("menu.addToCart")).toBe("加入购物车");
 
       switchLanguage("en-US");
-      expect(i18n.global.t("menu.addToCart")).toBe("Add to Cart");
+      expect(t("menu.addToCart")).toBe("Add to Cart");
 
       switchLanguage("vi-VN");
-      expect(i18n.global.t("menu.addToCart")).toBe("Thêm vào giỏ hàng");
+      expect(t("menu.addToCart")).toBe("Thêm vào giỏ hàng");
     });
   });
 
@@ -168,36 +171,32 @@ describe("Comprehensive i18n Tests", () => {
     it("should handle parameterized translations in all languages", () => {
       // Test cart.itemCount with count parameter
       switchLanguage("zh-TW");
-      expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 項商品");
+      expect(t("cart.itemCount", { count: 3 })).toBe("3 項商品");
 
       switchLanguage("zh-CN");
-      expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 项商品");
+      expect(t("cart.itemCount", { count: 3 })).toBe("3 项商品");
 
       switchLanguage("en-US");
-      expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 item(s)");
+      expect(t("cart.itemCount", { count: 3 })).toBe("3 item(s)");
 
       switchLanguage("vi-VN");
-      expect(i18n.global.t("cart.itemCount", { count: 3 })).toBe("3 món ăn");
+      expect(t("cart.itemCount", { count: 3 })).toBe("3 món ăn");
     });
 
     it("should handle validation messages with parameters", () => {
       switchLanguage("zh-TW");
-      expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
-        "至少需要 6 個字元",
-      );
+      expect(t("validation.minLength", { min: 6 })).toBe("至少需要 6 個字元");
 
       switchLanguage("zh-CN");
-      expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
-        "至少需要 6 个字符",
-      );
+      expect(t("validation.minLength", { min: 6 })).toBe("至少需要 6 个字符");
 
       switchLanguage("en-US");
-      expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
+      expect(t("validation.minLength", { min: 6 })).toBe(
         "Minimum 6 characters required",
       );
 
       switchLanguage("vi-VN");
-      expect(i18n.global.t("validation.minLength", { min: 6 })).toBe(
+      expect(t("validation.minLength", { min: 6 })).toBe(
         "Ít nhất 6 ký tự là bắt buộc",
       );
     });
@@ -225,7 +224,7 @@ describe("Comprehensive i18n Tests", () => {
       languages.forEach((lang) => {
         switchLanguage(lang);
         menuKeys.forEach((key) => {
-          const translation = i18n.global.t(key);
+          const translation = t(key);
           expect(translation, `Key ${key} should exist in ${lang}`).not.toBe(
             key,
           );
@@ -262,7 +261,7 @@ describe("Comprehensive i18n Tests", () => {
       languages.forEach((lang) => {
         switchLanguage(lang);
         orderKeys.forEach((key) => {
-          const translation = i18n.global.t(key);
+          const translation = t(key);
           expect(translation, `Key ${key} should exist in ${lang}`).not.toBe(
             key,
           );
@@ -298,7 +297,7 @@ describe("Comprehensive i18n Tests", () => {
       languages.forEach((lang) => {
         switchLanguage(lang);
         errorKeys.forEach((key) => {
-          const translation = i18n.global.t(key);
+          const translation = t(key);
           expect(translation, `Key ${key} should exist in ${lang}`).not.toBe(
             key,
           );
@@ -334,7 +333,7 @@ describe("Comprehensive i18n Tests", () => {
       languages.forEach((lang) => {
         switchLanguage(lang);
         navKeys.forEach((key) => {
-          const translation = i18n.global.t(key);
+          const translation = t(key);
           expect(translation, `Key ${key} should exist in ${lang}`).not.toBe(
             key,
           );
@@ -391,7 +390,7 @@ describe("Comprehensive i18n Tests", () => {
     it("should fallback to default language for missing keys", () => {
       switchLanguage("en-US");
       // Test with a key that might not exist
-      const result = i18n.global.t("nonexistent.test.key", "fallback");
+      const result = t("nonexistent.test.key", "fallback");
       expect(result).toBeDefined();
     });
   });

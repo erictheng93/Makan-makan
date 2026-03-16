@@ -56,7 +56,7 @@ describe("Onboarding Routes", () => {
         "/api/v1/onboarding/subdomain/check?subdomain=new-shop",
       );
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.available).toBe(true);
       expect(body.data.subdomain).toBe("new-shop");
@@ -72,7 +72,7 @@ describe("Onboarding Routes", () => {
       const res = await fetchApp(
         "/api/v1/onboarding/subdomain/check?subdomain=test-restaurant",
       );
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data.available).toBe(false);
       expect(body.data.suggestions).toBeInstanceOf(Array);
       expect(body.data.suggestions.length).toBeGreaterThan(0);
@@ -81,7 +81,7 @@ describe("Onboarding Routes", () => {
     it("should return 400 when subdomain param is missing", async () => {
       const res = await fetchApp("/api/v1/onboarding/subdomain/check");
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("MISSING_SUBDOMAIN");
     });
 
@@ -90,7 +90,7 @@ describe("Onboarding Routes", () => {
         "/api/v1/onboarding/subdomain/check?subdomain=AB",
       );
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("INVALID_SUBDOMAIN");
     });
 
@@ -140,7 +140,7 @@ describe("Onboarding Routes", () => {
       );
 
       expect(res.status).toBe(201);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.applicationId).toBeDefined();
       expect(body.data.status).toBe("submitted");
@@ -159,7 +159,7 @@ describe("Onboarding Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -221,7 +221,7 @@ describe("Onboarding Routes", () => {
         "/api/v1/onboarding/applications/APP-20240101-XYZ",
       );
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.id).toBe("APP-20240101-XYZ");
       expect(body.data.businessName).toBe("New Restaurant");
@@ -280,7 +280,7 @@ describe("Onboarding Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("INVALID_STATUS");
     });
 
@@ -294,7 +294,7 @@ describe("Onboarding Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -342,7 +342,7 @@ describe("Onboarding Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("INVALID_STATUS");
     });
 

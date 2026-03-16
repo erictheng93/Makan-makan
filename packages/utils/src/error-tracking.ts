@@ -4,6 +4,9 @@
  * Comprehensive error tracking with context, breadcrumbs, and reporting
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+declare const window: any;
+
 export type ErrorSeverity = "low" | "medium" | "high" | "critical";
 export type ErrorCategory =
   | "network"
@@ -453,7 +456,7 @@ export class ErrorTracker {
 
     // Capture unhandled errors
     if (this.options.captureConsoleErrors) {
-      window.addEventListener("error", (event) => {
+      window.addEventListener("error", (event: any) => {
         this.captureError(event.error || event.message, {
           severity: "high",
           category: "system",
@@ -470,7 +473,7 @@ export class ErrorTracker {
 
     // Capture unhandled promise rejections
     if (this.options.captureUnhandledRejections) {
-      window.addEventListener("unhandledrejection", (event) => {
+      window.addEventListener("unhandledrejection", (event: any) => {
         const error =
           event.reason instanceof Error
             ? event.reason

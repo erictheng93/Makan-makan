@@ -57,7 +57,7 @@
           class="space-y-3"
         >
           <p class="text-sm text-gray-500">
-            {{ t("discovery.resultsCount", { count: store.total }) }}
+            {{ tWithParams("discovery.resultsCount", { count: store.total }) }}
           </p>
           <DishResultCard
             v-for="dish in store.dishResults"
@@ -147,7 +147,7 @@ import type {
   RestaurantListItem,
 } from "@/services/discoveryApi";
 
-const { t } = useI18n();
+const { t, tWithParams } = useI18n();
 const router = useRouter();
 const store = useDiscoveryStore();
 

@@ -75,7 +75,7 @@ describe("Tenant Routes", () => {
       const res = await fetchApp("/api/v1/tenants");
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data).toHaveLength(1);
       expect(body.data[0].businessName).toBe("Test Restaurant");
@@ -102,7 +102,7 @@ describe("Tenant Routes", () => {
       });
 
       const res = await fetchApp("/api/v1/tenants?page=3&limit=10");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.pagination.page).toBe(3);
       expect(body.pagination.limit).toBe(10);
       expect(body.pagination.totalPages).toBe(5);
@@ -123,7 +123,7 @@ describe("Tenant Routes", () => {
       });
 
       const res = await fetchApp("/api/v1/tenants?limit=500");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.pagination.limit).toBe(100);
     });
 
@@ -135,7 +135,7 @@ describe("Tenant Routes", () => {
 
       const res = await fetchApp("/api/v1/tenants");
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(false);
       expect(body.code).toBe("LIST_FAILED");
     });
@@ -154,7 +154,7 @@ describe("Tenant Routes", () => {
 
       const res = await fetchApp("/api/v1/tenants/T-20240101-ABC");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.id).toBe("T-20240101-ABC");
       expect(body.data.businessName).toBe("Test Restaurant");
@@ -168,7 +168,7 @@ describe("Tenant Routes", () => {
 
       const res = await fetchApp("/api/v1/tenants/T-NONEXISTENT");
       expect(res.status).toBe(404);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("NOT_FOUND");
     });
 
@@ -180,7 +180,7 @@ describe("Tenant Routes", () => {
 
       const res = await fetchApp("/api/v1/tenants/T-20240101-ABC");
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("GET_FAILED");
     });
   });
@@ -224,7 +224,7 @@ describe("Tenant Routes", () => {
       );
 
       expect(res.status).toBe(201);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
     });
 
@@ -280,7 +280,7 @@ describe("Tenant Routes", () => {
       );
 
       expect(res.status).toBe(409);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("SUBDOMAIN_TAKEN");
     });
 
@@ -295,7 +295,7 @@ describe("Tenant Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -309,7 +309,7 @@ describe("Tenant Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -324,7 +324,7 @@ describe("Tenant Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -340,7 +340,7 @@ describe("Tenant Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -396,7 +396,7 @@ describe("Tenant Routes", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
     });
 
@@ -413,7 +413,7 @@ describe("Tenant Routes", () => {
       });
 
       expect(res.status).toBe(404);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("NOT_FOUND");
     });
 
@@ -425,7 +425,7 @@ describe("Tenant Routes", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
   });
@@ -456,7 +456,7 @@ describe("Tenant Routes", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.deleted).toBe(true);
     });
@@ -501,7 +501,7 @@ describe("Tenant Routes", () => {
 
       const res = await fetchApp("/api/v1/tenants/T-20240101-ABC/resources");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data).toHaveLength(1);
       expect(body.data[0].resourceType).toBe("d1");
@@ -515,7 +515,7 @@ describe("Tenant Routes", () => {
       db.prepare.mockReturnValue(stmt);
 
       const res = await fetchApp("/api/v1/tenants/T-20240101-ABC/resources");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.data).toEqual([]);
     });
   });
@@ -531,7 +531,7 @@ describe("Tenant Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("MISSING_PARAMS");
     });
 
@@ -542,7 +542,7 @@ describe("Tenant Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("MISSING_PARAMS");
     });
   });

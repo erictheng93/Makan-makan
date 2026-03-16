@@ -44,8 +44,6 @@ vi.mock("@/services/api", () => ({
   },
 }));
 
-import { deploymentsApi } from "@/services/api";
-
 describe("DeploymentsView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -187,7 +185,7 @@ describe("DeploymentsView", () => {
 
   it("renders deployment status labels correctly", () => {
     // Test the getStatusLabel function indirectly
-    const wrapper = mountView();
+    mountView();
     // These status labels exist in the component logic
     const expectedLabels = ["待執行", "執行中", "已完成", "失敗", "已回滾"];
     // The labels are defined, just not visible until deployments are loaded

@@ -99,7 +99,7 @@ describe("Deployment Routes", () => {
 
       const res = await fetchApp("/api/v1/deployments/T-20240101-ABC");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.currentVersion).toBe("1.1.0");
       expect(body.data.lastDeployment).toBeDefined();
@@ -124,7 +124,7 @@ describe("Deployment Routes", () => {
       });
 
       const res = await fetchApp("/api/v1/deployments/T-NEW");
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.currentVersion).toBeUndefined();
       expect(body.data.lastDeployment).toBeUndefined();
@@ -138,7 +138,7 @@ describe("Deployment Routes", () => {
 
       const res = await fetchApp("/api/v1/deployments/T-20240101-ABC");
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("GET_STATUS_FAILED");
     });
   });
@@ -165,7 +165,7 @@ describe("Deployment Routes", () => {
 
       const res = await fetchApp("/api/v1/deployments/T-20240101-ABC/history");
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data).toHaveLength(2);
     });
@@ -194,7 +194,7 @@ describe("Deployment Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -222,7 +222,7 @@ describe("Deployment Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("PROVISION_FAILED");
     });
   });
@@ -241,7 +241,7 @@ describe("Deployment Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("VALIDATION_ERROR");
     });
 
@@ -286,7 +286,7 @@ describe("Deployment Routes", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = await res.json();
+        const body: any = await res.json();
         expect(body.success).toBe(true);
         expect(body.data.version).toBe("1.2.0");
         expect(body.data.deploymentId).toBeDefined();
@@ -350,7 +350,7 @@ describe("Deployment Routes", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = await res.json();
+        const body: any = await res.json();
         expect(body.success).toBe(true);
         expect(body.data.status).toBe("rolled_back");
       } finally {
@@ -370,7 +370,7 @@ describe("Deployment Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.code).toBe("ROLLBACK_FAILED");
     });
   });
@@ -386,7 +386,7 @@ describe("Deployment Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.error).toContain("non-empty array");
     });
 
@@ -397,7 +397,7 @@ describe("Deployment Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.error).toContain("semver");
     });
 
@@ -431,7 +431,7 @@ describe("Deployment Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body: any = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.summary.total).toBe(2);
       expect(body.data.results).toHaveLength(2);

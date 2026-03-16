@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import { i18n, switchLanguage, SUPPORTED_LANGUAGES } from "@/i18n";
 import type { SupportedLanguage } from "@/i18n";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const flattenKeys = (obj: any, prefix = ""): string[] => {
   let keys: string[] = [];
   Object.keys(obj).forEach((key) => {
@@ -67,7 +66,6 @@ describe("Locale Consistency", () => {
       const messages = i18n.global.getLocaleMessage(code);
       const keys = flattenKeys(messages);
       keys.forEach((key) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const val = (i18n.global as any).t(key) as string;
         expect(val, `Empty value for ${key} in ${code}`).toBeTruthy();
       });
@@ -90,7 +88,6 @@ describe("Locale Consistency", () => {
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
       switchLanguage(code as SupportedLanguage);
       spotCheckKeys.forEach((key) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const val = (i18n.global as any).t(key) as string;
         expect(val, `${key} returned key path in ${code}`).not.toBe(key);
       });
