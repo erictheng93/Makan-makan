@@ -402,6 +402,23 @@ pnpm wrangler d1 execute makanmakan-prod --command "..."  # Query database
 
 ## Coding Conventions
 
+### UI/UX Design System (Enforced)
+
+All frontend UI design and implementation MUST follow the **Apple-Native Soft Minimalism** design system defined in `docs/UIUX-design-system.md`.
+
+**Key rules:**
+
+- Page background: `#F2F2F7` (iOS system gray)
+- Cards: white + `rounded-2xl` ~ `rounded-3xl` + soft shadow (`opacity ≤ 8%`)
+- No hard borders — use shadow + background color difference for separation
+- Buttons/tags: pill-shaped (`rounded-full`)
+- Text: never pure black, use `#1C1C1E`; strong title/body contrast
+- Colors: `#007AFF` (primary), `#34C759` (success), `#FF9500` (warning), `#FF3B30` (error)
+- Icons: SF Symbols / Lucide Icons, outline/filled toggle
+- Animations: 200-350ms, ease-out, iOS-native feel
+- Output: Vue + Tailwind CSS with `ios-*` color tokens (see Section 14.2 of design doc)
+- **Always check the Section 15 Design Checklist before outputting UI**
+
 ### Error Response Format (Enforced)
 
 All API error responses MUST use the unified format:
@@ -510,6 +527,7 @@ See `docs/README.md` for full documentation navigation.
 
 ### Key References
 
+- `docs/UIUX-design-system.md` - **Apple-Native Soft Minimalism design system (mandatory for all UI work)**
 - `docs/architecture/technical-documentation.md` - Technical specifications
 - `docs/requirements.md` - Product requirements
 - `docs/archive/CHANGELOG.md` - Development changelog
