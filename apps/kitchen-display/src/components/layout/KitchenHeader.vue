@@ -1,180 +1,123 @@
 <template>
-  <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
-    <div class="container mx-auto px-4 py-4">
-      <div class="flex items-center justify-between">
-        <!-- Left Section: Logo and Restaurant Name -->
-        <div class="flex items-center space-x-4">
-          <div
-            class="w-10 h-10 bg-kitchen-600 rounded-lg flex items-center justify-center"
+  <header
+    class="fixed top-0 w-full z-50 bg-white/85 backdrop-blur-xl border-b border-black/5"
+  >
+    <div class="px-4 py-3">
+      <div class="flex items-center justify-between gap-4">
+        <!-- Left Section: Title + Connection Status -->
+        <div class="flex items-center gap-3 min-w-0">
+          <h1 class="text-2xl font-extrabold text-ios-text whitespace-nowrap">
+            廚房看板
+          </h1>
+          <!-- Connection Status -->
+          <div class="flex items-center gap-1.5">
+            <div
+              :class="[
+                'w-2.5 h-2.5 rounded-full transition-colors duration-200',
+                isConnected ? 'bg-ios-green' : 'bg-ios-red',
+              ]"
+            />
+            <span
+              :class="[
+                'text-sm font-medium hidden sm:inline',
+                isConnected ? 'text-ios-green' : 'text-ios-red',
+              ]"
+            >
+              {{ isConnected ? "已連線" : "離線" }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Center Section: iOS Segmented Control for Kanban/Grid -->
+        <div class="flex-1 flex justify-center">
+          <div class="bg-ios-bg rounded-full p-0.5 inline-flex">
+            <button
+              :class="[
+                'transition-all duration-200 ease-out',
+                currentViewMode === 'kanban'
+                  ? 'bg-white rounded-full shadow-card-sm px-4 py-1.5 text-sm font-semibold text-ios-text'
+                  : 'px-4 py-1.5 text-sm font-medium text-ios-secondary',
+              ]"
+              @click="$emit('update:viewMode', 'kanban')"
+            >
+              看板
+            </button>
+            <button
+              :class="[
+                'transition-all duration-200 ease-out',
+                currentViewMode === 'grid'
+                  ? 'bg-white rounded-full shadow-card-sm px-4 py-1.5 text-sm font-semibold text-ios-text'
+                  : 'px-4 py-1.5 text-sm font-medium text-ios-secondary',
+              ]"
+              @click="$emit('update:viewMode', 'grid')"
+            >
+              格狀
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Section: Action Buttons -->
+        <div class="flex items-center gap-2">
+          <!-- Reconnect Button (when disconnected) -->
+          <button
+            v-if="!isConnected"
+            class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
+            title="重新連線"
+            @click="$emit('reconnect')"
           >
-            <svg
-              class="w-6 h-6 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-xl font-bold text-gray-900">
-              {{ restaurantName }}
-            </h1>
-            <p class="text-sm text-gray-600">廚房顯示系統</p>
-          </div>
-        </div>
+            <RefreshCw class="w-5 h-5 text-ios-orange" />
+          </button>
 
-        <!-- Center Section: Stats Summary -->
-        <div class="hidden md:flex items-center space-x-6">
-          <div class="flex items-center space-x-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-yellow-600">
-                {{ stats.pendingCount }}
-              </div>
-              <div class="text-xs text-gray-500">待處理</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600">
-                {{ stats.preparingCount }}
-              </div>
-              <div class="text-xs text-gray-500">製作中</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-green-600">
-                {{ stats.readyCount }}
-              </div>
-              <div class="text-xs text-gray-500">已完成</div>
-            </div>
-          </div>
-        </div>
+          <!-- Refresh Button -->
+          <button
+            :disabled="isRefreshing"
+            class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95 disabled:opacity-50"
+            title="刷新訂單"
+            @click="$emit('refresh')"
+          >
+            <RefreshCw
+              :class="[
+                'w-5 h-5 text-ios-secondary',
+                { 'animate-spin': isRefreshing },
+              ]"
+            />
+          </button>
 
-        <!-- Right Section: Actions and Time -->
-        <div class="flex items-center space-x-4">
-          <!-- Current Time -->
-          <div class="text-right">
-            <div class="text-lg font-bold text-gray-900">
-              {{ formattedTime }}
-            </div>
-            <div class="text-sm text-gray-500">
-              {{ formattedDate }}
-            </div>
-          </div>
+          <!-- Fullscreen Toggle -->
+          <button
+            class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
+            title="全屏模式"
+            @click="$emit('toggle-fullscreen')"
+          >
+            <Minimize2 v-if="isFullscreen" class="w-5 h-5 text-ios-secondary" />
+            <Maximize2 v-else class="w-5 h-5 text-ios-secondary" />
+          </button>
 
-          <!-- Action Buttons -->
-          <div class="flex items-center space-x-2">
-            <!-- Connection Status -->
-            <div class="flex items-center space-x-2">
-              <div
-                :class="[
-                  'w-3 h-3 rounded-full',
-                  isConnected ? 'bg-green-500' : 'bg-red-500',
-                ]"
-                :title="isConnected ? '已連線' : '未連線'"
-              />
-              <span
-                :class="[
-                  'text-sm font-medium',
-                  isConnected ? 'text-green-600' : 'text-red-600',
-                ]"
-                class="hidden sm:inline"
-              >
-                {{ isConnected ? "已連線" : "離線" }}
-              </span>
-            </div>
+          <!-- Notification Button -->
+          <button
+            class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
+            title="通知"
+          >
+            <Bell class="w-5 h-5 text-ios-secondary" />
+          </button>
 
-            <!-- Reconnect Button (when disconnected) -->
-            <button
-              v-if="!isConnected"
-              class="w-10 h-10 bg-orange-100 hover:bg-orange-200 rounded-lg flex items-center justify-center transition-colors"
-              title="重新連線"
-              @click="$emit('reconnect')"
-            >
-              <ArrowPathIcon class="w-5 h-5 text-orange-600" />
-            </button>
+          <!-- Settings Button -->
+          <button
+            class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
+            title="設定"
+            @click="$emit('open-settings')"
+          >
+            <Settings class="w-5 h-5 text-ios-secondary" />
+          </button>
 
-            <!-- Refresh Button -->
-            <button
-              :disabled="isRefreshing"
-              class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
-              title="刷新訂單"
-              @click="$emit('refresh')"
-            >
-              <ArrowPathIcon
-                :class="[
-                  'w-5 h-5 text-gray-600',
-                  { 'animate-spin': isRefreshing },
-                ]"
-              />
-            </button>
-
-            <!-- Fullscreen Toggle -->
-            <button
-              class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
-              title="全屏模式"
-              @click="$emit('toggle-fullscreen')"
-            >
-              <component
-                :is="
-                  isFullscreen ? ArrowsPointingInIcon : ArrowsPointingOutIcon
-                "
-                class="w-5 h-5 text-gray-600"
-              />
-            </button>
-
-            <!-- Settings Button -->
-            <button
-              class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
-              title="設定"
-              @click="$emit('open-settings')"
-            >
-              <Cog6ToothIcon class="w-5 h-5 text-gray-600" />
-            </button>
-
-            <!-- Logout Button -->
-            <button
-              class="btn-kitchen-secondary px-4 py-2"
-              title="登出"
-              @click="handleLogoutClick"
-            >
-              <ArrowRightOnRectangleIcon class="w-4 h-4 mr-2" />
-              登出
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mobile Stats (visible on small screens) -->
-      <div class="md:hidden mt-4 pt-4 border-t border-gray-200">
-        <div class="flex justify-around">
-          <div class="text-center">
-            <div class="text-xl font-bold text-yellow-600">
-              {{ stats.pendingCount }}
-            </div>
-            <div class="text-xs text-gray-500">待處理</div>
-          </div>
-          <div class="text-center">
-            <div class="text-xl font-bold text-blue-600">
-              {{ stats.preparingCount }}
-            </div>
-            <div class="text-xs text-gray-500">製作中</div>
-          </div>
-          <div class="text-center">
-            <div class="text-xl font-bold text-green-600">
-              {{ stats.readyCount }}
-            </div>
-            <div class="text-xs text-gray-500">已完成</div>
-          </div>
-          <div class="text-center">
-            <div class="text-xl font-bold text-gray-600">
-              {{ stats.completedToday }}
-            </div>
-            <div class="text-xs text-gray-500">今日完成</div>
-          </div>
+          <!-- Logout Button -->
+          <button
+            class="w-11 h-11 rounded-full bg-ios-red/10 flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-red/20 active:scale-95"
+            title="登出"
+            @click="handleLogoutClick"
+          >
+            <LogOut class="w-5 h-5 text-ios-red" />
+          </button>
         </div>
       </div>
     </div>
@@ -182,28 +125,31 @@
     <!-- Logout Confirmation Modal -->
     <div
       v-if="showLogoutConfirm"
-      class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       @click="showLogoutConfirm = false"
     >
-      <div class="bg-white rounded-2xl p-6 max-w-sm w-full" @click.stop>
+      <div
+        class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-card-lg"
+        @click.stop
+      >
         <div class="text-center">
           <div
-            class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"
+            class="w-12 h-12 bg-ios-red/10 rounded-full flex items-center justify-center mx-auto mb-4"
           >
-            <ExclamationTriangleIcon class="w-6 h-6 text-red-600" />
+            <AlertTriangle class="w-6 h-6 text-ios-red" />
           </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">確認登出</h3>
-          <p class="text-gray-600 mb-6">您確定要登出廚房系統嗎？</p>
+          <h3 class="text-lg font-semibold text-ios-text mb-2">確認登出</h3>
+          <p class="text-ios-secondary mb-6">您確定要登出廚房系統嗎？</p>
 
-          <div class="flex space-x-3">
+          <div class="flex gap-3">
             <button
-              class="flex-1 btn-kitchen-secondary"
+              class="flex-1 py-2.5 px-4 rounded-full bg-ios-bg text-ios-text font-semibold text-sm transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
               @click="showLogoutConfirm = false"
             >
               取消
             </button>
             <button
-              class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors"
+              class="flex-1 py-2.5 px-4 rounded-full bg-ios-red text-white font-semibold text-sm transition-all duration-200 ease-out hover:bg-ios-red/90 active:scale-95"
               @click="confirmLogout"
             >
               登出
@@ -218,13 +164,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import {
-  ArrowPathIcon,
-  ArrowsPointingInIcon,
-  ArrowsPointingOutIcon,
-  Cog6ToothIcon,
-  ArrowRightOnRectangleIcon,
-  ExclamationTriangleIcon,
-} from "@heroicons/vue/24/outline";
+  RefreshCw,
+  Maximize2,
+  Minimize2,
+  Bell,
+  Settings,
+  LogOut,
+  AlertTriangle,
+} from "lucide-vue-next";
 import type { KitchenStats } from "@/types";
 
 // Props
@@ -234,11 +181,13 @@ interface Props {
   stats: KitchenStats;
   connectionStatus?: string;
   isConnected?: boolean;
+  viewMode?: "kanban" | "grid";
 }
 
 const props = withDefaults(defineProps<Props>(), {
   connectionStatus: "disconnected",
   isConnected: false,
+  viewMode: "kanban",
 });
 
 // Emits
@@ -248,6 +197,7 @@ const emit = defineEmits<{
   reconnect: [];
   "toggle-fullscreen": [];
   "open-settings": [];
+  "update:viewMode": ["kanban" | "grid"];
 }>();
 
 // State
@@ -256,6 +206,8 @@ const isFullscreen = ref(false);
 const showLogoutConfirm = ref(false);
 
 // Computed
+const currentViewMode = computed(() => props.viewMode ?? "kanban");
+
 const formattedTime = computed(() => {
   return props.currentTime.toLocaleTimeString("zh-TW", {
     hour: "2-digit",
