@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+  <div class="bg-white rounded-2xl p-4 shadow-card">
     <div class="flex space-x-4">
       <!-- 商品圖片 -->
       <div class="flex-shrink-0">
@@ -42,13 +42,13 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-start justify-between mb-2">
           <div class="flex-1 min-w-0 mr-2">
-            <h3 class="text-base font-semibold text-gray-900 truncate">
+            <h3 class="text-base font-semibold text-ios-text truncate">
               {{ item.menuItem.name }}
             </h3>
 
             <!-- 規格資訊 -->
             <div v-if="customizationText" class="mt-1">
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-ios-secondary">
                 {{ customizationText }}
               </p>
             </div>
@@ -56,7 +56,7 @@
 
           <!-- 移除按鈕 -->
           <button
-            class="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+            class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-ios-secondary active:bg-ios-red/10 active:text-ios-red transition-all duration-200"
             @click="$emit('remove', item.id)"
           >
             <svg
@@ -78,10 +78,10 @@
         <!-- 價格和數量控制 -->
         <div class="flex items-center justify-between">
           <div class="flex items-baseline space-x-1">
-            <span class="text-base font-semibold text-gray-900">
+            <span class="text-base font-semibold text-ios-text">
               ${{ formatPrice(itemTotal) }}
             </span>
-            <span v-if="item.quantity > 1" class="text-sm text-gray-500">
+            <span v-if="item.quantity > 1" class="text-sm text-ios-secondary">
               (${{ formatPrice(item.price) }} × {{ item.quantity }})
             </span>
           </div>
@@ -90,7 +90,7 @@
           <div class="flex items-center space-x-3">
             <button
               :disabled="item.quantity <= 1"
-              class="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               @click="updateQuantity(item.quantity - 1)"
             >
               <svg
@@ -109,14 +109,14 @@
             </button>
 
             <span
-              class="text-base font-medium text-gray-900 min-w-[2rem] text-center"
+              class="text-base font-medium text-ios-text min-w-[2rem] text-center"
             >
               {{ item.quantity }}
             </span>
 
             <button
               :disabled="item.quantity >= 99"
-              class="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               @click="updateQuantity(item.quantity + 1)"
             >
               <svg
@@ -142,14 +142,14 @@
             :value="item.notes || ''"
             :placeholder="t('cart.notes')"
             rows="2"
-            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+            class="w-full px-4 py-3 text-sm bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary resize-none transition-all duration-200"
             @input="updateNotes(($event.target as HTMLTextAreaElement).value)"
           />
         </div>
 
         <!-- 備註切換按鈕 -->
         <button
-          class="mt-2 text-sm text-indigo-600 hover:text-indigo-500 flex items-center space-x-1"
+          class="mt-2 text-sm text-ios-blue active:opacity-70 transition-opacity duration-200 flex items-center space-x-1"
           @click="showNotesInput = !showNotesInput"
         >
           <svg

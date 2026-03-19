@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-ios-bg">
     <!-- 頂部導航 -->
-    <nav class="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-md mx-auto px-4 py-4">
+    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl shadow-card-sm">
+      <div class="max-w-md mx-auto px-5 py-4">
         <div class="flex items-center justify-between">
           <button
-            class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+            class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text transition-all duration-200"
             @click="router.back()"
           >
             <svg
@@ -24,10 +24,10 @@
           </button>
 
           <div class="flex-1 text-center">
-            <h1 class="text-lg font-semibold text-gray-900">
+            <h1 class="text-lg font-semibold text-ios-text">
               {{ t("cart.title") }}
             </h1>
-            <p class="text-sm text-gray-500">
+            <p class="text-sm text-ios-secondary">
               {{ restaurant?.name }} · {{ t("order.details.table") }}
               {{ tableId }}
             </p>
@@ -60,14 +60,14 @@
             />
           </svg>
         </div>
-        <h2 class="text-xl font-semibold text-gray-900 mb-2">
+        <h2 class="text-xl font-semibold text-ios-text mb-2">
           {{ t("cart.empty") }}
         </h2>
-        <p class="text-gray-600 mb-8">
+        <p class="text-ios-secondary mb-8">
           {{ t("cart.emptyDesc") }}
         </p>
         <button
-          class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+          class="px-6 py-3 bg-ios-blue text-white font-semibold rounded-full active:scale-[0.98] transition-transform duration-150"
           @click="router.push(`/restaurant/${restaurantId}/table/${tableId}`)"
         >
           {{ t("cart.goToMenu") }}
@@ -89,14 +89,14 @@
         </div>
 
         <!-- 訂單摘要 -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        <div class="bg-white rounded-2xl p-6 shadow-card">
+          <h3 class="text-lg font-semibold text-ios-text mb-4">
             {{ t("order.title") }}
           </h3>
 
           <div class="space-y-3">
             <!-- 小計 -->
-            <div class="flex justify-between text-gray-600">
+            <div class="flex justify-between text-ios-secondary">
               <span>{{ t("cart.subtotal") }}</span>
               <span>${{ formatPrice(cartStore.subtotal) }}</span>
             </div>
@@ -104,14 +104,14 @@
             <!-- 服務費 -->
             <div
               v-if="serviceCharge > 0"
-              class="flex justify-between text-gray-600"
+              class="flex justify-between text-ios-secondary"
             >
               <span>{{ t("cart.serviceCharge") }}</span>
               <span>${{ formatPrice(serviceCharge) }}</span>
             </div>
 
             <!-- 稅費 -->
-            <div v-if="tax > 0" class="flex justify-between text-gray-600">
+            <div v-if="tax > 0" class="flex justify-between text-ios-secondary">
               <span>{{ t("cart.tax") }}</span>
               <span>${{ formatPrice(tax) }}</span>
             </div>
@@ -126,22 +126,20 @@
             </div>
 
             <!-- 分隔線 -->
-            <hr class="border-gray-200" />
+            <div class="border-t border-ios-separator" />
 
             <!-- 最低消費提醒 -->
             <div
               v-if="minimumOrderEnabled && minimumOrderAmount > 0"
-              class="p-3 rounded-lg"
+              class="p-3 rounded-2xl"
               :class="[
-                isMinimumOrderMet
-                  ? 'bg-green-50 border border-green-200'
-                  : 'bg-yellow-50 border border-yellow-200',
+                isMinimumOrderMet ? 'bg-ios-green/10' : 'bg-ios-orange/10',
               ]"
             >
               <div class="flex items-center space-x-2">
                 <svg
                   v-if="isMinimumOrderMet"
-                  class="w-5 h-5 text-green-600"
+                  class="w-5 h-5 text-ios-green"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -155,7 +153,7 @@
                 </svg>
                 <svg
                   v-else
-                  class="w-5 h-5 text-yellow-600"
+                  class="w-5 h-5 text-ios-orange"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -171,7 +169,7 @@
                   <p
                     class="text-sm font-medium"
                     :class="[
-                      isMinimumOrderMet ? 'text-green-800' : 'text-yellow-800',
+                      isMinimumOrderMet ? 'text-ios-green' : 'text-ios-orange',
                     ]"
                   >
                     {{
@@ -182,7 +180,7 @@
                   </p>
                   <p
                     v-if="!isMinimumOrderMet"
-                    class="text-sm text-yellow-600 mt-1"
+                    class="text-sm text-ios-orange mt-1"
                   >
                     {{
                       tWithParams("cart.minimumOrderShortfall", {
@@ -190,7 +188,7 @@
                       })
                     }}
                   </p>
-                  <p v-else class="text-sm text-green-600 mt-1">
+                  <p v-else class="text-sm text-ios-green mt-1">
                     {{ t("cart.minimumOrderMet") }}
                   </p>
                 </div>
@@ -198,9 +196,7 @@
             </div>
 
             <!-- 總計 -->
-            <div
-              class="flex justify-between text-lg font-semibold text-gray-900"
-            >
+            <div class="flex justify-between text-lg font-bold text-ios-text">
               <span>{{ t("cart.total") }}</span>
               <span>${{ formatPrice(totalAmount) }}</span>
             </div>
@@ -208,15 +204,15 @@
         </div>
 
         <!-- 優惠券區域 -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div class="bg-white rounded-2xl p-6 shadow-card">
           <!-- 區域標題 -->
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">
+            <h3 class="text-lg font-semibold text-ios-text">
               {{ t("cart.coupons") }}
             </h3>
             <button
               v-if="!showAvailableCoupons"
-              class="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              class="text-sm text-ios-blue font-medium"
               @click="toggleAvailableCoupons"
             >
               {{ t("cart.viewAvailable") }}
@@ -226,11 +222,11 @@
           <!-- 可用優惠券列表 -->
           <div v-if="showAvailableCoupons" class="mb-6">
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-md font-medium text-gray-800">
+              <h4 class="text-md font-medium text-ios-text">
                 {{ t("cart.availableCoupons") }}
               </h4>
               <button
-                class="text-sm text-gray-500 hover:text-gray-700"
+                class="text-sm text-ios-secondary"
                 @click="toggleAvailableCoupons"
               >
                 {{ t("common.close") }}
@@ -240,7 +236,7 @@
             <!-- 加載中 -->
             <div v-if="isLoadingCoupons" class="flex justify-center py-4">
               <div
-                class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"
+                class="animate-spin rounded-full h-6 w-6 border-2 border-ios-blue/20 border-t-ios-blue"
               />
             </div>
 
@@ -257,9 +253,9 @@
               <div
                 v-for="coupon in availableCoupons"
                 :key="coupon.id"
-                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                class="rounded-2xl p-4 bg-gray-50 active:bg-gray-100 cursor-pointer transition-all duration-200"
                 :class="{
-                  'ring-2 ring-indigo-500 bg-indigo-50':
+                  'bg-ios-blue/10 shadow-card-sm':
                     selectedCoupon?.id === coupon.id,
                 }"
                 @click="selectCoupon(coupon)"
@@ -267,7 +263,7 @@
                 <div class="flex justify-between items-start">
                   <div class="flex-1">
                     <div class="flex items-center space-x-2">
-                      <h5 class="font-semibold text-gray-900">
+                      <h5 class="font-semibold text-ios-text">
                         {{ coupon.name }}
                       </h5>
                       <span
@@ -277,13 +273,13 @@
                         {{ getCouponTypeText(coupon.discountType) }}
                       </span>
                     </div>
-                    <p class="text-sm text-gray-600 mt-1">
+                    <p class="text-sm text-ios-secondary mt-1">
                       {{ coupon.description }}
                     </p>
 
                     <!-- 折扣信息 -->
                     <div class="mt-2 flex items-center space-x-4 text-sm">
-                      <span class="text-indigo-600 font-semibold">
+                      <span class="text-ios-blue font-semibold">
                         {{ formatCouponDiscount(coupon) }}
                       </span>
                       <span v-if="coupon.minOrderAmount" class="text-gray-500">
@@ -315,7 +311,7 @@
                   <div class="ml-3">
                     <div
                       v-if="selectedCoupon?.id === coupon.id"
-                      class="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center"
+                      class="w-5 h-5 bg-ios-blue rounded-full flex items-center justify-center"
                     >
                       <svg
                         class="w-3 h-3 text-white"
@@ -346,7 +342,7 @@
               class="mt-4 pt-4 border-t border-gray-200"
             >
               <button
-                class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 font-medium"
+                class="w-full bg-ios-blue text-white py-2.5 px-4 rounded-full active:scale-[0.98] transition-transform duration-150 font-medium"
                 @click="applyCouponFromList"
               >
                 {{ t("cart.applyCoupon") }} -
@@ -358,7 +354,7 @@
           <!-- 手動輸入優惠券 -->
           <div>
             <div class="flex items-center space-x-2 mb-3">
-              <span class="text-sm font-medium text-gray-700">{{
+              <span class="text-sm font-medium text-ios-text">{{
                 t("cart.orEnterCode")
               }}</span>
               <div class="flex-1 h-px bg-gray-200" />
@@ -371,13 +367,13 @@
                 type="text"
                 :placeholder="t('cart.couponPlaceholder')"
                 :disabled="isValidatingCoupon"
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+                class="flex-1 px-4 py-2.5 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200 disabled:bg-gray-50"
                 @input="onCouponInput"
                 @keyup.enter="validateCoupon"
               />
               <button
                 :disabled="!couponCode.trim() || isValidatingCoupon"
-                class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition-colors"
+                class="px-5 py-2.5 bg-ios-blue text-white text-sm font-medium rounded-full active:scale-95 transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400"
                 @click="validateCoupon"
               >
                 <div
@@ -393,7 +389,7 @@
           <div v-if="couponValidationMessage" class="mt-3">
             <div
               v-if="couponValidationError"
-              class="flex items-center text-sm text-red-600"
+              class="flex items-center text-sm text-ios-red"
             >
               <svg
                 class="w-4 h-4 mr-2"
@@ -410,7 +406,7 @@
               </svg>
               {{ couponValidationMessage }}
             </div>
-            <div v-else class="flex items-center text-sm text-green-600">
+            <div v-else class="flex items-center text-sm text-ios-green">
               <svg
                 class="w-4 h-4 mr-2"
                 fill="none"
@@ -431,13 +427,13 @@
           <!-- 已應用的優惠券 -->
           <div
             v-if="appliedCoupon"
-            class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg"
+            class="mt-4 p-3.5 bg-ios-green/10 rounded-2xl"
           >
             <div class="flex justify-between items-center">
               <div>
                 <div class="flex items-center space-x-2">
                   <svg
-                    class="w-5 h-5 text-green-600"
+                    class="w-5 h-5 text-ios-green"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -449,18 +445,18 @@
                       d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span class="text-sm font-medium text-green-800">{{
+                  <span class="text-sm font-medium text-ios-green">{{
                     appliedCoupon.name || appliedCoupon.code
                   }}</span>
                 </div>
-                <p class="text-sm text-green-600 mt-1">
+                <p class="text-sm text-ios-green mt-1">
                   {{ t("cart.saving") }} ${{
                     formatPrice(couponDiscountAmount)
                   }}
                 </p>
               </div>
               <button
-                class="text-sm text-green-600 hover:text-green-800 font-medium"
+                class="text-sm text-ios-green font-medium"
                 @click="clearCoupon"
               >
                 {{ t("cart.removeCoupon") }}
@@ -478,10 +474,10 @@
         />
 
         <!-- 備註欄位 -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div class="bg-white rounded-2xl p-6 shadow-card">
           <label
             for="order-notes"
-            class="block text-sm font-medium text-gray-700 mb-3"
+            class="block text-sm font-medium text-ios-text mb-3"
           >
             {{ t("cart.notes") }} ({{ t("menuItem.optional") }})
           </label>
@@ -490,13 +486,13 @@
             v-model="orderNotes"
             rows="3"
             :placeholder="t('menuItem.notesPlaceholder')"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+            class="w-full px-4 py-3 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary resize-none transition-all duration-200"
           />
         </div>
 
         <!-- 顧客資訊 -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        <div class="bg-white rounded-2xl p-6 shadow-card">
+          <h3 class="text-lg font-semibold text-ios-text mb-4">
             {{ t("order.details.customerInfo") }}
           </h3>
 
@@ -504,7 +500,7 @@
             <div>
               <label
                 for="customer-name"
-                class="block text-sm font-medium text-gray-700 mb-2"
+                class="block text-sm font-medium text-ios-text mb-2"
               >
                 {{ t("order.details.customerName") }} ({{
                   t("menuItem.optional")
@@ -515,14 +511,14 @@
                 v-model="customerInfo.name"
                 type="text"
                 :placeholder="t('order.details.customerName')"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-4 py-3 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200"
               />
             </div>
 
             <div>
               <label
                 for="customer-phone"
-                class="block text-sm font-medium text-gray-700 mb-2"
+                class="block text-sm font-medium text-ios-text mb-2"
               >
                 {{ t("order.details.phone") }} ({{ t("menuItem.optional") }})
               </label>
@@ -531,7 +527,7 @@
                 v-model="customerInfo.phone"
                 type="tel"
                 :placeholder="t('order.details.phone')"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-4 py-3 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200"
               />
             </div>
           </div>
@@ -542,16 +538,16 @@
     <!-- 底部確認按鈕 -->
     <div
       v-if="!cartStore.isEmpty"
-      class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4"
+      class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl p-4 shadow-[0_-4px_16px_rgb(0,0,0,0.04)]"
     >
       <div class="max-w-md mx-auto">
         <button
           :disabled="!canPlaceOrder"
           :class="[
-            'w-full font-semibold py-4 px-6 rounded-2xl transition-colors flex items-center justify-center space-x-2',
+            'w-full font-semibold py-4 px-6 rounded-full flex items-center justify-center space-x-2',
             canPlaceOrder
-              ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-              : 'bg-gray-400 text-white cursor-not-allowed',
+              ? 'bg-ios-blue text-white active:scale-[0.98] transition-transform duration-150'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed',
           ]"
           @click="handleSubmitOrder"
         >
@@ -577,7 +573,7 @@
           "
           class="mt-2 text-center"
         >
-          <p class="text-sm text-yellow-600">
+          <p class="text-sm text-ios-orange">
             {{
               tWithParams("cart.minimumOrderNote", {
                 amount: formatPrice(minimumOrderAmount),
@@ -587,19 +583,13 @@
         </div>
 
         <div class="mt-3 text-center">
-          <p class="text-sm text-gray-500">
+          <p class="text-sm text-ios-secondary">
             {{ t("common.confirm") }}
-            <router-link
-              to="/terms"
-              class="text-indigo-600 hover:text-indigo-500"
-            >
+            <router-link to="/terms" class="text-ios-blue">
               {{ t("terms.title") }}
             </router-link>
             {{ t("common.next") }}
-            <router-link
-              to="/privacy"
-              class="text-indigo-600 hover:text-indigo-500"
-            >
+            <router-link to="/privacy" class="text-ios-blue">
               {{ t("privacy.title") }}
             </router-link>
           </p>
@@ -987,8 +977,8 @@ const formatCouponExpiry = (dateString: any) => {
 
 const getCouponTypeClass = (discountType: any) => {
   return discountType === "percentage"
-    ? "bg-blue-100 text-blue-800"
-    : "bg-green-100 text-green-800";
+    ? "bg-[#E3F2FD] text-[#4A6E8C]"
+    : "bg-[#E8F5E9] text-[#4E7C5F]";
 };
 
 const getCouponTypeText = (discountType: any) => {
