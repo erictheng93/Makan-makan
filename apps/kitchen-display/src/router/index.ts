@@ -19,25 +19,12 @@ const routes: RouteRecordRaw[] = [
     name: "Kitchen",
     component: () => import("../views/EnhancedKitchenDashboard.vue"),
     props: (route) => ({
-      restaurantId: parseInt(route.params.restaurantId as string),
+      restaurantId: route.params.restaurantId as string,
     }),
     meta: {
       requiresAuth: true,
       requiredRole: 2, // Chef role
       title: "廚房顯示系統",
-    },
-  },
-  {
-    path: "/kitchen-classic/:restaurantId",
-    name: "KitchenClassic",
-    component: () => import("../views/KitchenDashboard.vue"),
-    props: (route) => ({
-      restaurantId: parseInt(route.params.restaurantId as string),
-    }),
-    meta: {
-      requiresAuth: true,
-      requiredRole: 2, // Chef role
-      title: "廚房顯示系統 (經典版)",
     },
   },
   {
@@ -56,15 +43,6 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       title: "歷史記錄",
-    },
-  },
-  {
-    path: "/test-sse",
-    name: "TestSSE",
-    component: () => import("../views/TestSSEView.vue"),
-    meta: {
-      requiresAuth: true,
-      title: "SSE 測試",
     },
   },
   {
