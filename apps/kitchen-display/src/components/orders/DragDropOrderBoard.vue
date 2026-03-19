@@ -1,25 +1,27 @@
 <template>
-  <div class="drag-drop-board grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="drag-drop-board grid grid-cols-3 gap-3 h-full">
     <!-- Pending Orders Column -->
-    <div class="order-column">
-      <div class="column-header flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-gray-900 flex items-center">
-          <ClockIcon class="w-6 h-6 mr-2 text-yellow-500" />
-          待處理訂單
-          <span
-            class="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm"
-          >
-            {{ pendingOrders.length }}
-          </span>
-        </h2>
+    <div
+      class="order-column flex flex-col rounded-2xl p-3 bg-[rgba(255,149,0,0.06)]"
+    >
+      <div class="column-header flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-ios-orange" />
+          <span class="text-sm font-bold text-ios-text">待處理</span>
+        </div>
+        <span
+          class="min-w-6 h-6 rounded-full bg-ios-orange text-white text-xs font-bold flex items-center justify-center px-1.5"
+        >
+          {{ pendingOrders.length }}
+        </span>
       </div>
 
       <div
         ref="pendingColumn"
         :class="[
-          'order-list space-y-3 min-h-96 p-3 rounded-lg transition-colors',
+          'order-list flex-1 space-y-2 min-h-24 p-1 rounded-xl transition-colors overflow-y-auto',
           {
-            'bg-yellow-50 border-2 border-dashed border-yellow-300':
+            'ring-2 ring-ios-orange ring-opacity-40 bg-[rgba(255,149,0,0.04)]':
               dragOverColumn === 'pending',
           },
         ]"
@@ -41,35 +43,37 @@
 
         <div
           v-if="pendingOrders.length === 0"
-          class="empty-state text-center py-8 text-gray-500"
+          class="empty-state text-center py-8 text-ios-label-secondary"
         >
-          <ClockIcon class="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          <p>目前沒有待處理的訂單</p>
-          <p class="text-sm text-gray-400 mt-1">新訂單會自動出現在這裡</p>
+          <Clock class="w-10 h-10 mx-auto mb-2 text-ios-orange opacity-30" />
+          <p class="text-sm">目前沒有待處理的訂單</p>
+          <p class="text-xs mt-1 opacity-60">新訂單會自動出現在這裡</p>
         </div>
       </div>
     </div>
 
     <!-- Preparing Orders Column -->
-    <div class="order-column">
-      <div class="column-header flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-gray-900 flex items-center">
-          <FireIcon class="w-6 h-6 mr-2 text-blue-500" />
-          製作中訂單
-          <span
-            class="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm"
-          >
-            {{ preparingOrders.length }}
-          </span>
-        </h2>
+    <div
+      class="order-column flex flex-col rounded-2xl p-3 bg-[rgba(0,122,255,0.04)]"
+    >
+      <div class="column-header flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-ios-blue" />
+          <span class="text-sm font-bold text-ios-text">製作中</span>
+        </div>
+        <span
+          class="min-w-6 h-6 rounded-full bg-ios-blue text-white text-xs font-bold flex items-center justify-center px-1.5"
+        >
+          {{ preparingOrders.length }}
+        </span>
       </div>
 
       <div
         ref="preparingColumn"
         :class="[
-          'order-list space-y-3 min-h-96 p-3 rounded-lg transition-colors',
+          'order-list flex-1 space-y-2 min-h-24 p-1 rounded-xl transition-colors overflow-y-auto',
           {
-            'bg-blue-50 border-2 border-dashed border-blue-300':
+            'ring-2 ring-ios-blue ring-opacity-40 bg-[rgba(0,122,255,0.04)]':
               dragOverColumn === 'preparing',
           },
         ]"
@@ -91,35 +95,37 @@
 
         <div
           v-if="preparingOrders.length === 0"
-          class="empty-state text-center py-8 text-gray-500"
+          class="empty-state text-center py-8 text-ios-label-secondary"
         >
-          <FireIcon class="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          <p>目前沒有正在製作的訂單</p>
-          <p class="text-sm text-gray-400 mt-1">拖拽待處理訂單到此處開始製作</p>
+          <Flame class="w-10 h-10 mx-auto mb-2 text-ios-blue opacity-30" />
+          <p class="text-sm">目前沒有正在製作的訂單</p>
+          <p class="text-xs mt-1 opacity-60">拖拽待處理訂單到此處開始製作</p>
         </div>
       </div>
     </div>
 
     <!-- Ready Orders Column -->
-    <div class="order-column">
-      <div class="column-header flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-gray-900 flex items-center">
-          <CheckCircleIcon class="w-6 h-6 mr-2 text-green-500" />
-          準備完成
-          <span
-            class="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm"
-          >
-            {{ readyOrders.length }}
-          </span>
-        </h2>
+    <div
+      class="order-column flex flex-col rounded-2xl p-3 bg-[rgba(52,199,89,0.04)]"
+    >
+      <div class="column-header flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-ios-green" />
+          <span class="text-sm font-bold text-ios-text">準備完成</span>
+        </div>
+        <span
+          class="min-w-6 h-6 rounded-full bg-ios-green text-white text-xs font-bold flex items-center justify-center px-1.5"
+        >
+          {{ readyOrders.length }}
+        </span>
       </div>
 
       <div
         ref="readyColumn"
         :class="[
-          'order-list space-y-3 min-h-96 p-3 rounded-lg transition-colors',
+          'order-list flex-1 space-y-2 min-h-24 p-1 rounded-xl transition-colors overflow-y-auto',
           {
-            'bg-green-50 border-2 border-dashed border-green-300':
+            'ring-2 ring-ios-green ring-opacity-40 bg-[rgba(52,199,89,0.04)]':
               dragOverColumn === 'ready',
           },
         ]"
@@ -141,49 +147,16 @@
 
         <div
           v-if="readyOrders.length === 0"
-          class="empty-state text-center py-8 text-gray-500"
+          class="empty-state text-center py-8 text-ios-label-secondary"
         >
-          <CheckCircleIcon class="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          <p>目前沒有準備完成的訂單</p>
-          <p class="text-sm text-gray-400 mt-1">拖拽製作中訂單到此處標記完成</p>
+          <CheckCircle
+            class="w-10 h-10 mx-auto mb-2 text-ios-green opacity-30"
+          />
+          <p class="text-sm">目前沒有準備完成的訂單</p>
+          <p class="text-xs mt-1 opacity-60">拖拽製作中訂單到此處標記完成</p>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Drag Instructions -->
-  <div
-    v-if="showDragInstructions"
-    class="drag-instructions mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"
-  >
-    <div class="flex items-center space-x-2 text-blue-700 mb-2">
-      <svg
-        class="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-      <span class="font-medium">拖拽操作說明</span>
-    </div>
-    <ul class="text-sm text-blue-600 space-y-1">
-      <li>• 拖拽訂單卡片到不同欄位來改變狀態</li>
-      <li>• 待處理 → 製作中：自動開始所有待製作項目</li>
-      <li>• 製作中 → 準備完成：自動完成所有項目</li>
-      <li>• 拖拽時會顯示視覺提示效果</li>
-    </ul>
-    <button
-      class="mt-2 text-xs text-blue-500 hover:text-blue-700"
-      @click="hideDragInstructions"
-    >
-      不再顯示
-    </button>
   </div>
 </template>
 
@@ -191,11 +164,7 @@
 import { ref, onMounted, nextTick } from "vue";
 import { useSortable } from "@vueuse/integrations/useSortable";
 import { useToast } from "vue-toastification";
-import {
-  ClockIcon,
-  FireIcon,
-  CheckCircleIcon,
-} from "@heroicons/vue/24/outline";
+import { Clock, Flame, CheckCircle } from "lucide-vue-next";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import type { KitchenOrder } from "@/types";
 import DraggableOrderCard from "./DraggableOrderCard.vue";
@@ -235,7 +204,6 @@ const preparingColumn = ref<HTMLElement>();
 const readyColumn = ref<HTMLElement>();
 const draggedOrderId = ref<number | null>(null);
 const dragOverColumn = ref<string | null>(null);
-const showDragInstructions = ref(true);
 
 // Drag and Drop Setup
 const setupSortable = () => {
@@ -302,7 +270,6 @@ const handleStatusChange = async (
   try {
     emit("order-status-changed", orderId, newStatus as any);
 
-    // Show feedback based on status change
     if (oldStatus === "pending" && newStatus === "preparing") {
       emit("batch-start-order", orderId);
       toast.success("訂單已開始製作！");
@@ -337,21 +304,8 @@ const handleToggleSelection = (orderId: number) => {
   emit("toggle-selection", orderId);
 };
 
-const hideDragInstructions = () => {
-  showDragInstructions.value = false;
-  localStorage.setItem("kitchen-hide-drag-instructions", "true");
-};
-
 // Lifecycle
 onMounted(async () => {
-  // Check if user has hidden instructions before
-  const hideInstructions = localStorage.getItem(
-    "kitchen-hide-drag-instructions",
-  );
-  if (hideInstructions === "true") {
-    showDragInstructions.value = false;
-  }
-
   await nextTick();
   setupSortable();
 });
@@ -363,24 +317,30 @@ onMounted(async () => {
 }
 
 .order-column {
-  flex: 1;
-  min-width: 300px;
+  min-width: 0;
 }
 
 .order-list {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.8),
-    rgba(255, 255, 255, 0.4)
-  );
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   max-height: 70vh;
-  overflow-y: auto;
 }
 
-.empty-state {
-  pointer-events: none;
+/* Custom scrollbar */
+.order-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.order-list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 2px;
+}
+
+.order-list::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 2px;
+}
+
+.order-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
 }
 
 /* Global drag styles */
@@ -395,16 +355,17 @@ onMounted(async () => {
 /* Sortable styles */
 :global(.sortable-ghost) {
   opacity: 0.4;
-  background: rgba(59, 130, 246, 0.1);
-  border: 2px dashed rgb(59 130 246);
+  background: rgba(0, 122, 255, 0.08);
+  border: 2px dashed rgba(0, 122, 255, 0.4);
+  border-radius: 16px;
 }
 
 :global(.sortable-drag) {
   opacity: 1;
-  transform: rotate(3deg) scale(1.02);
+  transform: rotate(2deg) scale(1.02);
   box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    0 20px 40px rgba(0, 0, 0, 0.12),
+    0 8px 16px rgba(0, 0, 0, 0.06);
 }
 
 :global(.sortable-chosen) {
@@ -412,25 +373,6 @@ onMounted(async () => {
 }
 
 :global(.sortable-fallback) {
-  opacity: 0.8;
-}
-
-/* Custom scrollbar */
-.order-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.order-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-.order-list::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-}
-
-.order-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
+  opacity: 0.85;
 }
 </style>
