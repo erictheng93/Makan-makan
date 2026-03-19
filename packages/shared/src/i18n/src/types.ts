@@ -227,7 +227,7 @@ export const SUPPORTED_LOCALES: LocaleInfo[] = [
   },
   {
     code: "zh-TW",
-    name: "Traditional Chinese",
+    name: "繁體中文",
     nativeName: "繁體中文",
     flag: "🇹🇼",
     direction: "ltr",
@@ -237,7 +237,7 @@ export const SUPPORTED_LOCALES: LocaleInfo[] = [
   },
   {
     code: "zh-CN",
-    name: "Simplified Chinese",
+    name: "簡體中文",
     nativeName: "简体中文",
     flag: "🇨🇳",
     direction: "ltr",

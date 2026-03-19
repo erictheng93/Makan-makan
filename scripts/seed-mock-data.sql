@@ -96,46 +96,46 @@ INSERT OR REPLACE INTO users (
 ) VALUES
 -- 系統管理員
 (1, 'admin', 'admin@makanmakan.com', '0912345678', '系統管理員',
-  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   0, NULL, 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 -- 阿嬤的味道 員工
 (2, 'grandmaShop', 'owner@grandma-taste.com', '0923456789', '林阿嬤',
-  '$2a$10$SiXTnPv8.OpdS2zGEfy/SucfiX8BLGuoLuRk2Ydf1nckayt0EoeZe',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   1, '019469a0-0001-7000-8000-000000000001', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (3, 'grandma_chef1', 'chef1@grandma-taste.com', '0934567890', '陳大廚',
-  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   2, '019469a0-0001-7000-8000-000000000001', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (4, 'grandma_service1', 'service1@grandma-taste.com', '0945678901', '小明',
-  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   3, '019469a0-0001-7000-8000-000000000001', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (5, 'grandma_cashier1', 'cashier1@grandma-taste.com', '0956789012', '小美',
-  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   4, '019469a0-0001-7000-8000-000000000001', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 -- 櫻花亭 員工
 (6, 'japanShop', 'owner@sakura-tei.com', '0967890123', '田中太郎',
-  '$2a$10$z3lVrb1iPoT30Rv2kcHGrefO.pGPzfPYodAAdfF6rk.PJkWLJGlR6',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   1, '019469a0-0002-7000-8000-000000000002', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (7, 'sakura_chef1', 'chef1@sakura-tei.com', '0978901234', '佐藤健',
-  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   2, '019469a0-0002-7000-8000-000000000002', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (8, 'sakura_chef2', 'chef2@sakura-tei.com', '0989012345', '山田花子',
-  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   2, '019469a0-0002-7000-8000-000000000002', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 -- 暹羅風味 員工
 (9, 'thaiShop', 'owner@siam-flavor.com', '0990123456', 'Somchai',
-  '$2a$10$IptiqF4NGJ3RwvtPDV85E.4CCBMe05sb8HLRZgwgjbe2OAZ9l1CSu',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   1, '019469a0-0003-7000-8000-000000000003', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
 (10, 'siam_chef1', 'chef1@siam-flavor.com', '0901234567', 'Niran',
-  '$2a$10$wqvJvVAHmLEEKiFZ5fFfuOaw0wQxl0XuW5kbMyrq1Hb3tb8PpMaSq',
+  '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   2, '019469a0-0003-7000-8000-000000000003', 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000);
 
 -- ============================================================================

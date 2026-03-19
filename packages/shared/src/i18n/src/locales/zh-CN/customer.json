@@ -38,6 +38,7 @@
     "tableId": "桌号",
     "recentOrders": "最近订单",
     "noRecentOrders": "暂无最近订单",
+    "discoverFood": "探索美食",
     "features": {
       "title": "服务特色",
       "qrOrder": "二维码点餐",

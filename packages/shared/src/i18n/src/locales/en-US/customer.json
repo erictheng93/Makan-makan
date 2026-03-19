@@ -38,6 +38,7 @@
     "tableId": "Table ID",
     "recentOrders": "Recent Orders",
     "noRecentOrders": "No recent orders",
+    "discoverFood": "Discover Food",
     "features": {
       "title": "Our Features",
       "qrOrder": "QR Code Ordering",
