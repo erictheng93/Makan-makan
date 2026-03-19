@@ -1,55 +1,48 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">廚房統計</h2>
-      <button
-        :disabled="loading"
-        class="text-gray-500 hover:text-gray-700 transition-colors"
-        title="刷新統計"
-        @click="$emit('refresh')"
-      >
-        <ArrowPathIcon :class="['w-5 h-5', { 'animate-spin': loading }]" />
-      </button>
+  <div class="grid grid-cols-4 gap-3">
+    <!-- Pending -->
+    <div
+      class="bg-gradient-to-br from-[#FFF3E0] to-[#FFE0B2] rounded-2xl p-3 text-center shadow-card-sm"
+    >
+      <div class="text-kitchen-stats text-[#E65100]">
+        {{ stats.pendingCount }}
+      </div>
+      <div class="text-xs font-semibold text-[#E65100]">待處理</div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <!-- Today's Completed Orders -->
-      <div class="text-center p-4 bg-green-50 rounded-xl">
-        <div class="text-2xl font-bold text-green-600 mb-1">
-          {{ stats.completedToday }}
-        </div>
-        <div class="text-sm text-green-700 font-medium">今日完成</div>
+    <!-- Preparing -->
+    <div
+      class="bg-gradient-to-br from-[#E3F2FD] to-[#BBDEFB] rounded-2xl p-3 text-center shadow-card-sm"
+    >
+      <div class="text-kitchen-stats text-[#0D47A1]">
+        {{ stats.preparingCount }}
       </div>
+      <div class="text-xs font-semibold text-[#0D47A1]">製作中</div>
+    </div>
 
-      <!-- Average Cooking Time -->
-      <div class="text-center p-4 bg-blue-50 rounded-xl">
-        <div class="text-2xl font-bold text-blue-600 mb-1">
-          {{ stats.averageCookingTime }}分
-        </div>
-        <div class="text-sm text-blue-700 font-medium">平均製作</div>
+    <!-- Ready -->
+    <div
+      class="bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] rounded-2xl p-3 text-center shadow-card-sm"
+    >
+      <div class="text-kitchen-stats text-[#1B5E20]">
+        {{ stats.readyCount }}
       </div>
+      <div class="text-xs font-semibold text-[#1B5E20]">已完成</div>
+    </div>
 
-      <!-- Efficiency Rate -->
-      <div class="text-center p-4 bg-purple-50 rounded-xl">
-        <div class="text-2xl font-bold text-purple-600 mb-1">
-          {{ stats.efficiency }}%
-        </div>
-        <div class="text-sm text-purple-700 font-medium">完成率</div>
+    <!-- Urgent -->
+    <div
+      class="bg-gradient-to-br from-[#FFEBEE] to-[#FFCDD2] rounded-2xl p-3 text-center shadow-card-sm"
+    >
+      <div class="text-kitchen-stats text-[#B71C1C]">
+        {{ stats.urgentOrders }}
       </div>
-
-      <!-- Urgent Orders -->
-      <div class="text-center p-4 bg-orange-50 rounded-xl">
-        <div class="text-2xl font-bold text-orange-600 mb-1">
-          {{ stats.urgentOrders }}
-        </div>
-        <div class="text-sm text-orange-700 font-medium">緊急訂單</div>
-      </div>
+      <div class="text-xs font-semibold text-[#B71C1C]">緊急訂單</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ArrowPathIcon } from "@heroicons/vue/24/outline";
 import type { KitchenStats } from "@/types";
 
 interface Props {
