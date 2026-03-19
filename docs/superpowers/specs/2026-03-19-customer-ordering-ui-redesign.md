@@ -128,16 +128,21 @@ animation: {
 | `border-b border-gray-200` (nav)  | Remove, use glassmorphism         | No-border principle  |
 | `rounded-lg` (buttons)            | `rounded-full`                    | Pill buttons         |
 | `text-gray-900`                   | `text-ios-text`                   | Text color token     |
+| `text-gray-700`                   | `text-ios-text`                   | Body text token      |
 | `text-gray-600` / `text-gray-500` | `text-ios-secondary`              | Secondary text       |
 | `text-gray-400`                   | `text-ios-tertiary`               | Tertiary text        |
 | `border-gray-200` (separators)    | `border-ios-separator`            | Separator token      |
 
+> **Note**: Opacity modifiers like `/10`, `/15`, `/30` on ios-\* colors require Tailwind CSS v3.1+. Hex color values are automatically converted by Tailwind's internal color engine.
+
 ### Button Patterns
 
-- **Primary CTA**: `bg-ios-blue text-white rounded-full active:scale-[0.98]`
-- **Secondary**: `bg-ios-blue/10 text-ios-blue rounded-full`
-- **Danger**: `bg-ios-red/10 text-ios-red rounded-full`
-- **Ghost**: `bg-gray-100 text-gray-700 rounded-full`
+All interactive elements use `transition-transform duration-150` on the base element to ensure the `active:scale-*` release is animated (not instant).
+
+- **Primary CTA**: `bg-ios-blue text-white rounded-full transition-transform duration-150 active:scale-[0.98]`
+- **Secondary**: `bg-ios-blue/10 text-ios-blue rounded-full transition-transform duration-150`
+- **Danger**: `bg-ios-red/10 text-ios-red rounded-full transition-transform duration-150`
+- **Ghost**: `bg-gray-100 text-ios-text rounded-full transition-transform duration-150`
 
 ### Input Patterns
 
@@ -161,7 +166,7 @@ All navigation bars across MenuView, ShopMenuView, CartView, OrderTrackingView:
 - Back button: `w-10 h-10 rounded-full bg-gray-100` circular container
 - Cart button: Same circular container with `bg-ios-red` badge
 - Page horizontal padding: `px-5` (20px per design system 2.1)
-- Category pills: `bg-ios-blue text-white` (active), `bg-gray-100 text-gray-600` (inactive)
+- Category pills: `bg-ios-blue text-white shadow-card-sm` (active), `bg-gray-100 text-ios-secondary` (inactive)
 
 ---
 
@@ -180,8 +185,13 @@ All navigation bars across MenuView, ShopMenuView, CartView, OrderTrackingView:
 
 ### 6.2 Section Headers
 
+> **Note**: The `top-*` value must match the actual navbar height. When the category pills row is conditionally hidden (`v-if="categories.length > 0"`), the navbar is shorter. Use a dynamic CSS variable or computed `scroll-mt-*` to handle both cases. Default `top-32` assumes both rows are visible; use `top-16` when the category row is absent.
+
 ```html
-<div class="sticky top-32 bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5">
+<div
+  class="sticky bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5"
+  :class="categories.length > 0 ? 'top-32' : 'top-16'"
+>
   <h2 class="text-xl font-semibold text-ios-text">{{ category.name }}</h2>
   <p class="text-sm text-ios-secondary mt-0.5">{{ category.description }}</p>
 </div>
@@ -196,7 +206,7 @@ All navigation bars across MenuView, ShopMenuView, CartView, OrderTrackingView:
 ```html
 <button
   class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full
-               shadow-card-lg active:scale-[0.98] transition-all duration-200
+               shadow-card-lg active:scale-[0.98] transition-transform duration-150
                flex items-center justify-between"
 ></button>
 ```
@@ -234,12 +244,12 @@ Cards appear with 50ms stagger delay using `animate-slide-up`.
 <!-- Normal -->
 <div
   class="bg-white rounded-2xl shadow-card overflow-hidden
-            active:scale-[0.98] transition-all duration-200"
+            active:scale-[0.98] transition-transform duration-150"
 >
   <!-- Featured: elevated shadow -->
   <div
     class="bg-white rounded-2xl shadow-card-lg overflow-hidden
-            active:scale-[0.98] transition-all duration-200"
+            active:scale-[0.98] transition-transform duration-150"
   ></div>
 </div>
 ```
@@ -249,7 +259,7 @@ Cards appear with 50ms stagger delay using `animate-slide-up`.
 
 ### 7.2 Featured Card Layout Restructure
 
-Featured items switch to **vertical layout** (image on top):
+Featured items switch to **vertical layout** (image on top). Featured cards render in the same `grid gap-4` container as normal cards. They occupy the full container width (same as normal cards) — the visual distinction comes from the vertical image-on-top layout and elevated `shadow-card-lg`, not from spanning extra columns.
 
 ```
 ┌──────────────────────────────────┐
@@ -293,7 +303,7 @@ vegan: "bg-[#E8F5E9] text-[#4E7C5F]"; // Mint pastel
 <!-- Quick add (no customizations) -->
 <button
   class="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium
-               active:scale-95 transition-all duration-200"
+               active:scale-95 transition-transform duration-150"
 >
   <!-- Select spec (has customizations) -->
   <button
@@ -313,7 +323,7 @@ vegan: "bg-[#E8F5E9] text-[#4E7C5F]"; // Mint pastel
 
 ### 8.2 Sheet Container
 
-`rounded-t-3xl shadow-xl` → `rounded-t-[24px] shadow-card-lg`
+`rounded-t-3xl shadow-xl` → `rounded-t-ios-lg shadow-card-lg` (uses the `ios-lg: 24px` token from Section 3.3)
 
 ### 8.3 Drag Handle
 
@@ -324,7 +334,7 @@ vegan: "bg-[#E8F5E9] text-[#4E7C5F]"; // Mint pastel
 ```html
 <button
   class="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full
-               shadow-card-sm active:scale-95 transition-all duration-200"
+               shadow-card-sm active:scale-95 transition-transform duration-150"
 ></button>
 ```
 
@@ -345,14 +355,17 @@ Buttons: `border border-gray-300` → `bg-gray-100` (borderless)
 >
   <button
     class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full
-                 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400"
+                 active:scale-[0.98] transition-transform duration-150
+                 disabled:bg-gray-200 disabled:text-gray-400"
   ></button>
 </div>
 ```
 
 ---
 
-## 9. Customization Modal (CustomizationModal)
+## 9. Customization UI (CustomizationModal + CustomizationOptions)
+
+> **Important**: The option rendering (sizes, radio groups, checkboxes, add-ons) lives in `CustomizationOptions.vue`, not `CustomizationModal.vue`. `CustomizationModal.vue` provides the sheet container and bottom bar; `CustomizationOptions.vue` renders the actual selection UI. Sections 9.1–9.5 apply to **`CustomizationOptions.vue`**. Section 9.6 (header/bottom bar) applies to **`CustomizationModal.vue`**.
 
 ### 9.1 Option Cards (radio/checkbox/add-on)
 
@@ -384,6 +397,13 @@ Buttons: `border border-gray-300` → `bg-gray-100` (borderless)
 
 `font-medium` → `font-semibold`, `text-red-500` → `text-ios-red`
 
+### 9.6 Sheet Container & Bottom Bar (CustomizationModal.vue)
+
+- Header: remove `border-b border-gray-200`, drag handle `w-10 h-1`
+- Close button: `w-10 h-10 rounded-full bg-gray-100` circular container
+- Bottom bar: `bg-white/95 backdrop-blur-xl shadow-[0_-4px_16px_rgb(0,0,0,0.04)]`
+- Confirm button: `bg-ios-blue rounded-full active:scale-[0.98] transition-transform duration-150`
+
 ---
 
 ## 10. Cart Page (CartView)
@@ -394,10 +414,12 @@ Buttons: `border border-gray-300` → `bg-gray-100` (borderless)
 
 ### 10.2 CartItemCard
 
+- Card: remove `border border-gray-100`, keep `shadow-card`
 - Remove button: bare icon → `w-8 h-8 rounded-full bg-gray-100`
 - Quantity buttons: `border border-gray-300` → `bg-gray-100`
 - Notes link: `text-indigo-600` → `text-ios-blue`
 - Notes textarea: `border border-gray-300` → `bg-gray-100 border-0`
+- Cart item list spacing: use `space-y-4` between CartItemCard components (replaces removed borders as visual separator)
 
 ### 10.3 Minimum Order Alert
 
@@ -461,7 +483,7 @@ CANCELLED: { bg: 'bg-ios-red/15',    text: 'text-ios-red' }
 
 ### 11.5 Connection Status
 
-`bg-yellow-100 border border-yellow-200` → `bg-ios-orange/15 rounded-2xl shadow-card-sm`
+`bg-yellow-100 border border-yellow-200` → `bg-ios-orange/15 px-4 py-2.5 rounded-2xl shadow-card-sm`
 
 ---
 
@@ -485,18 +507,24 @@ CANCELLED: { bg: 'bg-ios-red/15',    text: 'text-ios-red' }
 
 ## 13. Affected Files
 
-| File                                                      | Change Type                                                                             |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `apps/customer-app/tailwind.config.js`                    | Add ios-\* tokens, shadows, animations                                                  |
-| `apps/customer-app/src/views/MenuView.vue`                | Nav, search, section headers, floating button, loading/error                            |
-| `apps/customer-app/src/views/ShopMenuView.vue`            | Same as MenuView + fulfillment badge                                                    |
-| `apps/customer-app/src/views/CartView.vue`                | All card borders removed, inputs unified, buttons pill-shaped, bottom bar glassmorphism |
-| `apps/customer-app/src/views/OrderTrackingView.vue`       | Status colors, progress bar, cards, action buttons, connection alert                    |
-| `apps/customer-app/src/components/MenuItemCard.vue`       | Card shell, featured vertical layout, buttons, dietary tag pastels                      |
-| `apps/customer-app/src/components/CartItemCard.vue`       | Border removed, quantity controls, notes area, remove button                            |
-| `apps/customer-app/src/components/MenuItemModal.vue`      | Overlay, sheet, close button, quantity selector, notes, bottom bar                      |
-| `apps/customer-app/src/components/CustomizationModal.vue` | Option cards borderless, radio/checkbox indicators, bottom bar                          |
-| `apps/customer-app/src/components/ShopCartModal.vue`      | Same rules as CustomizationModal                                                        |
+| File                                                        | Change Type                                                                             |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `apps/customer-app/tailwind.config.js`                      | Add ios-\* tokens, shadows, animations                                                  |
+| `apps/customer-app/src/views/HomeView.vue`                  | Page bg → ios-bg, logo color → ios-blue, nav border removed, buttons pill-shaped        |
+| `apps/customer-app/src/views/MenuView.vue`                  | Nav, search, section headers, floating button, loading/error                            |
+| `apps/customer-app/src/views/ShopMenuView.vue`              | Same as MenuView + fulfillment badge                                                    |
+| `apps/customer-app/src/views/CartView.vue`                  | All card borders removed, inputs unified, buttons pill-shaped, bottom bar glassmorphism |
+| `apps/customer-app/src/views/OrderTrackingView.vue`         | Status colors, progress bar, cards, action buttons, connection alert                    |
+| `apps/customer-app/src/components/MenuItemCard.vue`         | Card shell, featured vertical layout, buttons, dietary tag pastels                      |
+| `apps/customer-app/src/components/CartItemCard.vue`         | Border removed, quantity controls, notes area, remove button                            |
+| `apps/customer-app/src/components/MenuItemModal.vue`        | Overlay, sheet, close button, quantity selector, notes, bottom bar                      |
+| `apps/customer-app/src/components/CustomizationModal.vue`   | Sheet container, header border removed, bottom bar (Section 9.6)                        |
+| `apps/customer-app/src/components/CustomizationOptions.vue` | Option cards borderless, radio/checkbox indicators, price text (Sections 9.1–9.5)       |
+| `apps/customer-app/src/components/ShopCartModal.vue`        | Same rules as Section 8 (overlay, sheet, close button, bottom bar) — NOT Section 9      |
+| `apps/customer-app/src/components/ConfirmationModal.vue`    | Overlay → bg-black/30, CTA → ios-blue rounded-full, cancel → ghost style                |
+| `apps/customer-app/src/components/OrderItemCard.vue`        | Status colors → ios-\* tokens, image radius → rounded-xl                                |
+| `apps/customer-app/src/components/TimelineItem.vue`         | Status colors → ios-blue/ios-green/ios-orange tokens                                    |
+| `apps/customer-app/src/components/CouponRecommendation.vue` | Gradient bg → ios-blue/10, borders removed, text → ios-blue                             |
 
 ---
 
