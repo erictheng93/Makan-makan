@@ -1,47 +1,33 @@
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-br from-kitchen-50 to-kitchen-100 flex items-center justify-center p-4"
-  >
-    <div class="max-w-md w-full">
-      <!-- Logo and Title -->
-      <div class="text-center mb-8">
+  <div class="bg-ios-bg min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-sm w-full">
+      <!-- App Icon & Title -->
+      <div class="flex flex-col items-center mb-8">
         <div
-          class="w-20 h-20 bg-kitchen-600 rounded-full flex items-center justify-center mx-auto mb-4"
+          class="w-20 h-20 rounded-[22px] bg-gradient-to-br from-ios-blue to-ios-green shadow-[0_8px_30px_rgba(0,122,255,0.08)] flex items-center justify-center mb-4"
         >
-          <svg
-            class="w-10 h-10 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-            />
-          </svg>
+          <ChefHat class="w-10 h-10 text-white" />
         </div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">廚房顯示系統</h1>
-        <p class="text-gray-600">請登入您的廚師帳號</p>
+        <h1 class="text-2xl font-extrabold text-ios-text mb-1">廚房顯示系統</h1>
+        <p class="text-sm text-ios-secondary">Kitchen Display System</p>
       </div>
 
-      <!-- Login Form -->
-      <div class="bg-white rounded-2xl shadow-xl p-8">
-        <form class="space-y-6" @submit.prevent="handleLogin">
+      <!-- Login Form Card -->
+      <div class="bg-white rounded-2xl p-6 shadow-card">
+        <form class="space-y-4" @submit.prevent="handleLogin">
           <!-- Username Field -->
           <div>
             <label
               for="username"
-              class="block text-sm font-medium text-gray-700 mb-2"
+              class="text-sm font-semibold text-ios-text mb-1.5 block"
             >
               用戶名稱
             </label>
             <div class="relative">
               <div
-                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"
               >
-                <UserIcon class="h-5 w-5 text-gray-400" />
+                <User class="w-4.5 h-4.5 text-ios-tertiary" />
               </div>
               <input
                 id="username"
@@ -49,9 +35,9 @@
                 type="text"
                 required
                 autocomplete="username"
-                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-kitchen-500 focus:border-transparent"
                 placeholder="請輸入用戶名稱"
                 :disabled="isLoading"
+                class="w-full bg-ios-bg rounded-xl py-3.5 pl-10 pr-4 text-base text-ios-text placeholder-ios-tertiary outline-none focus:ring-2 focus:ring-ios-blue/30 transition-all"
               />
             </div>
           </div>
@@ -60,15 +46,15 @@
           <div>
             <label
               for="password"
-              class="block text-sm font-medium text-gray-700 mb-2"
+              class="text-sm font-semibold text-ios-text mb-1.5 block"
             >
               密碼
             </label>
             <div class="relative">
               <div
-                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"
               >
-                <LockClosedIcon class="h-5 w-5 text-gray-400" />
+                <Lock class="w-4.5 h-4.5 text-ios-tertiary" />
               </div>
               <input
                 id="password"
@@ -76,23 +62,23 @@
                 :type="showPassword ? 'text' : 'password'"
                 required
                 autocomplete="current-password"
-                class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-kitchen-500 focus:border-transparent"
                 placeholder="請輸入密碼"
                 :disabled="isLoading"
+                class="w-full bg-ios-bg rounded-xl py-3.5 pl-10 pr-10 text-base text-ios-text placeholder-ios-tertiary outline-none focus:ring-2 focus:ring-ios-blue/30 transition-all"
               />
               <button
                 type="button"
-                class="absolute inset-y-0 right-0 pr-3 flex items-center"
                 :disabled="isLoading"
+                class="absolute inset-y-0 right-0 pr-3.5 flex items-center"
                 @click="showPassword = !showPassword"
               >
-                <EyeIcon
+                <Eye
                   v-if="showPassword"
-                  class="h-5 w-5 text-gray-400 hover:text-gray-600"
+                  class="w-4.5 h-4.5 text-ios-tertiary hover:text-ios-secondary transition-colors"
                 />
-                <EyeSlashIcon
+                <EyeOff
                   v-else
-                  class="h-5 w-5 text-gray-400 hover:text-gray-600"
+                  class="w-4.5 h-4.5 text-ios-tertiary hover:text-ios-secondary transition-colors"
                 />
               </button>
             </div>
@@ -101,53 +87,53 @@
           <!-- Error Message -->
           <div
             v-if="errorMessage"
-            class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl"
+            class="flex items-center gap-2 bg-ios-red/8 rounded-xl px-4 py-3"
           >
-            <div class="flex items-center">
-              <ExclamationTriangleIcon class="h-5 w-5 mr-2" />
-              <span class="text-sm">{{ errorMessage }}</span>
-            </div>
+            <AlertTriangle class="w-4 h-4 text-ios-red flex-shrink-0" />
+            <span class="text-ios-red text-sm">{{ errorMessage }}</span>
           </div>
 
           <!-- Login Button -->
           <button
             type="submit"
             :disabled="isLoading || !canSubmit"
-            class="w-full btn-kitchen-primary flex items-center justify-center py-3 text-lg"
+            class="w-full bg-ios-blue text-white rounded-full py-4 font-bold text-base min-h-[44px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 active:scale-[0.98] transition-transform mt-2"
           >
             <div
               v-if="isLoading"
-              class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"
+              class="w-4.5 h-4.5 border-2 border-white border-t-transparent rounded-full animate-spin"
             />
-            {{ isLoading ? "登入中..." : "登入" }}
+            <span>{{ isLoading ? "登入中..." : "登入" }}</span>
           </button>
         </form>
 
-        <!-- Footer Links -->
-        <div class="mt-6 text-center text-sm text-gray-500">
-          <p>僅限廚師帳號登入</p>
-          <p class="mt-1">需要協助？請聯繫系統管理員</p>
-        </div>
+        <!-- Footer -->
+        <p class="text-xs text-ios-secondary mt-5 text-center">
+          僅限廚師角色登入
+        </p>
       </div>
 
       <!-- System Info -->
-      <div class="mt-8 text-center text-xs text-gray-500">
+      <div class="mt-6 text-center text-xs text-ios-secondary space-y-1">
         <p>MakanMakan 廚房顯示系統 v1.0</p>
-        <p class="mt-1">最佳瀏覽體驗：Chrome、Edge、Safari</p>
+        <p>需要協助？請聯繫系統管理員</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
-import UserIcon from "@heroicons/vue/24/outline/UserIcon";
-import LockClosedIcon from "@heroicons/vue/24/outline/LockClosedIcon";
-import EyeIcon from "@heroicons/vue/24/outline/EyeIcon";
-import EyeSlashIcon from "@heroicons/vue/24/outline/EyeSlashIcon";
-import ExclamationTriangleIcon from "@heroicons/vue/24/outline/ExclamationTriangleIcon";
+import {
+  ChefHat,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+} from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 
@@ -242,7 +228,6 @@ onMounted(async () => {
 });
 
 // 清理
-import { onUnmounted } from "vue";
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeyDown);
 });
