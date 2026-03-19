@@ -2,112 +2,112 @@
   <!-- Global Error Boundary Component -->
   <div
     v-if="hasError"
-    class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
+    class="min-h-screen flex items-center justify-center bg-[#F2F2F7] py-12 px-4"
   >
-    <div class="max-w-md w-full space-y-8">
-      <div class="text-center">
-        <div class="mx-auto h-12 w-12 text-red-500">
-          <ExclamationTriangleIcon class="h-12 w-12" />
+    <div
+      class="bg-white rounded-2xl shadow-card p-6 text-center max-w-md mx-auto mt-20 w-full"
+    >
+      <!-- Icon -->
+      <AlertTriangle class="w-12 h-12 text-ios-red mx-auto" />
+
+      <!-- Title -->
+      <h2 class="text-lg font-bold text-ios-text mt-4">發生錯誤</h2>
+
+      <!-- Message -->
+      <p class="text-sm text-ios-secondary mt-2">
+        {{ errorMessage }}
+      </p>
+
+      <!-- Error Details (Developer Mode) -->
+      <div v-if="isDevelopment && errorDetails" class="mt-4 text-left">
+        <div
+          class="bg-gray-100 rounded-xl p-3 text-xs font-mono text-gray-700 overflow-auto max-h-40"
+        >
+          {{ errorDetails }}
         </div>
-        <h2 class="mt-6 text-3xl font-extrabold text-gray-900">系統發生錯誤</h2>
-        <p class="mt-2 text-sm text-gray-600">
-          {{ errorMessage }}
-        </p>
       </div>
 
-      <div class="bg-white shadow-lg rounded-lg p-6">
-        <!-- Error Details (Developer Mode) -->
-        <div v-if="isDevelopment && errorDetails" class="mb-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-3">錯誤詳情</h3>
-          <div
-            class="bg-gray-100 rounded p-3 text-sm font-mono text-gray-800 overflow-auto max-h-40"
-          >
-            {{ errorDetails }}
+      <!-- Retry Button -->
+      <button
+        :disabled="retrying"
+        class="bg-ios-blue text-white rounded-full px-6 py-3 font-bold mt-6 min-h-[44px] w-full disabled:opacity-50 transition-opacity duration-200"
+        @click="retryOperation"
+      >
+        <span class="flex items-center justify-center gap-2">
+          <RefreshCw v-if="retrying" class="w-4 h-4 animate-spin" />
+          {{ retrying ? "重試中..." : "重試" }}
+        </span>
+      </button>
+
+      <!-- Secondary Actions -->
+      <div class="flex flex-col gap-3 mt-3">
+        <button
+          class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full border border-gray-200 text-sm font-medium text-ios-text bg-white hover:bg-gray-50 min-h-[44px] transition-colors duration-200"
+          @click="reloadApplication"
+        >
+          <RefreshCw class="w-4 h-4" />
+          重新載入應用
+        </button>
+
+        <button
+          class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full border border-gray-200 text-sm font-medium text-ios-text bg-white hover:bg-gray-50 min-h-[44px] transition-colors duration-200"
+          @click="reportError"
+        >
+          <Bug class="w-4 h-4" />
+          回報問題
+        </button>
+      </div>
+
+      <!-- System Status -->
+      <div class="mt-6 pt-5 border-t border-gray-100 text-left">
+        <h4 class="text-sm font-semibold text-ios-text mb-3">系統狀態</h4>
+        <div class="grid grid-cols-2 gap-2 text-xs text-ios-secondary">
+          <div class="flex items-center gap-1.5">
+            <div
+              :class="[
+                'w-2 h-2 rounded-full flex-shrink-0',
+                networkStatus === 'online' ? 'bg-ios-green' : 'bg-ios-red',
+              ]"
+            />
+            網路: {{ networkStatus === "online" ? "正常" : "離線" }}
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div
+              :class="[
+                'w-2 h-2 rounded-full flex-shrink-0',
+                storageAvailable ? 'bg-ios-green' : 'bg-ios-red',
+              ]"
+            />
+            儲存: {{ storageAvailable ? "可用" : "錯誤" }}
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div
+              :class="[
+                'w-2 h-2 rounded-full flex-shrink-0',
+                memoryStatus === 'normal' ? 'bg-ios-green' : 'bg-ios-orange',
+              ]"
+            />
+            記憶體: {{ memoryStatus === "normal" ? "正常" : "偏高" }}
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="w-2 h-2 rounded-full flex-shrink-0 bg-ios-blue" />
+            版本: {{ appVersion }}
           </div>
         </div>
+      </div>
 
-        <!-- Error Actions -->
-        <div class="flex flex-col space-y-3">
-          <button
-            :disabled="retrying"
-            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
-            @click="retryOperation"
+      <!-- Recovery Mode Toggle -->
+      <div class="mt-4 pt-4 border-t border-gray-100">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            v-model="safeMode"
+            type="checkbox"
+            class="rounded border-gray-300 text-ios-blue focus:ring-ios-blue"
+          />
+          <span class="text-sm text-ios-secondary"
+            >啟用安全模式（停用進階功能）</span
           >
-            <ArrowPathIcon
-              v-if="retrying"
-              class="animate-spin -ml-1 mr-2 h-4 w-4"
-            />
-            {{ retrying ? "重試中..." : "重試" }}
-          </button>
-
-          <button
-            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            @click="reloadApplication"
-          >
-            <ArrowPathIcon class="-ml-1 mr-2 h-4 w-4" />
-            重新載入應用
-          </button>
-
-          <button
-            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            @click="reportError"
-          >
-            <BugAntIcon class="-ml-1 mr-2 h-4 w-4" />
-            回報問題
-          </button>
-        </div>
-
-        <!-- System Status -->
-        <div class="mt-6 pt-6 border-t border-gray-200">
-          <h4 class="text-sm font-medium text-gray-900 mb-2">系統狀態</h4>
-          <div class="grid grid-cols-2 gap-3 text-xs">
-            <div class="flex items-center">
-              <div
-                :class="[
-                  'w-2 h-2 rounded-full mr-2',
-                  networkStatus === 'online' ? 'bg-green-500' : 'bg-red-500',
-                ]"
-              />
-              網路連線: {{ networkStatus === "online" ? "正常" : "離線" }}
-            </div>
-            <div class="flex items-center">
-              <div
-                :class="[
-                  'w-2 h-2 rounded-full mr-2',
-                  storageAvailable ? 'bg-green-500' : 'bg-red-500',
-                ]"
-              />
-              本地儲存: {{ storageAvailable ? "可用" : "錯誤" }}
-            </div>
-            <div class="flex items-center">
-              <div
-                :class="[
-                  'w-2 h-2 rounded-full mr-2',
-                  memoryStatus === 'normal' ? 'bg-green-500' : 'bg-yellow-500',
-                ]"
-              />
-              記憶體: {{ memoryStatus === "normal" ? "正常" : "偏高" }}
-            </div>
-            <div class="flex items-center">
-              <div class="w-2 h-2 rounded-full mr-2 bg-blue-500" />
-              版本: {{ appVersion }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Recovery Mode Toggle -->
-        <div class="mt-4 pt-4 border-t border-gray-200">
-          <label class="flex items-center">
-            <input
-              v-model="safeMode"
-              type="checkbox"
-              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span class="ml-2 text-sm text-gray-600"
-              >啟用安全模式（停用進階功能）</span
-            >
-          </label>
-        </div>
+        </label>
       </div>
     </div>
   </div>
@@ -120,11 +120,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onErrorCaptured } from "vue";
-import {
-  ExclamationTriangleIcon,
-  ArrowPathIcon,
-  BugAntIcon,
-} from "@heroicons/vue/24/outline";
+import { AlertTriangle, RefreshCw, Bug } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { errorReportingService } from "@/services/errorReportingService";
 
@@ -329,32 +325,3 @@ defineExpose({
   isInSafeMode,
 });
 </script>
-
-<style scoped>
-/* Animation for error boundary */
-.error-boundary-enter-active {
-  transition: opacity 0.3s ease-in-out;
-}
-
-.error-boundary-enter-from {
-  opacity: 0;
-}
-
-/* Custom scrollbar for error details */
-.overflow-auto::-webkit-scrollbar {
-  width: 4px;
-}
-
-.overflow-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 2px;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-</style>
