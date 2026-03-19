@@ -359,16 +359,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import {
-  ChartBarIcon,
-  ArrowPathIcon,
-  ArchiveBoxIcon,
-  ClockIcon,
-  CpuChipIcon,
-  DocumentDuplicateIcon,
-  PaintBrushIcon,
-  ServerIcon,
-  ExclamationTriangleIcon,
-} from "@heroicons/vue/24/outline";
+  BarChart2 as ChartBarIcon,
+  RefreshCw as ArrowPathIcon,
+  Archive as ArchiveBoxIcon,
+  Clock as ClockIcon,
+  Cpu as CpuChipIcon,
+  Copy as DocumentDuplicateIcon,
+  Paintbrush as PaintBrushIcon,
+  Server as ServerIcon,
+  AlertTriangle as ExclamationTriangleIcon,
+} from "lucide-vue-next";
 import { performanceOptimizationService } from "@/services/performanceOptimizationService";
 import type { OptimizationConfig } from "@/services/performanceOptimizationService";
 

@@ -290,9 +290,9 @@ describe("OrderFilters Component", () => {
         await quickFilterButtons[0].trigger("click");
         await quickFilterButtons[1].trigger("click");
 
-        // Both filters should be active
-        expect(quickFilterButtons[0].classes()).toContain("bg-kitchen-100");
-        expect(quickFilterButtons[1].classes()).toContain("bg-kitchen-100");
+        // Both filters should be active (ios-blue when selected)
+        expect(quickFilterButtons[0].classes()).toContain("bg-ios-blue");
+        expect(quickFilterButtons[1].classes()).toContain("bg-ios-blue");
       }
     });
 

@@ -54,7 +54,7 @@
               class="bg-ios-orange text-white rounded-full px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center gap-1.5 disabled:opacity-50 active:scale-95 transition-transform"
               @click="showPriorityMenu = !showPriorityMenu"
             >
-              <TriangleAlertIcon class="w-4 h-4" />
+              <AlertTriangle class="w-4 h-4" />
               <span>調整優先級</span>
               <ChevronDownIcon class="w-3.5 h-3.5" />
             </button>
@@ -114,7 +114,7 @@
           <div
             class="w-12 h-12 bg-ios-blue/10 rounded-full flex items-center justify-center mx-auto mb-3"
           >
-            <TriangleAlertIcon class="w-6 h-6 text-ios-blue" />
+            <AlertTriangle class="w-6 h-6 text-ios-blue" />
           </div>
           <h3 class="text-lg font-extrabold text-ios-text mb-2">
             確認批量操作
@@ -144,11 +144,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onClickOutside } from "@vueuse/core";
-import {
-  Loader2Icon,
-  TriangleAlertIcon,
-  ChevronDownIcon,
-} from "lucide-vue-next";
+import { Loader2Icon, AlertTriangle, ChevronDownIcon } from "lucide-vue-next";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useToast } from "vue-toastification";
 import { storeToRefs } from "pinia";

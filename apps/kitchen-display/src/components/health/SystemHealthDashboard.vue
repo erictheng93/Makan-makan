@@ -403,17 +403,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, h } from "vue";
 import {
-  CpuChipIcon,
-  ArrowPathIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  XCircleIcon,
-  InformationCircleIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  MinusIcon,
-  XMarkIcon,
-} from "@heroicons/vue/24/outline";
+  Cpu as CpuChipIcon,
+  RefreshCw as ArrowPathIcon,
+  CheckCircle as CheckCircleIcon,
+  AlertTriangle as ExclamationTriangleIcon,
+  XCircle as XCircleIcon,
+  Info as InformationCircleIcon,
+  TrendingUp as ArrowTrendingUpIcon,
+  TrendingDown as ArrowTrendingDownIcon,
+  Minus as MinusIcon,
+  X as XMarkIcon,
+} from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { systemHealthService } from "@/services/systemHealthService";
 import type { SystemHealthReport } from "@/services/systemHealthService";

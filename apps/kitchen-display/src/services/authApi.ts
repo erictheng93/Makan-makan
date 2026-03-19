@@ -83,7 +83,7 @@ export const authApi = {
 
       return {
         success: true,
-        data: response.data,
+        data: response.data.data,
         timestamp: new Date().toISOString(),
       };
     } catch (error: any) {

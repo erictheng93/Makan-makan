@@ -520,14 +520,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import ChartBarIcon from "@heroicons/vue/24/outline/ChartBarIcon";
-import ExclamationTriangleIcon from "@heroicons/vue/24/outline/ExclamationTriangleIcon";
-import GlobeAltIcon from "@heroicons/vue/24/outline/GlobeAltIcon";
-import BoltIcon from "@heroicons/vue/24/outline/BoltIcon";
-import CpuChipIcon from "@heroicons/vue/24/outline/CpuChipIcon";
-import FilmIcon from "@heroicons/vue/24/outline/FilmIcon";
-import XMarkIcon from "@heroicons/vue/24/outline/XMarkIcon";
-import LightBulbIcon from "@heroicons/vue/24/outline/LightBulbIcon";
+import {
+  BarChart2 as ChartBarIcon,
+  AlertTriangle as ExclamationTriangleIcon,
+  Globe as GlobeAltIcon,
+  Zap as BoltIcon,
+  Cpu as CpuChipIcon,
+  Film as FilmIcon,
+  X as XMarkIcon,
+  Lightbulb as LightBulbIcon,
+} from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { performanceService } from "@/services/performanceService";
 

@@ -419,15 +419,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import {
-  ExclamationTriangleIcon,
-  ClockIcon,
-  ShieldExclamationIcon,
-  CheckCircleIcon,
-  ArrowPathIcon,
-  ArrowDownTrayIcon,
-  InformationCircleIcon,
-  XMarkIcon,
-} from "@heroicons/vue/24/outline";
+  AlertTriangle as ExclamationTriangleIcon,
+  Clock as ClockIcon,
+  ShieldAlert as ShieldExclamationIcon,
+  CheckCircle as CheckCircleIcon,
+  RefreshCw as ArrowPathIcon,
+  Download as ArrowDownTrayIcon,
+  Info as InformationCircleIcon,
+  X as XMarkIcon,
+} from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import {
   errorReportingService,

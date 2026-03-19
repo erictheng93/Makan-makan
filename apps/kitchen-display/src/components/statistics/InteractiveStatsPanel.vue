@@ -596,22 +596,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import {
-  ChartBarIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  FireIcon,
-  BoltIcon,
-  ArrowPathIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
-  MinusIcon,
-  ChartPieIcon,
-  UserGroupIcon,
-  CubeIcon,
-  StarIcon,
-  SunIcon,
-  ArrowDownTrayIcon,
-} from "@heroicons/vue/24/outline";
+  BarChart2 as ChartBarIcon,
+  Clock as ClockIcon,
+  CheckCircle as CheckCircleIcon,
+  Flame as FireIcon,
+  Zap as BoltIcon,
+  RefreshCw as ArrowPathIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  Minus as MinusIcon,
+  PieChart as ChartPieIcon,
+  Users as UserGroupIcon,
+  Box as CubeIcon,
+  Star as StarIcon,
+  Sun as SunIcon,
+  Download as ArrowDownTrayIcon,
+} from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { kitchenStatisticsService } from "@/services/kitchenStatisticsService";
 

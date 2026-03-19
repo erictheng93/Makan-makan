@@ -339,12 +339,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import {
-  CommandLineIcon,
-  PlayIcon,
-  PencilIcon,
-  PlusIcon,
-  InformationCircleIcon,
-} from "@heroicons/vue/24/outline";
+  Terminal as CommandLineIcon,
+  Play as PlayIcon,
+  Pencil as PencilIcon,
+  Plus as PlusIcon,
+  Info as InformationCircleIcon,
+} from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { useEnhancedKeyboardShortcuts } from "@/composables/useEnhancedKeyboardShortcuts";
 import type { KeyboardShortcut } from "@/composables/useEnhancedKeyboardShortcuts";

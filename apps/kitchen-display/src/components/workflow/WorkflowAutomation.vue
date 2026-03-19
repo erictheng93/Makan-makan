@@ -403,7 +403,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from "vue";
-import { Cog6ToothIcon as CogIcon, XMarkIcon } from "@heroicons/vue/24/outline";
+import { Settings as CogIcon, X as XMarkIcon } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import type { KitchenOrder } from "@/types";
 

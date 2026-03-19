@@ -275,12 +275,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import {
-  ClockIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  ChartBarIcon,
-  DocumentArrowDownIcon,
-} from "@heroicons/vue/24/outline";
+  Clock as ClockIcon,
+  AlertTriangle as ExclamationTriangleIcon,
+  CheckCircle as CheckCircleIcon,
+  BarChart2 as ChartBarIcon,
+  FileDown as DocumentArrowDownIcon,
+} from "lucide-vue-next";
 import { useSettingsStore } from "@/stores/settings";
 import { useToast } from "vue-toastification";
 import { storeToRefs } from "pinia";

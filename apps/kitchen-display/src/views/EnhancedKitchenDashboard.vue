@@ -73,6 +73,7 @@
             v-for="order in filteredOrders"
             :key="order.id"
             :order="order"
+            :status-type="getOrderStatusType(order.status)"
             @start-cooking="handleStartCooking"
             @mark-ready="handleMarkReady"
             @view-details="handleViewDetails"
@@ -142,6 +143,9 @@ const props = defineProps<{
   restaurantId: string;
 }>();
 
+// Numeric restaurantId (router params are always strings)
+const restaurantIdNum = computed(() => Number(props.restaurantId));
+
 // Composables
 const router = useRouter();
 const toast = useToast();
@@ -160,7 +164,7 @@ const {
   disconnect: _disconnectSSE,
   reconnect: reconnectSSE,
 } = useKitchenSSE({
-  restaurantId: props.restaurantId,
+  restaurantId: restaurantIdNum.value,
   onNewOrder: (event) => {
     ordersStore.handleSSEEvent(event);
   },
@@ -213,6 +217,15 @@ const filteredReadyOrders = computed(() =>
   filteredOrders.value.filter((order) => order.status === 3),
 );
 
+// Helpers
+const getOrderStatusType = (
+  status: number,
+): "pending" | "preparing" | "ready" => {
+  if (status === 2) return "preparing";
+  if (status === 3) return "ready";
+  return "pending";
+};
+
 // Methods
 const setViewMode = (mode: "kanban" | "grid") => {
   viewMode.value = mode;
@@ -221,7 +234,7 @@ const setViewMode = (mode: "kanban" | "grid") => {
 
 const fetchOrders = async () => {
   try {
-    await ordersStore.fetchOrders(props.restaurantId);
+    await ordersStore.fetchOrders(restaurantIdNum.value);
     if (ordersError.value) {
       toast.error("載入訂單失敗：" + ordersError.value);
     }
@@ -233,7 +246,7 @@ const fetchOrders = async () => {
 
 const handleStartCooking = async (orderId: number, itemId: number) => {
   try {
-    await ordersStore.startCooking(props.restaurantId, orderId, itemId);
+    await ordersStore.startCooking(restaurantIdNum.value, orderId, itemId);
     toast.success("開始製作！");
   } catch (error: any) {
     toast.error("操作失敗：" + error.message);
@@ -242,7 +255,7 @@ const handleStartCooking = async (orderId: number, itemId: number) => {
 
 const handleMarkReady = async (orderId: number, itemId: number) => {
   try {
-    await ordersStore.markReady(props.restaurantId, orderId, itemId);
+    await ordersStore.markReady(restaurantIdNum.value, orderId, itemId);
     toast.success("餐點已完成！");
   } catch (error: any) {
     toast.error("操作失敗：" + error.message);
@@ -271,7 +284,7 @@ const handleBatchStartOrder = async (orderId: number) => {
     if (!order) return;
     for (const item of order.items) {
       if (item.status === "pending") {
-        await ordersStore.startCooking(props.restaurantId, orderId, item.id);
+        await ordersStore.startCooking(restaurantIdNum.value, orderId, item.id);
       }
     }
     await fetchOrders();
@@ -286,7 +299,7 @@ const handleBatchCompleteOrder = async (orderId: number) => {
     if (!order) return;
     for (const item of order.items) {
       if (item.status === "preparing") {
-        await ordersStore.markReady(props.restaurantId, orderId, item.id);
+        await ordersStore.markReady(restaurantIdNum.value, orderId, item.id);
       }
     }
     await fetchOrders();
@@ -361,7 +374,7 @@ onMounted(async () => {
   }
 
   // Check restaurant permissions
-  if (authStore.restaurantId !== props.restaurantId) {
+  if (authStore.restaurantId !== restaurantIdNum.value) {
     await router.push("/unauthorized");
     return;
   }

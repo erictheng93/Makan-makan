@@ -27,8 +27,8 @@
                 <h2 class="text-2xl font-extrabold text-ios-text">
                   {{ order.orderNumber }}
                 </h2>
-                <span :class="getOrderTypeBadgeClass(order.type)">
-                  {{ getOrderTypeText(order.type) }}
+                <span :class="getOrderTypeBadgeClass(order.deliveryInfo?.type)">
+                  {{ getOrderTypeText(order.deliveryInfo?.type) }}
                 </span>
               </div>
               <p class="text-sm text-ios-secondary mt-1">

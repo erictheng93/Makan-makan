@@ -55,7 +55,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/vue/24/outline";
+import {
+  Volume2 as SpeakerWaveIcon,
+  VolumeX as SpeakerXMarkIcon,
+} from "lucide-vue-next";
 import { useSettingsStore } from "@/stores/settings";
 import { storeToRefs } from "pinia";
 import ErrorBoundary from "@/components/error/ErrorBoundary.vue";

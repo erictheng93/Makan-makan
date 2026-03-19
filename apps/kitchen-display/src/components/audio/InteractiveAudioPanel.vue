@@ -292,18 +292,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import {
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-  PlusIcon,
-  ExclamationTriangleIcon,
-  CheckIcon,
-  BellIcon,
-  MusicalNoteIcon,
-  ExclamationCircleIcon,
-  InformationCircleIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-} from "@heroicons/vue/24/outline";
+  Volume2 as SpeakerWaveIcon,
+  VolumeX as SpeakerXMarkIcon,
+  Plus as PlusIcon,
+  AlertTriangle as ExclamationTriangleIcon,
+  Check as CheckIcon,
+  Bell as BellIcon,
+  Music as MusicalNoteIcon,
+  AlertCircle as ExclamationCircleIcon,
+  Info as InformationCircleIcon,
+  CheckCircle as CheckCircleIcon,
+  XCircle as XCircleIcon,
+} from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { enhancedAudioService } from "@/services/enhancedAudioService";
 import type { SoundType } from "@/services/enhancedAudioService";
