@@ -1,229 +1,164 @@
 <template>
-  <div
-    v-if="show"
-    class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-    @click="$emit('close')"
-  >
-    <div
-      class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-90vh overflow-y-auto"
-      @click.stop
-    >
-      <!-- Modal Header -->
+  <Teleport to="body">
+    <Transition name="fade">
       <div
-        class="sticky top-0 bg-white rounded-t-2xl border-b border-gray-200 p-6"
+        v-if="show"
+        class="fixed inset-0 bg-black/30 z-50"
+        @click="$emit('close')"
+      />
+    </Transition>
+
+    <Transition name="slide-up">
+      <div
+        v-if="show"
+        class="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 max-h-[90vh] flex flex-col"
+        @click.stop
       >
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-xl font-bold text-gray-900">訂單詳情</h2>
-            <p class="text-sm text-gray-500">
-              {{ order.orderNumber }}
-            </p>
-          </div>
-          <button
-            class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
-            @click="$emit('close')"
-          >
-            <XMarkIcon class="w-5 h-5 text-gray-600" />
-          </button>
+        <!-- Drag Handle -->
+        <div class="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div class="w-10 h-1 rounded-full bg-gray-300" />
         </div>
-      </div>
 
-      <!-- Modal Content -->
-      <div class="p-6 space-y-6">
-        <!-- Order Basic Info -->
-        <div class="bg-gray-50 rounded-xl p-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <div class="text-sm text-gray-500">桌號</div>
-              <div class="font-medium">
+        <!-- Header -->
+        <div class="px-5 pt-3 pb-4 flex-shrink-0">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-3 flex-wrap">
+                <h2 class="text-2xl font-extrabold text-ios-text">
+                  {{ order.orderNumber }}
+                </h2>
+                <span :class="getOrderTypeBadgeClass(order.type)">
+                  {{ getOrderTypeText(order.type) }}
+                </span>
+              </div>
+              <p class="text-sm text-ios-secondary mt-1">
                 {{ order.tableName }}
-              </div>
+                <span class="mx-1.5">·</span>
+                {{ formatTime(order.createdAt) }}
+                <span class="mx-1.5">·</span>
+                <span :class="getTimeClass(order.elapsedTime)">
+                  等待 {{ formatElapsedTime(order.elapsedTime) }}
+                </span>
+              </p>
             </div>
-            <div>
-              <div class="text-sm text-gray-500">下單時間</div>
-              <div class="font-medium">
-                {{ formatDateTime(order.createdAt) }}
-              </div>
-            </div>
-            <div v-if="order.customerName">
-              <div class="text-sm text-gray-500">顾客姓名</div>
-              <div class="font-medium">
-                {{ order.customerName }}
-              </div>
-            </div>
-            <div>
-              <div class="text-sm text-gray-500">等待時間</div>
-              <div :class="getTimeClass(order.elapsedTime)">
-                {{ formatElapsedTime(order.elapsedTime) }}
-              </div>
-            </div>
+            <button
+              class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center flex-shrink-0 ml-3"
+              @click="$emit('close')"
+            >
+              <XIcon class="w-5 h-5 text-ios-secondary" />
+            </button>
           </div>
         </div>
 
-        <!-- Order Items -->
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-3">餐點明細</h3>
-          <div class="space-y-3">
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto px-5 space-y-4 pb-6">
+          <!-- Order Items -->
+          <div class="bg-ios-bg rounded-2xl overflow-hidden">
             <div
-              v-for="item in order.items"
+              v-for="(item, index) in order.items"
               :key="item.id"
-              class="border border-gray-200 rounded-xl p-4"
+              :class="[
+                'px-4 py-3.5',
+                index < order.items.length - 1
+                  ? 'border-b border-white/60'
+                  : '',
+              ]"
             >
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <div class="flex items-center space-x-3 mb-2">
-                    <h4 class="font-medium text-gray-900">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-base font-semibold text-ios-text">
                       {{ item.name }}
-                    </h4>
-                    <span class="text-sm text-gray-500"
-                      >x{{ item.quantity }}</span
-                    >
+                    </span>
                     <span :class="getItemStatusClass(item.status)">
                       {{ getItemStatusText(item.status) }}
                     </span>
                   </div>
 
-                  <!-- Item Details -->
-                  <div class="space-y-2 text-sm">
-                    <div v-if="item.notes" class="text-orange-600">
-                      <ExclamationTriangleIcon class="w-4 h-4 inline mr-1" />
-                      <span class="font-medium">備註:</span> {{ item.notes }}
-                    </div>
+                  <!-- Customization notes -->
+                  <div v-if="item.notes" class="mt-1 text-ios-orange text-sm">
+                    備註: {{ item.notes }}
+                  </div>
+                  <div
+                    v-if="item.customizations && item.customizations.length"
+                    class="mt-1 text-ios-orange text-sm"
+                  >
+                    客製: {{ item.customizations.join(", ") }}
+                  </div>
 
-                    <div
-                      v-if="item.customizations && item.customizations.length"
-                      class="text-blue-600"
-                    >
-                      <span class="font-medium">客製:</span>
-                      {{ item.customizations.join(", ") }}
-                    </div>
-
-                    <div v-if="item.estimatedTime" class="text-gray-600">
-                      <ClockIcon class="w-4 h-4 inline mr-1" />
-                      預估時間: {{ item.estimatedTime }}分鐘
-                    </div>
-
-                    <div v-if="item.startedAt" class="text-gray-600">
-                      開始時間: {{ formatTime(item.startedAt) }}
-                    </div>
-
-                    <div v-if="item.completedAt" class="text-green-600">
-                      完成時間: {{ formatTime(item.completedAt) }}
-                    </div>
+                  <!-- Item timestamps -->
+                  <div
+                    v-if="item.startedAt || item.completedAt"
+                    class="mt-1 flex gap-3 text-xs text-ios-secondary"
+                  >
+                    <span v-if="item.startedAt">
+                      開始 {{ formatTime(item.startedAt) }}
+                    </span>
+                    <span v-if="item.completedAt" class="text-ios-green">
+                      完成 {{ formatTime(item.completedAt) }}
+                    </span>
                   </div>
                 </div>
 
-                <!-- Item Actions -->
-                <div class="flex flex-col space-y-2 ml-4">
+                <!-- Quantity + Item Actions -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <span class="text-base font-semibold text-ios-text">
+                    x{{ item.quantity }}
+                  </span>
                   <button
                     v-if="item.status === 'pending'"
-                    class="btn-kitchen bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2"
+                    class="rounded-full px-3 py-1.5 text-sm font-semibold bg-ios-blue text-white"
                     @click="updateItemStatus(item.id, 'preparing')"
                   >
-                    開始製作
+                    開始
                   </button>
-
                   <button
                     v-else-if="item.status === 'preparing'"
-                    class="btn-kitchen bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2"
+                    class="rounded-full px-3 py-1.5 text-sm font-semibold bg-ios-green text-white"
                     @click="updateItemStatus(item.id, 'ready')"
                   >
-                    標記完成
+                    完成
                   </button>
-
-                  <span
-                    v-else-if="item.status === 'ready'"
-                    class="status-ready text-sm px-3 py-2 text-center"
-                  >
-                    已完成
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Order Notes -->
-        <div v-if="order.notes">
-          <h3 class="text-lg font-semibold text-gray-900 mb-3">訂單備註</h3>
-          <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-            <div class="flex items-start space-x-2">
-              <ChatBubbleLeftEllipsisIcon
-                class="w-5 h-5 text-yellow-600 mt-0.5"
-              />
-              <p class="text-yellow-800">
-                {{ order.notes }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Order Timeline -->
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-3">處理時間軸</h3>
-          <div class="space-y-3">
-            <div class="flex items-center space-x-3">
-              <div class="w-3 h-3 bg-green-500 rounded-full" />
-              <div class="flex-1">
-                <div class="font-medium">訂單建立</div>
-                <div class="text-sm text-gray-500">
-                  {{ formatDateTime(order.createdAt) }}
                 </div>
               </div>
             </div>
           </div>
 
-          <div v-if="order.confirmedAt" class="flex items-center space-x-3">
-            <div class="w-3 h-3 bg-blue-500 rounded-full" />
-            <div class="flex-1">
-              <div class="font-medium">訂單確認</div>
-              <div class="text-sm text-gray-500">
-                {{ formatDateTime(order.confirmedAt) }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Footer -->
-    <div
-      class="sticky bottom-0 bg-white rounded-b-2xl border-t border-gray-200 p-6"
-    >
-      <div class="flex justify-between items-center">
-        <div class="text-sm text-gray-500">
-          最後更新: {{ formatDateTime(new Date().toISOString()) }}
-        </div>
-
-        <div class="flex space-x-3">
-          <button
-            class="btn-kitchen-secondary px-4 py-2"
-            @click="$emit('close')"
+          <!-- Order Notes -->
+          <div
+            v-if="order.notes"
+            class="bg-[#FFF3E0] rounded-xl p-3 flex items-start gap-2"
           >
-            關閉
-          </button>
+            <ZapIcon class="w-4 h-4 text-[#E65100] flex-shrink-0 mt-0.5" />
+            <p class="text-[#E65100] text-sm font-medium">{{ order.notes }}</p>
+          </div>
+        </div>
 
+        <!-- Action Button -->
+        <div class="px-5 pb-8 pt-3 flex-shrink-0">
           <button
             v-if="hasUncompletedItems"
-            class="btn-kitchen-success px-4 py-2"
+            class="w-full rounded-full py-4 font-bold text-white bg-ios-blue text-base"
             @click="markAllComplete"
           >
-            全部完成
+            開始全部製作
+          </button>
+          <button
+            v-else
+            class="w-full rounded-full py-4 font-bold text-white bg-ios-green text-base"
+            @click="$emit('close')"
+          >
+            全部已完成
           </button>
         </div>
       </div>
-    </div>
-  </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import {
-  XMarkIcon,
-  ExclamationTriangleIcon,
-  ClockIcon,
-  ChatBubbleLeftEllipsisIcon,
-} from "@heroicons/vue/24/outline";
+import { XIcon, ZapIcon } from "lucide-vue-next";
 import type { KitchenOrder, ItemStatus } from "@/types";
 
 interface Props {
@@ -279,31 +214,53 @@ const formatElapsedTime = (minutes: number) => {
 
 const getTimeClass = (elapsedMinutes: number) => {
   if (elapsedMinutes >= 15) {
-    return "font-bold text-red-600";
+    return "font-bold text-ios-red";
   } else if (elapsedMinutes >= 10) {
-    return "font-bold text-orange-600";
+    return "font-bold text-ios-orange";
   }
-  return "font-medium text-gray-900";
+  return "font-medium text-ios-text";
+};
+
+const getOrderTypeText = (type?: string) => {
+  const texts: Record<string, string> = {
+    dine_in: "內用",
+    takeout: "外帶",
+    delivery: "外送",
+  };
+  return texts[type ?? ""] ?? "內用";
+};
+
+const getOrderTypeBadgeClass = (type?: string) => {
+  const base =
+    "inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-semibold";
+  const colors: Record<string, string> = {
+    dine_in: `${base} bg-blue-100 text-ios-blue`,
+    takeout: `${base} bg-orange-100 text-ios-orange`,
+    delivery: `${base} bg-purple-100 text-purple-700`,
+  };
+  return colors[type ?? ""] ?? `${base} bg-blue-100 text-ios-blue`;
 };
 
 const getItemStatusClass = (status: ItemStatus) => {
-  const classes = {
-    pending: "status-pending",
-    preparing: "status-badge bg-blue-100 text-blue-800",
-    ready: "status-ready",
-    completed: "status-badge bg-green-100 text-green-800",
+  const base =
+    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold";
+  const classes: Record<string, string> = {
+    pending: `${base} bg-gray-100 text-gray-600`,
+    preparing: `${base} bg-blue-100 text-ios-blue`,
+    ready: `${base} bg-green-100 text-ios-green`,
+    completed: `${base} bg-green-100 text-ios-green`,
   };
-  return classes[status] || classes.pending;
+  return classes[status] ?? classes.pending;
 };
 
 const getItemStatusText = (status: ItemStatus) => {
-  const texts = {
+  const texts: Record<string, string> = {
     pending: "待處理",
     preparing: "製作中",
     ready: "已完成",
     completed: "已送達",
   };
-  return texts[status] || "未知";
+  return texts[status] ?? "未知";
 };
 
 const updateItemStatus = (itemId: number, status: ItemStatus) => {
@@ -318,3 +275,27 @@ const markAllComplete = () => {
     });
 };
 </script>
+
+<style scoped>
+/* Fade transition for overlay */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 250ms ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Slide-up transition for bottom sheet */
+.slide-up-enter-active {
+  transition: transform 350ms ease-out;
+}
+.slide-up-leave-active {
+  transition: transform 300ms ease-in;
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+}
+</style>
