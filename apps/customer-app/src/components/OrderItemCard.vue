@@ -2,7 +2,7 @@
   <div class="flex items-start space-x-3 py-3">
     <!-- 商品圖片 -->
     <div class="flex-shrink-0">
-      <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+      <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100">
         <img
           v-if="item.menuItem?.imageUrl"
           :src="
@@ -40,20 +40,20 @@
     <div class="flex-1 min-w-0">
       <div class="flex items-start justify-between">
         <div class="flex-1 min-w-0 mr-2">
-          <h4 class="text-sm font-medium text-gray-900">
+          <h4 class="text-sm font-medium text-ios-text">
             {{ item.menuItem?.name || t("orderItem.unknownItem") }}
           </h4>
 
           <!-- 客製化資訊 -->
           <div v-if="customizationText" class="mt-1">
-            <p class="text-xs text-gray-600">
+            <p class="text-xs text-ios-secondary">
               {{ customizationText }}
             </p>
           </div>
 
           <!-- 備註 -->
           <div v-if="item.notes" class="mt-1">
-            <p class="text-xs text-gray-600">
+            <p class="text-xs text-ios-secondary">
               <span class="font-medium">{{ t("orderItem.notes") }}</span
               >{{ item.notes }}
             </p>
@@ -78,8 +78,8 @@
 
         <!-- 數量和價格 -->
         <div class="text-right">
-          <div class="text-sm text-gray-500">× {{ item.quantity }}</div>
-          <div class="text-sm font-medium text-gray-900">
+          <div class="text-sm text-ios-secondary">× {{ item.quantity }}</div>
+          <div class="text-sm font-medium text-ios-text">
             ${{ formatPrice(itemTotal) }}
           </div>
         </div>
@@ -151,15 +151,15 @@ const statusClasses = computed(() => {
   if (!props.showStatus || props.item.status === undefined) return "";
 
   const classMap = {
-    0: "bg-yellow-100 text-yellow-800",
-    1: "bg-orange-100 text-orange-800",
-    2: "bg-green-100 text-green-800",
-    3: "bg-gray-100 text-gray-800",
+    0: "bg-ios-orange/15 text-ios-orange",
+    1: "bg-ios-orange/15 text-ios-orange",
+    2: "bg-ios-green/15 text-ios-green",
+    3: "bg-gray-100 text-ios-secondary",
   };
 
   return (
     classMap[props.item.status as keyof typeof classMap] ||
-    "bg-gray-100 text-gray-800"
+    "bg-gray-100 text-ios-secondary"
   );
 });
 

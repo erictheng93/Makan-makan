@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-ios-bg">
     <!-- 頂部導航 -->
-    <nav class="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-md mx-auto px-4 py-4">
+    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl shadow-card-sm">
+      <div class="max-w-md mx-auto px-5 py-4">
         <div class="flex items-center justify-between">
           <button
-            class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+            class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
             @click="router.push(`/restaurant/${restaurantId}/table/${tableId}`)"
           >
             <svg
@@ -24,15 +24,15 @@
           </button>
 
           <div class="flex-1 text-center">
-            <h1 class="text-lg font-semibold text-gray-900">
+            <h1 class="text-lg font-semibold text-ios-text">
               {{ t("orderTracking.title") }}
             </h1>
-            <p class="text-sm text-gray-500">
+            <p class="text-sm text-ios-secondary">
               {{ t("orderTracking.orderNumber") }} {{ order?.orderNumber }}
             </p>
           </div>
 
-          <div class="w-8 h-8" />
+          <div class="w-10 h-10" />
           <!-- 占位符保持居中 -->
         </div>
       </div>
@@ -43,18 +43,18 @@
       <!-- 載入狀態 -->
       <div v-if="isLoading" class="p-8 text-center">
         <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"
+          class="animate-spin rounded-full h-12 w-12 border-2 border-ios-blue/20 border-t-ios-blue mx-auto mb-4"
         />
-        <p class="text-gray-600">{{ t("orderTracking.loadingOrder") }}</p>
+        <p class="text-ios-secondary">{{ t("orderTracking.loadingOrder") }}</p>
       </div>
 
       <!-- 錯誤狀態 -->
       <div v-else-if="error" class="p-8 text-center">
         <div
-          class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"
+          class="w-16 h-16 bg-ios-red/15 rounded-full flex items-center justify-center mx-auto mb-4"
         >
           <svg
-            class="w-8 h-8 text-red-600"
+            class="w-8 h-8 text-ios-red"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -67,14 +67,14 @@
             />
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">
+        <h3 class="text-lg font-medium text-ios-text mb-2">
           {{ t("orderTracking.loadFailed") }}
         </h3>
-        <p class="text-gray-600 mb-4">
+        <p class="text-ios-secondary mb-4">
           {{ error }}
         </p>
         <button
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          class="px-4 py-2 bg-ios-blue text-white rounded-full active:scale-[0.98] transition-transform duration-150"
           @click="() => refetch()"
         >
           {{ t("orderTracking.reload") }}
@@ -84,7 +84,7 @@
       <!-- 訂單內容 -->
       <div v-else-if="order" class="px-4 py-6 space-y-6">
         <!-- 訂單狀態卡片 -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div class="bg-white rounded-2xl p-6 shadow-card">
           <!-- 狀態圖標和標題 -->
           <div class="text-center mb-6">
             <div
@@ -98,23 +98,23 @@
                 :class="['w-10 h-10', getStatusColor(order.status).text]"
               />
             </div>
-            <h2 class="text-xl font-semibold text-gray-900 mb-2">
+            <h2 class="text-xl font-semibold text-ios-text mb-2">
               {{ getStatusTitle(order.status) }}
             </h2>
-            <p class="text-gray-600">
+            <p class="text-ios-secondary">
               {{ getStatusDescription(order.status) }}
             </p>
           </div>
 
           <!-- 進度條 -->
           <div class="mb-6">
-            <div class="flex justify-between text-xs text-gray-500 mb-2">
+            <div class="flex justify-between text-xs text-ios-secondary mb-2">
               <span>{{ t("orderTracking.orderProgress") }}</span>
               <span>{{ getProgressPercentage(order.status) }}%</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="w-full bg-gray-200 rounded-full h-1.5">
               <div
-                class="bg-indigo-600 h-2 rounded-full transition-all duration-500"
+                class="bg-ios-blue h-1.5 rounded-full transition-all duration-500"
                 :style="{ width: `${getProgressPercentage(order.status)}%` }"
               />
             </div>
@@ -123,10 +123,10 @@
           <!-- 預估時間 -->
           <div v-if="estimatedTime" class="text-center">
             <div
-              class="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-50 rounded-full"
+              class="inline-flex items-center space-x-2 px-4 py-2 bg-ios-blue/10 rounded-full"
             >
               <svg
-                class="w-4 h-4 text-indigo-600"
+                class="w-4 h-4 text-ios-blue"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -138,7 +138,7 @@
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span class="text-sm font-medium text-indigo-900">
+              <span class="text-sm font-medium text-ios-blue">
                 {{
                   tWithParams("orderTracking.estimatedMinutes", {
                     minutes: estimatedTime,
@@ -150,8 +150,8 @@
         </div>
 
         <!-- 時間軸 -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        <div class="bg-white rounded-2xl p-6 shadow-card">
+          <h3 class="text-lg font-semibold text-ios-text mb-4">
             {{ t("orderTracking.orderTimeline") }}
           </h3>
 
@@ -175,48 +175,48 @@
         </div>
 
         <!-- 訂單詳情 -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        <div class="bg-white rounded-2xl p-6 shadow-card">
+          <h3 class="text-lg font-semibold text-ios-text mb-4">
             {{ t("orderTracking.orderDetails") }}
           </h3>
 
           <!-- 基本資訊 -->
           <div class="space-y-3 mb-6">
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">{{
+              <span class="text-ios-secondary">{{
                 t("orderTracking.orderNumber")
               }}</span>
-              <span class="font-medium text-gray-900">{{
+              <span class="font-medium text-ios-text">{{
                 order.orderNumber
               }}</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">{{
+              <span class="text-ios-secondary">{{
                 t("orderTracking.orderTime")
               }}</span>
-              <span class="font-medium text-gray-900">{{
+              <span class="font-medium text-ios-text">{{
                 formatDateTime(order.createdAt)
               }}</span>
             </div>
             <div v-if="order.customerName" class="flex justify-between text-sm">
-              <span class="text-gray-600">{{
+              <span class="text-ios-secondary">{{
                 t("orderTracking.customerName")
               }}</span>
-              <span class="font-medium text-gray-900">{{
+              <span class="font-medium text-ios-text">{{
                 order.customerName
               }}</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">{{
+              <span class="text-ios-secondary">{{
                 t("orderTracking.tableNumber")
               }}</span>
-              <span class="font-medium text-gray-900">{{ tableId }}</span>
+              <span class="font-medium text-ios-text">{{ tableId }}</span>
             </div>
           </div>
 
           <!-- 餐點列表 -->
-          <div class="border-t border-gray-100 pt-4">
-            <h4 class="font-medium text-gray-900 mb-3">
+          <div class="border-t border-ios-separator pt-4">
+            <h4 class="font-medium text-ios-text mb-3">
               {{ t("orderTracking.orderedItems") }}
             </h4>
             <div class="space-y-3">
@@ -229,24 +229,27 @@
           </div>
 
           <!-- 訂單備註 -->
-          <div v-if="order.notes" class="border-t border-gray-100 pt-4 mt-4">
-            <h4 class="font-medium text-gray-900 mb-2">
+          <div
+            v-if="order.notes"
+            class="border-t border-ios-separator pt-4 mt-4"
+          >
+            <h4 class="font-medium text-ios-text mb-2">
               {{ t("orderTracking.orderNotes") }}
             </h4>
-            <p class="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+            <p class="text-sm text-ios-secondary bg-gray-100 rounded-xl p-3.5">
               {{ order.notes }}
             </p>
           </div>
 
           <!-- 價格摘要 -->
-          <div class="border-t border-gray-100 pt-4 mt-4">
+          <div class="border-t border-ios-separator pt-4 mt-4">
             <div class="space-y-2">
-              <div class="flex justify-between text-sm text-gray-600">
+              <div class="flex justify-between text-sm text-ios-secondary">
                 <span>{{ t("common.subtotal") }}</span>
                 <span>${{ formatPrice(order.totalAmount) }}</span>
               </div>
               <div
-                class="flex justify-between text-lg font-semibold text-gray-900"
+                class="flex justify-between text-lg font-semibold text-ios-text"
               >
                 <span>{{ t("common.total") }}</span>
                 <span>${{ formatPrice(order.totalAmount) }}</span>
@@ -260,7 +263,7 @@
           <!-- 取消訂單按鈕 (僅在可取消狀態顯示) -->
           <button
             v-if="canCancelOrder"
-            class="w-full bg-white border-2 border-red-200 text-red-600 font-semibold py-3 px-4 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors"
+            class="w-full bg-ios-red/10 text-ios-red font-semibold py-3.5 px-4 rounded-full active:bg-ios-red/20 active:scale-[0.98] transition-transform duration-150"
             @click="showCancelConfirmation = true"
           >
             {{ t("orderTracking.cancelOrder") }}
@@ -268,7 +271,7 @@
 
           <!-- 繼續點餐按鈕 -->
           <button
-            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+            class="w-full bg-ios-blue text-white font-semibold py-3.5 px-4 rounded-full active:scale-[0.98] transition-transform duration-150"
             @click="router.push(`/restaurant/${restaurantId}/table/${tableId}`)"
           >
             {{ t("orderTracking.continueOrdering") }}
@@ -295,9 +298,9 @@
       class="fixed top-20 left-4 right-4 max-w-md mx-auto z-50"
     >
       <div
-        class="bg-yellow-100 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-lg text-sm flex items-center space-x-2"
+        class="bg-ios-orange/15 text-ios-orange px-4 py-2.5 rounded-2xl shadow-card-sm text-sm font-medium flex items-center space-x-2"
       >
-        <div class="animate-pulse w-2 h-2 bg-yellow-500 rounded-full" />
+        <div class="animate-pulse w-2 h-2 bg-ios-orange rounded-full" />
         <span>{{ getConnectionMessage(connectionStatus) }}</span>
       </div>
     </div>
@@ -503,13 +506,13 @@ const getStatusIcon = (status: OrderStatus) => {
 
 const getStatusColor = (status: OrderStatus) => {
   const colors = {
-    0: { bg: "bg-yellow-100", text: "text-yellow-600" }, // PENDING
-    1: { bg: "bg-blue-100", text: "text-blue-600" }, // CONFIRMED
-    2: { bg: "bg-orange-100", text: "text-orange-600" }, // PREPARING
-    3: { bg: "bg-green-100", text: "text-green-600" }, // READY
-    4: { bg: "bg-green-100", text: "text-green-600" }, // DELIVERED
-    5: { bg: "bg-green-100", text: "text-green-600" }, // PAID
-    6: { bg: "bg-red-100", text: "text-red-600" }, // CANCELLED
+    0: { bg: "bg-ios-orange/15", text: "text-ios-orange" },
+    1: { bg: "bg-ios-blue/15", text: "text-ios-blue" },
+    2: { bg: "bg-ios-orange/15", text: "text-ios-orange" },
+    3: { bg: "bg-ios-green/15", text: "text-ios-green" },
+    4: { bg: "bg-ios-green/15", text: "text-ios-green" },
+    5: { bg: "bg-ios-green/15", text: "text-ios-green" },
+    6: { bg: "bg-ios-red/15", text: "text-ios-red" },
   };
   return colors[status] || colors[0];
 };

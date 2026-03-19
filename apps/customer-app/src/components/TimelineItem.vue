@@ -4,7 +4,7 @@
     <div class="flex-shrink-0 relative">
       <div
         :class="[
-          'w-8 h-8 rounded-full border-2 flex items-center justify-center',
+          'w-8 h-8 rounded-full flex items-center justify-center',
           statusClasses.dot,
         ]"
       >
@@ -29,7 +29,7 @@
         v-if="!isLast"
         :class="[
           'absolute top-8 left-1/2 w-0.5 h-16 transform -translate-x-1/2',
-          status === 'completed' ? 'bg-green-500' : 'bg-gray-300',
+          status === 'completed' ? 'bg-ios-green' : 'bg-gray-300',
         ]"
       />
     </div>
@@ -42,7 +42,7 @@
         </h4>
         <div
           v-if="timestamp"
-          class="flex items-center space-x-1 text-sm text-gray-500"
+          class="flex items-center space-x-1 text-sm text-ios-secondary"
         >
           <svg
             class="w-3 h-3"
@@ -73,7 +73,7 @@
       <!-- 預估時間 -->
       <div v-if="estimatedTime && status === 'current'" class="mt-2">
         <div
-          class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full"
+          class="inline-flex items-center px-2 py-1 bg-ios-blue/15 text-ios-blue text-xs font-medium rounded-full"
         >
           <svg
             class="w-3 h-3 mr-1"
@@ -122,27 +122,27 @@ const statusClasses = computed(() => {
   switch (props.status) {
     case "completed":
       return {
-        dot: "bg-green-500 border-green-500",
-        title: "text-sm font-medium text-green-900",
-        description: "text-sm text-green-700",
+        dot: "bg-ios-green",
+        title: "text-sm font-medium text-ios-text",
+        description: "text-sm text-ios-secondary",
       };
     case "current":
       return {
-        dot: "bg-blue-500 border-blue-500",
-        title: "text-sm font-medium text-blue-900",
-        description: "text-sm text-blue-700",
+        dot: "bg-ios-blue",
+        title: "text-sm font-medium text-ios-text",
+        description: "text-sm text-ios-secondary",
       };
     case "pending":
       return {
-        dot: "bg-white border-gray-300",
-        title: "text-sm font-medium text-gray-500",
-        description: "text-sm text-gray-500",
+        dot: "bg-white ring-2 ring-gray-200",
+        title: "text-sm font-medium text-ios-secondary",
+        description: "text-sm text-ios-secondary",
       };
     default:
       return {
-        dot: "bg-white border-gray-300",
-        title: "text-sm font-medium text-gray-500",
-        description: "text-sm text-gray-500",
+        dot: "bg-white ring-2 ring-gray-200",
+        title: "text-sm font-medium text-ios-secondary",
+        description: "text-sm text-ios-secondary",
       };
   }
 });
