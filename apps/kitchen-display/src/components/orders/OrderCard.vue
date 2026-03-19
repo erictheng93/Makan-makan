@@ -1,236 +1,253 @@
 <template>
   <div
     :class="[
-      'order-card p-4 transition-all duration-200 hover:shadow-lg',
-      getCardClass(statusType),
-      { 'animate-pulse-fast': order.priority === 'urgent' },
+      'relative overflow-hidden rounded-2xl transition-transform duration-150 ease-spring active:scale-[0.97]',
+      isUrgent
+        ? 'bg-[#FFF5F5] border-t-[6px] border-ios-red shadow-[0_4px_20px_rgba(255,59,48,0.08)] animate-urgent-pulse'
+        : isCancelled
+          ? 'bg-white shadow-card opacity-45 ' + statusBorderClass
+          : 'bg-white shadow-card ' + statusBorderClass,
     ]"
   >
-    <!-- Order Header -->
-    <div class="flex items-center justify-between mb-3">
-      <div class="flex items-center space-x-3">
-        <div class="flex items-center space-x-2">
-          <span class="text-lg font-bold text-gray-900">{{
-            order.orderNumber
-          }}</span>
-          <span :class="getPriorityClass(order.priority)">
-            {{ getPriorityText(order.priority) }}
+    <!-- URGENT corner badge -->
+    <div
+      v-if="isUrgent"
+      class="absolute top-0 right-0 bg-ios-red text-white text-xs font-extrabold px-2.5 py-1 rounded-bl-xl tracking-wide"
+    >
+      URGENT
+    </div>
+
+    <div class="p-4">
+      <!-- Row 1: Order number + Table number -->
+      <div class="flex items-center justify-between mb-2">
+        <span
+          :class="[
+            'text-xl font-extrabold text-ios-text',
+            isCancelled && 'line-through',
+          ]"
+        >
+          {{ order.orderNumber }}
+        </span>
+        <span v-if="order.tableName" class="text-lg font-bold text-ios-blue">
+          桌 {{ order.tableName }}
+        </span>
+      </div>
+
+      <!-- Row 2: Badges + Elapsed time -->
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-y-1">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <!-- Order type badge -->
+          <span
+            :style="{
+              backgroundColor: orderTypeBadge.bg,
+              color: orderTypeBadge.text,
+            }"
+            class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+          >
+            {{ orderTypeBadge.emoji }} {{ orderTypeBadge.label }}
+          </span>
+
+          <!-- Platform badge (only if not direct) -->
+          <span
+            v-if="order.orderSource && order.orderSource !== 'direct'"
+            :style="{
+              backgroundColor: platformBadge.bg,
+              color: platformBadge.text,
+            }"
+            class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+          >
+            {{ platformBadge.emoji }} {{ platformBadge.label }}
           </span>
         </div>
-        <div v-if="order.tableName" class="text-sm text-gray-500">
-          桌號 {{ order.tableName }}
+
+        <!-- Elapsed time -->
+        <div class="text-right">
+          <div :class="elapsedTimeClass">
+            {{ formatElapsedTime(order.elapsedTime) }}
+          </div>
+          <div class="text-xs text-ios-secondary">
+            {{ formatOrderTime(order.createdAt) }}
+          </div>
         </div>
-        <span
-          :class="[
-            getOrderTypeBadge(order).bgClass,
-            getOrderTypeBadge(order).textClass,
-          ]"
-          class="px-2 py-0.5 rounded-full text-xs font-semibold"
+      </div>
+
+      <!-- Customer info -->
+      <div v-if="order.customerName && showCustomerNames" class="mb-3">
+        <div class="flex items-center gap-1.5 text-sm text-ios-secondary">
+          <UserIcon class="w-4 h-4 shrink-0" />
+          <span>{{ order.customerName }}</span>
+        </div>
+      </div>
+
+      <!-- Item list -->
+      <div class="mb-4 divide-y divide-ios-bg">
+        <div
+          v-for="item in order.items"
+          :key="item.id"
+          class="py-2 first:pt-0 last:pb-0"
         >
-          {{ getOrderTypeBadge(order).emoji }}
-          {{ getOrderTypeBadge(order).label }}
-        </span>
-        <span
-          v-if="order.orderSource && order.orderSource !== 'direct'"
-          :class="[
-            getPlatformBadge(order.orderSource).bgClass,
-            getPlatformBadge(order.orderSource).textClass,
-          ]"
-          class="px-2 py-0.5 rounded-full text-xs font-semibold"
-        >
-          {{ getPlatformBadge(order.orderSource).emoji }}
-          {{ getPlatformBadge(order.orderSource).label }}
-        </span>
-      </div>
+          <div class="flex items-center justify-between">
+            <!-- Item name + quantity + status icon -->
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span class="text-base font-medium text-ios-text truncate">
+                {{ item.name }}
+              </span>
+              <span class="text-sm text-ios-secondary shrink-0">
+                ×{{ item.quantity }}
+              </span>
+              <component
+                :is="getItemStatusIcon(item.status)"
+                :class="getItemStatusClass(item.status)"
+                class="w-4 h-4 shrink-0"
+              />
+            </div>
 
-      <div class="text-right">
-        <div :class="getTimeClass(order.elapsedTime)">
-          {{ formatElapsedTime(order.elapsedTime) }}
-        </div>
-        <div class="text-xs text-gray-500">
-          {{ formatOrderTime(order.createdAt) }}
-        </div>
-      </div>
-    </div>
+            <!-- Per-item action + estimated time -->
+            <div class="flex items-center gap-2 ml-3 shrink-0">
+              <div
+                v-if="item.estimatedTime && showEstimatedTime"
+                class="flex flex-col items-center text-ios-secondary"
+              >
+                <ClockIcon class="w-4 h-4" />
+                <span class="text-xs">{{ item.estimatedTime }}分</span>
+              </div>
 
-    <!-- Customer Info -->
-    <div v-if="order.customerName && showCustomerNames" class="mb-3">
-      <div class="flex items-center space-x-2 text-sm text-gray-600">
-        <UserIcon class="w-4 h-4" />
-        <span>{{ order.customerName }}</span>
-      </div>
-    </div>
-
-    <!-- Order Items -->
-    <div class="space-y-2 mb-4">
-      <div
-        v-for="item in order.items"
-        :key="item.id"
-        class="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-      >
-        <div class="flex-1">
-          <div class="flex items-center space-x-2">
-            <span class="font-medium text-gray-900">{{ item.name }}</span>
-            <span class="text-sm text-gray-500">x{{ item.quantity }}</span>
-            <component
-              :is="getItemStatusIcon(item.status)"
-              :class="getItemStatusClass(item.status)"
-              class="w-4 h-4"
-            />
+              <button
+                v-if="item.status === 'pending'"
+                class="min-h-[44px] px-3 py-1 rounded-full bg-ios-blue text-white text-sm font-semibold"
+                title="開始製作"
+                @click.stop="handleStartCooking(item.id)"
+              >
+                開始
+              </button>
+              <button
+                v-else-if="item.status === 'preparing'"
+                class="min-h-[44px] px-3 py-1 rounded-full bg-ios-green text-white text-sm font-semibold"
+                title="標記完成"
+                @click.stop="handleMarkReady(item.id)"
+              >
+                完成
+              </button>
+              <span
+                v-else-if="item.status === 'ready'"
+                class="text-sm px-3 py-1 rounded-full bg-ios-bg text-ios-secondary font-semibold"
+              >
+                已完成
+              </span>
+            </div>
           </div>
 
-          <!-- Item Notes -->
-          <div v-if="item.notes" class="text-sm text-orange-600 mt-1">
-            <ExclamationTriangleIcon class="w-3 h-3 inline mr-1" />
-            {{ item.notes }}
+          <!-- Item notes -->
+          <div
+            v-if="item.notes"
+            class="mt-1.5 flex items-start gap-1.5 bg-[#FFF3E0] rounded-lg px-2 py-1.5"
+          >
+            <ZapIcon class="w-3.5 h-3.5 text-[#E65100] shrink-0 mt-0.5" />
+            <span class="text-sm text-[#E65100]">{{ item.notes }}</span>
           </div>
 
           <!-- Customizations -->
           <div
             v-if="item.customizations && item.customizations.length"
-            class="text-sm text-blue-600 mt-1"
+            class="mt-1 text-sm text-ios-blue"
           >
-            <span class="font-medium">客製:</span>
-            {{ item.customizations.join(", ") }}
-          </div>
-        </div>
-
-        <!-- Item Actions -->
-        <div class="flex items-center space-x-2 ml-4">
-          <!-- Estimated Time -->
-          <div
-            v-if="item.estimatedTime && showEstimatedTime"
-            class="text-sm text-gray-500 text-center"
-          >
-            <ClockIcon class="w-4 h-4 mx-auto" />
-            <span>{{ item.estimatedTime }}分</span>
-          </div>
-
-          <!-- Item Action Buttons -->
-          <div class="flex items-center space-x-1">
-            <button
-              v-if="item.status === 'pending'"
-              class="btn-kitchen bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1"
-              title="開始製作"
-              @click="handleStartCooking(item.id)"
-            >
-              開始
-            </button>
-
-            <button
-              v-else-if="item.status === 'preparing'"
-              class="btn-kitchen bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1"
-              title="標記完成"
-              @click="handleMarkReady(item.id)"
-            >
-              完成
-            </button>
-
-            <span
-              v-else-if="item.status === 'ready'"
-              class="status-ready text-sm px-3 py-1"
-            >
-              已完成
-            </span>
+            <span class="font-medium">客製：</span>
+            {{ item.customizations.join("、") }}
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Order Notes -->
-    <div
-      v-if="order.notes"
-      class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
-    >
-      <div class="flex items-start space-x-2">
-        <ChatBubbleLeftEllipsisIcon class="w-4 h-4 text-yellow-600 mt-0.5" />
-        <div class="text-sm text-yellow-800">
-          <span class="font-medium">備註：</span>{{ order.notes }}
-        </div>
+      <!-- Order notes -->
+      <div
+        v-if="order.notes"
+        class="mb-4 flex items-start gap-2 bg-[#FFF3E0] rounded-lg p-2"
+      >
+        <ZapIcon class="w-4 h-4 text-[#E65100] shrink-0 mt-0.5" />
+        <span class="text-sm text-[#E65100]">{{ order.notes }}</span>
       </div>
-    </div>
 
-    <!-- Delivery/Takeaway Info -->
-    <div
-      v-if="order.deliveryInfo?.type === 'delivery'"
-      class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
-    >
-      <div class="text-sm text-blue-800 space-y-1">
-        <div class="font-medium">&#x1F6F5; 外送資訊</div>
+      <!-- Delivery info -->
+      <div
+        v-if="order.deliveryInfo?.type === 'delivery'"
+        class="mb-4 p-3 bg-[#E3F2FD] rounded-xl text-sm text-[#0D47A1] space-y-1"
+      >
+        <div class="font-semibold">🛵 外送資訊</div>
         <div v-if="order.deliveryInfo.address">
-          &#x1F4CD; {{ order.deliveryInfo.address }}
+          📍 {{ order.deliveryInfo.address }}
         </div>
         <div v-if="order.deliveryInfo.phone">
-          &#x1F4DE; {{ order.deliveryInfo.phone }}
+          📞 {{ order.deliveryInfo.phone }}
         </div>
-        <div
-          v-if="order.deliveryInfo.instructions"
-          class="text-blue-600 italic"
-        >
-          &#x1F4AC; {{ order.deliveryInfo.instructions }}
+        <div v-if="order.deliveryInfo.instructions" class="italic opacity-80">
+          💬 {{ order.deliveryInfo.instructions }}
         </div>
       </div>
-    </div>
-    <div
-      v-else-if="order.deliveryInfo?.type === 'takeaway'"
-      class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg"
-    >
-      <div class="text-sm text-green-800 font-medium">
-        &#x1F6CD;&#xFE0F; 外帶訂單 — 請準備打包
+      <div
+        v-else-if="order.deliveryInfo?.type === 'takeaway'"
+        class="mb-4 p-3 bg-[#FFF3E0] rounded-xl text-sm text-[#E65100] font-semibold"
+      >
+        🛍️ 外帶訂單 — 請準備打包
       </div>
-    </div>
 
-    <!-- Order Actions -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-2">
-        <!-- Quick Actions -->
+      <!-- Progress bar (preparing orders with estimated time) -->
+      <div
+        v-if="statusType === 'preparing' && order.estimatedTime"
+        class="mb-4"
+      >
+        <div class="flex justify-between text-xs text-ios-secondary mb-1">
+          <span>進度</span>
+          <span>{{ getProgressPercentage(order) }}%</span>
+        </div>
+        <div class="w-full bg-ios-bg rounded-full h-1.5">
+          <div
+            class="bg-ios-blue h-1.5 rounded-full transition-all duration-300"
+            :style="{ width: `${getProgressPercentage(order)}%` }"
+          />
+        </div>
+      </div>
+
+      <!-- Action footer -->
+      <div class="flex items-center justify-between gap-2">
+        <!-- Primary action button (full-width pill) -->
         <button
           v-if="statusType === 'pending'"
-          class="btn-kitchen-primary text-sm px-4 py-2"
+          class="flex-1 min-h-[44px] rounded-full py-3 font-bold text-white bg-ios-blue flex items-center justify-center gap-2"
           @click="handleStartAll"
         >
-          <PlayIcon class="w-4 h-4 mr-1" />
-          開始全部
+          <PlayIcon class="w-4 h-4" />
+          開始製作
         </button>
-
         <button
-          v-if="statusType === 'preparing'"
-          class="btn-kitchen-success text-sm px-4 py-2"
+          v-else-if="statusType === 'preparing'"
+          class="flex-1 min-h-[44px] rounded-full py-3 font-bold text-white bg-ios-green flex items-center justify-center gap-2"
           @click="handleMarkAllReady"
         >
-          <CheckIcon class="w-4 h-4 mr-1" />
-          全部完成
+          <CheckIcon class="w-4 h-4" />
+          ✓ 標記完成
         </button>
-      </div>
-
-      <div class="flex items-center space-x-2">
-        <!-- View Details -->
-        <button
-          class="text-gray-500 hover:text-gray-700 transition-colors"
-          title="查看詳情"
-          @click="$emit('view-details', order)"
-        >
-          <EyeIcon class="w-4 h-4" />
-        </button>
-
-        <!-- Keyboard Shortcut Hint -->
-        <div v-if="keyboardShortcuts" class="text-xs text-gray-400">
-          <span class="keyboard-hint">Space</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Progress Bar (for preparing orders) -->
-    <div v-if="statusType === 'preparing' && order.estimatedTime" class="mt-3">
-      <div class="flex justify-between text-xs text-gray-500 mb-1">
-        <span>進度</span>
-        <span>{{ getProgressPercentage(order) }}%</span>
-      </div>
-      <div class="w-full bg-gray-200 rounded-full h-1.5">
         <div
-          class="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-          :style="{ width: `${getProgressPercentage(order)}%` }"
-        />
+          v-else-if="statusType === 'ready'"
+          class="flex-1 min-h-[44px] rounded-full py-3 font-bold text-ios-secondary bg-ios-bg flex items-center justify-center"
+        >
+          已出餐
+        </div>
+
+        <!-- Secondary: view details + keyboard hint -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center text-ios-secondary hover:text-ios-text transition-colors"
+            title="查看詳情"
+            @click="$emit('view-details', order)"
+          >
+            <EyeIcon class="w-5 h-5" />
+          </button>
+          <div v-if="keyboardShortcuts" class="text-xs text-ios-tertiary">
+            <span
+              class="px-1.5 py-0.5 bg-ios-bg rounded text-ios-secondary font-mono"
+              >Space</span
+            >
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -240,14 +257,14 @@
 import {
   UserIcon,
   ClockIcon,
-  ChatBubbleLeftEllipsisIcon,
   PlayIcon,
   CheckIcon,
   EyeIcon,
-  ExclamationTriangleIcon,
+  ZapIcon,
   CheckCircleIcon,
-  FireIcon,
-} from "@heroicons/vue/24/outline";
+  FlameIcon,
+} from "lucide-vue-next";
+import { computed } from "vue";
 import { useSettingsStore } from "@/stores/settings";
 import type { KitchenOrder } from "@/types";
 import { storeToRefs } from "pinia";
@@ -277,111 +294,87 @@ const {
   warningThreshold,
 } = storeToRefs(settingsStore);
 
+// Derived state
+const isUrgent = computed(() => props.order.priority === "urgent");
+const isCancelled = computed(() => props.order.status === 6);
+
+const statusBorderClass = computed(() => {
+  if (props.order.status === 6) return "border-t-4 border-[#8E8E93]";
+  const map: Record<string, string> = {
+    pending: "border-t-4 border-ios-orange",
+    preparing: "border-t-4 border-ios-blue",
+    ready: "border-t-4 border-ios-green",
+  };
+  return map[props.statusType] || "border-t-4 border-ios-orange";
+});
+
 // Order Type Badge
-function getOrderTypeBadge(order: KitchenOrder) {
-  const type = order.deliveryInfo?.type ?? "dine_in";
+const orderTypeBadge = computed(() => {
+  const type = props.order.deliveryInfo?.type ?? "dine_in";
   const badges: Record<
     string,
-    { label: string; emoji: string; bgClass: string; textClass: string }
+    { label: string; emoji: string; bg: string; text: string }
   > = {
-    dine_in: {
-      label: "內用",
-      emoji: "🪑",
-      bgClass: "bg-blue-100",
-      textClass: "text-blue-800",
-    },
-    takeaway: {
-      label: "外帶",
-      emoji: "🛍️",
-      bgClass: "bg-green-100",
-      textClass: "text-green-800",
-    },
-    delivery: {
-      label: "外送",
-      emoji: "🛵",
-      bgClass: "bg-amber-100",
-      textClass: "text-amber-800",
-    },
+    dine_in: { label: "內用", emoji: "🪑", bg: "#E3F2FD", text: "#007AFF" },
+    takeaway: { label: "外帶", emoji: "🛍️", bg: "#FFF3E0", text: "#FF9500" },
+    delivery: { label: "外送", emoji: "🛵", bg: "#E8EAF6", text: "#283593" },
   };
   return badges[type] || badges.dine_in;
-}
+});
 
 // Platform Source Badge
-function getPlatformBadge(source: string) {
+const platformBadge = computed(() => {
+  const source = props.order.orderSource ?? "direct";
   const badges: Record<
     string,
-    { label: string; emoji: string; bgClass: string; textClass: string }
+    { label: string; emoji: string; bg: string; text: string }
   > = {
     uber_eats: {
       label: "Uber Eats",
-      emoji: "\uD83D\uDFE2",
-      bgClass: "bg-green-100",
-      textClass: "text-green-800",
+      emoji: "🟢",
+      bg: "#E8F5E9",
+      text: "#004D40",
     },
     foodpanda: {
       label: "Foodpanda",
-      emoji: "\uD83E\uDE77",
-      bgClass: "bg-pink-100",
-      textClass: "text-pink-800",
+      emoji: "🦋",
+      bg: "#FFEBEE",
+      text: "#B71C1C",
     },
     grabfood: {
       label: "GrabFood",
-      emoji: "\uD83D\uDFE0",
-      bgClass: "bg-orange-100",
-      textClass: "text-orange-800",
+      emoji: "🟠",
+      bg: "#E8F5E9",
+      text: "#1B5E20",
     },
+    direct: { label: "直接", emoji: "📦", bg: "#F2F2F7", text: "#1C1C1E" },
   };
   return (
     badges[source] || {
       label: source,
-      emoji: "\uD83D\uDCE6",
-      bgClass: "bg-gray-100",
-      textClass: "text-gray-800",
+      emoji: "📦",
+      bg: "#F2F2F7",
+      text: "#1C1C1E",
     }
   );
-}
+});
 
-// Computed
-const getCardClass = (status: string) => {
-  const classes: Record<string, string> = {
-    pending: "border-l-4 border-l-yellow-400 bg-yellow-50",
-    preparing: "border-l-4 border-l-blue-500 bg-blue-50",
-    ready: "border-l-4 border-l-green-500 bg-green-50",
-  };
-  return classes[status] || "";
-};
-
-const getPriorityClass = (priority: string) => {
-  const classes: Record<string, string> = {
-    normal: "status-badge bg-gray-100 text-gray-700",
-    high: "status-badge bg-orange-100 text-orange-700",
-    urgent: "status-badge bg-red-100 text-red-700 animate-pulse",
-  };
-  return classes[priority] || classes.normal;
-};
-
-const getPriorityText = (priority: string) => {
-  const texts: Record<string, string> = {
-    normal: "普通",
-    high: "重要",
-    urgent: "緊急",
-  };
-  return texts[priority] || "普通";
-};
-
-const getTimeClass = (elapsedMinutes: number) => {
-  if (elapsedMinutes >= urgentThreshold.value) {
-    return "time-critical text-sm font-bold";
-  } else if (elapsedMinutes >= warningThreshold.value) {
-    return "time-warning text-sm font-bold";
+// Elapsed time class
+const elapsedTimeClass = computed(() => {
+  if (isUrgent.value || props.order.elapsedTime >= urgentThreshold.value) {
+    return "text-ios-red font-extrabold text-sm";
   }
-  return "time-normal text-sm";
-};
+  if (props.statusType === "preparing") {
+    return "text-ios-blue font-semibold text-sm";
+  }
+  return "text-ios-secondary text-sm";
+});
 
+// Item status icon (using lucide-vue-next equivalents)
 const getItemStatusIcon = (status: string) => {
   const icons: Record<string, any> = {
     pending: ClockIcon,
-    preparing: FireIcon,
+    preparing: FlameIcon,
     ready: CheckCircleIcon,
     completed: CheckCircleIcon,
   };
@@ -390,17 +383,20 @@ const getItemStatusIcon = (status: string) => {
 
 const getItemStatusClass = (status: string) => {
   const classes: Record<string, string> = {
-    pending: "text-yellow-500",
-    preparing: "text-blue-500",
-    ready: "text-green-500",
-    completed: "text-green-600",
+    pending: "text-ios-orange",
+    preparing: "text-ios-blue",
+    ready: "text-ios-green",
+    completed: "text-ios-green",
   };
-  return classes[status] || "text-gray-500";
+  return classes[status] || "text-ios-secondary";
 };
 
 const getProgressPercentage = (order: KitchenOrder) => {
   if (!order.estimatedTime) return 0;
-  return Math.min(100, (order.elapsedTime / order.estimatedTime) * 100);
+  return Math.min(
+    100,
+    Math.round((order.elapsedTime / order.estimatedTime) * 100),
+  );
 };
 
 // Methods
