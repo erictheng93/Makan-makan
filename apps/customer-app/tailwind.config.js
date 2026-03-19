@@ -30,6 +30,17 @@ module.exports = {
           900: "#0f172a",
           950: "#020617",
         },
+        "ios-bg": "#F2F2F7",
+        "ios-card": "#FFFFFF",
+        "ios-text": "#1C1C1E",
+        "ios-secondary": "#8E8E93",
+        "ios-tertiary": "#AEAEB2",
+        "ios-separator": "#E5E5EA",
+        "ios-blue": "#007AFF",
+        "ios-green": "#34C759",
+        "ios-orange": "#FF9500",
+        "ios-red": "#FF3B30",
+        "ios-teal": "#30B0C7",
       },
       fontFamily: {
         sans: [
@@ -64,16 +75,25 @@ module.exports = {
       borderRadius: {
         "4xl": "2rem",
         "5xl": "2.5rem",
+        ios: "20px",
+        "ios-lg": "24px",
       },
       boxShadow: {
         soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",
         "soft-lg":
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        "card-sm": "0 2px 8px rgba(0, 0, 0, 0.04)",
+        card: "0 4px 16px rgba(0, 0, 0, 0.06)",
+        "card-lg": "0 8px 30px rgba(0, 0, 0, 0.08)",
+        "card-float": "0 12px 40px rgba(0, 0, 0, 0.1)",
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-in-out",
         "fade-out": "fadeOut 0.3s ease-in-out",
-        "slide-up": "slideUp 0.3s ease-out",
+        "slide-up": "slideUp 300ms ease-out",
+        "slide-in-bottom": "slideInBottom 350ms cubic-bezier(0.32, 0.72, 0, 1)",
+        "slide-out-bottom": "slideOutBottom 200ms ease-in",
+        "scale-in": "scaleIn 200ms ease-out",
         "slide-down": "slideDown 0.3s ease-out",
         "bounce-soft": "bounceSoft 1s infinite",
         "pulse-soft": "pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
@@ -88,8 +108,20 @@ module.exports = {
           "100%": { opacity: "0" },
         },
         slideUp: {
-          "0%": { transform: "translateY(10px)", opacity: "0" },
+          "0%": { transform: "translateY(12px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        slideInBottom: {
+          "0%": { transform: "translateY(100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
+        slideOutBottom: {
+          "0%": { transform: "translateY(0)" },
+          "100%": { transform: "translateY(100%)" },
+        },
+        scaleIn: {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
         },
         slideDown: {
           "0%": { transform: "translateY(-10px)", opacity: "0" },
