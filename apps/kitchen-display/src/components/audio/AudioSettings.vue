@@ -1,287 +1,614 @@
 <template>
-  <div
-    class="audio-settings bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6"
-  >
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center space-x-3">
-        <div
-          class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center"
-        >
-          <SpeakerWaveIcon class="w-5 h-5 text-indigo-600" />
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900">音頻通知設置</h3>
-          <p class="text-sm text-gray-600">配置系統音效和通知聲音</p>
-        </div>
-      </div>
-
-      <div class="flex items-center space-x-3">
-        <!-- Audio Status -->
-        <div class="flex items-center space-x-2">
+  <div class="audio-settings">
+    <!-- Section: 主音效控制 -->
+    <div
+      class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-4 tracking-wide"
+    >
+      主音效控制
+    </div>
+    <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
+      <!-- Master Enable Toggle -->
+      <div
+        class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg"
+      >
+        <div class="flex items-center gap-3">
           <div
-            :class="[
-              'w-3 h-3 rounded-full',
-              audioEnabled ? 'bg-green-500' : 'bg-gray-300',
-            ]"
-          />
-          <span class="text-sm font-medium text-gray-700">
-            音頻{{ audioEnabled ? "已啟用" : "已停用" }}
-          </span>
+            class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            :class="audioEnabled ? 'bg-ios-green/10' : 'bg-ios-bg'"
+          >
+            <Volume2 v-if="audioEnabled" class="w-4 h-4 text-ios-green" />
+            <VolumeX v-else class="w-4 h-4 text-ios-secondary" />
+          </div>
+          <div>
+            <span class="text-[15px] font-medium text-ios-text">音效通知</span>
+            <p class="text-xs text-ios-secondary mt-0.5">
+              {{ audioEnabled ? "音頻已啟用" : "音頻已停用" }}
+            </p>
+          </div>
         </div>
-
-        <!-- Master Toggle -->
         <button
-          :class="[
-            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2',
-            audioEnabled ? 'bg-indigo-600' : 'bg-gray-200',
-          ]"
+          class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0"
+          :class="audioEnabled ? 'bg-ios-green' : 'bg-ios-bg'"
           @click="toggleAudio"
         >
           <span
-            :class="[
-              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-              audioEnabled ? 'translate-x-5' : 'translate-x-0',
-            ]"
+            class="w-[22px] h-[22px] rounded-full bg-white shadow-card-sm absolute top-[2px] transition-transform duration-200"
+            :class="audioEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'"
           />
         </button>
       </div>
-    </div>
 
-    <!-- Master Volume Control -->
-    <div class="mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <label class="text-md font-semibold text-gray-900">主音量控制</label>
-        <span class="text-sm text-gray-600"
-          >{{ Math.round(masterVolume * 100) }}%</span
-        >
-      </div>
-
-      <div class="flex items-center space-x-4">
-        <SpeakerXMarkIcon class="w-5 h-5 text-gray-400" />
-        <input
-          v-model.number="masterVolume"
-          type="range"
-          min="0"
-          max="1"
-          step="0.1"
-          :disabled="!audioEnabled"
-          class="flex-1 h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer"
-          @input="updateMasterVolume"
-        />
-        <SpeakerWaveIcon class="w-5 h-5 text-gray-600" />
-      </div>
-    </div>
-
-    <!-- Sound Categories -->
-    <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">音效分類設置</h4>
-
-      <div class="space-y-4">
-        <div
-          v-for="(category, categoryKey) in soundCategories"
-          :key="categoryKey"
-          class="bg-gray-50 rounded-lg p-4"
-        >
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center space-x-3">
-              <component :is="category.icon" class="w-5 h-5 text-gray-600" />
-              <span class="font-medium text-gray-900">{{
-                category.title
-              }}</span>
+      <!-- Master Volume Slider -->
+      <div class="py-3.5 px-4 border-b border-ios-bg">
+        <div class="flex items-center justify-between mb-2.5">
+          <span class="text-[15px] font-medium text-ios-text">主音量</span>
+          <span class="text-[15px] font-medium text-ios-secondary">
+            {{ Math.round(masterVolume * 100) }}%
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <VolumeX class="w-4 h-4 text-ios-secondary flex-shrink-0" />
+          <div class="relative flex-1 h-5 flex items-center">
+            <div class="h-1 rounded-full bg-ios-bg w-full overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-150"
+                :class="audioEnabled ? 'bg-ios-blue' : 'bg-ios-secondary/30'"
+                :style="{ width: Math.round(masterVolume * 100) + '%' }"
+              />
             </div>
             <input
-              v-model="category.enabled"
-              type="checkbox"
+              v-model.number="masterVolumePercent"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
               :disabled="!audioEnabled"
-              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              @change="updateCategorySettings(categoryKey)"
+              class="absolute inset-0 w-full opacity-0 cursor-pointer h-full disabled:cursor-not-allowed"
+              @input="updateMasterVolume"
+            />
+            <div
+              class="absolute w-5 h-5 rounded-full bg-white shadow-card pointer-events-none transition-all duration-150"
+              :style="{
+                left: 'calc(' + Math.round(masterVolume * 100) + '% - 10px)',
+              }"
             />
           </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div
-              v-for="soundType in category.sounds"
-              :key="soundType"
-              class="flex items-center justify-between p-3 bg-white rounded-lg"
-            >
-              <div class="flex items-center space-x-3">
-                <span class="text-sm text-gray-700">{{
-                  getSoundLabel(soundType)
-                }}</span>
-                <button
-                  :disabled="!audioEnabled || !category.enabled"
-                  class="p-1 text-indigo-600 hover:text-indigo-700 disabled:text-gray-400"
-                  title="測試音效"
-                  @click="testSound(soundType)"
-                >
-                  <PlayIcon class="w-4 h-4" />
-                </button>
-              </div>
-
-              <div class="flex items-center space-x-3">
-                <input
-                  v-model="soundSettings[soundType].enabled"
-                  type="checkbox"
-                  :disabled="!audioEnabled || !category.enabled"
-                  class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  @change="updateSoundSettings(soundType)"
-                />
-                <input
-                  v-model.number="soundSettings[soundType].volume"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  :disabled="
-                    !audioEnabled ||
-                    !category.enabled ||
-                    !soundSettings[soundType].enabled
-                  "
-                  class="w-20 h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer"
-                  @input="updateSoundSettings(soundType)"
-                />
-                <span class="text-xs text-gray-500 w-8">
-                  {{ Math.round(soundSettings[soundType].volume * 100) }}%
-                </span>
-              </div>
-            </div>
-          </div>
+          <Volume2 class="w-4 h-4 text-ios-secondary flex-shrink-0" />
         </div>
       </div>
-    </div>
 
-    <!-- Advanced Settings -->
-    <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">進階設置</h4>
+      <!-- Notification Queue Toggle -->
+      <div
+        class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg"
+      >
+        <div>
+          <span class="text-[15px] font-medium text-ios-text">通知佇列</span>
+          <p class="text-xs text-ios-secondary mt-0.5">依序播放音效通知</p>
+        </div>
+        <button
+          class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0"
+          :class="
+            notificationQueue && audioEnabled ? 'bg-ios-green' : 'bg-ios-bg'
+          "
+          :disabled="!audioEnabled"
+          @click="toggleNotificationQueue"
+        >
+          <span
+            class="w-[22px] h-[22px] rounded-full bg-white shadow-card-sm absolute top-[2px] transition-transform duration-200"
+            :class="
+              notificationQueue && audioEnabled
+                ? 'translate-x-[18px]'
+                : 'translate-x-[2px]'
+            "
+          />
+        </button>
+      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-3">
-            <span class="font-medium text-gray-900">通知佇列</span>
-            <input
-              v-model="notificationQueue"
-              type="checkbox"
-              :disabled="!audioEnabled"
-              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              @change="updateAdvancedSettings"
-            />
-          </div>
-          <p class="text-sm text-gray-600">
-            啟用時會將音效通知排入佇列依序播放
+      <!-- Priority Override Toggle -->
+      <div class="flex items-center justify-between py-3.5 px-4">
+        <div>
+          <span class="text-[15px] font-medium text-ios-text">優先級覆蓋</span>
+          <p class="text-xs text-ios-secondary mt-0.5">
+            高優先級音效可打斷低優先級
           </p>
         </div>
-
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-3">
-            <span class="font-medium text-gray-900">優先級覆蓋</span>
-            <input
-              v-model="priorityOverride"
-              type="checkbox"
-              :disabled="!audioEnabled || !notificationQueue"
-              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              @change="updateAdvancedSettings"
-            />
-          </div>
-          <p class="text-sm text-gray-600">高優先級音效可打斷低優先級音效</p>
-        </div>
-
-        <div class="bg-gray-50 rounded-lg p-4">
-          <label class="block font-medium text-gray-900 mb-2"
-            >最大佇列大小</label
-          >
-          <div class="flex items-center space-x-2">
-            <input
-              v-model.number="maxQueueSize"
-              type="number"
-              min="1"
-              max="20"
-              :disabled="!audioEnabled || !notificationQueue"
-              class="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              @input="updateAdvancedSettings"
-            />
-            <span class="text-sm text-gray-600">個通知</span>
-          </div>
-        </div>
-
-        <div class="bg-gray-50 rounded-lg p-4">
-          <label class="block font-medium text-gray-900 mb-2"
-            >音效淡出時間</label
-          >
-          <div class="flex items-center space-x-2">
-            <input
-              v-model.number="fadeOutTime"
-              type="number"
-              min="0"
-              max="5000"
-              step="100"
-              :disabled="!audioEnabled"
-              class="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              @input="updateAdvancedSettings"
-            />
-            <span class="text-sm text-gray-600">毫秒</span>
-          </div>
-        </div>
+        <button
+          class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0"
+          :class="
+            priorityOverride && audioEnabled && notificationQueue
+              ? 'bg-ios-green'
+              : 'bg-ios-bg'
+          "
+          :disabled="!audioEnabled || !notificationQueue"
+          @click="togglePriorityOverride"
+        >
+          <span
+            class="w-[22px] h-[22px] rounded-full bg-white shadow-card-sm absolute top-[2px] transition-transform duration-200"
+            :class="
+              priorityOverride && audioEnabled && notificationQueue
+                ? 'translate-x-[18px]'
+                : 'translate-x-[2px]'
+            "
+          />
+        </button>
       </div>
     </div>
 
-    <!-- Control Actions -->
-    <div class="flex justify-between items-center">
-      <div class="flex space-x-3">
+    <!-- Section: 訂單通知 -->
+    <div
+      class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
+    >
+      訂單通知
+    </div>
+    <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
+      <template v-for="soundType in orderSounds" :key="soundType">
+        <div
+          class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg last:border-b-0"
+          :class="{ 'opacity-50': !audioEnabled }"
+        >
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <button
+              :disabled="!audioEnabled || !soundSettings[soundType].enabled"
+              class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200"
+              :class="
+                audioEnabled && soundSettings[soundType].enabled
+                  ? 'bg-ios-blue/10 active:bg-ios-blue/20'
+                  : 'bg-ios-bg'
+              "
+              @click="testSound(soundType)"
+            >
+              <Play
+                class="w-4 h-4"
+                :class="
+                  audioEnabled && soundSettings[soundType].enabled
+                    ? 'text-ios-blue'
+                    : 'text-ios-secondary'
+                "
+              />
+            </button>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-medium text-ios-text">
+                {{ getSoundLabel(soundType) }}
+              </span>
+              <div
+                v-if="soundSettings[soundType].enabled"
+                class="relative mt-1.5 h-4 flex items-center"
+              >
+                <div class="h-1 rounded-full bg-ios-bg w-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-ios-blue transition-all duration-150"
+                    :style="{
+                      width:
+                        Math.round(soundSettings[soundType].volume * 100) + '%',
+                    }"
+                  />
+                </div>
+                <input
+                  v-model.number="soundVolumePercent[soundType]"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  :disabled="!audioEnabled || !soundSettings[soundType].enabled"
+                  class="absolute inset-0 w-full opacity-0 cursor-pointer h-full disabled:cursor-not-allowed"
+                  @input="updateSoundVolume(soundType)"
+                />
+                <div
+                  class="absolute w-3.5 h-3.5 rounded-full bg-white shadow-card pointer-events-none"
+                  :style="{
+                    left:
+                      'calc(' +
+                      Math.round(soundSettings[soundType].volume * 100) +
+                      '% - 7px)',
+                  }"
+                />
+              </div>
+            </div>
+          </div>
+          <button
+            class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0 ml-3"
+            :class="
+              soundSettings[soundType].enabled && audioEnabled
+                ? 'bg-ios-green'
+                : 'bg-ios-bg'
+            "
+            :disabled="!audioEnabled"
+            @click="toggleSound(soundType)"
+          >
+            <span
+              class="w-[22px] h-[22px] rounded-full bg-white shadow-card-sm absolute top-[2px] transition-transform duration-200"
+              :class="
+                soundSettings[soundType].enabled && audioEnabled
+                  ? 'translate-x-[18px]'
+                  : 'translate-x-[2px]'
+              "
+            />
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <!-- Section: 警告與反饋 -->
+    <div
+      class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
+    >
+      警告與反饋
+    </div>
+    <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
+      <template v-for="soundType in alertSounds" :key="soundType">
+        <div
+          class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg last:border-b-0"
+          :class="{ 'opacity-50': !audioEnabled }"
+        >
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <button
+              :disabled="!audioEnabled || !soundSettings[soundType].enabled"
+              class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200"
+              :class="
+                audioEnabled && soundSettings[soundType].enabled
+                  ? 'bg-ios-blue/10 active:bg-ios-blue/20'
+                  : 'bg-ios-bg'
+              "
+              @click="testSound(soundType)"
+            >
+              <Play
+                class="w-4 h-4"
+                :class="
+                  audioEnabled && soundSettings[soundType].enabled
+                    ? 'text-ios-blue'
+                    : 'text-ios-secondary'
+                "
+              />
+            </button>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-medium text-ios-text">
+                {{ getSoundLabel(soundType) }}
+              </span>
+              <div
+                v-if="soundSettings[soundType].enabled"
+                class="relative mt-1.5 h-4 flex items-center"
+              >
+                <div class="h-1 rounded-full bg-ios-bg w-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-ios-blue transition-all duration-150"
+                    :style="{
+                      width:
+                        Math.round(soundSettings[soundType].volume * 100) + '%',
+                    }"
+                  />
+                </div>
+                <input
+                  v-model.number="soundVolumePercent[soundType]"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  :disabled="!audioEnabled || !soundSettings[soundType].enabled"
+                  class="absolute inset-0 w-full opacity-0 cursor-pointer h-full disabled:cursor-not-allowed"
+                  @input="updateSoundVolume(soundType)"
+                />
+                <div
+                  class="absolute w-3.5 h-3.5 rounded-full bg-white shadow-card pointer-events-none"
+                  :style="{
+                    left:
+                      'calc(' +
+                      Math.round(soundSettings[soundType].volume * 100) +
+                      '% - 7px)',
+                  }"
+                />
+              </div>
+            </div>
+          </div>
+          <button
+            class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0 ml-3"
+            :class="
+              soundSettings[soundType].enabled && audioEnabled
+                ? 'bg-ios-green'
+                : 'bg-ios-bg'
+            "
+            :disabled="!audioEnabled"
+            @click="toggleSound(soundType)"
+          >
+            <span
+              class="w-[22px] h-[22px] rounded-full bg-white shadow-card-sm absolute top-[2px] transition-transform duration-200"
+              :class="
+                soundSettings[soundType].enabled && audioEnabled
+                  ? 'translate-x-[18px]'
+                  : 'translate-x-[2px]'
+              "
+            />
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <!-- Section: 環境音效 -->
+    <div
+      class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
+    >
+      環境音效
+    </div>
+    <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
+      <template v-for="soundType in ambientSounds" :key="soundType">
+        <div
+          class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg last:border-b-0"
+          :class="{ 'opacity-50': !audioEnabled }"
+        >
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <button
+              :disabled="!audioEnabled || !soundSettings[soundType].enabled"
+              class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200"
+              :class="
+                audioEnabled && soundSettings[soundType].enabled
+                  ? 'bg-ios-blue/10 active:bg-ios-blue/20'
+                  : 'bg-ios-bg'
+              "
+              @click="testSound(soundType)"
+            >
+              <Play
+                class="w-4 h-4"
+                :class="
+                  audioEnabled && soundSettings[soundType].enabled
+                    ? 'text-ios-blue'
+                    : 'text-ios-secondary'
+                "
+              />
+            </button>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-medium text-ios-text">
+                {{ getSoundLabel(soundType) }}
+              </span>
+              <div
+                v-if="soundSettings[soundType].enabled"
+                class="relative mt-1.5 h-4 flex items-center"
+              >
+                <div class="h-1 rounded-full bg-ios-bg w-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-ios-blue transition-all duration-150"
+                    :style="{
+                      width:
+                        Math.round(soundSettings[soundType].volume * 100) + '%',
+                    }"
+                  />
+                </div>
+                <input
+                  v-model.number="soundVolumePercent[soundType]"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  :disabled="!audioEnabled || !soundSettings[soundType].enabled"
+                  class="absolute inset-0 w-full opacity-0 cursor-pointer h-full disabled:cursor-not-allowed"
+                  @input="updateSoundVolume(soundType)"
+                />
+                <div
+                  class="absolute w-3.5 h-3.5 rounded-full bg-white shadow-card pointer-events-none"
+                  :style="{
+                    left:
+                      'calc(' +
+                      Math.round(soundSettings[soundType].volume * 100) +
+                      '% - 7px)',
+                  }"
+                />
+              </div>
+            </div>
+          </div>
+          <button
+            class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0 ml-3"
+            :class="
+              soundSettings[soundType].enabled && audioEnabled
+                ? 'bg-ios-green'
+                : 'bg-ios-bg'
+            "
+            :disabled="!audioEnabled"
+            @click="toggleSound(soundType)"
+          >
+            <span
+              class="w-[22px] h-[22px] rounded-full bg-white shadow-card-sm absolute top-[2px] transition-transform duration-200"
+              :class="
+                soundSettings[soundType].enabled && audioEnabled
+                  ? 'translate-x-[18px]'
+                  : 'translate-x-[2px]'
+              "
+            />
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <!-- Section: 音效測試 -->
+    <div
+      class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
+    >
+      音效測試
+    </div>
+    <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
+      <!-- Test All Sounds -->
+      <div
+        class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-8 h-8 rounded-full bg-ios-blue/10 flex items-center justify-center"
+          >
+            <Play class="w-4 h-4 text-ios-blue" />
+          </div>
+          <span class="text-[15px] font-medium text-ios-text"
+            >測試所有音效</span
+          >
+        </div>
         <button
           :disabled="!audioEnabled || isTesting"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200"
+          :class="
+            audioEnabled && !isTesting
+              ? 'bg-ios-blue text-white active:opacity-80'
+              : 'bg-ios-bg text-ios-secondary'
+          "
           @click="testAllSounds"
         >
-          <PlayIcon v-if="!isTesting" class="w-4 h-4 inline mr-2" />
-          <div
-            v-else
-            class="w-4 h-4 inline mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"
-          />
-          {{ isTesting ? "測試中..." : "測試所有音效" }}
-        </button>
-
-        <button
-          :disabled="!audioEnabled"
-          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          @click="stopAllSounds"
-        >
-          <StopIcon class="w-4 h-4 inline mr-2" />
-          停止所有音效
+          {{ isTesting ? "測試中..." : "播放" }}
         </button>
       </div>
 
-      <div class="flex space-x-3">
+      <!-- Stop All Sounds -->
+      <div class="flex items-center justify-between py-3.5 px-4">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-8 h-8 rounded-full bg-ios-red/10 flex items-center justify-center"
+          >
+            <VolumeX class="w-4 h-4 text-ios-red" />
+          </div>
+          <span class="text-[15px] font-medium text-ios-text"
+            >停止所有音效</span
+          >
+        </div>
         <button
-          class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          @click="resetToDefaults"
+          :disabled="!audioEnabled"
+          class="px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200"
+          :class="
+            audioEnabled
+              ? 'bg-ios-red/10 text-ios-red active:bg-ios-red/20'
+              : 'bg-ios-bg text-ios-secondary'
+          "
+          @click="stopAllSounds"
         >
-          重設預設值
-        </button>
-
-        <button
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          @click="saveSettings"
-        >
-          保存設置
+          停止
         </button>
       </div>
     </div>
+
+    <!-- Section: 進階設定 -->
+    <div
+      class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
+    >
+      進階設定
+    </div>
+    <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
+      <!-- Max Queue Size -->
+      <div
+        class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg"
+        :class="{ 'opacity-50': !audioEnabled || !notificationQueue }"
+      >
+        <div>
+          <span class="text-[15px] font-medium text-ios-text"
+            >最大佇列大小</span
+          >
+          <p class="text-xs text-ios-secondary mt-0.5">通知佇列的最大容量</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            :disabled="!audioEnabled || !notificationQueue || maxQueueSize <= 1"
+            class="w-8 h-8 rounded-full bg-ios-bg flex items-center justify-center text-ios-text font-semibold disabled:opacity-40 active:bg-ios-bg/70 transition-colors"
+            @click="adjustQueueSize(-1)"
+          >
+            −
+          </button>
+          <span class="text-[15px] font-semibold text-ios-blue w-8 text-center">
+            {{ maxQueueSize }}
+          </span>
+          <button
+            :disabled="
+              !audioEnabled || !notificationQueue || maxQueueSize >= 20
+            "
+            class="w-8 h-8 rounded-full bg-ios-bg flex items-center justify-center text-ios-text font-semibold disabled:opacity-40 active:bg-ios-bg/70 transition-colors"
+            @click="adjustQueueSize(1)"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <!-- Fade Out Time -->
+      <div class="py-3.5 px-4" :class="{ 'opacity-50': !audioEnabled }">
+        <div class="flex items-center justify-between mb-2.5">
+          <div>
+            <span class="text-[15px] font-medium text-ios-text"
+              >音效淡出時間</span
+            >
+            <p class="text-xs text-ios-secondary mt-0.5">
+              音效結束前的淡出時長
+            </p>
+          </div>
+          <span class="text-[15px] font-medium text-ios-secondary">
+            {{ fadeOutTime }} ms
+          </span>
+        </div>
+        <div class="relative h-5 flex items-center">
+          <div class="h-1 rounded-full bg-ios-bg w-full overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-150"
+              :class="audioEnabled ? 'bg-ios-blue' : 'bg-ios-secondary/30'"
+              :style="{ width: (fadeOutTime / 5000) * 100 + '%' }"
+            />
+          </div>
+          <input
+            v-model.number="fadeOutTime"
+            type="range"
+            min="0"
+            max="5000"
+            step="100"
+            :disabled="!audioEnabled"
+            class="absolute inset-0 w-full opacity-0 cursor-pointer h-full disabled:cursor-not-allowed"
+            @input="updateAdvancedSettings"
+          />
+          <div
+            class="absolute w-5 h-5 rounded-full bg-white shadow-card pointer-events-none"
+            :style="{
+              left: 'calc(' + (fadeOutTime / 5000) * 100 + '% - 10px)',
+            }"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: 操作 -->
+    <div
+      class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
+    >
+      操作
+    </div>
+    <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
+      <!-- Save Settings -->
+      <div
+        class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg cursor-pointer active:bg-ios-bg transition-colors"
+        @click="saveSettings"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-8 h-8 rounded-full bg-ios-green/10 flex items-center justify-center"
+          >
+            <Bell class="w-4 h-4 text-ios-green" />
+          </div>
+          <span class="text-[15px] font-medium text-ios-text">保存設置</span>
+        </div>
+        <span class="text-sm font-semibold text-ios-green">保存</span>
+      </div>
+
+      <!-- Reset to Defaults -->
+      <div
+        class="flex items-center justify-between py-3.5 px-4 cursor-pointer active:bg-ios-bg transition-colors"
+        @click="resetToDefaults"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-8 h-8 rounded-full bg-ios-red/10 flex items-center justify-center"
+          >
+            <VolumeX class="w-4 h-4 text-ios-red" />
+          </div>
+          <span class="text-[15px] font-medium text-ios-red">重設為預設值</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom spacer -->
+    <div class="h-6" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import {
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-  PlayIcon,
-  StopIcon,
-  BellIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  InformationCircleIcon,
-} from "@heroicons/vue/24/outline";
+import { ref, reactive, computed, onMounted } from "vue";
+import { Volume2, VolumeX, Play, Bell } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { audioService } from "@/services/audioService";
 import type { SoundType, AudioSettings } from "@/services/audioService";
@@ -312,40 +639,44 @@ const soundSettings = reactive<
   chime: { enabled: true, volume: 0.5 },
 });
 
-// Sound categories for organization
-const soundCategories = reactive({
-  orders: {
-    title: "訂單通知",
-    icon: BellIcon,
-    enabled: true,
-    sounds: [
-      "newOrder",
-      "orderReady",
-      "orderUrgent",
-      "orderComplete",
-    ] as SoundType[],
-  },
-  alerts: {
-    title: "警告提示",
-    icon: ExclamationTriangleIcon,
-    enabled: true,
-    sounds: ["warning", "error"] as SoundType[],
-  },
-  feedback: {
-    title: "操作反饋",
-    icon: CheckCircleIcon,
-    enabled: true,
-    sounds: ["success", "notification"] as SoundType[],
-  },
-  ambient: {
-    title: "環境音效",
-    icon: InformationCircleIcon,
-    enabled: true,
-    sounds: ["bell", "chime"] as SoundType[],
+// Volume percent proxies for range inputs (0-100 integers)
+const soundVolumePercent = reactive<Record<SoundType, number>>({
+  newOrder: 80,
+  orderReady: 90,
+  orderUrgent: 100,
+  orderComplete: 60,
+  warning: 80,
+  success: 50,
+  error: 90,
+  notification: 60,
+  bell: 70,
+  chime: 50,
+});
+
+// Master volume as 0-100 for range input
+const masterVolumePercent = computed({
+  get: () => Math.round(masterVolume.value * 100),
+  set: (val: number) => {
+    masterVolume.value = val / 100;
   },
 });
 
-// Methods
+// Sound categories
+const orderSounds: SoundType[] = [
+  "newOrder",
+  "orderReady",
+  "orderUrgent",
+  "orderComplete",
+];
+const alertSounds: SoundType[] = [
+  "warning",
+  "error",
+  "success",
+  "notification",
+];
+const ambientSounds: SoundType[] = ["bell", "chime"];
+
+// Labels
 const getSoundLabel = (soundType: SoundType): string => {
   const labels: Record<string, string> = {
     newOrder: "新訂單",
@@ -362,9 +693,9 @@ const getSoundLabel = (soundType: SoundType): string => {
   return labels[soundType] || soundType;
 };
 
+// Toggle handlers
 const toggleAudio = () => {
   audioEnabled.value = !audioEnabled.value;
-
   if (audioEnabled.value) {
     audioService.enable();
     toast.success("音頻通知已啟用");
@@ -374,32 +705,34 @@ const toggleAudio = () => {
   }
 };
 
+const toggleNotificationQueue = () => {
+  notificationQueue.value = !notificationQueue.value;
+  updateAdvancedSettings();
+};
+
+const togglePriorityOverride = () => {
+  priorityOverride.value = !priorityOverride.value;
+  updateAdvancedSettings();
+};
+
+const toggleSound = (soundType: SoundType) => {
+  soundSettings[soundType].enabled = !soundSettings[soundType].enabled;
+  updateSoundSettings(soundType);
+};
+
+// Volume handlers
 const updateMasterVolume = () => {
   audioService.setMasterVolume(masterVolume.value);
 };
 
-const updateCategorySettings = (categoryKey: string) => {
-  const category = (soundCategories as Record<string, any>)[categoryKey];
-  // Enable/disable all sounds in category
-  category.sounds.forEach((soundType: SoundType) => {
-    soundSettings[soundType as keyof typeof soundSettings].enabled =
-      category.enabled;
-  });
-  updateAllSoundSettings();
+const updateSoundVolume = (soundType: SoundType) => {
+  soundSettings[soundType].volume = soundVolumePercent[soundType] / 100;
+  updateSoundSettings(soundType);
 };
 
 const updateSoundSettings = (soundType: SoundType) => {
   const settings = audioService.getSettings();
   settings.sounds[soundType] = { ...soundSettings[soundType] };
-  audioService.updateSettings({ sounds: settings.sounds });
-};
-
-const updateAllSoundSettings = () => {
-  const settings = audioService.getSettings();
-  Object.keys(soundSettings).forEach((key) => {
-    const soundType = key as SoundType;
-    settings.sounds[soundType] = { ...soundSettings[soundType] };
-  });
   audioService.updateSettings({ sounds: settings.sounds });
 };
 
@@ -411,27 +744,35 @@ const updateAdvancedSettings = () => {
   });
 };
 
+const adjustQueueSize = (delta: number) => {
+  const next = maxQueueSize.value + delta;
+  if (next >= 1 && next <= 20) {
+    maxQueueSize.value = next;
+    updateAdvancedSettings();
+  }
+};
+
+// Test & stop
 const testSound = async (soundType: SoundType) => {
   if (!audioEnabled.value) return;
-
   try {
     await audioService.testSound(soundType);
     toast.success(`已播放 ${getSoundLabel(soundType)} 音效`);
-  } catch (error: any) {
-    toast.error(`播放音效失敗: ${error.message}`);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    toast.error(`播放音效失敗: ${msg}`);
   }
 };
 
 const testAllSounds = async () => {
   if (!audioEnabled.value || isTesting.value) return;
-
   isTesting.value = true;
-
   try {
     await audioService.testAllSounds();
     toast.success("所有音效測試完成");
-  } catch (error: any) {
-    toast.error(`音效測試失敗: ${error.message}`);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    toast.error(`音效測試失敗: ${msg}`);
   } finally {
     isTesting.value = false;
   }
@@ -442,8 +783,9 @@ const stopAllSounds = () => {
   toast.info("已停止所有音效播放");
 };
 
+// Reset & save
 const resetToDefaults = () => {
-  const defaultSettings = {
+  const defaults = {
     masterVolume: 0.7,
     enabled: true,
     notificationQueue: true,
@@ -463,18 +805,19 @@ const resetToDefaults = () => {
     },
   };
 
-  // Update local state
-  audioEnabled.value = defaultSettings.enabled;
-  masterVolume.value = defaultSettings.masterVolume;
-  notificationQueue.value = defaultSettings.notificationQueue;
-  priorityOverride.value = defaultSettings.priorityOverride;
-  maxQueueSize.value = defaultSettings.maxQueueSize;
+  audioEnabled.value = defaults.enabled;
+  masterVolume.value = defaults.masterVolume;
+  notificationQueue.value = defaults.notificationQueue;
+  priorityOverride.value = defaults.priorityOverride;
+  maxQueueSize.value = defaults.maxQueueSize;
+  fadeOutTime.value = 500;
 
-  Object.assign(soundSettings, defaultSettings.sounds);
+  Object.assign(soundSettings, defaults.sounds);
+  (Object.keys(defaults.sounds) as SoundType[]).forEach((key) => {
+    soundVolumePercent[key] = Math.round(defaults.sounds[key].volume * 100);
+  });
 
-  // Update service
-  audioService.updateSettings(defaultSettings);
-
+  audioService.updateSettings(defaults);
   toast.success("已重設為預設音頻設置");
 };
 
@@ -487,75 +830,21 @@ const saveSettings = () => {
     maxQueueSize: maxQueueSize.value,
     sounds: { ...soundSettings },
   };
-
   audioService.updateSettings(settings);
   toast.success("音頻設置已保存");
 };
 
-// Load current settings on mount
+// Init
 onMounted(() => {
-  const currentSettings = audioService.getSettings();
-
-  audioEnabled.value = currentSettings.enabled;
-  masterVolume.value = currentSettings.masterVolume;
-  notificationQueue.value = currentSettings.notificationQueue;
-  priorityOverride.value = currentSettings.priorityOverride;
-  maxQueueSize.value = currentSettings.maxQueueSize;
-
-  Object.assign(soundSettings, currentSettings.sounds);
+  const current = audioService.getSettings();
+  audioEnabled.value = current.enabled;
+  masterVolume.value = current.masterVolume;
+  notificationQueue.value = current.notificationQueue;
+  priorityOverride.value = current.priorityOverride;
+  maxQueueSize.value = current.maxQueueSize;
+  Object.assign(soundSettings, current.sounds);
+  (Object.keys(current.sounds) as SoundType[]).forEach((key) => {
+    soundVolumePercent[key] = Math.round(current.sounds[key].volume * 100);
+  });
 });
 </script>
-
-<style scoped>
-/* Custom range slider styles */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 18px;
-  width: 18px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #6366f1;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-input[type="range"]::-moz-range-thumb {
-  height: 18px;
-  width: 18px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #6366f1;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-input[type="range"]:disabled::-webkit-slider-thumb {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-input[type="range"]:disabled::-moz-range-thumb {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Spinner animation */
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-</style>
