@@ -1,20 +1,18 @@
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50"
-  >
+  <div class="min-h-screen bg-ios-bg">
     <!-- 頂部導航 -->
-    <nav class="bg-white shadow-sm border-b border-gray-100">
+    <nav class="bg-white/80 backdrop-blur-xl shadow-card-sm">
       <div class="max-w-md mx-auto px-4 py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div
-              class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center"
+              class="w-10 h-10 bg-ios-blue rounded-xl flex items-center justify-center"
             >
               <span class="text-white font-bold text-lg">M</span>
             </div>
             <div>
-              <h1 class="text-xl font-bold text-gray-900">MakanMakan</h1>
-              <p class="text-sm text-gray-500">
+              <h1 class="text-xl font-bold text-ios-text">MakanMakan</h1>
+              <p class="text-sm text-ios-secondary">
                 {{ t("home.subtitle") }}
               </p>
             </div>
@@ -29,10 +27,10 @@
       <!-- 歡迎區塊 -->
       <div class="text-center mb-8">
         <div
-          class="w-24 h-24 mx-auto mb-6 bg-indigo-100 rounded-2xl flex items-center justify-center"
+          class="w-24 h-24 mx-auto mb-6 bg-ios-blue/10 rounded-2xl flex items-center justify-center"
         >
           <svg
-            class="w-12 h-12 text-indigo-600"
+            class="w-12 h-12 text-ios-blue"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -45,10 +43,10 @@
             />
           </svg>
         </div>
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">
+        <h2 class="text-2xl font-bold text-ios-text mb-2">
           {{ t("home.title") }}
         </h2>
-        <p class="text-gray-600 text-base">
+        <p class="text-ios-secondary text-base">
           {{ t("home.subtitle") }}
         </p>
       </div>
@@ -57,7 +55,7 @@
       <div class="space-y-4">
         <!-- 掃描QR碼按鈕 -->
         <button
-          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-2xl transition-colors duration-200 flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+          class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3 shadow-lg"
           @click="startQRScan"
         >
           <svg
@@ -78,7 +76,7 @@
 
         <!-- 手動輸入按鈕 -->
         <button
-          class="w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold py-4 px-6 rounded-2xl border-2 border-gray-200 transition-colors duration-200 flex items-center justify-center space-x-3"
+          class="w-full bg-gray-100 text-ios-text font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3"
           @click="showManualInput = true"
         >
           <svg
@@ -100,7 +98,7 @@
         <!-- 探索美食按鈕 -->
         <router-link
           to="/discover"
-          class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+          class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3 shadow-lg"
         >
           <svg
             class="w-6 h-6"
@@ -121,14 +119,14 @@
 
       <!-- 最近使用的餐廳 -->
       <div v-if="recentRestaurants.length > 0" class="mt-12">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        <h3 class="text-lg font-semibold text-ios-text mb-4">
           {{ t("home.recentOrders") }}
         </h3>
         <div class="space-y-3">
           <button
             v-for="restaurant in recentRestaurants"
             :key="restaurant.id"
-            class="w-full bg-white hover:bg-gray-50 p-4 rounded-xl border border-gray-200 transition-colors duration-200 text-left"
+            class="w-full bg-white p-4 rounded-xl shadow-card-sm active:scale-[0.98] transition-transform duration-150 text-left"
             @click="selectRecentRestaurant(restaurant)"
           >
             <div class="flex items-center space-x-3">
@@ -136,7 +134,7 @@
                 class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0"
               >
                 <svg
-                  class="w-6 h-6 text-gray-400"
+                  class="w-6 h-6 text-ios-tertiary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -150,15 +148,15 @@
                 </svg>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="font-medium text-gray-900 truncate">
+                <p class="font-medium text-ios-text truncate">
                   {{ restaurant.name }}
                 </p>
-                <p class="text-sm text-gray-500 truncate">
+                <p class="text-sm text-ios-secondary truncate">
                   {{ restaurant.address }}
                 </p>
               </div>
               <svg
-                class="w-5 h-5 text-gray-400"
+                class="w-5 h-5 text-ios-tertiary"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -177,7 +175,7 @@
 
       <!-- 功能介紹 -->
       <div class="mt-12 space-y-6">
-        <h3 class="text-lg font-semibold text-gray-900">
+        <h3 class="text-lg font-semibold text-ios-text">
           {{ t("home.features.title") }}
         </h3>
 
@@ -201,10 +199,10 @@
               </svg>
             </div>
             <div>
-              <h4 class="font-medium text-gray-900">
+              <h4 class="font-medium text-ios-text">
                 {{ t("home.features.qrOrder") }}
               </h4>
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-ios-secondary">
                 {{ t("home.features.qrOrderDesc") }}
               </p>
             </div>
@@ -235,10 +233,10 @@
               </svg>
             </div>
             <div>
-              <h4 class="font-medium text-gray-900">
+              <h4 class="font-medium text-ios-text">
                 {{ t("home.features.realtime") }}
               </h4>
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-ios-secondary">
                 {{ t("home.features.realtimeDesc") }}
               </p>
             </div>
@@ -263,10 +261,10 @@
               </svg>
             </div>
             <div>
-              <h4 class="font-medium text-gray-900">
+              <h4 class="font-medium text-ios-text">
                 {{ t("home.features.payment") }}
               </h4>
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-ios-secondary">
                 {{ t("home.features.paymentDesc") }}
               </p>
             </div>
@@ -278,19 +276,19 @@
     <!-- PWA 安裝提示 -->
     <div
       v-if="appStore.isInstallable"
-      class="fixed bottom-4 left-4 right-4 bg-indigo-600 text-white p-4 rounded-2xl shadow-lg max-w-md mx-auto"
+      class="fixed bottom-4 left-4 right-4 bg-ios-blue text-white p-4 rounded-2xl shadow-lg max-w-md mx-auto"
     >
       <div class="flex items-center justify-between">
         <div class="flex-1 pr-4">
           <p class="font-medium">
             {{ t("common.home") }}
           </p>
-          <p class="text-sm text-indigo-100">
+          <p class="text-sm text-white/80">
             {{ t("common.loading") }}
           </p>
         </div>
         <button
-          class="bg-white text-indigo-600 px-4 py-2 rounded-lg font-medium text-sm"
+          class="bg-white text-ios-blue px-4 py-2 rounded-full font-medium text-sm active:scale-[0.98] transition-transform duration-150"
           @click="appStore.installApp"
         >
           {{ t("common.apply") }}
