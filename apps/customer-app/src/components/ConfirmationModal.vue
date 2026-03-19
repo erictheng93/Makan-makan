@@ -1,10 +1,13 @@
 <template>
   <div
     v-if="show"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30"
     @click.self="$emit('cancel')"
   >
-    <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full" @click.stop>
+    <div
+      class="bg-white rounded-2xl shadow-card-lg max-w-sm w-full"
+      @click.stop
+    >
       <!-- 標題區域 -->
       <div class="p-6 pb-4">
         <div class="flex items-center justify-center mb-4">
@@ -12,7 +15,7 @@
             class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"
           >
             <svg
-              class="w-6 h-6 text-blue-600"
+              class="w-6 h-6 text-ios-blue"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -27,11 +30,11 @@
           </div>
         </div>
 
-        <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">
+        <h3 class="text-lg font-semibold text-ios-text text-center mb-2">
           {{ title }}
         </h3>
 
-        <p class="text-gray-600 text-center">
+        <p class="text-ios-secondary text-center">
           {{ message }}
         </p>
       </div>
@@ -40,7 +43,7 @@
       <div class="p-6 pt-0 space-y-3">
         <button
           :disabled="loading"
-          class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center"
+          class="w-full bg-ios-blue disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center"
           @click="$emit('confirm')"
         >
           <div
@@ -52,7 +55,7 @@
 
         <button
           :disabled="loading"
-          class="w-full bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors"
+          class="w-full bg-gray-100 disabled:bg-gray-100 text-ios-text font-semibold py-3 px-4 rounded-full transition-transform duration-150"
           @click="$emit('cancel')"
         >
           {{ cancelText }}

@@ -1,11 +1,11 @@
 <template>
   <div
     v-if="recommendedCoupons.length > 0"
-    class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-200"
+    class="bg-ios-blue/10 rounded-2xl p-4"
   >
     <div class="flex items-center space-x-2 mb-3">
       <svg
-        class="w-5 h-5 text-indigo-600"
+        class="w-5 h-5 text-ios-blue"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -17,7 +17,7 @@
           d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
-      <h4 class="text-sm font-semibold text-indigo-800">
+      <h4 class="text-sm font-semibold text-ios-blue">
         {{ t("cart.recommendedForYou") }}
       </h4>
     </div>
@@ -26,29 +26,29 @@
       <div
         v-for="coupon in recommendedCoupons"
         :key="coupon.id"
-        class="bg-white rounded-lg p-3 border border-indigo-100 hover:shadow-sm transition-shadow cursor-pointer"
+        class="bg-white rounded-lg p-3 active:shadow-card-sm transition-shadow cursor-pointer"
         @click="$emit('select-coupon', coupon)"
       >
         <div class="flex justify-between items-center">
           <div class="flex-1">
             <div class="flex items-center space-x-2">
-              <span class="font-medium text-gray-900">{{ coupon.name }}</span>
+              <span class="font-medium text-ios-text">{{ coupon.name }}</span>
               <span
-                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ios-blue/15 text-ios-blue"
               >
                 {{ formatDiscount(coupon) }}
               </span>
             </div>
-            <p class="text-xs text-gray-600 mt-1">{{ coupon.description }}</p>
-            <div class="text-xs text-indigo-600 mt-1">
+            <p class="text-xs text-ios-secondary mt-1">
+              {{ coupon.description }}
+            </p>
+            <div class="text-xs text-ios-blue mt-1">
               {{ t("cart.potentialSaving") }}: ${{
                 calculatePotentialSaving(coupon)
               }}
             </div>
           </div>
-          <button
-            class="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-          >
+          <button class="text-ios-blue text-sm font-medium">
             {{ t("cart.use") }}
           </button>
         </div>

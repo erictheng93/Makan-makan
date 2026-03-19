@@ -9,7 +9,7 @@
     >
       <div
         v-if="show"
-        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end justify-center"
+        class="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
         @click.self="emit('close')"
       >
         <!-- Modal Content -->
@@ -21,16 +21,16 @@
         >
           <div
             v-if="show"
-            class="bg-white rounded-t-3xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
+            class="bg-white rounded-t-ios-lg shadow-card-lg w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
           >
             <!-- Header -->
-            <div class="px-6 py-4 border-b border-gray-200">
+            <div class="px-6 py-4">
               <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">
+                <h2 class="text-xl font-bold text-ios-text">
                   {{ t("shopCart.title") }}
                 </h2>
                 <button
-                  class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors"
+                  class="w-8 h-8 flex items-center justify-center text-ios-secondary hover:text-ios-text transition-colors"
                   @click="emit('close')"
                 >
                   <svg
@@ -71,23 +71,23 @@
                     />
                   </svg>
                 </div>
-                <p class="text-gray-600">{{ t("shopCart.empty") }}</p>
+                <p class="text-ios-secondary">{{ t("shopCart.empty") }}</p>
               </div>
 
               <!-- Non-empty cart content -->
               <div v-else>
                 <!-- Fulfillment Type Toggle -->
                 <div class="mb-4">
-                  <p class="text-sm font-semibold text-gray-700 mb-2">
+                  <p class="text-sm font-semibold text-ios-text mb-2">
                     {{ t("shopCart.pickupMethod") }}
                   </p>
                   <div class="flex gap-2">
                     <button
                       :class="[
-                        'flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors',
+                        'flex-1 py-2 px-3 rounded-full text-sm font-semibold transition-colors',
                         shopCartStore.fulfillmentType === 'takeaway'
                           ? 'bg-green-500 text-white'
-                          : 'bg-gray-100 text-gray-600',
+                          : 'bg-gray-100 text-ios-secondary',
                       ]"
                       @click="shopCartStore.setFulfillmentType('takeaway')"
                     >
@@ -96,10 +96,10 @@
                     <button
                       v-if="deliveryEnabled"
                       :class="[
-                        'flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors',
+                        'flex-1 py-2 px-3 rounded-full text-sm font-semibold transition-colors',
                         shopCartStore.fulfillmentType === 'delivery'
                           ? 'bg-amber-500 text-white'
-                          : 'bg-gray-100 text-gray-600',
+                          : 'bg-gray-100 text-ios-secondary',
                       ]"
                       @click="shopCartStore.setFulfillmentType('delivery')"
                     >
@@ -114,36 +114,36 @@
                   class="mb-4 space-y-3"
                 >
                   <div>
-                    <label class="block text-xs text-gray-500 mb-1">{{
+                    <label class="block text-xs text-ios-secondary mb-1">{{
                       t("shopCart.deliveryAddress")
                     }}</label>
                     <input
                       v-model="deliveryAddress"
                       type="text"
                       :placeholder="t('shopCart.deliveryAddressPlaceholder')"
-                      class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      class="w-full px-3 py-2.5 bg-gray-100 rounded-xl border-0 text-sm focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all duration-200"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs text-gray-500 mb-1">{{
+                    <label class="block text-xs text-ios-secondary mb-1">{{
                       t("shopCart.contactPhone")
                     }}</label>
                     <input
                       v-model="deliveryPhone"
                       type="tel"
                       :placeholder="t('shopCart.contactPhonePlaceholder')"
-                      class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      class="w-full px-3 py-2.5 bg-gray-100 rounded-xl border-0 text-sm focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all duration-200"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs text-gray-500 mb-1">{{
+                    <label class="block text-xs text-ios-secondary mb-1">{{
                       t("shopCart.deliveryNotes")
                     }}</label>
                     <input
                       v-model="deliveryInstructions"
                       type="text"
                       :placeholder="t('shopCart.deliveryNotesPlaceholder')"
-                      class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      class="w-full px-3 py-2.5 bg-gray-100 rounded-xl border-0 text-sm focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all duration-200"
                     />
                   </div>
                 </div>
@@ -153,7 +153,7 @@
                   v-if="shopCartStore.fulfillmentType === 'takeaway'"
                   class="mb-4 p-3 bg-gray-50 rounded-lg"
                 >
-                  <p class="text-xs text-gray-500">
+                  <p class="text-xs text-ios-secondary">
                     {{ t("shopCart.estimatedPickup") }}
                   </p>
                   <p class="font-semibold text-sm">
@@ -170,17 +170,17 @@
                   >
                     <div class="flex items-start justify-between mb-2">
                       <div class="flex-1">
-                        <h3 class="font-semibold text-gray-900">
+                        <h3 class="font-semibold text-ios-text">
                           {{ item.menuItem.name }}
                         </h3>
-                        <p class="text-sm text-gray-600 mt-1">
+                        <p class="text-sm text-ios-secondary mt-1">
                           {{ formatPrice(item.price) }}
                         </p>
 
                         <!-- Customizations -->
                         <div
                           v-if="item.customizations"
-                          class="mt-2 space-y-1 text-sm text-gray-500"
+                          class="mt-2 space-y-1 text-sm text-ios-secondary"
                         >
                           <p v-if="item.customizations.size">
                             {{ t("customization.size") }}:
@@ -217,7 +217,7 @@
                         <!-- Notes -->
                         <p
                           v-if="item.notes"
-                          class="mt-2 text-sm text-gray-500 italic"
+                          class="mt-2 text-sm text-ios-secondary italic"
                         >
                           {{ t("shopCart.notes") }} {{ item.notes }}
                         </p>
@@ -247,7 +247,7 @@
                     <div class="flex items-center justify-between mt-3">
                       <div class="flex items-center space-x-3">
                         <button
-                          class="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 transition-colors"
+                          class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-ios-secondary hover:bg-gray-200 transition-colors"
                           @click="
                             shopCartStore.updateQuantity(
                               item.id,
@@ -270,11 +270,11 @@
                           </svg>
                         </button>
                         <span
-                          class="text-lg font-semibold text-gray-900 w-8 text-center"
+                          class="text-lg font-semibold text-ios-text w-8 text-center"
                           >{{ item.quantity }}</span
                         >
                         <button
-                          class="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 transition-colors"
+                          class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-ios-secondary hover:bg-gray-200 transition-colors"
                           @click="
                             shopCartStore.updateQuantity(
                               item.id,
@@ -297,7 +297,7 @@
                           </svg>
                         </button>
                       </div>
-                      <div class="text-lg font-bold text-gray-900">
+                      <div class="text-lg font-bold text-ios-text">
                         {{ formatPrice(item.totalPrice) }}
                       </div>
                     </div>
@@ -310,12 +310,12 @@
             <!-- Footer -->
             <div
               v-if="!shopCartStore.isEmpty"
-              class="border-t border-gray-200 px-6 py-4 space-y-4"
+              class="bg-white/95 backdrop-blur-xl shadow-[0_-4px_16px_rgb(0,0,0,0.04)] px-6 py-4 space-y-4"
             >
               <!-- Subtotal / Totals -->
               <div
                 v-if="shopCartStore.fulfillmentType === 'delivery'"
-                class="flex justify-between text-sm text-gray-500"
+                class="flex justify-between text-sm text-ios-secondary"
               >
                 <span>{{ t("shopCart.subtotal") }}</span>
                 <span>{{ formatPrice(shopCartStore.subtotal) }}</span>
@@ -325,21 +325,21 @@
                   shopCartStore.fulfillmentType === 'delivery' &&
                   shopCartStore.deliveryFee > 0
                 "
-                class="flex justify-between text-sm text-gray-500"
+                class="flex justify-between text-sm text-ios-secondary"
               >
                 <span>{{ t("shopCart.deliveryFee") }}</span>
                 <span>{{ formatPrice(shopCartStore.deliveryFee) }}</span>
               </div>
               <div class="flex justify-between font-bold text-lg">
                 <span>{{ t("shopCart.total") }}</span>
-                <span class="text-gray-900">{{
+                <span class="text-ios-text">{{
                   formatPrice(shopCartStore.totalWithDelivery)
                 }}</span>
               </div>
 
               <!-- Customer Info -->
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div class="flex items-center text-sm text-blue-900">
+              <div class="bg-ios-blue/10 rounded-lg p-3">
+                <div class="flex items-center text-sm text-ios-blue">
                   <svg
                     class="w-5 h-5 mr-2 flex-shrink-0"
                     fill="none"
@@ -364,7 +364,7 @@
               <!-- Checkout Button -->
               <button
                 :disabled="isSubmitting"
-                class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                class="w-full bg-ios-blue text-white py-4 px-6 rounded-full font-semibold shadow-lg hover:shadow-xl active:scale-[0.98] transition-transform duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 @click="handleCheckout"
               >
                 <span
