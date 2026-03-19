@@ -1,173 +1,138 @@
 <template>
   <div
-    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md"
-    :class="{ 'ring-2 ring-indigo-500': isFeatured }"
+    class="bg-white rounded-2xl shadow-card overflow-hidden transition-transform duration-150 active:scale-[0.98]"
+    :class="{ 'shadow-card-lg': isFeatured }"
   >
-    <!-- 特色標籤 -->
-    <div
-      v-if="isFeatured"
-      class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-medium px-3 py-1 text-center"
-    >
-      {{ t("menuItemCard.featured") }}
-    </div>
+    <!-- Featured layout (vertical: image on top, info below) -->
+    <template v-if="isFeatured">
+      <!-- 特色標籤 -->
+      <div
+        class="bg-ios-blue text-white text-xs font-medium px-3 py-1 text-center"
+      >
+        {{ t("menuItemCard.featured") }}
+      </div>
 
-    <div class="p-4">
-      <div class="flex space-x-4">
-        <!-- 菜品圖片 -->
-        <div class="flex-shrink-0">
-          <div
-            class="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 cursor-pointer transition-transform hover:scale-105"
+      <!-- Large image block -->
+      <div
+        class="h-40 bg-gray-100 overflow-hidden cursor-pointer"
+        @click="$emit('view-details', item)"
+      >
+        <img
+          v-if="item.imageUrl"
+          v-lazy="{
+            src: getImageUrl(item.imageVariants?.medium || item.imageUrl),
+            placeholder: '/placeholder-food.jpg',
+            quality: 85,
+            progressive: true,
+          }"
+          :alt="item.name"
+          class="w-full h-full object-cover lazy-image"
+        />
+        <div
+          v-else
+          class="w-full h-full flex items-center justify-center text-gray-400"
+        >
+          <svg
+            class="w-10 h-10"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Info section below image -->
+      <div class="p-4">
+        <div class="flex items-start justify-between mb-1">
+          <h3
+            class="text-base font-bold text-ios-text cursor-pointer"
             @click="$emit('view-details', item)"
           >
-            <img
-              v-if="item.imageUrl"
-              v-lazy="{
-                src: getImageUrl(item.imageVariants?.medium || item.imageUrl),
-                placeholder: '/placeholder-food.jpg',
-                quality: 85,
-                progressive: true,
-              }"
-              :alt="item.name"
-              class="w-full h-full object-cover lazy-image"
-            />
-            <div
-              v-else
-              class="w-full h-full flex items-center justify-center text-gray-400"
-            >
+            {{ item.name }}
+          </h3>
+          <div class="flex items-center space-x-1 ml-2">
+            <!-- 辣度指示器 -->
+            <div v-if="item.spiceLevel > 0" class="flex items-center">
               <svg
-                class="w-8 h-8"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+                v-for="n in item.spiceLevel"
+                :key="n"
+                class="w-3 h-3 text-red-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"
-                />
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
         </div>
 
-        <!-- 菜品資訊 -->
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start justify-between mb-1">
-            <h3
-              class="text-base font-semibold text-gray-900 cursor-pointer hover:text-indigo-600 transition-colors"
-              @click="$emit('view-details', item)"
-            >
-              {{ item.name }}
-            </h3>
-            <div class="flex items-center space-x-1 ml-2">
-              <!-- 辣度指示器 -->
-              <div v-if="item.spiceLevel > 0" class="flex items-center">
-                <svg
-                  v-for="n in item.spiceLevel"
-                  :key="n"
-                  class="w-3 h-3 text-red-500"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
+        <!-- 描述 -->
+        <p
+          v-if="item.description"
+          class="text-sm text-ios-secondary leading-relaxed mb-2 line-clamp-2 cursor-pointer"
+          @click="$emit('view-details', item)"
+        >
+          {{ item.description }}
+        </p>
 
-          <!-- 描述 -->
-          <p
-            v-if="item.description"
-            class="text-sm text-gray-600 mb-2 line-clamp-2 cursor-pointer"
-            @click="$emit('view-details', item)"
+        <!-- 飲食資訊標籤 -->
+        <div v-if="dietaryTags.length > 0" class="flex flex-wrap gap-1 mb-2">
+          <span
+            v-for="tag in dietaryTags"
+            :key="tag.key"
+            :class="[
+              'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+              tag.class,
+            ]"
           >
-            {{ item.description }}
-          </p>
+            {{ tag.label }}
+          </span>
+        </div>
 
-          <!-- 飲食資訊標籤 -->
-          <div v-if="dietaryTags.length > 0" class="flex flex-wrap gap-1 mb-2">
+        <!-- 價格和操作 -->
+        <div class="flex items-center justify-between mt-3">
+          <div class="flex items-baseline space-x-2">
+            <span class="text-lg font-bold text-ios-text">
+              ${{ formatPrice(item.price) }}
+            </span>
+            <!-- 原價（如果有折扣） -->
             <span
-              v-for="tag in dietaryTags"
-              :key="tag.key"
-              :class="[
-                'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-                tag.class,
-              ]"
+              v-if="originalPrice && originalPrice !== item.price"
+              class="text-sm text-ios-tertiary line-through"
             >
-              {{ tag.label }}
+              ${{ formatPrice(originalPrice) }}
             </span>
           </div>
 
-          <!-- 價格和操作 -->
-          <div class="flex items-center justify-between mt-3">
-            <div class="flex items-baseline space-x-2">
-              <span class="text-lg font-bold text-gray-900">
-                ${{ formatPrice(item.price) }}
-              </span>
-              <!-- 原價（如果有折扣） -->
-              <span
-                v-if="originalPrice && originalPrice !== item.price"
-                class="text-sm text-gray-500 line-through"
-              >
-                ${{ formatPrice(originalPrice) }}
-              </span>
-            </div>
-
-            <!-- 庫存狀態 -->
-            <div v-if="!item.isAvailable || isOutOfStock" class="text-right">
-              <span
-                class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full"
-              >
-                {{
-                  !item.isAvailable
-                    ? t("menuItemCard.unavailable")
-                    : t("menuItemCard.soldOut")
-                }}
-              </span>
-            </div>
-
-            <!-- 添加按鈕 -->
-            <button
-              v-else-if="!hasCustomizations"
-              :disabled="isOutOfStock"
-              class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
-              @click="handleQuickAdd"
+          <!-- 庫存狀態 -->
+          <div v-if="!item.isAvailable || isOutOfStock" class="text-right">
+            <span
+              class="text-xs font-medium text-ios-secondary bg-gray-100 px-2 py-1 rounded-full"
             >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span>{{ t("menuItemCard.addToCart") }}</span>
-            </button>
-
-            <!-- 客製化按鈕 -->
-            <button
-              v-else
-              :disabled="isOutOfStock"
-              class="bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              @click="handleCustomize"
-            >
-              {{ t("menuItemCard.selectSpec") }}
-            </button>
+              {{
+                !item.isAvailable
+                  ? t("menuItemCard.unavailable")
+                  : t("menuItemCard.soldOut")
+              }}
+            </span>
           </div>
 
-          <!-- 人氣指標 -->
-          <div
-            v-if="item.orderCount > 0"
-            class="flex items-center mt-2 text-xs text-gray-500"
+          <!-- 添加按鈕 -->
+          <button
+            v-else-if="!hasCustomizations"
+            :disabled="isOutOfStock"
+            class="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400 flex items-center space-x-1"
+            @click="handleQuickAdd"
           >
             <svg
-              class="w-3 h-3 mr-1"
+              class="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -176,18 +141,233 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                d="M12 4v16m8-8H4"
               />
             </svg>
-            <span>{{
-              tWithParams("menuItemCard.orderedCount", {
-                count: item.orderCount,
-              })
-            }}</span>
+            <span>{{ t("menuItemCard.addToCart") }}</span>
+          </button>
+
+          <!-- 客製化按鈕 -->
+          <button
+            v-else
+            :disabled="isOutOfStock"
+            class="bg-ios-blue/10 text-ios-blue px-4 py-2 rounded-full text-sm font-medium active:bg-ios-blue/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-ios-tertiary"
+            @click="handleCustomize"
+          >
+            {{ t("menuItemCard.selectSpec") }}
+          </button>
+        </div>
+
+        <!-- 人氣指標 -->
+        <div
+          v-if="item.orderCount > 0"
+          class="flex items-center mt-2 text-xs text-ios-secondary"
+        >
+          <svg
+            class="w-3 h-3 mr-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+          <span>{{
+            tWithParams("menuItemCard.orderedCount", {
+              count: item.orderCount,
+            })
+          }}</span>
+        </div>
+      </div>
+    </template>
+
+    <!-- Standard layout (horizontal: image left, info right) -->
+    <template v-else>
+      <div class="p-4">
+        <div class="flex space-x-4">
+          <!-- 菜品圖片 -->
+          <div class="flex-shrink-0">
+            <div
+              class="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 cursor-pointer transition-transform hover:scale-105"
+              @click="$emit('view-details', item)"
+            >
+              <img
+                v-if="item.imageUrl"
+                v-lazy="{
+                  src: getImageUrl(item.imageVariants?.medium || item.imageUrl),
+                  placeholder: '/placeholder-food.jpg',
+                  quality: 85,
+                  progressive: true,
+                }"
+                :alt="item.name"
+                class="w-full h-full object-cover lazy-image"
+              />
+              <div
+                v-else
+                class="w-full h-full flex items-center justify-center text-gray-400"
+              >
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- 菜品資訊 -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between mb-1">
+              <h3
+                class="text-base font-bold text-ios-text cursor-pointer"
+                @click="$emit('view-details', item)"
+              >
+                {{ item.name }}
+              </h3>
+              <div class="flex items-center space-x-1 ml-2">
+                <!-- 辣度指示器 -->
+                <div v-if="item.spiceLevel > 0" class="flex items-center">
+                  <svg
+                    v-for="n in item.spiceLevel"
+                    :key="n"
+                    class="w-3 h-3 text-red-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- 描述 -->
+            <p
+              v-if="item.description"
+              class="text-sm text-ios-secondary leading-relaxed mb-2 line-clamp-2 cursor-pointer"
+              @click="$emit('view-details', item)"
+            >
+              {{ item.description }}
+            </p>
+
+            <!-- 飲食資訊標籤 -->
+            <div
+              v-if="dietaryTags.length > 0"
+              class="flex flex-wrap gap-1 mb-2"
+            >
+              <span
+                v-for="tag in dietaryTags"
+                :key="tag.key"
+                :class="[
+                  'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                  tag.class,
+                ]"
+              >
+                {{ tag.label }}
+              </span>
+            </div>
+
+            <!-- 價格和操作 -->
+            <div class="flex items-center justify-between mt-3">
+              <div class="flex items-baseline space-x-2">
+                <span class="text-lg font-bold text-ios-text">
+                  ${{ formatPrice(item.price) }}
+                </span>
+                <!-- 原價（如果有折扣） -->
+                <span
+                  v-if="originalPrice && originalPrice !== item.price"
+                  class="text-sm text-ios-tertiary line-through"
+                >
+                  ${{ formatPrice(originalPrice) }}
+                </span>
+              </div>
+
+              <!-- 庫存狀態 -->
+              <div v-if="!item.isAvailable || isOutOfStock" class="text-right">
+                <span
+                  class="text-xs font-medium text-ios-secondary bg-gray-100 px-2 py-1 rounded-full"
+                >
+                  {{
+                    !item.isAvailable
+                      ? t("menuItemCard.unavailable")
+                      : t("menuItemCard.soldOut")
+                  }}
+                </span>
+              </div>
+
+              <!-- 添加按鈕 -->
+              <button
+                v-else-if="!hasCustomizations"
+                :disabled="isOutOfStock"
+                class="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400 flex items-center space-x-1"
+                @click="handleQuickAdd"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <span>{{ t("menuItemCard.addToCart") }}</span>
+              </button>
+
+              <!-- 客製化按鈕 -->
+              <button
+                v-else
+                :disabled="isOutOfStock"
+                class="bg-ios-blue/10 text-ios-blue px-4 py-2 rounded-full text-sm font-medium active:bg-ios-blue/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-ios-tertiary"
+                @click="handleCustomize"
+              >
+                {{ t("menuItemCard.selectSpec") }}
+              </button>
+            </div>
+
+            <!-- 人氣指標 -->
+            <div
+              v-if="item.orderCount > 0"
+              class="flex items-center mt-2 text-xs text-ios-secondary"
+            >
+              <svg
+                class="w-3 h-3 mr-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+              <span>{{
+                tWithParams("menuItemCard.orderedCount", {
+                  count: item.orderCount,
+                })
+              }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -243,7 +423,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "vegetarian",
       label: t("menu.vegetarian"),
-      class: "bg-green-100 text-green-800",
+      class: "bg-[#E8F5E9] text-[#4E7C5F]",
     });
   }
 
@@ -251,7 +431,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "vegan",
       label: t("menu.vegan"),
-      class: "bg-green-100 text-green-800",
+      class: "bg-[#E8F5E9] text-[#4E7C5F]",
     });
   }
 
@@ -259,7 +439,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "halal",
       label: t("menu.halal"),
-      class: "bg-blue-100 text-blue-800",
+      class: "bg-[#E3F2FD] text-[#4A6E8C]",
     });
   }
 
@@ -267,7 +447,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "gluten-free",
       label: t("menu.glutenFree"),
-      class: "bg-yellow-100 text-yellow-800",
+      class: "bg-[#FFF3E0] text-[#8D6E4C]",
     });
   }
 
