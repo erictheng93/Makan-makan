@@ -1,13 +1,13 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-ios-bg">
     <!-- 頂部固定導航 -->
-    <nav class="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
+    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl shadow-card-sm">
       <div class="max-w-md mx-auto">
         <!-- 餐廳資訊區域 -->
-        <div class="px-4 py-3 border-b border-gray-100">
+        <div class="px-5 py-3">
           <div class="flex items-center justify-between">
             <button
-              class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
               @click="router.back()"
             >
               <svg
@@ -27,16 +27,16 @@
 
             <div class="flex-1 text-center">
               <div class="flex items-center justify-center">
-                <h1 class="font-semibold text-gray-900">
+                <h1 class="font-semibold text-ios-text">
                   {{ restaurant?.name || t("common.loading") }}
                 </h1>
                 <span
                   v-if="shopCartStore.fulfillmentType"
                   :class="[
-                    'ml-2 px-2 py-0.5 rounded-full text-xs font-semibold',
+                    'ml-2 px-2 py-0.5 rounded-full text-xs font-medium',
                     shopCartStore.fulfillmentType === 'delivery'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-green-100 text-green-800',
+                      ? 'bg-ios-orange/15 text-ios-orange'
+                      : 'bg-ios-green/15 text-ios-green',
                   ]"
                 >
                   {{
@@ -46,13 +46,13 @@
                   }}
                 </span>
               </div>
-              <p class="text-sm text-gray-500">
+              <p class="text-sm text-ios-secondary">
                 {{ t("shopMenu.shopOrdering") }}
               </p>
             </div>
 
             <button
-              class="relative w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              class="relative w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
               @click="showCart = true"
             >
               <svg
@@ -71,7 +71,7 @@
               <!-- 購物車數量徽章 -->
               <div
                 v-if="shopCartStore.itemCount > 0"
-                class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium"
+                class="absolute -top-1 -right-1 w-5 h-5 bg-ios-red text-white text-xs rounded-full flex items-center justify-center font-medium"
               >
                 {{ shopCartStore.itemCount }}
               </div>
@@ -88,8 +88,8 @@
               :class="[
                 'flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors',
                 activeCategoryId === category.id
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                  ? 'bg-ios-blue text-white shadow-card-sm'
+                  : 'bg-gray-100 text-ios-secondary active:bg-gray-200',
               ]"
               @click="scrollToCategory(category.id)"
             >
@@ -105,18 +105,18 @@
       <!-- 載入狀態 -->
       <div v-if="isLoading" class="p-8 text-center">
         <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"
+          class="animate-spin rounded-full h-12 w-12 border-2 border-ios-blue/20 border-t-ios-blue mx-auto mb-4"
         />
-        <p class="text-gray-600">{{ t("shopMenu.loadingMenu") }}</p>
+        <p class="text-ios-secondary">{{ t("shopMenu.loadingMenu") }}</p>
       </div>
 
       <!-- 錯誤狀態 -->
       <div v-else-if="error" class="p-8 text-center">
         <div
-          class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"
+          class="w-16 h-16 bg-ios-red/15 rounded-full flex items-center justify-center mx-auto mb-4"
         >
           <svg
-            class="w-8 h-8 text-red-600"
+            class="w-8 h-8 text-ios-red"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -129,14 +129,14 @@
             />
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">
+        <h3 class="text-lg font-medium text-ios-text mb-2">
           {{ t("shopMenu.loadFailed") }}
         </h3>
-        <p class="text-gray-600 mb-4">
+        <p class="text-ios-secondary mb-4">
           {{ error }}
         </p>
         <button
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          class="px-6 py-2.5 bg-ios-blue text-white rounded-full active:scale-[0.98] transition-transform duration-150"
           @click="() => refetch()"
         >
           {{ t("shopMenu.reload") }}
@@ -144,17 +144,17 @@
       </div>
 
       <!-- 菜單內容 -->
-      <div v-else-if="menuStructure" class="px-4 space-y-8">
+      <div v-else-if="menuStructure" class="px-5 space-y-6">
         <!-- 搜尋框 -->
         <div class="relative">
           <input
             v-model="searchQuery"
             type="text"
             :placeholder="t('shopMenu.searchPlaceholder')"
-            class="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+            class="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl text-ios-text placeholder:text-ios-tertiary border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all duration-200"
           />
           <svg
-            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ios-secondary"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -170,15 +170,20 @@
 
         <!-- 推薦菜品 -->
         <section v-if="featuredItems.length > 0" class="mb-8">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">
+          <h2 class="text-xl font-semibold text-ios-text mb-4">
             {{ t("shopMenu.recommended") }}
           </h2>
           <div class="grid gap-4">
             <MenuItemCard
-              v-for="item in featuredItems"
+              v-for="(item, index) in featuredItems"
               :key="item.id"
               :item="item"
               :is-featured="true"
+              class="animate-slide-up"
+              :style="{
+                animationDelay: `${index * 50}ms`,
+                animationFillMode: 'both',
+              }"
               @add-to-cart="handleAddToCart"
               @view-details="handleViewDetails"
             />
@@ -192,23 +197,31 @@
           :key="category.id"
           class="scroll-mt-32"
         >
-          <h2
-            class="text-xl font-bold text-gray-900 mb-4 sticky top-32 bg-gray-50 py-2 z-10"
+          <div
+            class="sticky bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5"
+            :class="categories.length > 0 ? 'top-32' : 'top-16'"
           >
-            {{ category.name }}
-            <span
+            <h2 class="text-xl font-semibold text-ios-text">
+              {{ category.name }}
+            </h2>
+            <p
               v-if="category.description"
-              class="text-sm font-normal text-gray-500 block"
+              class="text-sm text-ios-secondary mt-0.5"
             >
               {{ category.description }}
-            </span>
-          </h2>
+            </p>
+          </div>
 
           <div class="grid gap-4">
             <MenuItemCard
-              v-for="item in getItemsByCategory(category.id)"
+              v-for="(item, index) in getItemsByCategory(category.id)"
               :key="item.id"
               :item="item"
+              class="animate-slide-up"
+              :style="{
+                animationDelay: `${index * 50}ms`,
+                animationFillMode: 'both',
+              }"
               @add-to-cart="handleAddToCart"
               @view-details="handleViewDetails"
             />
@@ -245,10 +258,10 @@
               />
             </svg>
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">
+          <h3 class="text-lg font-medium text-ios-text mb-2">
             {{ t("shopMenu.noResults") }}
           </h3>
-          <p class="text-gray-600">{{ t("shopMenu.tryOtherKeywords") }}</p>
+          <p class="text-ios-secondary">{{ t("shopMenu.tryOtherKeywords") }}</p>
         </div>
       </div>
     </main>
@@ -259,7 +272,7 @@
       class="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto"
     >
       <button
-        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-2xl shadow-lg transition-colors flex items-center justify-between"
+        class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full shadow-card-lg active:scale-[0.98] transition-transform duration-150 flex items-center justify-between"
         @click="showCart = true"
       >
         <div class="flex items-center space-x-3">
