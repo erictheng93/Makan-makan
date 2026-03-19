@@ -1,41 +1,26 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+  <div class="bg-ios-bg min-h-screen flex items-center justify-center">
     <div class="text-center">
-      <div
-        class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6"
+      <ShieldX class="w-12 h-12 text-ios-tertiary mx-auto" />
+      <h1 class="text-[22px] font-bold text-ios-text mt-4">無權限存取</h1>
+      <p class="text-sm text-ios-secondary mt-2">此頁面僅限廚師角色使用</p>
+      <button
+        class="bg-ios-blue text-white rounded-full px-6 py-3 font-bold mt-6 min-h-[44px]"
+        @click="handleLogin"
       >
-        <ShieldExclamationIcon class="w-10 h-10 text-red-600" />
-      </div>
-
-      <h1 class="text-4xl font-bold text-gray-900 mb-4">權限不足</h1>
-      <h2 class="text-xl font-semibold text-gray-700 mb-4">無法訪問廚房系統</h2>
-      <p class="text-gray-600 mb-8 max-w-md mx-auto">
-        您的帳號沒有廚房系統的使用權限。請使用廚師帳號登入，或聯繫系統管理員。
-      </p>
-
-      <div class="space-y-3">
-        <button class="btn-kitchen-primary px-6 py-3" @click="handleLogout">
-          重新登入
-        </button>
-      </div>
-
-      <div class="mt-8 text-sm text-gray-500">
-        <p>需要協助？請聯繫系統管理員</p>
-      </div>
+        重新登入
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ShieldExclamationIcon } from "@heroicons/vue/24/outline";
+import { ShieldX } from "lucide-vue-next";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
-const authStore = useAuthStore();
 
-const handleLogout = async () => {
-  await authStore.logout();
-  await router.push("/login");
+const handleLogin = () => {
+  router.push("/login");
 };
 </script>
