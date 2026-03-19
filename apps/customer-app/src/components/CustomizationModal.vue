@@ -42,18 +42,17 @@
         <div class="p-6 space-y-6">
           <!-- 尺寸選擇 -->
           <div v-if="item?.options?.sizes?.length">
-            <h4 class="text-base font-medium text-gray-900 mb-3">
-              {{ t("customization.size") }} <span class="text-red-500">*</span>
+            <h4 class="text-base font-semibold text-ios-text mb-3">
+              {{ t("customization.size") }} <span class="text-ios-red">*</span>
             </h4>
             <div class="space-y-2">
               <label
                 v-for="size in item.options.sizes"
                 :key="size.id"
-                class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors"
+                class="flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
                 :class="{
-                  'border-indigo-500 bg-indigo-50':
-                    selectedSize?.id === size.id,
-                  'hover:border-gray-300': selectedSize?.id !== size.id,
+                  'bg-ios-blue/10 shadow-card-sm': selectedSize?.id === size.id,
+                  'bg-gray-50 active:bg-gray-100': selectedSize?.id !== size.id,
                 }"
               >
                 <div class="flex items-center">
@@ -65,9 +64,9 @@
                   />
                   <div class="flex items-center">
                     <div
-                      class="w-4 h-4 rounded-full border-2 flex items-center justify-center mr-3"
+                      class="w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 transition-all duration-200"
                       :class="{
-                        'border-indigo-500 bg-indigo-500':
+                        'border-ios-blue bg-ios-blue':
                           selectedSize?.id === size.id,
                         'border-gray-300': selectedSize?.id !== size.id,
                       }"
@@ -78,19 +77,19 @@
                       />
                     </div>
                     <div>
-                      <div class="font-medium text-gray-900">
+                      <div class="font-medium text-ios-text">
                         {{ size.name }}
                       </div>
                       <div
                         v-if="size.description"
-                        class="text-sm text-gray-600"
+                        class="text-sm text-ios-secondary"
                       >
                         {{ size.description }}
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="text-sm font-medium text-gray-900">
+                <div class="text-sm font-medium text-ios-text">
                   <span
                     v-if="(size.priceAdjustment || size.priceModifier || 0) > 0"
                     >+${{
@@ -118,7 +117,7 @@
 
           <!-- 客製化選項 -->
           <div v-if="item?.options?.customizations?.length">
-            <h4 class="text-base font-medium text-gray-900 mb-3">
+            <h4 class="text-base font-semibold text-ios-text mb-3">
               {{ t("customization.options") }}
             </h4>
             <div class="space-y-3">
@@ -127,10 +126,10 @@
                 :key="option.id"
               >
                 <div class="flex items-center justify-between mb-2">
-                  <span class="font-medium text-gray-900">{{
+                  <span class="font-medium text-ios-text">{{
                     option.name
                   }}</span>
-                  <span v-if="option.required" class="text-xs text-red-500">{{
+                  <span v-if="option.required" class="text-xs text-ios-red">{{
                     t("customization.required")
                   }}</span>
                 </div>
@@ -140,12 +139,12 @@
                   <label
                     v-for="choice in option.choices"
                     :key="choice.id"
-                    class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors"
+                    class="flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
                     :class="{
-                      'border-indigo-500 bg-indigo-50':
+                      'bg-ios-blue/10 shadow-card-sm':
                         selectedOptions[getOptionKey(option)] ===
                         getChoiceKey(choice),
-                      'hover:border-gray-300':
+                      'bg-gray-50 active:bg-gray-100':
                         selectedOptions[getOptionKey(option)] !==
                         getChoiceKey(choice),
                     }"
@@ -158,9 +157,9 @@
                         class="sr-only"
                       />
                       <div
-                        class="w-4 h-4 rounded-full border-2 flex items-center justify-center mr-3"
+                        class="w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 transition-all duration-200"
                         :class="{
-                          'border-indigo-500 bg-indigo-500':
+                          'border-ios-blue bg-ios-blue':
                             selectedOptions[getOptionKey(option)] ===
                             getChoiceKey(choice),
                           'border-gray-300':
@@ -176,14 +175,14 @@
                           class="w-2 h-2 rounded-full bg-white"
                         />
                       </div>
-                      <span class="text-gray-900">{{ choice.name }}</span>
+                      <span class="text-ios-text">{{ choice.name }}</span>
                     </div>
                     <span
                       v-if="
                         (choice.priceAdjustment || choice.priceModifier || 0) >
                         0
                       "
-                      class="text-sm font-medium text-gray-900"
+                      class="text-sm font-medium text-ios-text"
                     >
                       +${{
                         formatPrice(
@@ -199,12 +198,12 @@
                   <label
                     v-for="choice in option.choices"
                     :key="choice.id"
-                    class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors"
+                    class="flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
                     :class="{
-                      'border-indigo-500 bg-indigo-50': selectedMultipleOptions[
+                      'bg-ios-blue/10 shadow-card-sm': selectedMultipleOptions[
                         getOptionKey(option)
                       ]?.includes(getChoiceKey(choice)),
-                      'hover:border-gray-300': !selectedMultipleOptions[
+                      'bg-gray-50 active:bg-gray-100': !selectedMultipleOptions[
                         getOptionKey(option)
                       ]?.includes(getChoiceKey(choice)),
                     }"
@@ -217,9 +216,9 @@
                         class="sr-only"
                       />
                       <div
-                        class="w-4 h-4 rounded border-2 flex items-center justify-center mr-3"
+                        class="w-5 h-5 rounded-lg border-2 flex items-center justify-center mr-3 transition-all duration-200"
                         :class="{
-                          'border-indigo-500 bg-indigo-500':
+                          'border-ios-blue bg-ios-blue':
                             selectedMultipleOptions[
                               getOptionKey(option)
                             ]?.includes(getChoiceKey(choice)),
@@ -245,14 +244,14 @@
                           />
                         </svg>
                       </div>
-                      <span class="text-gray-900">{{ choice.name }}</span>
+                      <span class="text-ios-text">{{ choice.name }}</span>
                     </div>
                     <span
                       v-if="
                         (choice.priceAdjustment || choice.priceModifier || 0) >
                         0
                       "
-                      class="text-sm font-medium text-gray-900"
+                      class="text-sm font-medium text-ios-text"
                     >
                       +${{
                         formatPrice(
@@ -268,19 +267,19 @@
 
           <!-- 加購項目 -->
           <div v-if="item?.options?.addOns?.length">
-            <h4 class="text-base font-medium text-gray-900 mb-3">
+            <h4 class="text-base font-semibold text-ios-text mb-3">
               {{ t("customization.addOns") }}
             </h4>
             <div class="space-y-2">
               <label
                 v-for="addOn in item.options.addOns"
                 :key="addOn.id"
-                class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors"
+                class="flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
                 :class="{
-                  'border-indigo-500 bg-indigo-50': selectedAddOns.includes(
+                  'bg-ios-blue/10 shadow-card-sm': selectedAddOns.includes(
                     getAddOnKey(addOn),
                   ),
-                  'hover:border-gray-300': !selectedAddOns.includes(
+                  'bg-gray-50 active:bg-gray-100': !selectedAddOns.includes(
                     getAddOnKey(addOn),
                   ),
                 }"
@@ -293,10 +292,11 @@
                     class="sr-only"
                   />
                   <div
-                    class="w-4 h-4 rounded border-2 flex items-center justify-center mr-3"
+                    class="w-5 h-5 rounded-lg border-2 flex items-center justify-center mr-3 transition-all duration-200"
                     :class="{
-                      'border-indigo-500 bg-indigo-500':
-                        selectedAddOns.includes(getAddOnKey(addOn)),
+                      'border-ios-blue bg-ios-blue': selectedAddOns.includes(
+                        getAddOnKey(addOn),
+                      ),
                       'border-gray-300': !selectedAddOns.includes(
                         getAddOnKey(addOn),
                       ),
@@ -316,15 +316,18 @@
                     </svg>
                   </div>
                   <div>
-                    <div class="font-medium text-gray-900">
+                    <div class="font-medium text-ios-text">
                       {{ addOn.name }}
                     </div>
-                    <div v-if="addOn.description" class="text-sm text-gray-600">
+                    <div
+                      v-if="addOn.description"
+                      class="text-sm text-ios-secondary"
+                    >
                       {{ addOn.description }}
                     </div>
                   </div>
                 </div>
-                <div class="text-sm font-medium text-gray-900">
+                <div class="text-sm font-medium text-ios-text">
                   +${{ formatPrice(addOn.price) }}
                 </div>
               </label>
