@@ -1,52 +1,17 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-    <!-- Filter Header -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center space-x-2">
-        <FunnelIcon class="w-5 h-5 text-gray-600" />
-        <h3 class="font-semibold text-gray-900">篩選和搜索</h3>
-        <span
-          v-if="hasActiveFilters"
-          class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
-        >
-          {{ activeFilterCount }} 個篩選
-        </span>
-      </div>
-
-      <div class="flex items-center space-x-2">
-        <!-- Toggle Filters -->
-        <button
-          class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-          :title="showFilters ? '收起篩選' : '展開篩選'"
-          @click="showFilters = !showFilters"
-        >
-          <ChevronDownIcon v-if="!showFilters" class="w-4 h-4" />
-          <ChevronUpIcon v-else class="w-4 h-4" />
-        </button>
-
-        <!-- Clear All Filters -->
-        <button
-          v-if="hasActiveFilters"
-          class="text-sm text-red-600 hover:text-red-700 font-medium"
-          @click="clearAllFilters"
-        >
-          清除所有
-        </button>
-      </div>
-    </div>
-
+  <div class="bg-white rounded-2xl shadow-sm p-4">
     <!-- Search Bar -->
-    <div class="mb-4">
+    <div class="mb-3">
       <div class="relative">
         <div
           class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
         >
-          <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+          <Search class="h-4 w-4 text-ios-secondary" />
         </div>
         <input
           v-model="searchText"
           type="text"
-          class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-kitchen-500 focus:border-transparent"
+          class="block w-full pl-9 pr-9 py-2 bg-ios-bg rounded-xl text-sm text-ios-text placeholder-ios-secondary focus:outline-none focus:ring-2 focus:ring-ios-blue/30 transition"
           placeholder="搜索訂單編號、顧客姓名、桌號、餐點..."
           @input="updateSearch"
         />
@@ -55,37 +20,108 @@
           class="absolute inset-y-0 right-0 pr-3 flex items-center"
         >
           <button
-            class="text-gray-400 hover:text-gray-600"
+            class="text-ios-secondary hover:text-ios-text transition-colors"
             @click="clearSearch"
           >
-            <XMarkIcon class="w-4 h-4" />
+            <X class="w-4 h-4" />
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Quick Filters -->
-    <div class="flex flex-wrap gap-2 mb-4">
+    <!-- Status Pill Row -->
+    <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <!-- 全部 pill -->
+      <button
+        :class="[
+          'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
+          selectedStatuses.length === 0 && selectedPriorities.length === 0
+            ? 'bg-ios-blue text-white shadow-sm'
+            : 'bg-ios-bg text-ios-text hover:bg-ios-blue/10',
+        ]"
+        @click="clearStatusFilters"
+      >
+        全部 ({{ props.orders.length }})
+      </button>
+
+      <!-- 待處理 pill (status 1 = confirmed/pending) -->
+      <button
+        :class="[
+          'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
+          selectedStatuses.includes(1)
+            ? 'bg-ios-blue text-white shadow-sm'
+            : 'bg-[#FFF3E0] text-ios-orange hover:opacity-80',
+        ]"
+        @click="toggleStatusFilter(1)"
+      >
+        待處理 ({{ pendingCount }})
+      </button>
+
+      <!-- 製作中 pill (status 2) -->
+      <button
+        :class="[
+          'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
+          selectedStatuses.includes(2)
+            ? 'bg-ios-blue text-white shadow-sm'
+            : 'bg-[#E3F2FD] text-ios-blue hover:opacity-80',
+        ]"
+        @click="toggleStatusFilter(2)"
+      >
+        製作中 ({{ preparingCount }})
+      </button>
+
+      <!-- 完成 pill (status 3) -->
+      <button
+        :class="[
+          'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
+          selectedStatuses.includes(3)
+            ? 'bg-ios-blue text-white shadow-sm'
+            : 'bg-[#E8F5E9] text-ios-green hover:opacity-80',
+        ]"
+        @click="toggleStatusFilter(3)"
+      >
+        完成 ({{ doneCount }})
+      </button>
+
+      <!-- 緊急 pill -->
+      <button
+        :class="[
+          'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
+          selectedPriorities.includes('urgent')
+            ? 'bg-ios-red text-white shadow-sm'
+            : 'bg-[#FFEBEE] text-ios-red hover:opacity-80',
+        ]"
+        @click="toggleUrgentFilter"
+      >
+        緊急 ({{ urgentCount }})
+      </button>
+
+      <!-- Divider -->
+      <div class="w-px bg-ios-separator self-stretch mx-0.5 flex-shrink-0" />
+
+      <!-- Quick filter pills -->
       <button
         v-for="(filter, key) in quickFilters"
         :key="key"
         :class="[
-          'px-3 py-1 rounded-full text-sm font-medium transition-colors',
+          'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200 flex items-center gap-1.5',
           filter.active
-            ? 'bg-kitchen-100 text-kitchen-800 border border-kitchen-200'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+            ? 'bg-ios-blue text-white shadow-sm'
+            : 'bg-ios-bg text-ios-text hover:bg-ios-blue/10',
         ]"
         @click="applyQuickFilter(key)"
       >
-        <component :is="filter.icon" class="w-4 h-4 inline mr-1" />
+        <component :is="filter.icon" class="w-3.5 h-3.5" />
         {{ filter.label }}
       </button>
+
+      <!-- 外帶/外送 quick pill -->
       <button
         :class="[
-          'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+          'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
           isTakeawayDeliveryActive
-            ? 'bg-amber-100 text-amber-800'
-            : 'bg-gray-100 text-gray-600',
+            ? 'bg-ios-orange text-white shadow-sm'
+            : 'bg-[#FFF3E0] text-ios-orange hover:opacity-80',
         ]"
         @click="toggleTakeawayDeliveryFilter"
       >
@@ -93,26 +129,64 @@
       </button>
     </div>
 
-    <!-- Detailed Filters -->
-    <div v-if="showFilters" class="space-y-4">
+    <!-- Expand / collapse row -->
+    <div class="flex items-center justify-between mt-3">
+      <div class="flex items-center gap-2">
+        <span
+          v-if="hasActiveFilters"
+          class="px-2.5 py-0.5 bg-ios-blue/10 text-ios-blue rounded-full text-xs font-semibold"
+        >
+          {{ activeFilterCount }} 個篩選
+        </span>
+        <span v-if="hasActiveFilters" class="text-xs text-ios-secondary">
+          符合
+          <span class="font-semibold text-ios-text">{{ filteredCount }}</span>
+          筆
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          v-if="hasActiveFilters"
+          class="text-xs text-ios-red font-semibold hover:opacity-70 transition-opacity"
+          @click="clearAllFilters"
+        >
+          清除所有
+        </button>
+        <button
+          class="p-1.5 text-ios-secondary hover:text-ios-text rounded-lg hover:bg-ios-bg transition-colors"
+          :title="showFilters ? '收起篩選' : '更多篩選'"
+          @click="showFilters = !showFilters"
+        >
+          <ChevronDown v-if="!showFilters" class="w-4 h-4" />
+          <ChevronUp v-else class="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Detailed Filters (collapsible) -->
+    <div
+      v-if="showFilters"
+      class="mt-4 space-y-4 border-t border-ios-separator pt-4"
+    >
       <!-- Status Filter -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2"
+        <label
+          class="block text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
           >訂單狀態</label
         >
         <div class="flex flex-wrap gap-2">
           <label
             v-for="status in statusOptions"
             :key="status.value"
-            class="flex items-center space-x-2 cursor-pointer"
+            class="flex items-center gap-2 cursor-pointer"
           >
             <input
               v-model="selectedStatuses"
               :value="status.value"
               type="checkbox"
-              class="rounded border-gray-300 text-kitchen-600 focus:ring-kitchen-500"
+              class="rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-gray-700">{{ status.label }}</span>
+            <span class="text-sm text-ios-text">{{ status.label }}</span>
             <span :class="status.badgeClass">{{ status.count || 0 }}</span>
           </label>
         </div>
@@ -120,39 +194,44 @@
 
       <!-- Priority Filter -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2"
+        <label
+          class="block text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
           >優先級</label
         >
         <div class="flex flex-wrap gap-2">
           <label
             v-for="priority in priorityOptions"
             :key="priority.value"
-            class="flex items-center space-x-2 cursor-pointer"
+            class="flex items-center gap-2 cursor-pointer"
           >
             <input
               v-model="selectedPriorities"
               :value="priority.value"
               type="checkbox"
-              class="rounded border-gray-300 text-kitchen-600 focus:ring-kitchen-500"
+              class="rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-gray-700">{{ priority.label }}</span>
+            <span class="text-sm text-ios-text">{{ priority.label }}</span>
             <span :class="priority.badgeClass">{{ priority.count || 0 }}</span>
           </label>
         </div>
       </div>
 
       <!-- Order Type Filter -->
-      <div class="mb-4">
-        <h4 class="text-sm font-semibold text-gray-600 mb-2">訂單類型</h4>
+      <div>
+        <h4
+          class="text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
+        >
+          訂單類型
+        </h4>
         <div class="flex flex-wrap gap-2">
           <label
             v-for="type in orderTypeOptions"
             :key="type.value"
             :class="[
-              'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-all duration-200',
               selectedOrderTypes.includes(type.value)
                 ? type.activeClass
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                : 'bg-ios-bg text-ios-text hover:bg-ios-blue/10',
             ]"
           >
             <input
@@ -167,17 +246,21 @@
       </div>
 
       <!-- Platform Source Filter -->
-      <div class="mb-4">
-        <h4 class="text-sm font-semibold text-gray-600 mb-2">訂單來源</h4>
+      <div>
+        <h4
+          class="text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
+        >
+          訂單來源
+        </h4>
         <div class="flex flex-wrap gap-2">
           <label
             v-for="source in orderSourceOptions"
             :key="source.value"
             :class="[
-              'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-all duration-200',
               selectedOrderSources.includes(source.value)
                 ? source.activeClass
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                : 'bg-ios-bg text-ios-text hover:bg-ios-blue/10',
             ]"
           >
             <input
@@ -194,93 +277,90 @@
       <!-- Time Range Filter -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
+          <label
+            class="block text-xs font-semibold text-ios-secondary mb-1 uppercase tracking-wide"
             >最短等待時間</label
           >
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center gap-2">
             <input
               v-model.number="minElapsedTime"
               type="number"
               min="0"
               max="120"
-              class="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-kitchen-500"
+              class="w-20 px-2 py-1.5 bg-ios-bg border-0 rounded-xl text-sm text-ios-text focus:outline-none focus:ring-2 focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-gray-500">分鐘</span>
+            <span class="text-sm text-ios-secondary">分鐘</span>
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
+          <label
+            class="block text-xs font-semibold text-ios-secondary mb-1 uppercase tracking-wide"
             >最長等待時間</label
           >
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center gap-2">
             <input
               v-model.number="maxElapsedTime"
               type="number"
               min="0"
               max="120"
-              class="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-kitchen-500"
+              class="w-20 px-2 py-1.5 bg-ios-bg border-0 rounded-xl text-sm text-ios-text focus:outline-none focus:ring-2 focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-gray-500">分鐘</span>
+            <span class="text-sm text-ios-secondary">分鐘</span>
           </div>
         </div>
       </div>
 
       <!-- Table Filter -->
       <div v-if="availableTables.length > 0">
-        <label class="block text-sm font-medium text-gray-700 mb-2">桌號</label>
+        <label
+          class="block text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
+          >桌號</label
+        >
         <div class="flex flex-wrap gap-2">
           <label
             v-for="table in availableTables"
             :key="table.id"
-            class="flex items-center space-x-2 cursor-pointer"
+            class="flex items-center gap-2 cursor-pointer"
           >
             <input
               v-model="selectedTables"
               :value="table.id"
               type="checkbox"
-              class="rounded border-gray-300 text-kitchen-600 focus:ring-kitchen-500"
+              class="rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-gray-700">{{ table.name }}</span>
-            <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">{{
-              table.count
-            }}</span>
+            <span class="text-sm text-ios-text">{{ table.name }}</span>
+            <span
+              class="px-2 py-0.5 bg-ios-bg text-ios-secondary rounded-full text-xs font-medium"
+              >{{ table.count }}</span
+            >
           </label>
         </div>
       </div>
 
       <!-- Additional Filters -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2"
+        <label
+          class="block text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
           >其他篩選</label
         >
         <div class="space-y-2">
-          <label class="flex items-center space-x-2 cursor-pointer">
+          <label class="flex items-center gap-2 cursor-pointer">
             <input
               v-model="hasNotesFilter"
               type="checkbox"
-              class="rounded border-gray-300 text-kitchen-600 focus:ring-kitchen-500"
+              class="rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-gray-700">有訂單備註</span>
+            <span class="text-sm text-ios-text">有訂單備註</span>
           </label>
-          <label class="flex items-center space-x-2 cursor-pointer">
+          <label class="flex items-center gap-2 cursor-pointer">
             <input
               v-model="hasCustomizationsFilter"
               type="checkbox"
-              class="rounded border-gray-300 text-kitchen-600 focus:ring-kitchen-500"
+              class="rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-gray-700">有客製化要求</span>
+            <span class="text-sm text-ios-text">有客製化要求</span>
           </label>
         </div>
-      </div>
-    </div>
-
-    <!-- Filter Summary -->
-    <div v-if="hasActiveFilters" class="mt-4 pt-4 border-t border-gray-200">
-      <div class="text-sm text-gray-600">
-        符合條件的訂單：<span class="font-medium text-gray-900">{{
-          filteredCount
-        }}</span>
-        個
       </div>
     </div>
   </div>
@@ -289,17 +369,16 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import {
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  XMarkIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  FireIcon,
-  ChatBubbleLeftEllipsisIcon,
-  Cog6ToothIcon,
-} from "@heroicons/vue/24/outline";
+  Search,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  AlertTriangle,
+  Flame,
+  MessageCircleMore,
+  Settings2,
+} from "lucide-vue-next";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { storeToRefs } from "pinia";
 import type { KitchenOrder } from "@/types";
@@ -334,19 +413,19 @@ const orderTypeOptions = [
     value: "dine_in",
     label: "內用",
     emoji: "🪑",
-    activeClass: "bg-blue-100 text-blue-800",
+    activeClass: "bg-[#E3F2FD] text-ios-blue",
   },
   {
     value: "takeaway",
     label: "外帶",
     emoji: "🛍️",
-    activeClass: "bg-green-100 text-green-800",
+    activeClass: "bg-[#E8F5E9] text-ios-green",
   },
   {
     value: "delivery",
     label: "外送",
     emoji: "🛵",
-    activeClass: "bg-amber-100 text-amber-800",
+    activeClass: "bg-[#FFF3E0] text-ios-orange",
   },
 ];
 
@@ -355,21 +434,35 @@ const orderSourceOptions = [
     value: "direct",
     label: "自家",
     emoji: "\uD83C\uDFE0",
-    activeClass: "bg-blue-100 text-blue-800",
+    activeClass: "bg-[#E3F2FD] text-ios-blue",
   },
   {
     value: "uber_eats",
     label: "Uber Eats",
     emoji: "\uD83D\uDFE2",
-    activeClass: "bg-green-100 text-green-800",
+    activeClass: "bg-[#E8F5E9] text-ios-green",
   },
   {
     value: "foodpanda",
     label: "Foodpanda",
     emoji: "\uD83E\uDE77",
-    activeClass: "bg-pink-100 text-pink-800",
+    activeClass: "bg-[#FCE4EC] text-[#E91E8C]",
   },
 ];
+
+// Computed counts for the pill row
+const pendingCount = computed(
+  () => props.orders.filter((o) => o.status === 1).length,
+);
+const preparingCount = computed(
+  () => props.orders.filter((o) => o.status === 2).length,
+);
+const doneCount = computed(
+  () => props.orders.filter((o) => o.status === 3).length,
+);
+const urgentCount = computed(
+  () => props.orders.filter((o) => o.priority === "urgent").length,
+);
 
 // Computed
 const activeFilterCount = computed(() => {
@@ -399,19 +492,22 @@ const statusOptions = computed(() => [
     value: 1,
     label: "已確認",
     count: props.orders.filter((o) => o.status === 1).length,
-    badgeClass: "px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs",
+    badgeClass:
+      "px-2 py-0.5 bg-[#FFF3E0] text-ios-orange rounded-full text-xs font-medium",
   },
   {
     value: 2,
     label: "製作中",
     count: props.orders.filter((o) => o.status === 2).length,
-    badgeClass: "px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs",
+    badgeClass:
+      "px-2 py-0.5 bg-[#E3F2FD] text-ios-blue rounded-full text-xs font-medium",
   },
   {
     value: 3,
     label: "準備完成",
     count: props.orders.filter((o) => o.status === 3).length,
-    badgeClass: "px-2 py-1 bg-green-100 text-green-800 rounded text-xs",
+    badgeClass:
+      "px-2 py-0.5 bg-[#E8F5E9] text-ios-green rounded-full text-xs font-medium",
   },
 ]);
 
@@ -420,19 +516,22 @@ const priorityOptions = computed(() => [
     value: "normal",
     label: "普通",
     count: props.orders.filter((o) => o.priority === "normal").length,
-    badgeClass: "px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs",
+    badgeClass:
+      "px-2 py-0.5 bg-ios-bg text-ios-secondary rounded-full text-xs font-medium",
   },
   {
     value: "high",
     label: "重要",
     count: props.orders.filter((o) => o.priority === "high").length,
-    badgeClass: "px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs",
+    badgeClass:
+      "px-2 py-0.5 bg-[#FFF3E0] text-ios-orange rounded-full text-xs font-medium",
   },
   {
     value: "urgent",
     label: "緊急",
     count: props.orders.filter((o) => o.priority === "urgent").length,
-    badgeClass: "px-2 py-1 bg-red-100 text-red-800 rounded text-xs",
+    badgeClass:
+      "px-2 py-0.5 bg-[#FFEBEE] text-ios-red rounded-full text-xs font-medium",
   },
 ]);
 
@@ -460,29 +559,19 @@ const availableTables = computed(() => {
 });
 
 const quickFilters = computed(() => ({
-  urgent: {
-    label: "緊急訂單",
-    icon: ExclamationTriangleIcon,
-    active: selectedPriorities.value.includes("urgent"),
-  },
-  preparing: {
-    label: "製作中",
-    icon: FireIcon,
-    active: selectedStatuses.value.includes(2),
-  },
   overdue: {
-    label: "超時訂單",
-    icon: ClockIcon,
+    label: "超時",
+    icon: Clock,
     active: minElapsedTime.value === 15,
   },
   withNotes: {
     label: "有備註",
-    icon: ChatBubbleLeftEllipsisIcon,
+    icon: MessageCircleMore,
     active: hasNotesFilter.value,
   },
   customized: {
     label: "客製化",
-    icon: Cog6ToothIcon,
+    icon: Settings2,
     active: hasCustomizationsFilter.value,
   },
 }));
@@ -495,6 +584,29 @@ const updateSearch = () => {
 const clearSearch = () => {
   searchText.value = "";
   updateSearch();
+};
+
+const clearStatusFilters = () => {
+  selectedStatuses.value = [];
+  selectedPriorities.value = [];
+};
+
+const toggleStatusFilter = (status: number) => {
+  if (selectedStatuses.value.includes(status)) {
+    selectedStatuses.value = selectedStatuses.value.filter((s) => s !== status);
+  } else {
+    selectedStatuses.value = [...selectedStatuses.value, status];
+  }
+};
+
+const toggleUrgentFilter = () => {
+  if (selectedPriorities.value.includes("urgent")) {
+    selectedPriorities.value = selectedPriorities.value.filter(
+      (p) => p !== "urgent",
+    );
+  } else {
+    selectedPriorities.value = [...selectedPriorities.value, "urgent"];
+  }
 };
 
 const applyQuickFilter = (filterKey: string) => {
