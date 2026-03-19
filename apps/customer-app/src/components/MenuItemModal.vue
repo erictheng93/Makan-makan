@@ -1,16 +1,16 @@
 <template>
   <div
     v-if="show && item"
-    class="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50"
+    class="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
     @click.self="$emit('close')"
   >
     <div
-      class="bg-white rounded-t-3xl shadow-xl w-full max-w-md max-h-[85vh] overflow-hidden"
+      class="bg-white rounded-t-ios-lg shadow-card-lg w-full max-w-md max-h-[85vh] overflow-hidden"
       @click.stop
     >
       <!-- 頂部把手 -->
       <div class="flex justify-center py-2">
-        <div class="w-8 h-1 bg-gray-300 rounded-full" />
+        <div class="w-10 h-1 bg-gray-300 rounded-full" />
       </div>
 
       <div class="overflow-y-auto max-h-full">
@@ -44,7 +44,7 @@
 
           <!-- 關閉按鈕 -->
           <button
-            class="absolute top-4 right-4 w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+            class="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-ios-text shadow-card-sm active:scale-95 transition-transform duration-150"
             @click="$emit('close')"
           >
             <svg
@@ -65,7 +65,7 @@
           <!-- 特色標籤 -->
           <div v-if="item.isFeatured" class="absolute top-4 left-4">
             <span
-              class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-medium px-3 py-1 rounded-full"
+              class="bg-ios-blue shadow-card-sm text-white text-xs font-medium px-3 py-1 rounded-full"
             >
               {{ t("menuItemModal.featured") }}
             </span>
@@ -77,7 +77,7 @@
           <!-- 基本資訊 -->
           <div>
             <div class="flex items-start justify-between mb-2">
-              <h2 class="text-xl font-bold text-gray-900">
+              <h2 class="text-xl font-bold text-ios-text">
                 {{ item.name }}
               </h2>
               <div class="flex items-center space-x-1">
@@ -96,7 +96,10 @@
               </div>
             </div>
 
-            <p v-if="item.description" class="text-gray-600 leading-relaxed">
+            <p
+              v-if="item.description"
+              class="text-sm text-ios-secondary leading-relaxed"
+            >
               {{ item.description }}
             </p>
 
@@ -119,7 +122,7 @@
           </div>
 
           <!-- 價格 -->
-          <div class="text-2xl font-bold text-gray-900">
+          <div class="text-2xl font-bold text-ios-text">
             ${{ formatPrice(currentPrice) }}
           </div>
 
@@ -134,13 +137,13 @@
 
           <!-- 數量選擇 -->
           <div class="flex items-center justify-between py-4">
-            <span class="text-base font-medium text-gray-900">{{
+            <span class="text-base font-medium text-ios-text">{{
               t("menuItemModal.quantity")
             }}</span>
             <div class="flex items-center space-x-3">
               <button
                 :disabled="quantity <= 1"
-                class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                 @click="quantity = Math.max(1, quantity - 1)"
               >
                 <svg
@@ -159,14 +162,14 @@
               </button>
 
               <span
-                class="text-lg font-medium text-gray-900 min-w-[3rem] text-center"
+                class="text-lg font-medium text-ios-text min-w-[3rem] text-center"
               >
                 {{ quantity }}
               </span>
 
               <button
                 :disabled="quantity >= 99"
-                class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                 @click="quantity = Math.min(99, quantity + 1)"
               >
                 <svg
@@ -188,24 +191,26 @@
 
           <!-- 備註 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-sm font-medium text-ios-text mb-2">
               {{ t("menuItemModal.notesLabel") }}
             </label>
             <textarea
               v-model="notes"
               rows="3"
               :placeholder="t('menuItemModal.notesPlaceholder')"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+              class="w-full px-4 py-3 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary resize-none transition-all duration-200"
             />
           </div>
         </div>
       </div>
 
       <!-- 底部按鈕 -->
-      <div class="sticky bottom-0 bg-white border-t border-gray-200 p-6">
+      <div
+        class="sticky bottom-0 bg-white/95 backdrop-blur-xl p-6 shadow-[0_-4px_16px_rgb(0,0,0,0.04)]"
+      >
         <button
           :disabled="!item.isAvailable || isOutOfStock"
-          class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-4 px-6 rounded-2xl transition-colors"
+          class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400"
           @click="handleAddToCart"
         >
           {{ buttonText }}
@@ -277,7 +282,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "vegetarian",
       label: t("menu.vegetarian"),
-      class: "bg-green-100 text-green-800",
+      class: "bg-[#E8F5E9] text-[#4E7C5F]",
     });
   }
 
@@ -285,7 +290,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "vegan",
       label: t("menu.vegan"),
-      class: "bg-green-100 text-green-800",
+      class: "bg-[#E8F5E9] text-[#4E7C5F]",
     });
   }
 
@@ -293,7 +298,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "halal",
       label: t("menu.halal"),
-      class: "bg-blue-100 text-blue-800",
+      class: "bg-[#E3F2FD] text-[#4A6E8C]",
     });
   }
 
@@ -301,7 +306,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "gluten-free",
       label: t("menu.glutenFree"),
-      class: "bg-yellow-100 text-yellow-800",
+      class: "bg-[#FFF3E0] text-[#8D6E4C]",
     });
   }
 

@@ -2,18 +2,17 @@
   <div class="space-y-6">
     <!-- 尺寸選擇 -->
     <div v-if="item.options?.sizes?.length">
-      <h4 class="text-base font-medium text-gray-900 mb-3">
-        {{ t("customization.size") }} <span class="text-red-500">*</span>
+      <h4 class="text-base font-semibold text-ios-text mb-3">
+        {{ t("customization.size") }} <span class="text-ios-red">*</span>
       </h4>
       <div class="grid grid-cols-2 gap-3">
         <label
           v-for="size in item.options.sizes"
           :key="size.id"
-          class="relative flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-colors"
+          class="relative flex items-center justify-center p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
           :class="{
-            'border-indigo-500 bg-indigo-50': selectedSize?.id === size.id,
-            'border-gray-200 hover:border-gray-300':
-              selectedSize?.id !== size.id,
+            'bg-ios-blue/10 shadow-card-sm': selectedSize?.id === size.id,
+            'bg-gray-50 active:bg-gray-100': selectedSize?.id !== size.id,
           }"
         >
           <input
@@ -23,8 +22,11 @@
             class="sr-only"
           />
           <div class="text-center">
-            <div class="font-medium text-gray-900">{{ size.name }}</div>
-            <div v-if="size.description" class="text-xs text-gray-600 mt-1">
+            <div class="font-medium text-ios-text">{{ size.name }}</div>
+            <div
+              v-if="size.description"
+              class="text-xs text-ios-secondary mt-1"
+            >
               {{ size.description }}
             </div>
             <div
@@ -44,7 +46,7 @@
           <!-- 選中指示器 -->
           <div
             v-if="selectedSize?.id === size.id"
-            class="absolute top-2 right-2 w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center"
+            class="absolute top-2 right-2 w-5 h-5 bg-ios-blue rounded-full flex items-center justify-center transition-all duration-200"
           >
             <svg
               class="w-3 h-3 text-white"
@@ -69,9 +71,9 @@
         :key="option.id"
         class="space-y-3"
       >
-        <h4 class="text-base font-medium text-gray-900">
+        <h4 class="text-base font-semibold text-ios-text">
           {{ option.name }}
-          <span v-if="option.required" class="text-red-500">*</span>
+          <span v-if="option.required" class="text-ios-red">*</span>
         </h4>
 
         <!-- 單選選項 -->
@@ -79,11 +81,12 @@
           <label
             v-for="choice in option.choices"
             :key="choice.id"
-            class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors"
+            class="flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
             :class="{
-              'border-indigo-500 bg-indigo-50':
+              'bg-ios-blue/10 shadow-card-sm':
                 selectedOptions[option.id] === choice.id,
-              'hover:border-gray-300': selectedOptions[option.id] !== choice.id,
+              'bg-gray-50 active:bg-gray-100':
+                selectedOptions[option.id] !== choice.id,
             }"
           >
             <div class="flex items-center">
@@ -94,9 +97,9 @@
                 class="sr-only"
               />
               <div
-                class="w-4 h-4 rounded-full border-2 flex items-center justify-center mr-3"
+                class="w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 transition-all duration-200"
                 :class="{
-                  'border-indigo-500 bg-indigo-500':
+                  'border-ios-blue bg-ios-blue':
                     selectedOptions[option.id] === choice.id,
                   'border-gray-300': selectedOptions[option.id] !== choice.id,
                 }"
@@ -106,11 +109,11 @@
                   class="w-2 h-2 rounded-full bg-white"
                 />
               </div>
-              <span class="text-gray-900">{{ choice.name }}</span>
+              <span class="text-ios-text">{{ choice.name }}</span>
             </div>
             <span
               v-if="(choice.priceAdjustment || 0) > 0"
-              class="text-sm font-medium text-orange-600"
+              class="text-sm font-medium text-ios-secondary"
             >
               +${{ formatPrice(choice.priceAdjustment || 0) }}
             </span>
@@ -122,12 +125,12 @@
           <label
             v-for="choice in option.choices"
             :key="choice.id"
-            class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors"
+            class="flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
             :class="{
-              'border-indigo-500 bg-indigo-50': selectedMultipleOptions[
+              'bg-ios-blue/10 shadow-card-sm': selectedMultipleOptions[
                 option.id
               ]?.includes(choice.id),
-              'hover:border-gray-300': !selectedMultipleOptions[
+              'bg-gray-50 active:bg-gray-100': !selectedMultipleOptions[
                 option.id
               ]?.includes(choice.id),
             }"
@@ -140,9 +143,9 @@
                 class="sr-only"
               />
               <div
-                class="w-4 h-4 rounded border-2 flex items-center justify-center mr-3"
+                class="w-5 h-5 rounded-lg border-2 flex items-center justify-center mr-3 transition-all duration-200"
                 :class="{
-                  'border-indigo-500 bg-indigo-500': selectedMultipleOptions[
+                  'border-ios-blue bg-ios-blue': selectedMultipleOptions[
                     option.id
                   ]?.includes(choice.id),
                   'border-gray-300': !selectedMultipleOptions[
@@ -163,11 +166,11 @@
                   />
                 </svg>
               </div>
-              <span class="text-gray-900">{{ choice.name }}</span>
+              <span class="text-ios-text">{{ choice.name }}</span>
             </div>
             <span
               v-if="(choice.priceAdjustment || 0) > 0"
-              class="text-sm font-medium text-orange-600"
+              class="text-sm font-medium text-ios-secondary"
             >
               +${{ formatPrice(choice.priceAdjustment || 0) }}
             </span>
@@ -178,19 +181,21 @@
 
     <!-- 加購項目 -->
     <div v-if="item.options?.addOns?.length">
-      <h4 class="text-base font-medium text-gray-900 mb-3">
+      <h4 class="text-base font-semibold text-ios-text mb-3">
         {{ t("customization.addOns") }}
       </h4>
       <div class="space-y-2">
         <label
           v-for="addOn in item.options.addOns"
           :key="addOn.id"
-          class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors"
+          class="flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
           :class="{
-            'border-indigo-500 bg-indigo-50': selectedAddOns.includes(
+            'bg-ios-blue/10 shadow-card-sm': selectedAddOns.includes(
               addOn.id || '',
             ),
-            'hover:border-gray-300': !selectedAddOns.includes(addOn.id || ''),
+            'bg-gray-50 active:bg-gray-100': !selectedAddOns.includes(
+              addOn.id || '',
+            ),
           }"
         >
           <div class="flex items-center">
@@ -201,9 +206,9 @@
               class="sr-only"
             />
             <div
-              class="w-4 h-4 rounded border-2 flex items-center justify-center mr-3"
+              class="w-5 h-5 rounded-lg border-2 flex items-center justify-center mr-3 transition-all duration-200"
               :class="{
-                'border-indigo-500 bg-indigo-500': selectedAddOns.includes(
+                'border-ios-blue bg-ios-blue': selectedAddOns.includes(
                   addOn.id || '',
                 ),
                 'border-gray-300': !selectedAddOns.includes(addOn.id || ''),
@@ -223,13 +228,13 @@
               </svg>
             </div>
             <div>
-              <div class="font-medium text-gray-900">{{ addOn.name }}</div>
-              <div v-if="addOn.description" class="text-sm text-gray-600">
+              <div class="font-medium text-ios-text">{{ addOn.name }}</div>
+              <div v-if="addOn.description" class="text-sm text-ios-secondary">
                 {{ addOn.description }}
               </div>
             </div>
           </div>
-          <div class="text-sm font-medium text-orange-600">
+          <div class="text-sm font-medium text-ios-secondary">
             +${{ formatPrice(addOn.price) }}
           </div>
         </label>

@@ -1,24 +1,24 @@
 <template>
   <div
     v-if="show"
-    class="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50"
+    class="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
     @click.self="$emit('close')"
   >
     <div
-      class="bg-white rounded-t-3xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden"
+      class="bg-white rounded-t-ios-lg shadow-card-lg w-full max-w-md max-h-[80vh] overflow-hidden"
       @click.stop
     >
       <!-- 頂部把手和標題 -->
-      <div class="px-6 py-4 border-b border-gray-200">
+      <div class="px-6 py-4">
         <div class="flex justify-center mb-3">
-          <div class="w-8 h-1 bg-gray-300 rounded-full" />
+          <div class="w-10 h-1 bg-gray-300 rounded-full" />
         </div>
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">
+          <h3 class="text-lg font-semibold text-ios-text">
             {{ t("customization.title") }}
           </h3>
           <button
-            class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+            class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
             @click="$emit('close')"
           >
             <svg
@@ -334,18 +334,20 @@
       </div>
 
       <!-- 底部價格和確認按鈕 -->
-      <div class="sticky bottom-0 bg-white border-t border-gray-200 p-6">
+      <div
+        class="sticky bottom-0 bg-white/95 backdrop-blur-xl p-6 shadow-[0_-4px_16px_rgb(0,0,0,0.04)]"
+      >
         <div class="flex items-center justify-between mb-4">
-          <span class="text-lg font-medium text-gray-900">{{
+          <span class="text-base font-medium text-ios-secondary">{{
             t("customization.totalPrice")
           }}</span>
-          <span class="text-xl font-bold text-gray-900">
+          <span class="text-xl font-bold text-ios-text">
             ${{ formatPrice(totalPrice) }}
           </span>
         </div>
         <button
           :disabled="!isValidSelection"
-          class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-4 px-6 rounded-2xl transition-colors"
+          class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400"
           @click="handleConfirm"
         >
           {{ t("customization.confirmSelection") }}
