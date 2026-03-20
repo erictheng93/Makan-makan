@@ -482,9 +482,15 @@ import {
   CakeIcon,
 } from "@heroicons/vue/24/outline";
 import { useCurrency } from "@/composables/useCurrency";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
+import { useToast } from "vue-toastification";
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const authStore = useAuthStore();
+const toast = useToast();
+const isLoading = ref(false);
 
 // 虛擬滾動配置
 const MENU_ITEM_HEIGHT = 330; // 每個菜品卡片的高度 (圖片 192px + 內容 138px)
@@ -499,112 +505,38 @@ const showMenuItemModal = ref(false);
 const editingCategory = ref<any>(null);
 const editingMenuItem = ref<any>(null);
 
-// 模擬數據
-const categories = ref([
-  {
-    id: 1,
-    name: "熱飲",
-    nameEn: "Hot Beverages",
-    description: "各式熱飲茶類咖啡",
-    sortOrder: 1,
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "冷飲",
-    nameEn: "Cold Beverages",
-    description: "新鮮果汁冰涼飲品",
-    sortOrder: 2,
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "主食",
-    nameEn: "Main Dishes",
-    description: "招牌主食類",
-    sortOrder: 3,
-    status: "active",
-  },
-  {
-    id: 4,
-    name: "小食",
-    nameEn: "Snacks",
-    description: "精緻小點心",
-    sortOrder: 4,
-    status: "active",
-  },
-  {
-    id: 5,
-    name: "甜品",
-    nameEn: "Desserts",
-    description: "傳統甜品",
-    sortOrder: 5,
-    status: "active",
-  },
-]);
+// 菜單數據（從 API 載入）
+const categories = ref<any[]>([]);
+const menuItems = ref<any[]>([]);
 
-const menuItems = ref([
-  {
-    id: 1,
-    categoryId: 1,
-    name: "奶茶",
-    nameEn: "Milk Tea",
-    description: "香濃奶茶",
-    price: 4.5,
-    imageUrl: null,
-    isFeatured: true,
-    isAvailable: true,
-    sortOrder: 1,
-  },
-  {
-    id: 2,
-    categoryId: 1,
-    name: "咖啡",
-    nameEn: "Coffee",
-    description: "精選咖啡豆",
-    price: 5.0,
-    imageUrl: null,
-    isFeatured: false,
-    isAvailable: true,
-    sortOrder: 2,
-  },
-  {
-    id: 3,
-    categoryId: 2,
-    name: "冰奶茶",
-    nameEn: "Iced Milk Tea",
-    description: "冰涼奶茶",
-    price: 5.0,
-    imageUrl: null,
-    isFeatured: true,
-    isAvailable: true,
-    sortOrder: 1,
-  },
-  {
-    id: 4,
-    categoryId: 3,
-    name: "炒飯",
-    nameEn: "Fried Rice",
-    description: "招牌炒飯",
-    price: 12.0,
-    imageUrl: null,
-    isFeatured: true,
-    isAvailable: true,
-    sortOrder: 1,
-  },
-  {
-    id: 5,
-    categoryId: 4,
-    name: "春卷",
-    nameEn: "Spring Rolls",
-    description: "酥脆春卷",
-    price: 8.0,
-    imageUrl: null,
-    isFeatured: false,
-    isAvailable: false,
-    sortOrder: 1,
-  },
-]);
+const fetchMenu = async () => {
+  if (!authStore.restaurantId) return;
+  isLoading.value = true;
+  try {
+    const response = await api.get<{ categories: any[]; menuItems: any[] }>(
+      `/menu/${authStore.restaurantId}`,
+    );
+    const payload = response.data?.success ? response.data.data : undefined;
+    if (payload) {
+      categories.value = payload.categories.map((c: any) => ({
+        ...c,
+        nameEn: c.nameEn || "",
+        status: c.status === 1 ? "active" : "inactive",
+      }));
+      menuItems.value = payload.menuItems.map((item: any) => ({
+        ...item,
+        nameEn: item.nameEn || "",
+        isFeatured: !!item.isFeatured,
+        isAvailable: !!item.isAvailable,
+      }));
+    }
+  } catch (error: any) {
+    console.error("Failed to fetch menu:", error);
+    toast.error("載入菜單失敗");
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 // 表單數據
 const categoryForm = ref({
@@ -680,17 +612,26 @@ const editMenuItem = (item: any) => {
 
 const deleteMenuItem = async (item: any) => {
   if (confirm(t("menu.confirms.deleteItem", { name: item.name }))) {
-    const index = menuItems.value.findIndex((i) => i.id === item.id);
-    if (index > -1) {
-      menuItems.value.splice(index, 1);
+    try {
+      await api.delete(`/menu/items/${item.id}`);
+      toast.success("菜品已刪除");
+      await fetchMenu();
+    } catch (error: any) {
+      console.error("Failed to delete menu item:", error);
+      toast.error(error.response?.data?.error?.message || "刪除失敗");
     }
   }
 };
 
 const toggleMenuItemStatus = async (item: any) => {
-  const index = menuItems.value.findIndex((i) => i.id === item.id);
-  if (index > -1) {
-    menuItems.value[index].isAvailable = !menuItems.value[index].isAvailable;
+  try {
+    await api.put(`/menu/items/${item.id}`, {
+      isAvailable: !item.isAvailable,
+    });
+    await fetchMenu();
+  } catch (error: any) {
+    console.error("Failed to toggle status:", error);
+    toast.error("更新狀態失敗");
   }
 };
 
@@ -722,57 +663,64 @@ const closeMenuItemModal = () => {
 };
 
 const saveCategory = async () => {
-  if (editingCategory.value) {
-    // 更新現有分類
-    const index = categories.value.findIndex(
-      (c) => editingCategory.value && c.id === editingCategory.value.id,
-    );
-    if (index > -1) {
-      categories.value[index] = {
-        ...categories.value[index],
-        ...categoryForm.value,
-      };
+  if (!authStore.restaurantId) return;
+  try {
+    if (editingCategory.value) {
+      await api.put(`/menu/categories/${editingCategory.value.id}`, {
+        name: categoryForm.value.name,
+        nameEn: categoryForm.value.nameEn,
+        description: categoryForm.value.description,
+        sortOrder: categoryForm.value.sortOrder,
+      });
+      toast.success("分類已更新");
+    } else {
+      await api.post(`/menu/${authStore.restaurantId}/categories`, {
+        name: categoryForm.value.name,
+        nameEn: categoryForm.value.nameEn,
+        description: categoryForm.value.description,
+        sortOrder: categoryForm.value.sortOrder,
+      });
+      toast.success("分類已新增");
     }
-  } else {
-    // 新增分類
-    const newCategory = {
-      id: Math.max(...categories.value.map((c) => c.id)) + 1,
-      ...categoryForm.value,
-      status: "active",
-    };
-    categories.value.push(newCategory);
+    closeCategoryModal();
+    await fetchMenu();
+  } catch (error: any) {
+    console.error("Failed to save category:", error);
+    toast.error(error.response?.data?.error?.message || "操作失敗");
   }
-  closeCategoryModal();
 };
 
 const saveMenuItem = async () => {
-  if (editingMenuItem.value) {
-    // 更新現有菜品
-    const index = menuItems.value.findIndex(
-      (i) => editingMenuItem.value && i.id === editingMenuItem.value.id,
-    );
-    if (index > -1) {
-      menuItems.value[index] = {
-        ...menuItems.value[index],
-        ...menuItemForm.value,
-        categoryId: parseInt(menuItemForm.value.categoryId),
-        imageUrl: menuItemForm.value.imageUrl || null,
-      } as any;
-    }
-  } else {
-    // 新增菜品
-    const newMenuItem = {
-      id: Math.max(...menuItems.value.map((i) => i.id)) + 1,
-      ...menuItemForm.value,
+  if (!authStore.restaurantId) return;
+  try {
+    const payload = {
+      name: menuItemForm.value.name,
+      nameEn: menuItemForm.value.nameEn,
+      description: menuItemForm.value.description,
+      price: Number(menuItemForm.value.price),
       categoryId: parseInt(menuItemForm.value.categoryId),
+      imageUrl: menuItemForm.value.imageUrl || null,
+      isFeatured: menuItemForm.value.isFeatured,
+      isAvailable: menuItemForm.value.isAvailable,
+      sortOrder: menuItemForm.value.sortOrder,
     };
-    menuItems.value.push(newMenuItem as any);
+    if (editingMenuItem.value) {
+      await api.put(`/menu/items/${editingMenuItem.value.id}`, payload);
+      toast.success("菜品已更新");
+    } else {
+      await api.post(`/menu/${authStore.restaurantId}/items`, payload);
+      toast.success("菜品已新增");
+    }
+    closeMenuItemModal();
+    await fetchMenu();
+  } catch (error: any) {
+    console.error("Failed to save menu item:", error);
+    toast.error(error.response?.data?.error?.message || "操作失敗");
   }
-  closeMenuItemModal();
 };
 
 onMounted(() => {
-  // 初始化數據
+  fetchMenu();
 });
 </script>
 
