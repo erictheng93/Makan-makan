@@ -176,9 +176,7 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                {{
-                  t("reservation.customerInfo") || t("reservation.customerName")
-                }}
+                {{ t("reservation.customerName") }}
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -846,10 +844,11 @@ async function loadReservations() {
  */
 async function loadStats() {
   try {
-    stats.value = await ReservationService.getStats(
-      restaurantId.value,
-      filters.date || undefined,
-    );
+    stats.value =
+      (await ReservationService.getStats(
+        restaurantId.value,
+        filters.date || undefined,
+      )) ?? null;
   } catch (error) {
     console.error("Load stats error:", error);
   }

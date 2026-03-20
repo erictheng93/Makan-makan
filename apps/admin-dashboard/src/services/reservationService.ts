@@ -3,7 +3,7 @@
  * API service for reservation management
  */
 
-import axios from "axios";
+import { api } from "@/services/api";
 import {
   ReservationStatus,
   type Reservation,
@@ -17,19 +17,6 @@ import {
   type BatchCreateSlotsRequest,
   type ReservationStats,
 } from "@makanmakan/shared-types";
-
-const getApiBaseUrl = (): string => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error(
-      "[Config Error] VITE_API_BASE_URL is required. " +
-        "Please set this environment variable in your .env file.",
-    );
-  }
-  return baseUrl;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 export class ReservationService {
   /**
@@ -57,8 +44,8 @@ export class ReservationService {
     if (filters.sortBy) params.append("sortBy", filters.sortBy);
     if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
-    const response = await axios.get<ReservationResponse>(
-      `${API_BASE_URL}/reservations?${params.toString()}`,
+    const response = await api.get<ReservationResponse>(
+      `/reservations?${params.toString()}`,
     );
     return response.data;
   }
@@ -67,9 +54,7 @@ export class ReservationService {
    * 取得單一訂位詳情
    */
   static async getReservation(id: string) {
-    const response = await axios.get<{ success: boolean; data: Reservation }>(
-      `${API_BASE_URL}/reservations/${id}`,
-    );
+    const response = await api.get<Reservation>(`/reservations/${id}`);
     return response.data.data;
   }
 
@@ -77,11 +62,7 @@ export class ReservationService {
    * 建立新訂位
    */
   static async createReservation(data: CreateReservationRequest) {
-    const response = await axios.post<{
-      success: boolean;
-      data: Reservation;
-      message: string;
-    }>(`${API_BASE_URL}/reservations`, data);
+    const response = await api.post<Reservation>(`/reservations`, data);
     return response.data;
   }
 
@@ -89,11 +70,7 @@ export class ReservationService {
    * 更新訂位
    */
   static async updateReservation(id: string, data: UpdateReservationRequest) {
-    const response = await axios.put<{
-      success: boolean;
-      data: Reservation;
-      message: string;
-    }>(`${API_BASE_URL}/reservations/${id}`, data);
+    const response = await api.put<Reservation>(`/reservations/${id}`, data);
     return response.data;
   }
 
@@ -101,11 +78,7 @@ export class ReservationService {
    * 確認訂位
    */
   static async confirmReservation(id: string) {
-    const response = await axios.post<{
-      success: boolean;
-      data: Reservation;
-      message: string;
-    }>(`${API_BASE_URL}/reservations/${id}/confirm`);
+    const response = await api.post<Reservation>(`/reservations/${id}/confirm`);
     return response.data;
   }
 
@@ -113,11 +86,7 @@ export class ReservationService {
    * 標記到店
    */
   static async markArrived(id: string) {
-    const response = await axios.post<{
-      success: boolean;
-      data: Reservation;
-      message: string;
-    }>(`${API_BASE_URL}/reservations/${id}/arrive`);
+    const response = await api.post<Reservation>(`/reservations/${id}/arrive`);
     return response.data;
   }
 
@@ -125,11 +94,7 @@ export class ReservationService {
    * 標記入座
    */
   static async markSeated(id: string) {
-    const response = await axios.post<{
-      success: boolean;
-      data: Reservation;
-      message: string;
-    }>(`${API_BASE_URL}/reservations/${id}/seat`);
+    const response = await api.post<Reservation>(`/reservations/${id}/seat`);
     return response.data;
   }
 
@@ -137,11 +102,9 @@ export class ReservationService {
    * 完成訂位
    */
   static async completeReservation(id: string) {
-    const response = await axios.post<{
-      success: boolean;
-      data: Reservation;
-      message: string;
-    }>(`${API_BASE_URL}/reservations/${id}/complete`);
+    const response = await api.post<Reservation>(
+      `/reservations/${id}/complete`,
+    );
     return response.data;
   }
 
@@ -149,11 +112,7 @@ export class ReservationService {
    * 標記未到店
    */
   static async markNoShow(id: string) {
-    const response = await axios.post<{
-      success: boolean;
-      data: Reservation;
-      message: string;
-    }>(`${API_BASE_URL}/reservations/${id}/no-show`);
+    const response = await api.post<Reservation>(`/reservations/${id}/no-show`);
     return response.data;
   }
 
@@ -161,11 +120,10 @@ export class ReservationService {
    * 取消訂位（管理員）
    */
   static async cancelReservation(id: string, reason?: string) {
-    const response = await axios.delete<{
-      success: boolean;
-      data: Reservation;
-      message: string;
-    }>(`${API_BASE_URL}/reservations/${id}/cancel`, { data: { reason } });
+    const response = await api.post<Reservation>(
+      `/reservations/${id}/cancel`,
+      reason ? { reason } : undefined,
+    );
     return response.data;
   }
 
@@ -180,8 +138,8 @@ export class ReservationService {
       ...(request.duration && { duration: request.duration.toString() }),
     });
 
-    const response = await axios.get<AvailabilityResponse>(
-      `${API_BASE_URL}/reservations/availability?${params.toString()}`,
+    const response = await api.get<AvailabilityResponse>(
+      `/reservations/availability?${params.toString()}`,
     );
     return response.data;
   }
@@ -191,11 +149,8 @@ export class ReservationService {
    */
   static async getStats(restaurantId: string, date?: string) {
     const params = new URLSearchParams({ ...(date && { date }) });
-    const response = await axios.get<{
-      success: boolean;
-      data: ReservationStats;
-    }>(
-      `${API_BASE_URL}/reservations/stats/${restaurantId}?${params.toString()}`,
+    const response = await api.get<ReservationStats>(
+      `/reservations/stats/${restaurantId}?${params.toString()}`,
     );
     return response.data.data;
   }
@@ -204,11 +159,7 @@ export class ReservationService {
    * 建立時段
    */
   static async createSlot(data: CreateSlotRequest) {
-    const response = await axios.post<{
-      success: boolean;
-      data: any;
-      message: string;
-    }>(`${API_BASE_URL}/reservations/slots`, data);
+    const response = await api.post<any>(`/reservations/slots`, data);
     return response.data;
   }
 
@@ -216,11 +167,10 @@ export class ReservationService {
    * 批次建立時段
    */
   static async batchCreateSlots(data: BatchCreateSlotsRequest) {
-    const response = await axios.post<{
-      success: boolean;
-      data: { created: number };
-      message: string;
-    }>(`${API_BASE_URL}/reservations/slots/batch`, data);
+    const response = await api.post<{ created: number }>(
+      `/reservations/slots/batch`,
+      data,
+    );
     return response.data;
   }
 
