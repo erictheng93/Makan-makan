@@ -2,7 +2,9 @@
   <div class="min-h-screen bg-ios-bg">
     <!-- 頂部固定導航 -->
     <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl shadow-card-sm">
-      <div class="max-w-md mx-auto">
+      <div
+        class="max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto px-4 md:px-6 lg:px-8"
+      >
         <!-- 餐廳資訊區域 -->
         <div class="px-5 py-3">
           <div class="flex items-center justify-between">
@@ -81,7 +83,9 @@
 
         <!-- 分類導航 -->
         <div v-if="categories.length > 0" class="px-4 py-3">
-          <div class="flex space-x-2 overflow-x-auto scrollbar-hide">
+          <div
+            class="flex space-x-2 overflow-x-auto scrollbar-hide md:flex-wrap md:overflow-x-visible md:gap-2 md:space-x-0"
+          >
             <button
               v-for="category in categories"
               :key="category.id"
@@ -101,7 +105,9 @@
     </nav>
 
     <!-- 主要內容區域 -->
-    <main class="max-w-md mx-auto pb-20">
+    <main
+      class="max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto pb-20 px-4 md:px-6 lg:px-8"
+    >
       <!-- 載入狀態 -->
       <div v-if="isLoading" class="p-8 text-center">
         <div
@@ -144,108 +150,18 @@
       </div>
 
       <!-- 菜單內容 -->
-      <div v-else-if="menuStructure" class="px-5 space-y-6">
-        <!-- 搜尋框 -->
-        <div class="relative">
-          <input
-            v-model="searchQuery"
-            type="text"
-            :placeholder="t('shopMenu.searchPlaceholder')"
-            class="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl text-ios-text placeholder:text-ios-tertiary border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all duration-200"
-          />
-          <svg
-            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ios-secondary"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      <div v-else-if="menuStructure" class="lg:flex lg:gap-6 lg:items-start">
+        <div class="flex-1 min-w-0 px-5 space-y-6">
+          <!-- 搜尋框 -->
+          <div class="relative">
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="t('shopMenu.searchPlaceholder')"
+              class="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl text-ios-text placeholder:text-ios-tertiary border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all duration-200"
             />
-          </svg>
-        </div>
-
-        <!-- 推薦菜品 -->
-        <section v-if="featuredItems.length > 0" class="mb-8">
-          <h2 class="text-xl font-semibold text-ios-text mb-4">
-            {{ t("shopMenu.recommended") }}
-          </h2>
-          <div class="grid gap-4">
-            <MenuItemCard
-              v-for="(item, index) in featuredItems"
-              :key="item.id"
-              :item="item"
-              :is-featured="true"
-              class="animate-slide-up"
-              :style="{
-                animationDelay: `${index * 50}ms`,
-                animationFillMode: 'both',
-              }"
-              @add-to-cart="handleAddToCart"
-              @view-details="handleViewDetails"
-            />
-          </div>
-        </section>
-
-        <!-- 分類菜單 -->
-        <section
-          v-for="category in filteredCategories"
-          :id="`category-${category.id}`"
-          :key="category.id"
-          class="scroll-mt-32"
-        >
-          <div
-            class="sticky bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5"
-            :class="categories.length > 0 ? 'top-32' : 'top-16'"
-          >
-            <h2 class="text-xl font-semibold text-ios-text">
-              {{ category.name }}
-            </h2>
-            <p
-              v-if="category.description"
-              class="text-sm text-ios-secondary mt-0.5"
-            >
-              {{ category.description }}
-            </p>
-          </div>
-
-          <div class="grid gap-4">
-            <MenuItemCard
-              v-for="(item, index) in getItemsByCategory(category.id)"
-              :key="item.id"
-              :item="item"
-              class="animate-slide-up"
-              :style="{
-                animationDelay: `${index * 50}ms`,
-                animationFillMode: 'both',
-              }"
-              @add-to-cart="handleAddToCart"
-              @view-details="handleViewDetails"
-            />
-          </div>
-
-          <!-- 分類內無菜品提示 -->
-          <div
-            v-if="getItemsByCategory(category.id).length === 0"
-            class="py-8 text-center text-gray-500"
-          >
-            <p>{{ t("shopMenu.noItemsInCategory") }}</p>
-          </div>
-        </section>
-
-        <!-- 搜尋無結果 -->
-        <div
-          v-if="searchQuery && filteredCategories.length === 0"
-          class="py-12 text-center"
-        >
-          <div
-            class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
-          >
             <svg
-              class="w-8 h-8 text-gray-400"
+              class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ios-secondary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -258,18 +174,129 @@
               />
             </svg>
           </div>
-          <h3 class="text-lg font-medium text-ios-text mb-2">
-            {{ t("shopMenu.noResults") }}
-          </h3>
-          <p class="text-ios-secondary">{{ t("shopMenu.tryOtherKeywords") }}</p>
+
+          <!-- 推薦菜品 -->
+          <section v-if="featuredItems.length > 0" class="mb-8">
+            <h2 class="text-xl font-semibold text-ios-text mb-4">
+              {{ t("shopMenu.recommended") }}
+            </h2>
+            <div
+              class="flex gap-3 md:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-5 px-5"
+            >
+              <MenuItemCard
+                v-for="(item, index) in featuredItems"
+                :key="item.id"
+                :item="item"
+                :is-featured="true"
+                class="animate-slide-up min-w-[280px] md:min-w-[260px] snap-start flex-shrink-0"
+                :style="{
+                  animationDelay: `${index * 50}ms`,
+                  animationFillMode: 'both',
+                }"
+                @add-to-cart="handleAddToCart"
+                @view-details="handleViewDetails"
+              />
+            </div>
+          </section>
+
+          <!-- 分類菜單 -->
+          <section
+            v-for="category in filteredCategories"
+            :id="`category-${category.id}`"
+            :key="category.id"
+            class="scroll-mt-32"
+          >
+            <div
+              class="sticky bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5"
+              :class="categories.length > 0 ? 'top-32' : 'top-16'"
+            >
+              <h2 class="text-xl font-semibold text-ios-text">
+                {{ category.name }}
+              </h2>
+              <p
+                v-if="category.description"
+                class="text-sm text-ios-secondary mt-0.5"
+              >
+                {{ category.description }}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <MenuItemCard
+                v-for="(item, index) in getItemsByCategory(category.id)"
+                :key="item.id"
+                :item="item"
+                class="animate-slide-up"
+                :style="{
+                  animationDelay: `${index * 50}ms`,
+                  animationFillMode: 'both',
+                }"
+                @add-to-cart="handleAddToCart"
+                @view-details="handleViewDetails"
+              />
+            </div>
+
+            <!-- 分類內無菜品提示 -->
+            <div
+              v-if="getItemsByCategory(category.id).length === 0"
+              class="py-8 text-center text-gray-500"
+            >
+              <p>{{ t("shopMenu.noItemsInCategory") }}</p>
+            </div>
+          </section>
+
+          <!-- 搜尋無結果 -->
+          <div
+            v-if="searchQuery && filteredCategories.length === 0"
+            class="py-12 text-center"
+          >
+            <div
+              class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <svg
+                class="w-8 h-8 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-medium text-ios-text mb-2">
+              {{ t("shopMenu.noResults") }}
+            </h3>
+            <p class="text-ios-secondary">
+              {{ t("shopMenu.tryOtherKeywords") }}
+            </p>
+          </div>
         </div>
+
+        <!-- Right: Desktop cart panel -->
+        <Transition name="slide-in-right">
+          <DesktopCartPanel
+            v-if="isDesktop && shopCartStore.itemCount > 0"
+            :items="shopCartStore.items"
+            :item-count="shopCartStore.itemCount"
+            :subtotal="shopCartStore.subtotal"
+            @checkout="showCart = true"
+            @remove-item="shopCartStore.removeItem($event)"
+            @update-quantity="
+              (id, qty) => shopCartStore.updateQuantity(id, qty)
+            "
+          />
+        </Transition>
       </div>
     </main>
 
     <!-- 底部固定購物車按鈕 -->
     <div
       v-if="shopCartStore.itemCount > 0"
-      class="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto"
+      class="fixed bottom-4 left-4 right-4 z-50 max-w-lg mx-auto lg:hidden"
     >
       <button
         class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full shadow-card-lg active:scale-[0.98] transition-transform duration-150 flex items-center justify-between"
@@ -318,7 +345,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
@@ -329,6 +356,8 @@ import MenuItemCard from "@/components/MenuItemCard.vue";
 import MenuItemModal from "@/components/MenuItemModal.vue";
 import CustomizationModal from "@/components/CustomizationModal.vue";
 import ShopCartModal from "@/components/ShopCartModal.vue";
+import DesktopCartPanel from "@/components/DesktopCartPanel.vue";
+import { useIsDesktop } from "@/composables/useBreakpoint";
 import { menuApi } from "@/services/menuApi";
 import { formatPrice } from "@/utils/format";
 import type {
@@ -348,6 +377,7 @@ const toast = useToast();
 const { t, tWithParams } = useI18n();
 const appStore = useAppStore();
 const shopCartStore = useShopCartStore();
+const isDesktop = useIsDesktop();
 
 // State
 const searchQuery = ref("");
@@ -505,6 +535,10 @@ onMounted(() => {
   }
 });
 
+onUnmounted(() => {
+  window.removeEventListener("scroll", updateActiveCategoryOnScroll);
+});
+
 // 監聽餐廳資料變化
 watch(restaurant, (newRestaurant) => {
   if (newRestaurant) {
@@ -521,5 +555,20 @@ watch(restaurant, (newRestaurant) => {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+.slide-in-right-enter-active {
+  transition: all 300ms ease-out;
+}
+.slide-in-right-leave-active {
+  transition: all 200ms ease-in;
+}
+.slide-in-right-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+.slide-in-right-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
 }
 </style>
