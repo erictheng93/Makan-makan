@@ -217,44 +217,35 @@ export class WaitingListService extends BaseService {
         });
       };
 
-      // 查詢總數
-      const countResult = (await this.db.get(
-        sql.raw(
-          replaceParams(
-            `
-          SELECT COUNT(*) as total
-          FROM waiting_list w
-          WHERE ${whereClause}
-        `,
-            params,
-          ),
-        ),
-      )) as any;
+      // 查詢總數 (use raw D1 for dynamic SQL)
+      const countSql = replaceParams(
+        `SELECT COUNT(*) as total FROM waiting_list w WHERE ${whereClause}`,
+        params,
+      );
+      const countResult = await this.d1
+        .prepare(countSql)
+        .first<{ total: number }>();
 
       const total = countResult?.total || 0;
 
       // 查詢資料
-      const results = (await this.db.all(
-        sql.raw(
-          replaceParams(
-            `
-          SELECT
+      const dataSql = replaceParams(
+        `SELECT
             w.*,
             json_object(
               'id', t.id,
               'number', t.number,
               'capacity', t.capacity
-            ) as table
+            ) as "table"
           FROM waiting_list w
           LEFT JOIN tables t ON w.table_id = t.id
           WHERE ${whereClause}
           ${orderClause}
-          LIMIT ? OFFSET ?
-        `,
-            [...params, limit, offset],
-          ),
-        ),
-      )) as any[];
+          LIMIT ? OFFSET ?`,
+        [...params, limit, offset],
+      );
+      const dataResult = await this.d1.prepare(dataSql).all();
+      const results = (dataResult.results || []) as any[];
 
       const data = await Promise.all(
         results.map(async (r) => {
@@ -297,7 +288,7 @@ export class WaitingListService extends BaseService {
       const table = (await this.db.get(sql`
         SELECT * FROM tables
         WHERE id = ${request.tableId}
-          AND current_status = 'available'
+          AND is_occupied = 0
       `)) as any;
 
       if (!table) {
@@ -545,7 +536,7 @@ export class WaitingListService extends BaseService {
           MIN(estimated_turnover_at) as earliest_available
         FROM tables
         WHERE restaurant_id = ${restaurantId}
-          AND current_status IN ('occupied', 'reserved')
+          AND is_occupied = 1
           AND capacity >= ${partySize}
           AND capacity <= ${partySize + 2}
       `)) as any;
@@ -645,7 +636,7 @@ export class WaitingListService extends BaseService {
         FROM tables
         WHERE restaurant_id = ${restaurantId}
           AND is_active = 1
-          AND current_status = 'available'
+          AND is_occupied = 0
       `)) as any;
 
       const availableTables = availableTablesResult?.count || 0;
@@ -727,11 +718,8 @@ export class WaitingListService extends BaseService {
         });
       };
 
-      const result = (await this.db.get(
-        sql.raw(
-          replaceParams(
-            `
-          SELECT
+      const statsSql = replaceParams(
+        `SELECT
             COUNT(*) as total_waiting,
             SUM(CASE WHEN status = 'seated' THEN 1 ELSE 0 END) as seated_count,
             SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) as expired_count,
@@ -741,14 +729,12 @@ export class WaitingListService extends BaseService {
               THEN (seated_at - created_at) / 60000.0
               ELSE NULL
             END) as avg_wait_minutes,
-            ROUND(CAST(SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) AS REAL) / COUNT(*) * 100, 2) as expire_rate
+            ROUND(CAST(SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) AS REAL) / NULLIF(COUNT(*), 0) * 100, 2) as expire_rate
           FROM waiting_list
-          WHERE ${whereClause}
-        `,
-            params,
-          ),
-        ),
-      )) as any;
+          WHERE ${whereClause}`,
+        params,
+      );
+      const result = (await this.d1.prepare(statsSql).first()) as any;
 
       return {
         restaurantId,
@@ -933,45 +919,44 @@ export class WaitingListService extends BaseService {
         if (waitingListId) {
           await this.db.run(sql`
             UPDATE tables
-            SET current_status = ${status},
+            SET is_occupied = 0,
                 waiting_list_id = ${waitingListId},
-                updated_at = ${now}
+                updated_at_ms = ${now}
             WHERE id = ${tableId}
           `);
         } else if (reservationId) {
           await this.db.run(sql`
             UPDATE tables
-            SET current_status = ${status},
+            SET is_occupied = 0,
                 reservation_id = ${reservationId},
-                updated_at = ${now}
+                updated_at_ms = ${now}
             WHERE id = ${tableId}
           `);
         }
       } else if (status === "occupied") {
         await this.db.run(sql`
           UPDATE tables
-          SET current_status = ${status},
-              occupied_since = ${now},
-              estimated_turnover_at = ${now + 90 * 60 * 1000},
-              updated_at = ${now}
+          SET is_occupied = 1,
+              occupied_at_ms = ${now},
+              estimated_free_at_ms = ${now + 90 * 60 * 1000},
+              updated_at_ms = ${now}
           WHERE id = ${tableId}
         `);
       } else if (status === "available") {
         await this.db.run(sql`
           UPDATE tables
-          SET current_status = ${status},
+          SET is_occupied = 0,
               reservation_id = NULL,
               waiting_list_id = NULL,
-              occupied_since = NULL,
-              estimated_turnover_at = NULL,
-              updated_at = ${now}
+              occupied_at_ms = NULL,
+              estimated_free_at_ms = NULL,
+              updated_at_ms = ${now}
           WHERE id = ${tableId}
         `);
       } else {
         await this.db.run(sql`
           UPDATE tables
-          SET current_status = ${status},
-              updated_at = ${now}
+          SET updated_at_ms = ${now}
           WHERE id = ${tableId}
         `);
       }
