@@ -141,8 +141,11 @@ class ApiService {
     return this.instance.patch(url, data);
   }
 
-  async delete<T>(url: string): Promise<AxiosResponse<ApiResponse<T>>> {
-    return this.instance.delete(url);
+  async delete<T>(
+    url: string,
+    data?: any,
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
+    return this.instance.delete(url, data ? { data } : undefined);
   }
 
   async upload(url: string, formData: FormData): Promise<AxiosResponse<any>> {

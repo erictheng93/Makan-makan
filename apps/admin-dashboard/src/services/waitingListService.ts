@@ -3,32 +3,18 @@
  * API service for waiting list management
  */
 
-import axios from "axios";
+import { api } from "@/services/api";
 import {
   WaitingStatus,
   type WaitingListEntry,
   type JoinWaitingListRequest,
   type WaitingListFilters,
-  type WaitingListResponse,
   type CallWaitingRequest,
   type QueueStatus,
   type WaitingStats,
   type WaitTimeEstimateRequest,
   type WaitTimeEstimateResult,
 } from "@makanmakan/shared-types";
-
-const getApiBaseUrl = (): string => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error(
-      "[Config Error] VITE_API_BASE_URL is required. " +
-        "Please set this environment variable in your .env file.",
-    );
-  }
-  return baseUrl;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 export class WaitingListService {
   /**
@@ -50,8 +36,8 @@ export class WaitingListService {
     if (filters.page) params.append("page", filters.page.toString());
     if (filters.limit) params.append("limit", filters.limit.toString());
 
-    const response = await axios.get<WaitingListResponse>(
-      `${API_BASE_URL}/waiting-list?${params.toString()}`,
+    const response = await api.get<WaitingListEntry[]>(
+      `/waiting-list?${params.toString()}`,
     );
     return response.data;
   }
@@ -60,10 +46,7 @@ export class WaitingListService {
    * 取得單一候位詳情
    */
   static async getWaitingEntry(id: string) {
-    const response = await axios.get<{
-      success: boolean;
-      data: WaitingListEntry;
-    }>(`${API_BASE_URL}/waiting-list/${id}`);
+    const response = await api.get<WaitingListEntry>(`/waiting-list/${id}`);
     return response.data.data;
   }
 
@@ -71,11 +54,7 @@ export class WaitingListService {
    * 加入候位（管理員代為加入）
    */
   static async joinWaitingList(data: JoinWaitingListRequest) {
-    const response = await axios.post<{
-      success: boolean;
-      data: WaitingListEntry;
-      message: string;
-    }>(`${API_BASE_URL}/waiting-list`, data);
+    const response = await api.post<WaitingListEntry>(`/waiting-list`, data);
     return response.data;
   }
 
@@ -83,11 +62,10 @@ export class WaitingListService {
    * 叫號
    */
   static async callWaiting(id: string, data: CallWaitingRequest) {
-    const response = await axios.post<{
-      success: boolean;
-      data: WaitingListEntry;
-      message: string;
-    }>(`${API_BASE_URL}/waiting-list/${id}/call`, data);
+    const response = await api.post<WaitingListEntry>(
+      `/waiting-list/${id}/call`,
+      data,
+    );
     return response.data;
   }
 
@@ -95,11 +73,9 @@ export class WaitingListService {
    * 標記入座
    */
   static async markSeated(id: string) {
-    const response = await axios.post<{
-      success: boolean;
-      data: WaitingListEntry;
-      message: string;
-    }>(`${API_BASE_URL}/waiting-list/${id}/seat`);
+    const response = await api.post<WaitingListEntry>(
+      `/waiting-list/${id}/seat`,
+    );
     return response.data;
   }
 
@@ -107,11 +83,9 @@ export class WaitingListService {
    * 標記過號
    */
   static async expireWaiting(id: string) {
-    const response = await axios.post<{
-      success: boolean;
-      data: WaitingListEntry;
-      message: string;
-    }>(`${API_BASE_URL}/waiting-list/${id}/expire`);
+    const response = await api.post<WaitingListEntry>(
+      `/waiting-list/${id}/expire`,
+    );
     return response.data;
   }
 
@@ -119,11 +93,9 @@ export class WaitingListService {
    * 取消候位
    */
   static async cancelWaiting(id: string, customerPhone: string) {
-    const response = await axios.delete<{
-      success: boolean;
-      data: WaitingListEntry;
-      message: string;
-    }>(`${API_BASE_URL}/waiting-list/${id}`, { data: { customerPhone } });
+    const response = await api.delete<WaitingListEntry>(`/waiting-list/${id}`, {
+      customerPhone,
+    });
     return response.data;
   }
 
@@ -131,8 +103,8 @@ export class WaitingListService {
    * 取得排隊狀態
    */
   static async getQueueStatus(restaurantId: string) {
-    const response = await axios.get<{ success: boolean; data: QueueStatus }>(
-      `${API_BASE_URL}/waiting-list/queue-status/${restaurantId}`,
+    const response = await api.get<QueueStatus>(
+      `/waiting-list/queue-status/${restaurantId}`,
     );
     return response.data.data;
   }
@@ -145,11 +117,8 @@ export class WaitingListService {
       partySize: request.partySize.toString(),
     });
 
-    const response = await axios.get<{
-      success: boolean;
-      data: WaitTimeEstimateResult;
-    }>(
-      `${API_BASE_URL}/waiting-list/estimate-wait/${request.restaurantId}?${params.toString()}`,
+    const response = await api.get<WaitTimeEstimateResult>(
+      `/waiting-list/estimate-wait/${request.restaurantId}?${params.toString()}`,
     );
     return response.data.data;
   }
@@ -159,8 +128,8 @@ export class WaitingListService {
    */
   static async getStats(restaurantId: string, date?: string) {
     const params = new URLSearchParams({ ...(date && { date }) });
-    const response = await axios.get<{ success: boolean; data: WaitingStats }>(
-      `${API_BASE_URL}/waiting-list/stats/${restaurantId}?${params.toString()}`,
+    const response = await api.get<WaitingStats>(
+      `/waiting-list/stats/${restaurantId}?${params.toString()}`,
     );
     return response.data.data;
   }
@@ -169,11 +138,10 @@ export class WaitingListService {
    * 批次叫號
    */
   static async batchCall(restaurantId: string, count: number = 1) {
-    const response = await axios.post<{
-      success: boolean;
-      data: any[];
-      message: string;
-    }>(`${API_BASE_URL}/waiting-list/batch-call`, { restaurantId, count });
+    const response = await api.post<any[]>(`/waiting-list/batch-call`, {
+      restaurantId,
+      count,
+    });
     return response.data;
   }
 

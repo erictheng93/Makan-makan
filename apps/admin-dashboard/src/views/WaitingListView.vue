@@ -941,9 +941,10 @@ async function loadWaitingList() {
       limit: pagination.limit,
     });
 
-    // Handle response as array (API returns array of waiting list entries)
-    waitingList.value = Array.isArray(response) ? response : [];
-    pagination.total = waitingList.value.length;
+    // API returns { success, data: [...], pagination: {...} }
+    waitingList.value = response.data ?? [];
+    const pag = (response as any).pagination;
+    pagination.total = pag?.total ?? waitingList.value.length;
   } catch (error) {
     console.error("Load waiting list error:", error);
     toast.error(t("waitingList.loadError"));
@@ -957,9 +958,8 @@ async function loadWaitingList() {
  */
 async function loadQueueStatus() {
   try {
-    queueStatus.value = await WaitingListService.getQueueStatus(
-      restaurantId.value,
-    );
+    queueStatus.value =
+      (await WaitingListService.getQueueStatus(restaurantId.value)) ?? null;
   } catch (error) {
     console.error("Load queue status error:", error);
   }
