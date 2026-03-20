@@ -350,13 +350,13 @@ const getIconComponent = (icon: string) => {
 const tabs = computed(() => [
   {
     id: "calendar",
-    label: t("scheduling.calendarView"),
+    label: t("scheduling.calendar"),
     icon: "calendar",
     badge: null,
   },
   {
     id: "list",
-    label: t("scheduling.listView"),
+    label: t("scheduling.list"),
     icon: "list",
     badge: schedules.value.length || null,
   },

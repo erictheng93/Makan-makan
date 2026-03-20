@@ -19,7 +19,7 @@ const dateString = z
 
 // Shift Template Schemas
 export const createShiftTemplateSchema = z.object({
-  restaurantId: positiveInteger,
+  restaurantId: nonEmptyString,
   name: nonEmptyString.max(100),
   description: z.string().max(500).optional().nullable(),
   shiftType: z.enum(["regular", "split", "overnight"]).default("regular"),
@@ -79,7 +79,7 @@ export const updateShiftTemplateSchema = z.object({
 // Employee Schedule Schemas
 export const createEmployeeScheduleSchema = z
   .object({
-    restaurantId: positiveInteger,
+    restaurantId: nonEmptyString,
     employeeId: positiveInteger,
     shiftTemplateId: positiveInteger.optional().nullable(),
 
@@ -121,7 +121,7 @@ export const updateEmployeeScheduleSchema = z.object({
 
 export const bulkCreateSchedulesSchema = z
   .object({
-    restaurantId: positiveInteger,
+    restaurantId: nonEmptyString,
     shiftTemplateId: positiveInteger,
     employeeIds: z.array(positiveInteger).min(1).max(50),
     dateRange: z.object({
@@ -155,7 +155,7 @@ export const clockOutSchema = z.object({
 
 // Scheduling Rule Schemas
 export const createSchedulingRuleSchema = z.object({
-  restaurantId: positiveInteger,
+  restaurantId: nonEmptyString,
   name: nonEmptyString.max(100),
   description: z.string().max(500).optional().nullable(),
   ruleType: z.enum([
@@ -206,7 +206,7 @@ export const resolveConflictSchema = z.object({
 
 // Swap Request Schemas
 export const createSwapRequestSchema = z.object({
-  restaurantId: positiveInteger,
+  restaurantId: nonEmptyString,
   requesterEmployeeId: positiveInteger,
   requesterScheduleId: positiveInteger,
   targetEmployeeId: positiveInteger.optional().nullable(),
@@ -234,7 +234,7 @@ export const rejectSwapRequestSchema = z.object({
 // Employee Availability Schemas
 export const createAvailabilitySchema = z
   .object({
-    restaurantId: positiveInteger,
+    restaurantId: nonEmptyString,
     employeeId: positiveInteger,
     availabilityType: z.enum(["recurring", "specific_date"]),
     dayOfWeek: z.number().int().min(0).max(6).optional().nullable(),
@@ -358,7 +358,7 @@ export const availableEmployeesQuerySchema = z.object({
 
 // Parameter Schemas
 export const restaurantIdParamSchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number),
+  restaurantId: z.string().min(1),
 });
 
 export const shiftTemplateIdParamSchema = z.object({
