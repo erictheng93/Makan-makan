@@ -478,6 +478,12 @@ export class MenuService extends BaseService {
         .values(data)
         .returning();
 
+      // Invalidate menu cache for this restaurant
+      await this.invalidateCache(
+        [`menu:${data.restaurantId}`, `restaurant:${data.restaurantId}`],
+        "tag",
+      );
+
       return category;
     } catch (error) {
       this.handleError(error, "createCategory");
