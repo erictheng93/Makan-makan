@@ -56,7 +56,7 @@
     "allowCamera": "Cho phép quyền truy cập camera",
     "invalidQR": "Mã QR không hợp lệ",
     "scanError": "Quét thất bại, vui lòng thử lại",
-    "manualInput": "Nhập thủ công mã nhà hàng và số bàn"
+    "manualInput": "Tìm nhà hàng thủ công"
   },
   "menu": {
     "title": "Thực đơn",
@@ -630,20 +630,15 @@
     "copyErrorReport": "Vui lòng sao chép báo cáo lỗi sau và gửi cho chúng tôi:"
   },
   "manualInput": {
-    "title": "Nhập thông tin nhà hàng",
-    "restaurantId": "Mã nhà hàng",
-    "restaurantIdPlaceholder": "Nhập mã nhà hàng",
-    "tableNumber": "Số bàn",
-    "tableNumberPlaceholder": "Nhập số bàn",
-    "helpTitle": "Không tìm thấy thông tin nhà hàng và bàn?",
-    "helpDesc": "Vui lòng liên hệ nhân viên nhà hàng, hoặc sử dụng mã QR trên bàn để quét vào.",
+    "title": "Tìm nhà hàng",
+    "restaurantName": "Tên nhà hàng",
+    "restaurantNamePlaceholder": "Nhập tên nhà hàng để tìm",
+    "helpTitle": "Không tìm thấy nhà hàng?",
+    "helpDesc": "Vui lòng kiểm tra tên nhà hàng, hoặc sử dụng mã QR để quét vào.",
     "verifying": "Đang xác minh...",
-    "restaurantIdRequired": "Vui lòng nhập mã nhà hàng",
-    "restaurantIdNumeric": "Mã nhà hàng phải là số",
-    "restaurantIdPositive": "Mã nhà hàng phải lớn hơn 0",
-    "tableNumberRequired": "Vui lòng nhập số bàn",
-    "tableNumberNumeric": "Số bàn phải là số",
-    "tableNumberPositive": "Số bàn phải lớn hơn 0"
+    "searching": "Đang tìm kiếm...",
+    "noResults": "Không tìm thấy nhà hàng phù hợp",
+    "restaurantRequired": "Vui lòng chọn một nhà hàng"
   },
   "qrScanView": {
     "title": "Quét mã QR",

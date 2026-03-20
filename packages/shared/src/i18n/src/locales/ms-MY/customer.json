@@ -56,7 +56,7 @@
     "allowCamera": "Benarkan Kebenaran Kamera",
     "invalidQR": "Kod QR Tidak Sah",
     "scanError": "Imbasan gagal, sila cuba lagi",
-    "manualInput": "Masukkan nombor restoran dan meja secara manual"
+    "manualInput": "Cari restoran secara manual"
   },
   "menu": {
     "title": "Menu",
@@ -630,20 +630,15 @@
     "copyErrorReport": "Sila salin laporan ralat berikut dan hantar kepada kami:"
   },
   "manualInput": {
-    "title": "Masukkan Maklumat Restoran",
-    "restaurantId": "ID Restoran",
-    "restaurantIdPlaceholder": "Masukkan ID restoran",
-    "tableNumber": "Nombor Meja",
-    "tableNumberPlaceholder": "Masukkan nombor meja",
-    "helpTitle": "Tidak dapat mencari maklumat restoran dan meja?",
-    "helpDesc": "Sila hubungi kakitangan restoran, atau gunakan kod QR di atas meja untuk mengimbas masuk.",
+    "title": "Cari Restoran",
+    "restaurantName": "Nama Restoran",
+    "restaurantNamePlaceholder": "Taip nama restoran untuk mencari",
+    "helpTitle": "Tidak dapat mencari restoran?",
+    "helpDesc": "Sila semak nama restoran, atau gunakan kod QR untuk mengimbas masuk.",
     "verifying": "Mengesahkan...",
-    "restaurantIdRequired": "Sila masukkan ID restoran",
-    "restaurantIdNumeric": "ID restoran mesti nombor",
-    "restaurantIdPositive": "ID restoran mesti lebih daripada 0",
-    "tableNumberRequired": "Sila masukkan nombor meja",
-    "tableNumberNumeric": "Nombor meja mesti nombor",
-    "tableNumberPositive": "Nombor meja mesti lebih daripada 0"
+    "searching": "Mencari...",
+    "noResults": "Tiada restoran sepadan ditemui",
+    "restaurantRequired": "Sila pilih restoran"
   },
   "qrScanView": {
     "title": "Imbas Kod QR",

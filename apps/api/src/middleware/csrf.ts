@@ -84,7 +84,7 @@ function validateOrigin(c: Context<{ Bindings: Env }>): boolean {
   const host = c.req.header("Host");
 
   // Allow configured CORS origins (covers Vite dev proxy and deployment)
-  const corsOrigin = (c.env as Record<string, string>).CORS_ORIGIN;
+  const corsOrigin = (c.env as unknown as Record<string, string>).CORS_ORIGIN;
   const allowedOrigins = corsOrigin
     ? corsOrigin.split(",").map((o) => o.trim())
     : [];
@@ -260,7 +260,7 @@ export async function generateCSRFTokenHandler(c: Context<{ Bindings: Env }>) {
   // Set cookie for double-submit pattern
   const cookieOptions = buildCookieOptions(
     token,
-    c.env as Record<string, unknown>,
+    c.env as unknown as Record<string, unknown>,
   );
 
   return c.json(
@@ -307,7 +307,7 @@ export function attachCSRFToken() {
         // Set cookie (NOT HttpOnly for double-submit pattern)
         const cookieOptions = buildCookieOptions(
           token,
-          c.env as Record<string, unknown>,
+          c.env as unknown as Record<string, unknown>,
         );
         c.res.headers.append("Set-Cookie", cookieOptions);
       }

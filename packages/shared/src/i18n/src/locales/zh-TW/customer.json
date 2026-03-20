@@ -56,7 +56,7 @@
     "allowCamera": "允許相機權限",
     "invalidQR": "無效的 QR Code",
     "scanError": "掃描失敗，請重試",
-    "manualInput": "手動輸入餐廳和桌號"
+    "manualInput": "手動搜尋餐廳"
   },
   "menu": {
     "title": "菜單",
@@ -630,20 +630,15 @@
     "copyErrorReport": "請複製以下錯誤報告並回報給我們："
   },
   "manualInput": {
-    "title": "輸入餐廳資訊",
-    "restaurantId": "餐廳ID",
-    "restaurantIdPlaceholder": "請輸入餐廳ID",
-    "tableNumber": "桌號",
-    "tableNumberPlaceholder": "請輸入桌號",
-    "helpTitle": "找不到餐廳和桌號資訊？",
-    "helpDesc": "請聯繫餐廳服務人員，或使用桌上的QR Code掃描進入。",
+    "title": "搜尋餐廳",
+    "restaurantName": "餐廳名稱",
+    "restaurantNamePlaceholder": "輸入餐廳名稱搜尋",
+    "helpTitle": "找不到餐廳？",
+    "helpDesc": "請確認餐廳名稱是否正確，或使用QR Code掃描進入。",
     "verifying": "驗證中...",
-    "restaurantIdRequired": "請輸入餐廳ID",
-    "restaurantIdNumeric": "餐廳ID必須為數字",
-    "restaurantIdPositive": "餐廳ID必須大於0",
-    "tableNumberRequired": "請輸入桌號",
-    "tableNumberNumeric": "桌號必須為數字",
-    "tableNumberPositive": "桌號必須大於0"
+    "searching": "搜尋中...",
+    "noResults": "找不到符合的餐廳",
+    "restaurantRequired": "請選擇一間餐廳"
   },
   "qrScanView": {
     "title": "掃描QR碼",

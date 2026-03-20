@@ -2,6 +2,9 @@ import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import { i18n } from "@/i18n";
 
+// Helper to avoid vue-i18n's deep type instantiation on t()
+const t = (key: string): string => t(key) as string;
+
 // 定義客戶用戶類型
 export interface CustomerUser {
   id: number;
@@ -58,10 +61,10 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: true };
       }
 
-      error.value = data.error || i18n.global.t("auth.loginFailed");
+      error.value = data.error || t("auth.loginFailed");
       return { success: false, error: error.value };
     } catch (err: any) {
-      error.value = err.message || i18n.global.t("messages.networkError");
+      error.value = err.message || t("messages.networkError");
       return { success: false, error: error.value };
     } finally {
       isLoading.value = false;
@@ -107,10 +110,10 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: true };
       }
 
-      error.value = result.error || i18n.global.t("auth.registerFailed");
+      error.value = result.error || t("auth.registerFailed");
       return { success: false, error: error.value };
     } catch (err: any) {
-      error.value = err.message || i18n.global.t("messages.networkError");
+      error.value = err.message || t("messages.networkError");
       return { success: false, error: error.value };
     } finally {
       isLoading.value = false;

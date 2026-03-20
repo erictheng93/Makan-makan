@@ -343,12 +343,10 @@ const selectRecentRestaurant = (_restaurant: Restaurant) => {
 
 const handleRestaurantSelected = ({
   restaurantId,
-  tableId,
 }: {
   restaurantId: string;
-  tableId: number;
 }) => {
-  router.push(`/restaurant/${restaurantId}/table/${tableId}`);
+  router.push(`/restaurant/${restaurantId}/shop/order-type`);
 };
 
 const loadRecentRestaurants = () => {

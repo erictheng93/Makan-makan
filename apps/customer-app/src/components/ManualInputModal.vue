@@ -34,46 +34,156 @@
 
       <!-- 表單內容 -->
       <div class="px-6 py-4 space-y-4">
-        <!-- 餐廳ID輸入 -->
-        <div>
+        <!-- 餐廳名稱搜尋 -->
+        <div class="relative">
           <label
-            for="restaurant-id"
+            for="restaurant-name"
             class="block text-sm font-medium text-gray-700 mb-2"
           >
-            {{ t("manualInput.restaurantId") }}
+            {{ t("manualInput.restaurantName") }}
           </label>
           <input
-            id="restaurant-id"
-            v-model="form.restaurantId"
-            type="number"
-            :placeholder="t('manualInput.restaurantIdPlaceholder')"
+            id="restaurant-name"
+            v-model="searchQuery"
+            type="text"
+            :placeholder="t('manualInput.restaurantNamePlaceholder')"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            :class="{ 'border-red-500': errors.restaurantId }"
+            :class="{ 'border-red-500': error }"
+            autocomplete="off"
+            @input="handleSearchInput"
           />
-          <p v-if="errors.restaurantId" class="mt-1 text-sm text-red-600">
-            {{ errors.restaurantId }}
+          <p v-if="error" class="mt-1 text-sm text-red-600">
+            {{ error }}
           </p>
+
+          <!-- 搜尋結果下拉 -->
+          <div
+            v-if="showDropdown && searchResults.length > 0"
+            class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto"
+          >
+            <button
+              v-for="restaurant in searchResults"
+              :key="restaurant.restaurantId"
+              class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+              @click="selectRestaurant(restaurant)"
+            >
+              <div
+                v-if="restaurant.imageUrl"
+                class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0"
+              >
+                <img
+                  :src="restaurant.imageUrl"
+                  :alt="restaurant.name"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+              <div
+                v-else
+                class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0"
+              >
+                <span class="text-sm">🍽️</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-900 truncate">
+                  {{ restaurant.name }}
+                </div>
+                <div
+                  v-if="restaurant.district || restaurant.type"
+                  class="text-xs text-gray-500 truncate"
+                >
+                  {{
+                    [restaurant.type, restaurant.district]
+                      .filter(Boolean)
+                      .join(" · ")
+                  }}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <!-- 無結果提示 -->
+          <div
+            v-if="
+              showDropdown &&
+              searchQuery.length >= 2 &&
+              searchResults.length === 0 &&
+              !isSearching
+            "
+            class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3"
+          >
+            <p class="text-sm text-gray-500 text-center">
+              {{ t("manualInput.noResults") }}
+            </p>
+          </div>
+
+          <!-- 搜尋中提示 -->
+          <div
+            v-if="isSearching"
+            class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 flex items-center justify-center"
+          >
+            <div
+              class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 mr-2"
+            />
+            <span class="text-sm text-gray-500">{{
+              t("manualInput.searching")
+            }}</span>
+          </div>
         </div>
 
-        <!-- 桌號輸入 -->
-        <div>
-          <label
-            for="table-id"
-            class="block text-sm font-medium text-gray-700 mb-2"
+        <!-- 已選餐廳顯示 -->
+        <div
+          v-if="selectedRestaurant"
+          class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl"
+        >
+          <div
+            v-if="selectedRestaurant.imageUrl"
+            class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0"
           >
-            {{ t("manualInput.tableNumber") }}
-          </label>
-          <input
-            id="table-id"
-            v-model="form.tableId"
-            type="number"
-            :placeholder="t('manualInput.tableNumberPlaceholder')"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            :class="{ 'border-red-500': errors.tableId }"
-          />
-          <p v-if="errors.tableId" class="mt-1 text-sm text-red-600">
-            {{ errors.tableId }}
-          </p>
+            <img
+              :src="selectedRestaurant.imageUrl"
+              :alt="selectedRestaurant.name"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <div
+            v-else
+            class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0"
+          >
+            <span class="text-lg">🍽️</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold text-gray-900 truncate">
+              {{ selectedRestaurant.name }}
+            </div>
+            <div
+              v-if="selectedRestaurant.district || selectedRestaurant.type"
+              class="text-xs text-gray-500 truncate"
+            >
+              {{
+                [selectedRestaurant.type, selectedRestaurant.district]
+                  .filter(Boolean)
+                  .join(" · ")
+              }}
+            </div>
+          </div>
+          <button
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+            @click="clearSelection"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
         <!-- 提示文字 -->
@@ -103,7 +213,7 @@
       <!-- 按鈕區域 -->
       <div class="px-6 py-4 bg-gray-50 rounded-b-2xl space-y-3">
         <button
-          :disabled="!isFormValid || loading"
+          :disabled="!selectedRestaurant || loading"
           class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center"
           @click="handleConfirm"
         >
@@ -127,10 +237,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
+import { menuApi } from "@/services/menuApi";
 
 const { t } = useI18n();
+
+interface RestaurantResult {
+  restaurantId: string;
+  name: string;
+  type: string | null;
+  district: string | null;
+  imageUrl: string | null;
+}
 
 // Props
 const props = defineProps<{
@@ -141,73 +260,86 @@ const props = defineProps<{
 // Emits
 const emits = defineEmits<{
   "update:show": [value: boolean];
-  "restaurant-selected": [data: { restaurantId: string; tableId: number }];
+  "restaurant-selected": [data: { restaurantId: string }];
 }>();
 
 // State
-const form = ref({
-  restaurantId: "",
-  tableId: "",
-});
+const searchQuery = ref("");
+const searchResults = ref<RestaurantResult[]>([]);
+const selectedRestaurant = ref<RestaurantResult | null>(null);
+const isSearching = ref(false);
+const showDropdown = ref(false);
+const error = ref("");
 
-const errors = ref({
-  restaurantId: "",
-  tableId: "",
-});
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-// Computed
-const isFormValid = computed(() => {
-  return (
-    form.value.restaurantId &&
-    form.value.tableId &&
-    !errors.value.restaurantId &&
-    !errors.value.tableId
-  );
-});
+// Debounced search
+const handleSearchInput = () => {
+  selectedRestaurant.value = null;
+  error.value = "";
 
-// Validation
-const validateForm = () => {
-  errors.value = { restaurantId: "", tableId: "" };
+  if (searchTimeout) clearTimeout(searchTimeout);
 
-  // 驗證餐廳ID
-  if (!form.value.restaurantId) {
-    errors.value.restaurantId = t("manualInput.restaurantIdRequired");
-  } else if (!/^\d+$/.test(form.value.restaurantId)) {
-    errors.value.restaurantId = t("manualInput.restaurantIdNumeric");
-  } else if (parseInt(form.value.restaurantId) <= 0) {
-    errors.value.restaurantId = t("manualInput.restaurantIdPositive");
+  if (searchQuery.value.length < 2) {
+    searchResults.value = [];
+    showDropdown.value = false;
+    return;
   }
 
-  // 驗證桌號
-  if (!form.value.tableId) {
-    errors.value.tableId = t("manualInput.tableNumberRequired");
-  } else if (!/^\d+$/.test(form.value.tableId)) {
-    errors.value.tableId = t("manualInput.tableNumberNumeric");
-  } else if (parseInt(form.value.tableId) <= 0) {
-    errors.value.tableId = t("manualInput.tableNumberPositive");
+  showDropdown.value = true;
+  searchTimeout = setTimeout(() => {
+    performSearch();
+  }, 300);
+};
+
+const performSearch = async () => {
+  if (searchQuery.value.length < 2) return;
+
+  isSearching.value = true;
+  try {
+    searchResults.value = await menuApi.searchRestaurants(searchQuery.value);
+  } catch {
+    searchResults.value = [];
+  } finally {
+    isSearching.value = false;
   }
 };
 
-// 監聽輸入變化進行即時驗證
-watch(form, validateForm, { deep: true });
+const selectRestaurant = (restaurant: RestaurantResult) => {
+  selectedRestaurant.value = restaurant;
+  searchQuery.value = restaurant.name;
+  showDropdown.value = false;
+  error.value = "";
+};
+
+const clearSelection = () => {
+  selectedRestaurant.value = null;
+  searchQuery.value = "";
+  searchResults.value = [];
+  error.value = "";
+};
 
 // Methods
 const handleConfirm = () => {
-  validateForm();
-
-  if (isFormValid.value) {
-    emits("restaurant-selected", {
-      restaurantId: form.value.restaurantId,
-      tableId: parseInt(form.value.tableId),
-    });
-    emits("update:show", false);
+  if (!selectedRestaurant.value) {
+    error.value = t("manualInput.restaurantRequired");
+    return;
   }
+
+  emits("restaurant-selected", {
+    restaurantId: selectedRestaurant.value.restaurantId,
+  });
+  emits("update:show", false);
 };
 
 // 重置表單
 const resetForm = () => {
-  form.value = { restaurantId: "", tableId: "" };
-  errors.value = { restaurantId: "", tableId: "" };
+  searchQuery.value = "";
+  searchResults.value = [];
+  selectedRestaurant.value = null;
+  isSearching.value = false;
+  showDropdown.value = false;
+  error.value = "";
 };
 
 // 監聽 show 屬性變化，重置表單

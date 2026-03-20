@@ -219,6 +219,9 @@ export class DiscoveryService {
       isNull(restaurants.deletedAt),
     ];
 
+    if (filters.q) {
+      conditions.push(like(restaurants.name, `%${filters.q}%`));
+    }
     if (filters.district) {
       conditions.push(eq(restaurants.district, filters.district));
     }

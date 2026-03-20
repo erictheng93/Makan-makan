@@ -1351,7 +1351,14 @@ const saveSettings = async () => {
     const restaurantId = authStore.restaurantId;
     if (restaurantId) {
       await api.put(`/restaurants/${restaurantId}`, {
-        settings: { currency: settings.system.currency },
+        settings: {
+          currency: settings.system.currency,
+          enableTakeaway: deliverySettings.enableTakeaway,
+          enableDelivery: deliverySettings.enableDelivery,
+          deliveryFee: deliverySettings.deliveryFee,
+          estimatedPrepTimeMin: deliverySettings.estimatedPrepTimeMin,
+          estimatedPrepTimeMax: deliverySettings.estimatedPrepTimeMax,
+        },
       });
       setRestaurantCurrency(settings.system.currency as CurrencyCode);
     }
@@ -1376,13 +1383,39 @@ const loadSettings = async () => {
   try {
     const restaurantId = authStore.restaurantId;
     if (restaurantId) {
-      const response = await api.get<{ settings?: { currency?: string } }>(
-        `/restaurants/${restaurantId}`,
-      );
+      const response = await api.get<{
+        settings?: {
+          currency?: string;
+          enableTakeaway?: boolean;
+          enableDelivery?: boolean;
+          deliveryFee?: number;
+          estimatedPrepTimeMin?: number;
+          estimatedPrepTimeMax?: number;
+        };
+      }>(`/restaurants/${restaurantId}`);
       const data = response.data?.data;
-      if (data?.settings?.currency) {
-        settings.system.currency = data.settings.currency;
-        setRestaurantCurrency(data.settings.currency as CurrencyCode);
+      if (data?.settings) {
+        if (data.settings.currency) {
+          settings.system.currency = data.settings.currency;
+          setRestaurantCurrency(data.settings.currency as CurrencyCode);
+        }
+        if (data.settings.enableTakeaway !== undefined) {
+          deliverySettings.enableTakeaway = data.settings.enableTakeaway;
+        }
+        if (data.settings.enableDelivery !== undefined) {
+          deliverySettings.enableDelivery = data.settings.enableDelivery;
+        }
+        if (data.settings.deliveryFee !== undefined) {
+          deliverySettings.deliveryFee = data.settings.deliveryFee;
+        }
+        if (data.settings.estimatedPrepTimeMin !== undefined) {
+          deliverySettings.estimatedPrepTimeMin =
+            data.settings.estimatedPrepTimeMin;
+        }
+        if (data.settings.estimatedPrepTimeMax !== undefined) {
+          deliverySettings.estimatedPrepTimeMax =
+            data.settings.estimatedPrepTimeMax;
+        }
       }
     }
   } catch (error) {

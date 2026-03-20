@@ -56,7 +56,7 @@
     "allowCamera": "允许相机权限",
     "invalidQR": "无效的二维码",
     "scanError": "扫描失败，请重试",
-    "manualInput": "手动输入餐厅和桌号"
+    "manualInput": "手动搜索餐厅"
   },
   "menu": {
     "title": "菜单",
@@ -630,20 +630,15 @@
     "copyErrorReport": "请复制以下错误报告并反馈给我们："
   },
   "manualInput": {
-    "title": "输入餐厅信息",
-    "restaurantId": "餐厅ID",
-    "restaurantIdPlaceholder": "请输入餐厅ID",
-    "tableNumber": "桌号",
-    "tableNumberPlaceholder": "请输入桌号",
-    "helpTitle": "找不到餐厅和桌号信息？",
-    "helpDesc": "请联系餐厅服务人员，或使用桌上的二维码扫描进入。",
+    "title": "搜索餐厅",
+    "restaurantName": "餐厅名称",
+    "restaurantNamePlaceholder": "输入餐厅名称搜索",
+    "helpTitle": "找不到餐厅？",
+    "helpDesc": "请确认餐厅名称是否正确，或使用二维码扫描进入。",
     "verifying": "验证中...",
-    "restaurantIdRequired": "请输入餐厅ID",
-    "restaurantIdNumeric": "餐厅ID必须为数字",
-    "restaurantIdPositive": "餐厅ID必须大于0",
-    "tableNumberRequired": "请输入桌号",
-    "tableNumberNumeric": "桌号必须为数字",
-    "tableNumberPositive": "桌号必须大于0"
+    "searching": "搜索中...",
+    "noResults": "找不到匹配的餐厅",
+    "restaurantRequired": "请选择一家餐厅"
   },
   "qrScanView": {
     "title": "扫描二维码",

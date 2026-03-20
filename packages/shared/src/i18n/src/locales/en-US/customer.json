@@ -56,7 +56,7 @@
     "allowCamera": "Allow Camera Permission",
     "invalidQR": "Invalid QR Code",
     "scanError": "Scan failed, please try again",
-    "manualInput": "Manually enter restaurant and table number"
+    "manualInput": "Search for a restaurant manually"
   },
   "menu": {
     "title": "Menu",
@@ -630,20 +630,15 @@
     "copyErrorReport": "Please copy the following error report and send it to us:"
   },
   "manualInput": {
-    "title": "Enter Restaurant Information",
-    "restaurantId": "Restaurant ID",
-    "restaurantIdPlaceholder": "Enter restaurant ID",
-    "tableNumber": "Table Number",
-    "tableNumberPlaceholder": "Enter table number",
-    "helpTitle": "Can't find restaurant and table information?",
-    "helpDesc": "Please contact restaurant staff, or use the QR code on the table to scan in.",
+    "title": "Search Restaurant",
+    "restaurantName": "Restaurant Name",
+    "restaurantNamePlaceholder": "Type restaurant name to search",
+    "helpTitle": "Can't find the restaurant?",
+    "helpDesc": "Please check the restaurant name, or use the QR code to scan in.",
     "verifying": "Verifying...",
-    "restaurantIdRequired": "Please enter restaurant ID",
-    "restaurantIdNumeric": "Restaurant ID must be a number",
-    "restaurantIdPositive": "Restaurant ID must be greater than 0",
-    "tableNumberRequired": "Please enter table number",
-    "tableNumberNumeric": "Table number must be a number",
-    "tableNumberPositive": "Table number must be greater than 0"
+    "searching": "Searching...",
+    "noResults": "No matching restaurants found",
+    "restaurantRequired": "Please select a restaurant"
   },
   "qrScanView": {
     "title": "Scan QR Code",

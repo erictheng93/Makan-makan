@@ -214,6 +214,34 @@ export const menuApi = {
   },
 
   /**
+   * 搜尋餐廳（依名稱）
+   */
+  async searchRestaurants(
+    query: string,
+    limit: number = 10,
+  ): Promise<
+    Array<{
+      restaurantId: string;
+      name: string;
+      type: string | null;
+      district: string | null;
+      imageUrl: string | null;
+    }>
+  > {
+    const params = new URLSearchParams({ q: query, limit: limit.toString() });
+    const response = await apiClient.get<{
+      results: Array<{
+        restaurantId: string;
+        name: string;
+        type: string | null;
+        district: string | null;
+        imageUrl: string | null;
+      }>;
+    }>(`/discovery/restaurants?${params.toString()}`);
+    return response.results;
+  },
+
+  /**
    * 取得菜單 - getRestaurantMenu 的別名
    */
   async getMenu(

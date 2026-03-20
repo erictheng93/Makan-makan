@@ -51,7 +51,7 @@ INSERT OR REPLACE INTO restaurants (
   '{"monday":{"open":"11:00","close":"21:00"},"tuesday":{"open":"11:00","close":"21:00"},"wednesday":{"open":"11:00","close":"21:00"},"thursday":{"open":"11:00","close":"21:00"},"friday":{"open":"11:00","close":"22:00"},"saturday":{"open":"10:00","close":"22:00"},"sunday":{"open":"10:00","close":"21:00"}}',
   1, 1,
   1, 'SHOP-GRANDMA-001', '{"displayName":"阿嬤的味道 - 外帶","instructions":"請掃描此 QR Code 進行外帶點餐","requirePhone":true}',
-  '{"currency":"TWD","taxRate":0,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"autoConfirmOrders":false}',
+  '{"currency":"TWD","taxRate":0,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"autoConfirmOrders":false,"enableTakeaway":true,"enableDelivery":true,"deliveryFee":60,"estimatedPrepTimeMin":15,"estimatedPrepTimeMax":25}',
   4.5, 128, 1520,
   unixepoch('now') * 1000, unixepoch('now') * 1000
 ),

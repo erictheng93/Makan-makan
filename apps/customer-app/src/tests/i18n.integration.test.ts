@@ -458,19 +458,14 @@ describe("i18n Integration Tests", () => {
   describe("ManualInput Section", () => {
     const manualInputKeys = [
       "manualInput.title",
-      "manualInput.restaurantId",
-      "manualInput.restaurantIdPlaceholder",
-      "manualInput.tableNumber",
-      "manualInput.tableNumberPlaceholder",
+      "manualInput.restaurantName",
+      "manualInput.restaurantNamePlaceholder",
       "manualInput.helpTitle",
       "manualInput.helpDesc",
       "manualInput.verifying",
-      "manualInput.restaurantIdRequired",
-      "manualInput.restaurantIdNumeric",
-      "manualInput.restaurantIdPositive",
-      "manualInput.tableNumberRequired",
-      "manualInput.tableNumberNumeric",
-      "manualInput.tableNumberPositive",
+      "manualInput.searching",
+      "manualInput.noResults",
+      "manualInput.restaurantRequired",
     ];
 
     it("should have all manualInput keys in all 6 locales", () => {
