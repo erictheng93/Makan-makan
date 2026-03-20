@@ -703,7 +703,9 @@
     "goHome": "Go Home"
   },
   "orderTypeLanding": {
-    "selectMethod": "Select pickup method",
+    "selectMethod": "Select order type",
+    "dineIn": "Dine-in",
+    "dineInDesc": "Eat at the restaurant",
     "takeaway": "Takeaway",
     "takeawayDesc": "Pick up at store",
     "delivery": "Delivery",

@@ -1891,8 +1891,10 @@ const idID: Messages = {
       retentionDays: "Periode Penyimpanan Catatan Pesanan",
     },
     delivery: {
-      title: "Pengaturan Bawa Pulang / Pengiriman",
-      subtitle: "Konfigurasi opsi bawa pulang dan pengiriman",
+      title: "Pengaturan Jenis Pesanan",
+      subtitle: "Atur makan di tempat, bawa pulang, dan pengiriman",
+      enableDineIn: "Aktifkan Makan di Tempat",
+      enableDineInDesc: "Izinkan pelanggan makan di restoran",
       enableTakeaway: "Aktifkan Bawa Pulang",
       enableTakeawayDesc: "Izinkan pelanggan memesan untuk dibawa pulang",
       enableDelivery: "Aktifkan Pengiriman",

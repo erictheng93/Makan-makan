@@ -1895,8 +1895,10 @@ const zhTW: Messages = {
       retentionDays: "訂單記錄保留期限",
     },
     delivery: {
-      title: "外帶 / 外送設定",
-      subtitle: "設定外帶與外送相關選項",
+      title: "用餐方式設定",
+      subtitle: "設定內用、外帶與外送相關選項",
+      enableDineIn: "啟用內用",
+      enableDineInDesc: "允許客戶選擇在店內用餐",
       enableTakeaway: "啟用外帶",
       enableTakeawayDesc: "允許客戶選擇外帶取餐",
       enableDelivery: "啟用外送",

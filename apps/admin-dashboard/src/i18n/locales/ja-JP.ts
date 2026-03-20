@@ -1887,8 +1887,10 @@ const jaJP: Messages = {
       retentionDays: "注文記録の保持期間",
     },
     delivery: {
-      title: "テイクアウト / デリバリー設定",
-      subtitle: "テイクアウトとデリバリーオプションを設定",
+      title: "注文方式設定",
+      subtitle: "イートイン・テイクアウト・デリバリーの設定",
+      enableDineIn: "イートイン有効化",
+      enableDineInDesc: "店内飲食を選択できるようにする",
       enableTakeaway: "テイクアウトを有効化",
       enableTakeawayDesc: "お客様がテイクアウト注文を可能にする",
       enableDelivery: "デリバリーを有効化",

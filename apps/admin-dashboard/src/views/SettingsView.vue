@@ -377,6 +377,30 @@
           {{ t("settings.delivery.subtitle") }}
         </p>
 
+        <!-- Enable Dine-in -->
+        <div
+          class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2"
+        >
+          <div>
+            <div class="font-semibold text-sm">
+              🍽️ {{ t("settings.delivery.enableDineIn") }}
+            </div>
+            <div class="text-xs text-gray-500">
+              {{ t("settings.delivery.enableDineInDesc") }}
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              v-model="deliverySettings.enableDineIn"
+              type="checkbox"
+              class="sr-only peer"
+            />
+            <div
+              class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"
+            ></div>
+          </label>
+        </div>
+
         <!-- Enable Takeaway -->
         <div
           class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2"
@@ -1335,6 +1359,7 @@ const settings = reactive({
 
 // 外帶/外送設定
 const deliverySettings = reactive({
+  enableDineIn: true,
   enableTakeaway: true,
   enableDelivery: false,
   deliveryFee: 0,
@@ -1353,6 +1378,7 @@ const saveSettings = async () => {
       await api.put(`/restaurants/${restaurantId}`, {
         settings: {
           currency: settings.system.currency,
+          enableDineIn: deliverySettings.enableDineIn,
           enableTakeaway: deliverySettings.enableTakeaway,
           enableDelivery: deliverySettings.enableDelivery,
           deliveryFee: deliverySettings.deliveryFee,
@@ -1386,6 +1412,7 @@ const loadSettings = async () => {
       const response = await api.get<{
         settings?: {
           currency?: string;
+          enableDineIn?: boolean;
           enableTakeaway?: boolean;
           enableDelivery?: boolean;
           deliveryFee?: number;
@@ -1398,6 +1425,9 @@ const loadSettings = async () => {
         if (data.settings.currency) {
           settings.system.currency = data.settings.currency;
           setRestaurantCurrency(data.settings.currency as CurrencyCode);
+        }
+        if (data.settings.enableDineIn !== undefined) {
+          deliverySettings.enableDineIn = data.settings.enableDineIn;
         }
         if (data.settings.enableTakeaway !== undefined) {
           deliverySettings.enableTakeaway = data.settings.enableTakeaway;

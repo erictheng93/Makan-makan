@@ -55,7 +55,7 @@ const ShopCartDataSchema = z.object({
   phoneLastDigits: z.string().regex(/^\d{3}$/),
   timestamp: z.number().int().positive(),
   fulfillmentType: z
-    .enum(["takeaway", "delivery"])
+    .enum(["dine-in", "takeaway", "delivery"])
     .optional()
     .default("takeaway"),
   deliveryInfo: z
@@ -75,7 +75,7 @@ export const useShopCartStore = defineStore("shopCart", () => {
   const items = ref<CartItem[]>([]);
   const restaurantId = ref<string | null>(null);
   const phoneLastDigits = ref<string>("");
-  const fulfillmentType = ref<"takeaway" | "delivery">("takeaway");
+  const fulfillmentType = ref<"dine-in" | "takeaway" | "delivery">("takeaway");
   const deliveryInfo = ref<{
     address: string;
     phone: string;
@@ -191,7 +191,7 @@ export const useShopCartStore = defineStore("shopCart", () => {
     }
   };
 
-  const setFulfillmentType = (type: "takeaway" | "delivery") => {
+  const setFulfillmentType = (type: "dine-in" | "takeaway" | "delivery") => {
     fulfillmentType.value = type;
     if (type !== "delivery") {
       deliveryInfo.value = null;

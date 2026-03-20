@@ -57,6 +57,13 @@ export interface RestaurantSettings {
     logoUrl?: string;
     backgroundImage?: string;
   };
+  // Fulfillment settings
+  enableDineIn?: boolean;
+  enableTakeaway?: boolean;
+  enableDelivery?: boolean;
+  deliveryFee?: number;
+  estimatedPrepTimeMin?: number;
+  estimatedPrepTimeMax?: number;
 }
 
 export interface CreateRestaurantRequest {

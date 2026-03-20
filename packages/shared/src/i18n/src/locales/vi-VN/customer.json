@@ -703,7 +703,9 @@
     "goHome": "Về trang chủ"
   },
   "orderTypeLanding": {
-    "selectMethod": "Chọn phương thức nhận hàng",
+    "selectMethod": "Chọn loại đơn hàng",
+    "dineIn": "Ăn tại chỗ Dine-in",
+    "dineInDesc": "Dùng bữa tại nhà hàng",
     "takeaway": "Mang đi Takeaway",
     "takeawayDesc": "Nhận tại cửa hàng",
     "delivery": "Giao hàng Delivery",

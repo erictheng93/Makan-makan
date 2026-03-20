@@ -4,6 +4,10 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import localizedFormat from "dayjs/plugin/localizedFormat";
 import { i18n } from "@/i18n";
 
+// Helper to avoid vue-i18n's deep type instantiation on t()
+const t = (key: string, named?: Record<string, unknown>): string =>
+  (i18n.global as any).t(key, named) as string;
+
 // 設定 dayjs
 dayjs.locale("zh-tw");
 dayjs.extend(relativeTime);
@@ -134,7 +138,7 @@ export const formatCount = (
   plural?: string,
 ): string => {
   if (count === 0) {
-    return i18n.global.t("format.noItems", { item: singular });
+    return t("format.noItems", { item: singular });
   }
 
   if (count === 1) {
@@ -221,8 +225,6 @@ export const formatAddress = (address: any): string => {
  * @returns 格式化後的營業時間字串
  */
 export const formatBusinessHours = (businessHours: any): string => {
-  const t = i18n.global.t.bind(i18n.global);
-
   if (!businessHours || typeof businessHours !== "object") {
     return t("format.businessHoursNotSet");
   }
@@ -253,7 +255,6 @@ export const formatBusinessHours = (businessHours: any): string => {
  * @returns 辣度描述字串
  */
 export const formatSpiceLevel = (spiceLevel: number): string => {
-  const t = i18n.global.t.bind(i18n.global);
   const levels = [
     t("format.spiceNone"),
     t("format.spiceMild"),
@@ -270,7 +271,6 @@ export const formatSpiceLevel = (spiceLevel: number): string => {
  * @returns 狀態描述字串
  */
 export const formatOrderStatus = (status: number): string => {
-  const t = i18n.global.t.bind(i18n.global);
   const statuses: Record<number, string> = {
     0: t("format.orderPending"),
     1: t("format.orderConfirmed"),

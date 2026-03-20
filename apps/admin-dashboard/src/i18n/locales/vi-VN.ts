@@ -1886,8 +1886,10 @@ const viVN: Messages = {
       retentionDays: "Thời gian lưu trữ hồ sơ đơn hàng",
     },
     delivery: {
-      title: "Cài đặt Mang đi / Giao hàng",
-      subtitle: "Cấu hình tùy chọn mang đi và giao hàng",
+      title: "Cài đặt loại đơn hàng",
+      subtitle: "Cấu hình ăn tại chỗ, mang đi và giao hàng",
+      enableDineIn: "Bật ăn tại chỗ",
+      enableDineInDesc: "Cho phép khách hàng ăn tại nhà hàng",
       enableTakeaway: "Bật mang đi",
       enableTakeawayDesc: "Cho phép khách đặt đơn mang đi",
       enableDelivery: "Bật giao hàng",

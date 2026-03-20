@@ -1886,8 +1886,10 @@ const enUS: Messages = {
       retentionDays: "Order Record Retention Period",
     },
     delivery: {
-      title: "Takeaway / Delivery Settings",
-      subtitle: "Configure takeaway and delivery options",
+      title: "Fulfillment Settings",
+      subtitle: "Configure dine-in, takeaway and delivery options",
+      enableDineIn: "Enable Dine-in",
+      enableDineInDesc: "Allow customers to dine in at the restaurant",
       enableTakeaway: "Enable Takeaway",
       enableTakeawayDesc: "Allow customers to order for takeaway",
       enableDelivery: "Enable Delivery",

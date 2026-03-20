@@ -703,7 +703,9 @@
     "goHome": "Kembali ke Laman Utama"
   },
   "orderTypeLanding": {
-    "selectMethod": "Pilih kaedah pengambilan",
+    "selectMethod": "Pilih jenis pesanan",
+    "dineIn": "Makan di sini Dine-in",
+    "dineInDesc": "Makan di restoran",
     "takeaway": "Bungkus Takeaway",
     "takeawayDesc": "Ambil di kedai",
     "delivery": "Penghantaran Delivery",

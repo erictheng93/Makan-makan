@@ -20,11 +20,11 @@
       <div v-else>
         <div class="text-center mb-8">
           <div
-            v-if="restaurant?.logo"
+            v-if="restaurant?.logoUrl"
             class="w-16 h-16 rounded-2xl mx-auto mb-3 overflow-hidden"
           >
             <img
-              :src="restaurant.logo"
+              :src="restaurant.logoUrl"
               :alt="restaurant.name"
               class="w-full h-full object-cover"
             />
@@ -47,11 +47,47 @@
           {{ t("orderTypeLanding.selectMethod") }}
         </p>
         <div class="flex flex-col gap-3">
+          <!-- 內用 -->
           <button
+            v-if="dineInEnabled"
+            :class="[
+              'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
+              selectedType === 'dine-in'
+                ? 'border-[#007AFF] bg-blue-50'
+                : 'border-gray-200 bg-white hover:border-gray-300',
+            ]"
+            @click="selectedType = 'dine-in'"
+          >
+            <span class="text-3xl">🍽️</span>
+            <div class="flex-1">
+              <div class="font-semibold text-gray-900">
+                {{ t("orderTypeLanding.dineIn") }}
+              </div>
+              <div class="text-xs text-gray-500">
+                {{ t("orderTypeLanding.dineInDesc") }}
+              </div>
+            </div>
+            <svg
+              v-if="selectedType === 'dine-in'"
+              class="w-5 h-5 text-[#007AFF]"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </button>
+
+          <!-- 外帶 -->
+          <button
+            v-if="takeawayEnabled"
             :class="[
               'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
               selectedType === 'takeaway'
-                ? 'border-green-500 bg-green-50'
+                ? 'border-[#007AFF] bg-blue-50'
                 : 'border-gray-200 bg-white hover:border-gray-300',
             ]"
             @click="selectedType = 'takeaway'"
@@ -67,7 +103,7 @@
             </div>
             <svg
               v-if="selectedType === 'takeaway'"
-              class="w-5 h-5 text-green-500"
+              class="w-5 h-5 text-[#007AFF]"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -79,12 +115,13 @@
             </svg>
           </button>
 
+          <!-- 外送 -->
           <button
             v-if="deliveryEnabled"
             :class="[
               'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
               selectedType === 'delivery'
-                ? 'border-amber-500 bg-amber-50'
+                ? 'border-[#007AFF] bg-blue-50'
                 : 'border-gray-200 bg-white hover:border-gray-300',
             ]"
             @click="selectedType = 'delivery'"
@@ -100,7 +137,7 @@
             </div>
             <svg
               v-if="selectedType === 'delivery'"
-              class="w-5 h-5 text-amber-500"
+              class="w-5 h-5 text-[#007AFF]"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -115,7 +152,7 @@
 
         <button
           :disabled="!selectedType"
-          class="w-full mt-6 py-3.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-xl hover:bg-[#0066DD] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           @click="handleContinue"
         >
           {{ t("orderTypeLanding.continue") }}
@@ -131,6 +168,9 @@ import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { useShopCartStore } from "@/stores/shopCart";
 import { menuApi } from "@/services/menuApi";
+import type { Restaurant } from "@makanmakan/shared-types";
+
+type FulfillmentType = "dine-in" | "takeaway" | "delivery";
 
 const props = defineProps<{ restaurantId: string }>();
 
@@ -139,14 +179,33 @@ const route = useRoute();
 const { t } = useI18n();
 const shopCartStore = useShopCartStore();
 
-const selectedType = ref<"takeaway" | "delivery">("takeaway");
-const restaurant = ref<any>(null);
+const selectedType = ref<FulfillmentType | null>(null);
+const restaurant = ref<Restaurant | null>(null);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
+
+const dineInEnabled = computed(() => {
+  return restaurant.value?.settings?.enableDineIn ?? false;
+});
+
+const takeawayEnabled = computed(() => {
+  return restaurant.value?.settings?.enableTakeaway ?? false;
+});
 
 const deliveryEnabled = computed(() => {
   return restaurant.value?.settings?.enableDelivery ?? false;
 });
+
+// Auto-select the first available option
+function autoSelectType() {
+  if (dineInEnabled.value) {
+    selectedType.value = "dine-in";
+  } else if (takeawayEnabled.value) {
+    selectedType.value = "takeaway";
+  } else if (deliveryEnabled.value) {
+    selectedType.value = "delivery";
+  }
+}
 
 async function fetchRestaurant() {
   isLoading.value = true;
@@ -154,6 +213,7 @@ async function fetchRestaurant() {
   try {
     const res = await menuApi.getRestaurant(props.restaurantId);
     restaurant.value = res;
+    autoSelectType();
   } catch {
     error.value = t("toast.restaurantLoadFailed");
   } finally {
@@ -162,6 +222,7 @@ async function fetchRestaurant() {
 }
 
 function handleContinue() {
+  if (!selectedType.value) return;
   shopCartStore.setFulfillmentType(selectedType.value);
   if (
     selectedType.value === "delivery" &&
@@ -169,6 +230,17 @@ function handleContinue() {
   ) {
     shopCartStore.setDeliveryFee(restaurant.value.settings.deliveryFee);
   }
+
+  // 內用不需要手機驗證，直接進入菜單
+  if (selectedType.value === "dine-in") {
+    router.push({
+      name: "ShopMenu",
+      params: { restaurantId: props.restaurantId },
+      query: { fulfillmentType: selectedType.value },
+    });
+    return;
+  }
+
   router.push({
     name: "ShopPhoneVerification",
     params: { restaurantId: props.restaurantId },

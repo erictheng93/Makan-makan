@@ -1868,8 +1868,10 @@ const zhCN: Messages = {
       retentionDays: "订单记录保留期限",
     },
     delivery: {
-      title: "外带 / 外送设置",
-      subtitle: "设置外带与外送相关选项",
+      title: "用餐方式设置",
+      subtitle: "设置堂食、外带与外送相关选项",
+      enableDineIn: "启用堂食",
+      enableDineInDesc: "允许客户选择在店内用餐",
       enableTakeaway: "启用外带",
       enableTakeawayDesc: "允许客户选择外带取餐",
       enableDelivery: "启用外送",

@@ -703,7 +703,9 @@
     "goHome": "Kembali ke Beranda"
   },
   "orderTypeLanding": {
-    "selectMethod": "Pilih metode pengambilan",
+    "selectMethod": "Pilih jenis pesanan",
+    "dineIn": "Makan di tempat Dine-in",
+    "dineInDesc": "Makan di restoran",
     "takeaway": "Bawa Pulang Takeaway",
     "takeawayDesc": "Ambil di toko",
     "delivery": "Pengiriman Delivery",
