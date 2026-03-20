@@ -133,6 +133,12 @@ app.use(
         burstMultiplier: 1.5,
         blockDuration: 60,
       },
+      "/api/v1/realtime/auth/token": {
+        requests: 20,
+        windowSeconds: 60,
+        burstMultiplier: 2.0,
+        blockDuration: 60,
+      },
       "/api/v1/admin": {
         requests: 20,
         windowSeconds: 60,

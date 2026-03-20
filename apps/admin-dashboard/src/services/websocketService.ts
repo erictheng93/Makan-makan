@@ -91,7 +91,11 @@ class WebSocketService {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to get WebSocket token: ${response.statusText}`);
+      const error = new Error(
+        `Failed to get WebSocket token: ${response.statusText}`,
+      );
+      (error as any).status = response.status;
+      throw error;
     }
 
     return response.json();
@@ -124,9 +128,20 @@ class WebSocketService {
       this.ws = new WebSocket(`${this.wsUrl}?token=${this.wsToken}`);
 
       this.setupWebSocketHandlers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to connect to WebSocket:", error);
       this.connectionStatus.value = "error";
+      // Don't retry on rate limit (429) or auth failure (401/403)
+      if (
+        error.status === 429 ||
+        error.status === 401 ||
+        error.status === 403
+      ) {
+        console.warn(
+          `WebSocket connection aborted (HTTP ${error.status}), not retrying`,
+        );
+        return;
+      }
       this.scheduleReconnect();
     }
   }
