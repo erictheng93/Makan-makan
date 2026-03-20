@@ -635,6 +635,140 @@ INSERT OR REPLACE INTO order_items (
 (26, 10, 45, 1, 160, 160, '{"name":"椰奶雞湯","category":"湯品"}', NULL, 'ready', NULL, unixepoch('now') * 1000 - 600000, unixepoch('now') * 1000 - 600000);
 
 -- ============================================================================
+-- 9. Demo 餐廳 (用於 onboarding-app 查看演示)
+-- ============================================================================
+-- 一間融合料理風格的展示餐廳，涵蓋多種品類與客製化選項
+
+INSERT OR REPLACE INTO restaurants (
+  id, name, type, category, description,
+  address, district, city, phone, email, website,
+  business_hours, is_available, is_active,
+  enable_shop_mode, shop_qr_code, shop_qr_settings,
+  settings, rating, review_count, total_orders,
+  cuisine_tags, price_range, supports_takeaway, supports_delivery,
+  created_at_ms, updated_at_ms
+) VALUES
+('019469a0-0099-7000-8000-000000000099', 'MakanMakan Demo', '複合式', '亞洲融合料理',
+  '歡迎體驗 MakanMakan 點餐系統！這是一間展示用的虛擬餐廳，您可以瀏覽菜單、加入購物車、體驗完整的點餐流程。',
+  '台北市信義區松仁路100號', '信義區', '台北市',
+  '02-2700-0000', 'demo@makanmakan.com', 'https://makanmakan.app',
+  '{"monday":{"open":"10:00","close":"22:00"},"tuesday":{"open":"10:00","close":"22:00"},"wednesday":{"open":"10:00","close":"22:00"},"thursday":{"open":"10:00","close":"22:00"},"friday":{"open":"10:00","close":"23:00"},"saturday":{"open":"09:00","close":"23:00"},"sunday":{"open":"09:00","close":"22:00"}}',
+  1, 1,
+  1, 'SHOP-DEMO-001', '{"displayName":"MakanMakan Demo - 體驗點餐","instructions":"歡迎體驗！請選擇外帶或外送，輸入任意 3 位數字即可開始瀏覽菜單。","requirePhone":true}',
+  '{"currency":"TWD","taxRate":0.05,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"autoConfirmOrders":true,"enableTakeaway":true,"enableDelivery":true,"deliveryFee":60,"estimatedPrepTimeMin":10,"estimatedPrepTimeMax":25}',
+  4.9, 520, 8800,
+  '["台式","日式","泰式","義式"]', 2, 1, 1,
+  unixepoch('now') * 1000, unixepoch('now') * 1000
+);
+
+-- Demo 餐廳 分類
+INSERT OR REPLACE INTO categories (
+  id, restaurant_id, name, description, sort_order, is_active, item_count,
+  created_at_ms, updated_at_ms
+) VALUES
+(13, '019469a0-0099-7000-8000-000000000099', '人氣推薦', '主廚精選的招牌料理', 1, 1, 4, unixepoch('now') * 1000, unixepoch('now') * 1000),
+(14, '019469a0-0099-7000-8000-000000000099', '經典主食', '飽足感十足的主食料理', 2, 1, 4, unixepoch('now') * 1000, unixepoch('now') * 1000),
+(15, '019469a0-0099-7000-8000-000000000099', '輕食沙拉', '清爽健康的輕食選擇', 3, 1, 3, unixepoch('now') * 1000, unixepoch('now') * 1000),
+(16, '019469a0-0099-7000-8000-000000000099', '飲品甜點', '精選飲料與手工甜點', 4, 1, 4, unixepoch('now') * 1000, unixepoch('now') * 1000);
+
+-- Demo 餐廳 菜單項目
+INSERT OR REPLACE INTO menu_items (
+  id, restaurant_id, category_id, name, description, ingredients,
+  price, original_price, is_available, is_featured, is_popular,
+  sort_order, spice_level, preparation_time, calories,
+  dietary_info, options, order_count, rating, review_count,
+  created_at_ms, updated_at_ms
+) VALUES
+-- 人氣推薦
+(46, '019469a0-0099-7000-8000-000000000099', 13, '松露野菇燉飯', '使用義大利米搭配黑松露醬與三種菇類，濃郁奶香', '義大利米, 黑松露醬, 香菇, 杏鮑菇, 秀珍菇, 帕馬森起司',
+  320, NULL, 1, 1, 1, 1, 0, 15, 580,
+  '{"vegetarian":true}',
+  '{"customizations":[{"id":"c1","name":"起司量","type":"single","required":false,"choices":[{"id":"ch1","name":"正常","isDefault":true},{"id":"ch2","name":"加倍起司","priceAdjustment":40}]}]}',
+  892, 4.9, 156, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(47, '019469a0-0099-7000-8000-000000000099', 13, '泰式檸檬魚', '新鮮鱸魚搭配酸辣檸檬醬汁，泰式香料提味', '鱸魚, 檸檬, 辣椒, 香菜, 魚露, 蒜頭',
+  380, NULL, 1, 1, 1, 2, 2, 20, 320,
+  '{"glutenFree":true,"seafoodFree":false}',
+  '{"customizations":[{"id":"c1","name":"辣度","type":"single","required":true,"choices":[{"id":"ch1","name":"不辣"},{"id":"ch2","name":"小辣","isDefault":true},{"id":"ch3","name":"中辣"},{"id":"ch4","name":"大辣"}]}]}',
+  645, 4.8, 112, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(48, '019469a0-0099-7000-8000-000000000099', 13, '和牛漢堡排', '澳洲和牛手打漢堡排配特製醬汁與溫泉蛋', '和牛絞肉, 洋蔥, 溫泉蛋, 特製醬汁',
+  350, 420, 1, 1, 1, 3, 0, 18, 720,
+  '{}',
+  '{"sizes":[{"id":"s1","name":"單排","priceAdjustment":0,"isDefault":true},{"id":"s2","name":"雙排","priceAdjustment":180}],"addOns":[{"id":"a1","name":"加溫泉蛋","price":30},{"id":"a2","name":"加起司片","price":25}]}',
+  723, 4.7, 98, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(49, '019469a0-0099-7000-8000-000000000099', 13, '招牌雞翅拼盤', '三種風味一次滿足：蜂蜜芥末、韓式辣醬、蒜香奶油', '雞翅, 蜂蜜, 芥末, 韓式辣醬, 蒜頭, 奶油',
+  280, NULL, 1, 0, 1, 4, 1, 12, 450,
+  '{}', NULL,
+  534, 4.6, 87, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+-- 經典主食
+(50, '019469a0-0099-7000-8000-000000000099', 14, '日式豚骨拉麵', '12小時熬製豚骨湯頭，自製叉燒與溏心蛋', '豚骨高湯, 拉麵, 叉燒, 溏心蛋, 蔥花, 海苔',
+  220, NULL, 1, 0, 1, 1, 0, 12, 680,
+  '{}',
+  '{"customizations":[{"id":"c1","name":"湯頭濃度","type":"single","required":true,"choices":[{"id":"ch1","name":"清爽"},{"id":"ch2","name":"標準","isDefault":true},{"id":"ch3","name":"濃厚"}]},{"id":"c2","name":"麵條硬度","type":"single","required":true,"choices":[{"id":"ch1","name":"軟麵"},{"id":"ch2","name":"標準","isDefault":true},{"id":"ch3","name":"硬麵"},{"id":"ch4","name":"極硬"}]}],"addOns":[{"id":"a1","name":"加叉燒","price":50},{"id":"a2","name":"加溏心蛋","price":30}]}',
+  967, 4.8, 178, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(51, '019469a0-0099-7000-8000-000000000099', 14, '綠咖哩椰汁雞', '正宗泰式綠咖哩配椰奶與嫩雞腿肉，附泰國香米', '雞腿肉, 綠咖哩醬, 椰奶, 茄子, 甜椒, 泰國香米',
+  260, NULL, 1, 0, 1, 2, 2, 15, 550,
+  '{"glutenFree":true}',
+  '{"customizations":[{"id":"c1","name":"辣度","type":"single","required":true,"choices":[{"id":"ch1","name":"不辣"},{"id":"ch2","name":"小辣","isDefault":true},{"id":"ch3","name":"中辣"},{"id":"ch4","name":"大辣"}]}]}',
+  456, 4.7, 76, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(52, '019469a0-0099-7000-8000-000000000099', 14, '炙燒鮭魚丼飯', '厚切鮭魚炙燒至微焦，搭配醋飯與味噌湯', '鮭魚, 壽司米, 海苔, 酪梨, 味噌湯',
+  300, NULL, 1, 1, 0, 3, 0, 10, 520,
+  '{"seafoodFree":false}',
+  '{"sizes":[{"id":"s1","name":"標準","priceAdjustment":0,"isDefault":true},{"id":"s2","name":"大盛","priceAdjustment":60}]}',
+  389, 4.9, 92, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(53, '019469a0-0099-7000-8000-000000000099', 14, '台式滷肉飯套餐', '古早味滷肉飯配滷蛋、燙青菜與貢丸湯', '五花肉, 紅蔥頭, 滷蛋, 時蔬, 貢丸, 白飯',
+  160, NULL, 1, 0, 1, 4, 0, 8, 620,
+  '{}',
+  '{"sizes":[{"id":"s1","name":"小碗","priceAdjustment":0},{"id":"s2","name":"大碗","priceAdjustment":25,"isDefault":true}]}',
+  1203, 4.8, 210, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+-- 輕食沙拉
+(54, '019469a0-0099-7000-8000-000000000099', 15, '凱薩雞肉沙拉', '嫩煎雞胸肉搭配羅曼生菜與自製凱薩醬', '雞胸肉, 羅曼生菜, 麵包丁, 帕馬森起司, 凱薩醬',
+  220, NULL, 1, 0, 0, 1, 0, 8, 380,
+  '{"glutenFree":false}',
+  '{"addOns":[{"id":"a1","name":"加酪梨","price":40},{"id":"a2","name":"加半熟蛋","price":25}]}',
+  312, 4.5, 54, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(55, '019469a0-0099-7000-8000-000000000099', 15, '鮮蝦酪梨捲', '大蝦仁搭配新鮮酪梨，紫蘇醋醬汁', '蝦仁, 酪梨, 小黃瓜, 紫蘇, 醋醬',
+  260, NULL, 1, 0, 0, 2, 0, 10, 290,
+  '{"glutenFree":true,"seafoodFree":false}', NULL,
+  198, 4.6, 42, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(56, '019469a0-0099-7000-8000-000000000099', 15, '味噌豆腐溫沙拉', '嫩豆腐搭配時令蔬菜與溫熱味噌醬汁', '嫩豆腐, 菠菜, 玉米筍, 紅蘿蔔, 味噌醬',
+  180, NULL, 1, 0, 0, 3, 0, 6, 210,
+  '{"vegan":true,"vegetarian":true,"glutenFree":true}', NULL,
+  167, 4.4, 31, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+-- 飲品甜點
+(57, '019469a0-0099-7000-8000-000000000099', 16, '抹茶拿鐵', '京都宇治抹茶搭配鮮奶，可選冰熱', '宇治抹茶粉, 鮮奶',
+  140, NULL, 1, 0, 1, 1, 0, 3, 180,
+  '{"vegetarian":true}',
+  '{"customizations":[{"id":"c1","name":"溫度","type":"single","required":true,"choices":[{"id":"ch1","name":"熱","isDefault":true},{"id":"ch2","name":"冰"}]},{"id":"c2","name":"甜度","type":"single","required":true,"choices":[{"id":"ch1","name":"全糖"},{"id":"ch2","name":"半糖","isDefault":true},{"id":"ch3","name":"微糖"},{"id":"ch4","name":"無糖"}]}]}',
+  876, 4.7, 134, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(58, '019469a0-0099-7000-8000-000000000099', 16, '百香果氣泡飲', '新鮮百香果搭配氣泡水，酸甜清爽', '百香果, 氣泡水, 蜂蜜',
+  120, NULL, 1, 0, 0, 2, 0, 3, 90,
+  '{"vegan":true}',
+  '{"customizations":[{"id":"c1","name":"甜度","type":"single","required":false,"choices":[{"id":"ch1","name":"全糖"},{"id":"ch2","name":"半糖","isDefault":true},{"id":"ch3","name":"微糖"}]}]}',
+  432, 4.5, 67, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(59, '019469a0-0099-7000-8000-000000000099', 16, '焦糖布丁', '法式經典焦糖烤布丁，滑嫩綿密', '雞蛋, 鮮奶, 砂糖, 香草莢',
+  100, NULL, 1, 0, 1, 3, 0, 5, 250,
+  '{"vegetarian":true,"glutenFree":true}', NULL,
+  567, 4.8, 98, unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+(60, '019469a0-0099-7000-8000-000000000099', 16, '季節水果盤', '當季新鮮水果精選拼盤', '當季水果',
+  150, NULL, 1, 0, 0, 4, 0, 3, 120,
+  '{"vegan":true,"glutenFree":true}', NULL,
+  234, 4.6, 45, unixepoch('now') * 1000, unixepoch('now') * 1000);
+
+-- ============================================================================
 -- 驗證數據
 -- ============================================================================
 SELECT '✅ 餐廳數量:' as status, COUNT(*) as count FROM restaurants;

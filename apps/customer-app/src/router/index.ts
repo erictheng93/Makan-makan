@@ -107,7 +107,7 @@ const routes: RouteRecordRaw[] = [
     name: "RestaurantMenu",
     component: () => import("@/views/MenuView.vue"),
     props: (route) => ({
-      restaurantId: Number(route.params.restaurantId),
+      restaurantId: route.params.restaurantId,
       tableId: Number(route.params.tableId),
     }),
     meta: {
@@ -126,7 +126,7 @@ const routes: RouteRecordRaw[] = [
     name: "ShopPhoneVerification",
     component: () => import("@/views/ShopPhoneVerificationView.vue"),
     props: (route) => ({
-      restaurantId: Number(route.params.restaurantId),
+      restaurantId: route.params.restaurantId,
       shopQrCode: route.query.qr as string,
     }),
     meta: {
@@ -138,7 +138,7 @@ const routes: RouteRecordRaw[] = [
     name: "ShopMenu",
     component: () => import("@/views/ShopMenuView.vue"),
     props: (route) => ({
-      restaurantId: Number(route.params.restaurantId),
+      restaurantId: route.params.restaurantId,
       phoneLastDigits: route.query.phone as string,
     }),
     meta: {
@@ -150,7 +150,7 @@ const routes: RouteRecordRaw[] = [
     name: "Cart",
     component: () => import("@/views/CartView.vue"),
     props: (route) => ({
-      restaurantId: Number(route.params.restaurantId),
+      restaurantId: route.params.restaurantId,
       tableId: Number(route.params.tableId),
     }),
     meta: {
@@ -162,7 +162,7 @@ const routes: RouteRecordRaw[] = [
     name: "OrderTracking",
     component: () => import("@/views/OrderTrackingView.vue"),
     props: (route) => ({
-      restaurantId: Number(route.params.restaurantId),
+      restaurantId: route.params.restaurantId,
       tableId: Number(route.params.tableId),
       orderId: Number(route.params.orderId),
     }),

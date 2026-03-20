@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { timing } from "hono/timing";
-import { authMiddleware } from "./middleware/auth";
+import { authMiddleware, optionalAuth } from "./middleware/auth";
 import { corsMiddleware } from "./middleware/cors";
 import { csrfProtection, attachCSRFToken } from "./middleware/csrf";
 // import { rateLimitMiddleware } from './middleware/rateLimit'
@@ -390,8 +390,12 @@ apiV1.route("/guest-orders", guestOrdersRoutes); // 訪客點餐 (KV-based guest
 apiV1.route("/integrations", integrationsFeature.routes); // 外送平台串接 (webhooks 公開 HMAC 驗證, 管理端點內部驗證)
 
 // 受保護的路由（需要認證）
-apiV1.use("/restaurants/*", authMiddleware);
-apiV1.use("/menu/*", authMiddleware);
+// Note: /restaurants/* uses optionalAuth globally because GET routes are public (list, details, popular, nearby)
+// Write operations (POST, PUT, DELETE) have route-level authMiddleware + requireRole guards
+apiV1.use("/restaurants/*", optionalAuth);
+// Note: /menu/* uses optionalAuth globally because GET routes are public (menu listing, featured, popular, search)
+// Write operations (POST, PUT, DELETE) have route-level authMiddleware + requireRole guards
+apiV1.use("/menu/*", optionalAuth);
 apiV1.use("/kitchen/*", authMiddleware);
 apiV1.use("/orders/*", authMiddleware);
 apiV1.use("/pos/*", authMiddleware);

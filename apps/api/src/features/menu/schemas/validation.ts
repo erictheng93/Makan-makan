@@ -196,7 +196,7 @@ export const bulkCategoryMoveSchema = z.object({
 
 // Parameter Schemas
 export const restaurantIdParamSchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number),
+  restaurantId: z.string().min(1),
 });
 
 export const menuItemIdParamSchema = z.object({

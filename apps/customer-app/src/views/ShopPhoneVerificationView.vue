@@ -298,7 +298,7 @@ const loadRestaurant = async () => {
       const response = await axios.get(
         `/api/v1/restaurants/${props.restaurantId}`,
       );
-      restaurant.value = response.data;
+      restaurant.value = response.data?.data || response.data;
     }
 
     // Check if shop mode is enabled
@@ -346,14 +346,10 @@ const handleVerify = async () => {
 
     // Get guest token for later order submission
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const guestTokenResponse = await axios.post(
-        `${apiBaseUrl}/api/v1/auth/guest-token`,
-        {
-          restaurantId: props.restaurantId,
-          phoneLastDigits: phoneLastDigits.value,
-        },
-      );
+      const guestTokenResponse = await axios.post(`/api/v1/auth/guest-token`, {
+        restaurantId: props.restaurantId,
+        phoneLastDigits: phoneLastDigits.value,
+      });
       if (guestTokenResponse.data.success && guestTokenResponse.data.token) {
         localStorage.setItem("guest_auth_token", guestTokenResponse.data.token);
       }

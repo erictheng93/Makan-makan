@@ -27,7 +27,7 @@ export const menuApi = {
     }
 
     const response = await apiClient.get<MenuApiResponse>(
-      `/restaurants/${restaurantId}/menu${params.toString() ? `?${params.toString()}` : ""}`,
+      `/menu/${restaurantId}${params.toString() ? `?${params.toString()}` : ""}`,
     );
     return response;
   },
