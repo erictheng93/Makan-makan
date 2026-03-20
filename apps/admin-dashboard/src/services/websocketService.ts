@@ -87,6 +87,7 @@ class WebSocketService {
         roomType: "admin",
         roomId: restaurantId,
         restaurantId,
+        sessionId: token,
       }),
     });
 
@@ -131,11 +132,12 @@ class WebSocketService {
     } catch (error: any) {
       console.error("Failed to connect to WebSocket:", error);
       this.connectionStatus.value = "error";
-      // Don't retry on rate limit (429) or auth failure (401/403)
+      // Don't retry on client errors that won't resolve with retries
       if (
-        error.status === 429 ||
+        error.status === 400 ||
         error.status === 401 ||
-        error.status === 403
+        error.status === 403 ||
+        error.status === 429
       ) {
         console.warn(
           `WebSocket connection aborted (HTTP ${error.status}), not retrying`,
