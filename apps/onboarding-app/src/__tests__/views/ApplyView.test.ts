@@ -74,18 +74,6 @@ describe("ApplyView", () => {
       expect(inputs.length).toBe(5);
     });
 
-    it("should render plan selector", () => {
-      const wrapper = mountComponent();
-      const select = wrapper.find("select");
-      expect(select.exists()).toBe(true);
-
-      const options = select.findAll("option");
-      expect(options.length).toBe(3);
-      expect(options[0].text()).toContain("標準版");
-      expect(options[1].text()).toContain("專業版");
-      expect(options[2].text()).toContain("企業版");
-    });
-
     it("should render submit and back buttons", () => {
       const wrapper = mountComponent();
       const buttons = wrapper.findAll("button");
@@ -276,26 +264,6 @@ describe("ApplyView", () => {
       expect(submitSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           subdomain: "myrestaurant",
-        }),
-      );
-    });
-
-    it("should submit with selected plan", async () => {
-      const wrapper = mountComponent();
-      await fillValidForm(wrapper);
-
-      await wrapper.find("select").setValue("professional");
-
-      const submitSpy = vi
-        .spyOn(store, "submitApplication")
-        .mockResolvedValue(true);
-
-      await wrapper.find("form").trigger("submit.prevent");
-      await flushPromises();
-
-      expect(submitSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          planId: "professional",
         }),
       );
     });

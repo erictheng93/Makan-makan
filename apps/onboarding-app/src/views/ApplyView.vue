@@ -18,7 +18,7 @@ const form = ref({
   contactName: "",
   contactEmail: "",
   contactPhone: "",
-  planId: "standard" as "standard" | "professional" | "enterprise",
+  planId: "standard" as const,
   subdomain: "",
 });
 
@@ -26,12 +26,6 @@ const errors = ref<Record<string, string>>({});
 
 // Debounce timer for subdomain check
 let subdomainCheckTimer: ReturnType<typeof setTimeout> | null = null;
-
-const plans = [
-  { value: "standard", label: "標準版 - $149/月" },
-  { value: "professional", label: "專業版 - $299/月" },
-  { value: "enterprise", label: "企業版 - 議價" },
-];
 
 // Watch subdomain input for debounced availability check
 watch(
@@ -223,16 +217,6 @@ const selectSuggestion = (suggestion: string) => {
           <p v-if="errors.contactPhone" class="mt-1 text-sm text-red-600">
             {{ errors.contactPhone }}
           </p>
-        </div>
-
-        <!-- 方案選擇 -->
-        <div>
-          <label class="label">選擇方案</label>
-          <select v-model="form.planId" class="input">
-            <option v-for="plan in plans" :key="plan.value" :value="plan.value">
-              {{ plan.label }}
-            </option>
-          </select>
         </div>
 
         <!-- 子域名 -->
