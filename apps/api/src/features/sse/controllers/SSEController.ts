@@ -99,21 +99,15 @@ export class SSEController {
         }
       }, 30000); // Every 30 seconds
 
-      // Cleanup on connection close
-      c.req.raw.signal?.addEventListener("abort", () => {
-        clearInterval(heartbeatInterval);
-        this.sseService.removeConnection(connectionId);
-        console.log(`SSE connection ${connectionId} closed`);
-      });
-
-      // Keep connection alive
-      const keepAliveInterval = setInterval(() => {
-        if (c.req.raw.signal?.aborted) {
-          clearInterval(keepAliveInterval);
+      // Keep stream alive until client disconnects
+      await new Promise<void>((resolve) => {
+        c.req.raw.signal?.addEventListener("abort", () => {
           clearInterval(heartbeatInterval);
           this.sseService.removeConnection(connectionId);
-        }
-      }, 1000);
+          console.log(`SSE connection ${connectionId} closed`);
+          resolve();
+        });
+      });
     });
   }
 

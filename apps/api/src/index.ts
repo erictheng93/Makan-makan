@@ -107,7 +107,7 @@ app.use("*", requestIdMiddleware); // First: Generate request ID for tracking
 app.use(
   "*",
   geoIntelligentRateLimitMiddleware({
-    skipPaths: ["/health", "/api/v1/health", "/info"],
+    skipPaths: ["/health", "/api/v1/health", "/info", "/api/v1/sse/events"],
     customLimits: {
       "/api/v1/auth/login": {
         requests: 100,
@@ -120,7 +120,19 @@ app.use(
         windowSeconds: 60,
         burstMultiplier: 1.0,
         blockDuration: 60,
-      }, // Increased for testing
+      },
+      "/api/v1/auth/me": {
+        requests: 30,
+        windowSeconds: 60,
+        burstMultiplier: 2.0,
+        blockDuration: 60,
+      },
+      "/api/v1/auth/refresh": {
+        requests: 20,
+        windowSeconds: 60,
+        burstMultiplier: 1.5,
+        blockDuration: 60,
+      },
       "/api/v1/admin": {
         requests: 20,
         windowSeconds: 60,
