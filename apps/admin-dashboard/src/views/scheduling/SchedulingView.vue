@@ -420,7 +420,9 @@ const fetchSchedules = async () => {
       limit: 100,
     });
 
-    schedules.value = response.data;
+    schedules.value = Array.isArray(response)
+      ? response
+      : ((response as any)?.data ?? []);
   } catch (err) {
     console.error("Failed to fetch schedules:", err);
     throw err;
@@ -445,7 +447,9 @@ const fetchConflicts = async () => {
       status: "unresolved",
       limit: 50,
     });
-    conflicts.value = response.data;
+    conflicts.value = Array.isArray(response)
+      ? response
+      : ((response as any)?.data ?? []);
   } catch (err) {
     console.error("Failed to fetch conflicts:", err);
     // Don't throw - conflicts are optional
@@ -460,7 +464,9 @@ const fetchSwapRequests = async () => {
       status: "pending",
       limit: 50,
     });
-    swapRequests.value = response.data;
+    swapRequests.value = Array.isArray(response)
+      ? response
+      : ((response as any)?.data ?? []);
   } catch (err) {
     console.error("Failed to fetch swap requests:", err);
     // Don't throw - swap requests are optional
