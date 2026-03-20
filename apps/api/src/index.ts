@@ -406,7 +406,7 @@ apiV1.use("/seats/*", authMiddleware);
 apiV1.use("/users/*", authMiddleware);
 apiV1.use("/analytics/*", authMiddleware);
 apiV1.use("/ai-analytics/*", authMiddleware);
-apiV1.use("/sse/*", authMiddleware);
+// SSE auth is handled at route level (sseAuthMiddleware) to support token via query param
 apiV1.use("/system/*", authMiddleware);
 apiV1.use("/cache/*", authMiddleware);
 apiV1.use("/monitoring/*", authMiddleware);

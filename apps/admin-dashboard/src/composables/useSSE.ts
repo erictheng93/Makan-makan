@@ -25,7 +25,12 @@ export function useSSE() {
     }
 
     try {
-      const url = `/api/v1/sse/events?restaurant_id=${authStore.restaurantId}`;
+      const token = authStore.token;
+      if (!token) {
+        console.warn("SSE: No auth token available, skipping connection");
+        return;
+      }
+      const url = `/api/v1/sse/events?restaurant_id=${authStore.restaurantId}&token=${encodeURIComponent(token)}`;
       eventSource.value = new EventSource(url);
 
       eventSource.value.onopen = () => {

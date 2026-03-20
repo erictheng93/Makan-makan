@@ -4,7 +4,11 @@
  */
 
 import { Hono } from "hono";
+import type { Context, Next } from "hono";
+import { verify } from "hono/jwt";
 import { authMiddleware } from "../../../middleware/auth";
+import type { AuthUser } from "../../../middleware/auth";
+import { ApiError, unauthorized } from "../../../shared/utils/api-error";
 import { SSEController } from "../controllers/SSEController";
 import type { Env } from "../../../types/env";
 
@@ -16,10 +20,61 @@ function createController(c: any) {
 }
 
 /**
+ * SSE auth middleware — accepts JWT from Authorization header OR ?token= query param.
+ * Browser's EventSource API cannot send custom headers, so SSE clients
+ * must pass the token via query parameter.
+ */
+const sseAuthMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) => {
+  // Try Authorization header first, then query param
+  const authHeader = c.req.header("Authorization");
+  let token: string | undefined;
+
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.substring(7);
+  } else {
+    token = c.req.query("token");
+  }
+
+  if (!token) {
+    throw unauthorized("Missing authentication token", "MISSING_AUTH_TOKEN");
+  }
+
+  if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
+    throw new ApiError(
+      "SERVER_CONFIG_ERROR",
+      "Server configuration error",
+      500,
+    );
+  }
+
+  if (c.env.TOKEN_BLACKLIST) {
+    const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
+    if (blacklisted) {
+      throw unauthorized("Token has been invalidated", "TOKEN_BLACKLISTED");
+    }
+  }
+
+  const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+
+  const user: AuthUser = {
+    id: decoded.id,
+    username: decoded.username,
+    role: decoded.role,
+    restaurantId: decoded.restaurantId,
+    fullName: decoded.fullName,
+    email: decoded.email,
+    phone: decoded.phone,
+  };
+
+  c.set("user", user);
+  await next();
+};
+
+/**
  * SSE connection endpoint - Restaurant event stream
  * GET /api/v1/sse/events
  */
-app.get("/events", authMiddleware, async (c) => {
+app.get("/events", sseAuthMiddleware, async (c) => {
   const controller = createController(c);
   return await controller.connect(c);
 });

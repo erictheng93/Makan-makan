@@ -107,7 +107,10 @@
           <!-- 菜品圖片 - 🚀 使用優化圖片組件 -->
           <div class="relative">
             <OptimizedImage
-              :src="item.imageUrl || '/placeholder-food.jpg'"
+              :src="
+                item.imageUrl ||
+                'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27600%27 height=%27400%27 fill=%27%23e5e7eb%27%3E%3Crect width=%27600%27 height=%27400%27/%3E%3Ctext x=%27300%27 y=%27200%27 text-anchor=%27middle%27 dominant-baseline=%27central%27 font-family=%27system-ui%27 font-size=%2748%27 fill=%27%239ca3af%27%3E🍽️%3C/text%3E%3C/svg%3E'
+              "
               :alt="item.name"
               :width="600"
               :height="400"
