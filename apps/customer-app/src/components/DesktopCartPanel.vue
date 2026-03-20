@@ -6,7 +6,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-ios-text">
-            {{ t("shopMenu.viewCart") }}
+            {{ t("shopCart.title") }}
           </h3>
           <span
             class="w-6 h-6 bg-ios-blue text-white text-xs rounded-full flex items-center justify-center font-bold"
@@ -89,7 +89,7 @@
             class="w-full py-3 bg-ios-blue text-white font-semibold rounded-full active:scale-[0.98] transition-transform duration-150 shadow-card-sm"
             @click="$emit('checkout')"
           >
-            {{ t("shopCart.checkout") }}
+            {{ t("shopCart.confirmOrder") }}
           </button>
         </div>
       </div>
