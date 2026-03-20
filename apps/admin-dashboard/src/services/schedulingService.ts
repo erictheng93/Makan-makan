@@ -3,7 +3,7 @@
  * API client for employee scheduling and shift management
  */
 
-import axios, { type AxiosInstance } from "axios";
+import { api } from "@/services/api";
 import type {
   ShiftTemplate,
   CreateShiftTemplateData,
@@ -27,46 +27,10 @@ import type {
 } from "@/types/scheduling";
 
 class SchedulingService {
-  private api: AxiosInstance;
-  private baseURL: string;
+  private api: typeof api;
 
   constructor() {
-    const apiUrl = import.meta.env.VITE_API_URL;
-    if (!apiUrl) {
-      throw new Error(
-        "[Config Error] VITE_API_URL is required. " +
-          "Please set this environment variable in your .env file.",
-      );
-    }
-    this.baseURL = apiUrl;
-    this.api = axios.create({
-      baseURL: this.baseURL,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    // Add auth token interceptor
-    this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem("authToken");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    // Add response interceptor for error handling
-    this.api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Token expired or invalid
-          localStorage.removeItem("authToken");
-          window.location.href = "/login";
-        }
-        return Promise.reject(error);
-      },
-    );
+    this.api = api;
   }
 
   // ========================================
@@ -77,20 +41,20 @@ class SchedulingService {
    * Get all shift templates for a restaurant
    */
   async getShiftTemplates(restaurantId: string): Promise<ShiftTemplate[]> {
-    const response = await this.api.get<ApiResponse<ShiftTemplate[]>>(
+    const response = await this.api.get<ShiftTemplate[]>(
       `/scheduling/${restaurantId}/templates`,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
    * Get a specific shift template
    */
   async getShiftTemplate(id: number): Promise<ShiftTemplate> {
-    const response = await this.api.get<ApiResponse<ShiftTemplate>>(
+    const response = await this.api.get<ShiftTemplate>(
       `/scheduling/templates/${id}`,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -100,11 +64,11 @@ class SchedulingService {
     restaurantId: string,
     data: CreateShiftTemplateData,
   ): Promise<ShiftTemplate> {
-    const response = await this.api.post<ApiResponse<ShiftTemplate>>(
+    const response = await this.api.post<ShiftTemplate>(
       `/scheduling/${restaurantId}/templates`,
       data,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -114,11 +78,11 @@ class SchedulingService {
     id: number,
     data: Partial<CreateShiftTemplateData>,
   ): Promise<ShiftTemplate> {
-    const response = await this.api.put<ApiResponse<ShiftTemplate>>(
+    const response = await this.api.put<ShiftTemplate>(
       `/scheduling/templates/${id}`,
       data,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -141,19 +105,19 @@ class SchedulingService {
     const { restaurantId, ...params } = filters;
     const response = await this.api.get<PaginatedResponse<EmployeeSchedule>>(
       `/scheduling/${restaurantId}/schedules`,
-      { params },
+      params,
     );
-    return response.data;
+    return response.data.data!;
   }
 
   /**
    * Get a specific schedule
    */
   async getSchedule(id: number): Promise<EmployeeSchedule> {
-    const response = await this.api.get<ApiResponse<EmployeeSchedule>>(
+    const response = await this.api.get<EmployeeSchedule>(
       `/scheduling/schedules/${id}`,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -163,11 +127,11 @@ class SchedulingService {
     restaurantId: string,
     data: CreateScheduleData,
   ): Promise<EmployeeSchedule> {
-    const response = await this.api.post<ApiResponse<EmployeeSchedule>>(
+    const response = await this.api.post<EmployeeSchedule>(
       `/scheduling/${restaurantId}/schedules`,
       data,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -177,11 +141,11 @@ class SchedulingService {
     id: number,
     data: UpdateScheduleData,
   ): Promise<EmployeeSchedule> {
-    const response = await this.api.put<ApiResponse<EmployeeSchedule>>(
+    const response = await this.api.put<EmployeeSchedule>(
       `/scheduling/schedules/${id}`,
       data,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -198,11 +162,11 @@ class SchedulingService {
     restaurantId: string,
     data: BulkCreateSchedulesData,
   ): Promise<{ count: number }> {
-    const response = await this.api.post<ApiResponse<{ count: number }>>(
+    const response = await this.api.post<{ count: number }>(
       `/scheduling/${restaurantId}/schedules/bulk`,
       data,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   // ========================================
@@ -223,11 +187,11 @@ class SchedulingService {
       params.shiftTemplateId = shiftTemplateId;
     }
 
-    const response = await this.api.get<ApiResponse<AvailableEmployee[]>>(
+    const response = await this.api.get<AvailableEmployee[]>(
       `/scheduling/${restaurantId}/available-employees`,
-      { params },
+      params,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   // ========================================
@@ -240,10 +204,10 @@ class SchedulingService {
   async getClockedInEmployees(
     restaurantId: string,
   ): Promise<EmployeeSchedule[]> {
-    const response = await this.api.get<ApiResponse<EmployeeSchedule[]>>(
+    const response = await this.api.get<EmployeeSchedule[]>(
       `/scheduling/${restaurantId}/clocked-in`,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -259,33 +223,33 @@ class SchedulingService {
     if (employeeId) {
       params.employeeId = employeeId;
     }
-    const response = await this.api.get<ApiResponse<any>>(
+    const response = await this.api.get<any>(
       `/scheduling/${restaurantId}/attendance-report`,
-      { params },
+      params,
     );
-    return response.data;
+    return response.data as ApiResponse<any>;
   }
 
   /**
    * Admin clock-in for employee
    */
   async adminClockIn(id: number, notes?: string): Promise<EmployeeSchedule> {
-    const response = await this.api.post<ApiResponse<EmployeeSchedule>>(
+    const response = await this.api.post<EmployeeSchedule>(
       `/scheduling/schedules/${id}/admin-clock-in`,
       { notes },
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
    * Admin clock-out for employee
    */
   async adminClockOut(id: number, notes?: string): Promise<EmployeeSchedule> {
-    const response = await this.api.post<ApiResponse<EmployeeSchedule>>(
+    const response = await this.api.post<EmployeeSchedule>(
       `/scheduling/schedules/${id}/admin-clock-out`,
       { notes },
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   // ========================================
@@ -296,22 +260,22 @@ class SchedulingService {
    * Clock in to a shift
    */
   async clockIn(id: number, data: ClockInData): Promise<EmployeeSchedule> {
-    const response = await this.api.post<ApiResponse<EmployeeSchedule>>(
+    const response = await this.api.post<EmployeeSchedule>(
       `/scheduling/schedules/${id}/clock-in`,
       data,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
    * Clock out from a shift
    */
   async clockOut(id: number, data: ClockOutData): Promise<EmployeeSchedule> {
-    const response = await this.api.post<ApiResponse<EmployeeSchedule>>(
+    const response = await this.api.post<EmployeeSchedule>(
       `/scheduling/schedules/${id}/clock-out`,
       data,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   // ========================================
@@ -327,9 +291,9 @@ class SchedulingService {
     const { restaurantId, ...params } = filters;
     const response = await this.api.get<PaginatedResponse<SchedulingConflict>>(
       `/scheduling/${restaurantId}/conflicts`,
-      { params },
+      params,
     );
-    return response.data;
+    return response.data.data!;
   }
 
   /**
@@ -340,11 +304,11 @@ class SchedulingService {
     userId: number,
     resolutionNotes: string,
   ): Promise<SchedulingConflict> {
-    const response = await this.api.post<ApiResponse<SchedulingConflict>>(
+    const response = await this.api.post<SchedulingConflict>(
       `/scheduling/conflicts/${id}/resolve`,
       { userId, resolutionNotes },
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   // ========================================
@@ -360,9 +324,9 @@ class SchedulingService {
     const { restaurantId, ...params } = filters;
     const response = await this.api.get<PaginatedResponse<SwapRequest>>(
       `/scheduling/${restaurantId}/swap-requests`,
-      { params },
+      params,
     );
-    return response.data;
+    return response.data.data!;
   }
 
   /**
@@ -372,11 +336,11 @@ class SchedulingService {
     restaurantId: string,
     data: CreateSwapRequestData,
   ): Promise<SwapRequest> {
-    const response = await this.api.post<ApiResponse<SwapRequest>>(
+    const response = await this.api.post<SwapRequest>(
       `/scheduling/${restaurantId}/swap-requests`,
       data,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -386,11 +350,11 @@ class SchedulingService {
     id: number,
     managerId: number,
   ): Promise<SwapRequest> {
-    const response = await this.api.post<ApiResponse<SwapRequest>>(
+    const response = await this.api.post<SwapRequest>(
       `/scheduling/swap-requests/${id}/approve`,
       { managerId },
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -400,11 +364,11 @@ class SchedulingService {
     id: number,
     employeeId: number,
   ): Promise<SwapRequest> {
-    const response = await this.api.post<ApiResponse<SwapRequest>>(
+    const response = await this.api.post<SwapRequest>(
       `/scheduling/swap-requests/${id}/accept`,
       { employeeId },
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -415,21 +379,21 @@ class SchedulingService {
     managerId: number,
     reason: string,
   ): Promise<SwapRequest> {
-    const response = await this.api.post<ApiResponse<SwapRequest>>(
+    const response = await this.api.post<SwapRequest>(
       `/scheduling/swap-requests/${id}/reject`,
       { managerId, reason },
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
    * Cancel a swap request (requester)
    */
   async cancelSwapRequest(id: number): Promise<SwapRequest> {
-    const response = await this.api.post<ApiResponse<SwapRequest>>(
+    const response = await this.api.post<SwapRequest>(
       `/scheduling/swap-requests/${id}/cancel`,
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   // ========================================
@@ -440,11 +404,11 @@ class SchedulingService {
    * Get daily scheduling statistics
    */
   async getDailyStats(restaurantId: string, date: string): Promise<DailyStats> {
-    const response = await this.api.get<ApiResponse<DailyStats>>(
+    const response = await this.api.get<DailyStats>(
       `/scheduling/${restaurantId}/stats/daily`,
-      { params: { date } },
+      { date },
     );
-    return response.data.data;
+    return response.data.data!;
   }
 
   /**
@@ -454,11 +418,11 @@ class SchedulingService {
     restaurantId: string,
     weekStartDate: string,
   ): Promise<WeeklySummary> {
-    const response = await this.api.get<ApiResponse<WeeklySummary>>(
+    const response = await this.api.get<WeeklySummary>(
       `/scheduling/${restaurantId}/stats/weekly`,
-      { params: { weekStartDate } },
+      { weekStartDate },
     );
-    return response.data.data;
+    return response.data.data!;
   }
 }
 
