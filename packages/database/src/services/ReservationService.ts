@@ -274,44 +274,35 @@ export class ReservationService extends BaseService {
         });
       };
 
-      // 查詢總數
-      const countResult = (await this.db.get(
-        sql.raw(
-          replaceParams(
-            `
-          SELECT COUNT(*) as total
-          FROM reservations r
-          WHERE ${whereClause}
-        `,
-            params,
-          ),
-        ),
-      )) as { total: number } | undefined;
+      // 查詢總數 (use raw D1 for complex dynamic SQL)
+      const countSql = replaceParams(
+        `SELECT COUNT(*) as total FROM reservations r WHERE ${whereClause}`,
+        params,
+      );
+      const countResult = await this.d1
+        .prepare(countSql)
+        .first<{ total: number }>();
 
       const total = countResult?.total || 0;
 
       // 查詢資料
-      const results = (await this.db.all(
-        sql.raw(
-          replaceParams(
-            `
-          SELECT
+      const dataSql = replaceParams(
+        `SELECT
             r.*,
             json_object(
               'id', t.id,
               'number', t.number,
               'capacity', t.capacity
-            ) as table
+            ) as "table"
           FROM reservations r
           LEFT JOIN tables t ON r.table_id = t.id
           WHERE ${whereClause}
           ${orderClause}
-          LIMIT ? OFFSET ?
-        `,
-            [...params, limit, offset],
-          ),
-        ),
-      )) as any[];
+          LIMIT ? OFFSET ?`,
+        [...params, limit, offset],
+      );
+      const dataResult = await this.d1.prepare(dataSql).all();
+      const results = (dataResult.results || []) as any[];
 
       const data = results.map((r) => this.formatReservationResponse(r));
 
@@ -887,26 +878,21 @@ export class ReservationService extends BaseService {
         });
       };
 
-      const result = (await this.db.get(
-        sql.raw(
-          replaceParams(
-            `
-          SELECT
+      const statsSql = replaceParams(
+        `SELECT
             COUNT(*) as total_reservations,
             SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
             SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count,
             SUM(CASE WHEN status = 'no_show' THEN 1 ELSE 0 END) as no_show_count,
             SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
             SUM(party_size) as total_guests,
-            ROUND(CAST(SUM(CASE WHEN status = 'no_show' THEN 1 ELSE 0 END) AS REAL) / COUNT(*) * 100, 2) as no_show_rate,
-            ROUND(CAST(SUM(party_size) AS REAL) / COUNT(*), 2) as avg_party_size
+            ROUND(CAST(SUM(CASE WHEN status = 'no_show' THEN 1 ELSE 0 END) AS REAL) / NULLIF(COUNT(*), 0) * 100, 2) as no_show_rate,
+            ROUND(CAST(SUM(party_size) AS REAL) / NULLIF(COUNT(*), 0), 2) as avg_party_size
           FROM reservations
-          WHERE ${whereClause}
-        `,
-            params,
-          ),
-        ),
-      )) as
+          WHERE ${whereClause}`,
+        params,
+      );
+      const result = (await this.d1.prepare(statsSql).first()) as
         | {
             total_reservations: number;
             confirmed_count: number;
