@@ -367,6 +367,18 @@ export const menuSchemas = {
   menuImport: menuImportSchema,
   menuExportQuery: menuExportQuerySchema,
 
+  // Category reorder schema
+  categoryReorder: z.object({
+    categories: z
+      .array(
+        z.object({
+          id: z.number().int().positive(),
+          sortOrder: z.number().int().min(0),
+        }),
+      )
+      .min(1),
+  }),
+
   // Complete validation
   validateCompleteMenuItem,
 };

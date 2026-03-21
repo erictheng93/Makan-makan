@@ -247,6 +247,12 @@ export interface IMenuService {
   updateCategory(id: number, data: UpdateCategoryData): Promise<Category>;
   deleteCategory(id: number): Promise<boolean>;
 
+  // Category reordering
+  reorderCategories(
+    restaurantId: string,
+    updates: Array<{ id: number; sortOrder: number }>,
+  ): Promise<void>;
+
   // Search and filtering
   searchMenuItems(
     restaurantId: string,

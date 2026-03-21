@@ -374,6 +374,28 @@ app.put(
   },
 );
 
+// PATCH /:restaurantId/categories/reorder - Batch reorder categories
+app.patch(
+  "/:restaurantId/categories/reorder",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(menuSchemas.restaurantIdParam),
+  validateBody(menuSchemas.categoryReorder),
+  async (c) => {
+    const { restaurantId } = c.get("validatedParams");
+    const { categories } = c.get("validatedBody");
+    const service = new MenuService(c.env);
+
+    await service.reorderCategories(restaurantId, categories);
+
+    return c.json(
+      createSuccessResponse(null, "Categories reordered successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
 // DELETE /categories/:id - Delete category
 app.delete(
   "/categories/:id",
