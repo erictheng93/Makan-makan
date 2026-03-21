@@ -1,7 +1,7 @@
 <template>
   <div class="leave-approval-list">
     <div class="approval-header">
-      <h2 class="title">{{ $t("leaves.approval.pendingRequests") }}</h2>
+      <h2 class="title">{{ t("leaves.approval.pendingRequests") }}</h2>
       <span class="count-badge">{{ pendingRequests.length }}</span>
     </div>
 
@@ -21,22 +21,22 @@
 
         <div class="request-details">
           <div class="detail-row">
-            <span class="label">{{ $t("leaves.request.period") }}:</span>
+            <span class="label">{{ t("leaves.request.period") }}:</span>
             <span class="value">
               {{ formatDate(request.startDate) }} -
               {{ formatDate(request.endDate) }} ({{ request.daysCount }}
-              {{ $t("leaves.balance.days") }})
+              {{ t("leaves.balance.days") }})
             </span>
           </div>
           <div class="detail-row">
-            <span class="label">{{ $t("leaves.request.reason") }}:</span>
+            <span class="label">{{ t("leaves.request.reason") }}:</span>
             <span class="value">{{ request.reason }}</span>
           </div>
           <div
             v-if="request.attachments && request.attachments.length > 0"
             class="detail-row"
           >
-            <span class="label">{{ $t("leaves.request.attachments") }}:</span>
+            <span class="label">{{ t("leaves.request.attachments") }}:</span>
             <div class="attachments">
               <a
                 v-for="(file, index) in request.attachments"
@@ -60,7 +60,7 @@
                 clip-rule="evenodd"
               />
             </svg>
-            {{ $t("leaves.approval.reject") }}
+            {{ t("leaves.approval.reject") }}
           </button>
           <button class="btn-approve" @click="$emit('approve', request.id)">
             <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
@@ -70,7 +70,7 @@
                 clip-rule="evenodd"
               />
             </svg>
-            {{ $t("leaves.approval.approve") }}
+            {{ t("leaves.approval.approve") }}
           </button>
         </div>
       </div>
@@ -85,14 +85,17 @@
           clip-rule="evenodd"
         />
       </svg>
-      <p>{{ $t("leaves.approval.noPending") }}</p>
+      <p>{{ t("leaves.approval.noPending") }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "@/i18n";
 import type { LeaveRequest } from "@makanmakan/shared-types";
+
+const { t } = useI18n();
 
 interface Props {
   requests: LeaveRequest[];

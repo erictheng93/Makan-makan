@@ -13,7 +13,7 @@
       <div class="flex space-x-4">
         <button
           class="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          :disabled="loading"
+          :disabled="isRefreshing"
           @click="refreshData"
         >
           <ArrowPathIcon class="h-4 w-4 mr-2" />
@@ -48,7 +48,7 @@
               {{ t("scheduling.monthlySchedules") }}
             </h3>
             <p class="text-xl font-bold text-blue-600">
-              {{ schedules.length }}
+              {{ schedulesLoading ? '—' : schedules.length }}
             </p>
           </div>
         </div>
@@ -64,7 +64,7 @@
               {{ t("shiftTemplates.title") }}
             </h3>
             <p class="text-xl font-bold text-green-600">
-              {{ shiftTemplates.length }}
+              {{ templatesLoading ? '—' : shiftTemplates.length }}
             </p>
           </div>
         </div>
@@ -116,12 +116,23 @@
           class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full"
         >
           {{
-            t("scheduling.peopleCount", { count: clockedInEmployees.length })
+            clockedInLoading
+              ? '—'
+              : t("scheduling.peopleCount", { count: clockedInEmployees.length })
           }}
         </span>
       </div>
       <div
-        v-if="clockedInEmployees.length === 0"
+        v-if="clockedInLoading"
+        class="flex items-center justify-center py-4 text-gray-400"
+      >
+        <div
+          class="animate-spin h-5 w-5 border-2 border-green-500 border-t-transparent rounded-full mr-2"
+        ></div>
+        <span class="text-sm">{{ t("common.loading") }}</span>
+      </div>
+      <div
+        v-else-if="clockedInEmployees.length === 0"
         class="text-center py-4 text-gray-500"
       >
         {{ t("scheduling.noEmployeesWorking") }}
@@ -205,7 +216,7 @@
       <div v-if="activeTab === 'calendar'">
         <SchedulingCalendar
           :schedules="schedules"
-          :loading="loading"
+          :loading="schedulesLoading"
           @date-select="handleDateSelect"
           @schedule-click="handleScheduleClick"
         />
@@ -215,7 +226,7 @@
       <div v-if="activeTab === 'list'">
         <SchedulingList
           :schedules="schedules"
-          :loading="loading"
+          :loading="schedulesLoading"
           @edit="handleEditSchedule"
           @delete="handleDeleteSchedule"
         />
@@ -225,7 +236,7 @@
       <div v-if="activeTab === 'templates'">
         <ShiftTemplatesList
           :templates="shiftTemplates"
-          :loading="loading"
+          :loading="templatesLoading"
           @edit="handleEditTemplate"
           @delete="handleDeleteTemplate"
         />
@@ -235,7 +246,7 @@
       <div v-if="activeTab === 'conflicts'">
         <SchedulingConflicts
           :conflicts="conflicts"
-          :loading="loading"
+          :loading="conflictsLoading"
           @resolve="handleResolveConflict"
         />
       </div>
@@ -244,7 +255,7 @@
       <div v-if="activeTab === 'swaps'">
         <SwapRequests
           :requests="swapRequests"
-          :loading="loading"
+          :loading="swapsLoading"
           @approve="handleApproveSwap"
           @reject="handleRejectSwap"
         />
@@ -268,18 +279,6 @@
       @save="handleSaveTemplate"
     />
 
-    <!-- Loading Overlay -->
-    <div
-      v-if="loading"
-      class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white rounded-lg p-8 flex flex-col items-center">
-        <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
-        ></div>
-        <p class="mt-4 text-gray-700 font-medium">{{ t("common.loading") }}</p>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -317,8 +316,20 @@ const { t } = useI18n();
 // Auth
 const authStore = useAuthStore();
 
-// State
-const loading = ref(false);
+// Per-section loading states (tiered progressive loading)
+const schedulesLoading = ref(true);
+const templatesLoading = ref(true);
+const conflictsLoading = ref(true);
+const swapsLoading = ref(true);
+const clockedInLoading = ref(true);
+const isRefreshing = computed(
+  () =>
+    schedulesLoading.value ||
+    templatesLoading.value ||
+    conflictsLoading.value ||
+    swapsLoading.value ||
+    clockedInLoading.value,
+);
 const error = ref<string | null>(null);
 const activeTab = ref("calendar");
 const schedules = ref<EmployeeSchedule[]>([]);
@@ -387,28 +398,19 @@ const switchTab = (tabId: string) => {
 };
 
 const refreshData = async () => {
-  loading.value = true;
   error.value = null;
-
-  try {
-    await Promise.all([
-      fetchSchedules(),
-      fetchShiftTemplates(),
-      fetchConflicts(),
-      fetchSwapRequests(),
-      fetchClockedIn(),
-    ]);
-  } catch (err) {
-    console.error("Failed to refresh data:", err);
-    error.value = err instanceof Error ? err.message : "Failed to load data";
-  } finally {
-    loading.value = false;
-  }
+  await Promise.all([
+    fetchSchedules(),
+    fetchShiftTemplates(),
+    fetchConflicts(),
+    fetchSwapRequests(),
+    fetchClockedIn(),
+  ]);
 };
 
 const fetchSchedules = async () => {
+  schedulesLoading.value = true;
   try {
-    // Get schedules for the next 30 days
     const today = new Date();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 30);
@@ -425,22 +427,29 @@ const fetchSchedules = async () => {
       : ((response as any)?.data ?? []);
   } catch (err) {
     console.error("Failed to fetch schedules:", err);
-    throw err;
+    error.value = err instanceof Error ? err.message : "Failed to load schedules";
+  } finally {
+    schedulesLoading.value = false;
   }
 };
 
 const fetchShiftTemplates = async () => {
+  templatesLoading.value = true;
   try {
     shiftTemplates.value = await schedulingService.getShiftTemplates(
       restaurantId.value,
     );
   } catch (err) {
     console.error("Failed to fetch shift templates:", err);
-    throw err;
+    error.value =
+      err instanceof Error ? err.message : "Failed to load shift templates";
+  } finally {
+    templatesLoading.value = false;
   }
 };
 
 const fetchConflicts = async () => {
+  conflictsLoading.value = true;
   try {
     const response = await schedulingService.getConflicts({
       restaurantId: restaurantId.value,
@@ -452,12 +461,14 @@ const fetchConflicts = async () => {
       : ((response as any)?.data ?? []);
   } catch (err) {
     console.error("Failed to fetch conflicts:", err);
-    // Don't throw - conflicts are optional
     conflicts.value = [];
+  } finally {
+    conflictsLoading.value = false;
   }
 };
 
 const fetchSwapRequests = async () => {
+  swapsLoading.value = true;
   try {
     const response = await schedulingService.getSwapRequests({
       restaurantId: restaurantId.value,
@@ -469,12 +480,14 @@ const fetchSwapRequests = async () => {
       : ((response as any)?.data ?? []);
   } catch (err) {
     console.error("Failed to fetch swap requests:", err);
-    // Don't throw - swap requests are optional
     swapRequests.value = [];
+  } finally {
+    swapsLoading.value = false;
   }
 };
 
 const fetchClockedIn = async () => {
+  clockedInLoading.value = true;
   try {
     const response = await schedulingService.getClockedInEmployees(
       restaurantId.value,
@@ -483,6 +496,8 @@ const fetchClockedIn = async () => {
   } catch (err) {
     console.error("Failed to fetch clocked-in employees:", err);
     clockedInEmployees.value = [];
+  } finally {
+    clockedInLoading.value = false;
   }
 };
 
@@ -536,33 +551,25 @@ const handleEditSchedule = (schedule: EmployeeSchedule) => {
 const handleDeleteSchedule = async (schedule: EmployeeSchedule) => {
   if (confirm(t("scheduling.confirmDeleteSchedule"))) {
     try {
-      loading.value = true;
       await schedulingService.deleteSchedule(schedule.id);
       await refreshData();
-      console.log("Schedule deleted successfully:", schedule.id);
     } catch (err) {
       console.error("Failed to delete schedule:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to delete schedule";
       alert(t("scheduling.deleteScheduleFailed"));
-    } finally {
-      loading.value = false;
     }
   }
 };
 
 const handleSaveSchedule = async (scheduleData: any) => {
   try {
-    loading.value = true;
-
     if (selectedSchedule.value?.id) {
-      // Update existing schedule
       await schedulingService.updateSchedule(
         selectedSchedule.value.id,
         scheduleData,
       );
     } else {
-      // Create new schedule
       await schedulingService.createSchedule(restaurantId.value, scheduleData);
     }
 
@@ -573,8 +580,6 @@ const handleSaveSchedule = async (scheduleData: any) => {
     error.value =
       err instanceof Error ? err.message : "Failed to save schedule";
     alert(t("scheduling.saveScheduleFailed"));
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -590,16 +595,12 @@ const showCreateTemplateModal = () => {
 
 const handleSaveTemplate = async (templateData: any) => {
   try {
-    loading.value = true;
-
     if (selectedTemplate.value?.id) {
-      // Update existing template
       await schedulingService.updateShiftTemplate(
         selectedTemplate.value.id,
         templateData,
       );
     } else {
-      // Create new template
       await schedulingService.createShiftTemplate(
         restaurantId.value,
         templateData,
@@ -614,31 +615,24 @@ const handleSaveTemplate = async (templateData: any) => {
     error.value =
       err instanceof Error ? err.message : "Failed to save template";
     alert(t("scheduling.saveTemplateFailed"));
-  } finally {
-    loading.value = false;
   }
 };
 
 const handleDeleteTemplate = async (template: ShiftTemplate) => {
   if (confirm(t("scheduling.confirmDeleteTemplate", { name: template.name }))) {
     try {
-      loading.value = true;
       await schedulingService.deleteShiftTemplate(template.id);
       await refreshData();
-      console.log("Template deleted successfully:", template.id);
     } catch (err) {
       console.error("Failed to delete template:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to delete template";
       alert(t("scheduling.deleteTemplateFailed"));
-    } finally {
-      loading.value = false;
     }
   }
 };
 
 const handleResolveConflict = async (conflict: SchedulingConflict) => {
-  // Get current user ID from auth store
   const userId = authStore.user?.id;
   if (!userId) {
     alert(t("scheduling.cannotGetUserInfo"));
@@ -648,28 +642,23 @@ const handleResolveConflict = async (conflict: SchedulingConflict) => {
   const resolutionNotes = prompt(t("scheduling.enterResolutionNotes"));
   if (resolutionNotes) {
     try {
-      loading.value = true;
       await schedulingService.resolveConflict(
         conflict.id,
         userId,
         resolutionNotes,
       );
       await refreshData();
-      console.log("Conflict resolved:", conflict.id);
     } catch (err) {
       console.error("Failed to resolve conflict:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to resolve conflict";
       alert(t("scheduling.resolveConflictFailed"));
-    } finally {
-      loading.value = false;
     }
   }
 };
 
 const handleApproveSwap = async (request: SwapRequest) => {
   if (confirm(t("swapRequests.actions.approveConfirm"))) {
-    // Get current manager ID from auth store
     const managerId = authStore.user?.id;
     if (!managerId) {
       alert(t("scheduling.cannotGetManagerInfo"));
@@ -677,17 +666,13 @@ const handleApproveSwap = async (request: SwapRequest) => {
     }
 
     try {
-      loading.value = true;
       await schedulingService.approveSwapRequest(request.id, managerId);
       await refreshData();
-      console.log("Swap request approved:", request.id);
     } catch (err) {
       console.error("Failed to approve swap request:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to approve swap";
       alert(t("scheduling.approveSwapFailed"));
-    } finally {
-      loading.value = false;
     }
   }
 };
@@ -695,7 +680,6 @@ const handleApproveSwap = async (request: SwapRequest) => {
 const handleRejectSwap = async (request: SwapRequest) => {
   const reason = prompt(t("scheduling.enterRejectReason"));
   if (reason) {
-    // Get current manager ID from auth store
     const managerId = authStore.user?.id;
     if (!managerId) {
       alert(t("scheduling.cannotGetManagerInfo"));
@@ -703,23 +687,26 @@ const handleRejectSwap = async (request: SwapRequest) => {
     }
 
     try {
-      loading.value = true;
       await schedulingService.rejectSwapRequest(request.id, managerId, reason);
       await refreshData();
-      console.log("Swap request rejected:", request.id);
     } catch (err) {
       console.error("Failed to reject swap request:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to reject swap";
       alert(t("scheduling.rejectSwapFailed"));
-    } finally {
-      loading.value = false;
     }
   }
 };
 
-// Lifecycle
-onMounted(() => {
-  refreshData();
+// Lifecycle — tiered progressive loading
+onMounted(async () => {
+  // Tier 1: await critical path — default calendar tab needs this
+  await fetchSchedules();
+
+  // Tier 2 & 3: fire-and-forget — UI renders immediately, data fills in
+  fetchClockedIn();
+  fetchShiftTemplates();
+  fetchConflicts();
+  fetchSwapRequests();
 });
 </script>
