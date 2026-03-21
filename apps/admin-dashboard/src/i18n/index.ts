@@ -224,7 +224,7 @@ export async function loadLocaleMessages(locale: Locale): Promise<void> {
 
   try {
     // 動態導入語言包
-    const module = await import(`./locales/${locale}`);
+    const module = await import(`./locales/${locale}.ts`);
     setLocaleMessages(locale, module.default);
     loadedLocales.add(locale);
   } catch (error) {
