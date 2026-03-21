@@ -48,7 +48,7 @@
               {{ t("scheduling.monthlySchedules") }}
             </h3>
             <p class="text-xl font-bold text-blue-600">
-              {{ schedulesLoading ? '—' : schedules.length }}
+              {{ schedulesLoading ? "—" : schedules.length }}
             </p>
           </div>
         </div>
@@ -64,7 +64,7 @@
               {{ t("shiftTemplates.title") }}
             </h3>
             <p class="text-xl font-bold text-green-600">
-              {{ templatesLoading ? '—' : shiftTemplates.length }}
+              {{ templatesLoading ? "—" : shiftTemplates.length }}
             </p>
           </div>
         </div>
@@ -117,8 +117,10 @@
         >
           {{
             clockedInLoading
-              ? '—'
-              : t("scheduling.peopleCount", { count: clockedInEmployees.length })
+              ? "—"
+              : t("scheduling.peopleCount", {
+                  count: clockedInEmployees.length,
+                })
           }}
         </span>
       </div>
@@ -278,7 +280,6 @@
       :restaurant-id="restaurantId"
       @save="handleSaveTemplate"
     />
-
   </div>
 </template>
 
@@ -427,7 +428,8 @@ const fetchSchedules = async () => {
       : ((response as any)?.data ?? []);
   } catch (err) {
     console.error("Failed to fetch schedules:", err);
-    error.value = err instanceof Error ? err.message : "Failed to load schedules";
+    error.value =
+      err instanceof Error ? err.message : "Failed to load schedules";
   } finally {
     schedulesLoading.value = false;
   }
