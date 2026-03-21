@@ -76,7 +76,9 @@
             <span
               class="px-2.5 py-0.5 bg-[#F2F2F7] rounded-full text-[12px] font-semibold text-[#8E8E93]"
             >
-              {{ filteredItems.length }} {{ t("menu.itemsCount") }}
+              {{
+                t("menu.itemsHeader.itemCount", { count: filteredItems.length })
+              }}
             </span>
           </div>
           <div class="flex gap-2.5 items-center">
@@ -417,9 +419,12 @@ const menuItemForm = ref({
 
 // ── Status filter options ──
 const statusFilters = computed(() => [
-  { value: "all" as const, label: t("menu.filter.all") },
-  { value: "available" as const, label: t("menu.filter.available") },
-  { value: "unavailable" as const, label: t("menu.filter.unavailable") },
+  { value: "all" as const, label: t("menu.itemsHeader.filterAll") },
+  { value: "available" as const, label: t("menu.itemsHeader.filterAvailable") },
+  {
+    value: "unavailable" as const,
+    label: t("menu.itemsHeader.filterUnavailable"),
+  },
 ]);
 
 // ── Computed ──
