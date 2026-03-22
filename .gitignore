@@ -115,6 +115,7 @@ public
 # Temporary folders
 tmp/
 temp/
+.tmp-mockup/
 
 # Editor directories and files
 .vscode/*
@@ -165,9 +166,13 @@ vitest.workspace.ts.bak
 !**/src/**/*.config.js
 !**/src/**/*.test.js
 !**/src/**/*.spec.js
+!packages/shared/src/i18n/src/eslint-rules.js
+!apps/api/src/__tests__/sql.js.d.ts
+!apps/kitchen-display/src/types/index-signatures.d.ts
 
 # Vite temporary files
 vite.config.ts.timestamp-*.mjs
+vitest.config.ts.timestamp-*.mjs
 
 # Local Claude Code settings
 .claude/settings.local.json
