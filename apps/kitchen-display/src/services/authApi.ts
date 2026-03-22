@@ -35,28 +35,59 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
 
-      try {
-        // 嘗試刷新 token
-        const refreshResponse = await authApi.refreshToken();
-        if (refreshResponse.success) {
-          const newToken = refreshResponse.data?.token;
-          localStorage.setItem("kitchen_auth_token", newToken || "");
-
-          // 重新發送原請求
-          original.headers.Authorization = `Bearer ${newToken}`;
-          return api(original);
-        }
-      } catch {
-        // 刷新失敗，清除認證信息並跳轉到登入頁
-        localStorage.removeItem("kitchen_auth_token");
-        localStorage.removeItem("kitchen_user");
-        window.location.href = "/login";
+      const newToken = await handleTokenRefresh();
+      if (newToken) {
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
       }
+
+      localStorage.removeItem("kitchen_auth_token");
+      localStorage.removeItem("kitchen_refresh_token");
+      localStorage.removeItem("kitchen_user");
+      window.location.href = "/login";
     }
 
     return Promise.reject(error);
   },
 );
+
+let refreshPromise: Promise<string | null> | null = null;
+
+async function handleTokenRefresh(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const rt = localStorage.getItem("kitchen_refresh_token");
+    if (!rt) return null;
+
+    try {
+      const response = await api.post("/auth/refresh", {}, {
+        headers: { "X-Refresh-Token": rt },
+        _retry: true,
+      } as any);
+
+      const newToken = response.data?.data?.token;
+      const newRefreshToken = response.data?.data?.refreshToken;
+
+      if (newToken) {
+        localStorage.setItem("kitchen_auth_token", newToken);
+        if (newRefreshToken) {
+          localStorage.setItem("kitchen_refresh_token", newRefreshToken);
+        }
+        return newToken;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
 
 export interface LoginCredentials {
   username: string;
@@ -121,22 +152,43 @@ export const authApi = {
 
   // 刷新 token
   async refreshToken(): Promise<ApiResponse<LoginResponse>> {
+    const rt = localStorage.getItem("kitchen_refresh_token");
+    if (!rt) {
+      return {
+        success: false,
+        error: "No refresh token available",
+        timestamp: new Date().toISOString(),
+      };
+    }
+
     try {
-      const response = await api.post("/auth/refresh");
+      const response = await api.post(
+        "/auth/refresh",
+        {},
+        {
+          headers: { "X-Refresh-Token": rt },
+        },
+      );
+
+      const data = response.data?.data;
+      if (data?.token) {
+        localStorage.setItem("kitchen_auth_token", data.token);
+        if (data.refreshToken) {
+          localStorage.setItem("kitchen_refresh_token", data.refreshToken);
+        }
+      }
 
       return {
         success: true,
-        data: response.data,
+        data: response.data.data,
         timestamp: new Date().toISOString(),
       };
     } catch (error: any) {
       console.error("Refresh token API error:", error);
-
-      const message =
-        error.response?.data?.message || error.message || "Token 刷新失敗";
       return {
         success: false,
-        error: message,
+        error:
+          error.response?.data?.message || error.message || "Token 刷新失敗",
         timestamp: new Date().toISOString(),
       };
     }
