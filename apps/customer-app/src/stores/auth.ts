@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import { i18n } from "@/i18n";
+import { getRefreshDelay } from "@makanmakan/utils";
 
 // Helper to avoid vue-i18n's deep type instantiation on t()
 const t = (key: string): string => t(key) as string;
@@ -30,6 +31,29 @@ export const useAuthStore = defineStore("auth", () => {
   const userId = computed(() => user.value?.id);
   const userName = computed(() => user.value?.fullName || user.value?.username);
 
+  // 清除錯誤
+  const clearError = () => {
+    error.value = null;
+  };
+
+  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleProactiveRefresh = (accessToken: string) => {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    const delay = getRefreshDelay(accessToken);
+    if (!delay || delay <= 0) return;
+    refreshTimer = setTimeout(async () => {
+      await refresh();
+    }, delay);
+  };
+
+  const clearRefreshTimer = () => {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+  };
+
   // 登入
   const login = async (username: string, password: string) => {
     isLoading.value = true;
@@ -48,8 +72,8 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (data.success && data.data) {
         // 保存 token 和用戶信息
-        token.value = data.data.tokens.accessToken;
-        refreshToken.value = data.data.tokens.refreshToken;
+        token.value = data.data.token;
+        refreshToken.value = data.data.refreshToken;
         user.value = data.data.user;
 
         // 存儲到 localStorage
@@ -57,6 +81,8 @@ export const useAuthStore = defineStore("auth", () => {
         if (refreshToken.value) {
           localStorage.setItem("customer_refresh_token", refreshToken.value);
         }
+
+        if (token.value) scheduleProactiveRefresh(token.value);
 
         return { success: true };
       }
@@ -107,6 +133,8 @@ export const useAuthStore = defineStore("auth", () => {
           localStorage.setItem("customer_refresh_token", refreshToken.value);
         }
 
+        if (token.value) scheduleProactiveRefresh(token.value);
+
         return { success: true };
       }
 
@@ -143,7 +171,42 @@ export const useAuthStore = defineStore("auth", () => {
 
       localStorage.removeItem("customer_auth_token");
       localStorage.removeItem("customer_refresh_token");
+      clearRefreshTimer();
     }
+  };
+
+  // 刷新 token
+  const refresh = async () => {
+    if (!refreshToken.value) return false;
+
+    try {
+      const response = await fetch("/api/v1/auth/refresh", {
+        method: "POST",
+        headers: {
+          "X-Refresh-Token": refreshToken.value,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        token.value = data.data.token;
+        refreshToken.value = data.data.refreshToken;
+
+        localStorage.setItem("customer_auth_token", token.value!);
+        if (refreshToken.value) {
+          localStorage.setItem("customer_refresh_token", refreshToken.value);
+        }
+
+        if (token.value) scheduleProactiveRefresh(token.value);
+        return true;
+      }
+    } catch (err) {
+      console.warn("Token refresh failed:", err);
+    }
+
+    // Degrade to reactive mode — don't logout on refresh failure
+    return false;
   };
 
   // 檢查認證狀態
@@ -161,44 +224,17 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (data.success && data.data) {
         user.value = data.data;
+        if (token.value) scheduleProactiveRefresh(token.value);
         return true;
       }
     } catch (err) {
       console.warn("Auth check failed:", err);
     }
 
-    await logout();
-    return false;
-  };
-
-  // 刷新 token
-  const refresh = async () => {
-    if (!refreshToken.value) return false;
-
-    try {
-      const response = await fetch("/api/v1/auth/refresh", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken: refreshToken.value }),
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        token.value = data.data.tokens.accessToken;
-        refreshToken.value = data.data.tokens.refreshToken;
-
-        localStorage.setItem("customer_auth_token", token.value!);
-        if (refreshToken.value) {
-          localStorage.setItem("customer_refresh_token", refreshToken.value);
-        }
-
-        return true;
-      }
-    } catch (err) {
-      console.warn("Token refresh failed:", err);
+    // Attempt refresh before giving up
+    if (refreshToken.value) {
+      const refreshed = await refresh();
+      if (refreshed) return true;
     }
 
     await logout();
@@ -227,11 +263,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     return null;
-  };
-
-  // 清除錯誤
-  const clearError = () => {
-    error.value = null;
   };
 
   return {
