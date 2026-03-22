@@ -20,11 +20,10 @@ import type {
 } from "../types";
 
 // =============================================================================
-// FILE-SCOPE MOCK INSTANCES
+// HOISTED MOCK INSTANCES (must be defined before vi.mock factories run)
 // =============================================================================
 
-// Mock DatabaseMenuService instance
-const mockDatabaseMenuServiceInstance = {
+const mockDatabaseMenuServiceInstance = vi.hoisted(() => ({
   getMenu: vi.fn(),
   getMenuItem: vi.fn(),
   createMenuItem: vi.fn(),
@@ -33,13 +32,76 @@ const mockDatabaseMenuServiceInstance = {
   createCategory: vi.fn(),
   updateCategory: vi.fn(),
   deleteCategory: vi.fn(),
+  reorderCategories: vi.fn(),
   searchMenuItems: vi.fn(),
   getFeaturedItems: vi.fn(),
   getPopularItems: vi.fn(),
   batchUpdateAvailability: vi.fn(),
   incrementOrderCount: vi.fn(),
   incrementViewCount: vi.fn(),
-};
+}));
+
+// =============================================================================
+// MODULE-LEVEL MOCKS (hoisted by Vitest)
+// =============================================================================
+
+// Mock the database-layer MenuService so HTTP route tests use our controlled mock
+vi.mock("@makanmakan/database", () => ({
+  MenuService: class MockDatabaseMenuService {
+    constructor() {
+      Object.assign(this, mockDatabaseMenuServiceInstance);
+    }
+  },
+}));
+
+// Mock auth middleware so HTTP route tests bypass JWT validation
+vi.mock("../../../shared/middleware", () => ({
+  authMiddleware: vi.fn((c: any, next: any) => {
+    c.set("user", {
+      id: 100,
+      username: "testuser",
+      role: 1,
+      restaurantId: "1",
+    });
+    return next();
+  }),
+  requireRole: vi.fn(() => (c: any, next: any) => next()),
+  requireRestaurantAccess: vi.fn(() => (c: any, next: any) => next()),
+  optionalAuth: vi.fn((c: any, next: any) => next()),
+  validateBody: vi.fn((_schema: any) => async (c: any, next: any) => {
+    const body = await c.req.json().catch(() => ({}));
+    const result = _schema.safeParse(body);
+    if (!result.success) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Validation failed",
+            details: result.error.issues,
+          },
+        },
+        400,
+      );
+    }
+    c.set("validatedBody", result.data);
+    return next();
+  }),
+  validateQuery: vi.fn(() => (c: any, next: any) => {
+    c.set("validatedQuery", {});
+    return next();
+  }),
+  validateParams: vi.fn((_schema: any) => (c: any, next: any) => {
+    // Extract path params directly from Hono context (c.req.param())
+    const restaurantId = c.req.param("restaurantId");
+    const id = c.req.param("id");
+    const params: Record<string, any> = {};
+    if (restaurantId !== undefined) params.restaurantId = restaurantId;
+    if (id !== undefined) params.id = Number(id) || id;
+    c.set("validatedParams", params);
+    return next();
+  }),
+}));
 
 // Mock Logger
 const mockLogger = {
@@ -620,6 +682,124 @@ describe("Menu Feature Module", () => {
       expect(mockDbService.getMenu).toHaveBeenCalledWith(
         String(mockRestaurantId),
       );
+    });
+  });
+
+  describe("Category Reorder", () => {
+    test("should reorder categories successfully", async () => {
+      mockDatabaseMenuServiceInstance.reorderCategories.mockResolvedValue(
+        undefined,
+      );
+
+      const res = await app.request(
+        `/${mockRestaurantId}/categories/reorder`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer test-token",
+          },
+          body: JSON.stringify({
+            categories: [
+              { id: 1, sortOrder: 0 },
+              { id: 2, sortOrder: 1 },
+              { id: 3, sortOrder: 2 },
+            ],
+          }),
+        },
+        mockEnv,
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(
+        mockDatabaseMenuServiceInstance.reorderCategories,
+      ).toHaveBeenCalledWith(mockRestaurantId, [
+        { id: 1, sortOrder: 0 },
+        { id: 2, sortOrder: 1 },
+        { id: 3, sortOrder: 2 },
+      ]);
+    });
+
+    test("should reject empty categories array", async () => {
+      const res = await app.request(
+        `/${mockRestaurantId}/categories/reorder`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer test-token",
+          },
+          body: JSON.stringify({
+            categories: [],
+          }),
+        },
+        mockEnv,
+      );
+
+      expect(res.status).toBe(400);
+    });
+
+    test("should reject invalid category id", async () => {
+      const res = await app.request(
+        `/${mockRestaurantId}/categories/reorder`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer test-token",
+          },
+          body: JSON.stringify({
+            categories: [{ id: -1, sortOrder: 0 }],
+          }),
+        },
+        mockEnv,
+      );
+
+      expect(res.status).toBe(400);
+    });
+
+    test("should reject negative sortOrder", async () => {
+      const res = await app.request(
+        `/${mockRestaurantId}/categories/reorder`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer test-token",
+          },
+          body: JSON.stringify({
+            categories: [{ id: 1, sortOrder: -1 }],
+          }),
+        },
+        mockEnv,
+      );
+
+      expect(res.status).toBe(400);
+    });
+
+    test("should handle service error gracefully", async () => {
+      mockDatabaseMenuServiceInstance.reorderCategories.mockRejectedValue(
+        new Error("Database error"),
+      );
+
+      const res = await app.request(
+        `/${mockRestaurantId}/categories/reorder`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer test-token",
+          },
+          body: JSON.stringify({
+            categories: [{ id: 1, sortOrder: 0 }],
+          }),
+        },
+        mockEnv,
+      );
+
+      expect(res.status).toBe(500);
     });
   });
 });
