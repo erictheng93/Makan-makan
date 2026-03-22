@@ -364,7 +364,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { useI18n } from "@/i18n";
 import { useMenuManagement } from "@/composables/useMenuManagement";
 import type {
@@ -461,14 +461,23 @@ const availableCount = computed(
 );
 
 // ── Category Panel Handlers ──
+const scrollToCategoryForm = () => {
+  nextTick(() => {
+    const form = document.querySelector("[data-category-form]");
+    form?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+};
+
 const startAddCategory = () => {
   editingCategory.value = null;
   showCategoryEditForm.value = true;
+  scrollToCategoryForm();
 };
 
 const startEditCategory = (category: CategoryData) => {
   editingCategory.value = category;
   showCategoryEditForm.value = true;
+  scrollToCategoryForm();
 };
 
 const handleSaveCategory = async (form: CategoryData, editingId?: number) => {

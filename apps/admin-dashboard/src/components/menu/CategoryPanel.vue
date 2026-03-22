@@ -2,7 +2,10 @@
   <div>
     <!-- Category List Card -->
     <div
-      class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden sticky top-7"
+      :class="[
+        'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden',
+        showEditForm ? '' : 'sticky top-7',
+      ]"
     >
       <!-- Header -->
       <div class="flex justify-between items-center px-5 pt-5 pb-4">

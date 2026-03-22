@@ -1,5 +1,6 @@
 <template>
   <div
+    data-category-form
     class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 mt-4"
   >
     <div class="flex items-center gap-2 mb-4">
