@@ -2,10 +2,7 @@
   <div>
     <!-- Category List Card -->
     <div
-      :class="[
-        'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden',
-        showEditForm ? '' : 'sticky top-7',
-      ]"
+      class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden sticky top-7"
     >
       <!-- Header -->
       <div class="flex justify-between items-center px-5 pt-5 pb-4">
@@ -132,13 +129,7 @@
       </VueDraggable>
     </div>
 
-    <!-- Inline edit form (below the list) -->
-    <CategoryEditForm
-      v-if="showEditForm"
-      :editing-category="editingCategory"
-      @save="(form, id) => $emit('save-category', form, id)"
-      @cancel="$emit('cancel-edit')"
-    />
+    <!-- Category edit form is rendered as a modal by MenuView -->
   </div>
 </template>
 
@@ -152,7 +143,6 @@ import {
   TrashIcon,
   Squares2X2Icon,
 } from "@heroicons/vue/24/outline";
-import CategoryEditForm from "./CategoryEditForm.vue";
 import type {
   CategoryData,
   MenuItemData,
@@ -164,8 +154,6 @@ const props = defineProps<{
   categories: CategoryData[];
   menuItems: MenuItemData[];
   selectedCategoryId: number | null;
-  showEditForm: boolean;
-  editingCategory: CategoryData | null;
 }>();
 
 const emit = defineEmits<{
@@ -173,8 +161,6 @@ const emit = defineEmits<{
   "add-category": [];
   "edit-category": [category: CategoryData];
   "delete-category": [category: CategoryData];
-  "save-category": [form: any, editingId?: number];
-  "cancel-edit": [];
   reorder: [categories: CategoryData[]];
 }>();
 

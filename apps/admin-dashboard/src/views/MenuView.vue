@@ -52,14 +52,10 @@
         :categories="categories"
         :menu-items="menuItems"
         :selected-category-id="selectedCategoryId"
-        :show-edit-form="showCategoryEditForm"
-        :editing-category="editingCategory"
         @select="selectedCategoryId = $event"
         @add-category="startAddCategory"
         @edit-category="startEditCategory"
         @delete-category="handleDeleteCategory"
-        @save-category="handleSaveCategory"
-        @cancel-edit="cancelCategoryEdit"
         @reorder="reorderCategories"
       />
 
@@ -114,7 +110,7 @@
 
             <!-- Add item button -->
             <button
-              class="flex items-center gap-1.5 px-4 py-2 bg-ios-primary text-white rounded-full text-[13px] font-semibold hover:bg-ios-primary/90 transition-colors shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
+              class="flex items-center gap-1.5 px-[18px] py-[9px] bg-[#0066D6] text-white rounded-full text-[13px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
               @click="openAddItemModal"
             >
               <PlusIcon class="h-4 w-4" />
@@ -156,7 +152,7 @@
             {{ t("menu.empty.subtitle") }}
           </p>
           <button
-            class="flex items-center gap-1.5 px-5 py-2.5 bg-ios-primary text-white rounded-full text-[14px] font-semibold hover:bg-ios-primary/90 transition-colors"
+            class="flex items-center gap-1.5 px-5 py-2.5 bg-[#0066D6] text-white rounded-full text-[14px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
             @click="openAddItemModal"
           >
             <PlusIcon class="h-4 w-4" />
@@ -175,6 +171,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Category edit modal -->
+    <CategoryEditForm
+      v-if="showCategoryEditForm"
+      :editing-category="editingCategory"
+      @save="handleSaveCategory"
+      @cancel="cancelCategoryEdit"
+    />
 
     <!-- Menu item modal -->
     <div v-if="showMenuItemModal" class="fixed inset-0 z-50 overflow-y-auto">
@@ -364,7 +368,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useMenuManagement } from "@/composables/useMenuManagement";
 import type {
@@ -372,6 +376,7 @@ import type {
   MenuItemData,
 } from "@/composables/useMenuManagement";
 import CategoryPanel from "@/components/menu/CategoryPanel.vue";
+import CategoryEditForm from "@/components/menu/CategoryEditForm.vue";
 import MenuItemCard from "@/components/menu/MenuItemCard.vue";
 import VirtualMenuGrid from "@/components/VirtualMenuGrid.vue";
 import {
@@ -461,26 +466,25 @@ const availableCount = computed(
 );
 
 // ── Category Panel Handlers ──
-const scrollToCategoryForm = () => {
-  nextTick(() => {
-    const form = document.querySelector("[data-category-form]");
-    form?.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
-};
-
 const startAddCategory = () => {
   editingCategory.value = null;
   showCategoryEditForm.value = true;
-  scrollToCategoryForm();
 };
 
 const startEditCategory = (category: CategoryData) => {
   editingCategory.value = category;
   showCategoryEditForm.value = true;
-  scrollToCategoryForm();
 };
 
-const handleSaveCategory = async (form: CategoryData, editingId?: number) => {
+const handleSaveCategory = async (
+  form: {
+    name: string;
+    nameEn: string;
+    description: string;
+    sortOrder: number;
+  },
+  editingId?: number,
+) => {
   await saveCategory(form, editingId);
   showCategoryEditForm.value = false;
   editingCategory.value = null;

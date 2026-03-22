@@ -46,15 +46,7 @@ vi.mock("@heroicons/vue/24/outline", () => ({
   Squares2X2Icon: { template: '<svg data-testid="squares-icon" />' },
 }));
 
-// CategoryEditForm is a child — stub it so we can simply check its presence
-vi.mock("../CategoryEditForm.vue", () => ({
-  default: {
-    name: "CategoryEditForm",
-    template: '<div data-testid="category-edit-form" />',
-    props: ["editingCategory"],
-    emits: ["save", "cancel"],
-  },
-}));
+// CategoryEditForm is now rendered as a modal by MenuView, not by CategoryPanel
 
 // ── Import after mocks ─────────────────────────────────────────────────────
 
@@ -103,8 +95,6 @@ const mountPanel = (overrides: Record<string, unknown> = {}) => {
       categories: sampleCategories,
       menuItems: sampleMenuItems,
       selectedCategoryId: null,
-      showEditForm: false,
-      editingCategory: null,
       ...overrides,
     },
     global: {
@@ -194,19 +184,5 @@ describe("CategoryPanel", () => {
     });
   });
 
-  describe("CategoryEditForm visibility", () => {
-    test("renders CategoryEditForm when showEditForm is true", () => {
-      const wrapper = mountPanel({ showEditForm: true });
-      expect(wrapper.find('[data-testid="category-edit-form"]').exists()).toBe(
-        true,
-      );
-    });
-
-    test("does not render CategoryEditForm when showEditForm is false", () => {
-      const wrapper = mountPanel({ showEditForm: false });
-      expect(wrapper.find('[data-testid="category-edit-form"]').exists()).toBe(
-        false,
-      );
-    });
-  });
+  // CategoryEditForm visibility is now tested in MenuView since it's rendered as a modal there
 });
