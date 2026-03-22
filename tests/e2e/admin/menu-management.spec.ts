@@ -4,13 +4,14 @@ import { test, expect, Page } from "@playwright/test";
  * Admin Dashboard - 菜單管理流程 E2E 測試
  *
  * 測試場景：
- * 1. 查看菜單列表
+ * 1. 查看菜單列表（master-detail 佈局）
  * 2. 新增菜品
  * 3. 編輯菜品
  * 4. 刪除菜品
- * 5. 管理分類
+ * 5. 管理分類（內嵌表單）
  * 6. 上傳菜品圖片
- * 7. 批量操作
+ * 7. 分類篩選（client-side）
+ * 8. 搜尋菜品
  */
 
 // 測試輔助函數：登入
@@ -42,11 +43,13 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/.*\/dashboard/);
 }
 
-// 測試輔助函數：模擬菜單數據
+// 測試輔助函數：模擬菜單數據（新格式，包含 isFeatured / isAvailable / sortOrder）
 const mockCategories = [
-  { id: 1, name: "主菜", nameEn: "Main Dishes", sortOrder: 1 },
-  { id: 2, name: "飲料", nameEn: "Beverages", sortOrder: 2 },
-  { id: 3, name: "甜點", nameEn: "Desserts", sortOrder: 3 },
+  { id: 1, name: "招牌小吃", nameEn: "Signature Snacks", sortOrder: 1 },
+  { id: 2, name: "麵食", nameEn: "Noodles", sortOrder: 2 },
+  { id: 3, name: "湯品", nameEn: "Soups", sortOrder: 3 },
+  { id: 4, name: "飲料", nameEn: "Beverages", sortOrder: 4 },
+  { id: 5, name: "甜品", nameEn: "Desserts", sortOrder: 5 },
 ];
 
 const mockMenuItems = [
@@ -55,11 +58,13 @@ const mockMenuItems = [
     name: "牛肉麵",
     nameEn: "Beef Noodles",
     description: "精選牛肉配手工麵",
-    categoryId: 1,
-    categoryName: "主菜",
+    categoryId: 2,
+    categoryName: "麵食",
     price: 120,
     imageUrl: "https://example.com/beef-noodles.jpg",
     isAvailable: true,
+    isFeatured: true,
+    sortOrder: 1,
     prepTime: 15,
     spicyLevel: 1,
   },
@@ -68,11 +73,13 @@ const mockMenuItems = [
     name: "珍珠奶茶",
     nameEn: "Bubble Milk Tea",
     description: "經典台灣珍珠奶茶",
-    categoryId: 2,
+    categoryId: 4,
     categoryName: "飲料",
     price: 50,
     imageUrl: "https://example.com/bubble-tea.jpg",
     isAvailable: true,
+    isFeatured: false,
+    sortOrder: 1,
     prepTime: 5,
     spicyLevel: 0,
   },
@@ -81,119 +88,114 @@ const mockMenuItems = [
     name: "芒果冰",
     nameEn: "Mango Ice",
     description: "新鮮芒果刨冰",
-    categoryId: 3,
-    categoryName: "甜點",
+    categoryId: 5,
+    categoryName: "甜品",
     price: 80,
     imageUrl: "https://example.com/mango-ice.jpg",
     isAvailable: false,
+    isFeatured: false,
+    sortOrder: 1,
     prepTime: 10,
     spicyLevel: 0,
   },
 ];
+
+// 輔助函數：設定合併的菜單 API mock（新的 single-endpoint 格式）
+async function mockMenuApi(page: Page) {
+  await page.route("**/api/v1/menu/*", async (route) => {
+    const url = route.request().url();
+    const method = route.request().method();
+
+    // GET 主菜單端點（不含 /items/ 或 /categories/ 子路徑）：回傳合併資料
+    if (
+      method === "GET" &&
+      !url.includes("/items/") &&
+      !url.includes("/categories/")
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: { categories: mockCategories, menuItems: mockMenuItems },
+        }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+}
 
 test.describe("Admin Dashboard - 菜單管理", () => {
   test.beforeEach(async ({ page }) => {
     // 登入
     await login(page);
 
-    // Mock 分類 API
-    await page.route("/api/v1/menu/*/categories*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          success: true,
-          data: mockCategories,
-        }),
-      });
-    });
-
-    // Mock 菜單列表 API
-    await page.route("/api/v1/menu/*/items*", async (route) => {
-      const url = new URL(route.request().url());
-      const categoryId = url.searchParams.get("categoryId");
-
-      let filteredItems = mockMenuItems;
-      if (categoryId) {
-        filteredItems = mockMenuItems.filter(
-          (item) => item.categoryId === parseInt(categoryId),
-        );
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          success: true,
-          data: {
-            items: filteredItems,
-            pagination: {
-              total: filteredItems.length,
-              page: 1,
-              pageSize: 20,
-              totalPages: 1,
-            },
-          },
-        }),
-      });
-    });
+    // Mock 合併菜單 API（categories + menuItems 一次回傳）
+    await mockMenuApi(page);
 
     // 導航到菜單管理頁面
     await page.click("text=菜單管理");
     await expect(page).toHaveURL(/.*\/dashboard\/menu/);
   });
 
-  test("應該顯示菜單列表", async ({ page }) => {
-    // 等待菜單列表載入
-    await page.waitForSelector(
-      '[data-testid="menu-items-list"], .menu-grid, .menu-table',
-      { timeout: 10000 },
-    );
+  test("應該顯示 master-detail 菜單列表", async ({ page }) => {
+    // 等待右側 VirtualMenuGrid 容器出現
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
 
-    // 驗證菜品數量
-    const menuItems = await page
-      .locator('[data-testid="menu-item"], .menu-item-card, tbody tr')
-      .count();
-    expect(menuItems).toBeGreaterThan(0);
+    // 驗證左側分類面板標題
+    await expect(page.locator("text=分類管理")).toBeVisible();
 
-    // 驗證菜品資訊
-    await expect(page.locator("text=牛肉麵")).toBeVisible();
-    await expect(page.locator("text=珍珠奶茶")).toBeVisible();
+    // 驗證「所有菜品」列顯示
+    await expect(page.locator("text=所有菜品").first()).toBeVisible();
+
+    // 驗證菜品 cards 出現
+    const menuItemCards = await page.locator(".virtual-grid-item").count();
+    expect(menuItemCards).toBeGreaterThan(0);
+
+    // 驗證具體菜品名稱
+    await expect(page.locator("text=牛肉麵").first()).toBeVisible();
+    await expect(page.locator("text=珍珠奶茶").first()).toBeVisible();
+
+    // 驗證價格（NT$ 格式或純數字）
     await expect(
       page.locator("text=120").or(page.locator("text=$120")).first(),
     ).toBeVisible();
   });
 
-  test("應該能夠按分類篩選菜品", async ({ page }) => {
-    // 等待頁面載入
-    await page.waitForLoadState("networkidle");
+  test("應該能夠按分類篩選菜品（client-side）", async ({ page }) => {
+    // 等待頁面與左側分類面板載入
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
 
-    // 點擊「主菜」分類
-    const categoryFilter = page
-      .locator('text=主菜, [data-category="1"], button:has-text("主菜")')
+    // 點擊左側面板中的「麵食」分類列
+    const categoryRow = page
+      .locator("[data-category-id], .category-row, li")
+      .filter({ hasText: "麵食" })
       .first();
 
-    if (await categoryFilter.isVisible({ timeout: 5000 })) {
-      await categoryFilter.click();
+    await categoryRow.click();
 
-      // 等待 API 請求完成
-      await page.waitForResponse(
-        (resp) =>
-          resp.url().includes("/api/v1/menu") &&
-          resp.url().includes("categoryId"),
-      );
+    // 分類篩選是 client-side，不等待網路請求；短暫等待 DOM 更新即可
+    await page.waitForTimeout(300);
 
-      // 驗證只顯示主菜分類的菜品
-      await expect(page.locator("text=牛肉麵")).toBeVisible();
-      await expect(page.locator("text=珍珠奶茶")).not.toBeVisible();
-    }
+    // 驗證麵食分類菜品可見
+    await expect(page.locator("text=牛肉麵").first()).toBeVisible();
+
+    // 驗證其他分類菜品被隱藏（珍珠奶茶屬於飲料分類）
+    await expect(
+      page.locator(".virtual-grid-item").filter({ hasText: "珍珠奶茶" }),
+    ).not.toBeVisible();
   });
 
   test("應該能夠新增菜品", async ({ page }) => {
     let createCalled = false;
 
     // Mock 新增菜品 API
-    await page.route("/api/v1/menu/*/items", async (route) => {
+    await page.route("**/api/v1/menu/*/items", async (route) => {
       if (route.request().method() === "POST") {
         createCalled = true;
         const postData = route.request().postDataJSON();
@@ -207,24 +209,31 @@ test.describe("Admin Dashboard - 菜單管理", () => {
               id: 4,
               ...postData,
               imageUrl: "https://example.com/new-item.jpg",
+              isFeatured: false,
+              isAvailable: true,
+              sortOrder: 4,
             },
           }),
         });
+      } else {
+        await route.continue();
       }
     });
 
-    // 點擊「新增菜品」按鈕
-    const addButton = page
-      .locator(
-        'button:has-text("新增"), button:has-text("添加"), [data-testid="add-menu-item"]',
-      )
-      .first();
+    // 等待右側面板載入
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
 
-    await addButton.click();
+    // 點擊右側面板 header 中的「新增菜品」按鈕
+    const addItemButton = page.locator('button:has-text("新增菜品")').first();
 
-    // 等待表單模態框出現
+    await addItemButton.click();
+
+    // 等待菜品表單模態框出現
     await page.waitForSelector(
       '[data-testid="menu-item-form"], .modal:visible, .dialog:visible',
+      { timeout: 5000 },
     );
 
     // 填寫表單
@@ -236,12 +245,12 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     await page.fill('textarea[name="description"], #description', "美味炒飯");
     await page.fill('input[name="price"], #price, [placeholder*="價格"]', "90");
 
-    // 選擇分類
+    // 選擇分類（若有下拉選單）
     const categorySelect = page
       .locator('select[name="categoryId"], #categoryId')
       .first();
     if (await categorySelect.isVisible({ timeout: 3000 })) {
-      await categorySelect.selectOption("1");
+      await categorySelect.selectOption("2");
     }
 
     // 提交表單
@@ -266,8 +275,8 @@ test.describe("Admin Dashboard - 菜單管理", () => {
   test("應該能夠編輯菜品", async ({ page }) => {
     let updateCalled = false;
 
-    // Mock 取得菜品詳情 API
-    await page.route("/api/v1/menu/*/items/1", async (route) => {
+    // Mock 取得菜品詳情與更新 API
+    await page.route("**/api/v1/menu/*/items/1", async (route) => {
       if (route.request().method() === "GET") {
         await route.fulfill({
           status: 200,
@@ -289,29 +298,31 @@ test.describe("Admin Dashboard - 菜單管理", () => {
           contentType: "application/json",
           body: JSON.stringify({
             success: true,
-            data: {
-              ...mockMenuItems[0],
-              ...postData,
-            },
+            data: { ...mockMenuItems[0], ...postData },
           }),
         });
       }
     });
 
-    // 查找並點擊編輯按鈕
-    const editButton = page
-      .locator(
-        '[data-item-id="1"] button:has-text("編輯"), ' +
-          'tr:has-text("牛肉麵") button:has-text("編輯"), ' +
-          '[data-testid="edit-menu-item-1"]',
-      )
+    // 等待 grid 載入後，hover 第一個菜品 card 以顯示 hover actions
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
+
+    const firstCard = page.locator(".virtual-grid-item").first();
+    await firstCard.hover();
+
+    // 點擊 hover 顯示的編輯按鈕
+    const editButton = firstCard
+      .locator('button:has-text("編輯"), [data-action="edit"]')
       .first();
 
     await editButton.click();
 
-    // 等待表單載入
+    // 等待編輯模態框載入
     await page.waitForSelector(
       '[data-testid="menu-item-form"], .modal:visible',
+      { timeout: 5000 },
     );
 
     // 修改價格
@@ -335,7 +346,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     let deleteCalled = false;
 
     // Mock 刪除菜品 API
-    await page.route("/api/v1/menu/*/items/1", async (route) => {
+    await page.route("**/api/v1/menu/*/items/1", async (route) => {
       if (route.request().method() === "DELETE") {
         deleteCalled = true;
         await route.fulfill({
@@ -349,18 +360,22 @@ test.describe("Admin Dashboard - 菜單管理", () => {
       }
     });
 
-    // 查找並點擊刪除按鈕
-    const deleteButton = page
-      .locator(
-        '[data-item-id="1"] button:has-text("刪除"), ' +
-          'tr:has-text("牛肉麵") button:has-text("刪除"), ' +
-          '[data-testid="delete-menu-item-1"]',
-      )
+    // 等待 grid 載入，hover 第一個 card
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
+
+    const firstCard = page.locator(".virtual-grid-item").first();
+    await firstCard.hover();
+
+    // 點擊 hover 顯示的刪除按鈕
+    const deleteButton = firstCard
+      .locator('button:has-text("刪除"), [data-action="delete"]')
       .first();
 
     await deleteButton.click();
 
-    // 確認刪除對話框
+    // 確認刪除對話框（若有）
     const confirmButton = page
       .locator(
         'button:has-text("確認"), button:has-text("確定"), [data-testid="confirm-delete"]',
@@ -378,11 +393,11 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     expect(deleteCalled).toBe(true);
   });
 
-  test("應該能夠管理分類", async ({ page }) => {
+  test("應該能夠管理分類（使用左側面板內嵌表單）", async ({ page }) => {
     let createCategoryCalled = false;
 
     // Mock 新增分類 API
-    await page.route("/api/v1/menu/*/categories", async (route) => {
+    await page.route("**/api/v1/menu/*/categories", async (route) => {
       if (route.request().method() === "POST") {
         createCategoryCalled = true;
         const postData = route.request().postDataJSON();
@@ -392,60 +407,70 @@ test.describe("Admin Dashboard - 菜單管理", () => {
           contentType: "application/json",
           body: JSON.stringify({
             success: true,
-            data: {
-              id: 4,
-              ...postData,
-              sortOrder: 4,
-            },
+            data: { id: 6, ...postData, sortOrder: 6 },
           }),
         });
+      } else {
+        await route.continue();
       }
     });
 
-    // 查找分類管理按鈕
-    const manageCategoriesButton = page
+    // 等待左側分類面板
+    await page.waitForSelector("text=分類管理", { timeout: 10000 });
+
+    // 點擊左側面板 header 中的「新增」按鈕
+    const addCategoryButton = page
       .locator(
-        'button:has-text("管理分類"), button:has-text("分類設定"), [data-testid="manage-categories"]',
+        ':text("分類管理") ~ * button:has-text("新增"), ' +
+          'button:near(:text("分類管理")):has-text("新增"), ' +
+          '[data-testid="add-category-btn"]',
       )
       .first();
 
-    if (await manageCategoriesButton.isVisible({ timeout: 3000 })) {
-      await manageCategoriesButton.click();
+    // 備選：直接找 category panel header 區域中的按鈕
+    const panelAddBtn = page
+      .locator('.category-panel button:has-text("新增")')
+      .first();
 
-      // 等待分類管理對話框
-      await page.waitForSelector(".modal:visible, .dialog:visible");
+    const btnToClick = (await addCategoryButton.isVisible({ timeout: 3000 }))
+      ? addCategoryButton
+      : panelAddBtn;
 
-      // 點擊新增分類
-      const addCategoryButton = page
-        .locator('button:has-text("新增分類"), button:has-text("添加分類")')
-        .first();
+    await btnToClick.click();
 
-      if (await addCategoryButton.isVisible({ timeout: 2000 })) {
-        await addCategoryButton.click();
+    // 等待內嵌分類表單出現（非 modal）
+    await page.waitForSelector("[data-category-form], .category-inline-form", {
+      timeout: 5000,
+    });
 
-        // 填寫分類名稱
-        await page.fill('input[name="name"], #categoryName', "湯品");
-        await page.fill('input[name="nameEn"], #categoryNameEn', "Soups");
+    // 填寫分類名稱
+    const nameInput = page
+      .locator(
+        '[data-category-form] input[name="name"], [data-category-form] input[placeholder*="名稱"], ' +
+          ".category-inline-form input",
+      )
+      .first();
 
-        // 提交
-        await page.click('button[type="submit"], button:has-text("確定")');
+    await nameInput.fill("小食");
 
-        // 等待創建完成
-        await page.waitForTimeout(1000);
+    // 提交內嵌表單
+    await page.click(
+      '[data-category-form] button[type="submit"], ' +
+        '[data-category-form] button:has-text("確定"), ' +
+        '.category-inline-form button[type="submit"]',
+    );
 
-        // 驗證 API 被調用
-        expect(createCategoryCalled).toBe(true);
-      }
-    }
+    // 等待創建完成
+    await page.waitForTimeout(1000);
+
+    // 驗證 API 被調用
+    expect(createCategoryCalled).toBe(true);
   });
 
   test("應該能夠上傳菜品圖片", async ({ page }) => {
-    let uploadCalled = false;
-
     // Mock 圖片上傳 API
-    await page.route("/api/v1/menu/*/items/1/image", async (route) => {
+    await page.route("**/api/v1/menu/*/items/1/image", async (route) => {
       if (route.request().method() === "POST") {
-        uploadCalled = true;
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -464,48 +489,45 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     });
 
     // Mock 菜品詳情 API
-    await page.route("/api/v1/menu/*/items/1", async (route) => {
+    await page.route("**/api/v1/menu/*/items/1", async (route) => {
       if (route.request().method() === "GET") {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({
-            success: true,
-            data: mockMenuItems[0],
-          }),
+          body: JSON.stringify({ success: true, data: mockMenuItems[0] }),
         });
       }
     });
 
-    // 點擊編輯按鈕
-    const editButton = page
-      .locator(
-        '[data-item-id="1"] button:has-text("編輯"), ' +
-          'tr:has-text("牛肉麵") button:has-text("編輯")',
-      )
+    // 等待 grid 載入，hover 第一張 card
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
+
+    const firstCard = page.locator(".virtual-grid-item").first();
+    await firstCard.hover();
+
+    const editButton = firstCard
+      .locator('button:has-text("編輯"), [data-action="edit"]')
       .first();
 
     await editButton.click();
 
-    // 等待表單載入
-    await page.waitForSelector(".modal:visible");
+    // 等待模態框
+    await page.waitForSelector(".modal:visible", { timeout: 5000 });
 
     // 查找圖片上傳輸入
     const fileInput = page.locator('input[type="file"], #imageUpload');
 
     if (await fileInput.isVisible({ timeout: 3000 })) {
-      // 模擬檔案上傳
       await fileInput.setInputFiles({
         name: "test-image.jpg",
         mimeType: "image/jpeg",
         buffer: Buffer.from("fake-image-content"),
       });
 
-      // 等待上傳完成
+      // 等待上傳觸發
       await page.waitForTimeout(1000);
-
-      // 驗證上傳被調用（如果有即時上傳）
-      // 注意：某些實現可能在表單提交時才上傳
     }
   });
 
@@ -513,7 +535,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     let toggleCalled = false;
 
     // Mock 切換狀態 API
-    await page.route("/api/v1/menu/*/items/1/toggle", async (route) => {
+    await page.route("**/api/v1/menu/*/items/1/toggle", async (route) => {
       if (
         route.request().method() === "PUT" ||
         route.request().method() === "PATCH"
@@ -533,28 +555,37 @@ test.describe("Admin Dashboard - 菜單管理", () => {
       }
     });
 
-    // 查找切換開關
-    const toggleSwitch = page
+    // 等待 grid 載入，hover 第一張 card
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
+
+    const firstCard = page.locator(".virtual-grid-item").first();
+    await firstCard.hover();
+
+    // 點擊 hover 顯示的切換按鈕
+    const toggleButton = firstCard
       .locator(
-        '[data-item-id="1"] input[type="checkbox"], ' +
-          '[data-item-id="1"] .toggle-switch, ' +
-          'tr:has-text("牛肉麵") input[type="checkbox"]',
+        'button:has-text("停售"), button:has-text("供應"), [data-action="toggle"], button[title*="狀態"]',
       )
       .first();
 
-    if (await toggleSwitch.isVisible({ timeout: 3000 })) {
-      await toggleSwitch.click();
+    if (await toggleButton.isVisible({ timeout: 3000 })) {
+      await toggleButton.click();
 
-      // 等待切換完成
       await page.waitForTimeout(1000);
 
-      // 驗證 API 被調用
       expect(toggleCalled).toBe(true);
     }
   });
 
   test("應該能夠搜尋菜品", async ({ page }) => {
-    // 查找搜尋輸入框
+    // 等待右側面板 header 中的搜尋輸入框
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
+
+    // 搜尋框在右側面板 header 區域
     const searchInput = page
       .locator(
         'input[type="search"], input[placeholder*="搜"], [data-testid="menu-search"]',
@@ -563,32 +594,52 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
     await searchInput.fill("牛肉麵");
 
-    // 等待搜尋結果
+    // 搜尋為 client-side，短暫等待 DOM 更新
     await page.waitForTimeout(500);
 
-    // 驗證搜尋結果
-    await expect(page.locator("text=牛肉麵")).toBeVisible();
+    // 驗證搜尋結果：牛肉麵可見
+    await expect(page.locator("text=牛肉麵").first()).toBeVisible();
 
     // 驗證其他菜品被過濾
-    const visibleItems = await page
-      .locator(
-        '[data-testid="menu-item"]:visible, .menu-item-card:visible, tbody tr:visible',
-      )
+    const visibleCards = await page
+      .locator(".virtual-grid-item:visible")
       .count();
 
-    expect(visibleItems).toBeLessThanOrEqual(1);
+    expect(visibleCards).toBeLessThanOrEqual(1);
   });
 
-  test("應該顯示菜品統計資訊", async ({ page }) => {
-    // 查找統計區域
-    const statsSection = page.locator(
-      '[data-testid="menu-stats"], .stats-grid, .menu-statistics',
-    );
+  test("應該顯示可用狀態篩選 pills", async ({ page }) => {
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
 
-    if (await statsSection.isVisible({ timeout: 5000 })) {
-      // 驗證統計卡片存在
-      const statCards = await statsSection.locator(".stat-card, .card").count();
-      expect(statCards).toBeGreaterThan(0);
+    // 右側 header 應有 全部 / 供應中 / 已停售 篩選 pills
+    await expect(page.locator("text=全部").first()).toBeVisible();
+
+    const availablePill = page.locator("text=供應中").first();
+    const soldOutPill = page.locator("text=已停售").first();
+
+    if (await availablePill.isVisible({ timeout: 3000 })) {
+      await availablePill.click();
+
+      await page.waitForTimeout(300);
+
+      // 牛肉麵 isAvailable=true → 仍可見
+      await expect(page.locator("text=牛肉麵").first()).toBeVisible();
+
+      // 芒果冰 isAvailable=false → 被過濾
+      await expect(
+        page.locator(".virtual-grid-item").filter({ hasText: "芒果冰" }),
+      ).not.toBeVisible();
+    }
+
+    if (await soldOutPill.isVisible({ timeout: 3000 })) {
+      await soldOutPill.click();
+
+      await page.waitForTimeout(300);
+
+      // 芒果冰 isAvailable=false → 可見
+      await expect(page.locator("text=芒果冰").first()).toBeVisible();
     }
   });
 });
@@ -599,59 +650,60 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
   });
 
   test("應該處理新增菜品時的驗證錯誤", async ({ page }) => {
-    // Mock 驗證錯誤回應
-    await page.route("/api/v1/menu/*/items", async (route) => {
-      if (route.request().method() === "POST") {
+    // Mock 合併菜單 API
+    await page.route("**/api/v1/menu/*", async (route) => {
+      const url = route.request().url();
+      const method = route.request().method();
+
+      if (
+        method === "GET" &&
+        !url.includes("/items/") &&
+        !url.includes("/categories/")
+      ) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: { categories: mockCategories, menuItems: mockMenuItems },
+          }),
+        });
+      } else if (method === "POST" && url.includes("/items")) {
+        // 回傳驗證錯誤
         await route.fulfill({
           status: 400,
           contentType: "application/json",
           body: JSON.stringify({
             success: false,
-            error: "Validation failed",
-            details: {
-              name: "Name is required",
-              price: "Price must be positive",
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "Validation failed",
+              details: {
+                name: "Name is required",
+                price: "Price must be positive",
+              },
             },
           }),
         });
+      } else {
+        await route.continue();
       }
-    });
-
-    // Mock 分類和列表 API
-    await page.route("/api/v1/menu/*/categories*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          success: true,
-          data: mockCategories,
-        }),
-      });
-    });
-
-    await page.route("/api/v1/menu/*/items*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          success: true,
-          data: {
-            items: mockMenuItems,
-            pagination: { total: 3, page: 1, pageSize: 20 },
-          },
-        }),
-      });
     });
 
     await page.click("text=菜單管理");
     await expect(page).toHaveURL(/.*\/dashboard\/menu/);
 
-    // 點擊新增按鈕
-    const addButton = page.locator('button:has-text("新增")').first();
+    // 等待 grid 載入
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
+
+    // 點擊右側面板的「新增菜品」按鈕
+    const addButton = page.locator('button:has-text("新增菜品")').first();
     await addButton.click();
 
-    // 等待表單
-    await page.waitForSelector(".modal:visible");
+    // 等待表單模態框
+    await page.waitForSelector(".modal:visible", { timeout: 5000 });
 
     // 提交空表單
     await page.click('button[type="submit"], button:has-text("確定")');
@@ -671,49 +723,56 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
   });
 
   test("應該處理圖片上傳失敗", async ({ page }) => {
-    // Mock 圖片上傳失敗
-    await page.route("/api/v1/menu/*/items/1/image", async (route) => {
-      await route.fulfill({
-        status: 413,
-        contentType: "application/json",
-        body: JSON.stringify({
-          success: false,
-          error: "File too large",
-        }),
-      });
-    });
+    // Mock 合併菜單 API
+    await page.route("**/api/v1/menu/*", async (route) => {
+      const url = route.request().url();
+      const method = route.request().method();
 
-    // Mock 其他 API
-    await page.route("/api/v1/menu/*/categories*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        body: JSON.stringify({ success: true, data: mockCategories }),
-      });
-    });
-
-    await page.route("/api/v1/menu/*/items*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        body: JSON.stringify({
-          success: true,
-          data: { items: mockMenuItems, pagination: {} },
-        }),
-      });
-    });
-
-    await page.route("/api/v1/menu/*/items/1", async (route) => {
-      if (route.request().method() === "GET") {
+      if (
+        method === "GET" &&
+        !url.includes("/items/") &&
+        !url.includes("/categories/")
+      ) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: { categories: mockCategories, menuItems: mockMenuItems },
+          }),
+        });
+      } else if (url.includes("/image")) {
+        // 回傳上傳失敗
+        await route.fulfill({
+          status: 413,
+          contentType: "application/json",
+          body: JSON.stringify({ success: false, error: "File too large" }),
+        });
+      } else if (method === "GET" && url.includes("/items/1")) {
         await route.fulfill({
           status: 200,
           body: JSON.stringify({ success: true, data: mockMenuItems[0] }),
         });
+      } else {
+        await route.continue();
       }
     });
 
     await page.click("text=菜單管理");
-    await page.click(
-      '[data-item-id="1"] button:has-text("編輯"), tr:has-text("牛肉麵") button:has-text("編輯")',
-    );
+    await page.waitForSelector(".virtual-menu-grid-container", {
+      timeout: 10000,
+    });
+
+    // Hover 第一個 card 並點擊編輯
+    const firstCard = page.locator(".virtual-grid-item").first();
+    await firstCard.hover();
+
+    await firstCard
+      .locator('button:has-text("編輯"), [data-action="edit"]')
+      .first()
+      .click();
+
+    await page.waitForSelector(".modal:visible", { timeout: 5000 });
 
     const fileInput = page.locator('input[type="file"]');
 
@@ -724,13 +783,13 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
         buffer: Buffer.alloc(10 * 1024 * 1024), // 10MB
       });
 
-      // 等待錯誤訊息
+      // 等待錯誤訊息（即時上傳觸發時）
       await page
         .waitForSelector('.error-message, .alert-error, [role="alert"]', {
           timeout: 3000,
         })
         .catch(() => {
-          // 如果沒有立即上傳，錯誤可能在提交時顯示
+          // 某些實現可能在表單提交時才顯示錯誤，可接受
         });
     }
   });
