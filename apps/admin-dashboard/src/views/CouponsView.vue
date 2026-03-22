@@ -39,7 +39,9 @@
           </div>
           <div class="ml-4">
             <p class="text-sm text-gray-600">{{ t("coupons.stats.used") }}</p>
-            <p class="text-2xl font-bold text-gray-900">{{ stats.used }}</p>
+            <p class="text-2xl font-bold text-gray-900">
+              {{ stats.totalUsed }}
+            </p>
           </div>
         </div>
       </div>
@@ -64,7 +66,7 @@
               {{ t("coupons.stats.totalSavings") }}
             </p>
             <p class="text-2xl font-bold text-gray-900">
-              {{ formatPrice(stats.totalSavings / 100) }}
+              {{ formatPrice(stats.totalSavings) }}
             </p>
           </div>
         </div>
@@ -195,13 +197,13 @@
                     <span v-if="coupon.maxDiscountAmount" class="text-gray-500">
                       ({{
                         t("coupons.table.maxDiscount", {
-                          amount: formatPrice(coupon.maxDiscountAmount / 100),
+                          amount: formatPrice(coupon.maxDiscountAmount),
                         })
                       }})
                     </span>
                   </span>
                   <span v-else>
-                    {{ formatPrice(coupon.discountValue / 100) }}
+                    {{ formatPrice(coupon.discountValue) }}
                   </span>
                 </div>
                 <div
@@ -210,7 +212,7 @@
                 >
                   {{
                     t("coupons.table.minOrder", {
-                      amount: formatPrice(coupon.minOrderAmount / 100),
+                      amount: formatPrice(coupon.minOrderAmount),
                     })
                   }}
                 </div>
@@ -432,6 +434,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { api } from "@/services/api";
 import {
   PlusIcon,
   TicketIcon,
@@ -474,7 +477,7 @@ interface Coupon {
 interface CouponStats {
   total: number;
   active: number;
-  used: number;
+  totalUsed: number;
   totalSavings: number;
 }
 
@@ -496,7 +499,7 @@ const filters = ref({
 const stats = ref<CouponStats>({
   total: 0,
   active: 0,
-  used: 0,
+  totalUsed: 0,
   totalSavings: 0,
 });
 
@@ -509,19 +512,17 @@ const isLoading = ref(false);
 const fetchCoupons = async () => {
   isLoading.value = true;
   try {
-    const params = new URLSearchParams({
+    const params: Record<string, string> = {
       page: currentPage.value.toString(),
       limit: pageSize.toString(),
-      ...(filters.value.search && { search: filters.value.search }),
-      ...(filters.value.status && { status: filters.value.status }),
-      ...(filters.value.discountType && {
-        discountType: filters.value.discountType,
-      }),
-    });
+    };
+    if (filters.value.search) params.search = filters.value.search;
+    if (filters.value.status) params.status = filters.value.status;
+    if (filters.value.discountType)
+      params.discountType = filters.value.discountType;
 
-    const response = await fetch(`/api/v1/coupons?${params}`);
-    if (!response.ok) throw new Error("Failed to fetch coupons");
-    couponsData.value = await response.json();
+    const response = await api.get("/coupons", params);
+    couponsData.value = response.data;
   } catch (error) {
     toast.error(t("coupons.messages.fetchFailed"));
     console.error("Failed to fetch coupons:", error);
@@ -612,35 +613,14 @@ const closeModal = () => {
 const handleSaveCoupon = async (couponData: any) => {
   try {
     if (editingCoupon.value) {
-      // Update existing coupon
-      const response = await fetch(
-        `/api/v1/coupons/${editingCoupon.value.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(couponData),
-        },
-      );
-
-      if (!response.ok) throw new Error("Failed to update coupon");
+      await api.put(`/coupons/${editingCoupon.value.id}`, couponData);
       toast.success(t("coupons.messages.updateSuccess"));
     } else {
-      // Create new coupon
-      const response = await fetch("/api/v1/coupons", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(couponData),
-      });
-
-      if (!response.ok) throw new Error("Failed to create coupon");
+      await api.post("/coupons", couponData);
       toast.success(t("coupons.messages.createSuccess"));
     }
 
-    await fetchCoupons();
+    await Promise.all([fetchCoupons(), fetchStats()]);
     closeModal();
   } catch (error) {
     toast.error(
@@ -653,12 +633,11 @@ const handleSaveCoupon = async (couponData: any) => {
 
 const viewCouponStats = async (coupon: Coupon) => {
   try {
-    const response = await fetch(`/api/v1/coupons/${coupon.id}/stats`);
-    if (!response.ok) throw new Error("Failed to fetch coupon stats");
-
-    const result = await response.json();
+    const response = await api.get<{ coupon: any; stats: any }>(
+      `/coupons/${coupon.id}/stats`,
+    );
     selectedCoupon.value = coupon;
-    couponStats.value = result.data.stats;
+    couponStats.value = response.data.data?.stats;
     showStatsModal.value = true;
   } catch {
     toast.error(t("coupons.messages.statsFailed"));
@@ -667,14 +646,9 @@ const viewCouponStats = async (coupon: Coupon) => {
 
 const deactivateCoupon = async (coupon: Coupon) => {
   try {
-    const response = await fetch(`/api/v1/coupons/${coupon.id}/deactivate`, {
-      method: "POST",
-    });
-
-    if (!response.ok) throw new Error("Failed to deactivate coupon");
-
+    await api.post(`/coupons/${coupon.id}/deactivate`);
     toast.success(t("coupons.messages.deactivateSuccess"));
-    await fetchCoupons();
+    await Promise.all([fetchCoupons(), fetchStats()]);
   } catch {
     toast.error(t("coupons.messages.deactivateFailed"));
   }
@@ -682,18 +656,9 @@ const deactivateCoupon = async (coupon: Coupon) => {
 
 const activateCoupon = async (coupon: Coupon) => {
   try {
-    const response = await fetch(`/api/v1/coupons/${coupon.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ isActive: true }),
-    });
-
-    if (!response.ok) throw new Error("Failed to activate coupon");
-
+    await api.put(`/coupons/${coupon.id}`, { isActive: true });
     toast.success(t("coupons.messages.activateSuccess"));
-    await fetchCoupons();
+    await Promise.all([fetchCoupons(), fetchStats()]);
   } catch {
     toast.error(t("coupons.messages.activateFailed"));
   }
@@ -705,14 +670,9 @@ const deleteCoupon = async (coupon: Coupon) => {
   }
 
   try {
-    const response = await fetch(`/api/v1/coupons/${coupon.id}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) throw new Error("Failed to delete coupon");
-
+    await api.delete(`/coupons/${coupon.id}`);
     toast.success(t("coupons.messages.deleteSuccess"));
-    await fetchCoupons();
+    await Promise.all([fetchCoupons(), fetchStats()]);
   } catch {
     toast.error(t("coupons.messages.deleteFailed"));
   }
@@ -721,6 +681,7 @@ const deleteCoupon = async (coupon: Coupon) => {
 // Initialize data and watchers
 onMounted(() => {
   fetchCoupons();
+  fetchStats();
 });
 
 // Watch for filter changes
@@ -732,30 +693,15 @@ watch(
   { deep: true },
 );
 
-// Watch for data changes to update statistics
-watch(
-  () => couponsData.value,
-  (data) => {
-    if (data?.data) {
-      const coupons = data.data as Coupon[];
-      const now = new Date();
-
-      stats.value = {
-        total: coupons.length,
-        active: coupons.filter(
-          (c) =>
-            c.isActive &&
-            new Date(c.validTo) > now &&
-            (!c.usageLimit || c.usedCount < c.usageLimit),
-        ).length,
-        used: coupons.reduce((sum, c) => sum + c.usedCount, 0),
-        totalSavings: coupons.reduce(
-          (sum, c) => sum + c.usedCount * c.discountValue,
-          0,
-        ),
-      };
+// Fetch summary stats from server
+const fetchStats = async () => {
+  try {
+    const response = await api.get<CouponStats>("/coupons/stats/summary");
+    if (response.data.data) {
+      stats.value = response.data.data;
     }
-  },
-  { immediate: true },
-);
+  } catch {
+    // Stats are non-critical — silently fall back to zeros
+  }
+};
 </script>

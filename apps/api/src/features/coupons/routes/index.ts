@@ -154,6 +154,23 @@ routes.get(
 );
 
 /**
+ * 獲取優惠券彙總統計
+ * GET /api/v1/coupons/stats/summary
+ */
+routes.get("/stats/summary", authMiddleware, requireRole([0, 1]), async (c) => {
+  const user = c.get("user");
+  const couponsService = new CouponsService(c.env.DB as any, c.env);
+
+  const restaurantId = user.role === 1 ? user.restaurantId : undefined;
+  const stats = await couponsService.getCouponSummaryStats(restaurantId);
+
+  return c.json({
+    success: true,
+    data: stats,
+  });
+});
+
+/**
  * 獲取單個優惠券詳情
  * GET /api/v1/coupons/:id
  */

@@ -46,11 +46,11 @@
                       class="text-gray-500"
                     >
                       ({{ t("couponStats.maxDiscount") }}
-                      {{ formatPrice((coupon?.maxDiscountAmount || 0) / 100) }})
+                      {{ formatPrice(coupon?.maxDiscountAmount || 0) }})
                     </span>
                   </span>
                   <span v-else>
-                    {{ formatPrice((coupon?.discountValue || 0) / 100) }}
+                    {{ formatPrice(coupon?.discountValue || 0) }}
                   </span>
                 </p>
               </div>
@@ -107,7 +107,7 @@
 
               <div class="bg-green-50 rounded-lg p-4">
                 <div class="text-2xl font-bold text-green-600">
-                  {{ formatPrice((stats.totalDiscount || 0) / 100) }}
+                  {{ formatPrice(stats.totalDiscount || 0) }}
                 </div>
                 <div class="text-sm text-green-700">
                   {{ t("couponStats.totalDiscount") }}
@@ -116,7 +116,7 @@
 
               <div class="bg-purple-50 rounded-lg p-4">
                 <div class="text-2xl font-bold text-purple-600">
-                  {{ formatPrice((stats.avgDiscount || 0) / 100) }}
+                  {{ formatPrice(stats.avgDiscount || 0) }}
                 </div>
                 <div class="text-sm text-purple-700">
                   {{ t("couponStats.avgDiscount") }}
