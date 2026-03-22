@@ -689,8 +689,7 @@ export class MenuService implements IMenuService {
     if (!category) {
       throw new Error("Category not found");
     }
-    // Use loose equality to handle type coercion (string vs number from different sources)
-    if (Number(category.restaurantId) !== Number(restaurantId)) {
+    if (String(category.restaurantId) !== String(restaurantId)) {
       throw new Error("Category does not belong to the specified restaurant");
     }
   }
