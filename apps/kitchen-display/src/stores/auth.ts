@@ -2,12 +2,16 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { User } from "@/types";
 import { authApi } from "@/services/authApi";
+import { isTokenExpired, getRefreshDelay } from "@makanmakan/utils";
 
 export const useAuthStore = defineStore("auth", () => {
   // State
   const user = ref<User | null>(null);
   const token = ref<string | null>(null);
   const loading = ref(false);
+  const refreshTokenVal = ref<string | null>(
+    localStorage.getItem("kitchen_refresh_token"),
+  );
 
   // Getters
   const isAuthenticated = computed(() => !!token.value && !!user.value);
@@ -18,6 +22,24 @@ export const useAuthStore = defineStore("auth", () => {
   });
 
   // Actions
+  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleProactiveRefresh = (accessToken: string) => {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    const delay = getRefreshDelay(accessToken);
+    if (!delay || delay <= 0) return;
+    refreshTimer = setTimeout(async () => {
+      await refreshToken();
+    }, delay);
+  };
+
+  const clearRefreshTimer = () => {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+  };
+
   const login = async (credentials: { username: string; password: string }) => {
     loading.value = true;
     try {
@@ -37,6 +59,13 @@ export const useAuthStore = defineStore("auth", () => {
         // 保存到 localStorage
         localStorage.setItem("kitchen_auth_token", authToken);
         localStorage.setItem("kitchen_user", JSON.stringify(userData));
+
+        // Save refresh token
+        if (response.data?.refreshToken) {
+          refreshTokenVal.value = response.data.refreshToken;
+          localStorage.setItem("kitchen_refresh_token", refreshTokenVal.value!);
+        }
+        scheduleProactiveRefresh(authToken);
 
         return { success: true };
       } else {
@@ -65,6 +94,9 @@ export const useAuthStore = defineStore("auth", () => {
       // 清除 localStorage
       localStorage.removeItem("kitchen_auth_token");
       localStorage.removeItem("kitchen_user");
+      refreshTokenVal.value = null;
+      localStorage.removeItem("kitchen_refresh_token");
+      clearRefreshTimer();
     }
   };
 
@@ -82,6 +114,12 @@ export const useAuthStore = defineStore("auth", () => {
         localStorage.setItem("kitchen_auth_token", newToken);
         localStorage.setItem("kitchen_user", JSON.stringify(userData));
 
+        if (response.data.refreshToken) {
+          refreshTokenVal.value = response.data.refreshToken;
+          localStorage.setItem("kitchen_refresh_token", refreshTokenVal.value!);
+        }
+
+        scheduleProactiveRefresh(newToken);
         return true;
       }
       return false;
@@ -100,7 +138,6 @@ export const useAuthStore = defineStore("auth", () => {
       try {
         const userData = JSON.parse(savedUser);
 
-        // 驗證用戶角色
         if (userData.role !== 2) {
           await logout();
           return false;
@@ -109,9 +146,15 @@ export const useAuthStore = defineStore("auth", () => {
         token.value = savedToken;
         user.value = userData;
 
-        // 嘗試刷新 token 以驗證其有效性
-        const refreshResult = await refreshToken();
-        return refreshResult;
+        // Only refresh if token is expired or about to expire
+        if (isTokenExpired(savedToken, 60)) {
+          const refreshResult = await refreshToken();
+          return refreshResult;
+        }
+
+        // Token still valid — schedule proactive refresh
+        scheduleProactiveRefresh(savedToken);
+        return true;
       } catch (error) {
         console.error("Auth check error:", error);
         await logout();
