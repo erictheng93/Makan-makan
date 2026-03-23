@@ -174,7 +174,7 @@ class StatisticsService {
   private refreshTimer: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.startAutoRefresh();
+    // Don't auto-start polling — let consuming components control lifecycle
   }
 
   // Main dashboard data fetching

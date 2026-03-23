@@ -125,6 +125,15 @@ class WebSocketService {
       this.wsToken = authResponse.token;
       this.wsUrl = authResponse.wsUrl;
 
+      // Validate WebSocket URL and token before connecting
+      if (!this.wsUrl || !this.wsToken) {
+        console.warn(
+          "WebSocket URL or token missing from auth response, aborting connect",
+        );
+        this.connectionStatus.value = "error";
+        return;
+      }
+
       // 建立 WebSocket 連接
       this.ws = new WebSocket(`${this.wsUrl}?token=${this.wsToken}`);
 
