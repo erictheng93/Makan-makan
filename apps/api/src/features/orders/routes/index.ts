@@ -30,6 +30,16 @@ import {
   forbidden,
   badRequest,
 } from "../../../shared/utils/api-error";
+import type { CallerContext } from "../types";
+
+/** Convert auth user to CallerContext for service-layer defence-in-depth */
+function toCallerContext(user: AuthUser): CallerContext {
+  return {
+    userId: user.id,
+    userRole: user.role,
+    userRestaurantId: user.restaurantId,
+  };
+}
 
 // Helper function to convert string status to enum value
 function stringToOrderStatus(status: string): OrderStatus {
@@ -399,6 +409,7 @@ app.get(
       filters,
       user.id,
       user.role as UserRole,
+      toCallerContext(user),
     );
 
     return c.json({
@@ -425,20 +436,18 @@ app.get(
 
     logger.debug("Getting order details", { orderId: id, userId: user.id });
 
-    const order = await ordersService.getOrder(parseInt(id), true);
+    const order = await ordersService.getOrder(
+      parseInt(id),
+      true,
+      toCallerContext(user),
+    );
 
     if (!order) {
       throw notFound("Order not found");
     }
 
-    // Permission check
-    if (user.role === 5) {
-      // Customers can only view their own orders
-      if (order.customerId !== user.id) {
-        throw forbidden("Access denied");
-      }
-    } else if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
-      // Staff can only view orders from their restaurant
+    // Additional customer-specific check (customers can only see their own orders)
+    if (user.role === 5 && order.customerId !== user.id) {
       throw forbidden("Access denied");
     }
 
@@ -514,6 +523,7 @@ app.put(
       },
       user.id,
       user.role as UserRole,
+      toCallerContext(user),
     );
 
     if (!updatedOrder) {
@@ -614,6 +624,7 @@ app.delete(
       parseInt(id),
       "Cancelled by user",
       user.id,
+      toCallerContext(user),
     );
 
     if (!cancelledOrder) {
@@ -707,7 +718,11 @@ app.get(
       filters.restaurantId = user.restaurantId;
     }
 
-    const analytics = await ordersService.getOrderAnalytics(filters, user.id);
+    const analytics = await ordersService.getOrderAnalytics(
+      filters,
+      user.id,
+      toCallerContext(user),
+    );
 
     return c.json({
       success: true,
