@@ -116,6 +116,7 @@ public
 tmp/
 temp/
 .tmp-mockup/
+.playwright-mcp/
 
 # Editor directories and files
 .vscode/*
