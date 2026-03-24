@@ -204,3 +204,4 @@ tmpclaude-*
 # Git worktrees
 .worktrees/
 .superpowers/
+.gstack/
