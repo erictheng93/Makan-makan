@@ -343,8 +343,8 @@ const selectedSchedule = ref<EmployeeSchedule | null>(null);
 const showTemplateFormModal = ref(false);
 const selectedTemplate = ref<ShiftTemplate | null>(null);
 
-// Get restaurant ID from auth store
-const restaurantId = computed(() => authStore.user?.restaurantId || "");
+// Get restaurant ID from auth store — use authStore.restaurantId which handles admin managing other restaurants
+const restaurantId = computed(() => authStore.restaurantId || "");
 
 // Icon mapping for tabs
 const getIconComponent = (icon: string) => {

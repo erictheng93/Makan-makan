@@ -917,10 +917,8 @@ const callForm = reactive({
   notificationMethod: "both" as "sms" | "display" | "both",
 });
 
-// Restaurant ID
-const restaurantId = computed(
-  () => authStore.user?.restaurantId?.toString() || "",
-);
+// Restaurant ID — use authStore.restaurantId which handles admin managing other restaurants
+const restaurantId = computed(() => authStore.restaurantId || "");
 
 // Estimated today total (placeholder)
 const estimatedTodayTotal = computed(() =>

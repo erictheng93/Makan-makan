@@ -808,10 +808,8 @@ const form = reactive<Partial<CreateReservationRequest>>({
 const formDate = ref("");
 const formTime = ref("");
 
-// Restaurant ID
-const restaurantId = computed(
-  () => authStore.user?.restaurantId?.toString() || "",
-);
+// Restaurant ID — use authStore.restaurantId which handles admin managing other restaurants
+const restaurantId = computed(() => authStore.restaurantId || "");
 
 /**
  * Load reservations list
