@@ -3823,6 +3823,9 @@ const viVN: Messages = {
     enterApiKey: "Nhập API key",
     apiKeyEncrypted: "API key sẽ được lưu trữ mã hóa",
     modelSelection: "Chọn mô hình",
+    modelPlaceholder: "Chọn hoặc nhập ID mô hình",
+    modelHint:
+      "Chọn từ danh sách hoặc nhập bất kỳ ID mô hình nào được nhà cung cấp hỗ trợ.",
     testConnection: "Kiểm tra kết nối",
     testing: "Đang kiểm tra...",
     connectionSuccess: "Kết nối thành công",

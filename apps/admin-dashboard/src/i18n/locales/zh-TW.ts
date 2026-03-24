@@ -3889,6 +3889,8 @@ const zhTW: Messages = {
     enterApiKey: "輸入 API 金鑰",
     apiKeyEncrypted: "API 金鑰將以加密方式儲存",
     modelSelection: "模型選擇",
+    modelPlaceholder: "選擇或輸入模型 ID",
+    modelHint: "可從清單中選擇，或直接輸入供應商支援的任何模型 ID。",
     testConnection: "測試連線",
     testing: "測試中...",
     connectionSuccess: "連線成功",

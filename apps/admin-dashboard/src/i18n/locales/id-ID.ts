@@ -3841,6 +3841,9 @@ const idID: Messages = {
     enterApiKey: "Masukkan API key",
     apiKeyEncrypted: "API key akan disimpan terenkripsi",
     modelSelection: "Pilihan Model",
+    modelPlaceholder: "Pilih atau ketik ID model",
+    modelHint:
+      "Pilih dari daftar atau masukkan ID model apa pun yang didukung penyedia.",
     testConnection: "Tes Koneksi",
     testing: "Menguji...",
     connectionSuccess: "Koneksi berhasil",

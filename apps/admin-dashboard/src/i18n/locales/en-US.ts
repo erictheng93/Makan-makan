@@ -3888,6 +3888,9 @@ const enUS: Messages = {
     enterApiKey: "Enter API key",
     apiKeyEncrypted: "API key will be stored encrypted",
     modelSelection: "Model Selection",
+    modelPlaceholder: "Select or type a model ID",
+    modelHint:
+      "Choose from the list or enter any model ID supported by the provider.",
     testConnection: "Test Connection",
     testing: "Testing...",
     connectionSuccess: "Connection successful",

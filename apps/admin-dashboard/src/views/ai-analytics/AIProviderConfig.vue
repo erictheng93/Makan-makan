@@ -286,23 +286,28 @@ const handleSaveConfig = async () => {
             </p>
           </div>
 
-          <!-- Model Selection -->
-          <div v-if="availableModels.length > 0">
+          <!-- Model Selection (combobox: select from list or type custom) -->
+          <div>
             <label class="block text-sm font-semibold text-gray-900 mb-2">
               {{ t("aiConfig.modelSelection") }}
             </label>
-            <select
+            <input
               v-model="form.model"
+              type="text"
+              :list="`models-${form.provider}`"
+              :placeholder="t('aiConfig.modelPlaceholder')"
               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-            >
+            />
+            <datalist :id="`models-${form.provider}`">
               <option
                 v-for="model in availableModels"
                 :key="model"
                 :value="model"
-              >
-                {{ model }}
-              </option>
-            </select>
+              />
+            </datalist>
+            <p class="text-xs text-gray-500 mt-2">
+              {{ t("aiConfig.modelHint") }}
+            </p>
           </div>
 
           <!-- Custom Base URL (for custom provider) -->

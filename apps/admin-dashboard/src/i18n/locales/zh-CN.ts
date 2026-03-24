@@ -3766,6 +3766,8 @@ const zhCN: Messages = {
     enterApiKey: "输入 API 密钥",
     apiKeyEncrypted: "API 密钥将以加密方式存储",
     modelSelection: "模型选择",
+    modelPlaceholder: "选择或输入模型 ID",
+    modelHint: "可从列表中选择，或直接输入供应商支持的任何模型 ID。",
     testConnection: "测试连接",
     testing: "测试中...",
     connectionSuccess: "连接成功",

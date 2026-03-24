@@ -3825,6 +3825,9 @@ const jaJP: Messages = {
     enterApiKey: "APIキーを入力",
     apiKeyEncrypted: "APIキーは暗号化して保存されます",
     modelSelection: "モデル選択",
+    modelPlaceholder: "モデル ID を選択または入力",
+    modelHint:
+      "リストから選択するか、プロバイダーがサポートする任意のモデル ID を入力できます。",
     testConnection: "接続テスト",
     testing: "テスト中...",
     connectionSuccess: "接続成功",
