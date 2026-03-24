@@ -15,10 +15,10 @@ const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");
 const yearInteger = z.number().int().min(2020).max(2100);
-// Restaurant ID format: S-YYYYMMDD-NNN (e.g., S-20250124-001)
+// Restaurant ID: UUID v7 format
 const restaurantIdString = z
   .string()
-  .regex(/^S-\d{8}-\d{3}$/, "Restaurant ID must be in S-YYYYMMDD-NNN format");
+  .uuid("Restaurant ID must be a valid UUID");
 
 // Leave Type Schemas
 export const createLeaveTypeSchema = z.object({

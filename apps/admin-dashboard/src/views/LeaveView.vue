@@ -97,7 +97,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { api } from "@/services/api";
 import LeaveBalanceCard from "@/components/leaves/LeaveBalanceCard.vue";
 import LeaveRequestDialog from "@/components/leaves/LeaveRequestDialog.vue";
 import LeaveRequestList from "@/components/leaves/LeaveRequestList.vue";
@@ -110,8 +112,8 @@ import type {
 } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
-const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 // 狀態
 const isLoading = ref(false);
@@ -149,53 +151,40 @@ const tabs = computed(() => [
 const loadData = async () => {
   isLoading.value = true;
   try {
-    const restaurantId = route.params.restaurantId || 1;
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
 
     // 載入請假類型
-    const typesResponse = await fetch(`/api/v1/leaves/${restaurantId}/types`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-    if (typesResponse.ok) {
-      const data = await typesResponse.json();
-      leaveTypes.value = data.data;
+    const typesResponse = await api.get<LeaveType[]>(
+      `/leaves/${restaurantId}/types`,
+    );
+    if (typesResponse.data?.data) {
+      leaveTypes.value = typesResponse.data.data;
     }
 
     // 載入我的餘額
-    const userId = localStorage.getItem("userId");
+    const userId = authStore.user?.id;
     if (userId) {
-      const balancesResponse = await fetch(
-        `/api/v1/leaves/${restaurantId}/balances/${userId}?year=${new Date().getFullYear()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
+      const balancesResponse = await api.get<LeaveBalance[]>(
+        `/leaves/balances`,
+        { employeeId: userId, year: new Date().getFullYear() },
       );
-      if (balancesResponse.ok) {
-        const data = await balancesResponse.json();
-        balances.value = data.data;
+      if (balancesResponse.data?.data) {
+        balances.value = balancesResponse.data.data;
       }
     }
 
     // 載入我的請假申請
-    const myRequestsResponse = await fetch(
-      `/api/v1/leaves/${restaurantId}/requests`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      },
+    const myRequestsResponse = await api.get<LeaveRequest[]>(
+      `/leaves/${restaurantId}/requests`,
     );
-    if (myRequestsResponse.ok) {
-      const data = await myRequestsResponse.json();
-      myRequests.value = data.data;
+    if (myRequestsResponse.data?.data) {
+      myRequests.value = myRequestsResponse.data.data;
     }
 
     // 如果是管理者，載入所有申請
-    const role = localStorage.getItem("role");
-    if (role === "0" || role === "1") {
+    const role = authStore.user?.role;
+    if (role === 0 || role === 1) {
       allRequests.value = myRequests.value; // 簡化版：實際應該有獨立API
     }
   } catch (error) {
@@ -227,23 +216,13 @@ const handleRequestLeave = (leaveType: LeaveType | undefined) => {
 // 提交請假申請
 const handleSubmitRequest = async (formData: any) => {
   try {
-    const restaurantId = route.params.restaurantId || 1;
-    const response = await fetch(`/api/v1/leaves/${restaurantId}/requests`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(formData),
-    });
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
 
-    if (response.ok) {
-      await loadData();
-      closeRequestDialog();
-      alert(t("leaveActions.submitSuccess"));
-    } else {
-      alert(t("leaveActions.submitFailed"));
-    }
+    await api.post(`/leaves/${restaurantId}/requests`, formData);
+    await loadData();
+    closeRequestDialog();
+    alert(t("leaveActions.submitSuccess"));
   } catch (error) {
     console.error("Failed to submit leave request:", error);
     alert(t("leaveActions.submitFailed"));
@@ -255,23 +234,12 @@ const handleCancelRequest = async (requestId: number) => {
   if (!confirm(t("leaveActions.cancelConfirm"))) return;
 
   try {
-    const restaurantId = route.params.restaurantId || 1;
-    const response = await fetch(
-      `/api/v1/leaves/${restaurantId}/requests/${requestId}/cancel`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      },
-    );
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
 
-    if (response.ok) {
-      await loadData();
-      alert(t("leaveActions.cancelSuccess"));
-    } else {
-      alert(t("leaveActions.cancelFailed"));
-    }
+    await api.post(`/leaves/${restaurantId}/requests/${requestId}/cancel`);
+    await loadData();
+    alert(t("leaveActions.cancelSuccess"));
   } catch (error) {
     console.error("Failed to cancel request:", error);
     alert(t("leaveActions.cancelFailed"));
@@ -283,23 +251,12 @@ const handleApproveRequest = async (requestId: number) => {
   if (!confirm(t("leaveActions.approveConfirm"))) return;
 
   try {
-    const restaurantId = route.params.restaurantId || 1;
-    const response = await fetch(
-      `/api/v1/leaves/${restaurantId}/requests/${requestId}/approve`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      },
-    );
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
 
-    if (response.ok) {
-      await loadData();
-      alert(t("leaveActions.approveSuccess"));
-    } else {
-      alert(t("leaveActions.approveFailed"));
-    }
+    await api.post(`/leaves/${restaurantId}/requests/${requestId}/approve`);
+    await loadData();
+    alert(t("leaveActions.approveSuccess"));
   } catch (error) {
     console.error("Failed to approve request:", error);
     alert(t("leaveActions.approveFailed"));
@@ -312,25 +269,14 @@ const handleRejectRequest = async (requestId: number) => {
   if (!reason) return;
 
   try {
-    const restaurantId = route.params.restaurantId || 1;
-    const response = await fetch(
-      `/api/v1/leaves/${restaurantId}/requests/${requestId}/reject`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ reason }),
-      },
-    );
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
 
-    if (response.ok) {
-      await loadData();
-      alert(t("leaveActions.rejectSuccess"));
-    } else {
-      alert(t("leaveActions.rejectFailed"));
-    }
+    await api.post(`/leaves/${restaurantId}/requests/${requestId}/reject`, {
+      reason,
+    });
+    await loadData();
+    alert(t("leaveActions.rejectSuccess"));
   } catch (error) {
     console.error("Failed to reject request:", error);
     alert(t("leaveActions.rejectFailed"));
@@ -339,7 +285,7 @@ const handleRejectRequest = async (requestId: number) => {
 
 // 查看詳情
 const handleViewDetails = (requestId: number) => {
-  router.push(`/leaves/${requestId}`);
+  router.push(`/dashboard/leaves/${requestId}`);
 };
 
 // 初始化
