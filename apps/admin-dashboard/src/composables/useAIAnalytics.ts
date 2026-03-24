@@ -79,10 +79,17 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     error.value = null;
 
     try {
+      const token = localStorage.getItem("auth_token");
+      const csrfToken = document.cookie.match(/csrf_token=([^;]+)/)?.[1];
+      const method = (options.method || "GET").toUpperCase();
+      const needsCsrf = ["POST", "PUT", "DELETE", "PATCH"].includes(method);
+
       const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(needsCsrf && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
           ...options.headers,
         },
       });
@@ -90,7 +97,9 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+          errorData.error?.message ||
+            errorData.message ||
+            `HTTP ${response.status}: ${response.statusText}`,
         );
       }
 

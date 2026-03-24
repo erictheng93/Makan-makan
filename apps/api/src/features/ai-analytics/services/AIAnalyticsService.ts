@@ -176,8 +176,7 @@ export class AIAnalyticsService {
       );
     }
 
-    // AIInsightsService expects raw D1Database
-    const service = new AIInsightsService(this.d1);
+    const service = new AIInsightsService(this.d1, this.db);
     const report = await service.generateReport(
       restaurantId,
       llmConfig,
@@ -207,7 +206,7 @@ export class AIAnalyticsService {
     timeRange: TimeRange,
     limit: number = 10,
   ): Promise<PackageProductAnalysis[]> {
-    const service = new ProductAnalysisService(this.d1);
+    const service = new ProductAnalysisService(this.db);
     return service.getTrafficDrivers(restaurantId, timeRange, limit);
   }
 
@@ -216,7 +215,7 @@ export class AIAnalyticsService {
     timeRange: TimeRange,
     limit: number = 10,
   ): Promise<PackageProductAnalysis[]> {
-    const service = new ProductAnalysisService(this.d1);
+    const service = new ProductAnalysisService(this.db);
     return service.getBestsellers(restaurantId, timeRange, limit);
   }
 
@@ -225,7 +224,7 @@ export class AIAnalyticsService {
     timeRange: TimeRange,
     limit: number = 10,
   ): Promise<PackageProductAnalysis[]> {
-    const service = new ProductAnalysisService(this.d1);
+    const service = new ProductAnalysisService(this.db);
     return service.getProfitLeaders(restaurantId, timeRange, limit);
   }
 
@@ -233,7 +232,7 @@ export class AIAnalyticsService {
     restaurantId: string,
     timeRange: TimeRange,
   ): Promise<PackageProductAnalysis[]> {
-    const service = new ProductAnalysisService(this.d1);
+    const service = new ProductAnalysisService(this.db);
     return service.analyzeProducts(restaurantId, timeRange);
   }
 

@@ -18,7 +18,9 @@ import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
 const routes = new Hono<{
   Bindings: Env;
-  Variables: { userId: string; userRole: number };
+  Variables: {
+    user: { id: number; username: string; role: number; restaurantId: string };
+  };
 }>();
 
 /**
@@ -27,7 +29,8 @@ const routes = new Hono<{
  */
 routes.get("/config/:restaurantId", async (c) => {
   const restaurantId = c.req.param("restaurantId");
-  const userRole = c.get("userRole");
+  const user = c.get("user");
+  const userRole = user.role;
 
   // Check permissions (Admin or Owner only)
   if (userRole !== 0 && userRole !== 1) {
@@ -66,7 +69,8 @@ routes.get("/config/:restaurantId", async (c) => {
  */
 routes.post("/config", validateBody(configureAISchema), async (c) => {
   const data = c.get("validatedBody");
-  const userRole = c.get("userRole");
+  const user = c.get("user");
+  const userRole = user.role;
 
   // Check permissions
   if (userRole !== 0 && userRole !== 1) {
@@ -133,7 +137,8 @@ routes.get("/models/:provider", (c) => {
  */
 routes.post("/generate", validateBody(generateAnalyticsSchema), async (c) => {
   const data = c.get("validatedBody");
-  const userRole = c.get("userRole");
+  const user = c.get("user");
+  const userRole = user.role;
 
   // Check permissions
   if (userRole !== 0 && userRole !== 1) {

@@ -6,10 +6,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AIInsightsService } from "../services/AIInsightsService";
 import type { LLMConfig, TimeRangeParams, BusinessMetrics } from "../types";
 
-// Mock @makanmakan/database
-vi.mock("@makanmakan/database", () => ({
-  getCurrentTimestamp: () => Date.now(),
-}));
+// Mock @makanmakan/database — keep real schema exports for ProductAnalysisService
+vi.mock("@makanmakan/database", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as Record<string, unknown>),
+    getCurrentTimestamp: () => Date.now(),
+  };
+});
 
 // Mock global fetch for LLM providers
 const mockFetch = vi.fn();
@@ -31,6 +35,20 @@ function createMockDb() {
     prepare: vi.fn().mockReturnValue(mockStatement),
     _statement: mockStatement,
   };
+}
+
+// Drizzle-compatible chainable mock for ProductAnalysisService
+function createMockDrizzleDb() {
+  const chainable = {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    leftJoin: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    groupBy: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockResolvedValue([]),
+  };
+  return chainable;
 }
 
 function createMockLLMConfig(): LLMConfig {
@@ -59,7 +77,8 @@ describe("AIInsightsService", () => {
   beforeEach(() => {
     mockDb = createMockDb();
     mockFetch.mockReset();
-    service = new AIInsightsService(mockDb as any);
+    const drizzleDb = createMockDrizzleDb();
+    service = new AIInsightsService(mockDb as any, drizzleDb as any);
   });
 
   describe("generateReport", () => {

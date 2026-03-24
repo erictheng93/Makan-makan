@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
 import type { AIAnalyticsReport, AIInsight } from "@makanmakan/ai-analytics";
 
@@ -18,15 +19,15 @@ import {
 import LightBulbIcon from "@heroicons/vue/24/outline/LightBulbIcon";
 
 const { t } = useI18n();
-const { generateReport } = useAIAnalytics();
+const authStore = useAuthStore();
+const { generateReport, error: apiError } = useAIAnalytics();
 
 const report = ref<AIAnalyticsReport | null>(null);
 const selectedTimeRange = ref("30d");
 const isGenerating = ref(false);
 const errorMessage = ref<string | null>(null);
 
-// Mock restaurant ID
-const restaurantId = ref("rest_123");
+const restaurantId = computed(() => authStore.restaurantId || "");
 
 const timeRangeOptions = computed(() => [
   { value: "7d", label: t("aiAnalytics.last7Days") },
@@ -113,7 +114,7 @@ const handleGenerateReport = async (refresh = false) => {
     if (result) {
       report.value = result;
     } else {
-      errorMessage.value = t("aiAnalytics.generateFailed");
+      errorMessage.value = apiError.value || t("aiAnalytics.generateFailed");
     }
   } catch (err) {
     console.error("Failed to generate report:", err);

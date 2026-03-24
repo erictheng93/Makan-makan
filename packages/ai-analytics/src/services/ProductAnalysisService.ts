@@ -4,26 +4,29 @@
  * - 引流產品 (Traffic Drivers): Products that bring customers in
  * - 熱銷產品 (Bestsellers): Top-selling products by volume
  * - 利潤最大產品 (Profit Leaders): Most profitable products
+ *
+ * Uses Drizzle ORM Layer 2 (sql template + schema references)
+ * for type-safe raw SQL with compile-time column name checking.
  */
 
+import {
+  sql,
+  eq,
+  and,
+  between,
+  menuItems,
+  orderItems,
+  orders,
+  categories,
+} from "@makanmakan/database";
 import type {
   ProductAnalysis,
   ProductCategory,
   TimeRangeParams,
 } from "../types";
 
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
-
-interface D1PreparedStatement {
-  bind(...values: unknown[]): D1PreparedStatement;
-  all<T = unknown>(): Promise<{ results: T[]; success: boolean }>;
-  first<T = unknown>(): Promise<T | null>;
-}
-
 interface RawProductMetrics {
-  menu_item_id: string;
+  menu_item_id: number;
   menu_item_name: string;
   category: string;
   unit_price: number;
@@ -41,8 +44,14 @@ interface DailyMetric {
   revenue: number;
 }
 
+// Drizzle db instance type (inferred from drizzle())
+type DrizzleDb = {
+  select: (fields: Record<string, unknown>) => any;
+  all: <T>(query: any) => Promise<T[]>;
+};
+
 export class ProductAnalysisService {
-  constructor(private db: D1Database) {}
+  constructor(private db: any) {}
 
   /**
    * Analyze all products for a restaurant within a time range
@@ -211,88 +220,85 @@ export class ProductAnalysisService {
     };
   }
 
+  /**
+   * Layer 2 query: Drizzle sql template with schema column references.
+   * Column renames in the schema will cause compile-time errors here.
+   */
   private async fetchRawMetrics(
     restaurantId: string,
     startDate: string,
     endDate: string,
   ): Promise<RawProductMetrics[]> {
-    const query = `
-      WITH order_stats AS (
-        SELECT
-          oi.menu_item_id,
-          COUNT(DISTINCT o.id) AS total_orders,
-          SUM(oi.subtotal) AS total_revenue,
-          SUM(CASE WHEN oia.position_in_order = 1 THEN 1 ELSE 0 END) AS first_item_count
-        FROM orders o
-        JOIN order_items oi ON o.id = oi.order_id
-        LEFT JOIN order_item_analytics oia ON oi.id = oia.order_id AND oi.menu_item_id = oia.menu_item_id
-        WHERE o.restaurant_id = ?
-          AND DATE(o.created_at) BETWEEN ? AND ?
-          AND o.status = 'completed'
-        GROUP BY oi.menu_item_id
-      ),
-      engagement_stats AS (
-        SELECT
-          menu_item_id,
-          COUNT(*) AS view_count,
-          SUM(CASE WHEN was_viewed_before_order = 1 THEN 1 ELSE 0 END) AS cart_addition_count
-        FROM order_item_analytics
-        WHERE created_at BETWEEN ? AND ?
-        GROUP BY menu_item_id
-      )
-      SELECT
-        mi.id AS menu_item_id,
-        mi.name AS menu_item_name,
-        mi.category,
-        mi.price AS unit_price,
-        mic.total_cost AS unit_cost,
-        COALESCE(os.total_orders, 0) AS total_orders,
-        COALESCE(os.total_revenue, 0) AS total_revenue,
-        COALESCE(os.first_item_count, 0) AS first_item_count,
-        COALESCE(es.view_count, 0) AS view_count,
-        COALESCE(es.cart_addition_count, 0) AS cart_addition_count
-      FROM menu_items mi
-      LEFT JOIN order_stats os ON mi.id = os.menu_item_id
-      LEFT JOIN engagement_stats es ON mi.id = es.menu_item_id
-      LEFT JOIN menu_item_costs mic ON mi.id = mic.menu_item_id AND mic.effective_to IS NULL
-      WHERE mi.restaurant_id = ?
-        AND mi.available = 1
-      ORDER BY total_orders DESC
-    `;
+    const startMs = new Date(startDate).getTime();
+    const endMs = new Date(endDate + "T23:59:59.999Z").getTime();
 
     const result = await this.db
-      .prepare(query)
-      .bind(restaurantId, startDate, endDate, startDate, endDate, restaurantId)
-      .all<RawProductMetrics>();
+      .select({
+        menu_item_id: menuItems.id,
+        menu_item_name: menuItems.name,
+        category: sql<string>`COALESCE(${categories.name}, '')`,
+        unit_price: menuItems.price,
+        unit_cost: menuItems.costPrice,
+        total_orders: sql<number>`COALESCE(COUNT(DISTINCT ${orders.id}), 0)`,
+        total_revenue: sql<number>`COALESCE(SUM(${orderItems.totalPrice}), 0)`,
+        first_item_count: sql<number>`0`,
+        view_count: sql<number>`COALESCE(${menuItems.viewCount}, 0)`,
+        cart_addition_count: sql<number>`0`,
+      })
+      .from(menuItems)
+      .leftJoin(orderItems, eq(menuItems.id, orderItems.menuItemId))
+      .leftJoin(
+        orders,
+        and(
+          eq(orderItems.orderId, orders.id),
+          eq(orders.restaurantId, restaurantId),
+          between(orders.createdAt, new Date(startMs), new Date(endMs)),
+          eq(orders.status, "completed"),
+        ),
+      )
+      .leftJoin(categories, eq(menuItems.categoryId, categories.id))
+      .where(
+        and(
+          eq(menuItems.restaurantId, restaurantId),
+          eq(menuItems.isAvailable, true),
+        ),
+      )
+      .groupBy(menuItems.id)
+      .orderBy(sql`COUNT(DISTINCT ${orders.id}) DESC`);
 
-    return result.results || [];
+    return result as RawProductMetrics[];
   }
 
+  /**
+   * Layer 2 query: Daily order/revenue data for trend analysis.
+   */
   private async fetchDailyData(
-    menuItemId: string,
+    menuItemId: number,
     startDate: string,
     endDate: string,
   ): Promise<DailyMetric[]> {
-    const query = `
-      SELECT
-        DATE(o.created_at) AS date,
-        COUNT(*) AS orders,
-        SUM(oi.subtotal) AS revenue
-      FROM orders o
-      JOIN order_items oi ON o.id = oi.order_id
-      WHERE oi.menu_item_id = ?
-        AND DATE(o.created_at) BETWEEN ? AND ?
-        AND o.status = 'completed'
-      GROUP BY DATE(o.created_at)
-      ORDER BY date ASC
-    `;
+    const startMs = new Date(startDate).getTime();
+    const endMs = new Date(endDate + "T23:59:59.999Z").getTime();
 
     const result = await this.db
-      .prepare(query)
-      .bind(menuItemId, startDate, endDate)
-      .all<DailyMetric>();
+      .select({
+        date: sql<string>`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
+        orders: sql<number>`COUNT(*)`,
+        revenue: sql<number>`SUM(${orderItems.totalPrice})`,
+      })
+      .from(orders)
+      .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
+      .where(
+        and(
+          eq(orderItems.menuItemId, menuItemId),
+          between(orders.createdAt, new Date(startMs), new Date(endMs)),
+          eq(orders.status, "completed"),
+        ),
+      )
+      .groupBy(sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`)
+      .orderBy(sql`DATE(${orders.createdAt} / 1000, 'unixepoch') ASC`);
 
-    return result.results || [];
+    return result as DailyMetric[];
   }
 
   private calculateTrendScore(dailyData: DailyMetric[]): number {
@@ -336,7 +342,7 @@ export class ProductAnalysisService {
 
   private calculateRankings<
     T extends {
-      menu_item_id: string;
+      menu_item_id: number;
       total_orders: number;
       total_revenue: number;
       unit_cost: number | null;

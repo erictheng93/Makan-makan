@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
 import type { ProductAnalysis } from "@makanmakan/ai-analytics";
 
@@ -19,6 +20,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 const { getTrafficDrivers, getBestsellers, getProfitLeaders } =
   useAIAnalytics();
 
@@ -27,8 +29,7 @@ const selectedTimeRange = ref("30d");
 const isRefreshing = ref(false);
 const errorMessage = ref<string | null>(null);
 
-// Mock restaurant ID
-const restaurantId = ref("rest_123");
+const restaurantId = computed(() => authStore.restaurantId || "");
 
 // Product data
 const trafficDrivers = ref<ProductAnalysis[]>([]);

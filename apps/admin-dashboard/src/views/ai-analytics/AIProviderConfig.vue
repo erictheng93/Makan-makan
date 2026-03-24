@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
 import type { LLMProvider } from "@makanmakan/ai-analytics";
 
@@ -14,6 +15,7 @@ import {
 import ShieldCheckIcon from "@heroicons/vue/24/outline/ShieldCheckIcon";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 const { getConfig, saveConfig, testProvider, getAvailableModels } =
   useAIAnalytics();
 
@@ -36,8 +38,7 @@ const isSaving = ref(false);
 const saveSuccess = ref(false);
 const saveError = ref<string | null>(null);
 
-// Mock restaurant ID (should come from store/context)
-const restaurantId = ref("rest_123");
+const restaurantId = computed(() => authStore.restaurantId || "");
 
 // Provider options with descriptions
 const providers = computed(() => [

@@ -49,8 +49,12 @@ interface DailyMetricData {
 export class AIInsightsService {
   private productAnalysis: ProductAnalysisService;
 
-  constructor(private db: D1Database) {
-    this.productAnalysis = new ProductAnalysisService(db);
+  constructor(
+    private db: D1Database,
+    drizzleDb?: any,
+  ) {
+    // ProductAnalysisService uses Drizzle Layer 2 queries
+    this.productAnalysis = new ProductAnalysisService(drizzleDb || db);
   }
 
   /**

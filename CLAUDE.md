@@ -453,29 +453,68 @@ app.get("/:id", async (c) => {
 });
 ```
 
-### Database Query Pattern (New Features)
+### Database Query Strategy (Three Layers — Enforced)
 
-New feature services MUST use **Drizzle ORM** for all database queries. Do NOT use raw D1 `db.prepare()` SQL in new code.
+All database queries MUST use one of the two approved layers. Raw string SQL (Layer 3) is **banned** in new code.
 
-**Why:** The codebase has 4 legacy query patterns (raw SQL, BaseService, DB delegation, Drizzle). Drizzle provides type-safe queries derived from the schema — column renames/type changes are caught at compile time. Raw SQL requires manual type assertions that can silently drift.
+| Layer                                    | When to use                            | Column safety   |
+| ---------------------------------------- | -------------------------------------- | --------------- |
+| **Layer 1: Drizzle Query Builder**       | CRUD, simple JOINs, filters            | ✅ Compile-time |
+| **Layer 2: Drizzle `sql` + Schema Refs** | Complex analytics, CTEs, aggregations  | ✅ Compile-time |
+| **~~Layer 3: Raw `db.prepare()` SQL~~**  | ❌ **Banned** — do not use in new code | ❌ Silent drift |
 
-**How to use:**
+**Why:** Raw SQL string column names (`"mi.available"`) silently drift when schema migrates (`is_available`). Both Layer 1 and Layer 2 reference Drizzle schema objects, so column renames cause **compile-time errors** instead of runtime 500s.
+
+**Layer 1 — Drizzle Query Builder** (CRUD, simple queries):
 
 ```typescript
-import { drizzle } from "drizzle-orm/d1";
 import { eq, and } from "drizzle-orm";
-import { myTable } from "@makanmakan/database";
+import { menuItems } from "@makanmakan/database";
 
-const db = drizzle(env.DB);
 const results = await db
   .select()
-  .from(myTable)
-  .where(eq(myTable.restaurantId, id));
+  .from(menuItems)
+  .where(eq(menuItems.restaurantId, id));
 ```
 
-**Reference implementation:** `apps/api/src/features/integrations/services/PlatformIntegrationService.ts`
+**Layer 2 — Drizzle `sql` template + Schema References** (complex analytics):
 
-**Migration status:** Stage 2 completed (2026-03) — 19 services migrated to Drizzle ORM. Remaining raw SQL in a few legacy services is acceptable until those services are individually modified.
+```typescript
+import {
+  sql,
+  eq,
+  and,
+  between,
+  menuItems,
+  orders,
+  orderItems,
+} from "@makanmakan/database";
+
+// Column references are type-safe — schema renames cause compile errors
+const result = await db
+  .select({
+    itemName: menuItems.name,
+    totalOrders: sql<number>`COUNT(DISTINCT ${orders.id})`,
+    totalRevenue: sql<number>`SUM(${orderItems.totalPrice})`,
+  })
+  .from(menuItems)
+  .leftJoin(orderItems, eq(menuItems.id, orderItems.menuItemId))
+  .leftJoin(orders, eq(orderItems.orderId, orders.id))
+  .where(
+    and(
+      eq(orders.restaurantId, restaurantId),
+      between(orders.createdAt, new Date(startMs), new Date(endMs)),
+    ),
+  )
+  .groupBy(menuItems.id);
+```
+
+**Reference implementations:**
+
+- Layer 1: `apps/api/src/features/integrations/services/PlatformIntegrationService.ts`
+- Layer 2: `packages/ai-analytics/src/services/ProductAnalysisService.ts`
+
+**Migration status:** Stage 2 completed (2026-03) — 19 services migrated to Drizzle ORM. `AIInsightsService` in `packages/ai-analytics` still uses raw SQL (Layer 3) for its own queries — to be migrated when that service is next modified.
 
 ## Error Handling
 
