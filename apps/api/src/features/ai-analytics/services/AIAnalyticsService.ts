@@ -14,6 +14,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { eq, sql, and } from "drizzle-orm";
 import { aiConfigurations, aiUsageLogs } from "@makanmakan/database";
 import { encrypt, decrypt } from "@makanmakan/utils";
+import { badRequest } from "../../../shared/utils/api-error";
 import type { LLMConfig } from "@makanmakan/ai-analytics";
 import type {
   AIConfiguration,
@@ -171,8 +172,9 @@ export class AIAnalyticsService {
     const llmConfig = await this.getLLMConfig(restaurantId);
 
     if (!llmConfig) {
-      throw new Error(
+      throw badRequest(
         "AI provider not configured. Please configure an AI provider first.",
+        "AI_PROVIDER_NOT_CONFIGURED",
       );
     }
 

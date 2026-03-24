@@ -13,6 +13,7 @@ import {
   backupAuditLogs,
   restoreOperations
 } from '@makanmakan/database'
+import { notFound, conflict } from '../../../shared/utils/api-error'
 import { BackupStorageService } from './BackupStorageService'
 import { BackupConfigService } from './BackupConfigService'
 import { BackupValidationService } from './BackupValidationService'
@@ -60,7 +61,7 @@ export class BackupService {
         : await this.configService.getDefaultConfiguration(request.restaurant_id)
 
       if (!config) {
-        throw new Error('Backup configuration not found')
+        throw notFound('Backup configuration not found', 'BACKUP_CONFIG_NOT_FOUND')
       }
 
       // Determine tables to backup
@@ -338,17 +339,17 @@ export class BackupService {
 
       const backup = await this.getBackupRecord(request.backup_id)
       if (!backup || backup.restaurant_id !== request.restaurant_id) {
-        throw new Error('Backup not found or access denied')
+        throw notFound('Backup not found or access denied', 'BACKUP_NOT_FOUND')
       }
 
       if (backup.status !== 'completed') {
-        throw new Error('Cannot restore from incomplete backup')
+        throw conflict('Cannot restore from incomplete backup', 'BACKUP_INCOMPLETE')
       }
 
       // Verify backup integrity
       const backupExists = await this.storageService.backupExists(backup)
       if (!backupExists) {
-        throw new Error('Backup file not found in storage')
+        throw notFound('Backup file not found in storage', 'BACKUP_FILE_NOT_FOUND')
       }
 
       await this.db.insert(restoreOperations).values({
@@ -390,7 +391,7 @@ export class BackupService {
     try {
       const backup = await this.getBackupRecord(backupId)
       if (!backup) {
-        throw new Error('Backup not found')
+        throw notFound('Backup not found', 'BACKUP_NOT_FOUND')
       }
 
       // Delete from storage

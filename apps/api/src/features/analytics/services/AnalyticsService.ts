@@ -5,6 +5,7 @@
 
 import { AnalyticsService as DatabaseAnalyticsService } from "@makanmakan/database";
 import { KVCacheService, type CacheService } from "../../../core/cache";
+import { notFound } from "../../../shared/utils/api-error";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
 import type { Env } from "../../../shared/types";
@@ -73,7 +74,7 @@ export class AnalyticsService implements IAnalyticsService {
       );
 
       if (!dashboardData) {
-        throw new Error("Failed to retrieve dashboard data");
+        throw notFound("Dashboard data not found", "DASHBOARD_DATA_NOT_FOUND");
       }
 
       // Extract summary from dashboard data
@@ -165,7 +166,10 @@ export class AnalyticsService implements IAnalyticsService {
       );
 
       if (!productData) {
-        throw new Error("Failed to retrieve product analytics");
+        throw notFound(
+          "Product analytics data not found",
+          "PRODUCT_ANALYTICS_NOT_FOUND",
+        );
       }
 
       // Cache the result
@@ -211,7 +215,10 @@ export class AnalyticsService implements IAnalyticsService {
       );
 
       if (!customerData) {
-        throw new Error("Failed to retrieve customer analytics");
+        throw notFound(
+          "Customer analytics data not found",
+          "CUSTOMER_ANALYTICS_NOT_FOUND",
+        );
       }
 
       // Cache the result
@@ -257,7 +264,10 @@ export class AnalyticsService implements IAnalyticsService {
       );
 
       if (!performanceData) {
-        throw new Error("Failed to retrieve performance analytics");
+        throw notFound(
+          "Performance analytics data not found",
+          "PERFORMANCE_ANALYTICS_NOT_FOUND",
+        );
       }
 
       // Cache the result
@@ -423,7 +433,10 @@ export class AnalyticsService implements IAnalyticsService {
         await this.databaseService.getFinancialReport(dbFilters);
 
       if (!rawFinancialData) {
-        throw new Error("Failed to retrieve financial report");
+        throw notFound(
+          "Financial report data not found",
+          "FINANCIAL_REPORT_NOT_FOUND",
+        );
       }
 
       // Transform the raw data to match our interface

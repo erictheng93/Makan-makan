@@ -1,6 +1,7 @@
 import { PaymentOrchestrator } from "./PaymentOrchestrator";
 import { PaymentConfigManager } from "./PaymentConfigManager";
 import { getCurrentTimestamp } from "@makanmakan/database";
+import { notFound, conflict } from "../shared/utils/api-error";
 // import { StripeProvider } from './providers/StripeProvider' // Temporarily disabled
 // import { ECPayProvider } from './providers/ECPayProvider' // Disabled
 // import { NewebPayProvider } from './providers/NewebPayProvider' // Disabled
@@ -422,7 +423,7 @@ export class PaymentService {
       // 首先從資料庫獲取交易資訊
       const transaction = await this.getPaymentTransaction(transactionId);
       if (!transaction) {
-        throw new Error("Transaction not found");
+        throw notFound("Transaction not found", "TRANSACTION_NOT_FOUND");
       }
 
       // 如果交易已經是最終狀態，直接返回
@@ -461,11 +462,17 @@ export class PaymentService {
         request.transactionId,
       );
       if (!transaction) {
-        throw new Error("Original transaction not found");
+        throw notFound(
+          "Original transaction not found",
+          "TRANSACTION_NOT_FOUND",
+        );
       }
 
       if (transaction.status !== "completed") {
-        throw new Error("Cannot refund non-completed transaction");
+        throw conflict(
+          "Cannot refund non-completed transaction",
+          "INVALID_TRANSACTION_STATUS",
+        );
       }
 
       // 建立退款交易記錄

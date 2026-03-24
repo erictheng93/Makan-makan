@@ -5,6 +5,7 @@
  */
 
 import { CouponService as BaseCouponService } from "@makanmakan/database";
+import { badRequest } from "../../../shared/utils/api-error";
 import type {
   CreateCouponData,
   CouponFilters,
@@ -76,12 +77,12 @@ export class CouponsService extends BaseCouponService {
     const validTo = new Date(data.validTo);
 
     if (validFrom >= validTo) {
-      throw new Error("有效期結束時間必須晚於開始時間");
+      throw badRequest("有效期結束時間必須晚於開始時間", "INVALID_DATE_RANGE");
     }
 
     // Validate discount value
     if (data.discountType === "percentage" && data.discountValue > 100) {
-      throw new Error("百分比折扣不能超過 100%");
+      throw badRequest("百分比折扣不能超過 100%", "INVALID_DISCOUNT_VALUE");
     }
 
     return await this.createCoupon(data);

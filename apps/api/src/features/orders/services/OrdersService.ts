@@ -15,6 +15,12 @@ import {
   OrderPaymentMethod,
   RealtimeEventType,
 } from "@makanmakan/shared-types";
+import {
+  badRequest,
+  notFound,
+  forbidden,
+  conflict,
+} from "../../../shared/utils/api-error";
 import type { Env } from "../../../shared/types";
 import type { UserRole } from "../../../shared/constants";
 import { ConsoleLogger } from "../../../core/monitoring";
@@ -72,7 +78,7 @@ export class OrdersService implements IOrdersService {
       // ========== INPUT VALIDATION ==========
       // 1. Validate restaurant ID
       if (!data.restaurantId || data.restaurantId.trim() === "") {
-        throw new Error("Invalid restaurant ID");
+        throw badRequest("Invalid restaurant ID", "INVALID_RESTAURANT_ID");
       }
 
       // 2. Validate items array
@@ -81,32 +87,50 @@ export class OrdersService implements IOrdersService {
         !Array.isArray(data.items) ||
         data.items.length === 0
       ) {
-        throw new Error("Order must contain at least one item");
+        throw badRequest(
+          "Order must contain at least one item",
+          "ORDER_ITEMS_REQUIRED",
+        );
       }
 
       // 3. Validate maximum items (prevent abuse)
       if (data.items.length > 100) {
-        throw new Error("Order cannot exceed 100 items");
+        throw badRequest(
+          "Order cannot exceed 100 items",
+          "ORDER_ITEMS_LIMIT_EXCEEDED",
+        );
       }
 
       // 4. Validate each item
       for (const item of data.items) {
         if (!item.menuItemId || item.menuItemId <= 0) {
-          throw new Error("Invalid menu item ID");
+          throw badRequest("Invalid menu item ID", "INVALID_MENU_ITEM_ID");
         }
         if (!item.quantity || item.quantity <= 0) {
-          throw new Error("Invalid item quantity: must be greater than 0");
+          throw badRequest(
+            "Invalid item quantity: must be greater than 0",
+            "INVALID_ITEM_QUANTITY",
+          );
         }
         if (item.quantity > 999) {
-          throw new Error("Invalid item quantity: cannot exceed 999 per item");
+          throw badRequest(
+            "Invalid item quantity: cannot exceed 999 per item",
+            "ITEM_QUANTITY_LIMIT_EXCEEDED",
+          );
         }
         // Validate customizations if present
         if (item.customizations && typeof item.customizations !== "object") {
-          throw new Error("Invalid item customizations format");
+          throw badRequest(
+            "Invalid item customizations format",
+            "INVALID_CUSTOMIZATIONS_FORMAT",
+          );
         }
         // Validate notes length if present
         if (item.notes && item.notes.length > 500) {
-          throw new Error("Item notes cannot exceed 500 characters");
+          throw badRequest(
+            "Item notes cannot exceed 500 characters",
+            "ITEM_NOTES_TOO_LONG",
+          );
         }
       }
 
@@ -116,19 +140,25 @@ export class OrdersService implements IOrdersService {
           data.customerInfo.phone &&
           !/^[\d\s\-+()]{7,20}$/.test(data.customerInfo.phone)
         ) {
-          throw new Error("Invalid phone number format");
+          throw badRequest(
+            "Invalid phone number format",
+            "INVALID_PHONE_FORMAT",
+          );
         }
         if (
           data.customerInfo.email &&
           !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.customerInfo.email)
         ) {
-          throw new Error("Invalid email format");
+          throw badRequest("Invalid email format", "INVALID_EMAIL_FORMAT");
         }
       }
 
       // 6. Validate notes length if provided
       if (data.notes && data.notes.length > 1000) {
-        throw new Error("Order notes cannot exceed 1000 characters");
+        throw badRequest(
+          "Order notes cannot exceed 1000 characters",
+          "ORDER_NOTES_TOO_LONG",
+        );
       }
 
       // 7. Validate coupon code format if provided
@@ -136,7 +166,10 @@ export class OrdersService implements IOrdersService {
         data.couponCode &&
         (data.couponCode.length < 3 || data.couponCode.length > 50)
       ) {
-        throw new Error("Invalid coupon code format");
+        throw badRequest(
+          "Invalid coupon code format",
+          "INVALID_COUPON_CODE_FORMAT",
+        );
       }
 
       // Validate business hours
@@ -358,7 +391,10 @@ export class OrdersService implements IOrdersService {
 
       // Only allow deletion of pending orders
       if (String(order.status) !== "pending") {
-        throw new Error("Only pending orders can be deleted");
+        throw conflict(
+          "Only pending orders can be deleted",
+          "ORDER_NOT_DELETABLE",
+        );
       }
 
       // Use base service cancel method
@@ -549,7 +585,10 @@ export class OrdersService implements IOrdersService {
       // Get basic stats from base service
       const restaurantId = filters.restaurantId;
       if (!restaurantId) {
-        throw new Error("Restaurant ID required for analytics");
+        throw badRequest(
+          "Restaurant ID required for analytics",
+          "RESTAURANT_ID_REQUIRED",
+        );
       }
 
       const dailyStats = await this.baseOrderService.getDailyOrderStats(
@@ -761,8 +800,9 @@ export class OrdersService implements IOrdersService {
             }
 
             default:
-              throw new Error(
+              throw badRequest(
                 `Unsupported bulk operation: ${operation.action}`,
+                "UNSUPPORTED_BULK_OPERATION",
               );
           }
 
@@ -840,7 +880,7 @@ export class OrdersService implements IOrdersService {
   async generateReceipt(orderId: number): Promise<OrderReceipt> {
     try {
       const order = await this.getOrder(orderId, true);
-      if (!order) throw new Error("Order not found");
+      if (!order) throw notFound("Order not found", "ORDER_NOT_FOUND");
 
       // Build receipt data
       const receipt: OrderReceipt = {
@@ -1151,8 +1191,9 @@ export class OrdersService implements IOrdersService {
       caller.userRestaurantId &&
       caller.userRestaurantId !== order.restaurantId
     ) {
-      throw new Error(
+      throw forbidden(
         `Access denied: user restaurant ${caller.userRestaurantId} cannot access order from restaurant ${order.restaurantId}`,
+        "FORBIDDEN",
       );
     }
   }
@@ -1274,8 +1315,9 @@ export class OrdersService implements IOrdersService {
     };
 
     if (!transitions[normalizedCurrent]?.includes(normalizedNew)) {
-      throw new Error(
+      throw conflict(
         `Invalid status transition from ${normalizedCurrent} to ${normalizedNew}`,
+        "INVALID_STATUS_TRANSITION",
       );
     }
 
@@ -1300,8 +1342,9 @@ export class OrdersService implements IOrdersService {
       userRole !== undefined &&
       !rolePermissions[userRole]?.includes(normalizedNew)
     ) {
-      throw new Error(
+      throw forbidden(
         `Insufficient permissions for status transition to ${normalizedNew}`,
+        "FORBIDDEN",
       );
     }
   }

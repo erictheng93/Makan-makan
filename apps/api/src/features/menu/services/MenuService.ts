@@ -5,6 +5,7 @@
 
 import type { Env } from "../../../shared/types";
 import { ConsoleLogger } from "../../../core/monitoring";
+import { notFound, forbidden, conflict } from "../../../shared/utils/api-error";
 import { MenuService as DatabaseMenuService } from "@makanmakan/database";
 // eq import available for future database queries
 import type {
@@ -142,7 +143,7 @@ export class MenuService implements IMenuService {
       // Get existing item to check restaurant access
       const existingItem = await this.getMenuItem(id);
       if (!existingItem) {
-        throw new Error("Menu item not found");
+        throw notFound("Menu item not found", "MENU_ITEM_NOT_FOUND");
       }
 
       // If changing category, validate new category access
@@ -241,7 +242,7 @@ export class MenuService implements IMenuService {
       // Get existing category for validation
       const existingCategory = await this.getCategory(id);
       if (!existingCategory) {
-        throw new Error("Category not found");
+        throw notFound("Category not found", "CATEGORY_NOT_FOUND");
       }
 
       // Update category using database service
@@ -286,7 +287,10 @@ export class MenuService implements IMenuService {
       );
 
       if (menuItems.items.length > 0) {
-        throw new Error("Cannot delete category that contains menu items");
+        throw conflict(
+          "Cannot delete category that contains menu items",
+          "CATEGORY_HAS_MENU_ITEMS",
+        );
       }
 
       // Soft delete by setting isActive to false
@@ -508,7 +512,7 @@ export class MenuService implements IMenuService {
 
       const menu = await this.getMenu(restaurantId);
       if (!menu) {
-        throw new Error("Menu not found for restaurant");
+        throw notFound("Menu not found for restaurant", "MENU_NOT_FOUND");
       }
       const items = menu.menuItems;
 
@@ -687,10 +691,13 @@ export class MenuService implements IMenuService {
   ): Promise<void> {
     const category = await this.getCategory(categoryId);
     if (!category) {
-      throw new Error("Category not found");
+      throw notFound("Category not found", "CATEGORY_NOT_FOUND");
     }
     if (String(category.restaurantId) !== String(restaurantId)) {
-      throw new Error("Category does not belong to the specified restaurant");
+      throw forbidden(
+        "Category does not belong to the specified restaurant",
+        "CATEGORY_RESTAURANT_MISMATCH",
+      );
     }
   }
 
