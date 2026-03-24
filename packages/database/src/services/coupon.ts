@@ -447,6 +447,65 @@ export class CouponService extends BaseService {
   }
 
   /**
+   * 獲取優惠券彙總統計（跨所有優惠券）
+   */
+  async getCouponSummaryStats(restaurantId?: string): Promise<{
+    total: number;
+    active: number;
+    totalUsed: number;
+    totalSavings: number;
+  }> {
+    const restaurantFilter = restaurantId
+      ? sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`
+      : undefined;
+
+    const now = new Date().toISOString();
+
+    // Total and active counts from coupons table
+    const couponCounts = await this.db
+      .select({
+        total: sql<number>`count(*)`,
+        active: sql<number>`sum(CASE
+          WHEN ${coupons.isActive} = 1
+            AND ${coupons.validFrom} <= ${now}
+            AND ${coupons.validTo} >= ${now}
+            AND (${coupons.usageLimit} IS NULL OR ${coupons.usedCount} < ${coupons.usageLimit})
+          THEN 1 ELSE 0 END)`,
+        totalUsed: sql<number>`coalesce(sum(${coupons.usedCount}), 0)`,
+      })
+      .from(coupons)
+      .where(restaurantFilter);
+
+    // Total savings from coupon_usage table
+    const savingsResult = restaurantId
+      ? await this.db
+          .select({
+            totalSavings: sql<number>`coalesce(sum(${couponUsage.discountAmount}), 0)`,
+          })
+          .from(couponUsage)
+          .innerJoin(coupons, eq(couponUsage.couponId, coupons.id))
+          .where(
+            and(
+              eq(couponUsage.status, "active"),
+              sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`,
+            ),
+          )
+      : await this.db
+          .select({
+            totalSavings: sql<number>`coalesce(sum(${couponUsage.discountAmount}), 0)`,
+          })
+          .from(couponUsage)
+          .where(eq(couponUsage.status, "active"));
+
+    return {
+      total: couponCounts[0]?.total || 0,
+      active: couponCounts[0]?.active || 0,
+      totalUsed: couponCounts[0]?.totalUsed || 0,
+      totalSavings: savingsResult[0]?.totalSavings || 0,
+    };
+  }
+
+  /**
    * 獲取可用的優惠券 (供前端顯示)
    */
   async getAvailableCoupons(

@@ -343,13 +343,11 @@ onMounted(async () => {
   // Initial data load
   await refreshData();
 
-  // Start auto-refresh
+  // Start auto-refresh (use only useDashboardPolling, not both)
   startPolling();
-  dashboardStore.startAutoRefresh(30000);
 });
 
 onUnmounted(() => {
   stopPolling();
-  dashboardStore.stopAutoRefresh();
 });
 </script>

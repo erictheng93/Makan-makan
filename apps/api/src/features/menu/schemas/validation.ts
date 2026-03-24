@@ -9,7 +9,7 @@ import { z } from "zod";
 const positiveInteger = z.number().int().positive();
 const nonNegativeInteger = z.number().int().min(0);
 const nonEmptyString = z.string().min(1).trim();
-const optionalUrl = z.string().url().optional();
+const optionalUrl = z.string().url().nullish();
 const priceSchema = z.number().positive();
 
 // Menu Item Option Schemas
@@ -366,6 +366,18 @@ export const menuSchemas = {
   // Import/Export schemas
   menuImport: menuImportSchema,
   menuExportQuery: menuExportQuerySchema,
+
+  // Category reorder schema
+  categoryReorder: z.object({
+    categories: z
+      .array(
+        z.object({
+          id: z.number().int().positive(),
+          sortOrder: z.number().int().min(0),
+        }),
+      )
+      .min(1),
+  }),
 
   // Complete validation
   validateCompleteMenuItem,

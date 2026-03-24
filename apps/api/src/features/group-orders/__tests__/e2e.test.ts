@@ -45,6 +45,9 @@ describe("Group Orders E2E Tests", () => {
     // Create test app with the database
     app = await createTestApp(db);
 
+    // Seed test data first so testRestaurantId is available for token generation
+    await seedTestData();
+
     // Generate test tokens
     adminToken = generateTestToken({
       id: 1,
@@ -56,11 +59,8 @@ describe("Group Orders E2E Tests", () => {
       id: 2,
       username: "owner",
       role: 1,
-      restaurantId: "1", // Must match transformed restaurantId from statisticsQuerySchema
+      restaurantId: testRestaurantId,
     });
-
-    // Seed test data
-    await seedTestData();
   });
 
   afterAll(async () => {

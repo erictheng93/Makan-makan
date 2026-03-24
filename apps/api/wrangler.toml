@@ -19,6 +19,7 @@ API_VERSION = "v1"
 API_BASE_URL = "http://localhost:8787"
 CORS_ORIGIN = "*"
 LOG_LEVEL = "debug"
+REALTIME_WS_URL = "ws://localhost:8788"
 
 # ===== Deployment Mode Configuration =====
 # DEPLOYMENT_MODE: 'saas' (default) or 'independent'
@@ -88,6 +89,7 @@ CACHE_TTL = "60"
 RATE_LIMIT_REQUESTS = "1000"
 DEPLOYMENT_MODE = "saas"
 PLATFORM_VERSION = "1.0.0"
+REALTIME_WS_URL = "ws://localhost:8788"
 # Notification configuration
 NOTIFICATION_FROM_EMAIL = "dev-notifications@makanmakan.com"
 TWILIO_PHONE_NUMBER = "+1234567890"
@@ -128,6 +130,7 @@ RATE_LIMIT_REQUESTS = "500"
 DEPLOYMENT_MODE = "saas"
 PLATFORM_VERSION = "1.0.0"
 CENTRAL_API_URL = "https://manage.makanmakan.app"
+REALTIME_WS_URL = "wss://realtime-staging.makanmakan.workers.dev"
 # Notification configuration
 NOTIFICATION_FROM_EMAIL = "staging-notifications@makanmakan.com"
 TWILIO_PHONE_NUMBER = "+1234567890"
@@ -173,6 +176,7 @@ RATE_LIMIT_REQUESTS = "100"
 DEPLOYMENT_MODE = "saas"
 PLATFORM_VERSION = "1.0.0"
 CENTRAL_API_URL = "https://manage.makanmakan.app"
+REALTIME_WS_URL = "wss://realtime.makanmakan.workers.dev"
 # Notification configuration
 NOTIFICATION_FROM_EMAIL = "notifications@makanmakan.com"
 TWILIO_PHONE_NUMBER = "+1234567890"

@@ -1,355 +1,239 @@
 <template>
-  <div class="menu-view">
-    <!-- 頁面標題和操作 -->
-    <div class="flex justify-between items-center mb-8">
+  <div class="menu-view p-6 bg-[#F2F2F7] min-h-screen">
+    <!-- Page header -->
+    <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ t("menu.title") }}</h1>
-        <p class="text-gray-600">{{ t("menu.subtitle") }}</p>
+        <h1 class="text-2xl font-bold text-[#1C1C1E]">{{ t("menu.title") }}</h1>
+        <p class="text-[15px] text-[#8E8E93] mt-0.5">
+          {{ t("menu.subtitle") }}
+        </p>
       </div>
-      <div class="flex space-x-4">
-        <button
-          class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          @click="showCategoryModal = true"
+      <div class="flex gap-2.5 items-center">
+        <!-- Categories stat chip -->
+        <div
+          class="flex items-center gap-1.5 px-3.5 py-2 bg-white rounded-full shadow-[0_1px_6px_rgba(0,0,0,0.06)]"
         >
-          <PlusIcon class="h-4 w-4 mr-2" />
-          {{ t("menu.addCategory") }}
-        </button>
-        <button
-          class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          @click="showMenuItemModal = true"
+          <span class="text-[13px] font-semibold text-[#1C1C1E]">{{
+            categories.length
+          }}</span>
+          <span class="text-[12px] text-[#8E8E93]">{{
+            t("menu.stats.categories")
+          }}</span>
+        </div>
+        <!-- Total items stat chip -->
+        <div
+          class="flex items-center gap-1.5 px-3.5 py-2 bg-white rounded-full shadow-[0_1px_6px_rgba(0,0,0,0.06)]"
         >
-          <PlusIcon class="h-4 w-4 mr-2" />
-          {{ t("menu.addItem") }}
-        </button>
+          <span class="text-[13px] font-semibold text-[#1C1C1E]">{{
+            menuItems.length
+          }}</span>
+          <span class="text-[12px] text-[#8E8E93]">{{
+            t("menu.stats.items")
+          }}</span>
+        </div>
+        <!-- Available stat chip -->
+        <div
+          class="flex items-center gap-1.5 px-3.5 py-2 bg-[#E8F5E9] rounded-full"
+        >
+          <span class="text-[13px] font-semibold text-[#2D8E47]">{{
+            availableCount
+          }}</span>
+          <span class="text-[12px] text-[#2D8E47]">{{
+            t("menu.stats.available")
+          }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索和篩選 -->
-    <div class="bg-white rounded-lg shadow mb-6">
-      <div class="p-6">
-        <div class="flex flex-col sm:flex-row gap-4">
-          <div class="relative flex-1">
-            <MagnifyingGlassIcon
-              class="absolute left-3 top-3 h-4 w-4 text-gray-400"
-            />
-            <input
-              v-model="searchQuery"
-              type="text"
-              :placeholder="t('menu.searchPlaceholder')"
-              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <select
-            v-model="categoryFilter"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">{{ t("menu.allCategories") }}</option>
-            <option
-              v-for="category in categories"
-              :key="category.id"
-              :value="category.id"
+    <!-- Master-detail grid -->
+    <div class="grid grid-cols-[300px_1fr] gap-5 items-start">
+      <!-- LEFT: CategoryPanel -->
+      <CategoryPanel
+        :categories="categories"
+        :menu-items="menuItems"
+        :selected-category-id="selectedCategoryId"
+        @select="selectedCategoryId = $event"
+        @add-category="startAddCategory"
+        @edit-category="startEditCategory"
+        @delete-category="handleDeleteCategory"
+        @reorder="reorderCategories"
+      />
+
+      <!-- RIGHT: Items panel -->
+      <div>
+        <!-- Items header -->
+        <div
+          class="flex justify-between items-center mb-4 bg-white rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+        >
+          <div class="flex items-center gap-3">
+            <h2 class="text-[17px] font-bold text-[#1C1C1E]">
+              {{ currentCategoryName }}
+            </h2>
+            <span
+              class="px-2.5 py-0.5 bg-[#F2F2F7] rounded-full text-[12px] font-semibold text-[#8E8E93]"
             >
-              {{ category.name }}
-            </option>
-          </select>
-          <select
-            v-model="statusFilter"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">{{ t("menu.allStatus") }}</option>
-            <option value="active">{{ t("menu.statusActive") }}</option>
-            <option value="inactive">{{ t("menu.statusInactive") }}</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- 分類標籤 -->
-    <div class="mb-6">
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="category in categories"
-          :key="category.id"
-          :class="[
-            'px-4 py-2 rounded-full text-sm font-medium transition-colors',
-            categoryFilter === category.id.toString()
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-          ]"
-          @click="
-            categoryFilter =
-              categoryFilter === category.id.toString()
-                ? ''
-                : category.id.toString()
-          "
-        >
-          {{ category.name }}
-          <span class="ml-2 text-xs opacity-75">
-            ({{ getMenuItemsInCategory(category.id).length }})
-          </span>
-        </button>
-      </div>
-    </div>
-
-    <!-- 虛擬滾動菜品網格 -->
-    <VirtualMenuGrid
-      v-if="filteredMenuItems.length > 0"
-      :menu-items="filteredMenuItems"
-      :item-height="MENU_ITEM_HEIGHT"
-      :container-height="MENU_CONTAINER_HEIGHT"
-      :columns-count="4"
-      :buffer-size="3"
-    >
-      <template #default="{ menuItem: item }">
-        <div
-          class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
-        >
-          <!-- 菜品圖片 - 🚀 使用優化圖片組件 -->
-          <div class="relative">
-            <OptimizedImage
-              :src="
-                item.imageUrl ||
-                'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27600%27 height=%27400%27 fill=%27%23e5e7eb%27%3E%3Crect width=%27600%27 height=%27400%27/%3E%3Ctext x=%27300%27 y=%27200%27 text-anchor=%27middle%27 dominant-baseline=%27central%27 font-family=%27system-ui%27 font-size=%2748%27 fill=%27%239ca3af%27%3E🍽️%3C/text%3E%3C/svg%3E'
-              "
-              :alt="item.name"
-              :width="600"
-              :height="400"
-              format="auto"
-              fit="cover"
-              :lazy="true"
-              :fade-in="true"
-              image-class="w-full h-48 object-cover rounded-t-lg"
-            />
-            <div class="absolute top-2 right-2">
-              <span
-                :class="[
-                  'px-2 py-1 rounded-full text-xs font-medium',
-                  item.isAvailable
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800',
-                ]"
-              >
-                {{ item.isAvailable ? t("menu.available") : t("menu.soldOut") }}
-              </span>
-            </div>
-            <div v-if="item.isFeatured" class="absolute top-2 left-2">
-              <span
-                class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium"
-              >
-                {{ t("menu.featured") }}
-              </span>
-            </div>
-          </div>
-
-          <!-- 菜品信息 -->
-          <div class="p-4">
-            <div class="flex justify-between items-start mb-2">
-              <h3 class="text-lg font-semibold text-gray-900 line-clamp-1">
-                {{ item.name }}
-              </h3>
-              <span class="text-lg font-bold text-blue-600">{{
-                formatPrice(item.price)
-              }}</span>
-            </div>
-
-            <p class="text-sm text-gray-600 mb-3 line-clamp-2">
-              {{ item.description }}
-            </p>
-
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-gray-500">
-                {{ getCategoryName(item.categoryId) }}
-              </span>
-              <div class="flex space-x-2">
-                <button
-                  class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                  :title="t('common.edit')"
-                  @click="editMenuItem(item)"
-                >
-                  <PencilIcon class="h-4 w-4" />
-                </button>
-                <button
-                  :class="[
-                    'p-1 transition-colors',
-                    item.isAvailable
-                      ? 'text-gray-400 hover:text-red-600'
-                      : 'text-gray-400 hover:text-green-600',
-                  ]"
-                  :title="
-                    item.isAvailable
-                      ? t('menu.statusInactive')
-                      : t('menu.statusActive')
-                  "
-                  @click="toggleMenuItemStatus(item)"
-                >
-                  <component
-                    :is="item.isAvailable ? EyeSlashIcon : EyeIcon"
-                    class="h-4 w-4"
-                  />
-                </button>
-                <button
-                  class="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                  :title="t('common.delete')"
-                  @click="deleteMenuItem(item)"
-                >
-                  <TrashIcon class="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
-    </VirtualMenuGrid>
-
-    <!-- 空狀態 -->
-    <div v-if="filteredMenuItems.length === 0" class="text-center py-12">
-      <CakeIcon class="mx-auto h-12 w-12 text-gray-400" />
-      <h3 class="mt-2 text-sm font-medium text-gray-900">
-        {{ t("menu.empty.title") }}
-      </h3>
-      <p class="mt-1 text-sm text-gray-500">{{ t("menu.empty.subtitle") }}</p>
-      <button
-        class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        @click="showMenuItemModal = true"
-      >
-        <PlusIcon class="h-4 w-4 mr-2" />
-        {{ t("menu.addItem") }}
-      </button>
-    </div>
-
-    <!-- 分類管理模態框 -->
-    <div v-if="showCategoryModal" class="fixed inset-0 z-50 overflow-y-auto">
-      <div class="flex items-center justify-center min-h-screen px-4">
-        <div
-          class="fixed inset-0 bg-black opacity-30"
-          @click="closeCategoryModal"
-        />
-        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
-          <div class="p-6">
-            <h3 class="text-lg font-semibold mb-4">
               {{
-                editingCategory ? t("menu.editCategory") : t("menu.addCategory")
+                t("menu.itemsHeader.itemCount", { count: filteredItems.length })
               }}
-            </h3>
-
-            <form @submit.prevent="saveCategory">
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
-                    {{ t("menu.form.categoryName") }}
-                    <span class="text-red-500">*</span>
-                  </label>
-                  <input
-                    v-model="categoryForm.name"
-                    type="text"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
-                    t("menu.form.nameEn")
-                  }}</label>
-                  <input
-                    v-model="categoryForm.nameEn"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
-                    t("menu.form.description")
-                  }}</label>
-                  <textarea
-                    v-model="categoryForm.description"
-                    rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
-                    t("menu.form.sortOrder")
-                  }}</label>
-                  <input
-                    v-model.number="categoryForm.sortOrder"
-                    type="number"
-                    min="0"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div class="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  @click="closeCategoryModal"
-                >
-                  {{ t("common.cancel") }}
-                </button>
-                <button
-                  type="submit"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {{
-                    editingCategory ? t("menu.form.update") : t("menu.form.add")
-                  }}
-                </button>
-              </div>
-            </form>
+            </span>
           </div>
+          <div class="flex gap-2.5 items-center">
+            <!-- Search input -->
+            <div class="relative">
+              <MagnifyingGlassIcon
+                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#AEAEB2]"
+              />
+              <input
+                v-model="searchQuery"
+                type="text"
+                :placeholder="t('menu.searchPlaceholder')"
+                class="pl-9 pr-4 py-2 bg-[#F2F2F7] rounded-full text-[13px] text-[#1C1C1E] placeholder-[#AEAEB2] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 w-44 transition-all"
+              />
+            </div>
+
+            <!-- Status filter pills -->
+            <div class="flex items-center bg-[#F2F2F7] rounded-full p-0.5">
+              <button
+                v-for="filter in statusFilters"
+                :key="filter.value"
+                :class="[
+                  'px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all',
+                  statusFilter === filter.value
+                    ? 'bg-white text-[#1C1C1E] shadow-[0_1px_4px_rgba(0,0,0,0.1)]'
+                    : 'text-[#8E8E93] hover:text-[#1C1C1E]',
+                ]"
+                @click="statusFilter = filter.value"
+              >
+                {{ filter.label }}
+              </button>
+            </div>
+
+            <!-- Add item button -->
+            <button
+              class="flex items-center gap-1.5 px-[18px] py-[9px] bg-[#0066D6] text-white rounded-full text-[13px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
+              @click="openAddItemModal"
+            >
+              <PlusIcon class="h-4 w-4" />
+              {{ t("menu.addItem") }}
+            </button>
+          </div>
+        </div>
+
+        <!-- VirtualMenuGrid -->
+        <VirtualMenuGrid
+          v-if="filteredItems.length > 0"
+          :menu-items="filteredItems"
+          :item-height="330"
+          :container-height="800"
+          :columns-count="3"
+          :buffer-size="3"
+        >
+          <template #default="{ menuItem }">
+            <MenuItemCard
+              :item="menuItem as MenuItemData"
+              :category-name="getCategoryName(menuItem.categoryId)"
+              @edit="editMenuItem"
+              @toggle-status="toggleMenuItemStatus"
+              @delete="handleDeleteMenuItem"
+            />
+          </template>
+        </VirtualMenuGrid>
+
+        <!-- Empty state -->
+        <div
+          v-if="filteredItems.length === 0 && !isLoading"
+          class="flex flex-col items-center justify-center py-20 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+        >
+          <CakeIcon class="h-14 w-14 text-[#AEAEB2] mb-3" />
+          <h3 class="text-[17px] font-semibold text-[#1C1C1E] mb-1">
+            {{ t("menu.empty.title") }}
+          </h3>
+          <p class="text-[14px] text-[#8E8E93] mb-5">
+            {{ t("menu.empty.subtitle") }}
+          </p>
+          <button
+            class="flex items-center gap-1.5 px-5 py-2.5 bg-[#0066D6] text-white rounded-full text-[14px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
+            @click="openAddItemModal"
+          >
+            <PlusIcon class="h-4 w-4" />
+            {{ t("menu.addItem") }}
+          </button>
+        </div>
+
+        <!-- Loading state -->
+        <div
+          v-if="isLoading"
+          class="flex items-center justify-center py-20 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+        >
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-ios-primary"
+          />
         </div>
       </div>
     </div>
 
-    <!-- 菜品管理模態框 -->
+    <!-- Category edit modal -->
+    <CategoryEditForm
+      v-if="showCategoryEditForm"
+      :editing-category="editingCategory"
+      @save="handleSaveCategory"
+      @cancel="cancelCategoryEdit"
+    />
+
+    <!-- Menu item modal -->
     <div v-if="showMenuItemModal" class="fixed inset-0 z-50 overflow-y-auto">
       <div class="flex items-center justify-center min-h-screen px-4">
         <div
-          class="fixed inset-0 bg-black opacity-30"
+          class="fixed inset-0 bg-black/30 backdrop-blur-sm"
           @click="closeMenuItemModal"
         />
         <div
-          class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         >
           <div class="p-6">
-            <h3 class="text-lg font-semibold mb-4">
+            <h3 class="text-[18px] font-bold text-[#1C1C1E] mb-5">
               {{ editingMenuItem ? t("menu.editItem") : t("menu.addItem") }}
             </h3>
 
-            <form @submit.prevent="saveMenuItem">
+            <form @submit.prevent="handleSaveMenuItem">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Item name -->
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
                     {{ t("menu.form.itemName") }}
-                    <span class="text-red-500">*</span>
+                    <span class="text-ios-error ml-0.5">*</span>
                   </label>
                   <input
                     v-model="menuItemForm.name"
                     type="text"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
+                <!-- Name (English) -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
-                    t("menu.form.nameEn")
-                  }}</label>
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
+                    {{ t("menu.form.nameEn") }}
+                  </label>
                   <input
                     v-model="menuItemForm.nameEn"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
+                <!-- Price -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
                     {{ t("menu.form.price") }}
-                    <span class="text-red-500">*</span>
+                    <span class="text-ios-error ml-0.5">*</span>
                   </label>
                   <input
                     v-model.number="menuItemForm.price"
@@ -357,19 +241,22 @@
                     step="0.01"
                     min="0"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
+                <!-- Category -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
                     {{ t("menu.form.category") }}
-                    <span class="text-red-500">*</span>
+                    <span class="text-ios-error ml-0.5">*</span>
                   </label>
                   <select
                     v-model="menuItemForm.categoryId"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   >
                     <option value="">
                       {{ t("menu.form.selectCategory") }}
@@ -384,75 +271,88 @@
                   </select>
                 </div>
 
+                <!-- Image URL -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
-                    t("menu.form.imageUrl")
-                  }}</label>
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
+                    {{ t("menu.form.imageUrl") }}
+                  </label>
                   <input
                     v-model="menuItemForm.imageUrl"
                     type="url"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
+                <!-- Description -->
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
-                    t("menu.form.description")
-                  }}</label>
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
+                    {{ t("menu.form.description") }}
+                  </label>
                   <textarea
                     v-model="menuItemForm.description"
                     rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all resize-none"
                   />
                 </div>
 
+                <!-- Sort order -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">{{
-                    t("menu.form.sortOrder")
-                  }}</label>
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
+                    {{ t("menu.form.sortOrder") }}
+                  </label>
                   <input
                     v-model.number="menuItemForm.sortOrder"
                     type="number"
                     min="0"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
-                <div class="flex items-center space-x-4">
-                  <label class="flex items-center">
+                <!-- Checkboxes -->
+                <div class="flex items-center gap-5">
+                  <label class="flex items-center gap-2 cursor-pointer">
                     <input
                       v-model="menuItemForm.isFeatured"
                       type="checkbox"
-                      class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      class="w-4 h-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
                     />
-                    <span class="ml-2 text-sm text-gray-700">{{
+                    <span class="text-[13px] text-[#1C1C1E]">{{
                       t("menu.form.featuredItem")
                     }}</span>
                   </label>
-                  <label class="flex items-center">
+                  <label class="flex items-center gap-2 cursor-pointer">
                     <input
                       v-model="menuItemForm.isAvailable"
                       type="checkbox"
-                      class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      class="w-4 h-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
                     />
-                    <span class="ml-2 text-sm text-gray-700">{{
+                    <span class="text-[13px] text-[#1C1C1E]">{{
                       t("menu.form.isAvailable")
                     }}</span>
                   </label>
                 </div>
               </div>
 
-              <div class="flex justify-end space-x-3 mt-6">
+              <!-- Modal actions -->
+              <div
+                class="flex justify-end gap-2.5 mt-6 pt-5 border-t border-black/[0.06]"
+              >
                 <button
                   type="button"
-                  class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors"
                   @click="closeMenuItemModal"
                 >
                   {{ t("common.cancel") }}
                 </button>
                 <button
                   type="submit"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  class="px-5 py-2.5 text-[14px] font-semibold text-white bg-ios-primary rounded-full hover:bg-ios-primary/90 transition-colors shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
                 >
                   {{
                     editingMenuItem ? t("menu.form.update") : t("menu.form.add")
@@ -470,101 +370,81 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useMenuManagement } from "@/composables/useMenuManagement";
+import type {
+  CategoryData,
+  MenuItemData,
+} from "@/composables/useMenuManagement";
+import CategoryPanel from "@/components/menu/CategoryPanel.vue";
+import CategoryEditForm from "@/components/menu/CategoryEditForm.vue";
+import MenuItemCard from "@/components/menu/MenuItemCard.vue";
 import VirtualMenuGrid from "@/components/VirtualMenuGrid.vue";
-import OptimizedImage from "@/components/OptimizedImage.vue";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-  EyeSlashIcon,
   CakeIcon,
 } from "@heroicons/vue/24/outline";
-import { useCurrency } from "@/composables/useCurrency";
-import { api } from "@/services/api";
-import { useAuthStore } from "@/stores/auth";
-import { useToast } from "vue-toastification";
 
 const { t } = useI18n();
-const { formatPrice } = useCurrency();
-const authStore = useAuthStore();
-const toast = useToast();
-const isLoading = ref(false);
+const {
+  categories,
+  menuItems,
+  isLoading,
+  selectedCategoryId,
+  filteredItemsByCategory,
+  getCategoryName,
+  fetchMenu,
+  saveCategory,
+  deleteCategory,
+  reorderCategories,
+  saveMenuItem,
+  deleteMenuItem,
+  toggleMenuItemStatus,
+} = useMenuManagement();
 
-// 虛擬滾動配置
-const MENU_ITEM_HEIGHT = 330; // 每個菜品卡片的高度 (圖片 192px + 內容 138px)
-const MENU_CONTAINER_HEIGHT = 800; // 容器高度 (px)
-
-// 響應式數據
+// ── Local UI State ──
 const searchQuery = ref("");
-const categoryFilter = ref("");
-const statusFilter = ref("");
-const showCategoryModal = ref(false);
+const statusFilter = ref<"all" | "available" | "unavailable">("all");
+const showCategoryEditForm = ref(false);
+const editingCategory = ref<CategoryData | null>(null);
 const showMenuItemModal = ref(false);
-const editingCategory = ref<any>(null);
-const editingMenuItem = ref<any>(null);
-
-// 菜單數據（從 API 載入）
-const categories = ref<any[]>([]);
-const menuItems = ref<any[]>([]);
-
-const fetchMenu = async () => {
-  if (!authStore.restaurantId) return;
-  isLoading.value = true;
-  try {
-    const response = await api.get<{ categories: any[]; menuItems: any[] }>(
-      `/menu/${authStore.restaurantId}`,
-    );
-    const payload = response.data?.success ? response.data.data : undefined;
-    if (payload) {
-      categories.value = payload.categories.map((c: any) => ({
-        ...c,
-        nameEn: c.nameEn || "",
-        status: c.status === 1 ? "active" : "inactive",
-      }));
-      menuItems.value = payload.menuItems.map((item: any) => ({
-        ...item,
-        nameEn: item.nameEn || "",
-        isFeatured: !!item.isFeatured,
-        isAvailable: !!item.isAvailable,
-      }));
-    }
-  } catch (error: any) {
-    console.error("Failed to fetch menu:", error);
-    toast.error("載入菜單失敗");
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// 表單數據
-const categoryForm = ref({
-  name: "",
-  nameEn: "",
-  description: "",
-  sortOrder: 0,
-});
+const editingMenuItem = ref<MenuItemData | null>(null);
 
 const menuItemForm = ref({
   name: "",
   nameEn: "",
   description: "",
   price: 0,
-  categoryId: "",
+  categoryId: "" as string | number,
   imageUrl: "",
   isFeatured: false,
   isAvailable: true,
   sortOrder: 0,
 });
 
-// 計算屬性
-const filteredMenuItems = computed(() => {
-  let filtered = menuItems.value;
+// ── Status filter options ──
+const statusFilters = computed(() => [
+  { value: "all" as const, label: t("menu.itemsHeader.filterAll") },
+  { value: "available" as const, label: t("menu.itemsHeader.filterAvailable") },
+  {
+    value: "unavailable" as const,
+    label: t("menu.itemsHeader.filterUnavailable"),
+  },
+]);
+
+// ── Computed ──
+const currentCategoryName = computed(() => {
+  if (selectedCategoryId.value === null)
+    return t("menu.categoryPanel.allItems");
+  return getCategoryName(selectedCategoryId.value);
+});
+
+const filteredItems = computed(() => {
+  let items = filteredItemsByCategory.value;
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(
+    items = items.filter(
       (item) =>
         item.name.toLowerCase().includes(query) ||
         item.nameEn?.toLowerCase().includes(query) ||
@@ -572,150 +452,114 @@ const filteredMenuItems = computed(() => {
     );
   }
 
-  if (categoryFilter.value) {
-    filtered = filtered.filter(
-      (item) => item.categoryId.toString() === categoryFilter.value,
-    );
+  if (statusFilter.value === "available") {
+    items = items.filter((item) => item.isAvailable);
+  } else if (statusFilter.value === "unavailable") {
+    items = items.filter((item) => !item.isAvailable);
   }
 
-  if (statusFilter.value) {
-    if (statusFilter.value === "active") {
-      filtered = filtered.filter((item) => item.isAvailable);
-    } else if (statusFilter.value === "inactive") {
-      filtered = filtered.filter((item) => !item.isAvailable);
-    }
-  }
-
-  return filtered.sort((a, b) => {
-    if (a.categoryId !== b.categoryId) {
-      return a.categoryId - b.categoryId;
-    }
-    return a.sortOrder - b.sortOrder;
-  });
+  return [...items].sort((a, b) => a.sortOrder - b.sortOrder);
 });
 
-// 方法
-const getMenuItemsInCategory = (categoryId: number) => {
-  return menuItems.value.filter((item) => item.categoryId === categoryId);
-};
+const availableCount = computed(
+  () => menuItems.value.filter((i) => i.isAvailable).length,
+);
 
-const getCategoryName = (categoryId: number) => {
-  const category = categories.value.find((c) => c.id === categoryId);
-  return category ? category.name : t("menu.unknownCategory");
-};
-
-const editMenuItem = (item: any) => {
-  editingMenuItem.value = item;
-  menuItemForm.value = { ...item };
-  showMenuItemModal.value = true;
-};
-
-const deleteMenuItem = async (item: any) => {
-  if (confirm(t("menu.confirms.deleteItem", { name: item.name }))) {
-    try {
-      await api.delete(`/menu/items/${item.id}`);
-      toast.success("菜品已刪除");
-      await fetchMenu();
-    } catch (error: any) {
-      console.error("Failed to delete menu item:", error);
-      toast.error(error.response?.data?.error?.message || "刪除失敗");
-    }
-  }
-};
-
-const toggleMenuItemStatus = async (item: any) => {
-  try {
-    await api.put(`/menu/items/${item.id}`, {
-      isAvailable: !item.isAvailable,
-    });
-    await fetchMenu();
-  } catch (error: any) {
-    console.error("Failed to toggle status:", error);
-    toast.error("更新狀態失敗");
-  }
-};
-
-const closeCategoryModal = () => {
-  showCategoryModal.value = false;
+// ── Category Panel Handlers ──
+const startAddCategory = () => {
   editingCategory.value = null;
-  categoryForm.value = {
-    name: "",
-    nameEn: "",
-    description: "",
-    sortOrder: 0,
-  };
+  showCategoryEditForm.value = true;
 };
 
-const closeMenuItemModal = () => {
-  showMenuItemModal.value = false;
+const startEditCategory = (category: CategoryData) => {
+  editingCategory.value = category;
+  showCategoryEditForm.value = true;
+};
+
+const handleSaveCategory = async (
+  form: {
+    name: string;
+    nameEn: string;
+    description: string;
+    sortOrder: number;
+  },
+  editingId?: number,
+) => {
+  await saveCategory(form, editingId);
+  showCategoryEditForm.value = false;
+  editingCategory.value = null;
+};
+
+const cancelCategoryEdit = () => {
+  showCategoryEditForm.value = false;
+  editingCategory.value = null;
+};
+
+const handleDeleteCategory = async (category: CategoryData) => {
+  if (confirm(t("menu.confirms.deleteCategory", { name: category.name }))) {
+    await deleteCategory(category.id);
+  }
+};
+
+// ── Menu Item Handlers ──
+const openAddItemModal = () => {
   editingMenuItem.value = null;
   menuItemForm.value = {
     name: "",
     nameEn: "",
     description: "",
     price: 0,
-    categoryId: "",
+    categoryId: selectedCategoryId.value ?? "",
     imageUrl: "",
     isFeatured: false,
     isAvailable: true,
     sortOrder: 0,
   };
+  showMenuItemModal.value = true;
 };
 
-const saveCategory = async () => {
-  if (!authStore.restaurantId) return;
-  try {
-    if (editingCategory.value) {
-      await api.put(`/menu/categories/${editingCategory.value.id}`, {
-        name: categoryForm.value.name,
-        nameEn: categoryForm.value.nameEn,
-        description: categoryForm.value.description,
-        sortOrder: categoryForm.value.sortOrder,
-      });
-      toast.success("分類已更新");
-    } else {
-      await api.post(`/menu/${authStore.restaurantId}/categories`, {
-        name: categoryForm.value.name,
-        nameEn: categoryForm.value.nameEn,
-        description: categoryForm.value.description,
-        sortOrder: categoryForm.value.sortOrder,
-      });
-      toast.success("分類已新增");
-    }
-    closeCategoryModal();
-    await fetchMenu();
-  } catch (error: any) {
-    console.error("Failed to save category:", error);
-    toast.error(error.response?.data?.error?.message || "操作失敗");
-  }
+const editMenuItem = (item: MenuItemData) => {
+  editingMenuItem.value = item;
+  menuItemForm.value = {
+    name: item.name,
+    nameEn: item.nameEn ?? "",
+    description: item.description ?? "",
+    price: item.price,
+    categoryId: item.categoryId,
+    imageUrl: item.imageUrl ?? "",
+    isFeatured: item.isFeatured,
+    isAvailable: item.isAvailable,
+    sortOrder: item.sortOrder,
+  };
+  showMenuItemModal.value = true;
 };
 
-const saveMenuItem = async () => {
-  if (!authStore.restaurantId) return;
-  try {
-    const payload = {
+const closeMenuItemModal = () => {
+  showMenuItemModal.value = false;
+  editingMenuItem.value = null;
+};
+
+const handleSaveMenuItem = async () => {
+  await saveMenuItem(
+    {
       name: menuItemForm.value.name,
-      nameEn: menuItemForm.value.nameEn,
-      description: menuItemForm.value.description,
+      nameEn: menuItemForm.value.nameEn || undefined,
+      description: menuItemForm.value.description || undefined,
       price: Number(menuItemForm.value.price),
-      categoryId: parseInt(menuItemForm.value.categoryId),
+      categoryId: Number(menuItemForm.value.categoryId),
       imageUrl: menuItemForm.value.imageUrl || null,
       isFeatured: menuItemForm.value.isFeatured,
       isAvailable: menuItemForm.value.isAvailable,
       sortOrder: menuItemForm.value.sortOrder,
-    };
-    if (editingMenuItem.value) {
-      await api.put(`/menu/items/${editingMenuItem.value.id}`, payload);
-      toast.success("菜品已更新");
-    } else {
-      await api.post(`/menu/${authStore.restaurantId}/items`, payload);
-      toast.success("菜品已新增");
-    }
-    closeMenuItemModal();
-    await fetchMenu();
-  } catch (error: any) {
-    console.error("Failed to save menu item:", error);
-    toast.error(error.response?.data?.error?.message || "操作失敗");
+    },
+    editingMenuItem.value?.id,
+  );
+  closeMenuItemModal();
+};
+
+const handleDeleteMenuItem = async (item: MenuItemData) => {
+  if (confirm(t("menu.confirms.deleteItem", { name: item.name }))) {
+    await deleteMenuItem(item);
   }
 };
 
@@ -726,7 +570,7 @@ onMounted(() => {
 
 <style scoped>
 .menu-view {
-  padding: 1.5rem;
+  min-height: 100vh;
 }
 
 .line-clamp-1 {
@@ -743,9 +587,9 @@ onMounted(() => {
   -webkit-line-clamp: 2;
 }
 
-@media (max-width: 640px) {
-  .menu-view {
-    padding: 1rem;
+@media (max-width: 900px) {
+  .grid-cols-\[300px_1fr\] {
+    grid-template-columns: 1fr;
   }
 }
 </style>

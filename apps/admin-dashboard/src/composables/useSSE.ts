@@ -3,6 +3,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notification";
 import { useOrderStore } from "@/stores/order";
 import type { SSEEvent } from "@/types";
+import { isTokenExpired } from "@makanmakan/utils";
 
 const eventSource = ref<EventSource | null>(null);
 const isConnected = ref(false);
@@ -15,7 +16,7 @@ export function useSSE() {
   const notificationStore = useNotificationStore();
   const orderStore = useOrderStore();
 
-  const connect = () => {
+  const connect = async () => {
     if (
       !authStore.isAuthenticated ||
       !authStore.restaurantId ||
@@ -25,11 +26,25 @@ export function useSSE() {
     }
 
     try {
-      const token = authStore.token;
+      let token = authStore.token;
       if (!token) {
         console.warn("SSE: No auth token available, skipping connection");
         return;
       }
+
+      // If token is expired or about to expire, refresh first
+      if (isTokenExpired(token, 30)) {
+        const refreshed = await authStore.refreshToken();
+        if (!refreshed) {
+          console.warn(
+            "SSE: Token expired and refresh failed, skipping connection",
+          );
+          return;
+        }
+        token = authStore.token;
+        if (!token) return;
+      }
+
       const url = `/api/v1/sse/events?restaurant_id=${authStore.restaurantId}&token=${encodeURIComponent(token)}`;
       eventSource.value = new EventSource(url);
 
@@ -85,13 +100,13 @@ export function useSSE() {
 
     disconnect();
 
-    setTimeout(() => {
+    setTimeout(async () => {
       reconnectAttempts.value++;
-      reconnectDelay.value = Math.min(reconnectDelay.value * 2, 30000); // Max 30 seconds
+      reconnectDelay.value = Math.min(reconnectDelay.value * 2, 30000);
       console.log(
         `Attempting to reconnect... (${reconnectAttempts.value}/${maxReconnectAttempts})`,
       );
-      connect();
+      await connect();
     }, reconnectDelay.value);
   };
 

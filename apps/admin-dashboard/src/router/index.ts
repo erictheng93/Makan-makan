@@ -3,6 +3,7 @@ import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { t } from "@/i18n";
 import type { RouteRecordRaw } from "vue-router";
+import { isTokenExpired } from "@makanmakan/utils";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -383,6 +384,14 @@ router.beforeEach(async (to, _, next) => {
   // 檢查用戶是否已認證
   if (!authStore.isAuthenticated) {
     return next("/login");
+  }
+
+  // Check if token is expired — attempt refresh before proceeding
+  if (authStore.token && isTokenExpired(authStore.token, 30)) {
+    const refreshed = await authStore.refreshToken();
+    if (!refreshed) {
+      return next("/login");
+    }
   }
 
   // 使用新的路由權限檢查

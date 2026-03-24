@@ -119,7 +119,8 @@ describe("WaitingListService", () => {
 
       mockDB._mockData.tables.set(1, {
         id: 1,
-        current_status: "available",
+        is_occupied: 0,
+        is_active: 1,
         capacity: 6,
       });
 
@@ -155,7 +156,8 @@ describe("WaitingListService", () => {
 
       mockDB._mockData.tables.set(1, {
         id: 1,
-        current_status: "occupied", // 已佔用
+        is_occupied: 1, // 已佔用
+        is_active: 1,
         capacity: 6,
       });
 
@@ -175,7 +177,8 @@ describe("WaitingListService", () => {
 
       mockDB._mockData.tables.set(1, {
         id: 1,
-        current_status: "available",
+        is_occupied: 0,
+        is_active: 1,
         capacity: 4, // 容量不足
       });
 
@@ -314,7 +317,8 @@ describe("WaitingListService", () => {
       mockDB._mockData.tables.set(1, {
         id: 1,
         capacity: 4,
-        current_status: "available",
+        is_occupied: 0,
+        is_active: 1,
       });
 
       const result = await service.estimateWaitTime({
@@ -516,6 +520,443 @@ describe("WaitingListService", () => {
       expect(result).toBeNull();
     });
   });
+
+  // ==========================================
+  // 狀態機完整性測試 (State Machine Completeness)
+  // ==========================================
+
+  describe("Invalid State Transitions - 非法狀態轉換", () => {
+    it("seated → call 應該拒絕（已入座不能重新叫號）", async () => {
+      const entryId = "wait-st-001";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "seated",
+        party_size: 4,
+        restaurant_id: "R-001",
+      });
+
+      mockDB._mockData.tables.set(2, {
+        id: 2,
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 6,
+      });
+
+      await expect(
+        service.callWaiting(entryId, { tableId: 2 }),
+      ).rejects.toThrow("無法叫號");
+    });
+
+    it("cancelled → call 應該拒絕（已取消不能叫號）", async () => {
+      const entryId = "wait-st-002";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "cancelled",
+        party_size: 4,
+        restaurant_id: "R-001",
+      });
+
+      mockDB._mockData.tables.set(2, {
+        id: 2,
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 6,
+      });
+
+      await expect(
+        service.callWaiting(entryId, { tableId: 2 }),
+      ).rejects.toThrow("無法叫號");
+    });
+
+    it("expired → call 應該拒絕（已過期不能叫號）", async () => {
+      const entryId = "wait-st-003";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "expired",
+        party_size: 4,
+        restaurant_id: "R-001",
+      });
+
+      mockDB._mockData.tables.set(2, {
+        id: 2,
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 6,
+      });
+
+      await expect(
+        service.callWaiting(entryId, { tableId: 2 }),
+      ).rejects.toThrow("無法叫號");
+    });
+
+    it("seated → confirm 應該拒絕（已入座不能確認）", async () => {
+      const entryId = "wait-st-004";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "seated",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.confirmWaiting(entryId)).rejects.toThrow(
+        "此候位尚未叫號",
+      );
+    });
+
+    it("cancelled → confirm 應該拒絕（已取消不能確認）", async () => {
+      const entryId = "wait-st-005";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "cancelled",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.confirmWaiting(entryId)).rejects.toThrow(
+        "此候位尚未叫號",
+      );
+    });
+
+    it("expired → confirm 應該拒絕（已過期不能確認）", async () => {
+      const entryId = "wait-st-006";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "expired",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.confirmWaiting(entryId)).rejects.toThrow(
+        "此候位尚未叫號",
+      );
+    });
+
+    it("waiting → seat 應該拒絕（必須先叫號才能入座）", async () => {
+      const entryId = "wait-st-007";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "waiting",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.markSeated(entryId)).rejects.toThrow(
+        "無法入座，候位狀態不正確",
+      );
+    });
+
+    it("expired → seat 應該拒絕（已過期不能入座）", async () => {
+      const entryId = "wait-st-008";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "expired",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.markSeated(entryId)).rejects.toThrow(
+        "無法入座，候位狀態不正確",
+      );
+    });
+
+    it("cancelled → seat 應該拒絕（已取消不能入座）", async () => {
+      const entryId = "wait-st-009";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "cancelled",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.markSeated(entryId)).rejects.toThrow(
+        "無法入座，候位狀態不正確",
+      );
+    });
+
+    it("seated → cancel 應該拒絕（已入座不能取消）", async () => {
+      const entryId = "wait-st-011";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "seated",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.cancelWaiting(entryId)).rejects.toThrow(
+        "無法取消，當前狀態: seated",
+      );
+    });
+
+    it("expired → cancel 應該拒絕（已過期不能取消）", async () => {
+      const entryId = "wait-st-012";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "expired",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.cancelWaiting(entryId)).rejects.toThrow(
+        "無法取消，當前狀態: expired",
+      );
+    });
+
+    it("cancelled → cancel 應該拒絕（不能重複取消）", async () => {
+      const entryId = "wait-st-013";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "cancelled",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.cancelWaiting(entryId)).rejects.toThrow(
+        "無法取消，當前狀態: cancelled",
+      );
+    });
+
+    it("waiting → cancel 應該允許", async () => {
+      const entryId = "wait-st-014";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "waiting",
+        restaurant_id: "R-001",
+      });
+
+      const result = await service.cancelWaiting(entryId);
+      expect(result.status).toBe("cancelled");
+    });
+
+    it("called → cancel 應該允許（叫號後可取消）", async () => {
+      const entryId = "wait-st-015";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        table_id: 1,
+        restaurant_id: "R-001",
+      });
+
+      const result = await service.cancelWaiting(entryId);
+      expect(result.status).toBe("cancelled");
+    });
+
+    it("seated → expire 應該拒絕（已入座不能標記過期）", async () => {
+      const entryId = "wait-st-016";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "seated",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.expireWaiting(entryId)).rejects.toThrow(
+        "無法標記過期，當前狀態: seated",
+      );
+    });
+
+    it("cancelled → expire 應該拒絕（已取消不能標記過期）", async () => {
+      const entryId = "wait-st-017";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "cancelled",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.expireWaiting(entryId)).rejects.toThrow(
+        "無法標記過期，當前狀態: cancelled",
+      );
+    });
+
+    it("expired → expire 應該拒絕（不能重複標記過期）", async () => {
+      const entryId = "wait-st-018";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "expired",
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.expireWaiting(entryId)).rejects.toThrow(
+        "無法標記過期，當前狀態: expired",
+      );
+    });
+
+    it("called → seat 應該允許（叫號後可直接入座，不需確認）", async () => {
+      const entryId = "wait-st-010";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        table_id: 1,
+        restaurant_id: "R-001",
+      });
+
+      const result = await service.markSeated(entryId);
+
+      expect(result.status).toBe("seated");
+    });
+  });
+
+  // ==========================================
+  // 超時邊界測試 (Timeout Boundary)
+  // ==========================================
+
+  describe("Timeout Boundary - 超時邊界條件", () => {
+    it("剛好等於 timeoutAt 時應該允許確認（now === timeoutAt）", async () => {
+      const now = Date.now();
+      vi.setSystemTime(now);
+
+      const entryId = "wait-to-001";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        timeout_at: now, // 剛好等於當前時間
+        restaurant_id: "R-001",
+      });
+
+      // now > timeoutAt 才算超時，now === timeoutAt 不應超時
+      const result = await service.confirmWaiting(entryId);
+      expect(result.status).toBe("confirmed");
+
+      vi.useRealTimers();
+    });
+
+    it("超過 timeoutAt 1ms 時應該過期", async () => {
+      const timeoutAt = Date.now();
+      vi.setSystemTime(timeoutAt + 1);
+
+      const entryId = "wait-to-002";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        timeout_at: timeoutAt,
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.confirmWaiting(entryId)).rejects.toThrow("已超時");
+
+      vi.useRealTimers();
+    });
+
+    it("距超時還有 1ms 時應該允許確認", async () => {
+      const timeoutAt = Date.now() + 1;
+      vi.setSystemTime(timeoutAt - 1);
+
+      const entryId = "wait-to-003";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        timeout_at: timeoutAt,
+        restaurant_id: "R-001",
+      });
+
+      const result = await service.confirmWaiting(entryId);
+      expect(result.status).toBe("confirmed");
+
+      vi.useRealTimers();
+    });
+
+    it("timeoutAt 為 null 時不應檢查超時", async () => {
+      const entryId = "wait-to-004";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        timeout_at: null,
+        restaurant_id: "R-001",
+      });
+
+      const result = await service.confirmWaiting(entryId);
+      expect(result.status).toBe("confirmed");
+    });
+  });
+
+  // ==========================================
+  // 並發安全測試 (Concurrency Safety)
+  // ==========================================
+
+  describe("Concurrency Safety - 並發安全", () => {
+    // NOTE: 真正的並發鎖定需要在 DB 層用 transaction + SELECT FOR UPDATE 實現。
+    // 這裡的測試驗證「狀態檢查邏輯」在順序執行下能正確阻擋重複操作。
+    // 真正的並發競爭條件需要搭配真實 D1 的 integration test 來覆蓋。
+
+    it("第一次叫號成功後，第二次叫號應被拒絕", async () => {
+      const entryId = "wait-cc-001";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "waiting",
+        party_size: 4,
+        restaurant_id: "R-001",
+      });
+
+      mockDB._mockData.tables.set(10, {
+        id: 10,
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 6,
+      });
+
+      mockDB._mockData.tables.set(11, {
+        id: 11,
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 6,
+      });
+
+      // 第一次叫號：成功
+      const result = await service.callWaiting(entryId, { tableId: 10 });
+      expect(result.status).toBe("called");
+
+      // 第二次叫號：狀態已不是 waiting，應被拒絕
+      await expect(
+        service.callWaiting(entryId, { tableId: 11 }),
+      ).rejects.toThrow("無法叫號");
+    });
+
+    it("第一次確認成功後，第二次確認應被拒絕", async () => {
+      const entryId = "wait-cc-002";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        timeout_at: Date.now() + 300000,
+        restaurant_id: "R-001",
+      });
+
+      // 第一次確認：成功
+      const result = await service.confirmWaiting(entryId);
+      expect(result.status).toBe("confirmed");
+
+      // 第二次確認：狀態已不是 called，應被拒絕
+      await expect(service.confirmWaiting(entryId)).rejects.toThrow(
+        "此候位尚未叫號",
+      );
+    });
+
+    it("入座後不能再取消", async () => {
+      const entryId = "wait-cc-003";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "confirmed",
+        table_id: 1,
+        restaurant_id: "R-001",
+      });
+
+      // 先入座
+      const seated = await service.markSeated(entryId);
+      expect(seated.status).toBe("seated");
+
+      // 入座後取消應被拒絕（已入座不可取消）
+      await expect(service.cancelWaiting(entryId)).rejects.toThrow(
+        "無法取消，當前狀態: seated",
+      );
+    });
+
+    it("取消後不能入座", async () => {
+      const entryId = "wait-cc-004";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "confirmed",
+        table_id: 1,
+        restaurant_id: "R-001",
+      });
+
+      // 先取消
+      const cancelled = await service.cancelWaiting(entryId);
+      expect(cancelled.status).toBe("cancelled");
+
+      // 取消後嘗試入座，應被拒絕
+      await expect(service.markSeated(entryId)).rejects.toThrow(
+        "無法入座，候位狀態不正確",
+      );
+    });
+  });
 });
 
 // ==========================================
@@ -597,24 +1038,22 @@ function createMockDB() {
     // COUNT queries for tables
     if (queryStr.includes("COUNT") && tableName === "tables") {
       const tables = Array.from(mockData.tables.values()) as any[];
-      if (queryStr.includes("available")) {
+      // Occupied tables count (estimateWaitTime: occupied_count alias)
+      if (queryStr.includes("occupied_count")) {
+        const occupied = tables.filter((t: any) => t.is_occupied === 1);
+        return [{ occupied_count: occupied.length, earliest_available: null }];
+      }
+      // Available tables count (getQueueStatus: is_occupied = 0)
+      if (queryStr.includes("is_occupied = 0")) {
         const available = tables.filter(
-          (t: any) => t.current_status === "available",
+          (t: any) => t.is_active === 1 && !t.is_occupied,
         );
         return [{ count: available.length }];
       }
+      // Suitable tables count (estimateWaitTime: is_active = 1 AND capacity >= ?)
       if (queryStr.includes("capacity >=")) {
-        if (queryStr.includes("occupied") || queryStr.includes("reserved")) {
-          const occupied = tables.filter(
-            (t: any) =>
-              t.current_status === "occupied" ||
-              t.current_status === "reserved",
-          );
-          return [
-            { occupied_count: occupied.length, earliest_available: null },
-          ];
-        }
-        return [{ count: tables.length }];
+        const active = tables.filter((t: any) => t.is_active === 1);
+        return [{ count: active.length }];
       }
       return [{ count: tables.length }];
     }
@@ -685,8 +1124,8 @@ function createMockDB() {
     ) {
       const tableId = values[0];
       const table = mockData.tables.get(tableId);
-      if (table && queryStr.includes("available")) {
-        if (table.current_status === "available") {
+      if (table && queryStr.includes("is_occupied = 0")) {
+        if (!table.is_occupied) {
           return [table];
         }
         return [];
@@ -827,6 +1266,46 @@ function createMockDB() {
       return { success: true };
     },
     transaction: async (callback: any) => callback(db),
+    // Raw D1 API support (used by getWaitingStats and listWaitingList)
+    prepare: (sqlStr: string) => {
+      const handler = {
+        first: async () => {
+          // Stats query (getWaitingStats)
+          if (
+            sqlStr.includes("total_waiting") &&
+            sqlStr.includes("seated_count")
+          ) {
+            const entries = Array.from(mockData.waitingList.values()) as any[];
+            return {
+              total_waiting: entries.length,
+              seated_count: entries.filter((e: any) => e.status === "seated")
+                .length,
+              expired_count: entries.filter((e: any) => e.status === "expired")
+                .length,
+              cancelled_count: entries.filter(
+                (e: any) => e.status === "cancelled",
+              ).length,
+              avg_wait_minutes: 0,
+              expire_rate: 0,
+            };
+          }
+          // Count query (listWaitingList)
+          if (sqlStr.includes("COUNT(*)") && sqlStr.includes("as total")) {
+            const entries = Array.from(mockData.waitingList.values()) as any[];
+            return { total: entries.length };
+          }
+          return null;
+        },
+        all: async () => {
+          const entries = Array.from(mockData.waitingList.values()) as any[];
+          return {
+            results: entries.map((e: any) => ({ ...e, table: null })),
+          };
+        },
+        bind: (..._args: any[]) => handler,
+      };
+      return handler;
+    },
     _mockData: mockData,
     get _updateCalled() {
       return state.updateCalled;

@@ -355,15 +355,40 @@ describe("Generate CSRF Token Handler", () => {
     expect(result.data.csrfToken).toHaveLength(64);
   });
 
-  it("should set CSRF cookie", async () => {
+  it("should set CSRF cookie with SameSite=Lax", async () => {
     const req = new Request("http://localhost/csrf-token");
 
     const res = await app.request(req, { env: mockEnv } as any);
 
     const setCookie = res.headers.get("Set-Cookie");
     expect(setCookie).toContain("csrf_token=");
+    // In dev mode (localhost), Secure flag is omitted
+    expect(setCookie).not.toContain("Secure");
+    expect(setCookie).toContain("SameSite=Lax");
+  });
+
+  it("should include Secure flag in production mode", async () => {
+    const prodEnv = {
+      ...mockEnv,
+      API_BASE_URL: "https://api.makanmakan.com",
+      NODE_ENV: "production",
+    };
+
+    const prodApp = new Hono<{ Bindings: typeof prodEnv }>();
+    prodApp.use("*", async (c, next) => {
+      // @ts-ignore
+      c.env = prodEnv;
+      await next();
+    });
+    prodApp.get("/csrf-token", generateCSRFTokenHandler as any);
+
+    const req = new Request("http://api.makanmakan.com/csrf-token");
+    const res = await prodApp.request(req, { env: prodEnv } as any);
+
+    const setCookie = res.headers.get("Set-Cookie");
+    expect(setCookie).toContain("csrf_token=");
     expect(setCookie).toContain("Secure");
-    expect(setCookie).toContain("SameSite=Strict");
+    expect(setCookie).toContain("SameSite=Lax");
   });
 
   it("should store token in KV", async () => {

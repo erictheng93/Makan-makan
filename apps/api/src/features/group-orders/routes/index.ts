@@ -130,8 +130,13 @@ app.get(
     const { restaurantId, timeRange } = c.get("validatedQuery");
     const user = c.get("user");
 
-    // Permission check for owners
-    if (user.role === 1 && restaurantId && user.restaurantId !== restaurantId) {
+    // Permission check for owners (coerce to string for comparison since
+    // schema transforms restaurantId to number but JWT stores it as string)
+    if (
+      user.role === 1 &&
+      restaurantId &&
+      String(user.restaurantId) !== String(restaurantId)
+    ) {
       throw forbidden("Access denied: can only view own restaurant statistics");
     }
 

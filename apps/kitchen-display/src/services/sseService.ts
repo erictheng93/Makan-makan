@@ -1,4 +1,5 @@
 import type { KitchenSSEEvent, ConnectionStatus } from "@/types";
+import { isTokenExpired } from "@makanmakan/utils";
 
 export interface SSEOptions {
   restaurantId: number;
@@ -50,13 +51,19 @@ export class KitchenSSEService {
         throw new Error("No authentication token found");
       }
 
-      const url = `/api/v1/kitchen/${this.options.restaurantId}/events`;
+      // If token is expired, don't connect — schedule reconnect for after refresh
+      if (isTokenExpired(token, 30)) {
+        console.warn(
+          "SSE: Token expired, scheduling reconnect for after refresh",
+        );
+        this.scheduleReconnect();
+        return;
+      }
+
+      const url = `/api/v1/kitchen/${this.options.restaurantId}/events?token=${encodeURIComponent(token)}`;
       console.log(`Connecting to SSE endpoint: ${url}`);
 
-      // 創建 EventSource 實例
-      this.eventSource = new EventSource(url, {
-        withCredentials: true,
-      });
+      this.eventSource = new EventSource(url);
 
       this.setupEventListeners();
       this.startHeartbeatMonitor();

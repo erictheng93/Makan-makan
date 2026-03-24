@@ -7,7 +7,6 @@ import axios, {
 import type { ApiResponse } from "@/types";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
 
-// Extend AxiosRequestConfig to include retry property
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
@@ -18,6 +17,7 @@ const CSRF_PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
 class ApiService {
   private instance: AxiosInstance;
   private csrfToken: string | null = null;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor() {
     this.instance = axios.create({
@@ -31,6 +31,43 @@ class ApiService {
     this.setupInterceptors();
   }
 
+  // Refresh queue: first 401 triggers refresh, subsequent 401s await the same promise
+  private async handleTokenRefresh(): Promise<string | null> {
+    if (this.refreshPromise) return this.refreshPromise;
+
+    this.refreshPromise = (async () => {
+      const refreshToken = localStorage.getItem("auth_refresh_token");
+      if (!refreshToken) return null;
+
+      try {
+        const response = await this.instance.post("/auth/refresh", {}, {
+          headers: { "X-Refresh-Token": refreshToken },
+          _retry: true, // Skip the 401 interceptor for the refresh call itself
+        } as any);
+
+        const newToken = response.data?.data?.token;
+        const newRefreshToken = response.data?.data?.refreshToken;
+
+        if (newToken) {
+          localStorage.setItem("auth_token", newToken);
+          if (newRefreshToken) {
+            localStorage.setItem("auth_refresh_token", newRefreshToken);
+          }
+          return newToken;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    })();
+
+    try {
+      return await this.refreshPromise;
+    } finally {
+      this.refreshPromise = null;
+    }
+  }
+
   private setupInterceptors() {
     this.instance.interceptors.request.use(
       (config) => {
@@ -39,10 +76,8 @@ class ApiService {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // Attach CSRF token to state-changing requests (double-submit cookie pattern)
         const method = (config.method || "").toUpperCase();
         if (CSRF_PROTECTED_METHODS.includes(method)) {
-          // Prefer in-memory token; fall back to reading from cookie
           const csrf =
             this.csrfToken || document.cookie.match(/csrf_token=([^;]+)/)?.[1];
           if (csrf) {
@@ -57,7 +92,6 @@ class ApiService {
 
     this.instance.interceptors.response.use(
       (response: AxiosResponse) => {
-        // Capture CSRF token from any response that provides one
         const csrfToken = response.headers[CSRF_HEADER.toLowerCase()];
         if (csrfToken) {
           this.csrfToken = csrfToken;
@@ -67,7 +101,6 @@ class ApiService {
       async (error: AxiosError) => {
         const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
-        // 處理 401 未授權錯誤的自動 token 刷新
         if (
           error.response?.status === 401 &&
           originalRequest &&
@@ -75,23 +108,22 @@ class ApiService {
         ) {
           originalRequest._retry = true;
 
-          try {
-            const refreshResponse = await this.instance.post("/auth/refresh");
-            const newToken = refreshResponse.data.data.token;
+          const newToken = await this.handleTokenRefresh();
 
-            localStorage.setItem("auth_token", newToken);
+          if (newToken) {
             originalRequest.headers = originalRequest.headers || {};
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
-
             return this.instance(originalRequest);
-          } catch (refreshError) {
-            localStorage.removeItem("auth_token");
-            window.location.href = "/login";
-            return Promise.reject(refreshError);
           }
+
+          // Refresh failed — clear tokens and redirect
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("auth_refresh_token");
+          localStorage.removeItem("auth_user");
+          window.location.href = "/login";
+          return Promise.reject(error);
         }
 
-        // 使用增強的錯誤處理器處理所有其他錯誤
         const errorDetails = KitchenErrorHandler.handleAPIError(error, {
           url: error.config?.url,
           method: error.config?.method,

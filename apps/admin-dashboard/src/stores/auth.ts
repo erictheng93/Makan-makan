@@ -4,6 +4,7 @@ import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { api } from "@/services/api";
 import { t } from "@/i18n";
+import { getRefreshDelay } from "@makanmakan/utils";
 
 // Hydrate user from localStorage for instant restore on refresh
 const hydrateUser = (): User | null => {
@@ -27,6 +28,28 @@ const persistUser = (u: User | null) => {
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(hydrateUser());
   const token = ref<string | null>(localStorage.getItem("auth_token"));
+  const refreshTokenRef = ref<string | null>(
+    localStorage.getItem("auth_refresh_token"),
+  );
+
+  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleProactiveRefresh = (accessToken: string) => {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    const delay = getRefreshDelay(accessToken);
+    if (!delay || delay <= 0) return;
+    refreshTimer = setTimeout(async () => {
+      await refreshToken();
+    }, delay);
+  };
+
+  const clearRefreshTimer = () => {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+  };
+
   const isLoading = ref(false);
 
   // Admin restaurant context (sessionStorage-backed for per-tab isolation)
@@ -191,10 +214,11 @@ export const useAuthStore = defineStore("auth", () => {
   const login = async (username: string, password: string) => {
     isLoading.value = true;
     try {
-      const response = await api.post<{ token: string; user: User }>(
-        "/auth/login",
-        { username, password },
-      );
+      const response = await api.post<{
+        token: string;
+        refreshToken?: string;
+        user: User;
+      }>("/auth/login", { username, password });
 
       if (response.data.success && response.data.data) {
         token.value = response.data.data.token;
@@ -203,6 +227,12 @@ export const useAuthStore = defineStore("auth", () => {
         localStorage.setItem("auth_token", token.value!);
         persistUser(user.value);
         api.setAuthToken(token.value!);
+
+        if (response.data.data.refreshToken) {
+          refreshTokenRef.value = response.data.data.refreshToken;
+          localStorage.setItem("auth_refresh_token", refreshTokenRef.value!);
+        }
+        scheduleProactiveRefresh(token.value!);
 
         return { success: true };
       }
@@ -233,6 +263,9 @@ export const useAuthStore = defineStore("auth", () => {
       localStorage.removeItem("auth_token");
       persistUser(null);
       api.setAuthToken(null);
+      refreshTokenRef.value = null;
+      localStorage.removeItem("auth_refresh_token");
+      clearRefreshTimer();
     }
   };
 
@@ -246,6 +279,7 @@ export const useAuthStore = defineStore("auth", () => {
       if (response.data.success && response.data.data) {
         user.value = response.data.data;
         persistUser(user.value);
+        if (token.value) scheduleProactiveRefresh(token.value);
         return true;
       }
     } catch (error: any) {
@@ -256,6 +290,8 @@ export const useAuthStore = defineStore("auth", () => {
       // wipe the session — the hydrated user from localStorage is
       // good enough until the next successful revalidation.
       if (status === 401 || status === 403) {
+        const refreshed = await refreshToken();
+        if (refreshed) return true;
         await logout();
         return false;
       }
@@ -271,19 +307,48 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const refreshToken = async () => {
-    try {
-      const response = await api.post<{ token: string }>("/auth/refresh");
-
-      if (response.data.success && response.data.data) {
-        token.value = response.data.data.token;
-        localStorage.setItem("auth_token", token.value!);
-        api.setAuthToken(token.value!);
-        return true;
-      }
-    } catch {
+    const rt =
+      refreshTokenRef.value || localStorage.getItem("auth_refresh_token");
+    if (!rt) {
       await logout();
       return false;
     }
+
+    try {
+      const response = await fetch("/api/v1/auth/refresh", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Refresh-Token": rt,
+        },
+      });
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        token.value = data.data.token;
+        localStorage.setItem("auth_token", token.value!);
+        api.setAuthToken(token.value!);
+
+        if (data.data.refreshToken) {
+          refreshTokenRef.value = data.data.refreshToken;
+          localStorage.setItem("auth_refresh_token", refreshTokenRef.value!);
+        }
+
+        if (data.data.user) {
+          user.value = data.data.user;
+          persistUser(user.value);
+        }
+
+        scheduleProactiveRefresh(token.value!);
+        return true;
+      }
+    } catch {
+      console.warn("Proactive refresh failed, falling back to reactive mode");
+      return false;
+    }
+
+    console.warn("Refresh returned non-success, falling back to reactive mode");
+    return false;
   };
 
   return {

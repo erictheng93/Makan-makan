@@ -1,0 +1,237 @@
+import { ref, computed } from "vue";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
+import { useToast } from "vue-toastification";
+import { useI18n } from "@/i18n";
+
+export interface CategoryData {
+  id: number;
+  name: string;
+  nameEn?: string;
+  description?: string;
+  sortOrder: number;
+  isActive?: boolean;
+  isVisible?: boolean;
+  itemCount?: number;
+}
+
+export interface MenuItemData {
+  id: number;
+  categoryId: number;
+  name: string;
+  nameEn?: string;
+  description?: string;
+  price: number;
+  imageUrl?: string | null;
+  isFeatured: boolean;
+  isAvailable: boolean;
+  sortOrder: number;
+}
+
+// Singleton state — shared across components within the same page
+const categories = ref<CategoryData[]>([]);
+const menuItems = ref<MenuItemData[]>([]);
+const isLoading = ref(false);
+const selectedCategoryId = ref<number | null>(null);
+
+export function useMenuManagement() {
+  const authStore = useAuthStore();
+  const toast = useToast();
+  const { t } = useI18n();
+
+  // ── Computed ──
+
+  const filteredItemsByCategory = computed(() => {
+    if (selectedCategoryId.value === null) return menuItems.value;
+    return menuItems.value.filter(
+      (item) => item.categoryId === selectedCategoryId.value,
+    );
+  });
+
+  const getItemsInCategory = (categoryId: number) => {
+    return menuItems.value.filter((item) => item.categoryId === categoryId);
+  };
+
+  const getCategoryName = (categoryId: number) => {
+    const cat = categories.value.find((c) => c.id === categoryId);
+    return cat?.name ?? t("menu.unknownCategory");
+  };
+
+  // ── Fetch ──
+
+  const fetchMenu = async () => {
+    if (!authStore.restaurantId) return;
+    isLoading.value = true;
+    try {
+      const response = await api.get<{ categories: any[]; menuItems: any[] }>(
+        `/menu/${authStore.restaurantId}`,
+      );
+      const payload = response.data?.success ? response.data.data : undefined;
+      if (payload) {
+        categories.value = payload.categories.map((c: any) => ({
+          ...c,
+          nameEn: c.nameEn || "",
+        }));
+        menuItems.value = payload.menuItems.map((item: any) => ({
+          ...item,
+          nameEn: item.nameEn || "",
+          isFeatured: !!item.isFeatured,
+          isAvailable: !!item.isAvailable,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch menu:", error);
+      toast.error(t("menu.errors.fetchFailed"));
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // ── Category CRUD ──
+
+  const saveCategory = async (
+    form: {
+      name: string;
+      nameEn?: string;
+      description?: string;
+      sortOrder: number;
+    },
+    editingId?: number,
+  ) => {
+    if (!authStore.restaurantId) return;
+    try {
+      if (editingId) {
+        await api.put(`/menu/categories/${editingId}`, form);
+        toast.success(t("menu.toast.categoryUpdated"));
+      } else {
+        await api.post(`/menu/${authStore.restaurantId}/categories`, form);
+        toast.success(t("menu.toast.categoryCreated"));
+      }
+      await fetchMenu();
+    } catch (error: any) {
+      console.error("Failed to save category:", error);
+      toast.error(
+        error.response?.data?.error?.message || t("menu.errors.saveFailed"),
+      );
+    }
+  };
+
+  const deleteCategory = async (categoryId: number) => {
+    try {
+      await api.delete(`/menu/categories/${categoryId}`);
+      toast.success(t("menu.toast.categoryDeleted"));
+      if (selectedCategoryId.value === categoryId) {
+        selectedCategoryId.value = null;
+      }
+      await fetchMenu();
+    } catch (error: any) {
+      console.error("Failed to delete category:", error);
+      toast.error(
+        error.response?.data?.error?.message || t("menu.errors.deleteFailed"),
+      );
+    }
+  };
+
+  const reorderCategories = async (orderedCategories: CategoryData[]) => {
+    if (!authStore.restaurantId) return;
+    // Optimistic update
+    categories.value = orderedCategories;
+    try {
+      await api.patch(`/menu/${authStore.restaurantId}/categories/reorder`, {
+        categories: orderedCategories.map((c, i) => ({
+          id: c.id,
+          sortOrder: i,
+        })),
+      });
+    } catch (error) {
+      console.error("Failed to reorder categories:", error);
+      toast.error(t("menu.errors.reorderFailed"));
+      await fetchMenu(); // rollback
+    }
+  };
+
+  // ── Menu Item CRUD ──
+
+  const saveMenuItem = async (
+    form: {
+      name: string;
+      nameEn?: string;
+      description?: string;
+      price: number;
+      categoryId: number;
+      imageUrl?: string | null;
+      isFeatured: boolean;
+      isAvailable: boolean;
+      sortOrder: number;
+    },
+    editingId?: number,
+  ) => {
+    if (!authStore.restaurantId) return;
+    try {
+      const payload = {
+        ...form,
+        price: Number(form.price),
+        categoryId: Number(form.categoryId),
+        imageUrl: form.imageUrl || null,
+      };
+      if (editingId) {
+        await api.put(`/menu/items/${editingId}`, payload);
+        toast.success(t("menu.toast.itemUpdated"));
+      } else {
+        await api.post(`/menu/${authStore.restaurantId}/items`, payload);
+        toast.success(t("menu.toast.itemCreated"));
+      }
+      await fetchMenu();
+    } catch (error: any) {
+      console.error("Failed to save menu item:", error);
+      toast.error(
+        error.response?.data?.error?.message || t("menu.errors.saveFailed"),
+      );
+    }
+  };
+
+  const deleteMenuItem = async (item: MenuItemData) => {
+    try {
+      await api.delete(`/menu/items/${item.id}`);
+      toast.success(t("menu.toast.itemDeleted"));
+      await fetchMenu();
+    } catch (error: any) {
+      console.error("Failed to delete menu item:", error);
+      toast.error(
+        error.response?.data?.error?.message || t("menu.errors.deleteFailed"),
+      );
+    }
+  };
+
+  const toggleMenuItemStatus = async (item: MenuItemData) => {
+    try {
+      await api.put(`/menu/items/${item.id}`, {
+        isAvailable: !item.isAvailable,
+      });
+      await fetchMenu();
+    } catch (error) {
+      console.error("Failed to toggle status:", error);
+      toast.error(t("menu.errors.toggleFailed"));
+    }
+  };
+
+  return {
+    // State
+    categories,
+    menuItems,
+    isLoading,
+    selectedCategoryId,
+    // Computed
+    filteredItemsByCategory,
+    // Methods
+    getItemsInCategory,
+    getCategoryName,
+    fetchMenu,
+    saveCategory,
+    deleteCategory,
+    reorderCategories,
+    saveMenuItem,
+    deleteMenuItem,
+    toggleMenuItemStatus,
+  };
+}

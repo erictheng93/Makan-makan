@@ -28,6 +28,13 @@ export default {
           800: "#1e293b",
           900: "#0f172a",
         },
+        ios: {
+          primary: "#007AFF",
+          success: "#34C759",
+          warning: "#FF9500",
+          error: "#FF3B30",
+          teal: "#30B0C7",
+        },
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui"],

@@ -490,6 +490,32 @@ export class MenuService extends BaseService {
     }
   }
 
+  async reorderCategories(
+    restaurantId: string,
+    updates: Array<{ id: number; sortOrder: number }>,
+  ): Promise<void> {
+    try {
+      for (const { id, sortOrder } of updates) {
+        await this.db
+          .update(categories)
+          .set({ sortOrder, updatedAt: new Date() })
+          .where(
+            and(
+              eq(categories.id, id),
+              eq(categories.restaurantId, restaurantId),
+            ),
+          );
+      }
+
+      await this.invalidateCache(
+        [`menu:${restaurantId}`, `restaurant:${restaurantId}`],
+        "tag",
+      );
+    } catch (error) {
+      this.handleError(error, "reorderCategories");
+    }
+  }
+
   // 獲取分類詳情
   async getCategory(id: number) {
     try {

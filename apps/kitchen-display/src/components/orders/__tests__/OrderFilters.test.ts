@@ -124,7 +124,10 @@ describe("OrderFilters Component", () => {
     it("should render filter header", () => {
       const wrapper = createWrapper();
 
-      expect(wrapper.text()).toMatch(/篩選|filter/i);
+      // The component renders status pills and quick filters as its header
+      // "全部" is always present as the first pill, along with the expand/collapse toggle
+      expect(wrapper.text()).toContain("全部");
+      expect(wrapper.find("button[title]").exists()).toBe(true);
     });
 
     it("should render search input", () => {
@@ -240,20 +243,23 @@ describe("OrderFilters Component", () => {
     it("should toggle quick filter on click", async () => {
       const wrapper = createWrapper();
 
-      const quickFilterButtons = wrapper
+      // Find the "待處理" pill (second rounded-full button, after "全部")
+      // Clicking it toggles status filter 1, which changes its classes
+      const allPills = wrapper
         .findAll("button")
         .filter((btn) =>
           btn.classes().some((cls) => cls.includes("rounded-full")),
         );
 
-      if (quickFilterButtons.length > 0) {
-        const firstFilter = quickFilterButtons[0];
-        const initialClasses = firstFilter.classes();
+      // Skip "全部" (index 0) — it's a clear action, not a toggle
+      if (allPills.length > 1) {
+        const statusPill = allPills[1]; // "待處理"
+        const initialClasses = statusPill.classes();
 
-        await firstFilter.trigger("click");
+        await statusPill.trigger("click");
+        await nextTick();
 
-        // Classes should change (active/inactive)
-        const updatedClasses = firstFilter.classes();
+        const updatedClasses = statusPill.classes();
         expect(initialClasses).not.toEqual(updatedClasses);
       }
     });
@@ -261,18 +267,19 @@ describe("OrderFilters Component", () => {
     it("should display active filter count badge", async () => {
       const wrapper = createWrapper();
 
-      // Apply some filters
-      const quickFilterButtons = wrapper
+      // Click "待處理" pill to activate a status filter
+      const allPills = wrapper
         .findAll("button")
         .filter((btn) =>
           btn.classes().some((cls) => cls.includes("rounded-full")),
         );
 
-      if (quickFilterButtons.length > 0) {
-        await quickFilterButtons[0].trigger("click");
+      if (allPills.length > 1) {
+        await allPills[1].trigger("click"); // "待處理"
+        await nextTick();
 
-        // Should show filter count badge
-        const badge = wrapper.find(".bg-blue-100");
+        // The badge uses class "bg-ios-blue/10" (Tailwind opacity modifier)
+        const badge = wrapper.find('[class*="bg-ios-blue"]');
         expect(badge.exists()).toBe(true);
       }
     });
@@ -280,19 +287,21 @@ describe("OrderFilters Component", () => {
     it("should support multiple quick filters simultaneously", async () => {
       const wrapper = createWrapper();
 
-      const quickFilterButtons = wrapper
+      const allPills = wrapper
         .findAll("button")
         .filter((btn) =>
           btn.classes().some((cls) => cls.includes("rounded-full")),
         );
 
-      if (quickFilterButtons.length >= 2) {
-        await quickFilterButtons[0].trigger("click");
-        await quickFilterButtons[1].trigger("click");
+      // Click "待處理" (index 1) and "製作中" (index 2) — both are status toggles
+      if (allPills.length >= 3) {
+        await allPills[1].trigger("click"); // 待處理 → selectedStatuses = [1]
+        await allPills[2].trigger("click"); // 製作中 → selectedStatuses = [1, 2]
+        await nextTick();
 
-        // Both filters should be active (ios-blue when selected)
-        expect(quickFilterButtons[0].classes()).toContain("bg-ios-blue");
-        expect(quickFilterButtons[1].classes()).toContain("bg-ios-blue");
+        // Both should now have active style (bg-ios-blue)
+        expect(allPills[1].classes()).toContain("bg-ios-blue");
+        expect(allPills[2].classes()).toContain("bg-ios-blue");
       }
     });
 
@@ -397,21 +406,21 @@ describe("OrderFilters Component", () => {
     it("should show clear button when filters are active", async () => {
       const wrapper = createWrapper();
 
-      // Apply a filter
-      const quickFilterButtons = wrapper
+      // Click "待處理" to activate a filter (not "全部" which just clears)
+      const allPills = wrapper
         .findAll("button")
         .filter((btn) =>
           btn.classes().some((cls) => cls.includes("rounded-full")),
         );
 
-      if (quickFilterButtons.length > 0) {
-        await quickFilterButtons[0].trigger("click");
+      if (allPills.length > 1) {
+        await allPills[1].trigger("click"); // 待處理
         await nextTick();
 
-        // Clear button should appear
+        // "清除所有" button appears when hasActiveFilters is true
         const clearButton = wrapper
           .findAll("button")
-          .find((btn) => btn.text().match(/清除|clear/i));
+          .find((btn) => btn.text().match(/清除所有|clear all/i));
         expect(clearButton).toBeDefined();
       }
     });
@@ -449,58 +458,68 @@ describe("OrderFilters Component", () => {
   });
 
   describe("Filter Count Badge", () => {
+    // Helper: the badge is a <span> containing "個篩選" text
+    const findBadge = (wrapper: ReturnType<typeof createWrapper>) =>
+      wrapper.findAll("span").find((s) => s.text().includes("個篩選"));
+
     it("should display correct number of active filters", async () => {
       const wrapper = createWrapper();
 
-      const quickFilterButtons = wrapper
+      const allPills = wrapper
         .findAll("button")
         .filter((btn) =>
           btn.classes().some((cls) => cls.includes("rounded-full")),
         );
 
-      if (quickFilterButtons.length >= 2) {
-        // Apply 2 filters
-        await quickFilterButtons[0].trigger("click");
-        await quickFilterButtons[1].trigger("click");
+      if (allPills.length >= 2) {
+        // Click "待處理" → selectedStatuses = [1] (1 filter group = status)
+        await allPills[1].trigger("click");
+        await nextTick();
 
-        const badge = wrapper.find(".bg-blue-100");
-        if (badge.exists()) {
-          expect(badge.text()).toMatch(/2/);
-        }
+        const badge = findBadge(wrapper);
+        expect(badge).toBeDefined();
+        expect(badge!.text()).toContain("1");
       }
     });
 
     it("should update count when filters change", async () => {
       const wrapper = createWrapper();
 
-      const quickFilterButtons = wrapper
+      const allPills = wrapper
         .findAll("button")
         .filter((btn) =>
           btn.classes().some((cls) => cls.includes("rounded-full")),
         );
 
-      if (quickFilterButtons.length > 0) {
-        // Add filter
-        await quickFilterButtons[0].trigger("click");
-        let badge = wrapper.find(".bg-blue-100");
-        const count1 = badge.text();
+      if (allPills.length > 1) {
+        // Add a status filter → activeFilterCount = 1
+        await allPills[1].trigger("click"); // 待處理
+        await nextTick();
 
-        // Add another filter
-        if (quickFilterButtons.length > 1) {
-          await quickFilterButtons[1].trigger("click");
-          badge = wrapper.find(".bg-blue-100");
-          const count2 = badge.text();
+        let badge = findBadge(wrapper);
+        expect(badge).toBeDefined();
+        const count1 = wrapper.vm.activeFilterCount;
 
-          expect(count2).not.toBe(count1);
-        }
+        // Also apply search → activeFilterCount = 2
+        const searchInput = wrapper.find('input[type="text"]');
+        await searchInput.setValue("test");
+        await searchInput.trigger("input");
+        await nextTick();
+
+        badge = findBadge(wrapper);
+        expect(badge).toBeDefined();
+        const count2 = wrapper.vm.activeFilterCount;
+
+        expect(count2).toBeGreaterThan(count1);
       }
     });
 
     it("should hide badge when no filters active", () => {
       const wrapper = createWrapper();
 
-      const badge = wrapper.find(".bg-blue-100");
-      expect(badge.exists()).toBe(false);
+      // No active filters initially → badge should not render
+      const badge = findBadge(wrapper);
+      expect(badge).toBeUndefined();
     });
   });
 

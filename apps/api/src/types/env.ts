@@ -98,7 +98,8 @@ export interface Env {
   API_BASE_URL?: string;
   INTERNAL_API_TOKEN?: string;
   SLACK_WEBHOOK_URL?: string;
-  REALTIME_SERVICE_URL?: string; // URL for realtime WebSocket service
+  REALTIME_SERVICE_URL?: string; // URL for realtime WebSocket service (HTTP)
+  REALTIME_WS_URL?: string; // WebSocket URL returned to clients (ws:// or wss://)
 
   // CORS configuration
   CORS_ORIGIN?: string; // Production CORS origin (comma-separated for multiple)

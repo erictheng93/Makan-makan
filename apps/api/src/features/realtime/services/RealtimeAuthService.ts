@@ -411,11 +411,8 @@ export class RealtimeAuthService {
     roomId: string,
     token: string,
   ): string {
-    // 從環境變數或配置中取得 WebSocket 基礎 URL
-    // 目前使用硬編碼，之後可以改為環境變數
     const baseUrl =
-      (this.env as any).REALTIME_WS_URL ||
-      "wss://realtime.makanmakan.workers.dev";
+      this.env.REALTIME_WS_URL || "wss://realtime.makanmakan.workers.dev";
     return `${baseUrl}/${roomType}/${roomId}?token=${token}`;
   }
 }

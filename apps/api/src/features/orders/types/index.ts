@@ -154,6 +154,18 @@ export interface OrderQueryFilters {
   sortOrder?: "asc" | "desc";
 }
 
+/**
+ * Caller context for service-layer defence-in-depth authorization.
+ * Passed from route handlers to service methods.
+ * When provided, the service validates restaurant ownership for non-admin callers.
+ */
+export interface CallerContext {
+  userId: number;
+  userRole: number;
+  /** The restaurant the caller belongs to. undefined for admin users. */
+  userRestaurantId?: string;
+}
+
 export interface OrderSearchParams {
   query?: string;
   searchFields?: ("orderNumber" | "customerName" | "customerPhone" | "notes")[];

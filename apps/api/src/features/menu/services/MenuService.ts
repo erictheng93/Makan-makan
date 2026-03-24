@@ -304,6 +304,32 @@ export class MenuService implements IMenuService {
     }
   }
 
+  async reorderCategories(
+    restaurantId: string,
+    updates: Array<{ id: number; sortOrder: number }>,
+  ): Promise<void> {
+    try {
+      this.logger.info("Reordering categories", {
+        restaurantId,
+        count: updates.length,
+      });
+
+      await this.dbService.reorderCategories(restaurantId, updates);
+
+      // Invalidate menu cache
+      await this.invalidateMenuCache(restaurantId);
+
+      this.logger.info("Categories reordered successfully", { restaurantId });
+    } catch (error) {
+      this.logger.error(
+        "Failed to reorder categories",
+        error instanceof Error ? error : undefined,
+        { restaurantId },
+      );
+      throw error;
+    }
+  }
+
   // Search and Filtering
   async searchMenuItems(
     restaurantId: string,
@@ -663,8 +689,7 @@ export class MenuService implements IMenuService {
     if (!category) {
       throw new Error("Category not found");
     }
-    // Use loose equality to handle type coercion (string vs number from different sources)
-    if (Number(category.restaurantId) !== Number(restaurantId)) {
+    if (String(category.restaurantId) !== String(restaurantId)) {
       throw new Error("Category does not belong to the specified restaurant");
     }
   }

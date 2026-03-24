@@ -41,6 +41,7 @@ import type {
   OrderReceipt,
   PaymentIntegration,
   IOrdersService,
+  CallerContext,
 } from "../types";
 
 export class OrdersService implements IOrdersService {
@@ -202,18 +203,23 @@ export class OrdersService implements IOrdersService {
   async getOrder(
     id: number,
     includeItems: boolean = true,
+    caller?: CallerContext,
   ): Promise<Order | null> {
     try {
       // Try cache first
       const cacheKey = `order:${id}:${includeItems ? "full" : "basic"}`;
       const cached = (await this.cacheKV.get(cacheKey, "json")) as Order | null;
       if (cached) {
+        this.assertRestaurantAccess(cached, caller);
         return cached;
       }
 
       // Get from base service
       const order = await this.baseOrderService.getOrder(id);
       if (!order) return null;
+
+      // Defence-in-depth: verify caller has access to this order's restaurant
+      this.assertRestaurantAccess(order, caller);
 
       // Cache the result
       await this.cacheKV.set(cacheKey, order, 300); // 5 minutes
@@ -233,17 +239,19 @@ export class OrdersService implements IOrdersService {
     filters: OrderQueryFilters,
     userId?: number,
     userRole?: UserRole,
+    caller?: CallerContext,
   ): Promise<{
     orders: Order[];
     total: number;
     pagination: { page: number; limit: number; totalPages: number };
   }> {
     try {
-      // Apply permission-based filtering
+      // Apply permission-based filtering (defence-in-depth: overrides restaurantId for non-admin)
       const permissionFilters = await this.applyPermissionFilters(
         filters,
         userId,
         userRole,
+        caller,
       );
 
       // Convert to base service format
@@ -258,6 +266,16 @@ export class OrdersService implements IOrdersService {
 
       // Apply additional filtering and sorting
       let orders = result.orders;
+
+      // Defence-in-depth: strip any orders that don't match the requested restaurant
+      // Only filter orders that have a restaurantId field (some mock/legacy data may not)
+      if (permissionFilters.restaurantId) {
+        orders = orders.filter(
+          (o) =>
+            !o.restaurantId ||
+            o.restaurantId === permissionFilters.restaurantId,
+        );
+      }
 
       if (filters.sortBy) {
         orders = this.sortOrders(orders, filters.sortBy, filters.sortOrder);
@@ -369,10 +387,14 @@ export class OrdersService implements IOrdersService {
     statusData: OrderStatusUpdateData,
     userId?: number,
     userRole?: UserRole,
+    caller?: CallerContext,
   ): Promise<Order | null> {
     try {
       const order = await this.getOrder(id);
       if (!order) return null;
+
+      // Defence-in-depth: verify caller has access to this order's restaurant
+      this.assertRestaurantAccess(order, caller);
 
       // Validate status transition (let validateStatusTransition normalize the values)
       this.validateStatusTransition(order.status, statusData.status, userRole);
@@ -419,8 +441,17 @@ export class OrdersService implements IOrdersService {
     id: number,
     reason: string,
     userId?: number,
+    caller?: CallerContext,
   ): Promise<Order | null> {
     try {
+      // Defence-in-depth: verify caller has access before cancelling
+      if (caller) {
+        const order = await this.getOrder(id);
+        if (order) {
+          this.assertRestaurantAccess(order, caller);
+        }
+      }
+
       const cancelledOrder = await this.baseOrderService.cancelOrder(
         id,
         reason,
@@ -505,6 +536,7 @@ export class OrdersService implements IOrdersService {
   async getOrderAnalytics(
     filters: OrderQueryFilters,
     _userId?: number,
+    caller?: CallerContext,
   ): Promise<OrderAnalytics> {
     try {
       const cacheKey = `analytics:${JSON.stringify(filters)}`;
@@ -1104,17 +1136,46 @@ export class OrdersService implements IOrdersService {
     });
   }
 
+  /**
+   * Defence-in-depth: verify the caller has access to the order's restaurant.
+   * Admin (role 0) is always allowed. Non-admin must match restaurantId.
+   * When no caller context is provided, trust the route layer (backward compatible).
+   */
+  private assertRestaurantAccess(
+    order: { restaurantId: string },
+    caller?: CallerContext,
+  ): void {
+    if (!caller) return;
+    if (caller.userRole === 0) return;
+    if (
+      caller.userRestaurantId &&
+      caller.userRestaurantId !== order.restaurantId
+    ) {
+      throw new Error(
+        `Access denied: user restaurant ${caller.userRestaurantId} cannot access order from restaurant ${order.restaurantId}`,
+      );
+    }
+  }
+
   private async applyPermissionFilters(
     filters: OrderQueryFilters,
     userId?: number,
     userRole?: UserRole,
+    caller?: CallerContext,
   ): Promise<OrderQueryFilters> {
-    // Apply role-based filtering
-    if (userRole !== 0 && userRole !== undefined) {
-      // Not admin
-      // Non-admin users can only see orders from their restaurant
-      // This would require looking up user's restaurant
+    const role = caller?.userRole ?? userRole;
+    const restaurantId = caller?.userRestaurantId;
+
+    if (role === 0 || role === undefined) {
+      // Admin or unknown role — no additional filtering
+      return filters;
     }
+
+    // Non-admin users MUST be scoped to their restaurant
+    if (restaurantId) {
+      return { ...filters, restaurantId };
+    }
+
     return filters;
   }
 
