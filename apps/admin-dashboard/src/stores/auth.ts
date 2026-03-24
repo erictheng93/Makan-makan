@@ -151,7 +151,7 @@ export const useAuthStore = defineStore("auth", () => {
           ? "/dashboard"
           : "/dashboard/platform";
       case UserRole.OWNER:
-        return "/owner";
+        return "/dashboard/owner-overview";
       case UserRole.CHEF:
         return "/kitchen";
       case UserRole.SERVICE:
@@ -201,8 +201,7 @@ export const useAuthStore = defineStore("auth", () => {
       ServiceDelivery: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
       Cashier: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
       CashierPOS: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
-      Owner: [UserRole.ADMIN, UserRole.OWNER],
-      OwnerDashboard: [UserRole.ADMIN, UserRole.OWNER],
+      OwnerOverview: [UserRole.ADMIN, UserRole.OWNER],
     };
 
     const requiredRoles = routePermissions[routeName];

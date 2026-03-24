@@ -91,6 +91,7 @@ import {
   Activity,
   Globe,
   UserPlus,
+  Crown,
 } from "lucide-vue-next";
 
 interface Props {
@@ -136,6 +137,13 @@ const navigationItems = computed(() => {
       label: t("nav.dashboard"),
       icon: Home,
       visible: true,
+    },
+    {
+      name: "owner-overview",
+      path: "/dashboard/owner-overview",
+      label: t("nav.ownerOverview"),
+      icon: Crown,
+      visible: authStore.canAccessOwnerDashboard,
     },
     {
       name: "orders",

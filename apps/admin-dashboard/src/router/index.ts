@@ -29,6 +29,10 @@ const routes: RouteRecordRaw[] = [
     redirect: "/dashboard",
   },
   {
+    path: "/owner",
+    redirect: "/dashboard/owner-overview",
+  },
+  {
     path: "/dashboard",
     name: "Dashboard",
     component: () => import("@/layouts/DefaultLayout.vue"),
@@ -48,6 +52,15 @@ const routes: RouteRecordRaw[] = [
         path: "",
         name: "DashboardHome",
         component: () => import("@/views/DashboardView.vue"),
+      },
+      {
+        path: "owner-overview",
+        name: "OwnerOverview",
+        component: () => import("@/views/OwnerView.vue"),
+        meta: {
+          titleKey: "pages.ownerOverview",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
       },
       {
         path: "platform",
@@ -324,23 +337,6 @@ const routes: RouteRecordRaw[] = [
         path: "",
         name: "ServiceDelivery",
         component: () => import("@/views/ServiceView.vue"),
-      },
-    ],
-  },
-  {
-    path: "/owner",
-    name: "Owner",
-    component: () => import("@/layouts/OwnerLayout.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "pages.owner",
-      roles: [UserRole.ADMIN, UserRole.OWNER],
-    },
-    children: [
-      {
-        path: "",
-        name: "OwnerDashboard",
-        component: () => import("@/views/OwnerView.vue"),
       },
     ],
   },
