@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
 import { OrderStatus } from "@makanmakan/shared-types";
+import type { UserRole } from "../../../shared/constants";
 
 // Mock dependencies
 vi.mock("@makanmakan/database", () => ({
@@ -264,7 +265,7 @@ describe("Order Status State Machine", () => {
   // =========================================================================
   describe("Role-based permission checks", () => {
     for (const [roleNum, roleName] of Object.entries(ROLE_NAMES)) {
-      const role = Number(roleNum);
+      const role = Number(roleNum) as UserRole;
       const allowedTargets = ROLE_PERMISSIONS[role];
 
       describe(`Role: ${roleName} (${role})`, () => {

@@ -158,26 +158,17 @@ const pageTitle = computed(() => {
 });
 
 const breadcrumbs = computed(() => {
-  const crumbs = [];
-  const pathSegments = route.path.split("/").filter(Boolean);
+  const crumbs = [{ label: t("header.breadcrumb.home"), path: "/dashboard" }];
 
-  crumbs.push({ label: t("header.breadcrumb.home"), path: "/dashboard" });
-
-  if (pathSegments.length > 1) {
-    const routeMapping: Record<string, string> = {
-      platform: t("platform.title"),
-      orders: t("header.breadcrumb.orders"),
-      menu: t("header.breadcrumb.menu"),
-      tables: t("header.breadcrumb.tables"),
-      users: t("header.breadcrumb.users"),
-      analytics: t("header.breadcrumb.analytics"),
-    };
-
-    pathSegments.slice(1).forEach((segment, index) => {
-      const label = routeMapping[segment] || segment;
-      const path = "/" + pathSegments.slice(0, index + 2).join("/");
-      crumbs.push({ label, path });
-    });
+  // Use matched routes' meta.titleKey for breadcrumb labels
+  const matched = route.matched;
+  // Skip the first matched route (DefaultLayout) — it's the "/dashboard" parent
+  for (let i = 1; i < matched.length; i++) {
+    const record = matched[i];
+    const titleKey = record.meta.titleKey as string | undefined;
+    if (titleKey) {
+      crumbs.push({ label: t(titleKey), path: record.path });
+    }
   }
 
   return crumbs;

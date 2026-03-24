@@ -814,10 +814,10 @@ SELECT status, COUNT(*) as count FROM orders GROUP BY status;
 --   --command="SELECT * FROM restaurants" \
 --   --config=./apps/api/wrangler.toml
 --
--- 測試帳號:
--- - 系統管理員: admin / admin123
--- - 阿嬤的味道店主: grandmaShop / grandma123
--- - 櫻花亭店主: japanShop / japan123
--- - 暹羅風味店主: thaiShop / siam123
+-- 測試帳號 (所有帳號密碼皆為 password123):
+-- - 系統管理員: admin / password123
+-- - 阿嬤的味道店主: grandmaShop / password123
+-- - 櫻花亭店主: japanShop / password123
+-- - 暹羅風味店主: thaiShop / password123
 --
 -- ============================================================================

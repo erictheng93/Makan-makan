@@ -711,7 +711,7 @@ describe("Menu Feature Module", () => {
       );
 
       expect(res.status).toBe(200);
-      const data = await res.json();
+      const data = (await res.json()) as { success: boolean };
       expect(data.success).toBe(true);
       expect(
         mockDatabaseMenuServiceInstance.reorderCategories,
