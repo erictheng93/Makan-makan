@@ -28,6 +28,42 @@ export class WaitingListService extends BaseService {
     this.reservationService = new ReservationService(d1, env);
   }
 
+  /**
+   * 非阻塞發送候位通知（失敗不影響主流程）
+   */
+  private async sendWaitingNotification(
+    phone: string,
+    category:
+      | "waiting_list_confirmed"
+      | "waiting_list_called"
+      | "waiting_list_expired",
+    data: Record<string, string>,
+  ): Promise<void> {
+    try {
+      if (!this.env?.TWILIO_ACCOUNT_SID) return; // SMS not configured, skip
+
+      const { TwilioSMSProvider, notificationTemplates } =
+        await import("./NotificationService");
+      const provider = new TwilioSMSProvider(
+        this.env.TWILIO_ACCOUNT_SID as string,
+        this.env.TWILIO_AUTH_TOKEN as string,
+        this.env.TWILIO_PHONE_NUMBER as string,
+      );
+      const template = notificationTemplates[category];
+      if (!template?.body) return;
+
+      let body = template.body;
+      for (const [key, value] of Object.entries(data)) {
+        body = body.replaceAll(`{{${key}}}`, value);
+      }
+
+      await provider.sendSMS({ to: phone, body });
+    } catch (error) {
+      console.error(`Waiting list notification failed (${category}):`, error);
+      // Intentionally swallowed — notification failure must not block operation
+    }
+  }
+
   // ==========================================
   // 候位管理 (Waiting List Management)
   // ==========================================
@@ -103,7 +139,16 @@ export class WaitingListService extends BaseService {
         )
       `);
 
-      // TODO: 發送候位確認通知
+      // 發送候位確認通知（非阻塞）
+      this.sendWaitingNotification(
+        data.customerPhone,
+        "waiting_list_confirmed",
+        {
+          customerName: data.customerName,
+          queueNumber: `${entry.queueLetter}${entry.queueNumber}`,
+          estimatedWait: String(entry.estimatedWaitMinutes || 30),
+        },
+      );
 
       return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
     } catch (error) {
@@ -302,21 +347,34 @@ export class WaitingListService extends BaseService {
       // 設定超時時間（5分鐘後）
       const timeoutAt = now + 5 * 60 * 1000;
 
-      // 更新候位記錄
-      await this.db.run(sql`
+      // 更新候位記錄（樂觀鎖：WHERE 包含狀態條件防止並發衝突）
+      const callResult = await this.db.run(sql`
         UPDATE waiting_list
         SET status = 'called',
             table_id = ${request.tableId},
             called_at = ${now},
             timeout_at = ${timeoutAt},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id} AND status = 'waiting'
       `);
+      if ((callResult as any)?.meta?.changes === 0) {
+        throw new Error("叫號失敗：狀態已被其他操作更新，請刷新");
+      }
 
       // 更新桌位狀態為預留
       await this.updateTableStatus(request.tableId, "reserved", null, id);
 
-      // TODO: 發送叫號通知（SMS + Push）
+      // 發送叫號通知（非阻塞）
+      if (entry.customerPhone) {
+        this.sendWaitingNotification(
+          entry.customerPhone,
+          "waiting_list_called",
+          {
+            customerName: entry.customerName,
+            tableNumber: table.table_number || `桌${request.tableId}`,
+          },
+        );
+      }
 
       return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
     } catch (error) {
@@ -347,13 +405,16 @@ export class WaitingListService extends BaseService {
         throw new Error("叫號已超時，請重新排隊");
       }
 
-      await this.db.run(sql`
+      const confirmResult = await this.db.run(sql`
         UPDATE waiting_list
         SET status = 'confirmed',
             confirmed_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id} AND status = 'called'
       `);
+      if ((confirmResult as any)?.meta?.changes === 0) {
+        throw new Error("確認失敗：狀態已被其他操作更新，請刷新");
+      }
 
       return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
     } catch (error) {
@@ -378,13 +439,16 @@ export class WaitingListService extends BaseService {
         throw new Error("無法入座，候位狀態不正確");
       }
 
-      await this.db.run(sql`
+      const seatResult = await this.db.run(sql`
         UPDATE waiting_list
         SET status = 'seated',
             seated_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id} AND (status = 'called' OR status = 'confirmed')
       `);
+      if ((seatResult as any)?.meta?.changes === 0) {
+        throw new Error("入座失敗：狀態已被其他操作更新，請刷新");
+      }
 
       // 更新桌位狀態為佔用
       if (entry.tableId) {
@@ -420,13 +484,16 @@ export class WaitingListService extends BaseService {
         throw new Error(`無法取消，當前狀態: ${entry.status}`);
       }
 
-      await this.db.run(sql`
+      const cancelResult = await this.db.run(sql`
         UPDATE waiting_list
         SET status = 'cancelled',
             cancelled_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id} AND status IN ('waiting', 'called', 'confirmed')
       `);
+      if ((cancelResult as any)?.meta?.changes === 0) {
+        throw new Error("取消失敗：狀態已被其他操作更新，請刷新");
+      }
 
       // 如果已分配桌位，釋放桌位
       if (entry.tableId) {
@@ -460,20 +527,35 @@ export class WaitingListService extends BaseService {
         throw new Error(`無法標記過期，當前狀態: ${entry.status}`);
       }
 
-      await this.db.run(sql`
+      const expireResult = await this.db.run(sql`
         UPDATE waiting_list
         SET status = 'expired',
             expired_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id} AND status IN ('waiting', 'called', 'confirmed')
       `);
+      if ((expireResult as any)?.meta?.changes === 0) {
+        throw new Error("過期標記失敗：狀態已被其他操作更新，請刷新");
+      }
 
       // 釋放預留的桌位
       if (entry.tableId) {
         await this.updateTableStatus(entry.tableId, "available");
       }
 
-      // TODO: 發送過號通知
+      // 發送過號通知（非阻塞）
+      if (entry.customerPhone) {
+        this.sendWaitingNotification(
+          entry.customerPhone,
+          "waiting_list_expired",
+          {
+            customerName: entry.customerName,
+            queueNumber: entry.queueLetter
+              ? `${entry.queueLetter}${entry.queueNumber}`
+              : String(entry.queueNumber),
+          },
+        );
+      }
 
       // 更新後續候位的等待時間
       await this.recalculateWaitTimes(entry.restaurantId);
@@ -483,6 +565,102 @@ export class WaitingListService extends BaseService {
       console.error("Error expiring waiting:", error);
       throw error;
     }
+  }
+
+  // ==========================================
+  // 自動桌位分配 (Auto Table Assignment)
+  // ==========================================
+
+  /**
+   * 自動尋找最適合的可用桌位（best-fit: 容量最小且 >= partySize）
+   * 排除已被候位預留的桌位（waiting_list_id IS NOT NULL）
+   */
+  async findAvailableTable(
+    restaurantId: string,
+    partySize: number,
+    excludeTableIds: number[] = [],
+  ): Promise<TableAssignmentResult | null> {
+    const table = (await this.db.get(sql`
+      SELECT id, table_number, capacity
+      FROM tables
+      WHERE restaurant_id = ${restaurantId}
+        AND is_active = 1
+        AND is_occupied = 0
+        AND waiting_list_id IS NULL
+        AND capacity >= ${partySize}
+      ORDER BY capacity ASC, id ASC
+      LIMIT 1
+    `)) as any;
+
+    if (!table) return null;
+
+    // 排除已在本次批次中分配的桌位
+    if (excludeTableIds.includes(table.id)) return null;
+
+    return {
+      tableId: table.id,
+      tableNumber: table.table_number || `T${table.id}`,
+      confidence:
+        table.capacity === partySize
+          ? 1.0
+          : Math.max(0.5, 1.0 - (table.capacity - partySize) * 0.1),
+      reason: `自動分配：${table.capacity}人桌 (最佳匹配)`,
+    };
+  }
+
+  /**
+   * 批次叫號：自動為排隊中的客人分配桌位
+   */
+  async batchCallNext(
+    restaurantId: string,
+    count: number = 1,
+  ): Promise<
+    Array<{
+      id: string;
+      success: boolean;
+      tableId?: number;
+      message: string;
+    }>
+  > {
+    const { data: waitingList } = await this.listWaitingList({
+      restaurantId,
+      status: "waiting" as any,
+      limit: count,
+    });
+
+    const results = [];
+    const assignedTableIds: number[] = [];
+
+    for (const entry of waitingList) {
+      const table = await this.findAvailableTable(
+        restaurantId,
+        entry.partySize,
+        assignedTableIds,
+      );
+      if (!table) {
+        results.push({ id: entry.id, success: false, message: "無可用桌位" });
+        continue;
+      }
+
+      try {
+        await this.callWaiting(entry.id, { tableId: table.tableId });
+        assignedTableIds.push(table.tableId);
+        results.push({
+          id: entry.id,
+          success: true,
+          tableId: table.tableId,
+          message: `已叫號，分配桌位 ${table.tableNumber}`,
+        });
+      } catch (error) {
+        results.push({
+          id: entry.id,
+          success: false,
+          message: error instanceof Error ? error.message : "叫號失敗",
+        });
+      }
+    }
+
+    return results;
   }
 
   // ==========================================

@@ -36,6 +36,10 @@ export type NotificationCategory =
   | "swap_request_approved"
   | "swap_request_rejected"
   | "shift_reminder"
+  // Waiting list notifications
+  | "waiting_list_confirmed"
+  | "waiting_list_called"
+  | "waiting_list_expired"
   // Verification and authentication
   | "password_reset_request"
   | "password_reset_success"
@@ -495,6 +499,23 @@ export const notificationTemplates: Record<
       "startTime",
       "endTime",
     ],
+  },
+
+  // ============================================
+  // Waiting List Notification Templates (SMS)
+  // ============================================
+
+  waiting_list_confirmed: {
+    body: "【MakanMakan】{{customerName}} 您好，您已成功加入候位。排隊號碼：{{queueNumber}}，預計等待 {{estimatedWait}} 分鐘。",
+    variables: ["customerName", "queueNumber", "estimatedWait"],
+  },
+  waiting_list_called: {
+    body: "【MakanMakan】{{customerName}} 您好，輪到您了！請於 5 分鐘內至櫃檯報到，桌號：{{tableNumber}}。逾時將自動取消。",
+    variables: ["customerName", "tableNumber"],
+  },
+  waiting_list_expired: {
+    body: "【MakanMakan】{{customerName}} 您好，您的候位號碼 {{queueNumber}} 已過號。如需重新排隊，請至現場取號。",
+    variables: ["customerName", "queueNumber"],
   },
 
   // ============================================

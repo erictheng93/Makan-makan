@@ -326,39 +326,12 @@ app.post("/batch-call", requireRole([0, 1, 3, 4]), async (c) => {
   }
 
   const service = new WaitingListService(c.env.DB, c.env);
-
-  // 查詢等待中的候位（按順序）
-  const { data: waitingList } = await service.listWaitingList({
-    restaurantId: targetRestaurantId,
-    status: WaitingStatus.WAITING,
-    limit: count,
-  });
-
-  const results = [];
-
-  for (const entry of waitingList) {
-    try {
-      // 需要自動分配桌位
-      // TODO: 實現自動桌位分配邏輯
-      // 暫時跳過
-      results.push({
-        id: entry.id,
-        success: false,
-        message: "需要手動指定桌位",
-      });
-    } catch (error) {
-      results.push({
-        id: entry.id,
-        success: false,
-        message: error instanceof Error ? error.message : "叫號失敗",
-      });
-    }
-  }
+  const results = await service.batchCallNext(targetRestaurantId, count);
 
   return c.json({
     success: true,
     data: results,
-    message: "批次完成",
+    message: `批次叫號完成：${results.filter((r) => r.success).length}/${results.length} 成功`,
   });
 });
 

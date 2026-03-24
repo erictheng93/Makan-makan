@@ -28,6 +28,7 @@ const mockServiceInstance = {
   markSeated: vi.fn(),
   expireWaiting: vi.fn(),
   getWaitingStats: vi.fn(),
+  batchCallNext: vi.fn(),
 };
 
 vi.mock("@makanmakan/database", () => ({
@@ -936,13 +937,10 @@ describe("Waiting List Routes", () => {
 
   describe("POST /batch-call - Batch Call (Protected)", () => {
     it("returns 200 with batch call results", async () => {
-      mockServiceInstance.listWaitingList.mockResolvedValue({
-        data: [
-          { id: "wait-001", restaurantId: "restaurant-001" },
-          { id: "wait-002", restaurantId: "restaurant-001" },
-        ],
-        total: 2,
-      });
+      mockServiceInstance.batchCallNext.mockResolvedValue([
+        { id: "wait-001", success: true, tableId: 1, message: "已叫號" },
+        { id: "wait-002", success: false, message: "無可用桌位" },
+      ]);
 
       const req = new Request("http://localhost/waiting-list/batch-call", {
         method: "POST",
@@ -958,6 +956,7 @@ describe("Waiting List Routes", () => {
       };
       expect(json.success).toBe(true);
       expect(Array.isArray(json.data)).toBe(true);
+      expect(json.message).toContain("1/2");
     });
 
     it("returns 400 when no restaurantId and admin role", async () => {
@@ -987,10 +986,7 @@ describe("Waiting List Routes", () => {
     });
 
     it("uses user restaurantId for non-admin roles", async () => {
-      mockServiceInstance.listWaitingList.mockResolvedValue({
-        data: [],
-        total: 0,
-      });
+      mockServiceInstance.batchCallNext.mockResolvedValue([]);
       const req = new Request("http://localhost/waiting-list/batch-call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -999,13 +995,14 @@ describe("Waiting List Routes", () => {
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(200);
       // Service should have been called with user's restaurantId
-      expect(mockServiceInstance.listWaitingList).toHaveBeenCalledWith(
-        expect.objectContaining({ restaurantId: "restaurant-001" }),
+      expect(mockServiceInstance.batchCallNext).toHaveBeenCalledWith(
+        "restaurant-001",
+        1,
       );
     });
 
     it("returns 500 when service throws", async () => {
-      mockServiceInstance.listWaitingList.mockRejectedValue(
+      mockServiceInstance.batchCallNext.mockRejectedValue(
         new Error("DB failure"),
       );
       const req = new Request("http://localhost/waiting-list/batch-call", {
@@ -1020,10 +1017,7 @@ describe("Waiting List Routes", () => {
     });
 
     it("defaults count to 1 when not provided", async () => {
-      mockServiceInstance.listWaitingList.mockResolvedValue({
-        data: [],
-        total: 0,
-      });
+      mockServiceInstance.batchCallNext.mockResolvedValue([]);
       const req = new Request("http://localhost/waiting-list/batch-call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1031,8 +1025,9 @@ describe("Waiting List Routes", () => {
       });
       const res = await app.fetch(req, mockEnv);
       expect(res.status).toBe(200);
-      expect(mockServiceInstance.listWaitingList).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: 1 }),
+      expect(mockServiceInstance.batchCallNext).toHaveBeenCalledWith(
+        "restaurant-001",
+        1,
       );
     });
   });

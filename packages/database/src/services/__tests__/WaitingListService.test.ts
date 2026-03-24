@@ -957,6 +957,258 @@ describe("WaitingListService", () => {
       );
     });
   });
+
+  // ==========================================
+  // 自動桌位分配測試 (Auto Table Assignment)
+  // ==========================================
+
+  describe("findAvailableTable - 自動桌位分配", () => {
+    it("應該找到容量最接近的可用桌位 (best-fit)", async () => {
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        table_number: "T1",
+        capacity: 2,
+        is_occupied: 0,
+        is_active: 1,
+        restaurant_id: "R-001",
+      });
+      mockDB._mockData.tables.set(2, {
+        id: 2,
+        table_number: "T2",
+        capacity: 4,
+        is_occupied: 0,
+        is_active: 1,
+        restaurant_id: "R-001",
+      });
+      mockDB._mockData.tables.set(3, {
+        id: 3,
+        table_number: "T3",
+        capacity: 6,
+        is_occupied: 0,
+        is_active: 1,
+        restaurant_id: "R-001",
+      });
+
+      const result = await service.findAvailableTable("R-001", 3);
+      expect(result).not.toBeNull();
+      expect(result!.tableId).toBe(2); // 4人桌是3人最佳匹配
+      expect(result!.confidence).toBeGreaterThan(0.5);
+    });
+
+    it("沒有適合容量的桌位時應返回 null", async () => {
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        capacity: 2,
+        is_occupied: 0,
+        is_active: 1,
+        restaurant_id: "R-001",
+      });
+      const result = await service.findAvailableTable("R-001", 6);
+      expect(result).toBeNull();
+    });
+
+    it("所有桌位佔用時應返回 null", async () => {
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        capacity: 6,
+        is_occupied: 1,
+        is_active: 1,
+        restaurant_id: "R-001",
+      });
+      const result = await service.findAvailableTable("R-001", 2);
+      expect(result).toBeNull();
+    });
+
+    it("應排除已被候位預留的桌位 (waiting_list_id IS NOT NULL)", async () => {
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        table_number: "T1",
+        capacity: 4,
+        is_occupied: 0,
+        is_active: 1,
+        waiting_list_id: "some-entry",
+        restaurant_id: "R-001",
+      });
+      mockDB._mockData.tables.set(2, {
+        id: 2,
+        table_number: "T2",
+        capacity: 6,
+        is_occupied: 0,
+        is_active: 1,
+        restaurant_id: "R-001",
+      });
+
+      const result = await service.findAvailableTable("R-001", 3);
+      expect(result).not.toBeNull();
+      expect(result!.tableId).toBe(2); // T1 被排除，選 T2
+    });
+
+    it("應排除指定的桌位ID (excludeTableIds)", async () => {
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        table_number: "T1",
+        capacity: 4,
+        is_occupied: 0,
+        is_active: 1,
+        restaurant_id: "R-001",
+      });
+
+      const result = await service.findAvailableTable("R-001", 2, [1]);
+      expect(result).toBeNull(); // 唯一的桌子被排除
+    });
+  });
+
+  describe("batchCallNext - 批次叫號", () => {
+    it("應該自動分配桌位並叫號", async () => {
+      mockDB._mockData.waitingList.set("w1", {
+        id: "w1",
+        status: "waiting",
+        party_size: 2,
+        queue_number: 1,
+        queue_letter: "A",
+        restaurant_id: "R-001",
+        customer_name: "Alice",
+        customer_phone: "0912345678",
+      });
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        table_number: "T1",
+        capacity: 4,
+        is_occupied: 0,
+        is_active: 1,
+        restaurant_id: "R-001",
+      });
+
+      const results = await service.batchCallNext("R-001", 1);
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+      expect(results[0].tableId).toBe(1);
+      expect(results[0].message).toContain("T1");
+    });
+
+    it("沒有可用桌位時應返回失敗", async () => {
+      mockDB._mockData.waitingList.set("w1", {
+        id: "w1",
+        status: "waiting",
+        party_size: 2,
+        queue_number: 1,
+        restaurant_id: "R-001",
+        customer_name: "Alice",
+        customer_phone: "0912345678",
+      });
+      // 沒有桌位
+
+      const results = await service.batchCallNext("R-001", 1);
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].message).toContain("無可用桌位");
+    });
+
+    it("沒有等待中的候位時應返回空結果", async () => {
+      const results = await service.batchCallNext("R-001", 1);
+      expect(results).toHaveLength(0);
+    });
+  });
+
+  // ==========================================
+  // 樂觀鎖測試 (Optimistic Locking - SQL Level)
+  // ==========================================
+
+  describe("Optimistic Locking - 樂觀鎖 (SQL WHERE 條件)", () => {
+    // 這些測試直接驗證 mock 的 WHERE status 條件解析和 meta.changes 回傳
+
+    it("WHERE status = 'waiting' 應阻止非 waiting 狀態的更新", async () => {
+      const entryId = "wait-ol-001";
+      // 直接設定為 called 狀態（模擬另一個請求先完成了叫號）
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        party_size: 4,
+        restaurant_id: "R-001",
+        table_id: 1,
+      });
+
+      mockDB._mockData.tables.set(5, {
+        id: 5,
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 6,
+      });
+
+      // App-level guard fires first (status !== "waiting")
+      await expect(
+        service.callWaiting(entryId, { tableId: 5 }),
+      ).rejects.toThrow("無法叫號");
+
+      // Verify status was NOT changed by the update
+      expect(mockDB._mockData.waitingList.get(entryId).status).toBe("called");
+    });
+
+    it("WHERE status IN (...) 應阻止不符合條件的更新", async () => {
+      const entryId = "wait-ol-002";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "seated", // 不在 IN ('waiting', 'called', 'confirmed')
+        restaurant_id: "R-001",
+      });
+
+      // App-level guard catches it
+      await expect(service.cancelWaiting(entryId)).rejects.toThrow("無法取消");
+
+      // Status unchanged
+      expect(mockDB._mockData.waitingList.get(entryId).status).toBe("seated");
+    });
+
+    it("WHERE (status = 'called' OR status = 'confirmed') 應匹配正確狀態", async () => {
+      const entryId = "wait-ol-003";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "called",
+        table_id: 1,
+        restaurant_id: "R-001",
+      });
+
+      // called → seated 應成功 (OR 條件匹配 'called')
+      const result = await service.markSeated(entryId);
+      expect(result.status).toBe("seated");
+    });
+
+    it("mock run() 應回傳 meta.changes = 0 當 WHERE 不匹配", async () => {
+      // 直接測試 mock 的 run() 行為
+      const { sql } = await import("drizzle-orm");
+      const entryId = "wait-ol-004";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "seated", // 不是 'waiting'
+        restaurant_id: "R-001",
+      });
+
+      const result = await mockDB.run(
+        sql`UPDATE waiting_list SET status = 'called', updated_at = ${Date.now()} WHERE id = ${entryId} AND status = 'waiting'`,
+      );
+
+      expect(result.meta.changes).toBe(0);
+      // Status should NOT have changed
+      expect(mockDB._mockData.waitingList.get(entryId).status).toBe("seated");
+    });
+
+    it("mock run() 應回傳 meta.changes = 1 當 WHERE 匹配", async () => {
+      const { sql } = await import("drizzle-orm");
+      const entryId = "wait-ol-005";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "waiting",
+        restaurant_id: "R-001",
+      });
+
+      const result = await mockDB.run(
+        sql`UPDATE waiting_list SET status = 'called', updated_at = ${Date.now()} WHERE id = ${entryId} AND status = 'waiting'`,
+      );
+
+      expect(result.meta.changes).toBe(1);
+      expect(mockDB._mockData.waitingList.get(entryId).status).toBe("called");
+    });
+  });
 });
 
 // ==========================================
@@ -1007,9 +1259,22 @@ function createMockDB() {
   const state = { updateCalled: false };
 
   function extractTableName(queryStr: string): string {
-    if (queryStr.includes("waiting_list")) return "waitingList";
-    if (queryStr.includes("tables")) return "tables";
-    if (queryStr.includes("orders")) return "orders";
+    // Use FROM clause to determine primary table (avoids column name collisions)
+    const fromMatch = queryStr.match(/FROM\s+(waiting_list|tables|orders)/i);
+    if (fromMatch) {
+      const name = fromMatch[1].toLowerCase();
+      if (name === "waiting_list") return "waitingList";
+      return name;
+    }
+    // Fallback: UPDATE tablename SET ...
+    const updateMatch = queryStr.match(
+      /UPDATE\s+(waiting_list|tables|orders)/i,
+    );
+    if (updateMatch) {
+      const name = updateMatch[1].toLowerCase();
+      if (name === "waiting_list") return "waitingList";
+      return name;
+    }
     return "waitingList";
   }
 
@@ -1116,6 +1381,29 @@ function createMockDB() {
       return [];
     }
 
+    // findAvailableTable: SELECT from tables WHERE restaurant_id=? AND capacity>=? (best-fit)
+    if (
+      tableName === "tables" &&
+      queryStr.includes("capacity >=") &&
+      queryStr.includes("is_occupied = 0") &&
+      queryStr.includes("restaurant_id")
+    ) {
+      const restaurantId = values[0];
+      const partySize = values[1];
+      const tables = Array.from(mockData.tables.values()) as any[];
+      const suitable = tables
+        .filter(
+          (t: any) =>
+            t.restaurant_id === restaurantId &&
+            t.is_active === 1 &&
+            !t.is_occupied &&
+            !t.waiting_list_id &&
+            t.capacity >= partySize,
+        )
+        .sort((a: any, b: any) => a.capacity - b.capacity || a.id - b.id);
+      return suitable.length > 0 ? [suitable[0]] : [];
+    }
+
     // SELECT from tables WHERE id = ? (callWaiting table check)
     if (
       tableName === "tables" &&
@@ -1182,62 +1470,80 @@ function createMockDB() {
     }
   }
 
-  function handleUpdate(queryStr: string, values: any[]): void {
+  function handleUpdate(queryStr: string, values: any[]): boolean {
     state.updateCalled = true;
 
     if (queryStr.includes("waiting_list")) {
       // The last value is always the id from the WHERE clause
       const id = values[values.length - 1];
       const entry = mockData.waitingList.get(id);
-      if (!entry) return;
+      if (!entry) return false;
 
-      // Status is a literal string in the SQL (e.g. status = 'called'), not a parameter.
-      // Extract it from the query string.
-      const statusMatch = queryStr.match(/status\s*=\s*'(\w+)'/);
-      if (statusMatch) {
-        entry.status = statusMatch[1];
+      // --- Optimistic locking: check WHERE status conditions ---
+      const whereIndex = queryStr.indexOf("WHERE");
+      if (whereIndex >= 0) {
+        const whereClause = queryStr.substring(whereIndex);
+        // IN clause: AND status IN ('waiting', 'called', 'confirmed')
+        const inMatch = whereClause.match(/status\s+IN\s*\(([^)]+)\)/i);
+        // OR clause: AND (status = 'called' OR status = 'confirmed')
+        const orMatch = whereClause.match(
+          /\(status\s*=\s*'(\w+)'\s+OR\s+status\s*=\s*'(\w+)'\)/,
+        );
+        // Single status: AND status = 'waiting'
+        const singleMatch = whereClause.match(/AND\s+status\s*=\s*'(\w+)'/);
+
+        if (inMatch) {
+          const allowed =
+            inMatch[1].match(/'(\w+)'/g)?.map((s) => s.replace(/'/g, "")) || [];
+          if (!allowed.includes(entry.status)) return false;
+        } else if (orMatch) {
+          if (entry.status !== orMatch[1] && entry.status !== orMatch[2])
+            return false;
+        } else if (singleMatch) {
+          if (entry.status !== singleMatch[1]) return false;
+        }
+      }
+
+      // --- Extract SET status (from before WHERE) ---
+      const setClause =
+        whereIndex >= 0 ? queryStr.substring(0, whereIndex) : queryStr;
+      const setStatusMatch = setClause.match(/status\s*=\s*'(\w+)'/);
+      if (setStatusMatch) {
+        entry.status = setStatusMatch[1];
       }
 
       // Identify the specific update by distinctive column names in SET clause
       // Note: status is literal in SQL, so values start from the first ? parameter
       if (queryStr.includes("called_at")) {
-        // callWaiting: SET status='called', table_id=?, called_at=?, timeout_at=?, updated_at=? WHERE id=?
+        // callWaiting: SET status='called', table_id=?, called_at=?, timeout_at=?, updated_at=? WHERE id=? AND status='waiting'
         // values: [tableId, calledAt, timeoutAt, updatedAt, id]
         entry.table_id = values[0];
         entry.called_at = values[1];
         entry.timeout_at = values[2];
         entry.updated_at = values[3];
       } else if (queryStr.includes("confirmed_at")) {
-        // confirmWaiting: SET status='confirmed', confirmed_at=?, updated_at=? WHERE id=?
-        // values: [confirmedAt, updatedAt, id]
         entry.confirmed_at = values[0];
         entry.updated_at = values[1];
       } else if (queryStr.includes("seated_at")) {
-        // markSeated: SET status='seated', seated_at=?, updated_at=? WHERE id=?
-        // values: [seatedAt, updatedAt, id]
         entry.seated_at = values[0];
         entry.updated_at = values[1];
       } else if (queryStr.includes("cancelled_at")) {
-        // cancelWaiting: SET status='cancelled', cancelled_at=?, updated_at=? WHERE id=?
-        // values: [cancelledAt, updatedAt, id]
         entry.cancelled_at = values[0];
         entry.updated_at = values[1];
       } else if (queryStr.includes("expired_at")) {
-        // expireWaiting: SET status='expired', expired_at=?, updated_at=? WHERE id=?
-        // values: [expiredAt, updatedAt, id]
         entry.expired_at = values[0];
         entry.updated_at = values[1];
       } else if (queryStr.includes("estimated_wait_minutes")) {
-        // recalculateWaitTimes: SET estimated_wait_minutes=?, updated_at=? WHERE id=?
-        // values: [minutes, updatedAt, id]
         entry.estimated_wait_minutes = values[0];
         entry.updated_at = values[1];
       }
 
       mockData.waitingList.set(id, entry);
+      return true;
     }
 
     // Table status updates are tracked via state.updateCalled
+    return true;
   }
 
   const db: any = {
@@ -1260,10 +1566,12 @@ function createMockDB() {
       const upperStr = queryStr.trimStart().toUpperCase();
       if (upperStr.startsWith("INSERT")) {
         handleInsert(queryStr, values);
+        return { success: true, meta: { changes: 1 } };
       } else if (upperStr.startsWith("UPDATE")) {
-        handleUpdate(queryStr, values);
+        const applied = handleUpdate(queryStr, values);
+        return { success: true, meta: { changes: applied ? 1 : 0 } };
       }
-      return { success: true };
+      return { success: true, meta: { changes: 0 } };
     },
     transaction: async (callback: any) => callback(db),
     // Raw D1 API support (used by getWaitingStats and listWaitingList)
