@@ -109,13 +109,7 @@ export class ServiceWorkerOptimizer {
 
   // 預載關鍵資源
   async preloadCriticalResources(): Promise<void> {
-    const criticalResources = [
-      "/api/v1/restaurants/featured",
-      "/api/v1/menu/popular",
-      "/api/v1/categories",
-      "/assets/critical.css",
-      "/assets/app-shell.js",
-    ];
+    const criticalResources = ["/assets/critical.css", "/assets/app-shell.js"];
 
     const preloadPromises = criticalResources.map(async (url) => {
       try {
