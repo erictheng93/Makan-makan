@@ -7,8 +7,9 @@ import {
 } from "@/i18n";
 import type { SupportedLanguage } from "@/i18n";
 
-// Cast to avoid TS2589 "excessively deep type instantiation" from vue-i18n generics
-const t = i18n.global.t as (key: string, params?: any) => string;
+// Wrap to avoid TS2589 "excessively deep type instantiation" from vue-i18n generics
+const t = (key: string, ...args: any[]): string =>
+  (i18n.global as any).t(key, ...args);
 
 describe("Comprehensive i18n Tests", () => {
   beforeEach(() => {
