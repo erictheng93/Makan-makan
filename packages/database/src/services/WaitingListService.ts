@@ -415,6 +415,11 @@ export class WaitingListService extends BaseService {
         throw new Error("候位記錄不存在");
       }
 
+      // 只允許從 waiting/called/confirmed 狀態取消
+      if (!["waiting", "called", "confirmed"].includes(entry.status)) {
+        throw new Error(`無法取消，當前狀態: ${entry.status}`);
+      }
+
       await this.db.run(sql`
         UPDATE waiting_list
         SET status = 'cancelled',
@@ -448,6 +453,11 @@ export class WaitingListService extends BaseService {
 
       if (!entry) {
         throw new Error("候位記錄不存在");
+      }
+
+      // 只允許從 waiting/called/confirmed 狀態標記過期
+      if (!["waiting", "called", "confirmed"].includes(entry.status)) {
+        throw new Error(`無法標記過期，當前狀態: ${entry.status}`);
       }
 
       await this.db.run(sql`
