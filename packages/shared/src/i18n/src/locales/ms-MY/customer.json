@@ -770,5 +770,22 @@
     "orderCancelled": "Dibatalkan",
     "unknownStatus": "Status tidak diketahui",
     "noItems": "Tiada {item}"
+  },
+  "discovery": {
+    "title": "Terokai Makanan",
+    "searchPlaceholder": "Cari hidangan atau restoran...",
+    "resultsCount": "{count} hasil ditemui",
+    "popularDishes": "Hidangan Popular",
+    "restaurants": "Restoran",
+    "popularRestaurants": "Restoran Popular",
+    "noResults": "Tiada hasil ditemui. Cuba carian lain.",
+    "open": "Buka",
+    "closed": "Tutup",
+    "filters": "Penapis",
+    "openNow": "Buka Sekarang",
+    "takeaway": "Bungkus",
+    "delivery": "Penghantaran",
+    "district": "Daerah",
+    "allDistricts": "Semua Daerah"
   }
 }

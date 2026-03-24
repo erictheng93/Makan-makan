@@ -770,5 +770,22 @@
     "orderCancelled": "Đã hủy",
     "unknownStatus": "Trạng thái không xác định",
     "noItems": "Không có {item}"
+  },
+  "discovery": {
+    "title": "Khám phá Ẩm thực",
+    "searchPlaceholder": "Tìm món ăn hoặc nhà hàng...",
+    "resultsCount": "Tìm thấy {count} kết quả",
+    "popularDishes": "Món Phổ biến",
+    "restaurants": "Nhà hàng",
+    "popularRestaurants": "Nhà hàng Phổ biến",
+    "noResults": "Không tìm thấy kết quả. Hãy thử tìm kiếm khác.",
+    "open": "Đang mở",
+    "closed": "Đã đóng",
+    "filters": "Bộ lọc",
+    "openNow": "Đang mở",
+    "takeaway": "Mang đi",
+    "delivery": "Giao hàng",
+    "district": "Khu vực",
+    "allDistricts": "Tất cả Khu vực"
   }
 }

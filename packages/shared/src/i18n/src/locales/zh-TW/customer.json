@@ -770,5 +770,22 @@
     "orderCancelled": "已取消",
     "unknownStatus": "未知狀態",
     "noItems": "無{item}"
+  },
+  "discovery": {
+    "title": "探索美食",
+    "searchPlaceholder": "搜尋菜色或餐廳...",
+    "resultsCount": "找到 {count} 個結果",
+    "popularDishes": "熱門菜色",
+    "restaurants": "餐廳",
+    "popularRestaurants": "熱門餐廳",
+    "noResults": "找不到結果，請嘗試其他搜尋。",
+    "open": "營業中",
+    "closed": "休息中",
+    "filters": "篩選",
+    "openNow": "營業中",
+    "takeaway": "外帶",
+    "delivery": "外送",
+    "district": "地區",
+    "allDistricts": "所有地區"
   }
 }

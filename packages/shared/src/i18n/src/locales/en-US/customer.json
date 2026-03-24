@@ -770,5 +770,22 @@
     "orderCancelled": "Cancelled",
     "unknownStatus": "Unknown status",
     "noItems": "No {item}"
+  },
+  "discovery": {
+    "title": "Discover Food",
+    "searchPlaceholder": "Search dishes or restaurants...",
+    "resultsCount": "{count} results found",
+    "popularDishes": "Popular Dishes",
+    "restaurants": "Restaurants",
+    "popularRestaurants": "Popular Restaurants",
+    "noResults": "No results found. Try a different search.",
+    "open": "Open",
+    "closed": "Closed",
+    "filters": "Filters",
+    "openNow": "Open Now",
+    "takeaway": "Takeaway",
+    "delivery": "Delivery",
+    "district": "District",
+    "allDistricts": "All Districts"
   }
 }

@@ -770,5 +770,22 @@
     "orderCancelled": "Dibatalkan",
     "unknownStatus": "Status tidak diketahui",
     "noItems": "Tidak ada {item}"
+  },
+  "discovery": {
+    "title": "Jelajahi Makanan",
+    "searchPlaceholder": "Cari hidangan atau restoran...",
+    "resultsCount": "{count} hasil ditemukan",
+    "popularDishes": "Hidangan Populer",
+    "restaurants": "Restoran",
+    "popularRestaurants": "Restoran Populer",
+    "noResults": "Tidak ada hasil. Coba pencarian lain.",
+    "open": "Buka",
+    "closed": "Tutup",
+    "filters": "Filter",
+    "openNow": "Buka Sekarang",
+    "takeaway": "Bawa Pulang",
+    "delivery": "Pengiriman",
+    "district": "Wilayah",
+    "allDistricts": "Semua Wilayah"
   }
 }
