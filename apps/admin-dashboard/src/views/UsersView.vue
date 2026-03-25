@@ -674,6 +674,7 @@ const resetPassword = async (user: User) => {
       const tempPassword = `Reset${Date.now().toString(36)}!`;
       await api.post(`/users/${user.id}/reset-password`, {
         newPassword: tempPassword,
+        confirmPassword: tempPassword,
       });
       alert(t("users.confirm.resetPasswordSuccess"));
     } catch (error: any) {
