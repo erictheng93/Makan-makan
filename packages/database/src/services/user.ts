@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, like, or, count } from "drizzle-orm";
+import { eq, ne, and, desc, asc, like, or, count, gte } from "drizzle-orm";
 import { BaseService } from "./base";
 import { users, USER_ROLES, type UserRole } from "../schema";
 import * as bcrypt from "bcryptjs";
@@ -239,15 +239,10 @@ export class UserService extends BaseService {
         const existingEmail = await this.db
           .select({ id: users.id })
           .from(users)
-          .where(
-            and(
-              eq(users.email, data.email),
-              eq(users.id, id), // 排除自己
-            ),
-          )
+          .where(and(eq(users.email, data.email), ne(users.id, id)))
           .get();
 
-        if (existingEmail && existingEmail.id !== id) {
+        if (existingEmail) {
           throw new Error("Email already exists");
         }
       }
@@ -645,7 +640,7 @@ export class UserService extends BaseService {
 
       const recentConditions = [
         ...conditions,
-        eq(users.createdAt, thirtyDaysAgo),
+        gte(users.createdAt, thirtyDaysAgo),
       ];
       const recentRegistrationsResult = await this.db
         .select({ recentRegistrations: count() })
