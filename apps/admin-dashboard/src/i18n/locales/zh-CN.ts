@@ -2225,6 +2225,12 @@ const zhCN: Messages = {
   pos: {
     title: "POS 系统",
     subtitle: "完整收银售点管理系统",
+    systemTitle: "POS 收银系统",
+    systemSubtitle: "整合结账收银与收银柜管理",
+    tabs: {
+      checkout: "结账收银",
+      management: "收银柜管理",
+    },
     register: "收银柜",
     notSelected: "未选择",
     balance: "余额",
@@ -3338,6 +3344,7 @@ const zhCN: Messages = {
   roleNav: {
     dashboard: "总览",
     ownerCenter: "店主中心",
+    pos: "POS 收银系统",
     orderManagement: "订单管理",
     menuManagement: "菜单管理",
     tableManagement: "桌台管理",

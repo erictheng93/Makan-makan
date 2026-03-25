@@ -2253,6 +2253,12 @@ const enUS: Messages = {
   pos: {
     title: "POS System",
     subtitle: "Complete point-of-sale management system",
+    systemTitle: "POS System",
+    systemSubtitle: "Integrated checkout and register management",
+    tabs: {
+      checkout: "Checkout",
+      management: "Register Management",
+    },
     register: "Register",
     notSelected: "Not Selected",
     balance: "Balance",
@@ -2551,6 +2557,11 @@ const enUS: Messages = {
     subtitle: "Restaurant business data and trend analysis",
     exportReport: "Export Report",
     exportInDev: "Report export is under development...",
+    exporting: "Exporting...",
+    loading: "Loading...",
+    noData: "No data available",
+    fetchError: "Failed to load data, please retry",
+    retry: "Retry",
     period: {
       today: "Today",
       week: "This Week",
@@ -3399,6 +3410,7 @@ const enUS: Messages = {
   roleNav: {
     dashboard: "Dashboard",
     ownerCenter: "Owner Center",
+    pos: "POS System",
     orderManagement: "Order Management",
     menuManagement: "Menu Management",
     tableManagement: "Table Management",

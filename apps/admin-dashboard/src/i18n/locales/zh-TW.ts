@@ -2284,6 +2284,12 @@ const zhTW: Messages = {
   pos: {
     title: "POS 系統",
     subtitle: "完整收銀售點管理系統",
+    systemTitle: "POS 收銀系統",
+    systemSubtitle: "整合結帳收銀與收銀櫃管理",
+    tabs: {
+      checkout: "結帳收銀",
+      management: "收銀櫃管理",
+    },
     register: "收銀櫃",
     notSelected: "未選擇",
     balance: "餘額",
@@ -2578,6 +2584,11 @@ const zhTW: Messages = {
     subtitle: "餐廳經營數據和趨勢分析",
     exportReport: "匯出報表",
     exportInDev: "報表匯出功能開發中...",
+    exporting: "匯出中...",
+    loading: "載入中...",
+    noData: "暫無數據",
+    fetchError: "載入數據失敗，請重試",
+    retry: "重試",
     period: {
       today: "今天",
       week: "本週",
@@ -3391,6 +3402,7 @@ const zhTW: Messages = {
   roleNav: {
     dashboard: "總覽",
     ownerCenter: "店主中心",
+    pos: "POS 收銀系統",
     orderManagement: "訂單管理",
     menuManagement: "菜單管理",
     tableManagement: "桌台管理",

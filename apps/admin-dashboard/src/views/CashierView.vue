@@ -1,16 +1,10 @@
 <template>
-  <div class="cashier-view">
-    <!-- 收銀台標題 -->
-    <div class="flex justify-between items-center mb-8">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">
-          {{ t("cashier.title") }}
-        </h1>
-        <p class="text-gray-600">{{ t("cashier.subtitle") }}</p>
-      </div>
-      <div class="flex items-center space-x-6">
+  <div class="cashier-checkout">
+    <!-- 結帳操作列 -->
+    <div class="flex justify-between items-center mb-6">
+      <div class="flex items-center space-x-4">
         <!-- 班次資訊 -->
-        <div class="bg-blue-100 px-4 py-2 rounded-lg">
+        <div class="bg-blue-50 px-4 py-2 rounded-2xl">
           <p class="text-sm text-blue-800 font-medium">
             {{ t("cashier.shift") }}: {{ currentShift.name }}
           </p>
@@ -20,38 +14,30 @@
         </div>
 
         <!-- 今日業績 -->
-        <div class="text-right">
+        <div class="bg-green-50 px-4 py-2 rounded-2xl">
           <p class="text-sm text-gray-500">
             {{ t("cashier.todayPerformance") }}
           </p>
-          <p class="text-lg font-semibold text-green-600">
+          <p class="text-lg font-semibold text-[#34C759]">
             {{ formatPrice(todayRevenue) }}
           </p>
         </div>
+      </div>
 
-        <!-- 現在時間 -->
-        <div class="text-right">
-          <p class="text-sm text-gray-500">{{ t("cashier.currentTime") }}</p>
-          <p class="text-lg font-semibold">
-            {{ currentTime }}
-          </p>
-        </div>
-
-        <!-- 功能按鈕 -->
-        <div class="flex items-center space-x-2">
-          <button
-            class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-            @click="openShiftReport"
-          >
-            {{ t("cashier.shiftReport") }}
-          </button>
-          <button
-            class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
-            @click="openRefundDialog"
-          >
-            {{ t("cashier.refundProcess") }}
-          </button>
-        </div>
+      <!-- 功能按鈕 -->
+      <div class="flex items-center space-x-2">
+        <button
+          class="px-3 py-2 bg-[#007AFF] text-white rounded-full hover:bg-blue-600 transition-colors text-sm"
+          @click="openShiftReport"
+        >
+          {{ t("cashier.shiftReport") }}
+        </button>
+        <button
+          class="px-3 py-2 bg-[#FF9500] text-white rounded-full hover:bg-orange-600 transition-colors text-sm"
+          @click="openRefundDialog"
+        >
+          {{ t("cashier.refundProcess") }}
+        </button>
       </div>
     </div>
 
@@ -698,7 +684,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 import {
   MagnifyingGlassIcon,
   ArrowPathIcon,
@@ -750,7 +736,6 @@ interface CashierOrder {
 }
 
 // 響應式數據
-const currentTime = ref("");
 const searchQuery = ref("");
 const selectedOrder = ref<CashierOrder | null>(null);
 const selectedPaymentMethod = ref("cash");
@@ -763,8 +748,6 @@ const showShiftReport = ref(false);
 const showRefundDialog = ref(false);
 const actualCashAmount = ref(0);
 const todayRevenue = ref(1250.75);
-
-let timeInterval: NodeJS.Timeout | null = null;
 
 // 班次資訊
 const currentShift = ref({
@@ -951,14 +934,6 @@ const cashDifference = computed(() => {
 });
 
 // 方法
-const updateCurrentTime = () => {
-  currentTime.value = new Date().toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};
-
 const refreshOrders = async () => {
   // 模擬API調用
   console.log("Refreshing cashier orders...");
@@ -1131,28 +1106,10 @@ const getRefundReasonText = (reason: string) => {
   };
   return reasons[reason] || reason;
 };
-
-// 生命周期
-onMounted(() => {
-  updateCurrentTime();
-  timeInterval = setInterval(updateCurrentTime, 1000);
-});
-
-onUnmounted(() => {
-  if (timeInterval) clearInterval(timeInterval);
-});
 </script>
 
 <style scoped>
-.cashier-view {
-  padding: 1.5rem;
-  min-height: 100vh;
-  background-color: #f9fafb;
-}
-
-@media (max-width: 640px) {
-  .cashier-view {
-    padding: 1rem;
-  }
+.cashier-checkout {
+  /* Inherits padding from parent POSView container */
 }
 </style>

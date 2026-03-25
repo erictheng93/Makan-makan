@@ -76,7 +76,6 @@ import {
   Users,
   Table,
   BarChart3,
-  Calculator,
   Settings,
   User,
   CreditCard,
@@ -142,6 +141,17 @@ const navigationItems = computed(() => {
       label: t("nav.ownerOverview"),
       icon: Crown,
       visible: authStore.canAccessOwnerDashboard,
+    },
+    {
+      name: "pos",
+      path: "/dashboard/pos",
+      label: t("nav.pos"),
+      icon: CreditCard,
+      visible: authStore.hasPermission([
+        UserRole.ADMIN,
+        UserRole.OWNER,
+        UserRole.CASHIER,
+      ]),
     },
     {
       name: "orders",
@@ -231,17 +241,6 @@ const navigationItems = computed(() => {
       visible: authStore.canAccessAdminFeatures,
     },
     {
-      name: "pos",
-      path: "/dashboard/pos",
-      label: t("nav.pos"),
-      icon: CreditCard,
-      visible: authStore.hasPermission([
-        UserRole.ADMIN,
-        UserRole.OWNER,
-        UserRole.CASHIER,
-      ]),
-    },
-    {
       name: "group-orders",
       path: "/dashboard/group-orders",
       label: t("nav.groupOrders"),
@@ -273,17 +272,6 @@ const navigationItems = computed(() => {
       label: t("nav.settings"),
       icon: Settings,
       visible: authStore.canAccessAdminFeatures,
-    },
-    {
-      name: "cashier",
-      path: "/cashier",
-      label: t("nav.cashier"),
-      icon: Calculator,
-      visible: authStore.hasPermission([
-        UserRole.ADMIN,
-        UserRole.OWNER,
-        UserRole.CASHIER,
-      ]),
     },
   ];
 

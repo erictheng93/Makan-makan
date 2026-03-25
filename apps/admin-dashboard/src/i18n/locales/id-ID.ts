@@ -2249,6 +2249,12 @@ const idID: Messages = {
   pos: {
     title: "Sistem POS",
     subtitle: "Sistem manajemen titik penjualan lengkap",
+    systemTitle: "Sistem POS",
+    systemSubtitle: "Manajemen kasir dan pembayaran terintegrasi",
+    tabs: {
+      checkout: "Kasir",
+      management: "Manajemen Kasir",
+    },
     register: "Mesin Kasir",
     notSelected: "Belum Dipilih",
     balance: "Saldo",
@@ -3403,6 +3409,7 @@ const idID: Messages = {
   roleNav: {
     dashboard: "Dasbor",
     ownerCenter: "Pusat Pemilik",
+    pos: "Sistem POS",
     orderManagement: "Manajemen Pesanan",
     menuManagement: "Manajemen Menu",
     tableManagement: "Manajemen Meja",

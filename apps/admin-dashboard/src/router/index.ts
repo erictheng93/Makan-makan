@@ -159,12 +159,27 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: "pos",
-        name: "POS",
         component: () => import("@/views/POSView.vue"),
         meta: {
           titleKey: "pages.pos",
           roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
         },
+        children: [
+          {
+            path: "",
+            redirect: { name: "POSCheckout" },
+          },
+          {
+            path: "checkout",
+            name: "POSCheckout",
+            component: () => import("@/views/CashierView.vue"),
+          },
+          {
+            path: "management",
+            name: "POSManagement",
+            component: () => import("@/views/POSManagementView.vue"),
+          },
+        ],
       },
       {
         path: "group-orders",
@@ -305,22 +320,10 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // Redirect old /cashier path to unified POS system
   {
     path: "/cashier",
-    name: "Cashier",
-    component: () => import("@/layouts/CashierLayout.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "pages.cashier",
-      roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
-    },
-    children: [
-      {
-        path: "",
-        name: "CashierPOS",
-        component: () => import("@/views/CashierView.vue"),
-      },
-    ],
+    redirect: "/dashboard/pos/checkout",
   },
   {
     path: "/service",

@@ -2241,6 +2241,12 @@ const viVN: Messages = {
   pos: {
     title: "Hệ thống POS",
     subtitle: "Hệ thống quản lý điểm bán hàng toàn diện",
+    systemTitle: "Hệ thống POS",
+    systemSubtitle: "Quản lý thanh toán và quầy thu ngân tích hợp",
+    tabs: {
+      checkout: "Thanh toán",
+      management: "Quản lý quầy",
+    },
     register: "Máy tính tiền",
     notSelected: "Chưa chọn",
     balance: "Số dư",
@@ -3388,6 +3394,7 @@ const viVN: Messages = {
   roleNav: {
     dashboard: "Bảng điều khiển",
     ownerCenter: "Trung tâm chủ cửa hàng",
+    pos: "Hệ thống POS",
     orderManagement: "Quản lý đơn hàng",
     menuManagement: "Quản lý thực đơn",
     tableManagement: "Quản lý bàn",

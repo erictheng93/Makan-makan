@@ -2244,6 +2244,12 @@ const jaJP: Messages = {
   pos: {
     title: "POSシステム",
     subtitle: "総合POS管理システム",
+    systemTitle: "POSシステム",
+    systemSubtitle: "レジ会計とレジ管理の統合",
+    tabs: {
+      checkout: "レジ会計",
+      management: "レジ管理",
+    },
     register: "レジスター",
     notSelected: "未選択",
     balance: "残高",
@@ -3387,6 +3393,7 @@ const jaJP: Messages = {
   roleNav: {
     dashboard: "ダッシュボード",
     ownerCenter: "オーナーセンター",
+    pos: "POSシステム",
     orderManagement: "注文管理",
     menuManagement: "メニュー管理",
     tableManagement: "テーブル管理",

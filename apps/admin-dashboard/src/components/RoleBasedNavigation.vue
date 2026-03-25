@@ -195,6 +195,13 @@ const allNavItems = computed(() => [
     roles: [UserRole.ADMIN, UserRole.OWNER],
   },
   {
+    name: "pos",
+    label: t("roleNav.pos"),
+    href: "/dashboard/pos",
+    icon: ShoppingCartIcon,
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
+  },
+  {
     name: "orders",
     label: t("roleNav.orderManagement"),
     href: "/dashboard/orders",
@@ -221,13 +228,6 @@ const allNavItems = computed(() => [
     href: "/service",
     icon: HomeIcon,
     roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
-  },
-  {
-    name: "cashier",
-    label: t("roleNav.cashier"),
-    href: "/cashier",
-    icon: HomeIcon,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
   },
   {
     name: "analytics",
@@ -340,7 +340,7 @@ const handleRoleSwitch = (event: Event) => {
     owner: "/dashboard/owner-overview",
     chef: "/dashboard",
     service: "/service",
-    cashier: "/cashier",
+    cashier: "/dashboard/pos/checkout",
   };
 
   router.push(roleRoutes[role as keyof typeof roleRoutes]);

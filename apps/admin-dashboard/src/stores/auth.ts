@@ -153,7 +153,7 @@ export const useAuthStore = defineStore("auth", () => {
       case UserRole.SERVICE:
         return "/service";
       case UserRole.CASHIER:
-        return "/cashier";
+        return "/dashboard/pos/checkout";
       default:
         return "/dashboard";
     }
@@ -193,8 +193,8 @@ export const useAuthStore = defineStore("auth", () => {
       Settings: [UserRole.ADMIN, UserRole.OWNER],
       Service: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
       ServiceDelivery: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
-      Cashier: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
-      CashierPOS: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
+      POSCheckout: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
+      POSManagement: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
       OwnerOverview: [UserRole.ADMIN, UserRole.OWNER],
     };
 
