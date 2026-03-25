@@ -99,7 +99,10 @@
                 {{ t("orders.status.preparing") }}
               </option>
               <option value="ready">{{ t("orders.status.ready") }}</option>
-              <option value="served">{{ t("orders.status.served") }}</option>
+              <option value="delivered">
+                {{ t("orders.status.delivered") }}
+              </option>
+              <option value="paid">{{ t("orders.status.paid") }}</option>
               <option value="completed">
                 {{ t("orders.status.completed") }}
               </option>
@@ -624,17 +627,22 @@ const getSourceText = (source: string) => {
   };
   return texts[source] || source;
 };
-const getMenuItemName = (item: any) => `菜品 #${item.menuItemId}`; // In real app, would lookup from menu
+const getMenuItemName = (item: any) =>
+  item.menuItem?.name || `#${item.menuItemId}`;
 
 // 計算屬性
 const stats = computed(() => ({
-  pending: orderStore.orders.filter((o) => o.status === OrderStatus.PENDING)
-    .length,
-  preparing: orderStore.orders.filter((o) =>
-    [OrderStatus.CONFIRMED, OrderStatus.PREPARING].includes(o.status),
+  pending: orderStore.orders.filter((o) =>
+    [OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(o.status),
   ).length,
-  completed: orderStore.orders.filter((o) => o.status === OrderStatus.COMPLETED)
-    .length,
+  preparing: orderStore.orders.filter((o) =>
+    [OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED].includes(
+      o.status,
+    ),
+  ).length,
+  completed: orderStore.orders.filter((o) =>
+    [OrderStatus.COMPLETED, OrderStatus.PAID].includes(o.status),
+  ).length,
   cancelled: orderStore.orders.filter((o) => o.status === OrderStatus.CANCELLED)
     .length,
 }));
@@ -705,7 +713,13 @@ const viewOrderDetails = (order: Order) => {
 const updateOrderStatus = async (order: Order) => {
   const nextStatus = getNextStatus(order.status as string);
   if (nextStatus) {
-    await orderStore.updateOrderStatus(order.id, nextStatus as OrderStatus);
+    const success = await orderStore.updateOrderStatus(
+      order.id,
+      nextStatus as OrderStatus,
+    );
+    if (!success) {
+      alert(orderStore.error || t("orders.updateFailed"));
+    }
   }
 };
 
@@ -713,12 +727,13 @@ const cancelOrder = async (order: Order) => {
   if (
     confirm(t("orders.confirms.cancelOrder", { number: getOrderNumber(order) }))
   ) {
-    await orderStore.updateOrderStatus(order.id, OrderStatus.CANCELLED);
+    await orderStore.cancelOrder(order.id);
+    await refreshOrders();
   }
 };
 
 const canUpdateStatus = (status: string) => {
-  return !["completed", "cancelled"].includes(status);
+  return !["completed", "cancelled", "paid"].includes(status);
 };
 
 const canCancel = (status: string) => {
@@ -730,8 +745,8 @@ const getNextStatus = (currentStatus: string) => {
     pending: "confirmed",
     confirmed: "preparing",
     preparing: "ready",
-    ready: "served",
-    served: "completed",
+    ready: "delivered",
+    delivered: "paid",
   };
   return statusFlow[currentStatus] || null;
 };
@@ -742,7 +757,8 @@ const getStatusClass = (status: string) => {
     confirmed: "bg-blue-100 text-blue-800",
     preparing: "bg-purple-100 text-purple-800",
     ready: "bg-orange-100 text-orange-800",
-    served: "bg-green-100 text-green-800",
+    delivered: "bg-teal-100 text-teal-800",
+    paid: "bg-green-100 text-green-800",
     completed: "bg-green-100 text-green-800",
     cancelled: "bg-red-100 text-red-800",
   };
@@ -755,7 +771,8 @@ const getStatusText = (status: string) => {
     confirmed: t("orders.status.confirmed"),
     preparing: t("orders.status.preparing"),
     ready: t("orders.status.ready"),
-    served: t("orders.status.served"),
+    delivered: t("orders.status.delivered"),
+    paid: t("orders.status.paid"),
     completed: t("orders.status.completed"),
     cancelled: t("orders.status.cancelled"),
   };

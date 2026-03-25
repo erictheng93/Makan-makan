@@ -119,6 +119,8 @@ export enum OrderStatus {
   CONFIRMED = "confirmed",
   PREPARING = "preparing",
   READY = "ready",
+  DELIVERED = "delivered",
+  PAID = "paid",
   COMPLETED = "completed",
   CANCELLED = "cancelled",
 }
@@ -130,6 +132,11 @@ export interface OrderItem {
   unitPrice: number;
   customizations: OrderItemCustomization[];
   notes?: string;
+  menuItem?: {
+    id: number;
+    name: string;
+    imageUrl?: string;
+  };
 }
 
 export interface OrderItemCustomization {

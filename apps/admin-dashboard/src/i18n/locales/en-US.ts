@@ -148,6 +148,8 @@ const enUS: Messages = {
       confirmed: "Confirmed",
       preparing: "Preparing",
       ready: "Ready",
+      delivered: "Delivered",
+      paid: "Paid",
       served: "Served",
       completed: "Completed",
       cancelled: "Cancelled",

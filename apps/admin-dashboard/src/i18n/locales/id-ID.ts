@@ -148,6 +148,8 @@ const idID: Messages = {
       confirmed: "Dikonfirmasi",
       preparing: "Menyiapkan",
       ready: "Siap Diambil",
+      delivered: "Diantar",
+      paid: "Dibayar",
       served: "Disajikan",
       completed: "Selesai",
       cancelled: "Dibatalkan",

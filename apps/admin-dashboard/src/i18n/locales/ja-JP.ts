@@ -148,6 +148,8 @@ const jaJP: Messages = {
       confirmed: "確認済み",
       preparing: "準備中",
       ready: "受取可能",
+      delivered: "配達済み",
+      paid: "支払済み",
       served: "提供済み",
       completed: "完了",
       cancelled: "キャンセル",

@@ -255,7 +255,9 @@ export class OrdersService implements IOrdersService {
       this.assertRestaurantAccess(order, caller);
 
       // Cache the result
-      await this.cacheKV.set(cacheKey, order, 300); // 5 minutes
+      await this.cacheKV.put(cacheKey, JSON.stringify(order), {
+        expirationTtl: 300,
+      }); // 5 minutes
 
       return order;
     } catch (error) {
@@ -632,7 +634,9 @@ export class OrdersService implements IOrdersService {
       };
 
       // Cache for 15 minutes
-      await this.cacheKV.set(cacheKey, analytics, 900);
+      await this.cacheKV.put(cacheKey, JSON.stringify(analytics), {
+        expirationTtl: 900,
+      });
 
       return analytics;
     } catch (error) {
@@ -709,7 +713,9 @@ export class OrdersService implements IOrdersService {
         revenue: number;
       }> = [];
 
-      await this.cacheKV.set(cacheKey, results, 1800); // 30 minutes
+      await this.cacheKV.put(cacheKey, JSON.stringify(results), {
+        expirationTtl: 1800,
+      }); // 30 minutes
       return results;
     } catch (error) {
       this.logger.error(
@@ -1152,8 +1158,12 @@ export class OrdersService implements IOrdersService {
   }
 
   private async cacheOrder(order: Order): Promise<void> {
-    await this.cacheKV.set(`order:${order.id}:full`, order, 300);
-    await this.cacheKV.set(`order:${order.id}:basic`, order, 300);
+    await this.cacheKV.put(`order:${order.id}:full`, JSON.stringify(order), {
+      expirationTtl: 300,
+    });
+    await this.cacheKV.put(`order:${order.id}:basic`, JSON.stringify(order), {
+      expirationTtl: 300,
+    });
   }
 
   private async invalidateOrderCache(orderId: number): Promise<void> {

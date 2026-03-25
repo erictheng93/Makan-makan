@@ -28,7 +28,9 @@ export const useOrderStore = defineStore("order", () => {
   );
 
   const completedOrders = computed(() =>
-    orders.value.filter((order) => order.status === OrderStatus.COMPLETED),
+    orders.value.filter((order) =>
+      [OrderStatus.COMPLETED, OrderStatus.PAID].includes(order.status),
+    ),
   );
 
   const pendingOrdersCount = computed(() => pendingOrders.value.length);
@@ -94,7 +96,7 @@ export const useOrderStore = defineStore("order", () => {
 
   const updateOrderStatus = async (orderId: number, status: OrderStatus) => {
     try {
-      const response = await api.patch(`/orders/${orderId}/status`, { status });
+      const response = await api.put(`/orders/${orderId}/status`, { status });
 
       if (response.data.success) {
         const orderIndex = orders.value.findIndex((o) => o.id === orderId);
@@ -111,7 +113,8 @@ export const useOrderStore = defineStore("order", () => {
       return false;
     } catch (err: any) {
       error.value =
-        err.response?.data?.error || t("orderStore.updateStatusFailed");
+        err.response?.data?.error?.message ||
+        t("orderStore.updateStatusFailed");
       return false;
     }
   };
@@ -182,7 +185,7 @@ export const useOrderStore = defineStore("order", () => {
 
   const cancelOrder = async (orderId: number, reason?: string) => {
     try {
-      const response = await api.patch(`/orders/${orderId}/cancel`, { reason });
+      const response = await api.delete(`/orders/${orderId}`);
 
       if (response.data.success) {
         const orderIndex = orders.value.findIndex((o) => o.id === orderId);

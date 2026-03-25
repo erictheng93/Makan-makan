@@ -148,6 +148,8 @@ const viVN: Messages = {
       confirmed: "Đã xác nhận",
       preparing: "Đang chuẩn bị",
       ready: "Sẵn sàng",
+      delivered: "Đã giao",
+      paid: "Đã thanh toán",
       served: "Đã phục vụ",
       completed: "Hoàn thành",
       cancelled: "Đã hủy",

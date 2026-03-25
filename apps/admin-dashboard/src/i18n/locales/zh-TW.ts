@@ -148,6 +148,8 @@ const zhTW: Messages = {
       confirmed: "已確認",
       preparing: "準備中",
       ready: "待取餐",
+      delivered: "已出餐",
+      paid: "已付款",
       served: "已出餐",
       completed: "已完成",
       cancelled: "已取消",
