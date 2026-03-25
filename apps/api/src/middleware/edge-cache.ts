@@ -424,8 +424,9 @@ export function smartCacheMiddleware(
     const query = c.req.url.includes("?") ? c.req.url.split("?")[1] : "";
     const cacheKey = `${method}:${path}:${query}`;
 
-    // For GET requests, try cache first
-    if (method === "GET") {
+    // For GET requests, try cache first (skip for authenticated admin requests)
+    const hasAuth = !!c.req.header("Authorization");
+    if (method === "GET" && !hasAuth) {
       const vary = options.varyHeaders
         ?.map((header) => c.req.header(header) || "")
         .filter(Boolean);
@@ -449,8 +450,25 @@ export function smartCacheMiddleware(
     // Cache miss or non-GET request - execute handler
     await next();
 
-    // Cache successful GET responses
-    if (method === "GET" && c.res.status === 200) {
+    // Invalidate related caches on successful mutations (non-blocking)
+    if (
+      ["POST", "PUT", "DELETE", "PATCH"].includes(method) &&
+      c.res.status >= 200 &&
+      c.res.status < 300
+    ) {
+      const restaurantId =
+        c.req.param("restaurantId") || c.get("user")?.restaurantId;
+
+      // Run cache invalidation in the background to avoid blocking the response
+      if (restaurantId && path.includes("/menu")) {
+        const menuGetKey = `GET:/api/v1/menu/${restaurantId}:`;
+        // Delete from KV directly (skip Cache API which can hang in local dev)
+        c.env.CACHE_KV?.delete(menuGetKey).catch(() => {});
+      }
+    }
+
+    // Cache successful GET responses (skip authenticated requests for real-time data)
+    if (method === "GET" && c.res.status === 200 && !hasAuth) {
       try {
         const responseData = await c.res.clone().json();
 

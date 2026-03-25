@@ -43,32 +43,9 @@ export class MenuService implements IMenuService {
     try {
       this.logger.info("Fetching complete menu", { restaurantId });
 
-      // Try to get from cache first
-      const cacheKey = `menu:${restaurantId}`;
-      if (this.cacheService) {
-        try {
-          const cached = await this.cacheService.get(cacheKey, "json");
-          if (cached) {
-            this.logger.debug("Menu fetched from cache", { restaurantId });
-            return cached;
-          }
-        } catch (cacheError) {
-          this.logger.warn("Cache fetch failed", { error: cacheError });
-        }
-      }
-
+      // Caching is handled by the DB service's cachedQuery (tag-based invalidation).
+      // Avoid double-caching at the API layer which caused stale data after mutations.
       const menu = await this.dbService.getMenu(restaurantId);
-
-      // Cache the result for 30 minutes
-      if (this.cacheService && menu) {
-        try {
-          await this.cacheService.put(cacheKey, JSON.stringify(menu), {
-            expirationTtl: 1800,
-          });
-        } catch (cacheError) {
-          this.logger.warn("Cache store failed", { error: cacheError });
-        }
-      }
 
       return menu ? this.transformMenuStructure(menu) : null;
     } catch (error) {
@@ -779,8 +756,11 @@ export class MenuService implements IMenuService {
     if (!this.cacheService) return;
 
     try {
-      const cacheKey = `menu:${restaurantId}`;
-      await this.cacheService.delete(cacheKey);
+      // Clear both old API-level key and DB service-level QueryCache key
+      await Promise.all([
+        this.cacheService.delete(`menu:${restaurantId}`),
+        this.cacheService.delete(`query:menu:${restaurantId}:full`),
+      ]);
       this.logger.debug("Menu cache invalidated", { restaurantId });
     } catch (error) {
       this.logger.warn("Failed to invalidate menu cache", {
