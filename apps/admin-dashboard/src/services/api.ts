@@ -116,11 +116,12 @@ class ApiService {
             return this.instance(originalRequest);
           }
 
-          // Refresh failed — clear tokens and redirect
+          // Refresh failed — clear tokens. Don't hard-redirect here;
+          // let the calling code (auth store / router guard) handle
+          // navigation via Vue Router to avoid aborting pending requests.
           localStorage.removeItem("auth_token");
           localStorage.removeItem("auth_refresh_token");
           localStorage.removeItem("auth_user");
-          window.location.href = "/login";
           return Promise.reject(error);
         }
 

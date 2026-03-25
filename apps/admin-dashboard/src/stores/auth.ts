@@ -25,6 +25,9 @@ const persistUser = (u: User | null) => {
   }
 };
 
+// Module-level deduplication: all callers share the same in-flight refresh
+let sharedRefreshPromise: Promise<boolean> | null = null;
+
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(hydrateUser());
   const token = ref<string | null>(localStorage.getItem("auth_token"));
@@ -282,9 +285,10 @@ export const useAuthStore = defineStore("auth", () => {
       // Transient errors (429 rate-limit, 5xx, network) should NOT
       // wipe the session — the hydrated user from localStorage is
       // good enough until the next successful revalidation.
+      // NOTE: Don't call refreshToken() here — the axios 401 interceptor
+      // in api.ts already attempted a refresh + retry. If we still got
+      // an error, the refresh failed. Just logout.
       if (status === 401 || status === 403) {
-        const refreshed = await refreshToken();
-        if (refreshed) return true;
         await logout();
         return false;
       }
@@ -299,49 +303,62 @@ export const useAuthStore = defineStore("auth", () => {
     return false;
   };
 
-  const refreshToken = async () => {
-    const rt =
-      refreshTokenRef.value || localStorage.getItem("auth_refresh_token");
-    if (!rt) {
-      await logout();
+  const refreshToken = async (): Promise<boolean> => {
+    // Deduplicate: if a refresh is already in flight, reuse its promise
+    if (sharedRefreshPromise) return sharedRefreshPromise;
+
+    sharedRefreshPromise = (async () => {
+      const rt =
+        refreshTokenRef.value || localStorage.getItem("auth_refresh_token");
+      if (!rt) {
+        await logout();
+        return false;
+      }
+
+      try {
+        const response = await fetch("/api/v1/auth/refresh", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Refresh-Token": rt,
+          },
+        });
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          token.value = data.data.token;
+          localStorage.setItem("auth_token", token.value!);
+          api.setAuthToken(token.value!);
+
+          if (data.data.refreshToken) {
+            refreshTokenRef.value = data.data.refreshToken;
+            localStorage.setItem("auth_refresh_token", refreshTokenRef.value!);
+          }
+
+          if (data.data.user) {
+            user.value = data.data.user;
+            persistUser(user.value);
+          }
+
+          scheduleProactiveRefresh(token.value!);
+          return true;
+        }
+      } catch {
+        console.warn("Proactive refresh failed, falling back to reactive mode");
+        return false;
+      }
+
+      console.warn(
+        "Refresh returned non-success, falling back to reactive mode",
+      );
       return false;
-    }
+    })();
 
     try {
-      const response = await fetch("/api/v1/auth/refresh", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Refresh-Token": rt,
-        },
-      });
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        token.value = data.data.token;
-        localStorage.setItem("auth_token", token.value!);
-        api.setAuthToken(token.value!);
-
-        if (data.data.refreshToken) {
-          refreshTokenRef.value = data.data.refreshToken;
-          localStorage.setItem("auth_refresh_token", refreshTokenRef.value!);
-        }
-
-        if (data.data.user) {
-          user.value = data.data.user;
-          persistUser(user.value);
-        }
-
-        scheduleProactiveRefresh(token.value!);
-        return true;
-      }
-    } catch {
-      console.warn("Proactive refresh failed, falling back to reactive mode");
-      return false;
+      return await sharedRefreshPromise;
+    } finally {
+      sharedRefreshPromise = null;
     }
-
-    console.warn("Refresh returned non-success, falling back to reactive mode");
-    return false;
   };
 
   return {

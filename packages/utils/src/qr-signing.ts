@@ -31,8 +31,8 @@ export interface SignedQRUrlParams extends QRSigningParams {
 
 // ── Helpers ────────────────────────────────────────────
 
-function stringToUint8Array(str: string): Uint8Array {
-  return new TextEncoder().encode(str);
+function stringToUint8Array(str: string): Uint8Array<ArrayBuffer> {
+  return new TextEncoder().encode(str) as Uint8Array<ArrayBuffer>;
 }
 
 function uint8ArrayToHex(bytes: Uint8Array): string {
