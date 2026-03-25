@@ -31,6 +31,7 @@ import {
   badRequest,
 } from "../../../shared/utils/api-error";
 import type { CallerContext } from "../types";
+import { ROLE_STATUS_PERMISSIONS } from "../types";
 
 /** Convert auth user to CallerContext for service-layer defence-in-depth */
 function toCallerContext(user: AuthUser): CallerContext {
@@ -491,23 +492,8 @@ app.put(
       throw forbidden("Access denied");
     }
 
-    // Role-based status transition validation
-    const statusTransitions: Record<number, string[]> = {
-      0: [
-        "pending",
-        "confirmed",
-        "preparing",
-        "ready",
-        "delivered",
-        "cancelled",
-      ], // Admin
-      1: ["confirmed", "cancelled"], // Owner
-      2: ["preparing", "ready"], // Chef
-      3: ["delivered"], // Service
-      4: ["confirmed"], // Cashier
-    };
-
-    if (!statusTransitions[user.role]?.includes(data.status)) {
+    // Role-based status transition validation (uses shared constant)
+    if (!ROLE_STATUS_PERMISSIONS[user.role]?.includes(data.status)) {
       throw forbidden("Insufficient permissions for this status change");
     }
 
@@ -677,11 +663,6 @@ app.get(
     if (!restaurantId) {
       throw badRequest("Restaurant ID is required");
     }
-
-    const _dateFrom = query.dateFrom
-      ? new Date(query.dateFrom)
-      : new Date(new Date().setDate(new Date().getDate() - 30));
-    const _dateTo = query.dateTo ? new Date(query.dateTo) : new Date();
 
     const statistics = await ordersService.getOrderStatistics(restaurantId);
 

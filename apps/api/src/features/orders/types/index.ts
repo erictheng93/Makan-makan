@@ -505,6 +505,40 @@ export const ORDER_ERROR_CODES = {
 export type OrderErrorCode =
   (typeof ORDER_ERROR_CODES)[keyof typeof ORDER_ERROR_CODES];
 
+/**
+ * Valid status transitions: maps each status to the statuses it can transition to.
+ * Single source of truth — used by both route-layer guards and service-layer validation.
+ */
+export const ORDER_STATUS_TRANSITIONS: Record<string, readonly string[]> = {
+  pending: ["confirmed", "cancelled"],
+  confirmed: ["preparing", "cancelled"],
+  preparing: ["ready", "cancelled"],
+  ready: ["delivered", "cancelled"],
+  delivered: ["paid"],
+  paid: [],
+  cancelled: [],
+} as const;
+
+/**
+ * Role-based permissions for which statuses each role can set an order to.
+ * Single source of truth — used by both route-layer guards and service-layer validation.
+ */
+export const ROLE_STATUS_PERMISSIONS: Record<number, readonly string[]> = {
+  0: [
+    "pending",
+    "confirmed",
+    "preparing",
+    "ready",
+    "delivered",
+    "paid",
+    "cancelled",
+  ], // Admin
+  1: ["confirmed", "cancelled"], // Owner
+  2: ["preparing", "ready"], // Chef
+  3: ["delivered"], // Service Crew
+  4: ["confirmed"], // Cashier
+} as const;
+
 // Configuration
 export interface OrdersConfig {
   orderNumberFormat: string;

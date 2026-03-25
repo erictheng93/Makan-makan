@@ -29,6 +29,7 @@ import type { OrderStatusUpdateEvent } from "@makanmakan/shared-types";
 // Use KV for caching
 
 // Import feature-specific types
+import { ORDER_STATUS_TRANSITIONS, ROLE_STATUS_PERMISSIONS } from "../types";
 import type {
   CreateOrderData,
   UpdateOrderData,
@@ -40,7 +41,6 @@ import type {
   CouponValidation,
   CouponPreviewRequest,
   OrderUpdateEvent,
-  // OrderNotification, // Available for future use
   BulkOrderOperation,
   BulkOrderResult,
   OrderPermissions,
@@ -75,108 +75,16 @@ export class OrdersService implements IOrdersService {
         userId,
       });
 
-      // ========== INPUT VALIDATION ==========
-      // 1. Validate restaurant ID
-      if (!data.restaurantId || data.restaurantId.trim() === "") {
-        throw badRequest("Invalid restaurant ID", "INVALID_RESTAURANT_ID");
-      }
+      // Note: Input shape/length validation is handled by Zod schemas in the route layer.
+      // Only business-rule validations that require DB access belong here.
 
-      // 2. Validate items array
+      // Validate phone format (not covered by Zod schema)
       if (
-        !data.items ||
-        !Array.isArray(data.items) ||
-        data.items.length === 0
+        data.customerInfo?.phone &&
+        !/^[\d\s\-+()]{7,20}$/.test(data.customerInfo.phone)
       ) {
-        throw badRequest(
-          "Order must contain at least one item",
-          "ORDER_ITEMS_REQUIRED",
-        );
+        throw badRequest("Invalid phone number format", "INVALID_PHONE_FORMAT");
       }
-
-      // 3. Validate maximum items (prevent abuse)
-      if (data.items.length > 100) {
-        throw badRequest(
-          "Order cannot exceed 100 items",
-          "ORDER_ITEMS_LIMIT_EXCEEDED",
-        );
-      }
-
-      // 4. Validate each item
-      for (const item of data.items) {
-        if (!item.menuItemId || item.menuItemId <= 0) {
-          throw badRequest("Invalid menu item ID", "INVALID_MENU_ITEM_ID");
-        }
-        if (!item.quantity || item.quantity <= 0) {
-          throw badRequest(
-            "Invalid item quantity: must be greater than 0",
-            "INVALID_ITEM_QUANTITY",
-          );
-        }
-        if (item.quantity > 999) {
-          throw badRequest(
-            "Invalid item quantity: cannot exceed 999 per item",
-            "ITEM_QUANTITY_LIMIT_EXCEEDED",
-          );
-        }
-        // Validate customizations if present
-        if (item.customizations && typeof item.customizations !== "object") {
-          throw badRequest(
-            "Invalid item customizations format",
-            "INVALID_CUSTOMIZATIONS_FORMAT",
-          );
-        }
-        // Validate notes length if present
-        if (item.notes && item.notes.length > 500) {
-          throw badRequest(
-            "Item notes cannot exceed 500 characters",
-            "ITEM_NOTES_TOO_LONG",
-          );
-        }
-      }
-
-      // 5. Validate customer info if provided
-      if (data.customerInfo) {
-        if (
-          data.customerInfo.phone &&
-          !/^[\d\s\-+()]{7,20}$/.test(data.customerInfo.phone)
-        ) {
-          throw badRequest(
-            "Invalid phone number format",
-            "INVALID_PHONE_FORMAT",
-          );
-        }
-        if (
-          data.customerInfo.email &&
-          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.customerInfo.email)
-        ) {
-          throw badRequest("Invalid email format", "INVALID_EMAIL_FORMAT");
-        }
-      }
-
-      // 6. Validate notes length if provided
-      if (data.notes && data.notes.length > 1000) {
-        throw badRequest(
-          "Order notes cannot exceed 1000 characters",
-          "ORDER_NOTES_TOO_LONG",
-        );
-      }
-
-      // 7. Validate coupon code format if provided
-      if (
-        data.couponCode &&
-        (data.couponCode.length < 3 || data.couponCode.length > 50)
-      ) {
-        throw badRequest(
-          "Invalid coupon code format",
-          "INVALID_COUPON_CODE_FORMAT",
-        );
-      }
-
-      // Validate business hours
-      await this.validateBusinessHours(data.restaurantId, data.scheduledTime);
-
-      // Validate menu items availability
-      await this.validateMenuItems(data.items);
 
       // Convert feature-specific data to base service format
       const baseOrderData = {
@@ -198,12 +106,6 @@ export class OrdersService implements IOrdersService {
 
       // Create order using base service
       const order = await this.baseOrderService.createOrder(baseOrderData);
-
-      // Add order type and scheduled time if provided
-      if (data.orderType || data.scheduledTime) {
-        // Update with additional fields not handled by base service
-        // This would typically involve a direct database update
-      }
 
       // Cache the order
       await this.cacheOrder(order);
@@ -342,9 +244,6 @@ export class OrdersService implements IOrdersService {
       const existingOrder = await this.getOrder(id);
       if (!existingOrder) return null;
 
-      // Validate permissions
-      await this.validateUpdatePermissions(existingOrder, userId);
-
       // Update using base service methods
       let updatedOrder = existingOrder;
 
@@ -446,9 +345,6 @@ export class OrdersService implements IOrdersService {
       if (!updatedOrder) {
         throw new Error("Failed to update order status");
       }
-
-      // Handle side effects based on status
-      await this.handleStatusSideEffects(updatedOrder, statusData, userId);
 
       // Clear cache
       await this.invalidateOrderCache(id);
@@ -1146,29 +1042,23 @@ export class OrdersService implements IOrdersService {
   }
 
   // Private helper methods
-  private async validateBusinessHours(
-    _restaurantId: string,
-    _scheduledTime?: Date,
-  ): Promise<void> {
-    // Implementation would check restaurant business hours
-  }
-
-  private async validateMenuItems(_items: any[]): Promise<void> {
-    // Implementation would validate menu item availability
-  }
-
   private async cacheOrder(order: Order): Promise<void> {
-    await this.cacheKV.put(`order:${order.id}:full`, JSON.stringify(order), {
-      expirationTtl: 300,
-    });
-    await this.cacheKV.put(`order:${order.id}:basic`, JSON.stringify(order), {
-      expirationTtl: 300,
-    });
+    const serialized = JSON.stringify(order);
+    await Promise.all([
+      this.cacheKV.put(`order:${order.id}:full`, serialized, {
+        expirationTtl: 300,
+      }),
+      this.cacheKV.put(`order:${order.id}:basic`, serialized, {
+        expirationTtl: 300,
+      }),
+    ]);
   }
 
   private async invalidateOrderCache(orderId: number): Promise<void> {
-    await this.cacheKV.delete(`order:${orderId}:full`);
-    await this.cacheKV.delete(`order:${orderId}:basic`);
+    await Promise.all([
+      this.cacheKV.delete(`order:${orderId}:full`),
+      this.cacheKV.delete(`order:${orderId}:basic`),
+    ]);
   }
 
   private async logOrderActivity(
@@ -1276,13 +1166,6 @@ export class OrdersService implements IOrdersService {
     });
   }
 
-  private async validateUpdatePermissions(
-    _order: Order,
-    _userId?: number,
-  ): Promise<void> {
-    // Implement permission validation
-  }
-
   /**
    * 將狀態值標準化為小寫字符串
    */
@@ -1306,51 +1189,23 @@ export class OrdersService implements IOrdersService {
   }
 
   private validateStatusTransition(
-    currentStatus: any,
-    newStatus: any,
+    currentStatus: OrderStatus | number | string,
+    newStatus: OrderStatus | number | string,
     userRole?: UserRole,
   ): void {
-    // 標準化狀態值
     const normalizedCurrent = this.normalizeStatus(currentStatus);
     const normalizedNew = this.normalizeStatus(newStatus);
 
-    const transitions: Record<string, string[]> = {
-      pending: ["confirmed", "cancelled"],
-      confirmed: ["preparing", "cancelled"],
-      preparing: ["ready", "cancelled"],
-      ready: ["delivered", "cancelled"],
-      delivered: ["paid"],
-      paid: [],
-      cancelled: [],
-    };
-
-    if (!transitions[normalizedCurrent]?.includes(normalizedNew)) {
+    if (!ORDER_STATUS_TRANSITIONS[normalizedCurrent]?.includes(normalizedNew)) {
       throw conflict(
         `Invalid status transition from ${normalizedCurrent} to ${normalizedNew}`,
         "INVALID_STATUS_TRANSITION",
       );
     }
 
-    // Check role permissions
-    const rolePermissions: Record<number, string[]> = {
-      0: [
-        "pending",
-        "confirmed",
-        "preparing",
-        "ready",
-        "delivered",
-        "paid",
-        "cancelled",
-      ], // Admin
-      1: ["confirmed", "cancelled"], // Owner
-      2: ["preparing", "ready"], // Chef
-      3: ["delivered"], // Service
-      4: ["confirmed"], // Cashier
-    };
-
     if (
       userRole !== undefined &&
-      !rolePermissions[userRole]?.includes(normalizedNew)
+      !ROLE_STATUS_PERMISSIONS[userRole]?.includes(normalizedNew)
     ) {
       throw forbidden(
         `Insufficient permissions for status transition to ${normalizedNew}`,
@@ -1359,32 +1214,20 @@ export class OrdersService implements IOrdersService {
     }
   }
 
-  private async handleStatusSideEffects(
-    _order: Order,
-    _statusData: OrderStatusUpdateData,
-    _userId?: number,
-  ): Promise<void> {
-    // Handle notifications, inventory updates, etc.
-  }
-
   private getAllowedStatusTransitions(userRole: UserRole): OrderStatus[] {
-    const roleTransitions: Record<number, OrderStatus[]> = {
-      0: [
-        OrderStatus.PENDING,
-        OrderStatus.CONFIRMED,
-        OrderStatus.PREPARING,
-        OrderStatus.READY,
-        OrderStatus.DELIVERED,
-        OrderStatus.PAID,
-        OrderStatus.CANCELLED,
-      ], // Admin
-      1: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED], // Owner
-      2: [OrderStatus.PREPARING, OrderStatus.READY], // Chef
-      3: [OrderStatus.DELIVERED], // Service
-      4: [OrderStatus.CONFIRMED], // Cashier
+    const stringStatuses = ROLE_STATUS_PERMISSIONS[userRole] || [];
+    const statusStringToEnum: Record<string, OrderStatus> = {
+      pending: OrderStatus.PENDING,
+      confirmed: OrderStatus.CONFIRMED,
+      preparing: OrderStatus.PREPARING,
+      ready: OrderStatus.READY,
+      delivered: OrderStatus.DELIVERED,
+      paid: OrderStatus.PAID,
+      cancelled: OrderStatus.CANCELLED,
     };
-
-    return roleTransitions[userRole] || [];
+    return stringStatuses
+      .map((s) => statusStringToEnum[s])
+      .filter((s): s is OrderStatus => s !== undefined);
   }
 
   private formatCustomizations(customizations: any): string[] {

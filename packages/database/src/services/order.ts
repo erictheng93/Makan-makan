@@ -196,13 +196,14 @@ export class OrderService extends BaseService {
       // 優惠券驗證和折扣計算
       let discountAmount = 0;
       let validatedCoupon = null;
+      let couponService: InstanceType<
+        typeof import("./coupon").CouponService
+      > | null = null;
 
       if (data.couponCode) {
-        // 導入優惠券服務
         const { CouponService } = await import("./coupon");
-        const couponService = new CouponService(this.d1, this.env);
+        couponService = new CouponService(this.d1, this.env);
 
-        // 驗證優惠券
         const validationResult = await couponService.validateCoupon(
           data.couponCode,
           data.restaurantId.toString(),
@@ -278,10 +279,7 @@ export class OrderService extends BaseService {
         .returning();
 
       // 記錄優惠券使用情況
-      if (validatedCoupon && discountAmount > 0) {
-        const { CouponService } = await import("./coupon");
-        const couponService = new CouponService(this.d1, this.env);
-
+      if (validatedCoupon && discountAmount > 0 && couponService) {
         await couponService.useCoupon({
           couponId: validatedCoupon.id,
           orderId: order.id,
