@@ -225,17 +225,32 @@ export class MenuService implements IMenuService {
         throw notFound("Category not found", "CATEGORY_NOT_FOUND");
       }
 
-      // Update category using database service
-      // Note: This is a simplified implementation - in practice, would use proper database service methods
+      // Persist the update to the database
+      const updateFields: Record<string, unknown> = { updatedAt: new Date() };
+      if (data.name !== undefined) updateFields.name = data.name;
+      if (data.nameEn !== undefined) updateFields.nameEn = data.nameEn;
+      if (data.description !== undefined)
+        updateFields.description = data.description;
+      if (data.sortOrder !== undefined) updateFields.sortOrder = data.sortOrder;
+      if (data.isActive !== undefined) updateFields.isActive = data.isActive;
+      if (data.isVisible !== undefined) updateFields.isVisible = data.isVisible;
+
+      const { categories } = await import("@makanmakan/database");
+      const { eq } = await import("drizzle-orm");
+      const db = (this.dbService as any).db;
+      await db
+        .update(categories)
+        .set(updateFields)
+        .where(eq(categories.id, id));
+
+      // Invalidate menu cache
+      await this.invalidateMenuCache(existingCategory.restaurantId);
+
       const updatedCategory = {
         ...existingCategory,
         ...data,
         updatedAt: new Date().toISOString(),
       };
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(existingCategory.restaurantId);
-
       this.logger.info("Category updated successfully", { categoryId: id });
       return this.transformCategory(updatedCategory);
     } catch (error) {
