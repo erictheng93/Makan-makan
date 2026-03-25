@@ -92,7 +92,10 @@ export class TableService extends BaseService {
       }
 
       // 生成 QR Code 內容（桌子模式）
-      const qrCode = this.generateQRCodeData(data.restaurantId, data.number);
+      const qrCode = await this.generateQRCodeData(
+        data.restaurantId,
+        data.number,
+      );
 
       const qrMode = data.qrMode || "table";
       const seatCount = data.seatCount || 0;
@@ -542,22 +545,42 @@ export class TableService extends BaseService {
     }
   }
 
-  // 生成 QR Code 資料
-  private generateQRCodeData(
+  // 生成 QR Code 資料（HMAC 簽名 URL）
+  private async generateQRCodeData(
     restaurantId: string,
     tableNumber: string,
-    customData?: any,
-  ): string {
+    version: number = 1,
+  ): Promise<string> {
     const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
-    const qrData = {
-      type: "table",
-      restaurantId,
-      tableNumber,
-      timestamp: Date.now(),
-      ...customData,
-    };
+    const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
+    const sig = await this.signQR(
+      `table|${restaurantId}|${tableNumber}|${version}`,
+      signingKey,
+    );
+    const url = new URL("/order", baseUrl);
+    url.searchParams.set("t", "table");
+    url.searchParams.set("r", restaurantId);
+    url.searchParams.set("n", tableNumber);
+    url.searchParams.set("v", String(version));
+    url.searchParams.set("ts", String(Date.now()));
+    url.searchParams.set("sig", sig);
+    return url.toString();
+  }
 
-    return `${baseUrl}/order?data=${Buffer.from(JSON.stringify(qrData)).toString("base64")}`;
+  /** HMAC-SHA256, truncated to 16 hex chars (8 bytes) */
+  private async signQR(data: string, key: string): Promise<string> {
+    const enc = new TextEncoder();
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(key),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = await crypto.subtle.sign("HMAC", cryptoKey, enc.encode(data));
+    return Array.from(new Uint8Array(sig).slice(0, 8))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   }
 
   // 重新生成 QR Code
@@ -580,12 +603,12 @@ export class TableService extends BaseService {
         return { success: false, error: "Table not found" };
       }
 
-      const newQRCode = this.generateQRCodeData(
+      const newVersion = (table.qrCodeVersion || 0) + 1;
+      const newQRCode = await this.generateQRCodeData(
         table.restaurantId,
         table.number,
-        customData,
+        newVersion,
       );
-      const newVersion = (table.qrCodeVersion || 0) + 1;
 
       await this.db
         .update(tables)
@@ -623,15 +646,13 @@ export class TableService extends BaseService {
           ),
         );
 
-      const qrCodes = tablesData.map((table) => ({
-        tableId: table.id,
-        tableNumber: table.number,
-        qrCode: this.generateQRCodeData(
-          restaurantId,
-          table.number,
-          options.customData,
-        ),
-      }));
+      const qrCodes = await Promise.all(
+        tablesData.map(async (table) => ({
+          tableId: table.id,
+          tableNumber: table.number,
+          qrCode: await this.generateQRCodeData(restaurantId, table.number),
+        })),
+      );
 
       // 批量更新 QR codes
       for (const { tableId, qrCode } of qrCodes) {

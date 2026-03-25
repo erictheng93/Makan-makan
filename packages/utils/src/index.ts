@@ -83,6 +83,16 @@ export {
 // Encryption utilities
 export { encrypt, decrypt } from "./encryption";
 
+// QR code signing utilities
+export {
+  signQRPayload,
+  verifyQRSignature,
+  buildSignedQRUrl,
+  parseSignedQRUrl,
+  type QRSigningParams,
+  type SignedQRUrlParams,
+} from "./qr-signing";
+
 // API Error utilities
 export {
   ApiError,

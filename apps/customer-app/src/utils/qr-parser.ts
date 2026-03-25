@@ -139,6 +139,40 @@ function parseURLFormat(content: string): QRData | null {
   try {
     const url = new URL(content);
 
+    // 簽名 URL 格式: /order?t=table&r={restaurantId}&n={identifier}&v=1&sig=...
+    const sig = url.searchParams.get("sig");
+    const qrType = url.searchParams.get("t");
+    const restaurantId = url.searchParams.get("r");
+    const identifier = url.searchParams.get("n");
+
+    if (sig && qrType && restaurantId && identifier) {
+      if (qrType === "shop") {
+        return {
+          type: "shop",
+          restaurantId,
+          shopQrCode: content,
+          source: "url",
+          raw: content,
+        };
+      }
+      if (qrType === "seat") {
+        return {
+          type: "seat",
+          restaurantId,
+          seatId: parseInt(identifier, 10) || undefined,
+          source: "url",
+          raw: content,
+        };
+      }
+      // Default: table type
+      return {
+        type: "table",
+        restaurantId,
+        source: "url",
+        raw: content,
+      };
+    }
+
     // 標準路徑格式: /restaurant/123/table/5 or /restaurant/S-20250101-001/table/5
     const pathMatch1 = url.pathname.match(
       /\/restaurant\/([^/]+)\/table\/(\d+)/,

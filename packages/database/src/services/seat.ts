@@ -74,7 +74,7 @@ export class SeatService extends BaseService {
       // 批量創建座位
       const createdSeats = [];
       for (const seatNumber of seatNumbers) {
-        const qrCode = this.generateSeatQRCode(
+        const qrCode = await this.generateSeatQRCode(
           table.restaurantId,
           tableId,
           seatNumber,
@@ -401,12 +401,13 @@ export class SeatService extends BaseService {
         return { success: false, error: "Table not found" };
       }
 
-      const newQRCode = this.generateSeatQRCode(
+      const newVersion = (seat.qrCodeVersion || 0) + 1;
+      const newQRCode = await this.generateSeatQRCode(
         table.restaurantId,
         seat.tableId,
         seat.seatNumber,
+        newVersion,
       );
-      const newVersion = (seat.qrCodeVersion || 0) + 1;
 
       await this.db
         .update(seats)
@@ -454,12 +455,13 @@ export class SeatService extends BaseService {
       const qrCodes = [];
 
       for (const seat of seatsList) {
-        const newQRCode = this.generateSeatQRCode(
+        const newVersion = (seat.qrCodeVersion || 0) + 1;
+        const newQRCode = await this.generateSeatQRCode(
           table.restaurantId,
           tableId,
           seat.seatNumber,
+          newVersion,
         );
-        const newVersion = (seat.qrCodeVersion || 0) + 1;
 
         await this.db
           .update(seats)
@@ -547,22 +549,42 @@ export class SeatService extends BaseService {
   /**
    * 生成座位 QR Code 內容
    */
-  private generateSeatQRCode(
+  private async generateSeatQRCode(
     restaurantId: string,
-    tableId: number,
+    _tableId: number,
     seatNumber: string,
-  ): string {
+    version: number = 1,
+  ): Promise<string> {
     const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
-    const qrData = {
-      type: "seat",
-      restaurantId,
-      tableId,
-      seatNumber,
-      timestamp: Date.now(),
-      version: "2.0",
-    };
+    const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
+    const sig = await this.signQR(
+      `seat|${restaurantId}|${seatNumber}|${version}`,
+      signingKey,
+    );
+    const url = new URL("/order", baseUrl);
+    url.searchParams.set("t", "seat");
+    url.searchParams.set("r", restaurantId);
+    url.searchParams.set("n", seatNumber);
+    url.searchParams.set("v", String(version));
+    url.searchParams.set("ts", String(Date.now()));
+    url.searchParams.set("sig", sig);
+    return url.toString();
+  }
 
-    return `${baseUrl}/order?data=${Buffer.from(JSON.stringify(qrData)).toString("base64")}`;
+  /** HMAC-SHA256, truncated to 16 hex chars (8 bytes) */
+  private async signQR(data: string, key: string): Promise<string> {
+    const enc = new TextEncoder();
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(key),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = await crypto.subtle.sign("HMAC", cryptoKey, enc.encode(data));
+    return Array.from(new Uint8Array(sig).slice(0, 8))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   }
 
   /**

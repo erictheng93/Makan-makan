@@ -191,12 +191,8 @@
 
           <!-- QR 碼預覽 -->
           <div class="mb-4 text-center">
-            <div class="inline-block p-3 bg-gray-50 rounded-lg">
-              <div
-                class="w-20 h-20 bg-white border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center"
-              >
-                <PhotoIcon class="h-8 w-8 text-gray-400" />
-              </div>
+            <div class="inline-block p-2 bg-gray-50 rounded-xl">
+              <QRCodeRenderer :content="table.qrCode" :size="72" :padding="4" />
             </div>
           </div>
 
@@ -399,21 +395,18 @@
             </h3>
 
             <div class="mb-6">
-              <div class="inline-block p-4 bg-white border rounded-lg">
-                <div
-                  class="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center"
-                >
-                  <div class="text-center">
-                    <PhotoIcon class="mx-auto h-16 w-16 text-gray-400 mb-2" />
-                    <p class="text-sm text-gray-500">
-                      {{ t("tables.qrModal.preview") }}
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1">
-                      {{ selectedTable?.qrCode }}
-                    </p>
-                  </div>
-                </div>
+              <div class="inline-block p-4 bg-[#F2F2F7] rounded-2xl">
+                <QRCodeRenderer
+                  ref="qrModalRef"
+                  :content="selectedTable?.qrCode || ''"
+                  :size="200"
+                  :padding="12"
+                  container-class="shadow-sm"
+                />
               </div>
+              <p class="text-xs text-gray-400 mt-2 font-mono">
+                {{ selectedTable?.qrCode }}
+              </p>
             </div>
 
             <div class="flex justify-center space-x-3">
@@ -459,8 +452,10 @@ import {
   WrenchIcon,
 } from "@heroicons/vue/24/outline";
 import QRModeSelector from "../components/tables/QRModeSelector.vue";
+import QRCodeRenderer from "../components/tables/QRCodeRenderer.vue";
 
 const { t } = useI18n();
+const qrModalRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
 
 // 響應式數據
 const searchQuery = ref("");
@@ -704,11 +699,39 @@ const saveTable = async () => {
 };
 
 const downloadQRCode = () => {
-  alert(t("tables.alert.downloadInProgress"));
+  const dataUrl = qrModalRef.value?.getDataUrl();
+  if (!dataUrl) return;
+  const link = document.createElement("a");
+  link.download = `QR-${selectedTable.value?.tableNumber || "table"}.png`;
+  link.href = dataUrl;
+  link.click();
 };
 
 const printQRCode = () => {
-  alert(t("tables.alert.printInProgress"));
+  const dataUrl = qrModalRef.value?.getDataUrl();
+  if (!dataUrl) return;
+  const tableNum = selectedTable.value?.tableNumber || "";
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  const doc = printWindow.document;
+  const style = doc.createElement("style");
+  style.textContent =
+    "body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui}" +
+    "h2{margin-bottom:16px;font-size:24px}img{border:1px solid #eee;border-radius:12px}";
+  doc.head.appendChild(style);
+
+  const heading = doc.createElement("h2");
+  heading.textContent = t("tables.qrModal.title", { number: tableNum });
+  doc.body.appendChild(heading);
+
+  const img = doc.createElement("img");
+  img.src = dataUrl;
+  img.width = 300;
+  img.height = 300;
+  doc.body.appendChild(img);
+
+  setTimeout(() => printWindow.print(), 300);
 };
 
 onMounted(() => {
