@@ -64,7 +64,7 @@ export function useMenuManagement() {
     isLoading.value = true;
     try {
       const response = await api.get<{ categories: any[]; menuItems: any[] }>(
-        `/menu/${authStore.restaurantId}`,
+        `/menu/${authStore.restaurantId}?includeAll=true`,
       );
       const payload = response.data?.success ? response.data.data : undefined;
       if (payload) {
