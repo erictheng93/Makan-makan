@@ -51,10 +51,18 @@ export interface MenuFilters {
 
 export class MenuService extends BaseService {
   // 獲取完整菜單結構
-  async getMenu(restaurantId: string): Promise<MenuStructure> {
+  async getMenu(
+    restaurantId: string,
+    options?: { includeUnavailable?: boolean },
+  ): Promise<MenuStructure> {
     try {
+      const includeAll = options?.includeUnavailable ?? false;
       // Use query cache with 1 hour TTL for menu data
-      const cacheKey = this.buildCacheKey("menu", restaurantId, "full");
+      const cacheKey = this.buildCacheKey(
+        "menu",
+        restaurantId,
+        includeAll ? "admin" : "full",
+      );
 
       return await this.cachedQuery(
         cacheKey,
@@ -70,7 +78,9 @@ export class MenuService extends BaseService {
                 orderBy: asc(categories.sortOrder),
                 with: {
                   menuItems: {
-                    where: and(eq(menuItems.isAvailable, true)),
+                    ...(includeAll
+                      ? {}
+                      : { where: eq(menuItems.isAvailable, true) }),
                     orderBy: [asc(menuItems.sortOrder), asc(menuItems.name)],
                   },
                 },

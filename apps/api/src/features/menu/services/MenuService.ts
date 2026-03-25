@@ -39,13 +39,16 @@ export class MenuService implements IMenuService {
   }
 
   // Menu Structure Operations
-  async getMenu(restaurantId: string): Promise<MenuStructure | null> {
+  async getMenu(
+    restaurantId: string,
+    options?: { includeUnavailable?: boolean },
+  ): Promise<MenuStructure | null> {
     try {
       this.logger.info("Fetching complete menu", { restaurantId });
 
       // Caching is handled by the DB service's cachedQuery (tag-based invalidation).
       // Avoid double-caching at the API layer which caused stale data after mutations.
-      const menu = await this.dbService.getMenu(restaurantId);
+      const menu = await this.dbService.getMenu(restaurantId, options);
 
       return menu ? this.transformMenuStructure(menu) : null;
     } catch (error) {
