@@ -23,7 +23,7 @@ export interface Env {
   JWT_SECRET: string;
   API_VERSION: string;
   ENCRYPTION_KEY: string; // For encrypting sensitive data like API keys
-  QR_SIGNING_KEY: string; // HMAC key for signing QR code URLs (wrangler secret put QR_SIGNING_KEY)
+  QR_SIGNING_KEY?: string; // HMAC key for signing QR code URLs (falls back to JWT_SECRET)
 
   // ===== Deployment Mode Configuration =====
   /**

@@ -227,13 +227,13 @@ export class MenuService implements IMenuService {
 
       // Persist the update to the database
       const updateFields: Record<string, unknown> = { updatedAt: new Date() };
-      if (data.name !== undefined) updateFields.name = data.name;
-      if (data.nameEn !== undefined) updateFields.nameEn = data.nameEn;
-      if (data.description !== undefined)
-        updateFields.description = data.description;
-      if (data.sortOrder !== undefined) updateFields.sortOrder = data.sortOrder;
-      if (data.isActive !== undefined) updateFields.isActive = data.isActive;
-      if (data.isVisible !== undefined) updateFields.isVisible = data.isVisible;
+      const d = data as Record<string, unknown>;
+      if (d.name !== undefined) updateFields.name = d.name;
+      if (d.nameEn !== undefined) updateFields.nameEn = d.nameEn;
+      if (d.description !== undefined) updateFields.description = d.description;
+      if (d.sortOrder !== undefined) updateFields.sortOrder = d.sortOrder;
+      if (d.isActive !== undefined) updateFields.isActive = d.isActive;
+      if (d.isVisible !== undefined) updateFields.isVisible = d.isVisible;
 
       const { categories } = await import("@makanmakan/database");
       const { eq } = await import("drizzle-orm");
