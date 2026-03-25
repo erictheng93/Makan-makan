@@ -1,4 +1,4 @@
-import { eq, and, asc, count, inArray } from "drizzle-orm";
+import { eq, and, asc, count, inArray, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { seats, tables, restaurants } from "../schema";
 
@@ -329,9 +329,6 @@ export class SeatService extends BaseService {
         })
         .where(eq(seats.id, seatId));
 
-      // 更新使用統計
-      await this.updateSeatUsageStats(seatId);
-
       return true;
     } catch (error) {
       this.handleError(error, "occupySeat");
@@ -486,47 +483,25 @@ export class SeatService extends BaseService {
   }
 
   /**
-   * 獲取座位統計
+   * 獲取座位統計（單次查詢，透過條件聚合）
    */
   async getSeatStats(tableId: number): Promise<SeatStats> {
     try {
-      // 總座位數
-      const [{ totalSeats }] = await this.db
-        .select({ totalSeats: count() })
+      const [stats] = await this.db
+        .select({
+          totalSeats: count(),
+          occupiedSeats: sql<number>`SUM(CASE WHEN ${seats.isOccupied} = 1 AND ${seats.isActive} = 1 THEN 1 ELSE 0 END)`,
+          availableSeats: sql<number>`SUM(CASE WHEN ${seats.isOccupied} = 0 AND ${seats.isActive} = 1 THEN 1 ELSE 0 END)`,
+          inactiveSeats: sql<number>`SUM(CASE WHEN ${seats.isActive} = 0 THEN 1 ELSE 0 END)`,
+        })
         .from(seats)
         .where(eq(seats.tableId, tableId));
 
-      // 被佔用的座位數
-      const [{ occupiedSeats }] = await this.db
-        .select({ occupiedSeats: count() })
-        .from(seats)
-        .where(
-          and(
-            eq(seats.tableId, tableId),
-            eq(seats.isOccupied, true),
-            eq(seats.isActive, true),
-          ),
-        );
+      const totalSeats = stats.totalSeats ?? 0;
+      const occupiedSeats = stats.occupiedSeats ?? 0;
+      const availableSeats = stats.availableSeats ?? 0;
+      const inactiveSeats = stats.inactiveSeats ?? 0;
 
-      // 可用座位數
-      const [{ availableSeats }] = await this.db
-        .select({ availableSeats: count() })
-        .from(seats)
-        .where(
-          and(
-            eq(seats.tableId, tableId),
-            eq(seats.isOccupied, false),
-            eq(seats.isActive, true),
-          ),
-        );
-
-      // 不活躍座位數
-      const [{ inactiveSeats }] = await this.db
-        .select({ inactiveSeats: count() })
-        .from(seats)
-        .where(and(eq(seats.tableId, tableId), eq(seats.isActive, false)));
-
-      // 計算平均佔用率
       const averageOccupancyRate =
         totalSeats > 0 ? (occupiedSeats / totalSeats) * 100 : 0;
 

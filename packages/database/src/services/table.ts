@@ -1,4 +1,17 @@
-import { eq, and, desc, asc, like, or, count, isNotNull } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  like,
+  or,
+  count,
+  isNotNull,
+  gte,
+  lte,
+  sql,
+  inArray,
+} from "drizzle-orm";
 import { BaseService } from "./base";
 import { tables, restaurants, orders } from "../schema";
 import { SeatService } from "./seat";
@@ -66,6 +79,7 @@ export interface TableStats {
   availableTables: number;
   inactiveTables: number;
   averageOccupancyRate: number;
+  avgOccupancyMinutes: number;
   byFloor: Record<number, number>;
   bySection: Record<string, number>;
   byCapacity: Record<number, number>;
@@ -373,11 +387,11 @@ export class TableService extends BaseService {
       }
 
       if (minCapacity !== undefined) {
-        conditions.push(eq(tables.capacity, minCapacity));
+        conditions.push(gte(tables.capacity, minCapacity));
       }
 
       if (maxCapacity !== undefined) {
-        conditions.push(eq(tables.capacity, maxCapacity));
+        conditions.push(lte(tables.capacity, maxCapacity));
       }
 
       if (search) {
@@ -637,37 +651,42 @@ export class TableService extends BaseService {
   }> {
     try {
       const tablesData = await this.db
-        .select({ id: tables.id, number: tables.number })
+        .select({
+          id: tables.id,
+          number: tables.number,
+          qrCodeVersion: tables.qrCodeVersion,
+        })
         .from(tables)
         .where(
           and(
             eq(tables.restaurantId, restaurantId),
-            eq(tables.id, tableIds[0]), // 這裡需要用 in 操作符，但 drizzle 的語法可能不同
+            inArray(tables.id, tableIds),
           ),
         );
 
       const qrCodes = await Promise.all(
-        tablesData.map(async (table) => ({
-          tableId: table.id,
-          tableNumber: table.number,
-          qrCode: await this.generateQRCodeData(restaurantId, table.number),
-        })),
+        tablesData.map(async (table) => {
+          const newVersion = (table.qrCodeVersion || 0) + 1;
+          return {
+            tableId: table.id,
+            tableNumber: table.number,
+            newVersion,
+            qrCode: await this.generateQRCodeData(
+              restaurantId,
+              table.number,
+              newVersion,
+            ),
+          };
+        }),
       );
 
       // 批量更新 QR codes
-      for (const { tableId, qrCode } of qrCodes) {
+      for (const { tableId, qrCode, newVersion } of qrCodes) {
         await this.db
           .update(tables)
           .set({
             qrCode,
-            qrCodeVersion:
-              ((
-                await this.db
-                  .select({ qrCodeVersion: tables.qrCodeVersion })
-                  .from(tables)
-                  .where(eq(tables.id, tableId))
-                  .get()
-              )?.qrCodeVersion || 0) + 1,
+            qrCodeVersion: newVersion,
             updatedAt: new Date(),
           })
           .where(eq(tables.id, tableId));
@@ -717,102 +736,51 @@ export class TableService extends BaseService {
     }
   }
 
-  // 取得桌子統計資訊
+  // 取得桌子統計資訊（合併為 2 次查詢，避免 7 次往返）
   async getTableStats(restaurantId: string): Promise<TableStats> {
     try {
-      // 總桌子數
-      const [{ totalTables }] = await this.db
-        .select({ totalTables: count() })
+      // 查詢 1: 所有計數 + 平均佔用時間透過條件聚合完成
+      const [counts] = await this.db
+        .select({
+          totalTables: count(),
+          occupiedTables: sql<number>`SUM(CASE WHEN ${tables.isOccupied} = 1 AND ${tables.isActive} = 1 THEN 1 ELSE 0 END)`,
+          availableTables: sql<number>`SUM(CASE WHEN ${tables.isOccupied} = 0 AND ${tables.isActive} = 1 THEN 1 ELSE 0 END)`,
+          inactiveTables: sql<number>`SUM(CASE WHEN ${tables.isActive} = 0 THEN 1 ELSE 0 END)`,
+          avgOccupancyMinutes: sql<number>`COALESCE(AVG(CASE WHEN ${tables.totalUsage} > 0 THEN ${tables.averageOccupancyMinutes} END), 0)`,
+        })
         .from(tables)
         .where(eq(tables.restaurantId, restaurantId));
 
-      // 被佔用的桌子數
-      const [{ occupiedTables }] = await this.db
-        .select({ occupiedTables: count() })
-        .from(tables)
-        .where(
-          and(
-            eq(tables.restaurantId, restaurantId),
-            eq(tables.isOccupied, true),
-            eq(tables.isActive, true),
-          ),
-        );
+      const totalTables = counts.totalTables ?? 0;
+      const occupiedTables = counts.occupiedTables ?? 0;
+      const availableTables = counts.availableTables ?? 0;
+      const inactiveTables = counts.inactiveTables ?? 0;
 
-      // 可用桌子數
-      const [{ availableTables }] = await this.db
-        .select({ availableTables: count() })
-        .from(tables)
-        .where(
-          and(
-            eq(tables.restaurantId, restaurantId),
-            eq(tables.isOccupied, false),
-            eq(tables.isActive, true),
-          ),
-        );
-
-      // 不活躍桌子數
-      const [{ inactiveTables }] = await this.db
-        .select({ inactiveTables: count() })
-        .from(tables)
-        .where(
-          and(
-            eq(tables.restaurantId, restaurantId),
-            eq(tables.isActive, false),
-          ),
-        );
-
-      // 計算平均佔用率
       const averageOccupancyRate =
         totalTables > 0 ? (occupiedTables / totalTables) * 100 : 0;
 
-      // 按樓層統計
-      const floorStats = await this.db
+      // 查詢 2: 分佈統計（樓層、區域、容量）一次取得所有行
+      const distributionRows = await this.db
         .select({
           floor: tables.floor,
-          count: count(),
+          section: tables.section,
+          capacity: tables.capacity,
         })
         .from(tables)
-        .where(eq(tables.restaurantId, restaurantId))
-        .groupBy(tables.floor);
+        .where(eq(tables.restaurantId, restaurantId));
 
       const byFloor: Record<number, number> = {};
-      floorStats.forEach((stat) => {
-        byFloor[stat.floor || 1] = stat.count;
-      });
-
-      // 按區域統計
-      const sectionStats = await this.db
-        .select({
-          section: tables.section,
-          count: count(),
-        })
-        .from(tables)
-        .where(
-          and(eq(tables.restaurantId, restaurantId), isNotNull(tables.section)),
-        )
-        .groupBy(tables.section);
-
       const bySection: Record<string, number> = {};
-      sectionStats.forEach((stat) => {
-        if (stat.section) {
-          bySection[stat.section] = stat.count;
-        }
-      });
-
-      // 按容量統計
-      const capacityStats = await this.db
-        .select({
-          capacity: tables.capacity,
-          count: count(),
-        })
-        .from(tables)
-        .where(eq(tables.restaurantId, restaurantId))
-        .groupBy(tables.capacity);
-
       const byCapacity: Record<number, number> = {};
-      capacityStats.forEach((stat) => {
-        byCapacity[stat.capacity] = stat.count;
-      });
+
+      for (const row of distributionRows) {
+        const floor = row.floor || 1;
+        byFloor[floor] = (byFloor[floor] || 0) + 1;
+        if (row.section) {
+          bySection[row.section] = (bySection[row.section] || 0) + 1;
+        }
+        byCapacity[row.capacity] = (byCapacity[row.capacity] || 0) + 1;
+      }
 
       return {
         totalTables,
@@ -820,6 +788,7 @@ export class TableService extends BaseService {
         availableTables,
         inactiveTables,
         averageOccupancyRate: Math.round(averageOccupancyRate * 100) / 100,
+        avgOccupancyMinutes: Math.round(counts.avgOccupancyMinutes ?? 0),
         byFloor,
         bySection,
         byCapacity,
@@ -829,20 +798,13 @@ export class TableService extends BaseService {
     }
   }
 
-  // 更新桌子使用統計
+  // 更新桌子使用統計（原子遞增，避免競態條件）
   private async updateTableUsageStats(tableId: number): Promise<void> {
     try {
       await this.db
         .update(tables)
         .set({
-          totalUsage:
-            ((
-              await this.db
-                .select({ totalUsage: tables.totalUsage })
-                .from(tables)
-                .where(eq(tables.id, tableId))
-                .get()
-            )?.totalUsage || 0) + 1,
+          totalUsage: sql`${tables.totalUsage} + 1`,
           updatedAt: new Date(),
         })
         .where(eq(tables.id, tableId));

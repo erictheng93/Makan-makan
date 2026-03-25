@@ -3,7 +3,6 @@
  * Comprehensive business logic for order management
  */
 
-// Import database utilities when needed
 import {
   OrderService as BaseOrderService,
   CouponService,
@@ -25,10 +24,10 @@ import type { Env } from "../../../shared/types";
 import type { UserRole } from "../../../shared/constants";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { RealtimeBroadcastService } from "../../../services/RealtimeBroadcastService";
-import type { OrderStatusUpdateEvent } from "@makanmakan/shared-types";
-// Use KV for caching
-
-// Import feature-specific types
+import type {
+  OrderStatusUpdateEvent,
+  NewOrderEvent,
+} from "@makanmakan/shared-types";
 import { ORDER_STATUS_TRANSITIONS, ROLE_STATUS_PERMISSIONS } from "../types";
 import type {
   CreateOrderData,
@@ -48,20 +47,21 @@ import type {
   PaymentIntegration,
   IOrdersService,
   CallerContext,
+  SelectedCustomizations,
 } from "../types";
 
 export class OrdersService implements IOrdersService {
   private baseOrderService: BaseOrderService;
   private couponService: CouponService;
   private realtimeBroadcastService: RealtimeBroadcastService;
-  private cacheKV: any;
+  private cacheKV: any; // KVNamespace — kept as any because test mocks don't implement full interface
   private logger: ConsoleLogger;
   private env: Env;
 
   constructor(env: Env) {
     this.env = env;
-    this.baseOrderService = new BaseOrderService(env.DB as any, env);
-    this.couponService = new CouponService(env.DB as any, env);
+    this.baseOrderService = new BaseOrderService(env.DB, env);
+    this.couponService = new CouponService(env.DB, env);
     this.realtimeBroadcastService = new RealtimeBroadcastService(env);
     this.cacheKV = env.CACHE_KV;
     this.logger = new ConsoleLogger("OrdersService");
@@ -108,17 +108,15 @@ export class OrdersService implements IOrdersService {
       const order = await this.baseOrderService.createOrder(baseOrderData);
 
       // Cache the order
-      await this.cacheOrder(order);
-
-      // Log activity
-      await this.logOrderActivity(order.id, "ORDER_CREATED", userId, {
-        restaurantId: data.restaurantId,
-        itemCount: data.items.length,
-        total: order.totalAmount,
-      });
-
-      // Broadcast new order event
-      await this.broadcastNewOrder(order);
+      await Promise.all([
+        this.cacheOrder(order),
+        this.logOrderActivity(order.id, "ORDER_CREATED", userId, {
+          restaurantId: data.restaurantId,
+          itemCount: data.items.length,
+          total: order.totalAmount,
+        }),
+        this.broadcastNewOrder(order),
+      ]);
 
       this.logger.info("Order created successfully", {
         orderId: order.id,
@@ -212,10 +210,6 @@ export class OrdersService implements IOrdersService {
             !o.restaurantId ||
             o.restaurantId === permissionFilters.restaurantId,
         );
-      }
-
-      if (filters.sortBy) {
-        orders = this.sortOrders(orders, filters.sortBy, filters.sortOrder);
       }
 
       return {
@@ -325,15 +319,19 @@ export class OrdersService implements IOrdersService {
     userId?: number,
     userRole?: UserRole,
     caller?: CallerContext,
+    /** Pre-fetched order to avoid redundant DB lookups */
+    prefetchedOrder?: Order,
   ): Promise<Order | null> {
     try {
-      const order = await this.getOrder(id);
+      const order = prefetchedOrder ?? (await this.getOrder(id));
       if (!order) return null;
+      if (prefetchedOrder && prefetchedOrder.id !== id) {
+        throw badRequest("Prefetched order ID mismatch", "ORDER_ID_MISMATCH");
+      }
 
-      // Defence-in-depth: verify caller has access to this order's restaurant
       this.assertRestaurantAccess(order, caller);
 
-      // Validate status transition (let validateStatusTransition normalize the values)
+      // Validate status transition
       this.validateStatusTransition(order.status, statusData.status, userRole);
 
       // Update using base service
@@ -346,19 +344,17 @@ export class OrdersService implements IOrdersService {
         throw new Error("Failed to update order status");
       }
 
-      // Clear cache
-      await this.invalidateOrderCache(id);
-
-      // Broadcast real-time update
-      await this.broadcastOrderUpdate({
-        orderId: id,
-        previousStatus: order.status,
-        newStatus: statusData.status,
-        updatedBy: userId || 0,
-        updatedAt: new Date(),
-        notes: statusData.notes,
-        estimatedReadyTime: statusData.estimatedReadyTime,
-      });
+      await Promise.all([
+        this.invalidateOrderCache(id),
+        this.broadcastOrderStatusUpdate(
+          updatedOrder,
+          order.status,
+          statusData.status,
+          userId || 0,
+          statusData.notes,
+          statusData.estimatedReadyTime,
+        ),
+      ]);
 
       return updatedOrder;
     } catch (error) {
@@ -376,11 +372,13 @@ export class OrdersService implements IOrdersService {
     reason: string,
     userId?: number,
     caller?: CallerContext,
+    /** Pre-fetched order to avoid redundant DB lookups */
+    prefetchedOrder?: Order,
   ): Promise<Order | null> {
     try {
       // Defence-in-depth: verify caller has access before cancelling
       if (caller) {
-        const order = await this.getOrder(id);
+        const order = prefetchedOrder ?? (await this.getOrder(id));
         if (order) {
           this.assertRestaurantAccess(order, caller);
         }
@@ -392,8 +390,10 @@ export class OrdersService implements IOrdersService {
       );
 
       if (cancelledOrder) {
-        await this.invalidateOrderCache(id);
-        await this.logOrderActivity(id, "ORDER_CANCELLED", userId, { reason });
+        await Promise.all([
+          this.invalidateOrderCache(id),
+          this.logOrderActivity(id, "ORDER_CANCELLED", userId, { reason }),
+        ]);
       }
 
       return cancelledOrder;
@@ -555,7 +555,7 @@ export class OrdersService implements IOrdersService {
   async getActiveOrders(restaurantId: string): Promise<Order[]> {
     const filters: OrderQueryFilters = {
       restaurantId,
-      status: ["confirmed", "preparing", "ready"] as any,
+      status: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY],
       limit: 100,
     };
     const result = await this.getOrders(filters);
@@ -598,7 +598,12 @@ export class OrdersService implements IOrdersService {
   > {
     try {
       const cacheKey = `popular-items:${restaurantId}:${timeRange || "month"}`;
-      const cached = (await this.cacheKV.get(cacheKey, "json")) as any[] | null;
+      const cached = (await this.cacheKV.get(cacheKey, "json")) as Array<{
+        menuItemId: number;
+        name: string;
+        quantity: number;
+        revenue: number;
+      }> | null;
       if (cached) return cached;
 
       // Implementation would require aggregating order items
@@ -672,7 +677,7 @@ export class OrdersService implements IOrdersService {
       for (const orderId of operation.orderIds) {
         try {
           let success = false;
-          let data: any = null;
+          let data: Order | null = null;
 
           switch (operation.action) {
             case "update_status":
@@ -752,7 +757,10 @@ export class OrdersService implements IOrdersService {
           ? {
               code: result.coupon.code,
               name: result.coupon.name,
-              discountType: result.coupon.discountType as any,
+              discountType: result.coupon.discountType as
+                | "percentage"
+                | "fixed_amount"
+                | "free_item",
               discountValue: result.coupon.discountValue,
             }
           : undefined,
@@ -901,7 +909,7 @@ export class OrdersService implements IOrdersService {
    */
   private async broadcastNewOrder(order: Order): Promise<void> {
     try {
-      const realtimeEvent = {
+      const realtimeEvent: NewOrderEvent = {
         type: RealtimeEventType.NEW_ORDER,
         eventId: this.realtimeBroadcastService.generateEventId(),
         timestamp: Date.now(),
@@ -910,8 +918,6 @@ export class OrdersService implements IOrdersService {
           orderId: order.id,
           orderNumber: order.orderNumber || `#${order.id}`,
           tableId: order.tableId ? String(order.tableId) : undefined,
-          tableName: undefined, // 可以從資料庫查詢
-          seatId: undefined,
           items: (order.items || []).map((item) => ({
             orderItemId: item.id,
             menuItemId: item.menuItemId,
@@ -931,9 +937,8 @@ export class OrdersService implements IOrdersService {
         },
       };
 
-      const result = await this.realtimeBroadcastService.broadcastNewOrder(
-        realtimeEvent as any,
-      );
+      const result =
+        await this.realtimeBroadcastService.broadcastNewOrder(realtimeEvent);
 
       if (result.success) {
         this.logger.info("New order broadcasted successfully", {
@@ -954,20 +959,17 @@ export class OrdersService implements IOrdersService {
   }
 
   /**
-   * 廣播訂單狀態更新事件
+   * Broadcast order status update — accepts Order directly to avoid re-fetching.
    */
-  async broadcastOrderUpdate(event: OrderUpdateEvent): Promise<void> {
+  private async broadcastOrderStatusUpdate(
+    order: Order,
+    previousStatus: OrderStatus,
+    newStatus: OrderStatus,
+    updatedBy: number,
+    notes?: string,
+    estimatedReadyTime?: Date,
+  ): Promise<void> {
     try {
-      // 獲取訂單詳情以構建完整的即時事件
-      const order = await this.getOrder(event.orderId);
-      if (!order) {
-        this.logger.warn("Order not found for broadcast", {
-          orderId: event.orderId,
-        });
-        return;
-      }
-
-      // 構建即時事件
       const realtimeEvent: OrderStatusUpdateEvent = {
         type: RealtimeEventType.ORDER_STATUS_UPDATE,
         eventId: this.realtimeBroadcastService.generateEventId(),
@@ -976,26 +978,20 @@ export class OrdersService implements IOrdersService {
         data: {
           orderId: order.id,
           orderNumber: order.orderNumber || `#${order.id}`,
-          status: event.newStatus as any,
-          previousStatus: event.previousStatus as any,
-          estimatedTime: event.estimatedReadyTime
+          status: newStatus,
+          previousStatus: previousStatus,
+          estimatedTime: estimatedReadyTime
             ? Math.floor(
-                (new Date(event.estimatedReadyTime).getTime() - Date.now()) /
-                  60000,
+                (new Date(estimatedReadyTime).getTime() - Date.now()) / 60000,
               )
             : undefined,
-          message: event.notes,
-          updatedBy: event.updatedBy
-            ? {
-                userId: event.updatedBy,
-                userName: "System", // 可以從資料庫查詢真實姓名
-                role: "admin",
-              }
+          message: notes,
+          updatedBy: updatedBy
+            ? { userId: updatedBy, userName: "System", role: "admin" }
             : undefined,
         },
       };
 
-      // 廣播事件
       const result =
         await this.realtimeBroadcastService.broadcastOrderStatusUpdate(
           realtimeEvent,
@@ -1003,7 +999,7 @@ export class OrdersService implements IOrdersService {
 
       if (result.success) {
         this.logger.info("Order update broadcasted successfully", {
-          orderId: event.orderId,
+          orderId: order.id,
           eventId: result.eventId,
           recipientCount: result.recipientCount,
         });
@@ -1011,18 +1007,38 @@ export class OrdersService implements IOrdersService {
         this.logger.error(
           "Failed to broadcast order update",
           new Error(result.error),
-          {
-            orderId: event.orderId,
-          },
+          { orderId: order.id },
         );
       }
     } catch (error) {
       this.logger.error(
         "Failed to broadcast order update",
         error instanceof Error ? error : undefined,
-        { event },
+        { orderId: order.id },
       );
     }
+  }
+
+  /**
+   * Public broadcastOrderUpdate — backward-compatible wrapper that fetches order if needed.
+   * Prefer broadcastOrderStatusUpdate() when order data is already available.
+   */
+  async broadcastOrderUpdate(event: OrderUpdateEvent): Promise<void> {
+    const order = await this.getOrder(event.orderId);
+    if (!order) {
+      this.logger.warn("Order not found for broadcast", {
+        orderId: event.orderId,
+      });
+      return;
+    }
+    await this.broadcastOrderStatusUpdate(
+      order,
+      event.previousStatus!,
+      event.newStatus,
+      event.updatedBy,
+      event.notes,
+      event.estimatedReadyTime,
+    );
   }
 
   async subscribeToOrderUpdates(
@@ -1065,7 +1081,7 @@ export class OrdersService implements IOrdersService {
     orderId: number,
     action: string,
     userId?: number,
-    metadata?: any,
+    metadata?: unknown,
   ): Promise<void> {
     // Implementation would log to audit system
     this.logger.info("Order activity logged", {
@@ -1120,57 +1136,26 @@ export class OrdersService implements IOrdersService {
     return filters;
   }
 
-  private convertToBaseFilters(filters: OrderQueryFilters): any {
-    // Convert feature filters to base service format
+  private convertToBaseFilters(
+    filters: OrderQueryFilters,
+  ): import("@makanmakan/database").OrderFilters {
     return {
       restaurantId: filters.restaurantId,
-      status: filters.status, // Pass status as-is (can be array or single value)
+      status: filters.status as string | string[] | undefined,
       tableId: filters.tableId,
       dateRange:
         filters.dateFrom && filters.dateTo
           ? [new Date(filters.dateFrom), new Date(filters.dateTo)]
           : undefined,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
     };
-  }
-
-  private sortOrders(
-    orders: Order[],
-    sortBy: string,
-    sortOrder?: string,
-  ): Order[] {
-    return orders.sort((a, b) => {
-      let aValue: any, bValue: any;
-
-      switch (sortBy) {
-        case "createdAt":
-          aValue = new Date(a.createdAt);
-          bValue = new Date(b.createdAt);
-          break;
-        case "totalAmount":
-          aValue = a.totalAmount;
-          bValue = b.totalAmount;
-          break;
-        case "status":
-          aValue = a.status;
-          bValue = b.status;
-          break;
-        default:
-          return 0;
-      }
-
-      if (sortOrder === "asc") {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
   }
 
   /**
    * 將狀態值標準化為小寫字符串
    */
-  private normalizeStatus(status: any): string {
-    // 如果是數字，轉換為對應的字符串
+  private normalizeStatus(status: OrderStatus | number | string): string {
     const statusMap: Record<number, string> = {
       0: "pending",
       1: "confirmed",
@@ -1230,7 +1215,9 @@ export class OrdersService implements IOrdersService {
       .filter((s): s is OrderStatus => s !== undefined);
   }
 
-  private formatCustomizations(customizations: any): string[] {
+  private formatCustomizations(
+    customizations: SelectedCustomizations | undefined | null,
+  ): string[] {
     if (!customizations) return [];
 
     const formatted: string[] = [];
@@ -1240,15 +1227,15 @@ export class OrdersService implements IOrdersService {
     }
 
     if (customizations.options) {
-      customizations.options.forEach((option: any) => {
+      for (const option of customizations.options) {
         formatted.push(`${option.optionName}: ${option.choiceName}`);
-      });
+      }
     }
 
     if (customizations.addOns) {
-      customizations.addOns.forEach((addOn: any) => {
+      for (const addOn of customizations.addOns) {
         formatted.push(`${addOn.name} x${addOn.quantity}`);
-      });
+      }
     }
 
     return formatted;

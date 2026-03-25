@@ -260,21 +260,13 @@ export class TablesService {
         0,
       );
 
-      // Note: avgOccupancyTime requires order timestamp tracking
-      // which would need to be calculated from completed orders
-      // For now, estimate based on occupancy rate and a baseline duration
-      const baselineOccupancyMinutes = 45; // Average meal duration
-      const avgOccupancyTime = Math.round(
-        baselineOccupancyMinutes * (stats.averageOccupancyRate / 100),
-      );
-
       // Adapt database stats to feature stats format
       return {
         total: stats.totalTables,
         occupied: stats.occupiedTables,
         available: stats.availableTables,
         outOfService: stats.inactiveTables,
-        avgOccupancyTime,
+        avgOccupancyTime: stats.avgOccupancyMinutes,
         totalCapacity,
         utilizationRate: stats.averageOccupancyRate,
         floorDistribution: Object.entries(stats.byFloor).map(

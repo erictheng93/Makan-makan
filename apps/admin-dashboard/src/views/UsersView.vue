@@ -463,6 +463,8 @@
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -505,59 +507,33 @@ const statusFilter = ref("");
 const showUserModal = ref(false);
 const editingUser = ref<User | null>(null);
 
-// 模擬用戶數據
-const users = ref([
-  {
-    id: 1,
-    username: "owner1",
-    fullName: "店主 張三",
-    email: "owner@example.com",
-    role: 1,
-    status: "active",
-    lastLoginAt: "2024-08-26T08:00:00Z",
-    createdAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: 2,
-    username: "chef1",
-    fullName: "主廚 李四",
-    email: "chef@example.com",
-    role: 2,
-    status: "active",
-    lastLoginAt: "2024-08-26T07:30:00Z",
-    createdAt: "2024-01-15T00:00:00Z",
-  },
-  {
-    id: 3,
-    username: "service1",
-    fullName: "服務員 王五",
-    email: "service@example.com",
-    role: 3,
-    status: "active",
-    lastLoginAt: "2024-08-25T18:00:00Z",
-    createdAt: "2024-02-01T00:00:00Z",
-  },
-  {
-    id: 4,
-    username: "cashier1",
-    fullName: "收銀員 趙六",
-    email: "cashier@example.com",
-    role: 4,
-    status: "active",
-    lastLoginAt: null,
-    createdAt: "2024-02-15T00:00:00Z",
-  },
-  {
-    id: 5,
-    username: "service2",
-    fullName: "服務員 陳七",
-    email: "service2@example.com",
-    role: 3,
-    status: "inactive",
-    lastLoginAt: "2024-08-20T12:00:00Z",
-    createdAt: "2024-03-01T00:00:00Z",
-  },
-]);
+const authStore = useAuthStore();
+const isLoading = ref(false);
+
+// 用戶數據（從 API 獲取）
+const users = ref<User[]>([]);
+
+const fetchUsers = async () => {
+  isLoading.value = true;
+  try {
+    const response = await api.get("/users");
+    const payload = response.data?.success ? response.data.data : response.data;
+    users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
+      id: u.id,
+      username: u.username,
+      fullName: u.fullName || "",
+      email: u.email || "",
+      role: u.role,
+      status: u.isActive ? "active" : "inactive",
+      lastLoginAt: u.lastLoginAt,
+      createdAt: u.createdAt,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch users:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 // 表單數據
 const userForm = ref({
@@ -694,25 +670,38 @@ const editUser = (user: User) => {
 
 const resetPassword = async (user: User) => {
   if (confirm(t("users.confirm.resetPassword", { username: user.username }))) {
-    alert(t("users.confirm.resetPasswordSuccess"));
+    try {
+      const tempPassword = `Reset${Date.now().toString(36)}!`;
+      await api.post(`/users/${user.id}/reset-password`, {
+        newPassword: tempPassword,
+      });
+      alert(t("users.confirm.resetPasswordSuccess"));
+    } catch (error: any) {
+      alert(
+        error.response?.data?.error?.message || t("users.errors.resetFailed"),
+      );
+    }
   }
 };
 
 const toggleUserStatus = async (user: User) => {
-  const newStatus = user.status === "active" ? "inactive" : "active";
-  const action =
-    newStatus === "active"
-      ? t("users.actions.enable")
-      : t("users.actions.disable");
+  const newIsActive = user.status !== "active";
+  const action = newIsActive
+    ? t("users.actions.enable")
+    : t("users.actions.disable");
 
   if (
     confirm(
       t("users.confirm.toggleStatus", { action, username: user.username }),
     )
   ) {
-    const index = users.value.findIndex((u) => u.id === user.id);
-    if (index > -1) {
-      users.value[index].status = newStatus;
+    try {
+      await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
+      await fetchUsers();
+    } catch (error: any) {
+      alert(
+        error.response?.data?.error?.message || t("users.errors.toggleFailed"),
+      );
     }
   }
 };
@@ -731,27 +720,35 @@ const closeUserModal = () => {
 };
 
 const saveUser = async () => {
-  if (editingUser.value) {
-    // 更新現有用戶
-    const index = users.value.findIndex((u) => u.id === editingUser.value!.id);
-    if (index > -1) {
-      users.value[index] = { ...users.value[index], ...userForm.value };
+  try {
+    if (editingUser.value) {
+      // 更新現有用戶
+      await api.put(`/users/${editingUser.value.id}`, {
+        fullName: userForm.value.fullName,
+        email: userForm.value.email,
+        role: userForm.value.role,
+      });
+    } else {
+      // 新增用戶
+      const restaurantId = authStore.restaurantId;
+      await api.post("/users", {
+        username: userForm.value.username,
+        password: userForm.value.password,
+        fullName: userForm.value.fullName,
+        email: userForm.value.email,
+        role: userForm.value.role,
+        restaurantId,
+      });
     }
-  } else {
-    // 新增用戶
-    const newUser = {
-      id: Math.max(...users.value.map((u) => u.id)) + 1,
-      ...userForm.value,
-      lastLoginAt: null,
-      createdAt: new Date().toISOString(),
-    };
-    users.value.push(newUser);
+    closeUserModal();
+    await fetchUsers();
+  } catch (error: any) {
+    alert(error.response?.data?.error?.message || t("users.errors.saveFailed"));
   }
-  closeUserModal();
 };
 
 onMounted(() => {
-  // 初始化數據
+  fetchUsers();
 });
 </script>
 

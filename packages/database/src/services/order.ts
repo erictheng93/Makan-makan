@@ -1,4 +1,4 @@
-import { eq, and, desc, count, sql, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, count, sql, gte, lte, inArray } from "drizzle-orm";
 import { BaseService } from "./base";
 import {
   orders,
@@ -18,7 +18,7 @@ export interface CreateOrderData {
   restaurantId: string;
   tableId: number;
   customerId?: number;
-  customerInfo?: any;
+  customerInfo?: { name?: string; phone?: string; email?: string };
   items: Array<{
     menuItemId: number;
     quantity: number;
@@ -43,7 +43,16 @@ export interface OrderFilters {
   dateRange?: [Date, Date];
   minAmount?: number;
   maxAmount?: number;
+  sortBy?: "createdAt" | "totalAmount" | "status" | "updatedAt";
+  sortOrder?: "asc" | "desc";
 }
+
+const ORDER_SORT_COLUMNS = {
+  createdAt: orders.createdAt,
+  totalAmount: orders.totalAmount,
+  status: orders.status,
+  updatedAt: orders.updatedAt,
+} as const;
 
 export class OrderService extends BaseService {
   // 獲取餐廳最低消費設定
@@ -439,6 +448,10 @@ export class OrderService extends BaseService {
       const whereClause =
         conditions.length > 0 ? and(...conditions) : undefined;
 
+      const sortDirection = filters.sortOrder === "asc" ? asc : desc;
+      const sortColumn =
+        ORDER_SORT_COLUMNS[filters.sortBy ?? "createdAt"] ?? orders.createdAt;
+
       const orderList = await this.db.query.orders.findMany({
         where: whereClause,
         with: {
@@ -456,7 +469,7 @@ export class OrderService extends BaseService {
             },
           },
         },
-        orderBy: desc(orders.createdAt),
+        orderBy: sortDirection(sortColumn),
         limit,
         offset,
       });
@@ -488,8 +501,8 @@ export class OrderService extends BaseService {
     data: UpdateOrderStatusData,
   ): Promise<Order> {
     try {
-      const statusField = `${data.status}At` as keyof typeof orders;
-      const updateData: any = {
+      const statusField = `${data.status}At`;
+      const updateData: Record<string, unknown> = {
         status: data.status,
         updatedAt: new Date(),
       };

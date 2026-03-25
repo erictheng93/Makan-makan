@@ -479,21 +479,13 @@ export const advancedOrderQuerySchema = orderFilterSchema.extend({
 });
 
 // Validation helpers and transformers
+import { ORDER_STATUS_TRANSITIONS } from "../types";
+
 export const validateOrderStatusTransition = (
   currentStatus: string,
   newStatus: string,
-) => {
-  const transitions: Record<string, string[]> = {
-    pending: ["confirmed", "cancelled"],
-    confirmed: ["preparing", "cancelled"],
-    preparing: ["ready", "cancelled"],
-    ready: ["delivered", "cancelled"],
-    delivered: ["paid"],
-    paid: [],
-    cancelled: [],
-  };
-
-  return transitions[currentStatus]?.includes(newStatus) ?? false;
+): boolean => {
+  return ORDER_STATUS_TRANSITIONS[currentStatus]?.includes(newStatus) ?? false;
 };
 
 export const validateUserPermission = (

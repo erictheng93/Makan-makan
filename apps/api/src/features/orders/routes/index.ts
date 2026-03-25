@@ -122,7 +122,7 @@ const logger = new ConsoleLogger("OrdersRoutes");
 async function broadcastOrderUpdate(
   env: Env,
   orderId: number,
-  orderData: any,
+  orderData: unknown,
   restaurantId: string,
   targetRoles?: number[],
 ): Promise<void> {
@@ -500,7 +500,7 @@ app.put(
     const updatedOrder = await ordersService.updateOrderStatus(
       parseInt(id),
       {
-        status: data.status as any, // Pass string directly, service will normalize
+        status: stringToOrderStatus(data.status),
         notes: data.notes,
         estimatedReadyTime: data.estimatedReadyTime
           ? new Date(data.estimatedReadyTime)
@@ -510,6 +510,7 @@ app.put(
       user.id,
       user.role as UserRole,
       toCallerContext(user),
+      existingOrder, // Pass pre-fetched order to avoid redundant DB lookup
     );
 
     if (!updatedOrder) {
@@ -611,6 +612,7 @@ app.delete(
       "Cancelled by user",
       user.id,
       toCallerContext(user),
+      order, // Pass pre-fetched order to avoid redundant DB lookup
     );
 
     if (!cancelledOrder) {
