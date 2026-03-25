@@ -14,7 +14,6 @@
         <select
           v-model="selectedPeriod"
           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          @change="updateData"
         >
           <option value="today">{{ t("analytics.period.today") }}</option>
           <option value="week">{{ t("analytics.period.week") }}</option>
@@ -23,13 +22,30 @@
           <option value="year">{{ t("analytics.period.year") }}</option>
         </select>
         <button
-          class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+          :disabled="isExporting"
           @click="exportReport"
         >
           <DocumentArrowDownIcon class="h-4 w-4 mr-2" />
-          {{ t("analytics.exportReport") }}
+          {{
+            isExporting ? t("analytics.exporting") : t("analytics.exportReport")
+          }}
         </button>
       </div>
+    </div>
+
+    <!-- 載入錯誤提示 -->
+    <div
+      v-if="error"
+      class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center justify-between"
+    >
+      <span>{{ error }}</span>
+      <button
+        class="text-red-600 hover:text-red-800 underline text-sm"
+        @click="fetchAllData"
+      >
+        {{ t("analytics.retry") }}
+      </button>
     </div>
 
     <!-- 關鍵指標卡片 -->
@@ -44,10 +60,12 @@
             <p class="text-sm text-gray-500">
               {{ t("analytics.metrics.totalRevenue") }}
             </p>
-            <p class="text-2xl font-bold text-gray-900">
+            <p v-if="isLoading" class="text-2xl font-bold text-gray-300">--</p>
+            <p v-else class="text-2xl font-bold text-gray-900">
               {{ formatPrice(metrics.totalRevenue) }}
             </p>
             <p
+              v-if="!isLoading"
               :class="
                 metrics.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'
               "
@@ -58,7 +76,7 @@
                 class="w-4 h-4 inline mr-1"
               />
               <ArrowTrendingDownIcon v-else class="w-4 h-4 inline mr-1" />
-              {{ Math.abs(metrics.revenueChange) }}%
+              {{ Math.abs(metrics.revenueChange).toFixed(1) }}%
               {{ t("analytics.metrics.vsPrevious") }}
             </p>
           </div>
@@ -75,10 +93,12 @@
             <p class="text-sm text-gray-500">
               {{ t("analytics.metrics.totalOrders") }}
             </p>
-            <p class="text-2xl font-bold text-gray-900">
+            <p v-if="isLoading" class="text-2xl font-bold text-gray-300">--</p>
+            <p v-else class="text-2xl font-bold text-gray-900">
               {{ metrics.totalOrders }}
             </p>
             <p
+              v-if="!isLoading"
               :class="
                 metrics.ordersChange >= 0 ? 'text-green-600' : 'text-red-600'
               "
@@ -89,7 +109,7 @@
                 class="w-4 h-4 inline mr-1"
               />
               <ArrowTrendingDownIcon v-else class="w-4 h-4 inline mr-1" />
-              {{ Math.abs(metrics.ordersChange) }}%
+              {{ Math.abs(metrics.ordersChange).toFixed(1) }}%
               {{ t("analytics.metrics.vsPrevious") }}
             </p>
           </div>
@@ -106,10 +126,12 @@
             <p class="text-sm text-gray-500">
               {{ t("analytics.metrics.averageOrderValue") }}
             </p>
-            <p class="text-2xl font-bold text-gray-900">
+            <p v-if="isLoading" class="text-2xl font-bold text-gray-300">--</p>
+            <p v-else class="text-2xl font-bold text-gray-900">
               {{ formatPrice(metrics.averageOrderValue) }}
             </p>
             <p
+              v-if="!isLoading"
               :class="
                 metrics.aovChange >= 0 ? 'text-green-600' : 'text-red-600'
               "
@@ -120,7 +142,7 @@
                 class="w-4 h-4 inline mr-1"
               />
               <ArrowTrendingDownIcon v-else class="w-4 h-4 inline mr-1" />
-              {{ Math.abs(metrics.aovChange) }}%
+              {{ Math.abs(metrics.aovChange).toFixed(1) }}%
               {{ t("analytics.metrics.vsPrevious") }}
             </p>
           </div>
@@ -137,22 +159,9 @@
             <p class="text-sm text-gray-500">
               {{ t("analytics.metrics.tableUtilization") }}
             </p>
-            <p class="text-2xl font-bold text-gray-900">
+            <p v-if="isLoading" class="text-2xl font-bold text-gray-300">--</p>
+            <p v-else class="text-2xl font-bold text-gray-900">
               {{ metrics.tableUtilization }}%
-            </p>
-            <p
-              :class="
-                metrics.tableChange >= 0 ? 'text-green-600' : 'text-red-600'
-              "
-              class="text-sm"
-            >
-              <ArrowTrendingUpIcon
-                v-if="metrics.tableChange >= 0"
-                class="w-4 h-4 inline mr-1"
-              />
-              <ArrowTrendingDownIcon v-else class="w-4 h-4 inline mr-1" />
-              {{ Math.abs(metrics.tableChange) }}%
-              {{ t("analytics.metrics.vsPrevious") }}
             </p>
           </div>
         </div>
@@ -166,17 +175,38 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ t("analytics.charts.revenueTrend") }}
         </h3>
+        <div v-if="isLoading" class="h-64 flex items-center justify-center">
+          <p class="text-gray-400">{{ t("analytics.loading") }}</p>
+        </div>
         <div
+          v-else-if="revenueChartData.length === 0"
           class="h-64 flex items-center justify-center bg-gray-50 rounded-lg"
         >
           <div class="text-center">
             <ChartBarIcon class="mx-auto h-12 w-12 text-gray-400 mb-2" />
-            <p class="text-gray-500">
-              {{ t("analytics.charts.revenueTrendChart") }}
-            </p>
-            <p class="text-sm text-gray-400">
-              {{ t("analytics.charts.chartInDev") }}
-            </p>
+            <p class="text-gray-500">{{ t("analytics.noData") }}</p>
+          </div>
+        </div>
+        <div v-else class="h-64 space-y-2 overflow-y-auto">
+          <div
+            v-for="item in revenueChartData"
+            :key="item.date"
+            class="flex items-center justify-between text-sm"
+          >
+            <span class="text-gray-600 w-24 flex-shrink-0">{{
+              formatDate(item.date)
+            }}</span>
+            <div class="flex-1 mx-3">
+              <div class="bg-gray-200 rounded-full h-4">
+                <div
+                  :style="{ width: `${item.percentage}%` }"
+                  class="bg-green-500 h-4 rounded-full transition-all duration-300"
+                />
+              </div>
+            </div>
+            <span class="text-gray-900 font-medium w-24 text-right">{{
+              formatPrice(item.revenue)
+            }}</span>
           </div>
         </div>
       </div>
@@ -186,7 +216,10 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ t("analytics.charts.orderStatusDist") }}
         </h3>
-        <div class="h-64">
+        <div v-if="isLoading" class="h-64 flex items-center justify-center">
+          <p class="text-gray-400">{{ t("analytics.loading") }}</p>
+        </div>
+        <div v-else class="h-64">
           <div class="grid grid-cols-2 gap-4 h-full">
             <div
               v-for="status in orderStatusData"
@@ -218,7 +251,16 @@
           <h3 class="text-lg font-semibold text-gray-900 mb-4">
             {{ t("analytics.popularItems.title") }}
           </h3>
-          <div class="space-y-4">
+          <div v-if="isLoading" class="text-center py-8 text-gray-400">
+            {{ t("analytics.loading") }}
+          </div>
+          <div
+            v-else-if="popularItems.length === 0"
+            class="text-center py-8 text-gray-400"
+          >
+            {{ t("analytics.noData") }}
+          </div>
+          <div v-else class="space-y-4">
             <div
               v-for="(item, index) in popularItems"
               :key="item.id"
@@ -252,7 +294,7 @@
                 <div class="w-32 bg-gray-200 rounded-full h-2 mt-1">
                   <div
                     :style="{
-                      width: `${(item.orders / popularItems[0].orders) * 100}%`,
+                      width: `${popularItems[0]?.orders ? (item.orders / popularItems[0].orders) * 100 : 0}%`,
                     }"
                     class="bg-blue-600 h-2 rounded-full"
                   />
@@ -269,7 +311,16 @@
           <h3 class="text-lg font-semibold text-gray-900 mb-4">
             {{ t("analytics.businessHours.title") }}
           </h3>
-          <div class="space-y-4">
+          <div v-if="isLoading" class="text-center py-8 text-gray-400">
+            {{ t("analytics.loading") }}
+          </div>
+          <div
+            v-else-if="businessHours.length === 0"
+            class="text-center py-8 text-gray-400"
+          >
+            {{ t("analytics.noData") }}
+          </div>
+          <div v-else class="space-y-4">
             <div
               v-for="period in businessHours"
               :key="period.time"
@@ -305,7 +356,16 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ t("analytics.detailedReport.title") }}
         </h3>
-        <div class="overflow-x-auto">
+        <div v-if="isLoading" class="text-center py-8 text-gray-400">
+          {{ t("analytics.loading") }}
+        </div>
+        <div
+          v-else-if="dailyData.length === 0"
+          class="text-center py-8 text-gray-400"
+        >
+          {{ t("analytics.noData") }}
+        </div>
+        <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
@@ -329,11 +389,6 @@
                 >
                   {{ t("analytics.detailedReport.averageOrder") }}
                 </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                >
-                  {{ t("analytics.detailedReport.tableUtilization") }}
-                </th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -354,9 +409,6 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {{ formatPrice(day.averageOrder) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ day.tableUtilization }}%
-                </td>
               </tr>
             </tbody>
           </table>
@@ -367,9 +419,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { api } from "@/services/api";
 import {
   CurrencyDollarIcon,
   ShoppingBagIcon,
@@ -385,114 +438,363 @@ import {
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
 
-// 響應式數據
+// State
 const selectedPeriod = ref("today");
+const isLoading = ref(false);
+const isExporting = ref(false);
+const error = ref<string | null>(null);
 
-// 模擬數據
-const metrics = ref({
-  totalRevenue: 25680.5,
-  revenueChange: 12.5,
-  totalOrders: 156,
-  ordersChange: 8.3,
-  averageOrderValue: 164.62,
-  aovChange: 3.7,
-  tableUtilization: 78,
-  tableChange: -2.1,
+// Raw API data
+const dashboardSummary = ref<{
+  todayRevenue: number;
+  todayOrders: number;
+  monthRevenue: number;
+  monthOrders: number;
+  growthRates: { revenueGrowth: number; orderGrowth: number };
+}>({
+  todayRevenue: 0,
+  todayOrders: 0,
+  monthRevenue: 0,
+  monthOrders: 0,
+  growthRates: { revenueGrowth: 0, orderGrowth: 0 },
 });
 
-const orderStatusData = ref([
-  {
-    name: t("analytics.orderStatus.completed"),
-    count: 89,
-    color: "bg-green-500",
-  },
-  {
-    name: t("analytics.orderStatus.preparing"),
-    count: 23,
-    color: "bg-blue-500",
-  },
-  {
-    name: t("analytics.orderStatus.pending"),
-    count: 15,
-    color: "bg-yellow-500",
-  },
-  { name: t("analytics.orderStatus.cancelled"), count: 7, color: "bg-red-500" },
-]);
+const performanceData = ref<{
+  totalOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  averageOrderValue: number;
+  totalRevenue: number;
+  conversionRate: number;
+  averagePreparationTime: number;
+  popularTimeSlots: Array<{ hour: number; orderCount: number }>;
+}>({
+  totalOrders: 0,
+  completedOrders: 0,
+  cancelledOrders: 0,
+  averageOrderValue: 0,
+  totalRevenue: 0,
+  conversionRate: 0,
+  averagePreparationTime: 0,
+  popularTimeSlots: [],
+});
 
-const popularItems = ref([
-  { id: 1, name: "招牌炒飯", orders: 45, revenue: 540.0 },
-  { id: 2, name: "冰奶茶", orders: 38, revenue: 190.0 },
-  { id: 3, name: "春卷", orders: 32, revenue: 256.0 },
-  { id: 4, name: "南洋咖啡", orders: 28, revenue: 78.4 },
-  { id: 5, name: "紅豆冰", orders: 25, revenue: 162.5 },
-]);
+const productAnalytics = ref<{
+  popularItems: Array<{
+    itemId: number;
+    itemName: string;
+    categoryName: string;
+    quantity: number;
+    revenue: number;
+  }>;
+}>({ popularItems: [] });
 
-const businessHours = ref([
-  { time: "08:00 - 10:00", orders: 12, percentage: 15 },
-  { time: "10:00 - 12:00", orders: 28, percentage: 35 },
-  { time: "12:00 - 14:00", orders: 45, percentage: 56 },
-  { time: "14:00 - 16:00", orders: 32, percentage: 40 },
-  { time: "16:00 - 18:00", orders: 38, percentage: 48 },
-  { time: "18:00 - 20:00", orders: 52, percentage: 65 },
-  { time: "20:00 - 22:00", orders: 35, percentage: 44 },
-]);
+const revenueDataRaw = ref<
+  Array<{
+    date: string;
+    revenue: number;
+    orderCount: number;
+    averageOrderValue: number;
+  }>
+>([]);
 
-const dailyData = ref([
-  {
-    date: "2024-08-26",
-    orders: 156,
-    revenue: 2568.5,
-    averageOrder: 164.62,
-    tableUtilization: 78,
-  },
-  {
-    date: "2024-08-25",
-    orders: 142,
-    revenue: 2341.2,
-    averageOrder: 164.93,
-    tableUtilization: 72,
-  },
-  {
-    date: "2024-08-24",
-    orders: 138,
-    revenue: 2256.8,
-    averageOrder: 163.54,
-    tableUtilization: 75,
-  },
-  {
-    date: "2024-08-23",
-    orders: 161,
-    revenue: 2689.4,
-    averageOrder: 167.02,
-    tableUtilization: 82,
-  },
-  {
-    date: "2024-08-22",
-    orders: 149,
-    revenue: 2445.7,
-    averageOrder: 164.22,
-    tableUtilization: 77,
-  },
-]);
+const currentTableUtilization = ref(0);
 
-// 方法
+// Compute date range based on selected period
+function getDateRange() {
+  const now = new Date();
+  const to = now.toISOString();
+  let from: Date;
+
+  switch (selectedPeriod.value) {
+    case "week":
+      from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case "month":
+      from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case "quarter":
+      from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      break;
+    case "year":
+      from = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      break;
+    default:
+      // today: start of today
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      break;
+  }
+
+  return { dateFrom: from.toISOString(), dateTo: to };
+}
+
+// Map period to dashboard API param
+function getDashboardPeriod(): string {
+  const map: Record<string, string> = {
+    today: "today",
+    week: "week",
+    month: "month",
+    quarter: "month",
+    year: "year",
+  };
+  return map[selectedPeriod.value] || "today";
+}
+
+// Computed: metrics for summary cards
+const metrics = computed(() => ({
+  totalRevenue: performanceData.value.totalRevenue || 0,
+  revenueChange: dashboardSummary.value.growthRates?.revenueGrowth || 0,
+  totalOrders: performanceData.value.totalOrders || 0,
+  ordersChange: dashboardSummary.value.growthRates?.orderGrowth || 0,
+  averageOrderValue: performanceData.value.averageOrderValue || 0,
+  aovChange:
+    performanceData.value.totalOrders > 0
+      ? dashboardSummary.value.growthRates?.revenueGrowth -
+          dashboardSummary.value.growthRates?.orderGrowth || 0
+      : 0,
+  tableUtilization: currentTableUtilization.value,
+}));
+
+// Computed: order status distribution
+const orderStatusData = computed(() => {
+  const total = performanceData.value.totalOrders || 0;
+  const completed = performanceData.value.completedOrders || 0;
+  const cancelled = performanceData.value.cancelledOrders || 0;
+  const inProgress = Math.max(0, total - completed - cancelled);
+
+  return [
+    {
+      name: t("analytics.orderStatus.completed"),
+      count: completed,
+      color: "bg-green-500",
+    },
+    {
+      name: t("analytics.orderStatus.preparing"),
+      count: inProgress,
+      color: "bg-blue-500",
+    },
+    {
+      name: t("analytics.orderStatus.pending"),
+      count: 0,
+      color: "bg-yellow-500",
+    },
+    {
+      name: t("analytics.orderStatus.cancelled"),
+      count: cancelled,
+      color: "bg-red-500",
+    },
+  ];
+});
+
+// Computed: popular items
+const popularItems = computed(() => {
+  return (productAnalytics.value.popularItems || [])
+    .slice(0, 5)
+    .map((item) => ({
+      id: item.itemId,
+      name: item.itemName,
+      orders: item.quantity,
+      revenue: item.revenue,
+    }));
+});
+
+// Computed: business hours from popular time slots
+const businessHours = computed(() => {
+  const slots = performanceData.value.popularTimeSlots || [];
+  if (slots.length === 0) return [];
+
+  // Group into 2-hour slots
+  const slotMap = new Map<string, number>();
+  const slotOrder: string[] = [];
+
+  for (let startHour = 6; startHour < 24; startHour += 2) {
+    const endHour = Math.min(startHour + 2, 24);
+    const label = `${String(startHour).padStart(2, "0")}:00 - ${String(endHour).padStart(2, "0")}:00`;
+    slotMap.set(label, 0);
+    slotOrder.push(label);
+  }
+
+  for (const slot of slots) {
+    if (slot.hour == null) continue; // Skip null hours
+    const startHour = Math.floor(slot.hour / 2) * 2;
+    if (startHour < 6) continue; // Skip very early hours
+    const clampedStart = Math.max(6, startHour);
+    const endHour = Math.min(clampedStart + 2, 24);
+    const label = `${String(clampedStart).padStart(2, "0")}:00 - ${String(endHour).padStart(2, "0")}:00`;
+    if (slotMap.has(label)) {
+      slotMap.set(label, (slotMap.get(label) || 0) + slot.orderCount);
+    }
+  }
+
+  const maxOrders = Math.max(...slotMap.values(), 1);
+
+  return slotOrder
+    .map((label) => ({
+      time: label,
+      orders: slotMap.get(label) || 0,
+      percentage: Math.round(((slotMap.get(label) || 0) / maxOrders) * 100),
+    }))
+    .filter((s) => s.orders > 0 || selectedPeriod.value === "today");
+});
+
+// Computed: revenue chart data
+const revenueChartData = computed(() => {
+  const data = revenueDataRaw.value || [];
+  if (data.length === 0) return [];
+
+  const maxRevenue = Math.max(...data.map((d) => d.revenue), 1);
+
+  return data.map((d) => ({
+    date: d.date,
+    revenue: d.revenue,
+    percentage: Math.round((d.revenue / maxRevenue) * 100),
+  }));
+});
+
+// Computed: daily data for detailed table
+const dailyData = computed(() => {
+  return (revenueDataRaw.value || []).map((d) => ({
+    date: d.date,
+    orders: d.orderCount,
+    revenue: d.revenue,
+    averageOrder: d.averageOrderValue,
+  }));
+});
+
+// Format date for display
+function formatDate(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+// Business hour bar color
 const getBusinessHourColor = (percentage: number) => {
   if (percentage >= 60) return "bg-green-500";
   if (percentage >= 40) return "bg-yellow-500";
   return "bg-red-500";
 };
 
-const updateData = () => {
-  // 根據選擇的時間段更新數據
-  console.log("Updating data for period:", selectedPeriod.value);
-};
+// Fetch all analytics data
+async function fetchAllData() {
+  isLoading.value = true;
+  error.value = null;
 
-const exportReport = () => {
-  alert(t("analytics.exportInDev"));
-};
+  const { dateFrom, dateTo } = getDateRange();
+  const dashboardPeriod = getDashboardPeriod();
+
+  try {
+    const [dashboardRes, perfRes, productsRes, revenueRes, realtimeRes] =
+      await Promise.allSettled([
+        api.get(`/analytics/dashboard?period=${dashboardPeriod}`),
+        api.get(
+          `/analytics/performance?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}&groupBy=day`,
+        ),
+        api.get(
+          `/analytics/products?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}&limit=5`,
+        ),
+        api.get(
+          `/analytics/revenue?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}&groupBy=day&includeComparison=true`,
+        ),
+        api.get("/analytics/realtime-dashboard"),
+      ]);
+
+    if (
+      dashboardRes.status === "fulfilled" &&
+      dashboardRes.value.data?.success
+    ) {
+      dashboardSummary.value = dashboardRes.value.data
+        .data as typeof dashboardSummary.value;
+    }
+
+    if (perfRes.status === "fulfilled" && perfRes.value.data?.success) {
+      performanceData.value = perfRes.value.data
+        .data as typeof performanceData.value;
+    }
+
+    if (productsRes.status === "fulfilled" && productsRes.value.data?.success) {
+      productAnalytics.value = productsRes.value.data
+        .data as typeof productAnalytics.value;
+    }
+
+    if (revenueRes.status === "fulfilled" && revenueRes.value.data?.success) {
+      revenueDataRaw.value = (revenueRes.value.data.data ||
+        []) as typeof revenueDataRaw.value;
+    }
+
+    if (realtimeRes.status === "fulfilled" && realtimeRes.value.data?.success) {
+      const realtimeData = realtimeRes.value.data.data as {
+        tableUtilization?: number;
+      };
+      currentTableUtilization.value = realtimeData?.tableUtilization || 0;
+    }
+
+    // Check if all failed
+    const allFailed = [
+      dashboardRes,
+      perfRes,
+      productsRes,
+      revenueRes,
+      realtimeRes,
+    ].every((r) => r.status === "rejected");
+    if (allFailed) {
+      error.value = t("analytics.fetchError");
+    }
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : t("analytics.fetchError");
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+// Export report as CSV (generated client-side from displayed data)
+function exportReport() {
+  isExporting.value = true;
+  try {
+    generateLocalCSV();
+  } finally {
+    isExporting.value = false;
+  }
+}
+
+function generateLocalCSV() {
+  const headers = [
+    t("analytics.detailedReport.date"),
+    t("analytics.detailedReport.orders"),
+    t("analytics.detailedReport.revenue"),
+    t("analytics.detailedReport.averageOrder"),
+  ];
+
+  const rows = dailyData.value.map((d) => [
+    d.date,
+    d.orders.toString(),
+    d.revenue.toString(),
+    d.averageOrder.toString(),
+  ]);
+
+  const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `analytics_${selectedPeriod.value}_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// Watch period changes and refetch
+watch(selectedPeriod, () => {
+  fetchAllData();
+});
 
 onMounted(() => {
-  // 初始化數據
+  fetchAllData();
 });
 </script>
 

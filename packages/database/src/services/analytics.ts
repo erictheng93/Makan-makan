@@ -154,8 +154,8 @@ export class AnalyticsService extends BaseService {
         conditions.push(lte(orders.createdAt, new Date(dateTo)));
       }
 
-      // 添加已完成訂單條件
-      conditions.push(eq(orders.status, "completed"));
+      // 排除已取消訂單（計入所有已確認、製作中、已完成的營收）
+      conditions.push(sql`${orders.status} != 'cancelled'`);
 
       // 生成日期分組 SQL
       const dateGroupSql = this.getDateGroupSQL(groupBy);
@@ -248,15 +248,15 @@ export class AnalyticsService extends BaseService {
           ),
         );
 
-      // 熱門時段分析
+      // 熱門時段分析 (createdAt is Unix ms, divide by 1000 for strftime)
       const popularTimeSlots = await this.db
         .select({
-          hour: sql<number>`CAST(strftime('%H', ${orders.createdAt}) AS INTEGER)`,
+          hour: sql<number>`CAST(strftime('%H', ${orders.createdAt} / 1000, 'unixepoch') AS INTEGER)`,
           orderCount: count(),
         })
         .from(orders)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .groupBy(sql`strftime('%H', ${orders.createdAt})`)
+        .groupBy(sql`strftime('%H', ${orders.createdAt} / 1000, 'unixepoch')`)
         .orderBy(desc(count()));
 
       return {
@@ -292,7 +292,8 @@ export class AnalyticsService extends BaseService {
       if (dateTo) {
         conditions.push(lte(orders.createdAt, new Date(dateTo)));
       }
-      conditions.push(eq(orders.status, "completed"));
+      // 排除已取消訂單
+      conditions.push(sql`${orders.status} != 'cancelled'`);
 
       // 熱門菜品
       const popularItems = await this.db
@@ -522,13 +523,13 @@ export class AnalyticsService extends BaseService {
         )
         .orderBy(desc(sum(orders.totalAmount)));
 
-      // 高峰時段
+      // 高峰時段 (createdAt is Unix ms, divide by 1000 for strftime)
       const peakHours = await this.db
         .select({
-          hour: sql<number>`CAST(strftime('%H', ${orders.createdAt}) AS INTEGER)`,
+          hour: sql<number>`CAST(strftime('%H', ${orders.createdAt} / 1000, 'unixepoch') AS INTEGER)`,
           occupancyRate: sql<number>`
             ROUND(
-              COUNT(DISTINCT ${orders.tableId}) * 100.0 / 
+              COUNT(DISTINCT ${orders.tableId}) * 100.0 /
               (SELECT COUNT(*) FROM tables WHERE restaurant_id = ${restaurantId}),
               2
             )
@@ -536,8 +537,10 @@ export class AnalyticsService extends BaseService {
         })
         .from(orders)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .groupBy(sql`strftime('%H', ${orders.createdAt})`)
-        .orderBy(sql`CAST(strftime('%H', ${orders.createdAt}) AS INTEGER)`);
+        .groupBy(sql`strftime('%H', ${orders.createdAt} / 1000, 'unixepoch')`)
+        .orderBy(
+          sql`CAST(strftime('%H', ${orders.createdAt} / 1000, 'unixepoch') AS INTEGER)`,
+        );
 
       // 平均翻台時間
       const [{ averageTurnoverTime }] = await this.db
@@ -757,17 +760,18 @@ export class AnalyticsService extends BaseService {
 
   // 輔助函數：生成日期分組 SQL
   private getDateGroupSQL(groupBy: string) {
+    // orders.createdAt is stored as Unix ms (timestamp_ms mode), so divide by 1000 for SQLite date functions
     switch (groupBy) {
       case "day":
-        return sql`DATE(${orders.createdAt})`;
+        return sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`;
       case "week":
-        return sql`strftime('%Y-W%W', ${orders.createdAt})`;
+        return sql`strftime('%Y-W%W', ${orders.createdAt} / 1000, 'unixepoch')`;
       case "month":
-        return sql`strftime('%Y-%m', ${orders.createdAt})`;
+        return sql`strftime('%Y-%m', ${orders.createdAt} / 1000, 'unixepoch')`;
       case "year":
-        return sql`strftime('%Y', ${orders.createdAt})`;
+        return sql`strftime('%Y', ${orders.createdAt} / 1000, 'unixepoch')`;
       default:
-        return sql`DATE(${orders.createdAt})`;
+        return sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`;
     }
   }
 
