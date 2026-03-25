@@ -821,3 +821,95 @@ SELECT status, COUNT(*) as count FROM orders GROUP BY status;
 -- - 暹羅風味店主: thaiShop / password123
 --
 -- ============================================================================
+
+-- ============================================================================
+-- 訂位數據 (Reservations)
+-- ============================================================================
+
+INSERT OR REPLACE INTO reservations (
+  id, restaurant_id, customer_name, customer_phone, customer_email,
+  party_size, reservation_date, reservation_time, duration_minutes,
+  table_id, special_requests, status, confirmation_code, notes,
+  confirmed_at, arrived_at, seated_at, completed_at, cancelled_at, no_show_at,
+  created_at, updated_at
+) VALUES
+-- 阿嬤的味道 — 各狀態測試數據
+('rsv_pending_001', '019469a0-0001-7000-8000-000000000001',
+ '林大明', '0912345678', 'ming@example.com',
+ 4, date('now', '+1 day'), '18:30', 90,
+ NULL, '需要兒童座椅', 'pending', 'P12345', NULL,
+ NULL, NULL, NULL, NULL, NULL, NULL,
+ unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+('rsv_pending_002', '019469a0-0001-7000-8000-000000000001',
+ '陳美玲', '0923456789', NULL,
+ 2, date('now', '+1 day'), '19:00', 60,
+ NULL, NULL, 'pending', 'P12346', NULL,
+ NULL, NULL, NULL, NULL, NULL, NULL,
+ unixepoch('now') * 1000, unixepoch('now') * 1000),
+
+('rsv_confirmed_001', '019469a0-0001-7000-8000-000000000001',
+ '張小華', '0934567890', 'hua@example.com',
+ 6, date('now'), '12:00', 120,
+ 3, '慶生派對，需要蛋糕服務', 'confirmed', 'C12347', NULL,
+ unixepoch('now') * 1000 - 86400000, NULL, NULL, NULL, NULL, NULL,
+ unixepoch('now') * 1000 - 172800000, unixepoch('now') * 1000),
+
+('rsv_arrived_001', '019469a0-0001-7000-8000-000000000001',
+ '王志明', '0945678901', NULL,
+ 3, date('now'), '11:30', 90,
+ 1, '靠窗座位', 'arrived', 'A12348', NULL,
+ unixepoch('now') * 1000 - 7200000, unixepoch('now') * 1000 - 600000, NULL, NULL, NULL, NULL,
+ unixepoch('now') * 1000 - 86400000, unixepoch('now') * 1000),
+
+('rsv_completed_001', '019469a0-0001-7000-8000-000000000001',
+ '李淑芬', '0956789012', 'shufen@example.com',
+ 4, date('now', '-1 day'), '19:00', 90,
+ 2, NULL, 'completed', 'D12349', '用餐體驗良好',
+ unixepoch('now') * 1000 - 172800000, unixepoch('now') * 1000 - 90000000,
+ unixepoch('now') * 1000 - 89400000, unixepoch('now') * 1000 - 84000000, NULL, NULL,
+ unixepoch('now') * 1000 - 259200000, unixepoch('now') * 1000),
+
+('rsv_cancelled_001', '019469a0-0001-7000-8000-000000000001',
+ '趙大偉', '0967890123', NULL,
+ 2, date('now', '+2 days'), '20:00', 60,
+ NULL, NULL, 'cancelled', 'X12350', '客戶因故取消',
+ unixepoch('now') * 1000 - 86400000, NULL, NULL, NULL,
+ unixepoch('now') * 1000 - 3600000, NULL,
+ unixepoch('now') * 1000 - 172800000, unixepoch('now') * 1000),
+
+('rsv_noshow_001', '019469a0-0001-7000-8000-000000000001',
+ '黃小琳', '0978901234', NULL,
+ 2, date('now', '-1 day'), '18:00', 60,
+ NULL, NULL, 'no_show', 'N12351', '未到店，已致電無人接聽',
+ unixepoch('now') * 1000 - 172800000, NULL, NULL, NULL, NULL,
+ unixepoch('now') * 1000 - 86400000,
+ unixepoch('now') * 1000 - 259200000, unixepoch('now') * 1000);
+
+-- ============================================================================
+-- 訂位時段 (Reservation Slots) — 今日 + 明日營業時段
+-- ============================================================================
+
+INSERT OR REPLACE INTO reservation_slots (
+  id, restaurant_id, date, time_slot, max_capacity, max_tables,
+  current_reservations, current_capacity, is_available, created_at, updated_at
+) VALUES
+-- 今日時段
+('slot_today_1100', '019469a0-0001-7000-8000-000000000001', date('now'), '11:00', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_today_1130', '019469a0-0001-7000-8000-000000000001', date('now'), '11:30', 20, 5, 1, 3, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_today_1200', '019469a0-0001-7000-8000-000000000001', date('now'), '12:00', 20, 5, 1, 6, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_today_1230', '019469a0-0001-7000-8000-000000000001', date('now'), '12:30', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_today_1800', '019469a0-0001-7000-8000-000000000001', date('now'), '18:00', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_today_1830', '019469a0-0001-7000-8000-000000000001', date('now'), '18:30', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_today_1900', '019469a0-0001-7000-8000-000000000001', date('now'), '19:00', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_today_1930', '019469a0-0001-7000-8000-000000000001', date('now'), '19:30', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_today_2000', '019469a0-0001-7000-8000-000000000001', date('now'), '20:00', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+-- 明日時段
+('slot_tmr_1100', '019469a0-0001-7000-8000-000000000001', date('now', '+1 day'), '11:00', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_tmr_1130', '019469a0-0001-7000-8000-000000000001', date('now', '+1 day'), '11:30', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_tmr_1200', '019469a0-0001-7000-8000-000000000001', date('now', '+1 day'), '12:00', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_tmr_1800', '019469a0-0001-7000-8000-000000000001', date('now', '+1 day'), '18:00', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_tmr_1830', '019469a0-0001-7000-8000-000000000001', date('now', '+1 day'), '18:30', 20, 5, 1, 4, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_tmr_1900', '019469a0-0001-7000-8000-000000000001', date('now', '+1 day'), '19:00', 20, 5, 1, 2, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_tmr_1930', '019469a0-0001-7000-8000-000000000001', date('now', '+1 day'), '19:30', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
+('slot_tmr_2000', '019469a0-0001-7000-8000-000000000001', date('now', '+1 day'), '20:00', 20, 5, 0, 0, 1, unixepoch('now') * 1000, unixepoch('now') * 1000);

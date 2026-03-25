@@ -50,6 +50,13 @@
       "when": 1770913831959,
       "tag": "0006_fix-fk-types-and-standardize-timestamps",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1774404000000,
+      "tag": "0012_reservations-schema",
+      "breakpoints": true
     }
   ]
 }

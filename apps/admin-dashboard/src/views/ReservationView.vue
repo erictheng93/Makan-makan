@@ -77,7 +77,7 @@
               {{ t("reservation.stats.noShowRate") }}
             </p>
             <p class="text-3xl font-bold text-orange-600 mt-2">
-              {{ (stats.noShowRate * 100).toFixed(1) }}%
+              {{ stats.noShowRate.toFixed(1) }}%
             </p>
           </div>
           <div class="p-3 bg-orange-100 rounded-full">
@@ -826,9 +826,14 @@ async function loadReservations() {
       limit: pagination.limit,
     });
 
-    // Handle response as array (API returns array of reservations)
-    reservations.value = Array.isArray(response) ? response : [];
-    pagination.total = reservations.value.length;
+    // Extract data from API response wrapper { success, data, pagination }
+    const payload = response?.success ? response.data : response;
+    reservations.value = Array.isArray(payload) ? payload : [];
+    if (response?.pagination) {
+      pagination.total = response.pagination.total || reservations.value.length;
+    } else {
+      pagination.total = reservations.value.length;
+    }
   } catch (error) {
     console.error("Load reservations error:", error);
     toast.error(t("reservation.loadError"));
