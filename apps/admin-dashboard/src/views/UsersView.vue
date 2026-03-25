@@ -729,15 +729,13 @@ const saveUser = async () => {
         role: userForm.value.role,
       });
     } else {
-      // 新增用戶
-      const restaurantId = authStore.restaurantId;
+      // 新增用戶（restaurantId 由後端從 auth context 推斷）
       await api.post("/users", {
         username: userForm.value.username,
         password: userForm.value.password,
         fullName: userForm.value.fullName,
         email: userForm.value.email,
         role: userForm.value.role,
-        restaurantId,
       });
     }
     closeUserModal();

@@ -176,9 +176,15 @@ export class UsersService {
    * Create new user with access control
    */
   async createUser(currentUser: any, userData: CreateUserData) {
+    // Default restaurantId to current user's restaurant if not provided
+    const effectiveRestaurantId =
+      userData.restaurantId != null
+        ? String(userData.restaurantId)
+        : currentUser.restaurantId;
+
     // 權限檢查
     if (
-      !this.canManageUser(currentUser, userData.role, userData.restaurantId)
+      !this.canManageUser(currentUser, userData.role, effectiveRestaurantId)
     ) {
       return {
         success: false,
@@ -187,12 +193,10 @@ export class UsersService {
       };
     }
 
-    // Convert restaurantId to string for database layer
+    // Build data for database layer
     const dbUserData = {
       ...userData,
-      restaurantId: userData.restaurantId
-        ? String(userData.restaurantId)
-        : undefined,
+      restaurantId: effectiveRestaurantId,
     };
     const newUser = await this.userService.createUser(dbUserData);
 
