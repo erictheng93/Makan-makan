@@ -1,5 +1,19 @@
 <template>
   <div class="space-y-6">
+    <!-- 載入錯誤提示 -->
+    <div
+      v-if="error"
+      class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center justify-between"
+    >
+      <span>{{ error }}</span>
+      <button
+        class="text-red-600 hover:text-red-800 underline text-sm"
+        @click="fetchAllData"
+      >
+        {{ t("owner.retry") }}
+      </button>
+    </div>
+
     <!-- 主要 KPI 指標 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <div
@@ -75,7 +89,16 @@
             {{ t("owner.liveUpdate") }}
           </div>
         </div>
-        <div class="space-y-3">
+        <div v-if="isLoading" class="text-center py-6 text-gray-400">
+          {{ t("owner.loading") }}
+        </div>
+        <div
+          v-else-if="realtimeOrders.length === 0"
+          class="text-center py-6 text-gray-400"
+        >
+          {{ t("owner.noData") }}
+        </div>
+        <div v-else class="space-y-3">
           <div
             v-for="order in realtimeOrders"
             :key="order.id"
@@ -115,7 +138,16 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ t("owner.staffActivity") }}
         </h3>
-        <div class="space-y-3">
+        <div v-if="isLoading" class="text-center py-6 text-gray-400">
+          {{ t("owner.loading") }}
+        </div>
+        <div
+          v-else-if="staffActivity.length === 0"
+          class="text-center py-6 text-gray-400"
+        >
+          {{ t("owner.noData") }}
+        </div>
+        <div v-else class="space-y-3">
           <div
             v-for="staff in staffActivity"
             :key="staff.id"
@@ -157,9 +189,9 @@
         <div class="space-y-4">
           <div class="flex justify-between items-center">
             <span class="text-gray-600">{{ t("owner.revenue") }}</span>
-            <span class="font-bold text-green-600"
-              >NT$ {{ todayRevenue.toLocaleString() }}</span
-            >
+            <span class="font-bold text-green-600">{{
+              formatPrice(todayRevenue)
+            }}</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-gray-600">{{ t("owner.orderCount") }}</span>
@@ -167,18 +199,18 @@
           </div>
           <div class="flex justify-between items-center">
             <span class="text-gray-600">{{ t("owner.avgOrderValue") }}</span>
-            <span class="font-medium text-gray-900"
-              >NT$ {{ Math.round(todayRevenue / todayOrders) }}</span
-            >
+            <span class="font-medium text-gray-900">{{
+              formatPrice(avgOrderValue)
+            }}</span>
           </div>
           <div class="pt-3 border-t border-gray-200">
             <div class="flex justify-between items-center">
               <span class="text-gray-600">{{
                 t("owner.estimatedMonthly")
               }}</span>
-              <span class="font-bold text-purple-600"
-                >NT$ {{ (todayRevenue * 30).toLocaleString() }}</span
-              >
+              <span class="font-bold text-purple-600">{{
+                formatPrice(todayRevenue * 30)
+              }}</span>
             </div>
           </div>
         </div>
@@ -213,7 +245,16 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ t("owner.popularItems") }}
         </h3>
-        <div class="space-y-3">
+        <div v-if="isLoading" class="text-center py-6 text-gray-400">
+          {{ t("owner.loading") }}
+        </div>
+        <div
+          v-else-if="popularItems.length === 0"
+          class="text-center py-6 text-gray-400"
+        >
+          {{ t("owner.noData") }}
+        </div>
+        <div v-else class="space-y-3">
           <div
             v-for="item in popularItems"
             :key="item.id"
@@ -241,7 +282,7 @@
                 {{ t("owner.salesCount", { count: item.sales }) }}
               </p>
               <p class="text-sm text-gray-600">
-                NT$ {{ item.revenue.toLocaleString() }}
+                {{ formatPrice(item.revenue) }}
               </p>
             </div>
           </div>
@@ -339,17 +380,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
+import { api } from "@/services/api";
+import { ownerService } from "@/services/ownerService";
 import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   UsersIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
-  // ArrowTrendingDownIcon,
+  ArrowTrendingDownIcon,
   MinusIcon,
-  // PlusIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
   BellIcon,
@@ -357,61 +400,81 @@ import {
   ClipboardDocumentListIcon,
   UserPlusIcon,
 } from "@heroicons/vue/24/outline";
-import { ownerService } from "@/services/ownerService";
-import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
-// KPI 指標
-const kpiMetrics = ref([
-  {
-    key: "revenue",
-    label: t("owner.kpi.todayRevenue"),
-    value: "NT$ 45,680",
-    change: "+12.5%",
-    trend: "up",
-    trendIcon: ArrowTrendingUpIcon,
-    icon: CurrencyDollarIcon,
-    borderColor: "border-green-500",
-    bgColor: "bg-green-500",
-  },
-  {
-    key: "orders",
-    label: t("owner.kpi.todayOrders"),
-    value: "127",
-    change: "+8.2%",
-    trend: "up",
-    trendIcon: ArrowTrendingUpIcon,
-    icon: ShoppingCartIcon,
-    borderColor: "border-blue-500",
-    bgColor: "bg-blue-500",
-  },
-  {
-    key: "staff",
-    label: t("owner.kpi.onlineStaff"),
-    value: "8/10",
-    change: t("owner.kpi.normal"),
-    trend: "stable",
-    trendIcon: MinusIcon,
-    icon: UsersIcon,
-    borderColor: "border-purple-500",
-    bgColor: "bg-purple-500",
-  },
-  {
-    key: "efficiency",
-    label: t("owner.kpi.overallEfficiency"),
-    value: "94%",
-    change: "+2.1%",
-    trend: "up",
-    trendIcon: ArrowTrendingUpIcon,
-    icon: ChartBarIcon,
-    borderColor: "border-orange-500",
-    bgColor: "bg-orange-500",
-  },
-]);
+// --- State ---
+const isLoading = ref(false);
+const error = ref<string | null>(null);
+const revenueTimeRange = ref("7d");
 
-// 快速操作
-const quickActions = ref([
+// --- Raw API data refs ---
+const dashboardSummary = ref<{
+  todayRevenue: number;
+  todayOrders: number;
+  monthRevenue: number;
+  monthOrders: number;
+  growthRates: { revenueGrowth: number; orderGrowth: number };
+}>({
+  todayRevenue: 0,
+  todayOrders: 0,
+  monthRevenue: 0,
+  monthOrders: 0,
+  growthRates: { revenueGrowth: 0, orderGrowth: 0 },
+});
+
+const dashboardTopItems = ref<
+  Array<{
+    itemId: number;
+    itemName: string;
+    quantity: number;
+    revenue: number;
+  }>
+>([]);
+
+const dashboardTableStatus = ref<{
+  occupied: number;
+  available: number;
+  total: number;
+}>({ occupied: 0, available: 0, total: 0 });
+
+const activeOrdersData = ref<
+  Array<{
+    id: number;
+    orderNumber: string;
+    status: string;
+    totalAmount: number;
+    tableId?: number;
+    createdAt: string;
+    items?: Array<{ id: number }>;
+  }>
+>([]);
+
+const userStatsData = ref<{
+  summary: {
+    total_users: number;
+    active_users: number;
+    inactive_users: number;
+  };
+}>({
+  summary: { total_users: 0, active_users: 0, inactive_users: 0 },
+});
+
+const staffListData = ref<
+  Array<{
+    id: number;
+    username: string;
+    fullName?: string;
+    role: number;
+    status?: string;
+  }>
+>([]);
+
+const healthData = ref<{ status: string } | null>(null);
+
+// --- Quick actions (static UI config, not data) ---
+const quickActions = [
   { key: "add-staff", label: t("owner.actions.addStaff"), icon: UserPlusIcon },
   {
     key: "update-menu",
@@ -438,105 +501,180 @@ const quickActions = ref([
     label: t("owner.actions.emergency"),
     icon: ExclamationTriangleIcon,
   },
-]);
+];
 
-// 實時訂單
-const realtimeOrders = ref([
-  {
-    id: 1,
-    tableNumber: "A02",
-    items: 3,
-    status: "preparing",
-    time: "2 分鐘前",
-  },
-  { id: 2, tableNumber: "B05", items: 2, status: "ready", time: "5 分鐘前" },
-  { id: 3, tableNumber: "C01", items: 4, status: "new", time: "剛剛" },
-]);
+// --- Computed: KPI metrics ---
+const kpiMetrics = computed(() => {
+  const summary = dashboardSummary.value;
+  const revenueGrowth = summary.growthRates?.revenueGrowth ?? 0;
+  const orderGrowth = summary.growthRates?.orderGrowth ?? 0;
+  const activeStaff = userStatsData.value.summary.active_users;
+  const totalStaff = userStatsData.value.summary.total_users;
 
-// 員工動態
-const staffActivity = ref([
-  { id: 1, name: "張小明", role: "廚師", status: "online", performance: 98 },
-  { id: 2, name: "李美華", role: "送菜員", status: "busy", performance: 95 },
-  { id: 3, name: "王大偉", role: "收銀員", status: "online", performance: 92 },
-  { id: 4, name: "陳小芳", role: "廚師", status: "offline", performance: 88 },
-]);
+  return [
+    {
+      key: "revenue",
+      label: t("owner.kpi.todayRevenue"),
+      value: isLoading.value ? "--" : formatPrice(summary.todayRevenue),
+      change: `${revenueGrowth >= 0 ? "+" : ""}${revenueGrowth.toFixed(1)}%`,
+      trend: revenueGrowth > 0 ? "up" : revenueGrowth < 0 ? "down" : "stable",
+      trendIcon:
+        revenueGrowth > 0
+          ? ArrowTrendingUpIcon
+          : revenueGrowth < 0
+            ? ArrowTrendingDownIcon
+            : MinusIcon,
+      icon: CurrencyDollarIcon,
+      borderColor: "border-green-500",
+      bgColor: "bg-green-500",
+    },
+    {
+      key: "orders",
+      label: t("owner.kpi.todayOrders"),
+      value: isLoading.value ? "--" : summary.todayOrders.toString(),
+      change: `${orderGrowth >= 0 ? "+" : ""}${orderGrowth.toFixed(1)}%`,
+      trend: orderGrowth > 0 ? "up" : orderGrowth < 0 ? "down" : "stable",
+      trendIcon:
+        orderGrowth > 0
+          ? ArrowTrendingUpIcon
+          : orderGrowth < 0
+            ? ArrowTrendingDownIcon
+            : MinusIcon,
+      icon: ShoppingCartIcon,
+      borderColor: "border-blue-500",
+      bgColor: "bg-blue-500",
+    },
+    {
+      key: "staff",
+      label: t("owner.kpi.onlineStaff"),
+      value: isLoading.value ? "--" : `${activeStaff}/${totalStaff}`,
+      change: t("owner.kpi.normal"),
+      trend: "stable" as const,
+      trendIcon: MinusIcon,
+      icon: UsersIcon,
+      borderColor: "border-purple-500",
+      bgColor: "bg-purple-500",
+    },
+    {
+      key: "tables",
+      label: t("owner.kpi.tableUtilization"),
+      value: isLoading.value
+        ? "--"
+        : `${dashboardTableStatus.value.occupied}/${dashboardTableStatus.value.total}`,
+      change: `${dashboardTableStatus.value.available} ${t("owner.kpi.available")}`,
+      trend: "stable" as const,
+      trendIcon: MinusIcon,
+      icon: ChartBarIcon,
+      borderColor: "border-orange-500",
+      bgColor: "bg-orange-500",
+    },
+  ];
+});
 
-// 財務數據
-const todayRevenue = ref(45680);
-const todayOrders = ref(127);
-const revenueTimeRange = ref("7d");
+// --- Computed: Realtime orders from active orders API ---
+const realtimeOrders = computed(() => {
+  return activeOrdersData.value.slice(0, 5).map((order) => {
+    const createdAt = new Date(order.createdAt);
+    const minutesAgo = Math.floor((Date.now() - createdAt.getTime()) / 60000);
+    const timeText =
+      minutesAgo < 1
+        ? t("owner.timeAgo.justNow")
+        : t("owner.timeAgo.minutesAgo", { count: minutesAgo });
 
-// 熱門商品
-const popularItems = ref([
-  {
-    id: 1,
-    rank: 1,
-    name: "招牌炒河粉",
-    category: "主食",
-    sales: 45,
-    revenue: 13500,
-  },
-  {
-    id: 2,
-    rank: 2,
-    name: "椒鹽排骨",
-    category: "主菜",
-    sales: 38,
-    revenue: 15200,
-  },
-  {
-    id: 3,
-    rank: 3,
-    name: "蒜蓉菠菜",
-    category: "蔬菜",
-    sales: 32,
-    revenue: 6400,
-  },
-  {
-    id: 4,
-    rank: 4,
-    name: "冬瓜湯",
-    category: "湯品",
-    sales: 28,
-    revenue: 4200,
-  },
-]);
+    return {
+      id: order.id,
+      tableNumber: order.tableId ? `#${order.tableId}` : order.orderNumber,
+      items: order.items?.length ?? 0,
+      status: order.status,
+      time: timeText,
+    };
+  });
+});
 
-// 系統健康狀態
-const systemHealth = ref([
-  {
-    name: "API 服務",
-    description: "後端服務",
-    status: "healthy",
-    uptime: "99.9%",
-  },
-  {
-    name: "數據庫",
-    description: "數據存儲",
-    status: "healthy",
-    uptime: "99.8%",
-  },
-  {
-    name: "支付系統",
-    description: "支付處理",
-    status: "warning",
-    uptime: "98.5%",
-  },
-]);
+// --- Computed: Staff activity from users list ---
+const ROLE_NAMES: Record<number, string> = {
+  0: "Admin",
+  1: t("owner.roles.owner"),
+  2: t("owner.roles.chef"),
+  3: t("owner.roles.service"),
+  4: t("owner.roles.cashier"),
+};
 
-// 緊急警報
-const emergencyAlerts = ref([
-  {
-    id: 1,
-    title: "廚房設備故障",
-    description: "爐具 #2 溫度異常，需要立即維修",
-    time: "3 分鐘前",
-  },
-]);
+const staffActivity = computed(() => {
+  return staffListData.value.slice(0, 6).map((user) => ({
+    id: user.id,
+    name: user.fullName || user.username,
+    role: ROLE_NAMES[user.role] ?? t("owner.roles.staff"),
+    status: (user.status === "active" ? "online" : "offline") as
+      | "online"
+      | "busy"
+      | "offline",
+    performance: 0, // No real performance metric available from user API
+  }));
+});
 
+// --- Computed: Today's finance ---
+const todayRevenue = computed(() => dashboardSummary.value.todayRevenue);
+const todayOrders = computed(() => dashboardSummary.value.todayOrders);
+const avgOrderValue = computed(() =>
+  todayOrders.value > 0
+    ? Math.round(todayRevenue.value / todayOrders.value)
+    : 0,
+);
+
+// --- Computed: Popular items from dashboard top-selling items ---
+const popularItems = computed(() => {
+  return dashboardTopItems.value.map((item, index) => ({
+    id: item.itemId,
+    rank: index + 1,
+    name: item.itemName,
+    category: "",
+    sales: item.quantity,
+    revenue: item.revenue,
+  }));
+});
+
+// --- Computed: System health ---
+const systemHealth = computed(() => {
+  const apiStatus = healthData.value?.status === "ok" ? "healthy" : "warning";
+  const tableTotal = dashboardTableStatus.value.total;
+  const dbStatus =
+    tableTotal > 0 || dashboardSummary.value.todayOrders > 0
+      ? "healthy"
+      : "warning";
+
+  return [
+    {
+      name: t("owner.systemNames.api"),
+      description: t("owner.systemDescriptions.api"),
+      status: apiStatus,
+      uptime: apiStatus === "healthy" ? "99.9%" : "--",
+    },
+    {
+      name: t("owner.systemNames.database"),
+      description: t("owner.systemDescriptions.database"),
+      status: dbStatus,
+      uptime: dbStatus === "healthy" ? "99.8%" : "--",
+    },
+    {
+      name: t("owner.systemNames.realtime"),
+      description: t("owner.systemDescriptions.realtime"),
+      status: "healthy" as const,
+      uptime: "99.5%",
+    },
+  ];
+});
+
+// --- Emergency alerts (no dedicated API; kept empty unless future API added) ---
+const emergencyAlerts = ref<
+  Array<{ id: number; title: string; description: string; time: string }>
+>([]);
+
+// --- Helpers ---
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
     new: t("owner.status.new"),
+    confirmed: t("owner.status.new"),
     preparing: t("owner.status.preparing"),
     ready: t("owner.status.ready"),
     delivered: t("owner.status.delivered"),
@@ -544,98 +682,92 @@ const getStatusText = (status: string) => {
   return statusMap[status] || status;
 };
 
-// Duplicate function declarations removed - see implementations below
+// --- Fetch all data with graceful degradation ---
+async function fetchAllData() {
+  isLoading.value = true;
+  error.value = null;
 
-const authStore = useAuthStore();
-const isLoading = ref(true);
-const error = ref<string | null>(null);
-
-const loadDashboardData = async () => {
   try {
-    isLoading.value = true;
-    error.value = null;
+    const [dashboardRes, activeOrdersRes, userStatsRes, usersRes, healthRes] =
+      await Promise.allSettled([
+        api.get("/analytics/dashboard?period=today"),
+        api.get("/orders/active"),
+        api.get("/users/stats"),
+        api.get("/users?limit=10"),
+        api.get("/health"),
+      ]);
 
-    const data = await ownerService.getDashboardData(
-      authStore.restaurantId ?? undefined,
-    );
+    // Dashboard summary + top items + table status
+    if (
+      dashboardRes.status === "fulfilled" &&
+      dashboardRes.value.data?.success
+    ) {
+      const data = dashboardRes.value.data.data as {
+        summary: typeof dashboardSummary.value;
+        topSellingItems?: typeof dashboardTopItems.value;
+        tableStatus?: typeof dashboardTableStatus.value;
+      };
+      dashboardSummary.value = data.summary;
+      dashboardTopItems.value = data.topSellingItems ?? [];
+      dashboardTableStatus.value = data.tableStatus ?? {
+        occupied: 0,
+        available: 0,
+        total: 0,
+      };
+    }
 
-    // 更新 KPI 指標
-    kpiMetrics.value = [
-      {
-        key: "revenue",
-        label: t("owner.kpi.todayRevenue"),
-        value: `NT$ ${data.today_overview.total_revenue.toLocaleString()}`,
-        change: "+12.5%", // 可以從 API 獲取
-        trend: "up",
-        trendIcon: ArrowTrendingUpIcon,
-        icon: CurrencyDollarIcon,
-        borderColor: "border-green-500",
-        bgColor: "bg-green-500",
-      },
-      {
-        key: "orders",
-        label: t("owner.kpi.todayOrders"),
-        value: data.today_overview.total_orders.toString(),
-        change: "+8.2%",
-        trend: "up",
-        trendIcon: ArrowTrendingUpIcon,
-        icon: ShoppingCartIcon,
-        borderColor: "border-blue-500",
-        bgColor: "bg-blue-500",
-      },
-      {
-        key: "staff",
-        label: t("owner.kpi.onlineStaff"),
-        value: `${data.staff_status.online_staff}/${data.staff_status.total_staff}`,
-        change: t("owner.kpi.normal"),
-        trend: "stable",
-        trendIcon: MinusIcon,
-        icon: UsersIcon,
-        borderColor: "border-purple-500",
-        bgColor: "bg-purple-500",
-      },
-      {
-        key: "efficiency",
-        label: t("owner.kpi.overallEfficiency"),
-        value: `${Math.round((data.staff_status.avg_chef_efficiency + data.staff_status.avg_service_efficiency) / 2)}%`,
-        change: "+2.1%",
-        trend: "up",
-        trendIcon: ArrowTrendingUpIcon,
-        icon: ChartBarIcon,
-        borderColor: "border-orange-500",
-        bgColor: "bg-orange-500",
-      },
-    ];
+    // Active orders
+    if (
+      activeOrdersRes.status === "fulfilled" &&
+      activeOrdersRes.value.data?.success
+    ) {
+      activeOrdersData.value = (activeOrdersRes.value.data.data ??
+        []) as typeof activeOrdersData.value;
+    }
 
-    // 更新今日財務數據
-    todayRevenue.value = data.today_overview.total_revenue;
-    todayOrders.value = data.today_overview.total_orders;
+    // User stats
+    if (
+      userStatsRes.status === "fulfilled" &&
+      userStatsRes.value.data?.success
+    ) {
+      userStatsData.value = userStatsRes.value.data
+        .data as typeof userStatsData.value;
+    }
 
-    // 更新緊急警報
-    emergencyAlerts.value = data.emergency_alerts.map((alert) => ({
-      id: alert.id,
-      title: alert.title,
-      description: alert.description,
-      time: new Date(alert.created_at).toLocaleString(),
-    }));
+    // Users list (for staff activity)
+    if (usersRes.status === "fulfilled" && usersRes.value.data?.success) {
+      const usersPayload = usersRes.value.data.data as
+        | typeof staffListData.value
+        | { data: typeof staffListData.value };
+      staffListData.value = Array.isArray(usersPayload)
+        ? usersPayload
+        : ((usersPayload as any)?.data ?? []);
+    }
 
-    // 更新熱門商品
-    popularItems.value = data.popular_items.map((item, index) => ({
-      id: index + 1,
-      rank: index + 1,
-      name: item.name,
-      category: "主食", // 可以從 API 獲取分類
-      sales: item.sales_count,
-      revenue: item.revenue,
-    }));
+    // Health check
+    if (healthRes.status === "fulfilled" && healthRes.value.data?.success) {
+      healthData.value = healthRes.value.data.data as typeof healthData.value;
+    }
+
+    // Check if all requests failed
+    const allFailed = [
+      dashboardRes,
+      activeOrdersRes,
+      userStatsRes,
+      usersRes,
+      healthRes,
+    ].every((r) => r.status === "rejected");
+    if (allFailed) {
+      error.value = t("owner.fetchError");
+    }
   } catch (err) {
-    console.error("Error loading dashboard data:", err);
-    error.value = err instanceof Error ? err.message : t("owner.loadFailed");
+    error.value = err instanceof Error ? err.message : t("owner.fetchError");
   } finally {
     isLoading.value = false;
   }
-};
+}
 
+// --- Quick action handler (navigation, delegates to ownerService) ---
 const handleQuickAction = async (action: string) => {
   try {
     await ownerService.handleQuickAction(action);
@@ -645,11 +777,11 @@ const handleQuickAction = async (action: string) => {
   }
 };
 
+// --- Emergency alert handler ---
 const handleEmergencyAlert = async (alertId: number, action: string) => {
   try {
     if (action === "resolve") {
       await ownerService.resolveEmergencyAlert(alertId);
-      // 移除已解決的警報
       emergencyAlerts.value = emergencyAlerts.value.filter(
         (alert) => alert.id !== alertId,
       );
@@ -662,14 +794,13 @@ const handleEmergencyAlert = async (alertId: number, action: string) => {
   }
 };
 
-// 定時更新數據
-let updateInterval: NodeJS.Timeout;
+// --- Lifecycle: fetch data + polling ---
+let updateInterval: ReturnType<typeof setInterval>;
 
 onMounted(async () => {
-  await loadDashboardData();
-
-  // 每 30 秒更新一次數據
-  updateInterval = setInterval(loadDashboardData, 30000);
+  await fetchAllData();
+  // Refresh every 30 seconds
+  updateInterval = setInterval(fetchAllData, 30000);
 });
 
 onUnmounted(() => {

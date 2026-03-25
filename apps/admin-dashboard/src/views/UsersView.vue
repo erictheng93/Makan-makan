@@ -464,7 +464,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import { api } from "@/services/api";
-import { useAuthStore } from "@/stores/auth";
+
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -507,7 +507,6 @@ const statusFilter = ref("");
 const showUserModal = ref(false);
 const editingUser = ref<User | null>(null);
 
-const authStore = useAuthStore();
 const isLoading = ref(false);
 
 // 用戶數據（從 API 獲取）

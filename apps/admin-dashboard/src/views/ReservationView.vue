@@ -826,11 +826,11 @@ async function loadReservations() {
       limit: pagination.limit,
     });
 
-    // Extract data from API response wrapper { success, data, pagination }
+    // Extract data from API response wrapper { success, data, meta }
     const payload = response?.success ? response.data : response;
     reservations.value = Array.isArray(payload) ? payload : [];
-    if (response?.pagination) {
-      pagination.total = response.pagination.total || reservations.value.length;
+    if (response?.meta) {
+      pagination.total = response.meta.total || reservations.value.length;
     } else {
       pagination.total = reservations.value.length;
     }

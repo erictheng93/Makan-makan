@@ -66,10 +66,8 @@
               }}</span>
               <span :class="`approval-status ${approval.status || 'pending'}`">
                 {{
-                  t(
-                    `leaves.approval.${approval.status || "pending"}`,
-                    t("leaves.approval.pending"),
-                  )
+                  t(`leaves.approval.${approval.status || "pending"}`) ||
+                  t("leaves.approval.pending")
                 }}
               </span>
             </div>

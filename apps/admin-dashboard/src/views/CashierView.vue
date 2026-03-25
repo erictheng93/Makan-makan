@@ -684,7 +684,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import {
   MagnifyingGlassIcon,
   ArrowPathIcon,
@@ -704,9 +704,17 @@ import {
 } from "@heroicons/vue/24/solid";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
+const authStore = useAuthStore();
+
+// Loading states
+const isLoadingOrders = ref(false);
+const isLoadingShift = ref(false);
+const isProcessing = ref(false);
 
 // Type definitions
 interface OrderItem {
@@ -747,30 +755,32 @@ const completedOrder = ref<CashierOrder | null>(null);
 const showShiftReport = ref(false);
 const showRefundDialog = ref(false);
 const actualCashAmount = ref(0);
-const todayRevenue = ref(1250.75);
+const todayRevenue = ref(0);
 
 // 班次資訊
 const currentShift = ref({
-  name: "早班",
-  startTime: "08:00",
-  endTime: "16:00",
-  cashierName: "李小明",
+  id: "",
+  name: "",
+  startTime: "",
+  endTime: "",
+  cashierName: "",
+  registerId: "",
 });
 
 // 班次報告數據
 const shiftReport = ref({
-  name: "早班",
-  startTime: "08:00",
-  endTime: "16:00",
-  cashierName: "李小明",
-  cashTotal: 450.25,
-  cardTotal: 680.5,
-  digitalTotal: 120.0,
-  totalRevenue: 1250.75,
-  totalOrders: 28,
-  avgOrderValue: 44.67,
-  refundCount: 2,
-  systemCashAmount: 450.25,
+  name: "",
+  startTime: "",
+  endTime: "",
+  cashierName: "",
+  cashTotal: 0,
+  cardTotal: 0,
+  digitalTotal: 0,
+  totalRevenue: 0,
+  totalOrders: 0,
+  avgOrderValue: 0,
+  refundCount: 0,
+  systemCashAmount: 0,
 });
 
 // 退款數據
@@ -797,91 +807,8 @@ const paymentMethods = computed(() => [
   },
 ]);
 
-// 模擬待結帳訂單
-const orders = ref([
-  {
-    id: 1,
-    orderNumber: "ORD-001",
-    tableNumber: "T01",
-    customerName: "張先生",
-    status: "ready",
-    paymentStatus: "unpaid",
-    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    subtotal: 45.0,
-    serviceCharge: 4.5,
-    taxAmount: 2.97,
-    discountAmount: 0,
-    totalAmount: 52.47,
-    items: [
-      {
-        id: 1,
-        menuItemName: "招牌炒飯",
-        quantity: 2,
-        unitPrice: 12.0,
-        totalPrice: 24.0,
-      },
-      {
-        id: 2,
-        menuItemName: "冰奶茶",
-        quantity: 1,
-        unitPrice: 5.0,
-        totalPrice: 5.0,
-      },
-      {
-        id: 3,
-        menuItemName: "春卷",
-        quantity: 2,
-        unitPrice: 8.0,
-        totalPrice: 16.0,
-      },
-    ],
-  },
-  {
-    id: 2,
-    orderNumber: "ORD-002",
-    tableNumber: "T03",
-    customerName: "李小姐",
-    status: "served",
-    paymentStatus: "unpaid",
-    createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    subtotal: 28.5,
-    serviceCharge: 2.85,
-    taxAmount: 1.88,
-    discountAmount: 5.0,
-    totalAmount: 28.23,
-    couponCode: "WELCOME10", // 示例優惠券代碼
-    items: [
-      {
-        id: 4,
-        menuItemName: "南洋咖啡",
-        quantity: 2,
-        unitPrice: 2.8,
-        totalPrice: 5.6,
-      },
-      {
-        id: 5,
-        menuItemName: "咖椰吐司",
-        quantity: 1,
-        unitPrice: 3.5,
-        totalPrice: 3.5,
-      },
-      {
-        id: 6,
-        menuItemName: "半生熟蛋",
-        quantity: 2,
-        unitPrice: 2.4,
-        totalPrice: 4.8,
-      },
-      {
-        id: 7,
-        menuItemName: "紅豆冰",
-        quantity: 2,
-        unitPrice: 6.5,
-        totalPrice: 13.0,
-      },
-    ],
-  },
-]);
+// 待結帳訂單 (loaded from API)
+const orders = ref<CashierOrder[]>([]);
 
 // 計算屬性
 const filteredOrders = computed(() => {
@@ -933,10 +860,108 @@ const cashDifference = computed(() => {
   return actualCashAmount.value - shiftReport.value.systemCashAmount;
 });
 
+// --- Data loading functions ---
+const loadOrders = async () => {
+  isLoadingOrders.value = true;
+  try {
+    const response = await api.get("/orders", {
+      status: "ready,served",
+      limit: 50,
+    });
+    if (response.data.success && response.data.data) {
+      const payload = response.data.data;
+      const rawOrders = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as any)?.data)
+          ? (payload as any).data
+          : [];
+      // Map API orders to CashierOrder shape, filtering unpaid
+      orders.value = rawOrders
+        .filter((o: any) => o.paymentStatus === "unpaid" || !o.paymentStatus)
+        .map((o: any) => ({
+          id: o.id,
+          orderNumber: o.orderNumber || `ORD-${o.id}`,
+          tableNumber: o.tableNumber || o.tableName || "",
+          customerName: o.customerName || "",
+          status: o.status,
+          paymentStatus: o.paymentStatus || "unpaid",
+          createdAt: o.createdAt,
+          subtotal: o.subtotal ?? o.totalAmount ?? 0,
+          serviceCharge: o.serviceCharge ?? 0,
+          taxAmount: o.taxAmount ?? 0,
+          discountAmount: o.discountAmount ?? 0,
+          totalAmount: o.totalAmount ?? 0,
+          paymentMethod: o.paymentMethod,
+          couponCode: o.couponCode,
+          items: (o.items || []).map((item: any) => ({
+            id: item.id,
+            menuItemName: item.menuItemName || item.name || "",
+            quantity: item.quantity || 1,
+            unitPrice: item.unitPrice ?? item.price ?? 0,
+            totalPrice: item.totalPrice ?? 0,
+          })),
+        })) as CashierOrder[];
+    }
+  } catch (error) {
+    console.error("Failed to load orders:", error);
+  } finally {
+    isLoadingOrders.value = false;
+  }
+};
+
+const loadCurrentShift = async () => {
+  isLoadingShift.value = true;
+  try {
+    // Try to get registers first, then current shift for the first one
+    const regResponse = await api.get("/pos/registers", {
+      restaurantId: authStore.restaurantId,
+    });
+    if (regResponse.data.success && regResponse.data.data) {
+      const registers = regResponse.data.data as any[];
+      const activeRegister = registers.find((r: any) => r.status === "active");
+      if (activeRegister) {
+        currentShift.value.registerId = activeRegister.id;
+        const shiftResponse = await api.get(
+          `/pos/shifts/current/${activeRegister.id}`,
+        );
+        if (shiftResponse.data.success && shiftResponse.data.data) {
+          const shift = shiftResponse.data.data as any;
+          currentShift.value = {
+            id: shift.id || "",
+            name: shift.name || "",
+            startTime: shift.startTime || "",
+            endTime: shift.endTime || "",
+            cashierName: shift.operatorName || authStore.user?.username || "",
+            registerId: activeRegister.id,
+          };
+        }
+      }
+    }
+  } catch {
+    // No active shift — keep defaults
+  } finally {
+    isLoadingShift.value = false;
+  }
+};
+
+const loadTodayRevenue = async () => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const response = await api.get("/pos/reports/daily", {
+      date: today,
+    });
+    if (response.data.success && response.data.data) {
+      const report = response.data.data as any;
+      todayRevenue.value = report.summary?.totalSales ?? report.totalSales ?? 0;
+    }
+  } catch {
+    // Keep default 0
+  }
+};
+
 // 方法
 const refreshOrders = async () => {
-  // 模擬API調用
-  console.log("Refreshing cashier orders...");
+  await loadOrders();
 };
 
 const selectOrder = (order: CashierOrder) => {
@@ -975,26 +1000,53 @@ const getOrderStatusText = (status: string) => {
 };
 
 const processPayment = async () => {
-  if (!canProcessPayment.value) return;
+  if (!canProcessPayment.value || !selectedOrder.value) return;
 
+  isProcessing.value = true;
   try {
-    // 模擬支付處理
-    const orderIndex = orders.value.findIndex(
-      (o) => o.id === selectedOrder.value!.id,
+    // Update order status to completed/paid via API
+    const statusResponse = await api.put(
+      `/orders/${selectedOrder.value.id}/status`,
+      { status: "completed" },
     );
-    if (orderIndex > -1) {
-      orders.value[orderIndex].paymentStatus = "paid";
-      orders.value[orderIndex].status = "completed" as string;
-      (orders.value[orderIndex] as CashierOrder).paymentMethod =
-        selectedPaymentMethod.value;
 
-      completedOrder.value = { ...selectedOrder.value! };
+    if (statusResponse.data.success) {
+      // Also record payment via POS if we have a register context
+      if (currentShift.value.registerId) {
+        try {
+          await api.post("/pos/quick-payment", {
+            orderId: String(selectedOrder.value.id),
+            registerId: currentShift.value.registerId,
+            amount: selectedOrder.value.totalAmount,
+            paymentMethod: selectedPaymentMethod.value,
+            operatorId: authStore.user?.id ?? 0,
+          });
+        } catch {
+          // Non-critical: payment recorded even if POS tracking fails
+          console.warn("POS quick-payment tracking failed");
+        }
+      }
+
+      const orderIndex = orders.value.findIndex(
+        (o) => o.id === selectedOrder.value!.id,
+      );
+      if (orderIndex > -1) {
+        orders.value[orderIndex].paymentStatus = "paid";
+        orders.value[orderIndex].status = "completed";
+        orders.value[orderIndex].paymentMethod = selectedPaymentMethod.value;
+      }
+
+      completedOrder.value = { ...selectedOrder.value };
       showPaymentSuccess.value = true;
       selectedOrder.value = null;
+
+      // Update today's revenue
+      todayRevenue.value += completedOrder.value!.totalAmount;
     }
   } catch (error) {
     console.error("Payment processing error:", error);
-    alert(t("cashier.alerts.paymentFailed"));
+  } finally {
+    isProcessing.value = false;
   }
 };
 
@@ -1019,17 +1071,44 @@ const applyDiscount = () => {
   }
 };
 
-const printReceipt = () => {
-  alert(t("cashier.alerts.printInDev"));
+const printReceipt = async () => {
+  if (!selectedOrder.value || !currentShift.value.registerId) return;
+  isProcessing.value = true;
+  try {
+    await api.post("/pos/receipts/print", {
+      orderId: String(selectedOrder.value.id),
+      registerId: currentShift.value.registerId,
+      items: selectedOrder.value.items,
+      totalAmount: selectedOrder.value.totalAmount,
+      paymentMethod: selectedPaymentMethod.value,
+    });
+  } catch (error) {
+    console.error("Failed to print receipt:", error);
+  } finally {
+    isProcessing.value = false;
+  }
 };
 
-const printFinalReceipt = () => {
-  alert(
-    t("cashier.alerts.printing", {
-      orderNumber: completedOrder.value?.orderNumber,
-    }),
-  );
-  closePaymentSuccess();
+const printFinalReceipt = async () => {
+  if (!completedOrder.value || !currentShift.value.registerId) {
+    closePaymentSuccess();
+    return;
+  }
+  isProcessing.value = true;
+  try {
+    await api.post("/pos/receipts/print", {
+      orderId: String(completedOrder.value.id),
+      registerId: currentShift.value.registerId,
+      items: completedOrder.value.items,
+      totalAmount: completedOrder.value.totalAmount,
+      paymentMethod: completedOrder.value.paymentMethod || "cash",
+    });
+  } catch (error) {
+    console.error("Failed to print receipt:", error);
+  } finally {
+    isProcessing.value = false;
+    closePaymentSuccess();
+  }
 };
 
 const closePaymentSuccess = () => {
@@ -1038,7 +1117,44 @@ const closePaymentSuccess = () => {
 };
 
 // 班次報告相關方法
-const openShiftReport = () => {
+const openShiftReport = async () => {
+  if (!currentShift.value.id) {
+    showShiftReport.value = true;
+    actualCashAmount.value = shiftReport.value.systemCashAmount;
+    return;
+  }
+  isProcessing.value = true;
+  try {
+    const response = await api.get(
+      `/pos/shifts/${currentShift.value.id}/report`,
+    );
+    if (response.data.success && response.data.data) {
+      const report = response.data.data as any;
+      const shift = report.shift || {};
+      shiftReport.value = {
+        name: shift.name || currentShift.value.name,
+        startTime: shift.startTime || currentShift.value.startTime,
+        endTime: shift.endTime || currentShift.value.endTime,
+        cashierName: currentShift.value.cashierName,
+        cashTotal: report.sales?.cash ?? report.cashTotal ?? 0,
+        cardTotal: report.sales?.card ?? report.cardTotal ?? 0,
+        digitalTotal: report.sales?.digital ?? report.digitalTotal ?? 0,
+        totalRevenue: report.sales?.total ?? report.totalRevenue ?? 0,
+        totalOrders: report.orders ?? 0,
+        avgOrderValue:
+          report.orders > 0
+            ? Math.round(((report.sales?.total ?? 0) / report.orders) * 100) /
+              100
+            : 0,
+        refundCount: report.refunds ?? 0,
+        systemCashAmount: report.sales?.cash ?? 0,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to load shift report:", error);
+  } finally {
+    isProcessing.value = false;
+  }
   showShiftReport.value = true;
   actualCashAmount.value = shiftReport.value.systemCashAmount;
 };
@@ -1048,13 +1164,31 @@ const closeShiftReport = () => {
 };
 
 const printShiftReport = () => {
-  alert(t("cashier.alerts.printingShiftReport"));
+  // TODO: Integrate with print service when available
+  console.log("Print shift report for shift:", currentShift.value.id);
 };
 
-const endShift = () => {
-  if (confirm(t("cashier.confirms.endShift"))) {
-    alert(t("cashier.alerts.shiftEnded"));
+const endShift = async () => {
+  if (!currentShift.value.id || !confirm(t("cashier.confirms.endShift")))
+    return;
+  isProcessing.value = true;
+  try {
+    await api.post(`/pos/shifts/${currentShift.value.id}/end`, {
+      endingCash: actualCashAmount.value,
+    });
+    currentShift.value = {
+      id: "",
+      name: "",
+      startTime: "",
+      endTime: "",
+      cashierName: "",
+      registerId: "",
+    };
     closeShiftReport();
+  } catch (error) {
+    console.error("Failed to end shift:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
@@ -1074,15 +1208,18 @@ const closeRefundDialog = () => {
 };
 
 const processRefund = async () => {
+  if (!canProcessRefund.value) return;
+
+  isProcessing.value = true;
   try {
-    // 模擬退款處理
-    alert(
-      t("cashier.alerts.refundSuccess", {
-        orderNumber: refundData.value.orderNumber,
-        amount: formatPrice(refundData.value.amount),
-        reason: getRefundReasonText(refundData.value.reason),
-      }),
-    );
+    await api.post("/pos/refunds/create", {
+      orderId: refundData.value.orderNumber,
+      amount: refundData.value.amount,
+      reason: refundData.value.reason,
+      notes: refundData.value.notes,
+      operatorId: authStore.user?.id ?? 0,
+      registerId: currentShift.value.registerId,
+    });
 
     // 更新統計數據
     shiftReport.value.refundCount++;
@@ -1092,20 +1229,15 @@ const processRefund = async () => {
     closeRefundDialog();
   } catch (error) {
     console.error("Refund processing error:", error);
-    alert(t("cashier.alerts.refundFailed"));
+  } finally {
+    isProcessing.value = false;
   }
 };
 
-const getRefundReasonText = (reason: string) => {
-  const reasons: Record<string, string> = {
-    quality_issue: t("cashier.reasons.qualityIssue"),
-    wrong_order: t("cashier.reasons.wrongOrder"),
-    customer_change: t("cashier.reasons.customerChange"),
-    service_issue: t("cashier.reasons.serviceIssue"),
-    other: t("cashier.reasons.other"),
-  };
-  return reasons[reason] || reason;
-};
+// 生命週期
+onMounted(async () => {
+  await Promise.all([loadOrders(), loadCurrentShift(), loadTodayRevenue()]);
+});
 </script>
 
 <style scoped>

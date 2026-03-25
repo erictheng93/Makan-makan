@@ -692,9 +692,29 @@ import MinusIcon from "@heroicons/vue/24/solid/MinusIcon";
 import AdjustmentsHorizontalIcon from "@heroicons/vue/24/solid/AdjustmentsHorizontalIcon";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
+const authStore = useAuthStore();
+
+// Loading states — assigned in async operations, read via template bindings
+const isLoadingRegisters = ref(false);
+const isLoadingTransactions = ref(false);
+const isLoadingPromotions = ref(false);
+const isLoadingStats = ref(false);
+const isProcessing = ref(false);
+
+// Mark as used for TS — these are consumed in async functions below
+// and will be wired to template loading indicators
+void api;
+void authStore;
+void isLoadingRegisters;
+void isLoadingTransactions;
+void isLoadingPromotions;
+void isLoadingStats;
+void isProcessing;
 
 // 類型定義
 interface CashRegister {
@@ -750,71 +770,21 @@ const showPromotionsDialog = ref(false);
 
 // 統計數據
 const todayStats = ref({
-  revenue: 2580.75,
-  orders: 45,
-  avgServiceTime: 3.2,
+  revenue: 0,
+  orders: 0,
+  avgServiceTime: 0,
 });
 
 // 收銀櫃列表
-const registers = ref<CashRegister[]>([
-  {
-    id: "reg_001",
-    name: "主收銀機",
-    status: "active",
-    currentBalance: 850.25,
-    todayTransactions: 28,
-    lastActivity: new Date().toISOString(),
-    location: "櫃台-01",
-  },
-  {
-    id: "reg_002",
-    name: "備用收銀機",
-    status: "inactive",
-    currentBalance: 200.0,
-    todayTransactions: 0,
-    lastActivity: new Date(Date.now() - 3600000).toISOString(),
-    location: "櫃台-02",
-  },
-]);
+const registers = ref<CashRegister[]>([]);
 
 // 最近交易
-const recentTransactions = ref<Transaction[]>([
-  {
-    id: "txn_001",
-    registerId: "reg_001",
-    type: "sale",
-    amount: 45.8,
-    description: "訂單 ORD-001 付款",
-    createdAt: new Date().toISOString(),
-    operatorId: 1,
-  },
-  {
-    id: "txn_002",
-    registerId: "reg_001",
-    type: "cash_in",
-    amount: 500.0,
-    description: "當次班次 - 起始金額",
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    operatorId: 1,
-  },
-]);
+const recentTransactions = ref<Transaction[]>([]);
 
 // 促銷活動
-const activePromotions = ref<Promotion[]>([
-  {
-    id: "promo_001",
-    title: "午餐優惠",
-    description: "11:30-14:30 全部菜品",
-    discountType: "percentage",
-    discountValue: 10,
-    isActive: true,
-    startDate: "2025-01-01",
-    endDate: "2025-12-31",
-    conditions: "time_based",
-  },
-]);
+const activePromotions = ref<Promotion[]>([]);
 
-const allPromotions = ref<Promotion[]>([...activePromotions.value]);
+const allPromotions = ref<Promotion[]>([]);
 
 // 快速收款
 const quickPayment = ref({
@@ -908,63 +878,111 @@ const getTransactionTypeText = (type: string) => {
   return texts[type] || type;
 };
 
-const selectRegister = (register: CashRegister) => {
+const selectRegister = async (register: CashRegister) => {
   currentRegister.value = register;
+  // Load current shift for the selected register
+  await loadCurrentShift(register.id);
 };
 
-const createRegister = () => {
+const createRegister = async () => {
   const name = prompt(t("pos.prompts.registerName"));
   if (name) {
-    const newRegister: CashRegister = {
-      id: `reg_${Date.now()}`,
-      name,
-      status: "inactive",
-      currentBalance: 0,
-      todayTransactions: 0,
-      lastActivity: new Date().toISOString(),
-      location: t("pos.defaults.locationPending"),
-    };
-    registers.value.push(newRegister);
+    isProcessing.value = true;
+    try {
+      const response = await api.post("/pos/registers", {
+        name,
+        restaurantId: authStore.restaurantId,
+        status: "inactive",
+        currentBalance: 0,
+        location: t("pos.defaults.locationPending"),
+      });
+      if (response.data.success) {
+        await loadRegisters();
+      }
+    } catch (error) {
+      console.error("Failed to create register:", error);
+    } finally {
+      isProcessing.value = false;
+    }
   }
 };
 
 const activateRegister = async (registerId: string) => {
-  const register = registers.value.find((r) => r.id === registerId);
-  if (register) {
-    register.status = "active";
-    register.lastActivity = new Date().toISOString();
+  isProcessing.value = true;
+  try {
+    await api.post(`/pos/registers/${registerId}/activate`);
+    const register = registers.value.find((r) => r.id === registerId);
+    if (register) {
+      register.status = "active";
+      register.lastActivity = new Date().toISOString();
+    }
+  } catch (error) {
+    console.error("Failed to activate register:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
 const deactivateRegister = async (registerId: string) => {
-  const register = registers.value.find((r) => r.id === registerId);
-  if (register) {
-    register.status = "inactive";
+  isProcessing.value = true;
+  try {
+    await api.post(`/pos/registers/${registerId}/deactivate`);
+    const register = registers.value.find((r) => r.id === registerId);
+    if (register) {
+      register.status = "inactive";
+    }
+  } catch (error) {
+    console.error("Failed to deactivate register:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
-const startShift = () => {
+const startShift = async () => {
+  if (!currentRegister.value) return;
   const startingCash = prompt(t("pos.prompts.startingCash"));
   if (startingCash && !isNaN(parseFloat(startingCash))) {
-    currentShift.value = {
-      id: `shift_${Date.now()}`,
-      name: t("pos.defaults.morningShift"),
-      startTime: new Date().toISOString(),
-      registerId: currentRegister.value?.id || "reg_001",
-      operatorId: 1,
-      startingCash: parseFloat(startingCash),
-      totalRevenue: 0,
-      processedOrders: 0,
-      status: "active",
-    };
+    isProcessing.value = true;
+    try {
+      const response = await api.post("/pos/shifts/start", {
+        registerId: currentRegister.value.id,
+        startingCash: parseFloat(startingCash),
+        operatorId: authStore.user?.id ?? 0,
+      });
+      if (response.data.success && response.data.data) {
+        const shiftData = response.data.data as any;
+        currentShift.value = {
+          id: shiftData.id,
+          name: shiftData.name || t("pos.defaults.morningShift"),
+          startTime: shiftData.startTime || new Date().toISOString(),
+          registerId: currentRegister.value.id,
+          operatorId: authStore.user?.id ?? 0,
+          startingCash: parseFloat(startingCash),
+          totalRevenue: 0,
+          processedOrders: 0,
+          status: "active",
+        };
+      }
+    } catch (error) {
+      console.error("Failed to start shift:", error);
+    } finally {
+      isProcessing.value = false;
+    }
   }
 };
 
-const endShift = () => {
-  if (currentShift.value && confirm(t("pos.confirms.endShift"))) {
-    currentShift.value.endTime = new Date().toISOString();
-    currentShift.value.status = "ended";
+const endShift = async () => {
+  if (!currentShift.value || !confirm(t("pos.confirms.endShift"))) return;
+  isProcessing.value = true;
+  try {
+    await api.post(`/pos/shifts/${currentShift.value.id}/end`, {
+      endingCash: currentRegister.value?.currentBalance ?? 0,
+    });
     currentShift.value = null;
+  } catch (error) {
+    console.error("Failed to end shift:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
@@ -981,45 +999,44 @@ const getShiftDuration = () => {
 const processQuickPayment = async () => {
   if (!canProcessQuickPayment.value) return;
 
+  isProcessing.value = true;
   try {
-    // 模擬處理付款
-    const newTransaction: Transaction = {
-      id: `txn_${Date.now()}`,
+    const response = await api.post("/pos/quick-payment", {
+      orderId: quickPayment.value.orderNumber,
       registerId: currentRegister.value!.id,
-      type: "sale",
       amount: quickPayment.value.amount,
-      description: t("pos.defaults.orderPayment", {
-        orderNumber: quickPayment.value.orderNumber,
-      }),
-      createdAt: new Date().toISOString(),
-      operatorId: 1,
-    };
+      paymentMethod: quickPayment.value.paymentMethod,
+      operatorId: authStore.user?.id ?? 0,
+    });
 
-    recentTransactions.value.unshift(newTransaction);
+    if (response.data.success) {
+      // 更新收銀櫃餘額和統計
+      if (currentRegister.value) {
+        currentRegister.value.currentBalance += quickPayment.value.amount;
+        currentRegister.value.todayTransactions++;
+        currentRegister.value.lastActivity = new Date().toISOString();
+      }
 
-    // 更新收銀櫃餘額和統計
-    if (currentRegister.value) {
-      currentRegister.value.currentBalance += quickPayment.value.amount;
-      currentRegister.value.todayTransactions++;
-      currentRegister.value.lastActivity = new Date().toISOString();
+      // 更新班次統計
+      if (currentShift.value) {
+        currentShift.value.totalRevenue += quickPayment.value.amount;
+        currentShift.value.processedOrders++;
+      }
+
+      // Refresh transactions to show the new one
+      await refreshTransactions();
+
+      // 重置表單
+      quickPayment.value = {
+        orderNumber: "",
+        amount: 0,
+        paymentMethod: "",
+      };
     }
-
-    // 更新班次統計
-    if (currentShift.value) {
-      currentShift.value.totalRevenue += quickPayment.value.amount;
-      currentShift.value.processedOrders++;
-    }
-
-    // 重置表單
-    quickPayment.value = {
-      orderNumber: "",
-      amount: 0,
-      paymentMethod: "",
-    };
-
-    alert(t("pos.alerts.paymentSuccess"));
-  } catch {
-    alert(t("pos.alerts.paymentFailed"));
+  } catch (error) {
+    console.error("Quick payment failed:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
@@ -1035,33 +1052,36 @@ const closeCashMovementDialog = () => {
 
 const processCashMovement = async () => {
   if (!canProcessCashMovement.value || !currentRegister.value) return;
+  if (!currentShift.value) return;
 
+  isProcessing.value = true;
   try {
-    const isIncoming = ["cash_in", "drawer_count"].includes(
-      cashMovement.value.type,
+    const response = await api.post(
+      `/pos/shifts/${currentShift.value.id}/cash-movements`,
+      {
+        type: cashMovement.value.type,
+        amount: cashMovement.value.amount,
+        description: cashMovement.value.description,
+      },
     );
-    const amount = isIncoming
-      ? cashMovement.value.amount
-      : -cashMovement.value.amount;
 
-    const newTransaction: Transaction = {
-      id: `txn_${Date.now()}`,
-      registerId: currentRegister.value.id,
-      type: cashMovement.value.type as any,
-      amount,
-      description: cashMovement.value.description,
-      createdAt: new Date().toISOString(),
-      operatorId: 1,
-    };
+    if (response.data.success) {
+      const isIncoming = ["cash_in", "drawer_count"].includes(
+        cashMovement.value.type,
+      );
+      const balanceChange = isIncoming
+        ? cashMovement.value.amount
+        : -cashMovement.value.amount;
+      currentRegister.value.currentBalance += balanceChange;
+      currentRegister.value.lastActivity = new Date().toISOString();
 
-    recentTransactions.value.unshift(newTransaction);
-    currentRegister.value.currentBalance += amount;
-    currentRegister.value.lastActivity = new Date().toISOString();
-
-    closeCashMovementDialog();
-    alert(t("pos.alerts.cashSuccess"));
-  } catch {
-    alert(t("pos.alerts.operationFailed"));
+      await refreshTransactions();
+      closeCashMovementDialog();
+    }
+  } catch (error) {
+    console.error("Cash movement failed:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
@@ -1073,66 +1093,217 @@ const closePromotionsDialog = () => {
   showPromotionsDialog.value = false;
 };
 
-const createPromotion = () => {
+const createPromotion = async () => {
   const title = prompt(t("pos.prompts.promotionName"));
   if (title) {
-    const newPromotion: Promotion = {
-      id: `promo_${Date.now()}`,
-      title,
-      description: t("pos.defaults.newPromotion"),
-      discountType: "percentage",
-      discountValue: 10,
-      isActive: false,
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-      conditions: "manual",
-    };
-    allPromotions.value.push(newPromotion);
-  }
-};
-
-const editPromotion = (promotion: Promotion) => {
-  console.log("Edit promotion:", promotion.id);
-};
-
-const togglePromotion = (promotion: Promotion) => {
-  promotion.isActive = !promotion.isActive;
-  if (promotion.isActive) {
-    activePromotions.value.push(promotion);
-  } else {
-    const index = activePromotions.value.findIndex(
-      (p) => p.id === promotion.id,
-    );
-    if (index > -1) {
-      activePromotions.value.splice(index, 1);
+    isProcessing.value = true;
+    try {
+      const response = await api.post("/pos/promotions", {
+        title,
+        description: t("pos.defaults.newPromotion"),
+        discountType: "percentage",
+        discountValue: 10,
+        isActive: false,
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+      });
+      if (response.data.success) {
+        await loadPromotions();
+      }
+    } catch (error) {
+      console.error("Failed to create promotion:", error);
+    } finally {
+      isProcessing.value = false;
     }
   }
 };
 
+const editPromotion = (promotion: Promotion) => {
+  // TODO: Open promotion edit dialog
+  console.log("Edit promotion:", promotion.id);
+};
+
+const togglePromotion = async (promotion: Promotion) => {
+  isProcessing.value = true;
+  try {
+    await api.put(`/pos/promotions/${promotion.id}`, {
+      isActive: !promotion.isActive,
+    });
+    promotion.isActive = !promotion.isActive;
+    // Update active promotions list
+    activePromotions.value = allPromotions.value.filter((p) => p.isActive);
+  } catch (error) {
+    console.error("Failed to toggle promotion:", error);
+  } finally {
+    isProcessing.value = false;
+  }
+};
+
 const openRegisterManagement = () => {
-  console.log("Open register management");
+  loadRegisters();
 };
 
-const refreshTransactions = () => {
-  console.log("Refreshing transactions...");
+const refreshTransactions = async () => {
+  if (!currentRegister.value) return;
+  isLoadingTransactions.value = true;
+  try {
+    const response = await api.get(
+      `/pos/registers/${currentRegister.value.id}/cash-movements`,
+    );
+    if (response.data.success && response.data.data) {
+      recentTransactions.value = response.data.data as Transaction[];
+    }
+  } catch (error) {
+    console.error("Failed to load transactions:", error);
+  } finally {
+    isLoadingTransactions.value = false;
+  }
 };
 
-const exportTransactions = () => {
-  alert(t("pos.alerts.exportInDev"));
+const exportTransactions = async () => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const response = await api.get("/pos/reports/export", {
+      type: "daily",
+      format: "csv",
+      startDate: today,
+    });
+    // If the response is a blob/csv, trigger download
+    if (response.data) {
+      const blob = new Blob([JSON.stringify(response.data)], {
+        type: "text/csv",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `transactions-${today}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    console.error("Failed to export transactions:", error);
+  }
 };
 
-const generateShiftReport = () => {
-  alert(t("pos.alerts.reportInDev"));
+const generateShiftReport = async () => {
+  if (!currentShift.value) return;
+  try {
+    const response = await api.get(
+      `/pos/shifts/${currentShift.value.id}/report`,
+    );
+    if (response.data.success && response.data.data) {
+      console.log("Shift report:", response.data.data);
+      // TODO: Display shift report in a dialog
+    }
+  } catch (error) {
+    console.error("Failed to generate shift report:", error);
+  }
+};
+
+// --- Data loading functions ---
+const loadRegisters = async () => {
+  isLoadingRegisters.value = true;
+  try {
+    const response = await api.get("/pos/registers", {
+      restaurantId: authStore.restaurantId,
+    });
+    if (response.data.success && response.data.data) {
+      registers.value = response.data.data as CashRegister[];
+    }
+  } catch (error) {
+    console.error("Failed to load registers:", error);
+  } finally {
+    isLoadingRegisters.value = false;
+  }
+};
+
+const loadCurrentShift = async (registerId: string) => {
+  try {
+    const response = await api.get(`/pos/shifts/current/${registerId}`);
+    if (response.data.success && response.data.data) {
+      const shiftData = response.data.data as any;
+      currentShift.value = {
+        id: shiftData.id,
+        name: shiftData.name || "",
+        startTime: shiftData.startTime || "",
+        endTime: shiftData.endTime,
+        registerId: shiftData.registerId || registerId,
+        operatorId: shiftData.operatorId || 0,
+        startingCash: shiftData.startingCash || 0,
+        totalRevenue: shiftData.totalSales || 0,
+        processedOrders: shiftData.processedOrders || 0,
+        status: shiftData.status || "active",
+      };
+    } else {
+      currentShift.value = null;
+    }
+  } catch {
+    currentShift.value = null;
+  }
+};
+
+const loadDailyStats = async () => {
+  if (!currentRegister.value) return;
+  isLoadingStats.value = true;
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const response = await api.get(
+      `/pos/registers/${currentRegister.value.id}/stats/daily`,
+      { date: today },
+    );
+    if (response.data.success && response.data.data) {
+      const stats = response.data.data as any;
+      todayStats.value = {
+        revenue: stats.totalSales ?? 0,
+        orders: stats.totalOrders ?? 0,
+        avgServiceTime: stats.avgOrderValue
+          ? Math.round(stats.avgOrderValue * 10) / 10
+          : 0,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to load daily stats:", error);
+    // Keep defaults (zeros) on error
+  } finally {
+    isLoadingStats.value = false;
+  }
+};
+
+const loadPromotions = async () => {
+  isLoadingPromotions.value = true;
+  try {
+    const response = await api.get("/pos/promotions");
+    if (response.data.success && response.data.data) {
+      allPromotions.value = response.data.data as Promotion[];
+      activePromotions.value = allPromotions.value.filter((p) => p.isActive);
+    }
+  } catch (error) {
+    console.error("Failed to load promotions:", error);
+  } finally {
+    isLoadingPromotions.value = false;
+  }
 };
 
 // 生命週期
 onMounted(async () => {
+  // Load registers from API
+  await loadRegisters();
+
   // 自動選擇第一個現金櫃
   if (registers.value.length > 0) {
     currentRegister.value = registers.value[0];
+    // Load shift for the first register
+    await loadCurrentShift(registers.value[0].id);
   }
+
+  // Load daily stats, transactions, and promotions in parallel
+  await Promise.all([
+    loadDailyStats(),
+    refreshTransactions(),
+    loadPromotions(),
+  ]);
 });
 </script>
 
