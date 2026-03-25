@@ -103,7 +103,6 @@ export function createAuthState(overrides: Record<string, any> = {}) {
       canManageOrders: true,
       canManageMenu: true,
       canAccessAdminFeatures: true,
-      canViewKitchen: true,
       ...overrides,
     },
   };

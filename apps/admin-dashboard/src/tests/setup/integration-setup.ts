@@ -39,7 +39,6 @@ vi.mock("@/stores/auth", () => ({
     canAccessAdminFeatures: true,
     canManageOrders: true,
     canManageMenu: true,
-    canViewKitchen: true,
     getDefaultRoute: () => "/dashboard",
     canAccessRoute: vi.fn().mockReturnValue(true),
     userRole: 0,

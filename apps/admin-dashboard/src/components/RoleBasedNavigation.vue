@@ -216,13 +216,6 @@ const allNavItems = computed(() => [
     roles: [UserRole.ADMIN, UserRole.OWNER],
   },
   {
-    name: "kitchen",
-    label: t("roleNav.kitchenDisplay"),
-    href: "/kitchen",
-    icon: HomeIcon,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
-  },
-  {
     name: "service",
     label: t("roleNav.serviceSystem"),
     href: "/service",
@@ -345,7 +338,7 @@ const handleRoleSwitch = (event: Event) => {
 
   const roleRoutes: Record<string, string> = {
     owner: "/dashboard/owner-overview",
-    chef: "/kitchen",
+    chef: "/dashboard",
     service: "/service",
     cashier: "/cashier",
   };

@@ -113,10 +113,6 @@ export const useAuthStore = defineStore("auth", () => {
     hasPermission([UserRole.ADMIN, UserRole.OWNER]),
   );
 
-  const canViewKitchen = computed(() =>
-    hasPermission([UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF]),
-  );
-
   const canAccessService = computed(() =>
     hasPermission([UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE]),
   );
@@ -153,7 +149,7 @@ export const useAuthStore = defineStore("auth", () => {
       case UserRole.OWNER:
         return "/dashboard/owner-overview";
       case UserRole.CHEF:
-        return "/kitchen";
+        return "/dashboard";
       case UserRole.SERVICE:
         return "/service";
       case UserRole.CASHIER:
@@ -195,8 +191,6 @@ export const useAuthStore = defineStore("auth", () => {
       Scheduling: [UserRole.ADMIN, UserRole.OWNER],
       Analytics: [UserRole.ADMIN, UserRole.OWNER],
       Settings: [UserRole.ADMIN, UserRole.OWNER],
-      Kitchen: [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
-      KitchenDisplay: [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
       Service: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
       ServiceDelivery: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
       Cashier: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
@@ -364,7 +358,6 @@ export const useAuthStore = defineStore("auth", () => {
     canAccessAdminFeatures,
     canManageOrders,
     canManageMenu,
-    canViewKitchen,
     canAccessService,
     canAccessCashier,
     canAccessOwnerDashboard,

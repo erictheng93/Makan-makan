@@ -633,7 +633,14 @@ const viewQRCode = (table: any) => {
 
 const editTable = (table: any) => {
   editingTable.value = table;
-  tableForm.value = { ...table };
+  tableForm.value = {
+    ...table,
+    qrMode: table.qrMode || "table",
+    seatConfig: table.seatConfig || {
+      count: table.capacity || 4,
+      numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom",
+    },
+  };
   showTableModal.value = true;
 };
 

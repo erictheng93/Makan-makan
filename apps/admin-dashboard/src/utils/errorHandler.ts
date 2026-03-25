@@ -449,8 +449,6 @@ export class KitchenErrorHandler extends ErrorHandler {
 
 // 導出單例實例
 export const errorHandler = ErrorHandler.getInstance();
-export const kitchenErrorHandler =
-  KitchenErrorHandler.getInstance() as KitchenErrorHandler;
 
 // 全局錯誤處理器
 export function setupGlobalErrorHandler() {

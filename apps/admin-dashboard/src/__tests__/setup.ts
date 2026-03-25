@@ -119,7 +119,6 @@ export const mockAuthStore = {
   canManageOrders: ref(false),
   canManageMenu: ref(false),
   canAccessAdminFeatures: ref(false),
-  canViewKitchen: ref(false),
   hasPermission: vi.fn(() => false),
   userRole: ref(4),
   restaurantId: ref(1),

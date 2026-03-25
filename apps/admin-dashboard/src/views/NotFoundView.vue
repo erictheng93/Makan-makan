@@ -171,7 +171,6 @@ import {
   CakeIcon,
   TableCellsIcon,
   CalculatorIcon,
-  FireIcon,
 } from "@heroicons/vue/24/solid";
 
 const router = useRouter();
@@ -221,12 +220,6 @@ const navigationLinks = computed(() => {
       roles: [0, 1],
     },
     {
-      name: t("nav.kitchen"),
-      path: "/kitchen",
-      icon: FireIcon,
-      roles: [0, 1, 2],
-    },
-    {
       name: t("nav.cashier"),
       path: "/cashier",
       icon: CalculatorIcon,
@@ -266,7 +259,6 @@ const performSearch = () => {
     { keywords: ["桌台", "table", "桌子", "qr"], path: "/tables" },
     { keywords: ["員工", "user", "用戶", "帳戶"], path: "/users" },
     { keywords: ["分析", "analytics", "報表", "統計"], path: "/analytics" },
-    { keywords: ["廚房", "kitchen", "廚師"], path: "/kitchen" },
     { keywords: ["收銀", "cashier", "付款", "結帳"], path: "/cashier" },
   ];
 

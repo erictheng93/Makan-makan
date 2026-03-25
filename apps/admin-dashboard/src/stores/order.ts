@@ -185,7 +185,9 @@ export const useOrderStore = defineStore("order", () => {
 
   const cancelOrder = async (orderId: number, reason?: string) => {
     try {
-      const response = await api.delete(`/orders/${orderId}`);
+      const response = await api.delete(`/orders/${orderId}`, {
+        data: reason ? { reason } : undefined,
+      });
 
       if (response.data.success) {
         const orderIndex = orders.value.findIndex((o) => o.id === orderId);

@@ -76,7 +76,6 @@ import {
   Users,
   Table,
   BarChart3,
-  ChefHat,
   Calculator,
   Settings,
   User,
@@ -286,13 +285,6 @@ const navigationItems = computed(() => {
       label: t("nav.settings"),
       icon: Settings,
       visible: authStore.canAccessAdminFeatures,
-    },
-    {
-      name: "kitchen",
-      path: "/kitchen",
-      label: t("nav.kitchen"),
-      icon: ChefHat,
-      visible: authStore.canViewKitchen,
     },
     {
       name: "cashier",

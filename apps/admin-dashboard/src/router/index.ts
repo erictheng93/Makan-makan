@@ -290,23 +290,6 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: "/kitchen",
-    name: "Kitchen",
-    component: () => import("@/layouts/KitchenLayout.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "pages.kitchen",
-      roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
-    },
-    children: [
-      {
-        path: "",
-        name: "KitchenDisplay",
-        component: () => import("@/views/KitchenView.vue"),
-      },
-    ],
-  },
-  {
     path: "/cashier",
     name: "Cashier",
     component: () => import("@/layouts/CashierLayout.vue"),
