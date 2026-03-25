@@ -562,7 +562,9 @@
                 <div class="w-full bg-gray-200 rounded-full h-2">
                   <div
                     class="bg-blue-600 h-2 rounded-full"
-                    :style="{ width: '75%' }"
+                    :style="{
+                      width: `${Math.min(todayGroupOrders * 5, 100)}%`,
+                    }"
                   />
                 </div>
               </div>
@@ -574,13 +576,14 @@
                     t("groupOrders.avgMembers")
                   }}</span>
                   <span class="font-medium"
-                    >3.2{{ t("groupOrders.people") }}</span
+                    >{{ avgGroupSize.toFixed(1)
+                    }}{{ t("groupOrders.people") }}</span
                   >
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
                   <div
                     class="bg-green-600 h-2 rounded-full"
-                    :style="{ width: '64%' }"
+                    :style="{ width: `${Math.min(avgGroupSize * 10, 100)}%` }"
                   />
                 </div>
               </div>
@@ -591,12 +594,12 @@
                   <span class="text-gray-600">{{
                     t("groupOrders.splitBillRate")
                   }}</span>
-                  <span class="font-medium">87%</span>
+                  <span class="font-medium">{{ completionRate }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
                   <div
                     class="bg-purple-600 h-2 rounded-full"
-                    :style="{ width: '87%' }"
+                    :style="{ width: `${completionRate}%` }"
                   />
                 </div>
               </div>
@@ -807,9 +810,12 @@ import QrCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import ShareIcon from "@heroicons/vue/24/outline/ShareIcon";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useAuthStore } from "@/stores/auth";
+import { groupOrdersService } from "@/services/groupOrdersService";
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const authStore = useAuthStore();
 
 // 類別定義
 interface GroupOrderMember {
@@ -848,12 +854,14 @@ const selectedGroupOrder = ref<GroupOrder | null>(null);
 const showCreateDialog = ref(false);
 const showShareDialog = ref(false);
 
-// 統計數據
-const activeGroupOrders = ref(5);
-const todayGroupOrders = ref(12);
-const totalShares = ref(28);
-const splitBillOrders = ref(8);
-const avgCompletionTime = ref(23);
+// 統計數據 - populated from API
+const activeGroupOrders = ref(0);
+const todayGroupOrders = ref(0);
+const totalShares = ref(0);
+const splitBillOrders = ref(0);
+const avgCompletionTime = ref(0);
+const avgGroupSize = ref(0);
+const completionRate = ref(0);
 
 // 表單數據
 const newGroupOrder = ref({
@@ -868,105 +876,8 @@ const shareData = ref({
   shareUrl: "",
 });
 
-// 模擬團體訂單數據
-const groupOrders = ref<GroupOrder[]>([
-  {
-    id: "group_001",
-    shareCode: "PARTY-ABC123",
-    masterOrderId: null,
-    tableNumber: "T05",
-    status: "active",
-    hostName: "張小明",
-    memberCount: 4,
-    paidMembers: 2,
-    totalAmount: 156.8,
-    subtotal: 140.0,
-    serviceCharge: 14.0,
-    taxAmount: 2.8,
-    itemCount: 12,
-    members: [
-      {
-        id: "member_001",
-        name: "張小明",
-        itemCount: 3,
-        totalAmount: 45.6,
-        paymentStatus: "paid",
-        joinedAt: new Date(Date.now() - 3600000).toISOString(),
-      },
-      {
-        id: "member_002",
-        name: "李小華",
-        itemCount: 4,
-        totalAmount: 52.2,
-        paymentStatus: "paid",
-        joinedAt: new Date(Date.now() - 3000000).toISOString(),
-      },
-      {
-        id: "member_003",
-        name: "王大明",
-        itemCount: 3,
-        totalAmount: 38.5,
-        paymentStatus: "pending",
-        joinedAt: new Date(Date.now() - 2400000).toISOString(),
-      },
-      {
-        id: "member_004",
-        name: "陳小美",
-        itemCount: 2,
-        totalAmount: 20.5,
-        paymentStatus: "unpaid",
-        joinedAt: new Date(Date.now() - 1800000).toISOString(),
-      },
-    ],
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    completedAt: null,
-    expiresAt: new Date(Date.now() + 7200000).toISOString(),
-  },
-  {
-    id: "group_002",
-    shareCode: "LUNCH-XYZ789",
-    masterOrderId: "order_123",
-    tableNumber: "T08",
-    status: "ready_to_pay",
-    hostName: "林小強",
-    memberCount: 3,
-    paidMembers: 3,
-    totalAmount: 95.4,
-    subtotal: 85.0,
-    serviceCharge: 8.5,
-    taxAmount: 1.9,
-    itemCount: 8,
-    members: [
-      {
-        id: "member_005",
-        name: "林小強",
-        itemCount: 3,
-        totalAmount: 35.2,
-        paymentStatus: "paid",
-        joinedAt: new Date(Date.now() - 5400000).toISOString(),
-      },
-      {
-        id: "member_006",
-        name: "劉小敏",
-        itemCount: 3,
-        totalAmount: 32.8,
-        paymentStatus: "paid",
-        joinedAt: new Date(Date.now() - 4800000).toISOString(),
-      },
-      {
-        id: "member_007",
-        name: "黃大華",
-        itemCount: 2,
-        totalAmount: 27.4,
-        paymentStatus: "paid",
-        joinedAt: new Date(Date.now() - 4200000).toISOString(),
-      },
-    ],
-    createdAt: new Date(Date.now() - 5400000).toISOString(),
-    completedAt: null,
-    expiresAt: new Date(Date.now() + 3600000).toISOString(),
-  },
-]);
+// 團體訂單數據 - fetched from API
+const groupOrders = ref<GroupOrder[]>([]);
 
 // 計算屬性
 const filteredGroupOrders = computed(() => {
@@ -1055,7 +966,31 @@ const selectGroupOrder = (groupOrder: GroupOrder) => {
 };
 
 const refreshGroupOrders = async () => {
-  console.log("Refreshing group orders...");
+  try {
+    const restaurantId = authStore.restaurantId ?? undefined;
+    const [ordersData, statsData] = await Promise.all([
+      groupOrdersService.getGroupOrders({ restaurantId }),
+      groupOrdersService.getGroupOrderStats({ restaurantId }),
+    ]);
+
+    groupOrders.value = (ordersData as any[]).map((o: any) => ({
+      ...o,
+      paidMembers:
+        o.paidMembers ??
+        o.members?.filter((m: any) => m.paymentStatus === "paid").length ??
+        0,
+    })) as GroupOrder[];
+
+    activeGroupOrders.value = statsData.activeGroupOrders ?? 0;
+    todayGroupOrders.value = statsData.totalGroupOrders ?? 0;
+    totalShares.value = statsData.totalGroupOrders ?? 0;
+    splitBillOrders.value = 0; // Derived from orders if needed
+    avgCompletionTime.value = 0; // Derived from stats if available
+    avgGroupSize.value = statsData.averageGroupSize ?? 0;
+    completionRate.value = Math.round((statsData.completionRate ?? 0) * 100);
+  } catch (err) {
+    console.error("Failed to refresh group orders:", err);
+  }
 };
 
 const createGroupOrder = () => {
@@ -1076,46 +1011,34 @@ const submitCreateGroupOrder = async () => {
   if (!canCreateGroupOrder.value) return;
 
   try {
-    const shareCode = `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
 
-    const newGroup: GroupOrder = {
-      id: `group_${Date.now()}`,
-      shareCode,
-      masterOrderId: null,
-      tableNumber: newGroupOrder.value.tableNumber || null,
-      status: "active",
+    const created = await groupOrdersService.createGroupOrder({
+      tableNumber: newGroupOrder.value.tableNumber || undefined,
       hostName: newGroupOrder.value.hostName,
-      memberCount: 1,
-      paidMembers: 0,
-      totalAmount: 0,
-      subtotal: 0,
-      serviceCharge: 0,
-      taxAmount: 0,
-      itemCount: 0,
-      members: [
-        {
-          id: `member_${Date.now()}`,
-          name: newGroupOrder.value.hostName,
-          itemCount: 0,
-          totalAmount: 0,
-          paymentStatus: "unpaid",
-          joinedAt: new Date().toISOString(),
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      completedAt: null,
-      expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // 4小時後過期
-    };
+      expectedMembers: newGroupOrder.value.expectedMembers,
+      restaurantId,
+      notes: newGroupOrder.value.notes || undefined,
+    });
 
-    groupOrders.value.unshift(newGroup);
     closeCreateDialog();
 
-    // 自動分享已建立的訂單
-    shareGroupOrder(newGroup);
+    // Refresh list from API
+    await refreshGroupOrders();
 
-    alert(t("groupOrders.alerts.orderCreated", { shareCode }));
+    // Auto-share the newly created order
+    const newGroup =
+      groupOrders.value.find((o) => o.id === created.id) || (created as any);
+    if (newGroup) {
+      shareGroupOrder(newGroup as GroupOrder);
+    }
+
+    console.log(
+      t("groupOrders.alerts.orderCreated", { shareCode: created.shareCode }),
+    );
   } catch (_error) {
-    alert(t("groupOrders.alerts.createFailed"));
+    console.error("Failed to create group order:", _error);
   }
 };
 
@@ -1134,18 +1057,18 @@ const closeShareDialog = () => {
 const copyShareCode = async (shareCode: string) => {
   try {
     await navigator.clipboard.writeText(shareCode);
-    alert(t("groupOrders.alerts.shareCodeCopied"));
+    console.log(t("groupOrders.alerts.shareCodeCopied"));
   } catch (_error) {
-    alert(t("groupOrders.alerts.copyFailed"));
+    console.error("Failed to copy share code:", _error);
   }
 };
 
 const copyShareUrl = async () => {
   try {
     await navigator.clipboard.writeText(shareData.value.shareUrl);
-    alert(t("groupOrders.alerts.shareLinkCopied"));
+    console.log(t("groupOrders.alerts.shareLinkCopied"));
   } catch (_error) {
-    alert(t("groupOrders.alerts.copyFailed"));
+    console.error("Failed to copy share URL:", _error);
   }
 };
 
@@ -1158,30 +1081,59 @@ const shareToWhatsApp = () => {
 };
 
 const shareToWechat = () => {
-  alert(t("groupOrders.alerts.wechatInDev"));
+  console.log("WeChat sharing is under development");
 };
 
-const generateQRCode = (groupOrder: GroupOrder) => {
-  console.log("Generate QR code for:", groupOrder.shareCode);
-  alert(t("groupOrders.alerts.qrInDev"));
-};
-
-const joinGroupOrder = () => {
-  const shareCode = prompt(t("groupOrders.prompts.enterShareCode"));
-  if (shareCode) {
-    console.log("Join group order:", shareCode);
-    alert(t("groupOrders.alerts.joinInDev"));
+const generateQRCode = async (groupOrder: GroupOrder) => {
+  try {
+    const result = await groupOrdersService.generateQRCode(
+      groupOrder.shareCode,
+    );
+    console.log("QR code generated:", result.qrCodeUrl);
+  } catch (_error) {
+    console.error("Failed to generate QR code:", _error);
   }
 };
 
-const generateShareCode = () => {
-  const shareCode = `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-  alert(t("groupOrders.alerts.shareCodeGenerated", { shareCode }));
+const joinGroupOrder = async () => {
+  const shareCode = prompt(t("groupOrders.prompts.enterShareCode"));
+  if (shareCode) {
+    try {
+      await groupOrdersService.joinGroupOrder(shareCode, {
+        memberName: authStore.user?.username || "Staff",
+      });
+      await refreshGroupOrders();
+    } catch (_error) {
+      console.error("Failed to join group order:", _error);
+    }
+  }
 };
 
-const processSplitBill = (groupOrder: GroupOrder) => {
-  console.log("Process split bill for:", groupOrder.id);
-  alert(t("groupOrders.alerts.splitBillInDev"));
+const generateShareCode = async () => {
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
+
+  try {
+    const result = await groupOrdersService.generateShareCode(restaurantId);
+    shareData.value = {
+      shareCode: result.shareCode,
+      shareUrl: result.shareUrl,
+    };
+    showShareDialog.value = true;
+  } catch (_error) {
+    console.error("Failed to generate share code:", _error);
+  }
+};
+
+const processSplitBill = async (groupOrder: GroupOrder) => {
+  try {
+    await groupOrdersService.initiateSplit(groupOrder.id, {
+      splitType: "equal",
+    });
+    await refreshGroupOrders();
+  } catch (_error) {
+    console.error("Failed to initiate split bill:", _error);
+  }
 };
 
 const viewGroupOrderDetails = (groupOrder: GroupOrder) => {
@@ -1189,12 +1141,28 @@ const viewGroupOrderDetails = (groupOrder: GroupOrder) => {
   console.log("View details for:", groupOrder.id);
 };
 
-const exportGroupOrderReport = () => {
-  alert(t("groupOrders.alerts.exportInDev"));
+const exportGroupOrderReport = async () => {
+  const restaurantId = authStore.restaurantId ?? undefined;
+  try {
+    const blob = await groupOrdersService.exportGroupOrders({
+      restaurantId,
+      format: "csv",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `group-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (_error) {
+    console.error("Failed to export group orders:", _error);
+  }
 };
 
 // 生命週期
 onMounted(async () => {
+  await refreshGroupOrders();
+
   // 預選第一個團體訂單
   if (groupOrders.value.length > 0) {
     selectedGroupOrder.value = groupOrders.value[0];

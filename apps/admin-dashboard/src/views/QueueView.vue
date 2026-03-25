@@ -768,6 +768,7 @@ import DocumentChartBarIcon from "@heroicons/vue/24/outline/DocumentChartBarIcon
 import { queueService, type QueueItem } from "@/services/queueService";
 import { useRealtimeQueue } from "@/composables/useRealtimeQueue";
 import { useAuthStore } from "@/stores/auth";
+import { api } from "@/services/api";
 import { useI18n } from "@/i18n";
 
 const { t } = useI18n();
@@ -815,8 +816,14 @@ const avgWaitTime = computed(() => {
   return queueStatus.value?.queue?.avg_estimated_wait || 0;
 });
 
-const availableTables = ref(12); // 暫時保留，待整合API 數據
-const occupiedTables = ref(8);
+const availableTables = computed(() => {
+  return tables.value.filter((t) => t.status === "available").length;
+});
+const occupiedTables = computed(() => {
+  return tables.value.filter(
+    (t) => t.status === "occupied" || t.status === "reserved",
+  ).length;
+});
 const todayServed = computed(() => {
   return queueStatus.value?.activity?.seated_today || 0;
 });
@@ -850,73 +857,8 @@ const seatAssignment = ref({
 // 候位佇列現在從API 獲取
 // queueItems 響應變量已在上面定義
 
-// 模擬桌位數據
-const tables = ref<Table[]>([
-  {
-    id: "table_001",
-    number: "T01",
-    capacity: 2,
-    status: "available",
-    occupiedSince: null,
-    cleaningStatus: "clean",
-  },
-  {
-    id: "table_002",
-    number: "T02",
-    capacity: 2,
-    status: "occupied",
-    occupiedSince: new Date(Date.now() - 2700000).toISOString(),
-    cleaningStatus: "clean",
-  },
-  {
-    id: "table_003",
-    number: "T03",
-    capacity: 4,
-    status: "available",
-    occupiedSince: null,
-    cleaningStatus: "clean",
-  },
-  {
-    id: "table_004",
-    number: "T04",
-    capacity: 4,
-    status: "cleaning",
-    occupiedSince: null,
-    cleaningStatus: "cleaning",
-  },
-  {
-    id: "table_005",
-    number: "T05",
-    capacity: 6,
-    status: "available",
-    occupiedSince: null,
-    cleaningStatus: "clean",
-  },
-  {
-    id: "table_006",
-    number: "T06",
-    capacity: 6,
-    status: "occupied",
-    occupiedSince: new Date(Date.now() - 3600000).toISOString(),
-    cleaningStatus: "clean",
-  },
-  {
-    id: "table_007",
-    number: "T07",
-    capacity: 8,
-    status: "available",
-    occupiedSince: null,
-    cleaningStatus: "clean",
-  },
-  {
-    id: "table_008",
-    number: "T08",
-    capacity: 8,
-    status: "reserved",
-    occupiedSince: null,
-    cleaningStatus: "clean",
-  },
-]);
+// 桌位數據 - fetched from API
+const tables = ref<Table[]>([]);
 
 // 計算屬性
 const filteredQueue = computed(() => {
@@ -1101,6 +1043,30 @@ const toggleTableView = (filter: string) => {
   tableViewFilter.value = filter;
 };
 
+// Fetch tables from API
+const fetchTables = async () => {
+  if (!authStore.user?.restaurantId) return;
+
+  try {
+    const response = await api.get("/tables", {
+      restaurantId: authStore.user.restaurantId,
+    });
+    const data = (response.data as any)?.data;
+    if (Array.isArray(data)) {
+      tables.value = data.map((t: any) => ({
+        id: String(t.id),
+        number: t.tableNumber || t.number || `T${t.id}`,
+        capacity: t.capacity ?? t.seats ?? 4,
+        status: t.status || "available",
+        occupiedSince: t.occupiedSince || null,
+        cleaningStatus: t.cleaningStatus || "clean",
+      })) as Table[];
+    }
+  } catch (err) {
+    console.error("Failed to fetch tables:", err);
+  }
+};
+
 // API 操作 - 使用新模組化服務
 const refreshQueue = async () => {
   if (!authStore.user?.restaurantId) return;
@@ -1112,6 +1078,7 @@ const refreshQueue = async () => {
     const [queueData, statusData] = await Promise.all([
       queueService.getQueue(authStore.user.restaurantId),
       queueService.getQueueStatus(authStore.user.restaurantId),
+      fetchTables(),
     ]);
 
     queueItems.value = queueData;

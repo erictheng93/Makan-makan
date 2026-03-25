@@ -981,30 +981,18 @@ const componentsStatus = computed(() => {
   }));
 });
 
-// Chart data - Generate mock historical trend data
+// Chart data - Single point from current real metrics
 const performanceChartData = computed(() => {
   if (!metrics.value) return [];
 
-  // Generate 24 hours of data points (one per hour)
-  const now = Date.now();
-  const data = [];
-
-  for (let i = 23; i >= 0; i--) {
-    const timestamp = now - i * 60 * 60 * 1000;
-    data.push({
-      timestamp,
-      apiResponseTime:
-        metrics.value.apiMetrics.averageResponseTime + Math.random() * 50 - 25,
-      dbQueryTime:
-        metrics.value.databaseMetrics.averageQueryTime +
-        Math.random() * 20 -
-        10,
-      cacheHitRate:
-        metrics.value.cacheMetrics.hitRate + Math.random() * 0.1 - 0.05,
-    });
-  }
-
-  return data;
+  return [
+    {
+      timestamp: Date.now(),
+      apiResponseTime: metrics.value.apiMetrics.averageResponseTime,
+      dbQueryTime: metrics.value.databaseMetrics.averageQueryTime,
+      cacheHitRate: metrics.value.cacheMetrics.hitRate,
+    },
+  ];
 });
 
 const multiMetricChartSeries = computed(() => [

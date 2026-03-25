@@ -1668,6 +1668,8 @@ const enUS: Messages = {
       onlineStaff: "Online Staff",
       overallEfficiency: "Overall Efficiency",
       normal: "Normal",
+      tableUtilization: "Table Utilization",
+      available: "available",
     },
     actions: {
       addStaff: "Add Staff",
@@ -1711,6 +1713,31 @@ const enUS: Messages = {
     escalate: "Escalate",
     operationFailed: "Operation failed",
     loadFailed: "Failed to load data",
+    fetchError: "Failed to load dashboard data",
+    loading: "Loading...",
+    noData: "No data available",
+    retry: "Retry",
+    timeAgo: {
+      justNow: "Just now",
+      minutesAgo: "{count} min ago",
+    },
+    roles: {
+      owner: "Owner",
+      chef: "Chef",
+      service: "Service Crew",
+      cashier: "Cashier",
+      staff: "Staff",
+    },
+    systemNames: {
+      api: "API Service",
+      database: "Database",
+      realtime: "Realtime System",
+    },
+    systemDescriptions: {
+      api: "Backend service",
+      database: "Data storage",
+      realtime: "WebSocket connections",
+    },
   },
 
   // Notification panel

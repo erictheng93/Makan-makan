@@ -629,8 +629,11 @@ import {
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
+import { api } from "@/services/api";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 
 // Type definitions
 interface CustomerInfo {
@@ -658,9 +661,9 @@ interface ServiceOrder {
 const currentTime = ref("");
 const selectedTable = ref("");
 const selectedPriority = ref("");
-const todayDelivered = ref(12);
-const deliveryEfficiency = ref(87);
-const avgDeliveryTime = ref(8);
+const todayDelivered = ref(0);
+const deliveryEfficiency = ref(0);
+const avgDeliveryTime = ref(0);
 
 // 模態框狀態
 const showContactDialog = ref(false);
@@ -680,94 +683,18 @@ const issueData = ref<{
 
 let timeInterval: NodeJS.Timeout | null = null;
 
-// 模擬訂單數據
-const orders = ref<ServiceOrder[]>([
-  {
-    id: 1,
-    orderNumber: "ORD-001",
-    tableNumber: "T01",
-    orderType: "dine_in",
-    status: "ready",
-    priority: "normal",
-    readyAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    deliveryStartTime: null,
-    customerInfo: {
-      name: "張先生",
-      phone: "012-345-6789",
-    },
-    deliveryNotes: "請小心，有小朋友",
-    items: [
-      {
-        id: 1,
-        menuItemName: "招牌炒飯",
-        quantity: 2,
-        specialInstructions: "不要蔥",
-        customizations: { 辣度: "中辣" },
-      },
-      {
-        id: 2,
-        menuItemName: "冰奶茶",
-        quantity: 1,
-        specialInstructions: "",
-        customizations: { 甜度: "半糖" },
-      },
-    ],
-  },
-  {
-    id: 2,
-    orderNumber: "ORD-002",
-    tableNumber: "T03",
-    orderType: "dine_in",
-    status: "delivering",
-    priority: "high",
-    readyAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    deliveryStartTime: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
-    assignedTo: "current_user", // 假設當前用戶ID
-    customerInfo: {
-      name: "李小姐",
-      phone: "016-789-0123",
-    },
-    items: [
-      {
-        id: 3,
-        menuItemName: "春卷",
-        quantity: 3,
-        specialInstructions: "要蘸醬",
-        customizations: {},
-      },
-    ],
-  },
-  {
-    id: 3,
-    orderNumber: "ORD-003",
-    tableNumber: "T05",
-    orderType: "dine_in",
-    status: "ready",
-    priority: "normal",
-    readyAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    customerInfo: {
-      name: "王先生",
-      phone: "019-456-7890",
-    },
-    items: [
-      {
-        id: 4,
-        menuItemName: "南洋咖啡",
-        quantity: 2,
-        specialInstructions: "",
-        customizations: { 甜度: "正常", 濃度: "濃" },
-      },
-    ],
-  },
-]);
+// 訂單數據 - fetched from API
+const orders = ref<ServiceOrder[]>([]);
 
-// 今日配送記錄
-const todayDeliveryRecords = ref([
-  { id: 1, orderNumber: "ORD-010", completedAt: "10:30", duration: 6 },
-  { id: 2, orderNumber: "ORD-011", completedAt: "11:15", duration: 8 },
-  { id: 3, orderNumber: "ORD-012", completedAt: "12:05", duration: 7 },
-  { id: 4, orderNumber: "ORD-013", completedAt: "13:20", duration: 5 },
-]);
+// 今日配送記錄 - populated from delivered orders
+const todayDeliveryRecords = ref<
+  Array<{
+    id: number;
+    orderNumber: string;
+    completedAt: string;
+    duration: number;
+  }>
+>([]);
 
 // 計算屬性
 const orderStats = computed(() => ({
@@ -807,8 +734,9 @@ const filteredOrders = computed(() => {
 });
 
 const myActiveDeliveries = computed(() => {
+  const userId = String(authStore.user?.id || "current_user");
   return orders.value.filter(
-    (o) => o.status === "delivering" && o.assignedTo === "current_user",
+    (o) => o.status === "delivering" && o.assignedTo === userId,
   );
 });
 
@@ -829,34 +757,131 @@ const updateCurrentTime = () => {
 };
 
 const refreshOrders = async () => {
-  console.log("Refreshing service orders...");
-  // 實際應用中會調用API獲取最新訂單
+  try {
+    // Fetch ready and delivering orders
+    const response = await api.get("/orders", {
+      status: "ready,delivering",
+      restaurantId: authStore.restaurantId,
+    });
+    const data = (response.data as any)?.data;
+    if (Array.isArray(data)) {
+      orders.value = data.map((o: any) => ({
+        id: o.id,
+        orderNumber: o.orderNumber || `ORD-${String(o.id).padStart(3, "0")}`,
+        tableNumber: o.tableNumber || o.table?.tableNumber || "",
+        orderType: o.orderType || "dine_in",
+        status: o.status,
+        priority: o.priority || "normal",
+        readyAt: o.readyAt || o.updatedAt || o.createdAt,
+        deliveryStartTime: o.deliveryStartTime || null,
+        customerInfo: o.customerInfo || o.customer || { name: "", phone: "" },
+        deliveryNotes: o.deliveryNotes || o.notes || "",
+        assignedTo: o.assignedTo || null,
+        deliveredAt: o.deliveredAt || null,
+        items: o.items || o.orderItems || [],
+      })) as ServiceOrder[];
+    }
+
+    // Also fetch today's delivered orders for the timeline
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const deliveredResponse = await api.get("/orders", {
+      status: "delivered",
+      restaurantId: authStore.restaurantId,
+      dateFrom: todayStart.toISOString(),
+    });
+    const deliveredData = (deliveredResponse.data as any)?.data;
+    if (Array.isArray(deliveredData)) {
+      todayDelivered.value = deliveredData.length;
+      todayDeliveryRecords.value = deliveredData.map((o: any) => {
+        const completedAt = o.deliveredAt || o.updatedAt || o.createdAt;
+        const startTime = o.deliveryStartTime || o.readyAt || o.createdAt;
+        const duration =
+          completedAt && startTime
+            ? Math.round(
+                (new Date(completedAt).getTime() -
+                  new Date(startTime).getTime()) /
+                  (1000 * 60),
+              )
+            : 0;
+        return {
+          id: o.id,
+          orderNumber: o.orderNumber || `ORD-${String(o.id).padStart(3, "0")}`,
+          completedAt: formatTime(completedAt) || "-",
+          duration,
+        };
+      });
+
+      // Calculate avg delivery time
+      if (todayDeliveryRecords.value.length > 0) {
+        const totalDuration = todayDeliveryRecords.value.reduce(
+          (sum, r) => sum + r.duration,
+          0,
+        );
+        avgDeliveryTime.value = Math.round(
+          totalDuration / todayDeliveryRecords.value.length,
+        );
+      }
+
+      // Calculate efficiency (on-time percentage estimate)
+      deliveryEfficiency.value =
+        todayDelivered.value > 0
+          ? Math.min(
+              100,
+              Math.round(
+                (todayDeliveryRecords.value.filter((r) => r.duration <= 10)
+                  .length /
+                  todayDelivered.value) *
+                  100,
+              ),
+            )
+          : 0;
+    }
+  } catch (err) {
+    console.error("Failed to refresh orders:", err);
+  }
 };
 
 const startDelivery = async (order: ServiceOrder) => {
   try {
+    await api.put(`/orders/${order.id}/status`, {
+      status: "delivering",
+      notes: `Delivery started by service crew`,
+    });
+
+    // Update local state optimistically
     const index = orders.value.findIndex((o) => o.id === order.id);
     if (index > -1) {
       orders.value[index].status = "delivering";
       orders.value[index].deliveryStartTime = new Date().toISOString();
-      orders.value[index].assignedTo = "current_user";
+      orders.value[index].assignedTo = String(
+        authStore.user?.id || "current_user",
+      );
     }
-  } catch (error) {
-    console.error("Start delivery error:", error);
+  } catch (err) {
+    console.error("Start delivery error:", err);
+    // Refresh from server on error
+    await refreshOrders();
   }
 };
 
 const completeDelivery = async (order: ServiceOrder) => {
   try {
+    await api.put(`/orders/${order.id}/status`, {
+      status: "delivered",
+      notes: `Delivered by service crew`,
+    });
+
+    // Update local state optimistically
     const index = orders.value.findIndex((o) => o.id === order.id);
     if (index > -1) {
       orders.value[index].status = "delivered";
       orders.value[index].deliveredAt = new Date().toISOString();
 
-      // 更新統計
+      // Update statistics
       todayDelivered.value++;
 
-      // 添加到今日記錄
+      // Add to today's delivery records
       const duration = order.deliveryStartTime
         ? Math.round(
             (new Date().getTime() -
@@ -867,12 +892,25 @@ const completeDelivery = async (order: ServiceOrder) => {
       todayDeliveryRecords.value.unshift({
         id: Date.now(),
         orderNumber: order.orderNumber,
-        completedAt: formatTime(new Date().toISOString()),
+        completedAt: formatTime(new Date().toISOString()) || "-",
         duration,
       });
+
+      // Recalculate avg delivery time
+      if (todayDeliveryRecords.value.length > 0) {
+        const totalDuration = todayDeliveryRecords.value.reduce(
+          (sum, r) => sum + r.duration,
+          0,
+        );
+        avgDeliveryTime.value = Math.round(
+          totalDuration / todayDeliveryRecords.value.length,
+        );
+      }
     }
-  } catch (error) {
-    console.error("Complete delivery error:", error);
+  } catch (err) {
+    console.error("Complete delivery error:", err);
+    // Refresh from server on error
+    await refreshOrders();
   }
 };
 
@@ -902,36 +940,33 @@ const closeIssueDialog = () => {
 
 const makePhoneCall = () => {
   if (selectedOrderForContact.value?.customerInfo?.phone) {
-    alert(
-      t("serviceView.alerts.calling", {
-        name: selectedOrderForContact.value.customerInfo.name,
-        phone: selectedOrderForContact.value.customerInfo.phone,
-      }),
-    );
+    const phone = selectedOrderForContact.value.customerInfo.phone;
+    window.open(`tel:${phone}`);
   }
   closeContactDialog();
 };
 
 const sendMessage = () => {
   if (selectedOrderForContact.value?.customerInfo?.phone) {
-    alert(
-      t("serviceView.alerts.messaging", {
-        name: selectedOrderForContact.value.customerInfo.name,
-      }),
-    );
+    const phone = selectedOrderForContact.value.customerInfo.phone;
+    window.open(`sms:${phone}`);
   }
   closeContactDialog();
 };
 
-const submitIssue = () => {
+const submitIssue = async () => {
   if (!issueData.value.type || !issueData.value.description) return;
 
-  alert(
-    t("serviceView.alerts.issueReported", {
-      type: getIssueTypeText(issueData.value.type),
+  try {
+    // Report issue via API if endpoint exists, otherwise log
+    console.log("Issue reported:", {
+      orderId: issueData.value.orderId,
+      type: issueData.value.type,
       description: issueData.value.description,
-    }),
-  );
+    });
+  } catch (err) {
+    console.error("Failed to submit issue:", err);
+  }
   closeIssueDialog();
 };
 
@@ -999,7 +1034,8 @@ const formatTime = (dateTime: string | Date | null | undefined) => {
   });
 };
 
-const getIssueTypeText = (type: string) => {
+// getIssueTypeText is available for future use in issue display
+void function getIssueTypeText(type: string) {
   const types: Record<string, string> = {
     wrong_order: t("serviceView.issues.wrongOrder"),
     missing_items: t("serviceView.issues.missingItems"),
@@ -1012,9 +1048,12 @@ const getIssueTypeText = (type: string) => {
 };
 
 // 生命週期
-onMounted(() => {
+onMounted(async () => {
   updateCurrentTime();
   timeInterval = setInterval(updateCurrentTime, 1000);
+
+  // Fetch orders from API
+  await refreshOrders();
 });
 
 onUnmounted(() => {

@@ -1705,6 +1705,8 @@ const zhTW: Messages = {
       onlineStaff: "在線員工",
       overallEfficiency: "整體效率",
       normal: "正常",
+      tableUtilization: "桌位使用率",
+      available: "空閒",
     },
     actions: {
       addStaff: "新增員工",
@@ -1748,6 +1750,31 @@ const zhTW: Messages = {
     escalate: "升級處理",
     operationFailed: "操作失敗",
     loadFailed: "資料載入失敗",
+    fetchError: "無法載入儀表板資料",
+    loading: "載入中...",
+    noData: "暫無資料",
+    retry: "重試",
+    timeAgo: {
+      justNow: "剛剛",
+      minutesAgo: "{count} 分鐘前",
+    },
+    roles: {
+      owner: "店主",
+      chef: "廚師",
+      service: "送菜員",
+      cashier: "收銀員",
+      staff: "員工",
+    },
+    systemNames: {
+      api: "API 服務",
+      database: "資料庫",
+      realtime: "即時系統",
+    },
+    systemDescriptions: {
+      api: "後端服務",
+      database: "資料存儲",
+      realtime: "WebSocket 連線",
+    },
   },
 
   // 通知面板

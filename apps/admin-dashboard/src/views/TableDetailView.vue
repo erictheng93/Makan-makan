@@ -215,6 +215,7 @@
 import { ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useRouter, useRoute } from "vue-router";
+import { api } from "@/services/api";
 import { ArrowLeftIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatManagement from "../components/tables/SeatManagement.vue";
@@ -225,16 +226,18 @@ const router = useRouter();
 const route = useRoute();
 
 // 響應式數據
+const isLoading = ref(false);
+
 const table = ref({
-  id: 1,
-  tableNumber: "T01",
-  tableName: "Table 1",
-  capacity: 4,
-  location: "靠窗位置",
+  id: 0,
+  tableNumber: "",
+  tableName: "",
+  capacity: 0,
+  location: "",
   status: "available",
   qrMode: "table" as "table" | "seat",
-  qrCode: "QR_REST1_T01_ABC123",
-  totalUsage: 45,
+  qrCode: "",
+  totalUsage: 0,
 });
 
 const seats = ref<any[]>([]);
@@ -273,27 +276,17 @@ const getStatusText = (status: string) => {
 };
 
 const loadSeats = async () => {
-  if (table.value.qrMode === "seat") {
-    // TODO: 從 API 載入座位數據
-    console.log("Loading seats for table:", table.value.id);
+  if (table.value.qrMode !== "seat" || !table.value.id) return;
 
-    // 模擬數據
-    seats.value = Array.from({ length: 10 }, (_, i) => ({
-      id: i + 1,
+  try {
+    const response = await api.get("/seats", {
       tableId: table.value.id,
-      seatNumber: String(i + 1).padStart(2, "0"),
-      seatName: `座位 ${i + 1}`,
-      qrCode: `QR_SEAT_${table.value.id}_${String(i + 1).padStart(2, "0")}`,
-      isOccupied: Math.random() > 0.7,
-      isActive: true,
-      totalUsage: Math.floor(Math.random() * 50),
-      currentOrderId:
-        Math.random() > 0.7 ? Math.floor(Math.random() * 1000) : undefined,
-      occupiedBy:
-        Math.random() > 0.7
-          ? `User ${Math.floor(Math.random() * 100)}`
-          : undefined,
-    }));
+    });
+    if (response.data.success && response.data.data) {
+      seats.value = response.data.data as any[];
+    }
+  } catch (error) {
+    console.error("Failed to load seats:", error);
   }
 };
 
@@ -312,21 +305,26 @@ const switchQRMode = async () => {
   }
 
   try {
-    // TODO: 調用 API 切換模式
-    console.log("Switching QR mode:", {
-      tableId: table.value.id,
-      newMode: newQRMode.value,
-      seatConfig: newSeatConfig.value,
-    });
+    if (newQRMode.value === "seat") {
+      // Switch to seat mode: batch-create seats
+      await api.post("/seats/batch-create", {
+        tableId: table.value.id,
+        seatCount: newSeatConfig.value.count,
+        numberingStyle: newSeatConfig.value.numberingStyle,
+      });
+    } else {
+      // Switch to table mode: delete all seats for this table
+      await api.delete(`/seats/table/${table.value.id}`);
+    }
 
     table.value.qrMode = newQRMode.value;
     showModeSwitchModal.value = false;
 
     if (newQRMode.value === "seat") {
       await loadSeats();
+    } else {
+      seats.value = [];
     }
-
-    alert(t("tableDetail.confirm.switchSuccess"));
   } catch (error) {
     console.error("Failed to switch QR mode:", error);
     alert(t("tableDetail.confirm.switchFailed"));
@@ -334,11 +332,36 @@ const switchQRMode = async () => {
 };
 
 const downloadQRCode = () => {
-  alert(t("tableDetail.confirm.downloadInProgress"));
+  if (!table.value.qrCode) return;
+  // Create a simple text download of the QR code value (the QR image rendering
+  // is handled by the QRCodeRenderer component in the parent list view)
+  const link = document.createElement("a");
+  link.download = `QR-${table.value.tableNumber || "table"}.txt`;
+  link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(table.value.qrCode)}`;
+  link.click();
 };
 
 const printQRCode = () => {
-  alert(t("tableDetail.confirm.printInProgress"));
+  const tableNum = table.value.tableNumber || "";
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  const doc = printWindow.document;
+  const style = doc.createElement("style");
+  style.textContent =
+    "body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui}" +
+    "h2{margin-bottom:16px;font-size:24px}p{font-size:14px;color:#666}";
+  doc.head.appendChild(style);
+
+  const heading = doc.createElement("h2");
+  heading.textContent = t("tableDetail.qrCode.title") + " - " + tableNum;
+  doc.body.appendChild(heading);
+
+  const code = doc.createElement("p");
+  code.textContent = table.value.qrCode;
+  doc.body.appendChild(code);
+
+  setTimeout(() => printWindow.print(), 300);
 };
 
 const regenerateQRCode = async () => {
@@ -347,28 +370,62 @@ const regenerateQRCode = async () => {
   }
 
   try {
-    // TODO: 調用 API 重新生成 QR
-    console.log("Regenerating QR code for table:", table.value.id);
-    alert(t("tableDetail.confirm.regenerateSuccess"));
+    const response = await api.post(
+      `/tables/${table.value.id}/regenerate-qr`,
+      {},
+    );
+    if (response.data.success && response.data.data) {
+      const result = response.data.data as { qrCode: string };
+      table.value.qrCode = result.qrCode;
+    }
   } catch (error) {
     console.error("Failed to regenerate QR code:", error);
     alert(t("tableDetail.confirm.regenerateFailed"));
   }
 };
 
-onMounted(() => {
-  // 從路由參數獲取桌台 ID 並載入數據
+const loadTableData = async () => {
   const tableId = route.params.id;
-  console.log("Loading table:", tableId);
+  if (!tableId) return;
 
-  // TODO: 從 API 載入桌台數據
-  // 如果是座位模式，載入座位數據
-  if (table.value.qrMode === "seat") {
-    loadSeats();
+  isLoading.value = true;
+  try {
+    const response = await api.get(`/tables/${tableId}`);
+    if (response.data.success && response.data.data) {
+      const data = response.data.data as any;
+      table.value = {
+        id: data.id,
+        tableNumber: data.number || data.tableNumber || "",
+        tableName: data.name || data.tableName || "",
+        capacity: data.capacity ?? 0,
+        location: data.location || "",
+        status: !data.isActive
+          ? "maintenance"
+          : data.isOccupied
+            ? "occupied"
+            : "available",
+        qrMode: data.qrMode || "table",
+        qrCode: data.qrCode || "",
+        totalUsage: data.totalUsage || 0,
+      };
+
+      // 初始化新模式為當前模式
+      newQRMode.value = table.value.qrMode;
+
+      // 如果是座位模式，載入座位數據
+      if (table.value.qrMode === "seat") {
+        await loadSeats();
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load table:", error);
+  } finally {
+    isLoading.value = false;
   }
+};
 
-  // 初始化新模式為當前模式
-  newQRMode.value = table.value.qrMode;
+onMounted(() => {
+  loadTableData();
 });
 </script>
 

@@ -439,6 +439,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -455,6 +457,7 @@ import QRModeSelector from "../components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "../components/tables/QRCodeRenderer.vue";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 const qrModalRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
 
 // 響應式數據
@@ -465,60 +468,22 @@ const showTableModal = ref(false);
 const showQRModal = ref(false);
 const editingTable = ref<any>(null);
 const selectedTable = ref<any>(null);
+const isLoading = ref(false);
 
-// 模擬桌台數據
-const tables = ref([
-  {
-    id: 1,
-    tableNumber: "T01",
-    tableName: "Table 1",
-    capacity: 2,
-    location: "靠窗位置",
-    status: "available",
-    qrCode: "QR_REST1_T01_ABC123",
-    currentOrderId: null,
-  },
-  {
-    id: 2,
-    tableNumber: "T02",
-    tableName: "Table 2",
-    capacity: 4,
-    location: "中央區域",
-    status: "occupied",
-    qrCode: "QR_REST1_T02_DEF456",
-    currentOrderId: "ORD-2024-001",
-  },
-  {
-    id: 3,
-    tableNumber: "T03",
-    tableName: "Table 3",
-    capacity: 4,
-    location: "中央區域",
-    status: "available",
-    qrCode: "QR_REST1_T03_GHI789",
-    currentOrderId: null,
-  },
-  {
-    id: 4,
-    tableNumber: "T04",
-    tableName: "Table 4",
-    capacity: 6,
-    location: "角落位置",
-    status: "reserved",
-    qrCode: "QR_REST1_T04_JKL012",
-    currentOrderId: null,
-  },
-  {
-    id: 5,
-    tableNumber: "T05",
-    tableName: "Table 5",
-    capacity: 2,
-    location: "吧台區",
-    status: "maintenance",
-    qrCode: "QR_REST1_T05_MNO345",
-    currentOrderId: null,
-  },
-]);
+/** Map API table object to the shape used by this view */
+const mapTable = (t: any) => ({
+  id: t.id,
+  tableNumber: t.number || t.tableNumber || "",
+  tableName: t.name || t.tableName || "",
+  capacity: t.capacity ?? 0,
+  location: t.location || "",
+  status: !t.isActive ? "maintenance" : t.isOccupied ? "occupied" : "available",
+  qrCode: t.qrCode || "",
+  currentOrderId: t.orderId || null,
+});
+
+// 桌台數據
+const tables = ref<any[]>([]);
 
 // 表單數據
 const tableForm = ref({
@@ -613,11 +578,21 @@ const getStatusButtonText = (status: string) => {
 };
 
 const generateAllQRCodes = async () => {
-  if (confirm(t("tables.confirm.regenerateAllQR"))) {
-    tables.value.forEach((table) => {
-      table.qrCode = `QR_REST1_${table.tableNumber}_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  if (!confirm(t("tables.confirm.regenerateAllQR"))) return;
+
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
+
+  try {
+    const tableIds = tables.value.map((t) => t.id);
+    await api.post("/tables/bulk-qr", {
+      restaurantId: Number(restaurantId),
+      tableIds,
     });
-    alert(t("tables.alert.qrGenerated"));
+    // Reload tables to get updated QR codes
+    await fetchTables();
+  } catch (error) {
+    console.error("Failed to generate QR codes:", error);
   }
 };
 
@@ -640,22 +615,31 @@ const editTable = (table: any) => {
 };
 
 const changeTableStatus = async (table: any) => {
-  const statusFlow: Record<string, string> = {
-    available: "occupied",
-    occupied: "available",
-    reserved: "occupied",
-    maintenance: "available",
-  };
-
-  const newStatus = statusFlow[table.status];
-  if (newStatus) {
-    const index = tables.value.findIndex((t) => t.id === table.id);
-    if (index > -1) {
-      tables.value[index].status = newStatus;
-      if (newStatus === "available") {
-        tables.value[index].currentOrderId = null;
-      }
+  try {
+    if (table.status === "occupied") {
+      // Release the table
+      await api.post(`/tables/${table.id}/release`);
+    } else if (table.status === "available") {
+      // Occupy the table (orderId is required by the API; use a placeholder since
+      // actual order creation happens elsewhere)
+      await api.post(`/tables/${table.id}/occupy`, {
+        orderId: 0,
+        occupiedBy: "manual",
+      });
+    } else if (table.status === "maintenance") {
+      // Re-activate: update table to active state
+      await api.put(`/tables/${table.id}`, { isActive: true });
+    } else if (table.status === "reserved") {
+      // Move reserved -> occupied
+      await api.post(`/tables/${table.id}/occupy`, {
+        orderId: 0,
+        occupiedBy: "reservation",
+      });
     }
+    // Reload tables to reflect server state
+    await fetchTables();
+  } catch (error) {
+    console.error("Failed to change table status:", error);
   }
 };
 
@@ -677,25 +661,34 @@ const closeTableModal = () => {
 };
 
 const saveTable = async () => {
-  if (editingTable.value) {
-    // 更新現有桌台
-    const index = tables.value.findIndex(
-      (t) => t.id === editingTable.value!.id,
-    );
-    if (index > -1) {
-      tables.value[index] = { ...tables.value[index], ...tableForm.value };
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
+
+  try {
+    if (editingTable.value) {
+      // 更新現有桌台
+      await api.put(`/tables/${editingTable.value.id}`, {
+        number: tableForm.value.tableNumber,
+        name: tableForm.value.tableName || undefined,
+        capacity: tableForm.value.capacity,
+        location: tableForm.value.location || undefined,
+        isActive: tableForm.value.status !== "maintenance",
+      });
+    } else {
+      // 新增桌台
+      await api.post("/tables", {
+        restaurantId: Number(restaurantId),
+        number: tableForm.value.tableNumber,
+        name: tableForm.value.tableName || undefined,
+        capacity: tableForm.value.capacity,
+        location: tableForm.value.location || undefined,
+      });
     }
-  } else {
-    // 新增桌台
-    const newTable = {
-      id: Math.max(...tables.value.map((t) => t.id)) + 1,
-      ...tableForm.value,
-      qrCode: `QR_REST1_${tableForm.value.tableNumber}_${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      currentOrderId: null,
-    };
-    tables.value.push(newTable);
+    closeTableModal();
+    await fetchTables();
+  } catch (error) {
+    console.error("Failed to save table:", error);
   }
-  closeTableModal();
 };
 
 const downloadQRCode = () => {
@@ -734,8 +727,27 @@ const printQRCode = () => {
   setTimeout(() => printWindow.print(), 300);
 };
 
+const fetchTables = async () => {
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
+
+  isLoading.value = true;
+  try {
+    const response = await api.get("/tables", {
+      restaurantId,
+    });
+    if (response.data.success && response.data.data) {
+      tables.value = (response.data.data as any[]).map(mapTable);
+    }
+  } catch (error) {
+    console.error("Failed to fetch tables:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 onMounted(() => {
-  // 初始化數據
+  fetchTables();
 });
 </script>
 
