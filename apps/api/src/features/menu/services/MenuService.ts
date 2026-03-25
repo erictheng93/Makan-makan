@@ -759,10 +759,11 @@ export class MenuService implements IMenuService {
     if (!this.cacheService) return;
 
     try {
-      // Clear both old API-level key and DB service-level QueryCache key
+      // Clear old API-level key and both DB service-level QueryCache variants
       await Promise.all([
         this.cacheService.delete(`menu:${restaurantId}`),
         this.cacheService.delete(`query:menu:${restaurantId}:full`),
+        this.cacheService.delete(`query:menu:${restaurantId}:admin`),
       ]);
       this.logger.debug("Menu cache invalidated", { restaurantId });
     } catch (error) {

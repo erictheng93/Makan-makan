@@ -30,15 +30,25 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Public Menu Routes (no authentication required)
 
-// GET /:restaurantId - Get complete menu (public API)
+// GET /:restaurantId - Get complete menu (public API, optionally includes unavailable items for admins)
 app.get(
   "/:restaurantId",
+  optionalAuth,
   validateParams(menuSchemas.restaurantIdParam),
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const service = new MenuService(c.env);
 
-    const menu = await service.getMenu(restaurantId);
+    // Authenticated admin/owner requests can see all items (including unavailable)
+    const user = c.get("user");
+    const includeAll =
+      c.req.query("includeAll") === "true" &&
+      user &&
+      (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.SHOP_OWNER);
+
+    const menu = await service.getMenu(restaurantId, {
+      includeUnavailable: !!includeAll,
+    });
 
     return c.json(createSuccessResponse(menu), HTTP_STATUS.OK);
   },

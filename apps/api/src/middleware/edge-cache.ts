@@ -461,9 +461,14 @@ export function smartCacheMiddleware(
 
       // Run cache invalidation in the background to avoid blocking the response
       if (restaurantId && path.includes("/menu")) {
-        const menuGetKey = `GET:/api/v1/menu/${restaurantId}:`;
         // Delete from KV directly (skip Cache API which can hang in local dev)
-        c.env.CACHE_KV?.delete(menuGetKey).catch(() => {});
+        const kv = c.env.CACHE_KV;
+        if (kv) {
+          kv.delete(`GET:/api/v1/menu/${restaurantId}:`).catch(() => {});
+          kv.delete(`GET:/api/v1/menu/${restaurantId}:includeAll=true`).catch(
+            () => {},
+          );
+        }
       }
     }
 

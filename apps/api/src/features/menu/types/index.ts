@@ -234,7 +234,10 @@ export interface MenuVersion {
 // Service Interfaces
 export interface IMenuService {
   // Menu structure
-  getMenu(restaurantId: string): Promise<MenuStructure | null>;
+  getMenu(
+    restaurantId: string,
+    options?: { includeUnavailable?: boolean },
+  ): Promise<MenuStructure | null>;
   getMenuItem(id: number): Promise<MenuItem | null>;
 
   // Menu items management
