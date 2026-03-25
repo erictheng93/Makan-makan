@@ -639,7 +639,7 @@ export class SchedulingService extends BaseService {
   // ========================================
 
   /** Lightweight schedule fetch — no JOINs, only the schedule row */
-  private async getScheduleRow(id: number): Promise<EmployeeSchedule | null> {
+  async getScheduleById(id: number): Promise<EmployeeSchedule | null> {
     const [row] = await this.db
       .select()
       .from(employeeSchedules)
@@ -652,7 +652,7 @@ export class SchedulingService extends BaseService {
     data: ClockInData,
     isAdmin?: boolean,
   ): Promise<EmployeeSchedule> {
-    const schedule = await this.getScheduleRow(data.scheduleId);
+    const schedule = await this.getScheduleById(data.scheduleId);
     if (!schedule) {
       throw new Error("Schedule not found");
     }
@@ -683,7 +683,7 @@ export class SchedulingService extends BaseService {
     data: ClockOutData,
     isAdmin?: boolean,
   ): Promise<EmployeeSchedule> {
-    const schedule = await this.getScheduleRow(data.scheduleId);
+    const schedule = await this.getScheduleById(data.scheduleId);
     if (!schedule) {
       throw new Error("Schedule not found");
     }

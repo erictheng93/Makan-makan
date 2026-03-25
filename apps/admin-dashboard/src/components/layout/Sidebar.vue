@@ -80,7 +80,6 @@ import {
   Settings,
   User,
   CreditCard,
-  Clock,
   Ticket as TicketIcon,
   Sparkles,
   Calendar,
@@ -178,9 +177,9 @@ const navigationItems = computed(() => {
       ]),
     },
     {
-      name: "waiting-list",
-      path: "/dashboard/waiting-list",
-      label: t("nav.waitingList"),
+      name: "waiting",
+      path: "/dashboard/waiting",
+      label: t("nav.waitingManagement"),
       icon: ClipboardList,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
@@ -252,17 +251,6 @@ const navigationItems = computed(() => {
         UserRole.OWNER,
         UserRole.SERVICE,
         UserRole.CASHIER,
-      ]),
-    },
-    {
-      name: "queue",
-      path: "/dashboard/queue",
-      label: t("nav.queue"),
-      icon: Clock,
-      visible: authStore.hasPermission([
-        UserRole.ADMIN,
-        UserRole.OWNER,
-        UserRole.SERVICE,
       ]),
     },
     {

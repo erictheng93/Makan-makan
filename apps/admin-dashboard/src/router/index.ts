@@ -180,14 +180,10 @@ const routes: RouteRecordRaw[] = [
           ],
         },
       },
+      // Redirect old /queue path to unified waiting management
       {
         path: "queue",
-        name: "Queue",
-        component: () => import("@/views/QueueView.vue"),
-        meta: {
-          titleKey: "pages.queue",
-          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
-        },
+        redirect: { name: "WaitingDashboard" },
       },
       {
         path: "ai-analytics/config",
@@ -252,13 +248,17 @@ const routes: RouteRecordRaw[] = [
           ],
         },
       },
-      // Waiting list management
+      // Redirect old /waiting-list path to unified waiting management
       {
         path: "waiting-list",
-        name: "WaitingList",
-        component: () => import("@/views/WaitingListView.vue"),
+        redirect: { name: "WaitingListTab" },
+      },
+      // Unified waiting management (候位管理)
+      {
+        path: "waiting",
+        component: () => import("@/views/WaitingManagementView.vue"),
         meta: {
-          titleKey: "pages.waitingList",
+          titleKey: "pages.waitingManagement",
           roles: [
             UserRole.ADMIN,
             UserRole.OWNER,
@@ -266,6 +266,22 @@ const routes: RouteRecordRaw[] = [
             UserRole.CASHIER,
           ],
         },
+        children: [
+          {
+            path: "",
+            redirect: { name: "WaitingListTab" },
+          },
+          {
+            path: "list",
+            name: "WaitingListTab",
+            component: () => import("@/views/WaitingListView.vue"),
+          },
+          {
+            path: "dashboard",
+            name: "WaitingDashboard",
+            component: () => import("@/views/QueueView.vue"),
+          },
+        ],
       },
       // Account management (Admin only - platform level)
       {

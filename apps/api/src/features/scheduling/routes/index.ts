@@ -537,8 +537,7 @@ app.post(
     const { notes } = c.get("validatedBody");
     const service = createService(c.env);
 
-    // Get the schedule to find the employee ID
-    const existingSchedule = await service.getSchedule(id);
+    const existingSchedule = await service.getScheduleById(id);
     if (!existingSchedule) {
       throw notFound("Schedule not found");
     }
@@ -572,8 +571,7 @@ app.post(
     const { notes } = c.get("validatedBody");
     const service = createService(c.env);
 
-    // Get the schedule to find the employee ID
-    const existingSchedule = await service.getSchedule(id);
+    const existingSchedule = await service.getScheduleById(id);
     if (!existingSchedule) {
       throw notFound("Schedule not found");
     }
