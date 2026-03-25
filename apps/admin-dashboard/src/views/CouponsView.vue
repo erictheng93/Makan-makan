@@ -294,6 +294,7 @@
                     {{ t("coupons.actions.activate") }}
                   </button>
                   <button
+                    v-if="isAdmin"
                     class="text-red-600 hover:text-red-900 text-sm"
                     @click="deleteCoupon(coupon)"
                   >
@@ -447,9 +448,12 @@ import {
 
 // Components
 import { useAsyncModals } from "@/composables/useAsyncModals";
+import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const authStore = useAuthStore();
+const isAdmin = computed(() => authStore.user?.role === 0);
 
 // 異步加載 Modal 組件
 const { CouponFormModal, CouponStatsModal } = useAsyncModals();

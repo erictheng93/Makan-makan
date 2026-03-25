@@ -46,7 +46,7 @@ export const CURRENCY_CONFIGS: Record<CurrencyCode, CurrencyFormatConfig> = {
 };
 
 /** Default currency when restaurant has no setting */
-export const DEFAULT_CURRENCY: CurrencyCode = "MYR";
+export const DEFAULT_CURRENCY: CurrencyCode = "TWD";
 
 /**
  * Format an amount with full currency display using Intl.NumberFormat.
