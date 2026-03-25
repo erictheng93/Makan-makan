@@ -258,13 +258,13 @@ const userMenuItems = computed(() => {
     {
       name: "profile",
       label: t("roleNav.profile"),
-      href: "/profile",
+      href: "/dashboard/settings",
       icon: UserIcon,
     },
     {
       name: "settings",
       label: t("roleNav.preferences"),
-      href: "/preferences",
+      href: "/dashboard/settings",
       icon: Cog6ToothIcon,
     },
   ];

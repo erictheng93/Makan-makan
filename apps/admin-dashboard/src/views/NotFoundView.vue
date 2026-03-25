@@ -196,26 +196,31 @@ const navigationLinks = computed(() => {
     },
     {
       name: t("nav.orders"),
-      path: "/orders",
+      path: "/dashboard/orders",
       icon: ShoppingBagIcon,
       roles: [0, 1, 3],
     },
-    { name: t("nav.menu"), path: "/menu", icon: CakeIcon, roles: [0, 1] },
+    {
+      name: t("nav.menu"),
+      path: "/dashboard/menu",
+      icon: CakeIcon,
+      roles: [0, 1],
+    },
     {
       name: t("nav.tables"),
-      path: "/tables",
+      path: "/dashboard/tables",
       icon: TableCellsIcon,
       roles: [0, 1, 3],
     },
     {
       name: t("nav.users"),
-      path: "/users",
+      path: "/dashboard/users",
       icon: UserGroupIcon,
       roles: [0, 1],
     },
     {
       name: t("nav.analytics"),
-      path: "/analytics",
+      path: "/dashboard/analytics",
       icon: ChartBarIcon,
       roles: [0, 1],
     },
@@ -254,11 +259,14 @@ const performSearch = () => {
   const query = searchQuery.value.toLowerCase().trim();
 
   const searchMappings = [
-    { keywords: ["訂單", "order", "點餐"], path: "/orders" },
-    { keywords: ["菜單", "menu", "菜品", "食物"], path: "/menu" },
-    { keywords: ["桌台", "table", "桌子", "qr"], path: "/tables" },
-    { keywords: ["員工", "user", "用戶", "帳戶"], path: "/users" },
-    { keywords: ["分析", "analytics", "報表", "統計"], path: "/analytics" },
+    { keywords: ["訂單", "order", "點餐"], path: "/dashboard/orders" },
+    { keywords: ["菜單", "menu", "菜品", "食物"], path: "/dashboard/menu" },
+    { keywords: ["桌台", "table", "桌子", "qr"], path: "/dashboard/tables" },
+    { keywords: ["員工", "user", "用戶", "帳戶"], path: "/dashboard/users" },
+    {
+      keywords: ["分析", "analytics", "報表", "統計"],
+      path: "/dashboard/analytics",
+    },
     { keywords: ["收銀", "cashier", "付款", "結帳"], path: "/cashier" },
   ];
 
