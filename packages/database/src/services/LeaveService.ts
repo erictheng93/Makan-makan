@@ -420,7 +420,7 @@ export class LeaveService extends BaseService {
       }
 
       // Wrap all writes in a transaction
-      balance = await this.db.transaction(async (tx) => {
+      balance = await this.safeTransaction(async (tx) => {
         if (!balance) {
           // Create new balance record
           const [newBalance] = await tx
@@ -544,7 +544,7 @@ export class LeaveService extends BaseService {
       }
 
       // Wrap all inserts in a single transaction (all-or-nothing)
-      const count = await this.db.transaction(async (tx) => {
+      const count = await this.safeTransaction(async (tx) => {
         let inserted = 0;
         for (const item of balancesToCreate) {
           await tx.insert(employeeLeaveBalances).values({
@@ -723,8 +723,8 @@ export class LeaveService extends BaseService {
       );
 
       // Wrap insert + balance update in a transaction
-      const newRequest = await this.db.transaction(async (tx) => {
-        const [request] = await tx
+      const executeWrites = async (db: any) => {
+        const [request] = await db
           .insert(leaveRequests)
           .values({
             ...data,
@@ -741,7 +741,7 @@ export class LeaveService extends BaseService {
         // Update leave balance pending days
         if (balance) {
           const newPending = balance.pendingDays + data.totalDays;
-          await tx
+          await db
             .update(employeeLeaveBalances)
             .set({
               pendingDays: Math.max(0, newPending),
@@ -751,7 +751,9 @@ export class LeaveService extends BaseService {
         }
 
         return request;
-      });
+      };
+
+      const newRequest = await this.safeTransaction(executeWrites);
 
       // Send notification to employee (outside transaction)
       try {
@@ -827,7 +829,7 @@ export class LeaveService extends BaseService {
         const usedBalance = pendingBalance; // Same record
 
         // Final approval — wrap DB writes in a transaction
-        const updated = await this.db.transaction(async (tx) => {
+        const updated = await this.safeTransaction(async (tx) => {
           const [updatedRequest] = await tx
             .update(leaveRequests)
             .set({
@@ -991,7 +993,7 @@ export class LeaveService extends BaseService {
       const now = new Date();
 
       // Wrap status update + balance update in a transaction
-      const updated = await this.db.transaction(async (tx) => {
+      const updated = await this.safeTransaction(async (tx) => {
         const [updatedRequest] = await tx
           .update(leaveRequests)
           .set({
@@ -1089,7 +1091,7 @@ export class LeaveService extends BaseService {
       const now = new Date();
 
       // Wrap status update + conditional balance update in a transaction
-      const updated = await this.db.transaction(async (tx) => {
+      const updated = await this.safeTransaction(async (tx) => {
         const [updatedRequest] = await tx
           .update(leaveRequests)
           .set({

@@ -72,8 +72,8 @@ export const updateLeaveTypeSchema = createLeaveTypeSchema.partial();
 // Leave Request Schemas
 export const createLeaveRequestSchema = z
   .object({
-    restaurantId: restaurantIdString,
-    employeeId: positiveInteger,
+    restaurantId: restaurantIdString.optional(), // Injected by route handler from URL param
+    employeeId: positiveInteger.optional(), // Injected by frontend from auth context
     leaveTypeId: positiveInteger,
 
     // Date & Duration

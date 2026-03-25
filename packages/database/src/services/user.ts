@@ -336,6 +336,7 @@ export class UserService extends BaseService {
           or(
             like(users.username, `%${search}%`),
             like(users.fullName, `%${search}%`),
+            like(users.email, `%${search}%`),
           )!,
         );
       }
@@ -603,51 +604,43 @@ export class UserService extends BaseService {
       const conditions = restaurantId
         ? [eq(users.restaurantId, restaurantId)]
         : [];
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
 
-      // 總用戶數 (使用安全解構避免 undefined 錯誤)
-      const totalUsersResult = await this.db
-        .select({ totalUsers: count() })
-        .from(users)
-        .where(conditions.length > 0 ? and(...conditions) : undefined);
-      const totalUsers = totalUsersResult?.[0]?.totalUsers ?? 0;
-
-      // 活躍用戶數 (使用安全解構避免 undefined 錯誤)
-      const activeConditions = [...conditions, eq(users.isActive, true)];
-      const activeUsersResult = await this.db
-        .select({ activeUsers: count() })
-        .from(users)
-        .where(and(...activeConditions));
-      const activeUsers = activeUsersResult?.[0]?.activeUsers ?? 0;
-
-      // 按角色分組統計
-      const roleStats = await this.db
-        .select({
-          role: users.role,
-          count: count(),
-        })
-        .from(users)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .groupBy(users.role);
-
-      const byRole: Record<number, number> = {};
-      roleStats.forEach((stat) => {
-        byRole[Number(stat.role)] = Number(stat.count);
-      });
-
-      // 最近30天註冊用戶數 (使用安全解構避免 undefined 錯誤)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const recentConditions = [
-        ...conditions,
-        gte(users.createdAt, thirtyDaysAgo),
-      ];
-      const recentRegistrationsResult = await this.db
-        .select({ recentRegistrations: count() })
-        .from(users)
-        .where(and(...recentConditions));
+      const [
+        totalUsersResult,
+        activeUsersResult,
+        roleStats,
+        recentRegistrationsResult,
+      ] = await Promise.all([
+        this.db.select({ totalUsers: count() }).from(users).where(whereClause),
+        this.db
+          .select({ activeUsers: count() })
+          .from(users)
+          .where(and(...conditions, eq(users.isActive, true))),
+        this.db
+          .select({ role: users.role, count: count() })
+          .from(users)
+          .where(whereClause)
+          .groupBy(users.role),
+        this.db
+          .select({ recentRegistrations: count() })
+          .from(users)
+          .where(and(...conditions, gte(users.createdAt, thirtyDaysAgo))),
+      ]);
+
+      const totalUsers = totalUsersResult?.[0]?.totalUsers ?? 0;
+      const activeUsers = activeUsersResult?.[0]?.activeUsers ?? 0;
       const recentRegistrations =
         recentRegistrationsResult?.[0]?.recentRegistrations ?? 0;
+
+      const byRole: Record<number, number> = {};
+      for (const stat of roleStats) {
+        byRole[Number(stat.role)] = Number(stat.count);
+      }
 
       return {
         totalUsers,

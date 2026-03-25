@@ -51,17 +51,26 @@
           <p class="reason">{{ request.reason }}</p>
 
           <div
-            v-if="request.approvalChain && request.approvalChain.length > 0"
+            v-if="parseApprovalChain(request.approvalChain).length > 0"
             class="approval-chain"
           >
             <div
-              v-for="(approval, index) in request.approvalChain"
+              v-for="(approval, index) in parseApprovalChain(
+                request.approvalChain,
+              )"
               :key="index"
               class="approval-step"
             >
-              <span class="approver">{{ approval.approverName }}</span>
-              <span :class="`approval-status ${approval.status}`">
-                {{ t(`leaves.approval.${approval.status}`) }}
+              <span class="approver">{{
+                approval.approverName || t("leaves.approval.reviewer")
+              }}</span>
+              <span :class="`approval-status ${approval.status || 'pending'}`">
+                {{
+                  t(
+                    `leaves.approval.${approval.status || "pending"}`,
+                    t("leaves.approval.pending"),
+                  )
+                }}
               </span>
             </div>
           </div>
@@ -141,6 +150,19 @@ const filteredRequests = computed(() => {
     return true;
   });
 });
+
+const parseApprovalChain = (
+  chain: string | Array<any> | undefined,
+): Array<any> => {
+  if (!chain) return [];
+  if (Array.isArray(chain)) return chain;
+  try {
+    const parsed = JSON.parse(chain);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 const formatDate = (date: string): string => {
   return new Date(date).toLocaleDateString("zh-TW", {

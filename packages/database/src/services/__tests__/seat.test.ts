@@ -115,27 +115,18 @@ describe("SeatService", () => {
       // Arrange - first select: table lookup via .get()
       mockDb.select.mockReturnValue(createQueryChain([mockTable]));
 
-      // insert().values().returning() returns created seat
+      // Batch insert: insert().values([...]).returning() returns all created seats
       const createdSeat1 = { ...mockSeat, id: 1, seatNumber: "01" };
       const createdSeat2 = { ...mockSeat, id: 2, seatNumber: "02" };
       const createdSeat3 = { ...mockSeat, id: 3, seatNumber: "03" };
 
-      mockDb.insert
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([createdSeat1]),
-          }),
-        })
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([createdSeat2]),
-          }),
-        })
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([createdSeat3]),
-          }),
-        });
+      mockDb.insert.mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi
+            .fn()
+            .mockResolvedValue([createdSeat1, createdSeat2, createdSeat3]),
+        }),
+      });
 
       // Act
       const result = await seatService.createSeatsForTable(1, 3, {
@@ -147,7 +138,7 @@ describe("SeatService", () => {
       expect(result[0].seatNumber).toBe("01");
       expect(result[1].seatNumber).toBe("02");
       expect(result[2].seatNumber).toBe("03");
-      expect(mockDb.insert).toHaveBeenCalledTimes(3);
+      expect(mockDb.insert).toHaveBeenCalledTimes(1);
     });
 
     it("should create seats with alphabetic numbering", async () => {
@@ -157,17 +148,11 @@ describe("SeatService", () => {
       const seatA = { ...mockSeat, id: 1, seatNumber: "A" };
       const seatB = { ...mockSeat, id: 2, seatNumber: "B" };
 
-      mockDb.insert
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([seatA]),
-          }),
-        })
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([seatB]),
-          }),
-        });
+      mockDb.insert.mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([seatA, seatB]),
+        }),
+      });
 
       // Act
       const result = await seatService.createSeatsForTable(1, 2, {
@@ -187,17 +172,11 @@ describe("SeatService", () => {
       const seatVIP1 = { ...mockSeat, id: 1, seatNumber: "VIP-1" };
       const seatVIP2 = { ...mockSeat, id: 2, seatNumber: "VIP-2" };
 
-      mockDb.insert
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([seatVIP1]),
-          }),
-        })
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([seatVIP2]),
-          }),
-        });
+      mockDb.insert.mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([seatVIP1, seatVIP2]),
+        }),
+      });
 
       // Act
       const result = await seatService.createSeatsForTable(1, 2, {
@@ -228,17 +207,11 @@ describe("SeatService", () => {
       const seatS01 = { ...mockSeat, id: 1, seatNumber: "S-01" };
       const seatS02 = { ...mockSeat, id: 2, seatNumber: "S-02" };
 
-      mockDb.insert
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([seatS01]),
-          }),
-        })
-        .mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([seatS02]),
-          }),
-        });
+      mockDb.insert.mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([seatS01, seatS02]),
+        }),
+      });
 
       // Act
       const result = await seatService.createSeatsForTable(1, 2, {
@@ -248,35 +221,32 @@ describe("SeatService", () => {
 
       // Assert
       expect(result).toHaveLength(2);
-      // Verify insert was called (prefix is applied internally by generateSeatNumbers)
-      expect(mockDb.insert).toHaveBeenCalledTimes(2);
+      expect(mockDb.insert).toHaveBeenCalledTimes(1);
     });
 
     it("should generate correct number of seats", async () => {
       // Arrange
       mockDb.select.mockReturnValue(createQueryChain([mockTable]));
 
-      // Setup 5 insert calls
-      for (let i = 0; i < 5; i++) {
-        mockDb.insert.mockReturnValueOnce({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([
-              {
-                ...mockSeat,
-                id: i + 1,
-                seatNumber: String(i + 1).padStart(2, "0"),
-              },
-            ]),
-          }),
-        });
-      }
+      // Batch insert returns all 5 seats
+      const createdSeats = Array.from({ length: 5 }, (_, i) => ({
+        ...mockSeat,
+        id: i + 1,
+        seatNumber: String(i + 1).padStart(2, "0"),
+      }));
+
+      mockDb.insert.mockReturnValueOnce({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue(createdSeats),
+        }),
+      });
 
       // Act
       const result = await seatService.createSeatsForTable(1, 5);
 
       // Assert
       expect(result).toHaveLength(5);
-      expect(mockDb.insert).toHaveBeenCalledTimes(5);
+      expect(mockDb.insert).toHaveBeenCalledTimes(1);
     });
 
     it("should handle DB error gracefully", async () => {
@@ -882,16 +852,16 @@ describe("SeatService", () => {
   // ============================================
   describe("getSeatStats", () => {
     it("should return correct statistics", async () => {
-      // Arrange - 4 separate count queries
-      mockDb.select.mockReturnValueOnce(createQueryChain([{ totalSeats: 10 }]));
+      // Arrange - single conditional aggregation query
       mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ occupiedSeats: 3 }]),
-      );
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ availableSeats: 6 }]),
-      );
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ inactiveSeats: 1 }]),
+        createQueryChain([
+          {
+            totalSeats: 10,
+            occupiedSeats: 3,
+            availableSeats: 6,
+            inactiveSeats: 1,
+          },
+        ]),
       );
 
       // Act
@@ -906,15 +876,15 @@ describe("SeatService", () => {
 
     it("should calculate occupancy rate correctly", async () => {
       // Arrange
-      mockDb.select.mockReturnValueOnce(createQueryChain([{ totalSeats: 8 }]));
       mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ occupiedSeats: 6 }]),
-      );
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ availableSeats: 2 }]),
-      );
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ inactiveSeats: 0 }]),
+        createQueryChain([
+          {
+            totalSeats: 8,
+            occupiedSeats: 6,
+            availableSeats: 2,
+            inactiveSeats: 0,
+          },
+        ]),
       );
 
       // Act
@@ -927,15 +897,15 @@ describe("SeatService", () => {
 
     it("should return zeros when no seats", async () => {
       // Arrange
-      mockDb.select.mockReturnValueOnce(createQueryChain([{ totalSeats: 0 }]));
       mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ occupiedSeats: 0 }]),
-      );
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ availableSeats: 0 }]),
-      );
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ inactiveSeats: 0 }]),
+        createQueryChain([
+          {
+            totalSeats: 0,
+            occupiedSeats: 0,
+            availableSeats: 0,
+            inactiveSeats: 0,
+          },
+        ]),
       );
 
       // Act

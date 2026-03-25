@@ -18,6 +18,17 @@ export { ImageService } from "./image";
 export { CouponService } from "./coupon";
 export { LeaveService } from "./LeaveService";
 export { SchedulingService } from "./SchedulingService";
+export type {
+  ShiftTemplate,
+  EmployeeSchedule,
+  SchedulingConflict,
+  ScheduleSwapRequest,
+  ConflictCheckResult,
+  ScheduleFilters,
+  BulkScheduleData,
+  ClockInData,
+  ClockOutData,
+} from "./SchedulingService";
 export { ReservationService } from "./ReservationService";
 export { WaitingListService } from "./WaitingListService";
 export { NotificationService } from "./NotificationService";

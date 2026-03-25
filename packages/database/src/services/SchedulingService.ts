@@ -25,7 +25,10 @@ import {
   users,
   leaveRequests,
 } from "../schema";
-import { NotificationService } from "./NotificationService";
+import {
+  NotificationService,
+  type NotificationCategory,
+} from "./NotificationService";
 
 // ========================================
 // Types
@@ -217,7 +220,9 @@ export class SchedulingService extends BaseService {
     return (template as ShiftTemplate) || null;
   }
 
-  async createShiftTemplate(data: any): Promise<ShiftTemplate> {
+  async createShiftTemplate(
+    data: typeof shiftTemplates.$inferInsert,
+  ): Promise<ShiftTemplate> {
     const [newTemplate] = await this.db
       .insert(shiftTemplates)
       .values({
@@ -230,7 +235,10 @@ export class SchedulingService extends BaseService {
     return newTemplate as ShiftTemplate;
   }
 
-  async updateShiftTemplate(id: number, data: any): Promise<ShiftTemplate> {
+  async updateShiftTemplate(
+    id: number,
+    data: Partial<ShiftTemplate>,
+  ): Promise<ShiftTemplate> {
     const [updated] = await this.db
       .update(shiftTemplates)
       .set({ ...data, updatedAt: new Date() })
@@ -260,7 +268,7 @@ export class SchedulingService extends BaseService {
 
   async getSchedules(
     filters: ScheduleFilters,
-  ): Promise<{ items: any[]; total: number }> {
+  ): Promise<{ items: Record<string, unknown>[]; total: number }> {
     const { page = 1, limit = 20, ...restFilters } = filters;
     const { limit: pgLimit, offset } = this.createPagination(page, limit);
 
@@ -333,7 +341,7 @@ export class SchedulingService extends BaseService {
     return { items, total };
   }
 
-  async getSchedule(id: number): Promise<any> {
+  async getSchedule(id: number): Promise<Record<string, unknown> | null> {
     const [result] = await this.db
       .select({
         schedule: employeeSchedules,
@@ -358,7 +366,17 @@ export class SchedulingService extends BaseService {
     };
   }
 
-  async createSchedule(data: any, existingTx?: any): Promise<EmployeeSchedule> {
+  async createSchedule(
+    data: Partial<EmployeeSchedule> & {
+      restaurantId: string;
+      employeeId: number;
+      workDate: string;
+      startTime: string;
+      endTime: string;
+      scheduledHours: number;
+    },
+    existingTx?: any,
+  ): Promise<EmployeeSchedule> {
     // Check for conflicts (read operation — outside transaction)
     const conflicts = await this.checkScheduleConflicts(data);
 
@@ -369,7 +387,7 @@ export class SchedulingService extends BaseService {
         for (const conflict of conflicts.conflicts) {
           await tx.insert(schedulingConflicts).values({
             ...conflict,
-            restaurantId: conflict.restaurantId || 0,
+            restaurantId: data.restaurantId,
             scheduleIds: conflict.scheduleIds || "[]",
             employeeIds: conflict.employeeIds || "[]",
             status: "unresolved",
@@ -398,51 +416,28 @@ export class SchedulingService extends BaseService {
     // Use the passed-in transaction (from bulkCreateSchedules) or create a new one
     const newSchedule = existingTx
       ? await executeWrites(existingTx)
-      : await this.db.transaction(async (tx) => executeWrites(tx));
+      : await this.safeTransaction(executeWrites);
 
-    // Send notification to employee (outside transaction — non-critical side effect)
-    try {
-      const employee = await this.db
-        .select()
-        .from(users)
-        .where(eq(users.id, data.employeeId))
-        .limit(1);
-
-      let shiftTemplate = null;
-      if (data.shiftTemplateId) {
-        shiftTemplate = await this.getShiftTemplate(data.shiftTemplateId);
-      }
-
-      if (employee[0]?.email) {
-        await this.notificationService.sendNotification({
-          recipientId: data.employeeId,
-          recipientEmail: employee[0].email,
-          category: "schedule_created",
-          type: "email",
-          data: {
-            employeeName: employee[0].fullName || employee[0].username,
-            shiftName: shiftTemplate?.name || "Custom Shift",
-            scheduleDate: data.workDate,
-            startTime: data.startTime,
-            endTime: data.endTime,
-            scheduledHours: data.scheduledHours.toString(),
-            notes: data.notes || "",
-          },
-          priority: "normal",
-        });
-      }
-    } catch (notifError) {
-      console.error(
-        "Failed to send schedule creation notification:",
-        notifError,
-      );
-      // Don't fail the operation if notification fails
-    }
+    // Non-critical notification — fire and forget
+    this.sendScheduleNotification(data.employeeId, data.shiftTemplateId, {
+      category: "schedule_created",
+      scheduleDate: data.workDate,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      extra: {
+        scheduledHours: data.scheduledHours.toString(),
+        notes: data.notes || "",
+      },
+      priority: "normal",
+    });
 
     return newSchedule as EmployeeSchedule;
   }
 
-  async updateSchedule(id: number, data: any): Promise<EmployeeSchedule> {
+  async updateSchedule(
+    id: number,
+    data: Partial<EmployeeSchedule>,
+  ): Promise<EmployeeSchedule> {
     const [updated] = await this.db
       .update(employeeSchedules)
       .set({ ...data, updatedAt: new Date() })
@@ -453,41 +448,18 @@ export class SchedulingService extends BaseService {
       throw new Error("Schedule not found");
     }
 
-    // Send notification to employee about schedule update
-    try {
-      const employee = await this.db
-        .select()
-        .from(users)
-        .where(eq(users.id, updated.employeeId))
-        .limit(1);
-
-      let shiftTemplate = null;
-      if (updated.shiftTemplateId) {
-        shiftTemplate = await this.getShiftTemplate(updated.shiftTemplateId);
-      }
-
-      if (employee[0]?.email) {
-        await this.notificationService.sendNotification({
-          recipientId: updated.employeeId,
-          recipientEmail: employee[0].email,
-          category: "schedule_updated",
-          type: "email",
-          data: {
-            employeeName: employee[0].fullName || employee[0].username,
-            shiftName: shiftTemplate?.name || "Custom Shift",
-            scheduleDate: updated.workDate,
-            startTime: updated.startTime,
-            endTime: updated.endTime,
-            scheduledHours: updated.scheduledHours.toString(),
-            notes: updated.notes || "",
-          },
-          priority: "high",
-        });
-      }
-    } catch (notifError) {
-      console.error("Failed to send schedule update notification:", notifError);
-      // Don't fail the operation if notification fails
-    }
+    // Non-critical notification — fire and forget
+    this.sendScheduleNotification(updated.employeeId, updated.shiftTemplateId, {
+      category: "schedule_updated",
+      scheduleDate: updated.workDate,
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      extra: {
+        scheduledHours: updated.scheduledHours.toString(),
+        notes: updated.notes || "",
+      },
+      priority: "high",
+    });
 
     return updated as EmployeeSchedule;
   }
@@ -499,44 +471,22 @@ export class SchedulingService extends BaseService {
       .where(eq(employeeSchedules.id, id))
       .returning();
 
-    // Send notification to employee about schedule cancellation
     if (deleted) {
-      try {
-        const employee = await this.db
-          .select()
-          .from(users)
-          .where(eq(users.id, deleted.employeeId))
-          .limit(1);
-
-        let shiftTemplate = null;
-        if (deleted.shiftTemplateId) {
-          shiftTemplate = await this.getShiftTemplate(deleted.shiftTemplateId);
-        }
-
-        if (employee[0]?.email) {
-          await this.notificationService.sendNotification({
-            recipientId: deleted.employeeId,
-            recipientEmail: employee[0].email,
-            category: "schedule_cancelled",
-            type: "email",
-            data: {
-              employeeName: employee[0].fullName || employee[0].username,
-              shiftName: shiftTemplate?.name || "Custom Shift",
-              scheduleDate: deleted.workDate,
-              startTime: deleted.startTime,
-              endTime: deleted.endTime,
-              cancellationReason: deleted.managerNotes || "Schedule cancelled",
-            },
-            priority: "high",
-          });
-        }
-      } catch (notifError) {
-        console.error(
-          "Failed to send schedule cancellation notification:",
-          notifError,
-        );
-        // Don't fail the operation if notification fails
-      }
+      // Non-critical notification — fire and forget
+      this.sendScheduleNotification(
+        deleted.employeeId,
+        deleted.shiftTemplateId,
+        {
+          category: "schedule_cancelled",
+          scheduleDate: deleted.workDate,
+          startTime: deleted.startTime,
+          endTime: deleted.endTime,
+          extra: {
+            cancellationReason: deleted.managerNotes || "Schedule cancelled",
+          },
+          priority: "high",
+        },
+      );
     }
 
     return !!deleted;
@@ -553,7 +503,7 @@ export class SchedulingService extends BaseService {
     }
 
     // Collect all schedule data to create
-    const schedulesToCreate: any[] = [];
+    const schedulesToCreate: Record<string, any>[] = [];
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       const dayOfWeek = currentDate.getDay();
@@ -577,28 +527,132 @@ export class SchedulingService extends BaseService {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Wrap all schedule creations in a single transaction — all succeed or none do
-    const count = await this.db.transaction(async (tx) => {
-      let created = 0;
-      for (const scheduleData of schedulesToCreate) {
-        await this.createSchedule(scheduleData, tx);
-        created++;
+    // Pre-fetch conflict data for the entire range (2 queries instead of N×6-12)
+    const weekBefore = new Date(startDate);
+    weekBefore.setDate(weekBefore.getDate() - 7);
+    const dayAfter = new Date(endDate);
+    dayAfter.setDate(dayAfter.getDate() + 1);
+
+    const [existingSchedules, existingLeaves] = await Promise.all([
+      this.db
+        .select()
+        .from(employeeSchedules)
+        .where(
+          and(
+            eq(employeeSchedules.restaurantId, data.restaurantId),
+            between(
+              employeeSchedules.workDate,
+              weekBefore.toISOString().split("T")[0],
+              dayAfter.toISOString().split("T")[0],
+            ),
+            sql`${employeeSchedules.status} != 'cancelled'`,
+          ),
+        ),
+      this.db
+        .select()
+        .from(leaveRequests)
+        .where(
+          and(
+            eq(leaveRequests.status, "approved"),
+            lte(leaveRequests.startDate, data.dateRange.endDate),
+            gte(leaveRequests.endDate, data.dateRange.startDate),
+          ),
+        ),
+    ]);
+
+    // In-memory conflict detection for all schedules at once
+    const bulkConflicts: any[] = [];
+    for (const sched of schedulesToCreate) {
+      const empSchedules = existingSchedules.filter(
+        (s) =>
+          s.employeeId === sched.employeeId && s.workDate === sched.workDate,
+      );
+      for (const existing of empSchedules) {
+        if (
+          this.timesOverlap(
+            sched.startTime,
+            sched.endTime,
+            existing.startTime,
+            existing.endTime,
+          )
+        ) {
+          bulkConflicts.push({
+            conflictType: "overlapping_shifts",
+            severity: "error",
+            message: `Overlapping shift: ${existing.startTime}-${existing.endTime}`,
+            restaurantId: data.restaurantId,
+            scheduleIds: JSON.stringify([existing.id]),
+            employeeIds: JSON.stringify([sched.employeeId]),
+          });
+        }
       }
-      return created;
+
+      const empLeaves = existingLeaves.filter(
+        (l) =>
+          l.employeeId === sched.employeeId &&
+          l.startDate <= sched.workDate &&
+          l.endDate >= sched.workDate,
+      );
+      if (empLeaves.length > 0) {
+        bulkConflicts.push({
+          conflictType: "leave_conflict",
+          severity: "error",
+          message: "Employee has approved leave on this date",
+          restaurantId: data.restaurantId,
+          employeeIds: JSON.stringify([sched.employeeId]),
+          details: JSON.stringify({ leaveRequestId: empLeaves[0].id }),
+        });
+      }
+    }
+
+    // Single transaction: store conflicts + insert all schedules
+    await this.safeTransaction(async (tx) => {
+      for (const conflict of bulkConflicts) {
+        await tx.insert(schedulingConflicts).values({
+          ...conflict,
+          scheduleIds: conflict.scheduleIds || "[]",
+          employeeIds: conflict.employeeIds || "[]",
+          status: "unresolved",
+          detectedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      for (const sched of schedulesToCreate) {
+        await tx.insert(employeeSchedules).values({
+          ...sched,
+          status: "scheduled",
+          actualHours: 0,
+          overtimeHours: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
     });
 
-    return count;
+    return schedulesToCreate.length;
   }
 
   // ========================================
   // Clock In/Out
   // ========================================
 
+  /** Lightweight schedule fetch — no JOINs, only the schedule row */
+  private async getScheduleRow(id: number): Promise<EmployeeSchedule | null> {
+    const [row] = await this.db
+      .select()
+      .from(employeeSchedules)
+      .where(eq(employeeSchedules.id, id))
+      .limit(1);
+    return (row as EmployeeSchedule) || null;
+  }
+
   async clockIn(
     data: ClockInData,
     isAdmin?: boolean,
   ): Promise<EmployeeSchedule> {
-    const schedule = await this.getSchedule(data.scheduleId);
+    const schedule = await this.getScheduleRow(data.scheduleId);
     if (!schedule) {
       throw new Error("Schedule not found");
     }
@@ -629,7 +683,7 @@ export class SchedulingService extends BaseService {
     data: ClockOutData,
     isAdmin?: boolean,
   ): Promise<EmployeeSchedule> {
-    const schedule = await this.getSchedule(data.scheduleId);
+    const schedule = await this.getScheduleRow(data.scheduleId);
     if (!schedule) {
       throw new Error("Schedule not found");
     }
@@ -735,30 +789,38 @@ export class SchedulingService extends BaseService {
 
     const records = results as EmployeeSchedule[];
 
-    // Calculate summary
+    // Single-pass summary calculation
+    let totalPresent = 0;
+    let totalAbsent = 0;
+    let totalLate = 0;
+    let totalHoursWorked = 0;
+    let totalOvertimeHours = 0;
+
+    for (const r of records) {
+      if (
+        r.status === "confirmed" ||
+        r.status === "completed" ||
+        r.clockInTime
+      ) {
+        totalPresent++;
+      }
+      if (r.status === "no_show") {
+        totalAbsent++;
+      }
+      if (r.clockInTime && r.startTime) {
+        const clockIn = new Date(r.clockInTime);
+        const [hours, minutes] = r.startTime.split(":").map(Number);
+        const scheduledStart = new Date(r.workDate);
+        scheduledStart.setHours(hours, minutes, 0, 0);
+        if (clockIn.getTime() > scheduledStart.getTime()) {
+          totalLate++;
+        }
+      }
+      totalHoursWorked += r.actualHours || 0;
+      totalOvertimeHours += r.overtimeHours || 0;
+    }
+
     const totalScheduled = records.length;
-    const totalPresent = records.filter(
-      (r) =>
-        r.status === "confirmed" || r.status === "completed" || r.clockInTime,
-    ).length;
-    const totalAbsent = records.filter((r) => r.status === "no_show").length;
-    // Late = clocked in after scheduled start time
-    const totalLate = records.filter((r) => {
-      if (!r.clockInTime || !r.startTime) return false;
-      const clockIn = new Date(r.clockInTime);
-      const [hours, minutes] = r.startTime.split(":").map(Number);
-      const scheduledStart = new Date(r.workDate);
-      scheduledStart.setHours(hours, minutes, 0, 0);
-      return clockIn.getTime() > scheduledStart.getTime();
-    }).length;
-    const totalHoursWorked = records.reduce(
-      (sum, r) => sum + (r.actualHours || 0),
-      0,
-    );
-    const totalOvertimeHours = records.reduce(
-      (sum, r) => sum + (r.overtimeHours || 0),
-      0,
-    );
     const attendanceRate =
       totalScheduled > 0 ? (totalPresent / totalScheduled) * 100 : 0;
 
@@ -780,9 +842,13 @@ export class SchedulingService extends BaseService {
   // Conflict Detection Engine
   // ========================================
 
-  async checkScheduleConflicts(
-    scheduleData: any,
-  ): Promise<ConflictCheckResult> {
+  async checkScheduleConflicts(scheduleData: {
+    employeeId: number;
+    workDate: string;
+    startTime: string;
+    endTime: string;
+    scheduledHours: number;
+  }): Promise<ConflictCheckResult> {
     const conflicts: any[] = [];
     const warnings: any[] = [];
     const info: any[] = [];
@@ -1003,29 +1069,32 @@ export class SchedulingService extends BaseService {
     workDate: string,
   ): Promise<any | null> {
     const date = new Date(workDate);
-    let consecutiveDays = 1;
+    const weekAgo = new Date(date);
+    weekAgo.setDate(date.getDate() - 7);
 
-    // Check backwards
+    // Single query: fetch all work dates in the past 7 days
+    const results = await this.db
+      .select({ workDate: employeeSchedules.workDate })
+      .from(employeeSchedules)
+      .where(
+        and(
+          eq(employeeSchedules.employeeId, employeeId),
+          between(
+            employeeSchedules.workDate,
+            weekAgo.toISOString().split("T")[0],
+            workDate,
+          ),
+          sql`${employeeSchedules.status} != 'cancelled'`,
+        ),
+      );
+
+    // Build a set of worked dates, then count consecutive days backwards from workDate
+    const workedDates = new Set(results.map((r) => r.workDate));
+    let consecutiveDays = 1; // Count the new date itself
     for (let i = 1; i <= 7; i++) {
       const checkDate = new Date(date);
       checkDate.setDate(date.getDate() - i);
-
-      const [schedule] = await this.db
-        .select()
-        .from(employeeSchedules)
-        .where(
-          and(
-            eq(employeeSchedules.employeeId, employeeId),
-            eq(
-              employeeSchedules.workDate,
-              checkDate.toISOString().split("T")[0],
-            ),
-            sql`${employeeSchedules.status} != 'cancelled'`,
-          ),
-        )
-        .limit(1);
-
-      if (schedule) {
+      if (workedDates.has(checkDate.toISOString().split("T")[0])) {
         consecutiveDays++;
       } else {
         break;
@@ -1074,19 +1143,6 @@ export class SchedulingService extends BaseService {
     return null;
   }
 
-  private async createConflictRecord(conflictData: any): Promise<void> {
-    await this.db.insert(schedulingConflicts).values({
-      ...conflictData,
-      restaurantId: conflictData.restaurantId || 0,
-      scheduleIds: conflictData.scheduleIds || "[]",
-      employeeIds: conflictData.employeeIds || "[]",
-      status: "unresolved",
-      detectedAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-  }
-
   // ========================================
   // Helper Methods
   // ========================================
@@ -1128,37 +1184,60 @@ export class SchedulingService extends BaseService {
   }
 
   /**
-   * Calculate scheduled hours from start time, end time, and break duration
-   * Handles overnight shifts correctly
+   * Send a schedule change notification. Non-critical — errors are logged and swallowed.
    */
-  private calculateScheduledHours(
-    startTime: string,
-    endTime: string,
-    breakMinutes: number,
-  ): number {
-    const [sh, sm] = startTime.split(":").map(Number);
-    const [eh, em] = endTime.split(":").map(Number);
+  private async sendScheduleNotification(
+    employeeId: number,
+    shiftTemplateId: number | null | undefined,
+    opts: {
+      category: NotificationCategory;
+      scheduleDate: string;
+      startTime: string;
+      endTime: string;
+      extra?: Record<string, string>;
+      priority: "normal" | "high";
+    },
+  ): Promise<void> {
+    try {
+      const [employee] = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, employeeId))
+        .limit(1);
 
-    const startMin = sh * 60 + sm;
-    let endMin = eh * 60 + em;
+      if (!employee?.email) return;
 
-    // Handle overnight shifts (e.g., 22:00 to 06:00)
-    if (endMin <= startMin) {
-      endMin += 24 * 60;
+      const shiftTemplate = shiftTemplateId
+        ? await this.getShiftTemplate(shiftTemplateId)
+        : null;
+
+      await this.notificationService.sendNotification({
+        recipientId: employeeId,
+        recipientEmail: employee.email,
+        category: opts.category,
+        type: "email",
+        data: {
+          employeeName: employee.fullName || employee.username,
+          shiftName: shiftTemplate?.name || "Custom Shift",
+          scheduleDate: opts.scheduleDate,
+          startTime: opts.startTime,
+          endTime: opts.endTime,
+          ...opts.extra,
+        },
+        priority: opts.priority,
+      });
+    } catch (error) {
+      console.error(`Failed to send ${opts.category} notification:`, error);
     }
-
-    // Calculate total minutes and subtract break
-    const totalMinutes = endMin - startMin - breakMinutes;
-
-    // Convert to hours
-    return totalMinutes / 60;
   }
 
   // ========================================
   // Swap Requests (simplified)
   // ========================================
 
-  async createSwapRequest(data: any): Promise<ScheduleSwapRequest> {
+  async createSwapRequest(
+    data: typeof scheduleSwapRequests.$inferInsert,
+  ): Promise<ScheduleSwapRequest> {
     const [request] = await this.db
       .insert(scheduleSwapRequests)
       .values({

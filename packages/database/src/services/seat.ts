@@ -1,6 +1,7 @@
 import { eq, and, asc, count, inArray, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { seats, tables, restaurants } from "../schema";
+import { buildSignedQRUrl } from "@makanmakan/utils";
 
 export interface CreateSeatData {
   tableId: number;
@@ -71,30 +72,28 @@ export class SeatService extends BaseService {
       // 生成座位編號
       const seatNumbers = this.generateSeatNumbers(seatCount, options);
 
-      // 批量創建座位
-      const createdSeats = [];
-      for (const seatNumber of seatNumbers) {
-        const qrCode = await this.generateSeatQRCode(
-          table.restaurantId,
-          tableId,
-          seatNumber,
-        );
+      // 並行生成所有 QR codes
+      const qrCodes = await Promise.all(
+        seatNumbers.map((seatNumber) =>
+          this.generateSeatQRCode(table.restaurantId, tableId, seatNumber),
+        ),
+      );
 
-        const [newSeat] = await this.db
-          .insert(seats)
-          .values({
-            tableId,
-            seatNumber,
-            qrCode,
-            qrCodeVersion: 1,
-            isOccupied: false,
-            isActive: true,
-            totalUsage: 0,
-          })
-          .returning();
+      // 批量插入所有座位
+      const seatValues = seatNumbers.map((seatNumber, i) => ({
+        tableId,
+        seatNumber,
+        qrCode: qrCodes[i],
+        qrCodeVersion: 1,
+        isOccupied: false,
+        isActive: true,
+        totalUsage: 0,
+      }));
 
-        createdSeats.push(newSeat);
-      }
+      const createdSeats = await this.db
+        .insert(seats)
+        .values(seatValues)
+        .returning();
 
       return createdSeats;
     } catch (error) {
@@ -532,34 +531,16 @@ export class SeatService extends BaseService {
   ): Promise<string> {
     const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
     const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
-    const sig = await this.signQR(
-      `seat|${restaurantId}|${seatNumber}|${version}`,
+    return buildSignedQRUrl(
+      baseUrl,
+      {
+        type: "seat",
+        restaurantId,
+        identifier: seatNumber,
+        version,
+      },
       signingKey,
     );
-    const url = new URL("/order", baseUrl);
-    url.searchParams.set("t", "seat");
-    url.searchParams.set("r", restaurantId);
-    url.searchParams.set("n", seatNumber);
-    url.searchParams.set("v", String(version));
-    url.searchParams.set("ts", String(Date.now()));
-    url.searchParams.set("sig", sig);
-    return url.toString();
-  }
-
-  /** HMAC-SHA256, truncated to 16 hex chars (8 bytes) */
-  private async signQR(data: string, key: string): Promise<string> {
-    const enc = new TextEncoder();
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      enc.encode(key),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"],
-    );
-    const sig = await crypto.subtle.sign("HMAC", cryptoKey, enc.encode(data));
-    return Array.from(new Uint8Array(sig).slice(0, 8))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
   }
 
   /**

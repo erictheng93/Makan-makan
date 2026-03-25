@@ -3,7 +3,7 @@ import { USER_ROLES } from "@makanmakan/database";
 /**
  * User role names mapping for display purposes
  */
-export const _USER_ROLE_NAMES = {
+export const USER_ROLE_NAMES: Record<number, string> = {
   [USER_ROLES.ADMIN]: "Admin",
   [USER_ROLES.OWNER]: "Shop Owner",
   [USER_ROLES.CHEF]: "Chef",

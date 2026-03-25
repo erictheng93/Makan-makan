@@ -354,7 +354,6 @@ describe("UsersService", () => {
 
       const result = await usersService.getUsers(mockAdminUser, {});
 
-      expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
       expect(mockUserService.getAllUsers).toHaveBeenCalled();
     });
@@ -368,7 +367,6 @@ describe("UsersService", () => {
 
       const result = await usersService.getUsers(mockOwnerUser, {});
 
-      expect(result.success).toBe(true);
       // Service converts restaurantId to string for database layer
       expect(mockUserService.getRestaurantUsers).toHaveBeenCalledWith(
         "1",
@@ -414,29 +412,24 @@ describe("UsersService", () => {
 
       const result = await usersService.getUserById(mockAdminUser, 1);
 
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty("role_name");
+      expect(result).toHaveProperty("role_name");
     });
 
-    it("should return 404 when user not found", async () => {
+    it("should throw 404 when user not found", async () => {
       mockUserService.getUserById.mockResolvedValue(null);
 
-      const result = await usersService.getUserById(mockAdminUser, 999);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("User not found");
-      expect(result.status).toBe(404);
+      await expect(
+        usersService.getUserById(mockAdminUser, 999),
+      ).rejects.toThrow("User not found");
     });
 
-    it("should return 403 when access denied", async () => {
+    it("should throw 403 when access denied", async () => {
       const targetUser = { ...mockUser, restaurantId: "2" }; // Different restaurant
       mockUserService.getUserById.mockResolvedValue(targetUser);
 
-      const result = await usersService.getUserById(mockOwnerUser, 1);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Access denied");
-      expect(result.status).toBe(403);
+      await expect(usersService.getUserById(mockOwnerUser, 1)).rejects.toThrow(
+        "Access denied",
+      );
     });
 
     it("user can view themselves", async () => {
@@ -445,7 +438,7 @@ describe("UsersService", () => {
 
       const result = await usersService.getUserById(mockChefUser, 102);
 
-      expect(result.success).toBe(true);
+      expect(result).toHaveProperty("role_name");
     });
   });
 
@@ -466,8 +459,7 @@ describe("UsersService", () => {
 
       const result = await usersService.createUser(mockAdminUser, userData);
 
-      expect(result.success).toBe(true);
-      expect(result.status).toBe(201);
+      expect(result).toHaveProperty("role_name");
     });
 
     it("owner should create staff in own restaurant", async () => {
@@ -482,7 +474,7 @@ describe("UsersService", () => {
 
       const result = await usersService.createUser(mockOwnerUser, userData);
 
-      expect(result.success).toBe(true);
+      expect(result).toHaveProperty("role_name");
     });
 
     it("owner should not create admin", async () => {
@@ -493,13 +485,9 @@ describe("UsersService", () => {
         fullName: "New Admin",
       };
 
-      const result = await usersService.createUser(mockOwnerUser, userData);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "Insufficient permissions to create this type of user",
-      );
-      expect(result.status).toBe(403);
+      await expect(
+        usersService.createUser(mockOwnerUser, userData),
+      ).rejects.toThrow("Insufficient permissions");
     });
 
     it("owner should not create user in different restaurant", async () => {
@@ -511,10 +499,9 @@ describe("UsersService", () => {
         fullName: "New Chef",
       };
 
-      const result = await usersService.createUser(mockOwnerUser, userData);
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
+      await expect(
+        usersService.createUser(mockOwnerUser, userData),
+      ).rejects.toThrow("Insufficient permissions");
     });
   });
 
@@ -533,31 +520,24 @@ describe("UsersService", () => {
         fullName: "Updated Name",
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data?.fullName).toBe("Updated Name");
+      expect(result.fullName).toBe("Updated Name");
     });
 
-    it("should return 404 when user not found", async () => {
+    it("should throw 404 when user not found", async () => {
       mockUserService.getUserById.mockResolvedValue(null);
 
-      const result = await usersService.updateUser(mockAdminUser, 999, {
-        fullName: "Updated",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(404);
+      await expect(
+        usersService.updateUser(mockAdminUser, 999, { fullName: "Updated" }),
+      ).rejects.toThrow("User not found");
     });
 
-    it("should return 403 when access denied", async () => {
+    it("should throw 403 when access denied", async () => {
       const targetUser = { ...mockUser, role: USER_ROLES.ADMIN };
       mockUserService.getUserById.mockResolvedValue(targetUser);
 
-      const result = await usersService.updateUser(mockOwnerUser, 1, {
-        fullName: "Updated",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
+      await expect(
+        usersService.updateUser(mockOwnerUser, 1, { fullName: "Updated" }),
+      ).rejects.toThrow("Access denied");
     });
 
     it("user can update themselves", async () => {
@@ -572,7 +552,7 @@ describe("UsersService", () => {
         fullName: "Self Updated",
       });
 
-      expect(result.success).toBe(true);
+      expect(result).toHaveProperty("role_name");
     });
   });
 
@@ -583,41 +563,23 @@ describe("UsersService", () => {
     it("user can change own password", async () => {
       mockAuthService.changePassword.mockResolvedValue({ success: true });
 
-      const result = await usersService.changePassword(
-        mockChefUser,
-        102,
-        "oldPass",
-        "newPass",
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.message).toBe("Password updated successfully");
+      await expect(
+        usersService.changePassword(mockChefUser, 102, "oldPass", "newPass"),
+      ).resolves.toBeUndefined();
     });
 
     it("admin can change any password", async () => {
       mockAuthService.changePassword.mockResolvedValue({ success: true });
 
-      const result = await usersService.changePassword(
-        mockAdminUser,
-        1,
-        "oldPass",
-        "newPass",
-      );
-
-      expect(result.success).toBe(true);
+      await expect(
+        usersService.changePassword(mockAdminUser, 1, "oldPass", "newPass"),
+      ).resolves.toBeUndefined();
     });
 
     it("should deny non-admin changing other passwords", async () => {
-      const result = await usersService.changePassword(
-        mockChefUser,
-        200,
-        "old",
-        "new",
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Access denied");
-      expect(result.status).toBe(403);
+      await expect(
+        usersService.changePassword(mockChefUser, 200, "old", "new"),
+      ).rejects.toThrow("Access denied");
     });
 
     it("should handle incorrect current password", async () => {
@@ -626,16 +588,9 @@ describe("UsersService", () => {
         error: "Incorrect password",
       });
 
-      const result = await usersService.changePassword(
-        mockChefUser,
-        102,
-        "wrong",
-        "new",
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Incorrect password");
-      expect(result.status).toBe(400);
+      await expect(
+        usersService.changePassword(mockChefUser, 102, "wrong", "new"),
+      ).rejects.toThrow("Incorrect password");
     });
   });
 
@@ -659,8 +614,7 @@ describe("UsersService", () => {
         true,
       );
 
-      expect(result.success).toBe(true);
-      expect(result.message).toBe("User activated successfully");
+      expect(result).toBe("User activated successfully");
     });
 
     it("should deactivate user successfully", async () => {
@@ -679,21 +633,15 @@ describe("UsersService", () => {
         false,
       );
 
-      expect(result.success).toBe(true);
-      expect(result.message).toBe("User deactivated successfully");
+      expect(result).toBe("User deactivated successfully");
     });
 
-    it("should return 404 when user not found", async () => {
+    it("should throw 404 when user not found", async () => {
       mockUserService.getUserById.mockResolvedValue(null);
 
-      const result = await usersService.updateUserStatus(
-        mockAdminUser,
-        999,
-        false,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(404);
+      await expect(
+        usersService.updateUserStatus(mockAdminUser, 999, false),
+      ).rejects.toThrow("User not found");
     });
 
     it("should not allow deactivating self", async () => {
@@ -702,15 +650,9 @@ describe("UsersService", () => {
         role: USER_ROLES.ADMIN,
       });
 
-      const result = await usersService.updateUserStatus(
-        mockAdminUser,
-        100,
-        false,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Cannot deactivate your own account");
-      expect(result.status).toBe(400);
+      await expect(
+        usersService.updateUserStatus(mockAdminUser, 100, false),
+      ).rejects.toThrow("Cannot deactivate your own account");
     });
 
     it("should deny insufficient permissions", async () => {
@@ -719,14 +661,9 @@ describe("UsersService", () => {
         role: USER_ROLES.ADMIN,
       });
 
-      const result = await usersService.updateUserStatus(
-        mockOwnerUser,
-        1,
-        false,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
+      await expect(
+        usersService.updateUserStatus(mockOwnerUser, 1, false),
+      ).rejects.toThrow("Insufficient permissions");
     });
   });
 
@@ -741,19 +678,17 @@ describe("UsersService", () => {
       });
       mockUserService.verifyUser.mockResolvedValue(true);
 
-      const result = await usersService.verifyUser(mockAdminUser, 1);
-
-      expect(result.success).toBe(true);
-      expect(result.message).toBe("User verified successfully");
+      await expect(
+        usersService.verifyUser(mockAdminUser, 1),
+      ).resolves.toBeUndefined();
     });
 
-    it("should return 404 when user not found", async () => {
+    it("should throw 404 when user not found", async () => {
       mockUserService.getUserById.mockResolvedValue(null);
 
-      const result = await usersService.verifyUser(mockAdminUser, 999);
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(404);
+      await expect(usersService.verifyUser(mockAdminUser, 999)).rejects.toThrow(
+        "User not found",
+      );
     });
 
     it("should deny insufficient permissions", async () => {
@@ -762,10 +697,9 @@ describe("UsersService", () => {
         role: USER_ROLES.ADMIN,
       });
 
-      const result = await usersService.verifyUser(mockOwnerUser, 1);
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
+      await expect(usersService.verifyUser(mockOwnerUser, 1)).rejects.toThrow(
+        "Insufficient permissions",
+      );
     });
 
     it("should handle verification failure", async () => {
@@ -775,11 +709,9 @@ describe("UsersService", () => {
       });
       mockUserService.verifyUser.mockResolvedValue(false);
 
-      const result = await usersService.verifyUser(mockAdminUser, 1);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Failed to verify user");
-      expect(result.status).toBe(500);
+      await expect(usersService.verifyUser(mockAdminUser, 1)).rejects.toThrow(
+        "Failed to verify user",
+      );
     });
   });
 
@@ -794,14 +726,9 @@ describe("UsersService", () => {
       });
       mockUserService.resetPassword.mockResolvedValue(true);
 
-      const result = await usersService.resetPassword(
-        mockAdminUser,
-        1,
-        "newPassword123",
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.message).toBe("Password reset successfully");
+      await expect(
+        usersService.resetPassword(mockAdminUser, 1, "newPassword123"),
+      ).resolves.toBeUndefined();
     });
 
     it("owner should reset staff password", async () => {
@@ -812,26 +739,17 @@ describe("UsersService", () => {
       });
       mockUserService.resetPassword.mockResolvedValue(true);
 
-      const result = await usersService.resetPassword(
-        mockOwnerUser,
-        1,
-        "newPassword123",
-      );
-
-      expect(result.success).toBe(true);
+      await expect(
+        usersService.resetPassword(mockOwnerUser, 1, "newPassword123"),
+      ).resolves.toBeUndefined();
     });
 
-    it("should return 404 when user not found", async () => {
+    it("should throw 404 when user not found", async () => {
       mockUserService.getUserById.mockResolvedValue(null);
 
-      const result = await usersService.resetPassword(
-        mockAdminUser,
-        999,
-        "newPassword",
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(404);
+      await expect(
+        usersService.resetPassword(mockAdminUser, 999, "newPassword"),
+      ).rejects.toThrow("User not found");
     });
 
     it("should deny insufficient permissions", async () => {
@@ -840,14 +758,9 @@ describe("UsersService", () => {
         role: USER_ROLES.ADMIN,
       });
 
-      const result = await usersService.resetPassword(
-        mockOwnerUser,
-        1,
-        "newPassword",
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
+      await expect(
+        usersService.resetPassword(mockOwnerUser, 1, "newPassword"),
+      ).rejects.toThrow("Insufficient permissions");
     });
 
     it("should handle reset failure", async () => {
@@ -857,15 +770,9 @@ describe("UsersService", () => {
       });
       mockUserService.resetPassword.mockResolvedValue(false);
 
-      const result = await usersService.resetPassword(
-        mockAdminUser,
-        1,
-        "newPassword",
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Failed to reset password");
-      expect(result.status).toBe(500);
+      await expect(
+        usersService.resetPassword(mockAdminUser, 1, "newPassword"),
+      ).rejects.toThrow("Failed to reset password");
     });
   });
 

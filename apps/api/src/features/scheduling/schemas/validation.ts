@@ -16,12 +16,17 @@ const timeString = z
 const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");
+/** Coerce "" to null so regex-validated optional fields don't reject empty form values */
+const emptyToNull = (val: unknown) => (val === "" ? null : val);
 
 // Shift Template Schemas
 export const createShiftTemplateSchema = z.object({
-  restaurantId: nonEmptyString,
+  restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
   name: nonEmptyString.max(100),
-  description: z.string().max(500).optional().nullable(),
+  description: z.preprocess(
+    emptyToNull,
+    z.string().max(500).optional().nullable(),
+  ),
   shiftType: z.enum(["regular", "split", "overnight"]).default("regular"),
 
   startTime: timeString,
@@ -29,8 +34,8 @@ export const createShiftTemplateSchema = z.object({
   durationMinutes: positiveInteger.max(1440), // Max 24 hours
 
   isSplitShift: z.boolean().default(false),
-  breakStartTime: timeString.optional().nullable(),
-  breakEndTime: timeString.optional().nullable(),
+  breakStartTime: z.preprocess(emptyToNull, timeString.optional().nullable()),
+  breakEndTime: z.preprocess(emptyToNull, timeString.optional().nullable()),
   breakDurationMinutes: nonNegativeInteger.default(0),
 
   applicableDays: z.string().default("[]"), // JSON array string
@@ -45,7 +50,7 @@ export const createShiftTemplateSchema = z.object({
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/)
     .default("#3B82F6"),
-  icon: z.string().max(50).optional().nullable(),
+  icon: z.preprocess(emptyToNull, z.string().max(50).optional().nullable()),
   sortOrder: nonNegativeInteger.default(0),
 
   isActive: z.boolean().default(true),
@@ -53,14 +58,17 @@ export const createShiftTemplateSchema = z.object({
 
 export const updateShiftTemplateSchema = z.object({
   name: nonEmptyString.max(100).optional(),
-  description: z.string().max(500).optional().nullable(),
+  description: z.preprocess(
+    emptyToNull,
+    z.string().max(500).optional().nullable(),
+  ),
   shiftType: z.enum(["regular", "split", "overnight"]).optional(),
   startTime: timeString.optional(),
   endTime: timeString.optional(),
   durationMinutes: positiveInteger.max(1440).optional(),
   isSplitShift: z.boolean().optional(),
-  breakStartTime: timeString.optional().nullable(),
-  breakEndTime: timeString.optional().nullable(),
+  breakStartTime: z.preprocess(emptyToNull, timeString.optional().nullable()),
+  breakEndTime: z.preprocess(emptyToNull, timeString.optional().nullable()),
   breakDurationMinutes: nonNegativeInteger.optional(),
   applicableDays: z.string().optional(),
   minEmployees: positiveInteger.optional(),
@@ -71,38 +79,30 @@ export const updateShiftTemplateSchema = z.object({
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/)
     .optional(),
-  icon: z.string().max(50).optional().nullable(),
+  icon: z.preprocess(emptyToNull, z.string().max(50).optional().nullable()),
   sortOrder: nonNegativeInteger.optional(),
   isActive: z.boolean().optional(),
 });
 
 // Employee Schedule Schemas
-export const createEmployeeScheduleSchema = z
-  .object({
-    restaurantId: nonEmptyString,
-    employeeId: positiveInteger,
-    shiftTemplateId: positiveInteger.optional().nullable(),
+// Supports all time combinations including overnight shifts (e.g., 22:00–06:00)
+export const createEmployeeScheduleSchema = z.object({
+  restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
+  employeeId: positiveInteger,
+  shiftTemplateId: positiveInteger.optional().nullable(),
 
-    workDate: dateString,
-    startTime: timeString,
-    endTime: timeString,
-    breakDurationMinutes: nonNegativeInteger.default(0),
+  workDate: dateString,
+  startTime: timeString,
+  endTime: timeString,
+  breakDurationMinutes: nonNegativeInteger.default(0),
 
-    scheduledHours: nonNegativeNumber,
+  scheduledHours: nonNegativeNumber,
 
-    notes: z.string().max(500).optional().nullable(),
-    managerNotes: z.string().max(500).optional().nullable(),
+  notes: z.string().max(500).optional().nullable(),
+  managerNotes: z.string().max(500).optional().nullable(),
 
-    createdBy: positiveInteger,
-  })
-  .refine(
-    () => {
-      // Allow all time combinations, including overnight shifts
-      // No validation needed as system supports 24-hour operation
-      return true;
-    },
-    { message: "Invalid time range" },
-  );
+  createdBy: positiveInteger.optional(), // Injected by route handler from auth context
+});
 
 export const updateEmployeeScheduleSchema = z.object({
   shiftTemplateId: positiveInteger.optional().nullable(),
@@ -121,7 +121,7 @@ export const updateEmployeeScheduleSchema = z.object({
 
 export const bulkCreateSchedulesSchema = z
   .object({
-    restaurantId: nonEmptyString,
+    restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
     shiftTemplateId: positiveInteger,
     employeeIds: z.array(positiveInteger).min(1).max(50),
     dateRange: z.object({
@@ -129,7 +129,7 @@ export const bulkCreateSchedulesSchema = z
       endDate: dateString,
     }),
     daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1),
-    createdBy: positiveInteger,
+    createdBy: positiveInteger.optional(), // Injected by route handler from auth context
   })
   .refine(
     (data) => {
@@ -140,22 +140,19 @@ export const bulkCreateSchedulesSchema = z
     { message: "End date must be equal to or after start date" },
   );
 
-// Clock In/Out Schemas
-export const clockInSchema = z.object({
+// Clock In/Out Schema (identical shape for both actions)
+export const clockActionSchema = z.object({
   scheduleId: positiveInteger,
   employeeId: positiveInteger,
   notes: z.string().max(500).optional(),
 });
 
-export const clockOutSchema = z.object({
-  scheduleId: positiveInteger,
-  employeeId: positiveInteger,
-  notes: z.string().max(500).optional(),
-});
+export const clockInSchema = clockActionSchema;
+export const clockOutSchema = clockActionSchema;
 
 // Scheduling Rule Schemas
 export const createSchedulingRuleSchema = z.object({
-  restaurantId: nonEmptyString,
+  restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
   name: nonEmptyString.max(100),
   description: z.string().max(500).optional().nullable(),
   ruleType: z.enum([
@@ -173,7 +170,7 @@ export const createSchedulingRuleSchema = z.object({
   severity: z.enum(["error", "warning", "info"]).default("warning"),
   isSystemRule: z.boolean().default(false),
   isActive: z.boolean().default(true),
-  createdBy: positiveInteger,
+  createdBy: positiveInteger.optional(), // Injected by route handler from auth context
 });
 
 export const updateSchedulingRuleSchema = z.object({
@@ -206,7 +203,7 @@ export const resolveConflictSchema = z.object({
 
 // Swap Request Schemas
 export const createSwapRequestSchema = z.object({
-  restaurantId: nonEmptyString,
+  restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
   requesterEmployeeId: positiveInteger,
   requesterScheduleId: positiveInteger,
   targetEmployeeId: positiveInteger.optional().nullable(),
@@ -234,7 +231,7 @@ export const rejectSwapRequestSchema = z.object({
 // Employee Availability Schemas
 export const createAvailabilitySchema = z
   .object({
-    restaurantId: nonEmptyString,
+    restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
     employeeId: positiveInteger,
     availabilityType: z.enum(["recurring", "specific_date"]),
     dayOfWeek: z.number().int().min(0).max(6).optional().nullable(),

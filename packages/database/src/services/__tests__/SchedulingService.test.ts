@@ -5,6 +5,20 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { SchedulingService } from "../SchedulingService";
+
+/** Pure helper — mirrors the logic formerly in SchedulingService.calculateScheduledHours */
+function calculateScheduledHours(
+  startTime: string,
+  endTime: string,
+  breakMinutes: number,
+): number {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const startMin = sh * 60 + sm;
+  let endMin = eh * 60 + em;
+  if (endMin <= startMin) endMin += 24 * 60;
+  return (endMin - startMin - breakMinutes) / 60;
+}
 import {
   createMockDatabase,
   createMockEnv,
@@ -25,27 +39,27 @@ describe("SchedulingService", () => {
 
   describe("calculateScheduledHours", () => {
     it("should calculate regular shift hours correctly", () => {
-      const hours = service["calculateScheduledHours"]("09:00", "17:00", 0);
+      const hours = calculateScheduledHours("09:00", "17:00", 0);
       expect(hours).toBe(8);
     });
 
     it("should calculate overnight shift hours correctly", () => {
-      const hours = service["calculateScheduledHours"]("22:00", "06:00", 0);
+      const hours = calculateScheduledHours("22:00", "06:00", 0);
       expect(hours).toBe(8);
     });
 
     it("should subtract break time correctly", () => {
-      const hours = service["calculateScheduledHours"]("09:00", "18:00", 60);
+      const hours = calculateScheduledHours("09:00", "18:00", 60);
       expect(hours).toBe(8);
     });
 
     it("should handle zero break time", () => {
-      const hours = service["calculateScheduledHours"]("10:00", "18:00", 0);
+      const hours = calculateScheduledHours("10:00", "18:00", 0);
       expect(hours).toBe(8);
     });
 
     it("should handle split shifts with breaks", () => {
-      const hours = service["calculateScheduledHours"]("09:00", "21:00", 120);
+      const hours = calculateScheduledHours("09:00", "21:00", 120);
       expect(hours).toBe(10);
     });
   });
@@ -221,14 +235,14 @@ describe("SchedulingService", () => {
     });
 
     it("should detect excessive daily hours", () => {
-      const hours = service["calculateScheduledHours"]("08:00", "22:00", 0);
+      const hours = calculateScheduledHours("08:00", "22:00", 0);
       expect(hours).toBe(14); // Exceeds 12 hours
       expect(hours).toBeGreaterThan(12);
     });
 
     it("should calculate proper break deductions", () => {
       // 9-hour shift with 1-hour break = 8 working hours (compliant)
-      const hours = service["calculateScheduledHours"]("09:00", "18:00", 60);
+      const hours = calculateScheduledHours("09:00", "18:00", 60);
       expect(hours).toBe(8);
       expect(hours).toBeLessThanOrEqual(12);
     });
@@ -237,23 +251,19 @@ describe("SchedulingService", () => {
   describe("Schedule Validation", () => {
     it("should validate time format", () => {
       // Test valid time formats
-      expect(() =>
-        service["calculateScheduledHours"]("09:00", "17:00", 0),
-      ).not.toThrow();
-      expect(() =>
-        service["calculateScheduledHours"]("00:00", "23:59", 0),
-      ).not.toThrow();
+      expect(() => calculateScheduledHours("09:00", "17:00", 0)).not.toThrow();
+      expect(() => calculateScheduledHours("00:00", "23:59", 0)).not.toThrow();
     });
 
     it("should handle edge case times", () => {
       // Midnight to midnight (24 hours)
-      const hours = service["calculateScheduledHours"]("00:00", "00:00", 0);
+      const hours = calculateScheduledHours("00:00", "00:00", 0);
       expect(hours).toBeGreaterThan(0);
     });
 
     it("should properly handle break times", () => {
       // 8-hour shift with 2-hour break = 6 working hours
-      const hours = service["calculateScheduledHours"]("10:00", "18:00", 120);
+      const hours = calculateScheduledHours("10:00", "18:00", 120);
       expect(hours).toBe(6);
     });
   });

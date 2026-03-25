@@ -142,6 +142,23 @@ export class BaseService {
     return this.connectionManager.getMetrics();
   }
 
+  /**
+   * Execute writes in a transaction with fallback for D1 local dev.
+   * D1's local miniflare may not support explicit BEGIN transactions.
+   */
+  protected async safeTransaction<T>(
+    writeFn: (db: any) => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await this.db.transaction(async (tx) => writeFn(tx));
+    } catch (txError: any) {
+      if (txError?.message?.includes("Failed query: begin")) {
+        return await writeFn(this.db);
+      }
+      throw txError;
+    }
+  }
+
   // 通用錯誤處理
   protected handleError(error: any, operation: string): never {
     // 安全地記錄錯誤，避免循環引用問題

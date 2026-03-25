@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@makanmakan/queue-service": "workspace:*",
+    "@makanmakan/utils": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "uuid": "^11.0.0",
     "bcryptjs": "^2.4.3",

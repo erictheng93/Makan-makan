@@ -31,6 +31,11 @@ import {
 
 const routes = new Hono<{ Bindings: Env }>();
 
+/** Create SeatService from Hono context */
+function createSeatService(env: Env): SeatService {
+  return new SeatService(env.DB as any, env);
+}
+
 /**
  * GET /
  * Get all seats for a table
@@ -48,7 +53,7 @@ routes.get(
   validateQuery(seatFilterSchema as any),
   async (c) => {
     const filters = c.get("validatedQuery");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const seatService = createSeatService(c.env);
 
     const { tableId, ...otherFilters } = filters;
     const result = await seatService.getSeatsByTableId(tableId, otherFilters);
@@ -73,7 +78,7 @@ routes.get(
   validateQuery(tableIdQuerySchema as any),
   async (c) => {
     const { tableId } = c.get("validatedQuery");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const seatService = createSeatService(c.env);
 
     const stats = await seatService.getSeatStats(tableId);
 
@@ -93,7 +98,7 @@ routes.get(
   validateParams(qrCodeParamSchema as any),
   async (c) => {
     const { qrCode } = c.get("validatedParams");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const seatService = createSeatService(c.env);
 
     const seat = await seatService.getSeatByQRCode(decodeURIComponent(qrCode));
 
@@ -138,10 +143,10 @@ routes.get(
   ]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const seatService = createSeatService(c.env);
 
-    const seat = await seatService.getSeatById(parseInt(id));
+    const seat = await seatService.getSeatById(id);
 
     if (!seat) {
       throw notFound("Seat not found");
@@ -165,7 +170,7 @@ routes.post(
   validateBody(batchCreateSeatsSchema as any),
   async (c) => {
     const data = c.get("validatedBody");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const seatService = createSeatService(c.env);
 
     const { tableId, seatCount, numberingStyle, customNumbers, prefix } = data;
 
@@ -197,7 +202,7 @@ routes.post(
   validateBody(batchRegenerateQRSchema as any),
   async (c) => {
     const { tableId } = c.get("validatedBody");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const seatService = createSeatService(c.env);
 
     const result = await seatService.batchGenerateSeatQRCodes(tableId);
 
@@ -224,17 +229,17 @@ routes.put(
   validateParams(commonSchemas.idParam as any),
   validateBody(updateSeatSchema as any),
   async (c) => {
-    const { id } = c.get("validatedParams");
+    const { id } = c.get("validatedParams") as { id: number };
     const data = c.get("validatedBody");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const seatService = createSeatService(c.env);
 
-    const existingSeat = await seatService.getSeatById(parseInt(id));
+    const existingSeat = await seatService.getSeatById(id);
 
     if (!existingSeat) {
       throw notFound("Seat not found");
     }
 
-    const updatedSeat = await seatService.updateSeat(parseInt(id), data);
+    const updatedSeat = await seatService.updateSeat(id, data);
 
     return c.json({
       success: true,
@@ -254,16 +259,16 @@ routes.delete(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const seatService = createSeatService(c.env);
 
-    const existingSeat = await seatService.getSeatById(parseInt(id));
+    const existingSeat = await seatService.getSeatById(id);
 
     if (!existingSeat) {
       throw notFound("Seat not found");
     }
 
-    const success = await seatService.deleteSeat(parseInt(id));
+    const success = await seatService.deleteSeat(id);
 
     if (!success) {
       throw badRequest("Failed to delete seat");
@@ -287,7 +292,7 @@ routes.delete(
   validateParams(tableIdParamSchema as any),
   async (c) => {
     const { tableId } = c.get("validatedParams");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const seatService = createSeatService(c.env);
 
     const success = await seatService.deleteSeatsForTable(tableId);
 
@@ -318,11 +323,11 @@ routes.post(
   validateParams(commonSchemas.idParam as any),
   validateBody(occupySeatSchema as any),
   async (c) => {
-    const { id } = c.get("validatedParams");
+    const { id } = c.get("validatedParams") as { id: number };
     const { orderId, occupiedBy } = c.get("validatedBody");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const seatService = createSeatService(c.env);
 
-    const seat = await seatService.getSeatById(parseInt(id));
+    const seat = await seatService.getSeatById(id);
 
     if (!seat) {
       throw notFound("Seat not found");
@@ -332,11 +337,7 @@ routes.post(
       throw badRequest("Seat is already occupied");
     }
 
-    const success = await seatService.occupySeat(
-      parseInt(id),
-      orderId,
-      occupiedBy,
-    );
+    const success = await seatService.occupySeat(id, orderId, occupiedBy);
 
     if (!success) {
       throw badRequest("Failed to occupy seat");
@@ -364,16 +365,16 @@ routes.post(
   ]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const seatService = createSeatService(c.env);
 
-    const seat = await seatService.getSeatById(parseInt(id));
+    const seat = await seatService.getSeatById(id);
 
     if (!seat) {
       throw notFound("Seat not found");
     }
 
-    const success = await seatService.releaseSeat(parseInt(id));
+    const success = await seatService.releaseSeat(id);
 
     if (!success) {
       throw badRequest("Failed to release seat");
@@ -396,16 +397,16 @@ routes.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const seatService = new SeatService(c.env.DB as any, c.env);
+    const { id } = c.get("validatedParams") as { id: number };
+    const seatService = createSeatService(c.env);
 
-    const seat = await seatService.getSeatById(parseInt(id));
+    const seat = await seatService.getSeatById(id);
 
     if (!seat) {
       throw notFound("Seat not found");
     }
 
-    const result = await seatService.regenerateSeatQRCode(parseInt(id));
+    const result = await seatService.regenerateSeatQRCode(id);
 
     if (!result.success) {
       throw badRequest(result.error || "Failed to regenerate QR code");

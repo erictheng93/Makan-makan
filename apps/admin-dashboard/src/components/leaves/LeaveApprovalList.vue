@@ -12,9 +12,9 @@
         class="approval-card"
       >
         <div class="employee-info">
-          <div class="avatar">{{ getInitials(request.employeeName) }}</div>
+          <div class="avatar">{{ getInitials(getEmployeeName(request)) }}</div>
           <div class="details">
-            <h3 class="name">{{ request.employeeName }}</h3>
+            <h3 class="name">{{ getEmployeeName(request) }}</h3>
             <span class="type">{{ request.leaveType?.name }}</span>
           </div>
         </div>
@@ -111,6 +111,15 @@ defineEmits<{
 const pendingRequests = computed(() => {
   return props.requests.filter((r) => r.status === "pending");
 });
+
+const getEmployeeName = (request: any): string => {
+  return (
+    request.employeeName ||
+    request.employee?.fullName ||
+    request.employee?.username ||
+    t("leaves.approval.unknownEmployee")
+  );
+};
 
 const getInitials = (name: string | undefined): string => {
   if (!name) return "??";

@@ -22,9 +22,19 @@ import {
 
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
-// ==========================================
-// Public Routes - 顧客可使用
-// ==========================================
+/** Fetch entry and verify the user has access to its restaurant. */
+async function requireEntryAccess(
+  service: WaitingListService,
+  id: string,
+  user: AuthUser,
+) {
+  const entry = await service.getWaitingListEntryById(id);
+  if (!entry) throw notFound("找不到此候位記錄");
+  if (user.role !== 0 && entry.restaurantId !== user.restaurantId!.toString()) {
+    throw forbidden("無權限操作此候位");
+  }
+  return entry;
+}
 
 /**
  * POST /waiting-list
@@ -158,10 +168,6 @@ app.post("/:id/confirm", async (c) => {
   });
 });
 
-// ==========================================
-// Protected Routes - 需要認證（店員/管理員）
-// ==========================================
-
 app.use("/*", authMiddleware);
 
 /**
@@ -212,16 +218,8 @@ app.post("/:id/call", requireRole([0, 1, 3, 4]), async (c) => {
     throw badRequest("需要指定桌位");
   }
 
-  // 權限檢查
-  const entry = await service.getWaitingListEntryById(id);
-  if (!entry) {
-    throw notFound("找不到此候位記錄");
-  }
-
   const user = c.get("user");
-  if (user.role !== 0 && entry.restaurantId !== user.restaurantId!.toString()) {
-    throw forbidden("無權限操作此候位");
-  }
+  await requireEntryAccess(service, id, user);
 
   const called = await service.callWaiting(id, body);
 
@@ -239,17 +237,8 @@ app.post("/:id/call", requireRole([0, 1, 3, 4]), async (c) => {
 app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
   const service = new WaitingListService(c.env.DB, c.env);
-
-  // 權限檢查
-  const entry = await service.getWaitingListEntryById(id);
-  if (!entry) {
-    throw notFound("找不到此候位記錄");
-  }
-
   const user = c.get("user");
-  if (user.role !== 0 && entry.restaurantId !== user.restaurantId!.toString()) {
-    throw forbidden("無權限操作此候位");
-  }
+  await requireEntryAccess(service, id, user);
 
   const seated = await service.markSeated(id);
 
@@ -267,17 +256,8 @@ app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
 app.post("/:id/expire", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
   const service = new WaitingListService(c.env.DB, c.env);
-
-  // 權限檢查
-  const entry = await service.getWaitingListEntryById(id);
-  if (!entry) {
-    throw notFound("找不到此候位記錄");
-  }
-
   const user = c.get("user");
-  if (user.role !== 0 && entry.restaurantId !== user.restaurantId!.toString()) {
-    throw forbidden("無權限操作此候位");
-  }
+  await requireEntryAccess(service, id, user);
 
   const expired = await service.expireWaiting(id);
 

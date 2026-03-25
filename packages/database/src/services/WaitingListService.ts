@@ -16,16 +16,38 @@ import type {
 } from "@makanmakan/shared-types";
 import { ReservationService } from "./ReservationService";
 
-/**
- * 候位系統服務
- * 負責排隊管理、叫號、等待時間預估
- */
+/** Call timeout: 5 minutes */
+const CALL_TIMEOUT_MS = 5 * 60 * 1000;
+/** Default table occupancy estimate: 90 minutes */
+const DEFAULT_OCCUPANCY_MS = 90 * 60 * 1000;
+/** Default turnover estimate when no data: 45 minutes */
+const DEFAULT_TURNOVER_MINUTES = 45;
+/** Default wait estimate on error: 30 minutes */
+const DEFAULT_WAIT_MINUTES = 30;
+
+type TableStatusAction = "reserved" | "occupied" | "available";
+
 export class WaitingListService extends BaseService {
   private reservationService: ReservationService;
 
   constructor(d1: any, env: any) {
     super(d1, env);
     this.reservationService = new ReservationService(d1, env);
+  }
+
+  /**
+   * Replace `?` placeholders with escaped values for raw D1 queries.
+   * Prefer Drizzle query builder or `d1.prepare().bind()` for new code.
+   */
+  private replaceParams(sqlStr: string, params: unknown[]): string {
+    let paramIndex = 0;
+    return sqlStr.replace(/\?/g, () => {
+      const param = params[paramIndex++];
+      if (param === null || param === undefined) return "NULL";
+      if (typeof param === "number") return String(param);
+      if (typeof param === "string") return `'${param.replace(/'/g, "''")}'`;
+      return `'${String(param).replace(/'/g, "''")}'`;
+    });
   }
 
   /**
@@ -63,10 +85,6 @@ export class WaitingListService extends BaseService {
       // Intentionally swallowed — notification failure must not block operation
     }
   }
-
-  // ==========================================
-  // 候位管理 (Waiting List Management)
-  // ==========================================
 
   /**
    * 加入候位列表
@@ -146,11 +164,32 @@ export class WaitingListService extends BaseService {
         {
           customerName: data.customerName,
           queueNumber: `${entry.queueLetter}${entry.queueNumber}`,
-          estimatedWait: String(entry.estimatedWaitMinutes || 30),
+          estimatedWait: String(
+            entry.estimatedWaitMinutes || DEFAULT_WAIT_MINUTES,
+          ),
         },
       );
 
-      return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
+      // Construct response from local data to avoid a redundant DB round-trip
+      return {
+        id: entry.id!,
+        restaurantId: entry.restaurantId!,
+        customerId: entry.customerId ?? undefined,
+        customerName: entry.customerName!,
+        customerPhone: entry.customerPhone!,
+        partySize: entry.partySize!,
+        preferredTableType: entry.preferredTableType ?? undefined,
+        queueNumber: entry.queueNumber!,
+        queueLetter: entry.queueLetter,
+        queueDisplay: `${entry.queueLetter || ""}${String(entry.queueNumber).padStart(3, "0")}`,
+        priority: entry.priority!,
+        estimatedWaitMinutes: entry.estimatedWaitMinutes,
+        status: entry.status!,
+        notes: entry.notes ?? undefined,
+        createdAt: entry.createdAt!,
+        updatedAt: entry.updatedAt!,
+        partiesAhead: waitEstimate.partiesAhead,
+      } as WaitingListResponse;
     } catch (error) {
       console.error("Error joining waiting list:", error);
       throw error;
@@ -249,21 +288,7 @@ export class WaitingListService extends BaseService {
       const limit = filters.limit || 50;
       const offset = (page - 1) * limit;
 
-      // 替換參數占位符為實際值（安全轉義）
-      const replaceParams = (sqlStr: string, paramArray: any[]): string => {
-        let paramIndex = 0;
-        return sqlStr.replace(/\?/g, () => {
-          const param = paramArray[paramIndex++];
-          if (param === null || param === undefined) return "NULL";
-          if (typeof param === "number") return String(param);
-          if (typeof param === "string")
-            return `'${param.replace(/'/g, "''")}'`;
-          return `'${String(param).replace(/'/g, "''")}'`;
-        });
-      };
-
-      // 查詢總數 (use raw D1 for dynamic SQL)
-      const countSql = replaceParams(
+      const countSql = this.replaceParams(
         `SELECT COUNT(*) as total FROM waiting_list w WHERE ${whereClause}`,
         params,
       );
@@ -273,8 +298,7 @@ export class WaitingListService extends BaseService {
 
       const total = countResult?.total || 0;
 
-      // 查詢資料
-      const dataSql = replaceParams(
+      const dataSql = this.replaceParams(
         `SELECT
             w.*,
             json_object(
@@ -344,8 +368,7 @@ export class WaitingListService extends BaseService {
         throw new Error("桌位容量不足");
       }
 
-      // 設定超時時間（5分鐘後）
-      const timeoutAt = now + 5 * 60 * 1000;
+      const timeoutAt = now + CALL_TIMEOUT_MS;
 
       // 更新候位記錄（樂觀鎖：WHERE 包含狀態條件防止並發衝突）
       const callResult = await this.db.run(sql`
@@ -567,10 +590,6 @@ export class WaitingListService extends BaseService {
     }
   }
 
-  // ==========================================
-  // 自動桌位分配 (Auto Table Assignment)
-  // ==========================================
-
   /**
    * 自動尋找最適合的可用桌位（best-fit: 容量最小且 >= partySize）
    * 排除已被候位預留的桌位（waiting_list_id IS NOT NULL）
@@ -663,10 +682,6 @@ export class WaitingListService extends BaseService {
     return results;
   }
 
-  // ==========================================
-  // 等待時間預估演算法 (Wait Time Estimation)
-  // ==========================================
-
   /**
    * 預估等待時間
    */
@@ -676,59 +691,58 @@ export class WaitingListService extends BaseService {
     try {
       const { restaurantId, partySize } = request;
 
-      // 1. 計算平均翻桌時間（過去2小時）
-      const avgTurnoverResult = (await this.db.get(sql`
-        SELECT AVG(
-          CASE
-            WHEN o.completed_at IS NOT NULL AND o.created_at IS NOT NULL
-            THEN (o.completed_at - o.created_at) / 60000.0
-            ELSE NULL
-          END
-        ) as avg_turnover_minutes
-        FROM orders o
-        WHERE o.restaurant_id = ${restaurantId}
-          AND o.completed_at > ${Date.now() - 2 * 60 * 60 * 1000}
-          AND o.status = 'completed'
-      `)) as any;
+      // Run all 4 independent queries in parallel
+      const [
+        avgTurnoverResult,
+        suitableTablesResult,
+        aheadResult,
+        occupiedResult,
+      ] = await Promise.all([
+        this.db.get(sql`
+            SELECT AVG(
+              CASE
+                WHEN o.completed_at IS NOT NULL AND o.created_at IS NOT NULL
+                THEN (o.completed_at - o.created_at) / 60000.0
+                ELSE NULL
+              END
+            ) as avg_turnover_minutes
+            FROM orders o
+            WHERE o.restaurant_id = ${restaurantId}
+              AND o.completed_at > ${Date.now() - 2 * 60 * 60 * 1000}
+              AND o.status = 'completed'
+          `) as Promise<any>,
+        this.db.get(sql`
+            SELECT COUNT(*) as count
+            FROM tables
+            WHERE restaurant_id = ${restaurantId}
+              AND is_active = 1
+              AND capacity >= ${partySize}
+              AND capacity <= ${partySize + 2}
+          `) as Promise<any>,
+        this.db.get(sql`
+            SELECT COUNT(*) as count
+            FROM waiting_list
+            WHERE restaurant_id = ${restaurantId}
+              AND status = 'waiting'
+              AND party_size <= ${partySize + 2}
+              AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
+          `) as Promise<any>,
+        this.db.get(sql`
+            SELECT
+              COUNT(*) as occupied_count,
+              MIN(estimated_turnover_at) as earliest_available
+            FROM tables
+            WHERE restaurant_id = ${restaurantId}
+              AND is_occupied = 1
+              AND capacity >= ${partySize}
+              AND capacity <= ${partySize + 2}
+          `) as Promise<any>,
+      ]);
 
-      const avgTurnover = avgTurnoverResult?.avg_turnover_minutes || 45; // 默認45分鐘
-
-      // 2. 統計適合的桌位數量
-      const suitableTablesResult = (await this.db.get(sql`
-        SELECT COUNT(*) as count
-        FROM tables
-        WHERE restaurant_id = ${restaurantId}
-          AND is_active = 1
-          AND capacity >= ${partySize}
-          AND capacity <= ${partySize + 2}
-      `)) as any;
-
+      const avgTurnover =
+        avgTurnoverResult?.avg_turnover_minutes || DEFAULT_TURNOVER_MINUTES;
       const suitableTables = suitableTablesResult?.count || 1;
-
-      // 3. 計算前方排隊人數
-      const aheadResult = (await this.db.get(sql`
-        SELECT COUNT(*) as count
-        FROM waiting_list
-        WHERE restaurant_id = ${restaurantId}
-          AND status = 'waiting'
-          AND party_size <= ${partySize + 2}
-          AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
-      `)) as any;
-
       const partiesAhead = aheadResult?.count || 0;
-
-      // 4. 檢查當前桌位佔用情況
-      const occupiedResult = (await this.db.get(sql`
-        SELECT
-          COUNT(*) as occupied_count,
-          MIN(estimated_turnover_at) as earliest_available
-        FROM tables
-        WHERE restaurant_id = ${restaurantId}
-          AND is_occupied = 1
-          AND capacity >= ${partySize}
-          AND capacity <= ${partySize + 2}
-      `)) as any;
-
       const occupiedTables = occupiedResult?.occupied_count || 0;
       const availableTables = Math.max(0, suitableTables - occupiedTables);
 
@@ -788,7 +802,7 @@ export class WaitingListService extends BaseService {
     } catch (error) {
       console.error("Error estimating wait time:", error);
       return {
-        estimatedWaitMinutes: 30, // 默認30分鐘
+        estimatedWaitMinutes: DEFAULT_WAIT_MINUTES,
         partiesAhead: 0,
         availableTables: 0,
         confidence: 0.5,
@@ -801,60 +815,51 @@ export class WaitingListService extends BaseService {
    */
   async getQueueStatus(restaurantId: string): Promise<QueueStatus> {
     try {
-      // 統計等待中的候位
-      const totalWaitingResult = (await this.db.get(sql`
-        SELECT COUNT(*) as count
-        FROM waiting_list
-        WHERE restaurant_id = ${restaurantId}
-          AND status = 'waiting'
-          AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
-      `)) as any;
+      // Run counts + all estimates in parallel (was 21 sequential queries)
+      const [
+        totalWaitingResult,
+        availableTablesResult,
+        estimate,
+        ...sizeEstimates
+      ] = await Promise.all([
+        this.db.get(sql`
+            SELECT
+              COUNT(*) as total,
+              SUM(CASE WHEN party_size <= 2 THEN 1 ELSE 0 END) as wait_2,
+              SUM(CASE WHEN party_size <= 4 THEN 1 ELSE 0 END) as wait_4,
+              SUM(CASE WHEN party_size <= 6 THEN 1 ELSE 0 END) as wait_6
+            FROM waiting_list
+            WHERE restaurant_id = ${restaurantId}
+              AND status = 'waiting'
+              AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
+          `) as Promise<any>,
+        this.db.get(sql`
+            SELECT COUNT(*) as count
+            FROM tables
+            WHERE restaurant_id = ${restaurantId}
+              AND is_active = 1
+              AND is_occupied = 0
+          `) as Promise<any>,
+        this.estimateWaitTime({ restaurantId, partySize: 4 }),
+        this.estimateWaitTime({ restaurantId, partySize: 2 }),
+        this.estimateWaitTime({ restaurantId, partySize: 4 }),
+        this.estimateWaitTime({ restaurantId, partySize: 6 }),
+      ]);
 
-      const totalWaiting = totalWaitingResult?.count || 0;
-
-      // 計算平均等待時間
-      const estimate = await this.estimateWaitTime({
-        restaurantId,
-        partySize: 4,
-      });
-
-      // 查詢可用桌位
-      const availableTablesResult = (await this.db.get(sql`
-        SELECT COUNT(*) as count
-        FROM tables
-        WHERE restaurant_id = ${restaurantId}
-          AND is_active = 1
-          AND is_occupied = 0
-      `)) as any;
-
+      const totalWaiting = totalWaitingResult?.total || 0;
       const availableTables = availableTablesResult?.count || 0;
 
-      // 按桌型統計
-      const byTableType: any[] = [];
-
-      for (const size of [2, 4, 6]) {
-        const waitingResult = (await this.db.get(sql`
-          SELECT COUNT(*) as count
-          FROM waiting_list
-          WHERE restaurant_id = ${restaurantId}
-            AND status = 'waiting'
-            AND party_size <= ${size}
-            AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
-        `)) as any;
-
-        const waiting = waitingResult?.count || 0;
-
-        const sizeEstimate = await this.estimateWaitTime({
-          restaurantId,
-          partySize: size,
-        });
-
-        byTableType.push({
-          type: `${size}-person`,
-          waiting,
-          averageWait: sizeEstimate.estimatedWaitMinutes,
-        });
-      }
+      const sizes = [2, 4, 6] as const;
+      const waitCounts = [
+        totalWaitingResult?.wait_2 || 0,
+        totalWaitingResult?.wait_4 || 0,
+        totalWaitingResult?.wait_6 || 0,
+      ];
+      const byTableType = sizes.map((size, i) => ({
+        type: `${size}-person`,
+        waiting: waitCounts[i],
+        averageWait: sizeEstimates[i].estimatedWaitMinutes,
+      }));
 
       return {
         restaurantId,
@@ -868,10 +873,6 @@ export class WaitingListService extends BaseService {
       throw error;
     }
   }
-
-  // ==========================================
-  // 統計分析 (Statistics)
-  // ==========================================
 
   /**
    * 取得候位統計
@@ -893,20 +894,7 @@ export class WaitingListService extends BaseService {
           " AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')";
       }
 
-      // 替換參數占位符
-      const replaceParams = (sqlStr: string, paramArray: any[]): string => {
-        let paramIndex = 0;
-        return sqlStr.replace(/\?/g, () => {
-          const param = paramArray[paramIndex++];
-          if (param === null || param === undefined) return "NULL";
-          if (typeof param === "number") return String(param);
-          if (typeof param === "string")
-            return `'${param.replace(/'/g, "''")}'`;
-          return `'${String(param).replace(/'/g, "''")}'`;
-        });
-      };
-
-      const statsSql = replaceParams(
+      const statsSql = this.replaceParams(
         `SELECT
             COUNT(*) as total_waiting,
             SUM(CASE WHEN status = 'seated' THEN 1 ELSE 0 END) as seated_count,
@@ -939,10 +927,6 @@ export class WaitingListService extends BaseService {
       throw error;
     }
   }
-
-  // ==========================================
-  // 輔助方法 (Helper Methods)
-  // ==========================================
 
   /**
    * 驗證候位資料
@@ -1096,7 +1080,7 @@ export class WaitingListService extends BaseService {
    */
   private async updateTableStatus(
     tableId: number,
-    status: string,
+    status: TableStatusAction,
     reservationId?: string | null,
     waitingListId?: string,
   ): Promise<void> {
@@ -1126,7 +1110,7 @@ export class WaitingListService extends BaseService {
           UPDATE tables
           SET is_occupied = 1,
               occupied_at_ms = ${now},
-              estimated_free_at_ms = ${now + 90 * 60 * 1000},
+              estimated_free_at_ms = ${now + DEFAULT_OCCUPANCY_MS},
               updated_at_ms = ${now}
           WHERE id = ${tableId}
         `);
@@ -1139,12 +1123,6 @@ export class WaitingListService extends BaseService {
               occupied_at_ms = NULL,
               estimated_free_at_ms = NULL,
               updated_at_ms = ${now}
-          WHERE id = ${tableId}
-        `);
-      } else {
-        await this.db.run(sql`
-          UPDATE tables
-          SET updated_at_ms = ${now}
           WHERE id = ${tableId}
         `);
       }

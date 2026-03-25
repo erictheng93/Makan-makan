@@ -627,42 +627,31 @@ describe("TableService", () => {
   describe("getTableStats", () => {
     it("should return table statistics", async () => {
       // Arrange - Multiple select queries with correct aliases
-      // Query 1: totalTables (uses alias)
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ totalTables: 10 }]),
-      );
-      // Query 2: occupiedTables (uses alias)
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ occupiedTables: 3 }]),
-      );
-      // Query 3: availableTables (uses alias)
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ availableTables: 7 }]),
-      );
-      // Query 4: inactiveTables (uses alias)
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ inactiveTables: 0 }]),
-      );
-      // Query 5: byFloor
+      // Query 1: Conditional aggregation counts + avgOccupancyMinutes
       mockDb.select.mockReturnValueOnce(
         createQueryChain([
-          { floor: 1, count: 5 },
-          { floor: 2, count: 5 },
+          {
+            totalTables: 10,
+            occupiedTables: 3,
+            availableTables: 7,
+            inactiveTables: 0,
+            avgOccupancyMinutes: 35,
+          },
         ]),
       );
-      // Query 6: bySection
+      // Query 2: Distribution rows (floor, section, capacity)
       mockDb.select.mockReturnValueOnce(
         createQueryChain([
-          { section: "Window", count: 4 },
-          { section: "Center", count: 6 },
-        ]),
-      );
-      // Query 7: byCapacity
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([
-          { capacity: 2, count: 2 },
-          { capacity: 4, count: 6 },
-          { capacity: 6, count: 2 },
+          { floor: 1, section: "Window", capacity: 2 },
+          { floor: 1, section: "Window", capacity: 4 },
+          { floor: 1, section: "Center", capacity: 4 },
+          { floor: 1, section: "Center", capacity: 4 },
+          { floor: 1, section: "Center", capacity: 4 },
+          { floor: 2, section: "Center", capacity: 4 },
+          { floor: 2, section: "Window", capacity: 4 },
+          { floor: 2, section: "Window", capacity: 6 },
+          { floor: 2, section: "Center", capacity: 6 },
+          { floor: 2, section: "Center", capacity: 2 },
         ]),
       );
 
@@ -674,25 +663,28 @@ describe("TableService", () => {
       expect(result.occupiedTables).toBe(3);
       expect(result.availableTables).toBe(7);
       expect(result.byFloor[1]).toBe(5);
+      expect(result.byFloor[2]).toBe(5);
       expect(result.bySection["Window"]).toBe(4);
+      expect(result.bySection["Center"]).toBe(6);
       expect(result.byCapacity[4]).toBe(6);
+      expect(result.avgOccupancyMinutes).toBe(35);
     });
 
     it("should return zero stats when no tables exist", async () => {
-      // Arrange - All queries return 0 or empty with correct aliases
-      mockDb.select.mockReturnValueOnce(createQueryChain([{ totalTables: 0 }]));
+      // Arrange - Query 1: aggregation returns zeros
       mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ occupiedTables: 0 }]),
+        createQueryChain([
+          {
+            totalTables: 0,
+            occupiedTables: 0,
+            availableTables: 0,
+            inactiveTables: 0,
+            avgOccupancyMinutes: 0,
+          },
+        ]),
       );
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ availableTables: 0 }]),
-      );
-      mockDb.select.mockReturnValueOnce(
-        createQueryChain([{ inactiveTables: 0 }]),
-      );
-      mockDb.select.mockReturnValueOnce(createQueryChain([])); // byFloor
-      mockDb.select.mockReturnValueOnce(createQueryChain([])); // bySection
-      mockDb.select.mockReturnValueOnce(createQueryChain([])); // byCapacity
+      // Query 2: no distribution rows
+      mockDb.select.mockReturnValueOnce(createQueryChain([]));
 
       // Act
       const result = await tableService.getTableStats("R-001");

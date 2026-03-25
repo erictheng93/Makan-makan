@@ -219,7 +219,10 @@ const handleSubmitRequest = async (formData: any) => {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
 
-    await api.post(`/leaves/${restaurantId}/requests`, formData);
+    await api.post(`/leaves/${restaurantId}/requests`, {
+      ...formData,
+      employeeId: authStore.user?.id,
+    });
     await loadData();
     closeRequestDialog();
     alert(t("leaveActions.submitSuccess"));
@@ -237,7 +240,15 @@ const handleCancelRequest = async (requestId: number) => {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
 
-    await api.post(`/leaves/${restaurantId}/requests/${requestId}/cancel`);
+    const reason = prompt(
+      t("leaveActions.cancelReasonPrompt") || "請輸入取消原因",
+    );
+    if (!reason) return;
+
+    await api.post(`/leaves/requests/${requestId}/cancel`, {
+      userId: authStore.user?.id,
+      reason,
+    });
     await loadData();
     alert(t("leaveActions.cancelSuccess"));
   } catch (error) {
@@ -254,7 +265,9 @@ const handleApproveRequest = async (requestId: number) => {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
 
-    await api.post(`/leaves/${restaurantId}/requests/${requestId}/approve`);
+    await api.post(`/leaves/requests/${requestId}/approve`, {
+      approverId: authStore.user?.id,
+    });
     await loadData();
     alert(t("leaveActions.approveSuccess"));
   } catch (error) {
@@ -272,7 +285,8 @@ const handleRejectRequest = async (requestId: number) => {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
 
-    await api.post(`/leaves/${restaurantId}/requests/${requestId}/reject`, {
+    await api.post(`/leaves/requests/${requestId}/reject`, {
+      approverId: authStore.user?.id,
       reason,
     });
     await loadData();

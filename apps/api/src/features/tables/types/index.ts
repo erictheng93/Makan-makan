@@ -1,10 +1,19 @@
 /**
  * Tables Feature Types
  *
- * Type definitions for the tables management feature module
+ * Re-exports database types and defines feature-specific types
  */
 
-// Core table types
+// Re-export database layer types as the source of truth
+export type {
+  CreateTableData,
+  UpdateTableData,
+  TableFilters,
+  QRCodeOptions,
+  TableStats as DbTableStats,
+} from "@makanmakan/database";
+
+// Core table type (feature-specific, includes computed/joined fields)
 export interface Table {
   id: number;
   restaurantId: string;
@@ -39,46 +48,7 @@ export interface TableFeatures {
   smokingAllowed?: boolean;
 }
 
-// Table operation types
-export interface CreateTableData {
-  restaurantId: string;
-  number: string;
-  name?: string;
-  capacity: number;
-  location?: string;
-  floor?: number;
-  section?: string;
-  features?: TableFeatures;
-  isReservable?: boolean;
-}
-
-export interface UpdateTableData {
-  number?: string;
-  name?: string;
-  capacity?: number;
-  location?: string;
-  floor?: number;
-  section?: string;
-  features?: TableFeatures;
-  isActive?: boolean;
-  isReservable?: boolean;
-  maintenanceNotes?: string;
-}
-
-export interface TableFilters {
-  restaurantId?: string;
-  floor?: number;
-  section?: string;
-  isOccupied?: boolean;
-  isActive?: boolean;
-  isReservable?: boolean;
-  minCapacity?: number;
-  maxCapacity?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-}
-
+// Feature-level stats (adapted from database stats)
 export interface TableStats {
   total: number;
   occupied: number;
@@ -95,17 +65,10 @@ export interface TableStats {
 }
 
 // QR Code generation types
-export interface QRCodeOptions {
-  size?: "small" | "medium" | "large";
-  format?: "png" | "svg" | "pdf";
-  includeTableInfo?: boolean;
-  customData?: any;
-}
-
 export interface BulkQRRequest {
   restaurantId: string;
   tableIds: number[];
-  options?: QRCodeOptions;
+  options?: import("@makanmakan/database").QRCodeOptions;
 }
 
 export interface QRCodeResult {
@@ -116,33 +79,8 @@ export interface QRCodeResult {
   size: string;
 }
 
-// Pagination types
-export interface PaginationResult<T> {
-  items: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
-export interface TableListResult {
-  tables: Table[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
 // Service response types
-export interface ServiceResponse<T = any> {
+export interface ServiceResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -163,4 +101,19 @@ export interface BulkQRResult {
     tableId: number;
     error: string;
   }>;
+}
+
+// Re-export shared pagination type
+export type { PaginatedResponse as PaginationResult } from "@makanmakan/shared-types";
+
+export interface TableListResult {
+  tables: Table[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }

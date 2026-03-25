@@ -15,6 +15,7 @@ import {
 import { BaseService } from "./base";
 import { tables, restaurants, orders } from "../schema";
 import { SeatService } from "./seat";
+import { buildSignedQRUrl } from "@makanmakan/utils";
 
 export interface CreateTableData {
   restaurantId: string;
@@ -193,62 +194,20 @@ export class TableService extends BaseService {
         .where(eq(tables.id, id))
         .get();
 
-      // Return null if no table found
       if (!table) {
         return null;
       }
 
-      // Convert SQLite integer booleans (0/1) to JavaScript booleans
-      // Force convert all Drizzle schema objects to primitive values to avoid circular references
-      const tableData: any = {
-        id: Number(table.id),
-        restaurantId: Number(table.restaurantId),
-        number: String(table.number || ""),
-        name: table.name ? String(table.name) : null,
-        capacity: table.capacity ? Number(table.capacity) : null,
-        location: table.location ? String(table.location) : null,
-        floor: Number(table.floor || 1),
-        section: table.section ? String(table.section) : null,
-        qrCode: table.qrCode ? String(table.qrCode) : null,
-        qrCodeImageUrl: table.qrCodeImageUrl
-          ? String(table.qrCodeImageUrl)
-          : null,
-        qrCodeVersion: table.qrCodeVersion ? Number(table.qrCodeVersion) : null,
-        qrMode: table.qrMode ? String(table.qrMode) : "table",
-        seatCount: table.seatCount ? Number(table.seatCount) : 0,
-        seatNumberingStyle: table.seatNumberingStyle
-          ? String(table.seatNumberingStyle)
-          : "numeric",
-        seatLayout: table.seatLayout ? String(table.seatLayout) : null,
+      // SQLite stores booleans as 0/1 integers — coerce only these fields
+      const tableData: Record<string, any> = {
+        ...table,
         isOccupied: Boolean(Number(table.isOccupied)),
         isActive: Boolean(Number(table.isActive)),
         isReservable: Boolean(Number(table.isReservable)),
-        features: table.features ? String(table.features) : null,
-        currentOrderId: table.currentOrderId
-          ? Number(table.currentOrderId)
-          : null,
-        occupiedAt: table.occupiedAt ? String(table.occupiedAt) : null,
-        occupiedBy: table.occupiedBy ? Number(table.occupiedBy) : null,
-        estimatedFreeAt: table.estimatedFreeAt
-          ? String(table.estimatedFreeAt)
-          : null,
-        lastCleanedAt: table.lastCleanedAt ? String(table.lastCleanedAt) : null,
-        maintenanceNotes: table.maintenanceNotes
-          ? String(table.maintenanceNotes)
-          : null,
-        totalUsage: table.totalUsage ? Number(table.totalUsage) : 0,
-        averageOccupancyMinutes: table.averageOccupancyMinutes
-          ? Number(table.averageOccupancyMinutes)
-          : 0,
-        createdAt: table.createdAt ? String(table.createdAt) : null,
-        updatedAt: table.updatedAt ? String(table.updatedAt) : null,
-        restaurantName: table.restaurantName
-          ? String(table.restaurantName)
-          : null,
       };
 
       // 如果是座位模式，附加座位資訊
-      if (tableData.qrMode === "seat") {
+      if (table.qrMode === "seat") {
         const seatService = new SeatService(this.db as any, this.env);
         const seatsResult = await seatService.getSeatsByTableId(id);
         tableData.seats = seatsResult.seats;
@@ -567,34 +526,16 @@ export class TableService extends BaseService {
   ): Promise<string> {
     const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
     const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
-    const sig = await this.signQR(
-      `table|${restaurantId}|${tableNumber}|${version}`,
+    return buildSignedQRUrl(
+      baseUrl,
+      {
+        type: "table",
+        restaurantId,
+        identifier: tableNumber,
+        version,
+      },
       signingKey,
     );
-    const url = new URL("/order", baseUrl);
-    url.searchParams.set("t", "table");
-    url.searchParams.set("r", restaurantId);
-    url.searchParams.set("n", tableNumber);
-    url.searchParams.set("v", String(version));
-    url.searchParams.set("ts", String(Date.now()));
-    url.searchParams.set("sig", sig);
-    return url.toString();
-  }
-
-  /** HMAC-SHA256, truncated to 16 hex chars (8 bytes) */
-  private async signQR(data: string, key: string): Promise<string> {
-    const enc = new TextEncoder();
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      enc.encode(key),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"],
-    );
-    const sig = await crypto.subtle.sign("HMAC", cryptoKey, enc.encode(data));
-    return Array.from(new Uint8Array(sig).slice(0, 8))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
   }
 
   // 重新生成 QR Code

@@ -1836,6 +1836,8 @@ const zhTW: Messages = {
       approve: "批准",
       reject: "拒絕",
       noPending: "目前沒有待審核的請假申請",
+      reviewer: "審核人",
+      unknownEmployee: "未知員工",
     },
     errors: {
       endBeforeStart: "結束日期不能早於開始日期",

@@ -1794,6 +1794,12 @@ const enUS: Messages = {
       pending: "Pending",
       approved: "Approved",
       rejected: "Rejected",
+      pendingRequests: "Pending Requests",
+      approve: "Approve",
+      reject: "Reject",
+      noPending: "No pending leave requests",
+      reviewer: "Reviewer",
+      unknownEmployee: "Unknown Employee",
     },
     errors: {
       endBeforeStart: "End date cannot be before start date",

@@ -527,8 +527,8 @@ const handleSubmit = async () => {
     // 準備提交資料
     const submitData = {
       ...form.value,
-      validFrom: form.value.validFrom + ":00", // Add seconds for ISO format
-      validTo: form.value.validTo + ":00",
+      validFrom: new Date(form.value.validFrom).toISOString(), // Full ISO 8601 with Z
+      validTo: new Date(form.value.validTo).toISOString(),
       // 清理空值
       maxDiscountAmount: form.value.maxDiscountAmount || undefined,
       usageLimit: form.value.usageLimit || undefined,

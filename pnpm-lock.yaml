@@ -864,6 +864,9 @@ importers:
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../shared-types
+      '@makanmakan/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@paralleldrive/cuid2':
         specifier: ^2.2.2
         version: 2.3.1

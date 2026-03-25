@@ -19,30 +19,10 @@ import {
   userStatsSchema,
   userSearchSchema,
 } from "../schemas/validation";
-import { ApiError } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
 /**
- * Convert a service result object into a thrown ApiError when unsuccessful.
- * status defaults to 500 if not provided by the service.
- */
-function assertResult(result: {
-  success: boolean;
-  error?: string;
-  status?: number;
-}): void {
-  if (!result.success) {
-    throw new ApiError(
-      "SERVICE_ERROR",
-      result.error || "Operation failed",
-      result.status || 500,
-    );
-  }
-}
-
-/**
- * 獲取用戶列表
  * GET /api/v1/users
  */
 app.get(
@@ -57,44 +37,29 @@ app.get(
 
     const result = await usersService.getUsers(currentUser, query);
 
-    return c.json(result);
+    return c.json({ success: true, ...result });
   },
 );
 
 /**
- * 獲取單一用戶詳情
  * GET /api/v1/users/:id
  */
 app.get(
   "/:id",
   authMiddleware,
-  requireRole([
-    USER_ROLES.ADMIN,
-    USER_ROLES.OWNER,
-    USER_ROLES.CHEF,
-    USER_ROLES.SERVICE,
-    USER_ROLES.CASHIER,
-    USER_ROLES.CUSTOMER,
-  ]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {
     const { id } = c.get("validatedParams");
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const result = await usersService.getUserById(currentUser, parseInt(id));
+    const user = await usersService.getUserById(currentUser, parseInt(id));
 
-    assertResult(result);
-
-    return c.json({
-      success: true,
-      data: result.data,
-    });
+    return c.json({ success: true, data: user });
   },
 );
 
 /**
- * 創建用戶
  * POST /api/v1/users
  */
 app.post(
@@ -107,22 +72,13 @@ app.post(
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const result = await usersService.createUser(currentUser, data);
+    const user = await usersService.createUser(currentUser, data);
 
-    assertResult(result);
-
-    return c.json(
-      {
-        success: true,
-        data: result.data,
-      },
-      (result.status as any) || 200,
-    );
+    return c.json({ success: true, data: user }, 201);
   },
 );
 
 /**
- * 更新用戶資料
  * PUT /api/v1/users/:id
  */
 app.put(
@@ -136,23 +92,13 @@ app.put(
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const result = await usersService.updateUser(
-      currentUser,
-      parseInt(id),
-      data,
-    );
+    const user = await usersService.updateUser(currentUser, parseInt(id), data);
 
-    assertResult(result);
-
-    return c.json({
-      success: true,
-      data: result.data,
-    });
+    return c.json({ success: true, data: user });
   },
 );
 
 /**
- * 修改密碼
  * POST /api/v1/users/:id/password
  */
 app.post(
@@ -166,24 +112,18 @@ app.post(
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const result = await usersService.changePassword(
+    await usersService.changePassword(
       currentUser,
       parseInt(id),
       currentPassword,
       newPassword,
     );
 
-    assertResult(result);
-
-    return c.json({
-      success: true,
-      message: result.message,
-    });
+    return c.json({ success: true, message: "Password updated successfully" });
   },
 );
 
 /**
- * 停用/啟用用戶
  * PATCH /api/v1/users/:id/status
  */
 app.patch(
@@ -198,23 +138,17 @@ app.patch(
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const result = await usersService.updateUserStatus(
+    const message = await usersService.updateUserStatus(
       currentUser,
       parseInt(id),
       isActive,
     );
 
-    assertResult(result);
-
-    return c.json({
-      success: true,
-      message: result.message,
-    });
+    return c.json({ success: true, message });
   },
 );
 
 /**
- * 驗證用戶
  * PATCH /api/v1/users/:id/verify
  */
 app.patch(
@@ -227,19 +161,13 @@ app.patch(
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const result = await usersService.verifyUser(currentUser, parseInt(id));
+    await usersService.verifyUser(currentUser, parseInt(id));
 
-    assertResult(result);
-
-    return c.json({
-      success: true,
-      message: result.message,
-    });
+    return c.json({ success: true, message: "User verified successfully" });
   },
 );
 
 /**
- * 重設用戶密碼
  * POST /api/v1/users/:id/reset-password
  */
 app.post(
@@ -254,23 +182,13 @@ app.post(
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const result = await usersService.resetPassword(
-      currentUser,
-      parseInt(id),
-      newPassword,
-    );
+    await usersService.resetPassword(currentUser, parseInt(id), newPassword);
 
-    assertResult(result);
-
-    return c.json({
-      success: true,
-      message: result.message,
-    });
+    return c.json({ success: true, message: "Password reset successfully" });
   },
 );
 
 /**
- * 獲取用戶統計
  * GET /api/v1/users/stats
  */
 app.get(
@@ -285,15 +203,11 @@ app.get(
 
     const stats = await usersService.getUserStats(currentUser, restaurantId);
 
-    return c.json({
-      success: true,
-      data: stats,
-    });
+    return c.json({ success: true, data: stats });
   },
 );
 
 /**
- * 搜尋用戶
  * GET /api/v1/users/search
  */
 app.get(
@@ -313,10 +227,7 @@ app.get(
       limit,
     );
 
-    return c.json({
-      success: true,
-      data: results,
-    });
+    return c.json({ success: true, data: results });
   },
 );
 

@@ -27,6 +27,16 @@ import { SchedulingService } from "@makanmakan/database";
 
 const app = new Hono<{ Bindings: Env }>();
 
+/** Create SchedulingService from Hono context */
+function createService(env: Env): SchedulingService {
+  return new SchedulingService(env.DB, env);
+}
+
+/** Check if user is admin or shop owner */
+function isManager(role: number): boolean {
+  return role === USER_ROLES.ADMIN || role === USER_ROLES.SHOP_OWNER;
+}
+
 // ========================================
 // Shift Template Management
 // ========================================
@@ -40,7 +50,7 @@ app.get(
   validateParams(schedulingSchemas.restaurantIdParam),
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const templates = await service.getShiftTemplates(restaurantId);
 
@@ -56,7 +66,7 @@ app.get(
   validateParams(schedulingSchemas.shiftTemplateIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const template = await service.getShiftTemplate(id);
 
@@ -80,7 +90,7 @@ app.post(
     const { restaurantId } = c.get("validatedParams");
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const template = await service.createShiftTemplate({
       ...data,
@@ -106,7 +116,7 @@ app.put(
     const { id } = c.get("validatedParams");
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const template = await service.updateShiftTemplate(id, {
       ...data,
@@ -128,7 +138,7 @@ app.delete(
   validateParams(schedulingSchemas.shiftTemplateIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const deleted = await service.deleteShiftTemplate(id);
 
@@ -158,16 +168,13 @@ app.get(
     const { restaurantId } = c.get("validatedParams");
     const query = c.get("validatedQuery");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     // Employees can only view their own schedules
     const filters = {
       ...query,
       restaurantId,
-      employeeId:
-        user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER
-          ? user.id
-          : query.employeeId,
+      employeeId: !isManager(user.role) ? user.id : query.employeeId,
     };
 
     const result = await service.getSchedules(filters);
@@ -196,7 +203,7 @@ app.get(
   async (c) => {
     const { id } = c.get("validatedParams");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const schedule = await service.getSchedule(id);
 
@@ -205,7 +212,7 @@ app.get(
     }
 
     // Check access
-    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+    if (!isManager(user.role)) {
       if (schedule.employeeId !== user.id) {
         throw forbidden("Access denied");
       }
@@ -227,7 +234,7 @@ app.post(
     const { restaurantId } = c.get("validatedParams");
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const schedule = await service.createSchedule({
       ...data,
@@ -254,7 +261,7 @@ app.post(
     const { restaurantId } = c.get("validatedParams");
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const count = await service.bulkCreateSchedules({
       ...data,
@@ -283,7 +290,7 @@ app.put(
     const { id } = c.get("validatedParams");
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const schedule = await service.updateSchedule(id, {
       ...data,
@@ -305,7 +312,7 @@ app.delete(
   validateParams(schedulingSchemas.scheduleIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const deleted = await service.deleteSchedule(id);
 
@@ -334,10 +341,10 @@ app.post(
     const { id } = c.get("validatedParams");
     const { employeeId, notes } = c.get("validatedBody");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     // Verify user is clocking in for themselves (unless admin)
-    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+    if (!isManager(user.role)) {
       if (employeeId !== user.id) {
         throw forbidden("Access denied");
       }
@@ -367,10 +374,10 @@ app.post(
     const { id } = c.get("validatedParams");
     const { employeeId, notes } = c.get("validatedBody");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     // Verify user is clocking out for themselves (unless admin)
-    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+    if (!isManager(user.role)) {
       if (employeeId !== user.id) {
         throw forbidden("Access denied");
       }
@@ -403,7 +410,7 @@ app.get(
   validateParams(schedulingSchemas.restaurantIdParam),
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const employees = await service.getClockedInEmployees(restaurantId);
 
@@ -428,7 +435,7 @@ app.get(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const { startDate, endDate, employeeId } = c.get("validatedQuery");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const report = await service.getAttendanceReport(restaurantId, {
       startDate,
@@ -454,7 +461,7 @@ app.get(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const { startDate, endDate, employeeId } = c.get("validatedQuery");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const report = await service.getAttendanceReport(restaurantId, {
       startDate,
@@ -528,7 +535,7 @@ app.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const { notes } = c.get("validatedBody");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     // Get the schedule to find the employee ID
     const existingSchedule = await service.getSchedule(id);
@@ -563,7 +570,7 @@ app.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const { notes } = c.get("validatedBody");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     // Get the schedule to find the employee ID
     const existingSchedule = await service.getSchedule(id);
@@ -602,7 +609,7 @@ app.post(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const data = c.get("validatedBody");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const request = await service.createSwapRequest({
       ...data,
@@ -627,16 +634,15 @@ app.get(
     const { restaurantId } = c.get("validatedParams");
     const filters = c.get("validatedQuery");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     // Employees can only view their own swap requests
     const swapFilters = {
       ...filters,
       restaurantId,
-      requesterEmployeeId:
-        user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER
-          ? user.id
-          : filters.requesterEmployeeId,
+      requesterEmployeeId: !isManager(user.role)
+        ? user.id
+        : filters.requesterEmployeeId,
     };
 
     const result = await service.getSwapRequests(swapFilters);
@@ -667,10 +673,10 @@ app.post(
     const { id } = c.get("validatedParams");
     const { employeeId } = c.get("validatedBody");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     // Verify user is accepting for themselves (unless admin)
-    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+    if (!isManager(user.role)) {
       if (employeeId !== user.id) {
         throw forbidden("Access denied");
       }
@@ -695,7 +701,7 @@ app.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const { managerId } = c.get("validatedBody");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const request = await service.approveSwapRequest(id, managerId);
 
@@ -716,7 +722,7 @@ app.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const { managerId, reason } = c.get("validatedBody");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const request = await service.rejectSwapRequest(id, managerId, reason);
 
@@ -735,7 +741,7 @@ app.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const user = c.get("user");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const request = await service.cancelSwapRequest(id, user.id);
 
@@ -762,7 +768,7 @@ app.get(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const { date, shiftTemplateId } = c.get("validatedQuery");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const availableEmployees = await service.getAvailableEmployees({
       restaurantId,
@@ -795,7 +801,7 @@ app.get(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const filters = c.get("validatedQuery");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const result = await service.getConflicts({
       ...filters,
@@ -826,7 +832,7 @@ app.get(
   validateParams(schedulingSchemas.conflictIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const conflict = await service.getConflict(id);
 
@@ -848,7 +854,7 @@ app.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const { userId, resolutionNotes } = c.get("validatedBody");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const conflict = await service.resolveConflict(id, userId, resolutionNotes);
 
@@ -874,7 +880,7 @@ app.get(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const { date } = c.get("validatedQuery");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const stats = await service.getDailyStats(restaurantId, date);
 
@@ -896,7 +902,7 @@ app.get(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const { weekStartDate } = c.get("validatedQuery");
-    const service = new SchedulingService(c.env.DB, c.env);
+    const service = createService(c.env);
 
     const summary = await service.getWeeklySummary(restaurantId, weekStartDate);
 

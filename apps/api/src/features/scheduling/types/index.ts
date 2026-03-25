@@ -1,68 +1,32 @@
 /**
  * Employee Scheduling Types
- * Type definitions for employee work scheduling management
+ *
+ * Re-exports DB-layer types as single source of truth,
+ * plus feature-only types (relations, labor law, service interface).
  */
 
-/**
- * Shift Template (班別模板)
- * Reusable shift definitions for scheduling
- */
-export interface ShiftTemplate {
-  id: number;
-  restaurantId: string;
-  name: string;
-  description: string | null;
-  shiftType: "regular" | "split" | "overnight";
-  startTime: string;
-  endTime: string;
-  durationMinutes: number;
-  isSplitShift: boolean;
-  breakStartTime: string | null;
-  breakEndTime: string | null;
-  breakDurationMinutes: number;
-  applicableDays: string; // JSON array
-  minEmployees: number;
-  maxEmployees: number;
-  hourlyRate: number | null;
-  overtimeMultiplier: number;
-  colorCode: string;
-  icon: string | null;
-  sortOrder: number;
-  isActive: boolean;
-  createdBy: number | null;
-  updatedBy: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// ── Core types from database layer (single source of truth) ──
+export type {
+  ShiftTemplate,
+  EmployeeSchedule,
+  SchedulingConflict,
+  ScheduleSwapRequest,
+  ConflictCheckResult,
+  ScheduleFilters,
+  BulkScheduleData,
+  ClockInData,
+  ClockOutData,
+} from "@makanmakan/database";
 
-/**
- * Employee Schedule (員工排班)
- * Individual employee work schedule assignment
- */
-export interface EmployeeSchedule {
-  id: number;
-  restaurantId: string;
-  employeeId: number;
-  shiftTemplateId: number | null;
-  workDate: string; // YYYY-MM-DD
-  startTime: string;
-  endTime: string;
-  breakDurationMinutes: number;
-  clockInTime: number | null;
-  clockOutTime: number | null;
-  scheduledHours: number;
-  actualHours: number;
-  overtimeHours: number;
-  status: "scheduled" | "confirmed" | "completed" | "cancelled" | "no_show";
-  notes: string | null;
-  managerNotes: string | null;
-  confirmedBy: number | null;
-  confirmedAt: number | null;
-  createdBy: number;
-  updatedBy: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// ── Feature-only types (not in DB layer) ──
+
+import type {
+  ShiftTemplate,
+  EmployeeSchedule,
+  SchedulingConflict,
+  ScheduleSwapRequest,
+  ConflictCheckResult,
+} from "@makanmakan/database";
 
 /**
  * Scheduling Rule (排班規則)
@@ -79,77 +43,15 @@ export interface SchedulingRule {
     | "max_consecutive_days"
     | "skill_requirement"
     | "custom";
-  ruleConfig: string; // JSON object
-  appliesToRoles: string | null; // JSON array
-  appliesToEmployees: string | null; // JSON array
+  ruleConfig: string;
+  appliesToRoles: string | null;
+  appliesToEmployees: string | null;
   priority: number;
   severity: "error" | "warning" | "info";
   isSystemRule: boolean;
   isActive: boolean;
   createdBy: number;
   updatedBy: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/**
- * Scheduling Conflict (排班衝突)
- */
-export interface SchedulingConflict {
-  id: number;
-  restaurantId: string;
-  conflictType:
-    | "overlapping_shifts"
-    | "insufficient_rest"
-    | "max_hours_exceeded"
-    | "consecutive_days_exceeded"
-    | "skill_mismatch"
-    | "leave_conflict"
-    | "availability_conflict";
-  severity: "error" | "warning" | "info";
-  scheduleIds: string; // JSON array
-  employeeIds: string; // JSON array
-  ruleId: number | null;
-  message: string;
-  details: string | null; // JSON object
-  status: "unresolved" | "acknowledged" | "resolved" | "ignored";
-  resolvedBy: number | null;
-  resolvedAt: number | null;
-  resolutionNotes: string | null;
-  detectedAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/**
- * Schedule Swap Request (換班請求)
- */
-export interface ScheduleSwapRequest {
-  id: number;
-  restaurantId: string;
-  requesterEmployeeId: number;
-  requesterScheduleId: number;
-  targetEmployeeId: number | null;
-  targetScheduleId: number | null;
-  requestType: "swap" | "cover" | "drop";
-  reason: string;
-  urgency: "low" | "normal" | "high" | "urgent";
-  isOpenRequest: boolean;
-  status:
-    | "pending"
-    | "accepted"
-    | "approved"
-    | "rejected"
-    | "cancelled"
-    | "expired";
-  acceptedBy: number | null;
-  acceptedAt: number | null;
-  approvedBy: number | null;
-  approvedAt: number | null;
-  rejectedBy: number | null;
-  rejectedAt: number | null;
-  rejectionReason: string | null;
-  expiresAt: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -162,10 +64,10 @@ export interface EmployeeAvailability {
   restaurantId: string;
   employeeId: number;
   availabilityType: "recurring" | "specific_date";
-  dayOfWeek: number | null; // 0-6
+  dayOfWeek: number | null;
   startTime: string | null;
   endTime: string | null;
-  startDate: string | null; // YYYY-MM-DD
+  startDate: string | null;
   endDate: string | null;
   preferenceType: "preferred" | "available" | "unavailable";
   priority: number;
@@ -175,9 +77,7 @@ export interface EmployeeAvailability {
   updatedAt: Date;
 }
 
-/**
- * Extended types with relations
- */
+// ── Extended types with relations ──
 
 export interface EmployeeScheduleWithRelations extends EmployeeSchedule {
   employee: {
@@ -211,20 +111,14 @@ export interface SchedulingConflictWithDetails extends SchedulingConflict {
 }
 
 export interface ScheduleSwapRequestWithRelations extends ScheduleSwapRequest {
-  requesterEmployee: {
-    id: number;
-    fullName: string;
-  };
+  requesterEmployee: { id: number; fullName: string };
   requesterSchedule: {
     id: number;
     workDate: string;
     startTime: string;
     endTime: string;
   };
-  targetEmployee: {
-    id: number;
-    fullName: string;
-  } | null;
+  targetEmployee: { id: number; fullName: string } | null;
   targetSchedule: {
     id: number;
     workDate: string;
@@ -233,9 +127,7 @@ export interface ScheduleSwapRequestWithRelations extends ScheduleSwapRequest {
   } | null;
 }
 
-/**
- * Create/Update types
- */
+// ── Create/Update types ──
 
 export type CreateShiftTemplateData = Omit<
   ShiftTemplate,
@@ -293,20 +185,7 @@ export type CreateEmployeeAvailabilityData = Omit<
   "id" | "createdAt" | "updatedAt"
 >;
 
-/**
- * Filter and Query types
- */
-
-export interface ScheduleFilters {
-  restaurantId?: string;
-  employeeId?: number;
-  shiftTemplateId?: number;
-  startDate?: string;
-  endDate?: string;
-  status?: EmployeeSchedule["status"];
-  page?: number;
-  limit?: number;
-}
+// ── Filter types ──
 
 export interface ConflictFilters {
   restaurantId?: string;
@@ -330,16 +209,7 @@ export interface SwapRequestFilters {
   limit?: number;
 }
 
-/**
- * Business logic types
- */
-
-export interface ConflictCheckResult {
-  hasConflicts: boolean;
-  conflicts: SchedulingConflict[];
-  warnings: SchedulingConflict[];
-  info: SchedulingConflict[];
-}
+// ── Statistics ──
 
 export interface ScheduleStats {
   restaurantId: string;
@@ -375,35 +245,7 @@ export interface EmployeeScheduleSummary {
   conflicts: number;
 }
 
-export interface BulkScheduleData {
-  restaurantId: string;
-  shiftTemplateId: number;
-  employeeIds: number[];
-  dateRange: {
-    startDate: string;
-    endDate: string;
-  };
-  daysOfWeek: number[]; // 0-6
-  createdBy: number;
-}
-
-export interface ClockInData {
-  scheduleId: number;
-  employeeId: number;
-  clockInTime: Date;
-  notes?: string;
-}
-
-export interface ClockOutData {
-  scheduleId: number;
-  employeeId: number;
-  clockOutTime: Date;
-  notes?: string;
-}
-
-/**
- * Taiwan Labor Law Compliance Types
- */
+// ── Taiwan Labor Law Compliance ──
 
 export interface LaborLawCheckResult {
   isCompliant: boolean;
@@ -411,7 +253,7 @@ export interface LaborLawCheckResult {
     ruleType: string;
     severity: "error" | "warning";
     message: string;
-    details: any;
+    details: Record<string, unknown>;
   }>;
 }
 
@@ -436,16 +278,8 @@ export interface WeeklyHoursCheck {
 
 export interface RestPeriodCheck {
   employeeId: number;
-  schedule1: {
-    id: number;
-    workDate: string;
-    endTime: string;
-  };
-  schedule2: {
-    id: number;
-    workDate: string;
-    startTime: string;
-  };
+  schedule1: { id: number; workDate: string; endTime: string };
+  schedule2: { id: number; workDate: string; startTime: string };
   restHours: number;
   minRequiredHours: number;
   isCompliant: boolean;
@@ -460,12 +294,9 @@ export interface ConsecutiveDaysCheck {
   isCompliant: boolean;
 }
 
-/**
- * Service Interface
- */
+// ── Service Interface ──
 
 export interface ISchedulingService {
-  // Shift Templates
   getShiftTemplates(restaurantId: string): Promise<ShiftTemplate[]>;
   getShiftTemplate(id: number): Promise<ShiftTemplate | null>;
   createShiftTemplate(data: CreateShiftTemplateData): Promise<ShiftTemplate>;
@@ -474,10 +305,8 @@ export interface ISchedulingService {
     data: UpdateShiftTemplateData,
   ): Promise<ShiftTemplate>;
   deleteShiftTemplate(id: number): Promise<boolean>;
-
-  // Employee Schedules
   getSchedules(
-    filters: ScheduleFilters,
+    filters: import("@makanmakan/database").ScheduleFilters,
   ): Promise<{ items: EmployeeScheduleWithRelations[]; total: number }>;
   getSchedule(id: number): Promise<EmployeeScheduleWithRelations | null>;
   createSchedule(data: CreateEmployeeScheduleData): Promise<EmployeeSchedule>;
@@ -486,13 +315,15 @@ export interface ISchedulingService {
     data: UpdateEmployeeScheduleData,
   ): Promise<EmployeeSchedule>;
   deleteSchedule(id: number): Promise<boolean>;
-  bulkCreateSchedules(data: BulkScheduleData): Promise<number>;
-
-  // Clock In/Out
-  clockIn(data: ClockInData): Promise<EmployeeSchedule>;
-  clockOut(data: ClockOutData): Promise<EmployeeSchedule>;
-
-  // Conflict Detection
+  bulkCreateSchedules(
+    data: import("@makanmakan/database").BulkScheduleData,
+  ): Promise<number>;
+  clockIn(
+    data: import("@makanmakan/database").ClockInData,
+  ): Promise<EmployeeSchedule>;
+  clockOut(
+    data: import("@makanmakan/database").ClockOutData,
+  ): Promise<EmployeeSchedule>;
   checkConflicts(
     schedules: CreateEmployeeScheduleData[],
   ): Promise<ConflictCheckResult>;
@@ -504,8 +335,6 @@ export interface ISchedulingService {
     userId: number,
     notes: string,
   ): Promise<SchedulingConflict>;
-
-  // Swap Requests
   getSwapRequests(
     filters: SwapRequestFilters,
   ): Promise<{ items: ScheduleSwapRequestWithRelations[]; total: number }>;
@@ -525,14 +354,10 @@ export interface ISchedulingService {
     managerId: number,
     reason: string,
   ): Promise<ScheduleSwapRequest>;
-
-  // Availability
   getEmployeeAvailability(employeeId: number): Promise<EmployeeAvailability[]>;
   setEmployeeAvailability(
     data: CreateEmployeeAvailabilityData,
   ): Promise<EmployeeAvailability>;
-
-  // Statistics
   getScheduleStats(restaurantId: string, date: string): Promise<ScheduleStats>;
   getWeeklySummary(
     restaurantId: string,
