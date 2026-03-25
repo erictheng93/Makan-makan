@@ -3,8 +3,6 @@
  * TypeScript type definitions for the menu feature
  */
 
-// BaseEntity import available for future use
-
 // Import shared menu types from @makanmakan/shared-types
 import type {
   MenuItem as SharedMenuItem,
@@ -16,7 +14,6 @@ import type {
   CreateCategoryRequest as SharedCreateCategoryRequest,
   UpdateCategoryRequest as SharedUpdateCategoryRequest,
   DietaryInfo as SharedDietaryInfo,
-  // SpiceLevel, // Available for future use
   ImageVariants as SharedImageVariants,
 } from "@makanmakan/shared-types";
 

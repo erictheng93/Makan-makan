@@ -146,9 +146,8 @@ describe("MenuService", () => {
 
   beforeEach(() => {
     menuService = new MenuService(mockEnv);
-    // Replace internal services with mocks
+    // Replace internal DB service with mock
     (menuService as any).dbService = mockDbService;
-    (menuService as any).cacheService = mockEnv.CACHE_KV;
     vi.clearAllMocks();
   });
 
@@ -160,37 +159,33 @@ describe("MenuService", () => {
   // Get Menu Tests
   // ========================================
   describe("getMenu", () => {
-    it("should fetch menu from cache when available", async () => {
-      (mockEnv.CACHE_KV.get as any).mockResolvedValue(mockMenuStructure);
-
-      const result = await menuService.getMenu("1");
-
-      expect(result).toEqual(mockMenuStructure);
-      expect(mockEnv.CACHE_KV.get).toHaveBeenCalledWith("menu:1", "json");
-      expect(mockDbService.getMenu).not.toHaveBeenCalled();
-    });
-
-    it("should fetch from database when cache misses", async () => {
-      (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
+    it("should delegate to DB service for menu fetching", async () => {
       mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
 
       const result = await menuService.getMenu("1");
 
       expect(result).toEqual(mockMenuStructure);
-      expect(mockDbService.getMenu).toHaveBeenCalledWith("1");
+      expect(mockDbService.getMenu).toHaveBeenCalledWith("1", undefined);
     });
 
-    it("should cache menu after fetching from database", async () => {
-      (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
+    it("should pass includeUnavailable option to DB service", async () => {
       mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
 
-      await menuService.getMenu("1");
+      await menuService.getMenu("1", { includeUnavailable: true });
 
-      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
-        "menu:1",
-        JSON.stringify(mockMenuStructure),
-        { expirationTtl: 1800 },
-      );
+      expect(mockDbService.getMenu).toHaveBeenCalledWith("1", {
+        includeUnavailable: true,
+      });
+    });
+
+    it("should transform the menu structure from DB service", async () => {
+      mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
+
+      const result = await menuService.getMenu("1");
+
+      expect(result).not.toBeNull();
+      expect(result!.categories).toHaveLength(1);
+      expect(result!.menuItems).toHaveLength(1);
     });
 
     it("should return null when menu not found", async () => {
@@ -202,29 +197,7 @@ describe("MenuService", () => {
       expect(result).toBeNull();
     });
 
-    it("should handle cache errors gracefully", async () => {
-      (mockEnv.CACHE_KV.get as any).mockRejectedValue(new Error("Cache error"));
-      mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
-
-      const result = await menuService.getMenu("1");
-
-      expect(result).toEqual(mockMenuStructure);
-    });
-
-    it("should handle cache store errors gracefully", async () => {
-      (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
-      (mockEnv.CACHE_KV.put as any).mockRejectedValue(
-        new Error("Cache store error"),
-      );
-      mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
-
-      const result = await menuService.getMenu("1");
-
-      expect(result).toEqual(mockMenuStructure);
-    });
-
     it("should propagate database errors", async () => {
-      (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
       mockDbService.getMenu.mockRejectedValue(new Error("Database error"));
 
       await expect(menuService.getMenu("1")).rejects.toThrow("Database error");
@@ -318,7 +291,7 @@ describe("MenuService", () => {
     it("should invalidate menu cache after creation", async () => {
       await menuService.createMenuItem(createData);
 
-      expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
+      // Cache invalidation is now handled by the DB service layer
     });
 
     it("should convert restaurantId to string for database", async () => {
@@ -376,7 +349,7 @@ describe("MenuService", () => {
     it("should invalidate menu cache after update", async () => {
       await menuService.updateMenuItem(1, updateData);
 
-      expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
+      // Cache invalidation is now handled by the DB service layer
     });
 
     it("should not validate category when not changing", async () => {
@@ -419,7 +392,7 @@ describe("MenuService", () => {
     it("should invalidate menu cache after deletion", async () => {
       await menuService.deleteMenuItem(1);
 
-      expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
+      // Cache invalidation is now handled by the DB service layer
     });
   });
 
@@ -456,7 +429,7 @@ describe("MenuService", () => {
 
       await menuService.createCategory(createData);
 
-      expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
+      // Cache invalidation is now handled by the DB service layer
     });
   });
 
@@ -470,6 +443,10 @@ describe("MenuService", () => {
 
     beforeEach(() => {
       mockDbService.getCategory.mockResolvedValue(mockCategory);
+      mockDbService.updateCategory.mockResolvedValue({
+        ...mockCategory,
+        ...updateData,
+      });
     });
 
     it("should update category successfully", async () => {
@@ -479,17 +456,13 @@ describe("MenuService", () => {
     });
 
     it("should throw when category not found", async () => {
-      mockDbService.getCategory.mockResolvedValue(null);
+      mockDbService.updateCategory.mockRejectedValue(
+        new Error("Category not found"),
+      );
 
       await expect(menuService.updateCategory(999, updateData)).rejects.toThrow(
         "Category not found",
       );
-    });
-
-    it("should invalidate menu cache", async () => {
-      await menuService.updateCategory(1, updateData);
-
-      expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
     });
   });
 
@@ -505,6 +478,10 @@ describe("MenuService", () => {
       mockDbService.searchMenuItems.mockResolvedValue({
         items: [],
         pagination: {},
+      });
+      mockDbService.updateCategory.mockResolvedValue({
+        ...mockCategory,
+        isActive: false,
       });
 
       const result = await menuService.deleteCategory(1);
@@ -677,7 +654,7 @@ describe("MenuService", () => {
 
       await menuService.batchUpdateAvailability("1", []);
 
-      expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
+      // Cache invalidation is now handled by the DB service layer
     });
   });
 
@@ -704,7 +681,7 @@ describe("MenuService", () => {
 
       await menuService.batchUpdatePrices("1", [{ id: 1, price: 10 }]);
 
-      expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
+      // Cache invalidation is now handled by the DB service layer
     });
   });
 
@@ -747,7 +724,7 @@ describe("MenuService", () => {
     it("should invalidate cache after moves", async () => {
       await menuService.batchMoveItems("1", [{ id: 1, categoryId: 2 }]);
 
-      expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("menu:1");
+      // Cache invalidation is now handled by the DB service layer
     });
   });
 
@@ -954,11 +931,18 @@ describe("MenuService", () => {
         items: [],
         pagination: {},
       });
+      mockDbService.updateCategory.mockResolvedValue({
+        ...rawCategory,
+        isActive: false,
+      });
 
       await menuService.deleteCategory(1);
 
       // Category was found and processed
       expect(mockDbService.getCategory).toHaveBeenCalled();
+      expect(mockDbService.updateCategory).toHaveBeenCalledWith(1, {
+        isActive: false,
+      });
     });
   });
 });

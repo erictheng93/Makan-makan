@@ -96,6 +96,14 @@ export type {
 } from "./coupon";
 
 export type {
+  CreateTableData,
+  UpdateTableData,
+  TableFilters,
+  QRCodeOptions,
+  TableStats,
+} from "./table";
+
+export type {
   CreateSeatData,
   UpdateSeatData,
   SeatFilters,

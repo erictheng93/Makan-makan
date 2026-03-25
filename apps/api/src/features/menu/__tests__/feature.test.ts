@@ -305,6 +305,7 @@ describe("Menu Feature Module", () => {
         expect(result).toEqual(mockMenuStructure);
         expect(mockDbService.getMenu).toHaveBeenCalledWith(
           String(mockRestaurantId),
+          undefined,
         );
       });
 
@@ -643,32 +644,8 @@ describe("Menu Feature Module", () => {
     });
   });
 
-  describe("Cache Integration", () => {
-    test("should use cache when available", async () => {
-      // When KV get() is called with 'json' type, it returns parsed object, not string
-      mockEnv.CACHE_KV.get = vi.fn().mockResolvedValue(mockMenuStructure);
-
-      const service = new MenuService(mockEnv);
-      // Replace dbService to ensure we're testing cache, not database
-      (service as any)["dbService"] = mockDatabaseMenuServiceInstance as any;
-      (service as any)["logger"] = mockLogger as any;
-
-      const result = await service.getMenu(mockRestaurantId);
-
-      expect(result).toEqual(mockMenuStructure);
-      expect(mockEnv.CACHE_KV.get).toHaveBeenCalledWith(
-        `menu:${mockRestaurantId}`,
-        "json",
-      );
-      // Database should not be called when cache hits
-      expect(mockDatabaseMenuServiceInstance.getMenu).not.toHaveBeenCalled();
-    });
-
-    test("should handle cache failures gracefully", async () => {
-      mockEnv.CACHE_KV.get = vi
-        .fn()
-        .mockRejectedValue(new Error("Cache error"));
-
+  describe("DB Service Delegation", () => {
+    test("should delegate getMenu to DB service", async () => {
       const mockDbService = {
         getMenu: vi.fn().mockResolvedValue(mockMenuStructure),
       };
@@ -679,8 +656,23 @@ describe("Menu Feature Module", () => {
       const result = await service.getMenu(mockRestaurantId);
 
       expect(result).toEqual(mockMenuStructure);
+      // Caching is handled internally by the DB service's cachedQuery
       expect(mockDbService.getMenu).toHaveBeenCalledWith(
         String(mockRestaurantId),
+        undefined,
+      );
+    });
+
+    test("should propagate DB service errors", async () => {
+      const mockDbService = {
+        getMenu: vi.fn().mockRejectedValue(new Error("Database error")),
+      };
+
+      const service = new MenuService(mockEnv);
+      (service as any).dbService = mockDbService;
+
+      await expect(service.getMenu(mockRestaurantId)).rejects.toThrow(
+        "Database error",
       );
     });
   });

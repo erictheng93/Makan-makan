@@ -208,7 +208,7 @@ app.put(
       throw forbidden("Access denied");
     }
 
-    const item = await service.updateMenuItem(id, data);
+    const item = await service.updateMenuItem(id, data, existingItem);
 
     return c.json(
       createSuccessResponse(item, "Menu item updated successfully"),
@@ -228,13 +228,11 @@ app.delete(
     const user = c.get("user");
     const service = new MenuService(c.env);
 
-    // Get existing item to check restaurant access
     const existingItem = await service.getMenuItem(id);
     if (!existingItem) {
       throw notFound("Menu item not found");
     }
 
-    // Check restaurant access for non-admin users
     if (
       user.role !== USER_ROLES.ADMIN &&
       user.restaurantId !== existingItem.restaurantId
@@ -242,7 +240,7 @@ app.delete(
       throw forbidden("Access denied");
     }
 
-    const deleted = await service.deleteMenuItem(id);
+    const deleted = await service.deleteMenuItem(id, existingItem);
 
     if (!deleted) {
       throw notFound("Menu item not found");
@@ -367,15 +365,19 @@ app.put(
     const user = c.get("user");
     const service = new MenuService(c.env);
 
-    const category = await service.updateCategory(id, data);
-
-    // Check restaurant access for non-admin users
+    // Check restaurant access BEFORE mutation
+    const existingCategory = await service.getCategoryById(id);
+    if (!existingCategory) {
+      throw notFound("Category not found");
+    }
     if (
       user.role !== USER_ROLES.ADMIN &&
-      user.restaurantId !== category.restaurantId
+      user.restaurantId !== existingCategory.restaurantId
     ) {
       throw forbidden("Access denied");
     }
+
+    const category = await service.updateCategory(id, data);
 
     return c.json(
       createSuccessResponse(category, "Category updated successfully"),
@@ -414,10 +416,21 @@ app.delete(
   validateParams(menuSchemas.categoryIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const _user = c.get("user");
+    const user = c.get("user");
     const service = new MenuService(c.env);
 
-    // For non-admin users, restaurant access is checked within the service
+    // Check restaurant access BEFORE deletion
+    const existingCategory = await service.getCategoryById(id);
+    if (!existingCategory) {
+      throw notFound("Category not found or cannot be deleted");
+    }
+    if (
+      user.role !== USER_ROLES.ADMIN &&
+      user.restaurantId !== existingCategory.restaurantId
+    ) {
+      throw forbidden("Access denied");
+    }
+
     const deleted = await service.deleteCategory(id);
 
     if (!deleted) {

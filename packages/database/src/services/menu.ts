@@ -49,6 +49,32 @@ export interface MenuFilters {
   search?: string;
 }
 
+/** Shared select columns for menu item queries — avoids triplicating the 20-column list */
+const menuItemSelectColumns = {
+  id: menuItems.id,
+  restaurantId: menuItems.restaurantId,
+  categoryId: menuItems.categoryId,
+  name: menuItems.name,
+  description: menuItems.description,
+  ingredients: menuItems.ingredients,
+  price: menuItems.price,
+  originalPrice: menuItems.originalPrice,
+  imageUrl: menuItems.imageUrl,
+  isAvailable: menuItems.isAvailable,
+  isFeatured: menuItems.isFeatured,
+  isPopular: menuItems.isPopular,
+  sortOrder: menuItems.sortOrder,
+  inventoryCount: menuItems.inventoryCount,
+  spiceLevel: menuItems.spiceLevel,
+  preparationTime: menuItems.preparationTime,
+  calories: menuItems.calories,
+  allergens: menuItems.allergens,
+  orderCount: menuItems.orderCount,
+  rating: menuItems.rating,
+  createdAt: menuItems.createdAt,
+  updatedAt: menuItems.updatedAt,
+} as const;
+
 export class MenuService extends BaseService {
   // 獲取完整菜單結構
   async getMenu(
@@ -92,9 +118,8 @@ export class MenuService extends BaseService {
             throw new Error("Restaurant not found");
           }
 
-          // 更新分類的商品數量
-          await this.updateCategoryItemCounts(restaurantId);
-
+          // Item counts are maintained at mutation time (create/update/delete),
+          // so we derive them from the loaded data rather than triggering writes here.
           return {
             categories: restaurant.categories.map((cat: any) => ({
               id: cat.id,
@@ -130,30 +155,7 @@ export class MenuService extends BaseService {
   ): Promise<MenuItem[]> {
     try {
       const items = await this.db
-        .select({
-          id: menuItems.id,
-          restaurantId: menuItems.restaurantId,
-          categoryId: menuItems.categoryId,
-          name: menuItems.name,
-          description: menuItems.description,
-          ingredients: menuItems.ingredients,
-          price: menuItems.price,
-          originalPrice: menuItems.originalPrice,
-          imageUrl: menuItems.imageUrl,
-          isAvailable: menuItems.isAvailable,
-          isFeatured: menuItems.isFeatured,
-          isPopular: menuItems.isPopular,
-          sortOrder: menuItems.sortOrder,
-          inventoryCount: menuItems.inventoryCount,
-          spiceLevel: menuItems.spiceLevel,
-          preparationTime: menuItems.preparationTime,
-          calories: menuItems.calories,
-          allergens: menuItems.allergens,
-          orderCount: menuItems.orderCount,
-          rating: menuItems.rating,
-          createdAt: menuItems.createdAt,
-          updatedAt: menuItems.updatedAt,
-        })
+        .select(menuItemSelectColumns)
         .from(menuItems)
         .where(
           and(
@@ -178,30 +180,7 @@ export class MenuService extends BaseService {
   ): Promise<MenuItem[]> {
     try {
       const items = await this.db
-        .select({
-          id: menuItems.id,
-          restaurantId: menuItems.restaurantId,
-          categoryId: menuItems.categoryId,
-          name: menuItems.name,
-          description: menuItems.description,
-          ingredients: menuItems.ingredients,
-          price: menuItems.price,
-          originalPrice: menuItems.originalPrice,
-          imageUrl: menuItems.imageUrl,
-          isAvailable: menuItems.isAvailable,
-          isFeatured: menuItems.isFeatured,
-          isPopular: menuItems.isPopular,
-          sortOrder: menuItems.sortOrder,
-          inventoryCount: menuItems.inventoryCount,
-          spiceLevel: menuItems.spiceLevel,
-          preparationTime: menuItems.preparationTime,
-          calories: menuItems.calories,
-          allergens: menuItems.allergens,
-          orderCount: menuItems.orderCount,
-          rating: menuItems.rating,
-          createdAt: menuItems.createdAt,
-          updatedAt: menuItems.updatedAt,
-        })
+        .select(menuItemSelectColumns)
         .from(menuItems)
         .where(
           and(
@@ -273,30 +252,7 @@ export class MenuService extends BaseService {
 
       // 查詢結果
       const items = await this.db
-        .select({
-          id: menuItems.id,
-          restaurantId: menuItems.restaurantId,
-          categoryId: menuItems.categoryId,
-          name: menuItems.name,
-          description: menuItems.description,
-          ingredients: menuItems.ingredients,
-          price: menuItems.price,
-          originalPrice: menuItems.originalPrice,
-          imageUrl: menuItems.imageUrl,
-          isAvailable: menuItems.isAvailable,
-          isFeatured: menuItems.isFeatured,
-          isPopular: menuItems.isPopular,
-          sortOrder: menuItems.sortOrder,
-          inventoryCount: menuItems.inventoryCount,
-          spiceLevel: menuItems.spiceLevel,
-          preparationTime: menuItems.preparationTime,
-          calories: menuItems.calories,
-          allergens: menuItems.allergens,
-          orderCount: menuItems.orderCount,
-          rating: menuItems.rating,
-          createdAt: menuItems.createdAt,
-          updatedAt: menuItems.updatedAt,
-        })
+        .select(menuItemSelectColumns)
         .from(menuItems)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(
@@ -523,6 +479,42 @@ export class MenuService extends BaseService {
       );
     } catch (error) {
       this.handleError(error, "reorderCategories");
+    }
+  }
+
+  // 更新分類
+  async updateCategory(
+    id: number,
+    data: Partial<{
+      name: string;
+      nameEn: string;
+      description: string;
+      sortOrder: number;
+      isActive: boolean;
+      isVisible: boolean;
+      imageUrl: string;
+    }>,
+  ) {
+    try {
+      const [updated] = await this.db
+        .update(categories)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(categories.id, id))
+        .returning();
+
+      if (!updated) {
+        throw new Error("Category not found");
+      }
+
+      // Invalidate menu cache for this restaurant
+      await this.invalidateCache(
+        [`menu:${updated.restaurantId}`, `restaurant:${updated.restaurantId}`],
+        "tag",
+      );
+
+      return updated;
+    } catch (error) {
+      this.handleError(error, "updateCategory");
     }
   }
 

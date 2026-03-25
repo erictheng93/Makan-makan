@@ -7,7 +7,6 @@ import type { Env } from "../../../shared/types";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { notFound, forbidden, conflict } from "../../../shared/utils/api-error";
 import { MenuService as DatabaseMenuService } from "@makanmakan/database";
-// eq import available for future database queries
 import type {
   MenuItem,
   Category,
@@ -30,26 +29,19 @@ import type {
 export class MenuService implements IMenuService {
   private readonly logger: ConsoleLogger;
   private readonly dbService: DatabaseMenuService;
-  private readonly cacheService?: any; // KV cache service if available
 
   constructor(private readonly env: Env) {
     this.logger = new ConsoleLogger("MenuService");
-    this.dbService = new DatabaseMenuService(env.DB as any, env);
-    this.cacheService = env.CACHE_KV;
+    this.dbService = new DatabaseMenuService(env.DB, env);
   }
 
-  // Menu Structure Operations
   async getMenu(
     restaurantId: string,
     options?: { includeUnavailable?: boolean },
   ): Promise<MenuStructure | null> {
     try {
       this.logger.info("Fetching complete menu", { restaurantId });
-
-      // Caching is handled by the DB service's cachedQuery (tag-based invalidation).
-      // Avoid double-caching at the API layer which caused stale data after mutations.
       const menu = await this.dbService.getMenu(restaurantId, options);
-
       return menu ? this.transformMenuStructure(menu) : null;
     } catch (error) {
       this.logger.error(
@@ -64,13 +56,11 @@ export class MenuService implements IMenuService {
   async getMenuItem(id: number): Promise<MenuItem | null> {
     try {
       this.logger.debug("Fetching menu item", { id });
-
       const item = await this.dbService.getMenuItem(id);
       if (!item) {
         this.logger.warn("Menu item not found", { id });
         return null;
       }
-
       return this.transformMenuItem(item);
     } catch (error) {
       this.logger.error(
@@ -82,25 +72,16 @@ export class MenuService implements IMenuService {
     }
   }
 
-  // Menu Item Management
   async createMenuItem(data: CreateMenuItemData): Promise<MenuItem> {
     try {
       this.logger.info("Creating menu item", {
         data: { name: data.name, restaurantId: data.restaurantId },
       });
-
-      // Validate category exists and belongs to restaurant
       await this.validateCategoryAccess(data.categoryId, data.restaurantId);
-
-      // Create the menu item - convert restaurantId to string for database service
       const item = await this.dbService.createMenuItem({
         ...data,
         restaurantId: String(data.restaurantId),
       });
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(data.restaurantId);
-
       this.logger.info("Menu item created successfully", { itemId: item.id });
       return this.transformMenuItem(item);
     } catch (error) {
@@ -116,32 +97,24 @@ export class MenuService implements IMenuService {
   async updateMenuItem(
     id: number,
     data: UpdateMenuItemData,
+    prefetchedItem?: MenuItem,
   ): Promise<MenuItem> {
     try {
       this.logger.info("Updating menu item", { id, data });
-
-      // Get existing item to check restaurant access
-      const existingItem = await this.getMenuItem(id);
+      const existingItem = prefetchedItem ?? (await this.getMenuItem(id));
       if (!existingItem) {
         throw notFound("Menu item not found", "MENU_ITEM_NOT_FOUND");
       }
-
-      // If changing category, validate new category access
       if (data.categoryId && data.categoryId !== existingItem.categoryId) {
         await this.validateCategoryAccess(
           data.categoryId,
           existingItem.restaurantId,
         );
       }
-
       const item = await this.dbService.updateMenuItem(id, {
         ...data,
         restaurantId: data.restaurantId ? String(data.restaurantId) : undefined,
       });
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(existingItem.restaurantId);
-
       this.logger.info("Menu item updated successfully", { itemId: id });
       return this.transformMenuItem(item);
     } catch (error) {
@@ -154,25 +127,20 @@ export class MenuService implements IMenuService {
     }
   }
 
-  async deleteMenuItem(id: number): Promise<boolean> {
+  async deleteMenuItem(
+    id: number,
+    prefetchedItem?: MenuItem,
+  ): Promise<boolean> {
     try {
       this.logger.info("Deleting menu item", { id });
-
-      // Get existing item to check restaurant access
-      const existingItem = await this.getMenuItem(id);
+      const existingItem = prefetchedItem ?? (await this.getMenuItem(id));
       if (!existingItem) {
         return false;
       }
-
-      // Soft delete by setting isAvailable to false (preserve for order history)
       await this.dbService.updateMenuItem(id, {
         isAvailable: false,
-        sortOrder: -1, // Move to bottom
+        sortOrder: -1,
       });
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(existingItem.restaurantId);
-
       this.logger.info("Menu item deleted successfully", { itemId: id });
       return true;
     } catch (error) {
@@ -185,19 +153,13 @@ export class MenuService implements IMenuService {
     }
   }
 
-  // Category Management
   async createCategory(data: CreateCategoryData): Promise<Category> {
     try {
       this.logger.info("Creating category", { data });
-
       const category = await this.dbService.createCategory({
         ...data,
         restaurantId: String(data.restaurantId),
       });
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(data.restaurantId);
-
       this.logger.info("Category created successfully", {
         categoryId: category.id,
       });
@@ -218,41 +180,9 @@ export class MenuService implements IMenuService {
   ): Promise<Category> {
     try {
       this.logger.info("Updating category", { id, data });
-
-      // Get existing category for validation
-      const existingCategory = await this.getCategory(id);
-      if (!existingCategory) {
-        throw notFound("Category not found", "CATEGORY_NOT_FOUND");
-      }
-
-      // Persist the update to the database
-      const updateFields: Record<string, unknown> = { updatedAt: new Date() };
-      const d = data as Record<string, unknown>;
-      if (d.name !== undefined) updateFields.name = d.name;
-      if (d.nameEn !== undefined) updateFields.nameEn = d.nameEn;
-      if (d.description !== undefined) updateFields.description = d.description;
-      if (d.sortOrder !== undefined) updateFields.sortOrder = d.sortOrder;
-      if (d.isActive !== undefined) updateFields.isActive = d.isActive;
-      if (d.isVisible !== undefined) updateFields.isVisible = d.isVisible;
-
-      const { categories } = await import("@makanmakan/database");
-      const { eq } = await import("drizzle-orm");
-      const db = (this.dbService as any).db;
-      await db
-        .update(categories)
-        .set(updateFields)
-        .where(eq(categories.id, id));
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(existingCategory.restaurantId);
-
-      const updatedCategory = {
-        ...existingCategory,
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
+      const updated = await this.dbService.updateCategory(id, data);
       this.logger.info("Category updated successfully", { categoryId: id });
-      return this.transformCategory(updatedCategory);
+      return this.transformCategory(updated);
     } catch (error) {
       this.logger.error(
         "Failed to update category",
@@ -266,31 +196,23 @@ export class MenuService implements IMenuService {
   async deleteCategory(id: number): Promise<boolean> {
     try {
       this.logger.info("Deleting category", { id });
-
-      // Get existing category for validation
       const existingCategory = await this.getCategory(id);
       if (!existingCategory) {
         return false;
       }
-
-      // Check if category has menu items
       const menuItems = await this.dbService.searchMenuItems(
         String(existingCategory.restaurantId),
         { categoryId: id },
         1,
         1,
       );
-
       if (menuItems.items.length > 0) {
         throw conflict(
           "Cannot delete category that contains menu items",
           "CATEGORY_HAS_MENU_ITEMS",
         );
       }
-
-      // Soft delete by setting isActive to false
       await this.updateCategory(id, { isActive: false });
-
       this.logger.info("Category deleted successfully", { categoryId: id });
       return true;
     } catch (error) {
@@ -312,12 +234,7 @@ export class MenuService implements IMenuService {
         restaurantId,
         count: updates.length,
       });
-
       await this.dbService.reorderCategories(restaurantId, updates);
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(restaurantId);
-
       this.logger.info("Categories reordered successfully", { restaurantId });
     } catch (error) {
       this.logger.error(
@@ -329,15 +246,12 @@ export class MenuService implements IMenuService {
     }
   }
 
-  // Search and Filtering
   async searchMenuItems(
     restaurantId: string,
     params: MenuSearchParams,
   ): Promise<MenuSearchResult> {
     try {
       this.logger.debug("Searching menu items", { restaurantId, params });
-
-      // Convert search params to filters
       const filters: MenuFilters = {
         categoryId: params.categoryId,
         priceRange: params.priceRange,
@@ -347,14 +261,12 @@ export class MenuService implements IMenuService {
         isFeatured: params.isFeatured,
         search: params.search,
       };
-
       const result = await this.dbService.searchMenuItems(
         restaurantId,
         filters,
         params.page || 1,
         params.limit || 20,
       );
-
       return {
         items: result.items.map((item) => this.transformMenuItem(item)),
         pagination: result.pagination,
@@ -405,7 +317,6 @@ export class MenuService implements IMenuService {
     }
   }
 
-  // Bulk Operations
   async batchUpdateAvailability(
     restaurantId: string,
     updates: BulkAvailabilityUpdate[],
@@ -415,12 +326,7 @@ export class MenuService implements IMenuService {
         restaurantId,
         count: updates.length,
       });
-
       await this.dbService.batchUpdateAvailability(restaurantId, updates);
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(restaurantId);
-
       this.logger.info("Batch availability update completed", { restaurantId });
     } catch (error) {
       this.logger.error(
@@ -441,18 +347,12 @@ export class MenuService implements IMenuService {
         restaurantId,
         count: updates.length,
       });
-
-      // Implement batch price update
       for (const update of updates) {
         await this.dbService.updateMenuItem(update.id, {
           price: update.price,
           originalPrice: update.originalPrice,
         });
       }
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(restaurantId);
-
       this.logger.info("Batch price update completed", { restaurantId });
     } catch (error) {
       this.logger.error(
@@ -473,22 +373,14 @@ export class MenuService implements IMenuService {
         restaurantId,
         count: moves.length,
       });
-
-      // Validate all target categories exist
       for (const move of moves) {
         await this.validateCategoryAccess(move.categoryId, restaurantId);
       }
-
-      // Execute moves
       for (const move of moves) {
         await this.dbService.updateMenuItem(move.id, {
           categoryId: move.categoryId,
         });
       }
-
-      // Invalidate menu cache
-      await this.invalidateMenuCache(restaurantId);
-
       this.logger.info("Batch category move completed", { restaurantId });
     } catch (error) {
       this.logger.error(
@@ -500,35 +392,24 @@ export class MenuService implements IMenuService {
     }
   }
 
-  // Analytics
   async getMenuAnalytics(restaurantId: string): Promise<MenuAnalytics> {
     try {
       this.logger.debug("Fetching menu analytics", { restaurantId });
-
       const menu = await this.getMenu(restaurantId);
       if (!menu) {
         throw notFound("Menu not found for restaurant", "MENU_NOT_FOUND");
       }
       const items = menu.menuItems;
-
-      // Calculate basic statistics
       const totalItems = items.length;
       const availableItems = items.filter((item) => item.isAvailable).length;
       const featuredItems = items.filter((item) => item.isFeatured).length;
       const popularItems = items.filter((item) => item.isPopular).length;
-
-      // Price statistics
       const prices = items.map((item) => item.price);
       const averagePrice =
         prices.length > 0
           ? prices.reduce((sum, price) => sum + price, 0) / prices.length
           : 0;
-      const priceRange = {
-        min: Math.min(...prices),
-        max: Math.max(...prices),
-      };
-
-      // Category distribution
+      const priceRange = { min: Math.min(...prices), max: Math.max(...prices) };
       const categoryMap = new Map<number, { name: string; count: number }>();
       for (const item of items) {
         const category = menu.categories.find(
@@ -545,7 +426,6 @@ export class MenuService implements IMenuService {
           });
         }
       }
-
       const categoryDistribution = Array.from(categoryMap.entries()).map(
         ([id, data]) => ({
           categoryId: id,
@@ -554,8 +434,6 @@ export class MenuService implements IMenuService {
           percentage: totalItems > 0 ? (data.count / totalItems) * 100 : 0,
         }),
       );
-
-      // Top performing items
       const topPerformingItems = items
         .sort((a, b) => b.orderCount - a.orderCount)
         .slice(0, 10)
@@ -566,16 +444,12 @@ export class MenuService implements IMenuService {
           revenue: item.orderCount * item.price,
           rating: item.rating,
         }));
-
-      // Dietary info statistics
       const dietaryInfoStats = {
         vegetarian: items.filter((item) => item.dietaryInfo?.vegetarian).length,
         vegan: items.filter((item) => item.dietaryInfo?.vegan).length,
         glutenFree: items.filter((item) => item.dietaryInfo?.glutenFree).length,
         halal: items.filter((item) => item.dietaryInfo?.halal).length,
       };
-
-      // Spice level distribution
       const spiceLevelDistribution = items.reduce(
         (acc, item) => {
           acc[item.spiceLevel] = (acc[item.spiceLevel] || 0) + 1;
@@ -583,7 +457,6 @@ export class MenuService implements IMenuService {
         },
         {} as Record<number, number>,
       );
-
       return {
         totalItems,
         availableItems,
@@ -609,7 +482,6 @@ export class MenuService implements IMenuService {
   async getPopularityMetrics(restaurantId: string): Promise<PopularityMetrics> {
     try {
       this.logger.debug("Fetching popularity metrics", { restaurantId });
-
       const [mostOrdered, mostViewed, highestRated, recentlyAdded] =
         await Promise.all([
           this.getPopularItems(restaurantId, 10),
@@ -617,13 +489,7 @@ export class MenuService implements IMenuService {
           this.getHighestRatedItems(restaurantId, 10),
           this.getRecentlyAddedItems(restaurantId, 10),
         ]);
-
-      return {
-        mostOrdered,
-        mostViewed,
-        highestRated,
-        recentlyAdded,
-      };
+      return { mostOrdered, mostViewed, highestRated, recentlyAdded };
     } catch (error) {
       this.logger.error(
         "Failed to fetch popularity metrics",
@@ -634,7 +500,6 @@ export class MenuService implements IMenuService {
     }
   }
 
-  // Utility Functions
   async incrementOrderCount(
     menuItemId: number,
     increment: number = 1,
@@ -667,8 +532,7 @@ export class MenuService implements IMenuService {
   async updateItemRating(menuItemId: number, rating: number): Promise<void> {
     try {
       this.logger.debug("Updating item rating", { menuItemId, rating });
-      // Implementation would update rating and review count
-      // This would typically be called after a review is added
+      await this.dbService.updateMenuItem(menuItemId, { rating } as any);
     } catch (error) {
       this.logger.error(
         "Failed to update item rating",
@@ -679,7 +543,10 @@ export class MenuService implements IMenuService {
     }
   }
 
-  // Private Helper Methods
+  async getCategoryById(id: number): Promise<Category | null> {
+    return this.getCategory(id);
+  }
+
   private async validateCategoryAccess(
     categoryId: number,
     restaurantId: string,
@@ -702,7 +569,6 @@ export class MenuService implements IMenuService {
       if (!category) {
         return null;
       }
-
       return this.transformCategory(category);
     } catch (error) {
       this.logger.error(
@@ -724,11 +590,9 @@ export class MenuService implements IMenuService {
       1,
       limit,
     );
-
-    const transformedItems = result.items.map((item) =>
-      this.transformMenuItem(item),
-    );
-    return transformedItems.sort((a, b) => b.viewCount - a.viewCount);
+    return result.items
+      .map((item) => this.transformMenuItem(item))
+      .sort((a, b) => b.viewCount - a.viewCount);
   }
 
   private async getHighestRatedItems(
@@ -741,11 +605,8 @@ export class MenuService implements IMenuService {
       1,
       limit,
     );
-
-    const transformedItems = result.items.map((item) =>
-      this.transformMenuItem(item),
-    );
-    return transformedItems
+    return result.items
+      .map((item) => this.transformMenuItem(item))
       .filter((item) => item.rating && item.rating > 0)
       .sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
@@ -760,36 +621,14 @@ export class MenuService implements IMenuService {
       1,
       limit,
     );
-
-    const transformedItems = result.items.map((item) =>
-      this.transformMenuItem(item),
-    );
-    return transformedItems.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    return result.items
+      .map((item) => this.transformMenuItem(item))
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
   }
 
-  private async invalidateMenuCache(restaurantId: string): Promise<void> {
-    if (!this.cacheService) return;
-
-    try {
-      // Clear old API-level key and both DB service-level QueryCache variants
-      await Promise.all([
-        this.cacheService.delete(`menu:${restaurantId}`),
-        this.cacheService.delete(`query:menu:${restaurantId}:full`),
-        this.cacheService.delete(`query:menu:${restaurantId}:admin`),
-      ]);
-      this.logger.debug("Menu cache invalidated", { restaurantId });
-    } catch (error) {
-      this.logger.warn("Failed to invalidate menu cache", {
-        error,
-        restaurantId,
-      });
-    }
-  }
-
-  // Helper functions to transform types
   private transformMenuItem(item: any): MenuItem {
     return {
       id: item.id,
