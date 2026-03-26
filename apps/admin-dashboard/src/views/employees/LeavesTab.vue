@@ -135,14 +135,32 @@ const loadData = async () => {
   error.value = null;
 
   try {
-    const [types, bals, reqs] = await Promise.all([
+    // Load types and requests first (these work with restaurantId)
+    const [types, reqs] = await Promise.all([
       leavesService.getLeaveTypes(restaurantId),
-      leavesService.getBalances({ restaurantId }),
       leavesService.getRequests(restaurantId),
     ]);
     leaveTypes.value = types;
-    balances.value = bals;
     allRequests.value = reqs;
+
+    // Load balances per employee (backend requires employeeId, not restaurantId)
+    // Fetch after employees are loaded, load in background
+    if (users.value.length > 0) {
+      const allBalances: LeaveBalance[] = [];
+      await Promise.all(
+        users.value.map(async (user) => {
+          try {
+            const userBalances = await leavesService.getBalances({
+              employeeId: user.id,
+            });
+            allBalances.push(...userBalances);
+          } catch {
+            // Skip employees with no balance data
+          }
+        }),
+      );
+      balances.value = allBalances;
+    }
   } catch (e: any) {
     error.value = e?.message || "載入請假資料失敗";
     console.error("Failed to load leaves data:", e);
@@ -181,6 +199,7 @@ const handleReject = async (requestId: number, reason?: string) => {
 };
 
 onMounted(async () => {
-  await Promise.all([loadData(), fetchUsers()]);
+  await fetchUsers();
+  await loadData();
 });
 </script>
