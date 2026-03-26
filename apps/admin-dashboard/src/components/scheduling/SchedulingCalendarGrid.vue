@@ -88,10 +88,12 @@
                       backgroundColor: template.colorCode + '22',
                       color: template.colorCode,
                     }"
-                    :title="schedule.employeeName"
+                    :title="
+                      schedule.employee?.fullName || schedule.employeeName || ''
+                    "
                   >
                     <span class="truncate max-w-[70px]">{{
-                      schedule.employeeName
+                      schedule.employee?.fullName || schedule.employeeName || ""
                     }}</span>
                     <button
                       class="opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0 hover:bg-black/10 rounded-full p-0.5"
@@ -133,6 +135,7 @@
 import { computed, ref } from "vue";
 import { X, Plus } from "lucide-vue-next";
 import type { ShiftTemplate, EmployeeSchedule } from "@/types/scheduling";
+import { toLocalDateStr } from "@/utils/dateUtils";
 
 const props = defineProps<{
   schedules: EmployeeSchedule[];
@@ -157,14 +160,14 @@ const dateColumns = computed(() => {
     day: number;
     isToday: boolean;
   }> = [];
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toLocalDateStr(new Date());
   const cursor = new Date(props.dateRange.start);
   cursor.setHours(0, 0, 0, 0);
   const end = new Date(props.dateRange.end);
   end.setHours(23, 59, 59, 999);
 
   while (cursor <= end) {
-    const dateStr = cursor.toISOString().split("T")[0];
+    const dateStr = toLocalDateStr(cursor);
     cols.push({
       dateStr,
       weekday: `週${WEEKDAYS_ZH[cursor.getDay()]}`,

@@ -171,6 +171,45 @@
       </Transition>
     </Teleport>
 
+    <!-- Employee picker modal (click-to-assign) -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="cellClickTarget"
+          class="fixed inset-0 z-40 flex items-center justify-center bg-black/20 backdrop-blur-sm"
+          @click.self="cellClickTarget = null"
+        >
+          <div
+            class="bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-5 w-72 max-h-80 flex flex-col"
+          >
+            <h3 class="text-base font-bold text-[#1C1C1E] mb-3">選擇員工</h3>
+            <div
+              v-if="availableForCell.length === 0"
+              class="text-sm text-[#1C1C1E]/40 text-center py-4"
+            >
+              無可用員工
+            </div>
+            <div v-else class="flex flex-col gap-1 overflow-y-auto">
+              <button
+                v-for="emp in availableForCell"
+                :key="emp.id"
+                class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-left hover:bg-[#F2F2F7] transition-colors"
+                @click="selectEmployeeForCell(emp.id, emp.name)"
+              >
+                <span class="font-medium text-[#1C1C1E]">{{ emp.name }}</span>
+              </button>
+            </div>
+            <button
+              class="mt-3 px-3 py-2 text-sm font-medium rounded-full bg-[#F2F2F7] text-[#1C1C1E]/60 hover:bg-[#E5E5EA] transition-colors"
+              @click="cellClickTarget = null"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Shift template manager modal -->
     <ShiftTemplateManager
       :is-open="showTemplateManager"
@@ -189,6 +228,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
 import { useEmployeeList } from "@/composables/useEmployeeList";
+import { toLocalDateStr } from "@/utils/dateUtils";
 import { schedulingService } from "@/services/schedulingService";
 import { leavesService } from "@/services/leavesService";
 import type { ShiftTemplate, EmployeeSchedule } from "@/types/scheduling";
@@ -289,8 +329,8 @@ async function loadAll() {
   loading.value = true;
   loadError.value = null;
   try {
-    const startDateStr = dateRange.value.start.toISOString().split("T")[0];
-    const endDateStr = dateRange.value.end.toISOString().split("T")[0];
+    const startDateStr = toLocalDateStr(dateRange.value.start);
+    const endDateStr = toLocalDateStr(dateRange.value.end);
 
     const [templates, sched, leaves] = await Promise.all([
       schedulingService.getShiftTemplates(restaurantId.value),
@@ -327,8 +367,8 @@ watch(dateRange, () => {
 
 // ── Computed: unassigned employees ───────────────────────
 const unassignedEmployees = computed(() => {
-  const startStr = dateRange.value.start.toISOString().split("T")[0];
-  const endStr = dateRange.value.end.toISOString().split("T")[0];
+  const startStr = toLocalDateStr(dateRange.value.start);
+  const endStr = toLocalDateStr(dateRange.value.end);
 
   // Employees that have at least one schedule in this period
   const assignedIds = new Set(
@@ -366,8 +406,8 @@ const conflicts = computed(() => {
     severity: "warning" | "error";
   }> = [];
 
-  const startStr = dateRange.value.start.toISOString().split("T")[0];
-  const endStr = dateRange.value.end.toISOString().split("T")[0];
+  const startStr = toLocalDateStr(dateRange.value.start);
+  const endStr = toLocalDateStr(dateRange.value.end);
 
   // Compute scheduled days per employee
   const daysPerEmployee: Record<number, Set<string>> = {};
@@ -399,7 +439,7 @@ const conflicts = computed(() => {
       const dow = cursor.getDay();
       if (dow !== 0 && dow !== 6) {
         // weekday
-        const dateStr = cursor.toISOString().split("T")[0];
+        const dateStr = toLocalDateStr(cursor);
         for (const tpl of shiftTemplates.value) {
           const assigned = schedules.value.filter(
             (s) => s.shiftTemplateId === tpl.id && s.workDate === dateStr,
@@ -433,6 +473,22 @@ interface PendingAssignment {
 
 const pendingAssignment = ref<PendingAssignment | null>(null);
 const assigning = ref(false);
+const cellClickTarget = ref<{ templateId: number; dateStr: string } | null>(
+  null,
+);
+
+const availableForCell = computed(() => {
+  if (!cellClickTarget.value) return [];
+  const { templateId, dateStr } = cellClickTarget.value;
+  const assignedIds = new Set(
+    schedules.value
+      .filter((s) => s.shiftTemplateId === templateId && s.workDate === dateStr)
+      .map((s) => s.employeeId),
+  );
+  return users.value
+    .filter((u) => !assignedIds.has(u.id))
+    .map((u) => ({ id: u.id, name: u.fullName || u.username, role: u.role }));
+});
 
 function handleAssign(templateId: number, date: string, employeeId: number) {
   const template = shiftTemplates.value.find((t) => t.id === templateId);
@@ -467,7 +523,15 @@ async function confirmAssign() {
         scheduledHours: template.durationMinutes / 60,
       },
     );
-    schedules.value = [...schedules.value, newSchedule];
+    const employee = users.value.find((u) => u.id === employeeId);
+    const enrichedSchedule = {
+      ...newSchedule,
+      employeeName: employee?.fullName || employee?.username || "",
+      employee: employee
+        ? { id: employee.id, fullName: employee.fullName || employee.username }
+        : undefined,
+    };
+    schedules.value = [...schedules.value, enrichedSchedule];
     pendingAssignment.value = null;
   } catch (e: any) {
     alert(e?.message || "排班失敗，請再試一次");
@@ -486,9 +550,24 @@ async function handleRemove(scheduleId: number) {
   }
 }
 
-function handleCellClick(_templateId: number, date: string) {
+function handleCellClick(templateId: number, date: string) {
   selectedDate.value = date;
-  // Could open a quick-add modal; for now just set selectedDate for sidebar highlight
+  cellClickTarget.value = { templateId, dateStr: date };
+}
+
+function selectEmployeeForCell(employeeId: number, employeeName: string) {
+  if (!cellClickTarget.value) return;
+  const { templateId, dateStr } = cellClickTarget.value;
+  const template = shiftTemplates.value.find((t) => t.id === templateId);
+  if (!template) return;
+  pendingAssignment.value = {
+    templateId,
+    templateName: template.name,
+    date: dateStr,
+    employeeId,
+    employeeName,
+  };
+  cellClickTarget.value = null;
 }
 
 function onEmployeeDragStart(_employeeId: number) {

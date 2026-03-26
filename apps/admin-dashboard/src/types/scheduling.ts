@@ -67,6 +67,7 @@ export interface EmployeeSchedule {
   restaurantId: string;
   employeeId: number;
   employeeName?: string; // Joined from users table
+  employee?: { id: number; fullName?: string }; // Enriched employee data
   shiftTemplateId: number | null;
   shiftTemplate?: ShiftTemplate;
   workDate: string; // YYYY-MM-DD
