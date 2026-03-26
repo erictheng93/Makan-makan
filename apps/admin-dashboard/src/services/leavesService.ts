@@ -60,7 +60,7 @@ class LeavesService {
     const response = await this.api.get<LeaveType[]>(
       `/leaves/${restaurantId}/types`,
     );
-    return response.data.data!;
+    return response.data.data ?? [];
   }
 
   /**
@@ -75,7 +75,7 @@ class LeavesService {
       "/leaves/balances",
       params,
     );
-    return response.data.data!;
+    return response.data.data ?? [];
   }
 
   /**
@@ -94,7 +94,7 @@ class LeavesService {
       `/leaves/${restaurantId}/requests`,
       params,
     );
-    return response.data.data!;
+    return response.data.data ?? [];
   }
 
   /**
@@ -106,7 +106,7 @@ class LeavesService {
       leaveTypeId: number;
       startDate: string;
       endDate: string;
-      period: string;
+      period: "full" | "am" | "pm";
       reason?: string;
     },
   ): Promise<LeaveRequest> {

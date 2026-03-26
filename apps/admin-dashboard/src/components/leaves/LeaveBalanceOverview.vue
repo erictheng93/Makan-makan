@@ -95,10 +95,12 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const getEmployeeName = (employeeId: number): string => {
-  const emp = props.employees.find((e) => e.id === employeeId);
-  return emp?.name || `員工${employeeId}`;
-};
+const employeeMap = computed(
+  () => new Map(props.employees.map((e) => [e.id, e.name])),
+);
+
+const getEmployeeName = (employeeId: number): string =>
+  employeeMap.value.get(employeeId) ?? `員工 #${employeeId}`;
 
 const usagePct = (b: LeaveBalance): number => {
   if (b.totalDays === 0) return 0;

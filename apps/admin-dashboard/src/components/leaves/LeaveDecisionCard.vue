@@ -58,7 +58,7 @@
             class="mt-1.5 flex items-center gap-1 text-xs text-[#FF9500]"
           >
             <span>⚠</span>
-            <span>當天已有{{ colleagueLeaveCount }}人請假</span>
+            <span>當天已有{{ sameDayColleagues.length }}人請假</span>
           </div>
           <div
             v-else
@@ -161,7 +161,7 @@
         </p>
         <LeaveTimelineStrip
           :center-date="request.startDate"
-          :leave-requests="allTeamLeaves"
+          :leave-requests="teamLeaves"
           :current-request-id="request.id"
           :schedule-count="scheduleCount"
           :staffing-threshold="staffingThreshold"
@@ -197,6 +197,7 @@
 import { ref, computed } from "vue";
 import { ChevronDown } from "lucide-vue-next";
 import LeaveTimelineStrip from "./LeaveTimelineStrip.vue";
+import { useLeaveConflict } from "@/composables/useLeaveConflict";
 import type { LeaveRequest, LeaveBalance } from "@/services/leavesService";
 
 interface Props {
@@ -228,46 +229,14 @@ const employeeName = computed(
   () => props.request.employeeName || `員工${props.request.employeeId}`,
 );
 
-// All team leaves including current request (for timeline display)
-const allTeamLeaves = computed(() => props.teamLeaves);
-
-// Approved colleague leaves that overlap with this request (excluding this request)
-const sameDayColleagues = computed(() => {
-  const start = new Date(props.request.startDate + "T00:00:00");
-  const end = new Date(props.request.endDate + "T00:00:00");
-  return props.teamLeaves.filter((r) => {
-    if (r.id === props.request.id) return false;
-    if (r.status !== "approved") return false;
-    const rStart = new Date(r.startDate + "T00:00:00");
-    const rEnd = new Date(r.endDate + "T00:00:00");
-    return rStart <= end && rEnd >= start;
-  });
-});
-
-const colleagueLeaveCount = computed(() => sameDayColleagues.value.length);
-
-// Check if any day in the request range is understaffed
-const hasUnderstaffedDay = computed(() => {
-  if (!props.scheduleCount || !props.staffingThreshold) return false;
-  const start = new Date(props.request.startDate + "T00:00:00");
-  const end = new Date(props.request.endDate + "T00:00:00");
-  const cur = new Date(start);
-  while (cur <= end) {
-    const dateStr = cur.toISOString().split("T")[0];
-    const count = props.scheduleCount[dateStr] ?? 0;
-    if (count < props.staffingThreshold) return true;
-    cur.setDate(cur.getDate() + 1);
-  }
-  return false;
-});
-
-const conflictLevel = computed<"understaffed" | "has_colleagues" | "clear">(
-  () => {
-    if (hasUnderstaffedDay.value) return "understaffed";
-    if (colleagueLeaveCount.value > 0) return "has_colleagues";
-    return "clear";
-  },
+const { sameDayColleagues, urgencyLevel } = useLeaveConflict(
+  computed(() => props.request),
+  computed(() => props.teamLeaves),
+  computed(() => props.scheduleCount),
+  computed(() => props.staffingThreshold),
 );
+
+const conflictLevel = urgencyLevel;
 
 const urgencyColor = computed(() => {
   if (conflictLevel.value === "understaffed") return "bg-[#FF3B30]";

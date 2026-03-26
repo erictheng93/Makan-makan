@@ -69,7 +69,7 @@
               ]"
               @dragover.prevent="onDragOver(template.id, col.dateStr)"
               @dragleave="onDragLeave"
-              @drop.prevent="onDrop(template.id, col.dateStr)"
+              @drop.prevent="onDrop(template.id, col.dateStr, $event)"
               @click="$emit('cell-click', template.id, col.dateStr)"
             >
               <!-- Assigned employee pills -->
@@ -177,13 +177,21 @@ const dateColumns = computed(() => {
 });
 
 // --- Cell data ---
+const scheduleIndex = computed(() => {
+  const idx = new Map<string, EmployeeSchedule[]>();
+  for (const s of props.schedules) {
+    const key = `${s.shiftTemplateId}::${s.workDate}`;
+    if (!idx.has(key)) idx.set(key, []);
+    idx.get(key)!.push(s);
+  }
+  return idx;
+});
+
 function getCellSchedules(
   templateId: number,
   dateStr: string,
 ): EmployeeSchedule[] {
-  return props.schedules.filter(
-    (s) => s.shiftTemplateId === templateId && s.workDate === dateStr,
-  );
+  return scheduleIndex.value.get(`${templateId}::${dateStr}`) ?? [];
 }
 
 // --- Drag and drop ---
@@ -204,11 +212,9 @@ function onDragLeave() {
   dragOverCell.value = null;
 }
 
-function onDrop(templateId: number, dateStr: string) {
+function onDrop(templateId: number, dateStr: string, event: DragEvent) {
   dragOverCell.value = null;
-  const employeeIdStr = (event as DragEvent)?.dataTransfer?.getData(
-    "employeeId",
-  );
+  const employeeIdStr = event.dataTransfer?.getData("employeeId");
   if (!employeeIdStr) return;
   const employeeId = parseInt(employeeIdStr, 10);
   if (!isNaN(employeeId)) {

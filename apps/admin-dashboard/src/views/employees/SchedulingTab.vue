@@ -317,8 +317,7 @@ async function loadAll() {
 }
 
 onMounted(async () => {
-  await fetchUsers();
-  await loadAll();
+  await Promise.all([fetchUsers(), loadAll()]);
 });
 
 // Reload when date range changes
