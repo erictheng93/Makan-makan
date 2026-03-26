@@ -93,6 +93,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
+import { getInitials } from "@/composables/useEmployeeDisplay";
 import type { LeaveRequest } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
@@ -119,16 +120,6 @@ const getEmployeeName = (request: any): string => {
     request.employee?.username ||
     t("leaves.approval.unknownEmployee")
   );
-};
-
-const getInitials = (name: string | undefined): string => {
-  if (!name) return "??";
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 };
 
 const formatDate = (date: string): string => {

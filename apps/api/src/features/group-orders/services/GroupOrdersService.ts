@@ -1353,7 +1353,7 @@ export class GroupOrdersService implements IGroupOrderService {
     const activeConditions = [...conditions, eq(groupOrders.status, "active")];
     const avgValueConditions = [
       ...conditions,
-      sql`${groupOrders.totalAmount} > 0`,
+      sql`${groupOrders.finalAmount} > 0`,
     ];
 
     // Run all independent queries in parallel
@@ -1383,7 +1383,7 @@ export class GroupOrdersService implements IGroupOrderService {
         ),
         // Average order value
         this.db
-          .select({ avgValue: sql<number>`AVG(${groupOrders.totalAmount})` })
+          .select({ avgValue: sql<number>`AVG(${groupOrders.finalAmount})` })
           .from(groupOrders)
           .where(and(...avgValueConditions)),
       ]);

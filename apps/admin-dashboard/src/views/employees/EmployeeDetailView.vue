@@ -28,10 +28,6 @@
           >
             {{ getInitials(employee) }}
           </div>
-          <span
-            v-if="clockedIn"
-            class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#34C759] border-2 border-white rounded-full"
-          />
         </div>
 
         <!-- Info -->
@@ -118,6 +114,14 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useEmployeeData } from "@/composables/useEmployeeData";
 import {
+  useEmployeeDisplay,
+  getInitials as getInitialsHelper,
+  avatarClass,
+  roleIcon,
+  roleBadgeClass,
+  statusBadgeClass,
+} from "@/composables/useEmployeeDisplay";
+import {
   ChevronLeft,
   User as UserIcon,
   Calendar,
@@ -125,10 +129,6 @@ import {
   CalendarOff,
   Clock,
   Mail,
-  Crown,
-  ChefHat,
-  Truck,
-  CreditCard,
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -150,7 +150,7 @@ const {
   leavesLoading,
 } = useEmployeeData(employeeId);
 
-const clockedIn = computed(() => false); // Could enhance later with real-time check
+const { roleText, statusText } = useEmployeeDisplay();
 
 const subTabs = computed(() => {
   const id = route.params.id;
@@ -184,73 +184,7 @@ const isActiveTab = (path: string) => {
 };
 
 // Helpers
-const getInitials = (emp: any) => {
-  const name = emp.fullName || emp.username || "";
-  return name
-    .split(/\s+/)
-    .map((w: string) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-};
-
-const avatarClass = (role: number) => {
-  const classes: Record<number, string> = {
-    1: "bg-purple-100 text-purple-700",
-    2: "bg-orange-100 text-orange-700",
-    3: "bg-green-100 text-green-700",
-    4: "bg-blue-100 text-blue-700",
-  };
-  return classes[role] || "bg-gray-100 text-gray-700";
-};
-
-const roleIcon = (role: number) => {
-  const icons: Record<number, any> = {
-    1: Crown,
-    2: ChefHat,
-    3: Truck,
-    4: CreditCard,
-  };
-  return icons[role] || UserIcon;
-};
-
-const roleBadgeClass = (role: number) => {
-  const classes: Record<number, string> = {
-    1: "bg-purple-50 text-purple-700",
-    2: "bg-orange-50 text-orange-700",
-    3: "bg-green-50 text-green-700",
-    4: "bg-blue-50 text-blue-700",
-  };
-  return classes[role] || "bg-gray-50 text-gray-700";
-};
-
-const roleText = (role: number) => {
-  const keys: Record<number, string> = {
-    1: "users.roles.owner",
-    2: "users.roles.chef",
-    3: "users.roles.service",
-    4: "users.roles.cashier",
-  };
-  return keys[role] ? t(keys[role]) : t("users.roles.unknown");
-};
-
-const statusBadgeClass = (status: string) => {
-  const classes: Record<string, string> = {
-    active: "bg-emerald-50 text-emerald-700",
-    inactive: "bg-red-50 text-red-700",
-    suspended: "bg-amber-50 text-amber-700",
-  };
-  return classes[status] || "bg-gray-50 text-gray-700";
-};
-
-const statusText = (status: string) => {
-  const keys: Record<string, string> = {
-    active: "users.status.active",
-    inactive: "users.status.inactive",
-    suspended: "users.status.suspended",
-  };
-  return keys[status] ? t(keys[status]) : status;
-};
+const getInitials = (emp: any) => getInitialsHelper(emp);
 
 const formatDate = (dt: string) => new Date(dt).toLocaleDateString("zh-TW");
 const formatDateTime = (dt: string) => new Date(dt).toLocaleString("zh-TW");

@@ -10,23 +10,22 @@ import type {
 } from "@/types/employee";
 import type { EmployeeSchedule } from "@/types/scheduling";
 
+// Module-level shared state — all callers share the same data
+const users = ref<Employee[]>([]);
+const clockedInList = ref<EmployeeSchedule[]>([]);
+const todayLeaveRequests = ref<
+  Array<{ employeeId: number; leaveTypeName: string; endDate: string }>
+>([]);
+const isLoading = ref(false);
+const clockedInLoading = ref(false);
+const leaveLoading = ref(false);
+const error = ref<string | null>(null);
+
 export function useEmployeeList() {
   const authStore = useAuthStore();
 
-  const users = ref<Employee[]>([]);
-  const clockedInList = ref<EmployeeSchedule[]>([]);
-  const todayLeaveRequests = ref<
-    Array<{ employeeId: number; leaveTypeName: string; endDate: string }>
-  >([]);
-  const isLoading = ref(false);
-  const clockedInLoading = ref(false);
-  const leaveLoading = ref(false);
-  const error = ref<string | null>(null);
-
-  // Search & filter state
-  const searchQuery = ref("");
-  const roleFilter = ref("");
-  const statusFilter = ref("");
+  // In-flight fetch promise for deduplication
+  let fetchUsersPromise: Promise<void> | null = null;
 
   // Lookup maps
   const clockedInMap = computed(() => {
@@ -68,36 +67,6 @@ export function useEmployeeList() {
     }));
   });
 
-  // Filtered + sorted list
-  const filteredUsers = computed(() => {
-    let filtered = usersWithStatus.value;
-
-    if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase();
-      filtered = filtered.filter(
-        (user) =>
-          user.username.toLowerCase().includes(query) ||
-          user.fullName?.toLowerCase().includes(query) ||
-          user.email?.toLowerCase().includes(query),
-      );
-    }
-
-    if (roleFilter.value) {
-      filtered = filtered.filter(
-        (user) => user.role.toString() === roleFilter.value,
-      );
-    }
-
-    if (statusFilter.value) {
-      filtered = filtered.filter((user) => user.status === statusFilter.value);
-    }
-
-    return filtered.sort((a, b) => {
-      if (a.role !== b.role) return a.role - b.role;
-      return a.username.localeCompare(b.username);
-    });
-  });
-
   // Stats
   const stats = computed<EmployeeStats>(() => ({
     owner: users.value.filter((u) => u.role === 1).length,
@@ -109,38 +78,43 @@ export function useEmployeeList() {
     onLeaveToday: todayLeaveRequests.value.length,
   }));
 
-  // Fetch methods
-  const fetchUsers = async () => {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      const response = await api.get("/users");
-      const payload = response.data?.success
-        ? response.data.data
-        : response.data;
-      users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
-        id: u.id,
-        username: u.username,
-        fullName: u.fullName || "",
-        email: u.email || "",
-        phone: u.phone || "",
-        role: u.role,
-        status: u.isActive
-          ? "active"
-          : u.isActive === false
-            ? "inactive"
-            : "active",
-        isActive: u.isActive !== false,
-        lastLoginAt: u.lastLoginAt,
-        createdAt: u.createdAt,
-        profileImageUrl: u.profileImageUrl,
-      }));
-    } catch (e: any) {
-      error.value = e.message || "Failed to fetch users";
-      console.error("Failed to fetch users:", e);
-    } finally {
-      isLoading.value = false;
-    }
+  // Fetch methods (with deduplication — concurrent callers share the same in-flight request)
+  const fetchUsers = () => {
+    if (fetchUsersPromise) return fetchUsersPromise;
+    fetchUsersPromise = (async () => {
+      isLoading.value = true;
+      error.value = null;
+      try {
+        const response = await api.get("/users");
+        const payload = response.data?.success
+          ? response.data.data
+          : response.data;
+        users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
+          id: u.id,
+          username: u.username,
+          fullName: u.fullName || "",
+          email: u.email || "",
+          phone: u.phone || "",
+          role: u.role,
+          status: u.isActive
+            ? "active"
+            : u.isActive === false
+              ? "inactive"
+              : "active",
+          isActive: u.isActive !== false,
+          lastLoginAt: u.lastLoginAt,
+          createdAt: u.createdAt,
+          profileImageUrl: u.profileImageUrl,
+        }));
+      } catch (e: any) {
+        error.value = e.message || "Failed to fetch users";
+        console.error("Failed to fetch users:", e);
+      } finally {
+        isLoading.value = false;
+        fetchUsersPromise = null;
+      }
+    })();
+    return fetchUsersPromise;
   };
 
   const fetchClockedIn = async () => {
@@ -238,18 +212,12 @@ export function useEmployeeList() {
     // State
     users,
     usersWithStatus,
-    filteredUsers,
     stats,
     clockedInList,
     isLoading,
     clockedInLoading,
     leaveLoading,
     error,
-
-    // Filters
-    searchQuery,
-    roleFilter,
-    statusFilter,
 
     // Methods
     fetchAll,

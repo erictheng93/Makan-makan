@@ -31,7 +31,7 @@
         class="px-3 py-1.5 text-xs font-medium rounded-full bg-[#007AFF]/10 text-[#007AFF] hover:bg-[#007AFF]/20 transition-colors"
         @click="goToToday"
       >
-        今天
+        {{ t("employees.scheduling.today") }}
       </button>
 
       <!-- View mode toggle -->
@@ -47,7 +47,11 @@
           "
           @click="viewMode = mode"
         >
-          {{ mode === "week" ? "週" : "月" }}
+          {{
+            mode === "week"
+              ? t("employees.scheduling.week")
+              : t("employees.scheduling.month")
+          }}
         </button>
       </div>
 
@@ -57,7 +61,7 @@
         @click="showTemplateManager = true"
       >
         <Settings class="w-3.5 h-3.5" />
-        管理模板
+        {{ t("employees.scheduling.manageTemplates") }}
       </button>
     </div>
 
@@ -70,7 +74,7 @@
         <div
           class="w-8 h-8 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin"
         />
-        <p class="text-sm">載入排班中...</p>
+        <p class="text-sm">{{ t("employees.scheduling.loading") }}</p>
       </div>
     </div>
 
@@ -84,7 +88,7 @@
         class="mt-3 px-4 py-1.5 text-sm font-medium rounded-full bg-[#FF3B30]/10 text-[#FF3B30] hover:bg-[#FF3B30]/20 transition-colors"
         @click="loadAll"
       >
-        重試
+        {{ t("employees.scheduling.retry") }}
       </button>
     </div>
 
@@ -140,30 +144,35 @@
           <div
             class="bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-6 w-72"
           >
-            <h3 class="text-base font-bold text-[#1C1C1E] mb-1">確認排班</h3>
+            <h3 class="text-base font-bold text-[#1C1C1E] mb-1">
+              {{ t("employees.scheduling.confirmAssign") }}
+            </h3>
             <p class="text-sm text-[#1C1C1E]/60 mb-4">
-              將
-              <span class="font-semibold text-[#1C1C1E]">{{
-                pendingAssignment.employeeName
-              }}</span>
-              排至 {{ pendingAssignment.date }}
-              <span class="font-semibold text-[#1C1C1E]">{{
-                pendingAssignment.templateName
-              }}</span>
+              {{
+                t("employees.scheduling.assignMessage", {
+                  name: pendingAssignment.employeeName,
+                  date: pendingAssignment.date,
+                  template: pendingAssignment.templateName,
+                })
+              }}
             </p>
             <div class="flex gap-2">
               <button
                 class="flex-1 px-3 py-2 text-sm font-medium rounded-full bg-[#F2F2F7] text-[#1C1C1E]/60 hover:bg-[#E5E5EA] transition-colors"
                 @click="pendingAssignment = null"
               >
-                取消
+                {{ t("employees.scheduling.cancel") }}
               </button>
               <button
                 class="flex-1 px-3 py-2 text-sm font-semibold rounded-full bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors disabled:opacity-50"
                 :disabled="assigning"
                 @click="confirmAssign"
               >
-                {{ assigning ? "排班中..." : "確認" }}
+                {{
+                  assigning
+                    ? t("employees.scheduling.assigning")
+                    : t("employees.scheduling.confirm")
+                }}
               </button>
             </div>
           </div>
@@ -182,12 +191,14 @@
           <div
             class="bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-5 w-72 max-h-80 flex flex-col"
           >
-            <h3 class="text-base font-bold text-[#1C1C1E] mb-3">選擇員工</h3>
+            <h3 class="text-base font-bold text-[#1C1C1E] mb-3">
+              {{ t("employees.scheduling.selectEmployee") }}
+            </h3>
             <div
               v-if="availableForCell.length === 0"
               class="text-sm text-[#1C1C1E]/40 text-center py-4"
             >
-              無可用員工
+              {{ t("employees.scheduling.noAvailableEmployees") }}
             </div>
             <div v-else class="flex flex-col gap-1 overflow-y-auto">
               <button
@@ -203,7 +214,7 @@
               class="mt-3 px-3 py-2 text-sm font-medium rounded-full bg-[#F2F2F7] text-[#1C1C1E]/60 hover:bg-[#E5E5EA] transition-colors"
               @click="cellClickTarget = null"
             >
-              取消
+              {{ t("employees.scheduling.cancel") }}
             </button>
           </div>
         </div>
@@ -226,6 +237,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useEmployeeList } from "@/composables/useEmployeeList";
 import { toLocalDateStr } from "@/utils/dateUtils";
@@ -239,6 +251,7 @@ import ShiftTemplateManager from "@/components/scheduling/ShiftTemplateManager.v
 import SchedulingConflictBar from "@/components/scheduling/SchedulingConflictBar.vue";
 
 // ── Auth / restaurant ────────────────────────────────────
+const { t } = useI18n();
 const authStore = useAuthStore();
 const restaurantId = computed(() => authStore.restaurantId ?? "");
 
@@ -291,7 +304,10 @@ const rangeLabel = computed(() => {
     const ed = end.getDate();
     return sm === em ? `${sm}/${sd} - ${ed}` : `${sm}/${sd} - ${em}/${ed}`;
   } else {
-    return `${start.getFullYear()}年${start.getMonth() + 1}月`;
+    return t("employees.scheduling.monthLabel", {
+      year: start.getFullYear(),
+      month: start.getMonth() + 1,
+    });
   }
 });
 
@@ -350,7 +366,7 @@ async function loadAll() {
     schedules.value = sched?.data ?? (Array.isArray(sched) ? sched : []);
     leaveRequests.value = leaves ?? [];
   } catch (e: any) {
-    loadError.value = e?.message || "無法載入排班資料";
+    loadError.value = e?.message || t("employees.scheduling.loadFailed");
   } finally {
     loading.value = false;
   }
@@ -423,10 +439,16 @@ const conflicts = computed(() => {
   for (const [empId, days] of Object.entries(daysPerEmployee)) {
     if (days.size >= 6) {
       const emp = users.value.find((u) => u.id === Number(empId));
-      const name = emp?.fullName || emp?.username || `員工 ${empId}`;
+      const name =
+        emp?.fullName ||
+        emp?.username ||
+        t("employees.scheduling.employeeFallback", { id: empId });
       list.push({
         type: "consecutive_days",
-        message: `${name} 本週已排 ${days.size} 天`,
+        message: t("employees.scheduling.consecutiveDays", {
+          name,
+          days: days.size,
+        }),
         severity: "warning",
       });
     }
@@ -445,10 +467,15 @@ const conflicts = computed(() => {
             (s) => s.shiftTemplateId === tpl.id && s.workDate === dateStr,
           ).length;
           if (assigned < (tpl.minEmployees ?? 1)) {
-            const dayLabel = ["日", "一", "二", "三", "四", "五", "六"][dow];
+            const dayLabel = t(`employees.scheduling.weekday${dow}`);
             list.push({
               type: "understaffed",
-              message: `週${dayLabel} ${tpl.name} 缺人 (${assigned}/${tpl.minEmployees ?? 1})`,
+              message: t("employees.scheduling.understaffed", {
+                day: dayLabel,
+                template: tpl.name,
+                assigned,
+                required: tpl.minEmployees ?? 1,
+              }),
               severity: "warning",
             });
           }
@@ -534,19 +561,19 @@ async function confirmAssign() {
     schedules.value = [...schedules.value, enrichedSchedule];
     pendingAssignment.value = null;
   } catch (e: any) {
-    alert(e?.message || "排班失敗，請再試一次");
+    alert(e?.message || t("employees.scheduling.assignFailed"));
   } finally {
     assigning.value = false;
   }
 }
 
 async function handleRemove(scheduleId: number) {
-  if (!confirm("確定要移除此排班？")) return;
+  if (!confirm(t("employees.scheduling.confirmRemove"))) return;
   try {
     await schedulingService.deleteSchedule(scheduleId);
     schedules.value = schedules.value.filter((s) => s.id !== scheduleId);
   } catch (e: any) {
-    alert(e?.message || "移除排班失敗，請再試一次");
+    alert(e?.message || t("employees.scheduling.removeFailed"));
   }
 }
 

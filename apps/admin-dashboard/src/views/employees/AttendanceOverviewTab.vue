@@ -125,6 +125,7 @@ import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useEmployeeList } from "@/composables/useEmployeeList";
+import { getInitials } from "@/composables/useEmployeeDisplay";
 import { Clock, CalendarOff } from "lucide-vue-next";
 import type { EmployeeWithStatus } from "@/types/employee";
 
@@ -187,16 +188,8 @@ const attendanceStats = computed(() => {
   ];
 });
 
-const getEmployeeInitials = (schedule: any) => {
-  const name = schedule.employeeName || "";
-  if (!name) return "?";
-  return name
-    .split(/\s+/)
-    .map((w: string) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-};
+const getEmployeeInitials = (schedule: any) =>
+  getInitials(schedule.employeeName || "");
 
 const getEmployeeName = (employeeId: number) => {
   const user = employeeList.users.value.find((u) => u.id === employeeId);
