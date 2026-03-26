@@ -22,7 +22,7 @@ app.get(
   requireRole([0, 1]), // Admin or Owner
   validateQuery(
     z.object({
-      restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+      restaurantId: z.string().optional(),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     }),
   ),
@@ -33,7 +33,7 @@ app.get(
     // 確定餐廳ID
     let finalRestaurantId: string | undefined;
     if (restaurantId) {
-      finalRestaurantId = String(restaurantId);
+      finalRestaurantId = restaurantId;
       if (user.role === 1 && user.restaurantId !== finalRestaurantId) {
         throw forbidden("只能查看自己餐廳的報表");
       }
@@ -67,7 +67,7 @@ app.get(
   requireRole([0, 1]), // Admin or Owner
   validateQuery(
     z.object({
-      restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+      restaurantId: z.string().optional(),
       period: z.enum(["day", "week", "month"]).optional().default("day"),
     }),
   ),
@@ -78,7 +78,7 @@ app.get(
     // 確定餐廳ID
     let finalRestaurantId: string | undefined;
     if (restaurantId) {
-      finalRestaurantId = String(restaurantId);
+      finalRestaurantId = restaurantId;
       if (user.role === 1 && user.restaurantId !== finalRestaurantId) {
         throw forbidden("只能查看自己餐廳的統計");
       }
@@ -115,7 +115,7 @@ app.get(
   requireRole([0, 1]), // Admin or Owner
   validateQuery(
     z.object({
-      restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+      restaurantId: z.string().optional(),
       type: z.enum(["daily", "shift", "register-usage"]),
       format: z.enum(["json", "csv", "pdf"]).optional().default("json"),
       startDate: z
@@ -138,7 +138,7 @@ app.get(
     // 確定餐廳ID
     let finalRestaurantId: string | undefined;
     if (restaurantId) {
-      finalRestaurantId = String(restaurantId);
+      finalRestaurantId = restaurantId;
       if (user.role === 1 && user.restaurantId !== finalRestaurantId) {
         throw forbidden("只能匯出自己餐廳的報表");
       }

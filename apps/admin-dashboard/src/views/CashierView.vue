@@ -814,7 +814,7 @@ const orders = ref<CashierOrder[]>([]);
 const filteredOrders = computed(() => {
   let filtered = orders.value.filter(
     (order) =>
-      ["ready", "served"].includes(order.status) &&
+      ["ready", "delivered"].includes(order.status) &&
       order.paymentStatus === "unpaid",
   );
 
@@ -865,7 +865,8 @@ const loadOrders = async () => {
   isLoadingOrders.value = true;
   try {
     const response = await api.get("/orders", {
-      status: "ready,served",
+      status: "ready,delivered",
+      restaurantId: authStore.restaurantId,
       limit: 50,
     });
     if (response.data.success && response.data.data) {
@@ -949,6 +950,7 @@ const loadTodayRevenue = async () => {
     const today = new Date().toISOString().split("T")[0];
     const response = await api.get("/pos/reports/daily", {
       date: today,
+      restaurantId: authStore.restaurantId,
     });
     if (response.data.success && response.data.data) {
       const report = response.data.data as any;
@@ -984,7 +986,7 @@ const formatDateTime = (dateTime: string) => {
 const getOrderStatusClass = (status: string) => {
   const classes: Record<string, string> = {
     ready: "bg-green-100 text-green-800",
-    served: "bg-blue-100 text-blue-800",
+    delivered: "bg-blue-100 text-blue-800",
     completed: "bg-gray-100 text-gray-800",
   };
   return classes[status] || "bg-gray-100 text-gray-800";
@@ -993,7 +995,7 @@ const getOrderStatusClass = (status: string) => {
 const getOrderStatusText = (status: string) => {
   const texts: Record<string, string> = {
     ready: t("cashier.orderStatus.ready"),
-    served: t("cashier.orderStatus.served"),
+    delivered: t("cashier.orderStatus.delivered"),
     completed: t("cashier.orderStatus.completed"),
   };
   return texts[status] || status;

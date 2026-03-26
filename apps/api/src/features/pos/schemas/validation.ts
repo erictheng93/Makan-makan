@@ -86,7 +86,7 @@ export const dateRangeQuerySchema = z.object({
 
 export const registerQuerySchema = z
   .object({
-    restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+    restaurantId: z.string().optional(),
   })
   .merge(queryPaginationSchema);
 
@@ -111,6 +111,6 @@ export const movementsQuerySchema = z
 
 export const statsQuerySchema = z
   .object({
-    restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+    restaurantId: z.string().optional(),
   })
   .merge(dateRangeQuerySchema);

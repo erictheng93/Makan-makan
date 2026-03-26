@@ -67,7 +67,7 @@ app.get("/", authMiddleware, validateQuery(registerQuerySchema), async (c) => {
   // 確定餐廳ID
   let restaurantId: string | undefined;
   if (query.restaurantId) {
-    restaurantId = String(query.restaurantId);
+    restaurantId = query.restaurantId;
     // 權限檢查
     if (user.role === 1 && user.restaurantId !== restaurantId) {
       throw forbidden("只能查看自己餐廳的收銀機");
