@@ -1,105 +1,22 @@
 <template>
   <div class="space-y-6">
-    <!-- Page Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">
-          {{ t("waitingList.title") }}
-        </h1>
-        <p class="text-gray-600 mt-1">{{ t("waitingList.subtitle") }}</p>
-      </div>
-      <div class="flex space-x-3">
-        <button
-          class="btn-primary inline-flex items-center"
-          @click="showAddDialog = true"
-        >
-          <Plus class="w-5 h-5 mr-2" />
-          {{ t("waitingList.addCustomer") }}
-        </button>
-        <button
-          :disabled="batchCalling"
-          class="btn-secondary inline-flex items-center disabled:opacity-50"
-          @click="batchCallNext"
-        >
-          <Bell class="w-5 h-5 mr-2" />
-          <span v-if="!batchCalling">{{ t("waitingList.callNext") }}</span>
-          <span v-else class="flex items-center">
-            <Loader2 class="animate-spin w-4 h-4 mr-2" />
-            {{ t("waitingList.calling") }}
-          </span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Stats Cards -->
-    <div
-      v-if="queueStatus"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-    >
-      <div class="card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">
-              {{ t("waitingList.stats.waiting") }}
-            </p>
-            <p class="text-3xl font-bold text-orange-600 mt-2">
-              {{ queueStatus.totalWaiting }}
-            </p>
-          </div>
-          <div class="p-3 bg-orange-100 rounded-full">
-            <Clock class="w-6 h-6 text-orange-600" />
-          </div>
-        </div>
-      </div>
-
-      <div class="card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">
-              {{ t("waitingList.stats.avgWait") }}
-            </p>
-            <p class="text-3xl font-bold text-blue-600 mt-2">
-              {{ queueStatus.averageWaitMinutes
-              }}<span class="text-lg">min</span>
-            </p>
-          </div>
-          <div class="p-3 bg-blue-100 rounded-full">
-            <Timer class="w-6 h-6 text-blue-600" />
-          </div>
-        </div>
-      </div>
-
-      <div class="card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">
-              {{ t("waitingList.stats.availableTables") }}
-            </p>
-            <p class="text-3xl font-bold text-green-600 mt-2">
-              {{ queueStatus.availableTables }}
-            </p>
-          </div>
-          <div class="p-3 bg-green-100 rounded-full">
-            <TableIcon class="w-6 h-6 text-green-600" />
-          </div>
-        </div>
-      </div>
-
-      <div class="card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">
-              {{ t("waitingList.stats.todayTotal") }}
-            </p>
-            <p class="text-3xl font-bold text-purple-600 mt-2">
-              {{ estimatedTodayTotal }}
-            </p>
-          </div>
-          <div class="p-3 bg-purple-100 rounded-full">
-            <Users class="w-6 h-6 text-purple-600" />
-          </div>
-        </div>
-      </div>
+    <!-- Action Bar -->
+    <div class="flex items-center justify-end gap-3">
+      <button
+        class="flex items-center px-4 py-2.5 rounded-full text-[13px] font-semibold bg-[#FF9500] text-white hover:bg-[#E68600] transition-colors shadow-sm"
+        :disabled="batchCalling"
+        @click="batchCallNext"
+      >
+        <Bell class="w-4 h-4 mr-1.5" />
+        {{ t("waitingList.callNext") }}
+      </button>
+      <button
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        @click="showAddDialog = true"
+      >
+        <Plus class="w-4 h-4 mr-1.5" />
+        {{ t("waitingList.addCustomer") }}
+      </button>
     </div>
 
     <!-- Filters -->
@@ -842,8 +759,6 @@ import {
   Plus,
   Bell,
   Clock,
-  Timer,
-  Table as TableIcon,
   Users,
   Search,
   RotateCcw,
@@ -919,11 +834,6 @@ const callForm = reactive({
 
 // Restaurant ID — use authStore.restaurantId which handles admin managing other restaurants
 const restaurantId = computed(() => authStore.restaurantId || "");
-
-// Estimated today total (placeholder)
-const estimatedTodayTotal = computed(() =>
-  queueStatus.value ? queueStatus.value.totalWaiting : 0,
-);
 
 /**
  * Load waiting list

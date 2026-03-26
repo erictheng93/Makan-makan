@@ -821,8 +821,6 @@ import {
   ClockIcon,
   ServerIcon,
   CircleStackIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
   MinusIcon,
 } from "@heroicons/vue/24/outline";
 import { monitoringService } from "@/services/monitoringService";

@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createTestRouter } from "../helpers/test-router";
 import { createTestStore } from "../helpers/test-store";
-import QueueView from "../../views/QueueView.vue";
+import QueueView from "../../views/seating/QueueDashboardTab.vue";
 import SettingsView from "../../views/SettingsView.vue";
 
 describe("Admin Dashboard Integration Tests", () => {

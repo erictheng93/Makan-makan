@@ -1,90 +1,14 @@
 <template>
   <div class="space-y-6">
-    <!-- Page Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">
-          {{ t("reservation.title") }}
-        </h1>
-        <p class="text-gray-600 mt-1">{{ t("reservation.subtitle") }}</p>
-      </div>
+    <!-- Action Bar -->
+    <div class="flex justify-end mb-0">
       <button
-        class="btn-primary inline-flex items-center"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
         @click="showCreateDialog = true"
       >
-        <Plus class="w-5 h-5 mr-2" />
+        <Plus class="w-4 h-4 mr-1.5" />
         {{ t("reservation.create") }}
       </button>
-    </div>
-
-    <!-- Stats Cards -->
-    <div
-      v-if="stats"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-    >
-      <div class="card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">
-              {{ t("reservation.stats.total") }}
-            </p>
-            <p class="text-3xl font-bold text-gray-900 mt-2">
-              {{ stats.totalReservations }}
-            </p>
-          </div>
-          <div class="p-3 bg-blue-100 rounded-full">
-            <Calendar class="w-6 h-6 text-blue-600" />
-          </div>
-        </div>
-      </div>
-
-      <div class="card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">
-              {{ t("reservation.stats.confirmed") }}
-            </p>
-            <p class="text-3xl font-bold text-green-600 mt-2">
-              {{ stats.confirmedCount }}
-            </p>
-          </div>
-          <div class="p-3 bg-green-100 rounded-full">
-            <CheckCircle class="w-6 h-6 text-green-600" />
-          </div>
-        </div>
-      </div>
-
-      <div class="card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">
-              {{ t("reservation.stats.completed") }}
-            </p>
-            <p class="text-3xl font-bold text-purple-600 mt-2">
-              {{ stats.completedCount }}
-            </p>
-          </div>
-          <div class="p-3 bg-purple-100 rounded-full">
-            <CheckCheck class="w-6 h-6 text-purple-600" />
-          </div>
-        </div>
-      </div>
-
-      <div class="card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">
-              {{ t("reservation.stats.noShowRate") }}
-            </p>
-            <p class="text-3xl font-bold text-orange-600 mt-2">
-              {{ stats.noShowRate.toFixed(1) }}%
-            </p>
-          </div>
-          <div class="p-3 bg-orange-100 rounded-full">
-            <AlertCircle class="w-6 h-6 text-orange-600" />
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Filters Card -->
@@ -753,7 +677,6 @@ import {
   CheckCheck,
   UserCheck,
   XCircle,
-  AlertCircle,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -765,7 +688,6 @@ import { ReservationService } from "@/services/reservationService";
 import type {
   Reservation,
   CreateReservationRequest,
-  ReservationStats,
 } from "@makanmakan/shared-types";
 
 const toast = useToast();
@@ -779,7 +701,6 @@ const showCreateDialog = ref(false);
 const showDetailDialog = ref(false);
 const reservations = ref<Reservation[]>([]);
 const selectedReservation = ref<Reservation | null>(null);
-const stats = ref<ReservationStats | null>(null);
 
 // Filters
 const filters = reactive({
@@ -843,21 +764,6 @@ async function loadReservations() {
 }
 
 /**
- * Load stats
- */
-async function loadStats() {
-  try {
-    stats.value =
-      (await ReservationService.getStats(
-        restaurantId.value,
-        filters.date || undefined,
-      )) ?? null;
-  } catch (error) {
-    console.error("Load stats error:", error);
-  }
-}
-
-/**
  * Create reservation
  */
 async function createReservation() {
@@ -891,7 +797,6 @@ async function createReservation() {
     showCreateDialog.value = false;
     resetForm();
     await loadReservations();
-    await loadStats();
   } catch (error: any) {
     console.error("Create reservation error:", error);
     toast.error(error.response?.data?.error || t("reservation.createError"));
@@ -910,7 +815,6 @@ async function confirmReservation(id: string) {
     await ReservationService.confirmReservation(id);
     toast.success(t("reservation.confirmSuccess"));
     await loadReservations();
-    await loadStats();
   } catch (error: any) {
     console.error("Confirm reservation error:", error);
     toast.error(error.response?.data?.error || t("reservation.confirmError"));
@@ -925,7 +829,6 @@ async function markArrived(id: string) {
     await ReservationService.markArrived(id);
     toast.success(t("reservation.arrivedSuccess"));
     await loadReservations();
-    await loadStats();
   } catch (error: any) {
     console.error("Mark arrived error:", error);
     toast.error(error.response?.data?.error || t("reservation.arrivedError"));
@@ -940,7 +843,6 @@ async function markSeated(id: string) {
     await ReservationService.markSeated(id);
     toast.success(t("reservation.seatedSuccess"));
     await loadReservations();
-    await loadStats();
   } catch (error: any) {
     console.error("Mark seated error:", error);
     toast.error(error.response?.data?.error || t("reservation.seatedError"));
@@ -957,7 +859,6 @@ async function cancelReservation(id: string) {
     await ReservationService.cancelReservation(id);
     toast.success(t("reservation.cancelSuccess"));
     await loadReservations();
-    await loadStats();
   } catch (error: any) {
     console.error("Cancel reservation error:", error);
     toast.error(error.response?.data?.error || t("reservation.cancelError"));
@@ -1058,6 +959,5 @@ function getPaginationPages(): number[] {
 // Initialize
 onMounted(async () => {
   await loadReservations();
-  await loadStats();
 });
 </script>

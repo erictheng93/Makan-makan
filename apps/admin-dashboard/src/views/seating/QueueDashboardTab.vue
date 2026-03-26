@@ -1,127 +1,21 @@
 <template>
-  <div class="queue-view">
-    <!-- 標題區 -->
-    <div class="flex justify-between items-center mb-8">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">{{ t("queue.title") }}</h1>
-        <p class="text-gray-600">{{ t("queue.subtitle") }}</p>
-      </div>
-      <div class="flex items-center space-x-4">
-        <!-- 快速狀態 -->
-        <div class="bg-green-100 px-4 py-2 rounded-lg">
-          <p class="text-sm text-green-800 font-medium">
-            {{ t("queue.waitingCount") }}: {{ currentWaiting }}
-          </p>
-          <p class="text-xs text-green-600">
-            {{ t("queue.avgWait") }}: {{ avgWaitTime }}{{ t("queue.minutes") }}
-          </p>
-        </div>
-
-        <!-- 功能按鈕 -->
-        <button
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          @click="openQueueSettings"
-        >
-          {{ t("queue.queueSettings") }}
-        </button>
-
-        <button
-          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          @click="openDisplaySettings"
-        >
-          {{ t("queue.displaySettings") }}
-        </button>
-
-        <button
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          @click="callNextCustomer"
-        >
-          {{ t("queue.callNext") }}
-        </button>
-      </div>
-    </div>
-
-    <!-- 即時統計卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-blue-100">
-            <UsersIcon class="h-6 w-6 text-blue-600" />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
-              {{ t("queue.waitingCount") }}
-            </p>
-            <p class="text-2xl font-semibold text-gray-900">
-              {{ currentWaiting }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-green-100">
-            <ClockIcon class="h-6 w-6 text-green-600" />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
-              {{ t("queue.avgWait") }}
-            </p>
-            <p class="text-2xl font-semibold text-gray-900">
-              {{ avgWaitTime }}{{ t("queue.minutesShort") }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-purple-100">
-            <BuildingStorefrontIcon class="h-6 w-6 text-purple-600" />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
-              {{ t("queue.availableSeats") }}
-            </p>
-            <p class="text-2xl font-semibold text-gray-900">
-              {{ availableTables }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-orange-100">
-            <ChartBarIcon class="h-6 w-6 text-orange-600" />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
-              {{ t("queue.todayServed") }}
-            </p>
-            <p class="text-2xl font-semibold text-gray-900">
-              {{ todayServed }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-red-100">
-            <ExclamationTriangleIcon class="h-6 w-6 text-red-600" />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
-              {{ t("queue.overdueQueue") }}
-            </p>
-            <p class="text-2xl font-semibold text-gray-900">
-              {{ overdueQueue }}
-            </p>
-          </div>
-        </div>
-      </div>
+  <div>
+    <!-- Action Bar -->
+    <div class="flex items-center justify-end gap-3 mb-6">
+      <button
+        class="flex items-center px-4 py-2.5 rounded-full text-[13px] font-semibold bg-white text-[#1C1C1E]/70 border border-[#F2F2F7] hover:bg-[#F2F2F7] transition-colors"
+        @click="showSettings = true"
+      >
+        <Settings class="w-4 h-4 mr-1.5" />
+        {{ t("queue.queueSettings") }}
+      </button>
+      <button
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        @click="callNextCustomer"
+      >
+        <Bell class="w-4 h-4 mr-1.5" />
+        {{ t("queue.callNext") }}
+      </button>
     </div>
 
     <!-- 主要內容區域 -->
@@ -755,8 +649,6 @@ import {
   UsersIcon,
   ClockIcon,
   BuildingStorefrontIcon,
-  ChartBarIcon,
-  ExclamationTriangleIcon,
   ArrowPathIcon,
   StarIcon,
   PlusIcon,
@@ -765,6 +657,7 @@ import {
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
 import DocumentChartBarIcon from "@heroicons/vue/24/outline/DocumentChartBarIcon";
+import { Settings, Bell } from "lucide-vue-next";
 import { queueService, type QueueItem } from "@/services/queueService";
 import { useRealtimeQueue } from "@/composables/useRealtimeQueue";
 import { useAuthStore } from "@/stores/auth";
@@ -799,6 +692,7 @@ const selectedQueueItem = ref<QueueItem | null>(null);
 const selectedTable = ref<Table | null>(null);
 const showAddDialog = ref(false);
 const showSeatDialog = ref(false);
+const showSettings = ref(false);
 const autoAssignment = ref(true);
 
 // 候位資料
@@ -823,17 +717,6 @@ const occupiedTables = computed(() => {
   return tables.value.filter(
     (t) => t.status === "occupied" || t.status === "reserved",
   ).length;
-});
-const todayServed = computed(() => {
-  return queueStatus.value?.activity?.seated_today || 0;
-});
-const overdueQueue = computed(() => {
-  // 計算超過預估等待時間的候位
-  return queueItems.value.filter((item) => {
-    if (item.status !== "waiting") return false;
-    const waitTime = getWaitTime(item.joinedAt);
-    return waitTime > item.estimatedWaitMinutes + 10; // 超過預估加10分鐘
-  }).length;
 });
 
 // 表單數據 - 配合新API 結構
@@ -1304,14 +1187,6 @@ const toggleAutoAssignment = () => {
   }
 };
 
-const openQueueSettings = () => {
-  alert(t("queue.alerts.settingsInDev"));
-};
-
-const openDisplaySettings = () => {
-  alert(t("queue.alerts.displayInDev"));
-};
-
 // 監聽即時更新
 // watch(queueUpdates, () => {
 //   // 當候位佇列更新時刷新候位列表
@@ -1346,6 +1221,7 @@ defineExpose({
   selectedTable,
   showAddDialog,
   showSeatDialog,
+  showSettings,
   seatAssignment,
   queueFilter,
   tableViewFilter,
@@ -1379,34 +1255,22 @@ defineExpose({
 </script>
 
 <style scoped>
-.queue-view {
-  padding: 1.5rem;
-  min-height: 100vh;
-  background-color: #f9fafb;
-}
-
-@media (max-width: 640px) {
-  .queue-view {
-    padding: 1rem;
-  }
-}
-
 /* 自定義滾動條 */
-.queue-view ::-webkit-scrollbar {
+::-webkit-scrollbar {
   width: 6px;
 }
 
-.queue-view ::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 3px;
 }
 
-.queue-view ::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
 }
 
-.queue-view ::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 </style>

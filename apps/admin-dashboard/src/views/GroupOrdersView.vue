@@ -251,11 +251,9 @@
                             'w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white',
                             getMemberColor(index),
                           ]"
-                          :title="member.name || member.memberName || ''"
+                          :title="member.name || ''"
                         >
-                          {{
-                            (member.name || member.memberName || "?").charAt(0)
-                          }}
+                          {{ (member.name || "?").charAt(0) }}
                         </div>
                         <div
                           v-if="groupOrder.members.length > 4"
@@ -427,13 +425,11 @@
                           getMemberColor(index),
                         ]"
                       >
-                        {{
-                          (member.name || member.memberName || "?").charAt(0)
-                        }}
+                        {{ (member.name || "?").charAt(0) }}
                       </div>
                       <div class="ml-3">
                         <p class="text-sm font-medium text-gray-900">
-                          {{ member.name || member.memberName || "" }}
+                          {{ member.name || "" }}
                         </p>
                         <p class="text-xs text-gray-500">
                           {{ member.itemCount }}

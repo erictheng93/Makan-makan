@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import QueueView from "@/views/QueueView.vue";
+import QueueView from "@/views/seating/QueueDashboardTab.vue";
 
 // Mock services with proper factory functions
 vi.mock("@/services/queueService", () => ({

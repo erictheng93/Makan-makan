@@ -247,10 +247,10 @@ const routes: RouteRecordRaw[] = [
           ],
         },
       },
-      // Redirect old /queue path to unified waiting management
+      // Redirect old /queue path to unified seating management
       {
         path: "queue",
-        redirect: { name: "WaitingDashboard" },
+        redirect: { name: "SeatingQueueDashboard" },
       },
       {
         path: "ai-analytics/config",
@@ -284,32 +284,12 @@ const routes: RouteRecordRaw[] = [
       { path: "scheduling", redirect: { name: "EmployeeScheduling" } },
       // Leave management route (redirects to unified employee management tab)
       { path: "leaves", redirect: { name: "EmployeeLeaves" } },
-      // Reservation management
+      // Unified Seating Management (座位管理)
       {
-        path: "reservations",
-        name: "Reservations",
-        component: () => import("@/views/ReservationView.vue"),
+        path: "seating",
+        component: () => import("@/views/seating/SeatingManagementView.vue"),
         meta: {
-          titleKey: "pages.reservations",
-          roles: [
-            UserRole.ADMIN,
-            UserRole.OWNER,
-            UserRole.SERVICE,
-            UserRole.CASHIER,
-          ],
-        },
-      },
-      // Redirect old /waiting-list path to unified waiting management
-      {
-        path: "waiting-list",
-        redirect: { name: "WaitingListTab" },
-      },
-      // Unified waiting management (候位管理)
-      {
-        path: "waiting",
-        component: () => import("@/views/WaitingManagementView.vue"),
-        meta: {
-          titleKey: "pages.waitingManagement",
+          titleKey: "pages.seatingManagement",
           roles: [
             UserRole.ADMIN,
             UserRole.OWNER,
@@ -320,19 +300,32 @@ const routes: RouteRecordRaw[] = [
         children: [
           {
             path: "",
-            redirect: { name: "WaitingListTab" },
+            name: "SeatingReservations",
+            component: () => import("@/views/seating/ReservationTab.vue"),
           },
           {
-            path: "list",
-            name: "WaitingListTab",
-            component: () => import("@/views/WaitingListView.vue"),
+            path: "waiting-list",
+            name: "SeatingWaitingList",
+            component: () => import("@/views/seating/WaitingListTab.vue"),
           },
           {
-            path: "dashboard",
-            name: "WaitingDashboard",
-            component: () => import("@/views/QueueView.vue"),
+            path: "queue-dashboard",
+            name: "SeatingQueueDashboard",
+            component: () => import("@/views/seating/QueueDashboardTab.vue"),
           },
         ],
+      },
+      // Legacy redirects for backward compatibility
+      { path: "reservations", redirect: { name: "SeatingReservations" } },
+      { path: "waiting", redirect: "/dashboard/seating/waiting-list" },
+      { path: "waiting/list", redirect: { name: "SeatingWaitingList" } },
+      {
+        path: "waiting/dashboard",
+        redirect: { name: "SeatingQueueDashboard" },
+      },
+      {
+        path: "waiting-list",
+        redirect: { name: "SeatingWaitingList" },
       },
       // Account management (Admin only - platform level)
       {

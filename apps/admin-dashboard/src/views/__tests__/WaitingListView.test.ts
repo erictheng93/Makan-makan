@@ -98,7 +98,7 @@ vi.mock("@/services/waitingListService", () => ({
 
 // ── Imports (after mocks) ──────────────────────────────────────────────────
 
-import WaitingListView from "../WaitingListView.vue";
+import WaitingListView from "../seating/WaitingListTab.vue";
 import { useAuthStore } from "@/stores/auth";
 import { WaitingListService } from "@/services/waitingListService";
 
