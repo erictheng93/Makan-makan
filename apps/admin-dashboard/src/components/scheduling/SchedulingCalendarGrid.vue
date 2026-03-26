@@ -1,0 +1,218 @@
+<template>
+  <div
+    class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden"
+  >
+    <!-- Grid Header: dates -->
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse min-w-[600px]">
+        <thead>
+          <tr class="border-b border-[#F2F2F7]">
+            <!-- Shift name column header -->
+            <th
+              class="w-28 px-4 py-3 text-left text-xs font-semibold text-[#1C1C1E]/40 uppercase tracking-wide bg-[#F2F2F7]/50"
+            >
+              班次
+            </th>
+            <!-- Date column headers -->
+            <th
+              v-for="col in dateColumns"
+              :key="col.dateStr"
+              class="px-3 py-3 text-center text-xs font-semibold min-w-[100px]"
+              :class="
+                col.isToday
+                  ? 'text-[#007AFF] bg-[#007AFF]/5'
+                  : 'text-[#1C1C1E]/50 bg-transparent'
+              "
+            >
+              <div class="flex flex-col items-center gap-0.5">
+                <span class="text-[10px] uppercase tracking-wide">{{
+                  col.weekday
+                }}</span>
+                <span
+                  class="w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold"
+                  :class="
+                    col.isToday ? 'bg-[#007AFF] text-white' : 'text-[#1C1C1E]'
+                  "
+                >
+                  {{ col.day }}
+                </span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- One row per shift template -->
+          <tr
+            v-for="template in shiftTemplates"
+            :key="template.id"
+            class="border-b border-[#F2F2F7] last:border-0"
+          >
+            <!-- Shift template name -->
+            <td class="px-4 py-3 bg-[#F2F2F7]/30">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-xs font-semibold text-[#1C1C1E]">{{
+                  template.name
+                }}</span>
+                <span class="text-[10px] text-[#1C1C1E]/40">
+                  {{ template.startTime }}–{{ template.endTime }}
+                </span>
+              </div>
+            </td>
+            <!-- One cell per date -->
+            <td
+              v-for="col in dateColumns"
+              :key="col.dateStr"
+              class="px-2 py-2 align-top transition-colors"
+              :class="[
+                col.isToday ? 'bg-[#007AFF]/3' : '',
+                isDragOver(template.id, col.dateStr) ? 'bg-[#34C759]/10' : '',
+              ]"
+              @dragover.prevent="onDragOver(template.id, col.dateStr)"
+              @dragleave="onDragLeave"
+              @drop.prevent="onDrop(template.id, col.dateStr)"
+              @click="$emit('cell-click', template.id, col.dateStr)"
+            >
+              <!-- Assigned employee pills -->
+              <div class="flex flex-col gap-1 min-h-[40px]">
+                <template
+                  v-if="getCellSchedules(template.id, col.dateStr).length > 0"
+                >
+                  <div
+                    v-for="schedule in getCellSchedules(
+                      template.id,
+                      col.dateStr,
+                    )"
+                    :key="schedule.id"
+                    class="group flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-medium cursor-default select-none transition-all"
+                    :style="{
+                      backgroundColor: template.colorCode + '22',
+                      color: template.colorCode,
+                    }"
+                    :title="schedule.employeeName"
+                  >
+                    <span class="truncate max-w-[70px]">{{
+                      schedule.employeeName
+                    }}</span>
+                    <button
+                      class="opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0 hover:bg-black/10 rounded-full p-0.5"
+                      :title="'移除排班'"
+                      @click.stop="$emit('remove', schedule.id)"
+                    >
+                      <X class="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                </template>
+                <!-- Empty cell placeholder -->
+                <div
+                  v-else
+                  class="h-[32px] rounded-lg border-2 border-dashed border-[#1C1C1E]/10 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                  @click.stop="$emit('cell-click', template.id, col.dateStr)"
+                >
+                  <Plus class="w-3 h-3 text-[#1C1C1E]/30" />
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty state when no templates -->
+          <tr v-if="shiftTemplates.length === 0">
+            <td
+              :colspan="dateColumns.length + 1"
+              class="py-12 text-center text-[#1C1C1E]/40 text-sm"
+            >
+              尚無班次範本，請先新增班次範本
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { X, Plus } from "lucide-vue-next";
+import type { ShiftTemplate, EmployeeSchedule } from "@/types/scheduling";
+
+const props = defineProps<{
+  schedules: EmployeeSchedule[];
+  shiftTemplates: ShiftTemplate[];
+  dateRange: { start: Date; end: Date };
+  viewMode: "week" | "month";
+}>();
+
+const emit = defineEmits<{
+  (e: "assign", templateId: number, date: string, employeeId: number): void;
+  (e: "remove", scheduleId: number): void;
+  (e: "cell-click", templateId: number, date: string): void;
+}>();
+
+// --- Date columns ---
+const WEEKDAYS_ZH = ["日", "一", "二", "三", "四", "五", "六"];
+
+const dateColumns = computed(() => {
+  const cols: Array<{
+    dateStr: string;
+    weekday: string;
+    day: number;
+    isToday: boolean;
+  }> = [];
+  const todayStr = new Date().toISOString().split("T")[0];
+  const cursor = new Date(props.dateRange.start);
+  cursor.setHours(0, 0, 0, 0);
+  const end = new Date(props.dateRange.end);
+  end.setHours(23, 59, 59, 999);
+
+  while (cursor <= end) {
+    const dateStr = cursor.toISOString().split("T")[0];
+    cols.push({
+      dateStr,
+      weekday: `週${WEEKDAYS_ZH[cursor.getDay()]}`,
+      day: cursor.getDate(),
+      isToday: dateStr === todayStr,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return cols;
+});
+
+// --- Cell data ---
+function getCellSchedules(
+  templateId: number,
+  dateStr: string,
+): EmployeeSchedule[] {
+  return props.schedules.filter(
+    (s) => s.shiftTemplateId === templateId && s.workDate === dateStr,
+  );
+}
+
+// --- Drag and drop ---
+const dragOverCell = ref<{ templateId: number; dateStr: string } | null>(null);
+
+function isDragOver(templateId: number, dateStr: string): boolean {
+  return (
+    dragOverCell.value?.templateId === templateId &&
+    dragOverCell.value?.dateStr === dateStr
+  );
+}
+
+function onDragOver(templateId: number, dateStr: string) {
+  dragOverCell.value = { templateId, dateStr };
+}
+
+function onDragLeave() {
+  dragOverCell.value = null;
+}
+
+function onDrop(templateId: number, dateStr: string) {
+  dragOverCell.value = null;
+  const employeeIdStr = (event as DragEvent)?.dataTransfer?.getData(
+    "employeeId",
+  );
+  if (!employeeIdStr) return;
+  const employeeId = parseInt(employeeIdStr, 10);
+  if (!isNaN(employeeId)) {
+    emit("assign", templateId, dateStr, employeeId);
+  }
+}
+</script>
