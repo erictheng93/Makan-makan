@@ -156,8 +156,9 @@ class ApiService {
   async post<T>(
     url: string,
     data?: any,
+    config?: { headers?: Record<string, string> },
   ): Promise<AxiosResponse<ApiResponse<T>>> {
-    return this.instance.post(url, data);
+    return this.instance.post(url, data, config);
   }
 
   async put<T>(

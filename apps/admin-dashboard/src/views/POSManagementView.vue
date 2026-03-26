@@ -673,6 +673,224 @@
         </div>
       </div>
     </div>
+
+    <!-- 新增收銀櫃 Modal -->
+    <div
+      v-if="showCreateRegisterModal"
+      class="fixed inset-0 z-50 overflow-y-auto"
+    >
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black opacity-30"
+          @click="showCreateRegisterModal = false"
+        />
+        <div
+          class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+              {{ t("pos.createRegister") || "新增收銀櫃" }}
+            </h3>
+            <button
+              class="text-gray-400 hover:text-gray-600"
+              @click="showCreateRegisterModal = false"
+            >
+              <XMarkIcon class="w-6 h-6" />
+            </button>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ t("pos.prompts.registerName") || "收銀櫃名稱" }}
+            </label>
+            <input
+              v-model="newRegisterName"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF]"
+              :placeholder="
+                t('pos.prompts.registerNamePlaceholder') || '例如: 一號收銀櫃'
+              "
+              @keyup.enter="confirmCreateRegister"
+            />
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button
+              class="px-4 py-2 bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+              @click="showCreateRegisterModal = false"
+            >
+              {{ t("common.cancel") || "取消" }}
+            </button>
+            <button
+              :disabled="!newRegisterName.trim()"
+              class="px-4 py-2 bg-[#007AFF] text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="confirmCreateRegister"
+            >
+              {{ t("common.confirm") || "確認" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 開始班次 Modal -->
+    <div v-if="showStartShiftModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black opacity-30"
+          @click="showStartShiftModal = false"
+        />
+        <div
+          class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+              {{ t("pos.startShift") || "開始班次" }}
+            </h3>
+            <button
+              class="text-gray-400 hover:text-gray-600"
+              @click="showStartShiftModal = false"
+            >
+              <XMarkIcon class="w-6 h-6" />
+            </button>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ t("pos.prompts.startingCash") || "初始現金金額" }}
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-3 text-gray-500">{{
+                currencySymbol
+              }}</span>
+              <input
+                v-model.number="startingCashAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF]"
+                placeholder="0.00"
+                @keyup.enter="confirmStartShift"
+              />
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button
+              class="px-4 py-2 bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+              @click="showStartShiftModal = false"
+            >
+              {{ t("common.cancel") || "取消" }}
+            </button>
+            <button
+              :disabled="startingCashAmount < 0"
+              class="px-4 py-2 bg-[#34C759] text-white rounded-full hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="confirmStartShift"
+            >
+              {{ t("pos.startShift") || "開始班次" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 結束班次確認 Modal -->
+    <div v-if="showEndShiftModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black opacity-30"
+          @click="showEndShiftModal = false"
+        />
+        <div
+          class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+              {{ t("pos.endShift") || "結束班次" }}
+            </h3>
+            <button
+              class="text-gray-400 hover:text-gray-600"
+              @click="showEndShiftModal = false"
+            >
+              <XMarkIcon class="w-6 h-6" />
+            </button>
+          </div>
+          <p class="text-gray-600 mb-6">
+            {{
+              t("pos.confirms.endShift") ||
+              "確定要結束當前班次嗎？結束後將無法繼續記錄交易。"
+            }}
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button
+              class="px-4 py-2 bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+              @click="showEndShiftModal = false"
+            >
+              {{ t("common.cancel") || "取消" }}
+            </button>
+            <button
+              class="px-4 py-2 bg-[#FF3B30] text-white rounded-full hover:bg-red-600 transition-colors"
+              @click="confirmEndShift"
+            >
+              {{ t("pos.endShift") || "結束班次" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新增促銷活動 Modal -->
+    <div
+      v-if="showCreatePromotionModal"
+      class="fixed inset-0 z-50 overflow-y-auto"
+    >
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black opacity-30"
+          @click="showCreatePromotionModal = false"
+        />
+        <div
+          class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+              {{ t("pos.createPromotion") || "新增促銷活動" }}
+            </h3>
+            <button
+              class="text-gray-400 hover:text-gray-600"
+              @click="showCreatePromotionModal = false"
+            >
+              <XMarkIcon class="w-6 h-6" />
+            </button>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ t("pos.prompts.promotionName") || "活動名稱" }}
+            </label>
+            <input
+              v-model="newPromotionName"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF]"
+              :placeholder="
+                t('pos.prompts.promotionNamePlaceholder') || '例如: 週末特惠'
+              "
+              @keyup.enter="confirmCreatePromotion"
+            />
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button
+              class="px-4 py-2 bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+              @click="showCreatePromotionModal = false"
+            >
+              {{ t("common.cancel") || "取消" }}
+            </button>
+            <button
+              :disabled="!newPromotionName.trim()"
+              class="px-4 py-2 bg-[#FF9500] text-white rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="confirmCreatePromotion"
+            >
+              {{ t("common.confirm") || "確認" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -800,6 +1018,15 @@ const cashMovement = ref({
   description: "",
 });
 
+// Modal 狀態
+const showCreateRegisterModal = ref(false);
+const newRegisterName = ref("");
+const showStartShiftModal = ref(false);
+const startingCashAmount = ref(0);
+const showEndShiftModal = ref(false);
+const showCreatePromotionModal = ref(false);
+const newPromotionName = ref("");
+
 // 計算屬性
 const canProcessQuickPayment = computed(() => {
   return (
@@ -884,26 +1111,29 @@ const selectRegister = async (register: CashRegister) => {
   await loadCurrentShift(register.id);
 };
 
-const createRegister = async () => {
-  const name = prompt(t("pos.prompts.registerName"));
-  if (name) {
-    isProcessing.value = true;
-    try {
-      const response = await api.post("/pos/registers", {
-        name,
-        restaurantId: authStore.restaurantId,
-        status: "inactive",
-        currentBalance: 0,
-        location: t("pos.defaults.locationPending"),
-      });
-      if (response.data.success) {
-        await loadRegisters();
-      }
-    } catch (error) {
-      console.error("Failed to create register:", error);
-    } finally {
-      isProcessing.value = false;
+const createRegister = () => {
+  newRegisterName.value = "";
+  showCreateRegisterModal.value = true;
+};
+
+const confirmCreateRegister = async () => {
+  const name = newRegisterName.value.trim();
+  if (!name) return;
+  showCreateRegisterModal.value = false;
+  isProcessing.value = true;
+  try {
+    const response = await api.post("/pos/registers", {
+      name,
+      restaurantId: authStore.restaurantId,
+      location: t("pos.defaults.locationPending"),
+    });
+    if (response.data.success) {
+      await loadRegisters();
     }
+  } catch (error) {
+    console.error("Failed to create register:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
@@ -938,45 +1168,56 @@ const deactivateRegister = async (registerId: string) => {
   }
 };
 
-const startShift = async () => {
+const startShift = () => {
   if (!currentRegister.value) return;
-  const startingCash = prompt(t("pos.prompts.startingCash"));
-  if (startingCash && !isNaN(parseFloat(startingCash))) {
-    isProcessing.value = true;
-    try {
-      const response = await api.post("/pos/shifts/start", {
+  startingCashAmount.value = 0;
+  showStartShiftModal.value = true;
+};
+
+const confirmStartShift = async () => {
+  if (!currentRegister.value) return;
+  const amount = startingCashAmount.value;
+  showStartShiftModal.value = false;
+  isProcessing.value = true;
+  try {
+    const response = await api.post("/pos/shifts/start", {
+      registerId: currentRegister.value.id,
+      startAmount: amount,
+      operatorId: authStore.user?.id ?? 0,
+    });
+    if (response.data.success && response.data.data) {
+      const shiftData = response.data.data as any;
+      currentShift.value = {
+        id: shiftData.id,
+        name: shiftData.name || t("pos.defaults.morningShift"),
+        startTime: shiftData.startTime || new Date().toISOString(),
         registerId: currentRegister.value.id,
-        startingCash: parseFloat(startingCash),
         operatorId: authStore.user?.id ?? 0,
-      });
-      if (response.data.success && response.data.data) {
-        const shiftData = response.data.data as any;
-        currentShift.value = {
-          id: shiftData.id,
-          name: shiftData.name || t("pos.defaults.morningShift"),
-          startTime: shiftData.startTime || new Date().toISOString(),
-          registerId: currentRegister.value.id,
-          operatorId: authStore.user?.id ?? 0,
-          startingCash: parseFloat(startingCash),
-          totalRevenue: 0,
-          processedOrders: 0,
-          status: "active",
-        };
-      }
-    } catch (error) {
-      console.error("Failed to start shift:", error);
-    } finally {
-      isProcessing.value = false;
+        startingCash: amount,
+        totalRevenue: 0,
+        processedOrders: 0,
+        status: "active",
+      };
     }
+  } catch (error) {
+    console.error("Failed to start shift:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
-const endShift = async () => {
-  if (!currentShift.value || !confirm(t("pos.confirms.endShift"))) return;
+const endShift = () => {
+  if (!currentShift.value) return;
+  showEndShiftModal.value = true;
+};
+
+const confirmEndShift = async () => {
+  if (!currentShift.value) return;
+  showEndShiftModal.value = false;
   isProcessing.value = true;
   try {
     await api.post(`/pos/shifts/${currentShift.value.id}/end`, {
-      endingCash: currentRegister.value?.currentBalance ?? 0,
+      actualAmount: currentRegister.value?.currentBalance ?? 0,
     });
     currentShift.value = null;
   } catch (error) {
@@ -1093,30 +1334,35 @@ const closePromotionsDialog = () => {
   showPromotionsDialog.value = false;
 };
 
-const createPromotion = async () => {
-  const title = prompt(t("pos.prompts.promotionName"));
-  if (title) {
-    isProcessing.value = true;
-    try {
-      const response = await api.post("/pos/promotions", {
-        title,
-        description: t("pos.defaults.newPromotion"),
-        discountType: "percentage",
-        discountValue: 10,
-        isActive: false,
-        startDate: new Date().toISOString().split("T")[0],
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
-      });
-      if (response.data.success) {
-        await loadPromotions();
-      }
-    } catch (error) {
-      console.error("Failed to create promotion:", error);
-    } finally {
-      isProcessing.value = false;
+const createPromotion = () => {
+  newPromotionName.value = "";
+  showCreatePromotionModal.value = true;
+};
+
+const confirmCreatePromotion = async () => {
+  const title = newPromotionName.value.trim();
+  if (!title) return;
+  showCreatePromotionModal.value = false;
+  isProcessing.value = true;
+  try {
+    const response = await api.post("/pos/promotions", {
+      title,
+      description: t("pos.defaults.newPromotion"),
+      discountType: "percentage",
+      discountValue: 10,
+      isActive: false,
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+    });
+    if (response.data.success) {
+      await loadPromotions();
     }
+  } catch (error) {
+    console.error("Failed to create promotion:", error);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
@@ -1206,9 +1452,11 @@ const generateShiftReport = async () => {
 const loadRegisters = async () => {
   isLoadingRegisters.value = true;
   try {
-    const response = await api.get("/pos/registers", {
-      restaurantId: authStore.restaurantId,
-    });
+    const params: Record<string, string> = {};
+    if (authStore.restaurantId) {
+      params.restaurantId = authStore.restaurantId;
+    }
+    const response = await api.get("/pos/registers", params);
     if (response.data.success && response.data.data) {
       registers.value = response.data.data as CashRegister[];
     }

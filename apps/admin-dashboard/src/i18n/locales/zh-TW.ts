@@ -2143,8 +2143,16 @@ const zhTW: Messages = {
       printingShiftReport: "正在列印班次報告...",
       shiftEnded: "班次已結束，資料已保存。",
     },
+    refundType: "退款類型",
+    refundTypes: {
+      full: "全額退款",
+      partial: "部分退款",
+      item: "單品退款",
+      service: "服務退款",
+    },
+    refundMethod: "退款方式",
     prompts: {
-      discountPercent: "請輸入折扣百分比 (例如: 10 表示 10% 折扣)",
+      discountPercent: "折扣百分比",
     },
     confirms: {
       endShift: "確定要結束當前班次嗎？結束後將無法再進行修改。",
@@ -2583,13 +2591,17 @@ const zhTW: Messages = {
       exportInDev: "匯出交易記錄功能開發中...",
       reportInDev: "產生班次報告功能開發中...",
     },
+    createRegister: "新增收銀櫃",
+    createPromotion: "新增促銷活動",
     prompts: {
-      registerName: "輸入新現金櫃名稱:",
-      startingCash: "輸入起始現金金額:",
-      promotionName: "輸入促銷活動名稱:",
+      registerName: "收銀櫃名稱",
+      registerNamePlaceholder: "例如：一號收銀櫃",
+      startingCash: "初始現金金額",
+      promotionName: "活動名稱",
+      promotionNamePlaceholder: "例如：週末特惠",
     },
     confirms: {
-      endShift: "確認結束當前班次?",
+      endShift: "確定要結束當前班次嗎？結束後將無法繼續記錄交易。",
     },
     defaults: {
       locationPending: "待設定",

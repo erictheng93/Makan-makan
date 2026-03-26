@@ -590,6 +590,52 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("cashier.refundType") || "退款類型"
+              }}</label>
+              <select
+                v-model="refundData.refundType"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="full">
+                  {{ t("cashier.refundTypes.full") || "全額退款" }}
+                </option>
+                <option value="partial">
+                  {{ t("cashier.refundTypes.partial") || "部分退款" }}
+                </option>
+                <option value="item">
+                  {{ t("cashier.refundTypes.item") || "單品退款" }}
+                </option>
+                <option value="service">
+                  {{ t("cashier.refundTypes.service") || "服務退款" }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                t("cashier.refundMethod") || "退款方式"
+              }}</label>
+              <select
+                v-model="refundData.refundMethod"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="cash">
+                  {{ t("cashier.paymentMethods.cash") }}
+                </option>
+                <option value="card">
+                  {{ t("cashier.paymentMethods.card") }}
+                </option>
+                <option value="digital_wallet">
+                  {{ t("cashier.paymentMethods.digitalWallet") }}
+                </option>
+                <option value="bank_transfer">
+                  {{ t("cashier.paymentMethods.bankTransfer") }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{
                 t("cashier.refundReason")
               }}</label>
               <select
@@ -680,6 +726,110 @@
         </div>
       </div>
     </div>
+
+    <!-- 折扣輸入 Modal -->
+    <div v-if="showDiscountModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black opacity-30"
+          @click="showDiscountModal = false"
+        />
+        <div
+          class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+              {{ t("cashier.applyDiscount") || "套用折扣" }}
+            </h3>
+            <button
+              class="text-gray-400 hover:text-gray-600"
+              @click="showDiscountModal = false"
+            >
+              <XMarkIcon class="w-6 h-6" />
+            </button>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ t("cashier.prompts.discountPercent") || "折扣百分比" }}
+            </label>
+            <div class="relative">
+              <input
+                v-model.number="discountPercentInput"
+                type="number"
+                step="1"
+                min="0"
+                max="100"
+                class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF]"
+                placeholder="0"
+                @keyup.enter="confirmApplyDiscount"
+              />
+              <span class="absolute right-3 top-2.5 text-gray-500">%</span>
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button
+              class="px-4 py-2 bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+              @click="showDiscountModal = false"
+            >
+              {{ t("common.cancel") || "取消" }}
+            </button>
+            <button
+              :disabled="
+                !discountPercentInput ||
+                discountPercentInput <= 0 ||
+                discountPercentInput > 100
+              "
+              class="px-4 py-2 bg-[#007AFF] text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="confirmApplyDiscount"
+            >
+              {{ t("common.confirm") || "確認" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 結束班次確認 Modal -->
+    <div v-if="showEndShiftModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black opacity-30"
+          @click="showEndShiftModal = false"
+        />
+        <div
+          class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+              {{ t("cashier.endShift") || "結束班次" }}
+            </h3>
+            <button
+              class="text-gray-400 hover:text-gray-600"
+              @click="showEndShiftModal = false"
+            >
+              <XMarkIcon class="w-6 h-6" />
+            </button>
+          </div>
+          <p class="text-gray-600 mb-6">
+            {{ t("cashier.confirms.endShift") || "確定要結束當前班次嗎？" }}
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button
+              class="px-4 py-2 bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+              @click="showEndShiftModal = false"
+            >
+              {{ t("common.cancel") || "取消" }}
+            </button>
+            <button
+              class="px-4 py-2 bg-[#FF3B30] text-white rounded-full hover:bg-red-600 transition-colors"
+              @click="confirmEndShift"
+            >
+              {{ t("cashier.endShift") || "結束班次" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -757,6 +907,11 @@ const showRefundDialog = ref(false);
 const actualCashAmount = ref(0);
 const todayRevenue = ref(0);
 
+// Modal 狀態
+const showDiscountModal = ref(false);
+const discountPercentInput = ref(0);
+const showEndShiftModal = ref(false);
+
 // 班次資訊
 const currentShift = ref({
   id: "",
@@ -789,6 +944,8 @@ const refundData = ref({
   amount: 0,
   reason: "",
   notes: "",
+  refundType: "partial" as "full" | "partial" | "item" | "service",
+  refundMethod: "cash",
 });
 
 // 付款方式
@@ -1054,23 +1211,26 @@ const processPayment = async () => {
 
 const applyDiscount = () => {
   if (!selectedOrder.value) return;
+  discountPercentInput.value = 0;
+  showDiscountModal.value = true;
+};
 
-  const discountPercent = prompt(t("cashier.prompts.discountPercent"));
-  if (discountPercent && !isNaN(parseFloat(discountPercent))) {
-    const discount =
-      (selectedOrder.value.subtotal +
-        selectedOrder.value.serviceCharge +
-        selectedOrder.value.taxAmount) *
-      (parseFloat(discountPercent) / 100);
-    selectedOrder.value.discountAmount = Math.max(0, discount);
-    selectedOrder.value.totalAmount = Math.max(
-      0,
-      selectedOrder.value.subtotal +
-        selectedOrder.value.serviceCharge +
-        selectedOrder.value.taxAmount -
-        selectedOrder.value.discountAmount,
-    );
-  }
+const confirmApplyDiscount = () => {
+  if (!selectedOrder.value || !discountPercentInput.value) return;
+  showDiscountModal.value = false;
+  const discount =
+    (selectedOrder.value.subtotal +
+      selectedOrder.value.serviceCharge +
+      selectedOrder.value.taxAmount) *
+    (discountPercentInput.value / 100);
+  selectedOrder.value.discountAmount = Math.max(0, discount);
+  selectedOrder.value.totalAmount = Math.max(
+    0,
+    selectedOrder.value.subtotal +
+      selectedOrder.value.serviceCharge +
+      selectedOrder.value.taxAmount -
+      selectedOrder.value.discountAmount,
+  );
 };
 
 const printReceipt = async () => {
@@ -1170,13 +1330,18 @@ const printShiftReport = () => {
   console.log("Print shift report for shift:", currentShift.value.id);
 };
 
-const endShift = async () => {
-  if (!currentShift.value.id || !confirm(t("cashier.confirms.endShift")))
-    return;
+const endShift = () => {
+  if (!currentShift.value.id) return;
+  showEndShiftModal.value = true;
+};
+
+const confirmEndShift = async () => {
+  if (!currentShift.value.id) return;
+  showEndShiftModal.value = false;
   isProcessing.value = true;
   try {
     await api.post(`/pos/shifts/${currentShift.value.id}/end`, {
-      endingCash: actualCashAmount.value,
+      actualAmount: actualCashAmount.value,
     });
     currentShift.value = {
       id: "",
@@ -1202,6 +1367,8 @@ const openRefundDialog = () => {
     amount: 0,
     reason: "",
     notes: "",
+    refundType: "partial",
+    refundMethod: "cash",
   };
 };
 
@@ -1214,14 +1381,23 @@ const processRefund = async () => {
 
   isProcessing.value = true;
   try {
-    await api.post("/pos/refunds/create", {
-      orderId: refundData.value.orderNumber,
-      amount: refundData.value.amount,
-      reason: refundData.value.reason,
-      notes: refundData.value.notes,
-      operatorId: authStore.user?.id ?? 0,
-      registerId: currentShift.value.registerId,
-    });
+    await api.post(
+      "/pos/refunds/create",
+      {
+        originalOrderId: parseInt(refundData.value.orderNumber) || 0,
+        refundType: refundData.value.refundType,
+        refundAmount: refundData.value.amount,
+        refundMethod: refundData.value.refundMethod,
+        reasonCode: refundData.value.reason,
+        reasonDescription: refundData.value.notes || undefined,
+      },
+      {
+        headers: {
+          "X-Register-Id": currentShift.value.registerId,
+          "X-Shift-Id": currentShift.value.id,
+        },
+      },
+    );
 
     // 更新統計數據
     shiftReport.value.refundCount++;
