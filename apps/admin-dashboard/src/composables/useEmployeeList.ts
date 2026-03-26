@@ -200,6 +200,15 @@ export function useEmployeeList() {
       role: form.role,
     });
     await fetchUsers();
+    // Initialize leave balances for new employee (non-blocking)
+    try {
+      const year = new Date().getFullYear();
+      await api.post(`/leaves/${authStore.restaurantId}/balances/accrue`, {
+        year,
+      });
+    } catch {
+      /* non-blocking */
+    }
   };
 
   const updateUser = async (id: number, form: EmployeeFormData) => {
