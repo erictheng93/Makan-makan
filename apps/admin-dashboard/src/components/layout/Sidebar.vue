@@ -199,9 +199,9 @@ const navigationItems = computed(() => {
       ]),
     },
     {
-      name: "users",
-      path: "/dashboard/users",
-      label: t("nav.users"),
+      name: "employees",
+      path: "/dashboard/employees",
+      label: t("nav.employees"),
       icon: Users,
       visible: authStore.canAccessAdminFeatures,
     },

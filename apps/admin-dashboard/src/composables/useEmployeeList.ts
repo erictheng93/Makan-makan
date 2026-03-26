@@ -1,0 +1,255 @@
+import { ref, computed } from "vue";
+import { api } from "@/services/api";
+import { schedulingService } from "@/services/schedulingService";
+import { useAuthStore } from "@/stores/auth";
+import type {
+  Employee,
+  EmployeeWithStatus,
+  EmployeeStats,
+  EmployeeFormData,
+} from "@/types/employee";
+import type { EmployeeSchedule } from "@/types/scheduling";
+
+export function useEmployeeList() {
+  const authStore = useAuthStore();
+
+  const users = ref<Employee[]>([]);
+  const clockedInList = ref<EmployeeSchedule[]>([]);
+  const todayLeaveRequests = ref<
+    Array<{ employeeId: number; leaveTypeName: string; endDate: string }>
+  >([]);
+  const isLoading = ref(false);
+  const clockedInLoading = ref(false);
+  const leaveLoading = ref(false);
+  const error = ref<string | null>(null);
+
+  // Search & filter state
+  const searchQuery = ref("");
+  const roleFilter = ref("");
+  const statusFilter = ref("");
+
+  // Lookup maps
+  const clockedInMap = computed(() => {
+    const map = new Map<
+      number,
+      { isClockedIn: boolean; clockInTime?: string; scheduleId?: number }
+    >();
+    for (const schedule of clockedInList.value) {
+      map.set(schedule.employeeId, {
+        isClockedIn: true,
+        clockInTime: schedule.clockInTime || undefined,
+        scheduleId: schedule.id,
+      });
+    }
+    return map;
+  });
+
+  const onLeaveMap = computed(() => {
+    const map = new Map<
+      number,
+      { isOnLeave: boolean; leaveType?: string; endDate?: string }
+    >();
+    for (const req of todayLeaveRequests.value) {
+      map.set(req.employeeId, {
+        isOnLeave: true,
+        leaveType: req.leaveTypeName,
+        endDate: req.endDate,
+      });
+    }
+    return map;
+  });
+
+  // Enhanced users with status
+  const usersWithStatus = computed<EmployeeWithStatus[]>(() => {
+    return users.value.map((u) => ({
+      ...u,
+      clockInStatus: clockedInMap.value.get(u.id) || { isClockedIn: false },
+      leaveStatus: onLeaveMap.value.get(u.id) || { isOnLeave: false },
+    }));
+  });
+
+  // Filtered + sorted list
+  const filteredUsers = computed(() => {
+    let filtered = usersWithStatus.value;
+
+    if (searchQuery.value) {
+      const query = searchQuery.value.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          user.username.toLowerCase().includes(query) ||
+          user.fullName?.toLowerCase().includes(query) ||
+          user.email?.toLowerCase().includes(query),
+      );
+    }
+
+    if (roleFilter.value) {
+      filtered = filtered.filter(
+        (user) => user.role.toString() === roleFilter.value,
+      );
+    }
+
+    if (statusFilter.value) {
+      filtered = filtered.filter((user) => user.status === statusFilter.value);
+    }
+
+    return filtered.sort((a, b) => {
+      if (a.role !== b.role) return a.role - b.role;
+      return a.username.localeCompare(b.username);
+    });
+  });
+
+  // Stats
+  const stats = computed<EmployeeStats>(() => ({
+    owner: users.value.filter((u) => u.role === 1).length,
+    chef: users.value.filter((u) => u.role === 2).length,
+    service: users.value.filter((u) => u.role === 3).length,
+    cashier: users.value.filter((u) => u.role === 4).length,
+    total: users.value.length,
+    currentlyWorking: clockedInList.value.length,
+    onLeaveToday: todayLeaveRequests.value.length,
+  }));
+
+  // Fetch methods
+  const fetchUsers = async () => {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.get("/users");
+      const payload = response.data?.success
+        ? response.data.data
+        : response.data;
+      users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
+        id: u.id,
+        username: u.username,
+        fullName: u.fullName || "",
+        email: u.email || "",
+        phone: u.phone || "",
+        role: u.role,
+        status: u.isActive
+          ? "active"
+          : u.isActive === false
+            ? "inactive"
+            : "active",
+        isActive: u.isActive !== false,
+        lastLoginAt: u.lastLoginAt,
+        createdAt: u.createdAt,
+        profileImageUrl: u.profileImageUrl,
+      }));
+    } catch (e: any) {
+      error.value = e.message || "Failed to fetch users";
+      console.error("Failed to fetch users:", e);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const fetchClockedIn = async () => {
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+    clockedInLoading.value = true;
+    try {
+      clockedInList.value =
+        await schedulingService.getClockedInEmployees(restaurantId);
+    } catch (e) {
+      console.error("Failed to fetch clocked-in employees:", e);
+    } finally {
+      clockedInLoading.value = false;
+    }
+  };
+
+  const fetchTodayLeaves = async () => {
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+    leaveLoading.value = true;
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const response = await api.get(`/leaves/${restaurantId}/requests`, {
+        status: "approved",
+        startDate: today,
+        endDate: today,
+      });
+      const data = response.data?.data || response.data || [];
+      todayLeaveRequests.value = (Array.isArray(data) ? data : []).map(
+        (r: any) => ({
+          employeeId: r.employeeId,
+          leaveTypeName: r.leaveType?.name || r.leaveTypeName || "Leave",
+          endDate: r.endDate,
+        }),
+      );
+    } catch (e) {
+      console.error("Failed to fetch today leaves:", e);
+    } finally {
+      leaveLoading.value = false;
+    }
+  };
+
+  const fetchAll = async () => {
+    await fetchUsers();
+    // Fire-and-forget for secondary data
+    fetchClockedIn();
+    fetchTodayLeaves();
+  };
+
+  // CRUD
+  const createUser = async (form: EmployeeFormData) => {
+    await api.post("/users", {
+      username: form.username,
+      password: form.password,
+      fullName: form.fullName,
+      email: form.email,
+      role: form.role,
+    });
+    await fetchUsers();
+  };
+
+  const updateUser = async (id: number, form: EmployeeFormData) => {
+    await api.put(`/users/${id}`, {
+      fullName: form.fullName,
+      email: form.email,
+      role: form.role,
+    });
+    await fetchUsers();
+  };
+
+  const toggleUserStatus = async (user: Employee) => {
+    const newIsActive = user.status !== "active";
+    await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
+    await fetchUsers();
+  };
+
+  const resetPassword = async (userId: number) => {
+    const tempPassword = `Reset${Date.now().toString(36)}!`;
+    await api.post(`/users/${userId}/reset-password`, {
+      newPassword: tempPassword,
+      confirmPassword: tempPassword,
+    });
+  };
+
+  return {
+    // State
+    users,
+    usersWithStatus,
+    filteredUsers,
+    stats,
+    clockedInList,
+    isLoading,
+    clockedInLoading,
+    leaveLoading,
+    error,
+
+    // Filters
+    searchQuery,
+    roleFilter,
+    statusFilter,
+
+    // Methods
+    fetchAll,
+    fetchUsers,
+    fetchClockedIn,
+    fetchTodayLeaves,
+    createUser,
+    updateUser,
+    toggleUserStatus,
+    resetPassword,
+  };
+}

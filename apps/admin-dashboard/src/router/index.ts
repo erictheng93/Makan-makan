@@ -103,14 +103,56 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
+      // Employee Management (replaces old /users route)
       {
-        path: "users",
-        name: "Users",
-        component: () => import("@/views/UsersView.vue"),
+        path: "employees",
+        component: () => import("@/views/employees/EmployeeManagementView.vue"),
         meta: {
-          titleKey: "pages.users",
+          titleKey: "pages.employees",
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
+        children: [
+          {
+            path: "",
+            name: "EmployeeList",
+            component: () => import("@/views/employees/EmployeeListTab.vue"),
+          },
+          {
+            path: "attendance",
+            name: "EmployeeAttendance",
+            component: () =>
+              import("@/views/employees/AttendanceOverviewTab.vue"),
+          },
+          {
+            path: ":id",
+            component: () => import("@/views/employees/EmployeeDetailView.vue"),
+            children: [
+              {
+                path: "",
+                name: "EmployeeProfile",
+                component: () =>
+                  import("@/views/employees/EmployeeProfileTab.vue"),
+              },
+              {
+                path: "schedule",
+                name: "EmployeeSchedule",
+                component: () =>
+                  import("@/views/employees/EmployeeScheduleTab.vue"),
+              },
+              {
+                path: "leave",
+                name: "EmployeeLeave",
+                component: () =>
+                  import("@/views/employees/EmployeeLeaveTab.vue"),
+              },
+            ],
+          },
+        ],
+      },
+      // Backward compatibility redirect
+      {
+        path: "users",
+        redirect: { name: "EmployeeList" },
       },
       {
         path: "analytics",

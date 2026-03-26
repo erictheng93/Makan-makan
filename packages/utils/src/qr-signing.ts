@@ -57,7 +57,7 @@ function buildCanonicalString(params: QRSigningParams): string {
 async function importKey(signingKey: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    stringToUint8Array(signingKey) as BufferSource,
+    stringToUint8Array(signingKey),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],
@@ -76,7 +76,7 @@ export async function signQRPayload(
 ): Promise<string> {
   const key = await importKey(signingKey);
   const data = stringToUint8Array(buildCanonicalString(params));
-  const signature = await crypto.subtle.sign("HMAC", key, data as BufferSource);
+  const signature = await crypto.subtle.sign("HMAC", key, data);
   // Take first 8 bytes → 16 hex chars
   return uint8ArrayToHex(new Uint8Array(signature).slice(0, 8));
 }
