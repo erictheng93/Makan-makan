@@ -98,6 +98,8 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useEmployeeList } from "@/composables/useEmployeeList";
+import { useAuthStore } from "@/stores/auth";
+import { leavesService } from "@/services/leavesService";
 import EmployeeFormModal from "@/components/employees/EmployeeFormModal.vue";
 import type { Employee, EmployeeFormData } from "@/types/employee";
 import {
@@ -117,9 +119,11 @@ import {
 const route = useRoute();
 const { t } = useI18n();
 const employeeList = useEmployeeList();
+const authStore = useAuthStore();
 
 const showModal = ref(false);
 const editingEmployee = ref<Employee | null>(null);
+const pendingLeaveCount = ref(0);
 
 // Stats cards
 const statCards = computed(() => [
@@ -202,7 +206,7 @@ const tabs = computed(() => [
     path: "/dashboard/employees/leaves",
     label: t("employees.tabs.leaves"),
     icon: CalendarCheck,
-    badge: undefined,
+    badge: pendingLeaveCount.value,
   },
   {
     name: "attendance",
@@ -245,7 +249,18 @@ const handleSave = async (form: EmployeeFormData, isEdit: boolean) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   employeeList.fetchAll();
+  try {
+    const restaurantId = authStore.restaurantId;
+    if (restaurantId) {
+      const pending = await leavesService.getRequests(String(restaurantId), {
+        status: "pending",
+      });
+      pendingLeaveCount.value = Array.isArray(pending) ? pending.length : 0;
+    }
+  } catch {
+    // silently ignore errors fetching leave count
+  }
 });
 </script>
