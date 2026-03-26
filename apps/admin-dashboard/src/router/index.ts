@@ -124,6 +124,16 @@ const routes: RouteRecordRaw[] = [
               import("@/views/employees/AttendanceOverviewTab.vue"),
           },
           {
+            path: "scheduling",
+            name: "EmployeeScheduling",
+            component: () => import("@/views/employees/SchedulingTab.vue"),
+          },
+          {
+            path: "leaves",
+            name: "EmployeeLeaves",
+            component: () => import("@/views/employees/LeavesTab.vue"),
+          },
+          {
             path: ":id",
             component: () => import("@/views/employees/EmployeeDetailView.vue"),
             children: [
@@ -270,26 +280,10 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
-      // Employee scheduling route
-      {
-        path: "scheduling",
-        name: "Scheduling",
-        component: () => import("@/views/scheduling/SchedulingView.vue"),
-        meta: {
-          titleKey: "pages.scheduling",
-          roles: [UserRole.ADMIN, UserRole.OWNER],
-        },
-      },
-      // Leave management route
-      {
-        path: "leaves",
-        name: "Leaves",
-        component: () => import("@/views/LeaveView.vue"),
-        meta: {
-          titleKey: "pages.leaves",
-          roles: [UserRole.ADMIN, UserRole.OWNER],
-        },
-      },
+      // Employee scheduling route (redirects to unified employee management tab)
+      { path: "scheduling", redirect: { name: "EmployeeScheduling" } },
+      // Leave management route (redirects to unified employee management tab)
+      { path: "leaves", redirect: { name: "EmployeeLeaves" } },
       // Reservation management
       {
         path: "reservations",

@@ -1135,6 +1135,8 @@ const zhTW: Messages = {
       close: "關閉",
       chartUnit: "次",
       responseTimeUnit: "回應時間 (毫秒)",
+      live: "即時",
+      stable: "穩定",
     },
 
     // 通知訊息
@@ -1777,6 +1779,12 @@ const zhTW: Messages = {
       database: "資料存儲",
       realtime: "WebSocket 連線",
     },
+    statusHealthy: "正常",
+    statusWarning: "警告",
+    statusError: "異常",
+    statusOnline: "在線",
+    statusBusy: "忙碌",
+    statusOffline: "離線",
   },
 
   // 通知面板
@@ -2799,6 +2807,8 @@ const zhTW: Messages = {
     subtitle: "管理員工資訊、排班與請假",
     tabs: {
       list: "員工列表",
+      scheduling: "排班總覽",
+      leaves: "請假管理",
       attendance: "出勤總覽",
     },
     table: {

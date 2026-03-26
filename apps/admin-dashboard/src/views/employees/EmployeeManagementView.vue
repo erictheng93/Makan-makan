@@ -110,6 +110,8 @@ import {
   Truck,
   CreditCard,
   ClipboardCheck,
+  Calendar,
+  CalendarCheck,
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -186,6 +188,20 @@ const tabs = computed(() => [
     path: "/dashboard/employees",
     label: t("employees.tabs.list"),
     icon: Users,
+    badge: undefined,
+  },
+  {
+    name: "scheduling",
+    path: "/dashboard/employees/scheduling",
+    label: t("employees.tabs.scheduling"),
+    icon: Calendar,
+    badge: undefined,
+  },
+  {
+    name: "leaves",
+    path: "/dashboard/employees/leaves",
+    label: t("employees.tabs.leaves"),
+    icon: CalendarCheck,
     badge: undefined,
   },
   {

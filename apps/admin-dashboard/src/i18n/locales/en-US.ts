@@ -1090,6 +1090,8 @@ const enUS: Messages = {
       close: "Close",
       chartUnit: "times",
       responseTimeUnit: "Response Time (ms)",
+      live: "Live",
+      stable: "Stable",
     },
 
     notifications: {
@@ -1740,6 +1742,12 @@ const enUS: Messages = {
       database: "Data storage",
       realtime: "WebSocket connections",
     },
+    statusHealthy: "Healthy",
+    statusWarning: "Warning",
+    statusError: "Error",
+    statusOnline: "Online",
+    statusBusy: "Busy",
+    statusOffline: "Offline",
   },
 
   // Notification panel
@@ -2772,6 +2780,8 @@ const enUS: Messages = {
     subtitle: "Manage staff info, scheduling, and leave",
     tabs: {
       list: "Employee List",
+      scheduling: "Scheduling",
+      leaves: "Leave Management",
       attendance: "Attendance",
     },
     table: {
