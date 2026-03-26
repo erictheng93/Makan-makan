@@ -1,31 +1,40 @@
 <template>
   <div class="space-y-4">
     <!-- Sub-tab navigation -->
-    <div class="flex items-center gap-2">
-      <button
-        v-for="tab in tabs"
-        :key="tab.key"
-        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
-        :class="
-          activeTab === tab.key
-            ? 'bg-[#007AFF] text-white shadow-sm'
-            : 'bg-[#F2F2F7] text-[#1C1C1E]/60 hover:text-[#1C1C1E] hover:bg-[#E5E5EA]'
-        "
-        @click="activeTab = tab.key"
-      >
-        {{ tab.label }}
-        <!-- Badge for pending count -->
-        <span
-          v-if="tab.key === 'queue' && pendingCount > 0"
-          class="min-w-[18px] h-[18px] px-1 text-xs font-bold rounded-full flex items-center justify-center"
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
           :class="
-            activeTab === 'queue'
-              ? 'bg-white/25 text-white'
-              : 'bg-[#FF3B30] text-white'
+            activeTab === tab.key
+              ? 'bg-[#007AFF] text-white shadow-sm'
+              : 'bg-[#F2F2F7] text-[#1C1C1E]/60 hover:text-[#1C1C1E] hover:bg-[#E5E5EA]'
           "
+          @click="activeTab = tab.key"
         >
-          {{ pendingCount }}
-        </span>
+          {{ tab.label }}
+          <!-- Badge for pending count -->
+          <span
+            v-if="tab.key === 'queue' && pendingCount > 0"
+            class="min-w-[18px] h-[18px] px-1 text-xs font-bold rounded-full flex items-center justify-center"
+            :class="
+              activeTab === 'queue'
+                ? 'bg-white/25 text-white'
+                : 'bg-[#FF3B30] text-white'
+            "
+          >
+            {{ pendingCount }}
+          </span>
+        </button>
+      </div>
+      <button
+        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        @click="showRequestDialog = true"
+      >
+        <Plus class="w-3.5 h-3.5" />
+        申請請假
       </button>
     </div>
 
@@ -74,19 +83,31 @@
         v-else-if="activeTab === 'balance'"
         :balances="balances"
         :employees="employeeList"
+        @accrue="handleAccrue"
       />
     </template>
+
+    <LeaveRequestDialog
+      :is-open="showRequestDialog"
+      :leave-types="leaveTypes as any"
+      :balances="balances as any"
+      @close="showRequestDialog = false"
+      @submit="handleLeaveRequest"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { Plus } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
 import { leavesService } from "@/services/leavesService";
+import { api as apiClient } from "@/services/api";
 import { useEmployeeList } from "@/composables/useEmployeeList";
 import LeaveApprovalQueue from "@/components/leaves/LeaveApprovalQueue.vue";
 import LeaveHistoryList from "@/components/leaves/LeaveHistoryList.vue";
 import LeaveBalanceOverview from "@/components/leaves/LeaveBalanceOverview.vue";
+import LeaveRequestDialog from "@/components/leaves/LeaveRequestDialog.vue";
 import type {
   LeaveRequest,
   LeaveBalance,
@@ -109,6 +130,7 @@ const { users, fetchUsers } = useEmployeeList();
 const activeTab = ref<TabKey>("queue");
 const isLoading = ref(false);
 const error = ref<string | null>(null);
+const showRequestDialog = ref(false);
 
 const leaveTypes = ref<LeaveType[]>([]);
 const balances = ref<LeaveBalance[]>([]);
@@ -195,6 +217,37 @@ const handleReject = async (requestId: number, reason?: string) => {
     console.error("Failed to reject request:", e);
     error.value = e?.message || "拒絕失敗，請重試";
     await loadData(); // Refresh on error
+  }
+};
+
+const handleLeaveRequest = async (formData: any) => {
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
+  try {
+    await leavesService.createRequest(String(restaurantId), {
+      leaveTypeId: formData.leaveTypeId,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      period: formData.startPeriod || "full",
+      reason: formData.reason,
+    });
+    showRequestDialog.value = false;
+    await loadData();
+  } catch (e: any) {
+    error.value = e?.message || "申請失敗";
+  }
+};
+
+const handleAccrue = async () => {
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
+  try {
+    await apiClient.post(`/leaves/${restaurantId}/balances/accrue`, {
+      year: new Date().getFullYear(),
+    });
+    await loadData();
+  } catch (e: any) {
+    error.value = e?.message || "初始化失敗";
   }
 };
 

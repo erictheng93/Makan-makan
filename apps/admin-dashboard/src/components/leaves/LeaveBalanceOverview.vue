@@ -13,6 +13,12 @@
         <BarChart3 class="w-6 h-6 text-[#007AFF]" />
       </div>
       <p class="text-sm font-semibold text-[#1C1C1E]/60">暫無假期餘額資料</p>
+      <button
+        class="mt-3 px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors"
+        @click="$emit('accrue')"
+      >
+        初始化假期餘額
+      </button>
     </div>
 
     <div v-else>
@@ -94,6 +100,10 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+defineEmits<{
+  accrue: [];
+}>();
 
 const employeeMap = computed(
   () => new Map(props.employees.map((e) => [e.id, e.name])),
