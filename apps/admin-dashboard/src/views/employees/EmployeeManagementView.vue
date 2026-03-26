@@ -79,6 +79,8 @@
           :is-loading="employeeList.isLoading.value"
           @edit-user="editUser"
           @refresh="employeeList.fetchAll"
+          @reset-password="handleResetPassword"
+          @toggle-status="handleToggleStatus"
         />
       </div>
     </div>
@@ -245,7 +247,38 @@ const handleSave = async (form: EmployeeFormData, isEdit: boolean) => {
     }
     closeModal();
   } catch (error: any) {
-    alert(error.response?.data?.error?.message || t("users.errors.saveFailed"));
+    const rawError = error?.originalError || error;
+    const apiError = rawError?.response?.data?.error;
+    let errorMessage: string;
+    if (apiError?.details && Array.isArray(apiError.details)) {
+      errorMessage = apiError.details.map((d: any) => d.message).join("\n");
+    } else if (apiError?.message) {
+      errorMessage = apiError.message;
+    } else {
+      errorMessage = error?.message || t("users.errors.saveFailed");
+    }
+    alert(errorMessage);
+  }
+};
+
+const handleResetPassword = async (userId: number) => {
+  try {
+    await employeeList.resetPassword(userId);
+    alert(t("users.confirm.resetPasswordSuccess"));
+  } catch (error: any) {
+    alert(
+      error.response?.data?.error?.message || t("users.errors.resetFailed"),
+    );
+  }
+};
+
+const handleToggleStatus = async (user: any) => {
+  try {
+    await employeeList.toggleUserStatus(user);
+  } catch (error: any) {
+    alert(
+      error.response?.data?.error?.message || t("users.errors.toggleFailed"),
+    );
   }
 };
 

@@ -261,7 +261,6 @@
 import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
-import { useEmployeeList } from "@/composables/useEmployeeList";
 import type { Employee, EmployeeWithStatus } from "@/types/employee";
 import {
   Search,
@@ -279,25 +278,43 @@ import {
   User,
 } from "lucide-vue-next";
 
-defineProps<{
+const props = defineProps<{
   usersWithStatus?: EmployeeWithStatus[];
   isLoading?: boolean;
 }>();
 
-defineEmits<{
-  editUser: [user: Employee];
-  refresh: [];
-}>();
-
 const router = useRouter();
 const { t } = useI18n();
-const employeeList = useEmployeeList();
 
-// Use composable filters directly
-const searchQuery = employeeList.searchQuery;
-const roleFilter = employeeList.roleFilter;
-const statusFilter = employeeList.statusFilter;
-const filteredUsers = employeeList.filteredUsers;
+// Local filter state that operates on the passed-in prop
+const searchQuery = ref("");
+const roleFilter = ref("");
+const statusFilter = ref("");
+
+const filteredUsers = computed(() => {
+  if (!props.usersWithStatus) return [];
+  let filtered = props.usersWithStatus;
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(
+      (u) =>
+        u.username?.toLowerCase().includes(q) ||
+        u.fullName?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q),
+    );
+  }
+  if (roleFilter.value) {
+    filtered = filtered.filter((u) => u.role === Number(roleFilter.value));
+  }
+  if (statusFilter.value) {
+    filtered = filtered.filter((u) => {
+      if (statusFilter.value === "active") return u.isActive;
+      if (statusFilter.value === "inactive") return !u.isActive;
+      return true;
+    });
+  }
+  return filtered;
+});
 
 // Pagination
 const currentPage = ref(1);
@@ -394,20 +411,20 @@ const navigateToDetail = (id: number) => {
   router.push(`/dashboard/employees/${id}`);
 };
 
-const handleResetPassword = async (user: EmployeeWithStatus) => {
+const emit = defineEmits<{
+  editUser: [user: Employee];
+  refresh: [];
+  resetPassword: [userId: number];
+  toggleStatus: [user: EmployeeWithStatus];
+}>();
+
+const handleResetPassword = (user: EmployeeWithStatus) => {
   if (confirm(t("users.confirm.resetPassword", { username: user.username }))) {
-    try {
-      await employeeList.resetPassword(user.id);
-      alert(t("users.confirm.resetPasswordSuccess"));
-    } catch (error: any) {
-      alert(
-        error.response?.data?.error?.message || t("users.errors.resetFailed"),
-      );
-    }
+    emit("resetPassword", user.id);
   }
 };
 
-const handleToggleStatus = async (user: EmployeeWithStatus) => {
+const handleToggleStatus = (user: EmployeeWithStatus) => {
   const action =
     user.status === "active"
       ? t("users.actions.disable")
@@ -417,13 +434,7 @@ const handleToggleStatus = async (user: EmployeeWithStatus) => {
       t("users.confirm.toggleStatus", { action, username: user.username }),
     )
   ) {
-    try {
-      await employeeList.toggleUserStatus(user);
-    } catch (error: any) {
-      alert(
-        error.response?.data?.error?.message || t("users.errors.toggleFailed"),
-      );
-    }
+    emit("toggleStatus", user);
   }
 };
 </script>
