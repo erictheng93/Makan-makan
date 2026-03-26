@@ -8,7 +8,7 @@
 import { randomUUID } from "crypto";
 import type { D1Database } from "@cloudflare/workers-types";
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, sql, desc, asc, isNull, gte } from "drizzle-orm";
+import { eq, and, sql, desc, asc, isNull, gte, inArray } from "drizzle-orm";
 import {
   groupOrders,
   groupMembers,
@@ -125,20 +125,40 @@ export class GroupOrdersService implements IGroupOrderService {
         .orderBy(desc(groupOrders.createdAt))
         .limit(100);
 
-      const results: any[] = [];
-      for (const row of rows) {
-        const memberRows = await this.db
+      if (rows.length === 0) return [];
+
+      // Batch-fetch members and cart items (3 queries total instead of 2N+1)
+      const orderIds = rows.map((r) => r.id);
+      const [allMembers, allCartItems] = await Promise.all([
+        this.db
           .select()
           .from(groupMembers)
-          .where(eq(groupMembers.groupOrderId, row.id));
-
-        const cartItemRows = await this.db
+          .where(inArray(groupMembers.groupOrderId, orderIds)),
+        this.db
           .select()
           .from(groupCartItems)
-          .where(eq(groupCartItems.groupOrderId, row.id));
+          .where(inArray(groupCartItems.groupOrderId, orderIds)),
+      ]);
 
+      // Group by order ID in-memory
+      const membersByOrder = new Map<string, typeof allMembers>();
+      for (const m of allMembers) {
+        const list = membersByOrder.get(m.groupOrderId) || [];
+        list.push(m);
+        membersByOrder.set(m.groupOrderId, list);
+      }
+      const cartItemsByOrder = new Map<string, typeof allCartItems>();
+      for (const c of allCartItems) {
+        const list = cartItemsByOrder.get(c.groupOrderId) || [];
+        list.push(c);
+        cartItemsByOrder.set(c.groupOrderId, list);
+      }
+
+      return rows.map((row) => {
+        const memberRows = membersByOrder.get(row.id) || [];
+        const cartItemRows = cartItemsByOrder.get(row.id) || [];
         const settings = row.settings as any;
-        results.push({
+        return {
           id: row.id,
           shareCode: row.shareCode,
           masterOrderId: null,
@@ -157,10 +177,8 @@ export class GroupOrdersService implements IGroupOrderService {
           createdAt: row.createdAt?.toISOString() || null,
           completedAt: null,
           expiresAt: row.expiresAt?.toISOString() || null,
-        });
-      }
-
-      return results;
+        };
+      });
     } catch (error) {
       this.errorTracker.logError("listGroupOrders", error as Error, {
         restaurantId,
