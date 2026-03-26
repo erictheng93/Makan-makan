@@ -525,12 +525,18 @@
                   <div
                     v-for="item in selectedOrder.items"
                     :key="item.id"
-                    class="p-3"
+                    class="p-3 hover:bg-[#F2F2F7] transition-colors rounded-lg cursor-pointer group/item"
+                    @click="navigateToMenuItem(item)"
                   >
-                    <div class="flex justify-between">
-                      <div>
-                        <p class="font-medium">
+                    <div class="flex justify-between items-start">
+                      <div class="flex-1 min-w-0">
+                        <p
+                          class="font-medium text-[#007AFF] group-hover/item:underline flex items-center gap-1"
+                        >
                           {{ getMenuItemName(item) }}
+                          <ArrowTopRightOnSquareIcon
+                            class="h-3.5 w-3.5 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                          />
                         </p>
                         <p class="text-sm text-gray-500">
                           {{ t("orders.detail.quantity") }}: {{ item.quantity }}
@@ -569,6 +575,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { useOrderStore } from "@/stores/order";
@@ -584,10 +591,12 @@ import {
   ShoppingBagIcon,
   XMarkIcon,
   EyeIcon,
+  ArrowTopRightOnSquareIcon,
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const router = useRouter();
 const orderStore = useOrderStore();
 
 // 響應式數據
@@ -629,6 +638,16 @@ const getSourceText = (source: string) => {
 };
 const getMenuItemName = (item: any) =>
   item.menuItem?.name || `#${item.menuItemId}`;
+
+const navigateToMenuItem = (item: any) => {
+  if (item.menuItemId) {
+    selectedOrder.value = null;
+    router.push({
+      path: "/dashboard/menu",
+      query: { highlightItem: String(item.menuItemId) },
+    });
+  }
+};
 
 // 計算屬性
 const stats = computed(() => ({

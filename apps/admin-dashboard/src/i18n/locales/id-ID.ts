@@ -60,6 +60,9 @@ const idID: Messages = {
     statusInactive: "Nonaktif",
     available: "Tersedia",
     soldOut: "Habis",
+    metrics: {
+      sold: "terjual",
+    },
     featured: "Unggulan",
     unknownCategory: "Kategori Tidak Dikenal",
     editCategory: "Edit Kategori",
@@ -898,6 +901,26 @@ const idID: Messages = {
     },
   },
 
+  // Manajemen tempat duduk
+  seating: {
+    title: "Manajemen Tempat Duduk",
+    subtitle: "Kelola reservasi, daftar tunggu, dan antrean",
+    tabs: {
+      reservations: "Reservasi",
+      waitingList: "Daftar Tunggu",
+      queueDashboard: "Dashboard Antrean",
+    },
+    stats: {
+      todayReservations: "Reservasi Hari Ini",
+      confirmed: "Dikonfirmasi",
+      currentlyWaiting: "Sedang Menunggu",
+      avgWaitTime: "Rata-rata Tunggu",
+      availableTables: "Meja Tersedia",
+      noShowRate: "Tingkat Ketidakhadiran",
+      todayServed: "Dilayani Hari Ini",
+    },
+  },
+
   // Pemantauan sistem
   monitoring: {
     title: "Pemantauan Sistem",
@@ -1373,6 +1396,7 @@ const idID: Messages = {
     tables: "Manajemen Meja",
     reservations: "Manajemen Reservasi",
     waitingList: "Daftar Tunggu",
+    seatingManagement: "Tempat Duduk",
     users: "Manajemen Karyawan",
     scheduling: "Jadwal Karyawan",
     leaves: "Manajemen Cuti",
@@ -1413,6 +1437,7 @@ const idID: Messages = {
     leaves: "Manajemen Cuti",
     reservations: "Manajemen Reservasi",
     waitingList: "Manajemen Antrean",
+    seatingManagement: "Manajemen Tempat Duduk",
     monitoring: "Pemantauan Sistem",
     kitchen: "Tampilan Dapur",
     cashier: "Kasir",

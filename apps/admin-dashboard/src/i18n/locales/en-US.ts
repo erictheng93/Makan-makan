@@ -60,6 +60,9 @@ const enUS: Messages = {
     statusInactive: "Inactive",
     available: "Available",
     soldOut: "Sold Out",
+    metrics: {
+      sold: "sold",
+    },
     featured: "Featured",
     unknownCategory: "Unknown Category",
     editCategory: "Edit Category",
@@ -894,6 +897,26 @@ const enUS: Messages = {
     },
   },
 
+  // Seating management
+  seating: {
+    title: "Seating Management",
+    subtitle: "Manage reservations, waiting list, and queue",
+    tabs: {
+      reservations: "Reservations",
+      waitingList: "Waiting List",
+      queueDashboard: "Queue Dashboard",
+    },
+    stats: {
+      todayReservations: "Today's Reservations",
+      confirmed: "Confirmed",
+      currentlyWaiting: "Currently Waiting",
+      avgWaitTime: "Avg Wait Time",
+      availableTables: "Available Tables",
+      noShowRate: "No-Show Rate",
+      todayServed: "Today Served",
+    },
+  },
+
   // System Monitoring
   monitoring: {
     title: "System Monitoring",
@@ -1443,6 +1466,7 @@ const enUS: Messages = {
     reservations: "Reservations",
     waitingList: "Waiting List",
     waitingManagement: "Waiting Management",
+    seatingManagement: "Seating",
     waitingTabs: {
       list: "Waiting List",
       dashboard: "Live Dashboard",
@@ -1492,6 +1516,7 @@ const enUS: Messages = {
     reservations: "Reservations",
     waitingList: "Waiting List",
     waitingManagement: "Waiting Management",
+    seatingManagement: "Seating Management",
     monitoring: "Monitoring",
     kitchen: "Kitchen Display",
     cashier: "Cashier",

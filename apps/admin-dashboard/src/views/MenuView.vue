@@ -122,6 +122,7 @@
         <!-- VirtualMenuGrid -->
         <VirtualMenuGrid
           v-if="filteredItems.length > 0"
+          ref="menuGridRef"
           :menu-items="filteredItems"
           :item-height="330"
           :container-height="800"
@@ -132,6 +133,7 @@
             <MenuItemCard
               :item="menuItem as MenuItemData"
               :category-name="getCategoryName(menuItem.categoryId)"
+              :highlighted="menuItem.id === highlightedItemId"
               @edit="editMenuItem"
               @toggle-status="toggleMenuItemStatus"
               @delete="handleDeleteMenuItem"
@@ -368,7 +370,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
+import { useRoute } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useMenuManagement } from "@/composables/useMenuManagement";
 import type {
@@ -386,6 +389,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const route = useRoute();
 const {
   categories,
   menuItems,
@@ -409,6 +413,8 @@ const showCategoryEditForm = ref(false);
 const editingCategory = ref<CategoryData | null>(null);
 const showMenuItemModal = ref(false);
 const editingMenuItem = ref<MenuItemData | null>(null);
+const menuGridRef = ref<InstanceType<typeof VirtualMenuGrid> | null>(null);
+const highlightedItemId = ref<number | null>(null);
 
 const menuItemForm = ref({
   name: "",
@@ -562,6 +568,37 @@ const handleDeleteMenuItem = async (item: MenuItemData) => {
     await deleteMenuItem(item);
   }
 };
+
+// ── Highlight item from cross-module navigation ──
+watch(
+  () => route.query.highlightItem,
+  async (itemIdStr) => {
+    if (!itemIdStr) {
+      highlightedItemId.value = null;
+      return;
+    }
+    const itemId = Number(itemIdStr);
+    if (isNaN(itemId)) return;
+
+    const item = menuItems.value.find((m) => m.id === itemId);
+    if (item) {
+      selectedCategoryId.value = item.categoryId;
+      searchQuery.value = "";
+      statusFilter.value = "all";
+    }
+
+    highlightedItemId.value = itemId;
+
+    await nextTick();
+    await nextTick();
+    menuGridRef.value?.scrollToMenuItem(itemId);
+
+    setTimeout(() => {
+      highlightedItemId.value = null;
+    }, 3000);
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   fetchMenu();

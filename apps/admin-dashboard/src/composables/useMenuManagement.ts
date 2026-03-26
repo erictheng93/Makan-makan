@@ -26,6 +26,9 @@ export interface MenuItemData {
   isFeatured: boolean;
   isAvailable: boolean;
   sortOrder: number;
+  orderCount?: number;
+  rating?: number;
+  reviewCount?: number;
 }
 
 // Singleton state — shared across components within the same page

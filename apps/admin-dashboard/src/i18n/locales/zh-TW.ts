@@ -60,6 +60,9 @@ const zhTW: Messages = {
     statusInactive: "已下架",
     available: "供應中",
     soldOut: "已售完",
+    metrics: {
+      sold: "已售出",
+    },
     featured: "精選",
     unknownCategory: "未知分類",
     editCategory: "編輯分類",
@@ -929,6 +932,26 @@ const zhTW: Messages = {
     },
   },
 
+  // 座位管理
+  seating: {
+    title: "座位管理",
+    subtitle: "統一管理訂位、候位與排隊",
+    tabs: {
+      reservations: "訂位",
+      waitingList: "候位",
+      queueDashboard: "排隊看板",
+    },
+    stats: {
+      todayReservations: "今日訂位",
+      confirmed: "已確認",
+      currentlyWaiting: "等待中",
+      avgWaitTime: "平均等待",
+      availableTables: "可用桌位",
+      noShowRate: "未到店率",
+      todayServed: "今日已服務",
+    },
+  },
+
   // 系統監控
   monitoring: {
     title: "系統監控",
@@ -1485,6 +1508,7 @@ const zhTW: Messages = {
     reservations: "訂位管理",
     waitingList: "候位列表",
     waitingManagement: "候位管理",
+    seatingManagement: "座位管理",
     waitingTabs: {
       list: "候位列表",
       dashboard: "即時看板",
@@ -1534,6 +1558,7 @@ const zhTW: Messages = {
     reservations: "訂位管理",
     waitingList: "候位管理",
     waitingManagement: "候位管理",
+    seatingManagement: "座位管理",
     monitoring: "系統監控",
     accountManagement: "帳號管理",
     kitchen: "廚房顯示",

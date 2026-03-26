@@ -60,6 +60,9 @@ const jaJP: Messages = {
     statusInactive: "非公開",
     available: "提供中",
     soldOut: "売り切れ",
+    metrics: {
+      sold: "販売済み",
+    },
     featured: "おすすめ",
     unknownCategory: "不明なカテゴリ",
     editCategory: "カテゴリ編集",
@@ -824,6 +827,26 @@ const jaJP: Messages = {
     },
   },
 
+  // 座席管理
+  seating: {
+    title: "座席管理",
+    subtitle: "予約・ウェイティング・順番待ちを一元管理",
+    tabs: {
+      reservations: "予約",
+      waitingList: "ウェイティング",
+      queueDashboard: "順番待ちダッシュボード",
+    },
+    stats: {
+      todayReservations: "本日の予約",
+      confirmed: "確認済み",
+      currentlyWaiting: "待ち組数",
+      avgWaitTime: "平均待ち時間",
+      availableTables: "空きテーブル",
+      noShowRate: "ノーショー率",
+      todayServed: "本日対応済み",
+    },
+  },
+
   // システム監視
   monitoring: {
     title: "システム監視",
@@ -1295,6 +1318,7 @@ const jaJP: Messages = {
     tables: "テーブル管理",
     reservations: "予約管理",
     waitingList: "ウェイティングリスト",
+    seatingManagement: "座席管理",
     users: "スタッフ管理",
     scheduling: "シフト管理",
     leaves: "休暇管理",
@@ -1335,6 +1359,7 @@ const jaJP: Messages = {
     leaves: "休暇管理",
     reservations: "予約管理",
     waitingList: "待ち管理",
+    seatingManagement: "座席管理",
     monitoring: "システム監視",
     kitchen: "キッチンディスプレイ",
     cashier: "レジ",

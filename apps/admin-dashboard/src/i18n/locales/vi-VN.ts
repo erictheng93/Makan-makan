@@ -60,6 +60,9 @@ const viVN: Messages = {
     statusInactive: "Ngừng bán",
     available: "Còn hàng",
     soldOut: "Hết hàng",
+    metrics: {
+      sold: "đã bán",
+    },
     featured: "Nổi bật",
     unknownCategory: "Danh mục không xác định",
     editCategory: "Sửa danh mục",
@@ -822,6 +825,26 @@ const viVN: Messages = {
     },
   },
 
+  // Quản lý chỗ ngồi
+  seating: {
+    title: "Quản lý chỗ ngồi",
+    subtitle: "Quản lý đặt bàn, danh sách chờ và hàng đợi",
+    tabs: {
+      reservations: "Đặt bàn",
+      waitingList: "Danh sách chờ",
+      queueDashboard: "Bảng xếp hàng",
+    },
+    stats: {
+      todayReservations: "Đặt bàn hôm nay",
+      confirmed: "Đã xác nhận",
+      currentlyWaiting: "Đang chờ",
+      avgWaitTime: "Thời gian chờ TB",
+      availableTables: "Bàn trống",
+      noShowRate: "Tỷ lệ vắng mặt",
+      todayServed: "Đã phục vụ hôm nay",
+    },
+  },
+
   // Giám sát hệ thống
   monitoring: {
     title: "Giám sát hệ thống",
@@ -1294,6 +1317,7 @@ const viVN: Messages = {
     tables: "Quản lý bàn",
     reservations: "Quản lý đặt bàn",
     waitingList: "Danh sách chờ",
+    seatingManagement: "Chỗ ngồi",
     users: "Quản lý nhân viên",
     scheduling: "Lịch làm việc",
     leaves: "Quản lý nghỉ phép",
@@ -1334,6 +1358,7 @@ const viVN: Messages = {
     leaves: "Quản lý nghỉ phép",
     reservations: "Quản lý đặt bàn",
     waitingList: "Quản lý hàng đợi",
+    seatingManagement: "Quản lý chỗ ngồi",
     monitoring: "Giám sát hệ thống",
     kitchen: "Màn hình bếp",
     cashier: "Thu ngân",

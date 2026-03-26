@@ -60,6 +60,9 @@ const zhCN: Messages = {
     statusInactive: "已下架",
     available: "供应中",
     soldOut: "已售完",
+    metrics: {
+      sold: "已售出",
+    },
     featured: "精选",
     unknownCategory: "未知分类",
     editCategory: "编辑分类",
@@ -820,6 +823,26 @@ const zhCN: Messages = {
     },
   },
 
+  // 座位管理
+  seating: {
+    title: "座位管理",
+    subtitle: "统一管理预订、候位与排队",
+    tabs: {
+      reservations: "预订",
+      waitingList: "候位",
+      queueDashboard: "排队看板",
+    },
+    stats: {
+      todayReservations: "今日预订",
+      confirmed: "已确认",
+      currentlyWaiting: "等待中",
+      avgWaitTime: "平均等待",
+      availableTables: "可用桌位",
+      noShowRate: "未到店率",
+      todayServed: "今日已服务",
+    },
+  },
+
   // 系统监控
   monitoring: {
     title: "系统监控",
@@ -1376,6 +1399,7 @@ const zhCN: Messages = {
     reservations: "预订管理",
     waitingList: "候位列表",
     waitingManagement: "候位管理",
+    seatingManagement: "座位管理",
     waitingTabs: {
       list: "候位列表",
       dashboard: "即时看板",
@@ -1421,6 +1445,7 @@ const zhCN: Messages = {
     reservations: "预订管理",
     waitingList: "候位管理",
     waitingManagement: "候位管理",
+    seatingManagement: "座位管理",
     monitoring: "系统监控",
     kitchen: "厨房显示",
     cashier: "收银台",

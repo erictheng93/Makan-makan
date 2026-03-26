@@ -132,15 +132,27 @@
       <!-- Top Menu Items -->
       <div class="lg:col-span-2">
         <div class="card p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            {{ t("dashboard.popularItems") }}
-          </h3>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("dashboard.popularItems") }}
+            </h3>
+            <router-link
+              to="/dashboard/menu"
+              class="text-primary-600 hover:text-primary-700 text-sm font-medium"
+            >
+              {{ t("dashboard.viewAll") }}
+            </router-link>
+          </div>
           <!-- 懶加載：只在可見時渲染 -->
           <LazyChart
             min-height="200px"
             :loading-text="t('dashboard.loadingPopularItems')"
           >
-            <TopMenuItems :items="topMenuItems as any" :loading="isLoading" />
+            <TopMenuItems
+              :items="topMenuItems as any"
+              :loading="isLoading"
+              @item-click="navigateToMenuItem"
+            />
           </LazyChart>
         </div>
       </div>
@@ -158,7 +170,10 @@
             {{ t("dashboard.viewAll") }}
           </router-link>
         </div>
-        <RecentOrders :loading="orderStore.isLoading" />
+        <RecentOrders
+          :loading="orderStore.isLoading"
+          @order-click="navigateToOrder"
+        />
       </div>
     </div>
 
@@ -244,6 +259,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
@@ -274,6 +290,7 @@ import RealtimeNotificationPanel from "@/components/RealtimeNotificationPanel.vu
 import LazyChart from "@/components/LazyChart.vue";
 
 const { t } = useI18n();
+const router = useRouter();
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
 const orderStore = useOrderStore();
@@ -337,6 +354,17 @@ const updateOrdersChart = async () => {
   await dashboardStore.fetchOrderAnalytics(
     ordersChartPeriod.value as "daily" | "weekly" | "monthly",
   );
+};
+
+const navigateToMenuItem = (item: any) => {
+  router.push({
+    path: "/dashboard/menu",
+    query: { highlightItem: String(item.id) },
+  });
+};
+
+const navigateToOrder = () => {
+  router.push("/dashboard/orders");
 };
 
 onMounted(async () => {

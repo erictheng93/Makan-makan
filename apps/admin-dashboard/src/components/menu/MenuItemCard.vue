@@ -1,6 +1,10 @@
 <template>
   <div
-    class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-all duration-[280ms] cursor-pointer group"
+    :class="[
+      'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-all duration-[280ms] cursor-pointer group',
+      highlighted &&
+        'ring-2 ring-[#007AFF] shadow-[0_0_20px_rgba(0,122,255,0.15)]',
+    ]"
   >
     <!-- Image -->
     <div class="relative">
@@ -55,6 +59,24 @@
       <p class="text-xs text-[#8E8E93] leading-relaxed line-clamp-2 mb-2.5">
         {{ item.description }}
       </p>
+
+      <!-- Order metrics -->
+      <div
+        v-if="item.orderCount && item.orderCount > 0"
+        class="flex items-center gap-3 mb-2.5"
+      >
+        <span class="flex items-center gap-1 text-[11px] text-[#8E8E93]">
+          <ShoppingBagIcon class="h-3 w-3" />
+          {{ item.orderCount }} {{ t("menu.metrics.sold") }}
+        </span>
+        <span
+          v-if="item.rating && item.rating > 0"
+          class="flex items-center gap-1 text-[11px] text-[#FF9500]"
+        >
+          <StarIcon class="h-3 w-3 fill-current" />
+          {{ item.rating.toFixed(1) }}
+        </span>
+      </div>
 
       <div class="flex justify-between items-center">
         <div class="flex gap-1">
@@ -112,6 +134,8 @@ import {
   TrashIcon,
   EyeIcon,
   EyeSlashIcon,
+  ShoppingBagIcon,
+  StarIcon,
 } from "@heroicons/vue/24/outline";
 import type { MenuItemData } from "@/composables/useMenuManagement";
 
@@ -121,6 +145,7 @@ const { formatPrice } = useCurrency();
 defineProps<{
   item: MenuItemData;
   categoryName?: string;
+  highlighted?: boolean;
 }>();
 
 defineEmits<{

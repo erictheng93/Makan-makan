@@ -30,7 +30,8 @@
       <div
         v-for="(item, index) in items"
         :key="item.id"
-        class="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors"
+        class="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+        @click="$emit('itemClick', item)"
       >
         <div class="flex items-center space-x-3">
           <div class="flex-shrink-0 relative">
@@ -141,6 +142,10 @@ const props = withDefaults(defineProps<TopMenuItemsProps>(), {
   loading: false,
   maxItems: 10,
 });
+
+defineEmits<{
+  itemClick: [item: TopMenuItem];
+}>();
 
 const totalQuantity = computed(() => {
   return props.items.reduce((sum, item) => sum + item.quantity, 0);
