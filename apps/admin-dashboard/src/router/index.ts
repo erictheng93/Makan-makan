@@ -94,15 +94,7 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
-      {
-        path: "tables",
-        name: "Tables",
-        component: () => import("@/views/TablesView.vue"),
-        meta: {
-          titleKey: "pages.tables",
-          roles: [UserRole.ADMIN, UserRole.OWNER],
-        },
-      },
+      { path: "tables", redirect: { name: "SeatingTableSetup" } },
       // Employee Management (replaces old /users route)
       {
         path: "employees",
@@ -298,6 +290,14 @@ const routes: RouteRecordRaw[] = [
           ],
         },
         children: [
+          {
+            path: "table-setup",
+            name: "SeatingTableSetup",
+            component: () => import("@/views/seating/TableSetupTab.vue"),
+            meta: {
+              roles: [UserRole.ADMIN, UserRole.OWNER],
+            },
+          },
           {
             path: "",
             name: "SeatingReservations",

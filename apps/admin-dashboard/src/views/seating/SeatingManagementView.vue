@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#F2F2F7] p-6 space-y-6">
+  <div class="min-h-screen bg-[#F2F2F7] p-4 sm:p-6 space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div>
@@ -43,7 +43,7 @@
 
     <!-- Tab Navigation -->
     <div class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-      <nav class="flex border-b border-[#F2F2F7] px-6">
+      <nav class="flex overflow-x-auto border-b border-[#F2F2F7] px-4 sm:px-6">
         <router-link
           v-for="tab in tabs"
           :key="tab.name"
@@ -67,7 +67,7 @@
       </nav>
 
       <!-- Tab Content -->
-      <div class="p-6">
+      <div class="p-4 sm:p-6">
         <router-view />
       </div>
     </div>
@@ -92,6 +92,7 @@ import {
   BookOpen,
   ClipboardList,
   LayoutDashboard,
+  Table,
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -189,29 +190,44 @@ const statCards = computed(() => [
 ]);
 
 // Tabs
-const tabs = computed(() => [
-  {
-    name: "reservations",
-    path: "/dashboard/seating",
-    label: t("seating.tabs.reservations"),
-    icon: BookOpen,
-    badge: pendingCount.value,
-  },
-  {
-    name: "waiting-list",
-    path: "/dashboard/seating/waiting-list",
-    label: t("seating.tabs.waitingList"),
-    icon: ClipboardList,
-    badge: currentWaitingCount.value || undefined,
-  },
-  {
-    name: "queue-dashboard",
-    path: "/dashboard/seating/queue-dashboard",
-    label: t("seating.tabs.queueDashboard"),
-    icon: LayoutDashboard,
-    badge: undefined,
-  },
-]);
+const tabs = computed(() => {
+  const allTabs = [];
+
+  // Table Setup tab — Admin/Owner only
+  if (authStore.canAccessAdminFeatures) {
+    allTabs.push({
+      name: "table-setup",
+      path: "/dashboard/seating/table-setup",
+      label: t("seating.tabs.tableSetup"),
+      icon: Table,
+    });
+  }
+
+  allTabs.push(
+    {
+      name: "reservations",
+      path: "/dashboard/seating",
+      label: t("seating.tabs.reservations"),
+      icon: BookOpen,
+      badge: pendingCount.value,
+    },
+    {
+      name: "waiting-list",
+      path: "/dashboard/seating/waiting-list",
+      label: t("seating.tabs.waitingList"),
+      icon: ClipboardList,
+      badge: currentWaitingCount.value || undefined,
+    },
+    {
+      name: "queue-dashboard",
+      path: "/dashboard/seating/queue-dashboard",
+      label: t("seating.tabs.queueDashboard"),
+      icon: LayoutDashboard,
+    },
+  );
+
+  return allTabs;
+});
 
 const isActiveTab = (path: string) => {
   // Exact match for reservations tab (don't match waiting-list or queue-dashboard routes)

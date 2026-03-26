@@ -906,6 +906,7 @@ const idID: Messages = {
     title: "Manajemen Tempat Duduk",
     subtitle: "Kelola reservasi, daftar tunggu, dan antrean",
     tabs: {
+      tableSetup: "Pengaturan Meja",
       reservations: "Reservasi",
       waitingList: "Daftar Tunggu",
       queueDashboard: "Dashboard Antrean",

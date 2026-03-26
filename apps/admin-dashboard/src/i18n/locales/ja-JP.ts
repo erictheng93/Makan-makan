@@ -832,6 +832,7 @@ const jaJP: Messages = {
     title: "座席管理",
     subtitle: "予約・ウェイティング・順番待ちを一元管理",
     tabs: {
+      tableSetup: "テーブル設定",
       reservations: "予約",
       waitingList: "ウェイティング",
       queueDashboard: "順番待ちダッシュボード",

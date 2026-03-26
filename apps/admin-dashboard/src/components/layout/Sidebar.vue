@@ -74,7 +74,6 @@ import {
   ShoppingCart,
   Menu,
   Users,
-  Table,
   BarChart3,
   Settings,
   User,
@@ -163,13 +162,6 @@ const navigationItems = computed(() => {
       label: t("nav.menu"),
       icon: Menu,
       visible: authStore.canManageMenu,
-    },
-    {
-      name: "tables",
-      path: "/dashboard/tables",
-      label: t("nav.tables"),
-      icon: Table,
-      visible: authStore.canAccessAdminFeatures,
     },
     {
       name: "seating",

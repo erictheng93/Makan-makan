@@ -828,6 +828,7 @@ const zhCN: Messages = {
     title: "座位管理",
     subtitle: "统一管理预订、候位与排队",
     tabs: {
+      tableSetup: "桌台设置",
       reservations: "预订",
       waitingList: "候位",
       queueDashboard: "排队看板",

@@ -830,6 +830,7 @@ const viVN: Messages = {
     title: "Quản lý chỗ ngồi",
     subtitle: "Quản lý đặt bàn, danh sách chờ và hàng đợi",
     tabs: {
+      tableSetup: "Thiết lập bàn",
       reservations: "Đặt bàn",
       waitingList: "Danh sách chờ",
       queueDashboard: "Bảng xếp hàng",

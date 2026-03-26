@@ -937,6 +937,7 @@ const zhTW: Messages = {
     title: "座位管理",
     subtitle: "統一管理訂位、候位與排隊",
     tabs: {
+      tableSetup: "桌台設定",
       reservations: "訂位",
       waitingList: "候位",
       queueDashboard: "排隊看板",

@@ -902,6 +902,7 @@ const enUS: Messages = {
     title: "Seating Management",
     subtitle: "Manage reservations, waiting list, and queue",
     tabs: {
+      tableSetup: "Table Setup",
       reservations: "Reservations",
       waitingList: "Waiting List",
       queueDashboard: "Queue Dashboard",
