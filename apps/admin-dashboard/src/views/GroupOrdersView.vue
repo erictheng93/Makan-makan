@@ -251,9 +251,11 @@
                             'w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white',
                             getMemberColor(index),
                           ]"
-                          :title="member.name"
+                          :title="member.name || member.memberName || ''"
                         >
-                          {{ member.name.charAt(0) }}
+                          {{
+                            (member.name || member.memberName || "?").charAt(0)
+                          }}
                         </div>
                         <div
                           v-if="groupOrder.members.length > 4"
@@ -425,11 +427,13 @@
                           getMemberColor(index),
                         ]"
                       >
-                        {{ member.name.charAt(0) }}
+                        {{
+                          (member.name || member.memberName || "?").charAt(0)
+                        }}
                       </div>
                       <div class="ml-3">
                         <p class="text-sm font-medium text-gray-900">
-                          {{ member.name }}
+                          {{ member.name || member.memberName || "" }}
                         </p>
                         <p class="text-xs text-gray-500">
                           {{ member.itemCount }}
@@ -975,6 +979,10 @@ const refreshGroupOrders = async () => {
 
     groupOrders.value = (ordersData as any[]).map((o: any) => ({
       ...o,
+      members: (o.members || []).map((m: any) => ({
+        ...m,
+        name: m.name || m.memberName || "",
+      })),
       paidMembers:
         o.paidMembers ??
         o.members?.filter((m: any) => m.paymentStatus === "paid").length ??
@@ -987,7 +995,7 @@ const refreshGroupOrders = async () => {
     splitBillOrders.value = 0; // Derived from orders if needed
     avgCompletionTime.value = 0; // Derived from stats if available
     avgGroupSize.value = statsData.averageGroupSize ?? 0;
-    completionRate.value = Math.round((statsData.completionRate ?? 0) * 100);
+    completionRate.value = statsData.conversionRate ?? 0;
   } catch (err) {
     console.error("Failed to refresh group orders:", err);
   }

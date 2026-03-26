@@ -463,8 +463,8 @@ apiV1.use(
 apiV1.route("/restaurants", restaurantsFeature.routes);
 apiV1.route("/menu", menuFeature.routes);
 apiV1.route("/kitchen", kitchenFeature.routes);
-apiV1.route("/orders", ordersFeature.routes);
 apiV1.route("/orders/group", groupOrdersFeature.routes);
+apiV1.route("/orders", ordersFeature.routes);
 apiV1.route("/pos", posFeature.routes);
 // apiV1.route('/payments', paymentsRouter) // Disabled
 // apiV1.route('/print', printApp) // Disabled - incomplete feature

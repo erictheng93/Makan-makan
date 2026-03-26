@@ -8,14 +8,17 @@ import { z } from "zod";
 // Core validation schemas
 export const createGroupOrderSchema = z.object({
   restaurantId: z
-    .number()
-    .int()
-    .positive("Restaurant ID must be a positive integer"),
+    .union([z.string(), z.number()])
+    .transform((val) => String(val)),
   tableId: z
     .number()
     .int()
     .positive("Table ID must be a positive integer")
     .optional(),
+  tableNumber: z.string().optional(),
+  hostName: z.string().max(50).optional(),
+  expectedMembers: z.number().int().min(2).max(20).optional(),
+  notes: z.string().max(500).optional(),
   expirationHours: z
     .number()
     .min(1, "Expiration hours must be at least 1 hour")
@@ -233,9 +236,7 @@ export const statisticsQuerySchema = z
       .optional()
       .transform((val) => {
         if (!val || val.trim() === "") return undefined;
-        const num = Number(val);
-        if (isNaN(num) || !Number.isInteger(num) || num <= 0) return undefined;
-        return num;
+        return val;
       }),
     startDate: z
       .string()

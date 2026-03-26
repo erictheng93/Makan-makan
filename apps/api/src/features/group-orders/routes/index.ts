@@ -22,6 +22,138 @@ import {
 const app = new Hono<{ Bindings: Env }>();
 
 /**
+ * List group orders
+ * GET /api/v1/orders/group
+ */
+app.get(
+  "/",
+  authMiddleware,
+  requireRole([0, 1]), // Admin or Owner
+  async (c) => {
+    const restaurantId = c.req.query("restaurantId");
+    const status = c.req.query("status");
+    const user = c.get("user");
+
+    const targetRestaurantId = restaurantId || String(user.restaurantId);
+
+    // Permission check for owners
+    if (
+      user.role === 1 &&
+      restaurantId &&
+      String(user.restaurantId) !== String(restaurantId)
+    ) {
+      throw forbidden("Access denied: can only view own restaurant orders");
+    }
+
+    const groupOrderService = new GroupOrdersService(
+      c.env.DB as any,
+      c.env.CACHE_KV,
+    );
+    const orders = await groupOrderService.listGroupOrders(
+      targetRestaurantId,
+      status || undefined,
+    );
+
+    return c.json({
+      success: true,
+      data: orders,
+    });
+  },
+);
+
+/**
+ * Generate share code (creates a group order and returns the share code)
+ * POST /api/v1/orders/group/generate-code
+ */
+app.post(
+  "/generate-code",
+  authMiddleware,
+  requireRole([0, 1, 2, 3, 4]),
+  async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const user = c.get("user");
+    const restaurantId = body.restaurantId || String(user.restaurantId);
+
+    const groupOrderService = new GroupOrdersService(
+      c.env.DB as any,
+      c.env.CACHE_KV,
+    );
+    const result = await groupOrderService.createGroupOrder(
+      { restaurantId },
+      user.id,
+    );
+
+    if (!result.success || !result.data) {
+      throw badRequest(result.error ?? "Failed to generate share code");
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        shareCode: result.data.shareCode,
+        shareUrl: `/group/${result.data.shareCode}`,
+        expiresAt: result.data.expiresAt,
+      },
+    });
+  },
+);
+
+/**
+ * Export group orders
+ * GET /api/v1/orders/group/export
+ */
+app.get("/export", authMiddleware, requireRole([0, 1]), async (c) => {
+  const restaurantId = c.req.query("restaurantId");
+  const status = c.req.query("status");
+  const user = c.get("user");
+
+  const targetRestaurantId = restaurantId || String(user.restaurantId);
+
+  const groupOrderService = new GroupOrdersService(
+    c.env.DB as any,
+    c.env.CACHE_KV,
+  );
+  const orders = await groupOrderService.listGroupOrders(
+    targetRestaurantId,
+    status || undefined,
+  );
+
+  // Generate CSV
+  const headers = [
+    "ID",
+    "Share Code",
+    "Status",
+    "Host",
+    "Members",
+    "Items",
+    "Total Amount",
+    "Created At",
+  ];
+  const csvRows = [headers.join(",")];
+  for (const order of orders) {
+    csvRows.push(
+      [
+        order.id,
+        order.shareCode,
+        order.status,
+        order.hostName,
+        order.memberCount,
+        order.itemCount,
+        order.totalAmount,
+        order.createdAt,
+      ].join(","),
+    );
+  }
+
+  return new Response(csvRows.join("\n"), {
+    headers: {
+      "Content-Type": "text/csv",
+      "Content-Disposition": 'attachment; filename="group-orders-export.csv"',
+    },
+  });
+});
+
+/**
  * Create group order
  * POST /api/v1/orders/group/create
  */
@@ -130,8 +262,7 @@ app.get(
     const { restaurantId, timeRange } = c.get("validatedQuery");
     const user = c.get("user");
 
-    // Permission check for owners (coerce to string for comparison since
-    // schema transforms restaurantId to number but JWT stores it as string)
+    // Permission check for owners
     if (
       user.role === 1 &&
       restaurantId &&

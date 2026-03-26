@@ -61,7 +61,7 @@ export const groupOrdersService = {
     startDate?: string;
     endDate?: string;
   }): Promise<GroupOrder[]> {
-    const response = await apiClient.get("/api/v1/orders/group", { params });
+    const response = await apiClient.get("/orders/group", params);
     return (response.data as any).data || response.data;
   },
 
@@ -72,12 +72,12 @@ export const groupOrdersService = {
     restaurantId: string;
     notes?: string;
   }): Promise<GroupOrder> {
-    const response = await apiClient.post("/api/v1/orders/group/create", data);
+    const response = await apiClient.post("/orders/group/create", data);
     return (response.data as any).data || response.data;
   },
 
   async getGroupOrder(shareCode: string): Promise<GroupOrder> {
-    const response = await apiClient.get(`/api/v1/orders/group/${shareCode}`);
+    const response = await apiClient.get(`/orders/group/${shareCode}`);
     return (response.data as any).data || response.data;
   },
 
@@ -93,7 +93,7 @@ export const groupOrdersService = {
     groupOrder: GroupOrder;
   }> {
     const response = await apiClient.post(
-      `/api/v1/orders/group/join/${shareCode}`,
+      `/orders/group/join/${shareCode}`,
       data,
     );
     return (response.data as any).data || response.data;
@@ -103,12 +103,12 @@ export const groupOrdersService = {
     id: string,
     data: Partial<GroupOrder>,
   ): Promise<GroupOrder> {
-    const response = await apiClient.put(`/api/v1/orders/group/${id}`, data);
+    const response = await apiClient.put(`/orders/group/${id}`, data);
     return (response.data as any).data || response.data;
   },
 
   async cancelGroupOrder(id: string, reason?: string): Promise<void> {
-    await apiClient.post(`/api/v1/orders/group/${id}/cancel`, { reason });
+    await apiClient.post(`/orders/group/${id}/cancel`, { reason });
   },
 
   // 購物車管理
@@ -122,7 +122,7 @@ export const groupOrdersService = {
     },
   ): Promise<GroupCartItem> {
     const response = await apiClient.post(
-      `/api/v1/orders/group/${groupOrderId}/cart`,
+      `/orders/group/${groupOrderId}/cart`,
       data,
     );
     return (response.data as any).data || response.data;
@@ -137,22 +137,18 @@ export const groupOrdersService = {
     },
   ): Promise<GroupCartItem> {
     const response = await apiClient.put(
-      `/api/v1/orders/group/${groupOrderId}/cart/${itemId}`,
+      `/orders/group/${groupOrderId}/cart/${itemId}`,
       data,
     );
     return (response.data as any).data || response.data;
   },
 
   async removeCartItem(groupOrderId: string, itemId: string): Promise<void> {
-    await apiClient.delete(
-      `/api/v1/orders/group/${groupOrderId}/cart/${itemId}`,
-    );
+    await apiClient.delete(`/orders/group/${groupOrderId}/cart/${itemId}`);
   },
 
   async getCartItems(groupOrderId: string): Promise<GroupCartItem[]> {
-    const response = await apiClient.get(
-      `/api/v1/orders/group/${groupOrderId}/cart`,
-    );
+    const response = await apiClient.get(`/orders/group/${groupOrderId}/cart`);
     return (response.data as any).data || response.data;
   },
 
@@ -168,16 +164,14 @@ export const groupOrdersService = {
     },
   ): Promise<SplitBill[]> {
     const response = await apiClient.post(
-      `/api/v1/orders/group/${groupOrderId}/split`,
+      `/orders/group/${groupOrderId}/split`,
       data,
     );
     return (response.data as any).data || response.data;
   },
 
   async getSplitBills(groupOrderId: string): Promise<SplitBill[]> {
-    const response = await apiClient.get(
-      `/api/v1/orders/group/${groupOrderId}/split`,
-    );
+    const response = await apiClient.get(`/orders/group/${groupOrderId}/split`);
     return (response.data as any).data || response.data;
   },
 
@@ -195,7 +189,7 @@ export const groupOrdersService = {
     receipt?: any;
   }> {
     const response = await apiClient.post(
-      `/api/v1/orders/group/${groupOrderId}/payment`,
+      `/orders/group/${groupOrderId}/payment`,
       data,
     );
     return (response.data as any).data || response.data;
@@ -207,10 +201,9 @@ export const groupOrdersService = {
     shareUrl: string;
     expiresAt: string;
   }> {
-    const response = await apiClient.post(
-      "/api/v1/orders/group/generate-code",
-      { restaurantId },
-    );
+    const response = await apiClient.post("/orders/group/generate-code", {
+      restaurantId,
+    });
     return (response.data as any).data || response.data;
   },
 
@@ -221,9 +214,7 @@ export const groupOrdersService = {
     isValid: boolean;
     expiresAt: string;
   }> {
-    const response = await apiClient.get(
-      `/api/v1/orders/group/share/${shareCode}`,
-    );
+    const response = await apiClient.get(`/orders/group/share/${shareCode}`);
     return (response.data as any).data || response.data;
   },
 
@@ -234,7 +225,7 @@ export const groupOrdersService = {
     orderNumber: string;
   }> {
     const response = await apiClient.post(
-      `/api/v1/orders/group/${groupOrderId}/convert`,
+      `/orders/group/${groupOrderId}/convert`,
     );
     return (response.data as any).data || response.data;
   },
@@ -248,7 +239,7 @@ export const groupOrdersService = {
       message?: string;
     },
   ): Promise<void> {
-    await apiClient.post(`/api/v1/orders/group/${groupOrderId}/notify`, data);
+    await apiClient.post(`/orders/group/${groupOrderId}/notify`, data);
   },
 
   // 統計和報表
@@ -260,16 +251,12 @@ export const groupOrdersService = {
     totalGroupOrders: number;
     activeGroupOrders: number;
     averageGroupSize: number;
-    totalRevenue: number;
-    completionRate: number;
-    popularTimes: Array<{
-      hour: number;
-      count: number;
-    }>;
+    averageOrderValue: number;
+    conversionRate: number;
+    popularTimeSlots: Array<any>;
+    paymentMethodDistribution: Record<string, any>;
   }> {
-    const response = await apiClient.get("/api/v1/orders/group/stats", {
-      params,
-    });
+    const response = await apiClient.get("/orders/group/statistics", params);
     return (response.data as any).data || response.data;
   },
 
@@ -282,7 +269,7 @@ export const groupOrdersService = {
     }>
   > {
     const response = await apiClient.get(
-      `/api/v1/orders/group/${groupOrderId}/member-stats`,
+      `/orders/group/${groupOrderId}/member-stats`,
     );
     return (response.data as any).data || response.data;
   },
@@ -295,10 +282,7 @@ export const groupOrdersService = {
     status?: GroupOrder["status"];
     format: "csv" | "excel";
   }): Promise<Blob> {
-    const response = await apiClient.get("/api/v1/orders/group/export", {
-      params,
-      responseType: "blob",
-    });
+    const response = await apiClient.get("/orders/group/export", params);
     return (response.data as any).data || response.data;
   },
 
@@ -307,9 +291,7 @@ export const groupOrdersService = {
     qrCodeUrl: string;
     shareUrl: string;
   }> {
-    const response = await apiClient.post(
-      `/api/v1/orders/group/qr/${shareCode}`,
-    );
+    const response = await apiClient.post(`/orders/group/qr/${shareCode}`);
     return (response.data as any).data || response.data;
   },
 };

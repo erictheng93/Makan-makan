@@ -109,6 +109,66 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   /**
+   * List group orders for a restaurant
+   */
+  async listGroupOrders(restaurantId: string, status?: string): Promise<any[]> {
+    try {
+      const conditions = [eq(groupOrders.restaurantId, restaurantId)];
+      if (status) {
+        conditions.push(eq(groupOrders.status, status));
+      }
+
+      const rows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(and(...conditions))
+        .orderBy(desc(groupOrders.createdAt))
+        .limit(100);
+
+      const results: any[] = [];
+      for (const row of rows) {
+        const memberRows = await this.db
+          .select()
+          .from(groupMembers)
+          .where(eq(groupMembers.groupOrderId, row.id));
+
+        const cartItemRows = await this.db
+          .select()
+          .from(groupCartItems)
+          .where(eq(groupCartItems.groupOrderId, row.id));
+
+        results.push({
+          id: row.id,
+          shareCode: row.shareCode,
+          masterOrderId: null,
+          tableNumber: row.tableId ? String(row.tableId) : null,
+          status: row.status,
+          hostName:
+            memberRows.find((m) => m.role === "creator")?.name || "Host",
+          memberCount: memberRows.length,
+          totalAmount: Number(row.totalAmount) || 0,
+          subtotal: Number(row.totalAmount) || 0,
+          serviceCharge: 0,
+          taxAmount: 0,
+          itemCount: cartItemRows.length,
+          members: memberRows.map((m) => this.formatMember(m)),
+          createdAt: row.createdAt?.toISOString() || null,
+          completedAt: null,
+          expiresAt: row.expiresAt?.toISOString() || null,
+        });
+      }
+
+      return results;
+    } catch (error) {
+      this.errorTracker.logError("listGroupOrders", error as Error, {
+        restaurantId,
+        status,
+      });
+      return [];
+    }
+  }
+
+  /**
    * Create a new group order
    */
   async createGroupOrder(
@@ -143,6 +203,9 @@ export class GroupOrdersService implements IGroupOrderService {
         ...data.permissions,
       };
 
+      const effectiveMaxMembers =
+        data.maxMembers || (data as any).expectedMembers || 8;
+
       const now = new Date();
 
       // Create group order
@@ -155,8 +218,9 @@ export class GroupOrdersService implements IGroupOrderService {
         status: "active",
         expiresAt: new Date(expiresAt * 1000),
         settings: {
-          maxMembers: data.maxMembers || 8,
+          maxMembers: effectiveMaxMembers,
           permissions: defaultPermissions,
+          notes: (data as any).notes || null,
         } as any,
         totalAmount: 0,
         createdAt: now,
@@ -170,7 +234,7 @@ export class GroupOrdersService implements IGroupOrderService {
         id: hostMemberId,
         groupOrderId: groupOrderId,
         sessionId,
-        name: "Host",
+        name: (data as any).hostName || "Host",
         role: "creator",
         joinedAt: now,
         lastActiveAt: now,
