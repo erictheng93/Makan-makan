@@ -167,91 +167,45 @@ class OwnerService {
     }
   }
 
-  async getStaffActivity(_restaurantId?: string): Promise<StaffActivity[]> {
+  async getStaffActivity(restaurantId?: string): Promise<StaffActivity[]> {
     try {
-      // 模擬員工活動數據，實際應該從 API 獲取
-      return [
-        {
-          id: 1,
-          name: "張小明",
-          role: "廚師",
-          status: "online",
-          performance: 98,
-        },
-        {
-          id: 2,
-          name: "李美華",
-          role: "送菜員",
-          status: "busy",
-          performance: 95,
-        },
-        {
-          id: 3,
-          name: "王大偉",
-          role: "收銀員",
-          status: "online",
-          performance: 92,
-        },
-        {
-          id: 4,
-          name: "陳小芳",
-          role: "廚師",
-          status: "offline",
-          performance: 88,
-        },
-      ];
+      const params = new URLSearchParams();
+      if (restaurantId) {
+        params.append("restaurantId", restaurantId.toString());
+      }
+      params.append("limit", "10");
+
+      const response = await fetch(`${this.baseURL}/users?${params}`);
+      const result: ApiResponse<any[]> = await response.json();
+
+      if (!result.success || !result.data) {
+        return [];
+      }
+
+      return result.data.map((user) => ({
+        id: user.id,
+        name: user.fullName || user.username,
+        role: user.roleName || "Staff",
+        status: (user.status === "active" ? "online" : "offline") as
+          | "online"
+          | "busy"
+          | "offline",
+        performance: 0,
+      }));
     } catch (error) {
       console.error("Error fetching staff activity:", error);
-      throw error;
+      return [];
     }
   }
 
-  async handleQuickAction(action: string): Promise<void> {
-    try {
-      console.log("Executing quick action:", action);
-
-      switch (action) {
-        case "add-staff":
-          // 跳轉到員工管理頁面或打開新增員工彈窗
-          window.location.href = "/dashboard/users";
-          break;
-        case "update-menu":
-          // 跳轉到菜單管理頁面
-          window.location.href = "/dashboard/menu";
-          break;
-        case "view-reports":
-          // 跳轉到報表頁面
-          window.location.href = "/dashboard/analytics";
-          break;
-        case "system-settings":
-          // 跳轉到系統設定頁面
-          window.location.href = "/dashboard/settings";
-          break;
-        case "send-notification":
-          // 打開通知發送介面
-          this.showNotificationDialog();
-          break;
-        case "emergency":
-          // 處理緊急狀況
-          this.handleEmergency();
-          break;
-        default:
-          console.log("Unknown action:", action);
-      }
-    } catch (error) {
-      console.error("Error handling quick action:", error);
-      throw error;
-    }
-  }
-
-  private showNotificationDialog(): void {
-    // 實現通知發送對話框
-    alert("通知發送功能將在此實現");
-  }
-
-  private handleEmergency(): void {
-    // 實現緊急處理功能
-    alert("緊急處理功能將在此實現");
+  getQuickActionRoute(action: string): string | null {
+    const routes: Record<string, string> = {
+      "add-staff": "/dashboard/employees",
+      "update-menu": "/dashboard/menu",
+      "view-reports": "/dashboard/analytics",
+      "system-settings": "/dashboard/settings",
+    };
+    return routes[action] ?? null;
   }
 
   async resolveEmergencyAlert(alertId: number): Promise<void> {

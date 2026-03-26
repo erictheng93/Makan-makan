@@ -1635,6 +1635,12 @@ const viVN: Messages = {
     escalate: "Báo cáo cấp trên",
     operationFailed: "Thao tác thất bại",
     loadFailed: "Không thể tải dữ liệu",
+    statusHealthy: "Bình thường",
+    statusWarning: "Cảnh báo",
+    statusError: "Lỗi",
+    statusOnline: "Trực tuyến",
+    statusBusy: "Bận",
+    statusOffline: "Ngoại tuyến",
   },
 
   notification: {

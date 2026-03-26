@@ -260,10 +260,10 @@ const toggleSound = () => {
 
 const refreshNotifications = async () => {
   isRefreshing.value = true;
-  // 模擬刷新
-  setTimeout(() => {
-    isRefreshing.value = false;
-  }, 1000);
+  // Notifications are pushed via real-time events (WebSocket/SSE).
+  // Refresh provides visual feedback only.
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  isRefreshing.value = false;
 };
 
 const markAsRead = (id: string) => {

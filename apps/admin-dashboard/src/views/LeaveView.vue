@@ -174,18 +174,32 @@ const loadData = async () => {
       }
     }
 
-    // 載入我的請假申請
-    const myRequestsResponse = await api.get<LeaveRequest[]>(
-      `/leaves/${restaurantId}/requests`,
-    );
-    if (myRequestsResponse.data?.data) {
-      myRequests.value = myRequestsResponse.data.data;
-    }
-
-    // 如果是管理者，載入所有申請
+    // 載入請假申請
     const role = authStore.user?.role;
-    if (role === 0 || role === 1) {
-      allRequests.value = myRequests.value; // 簡化版：實際應該有獨立API
+    const isManager = role === 0 || role === 1;
+
+    if (isManager) {
+      // 管理者：分別載入自己的和所有員工的申請
+      const [myRes, allRes] = await Promise.all([
+        api.get<LeaveRequest[]>(`/leaves/${restaurantId}/requests`, {
+          employeeId: userId,
+        }),
+        api.get<LeaveRequest[]>(`/leaves/${restaurantId}/requests`),
+      ]);
+      if (myRes.data?.data) {
+        myRequests.value = myRes.data.data;
+      }
+      if (allRes.data?.data) {
+        allRequests.value = allRes.data.data;
+      }
+    } else {
+      // 一般員工：只載入自己的申請
+      const myRequestsResponse = await api.get<LeaveRequest[]>(
+        `/leaves/${restaurantId}/requests`,
+      );
+      if (myRequestsResponse.data?.data) {
+        myRequests.value = myRequestsResponse.data.data;
+      }
     }
   } catch (error) {
     console.error("Failed to load leave data:", error);

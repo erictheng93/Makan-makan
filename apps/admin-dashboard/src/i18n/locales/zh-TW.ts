@@ -1139,6 +1139,95 @@ const zhTW: Messages = {
       stable: "穩定",
     },
 
+    // 新增警報規則表單
+    createRule: {
+      title: "新增警報規則",
+      name: "規則名稱",
+      namePlaceholder: "例如：高 API 錯誤率",
+      metric: "監控指標",
+      selectMetric: "選擇監控指標",
+      operator: "比較運算子",
+      threshold: "閾值",
+      thresholdPlaceholder: "例如：0.1",
+      duration: "持續時間（秒）",
+      durationHint: "條件持續多少秒後觸發警報",
+      alertType: "通知類型",
+      severity: "嚴重程度",
+      enabled: "啟用規則",
+      webhookUrl: "Webhook URL",
+      webhookUrlPlaceholder: "https://hooks.slack.com/...",
+      conditionPreview: "條件預覽",
+      submit: "建立規則",
+      submitting: "建立中...",
+      cancel: "取消",
+      success: "警報規則建立成功",
+      failed: "建立警報規則失敗",
+      validation: {
+        nameRequired: "請輸入規則名稱",
+        metricRequired: "請選擇監控指標",
+        thresholdRequired: "請輸入閾值",
+        durationRange: "持續時間必須在 1-3600 秒之間",
+        webhookRequired: "使用 Slack 或 Webhook 時需提供 URL",
+      },
+      metricGroups: {
+        api: "API 指標",
+        database: "資料庫指標",
+        cache: "快取指標",
+        error: "錯誤指標",
+        resource: "資源指標",
+      },
+      metrics: {
+        apiMetrics: {
+          errorRate: "錯誤率",
+          averageResponseTime: "平均響應時間 (ms)",
+          p95ResponseTime: "P95 響應時間 (ms)",
+          p99ResponseTime: "P99 響應時間 (ms)",
+          totalRequests: "總請求數",
+          slowRequestCount: "慢請求數",
+          requestsPerSecond: "每秒請求數",
+        },
+        databaseMetrics: {
+          averageQueryTime: "平均查詢時間 (ms)",
+          queryCount: "查詢總數",
+          slowQueryCount: "慢查詢數",
+          errorCount: "查詢錯誤數",
+        },
+        cacheMetrics: {
+          hitRate: "命中率",
+          totalKeys: "快取鍵總數",
+          totalSize: "快取大小 (bytes)",
+        },
+        errorMetrics: {
+          totalErrors: "總錯誤數",
+          criticalErrors: "嚴重錯誤數",
+          warningCount: "警告數",
+        },
+        resourceMetrics: {
+          memoryUsage: "記憶體使用率",
+          cpuUsage: "CPU 使用率",
+          activeConnections: "活動連接數",
+        },
+      },
+      alertTypes: {
+        email: "電子郵件",
+        slack: "Slack",
+        webhook: "Webhook",
+        sms: "簡訊",
+      },
+      severities: {
+        info: "資訊",
+        warning: "警告",
+        critical: "嚴重",
+        fatal: "致命",
+      },
+    },
+
+    // 輪詢狀態
+    polling: {
+      connected: "監控中（輪詢）",
+      disconnected: "輪詢已停止",
+    },
+
     // 通知訊息
     notifications: {
       dataUpdated: "監控數據已更新",

@@ -5,12 +5,27 @@
 
 import { z } from "zod";
 
+// Decode HTML entities that the security middleware may have escaped
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&#x3D;/g, "=")
+    .replace(/&amp;/g, "&");
+}
+
+// Operator schema that handles HTML-escaped values from security middleware
+const operatorSchema = z
+  .string()
+  .transform(decodeHtmlEntities)
+  .pipe(z.enum([">", "<", ">=", "<=", "="]));
+
 // Alert rule creation schema
 export const alertRuleSchema = z.object({
   name: z.string().min(1).max(100),
-  condition: z.string().min(1).max(500),
+  condition: z.string().min(1).max(500).transform(decodeHtmlEntities),
   metric: z.string().min(1).max(100),
-  operator: z.enum([">", "<", ">=", "<=", "="]),
+  operator: operatorSchema,
   threshold: z.number(),
   duration: z.number().int().positive().max(3600),
   config: z.object({
@@ -58,7 +73,7 @@ export const updateAlertRuleSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   condition: z.string().min(1).max(500).optional(),
   metric: z.string().min(1).max(100).optional(),
-  operator: z.enum([">", "<", ">=", "<=", "="]).optional(),
+  operator: operatorSchema.optional(),
   threshold: z.number().optional(),
   duration: z.number().int().positive().max(3600).optional(),
   config: z

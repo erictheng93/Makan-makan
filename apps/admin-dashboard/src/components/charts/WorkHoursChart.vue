@@ -56,6 +56,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
+import { schedulingService } from "@/services/schedulingService";
 import BaseChart from "./BaseChart.vue";
 
 interface EmployeeHours {
@@ -75,6 +77,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 
 const selectedPeriod = ref<"week" | "month" | "custom">("week");
 const chartType = ref<"bar" | "line">("bar");
@@ -126,26 +129,38 @@ const chartData = computed(() => {
 const fetchData = async () => {
   if (!props.autoFetch) return;
 
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
+
   isLoading.value = true;
   error.value = "";
 
   try {
-    // 模擬 API 調用
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const now = new Date();
+    const endDate = now.toISOString().split("T")[0];
+    const startDate = new Date(
+      now.getTime() -
+        (selectedPeriod.value === "month" ? 30 : 7) * 24 * 60 * 60 * 1000,
+    )
+      .toISOString()
+      .split("T")[0];
 
-    // 模擬數據
-    workHoursData.value = [
-      { employeeId: "1", employeeName: "王小明", hours: 45.5 },
-      { employeeId: "2", employeeName: "李美麗", hours: 42.0 },
-      { employeeId: "3", employeeName: "陳建國", hours: 48.0 },
-      { employeeId: "4", employeeName: "林淑芬", hours: 40.5 },
-      { employeeId: "5", employeeName: "張偉強", hours: 38.0 },
-      { employeeId: "6", employeeName: "劉曉雯", hours: 44.0 },
-      { employeeId: "7", employeeName: "黃志明", hours: 41.5 },
-      { employeeId: "8", employeeName: "吳佩珊", hours: 39.0 },
-      { employeeId: "9", employeeName: "鄭家豪", hours: 46.5 },
-      { employeeId: "10", employeeName: "周雅婷", hours: 43.0 },
-    ];
+    const report = await schedulingService.getAttendanceReport(
+      restaurantId,
+      startDate,
+      endDate,
+    );
+
+    const data = (report as any)?.data;
+    if (Array.isArray(data)) {
+      workHoursData.value = data.map((item: any) => ({
+        employeeId: String(item.employeeId || item.id),
+        employeeName: item.employeeName || item.name || `#${item.employeeId}`,
+        hours: item.totalHours || item.hours || 0,
+      }));
+    } else {
+      workHoursData.value = [];
+    }
   } catch (err) {
     error.value = t("charts.workHours.loadFailed");
     console.error(err);

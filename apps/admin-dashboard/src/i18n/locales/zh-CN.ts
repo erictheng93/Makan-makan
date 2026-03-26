@@ -1026,6 +1026,97 @@ const zhCN: Messages = {
       close: "关闭",
       chartUnit: "次",
       responseTimeUnit: "响应时间 (毫秒)",
+      live: "即时",
+      stable: "稳定",
+    },
+
+    // 新增警报规则表单
+    createRule: {
+      title: "新增警报规则",
+      name: "规则名称",
+      namePlaceholder: "例如：高 API 错误率",
+      metric: "监控指标",
+      selectMetric: "选择监控指标",
+      operator: "比较运算符",
+      threshold: "阈值",
+      thresholdPlaceholder: "例如：0.1",
+      duration: "持续时间（秒）",
+      durationHint: "条件持续多少秒后触发警报",
+      alertType: "通知类型",
+      severity: "严重程度",
+      enabled: "启用规则",
+      webhookUrl: "Webhook URL",
+      webhookUrlPlaceholder: "https://hooks.slack.com/...",
+      conditionPreview: "条件预览",
+      submit: "创建规则",
+      submitting: "创建中...",
+      cancel: "取消",
+      success: "警报规则创建成功",
+      failed: "创建警报规则失败",
+      validation: {
+        nameRequired: "请输入规则名称",
+        metricRequired: "请选择监控指标",
+        thresholdRequired: "请输入阈值",
+        durationRange: "持续时间必须在 1-3600 秒之间",
+        webhookRequired: "使用 Slack 或 Webhook 时需提供 URL",
+      },
+      metricGroups: {
+        api: "API 指标",
+        database: "数据库指标",
+        cache: "缓存指标",
+        error: "错误指标",
+        resource: "资源指标",
+      },
+      metrics: {
+        apiMetrics: {
+          errorRate: "错误率",
+          averageResponseTime: "平均响应时间 (ms)",
+          p95ResponseTime: "P95 响应时间 (ms)",
+          p99ResponseTime: "P99 响应时间 (ms)",
+          totalRequests: "总请求数",
+          slowRequestCount: "慢请求数",
+          requestsPerSecond: "每秒请求数",
+        },
+        databaseMetrics: {
+          averageQueryTime: "平均查询时间 (ms)",
+          queryCount: "查询总数",
+          slowQueryCount: "慢查询数",
+          errorCount: "查询错误数",
+        },
+        cacheMetrics: {
+          hitRate: "命中率",
+          totalKeys: "缓存键总数",
+          totalSize: "缓存大小 (bytes)",
+        },
+        errorMetrics: {
+          totalErrors: "总错误数",
+          criticalErrors: "严重错误数",
+          warningCount: "警告数",
+        },
+        resourceMetrics: {
+          memoryUsage: "内存使用率",
+          cpuUsage: "CPU 使用率",
+          activeConnections: "活动连接数",
+        },
+      },
+      alertTypes: {
+        email: "电子邮件",
+        slack: "Slack",
+        webhook: "Webhook",
+        sms: "短信",
+      },
+      severities: {
+        info: "信息",
+        warning: "警告",
+        critical: "严重",
+        fatal: "致命",
+      },
+    },
+
+    // 轮询状态
+    polling: {
+      connected: "监控中（轮询）",
+      disconnected: "轮询已停止",
     },
 
     // 通知消息
@@ -1627,6 +1718,12 @@ const zhCN: Messages = {
     escalate: "升级处理",
     operationFailed: "操作失败",
     loadFailed: "数据加载失败",
+    statusHealthy: "正常",
+    statusWarning: "警告",
+    statusError: "异常",
+    statusOnline: "在线",
+    statusBusy: "忙碌",
+    statusOffline: "离线",
   },
 
   notification: {

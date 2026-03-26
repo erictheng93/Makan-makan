@@ -142,6 +142,7 @@ export interface ComponentOverview {
   status: HealthStatusType;
   latency?: number;
   issues: number;
+  issueDetails?: string[];
   lastCheck: number;
 }
 

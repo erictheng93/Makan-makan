@@ -272,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
@@ -299,43 +299,23 @@ const showNotifications = ref(false);
 const showQuickActions = ref(false);
 const urgentOrderAlert = ref<UrgentOrderAlert | null>(null);
 
-// 模擬數據
-const currentUser = ref({
-  name: "李小明",
-  role: "service_crew",
-});
+// 用戶數據（從 auth store 取得）
+const currentUser = computed(() => ({
+  name: authStore.user?.username || "",
+  role:
+    authStore.user?.role !== undefined
+      ? ["admin", "shop_owner", "chef", "service_crew", "cashier"][
+          authStore.user.role
+        ] || "staff"
+      : "staff",
+}));
 
-const pendingCount = ref(3);
-const deliveringCount = ref(2);
-const todayDelivered = ref(12);
-const unreadNotifications = ref(2);
+const pendingCount = ref(0);
+const deliveringCount = ref(0);
+const todayDelivered = ref(0);
+const unreadNotifications = ref(0);
 
-const notifications = ref<SystemNotification[]>([
-  {
-    id: 1,
-    type: "urgent_order",
-    title: "緊急訂單",
-    message: "桌號T01的訂單已等待15分鐘，請儘速配送",
-    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    read: false,
-  },
-  {
-    id: 2,
-    type: "new_order",
-    title: "新訂單",
-    message: "桌號T05有新的餐點準備完成",
-    createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    read: false,
-  },
-  {
-    id: 3,
-    type: "achievement",
-    title: "達成成就",
-    message: "恭喜！您今日已完成10單配送",
-    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    read: true,
-  },
-]);
+const notifications = ref<SystemNotification[]>([]);
 
 // 方法
 const toggleUserMenu = () => {
@@ -484,11 +464,6 @@ const handleClickOutside = (event: Event) => {
 // 生命週期
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
-
-  // 模擬緊急訂單提醒
-  setTimeout(() => {
-    showUrgentOrderAlert("桌號T01的訂單已等待超過15分鐘，請立即處理！");
-  }, 3000);
 });
 
 onUnmounted(() => {

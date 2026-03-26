@@ -92,25 +92,34 @@ class OfflineManager {
 // 錯誤上報服務
 class ErrorReportingService {
   private readonly REPORT_ENDPOINT = "/api/v1/system/error-report";
+  private readonly MAX_RETRIES = 3;
+  private readonly MAX_QUEUE_SIZE = 50;
   private reportQueue: ErrorDetails[] = [];
   private isReporting = false;
+  private retryCount = 0;
 
   async reportError(error: ErrorDetails) {
-    // 添加到報告隊列
+    if (this.reportQueue.length >= this.MAX_QUEUE_SIZE) {
+      this.reportQueue.shift();
+    }
+
     this.reportQueue.push({
       ...error,
       userAgent: navigator.userAgent,
       url: window.location.href,
     });
 
-    // 如果當前沒有在報告中，開始報告
     if (!this.isReporting) {
       this.processReportQueue();
     }
   }
 
   private async processReportQueue() {
-    if (this.reportQueue.length === 0) {
+    if (this.reportQueue.length === 0 || this.retryCount >= this.MAX_RETRIES) {
+      if (this.retryCount >= this.MAX_RETRIES) {
+        this.reportQueue = [];
+        this.retryCount = 0;
+      }
       this.isReporting = false;
       return;
     }
@@ -131,16 +140,23 @@ class ErrorReportingService {
       });
 
       if (!response.ok) {
-        // 如果報告失敗，重新加入隊列
         this.reportQueue.unshift(...errors);
         throw new Error(`Report failed: ${response.status}`);
       }
 
-      console.log(`Successfully reported ${errors.length} errors`);
-    } catch (error) {
-      console.error("Error reporting failed:", error);
-      // 延遲重試
-      setTimeout(() => void this.processReportQueue(), 30000);
+      this.retryCount = 0;
+    } catch {
+      this.retryCount++;
+      if (this.retryCount < this.MAX_RETRIES) {
+        const delay = Math.min(
+          30000 * Math.pow(2, this.retryCount - 1),
+          120000,
+        );
+        setTimeout(() => void this.processReportQueue(), delay);
+        return;
+      }
+      this.reportQueue = [];
+      this.retryCount = 0;
     }
 
     this.isReporting = false;

@@ -1713,6 +1713,12 @@ const idID: Messages = {
     escalate: "Eskalasi",
     operationFailed: "Operasi gagal",
     loadFailed: "Gagal memuat data",
+    statusHealthy: "Normal",
+    statusWarning: "Peringatan",
+    statusError: "Error",
+    statusOnline: "Online",
+    statusBusy: "Sibuk",
+    statusOffline: "Offline",
   },
 
   notification: {

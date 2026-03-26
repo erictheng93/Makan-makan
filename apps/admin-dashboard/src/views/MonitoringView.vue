@@ -793,29 +793,12 @@
       </template>
     </div>
 
-    <!-- Create Alert Rule Dialog (Placeholder) -->
-    <div
-      v-if="showCreateAlertDialog"
-      class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
-      @click.self="showCreateAlertDialog = false"
-    >
-      <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">
-          {{ t("monitoring.misc.createAlertRule") }}
-        </h3>
-        <p class="text-sm text-gray-500 mb-4">
-          {{ t("monitoring.misc.comingSoon") }}
-        </p>
-        <div class="flex justify-end">
-          <button
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-            @click="showCreateAlertDialog = false"
-          >
-            {{ t("monitoring.misc.close") }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Create Alert Rule Dialog -->
+    <CreateAlertRuleModal
+      :show="showCreateAlertDialog"
+      @close="showCreateAlertDialog = false"
+      @created="handleAlertRuleCreated"
+    />
   </div>
 </template>
 
@@ -855,6 +838,7 @@ import MultiMetricChart from "@/components/monitoring/MultiMetricChart.vue";
 import MetricBarChart from "@/components/monitoring/MetricBarChart.vue";
 import MetricTrendChart from "@/components/monitoring/MetricTrendChart.vue";
 import AlertNotificationPanel from "@/components/monitoring/AlertNotificationPanel.vue";
+import CreateAlertRuleModal from "@/components/monitoring/CreateAlertRuleModal.vue";
 import { monitoringWebSocket } from "@/services/monitoringWebSocket";
 
 const toast = useToast();
@@ -923,9 +907,9 @@ const keyMetricsCards = computed(() => {
       id: "requests",
       name: t("monitoring.keyMetrics.requestsPerMinute"),
       value: overview.value.keyMetrics.requestsPerMinute,
-      trend: "+12%",
-      trendIcon: ArrowTrendingUpIcon,
-      trendColor: "text-green-600",
+      trend: t("monitoring.misc.live"),
+      trendIcon: MinusIcon,
+      trendColor: "text-gray-400",
       icon: ServerIcon,
       iconColor: "text-blue-600",
       bgColor: "bg-blue-50",
@@ -934,9 +918,9 @@ const keyMetricsCards = computed(() => {
       id: "response",
       name: t("monitoring.keyMetrics.averageResponseTime"),
       value: overview.value.keyMetrics.averageResponseTime,
-      trend: "-5%",
-      trendIcon: ArrowTrendingDownIcon,
-      trendColor: "text-green-600",
+      trend: t("monitoring.misc.live"),
+      trendIcon: MinusIcon,
+      trendColor: "text-gray-400",
       icon: ClockIcon,
       iconColor: "text-green-600",
       bgColor: "bg-green-50",
@@ -945,9 +929,9 @@ const keyMetricsCards = computed(() => {
       id: "cache",
       name: t("monitoring.keyMetrics.cacheHitRate"),
       value: overview.value.keyMetrics.cacheHitRate,
-      trend: "+3%",
-      trendIcon: ArrowTrendingUpIcon,
-      trendColor: "text-green-600",
+      trend: t("monitoring.misc.live"),
+      trendIcon: MinusIcon,
+      trendColor: "text-gray-400",
       icon: CircleStackIcon,
       iconColor: "text-purple-600",
       bgColor: "bg-purple-50",
@@ -956,9 +940,18 @@ const keyMetricsCards = computed(() => {
       id: "errors",
       name: t("monitoring.keyMetrics.activeErrors"),
       value: overview.value.keyMetrics.activeErrors,
-      trend: "stable",
-      trendIcon: MinusIcon,
-      trendColor: "text-gray-400",
+      trend:
+        overview.value.keyMetrics.activeErrors === 0
+          ? t("monitoring.misc.stable")
+          : t("monitoring.misc.live"),
+      trendIcon:
+        overview.value.keyMetrics.activeErrors === 0
+          ? CheckCircleIcon
+          : ExclamationTriangleIcon,
+      trendColor:
+        overview.value.keyMetrics.activeErrors === 0
+          ? "text-green-600"
+          : "text-red-600",
       icon: ExclamationTriangleIcon,
       iconColor: "text-red-600",
       bgColor: "bg-red-50",
@@ -975,8 +968,8 @@ const componentsStatus = computed(() => {
     status: comp.status,
     healthScore: calculateComponentHealthScore(comp),
     latency: comp.latency,
-    errorRate: 0, // Would be calculated from actual data
-    issues: [], // Would come from actual data
+    errorRate: comp.issues > 0 ? comp.issues / 100 : 0,
+    issues: comp.issueDetails || [],
     lastCheck: comp.lastCheck,
   }));
 });
@@ -1115,6 +1108,10 @@ async function deleteAlert(id: string) {
     console.error("Failed to delete alert rule:", error);
     toast.error(t("monitoring.notifications.updateFailed"));
   }
+}
+
+async function handleAlertRuleCreated() {
+  await loadAlertRules();
 }
 
 function toggleAutoRefresh() {
@@ -1256,8 +1253,9 @@ function getAlertSeverityText(severity: string) {
   return t(keyMap[severity] || "monitoring.statusText.unknown");
 }
 
-function formatUptime(seconds: number) {
-  return monitoringService.formatUptime(seconds);
+function formatUptime(ms: number) {
+  // API returns uptime in milliseconds, formatUptime expects seconds
+  return monitoringService.formatUptime(Math.floor(ms / 1000));
 }
 
 function formatLastUpdate(timestamp: number) {
@@ -1274,19 +1272,12 @@ function formatRelativeTime(timestamp: number) {
 
 function connectWebSocket() {
   try {
-    // Get auth token from localStorage
-    const token = localStorage.getItem("auth_token") || "";
-    if (token) {
-      monitoringWebSocket.connect(token);
-      wsConnected.value = true;
-      console.log("[MonitoringView] WebSocket connection initiated");
-    } else {
-      console.warn(
-        "[MonitoringView] No auth token found, WebSocket not connected",
-      );
-    }
+    // Polling service handles auth via api service — no token needed
+    monitoringWebSocket.connect();
+    wsConnected.value = true;
+    console.log("[MonitoringView] Alert polling initiated");
   } catch (error) {
-    console.error("[MonitoringView] Failed to connect WebSocket:", error);
+    console.error("[MonitoringView] Failed to start alert polling:", error);
     toast.error(t("monitoring.notifications.connectionFailed"));
   }
 }

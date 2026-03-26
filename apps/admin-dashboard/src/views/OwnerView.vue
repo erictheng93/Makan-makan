@@ -172,10 +172,22 @@
               </p>
             </div>
             <div class="text-right">
-              <p class="text-sm font-medium text-gray-900">
-                {{ staff.performance }}%
-              </p>
-              <p class="text-xs text-gray-500">{{ t("owner.efficiency") }}</p>
+              <span
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                :class="{
+                  'bg-green-100 text-green-800': staff.status === 'online',
+                  'bg-yellow-100 text-yellow-800': staff.status === 'busy',
+                  'bg-gray-100 text-gray-600': staff.status === 'offline',
+                }"
+              >
+                {{
+                  staff.status === "online"
+                    ? t("owner.statusOnline")
+                    : staff.status === "busy"
+                      ? t("owner.statusBusy")
+                      : t("owner.statusOffline")
+                }}
+              </span>
             </div>
           </div>
         </div>
@@ -322,10 +334,22 @@
             </div>
           </div>
           <div class="text-right">
-            <p class="text-sm font-medium text-gray-900">
-              {{ system.uptime }}
-            </p>
-            <p class="text-xs text-gray-500">{{ t("owner.uptime") }}</p>
+            <span
+              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+              :class="{
+                'bg-green-100 text-green-800': system.status === 'healthy',
+                'bg-yellow-100 text-yellow-800': system.status === 'warning',
+                'bg-red-100 text-red-800': system.status === 'error',
+              }"
+            >
+              {{
+                system.status === "healthy"
+                  ? t("owner.statusHealthy")
+                  : system.status === "warning"
+                    ? t("owner.statusWarning")
+                    : t("owner.statusError")
+              }}
+            </span>
           </div>
         </div>
       </div>
@@ -381,6 +405,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { api } from "@/services/api";
@@ -395,7 +420,6 @@ import {
   MinusIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
-  BellIcon,
   ExclamationTriangleIcon,
   ClipboardDocumentListIcon,
   UserPlusIcon,
@@ -403,6 +427,7 @@ import {
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const router = useRouter();
 
 // --- State ---
 const isLoading = ref(false);
@@ -490,16 +515,6 @@ const quickActions = [
     key: "system-settings",
     label: t("owner.actions.systemSettings"),
     icon: Cog6ToothIcon,
-  },
-  {
-    key: "send-notification",
-    label: t("owner.actions.sendNotification"),
-    icon: BellIcon,
-  },
-  {
-    key: "emergency",
-    label: t("owner.actions.emergency"),
-    icon: ExclamationTriangleIcon,
   },
 ];
 
@@ -648,19 +663,16 @@ const systemHealth = computed(() => {
       name: t("owner.systemNames.api"),
       description: t("owner.systemDescriptions.api"),
       status: apiStatus,
-      uptime: apiStatus === "healthy" ? "99.9%" : "--",
     },
     {
       name: t("owner.systemNames.database"),
       description: t("owner.systemDescriptions.database"),
       status: dbStatus,
-      uptime: dbStatus === "healthy" ? "99.8%" : "--",
     },
     {
       name: t("owner.systemNames.realtime"),
       description: t("owner.systemDescriptions.realtime"),
-      status: "healthy" as const,
-      uptime: "99.5%",
+      status: apiStatus, // realtime service health follows API health
     },
   ];
 });
@@ -707,7 +719,17 @@ async function fetchAllData() {
         topSellingItems?: typeof dashboardTopItems.value;
         tableStatus?: typeof dashboardTableStatus.value;
       };
-      dashboardSummary.value = data.summary;
+      const s = data.summary;
+      dashboardSummary.value = {
+        todayRevenue: s?.todayRevenue ?? 0,
+        todayOrders: s?.todayOrders ?? 0,
+        monthRevenue: s?.monthRevenue ?? 0,
+        monthOrders: s?.monthOrders ?? 0,
+        growthRates: {
+          revenueGrowth: s?.growthRates?.revenueGrowth ?? 0,
+          orderGrowth: s?.growthRates?.orderGrowth ?? 0,
+        },
+      };
       dashboardTopItems.value = data.topSellingItems ?? [];
       dashboardTableStatus.value = data.tableStatus ?? {
         occupied: 0,
@@ -767,13 +789,11 @@ async function fetchAllData() {
   }
 }
 
-// --- Quick action handler (navigation, delegates to ownerService) ---
-const handleQuickAction = async (action: string) => {
-  try {
-    await ownerService.handleQuickAction(action);
-  } catch (err) {
-    console.error("Error handling quick action:", err);
-    alert(t("owner.operationFailed"));
+// --- Quick action handler (navigation via Vue Router) ---
+const handleQuickAction = (action: string) => {
+  const route = ownerService.getQuickActionRoute(action);
+  if (route) {
+    router.push(route);
   }
 };
 

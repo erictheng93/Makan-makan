@@ -38,6 +38,7 @@ export class MonitoringService {
   private readonly METRICS_KEY = "_system_metrics";
   private readonly HEALTH_KEY = "_system_health";
   private readonly ALERT_RULES_KEY = "_alert_rules";
+  private readonly RECENT_ALERTS_KEY = "_recent_alerts";
   private readonly REQUEST_TIMES: number[] = [];
   private readonly MAX_REQUEST_TIMES = 1000;
 
@@ -469,6 +470,46 @@ export class MonitoringService {
     }
   }
 
+  private async storeRecentAlert(alert: {
+    id: string;
+    title: string;
+    message: string;
+    severity: string;
+    type: string;
+    timestamp: number;
+  }): Promise<void> {
+    try {
+      const existing = await this.kv.get(this.RECENT_ALERTS_KEY);
+      const alerts = existing ? JSON.parse(existing) : [];
+      alerts.unshift(alert);
+      // Keep last 50 alerts, max 24h retention
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+      const filtered = alerts
+        .filter((a: any) => a.timestamp > cutoff)
+        .slice(0, 50);
+      await this.kv.put(this.RECENT_ALERTS_KEY, JSON.stringify(filtered), {
+        expirationTtl: 86400,
+      });
+    } catch (error) {
+      this.logger.error("Store recent alert error", error as Error);
+    }
+  }
+
+  async getRecentAlerts(sinceTimestamp?: number): Promise<any[]> {
+    try {
+      const saved = await this.kv.get(this.RECENT_ALERTS_KEY);
+      if (!saved) return [];
+      const alerts = JSON.parse(saved);
+      if (sinceTimestamp) {
+        return alerts.filter((a: any) => a.timestamp > sinceTimestamp);
+      }
+      return alerts;
+    } catch (error) {
+      this.logger.error("Get recent alerts error", error as Error);
+      return [];
+    }
+  }
+
   private calculateErrorRate(): number {
     const recentRequests = this.REQUEST_TIMES.slice(-100);
     const errors = recentRequests.filter((time) => time === -1).length; // -1 表示錯誤
@@ -644,6 +685,16 @@ export class MonitoringService {
   ): Promise<void> {
     try {
       if (!config.enabled) return;
+
+      // Store to recent alerts for polling clients
+      await this.storeRecentAlert({
+        id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        title,
+        message,
+        severity: config.severity,
+        type: config.type,
+        timestamp: Date.now(),
+      });
 
       this.logger.info(
         `ALERT [${config.severity.toUpperCase()}]: ${title} - ${message}`,

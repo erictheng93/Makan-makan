@@ -52,6 +52,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
+import { schedulingService } from "@/services/schedulingService";
 import BaseChart from "./BaseChart.vue";
 
 interface ShiftData {
@@ -72,6 +74,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 
 const selectedType = ref<"pie" | "doughnut">("doughnut");
 const isLoading = ref(false);
@@ -124,20 +127,24 @@ const chartData = computed(() => {
 const fetchData = async () => {
   if (!props.autoFetch) return;
 
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
+
   isLoading.value = true;
   error.value = "";
 
   try {
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const templates = await schedulingService.getShiftTemplates(restaurantId);
 
-    // 模擬數據
-    shifts.value = [
-      { id: "1", name: "早班 (08:00-16:00)", count: 45 },
-      { id: "2", name: "午班 (12:00-20:00)", count: 38 },
-      { id: "3", name: "晚班 (16:00-00:00)", count: 32 },
-      { id: "4", name: "夜班 (00:00-08:00)", count: 18 },
-      { id: "5", name: "全天 (08:00-20:00)", count: 12 },
-    ];
+    if (Array.isArray(templates) && templates.length > 0) {
+      shifts.value = templates.map((tpl: any) => ({
+        id: String(tpl.id),
+        name: tpl.name || `${tpl.startTime || ""}-${tpl.endTime || ""}`,
+        count: tpl.assignedCount ?? tpl.employeeCount ?? 0,
+      }));
+    } else {
+      shifts.value = [];
+    }
   } catch (err) {
     error.value = t("charts.shiftDistribution.loadFailed");
     console.error(err);

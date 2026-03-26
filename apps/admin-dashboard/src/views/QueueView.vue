@@ -1275,15 +1275,14 @@ const cleanTable = async (table: Table) => {
     table.cleaningStatus = "cleaning";
     table.occupiedSince = null;
 
-    // 模擬清潔過程
-    setTimeout(() => {
-      table.status = "available";
-      table.cleaningStatus = "clean";
-      alert(t("queue.alerts.cleanDone", { number: table.number }));
-    }, 3000);
+    await api.post(`/tables/${table.id}/clean`, {});
 
-    alert(t("queue.alerts.cleanStart", { number: table.number }));
+    table.status = "available";
+    table.cleaningStatus = "clean";
+    alert(t("queue.alerts.cleanDone", { number: table.number }));
   } catch (_error) {
+    table.status = "occupied";
+    table.cleaningStatus = "dirty";
     alert(t("queue.alerts.cleanFailed"));
   }
 };

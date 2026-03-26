@@ -274,6 +274,30 @@ class MonitoringService {
   }
 
   // ============================================================================
+  // Recent Alerts (Polling)
+  // ============================================================================
+
+  /**
+   * Get recent alerts for polling
+   * @param since Optional timestamp to filter alerts since
+   * @returns List of recent alert notifications
+   */
+  async getRecentAlerts(since?: number): Promise<any[]> {
+    try {
+      const params: Record<string, string> = {};
+      if (since) params.since = since.toString();
+      const response = await api.get<{ alerts: any[]; timestamp: number }>(
+        `${this.baseUrl}/alerts/recent`,
+        params,
+      );
+      return response.data.data?.alerts || [];
+    } catch (error) {
+      console.error("Failed to get recent alerts:", error);
+      return [];
+    }
+  }
+
+  // ============================================================================
   // Utility Methods
   // ============================================================================
 

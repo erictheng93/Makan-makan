@@ -1305,9 +1305,9 @@ const isSavingShopSettings = ref(false);
 // 設定數據
 const settings = reactive({
   restaurant: {
-    name: "MakanMakan 餐廳",
-    phone: "+60-12-345-6789",
-    address: "123 Jalan Makan, Kuala Lumpur",
+    name: "",
+    phone: "",
+    address: "",
     openTime: "08:00",
     closeTime: "22:00",
     timezone: "Asia/Kuala_Lumpur",
@@ -1410,6 +1410,9 @@ const loadSettings = async () => {
     const restaurantId = authStore.restaurantId;
     if (restaurantId) {
       const response = await api.get<{
+        name?: string;
+        phone?: string;
+        address?: string;
         settings?: {
           currency?: string;
           enableDineIn?: boolean;
@@ -1421,6 +1424,11 @@ const loadSettings = async () => {
         };
       }>(`/restaurants/${restaurantId}`);
       const data = response.data?.data;
+      if (data) {
+        if (data.name) settings.restaurant.name = data.name;
+        if (data.phone) settings.restaurant.phone = data.phone;
+        if (data.address) settings.restaurant.address = data.address;
+      }
       if (data?.settings) {
         if (data.settings.currency) {
           settings.system.currency = data.settings.currency;
@@ -1456,18 +1464,12 @@ const loadSettings = async () => {
 // Shop QR 方法
 const loadShopQRInfo = async () => {
   try {
-    const restaurantId = 1; // 從用戶 session 獲取
-    const response = await fetch(
-      `/api/v1/restaurants/${restaurantId}/qr/shop`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      },
-    );
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+    const response = await api.get<any>(`/restaurants/${restaurantId}/qr/shop`);
 
-    if (response.ok) {
-      const data = await response.json();
+    const data = response.data?.data ?? response.data;
+    if (data) {
       shopQR.enabled = data.enabled || false;
       shopQR.qrCode = data.qrCode || "";
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl || "";
@@ -1483,36 +1485,22 @@ const loadShopQRInfo = async () => {
 
 const handleToggleShopMode = async () => {
   try {
-    const restaurantId = 1;
-    const response = await fetch(
-      `/api/v1/restaurants/${restaurantId}/shop-mode`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          enabled: shopQR.enabled,
-          settings: shopQR.settings,
-        }),
-      },
-    );
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+    await api.put(`/restaurants/${restaurantId}/shop-mode`, {
+      enabled: shopQR.enabled,
+      settings: shopQR.settings,
+    });
 
-    if (response.ok) {
-      alert(
-        shopQR.enabled
-          ? t("settings.alerts.shopModeEnabled")
-          : t("settings.alerts.shopModeDisabled"),
-      );
-      await loadShopQRInfo();
-    } else {
-      throw new Error("Failed to toggle shop mode");
-    }
+    alert(
+      shopQR.enabled
+        ? t("settings.alerts.shopModeEnabled")
+        : t("settings.alerts.shopModeDisabled"),
+    );
+    await loadShopQRInfo();
   } catch (error) {
     console.error("Failed to toggle shop mode:", error);
     alert(t("settings.alerts.operationFailed"));
-    // 恢復原狀態
     shopQR.enabled = !shopQR.enabled;
   }
 };
@@ -1520,27 +1508,14 @@ const handleToggleShopMode = async () => {
 const saveShopSettings = async () => {
   try {
     isSavingShopSettings.value = true;
-    const restaurantId = 1;
-    const response = await fetch(
-      `/api/v1/restaurants/${restaurantId}/shop-mode`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          enabled: shopQR.enabled,
-          settings: shopQR.settings,
-        }),
-      },
-    );
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+    await api.put(`/restaurants/${restaurantId}/shop-mode`, {
+      enabled: shopQR.enabled,
+      settings: shopQR.settings,
+    });
 
-    if (response.ok) {
-      alert(t("settings.alerts.settingsSaved"));
-    } else {
-      throw new Error("Failed to save settings");
-    }
+    alert(t("settings.alerts.settingsSaved"));
   } catch (error) {
     console.error("Failed to save shop settings:", error);
     alert(t("settings.alerts.saveFailed"));
@@ -1552,27 +1527,19 @@ const saveShopSettings = async () => {
 const generateShopQR = async () => {
   try {
     isGeneratingQR.value = true;
-    const restaurantId = 1;
-    const response = await fetch(
-      `/api/v1/restaurants/${restaurantId}/qr/shop/generate`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      },
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+    const response = await api.post<any>(
+      `/restaurants/${restaurantId}/qr/shop/generate`,
     );
 
-    if (response.ok) {
-      const data = await response.json();
+    const data = response.data?.data ?? response.data;
+    if (data) {
       shopQR.qrCode = data.qrCode;
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
       shopQR.version = data.version;
-      alert(t("settings.alerts.qrGenerated"));
-    } else {
-      throw new Error("Failed to generate QR code");
     }
+    alert(t("settings.alerts.qrGenerated"));
   } catch (error) {
     console.error("Failed to generate shop QR:", error);
     alert(t("settings.alerts.generateFailed"));
@@ -1588,26 +1555,18 @@ const regenerateShopQR = async () => {
 
   try {
     isRegeneratingQR.value = true;
-    const restaurantId = 1;
-    const response = await fetch(
-      `/api/v1/restaurants/${restaurantId}/qr/shop/regenerate`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      },
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+    const response = await api.post<any>(
+      `/restaurants/${restaurantId}/qr/shop/regenerate`,
     );
 
-    if (response.ok) {
-      const data = await response.json();
+    const data = response.data?.data ?? response.data;
+    if (data) {
       shopQR.qrCode = data.qrCode;
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
       shopQR.version = data.version;
       alert(t("settings.alerts.qrRegenerated", { version: data.version }));
-    } else {
-      throw new Error("Failed to regenerate QR code");
     }
   } catch (error) {
     console.error("Failed to regenerate shop QR:", error);

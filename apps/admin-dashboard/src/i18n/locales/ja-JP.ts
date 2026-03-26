@@ -1637,6 +1637,12 @@ const jaJP: Messages = {
     escalate: "エスカレーション",
     operationFailed: "操作に失敗しました",
     loadFailed: "データの読み込みに失敗しました",
+    statusHealthy: "正常",
+    statusWarning: "警告",
+    statusError: "異常",
+    statusOnline: "オンライン",
+    statusBusy: "対応中",
+    statusOffline: "オフライン",
   },
 
   notification: {

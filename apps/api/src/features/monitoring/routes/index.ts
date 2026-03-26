@@ -40,11 +40,11 @@ app.get("/health", async (c) => {
   return c.json(healthStatus, statusCode as any);
 });
 
-// Get system metrics (admin only)
+// Get system metrics (admin + owner)
 app.get(
   "/metrics",
   authMiddleware,
-  requireRole([0]), // Admin only
+  requireRole([0, 1]), // Admin + Owner
   validateQuery(metricsQuerySchema),
   async (c) => {
     const { period, granularity } = c.get("validatedQuery");
@@ -75,7 +75,7 @@ app.get(
   },
 );
 
-// Reset system metrics (admin only)
+// Reset system metrics (admin only - destructive operation)
 app.delete("/metrics", authMiddleware, requireRole([0]), async (c) => {
   const monitoringService = createMonitoringService(c.env.CACHE_KV);
   await monitoringService.resetMetrics();
@@ -89,7 +89,7 @@ app.delete("/metrics", authMiddleware, requireRole([0]), async (c) => {
   });
 });
 
-// Record error manually (admin only)
+// Record error manually (admin only - write operation)
 app.post(
   "/errors",
   authMiddleware,
@@ -123,11 +123,11 @@ app.post(
 
 // Alert rules management
 
-// Get all alert rules
+// Get all alert rules (admin + owner)
 app.get(
   "/alerts/rules",
   authMiddleware,
-  requireRole([0]),
+  requireRole([0, 1]),
   validateQuery(paginationSchema),
   async (c) => {
     const { page, limit } = c.get("validatedQuery");
@@ -154,11 +154,11 @@ app.get(
   },
 );
 
-// Create alert rule
+// Create alert rule (admin + owner)
 app.post(
   "/alerts/rules",
   authMiddleware,
-  requireRole([0]),
+  requireRole([0, 1]),
   validateBody(alertRuleSchema),
   async (c) => {
     const ruleData = c.get("validatedBody");
@@ -182,11 +182,11 @@ app.post(
   },
 );
 
-// Update alert rule
+// Update alert rule (admin + owner)
 app.put(
   "/alerts/rules/:id",
   authMiddleware,
-  requireRole([0]),
+  requireRole([0, 1]),
   validateBody(updateAlertRuleSchema),
   async (c) => {
     const ruleId = c.req.param("id");
@@ -209,25 +209,46 @@ app.put(
   },
 );
 
-// Delete alert rule
-app.delete("/alerts/rules/:id", authMiddleware, requireRole([0]), async (c) => {
-  const ruleId = c.req.param("id");
+// Delete alert rule (admin + owner)
+app.delete(
+  "/alerts/rules/:id",
+  authMiddleware,
+  requireRole([0, 1]),
+  async (c) => {
+    const ruleId = c.req.param("id");
+    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+
+    const success = await monitoringService.deleteAlertRule(ruleId);
+
+    if (!success) {
+      return c.json({ success: false, error: "Alert rule not found" }, 404);
+    }
+
+    return c.json({
+      success: true,
+      message: "Alert rule deleted successfully",
+    });
+  },
+);
+
+// Get recent alerts for polling (admin + owner)
+app.get("/alerts/recent", authMiddleware, requireRole([0, 1]), async (c) => {
+  const sinceParam = c.req.query("since");
+  const sinceTimestamp = sinceParam ? parseInt(sinceParam, 10) : undefined;
   const monitoringService = createMonitoringService(c.env.CACHE_KV);
-
-  const success = await monitoringService.deleteAlertRule(ruleId);
-
-  if (!success) {
-    return c.json({ success: false, error: "Alert rule not found" }, 404);
-  }
+  const recentAlerts = await monitoringService.getRecentAlerts(sinceTimestamp);
 
   return c.json({
     success: true,
-    message: "Alert rule deleted successfully",
+    data: {
+      alerts: recentAlerts,
+      timestamp: Date.now(),
+    },
   });
 });
 
-// Get default alert rules
-app.get("/alerts/defaults", authMiddleware, requireRole([0]), async (c) => {
+// Get default alert rules (admin + owner)
+app.get("/alerts/defaults", authMiddleware, requireRole([0, 1]), async (c) => {
   return c.json({
     success: true,
     data: {
@@ -238,11 +259,11 @@ app.get("/alerts/defaults", authMiddleware, requireRole([0]), async (c) => {
   });
 });
 
-// Test alert system
+// Test alert system (admin + owner)
 app.post(
   "/alerts/test",
   authMiddleware,
-  requireRole([0]),
+  requireRole([0, 1]),
   validateBody(testAlertSchema),
   async (c) => {
     const { type, severity, webhookUrl } = c.get("validatedBody");
@@ -283,8 +304,8 @@ app.post(
   },
 );
 
-// System overview (admin only)
-app.get("/overview", authMiddleware, requireRole([0]), async (c) => {
+// System overview (admin + owner)
+app.get("/overview", authMiddleware, requireRole([0, 1]), async (c) => {
   const monitoringService = createMonitoringService(c.env.CACHE_KV);
   const [healthStatus, metrics] = await Promise.all([
     monitoringService.getHealthStatus(),
@@ -311,6 +332,7 @@ app.get("/overview", authMiddleware, requireRole([0]), async (c) => {
         status: component.status,
         latency: component.latency,
         issues: component.issues.length,
+        issueDetails: component.issues,
         lastCheck: component.lastCheck,
       }),
     ),
@@ -339,11 +361,11 @@ app.get("/overview", authMiddleware, requireRole([0]), async (c) => {
   });
 });
 
-// Performance report
+// Performance report (admin + owner)
 app.get(
   "/reports/performance",
   authMiddleware,
-  requireRole([0]),
+  requireRole([0, 1]),
   validateQuery(performanceReportQuerySchema),
   async (c) => {
     const { days } = c.get("validatedQuery");

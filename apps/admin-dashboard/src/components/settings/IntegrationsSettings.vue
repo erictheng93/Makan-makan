@@ -438,7 +438,7 @@ async function loadIntegration() {
       config: { autoAcceptOrders?: boolean; menuSyncEnabled?: boolean } | null;
       lastMenuSyncAt: string | null;
       menuSyncStatus: string | null;
-    }>(`/api/v1/integrations/${restaurantId}/uber_eats`);
+    }>(`/integrations/${restaurantId}/uber_eats`);
     if (response.data?.data) {
       // Defensive: handle double-wrapped cache responses
       const raw = response.data.data;
@@ -468,14 +468,11 @@ async function connectUberEats() {
   isConnecting.value = true;
   try {
     const restaurantId = authStore.restaurantId;
-    await apiClient.post(
-      `/api/v1/integrations/${restaurantId}/uber_eats/connect`,
-      {
-        clientId: connectForm.clientId,
-        clientSecret: connectForm.clientSecret,
-        storeId: connectForm.storeId,
-      },
-    );
+    await apiClient.post(`/integrations/${restaurantId}/uber_eats/connect`, {
+      clientId: connectForm.clientId,
+      clientSecret: connectForm.clientSecret,
+      storeId: connectForm.storeId,
+    });
     showMsg("success", t("integrations.alerts.connectSuccess"));
     showConnectForm.value = false;
     await loadIntegration();
@@ -493,7 +490,7 @@ async function toggleAutoAccept() {
   try {
     const restaurantId = authStore.restaurantId;
     const newValue = !uberEats.config?.autoAcceptOrders;
-    await apiClient.put(`/api/v1/integrations/${restaurantId}/uber_eats`, {
+    await apiClient.put(`/integrations/${restaurantId}/uber_eats`, {
       autoAcceptOrders: newValue,
     });
     if (uberEats.config) uberEats.config.autoAcceptOrders = newValue;
@@ -506,7 +503,7 @@ async function toggleMenuSync() {
   try {
     const restaurantId = authStore.restaurantId;
     const newValue = !uberEats.config?.menuSyncEnabled;
-    await apiClient.put(`/api/v1/integrations/${restaurantId}/uber_eats`, {
+    await apiClient.put(`/integrations/${restaurantId}/uber_eats`, {
       menuSyncEnabled: newValue,
     });
     if (uberEats.config) uberEats.config.menuSyncEnabled = newValue;
@@ -519,9 +516,7 @@ async function syncMenu() {
   isSyncing.value = true;
   try {
     const restaurantId = authStore.restaurantId;
-    await apiClient.post(
-      `/api/v1/integrations/${restaurantId}/uber_eats/menu-sync`,
-    );
+    await apiClient.post(`/integrations/${restaurantId}/uber_eats/menu-sync`);
     showMsg("success", t("integrations.alerts.syncTriggered"));
     await loadIntegration();
   } catch (err: any) {
@@ -538,7 +533,7 @@ async function disconnectUberEats() {
   isDisconnecting.value = true;
   try {
     const restaurantId = authStore.restaurantId;
-    await apiClient.delete(`/api/v1/integrations/${restaurantId}/uber_eats`);
+    await apiClient.delete(`/integrations/${restaurantId}/uber_eats`);
     uberEats.enabled = false;
     uberEats.config = null;
     uberEats.lastMenuSyncAt = null;
@@ -556,7 +551,7 @@ async function loadWebhookLogs() {
   try {
     const restaurantId = authStore.restaurantId;
     const response = await apiClient.get<typeof webhookLogs.value>(
-      `/api/v1/integrations/${restaurantId}/webhook-logs`,
+      `/integrations/${restaurantId}/webhook-logs`,
     );
     webhookLogs.value = response.data?.data || [];
   } catch {

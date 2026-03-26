@@ -1,10 +1,13 @@
 /**
- * Monitoring WebSocket Service
- * Real-time alert notifications and metric updates via WebSocket
+ * Monitoring Polling Service
+ * Alert notifications via periodic polling (replaces broken WebSocket)
+ *
+ * NOTE: Export name kept as `monitoringWebSocket` to avoid changing all import sites.
  */
 
 import { ref, type Ref } from "vue";
 import type { SystemMetrics } from "@/types/monitoring";
+import { monitoringService } from "@/services/monitoringService";
 
 export type AlertNotificationType = "info" | "warning" | "critical" | "fatal";
 
@@ -37,22 +40,17 @@ export interface ConnectionStatus {
 
 type MessageHandler = (data: unknown) => void;
 
-import { sanitizeForLog } from "@/utils/sanitize";
-
 /**
- * Monitoring WebSocket Service Class
+ * Monitoring Polling Service Class
+ * Polls /monitoring/alerts/recent every 15 seconds
  */
-class MonitoringWebSocketService {
-  private ws: WebSocket | null = null;
-  private reconnectTimer: NodeJS.Timeout | null = null;
-  private heartbeatTimer: NodeJS.Timeout | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 10;
-  private reconnectDelay = 3000; // Start with 3 seconds
-  private maxReconnectDelay = 30000; // Max 30 seconds
-  private heartbeatInterval = 30000; // 30 seconds
+class MonitoringPollingService {
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private pollInterval = 15000; // 15 seconds
+  private lastPollTimestamp = 0;
+  private isPolling = false;
 
-  // Reactive state
+  // Reactive state (same interface as the old WebSocket service)
   public connectionStatus: Ref<ConnectionStatus> = ref({
     connected: false,
     reconnecting: false,
@@ -66,68 +64,44 @@ class MonitoringWebSocketService {
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
 
   /**
-   * Connect to WebSocket server
+   * Start polling for alerts
+   * @param _token Auth token (not needed — api service handles auth headers)
    */
-  connect(token: string): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log("[MonitoringWS] Already connected");
+  connect(_token?: string): void {
+    if (this.pollTimer) {
+      console.log("[MonitoringPolling] Already polling");
       return;
     }
 
-    this.disconnect(); // Clean up any existing connection
+    this.connectionStatus.value = {
+      connected: true,
+      reconnecting: false,
+      lastConnected: Date.now(),
+      reconnectAttempts: 0,
+    };
 
-    try {
-      // Use environment variable or default to current host
-      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsHost = import.meta.env.VITE_WS_HOST || window.location.host;
-      const wsUrl = `${wsProtocol}//${wsHost}/monitoring/ws?token=${token}`;
+    // Initial fetch
+    this.poll();
 
-      console.log("[MonitoringWS] Connecting to:", wsUrl);
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = this.handleOpen.bind(this);
-      this.ws.onclose = this.handleClose.bind(this);
-      this.ws.onerror = this.handleError.bind(this);
-      this.ws.onmessage = this.handleMessage.bind(this);
-    } catch (error) {
-      console.error("[MonitoringWS] Connection error:", error);
-      this.scheduleReconnect();
-    }
+    // Start periodic polling
+    this.pollTimer = setInterval(() => this.poll(), this.pollInterval);
+    console.log(
+      `[MonitoringPolling] Started polling every ${this.pollInterval}ms`,
+    );
   }
 
   /**
-   * Disconnect from WebSocket server
+   * Stop polling
    */
   disconnect(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = null;
-    }
-
-    if (this.ws) {
-      this.ws.onclose = null; // Prevent reconnection
-      this.ws.close();
-      this.ws = null;
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
 
     this.connectionStatus.value.connected = false;
     this.connectionStatus.value.reconnecting = false;
-  }
-
-  /**
-   * Send message to server
-   */
-  private send(type: string, data?: unknown): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type, data }));
-    } else {
-      console.warn("[MonitoringWS] Cannot send message, not connected");
-    }
+    console.log("[MonitoringPolling] Stopped polling");
   }
 
   /**
@@ -137,7 +111,6 @@ class MonitoringWebSocketService {
     const alert = this.alerts.value.find((a) => a.id === alertId);
     if (alert) {
       alert.acknowledged = true;
-      this.send("acknowledge_alert", { alertId });
     }
   }
 
@@ -164,157 +137,61 @@ class MonitoringWebSocketService {
   }
 
   /**
-   * Handle WebSocket open event
+   * Poll for recent alerts
    */
-  private handleOpen(): void {
-    console.log("[MonitoringWS] Connected");
-    this.reconnectAttempts = 0;
-    this.reconnectDelay = 3000;
+  private async poll(): Promise<void> {
+    if (this.isPolling) return; // Guard against overlapping polls
+    this.isPolling = true;
 
-    this.connectionStatus.value = {
-      connected: true,
-      reconnecting: false,
-      lastConnected: Date.now(),
-      reconnectAttempts: 0,
-    };
-
-    // Start heartbeat
-    this.startHeartbeat();
-
-    // Subscribe to monitoring alerts
-    this.send("subscribe", { channel: "monitoring-alerts" });
-    this.send("subscribe", { channel: "monitoring-metrics" });
-  }
-
-  /**
-   * Handle WebSocket close event
-   */
-  private handleClose(event: CloseEvent): void {
-    console.log("[MonitoringWS] Disconnected", event.code, event.reason);
-
-    this.connectionStatus.value.connected = false;
-
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = null;
-    }
-
-    // Auto reconnect if not a clean close
-    if (event.code !== 1000) {
-      this.scheduleReconnect();
-    }
-  }
-
-  /**
-   * Handle WebSocket error event
-   */
-  private handleError(event: Event): void {
-    console.error("[MonitoringWS] Error:", event);
-  }
-
-  /**
-   * Handle incoming WebSocket message
-   */
-  private handleMessage(event: MessageEvent): void {
     try {
-      const message = JSON.parse(event.data);
-
-      switch (message.type) {
-        case "alert":
-          this.handleAlert(message.data);
-          break;
-        case "metric_update":
-          this.handleMetricUpdate(message.data);
-          break;
-        case "pong":
-          // Heartbeat response
-          break;
-        default:
-          console.log(
-            "[MonitoringWS] Unknown message type:",
-            sanitizeForLog(message.type),
-          );
-      }
-
-      // Trigger custom handlers
-      const handlers = this.messageHandlers.get(message.type);
-      if (handlers) {
-        handlers.forEach((handler) => handler(message.data));
-      }
-    } catch (error) {
-      console.error("[MonitoringWS] Failed to parse message:", error);
-    }
-  }
-
-  /**
-   * Handle alert notification
-   */
-  private handleAlert(alert: AlertNotification): void {
-    // Add timestamp if not present
-    if (!alert.timestamp) {
-      alert.timestamp = Date.now();
-    }
-
-    // Add to alerts list (keep last 50)
-    this.alerts.value = [alert, ...this.alerts.value].slice(0, 50);
-
-    console.log(
-      "[MonitoringWS] New alert:",
-      sanitizeForLog(JSON.stringify(alert)),
-    );
-  }
-
-  /**
-   * Handle metric update
-   */
-  private handleMetricUpdate(update: MetricUpdate): void {
-    this.latestMetrics.value = update;
-    console.log("[MonitoringWS] Metric update received");
-  }
-
-  /**
-   * Start heartbeat to keep connection alive
-   */
-  private startHeartbeat(): void {
-    this.heartbeatTimer = setInterval(() => {
-      this.send("ping");
-    }, this.heartbeatInterval);
-  }
-
-  /**
-   * Schedule reconnection attempt
-   */
-  private scheduleReconnect(): void {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error("[MonitoringWS] Max reconnection attempts reached");
-      this.connectionStatus.value.reconnecting = false;
-      return;
-    }
-
-    this.connectionStatus.value.reconnecting = true;
-    this.reconnectAttempts++;
-    this.connectionStatus.value.reconnectAttempts = this.reconnectAttempts;
-
-    console.log(
-      `[MonitoringWS] Reconnecting in ${this.reconnectDelay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
-    );
-
-    this.reconnectTimer = setTimeout(() => {
-      // Get token from localStorage or generate new one
-      const token = localStorage.getItem("auth_token") || "";
-      this.connect(token);
-
-      // Exponential backoff
-      this.reconnectDelay = Math.min(
-        this.reconnectDelay * 1.5,
-        this.maxReconnectDelay,
+      const recentAlerts = await monitoringService.getRecentAlerts(
+        this.lastPollTimestamp || undefined,
       );
-    }, this.reconnectDelay);
+
+      if (recentAlerts.length > 0) {
+        // Merge new alerts (dedup by id)
+        const existingIds = new Set(this.alerts.value.map((a) => a.id));
+        const newAlerts = recentAlerts.filter(
+          (a: any) => !existingIds.has(a.id),
+        );
+
+        if (newAlerts.length > 0) {
+          // Map backend alert format to AlertNotification
+          const mapped: AlertNotification[] = newAlerts.map((a: any) => ({
+            id: a.id,
+            type: a.severity || "info",
+            severity: a.severity || "info",
+            title: a.title || "",
+            message: a.message || "",
+            timestamp: a.timestamp || Date.now(),
+            acknowledged: false,
+          }));
+
+          this.alerts.value = [...mapped, ...this.alerts.value].slice(0, 50);
+
+          // Trigger custom handlers
+          const handlers = this.messageHandlers.get("alert");
+          if (handlers) {
+            mapped.forEach((alert) => {
+              handlers.forEach((handler) => handler(alert));
+            });
+          }
+        }
+      }
+
+      this.lastPollTimestamp = Date.now();
+      this.connectionStatus.value.lastConnected = Date.now();
+    } catch (error) {
+      // Transient failures are OK for polling — don't disconnect
+      console.error("[MonitoringPolling] Poll failed:", error);
+    } finally {
+      this.isPolling = false;
+    }
   }
 }
 
-// Export singleton instance
-export const monitoringWebSocket = new MonitoringWebSocketService();
+// Export singleton instance (name kept for backward compatibility)
+export const monitoringWebSocket = new MonitoringPollingService();
 
 // Export class for testing
-export default MonitoringWebSocketService;
+export default MonitoringPollingService;

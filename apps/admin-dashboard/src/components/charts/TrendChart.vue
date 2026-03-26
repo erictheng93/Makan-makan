@@ -71,6 +71,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
+import { schedulingService } from "@/services/schedulingService";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import BaseChart from "./BaseChart.vue";
 
@@ -90,6 +92,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 const { formatDate } = useDateFormatter();
 
 const selectedMetric = ref("total");
@@ -198,46 +201,51 @@ const getMetricLabel = () => {
   }
 };
 
-const generateMockData = (days: number) => {
-  const data: TrendData[] = [];
-  const today = new Date();
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-
-    let value = 0;
-    if (selectedMetric.value === "schedules") {
-      value = Math.floor(Math.random() * 20) + 30;
-    } else {
-      value = Math.random() * 20 + 35;
-    }
-
-    data.push({
-      date: date.toISOString().split("T")[0],
-      value,
-    });
-  }
-
-  return data;
-};
-
 const fetchData = async () => {
   if (!props.autoFetch) return;
+
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId) return;
 
   isLoading.value = true;
   error.value = "";
 
   try {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     const days =
       selectedPeriod.value === "7days"
         ? 7
         : selectedPeriod.value === "30days"
           ? 30
           : 90;
-    trendData.value = generateMockData(days);
+
+    const today = new Date();
+
+    // Fetch daily stats for each day in the period
+    const fetchPromises = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split("T")[0];
+      fetchPromises.push(
+        schedulingService
+          .getDailyStats(restaurantId, dateStr)
+          .then((stats: any) => ({
+            date: dateStr,
+            value:
+              selectedMetric.value === "schedules"
+                ? (stats.totalSchedules ?? stats.scheduleCount ?? 0)
+                : selectedMetric.value === "average"
+                  ? (stats.averageHours ?? 0)
+                  : (stats.totalHours ?? 0),
+          }))
+          .catch(() => ({ date: dateStr, value: 0 })),
+      );
+    }
+
+    const results = await Promise.all(fetchPromises);
+    trendData.value = results.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
   } catch (err) {
     error.value = t("charts.trend.loadFailed");
     console.error(err);

@@ -219,14 +219,14 @@ const connectionStatusClass = computed(() => {
 
 const connectionStatusText = computed(() => {
   if (props.connectionStatus.connected) {
-    return t("monitoring.alertPanel.connected");
+    return t("monitoring.polling.connected");
   }
   if (props.connectionStatus.reconnecting) {
     return t("monitoring.alertPanel.reconnecting", {
       attempts: props.connectionStatus.reconnectAttempts,
     });
   }
-  return t("monitoring.alertPanel.disconnected");
+  return t("monitoring.polling.disconnected");
 });
 
 const connectionStatusIcon = computed(() => {

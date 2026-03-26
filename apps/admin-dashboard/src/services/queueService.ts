@@ -334,14 +334,11 @@ export const queueService = {
     peakHours: number[];
     recommendations: string[];
   }> {
-    // 暫時返回模擬數據，等待新 API 實現
+    // TODO: Implement when capacity forecast API is available
     return {
       hourlyForecast: [],
-      peakHours: [12, 13, 18, 19, 20],
-      recommendations: [
-        "建議在用餐尖峰時段增加服務人員",
-        "考慮實施預約制度以平衡客流",
-      ],
+      peakHours: [],
+      recommendations: [],
     };
   },
 
