@@ -360,6 +360,49 @@ export class LeaveService extends BaseService {
   }
 
   /**
+   * Get all leave balances for a restaurant in a given year (bulk fetch)
+   */
+  async getRestaurantLeaveBalances(
+    restaurantId: string,
+    year: number,
+  ): Promise<LeaveBalanceWithType[]> {
+    const balances = await this.db
+      .select({
+        balance: employeeLeaveBalances,
+        leaveType: {
+          id: leaveTypes.id,
+          code: leaveTypes.code,
+          name: leaveTypes.name,
+          accrualType: leaveTypes.accrualType,
+          isPaid: leaveTypes.isPaid,
+          color: leaveTypes.color,
+          icon: leaveTypes.icon,
+        },
+      })
+      .from(employeeLeaveBalances)
+      .innerJoin(
+        leaveTypes,
+        eq(employeeLeaveBalances.leaveTypeId, leaveTypes.id),
+      )
+      .where(
+        and(
+          eq(employeeLeaveBalances.restaurantId, restaurantId),
+          eq(employeeLeaveBalances.year, year),
+        ),
+      );
+
+    return balances.map((row) => ({
+      ...row.balance,
+      remainingDays:
+        row.balance.totalDays - row.balance.usedDays - row.balance.pendingDays,
+      leaveType: {
+        ...row.leaveType,
+        accrualType: row.leaveType.accrualType as string,
+      },
+    })) as LeaveBalanceWithType[];
+  }
+
+  /**
    * Get a specific leave balance
    */
   async getLeaveBalance(

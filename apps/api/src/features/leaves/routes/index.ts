@@ -197,6 +197,29 @@ app.post(
   },
 );
 
+// GET /:restaurantId/balances - Get all leave balances for a restaurant (bulk)
+app.get(
+  "/:restaurantId/balances",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(leaveSchemas.restaurantIdParam),
+  async (c) => {
+    const { restaurantId } = c.get("validatedParams");
+    const url = new URL(c.req.url);
+    const yearParam = url.searchParams.get("year");
+    const year = yearParam ? Number(yearParam) : new Date().getFullYear();
+    const service = new LeaveService(c.env.DB, c.env);
+
+    const balances = await service.getRestaurantLeaveBalances(
+      restaurantId,
+      year,
+    );
+
+    return c.json(createSuccessResponse(balances), HTTP_STATUS.OK);
+  },
+);
+
 // POST /:restaurantId/balances/accrue - Accrue leave balances for all employees
 app.post(
   "/:restaurantId/balances/accrue",

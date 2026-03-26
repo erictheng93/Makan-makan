@@ -157,32 +157,14 @@ const loadData = async () => {
   error.value = null;
 
   try {
-    // Load types and requests first (these work with restaurantId)
-    const [types, reqs] = await Promise.all([
+    const [types, reqs, allBalances] = await Promise.all([
       leavesService.getLeaveTypes(restaurantId),
       leavesService.getRequests(restaurantId),
+      leavesService.getRestaurantBalances(String(restaurantId)),
     ]);
     leaveTypes.value = types;
     allRequests.value = reqs;
-
-    // Load balances per employee (backend requires employeeId, not restaurantId)
-    // Fetch after employees are loaded, load in background
-    if (users.value.length > 0) {
-      const allBalances: LeaveBalance[] = [];
-      await Promise.all(
-        users.value.map(async (user) => {
-          try {
-            const userBalances = await leavesService.getBalances({
-              employeeId: user.id,
-            });
-            allBalances.push(...userBalances);
-          } catch {
-            // Skip employees with no balance data
-          }
-        }),
-      );
-      balances.value = allBalances;
-    }
+    balances.value = allBalances;
   } catch (e: any) {
     error.value = e?.message || "載入請假資料失敗";
     console.error("Failed to load leaves data:", e);
@@ -251,8 +233,9 @@ const handleAccrue = async () => {
   }
 };
 
-onMounted(async () => {
-  await fetchUsers();
-  await loadData();
+onMounted(() => {
+  // Both can run concurrently — loadData no longer depends on users being loaded
+  fetchUsers();
+  loadData();
 });
 </script>

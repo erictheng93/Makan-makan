@@ -79,6 +79,21 @@ class LeavesService {
   }
 
   /**
+   * Get all leave balances for a restaurant (single bulk request)
+   */
+  async getRestaurantBalances(
+    restaurantId: string,
+    year?: number,
+  ): Promise<LeaveBalance[]> {
+    const params = year ? { year } : {};
+    const response = await this.api.get<LeaveBalance[]>(
+      `/leaves/${restaurantId}/balances`,
+      params,
+    );
+    return response.data.data ?? [];
+  }
+
+  /**
    * Get leave requests with optional filters
    */
   async getRequests(
