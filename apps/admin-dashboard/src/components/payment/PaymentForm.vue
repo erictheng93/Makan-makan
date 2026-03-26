@@ -181,6 +181,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
+import { api } from "@/services/api";
 import { usePaymentStore } from "@/stores/payment";
 import type {
   PaymentRequest,
@@ -280,15 +281,17 @@ const availablePaymentMethods = computed(() =>
   paymentStore.getAvailableMethodsForCountry(props.country),
 );
 
+const orderData = ref<any>(null);
+
 const orderDetails = computed(() => ({
   id: props.orderId,
   restaurantId: props.restaurantId,
   country: props.country,
   currency: props.currency,
-  subtotal: props.amount,
-  total: props.amount,
-  items: [], // 這裡應該從 props 或 API 獲取
-  tax: 0,
+  subtotal: orderData.value?.totalAmount ?? props.amount,
+  total: orderData.value?.totalAmount ?? props.amount,
+  items: orderData.value?.items || [],
+  tax: orderData.value?.tax ?? 0,
 }));
 
 const canProceedToPayment = computed(() => {
@@ -426,8 +429,8 @@ const loadPaymentMethods = async () => {
 const loadOrderDetails = async () => {
   loadingOrder.value = true;
   try {
-    // TODO: 從 API 載入訂單詳情
-    // const order = await orderApi.getOrder(props.orderId)
+    const response = await api.get(`/orders/${props.orderId}`);
+    orderData.value = response.data?.data || response.data;
   } catch (error) {
     console.error("Failed to load order details:", error);
   } finally {

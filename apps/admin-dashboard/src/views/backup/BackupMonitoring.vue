@@ -197,8 +197,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useBackupStore } from '@/stores/backup'
-// TODO: Import from @makanmakan/shared-types when workspace is configured
-// import type { BackupSystemHealth, BackupAlert } from '@makanmakan/shared-types'
+import { api } from '@/services/api'
 
 // Temporary type definitions
 interface BackupSystemHealth {
@@ -345,11 +344,15 @@ const refreshData = async () => {
   isLoading.value = true
 
   try {
+    // Load system health and restaurants first
     await Promise.all([
       loadSystemHealth(),
-      loadPerformanceData(),
       loadRestaurants(),
-      loadCriticalAlerts()
+    ])
+    // Then load data that depends on restaurant list
+    await Promise.all([
+      loadPerformanceData(),
+      loadCriticalAlerts(),
     ])
   } catch (error) {
     console.error('Error refreshing monitoring data:', error)
@@ -368,8 +371,41 @@ const loadSystemHealth = async () => {
 
 const loadPerformanceData = async () => {
   try {
-    // Mock performance data - replace with actual API call
-    performanceData.value = generateMockPerformanceData()
+    const now = new Date()
+    const periodDays = selectedPeriod.value === '24h' ? 1 : selectedPeriod.value === '7d' ? 7 : 30
+    const dateFrom = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString()
+
+    // Fetch backups from all restaurants in parallel
+    const results = await Promise.all(
+      restaurants.value.map(r =>
+        backupStore.listBackups({
+          restaurant_id: r.id,
+          date_from: dateFrom,
+          date_to: now.toISOString(),
+          limit: 500,
+          sort_by: 'created_at',
+          sort_order: 'asc',
+        }).catch(() => [] as any[])
+      )
+    )
+    const allBackups = results.flat()
+
+    // Group by day and compute success rates
+    const dayMap = new Map<string, { total: number; success: number }>()
+    for (const backup of allBackups) {
+      const day = new Date(backup.created_at).toISOString().split('T')[0]
+      const entry = dayMap.get(day) || { total: 0, success: 0 }
+      entry.total++
+      if (backup.status === 'completed') entry.success++
+      dayMap.set(day, entry)
+    }
+
+    performanceData.value = Array.from(dayMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([day, stats]) => ({
+        timestamp: new Date(day),
+        value: stats.total > 0 ? (stats.success / stats.total) * 100 : 100,
+      }))
 
     await nextTick()
     if (performanceChart.value) {
@@ -382,8 +418,49 @@ const loadPerformanceData = async () => {
 
 const loadRestaurants = async () => {
   try {
-    // Mock restaurant data - replace with actual API call
-    restaurants.value = generateMockRestaurantData()
+    const response = await api.get('/restaurants')
+    const rawData = response.data?.data || response.data
+    const restaurantList: any[] = Array.isArray(rawData) ? rawData : []
+
+    const restaurantsWithMetrics = await Promise.all(
+      restaurantList.map(async (r: any) => {
+        try {
+          const metrics = await backupStore.getRestaurantMetrics(r.id, 'week')
+          const successRate = metrics.total_backups > 0
+            ? Math.round((metrics.successful_backups / metrics.total_backups) * 100)
+            : 100
+
+          let status: 'healthy' | 'warning' | 'critical' = 'healthy'
+          if (successRate < 80 || metrics.failed_backups > 3) {
+            status = 'critical'
+          } else if (successRate < 95 || metrics.failed_backups > 0) {
+            status = 'warning'
+          }
+
+          return {
+            id: r.id,
+            name: r.name,
+            status,
+            last_backup_at: metrics.last_backup_at || new Date().toISOString(),
+            success_rate: successRate,
+            total_backups: metrics.total_backups || 0,
+            storage_used: metrics.total_storage_used || 0,
+          }
+        } catch {
+          return {
+            id: r.id,
+            name: r.name,
+            status: 'critical' as const,
+            last_backup_at: '',
+            success_rate: 0,
+            total_backups: 0,
+            storage_used: 0,
+          }
+        }
+      })
+    )
+
+    restaurants.value = restaurantsWithMetrics
   } catch (error) {
     console.error('Error loading restaurants:', error)
   }
@@ -391,9 +468,23 @@ const loadRestaurants = async () => {
 
 const loadCriticalAlerts = async () => {
   try {
-    // Get all unresolved alerts from all restaurants
-    // In production, this would be a system-wide alert endpoint
-    criticalAlerts.value = [] // Replace with actual API call
+    const allAlerts: BackupAlert[] = []
+    for (const restaurant of restaurants.value) {
+      try {
+        const alerts = await backupStore.getRestaurantAlerts(restaurant.id, true)
+        allAlerts.push(...alerts)
+      } catch {
+        // Skip restaurants where alerts are unavailable
+      }
+    }
+    criticalAlerts.value = allAlerts
+      .filter(a => !a.resolved)
+      .sort((a, b) => {
+        const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }
+        const diff = (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4)
+        if (diff !== 0) return diff
+        return new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime()
+      })
   } catch (error) {
     console.error('Error loading critical alerts:', error)
   }
@@ -455,44 +546,6 @@ const renderPerformanceChart = () => {
   })
 
   ctx.stroke()
-}
-
-// Mock data generators
-const generateMockPerformanceData = () => {
-  const data = []
-  const days = selectedPeriod.value === '24h' ? 24 : selectedPeriod.value === '7d' ? 7 : 30
-
-  for (let i = 0; i < days; i++) {
-    data.push({
-      timestamp: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000),
-      value: Math.random() * 30 + 70 // Success rate between 70-100%
-    })
-  }
-
-  return data
-}
-
-const generateMockRestaurantData = () => {
-  return [
-    {
-      id: 'rest-1',
-      name: 'MakanMakan Central',
-      status: 'healthy',
-      last_backup_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      success_rate: 98,
-      total_backups: 45,
-      storage_used: 2.5 * 1024 * 1024 * 1024 // 2.5 GB
-    },
-    {
-      id: 'rest-2',
-      name: 'Downtown Branch',
-      status: 'warning',
-      last_backup_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-      success_rate: 85,
-      total_backups: 32,
-      storage_used: 1.8 * 1024 * 1024 * 1024 // 1.8 GB
-    }
-  ]
 }
 
 // Lifecycle

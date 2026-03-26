@@ -307,6 +307,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "@/i18n";
+import { api } from "@/services/api";
 import { PlusIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
@@ -394,15 +395,16 @@ const updateSeat = async () => {
   if (!selectedSeat.value) return;
 
   try {
-    // TODO: 調用 API 更新座位
-    console.log("Updating seat:", {
-      id: selectedSeat.value.id,
-      ...seatForm.value,
+    const response = await api.put(`/seats/${selectedSeat.value.id}`, {
+      seatNumber: seatForm.value.seatNumber,
+      seatName: seatForm.value.seatName || undefined,
+      position: seatForm.value.position || undefined,
+      isActive: seatForm.value.isActive,
     });
 
     emit("seatUpdated", {
       ...selectedSeat.value,
-      ...seatForm.value,
+      ...(response.data?.data || seatForm.value),
     });
 
     closeSeatModal();
@@ -433,8 +435,7 @@ const deleteSeat = async () => {
   }
 
   try {
-    // TODO: 調用 API 刪除座位
-    console.log("Deleting seat:", selectedSeat.value.id);
+    await api.delete(`/seats/${selectedSeat.value.id}`);
 
     emit("seatDeleted", selectedSeat.value.id);
     closeSeatModal();
@@ -460,8 +461,7 @@ const releaseSeat = async () => {
   }
 
   try {
-    // TODO: 調用 API 釋放座位
-    console.log("Releasing seat:", selectedSeat.value.id);
+    await api.post(`/seats/${selectedSeat.value.id}/release`);
 
     emit("update");
     closeSeatModal();
@@ -486,8 +486,7 @@ const regenerateSeatQR = async () => {
   }
 
   try {
-    // TODO: 調用 API 重新生成 QR
-    console.log("Regenerating QR for seat:", selectedSeat.value.id);
+    await api.post(`/seats/${selectedSeat.value.id}/regenerate-qr`);
 
     emit("update");
     alert(t("seatManagement.alerts.regenerateSuccess"));
@@ -500,12 +499,15 @@ const regenerateSeatQR = async () => {
 // 批量創建座位
 const batchCreateSeats = async () => {
   try {
-    // TODO: 調用 API 批量創建座位
-    console.log("Batch creating seats:", {
+    const response = await api.post("/seats/batch-create", {
       tableId: props.tableId,
-      ...batchForm.value,
+      seatCount: batchForm.value.count,
+      numberingStyle: batchForm.value.numberingStyle,
+      prefix: batchForm.value.prefix || undefined,
     });
 
+    const createdSeats = (response.data?.data || []) as Seat[];
+    emit("seatsCreated", createdSeats);
     showBatchCreateModal.value = false;
     emit("update");
     alert(
@@ -526,8 +528,9 @@ const regenerateAllQR = async () => {
   }
 
   try {
-    // TODO: 調用 API 批量重新生成 QR
-    console.log("Regenerating all QR codes for table:", props.tableId);
+    await api.post("/seats/batch-regenerate-qr", {
+      tableId: props.tableId,
+    });
 
     emit("update");
     alert(t("seatManagement.alerts.regenerateAllSuccess"));
