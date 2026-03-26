@@ -137,11 +137,13 @@ export class GroupOrdersService implements IGroupOrderService {
           .from(groupCartItems)
           .where(eq(groupCartItems.groupOrderId, row.id));
 
+        const settings = row.settings as any;
         results.push({
           id: row.id,
           shareCode: row.shareCode,
           masterOrderId: null,
-          tableNumber: row.tableId ? String(row.tableId) : null,
+          tableNumber:
+            settings?.tableNumber || (row.tableId ? String(row.tableId) : null),
           status: row.status,
           hostName:
             memberRows.find((m) => m.role === "creator")?.name || "Host",
@@ -221,6 +223,7 @@ export class GroupOrdersService implements IGroupOrderService {
           maxMembers: effectiveMaxMembers,
           permissions: defaultPermissions,
           notes: (data as any).notes || null,
+          tableNumber: (data as any).tableNumber || null,
         } as any,
         totalAmount: 0,
         createdAt: now,
@@ -1297,118 +1300,118 @@ export class GroupOrdersService implements IGroupOrderService {
     restaurantId?: string,
     timeRange?: string,
   ): Promise<GroupOrderStatistics> {
-    try {
-      // Calculate time range
-      const now = Math.floor(Date.now() / 1000);
-      let startTime = 0;
+    // Calculate time range
+    const nowMs = Date.now();
+    let startMs = 0;
 
-      switch (timeRange) {
-        case "day":
-          startTime = now - 24 * 60 * 60;
-          break;
-        case "week":
-          startTime = now - 7 * 24 * 60 * 60;
-          break;
-        case "month":
-          startTime = now - 30 * 24 * 60 * 60;
-          break;
-        case "quarter":
-          startTime = now - 90 * 24 * 60 * 60;
-          break;
-        case "year":
-          startTime = now - 365 * 24 * 60 * 60;
-          break;
-        default:
-          startTime = now - 30 * 24 * 60 * 60; // Default to month
-      }
-
-      const startDate = new Date(startTime * 1000);
-
-      // Build dynamic conditions
-      const conditions = [gte(groupOrders.createdAt, startDate)];
-      if (restaurantId) {
-        conditions.push(eq(groupOrders.restaurantId, restaurantId));
-      }
-
-      // Get total group orders
-      const totalResult = await this.db
-        .select({ total: sql<number>`COUNT(*)` })
-        .from(groupOrders)
-        .where(and(...conditions));
-
-      // Get active group orders
-      const activeConditions = [
-        ...conditions,
-        eq(groupOrders.status, "active"),
-      ];
-      const activeResult = await this.db
-        .select({ active: sql<number>`COUNT(*)` })
-        .from(groupOrders)
-        .where(and(...activeConditions));
-
-      // Get average group size
-      const avgSizeResult = await this.db
-        .select({
-          avgSize: sql<number>`AVG(member_count)`,
-        })
-        .from(
-          sql`(
-            SELECT ${groupMembers.groupOrderId}, COUNT(*) as member_count
-            FROM ${groupMembers}
-            JOIN ${groupOrders} ON ${groupMembers.groupOrderId} = ${groupOrders.id}
-            WHERE ${groupOrders.createdAt} >= ${startDate}
-            ${restaurantId ? sql`AND ${groupOrders.restaurantId} = ${restaurantId}` : sql``}
-            GROUP BY ${groupMembers.groupOrderId}
-          )`,
-        );
-
-      // Get average order value
-      const avgValueConditions = [
-        ...conditions,
-        sql`${groupOrders.finalAmount} > 0`,
-      ];
-      const avgValueResult = await this.db
-        .select({
-          avgValue: sql<number>`AVG(${groupOrders.finalAmount})`,
-        })
-        .from(groupOrders)
-        .where(and(...avgValueConditions));
-
-      return {
-        totalGroupOrders: totalResult[0]?.total || 0,
-        activeGroupOrders: activeResult[0]?.active || 0,
-        averageGroupSize:
-          Math.round((avgSizeResult[0]?.avgSize || 0) * 10) / 10,
-        averageOrderValue:
-          Math.round((avgValueResult[0]?.avgValue || 0) * 100) / 100,
-        popularTimeSlots: [],
-        conversionRate:
-          totalResult[0]?.total > 0
-            ? Math.round(
-                ((totalResult[0].total - (activeResult[0]?.active || 0)) /
-                  totalResult[0].total) *
-                  100,
-              )
-            : 0,
-        paymentMethodDistribution: {},
-      };
-    } catch (error) {
-      this.errorTracker.logError("getStatistics", error as Error, {
-        restaurantId,
-        timeRange,
-      });
-      this.logger.error("Failed to get statistics", error);
-      // Return default values on error
-      return {
-        totalGroupOrders: 0,
-        activeGroupOrders: 0,
-        averageGroupSize: 0,
-        averageOrderValue: 0,
-        popularTimeSlots: [],
-        conversionRate: 0,
-        paymentMethodDistribution: {},
-      };
+    switch (timeRange) {
+      case "day":
+        startMs = nowMs - 24 * 60 * 60 * 1000;
+        break;
+      case "week":
+        startMs = nowMs - 7 * 24 * 60 * 60 * 1000;
+        break;
+      case "month":
+        startMs = nowMs - 30 * 24 * 60 * 60 * 1000;
+        break;
+      case "quarter":
+        startMs = nowMs - 90 * 24 * 60 * 60 * 1000;
+        break;
+      case "year":
+        startMs = nowMs - 365 * 24 * 60 * 60 * 1000;
+        break;
+      default:
+        startMs = nowMs - 30 * 24 * 60 * 60 * 1000; // Default to month
     }
+
+    const startDate = new Date(startMs);
+
+    // Build dynamic conditions
+    const conditions = [gte(groupOrders.createdAt, startDate)];
+    if (restaurantId) {
+      conditions.push(eq(groupOrders.restaurantId, restaurantId));
+    }
+
+    const activeConditions = [...conditions, eq(groupOrders.status, "active")];
+    const avgValueConditions = [
+      ...conditions,
+      sql`${groupOrders.totalAmount} > 0`,
+    ];
+
+    // Run all independent queries in parallel
+    const [countsResult, avgSizeResult, avgValueResult] =
+      await Promise.allSettled([
+        // Total + active counts
+        Promise.all([
+          this.db
+            .select({ total: sql<number>`COUNT(*)` })
+            .from(groupOrders)
+            .where(and(...conditions)),
+          this.db
+            .select({ active: sql<number>`COUNT(*)` })
+            .from(groupOrders)
+            .where(and(...activeConditions)),
+        ]),
+        // Average group size
+        this.db.select({ avgSize: sql<number>`AVG(member_count)` }).from(
+          sql`(
+              SELECT ${groupMembers.groupOrderId}, COUNT(*) as member_count
+              FROM ${groupMembers}
+              JOIN ${groupOrders} ON ${groupMembers.groupOrderId} = ${groupOrders.id}
+              WHERE ${groupOrders.createdAt} >= ${startDate}
+              ${restaurantId ? sql`AND ${groupOrders.restaurantId} = ${restaurantId}` : sql``}
+              GROUP BY ${groupMembers.groupOrderId}
+            )`,
+        ),
+        // Average order value
+        this.db
+          .select({ avgValue: sql<number>`AVG(${groupOrders.totalAmount})` })
+          .from(groupOrders)
+          .where(and(...avgValueConditions)),
+      ]);
+
+    let totalCount = 0;
+    let activeCount = 0;
+    if (countsResult.status === "fulfilled") {
+      totalCount = countsResult.value[0][0]?.total || 0;
+      activeCount = countsResult.value[1][0]?.active || 0;
+    } else {
+      this.errorTracker.logError("getStatistics:counts", countsResult.reason, {
+        restaurantId,
+      });
+    }
+
+    const avgSize =
+      avgSizeResult.status === "fulfilled"
+        ? avgSizeResult.value[0]?.avgSize || 0
+        : 0;
+    if (avgSizeResult.status === "rejected") {
+      this.errorTracker.logError("getStatistics:avgSize", avgSizeResult.reason);
+    }
+
+    const avgValue =
+      avgValueResult.status === "fulfilled"
+        ? avgValueResult.value[0]?.avgValue || 0
+        : 0;
+    if (avgValueResult.status === "rejected") {
+      this.errorTracker.logError(
+        "getStatistics:avgValue",
+        avgValueResult.reason,
+      );
+    }
+
+    return {
+      totalGroupOrders: totalCount,
+      activeGroupOrders: activeCount,
+      averageGroupSize: Math.round(avgSize * 10) / 10,
+      averageOrderValue: Math.round(avgValue * 100) / 100,
+      popularTimeSlots: [],
+      conversionRate:
+        totalCount > 0
+          ? Math.round(((totalCount - activeCount) / totalCount) * 100)
+          : 0,
+      paymentMethodDistribution: {},
+    };
   }
 
   // Helper methods

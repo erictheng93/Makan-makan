@@ -1,34 +1,38 @@
 <template>
   <div class="group-orders-view">
     <!-- 標題區域 -->
-    <div class="flex justify-between items-center mb-8">
+    <div
+      class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8"
+    >
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
           {{ t("groupOrders.title") }}
         </h1>
-        <p class="text-gray-600">{{ t("groupOrders.subtitle") }}</p>
+        <p class="text-gray-600 text-sm sm:text-base">
+          {{ t("groupOrders.subtitle") }}
+        </p>
       </div>
-      <div class="flex items-center space-x-4">
+      <div class="flex flex-wrap items-center gap-3">
         <!-- 即時統計 -->
-        <div class="bg-blue-100 px-4 py-2 rounded-lg">
-          <p class="text-sm text-blue-800 font-medium">
+        <div class="bg-blue-100 px-3 py-2 rounded-lg">
+          <p class="text-sm text-blue-800 font-medium whitespace-nowrap">
             {{ t("groupOrders.activeOrders") }}: {{ activeGroupOrders }}
           </p>
-          <p class="text-xs text-blue-600">
+          <p class="text-xs text-blue-600 whitespace-nowrap">
             {{ t("groupOrders.todayTotal") }}: {{ todayGroupOrders }}
           </p>
         </div>
 
         <!-- 功能按鈕 -->
         <button
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm whitespace-nowrap"
           @click="createGroupOrder"
         >
           {{ t("groupOrders.createOrder") }}
         </button>
 
         <button
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm whitespace-nowrap"
           @click="generateShareCode"
         >
           {{ t("groupOrders.generateShareCode") }}
@@ -37,65 +41,65 @@
     </div>
 
     <!-- 統計卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-green-100">
-            <UserGroupIcon class="h-6 w-6 text-green-600" />
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-3 sm:p-6">
+        <div class="flex items-center gap-3">
+          <div class="p-2 sm:p-3 rounded-full bg-green-100 flex-shrink-0">
+            <UserGroupIcon class="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
+          <div class="min-w-0">
+            <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">
               {{ t("groupOrders.activeOrders") }}
             </p>
-            <p class="text-2xl font-semibold text-gray-900">
+            <p class="text-xl sm:text-2xl font-semibold text-gray-900">
               {{ activeGroupOrders }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-blue-100">
-            <ShareIcon class="h-6 w-6 text-blue-600" />
+      <div class="bg-white rounded-lg shadow p-3 sm:p-6">
+        <div class="flex items-center gap-3">
+          <div class="p-2 sm:p-3 rounded-full bg-blue-100 flex-shrink-0">
+            <ShareIcon class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
+          <div class="min-w-0">
+            <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">
               {{ t("groupOrders.shareCount") }}
             </p>
-            <p class="text-2xl font-semibold text-gray-900">
+            <p class="text-xl sm:text-2xl font-semibold text-gray-900">
               {{ totalShares }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-purple-100">
-            <CreditCardIcon class="h-6 w-6 text-purple-600" />
+      <div class="bg-white rounded-lg shadow p-3 sm:p-6">
+        <div class="flex items-center gap-3">
+          <div class="p-2 sm:p-3 rounded-full bg-purple-100 flex-shrink-0">
+            <CreditCardIcon class="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
+          <div class="min-w-0">
+            <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">
               {{ t("groupOrders.splitBillOrders") }}
             </p>
-            <p class="text-2xl font-semibold text-gray-900">
+            <p class="text-xl sm:text-2xl font-semibold text-gray-900">
               {{ splitBillOrders }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center">
-          <div class="p-3 rounded-full bg-yellow-100">
-            <ClockIcon class="h-6 w-6 text-yellow-600" />
+      <div class="bg-white rounded-lg shadow p-3 sm:p-6">
+        <div class="flex items-center gap-3">
+          <div class="p-2 sm:p-3 rounded-full bg-yellow-100 flex-shrink-0">
+            <ClockIcon class="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">
+          <div class="min-w-0">
+            <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">
               {{ t("groupOrders.avgCompletionTime") }}
             </p>
-            <p class="text-2xl font-semibold text-gray-900">
+            <p class="text-xl sm:text-2xl font-semibold text-gray-900">
               {{ avgCompletionTime }}{{ t("groupOrders.minutes") }}
             </p>
           </div>
@@ -104,18 +108,20 @@
     </div>
 
     <!-- 主要內容區域 -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
       <!-- 左側：整體團體訂單列表 -->
       <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow">
-          <div class="p-6 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">
+          <div class="p-4 sm:p-6 border-b border-gray-200">
+            <div
+              class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            >
+              <h2 class="text-lg sm:text-xl font-semibold text-gray-900">
                 {{ t("groupOrders.orderList") }}
               </h2>
-              <div class="flex items-center space-x-4">
+              <div class="flex flex-wrap items-center gap-2 sm:gap-4">
                 <!-- 搜尋篩選 -->
-                <div class="relative">
+                <div class="relative flex-1 min-w-[160px]">
                   <MagnifyingGlassIcon
                     class="absolute left-3 top-3 h-4 w-4 text-gray-400"
                   />
@@ -123,13 +129,13 @@
                     v-model="searchQuery"
                     type="text"
                     :placeholder="t('groupOrders.searchPlaceholder')"
-                    class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   />
                 </div>
 
                 <select
                   v-model="statusFilter"
-                  class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 >
                   <option value="">{{ t("groupOrders.allStatus") }}</option>
                   <option value="active">
@@ -147,7 +153,7 @@
                 </select>
 
                 <button
-                  class="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  class="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
                   @click="refreshGroupOrders"
                 >
                   <ArrowPathIcon class="h-5 w-5" />
@@ -160,7 +166,7 @@
             <div
               v-for="groupOrder in filteredGroupOrders"
               :key="groupOrder.id"
-              class="p-6 hover:bg-gray-50 cursor-pointer transition-colors"
+              class="p-4 sm:p-6 hover:bg-gray-50 cursor-pointer transition-colors"
               @click="selectGroupOrder(groupOrder)"
             >
               <div class="flex items-start justify-between">
@@ -308,7 +314,7 @@
 
                   <button
                     class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 transition-colors"
-                    @click.stop="viewGroupOrderDetails(groupOrder)"
+                    @click.stop="selectGroupOrder(groupOrder)"
                   >
                     {{ t("groupOrders.details") }}
                   </button>
@@ -362,7 +368,7 @@
                     <button
                       class="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
                       :title="t('groupOrders.generateQR')"
-                      @click="generateQRCode(selectedGroupOrder)"
+                      @click="shareGroupOrder(selectedGroupOrder!)"
                     >
                       <QrCodeIcon class="w-4 h-4" />
                     </button>
@@ -700,6 +706,58 @@
       </div>
     </div>
 
+    <!-- 加入訂單模態框 -->
+    <div v-if="showJoinDialog" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black opacity-30"
+          @click="showJoinDialog = false"
+        />
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-gray-900">
+              {{ t("groupOrders.joinOrder") }}
+            </h3>
+            <button
+              class="text-gray-400 hover:text-gray-600"
+              @click="showJoinDialog = false"
+            >
+              <XMarkIcon class="w-6 h-6" />
+            </button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                t("groupOrders.shareCode")
+              }}</label>
+              <input
+                v-model="joinShareCode"
+                type="text"
+                :placeholder="t('groupOrders.prompts.enterShareCode')"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                @keyup.enter="submitJoinGroupOrder"
+              />
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button
+              class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              @click="showJoinDialog = false"
+            >
+              {{ t("groupOrders.cancel") }}
+            </button>
+            <button
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              :disabled="!joinShareCode.trim()"
+              @click="submitJoinGroupOrder"
+            >
+              {{ t("groupOrders.joinOrder") }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 分享模態框 -->
     <div v-if="showShareDialog" class="fixed inset-0 z-50 overflow-y-auto">
       <div class="flex items-center justify-center min-h-screen px-4">
@@ -853,6 +911,8 @@ const statusFilter = ref("");
 const selectedGroupOrder = ref<GroupOrder | null>(null);
 const showCreateDialog = ref(false);
 const showShareDialog = ref(false);
+const showJoinDialog = ref(false);
+const joinShareCode = ref("");
 
 // 統計數據 - populated from API
 const activeGroupOrders = ref(0);
@@ -899,9 +959,7 @@ const filteredGroupOrders = computed(() => {
     );
   }
 
-  return filtered.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  return filtered;
 });
 
 const canCreateGroupOrder = computed(() => {
@@ -992,6 +1050,16 @@ const refreshGroupOrders = async () => {
     avgCompletionTime.value = 0; // Derived from stats if available
     avgGroupSize.value = statsData.averageGroupSize ?? 0;
     completionRate.value = statsData.conversionRate ?? 0;
+
+    // Update selected order with fresh data
+    if (selectedGroupOrder.value) {
+      const updated = groupOrders.value.find(
+        (o) => o.id === selectedGroupOrder.value!.id,
+      );
+      if (updated) {
+        selectedGroupOrder.value = updated;
+      }
+    }
   } catch (err) {
     console.error("Failed to refresh group orders:", err);
   }
@@ -1046,10 +1114,13 @@ const submitCreateGroupOrder = async () => {
   }
 };
 
+const buildShareUrl = (shareCode: string) =>
+  `${window.location.origin}/order/group/${shareCode}`;
+
 const shareGroupOrder = (groupOrder: GroupOrder) => {
   shareData.value = {
     shareCode: groupOrder.shareCode,
-    shareUrl: `${window.location.origin}/order/group/${groupOrder.shareCode}`,
+    shareUrl: buildShareUrl(groupOrder.shareCode),
   };
   showShareDialog.value = true;
 };
@@ -1088,28 +1159,21 @@ const shareToWechat = () => {
   console.log("WeChat sharing is under development");
 };
 
-const generateQRCode = async (groupOrder: GroupOrder) => {
-  try {
-    const result = await groupOrdersService.generateQRCode(
-      groupOrder.shareCode,
-    );
-    console.log("QR code generated:", result.qrCodeUrl);
-  } catch (_error) {
-    console.error("Failed to generate QR code:", _error);
-  }
+const joinGroupOrder = () => {
+  joinShareCode.value = "";
+  showJoinDialog.value = true;
 };
 
-const joinGroupOrder = async () => {
-  const shareCode = prompt(t("groupOrders.prompts.enterShareCode"));
-  if (shareCode) {
-    try {
-      await groupOrdersService.joinGroupOrder(shareCode, {
-        memberName: authStore.user?.username || "Staff",
-      });
-      await refreshGroupOrders();
-    } catch (_error) {
-      console.error("Failed to join group order:", _error);
-    }
+const submitJoinGroupOrder = async () => {
+  if (!joinShareCode.value.trim()) return;
+  try {
+    await groupOrdersService.joinGroupOrder(joinShareCode.value.trim(), {
+      memberName: authStore.user?.username || "Staff",
+    });
+    showJoinDialog.value = false;
+    await refreshGroupOrders();
+  } catch (_error) {
+    console.error("Failed to join group order:", _error);
   }
 };
 
@@ -1121,9 +1185,11 @@ const generateShareCode = async () => {
     const result = await groupOrdersService.generateShareCode(restaurantId);
     shareData.value = {
       shareCode: result.shareCode,
-      shareUrl: result.shareUrl,
+      shareUrl: buildShareUrl(result.shareCode),
     };
     showShareDialog.value = true;
+    // Refresh list since generate-code creates a new group order
+    await refreshGroupOrders();
   } catch (_error) {
     console.error("Failed to generate share code:", _error);
   }
@@ -1140,18 +1206,20 @@ const processSplitBill = async (groupOrder: GroupOrder) => {
   }
 };
 
-const viewGroupOrderDetails = (groupOrder: GroupOrder) => {
-  selectedGroupOrder.value = groupOrder;
-  console.log("View details for:", groupOrder.id);
-};
-
 const exportGroupOrderReport = async () => {
   const restaurantId = authStore.restaurantId ?? undefined;
   try {
-    const blob = await groupOrdersService.exportGroupOrders({
+    const data = await groupOrdersService.exportGroupOrders({
       restaurantId,
       format: "csv",
     });
+    // The API returns CSV text, not a Blob — convert it
+    const blob =
+      data instanceof Blob
+        ? data
+        : new Blob([typeof data === "string" ? data : JSON.stringify(data)], {
+            type: "text/csv;charset=utf-8;",
+          });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
