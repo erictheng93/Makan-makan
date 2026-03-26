@@ -246,13 +246,13 @@
             <div class="space-y-2">
               <div class="flex justify-between text-sm text-ios-secondary">
                 <span>{{ t("common.subtotal") }}</span>
-                <span>${{ formatPrice(order.totalAmount) }}</span>
+                <span>{{ formatPrice(order.totalAmount) }}</span>
               </div>
               <div
                 class="flex justify-between text-lg font-semibold text-ios-text"
               >
                 <span>{{ t("common.total") }}</span>
-                <span>${{ formatPrice(order.totalAmount) }}</span>
+                <span>{{ formatPrice(order.totalAmount) }}</span>
               </div>
             </div>
           </div>
@@ -318,7 +318,8 @@ import TimelineItem from "@/components/TimelineItem.vue";
 import OrderItemCard from "@/components/OrderItemCard.vue";
 import ConfirmationModal from "@/components/ConfirmationModal.vue";
 import { orderApi } from "@/services/orderApi";
-import { formatPrice, formatDateTime } from "@/utils/format";
+import { formatDateTime } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import {
   ClockIcon,
   CheckCircleIcon,
@@ -339,6 +340,7 @@ const props = defineProps<{
 const router = useRouter();
 const toast = useToast();
 const { t, tWithParams } = useI18n();
+const { formatPrice } = useCurrency();
 
 // State
 const showCancelConfirmation = ref(false);

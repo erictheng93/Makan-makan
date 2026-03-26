@@ -36,10 +36,10 @@
               <span
                 v-if="(size.priceAdjustment || 0) > 0"
                 class="text-orange-600"
-                >+${{ formatPrice(size.priceAdjustment || 0) }}</span
+                >+{{ formatPrice(size.priceAdjustment || 0) }}</span
               >
               <span v-else class="text-green-600"
-                >-${{ formatPrice(Math.abs(size.priceAdjustment || 0)) }}</span
+                >-{{ formatPrice(Math.abs(size.priceAdjustment || 0)) }}</span
               >
             </div>
           </div>
@@ -115,7 +115,7 @@
               v-if="(choice.priceAdjustment || 0) > 0"
               class="text-sm font-medium text-ios-secondary"
             >
-              +${{ formatPrice(choice.priceAdjustment || 0) }}
+              +{{ formatPrice(choice.priceAdjustment || 0) }}
             </span>
           </label>
         </div>
@@ -172,7 +172,7 @@
               v-if="(choice.priceAdjustment || 0) > 0"
               class="text-sm font-medium text-ios-secondary"
             >
-              +${{ formatPrice(choice.priceAdjustment || 0) }}
+              +{{ formatPrice(choice.priceAdjustment || 0) }}
             </span>
           </label>
         </div>
@@ -235,7 +235,7 @@
             </div>
           </div>
           <div class="text-sm font-medium text-ios-secondary">
-            +${{ formatPrice(addOn.price) }}
+            +{{ formatPrice(addOn.price) }}
           </div>
         </label>
       </div>
@@ -245,7 +245,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import { useI18n } from "@/composables/useI18n";
 import type {
   MenuItem,
@@ -253,6 +253,7 @@ import type {
 } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // Props
 const props = defineProps<{

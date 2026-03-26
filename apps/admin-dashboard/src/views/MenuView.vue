@@ -1,7 +1,9 @@
 <template>
   <div class="menu-view p-6 bg-[#F2F2F7] min-h-screen">
     <!-- Page header -->
-    <div class="flex justify-between items-center mb-6">
+    <div
+      class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6"
+    >
       <div>
         <h1 class="text-2xl font-bold text-[#1C1C1E]">{{ t("menu.title") }}</h1>
         <p class="text-[15px] text-[#8E8E93] mt-0.5">
@@ -63,7 +65,7 @@
       <div>
         <!-- Items header -->
         <div
-          class="flex justify-between items-center mb-4 bg-white rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+          class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 bg-white rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
         >
           <div class="flex items-center gap-3">
             <h2 class="text-[17px] font-bold text-[#1C1C1E]">
@@ -77,7 +79,7 @@
               }}
             </span>
           </div>
-          <div class="flex gap-2.5 items-center">
+          <div class="flex flex-wrap gap-2.5 items-center">
             <!-- Search input -->
             <div class="relative">
               <MagnifyingGlassIcon
@@ -181,6 +183,45 @@
       @save="handleSaveCategory"
       @cancel="cancelCategoryEdit"
     />
+
+    <!-- Delete confirm modal -->
+    <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black/30 backdrop-blur-sm"
+          @click="cancelDelete"
+        />
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full">
+          <div class="p-6 text-center">
+            <div
+              class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-ios-error/10 mb-4"
+            >
+              <ExclamationTriangleIcon class="h-6 w-6 text-ios-error" />
+            </div>
+            <h3 class="text-[17px] font-bold text-[#1C1C1E] mb-2">
+              {{ deleteConfirmTitle }}
+            </h3>
+            <p class="text-[14px] text-[#8E8E93] mb-6">
+              {{ deleteConfirmMessage }}
+            </p>
+            <div class="flex gap-2.5 justify-center">
+              <button
+                class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors"
+                @click="cancelDelete"
+              >
+                {{ t("common.cancel") }}
+              </button>
+              <button
+                class="px-5 py-2.5 text-[14px] font-semibold text-white bg-ios-error rounded-full hover:bg-ios-error/90 transition-colors shadow-[0_2px_8px_rgba(255,59,48,0.25)]"
+                @click="confirmDelete"
+              >
+                {{ t("common.delete") }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Menu item modal -->
     <div v-if="showMenuItemModal" class="fixed inset-0 z-50 overflow-y-auto">
@@ -386,6 +427,7 @@ import {
   PlusIcon,
   MagnifyingGlassIcon,
   CakeIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
@@ -501,10 +543,42 @@ const cancelCategoryEdit = () => {
   editingCategory.value = null;
 };
 
-const handleDeleteCategory = async (category: CategoryData) => {
-  if (confirm(t("menu.confirms.deleteCategory", { name: category.name }))) {
-    await deleteCategory(category.id);
+// ── Delete Confirm Modal ──
+const deleteConfirm = ref<{
+  title: string;
+  message: string;
+  action: (() => Promise<void>) | null;
+} | null>(null);
+
+const showDeleteConfirm = computed(() => deleteConfirm.value !== null);
+const deleteConfirmTitle = computed(() => deleteConfirm.value?.title ?? "");
+const deleteConfirmMessage = computed(() => deleteConfirm.value?.message ?? "");
+
+const openDeleteConfirm = (
+  title: string,
+  message: string,
+  action: () => Promise<void>,
+) => {
+  deleteConfirm.value = { title, message, action };
+};
+
+const confirmDelete = async () => {
+  if (deleteConfirm.value?.action) {
+    await deleteConfirm.value.action();
   }
+  cancelDelete();
+};
+
+const cancelDelete = () => {
+  deleteConfirm.value = null;
+};
+
+const handleDeleteCategory = (category: CategoryData) => {
+  openDeleteConfirm(
+    t("common.delete"),
+    t("menu.confirms.deleteCategory", { name: category.name }),
+    () => deleteCategory(category.id),
+  );
 };
 
 // ── Menu Item Handlers ──
@@ -563,10 +637,12 @@ const handleSaveMenuItem = async () => {
   closeMenuItemModal();
 };
 
-const handleDeleteMenuItem = async (item: MenuItemData) => {
-  if (confirm(t("menu.confirms.deleteItem", { name: item.name }))) {
-    await deleteMenuItem(item);
-  }
+const handleDeleteMenuItem = (item: MenuItemData) => {
+  openDeleteConfirm(
+    t("common.delete"),
+    t("menu.confirms.deleteItem", { name: item.name }),
+    () => deleteMenuItem(item),
+  );
 };
 
 // ── Highlight item from cross-module navigation ──

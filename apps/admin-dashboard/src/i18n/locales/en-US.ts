@@ -2698,6 +2698,7 @@ const enUS: Messages = {
       status: "Status",
       allStatus: "All Status",
       active: "Active",
+      scheduled: "Scheduled",
       expired: "Expired",
       exhausted: "Exhausted",
       inactive: "Inactive",
@@ -2721,6 +2722,7 @@ const enUS: Messages = {
     },
     status: {
       active: "Active",
+      scheduled: "Scheduled",
       expired: "Expired",
       exhausted: "Exhausted",
       inactive: "Inactive",
@@ -3226,6 +3228,7 @@ const enUS: Messages = {
     loading: "Loading statistics...",
     status: {
       inactive: "Inactive",
+      scheduled: "Scheduled",
       expired: "Expired",
       exhausted: "Exhausted",
       active: "Active",

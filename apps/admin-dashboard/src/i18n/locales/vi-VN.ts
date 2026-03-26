@@ -2513,6 +2513,7 @@ const viVN: Messages = {
       status: "Trạng thái",
       allStatus: "Tất cả trạng thái",
       active: "Hoạt động",
+      scheduled: "Chưa bắt đầu",
       expired: "Hết hạn",
       exhausted: "Đã hết",
       inactive: "Không hoạt động",
@@ -2536,6 +2537,7 @@ const viVN: Messages = {
     },
     status: {
       active: "Hoạt động",
+      scheduled: "Chưa bắt đầu",
       expired: "Hết hạn",
       exhausted: "Đã hết",
       inactive: "Không hoạt động",
@@ -2911,6 +2913,7 @@ const viVN: Messages = {
     loading: "Đang tải thống kê...",
     status: {
       inactive: "Không hoạt động",
+      scheduled: "Chưa bắt đầu",
       expired: "Hết hạn",
       exhausted: "Đã hết",
       active: "Hoạt động",

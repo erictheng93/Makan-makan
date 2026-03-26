@@ -188,16 +188,13 @@
                     </p>
                   </div>
                   <div class="flex items-center">
-                    <span
-                      class="text-lg font-bold"
-                      :class="getPerformanceClass()"
-                    >
-                      {{ getPerformanceRating() }}
+                    <span class="text-lg font-bold" :class="performanceClass">
+                      {{ performanceRating }}
                     </span>
                     <component
-                      :is="getPerformanceIcon()"
+                      :is="performanceIcon"
                       class="w-5 h-5 ml-2"
-                      :class="getPerformanceClass()"
+                      :class="performanceClass"
                     />
                   </div>
                 </div>
@@ -205,7 +202,7 @@
 
               <!-- Recommendations -->
               <div
-                v-if="getRecommendations().length > 0"
+                v-if="recommendations.length > 0"
                 class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
               >
                 <h5 class="text-sm font-medium text-yellow-800 mb-2">
@@ -213,7 +210,7 @@
                 </h5>
                 <ul class="space-y-1">
                   <li
-                    v-for="recommendation in getRecommendations()"
+                    v-for="recommendation in recommendations"
                     :key="recommendation"
                     class="text-sm text-yellow-700"
                   >
@@ -264,31 +261,11 @@ import {
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
 
-interface Coupon {
-  id: number;
-  code: string;
-  name: string;
-  discountType: "percentage" | "fixed";
-  discountValue: number;
-  maxDiscountAmount?: number;
-  usageLimit?: number;
-  usedCount: number;
-  validFrom: string;
-  validTo: string;
-  isActive: boolean;
-  createdAt: string;
-}
-
-interface CouponStats {
-  totalUsed: number;
-  totalDiscount: number;
-  avgDiscount: number;
-  lastUsed?: string;
-}
+import type { Coupon, CouponDetailStats } from "@makanmakan/shared-types";
 
 interface Props {
   coupon: Coupon;
-  stats: CouponStats | null;
+  stats: CouponDetailStats | null;
 }
 
 const props = defineProps<Props>();
@@ -314,48 +291,38 @@ const formatDateTime = (dateString: string | undefined) => {
   });
 };
 
+import {
+  type CouponStatus,
+  getCouponStatus as _getCouponStatus,
+} from "@/utils/couponStatus";
+
+const getCouponStatus = (coupon: Coupon | undefined): CouponStatus | null => {
+  if (!coupon) return null;
+  return _getCouponStatus(coupon);
+};
+
+const statusTextClassMap: Record<CouponStatus, string> = {
+  inactive: "text-gray-600",
+  expired: "text-red-600",
+  exhausted: "text-yellow-600",
+  scheduled: "text-blue-600",
+  active: "text-green-600",
+};
+
 const getStatusClass = (coupon: Coupon | undefined) => {
-  if (!coupon) return "";
-
-  const now = new Date();
-  const validTo = new Date(coupon.validTo);
-
-  if (!coupon.isActive) {
-    return "text-gray-600";
-  } else if (now > validTo) {
-    return "text-red-600";
-  } else if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    return "text-yellow-600";
-  } else {
-    return "text-green-600";
-  }
+  const status = getCouponStatus(coupon);
+  return status ? statusTextClassMap[status] : "";
 };
 
 const getStatusText = (coupon: Coupon | undefined) => {
-  if (!coupon) return "-";
-
-  const now = new Date();
-  const validTo = new Date(coupon.validTo);
-
-  if (!coupon.isActive) {
-    return t("couponStats.status.inactive");
-  } else if (now > validTo) {
-    return t("couponStats.status.expired");
-  } else if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    return t("couponStats.status.exhausted");
-  } else {
-    return t("couponStats.status.active");
-  }
+  const status = getCouponStatus(coupon);
+  return status ? t(`couponStats.status.${status}`) : "-";
 };
 
-const getPerformanceRating = () => {
-  if (!props.stats?.totalUsed || !props.coupon)
-    return t("couponStats.rating.noData");
-
+const performanceScore = computed(() => {
+  if (!props.stats?.totalUsed || !props.coupon) return -1;
   const usage = props.stats.totalUsed;
   const avgDiscount = props.stats.avgDiscount || 0;
-
-  // Simple scoring algorithm
   let score = 0;
 
   // Usage frequency score (0-40)
@@ -365,45 +332,12 @@ const getPerformanceRating = () => {
   else if (usage >= 5) score += 10;
 
   // Average discount score (0-30)
-  if (avgDiscount >= 2000)
-    score += 30; // RM20+
-  else if (avgDiscount >= 1000)
-    score += 25; // RM10+
-  else if (avgDiscount >= 500)
-    score += 20; // RM5+
-  else if (avgDiscount >= 200) score += 15; // RM2+
-
-  // Usage rate score (0-30)
-  if (props.coupon.usageLimit) {
-    const rate = usageRate.value;
-    if (rate >= 80) score += 30;
-    else if (rate >= 60) score += 25;
-    else if (rate >= 40) score += 20;
-    else if (rate >= 20) score += 15;
-    else if (rate >= 10) score += 10;
-  } else {
-    score += 20; // Unlimited usage gets partial score
-  }
-
-  if (score >= 70) return t("couponStats.rating.excellent");
-  else if (score >= 50) return t("couponStats.rating.good");
-  else if (score >= 30) return t("couponStats.rating.average");
-  else return t("couponStats.rating.needsImprovement");
-};
-
-const getPerformanceScore = () => {
-  if (!props.stats?.totalUsed || !props.coupon) return -1;
-  const usage = props.stats.totalUsed;
-  const avgDiscount = props.stats.avgDiscount || 0;
-  let score = 0;
-  if (usage >= 50) score += 40;
-  else if (usage >= 20) score += 30;
-  else if (usage >= 10) score += 20;
-  else if (usage >= 5) score += 10;
   if (avgDiscount >= 2000) score += 30;
   else if (avgDiscount >= 1000) score += 25;
   else if (avgDiscount >= 500) score += 20;
   else if (avgDiscount >= 200) score += 15;
+
+  // Usage rate score (0-30)
   if (props.coupon.usageLimit) {
     const rate = usageRate.value;
     if (rate >= 80) score += 30;
@@ -415,58 +349,62 @@ const getPerformanceScore = () => {
     score += 20;
   }
   return score;
-};
+});
 
-const getPerformanceClass = () => {
-  const score = getPerformanceScore();
+const performanceRating = computed(() => {
+  const score = performanceScore.value;
+  if (score < 0) return t("couponStats.rating.noData");
+  if (score >= 70) return t("couponStats.rating.excellent");
+  if (score >= 50) return t("couponStats.rating.good");
+  if (score >= 30) return t("couponStats.rating.average");
+  return t("couponStats.rating.needsImprovement");
+});
+
+const performanceClass = computed(() => {
+  const score = performanceScore.value;
   if (score >= 70) return "text-green-600";
   if (score >= 50) return "text-blue-600";
   if (score >= 30) return "text-yellow-600";
   if (score >= 0) return "text-red-600";
   return "text-gray-600";
-};
+});
 
-const getPerformanceIcon = () => {
-  const score = getPerformanceScore();
+const performanceIcon = computed(() => {
+  const score = performanceScore.value;
   if (score >= 50) return CheckCircleIcon;
   if (score >= 30) return ExclamationTriangleIcon;
   if (score >= 0) return XCircleIcon;
   return ExclamationTriangleIcon;
-};
+});
 
-const getRecommendations = () => {
+const recommendations = computed(() => {
   if (!props.stats || !props.coupon) return [];
 
-  const recommendations = [];
+  const result: string[] = [];
   const now = new Date();
   const validTo = new Date(props.coupon.validTo);
   const daysLeft = Math.ceil(
     (validTo.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
   );
 
-  // Usage-based recommendations
   if (props.stats.totalUsed < 5) {
-    recommendations.push(t("couponStats.recommend.lowUsage"));
+    result.push(t("couponStats.recommend.lowUsage"));
   }
 
-  // Time-based recommendations
   if (daysLeft < 7 && daysLeft > 0) {
-    recommendations.push(t("couponStats.recommend.expiringSoon"));
+    result.push(t("couponStats.recommend.expiringSoon"));
   }
 
-  // Usage rate recommendations
   if (props.coupon.usageLimit && usageRate.value < 20) {
-    recommendations.push(t("couponStats.recommend.lowRate"));
+    result.push(t("couponStats.recommend.lowRate"));
   } else if (props.coupon.usageLimit && usageRate.value > 80) {
-    recommendations.push(t("couponStats.recommend.highRate"));
+    result.push(t("couponStats.recommend.highRate"));
   }
 
-  // Discount optimization
   if (props.stats.avgDiscount < 500) {
-    // Less than RM5
-    recommendations.push(t("couponStats.recommend.lowDiscount"));
+    result.push(t("couponStats.recommend.lowDiscount"));
   }
 
-  return recommendations;
-};
+  return result;
+});
 </script>

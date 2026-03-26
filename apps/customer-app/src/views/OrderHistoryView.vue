@@ -187,7 +187,7 @@
               <!-- Amount -->
               <div class="text-right">
                 <p class="text-2xl font-bold text-orange-600">
-                  ${{ formatPrice(order.totalAmount) }}
+                  {{ formatPrice(order.totalAmount) }}
                 </p>
                 <p
                   v-if="order.paymentStatus === 1"
@@ -263,12 +263,14 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "@/composables/useI18n";
+import { useCurrency } from "@/composables/useCurrency";
 import { customerOrderApi } from "@/services/customerOrderApi";
 import type { Order } from "@makanmakan/shared-types";
 
 const router = useRouter();
 const authStore = useAuthStore();
 const { t, tWithParams } = useI18n();
+const { formatPrice } = useCurrency();
 
 const orders = ref<Order[]>([]);
 const isLoading = ref(false);
@@ -390,11 +392,6 @@ const statusTexts = computed(
 
 const getStatusText = (status: number) => {
   return statusTexts.value[status] || t("orderHistory.statusUnknown");
-};
-
-// 格式化金額
-const formatPrice = (cents: number) => {
-  return (cents / 100).toFixed(2);
 };
 
 // 格式化日期

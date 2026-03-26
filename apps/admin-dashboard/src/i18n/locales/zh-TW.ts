@@ -2740,6 +2740,7 @@ const zhTW: Messages = {
       status: "狀態",
       allStatus: "全部狀態",
       active: "進行中",
+      scheduled: "未開始",
       expired: "已過期",
       exhausted: "已用完",
       inactive: "已停用",
@@ -2763,6 +2764,7 @@ const zhTW: Messages = {
     },
     status: {
       active: "進行中",
+      scheduled: "未開始",
       expired: "已過期",
       exhausted: "已用完",
       inactive: "已停用",
@@ -3261,6 +3263,7 @@ const zhTW: Messages = {
     loading: "載入統計數據中...",
     status: {
       inactive: "已停用",
+      scheduled: "未開始",
       expired: "已過期",
       exhausted: "已用完",
       active: "進行中",

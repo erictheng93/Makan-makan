@@ -80,7 +80,7 @@
         <div class="text-right">
           <div class="text-sm text-ios-secondary">× {{ item.quantity }}</div>
           <div class="text-sm font-medium text-ios-text">
-            ${{ formatPrice(itemTotal) }}
+            {{ formatPrice(itemTotal) }}
           </div>
         </div>
       </div>
@@ -90,7 +90,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import type { OrderItem } from "@makanmakan/shared-types";
 import { useI18n } from "@/composables/useI18n";
 
@@ -101,6 +101,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // Computed
 const itemTotal = computed(() => {

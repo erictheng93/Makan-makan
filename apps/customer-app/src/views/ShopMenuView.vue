@@ -311,7 +311,7 @@
           <span>{{ t("shopMenu.viewCart") }}</span>
         </div>
         <div class="text-lg font-bold">
-          ${{ formatPrice(shopCartStore.subtotal) }}
+          {{ formatPrice(shopCartStore.subtotal) }}
         </div>
       </button>
     </div>
@@ -359,7 +359,7 @@ import ShopCartModal from "@/components/ShopCartModal.vue";
 import DesktopCartPanel from "@/components/DesktopCartPanel.vue";
 import { useIsDesktop } from "@/composables/useBreakpoint";
 import { menuApi } from "@/services/menuApi";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import type {
   MenuItem,
   SelectedCustomizations,
@@ -378,6 +378,7 @@ const { t, tWithParams } = useI18n();
 const appStore = useAppStore();
 const shopCartStore = useShopCartStore();
 const isDesktop = useIsDesktop();
+const { formatPrice } = useCurrency();
 
 // State
 const searchQuery = ref("");

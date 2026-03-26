@@ -92,7 +92,7 @@
                 <div class="text-sm font-medium text-ios-text">
                   <span
                     v-if="(size.priceAdjustment || size.priceModifier || 0) > 0"
-                    >+${{
+                    >+{{
                       formatPrice(
                         size.priceAdjustment || size.priceModifier || 0,
                       )
@@ -102,7 +102,7 @@
                     v-else-if="
                       (size.priceAdjustment || size.priceModifier || 0) < 0
                     "
-                    >-${{
+                    >-{{
                       formatPrice(
                         Math.abs(
                           size.priceAdjustment || size.priceModifier || 0,
@@ -184,7 +184,7 @@
                       "
                       class="text-sm font-medium text-ios-text"
                     >
-                      +${{
+                      +{{
                         formatPrice(
                           choice.priceAdjustment || choice.priceModifier || 0,
                         )
@@ -253,7 +253,7 @@
                       "
                       class="text-sm font-medium text-ios-text"
                     >
-                      +${{
+                      +{{
                         formatPrice(
                           choice.priceAdjustment || choice.priceModifier || 0,
                         )
@@ -328,7 +328,7 @@
                   </div>
                 </div>
                 <div class="text-sm font-medium text-ios-text">
-                  +${{ formatPrice(addOn.price) }}
+                  +{{ formatPrice(addOn.price) }}
                 </div>
               </label>
             </div>
@@ -345,7 +345,7 @@
             t("customization.totalPrice")
           }}</span>
           <span class="text-xl font-bold text-ios-text">
-            ${{ formatPrice(totalPrice) }}
+            {{ formatPrice(totalPrice) }}
           </span>
         </div>
         <button
@@ -362,7 +362,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import { useI18n } from "@/composables/useI18n";
 import type {
   MenuItem,
@@ -370,6 +370,7 @@ import type {
 } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // Props
 const props = defineProps<{

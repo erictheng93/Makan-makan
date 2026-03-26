@@ -123,7 +123,7 @@
 
           <!-- 價格 -->
           <div class="text-2xl font-bold text-ios-text">
-            ${{ formatPrice(currentPrice) }}
+            {{ formatPrice(currentPrice) }}
           </div>
 
           <!-- 客製化選項 -->
@@ -222,7 +222,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import type {
   MenuItem,
   SelectedCustomizations,
@@ -237,6 +237,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // Emits
 const emits = defineEmits<{

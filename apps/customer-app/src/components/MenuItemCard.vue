@@ -100,14 +100,14 @@
         <div class="flex items-center justify-between mt-3">
           <div class="flex items-baseline space-x-2">
             <span class="text-lg font-bold text-ios-text">
-              ${{ formatPrice(item.price) }}
+              {{ formatPrice(item.price) }}
             </span>
             <!-- 原價（如果有折扣） -->
             <span
               v-if="originalPrice && originalPrice !== item.price"
               class="text-sm text-ios-tertiary line-through"
             >
-              ${{ formatPrice(originalPrice) }}
+              {{ formatPrice(originalPrice) }}
             </span>
           </div>
 
@@ -282,14 +282,14 @@
             <div class="flex items-center justify-between mt-3">
               <div class="flex items-baseline space-x-2">
                 <span class="text-lg font-bold text-ios-text">
-                  ${{ formatPrice(item.price) }}
+                  {{ formatPrice(item.price) }}
                 </span>
                 <!-- 原價（如果有折扣） -->
                 <span
                   v-if="originalPrice && originalPrice !== item.price"
                   class="text-sm text-ios-tertiary line-through"
                 >
-                  ${{ formatPrice(originalPrice) }}
+                  {{ formatPrice(originalPrice) }}
                 </span>
               </div>
 
@@ -373,7 +373,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import type {
   MenuItem,
   SelectedCustomizations,
@@ -400,6 +400,7 @@ const emits = defineEmits<{
 }>();
 
 const { t, tWithParams } = useI18n();
+const { formatPrice } = useCurrency();
 
 // Computed
 const isOutOfStock = computed(() => {

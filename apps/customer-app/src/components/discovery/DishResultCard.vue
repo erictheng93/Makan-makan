@@ -13,7 +13,9 @@
           </span>
         </p>
         <div class="flex items-center gap-2 mt-2">
-          <span class="text-indigo-600 font-semibold"> ${{ dish.price }} </span>
+          <span class="text-indigo-600 font-semibold">
+            {{ formatPrice(dish.price) }}
+          </span>
           <span
             v-if="dish.isOpen"
             class="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700"
@@ -43,9 +45,11 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
+import { useCurrency } from "@/composables/useCurrency";
 import type { DishSearchResult } from "@/services/discoveryApi";
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 defineProps<{
   dish: DishSearchResult;

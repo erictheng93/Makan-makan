@@ -2515,6 +2515,7 @@ const jaJP: Messages = {
       status: "ステータス",
       allStatus: "すべてのステータス",
       active: "有効",
+      scheduled: "開始前",
       expired: "期限切れ",
       exhausted: "使い切り",
       inactive: "無効",
@@ -2538,6 +2539,7 @@ const jaJP: Messages = {
     },
     status: {
       active: "有効",
+      scheduled: "開始前",
       expired: "期限切れ",
       exhausted: "使い切り",
       inactive: "無効",
@@ -2913,6 +2915,7 @@ const jaJP: Messages = {
     loading: "統計を読み込み中...",
     status: {
       inactive: "無効",
+      scheduled: "開始前",
       expired: "期限切れ",
       exhausted: "使い切り",
       active: "有効",

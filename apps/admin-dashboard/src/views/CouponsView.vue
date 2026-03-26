@@ -427,11 +427,52 @@
         </div>
       </template>
     </Suspense>
+
+    <!-- 刪除確認 Modal -->
+    <div v-if="deleteTarget" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black/30 backdrop-blur-sm"
+          @click="deleteTarget = null"
+        />
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full">
+          <div class="p-6 text-center">
+            <div
+              class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"
+            >
+              <ExclamationTriangleIcon class="h-6 w-6 text-red-600" />
+            </div>
+            <h3 class="text-[17px] font-bold text-[#1C1C1E] mb-2">
+              {{ t("coupons.messages.deleteConfirmTitle") }}
+            </h3>
+            <p class="text-[14px] text-[#8E8E93] mb-6">
+              {{
+                t("coupons.messages.deleteConfirm", { name: deleteTarget.name })
+              }}
+            </p>
+            <div class="flex gap-2.5 justify-center">
+              <button
+                class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors"
+                @click="deleteTarget = null"
+              >
+                {{ t("common.cancel") }}
+              </button>
+              <button
+                class="px-5 py-2.5 text-[14px] font-semibold text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors shadow-[0_2px_8px_rgba(255,59,48,0.25)]"
+                @click="confirmDeleteCoupon"
+              >
+                {{ t("common.delete") }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
@@ -444,6 +485,7 @@ import {
   CurrencyDollarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/vue/24/outline";
 
 // Components
@@ -459,38 +501,19 @@ const isAdmin = computed(() => authStore.user?.role === 0);
 const { CouponFormModal, CouponStatsModal } = useAsyncModals();
 
 // Types
-interface Coupon {
-  id: number;
-  code: string;
-  name: string;
-  description?: string;
-  discountType: "percentage" | "fixed";
-  discountValue: number;
-  maxDiscountAmount?: number;
-  minOrderAmount: number;
-  usageLimit?: number;
-  usageLimitPerUser?: number;
-  usedCount: number;
-  validFrom: string;
-  validTo: string;
-  isActive: boolean;
-  isVisible: boolean;
-  createdAt: string;
-}
-
-interface CouponStats {
-  total: number;
-  active: number;
-  totalUsed: number;
-  totalSavings: number;
-}
+import type {
+  Coupon,
+  CouponsSummary,
+  CouponDetailStats,
+} from "@makanmakan/shared-types";
 
 // Reactive state
 const showCreateModal = ref(false);
 const showStatsModal = ref(false);
 const editingCoupon = ref<Coupon | null>(null);
 const selectedCoupon = ref<Coupon | null>(null);
-const couponStats = ref<any>(null);
+const couponStats = ref<CouponDetailStats | null>(null);
+const deleteTarget = ref<Coupon | null>(null);
 const currentPage = ref(1);
 const pageSize = 20;
 
@@ -500,7 +523,7 @@ const filters = ref({
   discountType: "",
 });
 
-const stats = ref<CouponStats>({
+const stats = ref<CouponsSummary>({
   total: 0,
   active: 0,
   totalUsed: 0,
@@ -509,7 +532,10 @@ const stats = ref<CouponStats>({
 
 // API calls
 const toast = useToast();
-const couponsData = ref<any>(null);
+const couponsData = ref<{
+  data: Coupon[];
+  pagination: { total: number };
+} | null>(null);
 const isLoading = ref(false);
 
 // Fetch coupons function
@@ -526,7 +552,10 @@ const fetchCoupons = async () => {
       params.discountType = filters.value.discountType;
 
     const response = await api.get("/coupons", params);
-    couponsData.value = response.data;
+    couponsData.value = response.data.data as {
+      data: Coupon[];
+      pagination: { total: number };
+    };
   } catch (error) {
     toast.error(t("coupons.messages.fetchFailed"));
     console.error("Failed to fetch coupons:", error);
@@ -565,35 +594,20 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const getCouponStatusClass = (coupon: Coupon) => {
-  const now = new Date();
-  const validTo = new Date(coupon.validTo);
+import { type CouponStatus, getCouponStatus } from "@/utils/couponStatus";
 
-  if (!coupon.isActive) {
-    return "bg-gray-100 text-gray-800";
-  } else if (now > validTo) {
-    return "bg-red-100 text-red-800";
-  } else if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    return "bg-yellow-100 text-yellow-800";
-  } else {
-    return "bg-green-100 text-green-800";
-  }
+const statusClassMap: Record<CouponStatus, string> = {
+  inactive: "bg-gray-100 text-gray-800",
+  expired: "bg-red-100 text-red-800",
+  exhausted: "bg-yellow-100 text-yellow-800",
+  scheduled: "bg-blue-100 text-blue-800",
+  active: "bg-green-100 text-green-800",
 };
 
-const getCouponStatusText = (coupon: Coupon) => {
-  const now = new Date();
-  const validTo = new Date(coupon.validTo);
-
-  if (!coupon.isActive) {
-    return t("coupons.status.inactive");
-  } else if (now > validTo) {
-    return t("coupons.status.expired");
-  } else if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    return t("coupons.status.exhausted");
-  } else {
-    return t("coupons.status.active");
-  }
-};
+const getCouponStatusClass = (coupon: Coupon) =>
+  statusClassMap[getCouponStatus(coupon)];
+const getCouponStatusText = (coupon: Coupon) =>
+  t(`coupons.status.${getCouponStatus(coupon)}`);
 
 const resetFilters = () => {
   filters.value = {
@@ -614,7 +628,7 @@ const closeModal = () => {
   editingCoupon.value = null;
 };
 
-const handleSaveCoupon = async (couponData: any) => {
+const handleSaveCoupon = async (couponData: Record<string, unknown>) => {
   try {
     if (editingCoupon.value) {
       await api.put(`/coupons/${editingCoupon.value.id}`, couponData);
@@ -637,11 +651,12 @@ const handleSaveCoupon = async (couponData: any) => {
 
 const viewCouponStats = async (coupon: Coupon) => {
   try {
-    const response = await api.get<{ coupon: any; stats: any }>(
-      `/coupons/${coupon.id}/stats`,
-    );
+    const response = await api.get<{
+      coupon: Coupon;
+      stats: CouponDetailStats;
+    }>(`/coupons/${coupon.id}/stats`);
     selectedCoupon.value = coupon;
-    couponStats.value = response.data.data?.stats;
+    couponStats.value = response.data.data?.stats ?? null;
     showStatsModal.value = true;
   } catch {
     toast.error(t("coupons.messages.statsFailed"));
@@ -668,13 +683,17 @@ const activateCoupon = async (coupon: Coupon) => {
   }
 };
 
-const deleteCoupon = async (coupon: Coupon) => {
-  if (!confirm(t("coupons.messages.deleteConfirm", { name: coupon.name }))) {
-    return;
-  }
+const deleteCoupon = (coupon: Coupon) => {
+  deleteTarget.value = coupon;
+};
+
+const confirmDeleteCoupon = async () => {
+  if (!deleteTarget.value) return;
+  const couponId = deleteTarget.value.id;
+  deleteTarget.value = null;
 
   try {
-    await api.delete(`/coupons/${coupon.id}`);
+    await api.delete(`/coupons/${couponId}`);
     toast.success(t("coupons.messages.deleteSuccess"));
     await Promise.all([fetchCoupons(), fetchStats()]);
   } catch {
@@ -688,19 +707,34 @@ onMounted(() => {
   fetchStats();
 });
 
-// Watch for filter changes
+// Instant fetch for page changes and dropdown filter changes
 watch(
-  [currentPage, filters],
+  [currentPage, () => filters.value.status, () => filters.value.discountType],
   () => {
     fetchCoupons();
   },
-  { deep: true },
 );
+
+// Debounced fetch for search input (avoid firing on every keystroke)
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+watch(
+  () => filters.value.search,
+  () => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      currentPage.value = 1;
+      fetchCoupons();
+    }, 300);
+  },
+);
+onUnmounted(() => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+});
 
 // Fetch summary stats from server
 const fetchStats = async () => {
   try {
-    const response = await api.get<CouponStats>("/coupons/stats/summary");
+    const response = await api.get<CouponsSummary>("/coupons/stats/summary");
     if (response.data.data) {
       stats.value = response.data.data;
     }

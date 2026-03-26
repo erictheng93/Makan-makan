@@ -79,10 +79,10 @@
         <div class="flex items-center justify-between">
           <div class="flex items-baseline space-x-1">
             <span class="text-base font-semibold text-ios-text">
-              ${{ formatPrice(itemTotal) }}
+              {{ formatPrice(itemTotal) }}
             </span>
             <span v-if="item.quantity > 1" class="text-sm text-ios-secondary">
-              (${{ formatPrice(item.price) }} × {{ item.quantity }})
+              ({{ formatPrice(item.price) }} × {{ item.quantity }})
             </span>
           </div>
 
@@ -177,7 +177,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import type { CartItem } from "@makanmakan/shared-types";
 import { useI18n } from "@/composables/useI18n";
 
@@ -194,6 +194,7 @@ const emits = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 // State
 const showNotesInput = ref(!!props.item.notes);

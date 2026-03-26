@@ -98,7 +98,7 @@
             <!-- 小計 -->
             <div class="flex justify-between text-ios-secondary">
               <span>{{ t("cart.subtotal") }}</span>
-              <span>${{ formatPrice(cartStore.subtotal) }}</span>
+              <span>{{ formatPrice(cartStore.subtotal) }}</span>
             </div>
 
             <!-- 服務費 -->
@@ -107,13 +107,13 @@
               class="flex justify-between text-ios-secondary"
             >
               <span>{{ t("cart.serviceCharge") }}</span>
-              <span>${{ formatPrice(serviceCharge) }}</span>
+              <span>{{ formatPrice(serviceCharge) }}</span>
             </div>
 
             <!-- 稅費 -->
             <div v-if="tax > 0" class="flex justify-between text-ios-secondary">
               <span>{{ t("cart.tax") }}</span>
-              <span>${{ formatPrice(tax) }}</span>
+              <span>{{ formatPrice(tax) }}</span>
             </div>
 
             <!-- 折扣 -->
@@ -122,7 +122,7 @@
               class="flex justify-between text-green-600"
             >
               <span>{{ t("cart.discount") }}</span>
-              <span>-${{ formatPrice(discount) }}</span>
+              <span>-{{ formatPrice(discount) }}</span>
             </div>
 
             <!-- 分隔線 -->
@@ -198,7 +198,7 @@
             <!-- 總計 -->
             <div class="flex justify-between text-lg font-bold text-ios-text">
               <span>{{ t("cart.total") }}</span>
-              <span>${{ formatPrice(totalAmount) }}</span>
+              <span>{{ formatPrice(totalAmount) }}</span>
             </div>
           </div>
         </div>
@@ -562,7 +562,7 @@
             })
           }}</span>
           <span v-else
-            >{{ t("order.placeOrder") }} · ${{ formatPrice(totalAmount) }}</span
+            >{{ t("order.placeOrder") }} · {{ formatPrice(totalAmount) }}</span
           >
         </button>
 
@@ -626,7 +626,7 @@ import ConfirmationModal from "@/components/ConfirmationModal.vue";
 import CouponRecommendation from "@/components/CouponRecommendation.vue";
 import { orderApi } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import type { CreateOrderRequest } from "@makanmakan/shared-types";
 
 // Props
@@ -640,6 +640,7 @@ const router = useRouter();
 const toast = useToast();
 const { t, tWithParams, currentLanguage } = useI18n();
 const cartStore = useCartStore();
+const { formatPrice } = useCurrency();
 
 // State
 const orderNotes = ref("");

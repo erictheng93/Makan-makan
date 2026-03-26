@@ -2521,6 +2521,7 @@ const idID: Messages = {
       status: "Status",
       allStatus: "Semua Status",
       active: "Aktif",
+      scheduled: "Dijadwalkan",
       expired: "Kedaluwarsa",
       exhausted: "Habis",
       inactive: "Tidak Aktif",
@@ -2544,6 +2545,7 @@ const idID: Messages = {
     },
     status: {
       active: "Aktif",
+      scheduled: "Dijadwalkan",
       expired: "Kedaluwarsa",
       exhausted: "Habis",
       inactive: "Tidak Aktif",
@@ -2923,6 +2925,7 @@ const idID: Messages = {
     loading: "Memuat statistik...",
     status: {
       inactive: "Tidak Aktif",
+      scheduled: "Dijadwalkan",
       expired: "Kedaluwarsa",
       exhausted: "Habis",
       active: "Aktif",

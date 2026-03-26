@@ -2586,6 +2586,7 @@ const zhCN: Messages = {
       status: "状态",
       allStatus: "全部状态",
       active: "进行中",
+      scheduled: "未开始",
       expired: "已过期",
       exhausted: "已用完",
       inactive: "已停用",
@@ -2609,6 +2610,7 @@ const zhCN: Messages = {
     },
     status: {
       active: "进行中",
+      scheduled: "未开始",
       expired: "已过期",
       exhausted: "已用完",
       inactive: "已停用",
@@ -2981,6 +2983,7 @@ const zhCN: Messages = {
     loading: "加载统计数据中...",
     status: {
       inactive: "已停用",
+      scheduled: "未开始",
       expired: "已过期",
       exhausted: "已用完",
       active: "进行中",

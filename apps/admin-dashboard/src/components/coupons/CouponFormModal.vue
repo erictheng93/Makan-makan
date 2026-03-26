@@ -400,28 +400,30 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { XMarkIcon } from "@heroicons/vue/24/outline";
+import type { Coupon } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
 
 // Props
 interface Props {
-  coupon?: {
-    id: number;
-    code: string;
-    name: string;
-    description?: string;
-    discountType: "percentage" | "fixed";
-    discountValue: number;
-    maxDiscountAmount?: number;
-    minOrderAmount: number;
-    usageLimit?: number;
-    usageLimitPerUser?: number;
-    validFrom: string;
-    validTo: string;
-    isActive: boolean;
-    isVisible: boolean;
-  };
+  coupon?: Pick<
+    Coupon,
+    | "id"
+    | "code"
+    | "name"
+    | "description"
+    | "discountType"
+    | "discountValue"
+    | "maxDiscountAmount"
+    | "minOrderAmount"
+    | "usageLimit"
+    | "usageLimitPerUser"
+    | "validFrom"
+    | "validTo"
+    | "isActive"
+    | "isVisible"
+  >;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -477,6 +479,12 @@ const formatDisplayDate = (dateString: string) => {
   });
 };
 
+// Convert a Date to local datetime-local input format (YYYY-MM-DDTHH:mm)
+const toLocalDatetimeString = (date: Date): string => {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const resetForm = () => {
   if (props.coupon) {
     // 編輯模式：填入現有資料
@@ -490,8 +498,8 @@ const resetForm = () => {
       minOrderAmount: props.coupon.minOrderAmount || 0,
       usageLimit: props.coupon.usageLimit || null,
       usageLimitPerUser: props.coupon.usageLimitPerUser || null,
-      validFrom: props.coupon.validFrom.slice(0, 16), // Remove seconds for datetime-local input
-      validTo: props.coupon.validTo.slice(0, 16),
+      validFrom: toLocalDatetimeString(new Date(props.coupon.validFrom)),
+      validTo: toLocalDatetimeString(new Date(props.coupon.validTo)),
       isActive: props.coupon.isActive,
       isVisible: props.coupon.isVisible,
     };
@@ -511,8 +519,8 @@ const resetForm = () => {
       minOrderAmount: 0,
       usageLimit: null,
       usageLimitPerUser: null,
-      validFrom: tomorrow.toISOString().slice(0, 16),
-      validTo: nextMonth.toISOString().slice(0, 16),
+      validFrom: toLocalDatetimeString(tomorrow),
+      validTo: toLocalDatetimeString(nextMonth),
       isActive: true,
       isVisible: true,
     };

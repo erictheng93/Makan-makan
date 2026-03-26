@@ -69,7 +69,7 @@
                 </button>
               </div>
               <span class="text-sm font-semibold text-ios-text">
-                ${{ formatPrice(item.totalPrice) }}
+                {{ formatPrice(item.totalPrice) }}
               </span>
             </div>
           </div>
@@ -82,7 +82,7 @@
               {{ t("shopCart.subtotal") }}
             </span>
             <span class="text-lg font-bold text-ios-blue">
-              ${{ formatPrice(subtotal) }}
+              {{ formatPrice(subtotal) }}
             </span>
           </div>
           <button
@@ -99,7 +99,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/composables/useI18n";
-import { formatPrice } from "@/utils/format";
+import { useCurrency } from "@/composables/useCurrency";
 import type {
   CartItem,
   SelectedCustomizations,
@@ -118,6 +118,7 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { formatPrice } = useCurrency();
 
 const formatCustomizations = (customizations?: SelectedCustomizations) => {
   if (!customizations) return "";

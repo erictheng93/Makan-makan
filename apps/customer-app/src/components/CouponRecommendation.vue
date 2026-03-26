@@ -43,9 +43,8 @@
               {{ coupon.description }}
             </p>
             <div class="text-xs text-ios-blue mt-1">
-              {{ t("cart.potentialSaving") }}: ${{
-                calculatePotentialSaving(coupon)
-              }}
+              {{ t("cart.potentialSaving") }}: {{ currencySymbol
+              }}{{ calculatePotentialSaving(coupon) }}
             </div>
           </div>
           <button class="text-ios-blue text-sm font-medium">
@@ -60,8 +59,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
+import { useCurrency } from "@/composables/useCurrency";
 
 const { t } = useI18n();
+const { formatPrice: formatCurrencyPrice, currencySymbol } = useCurrency();
 
 const props = defineProps<{
   coupons: any[];
@@ -72,34 +73,8 @@ defineEmits<{
   "select-coupon": [coupon: any];
 }>();
 
-const recommendedCoupons = computed(() => {
-  return props.coupons
-    .filter((coupon) => {
-      // 推荐逻辑：订单金额满足最低要求，且能带来实际折扣
-      const meetsMinOrder =
-        !coupon.minOrderAmount || props.orderAmount >= coupon.minOrderAmount;
-      const hasDiscount = Number(calculatePotentialSaving(coupon)) > 0;
-      return meetsMinOrder && hasDiscount;
-    })
-    .sort(
-      (a, b) =>
-        Number(calculatePotentialSaving(b)) -
-        Number(calculatePotentialSaving(a)),
-    )
-    .slice(0, 2); // 只显示最优的2个推荐
-});
-
-const formatDiscount = (coupon: any) => {
-  if (coupon.discountType === "percentage") {
-    return `${coupon.discountValue}% ${t("common.off")}`;
-  } else {
-    return `$${coupon.discountValue.toFixed(2)} ${t("common.off")}`;
-  }
-};
-
-const calculatePotentialSaving = (coupon: any): string => {
+const computeSaving = (coupon: any): number => {
   let saving = 0;
-
   if (coupon.discountType === "percentage") {
     saving = Math.round(props.orderAmount * (coupon.discountValue / 100));
     if (coupon.maxDiscountAmount && saving > coupon.maxDiscountAmount) {
@@ -108,7 +83,31 @@ const calculatePotentialSaving = (coupon: any): string => {
   } else {
     saving = Number(coupon.discountValue);
   }
+  return Math.min(saving, props.orderAmount);
+};
 
-  return Math.min(saving, props.orderAmount).toFixed(2);
+const recommendedCoupons = computed(() => {
+  return props.coupons
+    .map((coupon) => ({ coupon, saving: computeSaving(coupon) }))
+    .filter(({ coupon, saving }) => {
+      const meetsMinOrder =
+        !coupon.minOrderAmount || props.orderAmount >= coupon.minOrderAmount;
+      return meetsMinOrder && saving > 0;
+    })
+    .sort((a, b) => b.saving - a.saving)
+    .slice(0, 2)
+    .map(({ coupon }) => coupon);
+});
+
+const formatDiscount = (coupon: any) => {
+  if (coupon.discountType === "percentage") {
+    return `${coupon.discountValue}% ${t("common.off")}`;
+  } else {
+    return `${currencySymbol.value}${coupon.discountValue.toFixed(2)} ${t("common.off")}`;
+  }
+};
+
+const calculatePotentialSaving = (coupon: any): string => {
+  return computeSaving(coupon).toFixed(2);
 };
 </script>
