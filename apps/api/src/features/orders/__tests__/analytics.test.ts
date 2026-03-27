@@ -146,7 +146,7 @@ describe("Orders Analytics", () => {
       expect(result.summary.totalOrders).toBe(50);
       expect(result.summary.totalRevenue).toBe(25000);
       expect(result.summary.averageOrderValue).toBe(500);
-      expect(mockCacheKV.set).toHaveBeenCalled();
+      expect(mockCacheKV.put).toHaveBeenCalled();
     });
 
     it("should throw error when restaurantId is missing", async () => {
@@ -272,7 +272,7 @@ describe("Orders Analytics", () => {
       const result = await ordersService.getPopularItems("1");
 
       expect(result).toEqual([]);
-      expect(mockCacheKV.set).toHaveBeenCalled();
+      expect(mockCacheKV.put).toHaveBeenCalled();
     });
 
     it("should accept time range parameter", async () => {

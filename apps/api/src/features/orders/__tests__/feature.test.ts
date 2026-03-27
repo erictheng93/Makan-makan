@@ -270,10 +270,10 @@ describe("Orders Feature", () => {
         // Assert
         expect(mockCacheKV.get).toHaveBeenCalledWith("order:1:full", "json");
         expect(mockOrderServiceInstance.getOrder).toHaveBeenCalledWith(1);
-        expect(mockCacheKV.set).toHaveBeenCalledWith(
+        expect(mockCacheKV.put).toHaveBeenCalledWith(
           "order:1:full",
-          expect.any(Object),
-          300,
+          expect.any(String),
+          { expirationTtl: 300 },
         );
         expect(result).toEqual(
           expect.objectContaining({
@@ -694,10 +694,10 @@ describe("Orders Feature", () => {
       await ordersService.getOrder(1);
 
       // Assert
-      expect(mockCacheKV.set).toHaveBeenCalledWith(
+      expect(mockCacheKV.put).toHaveBeenCalledWith(
         "order:1:full",
-        expect.any(Object),
-        300,
+        expect.any(String),
+        { expirationTtl: 300 },
       );
     });
 

@@ -75,15 +75,74 @@ export class OrdersService implements IOrdersService {
         userId,
       });
 
-      // Note: Input shape/length validation is handled by Zod schemas in the route layer.
-      // Only business-rule validations that require DB access belong here.
+      // Defence-in-depth: validate inputs even though Zod schemas cover the route layer.
+      // Guards against direct service calls bypassing route validation.
 
-      // Validate phone format (not covered by Zod schema)
+      // Validate restaurant ID
+      if (!data.restaurantId) {
+        throw badRequest("Invalid restaurant ID", "INVALID_RESTAURANT_ID");
+      }
+
+      // Validate items
+      if (!data.items || data.items.length === 0) {
+        throw badRequest(
+          "Order must contain at least one item",
+          "EMPTY_ORDER_ITEMS",
+        );
+      }
+      if (data.items.length > 100) {
+        throw badRequest(
+          "Order cannot exceed 100 items",
+          "TOO_MANY_ORDER_ITEMS",
+        );
+      }
+
+      // Validate each item
+      for (const item of data.items) {
+        if (!item.menuItemId || item.menuItemId <= 0) {
+          throw badRequest("Invalid menu item ID", "INVALID_MENU_ITEM_ID");
+        }
+        if (!item.quantity || item.quantity <= 0) {
+          throw badRequest("Invalid item quantity", "INVALID_ITEM_QUANTITY");
+        }
+        if (item.quantity > 999) {
+          throw badRequest(
+            "Invalid item quantity: cannot exceed 999",
+            "ITEM_QUANTITY_EXCEEDED",
+          );
+        }
+      }
+
+      // Validate phone format
       if (
         data.customerInfo?.phone &&
         !/^[\d\s\-+()]{7,20}$/.test(data.customerInfo.phone)
       ) {
         throw badRequest("Invalid phone number format", "INVALID_PHONE_FORMAT");
+      }
+
+      // Validate email format
+      if (
+        data.customerInfo?.email &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.customerInfo.email)
+      ) {
+        throw badRequest("Invalid email format", "INVALID_EMAIL_FORMAT");
+      }
+
+      // Validate notes length
+      if (data.notes && data.notes.length > 1000) {
+        throw badRequest(
+          "Order notes cannot exceed 1000 characters",
+          "NOTES_TOO_LONG",
+        );
+      }
+
+      // Validate coupon code format
+      if (data.couponCode && data.couponCode.length < 3) {
+        throw badRequest(
+          "Invalid coupon code format",
+          "INVALID_COUPON_CODE_FORMAT",
+        );
       }
 
       // Convert feature-specific data to base service format
@@ -244,7 +303,7 @@ export class OrdersService implements IOrdersService {
       if (data.status !== undefined) {
         updatedOrder =
           (await this.baseOrderService.updateOrderStatus(id, {
-            status: String(data.status),
+            status: this.normalizeStatus(data.status),
             notes: data.notes,
           })) || updatedOrder;
       }
@@ -345,7 +404,7 @@ export class OrdersService implements IOrdersService {
 
       // Update using base service
       const updatedOrder = await this.baseOrderService.updateOrderStatus(id, {
-        status: String(statusData.status),
+        status: this.normalizeStatus(statusData.status),
         notes: statusData.notes,
       });
 

@@ -139,10 +139,10 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       expect(result).toEqual(dbOrder);
       expect(mockBaseOrderService.getOrder).toHaveBeenCalledWith(2);
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:2:full",
-        dbOrder,
-        300,
+        JSON.stringify(dbOrder),
+        { expirationTtl: 300 },
       );
     });
 
@@ -153,7 +153,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       const result = await service.getOrder(999);
 
       expect(result).toBeNull();
-      expect(mockEnv.CACHE_KV.set).not.toHaveBeenCalled();
+      expect(mockEnv.CACHE_KV.put).not.toHaveBeenCalled();
     });
 
     it("should use 'full' cache key when includeItems is true (default)", async () => {
@@ -163,10 +163,10 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       await service.getOrder(3, true);
 
       expect(mockEnv.CACHE_KV.get).toHaveBeenCalledWith("order:3:full", "json");
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:3:full",
-        expect.anything(),
-        300,
+        expect.any(String),
+        { expirationTtl: 300 },
       );
     });
 
@@ -180,10 +180,10 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
         "order:4:basic",
         "json",
       );
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:4:basic",
-        expect.anything(),
-        300,
+        expect.any(String),
+        { expirationTtl: 300 },
       );
     });
 
@@ -196,15 +196,15 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       await service.getOrder(5, true);
       await service.getOrder(5, false);
 
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:5:full",
-        expect.anything(),
-        300,
+        expect.any(String),
+        { expirationTtl: 300 },
       );
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:5:basic",
-        expect.anything(),
-        300,
+        expect.any(String),
+        { expirationTtl: 300 },
       );
     });
   });
@@ -404,23 +404,20 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       const firstRead = await service.getOrder(60);
       expect(firstRead?.status).toBe(OrderStatus.PENDING);
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:60:full",
-        originalOrder,
-        300,
+        JSON.stringify(originalOrder),
+        { expirationTtl: 300 },
       );
 
       // Step 2: updateOrderStatus should invalidate cache
       // updateOrderStatus internally calls getOrder (cache hit), then after
-      // DB write + cache invalidation, broadcastOrderUpdate also calls getOrder
-      // (cache miss, DB hit). So we need to account for these internal reads.
+      // DB write + cache invalidation, broadcastOrderStatusUpdate receives the
+      // order object directly (no extra getOrder call).
       mockEnv.CACHE_KV.get.mockResolvedValueOnce(originalOrder); // updateOrderStatus -> getOrder (cache hit)
       mockBaseOrderService.updateOrderStatus.mockResolvedValueOnce(
         updatedOrder,
       );
-      // After invalidation, broadcastOrderUpdate -> getOrder (cache miss)
-      mockEnv.CACHE_KV.get.mockResolvedValueOnce(null);
-      mockBaseOrderService.getOrder.mockResolvedValueOnce(updatedOrder);
 
       await service.updateOrderStatus(
         60,
@@ -434,16 +431,14 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("order:60:basic");
 
       // Step 3: Next getOrder should hit DB (cache was invalidated)
-      // Note: broadcastOrderUpdate re-cached the order after invalidation,
-      // so this read may be a cache hit. Reset to simulate invalidated state.
       mockEnv.CACHE_KV.get.mockResolvedValueOnce(null); // cache miss after invalidation
       mockBaseOrderService.getOrder.mockResolvedValueOnce(updatedOrder);
 
       const secondRead = await service.getOrder(60);
       expect(secondRead?.status).toBe(OrderStatus.CONFIRMED);
-      // DB was queried: once for step 1, once by broadcastOrderUpdate in step 2,
-      // and once for step 3 = 3 times total
-      expect(mockBaseOrderService.getOrder).toHaveBeenCalledTimes(3);
+      // DB was queried: once for step 1, once for step 3 = 2 times total
+      // (broadcastOrderStatusUpdate receives the order directly, no extra DB call)
+      expect(mockBaseOrderService.getOrder).toHaveBeenCalledTimes(2);
     });
 
     it("should return fresh data after cancelOrder", async () => {
@@ -512,9 +507,9 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
         id: 71,
         status: OrderStatus.PENDING,
       });
-      mockEnv.CACHE_KV.set.mockRejectedValue(new Error("KV write failed"));
+      mockEnv.CACHE_KV.put.mockRejectedValue(new Error("KV write failed"));
 
-      // Current behavior: set failure propagates even though the order was found
+      // Current behavior: put failure propagates even though the order was found
       await expect(service.getOrder(71)).rejects.toThrow("KV write failed");
     });
 
@@ -613,10 +608,10 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       // This is the race condition — cache now holds stale PENDING status
       expect(result?.status).toBe(OrderStatus.PENDING);
       // The cache.set from T1 happened after T2's delete — stale data is cached
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:80:full",
-        staleOrder,
-        300,
+        JSON.stringify(staleOrder),
+        { expirationTtl: 300 },
       );
     });
 
@@ -638,10 +633,10 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       mockBaseOrderService.getOrder.mockResolvedValueOnce(pendingOrder);
       await service.getOrder(81);
 
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:81:full",
-        pendingOrder,
-        300,
+        JSON.stringify(pendingOrder),
+        { expirationTtl: 300 },
       );
 
       // 2. updateOrderStatus — reads from cache, writes to DB, invalidates
@@ -679,7 +674,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       // Both will call DB and both will write to cache (harmless duplicate writes)
       expect(mockBaseOrderService.getOrder).toHaveBeenCalledTimes(2);
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledTimes(2);
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -777,10 +772,10 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       const filters = { restaurantId: "1" };
       await service.getOrderAnalytics(filters);
 
-      expect(mockEnv.CACHE_KV.set).toHaveBeenCalledWith(
+      expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         `analytics:${JSON.stringify(filters)}`,
-        expect.anything(),
-        900,
+        expect.any(String),
+        { expirationTtl: 900 },
       );
     });
 

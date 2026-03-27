@@ -291,7 +291,7 @@ describe("OrdersService — Multi-Tenant Data Isolation", () => {
 
       const calledFilters = mockBaseOrderService.getOrders.mock.calls[0][0];
       expect(calledFilters.status).toEqual(
-        expect.arrayContaining(["confirmed", "preparing", "ready"]),
+        expect.arrayContaining([OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY]),
       );
     });
   });
