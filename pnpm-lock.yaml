@@ -8,6 +8,8 @@ overrides:
   esbuild: ^0.25.0
   drizzle-orm: 0.44.7
   better-sqlite3: 12.6.0
+  zod: ^3.25.76
+  uuid: ^11.0.0
 
 importers:
 
@@ -391,8 +393,8 @@ importers:
         specifier: ^7.0.0
         version: 7.4.0
       zod:
-        specifier: ^4.1.11
-        version: 4.3.5
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@playwright/test':
         specifier: ^1.40.0
@@ -452,7 +454,7 @@ importers:
         specifier: ^4.9.6
         version: 4.11.4
       zod:
-        specifier: ^3.22.0
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       '@cloudflare/workers-types':
@@ -778,7 +780,7 @@ importers:
         specifier: ^8.13.0
         version: 8.19.0
       zod:
-        specifier: ^3.22.2
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       '@types/cors':
@@ -883,7 +885,7 @@ importers:
         specifier: ^11.0.0
         version: 11.1.0
       zod:
-        specifier: ^3.22.0
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       '@cloudflare/workers-types':
@@ -923,7 +925,7 @@ importers:
         specifier: workspace:*
         version: link:../shared-types
       zod:
-        specifier: ^3.22.0
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       '@vitest/coverage-v8':
@@ -942,7 +944,7 @@ importers:
         specifier: workspace:*
         version: link:../queue-core
       zod:
-        specifier: ^3.22.0
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       typescript:
@@ -993,11 +995,11 @@ importers:
         specifier: ^1.6.0
         version: 1.13.2
       uuid:
-        specifier: ^13.0.0
-        version: 13.0.0
+        specifier: ^11.0.0
+        version: 11.1.0
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/uuid':
         specifier: ^11.0.0
@@ -1058,7 +1060,7 @@ packages:
   '@asteasolutions/zod-to-openapi@8.4.0':
     resolution: {integrity: sha512-Ckp971tmTw4pnv+o7iK85ldBHBKk6gxMaoNyLn3c2Th/fKoTG8G3jdYuOanpdGqwlDB0z01FOjry2d32lfTqrA==}
     peerDependencies:
-      zod: ^4.0.0
+      zod: ^3.25.76
 
   '@aws-crypto/crc32@5.2.0':
     resolution: {integrity: sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg==}
@@ -2282,25 +2284,25 @@ packages:
     engines: {node: '>=16.0.0'}
     peerDependencies:
       hono: '>=4.3.6'
-      zod: ^4.0.0
+      zod: ^3.25.76
 
   '@hono/zod-validator@0.2.2':
     resolution: {integrity: sha512-dSDxaPV70Py8wuIU2QNpoVEIOSzSXZ/6/B/h4xA7eOMz7+AarKTSGV8E6QwrdcCbBLkpqfJ4Q2TmBO0eP1tCBQ==}
     peerDependencies:
       hono: '>=3.9.0'
-      zod: ^3.19.1
+      zod: ^3.25.76
 
   '@hono/zod-validator@0.5.0':
     resolution: {integrity: sha512-ds5bW6DCgAnNHP33E3ieSbaZFd5dkV52ZjyaXtGoR06APFrCtzAsKZxTHwOrJNBdXsi0e5wNwo5L4nVEVnJUdg==}
     peerDependencies:
       hono: '>=3.9.0'
-      zod: ^3.19.1
+      zod: ^3.25.76
 
   '@hono/zod-validator@0.7.6':
     resolution: {integrity: sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw==}
     peerDependencies:
       hono: '>=3.9.0'
-      zod: ^3.25.0 || ^4.0.0
+      zod: ^3.25.76
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -7748,14 +7750,6 @@ packages:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
     hasBin: true
 
-  uuid@13.0.0:
-    resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
-    hasBin: true
-
-  uuid@8.3.2:
-    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
-    hasBin: true
-
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
@@ -8358,12 +8352,6 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zod@4.3.5:
-    resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
-
-  zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
-
 snapshots:
 
   '@acemir/cssom@0.9.31': {}
@@ -8424,7 +8412,7 @@ snapshots:
       socket.io-client: 4.8.3
       socketio-wildcard: 2.0.0
       tough-cookie: 5.1.2
-      uuid: 8.3.2
+      uuid: 11.1.0
       ws: 7.5.10
     transitivePeerDependencies:
       - bufferutil
@@ -9597,7 +9585,7 @@ snapshots:
     dependencies:
       '@azure/msal-common': 15.13.3
       jsonwebtoken: 9.0.3
-      uuid: 8.3.2
+      uuid: 11.1.0
 
   '@azure/storage-blob@12.29.1':
     dependencies:
@@ -10948,7 +10936,7 @@ snapshots:
   '@ngneat/falso@7.4.0':
     dependencies:
       seedrandom: 3.0.5
-      uuid: 8.3.2
+      uuid: 11.1.0
 
   '@noble/hashes@1.8.0': {}
 
@@ -12033,7 +12021,7 @@ snapshots:
 
   '@types/uuid@11.0.0':
     dependencies:
-      uuid: 13.0.0
+      uuid: 11.1.0
 
   '@types/web-bluetooth@0.0.20': {}
 
@@ -12819,7 +12807,7 @@ snapshots:
       opentracing: 0.14.7
       prom-client: 14.2.0
       semver: 7.7.3
-      uuid: 8.3.2
+      uuid: 11.1.0
     transitivePeerDependencies:
       - aws-crt
       - supports-color
@@ -16736,10 +16724,6 @@ snapshots:
 
   uuid@11.1.0: {}
 
-  uuid@13.0.0: {}
-
-  uuid@8.3.2: {}
-
   vary@1.1.2: {}
 
   vite-node@0.34.6(@types/node@20.19.28)(terser@5.46.1):
@@ -17778,7 +17762,3 @@ snapshots:
       youch-core: 0.3.3
 
   zod@3.25.76: {}
-
-  zod@4.3.5: {}
-
-  zod@4.3.6: {}
