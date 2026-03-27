@@ -282,7 +282,7 @@ describe("POS Services Unit Tests", () => {
         const result = await service.createRegister(
           {
             name: "POS-001",
-            restaurantId: 1,
+            restaurantId: "rest-001",
             location: "一樓大廳",
           },
           1,
@@ -298,7 +298,7 @@ describe("POS Services Unit Tests", () => {
         const result = await service.createRegister(
           {
             name: "",
-            restaurantId: 1,
+            restaurantId: "rest-001",
           },
           1,
         );

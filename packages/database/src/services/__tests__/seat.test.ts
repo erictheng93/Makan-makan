@@ -729,7 +729,7 @@ describe("SeatService", () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.qrCode).toBeDefined();
-      expect(result.qrCode).toContain("makanmakan.com/order?data=");
+      expect(result.qrCode).toContain("makanmakan.com/order?t=seat&r=");
     });
 
     it("should return error when seat not found", async () => {
@@ -812,7 +812,7 @@ describe("SeatService", () => {
       expect(result.qrCodes).toHaveLength(2);
       expect(result.qrCodes![0].seatId).toBe(1);
       expect(result.qrCodes![0].seatNumber).toBe("01");
-      expect(result.qrCodes![0].qrCode).toContain("makanmakan.com/order?data=");
+      expect(result.qrCodes![0].qrCode).toContain("makanmakan.com/order?t=seat&r=");
       expect(result.qrCodes![1].seatId).toBe(2);
       expect(result.qrCodes![1].seatNumber).toBe("02");
     });
