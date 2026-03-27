@@ -32,6 +32,7 @@ import type {
 
 export class BackupService {
   private db;
+  private requestContext?: { ipAddress: string; userAgent: string };
 
   constructor(
     d1: D1Database,
@@ -40,6 +41,10 @@ export class BackupService {
     private validationService: BackupValidationService
   ) {
     this.db = drizzle(d1);
+  }
+
+  setRequestContext(ctx: { ipAddress: string; userAgent: string }): void {
+    this.requestContext = ctx;
   }
 
   /**
@@ -642,8 +647,8 @@ export class BackupService {
       action: log.action,
       details: log.details as Record<string, unknown>,
       performedBy: log.performed_by,
-      ipAddress: '0.0.0.0', // TODO: Get from request context
-      userAgent: 'MakanMakan-API', // TODO: Get from request context
+      ipAddress: this.requestContext?.ipAddress ?? '0.0.0.0',
+      userAgent: this.requestContext?.userAgent ?? 'MakanMakan-API',
       timestamp: new Date().toISOString()
     })
   }

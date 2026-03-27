@@ -105,6 +105,10 @@ export function createBackupRoutes(): Hono<Context> {
       configService,
       validationService
     )
+    backupService.setRequestContext({
+      ipAddress: c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '0.0.0.0',
+      userAgent: c.req.header('user-agent') || 'Unknown',
+    })
 
     const backupController = new BackupController(
       backupService,
