@@ -1,5 +1,6 @@
 import { Context, Next } from "hono";
 import type { Env } from "../types/env";
+import { badRequest } from "../shared/utils/api-error";
 
 // Custom AnalyticsEngine interface since it's not exported by @cloudflare/workers-types
 interface AnalyticsEngine {
@@ -46,7 +47,48 @@ export interface BusinessMetrics {
   popular_items: Array<{ item_id: number; orders: number }>;
 }
 
+export interface AnalyticsQuery {
+  metrics: string[];
+  event?: string;
+  restaurant_id?: string;
+  group_by?: string[];
+  order_by?: string;
+  limit?: number;
+}
+
 export class AdvancedAnalyticsService {
+  // Whitelist of allowed Analytics Engine metric expressions
+  private static readonly ALLOWED_METRICS = new Set([
+    "count",
+    "sum(double1)",
+    "avg(double1)",
+    "sum(double2)",
+    "avg(double2)",
+    "quantileWeighted(0.5)(double1)",
+    "min(double1)",
+    "max(double1)",
+    "min(double2)",
+    "max(double2)",
+    "timestamp",
+  ]);
+
+  // Whitelist of allowed Analytics Engine group-by columns
+  private static readonly ALLOWED_GROUP_BY = new Set([
+    "blob1",
+    "blob2",
+    "blob3",
+    "blob4",
+    "blob5",
+    "blob6",
+    "blob7",
+    "blob8",
+    "blob9",
+    "blob10",
+    "double1",
+    "double2",
+    "_sample_interval",
+  ]);
+
   constructor(
     private analyticsEngine: AnalyticsEngine,
     private context: ExecutionContext,
@@ -307,12 +349,12 @@ export class AdvancedAnalyticsService {
    */
   async queryAnalytics(query: {
     event?: string;
-    restaurant_id?: number;
+    restaurant_id?: string;
     time_range: "1h" | "24h" | "7d" | "30d";
     metrics: string[];
     group_by?: string[];
-    filters?: Record<string, any>;
-  }): Promise<any[]> {
+    filters?: Record<string, unknown>;
+  }): Promise<unknown[]> {
     try {
       // This would typically use the Analytics Engine SQL API
       // For now, we'll structure the query parameters
@@ -519,20 +561,54 @@ export class AdvancedAnalyticsService {
     }
   }
 
-  private buildAnalyticsQuery(query: any, startTime: number): string {
-    // Build SQL query for Analytics Engine
-    let sql = `SELECT ${query.metrics.join(", ")} FROM analytics WHERE timestamp >= ${startTime}`;
+  private buildAnalyticsQuery(
+    query: AnalyticsQuery,
+    startTime: number,
+  ): string {
+    // Validate metrics against whitelist
+    const safeMetrics = query.metrics.filter((m) =>
+      AdvancedAnalyticsService.ALLOWED_METRICS.has(m),
+    );
+    if (safeMetrics.length === 0) {
+      throw badRequest(
+        "No valid metrics provided. Allowed: " +
+          [...AdvancedAnalyticsService.ALLOWED_METRICS].join(", "),
+        "INVALID_METRICS",
+      );
+    }
+
+    // Validate identifier pattern for event and restaurant_id
+    const identifierPattern = /^[a-zA-Z0-9_-]+$/;
+
+    let sql = `SELECT ${safeMetrics.join(", ")} FROM analytics WHERE timestamp >= ${startTime}`;
 
     if (query.event) {
+      if (!identifierPattern.test(query.event)) {
+        throw badRequest(
+          "Invalid event name. Only alphanumeric, underscore, and hyphen characters are allowed.",
+          "INVALID_EVENT",
+        );
+      }
       sql += ` AND blob1 = '${query.event}'`;
     }
 
     if (query.restaurant_id) {
+      if (!identifierPattern.test(query.restaurant_id)) {
+        throw badRequest(
+          "Invalid restaurant_id. Only alphanumeric, underscore, and hyphen characters are allowed.",
+          "INVALID_RESTAURANT_ID",
+        );
+      }
       sql += ` AND blob2 = '${query.restaurant_id}'`;
     }
 
     if (query.group_by?.length) {
-      sql += ` GROUP BY ${query.group_by.join(", ")}`;
+      const safeGroupBy = query.group_by.filter((g) =>
+        AdvancedAnalyticsService.ALLOWED_GROUP_BY.has(g),
+      );
+      if (safeGroupBy.length > 0) {
+        sql += ` GROUP BY ${safeGroupBy.join(", ")}`;
+      }
     }
 
     sql += ` ORDER BY timestamp DESC LIMIT 1000`;

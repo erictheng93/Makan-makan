@@ -254,10 +254,10 @@ describe("AdvancedAnalyticsService", () => {
 
       const result = await service.queryAnalytics({
         event: "api_request",
-        restaurant_id: 1,
+        restaurant_id: "1",
         time_range: "24h",
-        metrics: ["response_time", "error_rate"],
-        group_by: ["endpoint"],
+        metrics: ["count", "sum(double1)"],
+        group_by: ["blob1"],
       });
 
       expect(consoleSpy).toHaveBeenCalledWith(
