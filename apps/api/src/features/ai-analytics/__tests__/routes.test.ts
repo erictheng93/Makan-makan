@@ -31,20 +31,18 @@ const mockServiceInstance = {
   getUsageStats: vi.fn().mockResolvedValue([]),
 };
 
-vi.mock("../services/AIAnalyticsService", () => ({
-  AIAnalyticsService: vi.fn(function () {
+vi.mock("../services/AIAnalyticsService", () => {
+  const MockService = vi.fn().mockImplementation(function () {
     return mockServiceInstance;
-  }),
-}));
-
-// Static methods need to be on the mock constructor
-import { AIAnalyticsService } from "../services/AIAnalyticsService";
-vi.mocked(AIAnalyticsService).getAvailableModels = vi
-  .fn()
-  .mockReturnValue(["claude-3-haiku-20240307", "claude-3-sonnet-20240229"]);
-vi.mocked(AIAnalyticsService).getDefaultModel = vi
-  .fn()
-  .mockReturnValue("claude-3-haiku-20240307");
+  });
+  (MockService as any).getAvailableModels = vi
+    .fn()
+    .mockReturnValue(["claude-3-haiku-20240307", "claude-3-sonnet-20240229"]);
+  (MockService as any).getDefaultModel = vi
+    .fn()
+    .mockReturnValue("claude-3-haiku-20240307");
+  return { AIAnalyticsService: MockService };
+});
 
 const mockEnv = {
   DB: {},
@@ -57,13 +55,19 @@ const mockEnv = {
 function createApp(userRole: number) {
   const app = new Hono<{
     Bindings: typeof mockEnv;
-    Variables: { userId: string; userRole: number };
+    Variables: {
+      user: { id: number; username: string; role: number; restaurantId: string };
+    };
   }>();
 
-  // Inject variables middleware
+  // Inject variables middleware — routes read c.get("user").role
   app.use("*", async (c, next) => {
-    c.set("userId", "user-123");
-    c.set("userRole", userRole);
+    c.set("user", {
+      id: 123,
+      username: "test-user",
+      role: userRole,
+      restaurantId: "restaurant-123",
+    });
     await next();
   });
 
