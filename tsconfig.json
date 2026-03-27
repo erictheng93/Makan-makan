@@ -36,6 +36,18 @@
     },
     {
       "path": "./packages/shared-types"
+    },
+    {
+      "path": "./packages/database"
+    },
+    {
+      "path": "./packages/utils"
+    },
+    {
+      "path": "./packages/queue-core"
+    },
+    {
+      "path": "./packages/queue-service"
     }
   ]
 }
