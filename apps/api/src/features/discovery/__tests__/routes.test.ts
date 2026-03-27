@@ -72,6 +72,7 @@ const mockSearchDishes = vi.fn();
 const mockBrowseRestaurants = vi.fn();
 const mockGetPopular = vi.fn();
 const mockReindex = vi.fn();
+const mockGetRestaurantMenu = vi.fn();
 
 vi.mock("../services/DiscoveryService", () => ({
   DiscoveryService: vi.fn().mockImplementation(function () {
@@ -80,6 +81,7 @@ vi.mock("../services/DiscoveryService", () => ({
       browseRestaurants: mockBrowseRestaurants,
       getPopular: mockGetPopular,
       reindex: mockReindex,
+      getRestaurantMenu: mockGetRestaurantMenu,
     };
   }),
 }));
@@ -189,6 +191,7 @@ describe("Discovery Routes", () => {
       restaurants: 0,
       duration_ms: 50,
     });
+    mockGetRestaurantMenu.mockResolvedValue([]);
   });
 
   describe("GET /discovery/search", () => {
@@ -317,21 +320,21 @@ describe("Discovery Routes", () => {
 
   describe("GET /discovery/restaurants/:id/menu", () => {
     it("should return 200 with menu items", async () => {
-      const mockAll = vi.fn().mockResolvedValue({
-        results: [{ id: 1, name: "牛肉麵", price: 150, is_available: 1 }],
-      });
-      const envWithDb = {
-        ...mockEnv,
-        DB: {
-          prepare: vi.fn().mockReturnValue({
-            bind: vi.fn().mockReturnValue({ all: mockAll }),
-          }),
+      mockGetRestaurantMenu.mockResolvedValue([
+        {
+          id: 1,
+          name: "牛肉麵",
+          description: null,
+          price: 150,
+          is_available: true,
+          image_url: null,
+          category_name: "主食",
         },
-      };
+      ]);
 
       const res = await app.fetch(
         new Request("http://localhost/discovery/restaurants/r1/menu"),
-        envWithDb as any,
+        mockEnv,
       );
 
       expect(res.status).toBe(200);
@@ -341,20 +344,11 @@ describe("Discovery Routes", () => {
     });
 
     it("should return 500 when query fails", async () => {
-      const envWithDb = {
-        ...mockEnv,
-        DB: {
-          prepare: vi.fn().mockReturnValue({
-            bind: vi.fn().mockReturnValue({
-              all: vi.fn().mockRejectedValue(new Error("D1 error")),
-            }),
-          }),
-        },
-      };
+      mockGetRestaurantMenu.mockRejectedValue(new Error("D1 error"));
 
       const res = await app.fetch(
         new Request("http://localhost/discovery/restaurants/r1/menu"),
-        envWithDb as any,
+        mockEnv,
       );
 
       expect(res.status).toBe(500);
@@ -587,20 +581,11 @@ describe("Discovery Routes", () => {
     });
 
     it("should return 200 with empty items array when no menu items exist", async () => {
-      const envWithDb = {
-        ...mockEnv,
-        DB: {
-          prepare: vi.fn().mockReturnValue({
-            bind: vi.fn().mockReturnValue({
-              all: vi.fn().mockResolvedValue({ results: [] }),
-            }),
-          }),
-        },
-      };
+      mockGetRestaurantMenu.mockResolvedValue([]);
 
       const res = await app.fetch(
         new Request("http://localhost/discovery/restaurants/r-empty/menu"),
-        envWithDb as any,
+        mockEnv,
       );
 
       expect(res.status).toBe(200);

@@ -41,19 +41,11 @@ routes.get(
   validateParams(restaurantIdParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
+    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
 
-    const items = await c.env.DB.prepare(
-      `SELECT mi.id, mi.name, mi.description, mi.price, mi.is_available,
-              mi.image_url, c.name as category_name
-       FROM menu_items mi
-       LEFT JOIN categories c ON mi.category_id = c.id
-       WHERE mi.restaurant_id = ? AND mi.is_available = 1 AND mi.deleted_at_ms IS NULL
-       ORDER BY c.sort_order ASC, mi.sort_order ASC`,
-    )
-      .bind(id)
-      .all();
+    const items = await service.getRestaurantMenu(id);
 
-    return c.json({ success: true, data: { items: items.results } });
+    return c.json({ success: true, data: { items } });
   },
 );
 

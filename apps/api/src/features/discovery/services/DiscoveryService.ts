@@ -357,6 +357,29 @@ export class DiscoveryService {
     return { keywords, dishes, restaurants: topRestaurants.results };
   }
 
+  async getRestaurantMenu(restaurantId: string) {
+    return await this.db
+      .select({
+        id: menuItems.id,
+        name: menuItems.name,
+        description: menuItems.description,
+        price: menuItems.price,
+        is_available: menuItems.isAvailable,
+        image_url: menuItems.imageUrl,
+        category_name: categories.name,
+      })
+      .from(menuItems)
+      .leftJoin(categories, eq(menuItems.categoryId, categories.id))
+      .where(
+        and(
+          eq(menuItems.restaurantId, restaurantId),
+          eq(menuItems.isAvailable, true),
+          isNull(menuItems.deletedAt),
+        ),
+      )
+      .orderBy(asc(categories.sortOrder), asc(menuItems.sortOrder));
+  }
+
   async reindex(): Promise<{
     dishes: number;
     restaurants: number;
