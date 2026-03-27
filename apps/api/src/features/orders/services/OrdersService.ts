@@ -312,6 +312,15 @@ export class OrdersService implements IOrdersService {
     }
   }
 
+  // Order Item Status
+  async updateItemStatus(
+    itemId: number,
+    status: string,
+    notes?: string,
+  ): Promise<void> {
+    await this.baseOrderService.updateOrderItemStatus(itemId, status, notes);
+  }
+
   // Status Management
   async updateOrderStatus(
     id: number,

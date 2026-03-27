@@ -642,6 +642,39 @@ export class OrderService extends BaseService {
     }
   }
 
+  // 更新訂單項目狀態
+  async updateOrderItemStatus(
+    itemId: number,
+    status: string,
+    notes?: string,
+  ): Promise<void> {
+    try {
+      const now = new Date();
+      const updateData: Partial<typeof orderItems.$inferInsert> = {
+        status,
+        updatedAt: now,
+      };
+      if (notes) {
+        updateData.kitchenNotes = notes;
+      }
+      if (status === "ready" || status === "completed") {
+        updateData.preparedAt = now;
+      }
+      if (status === "served") {
+        updateData.servedAt = now;
+      }
+      if (status === "cancelled") {
+        updateData.cancelledAt = now;
+      }
+      await this.db
+        .update(orderItems)
+        .set(updateData)
+        .where(eq(orderItems.id, itemId));
+    } catch (error) {
+      this.handleError(error, "updateOrderItemStatus");
+    }
+  }
+
   // 計算預估準備時間
   private calculateEstimatedPrepTime(orderItems: any[]): number {
     let maxPrepTime = 0;

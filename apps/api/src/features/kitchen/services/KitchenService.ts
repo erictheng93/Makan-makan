@@ -22,12 +22,14 @@ export class KitchenService implements IKitchenService {
   private connections = new Map<string, KitchenConnection>();
   private logger: ConsoleLogger;
   private env: Env;
+  private ordersService: OrdersService;
   private cleanupInterval: NodeJS.Timeout | null = null;
   private cleanupInitialized = false;
 
   constructor(env: Env) {
     this.env = env;
     this.logger = new ConsoleLogger("KitchenService");
+    this.ordersService = new OrdersService(env);
     // Don't start cleanup interval in constructor - use lazy initialization
   }
 
@@ -127,8 +129,8 @@ export class KitchenService implements IKitchenService {
     try {
       this.logger.info("Fetching kitchen orders", { restaurantId, userId });
 
-      // Query actual orders from database using OrdersService
-      const ordersService = new OrdersService(this.env);
+      // Query actual orders from database
+      const ordersService = this.ordersService;
 
       // Get orders that are relevant to kitchen (confirmed, preparing, ready)
       const relevantStatuses = [
@@ -292,10 +294,11 @@ export class KitchenService implements IKitchenService {
         userId,
       });
 
-      // TODO: Implement database update for order item status
-      // This requires adding updateOrderItemStatus method to packages/database/src/services/order.ts
-      // The method should update order_items table with new status and create audit log
-      // Implementation deferred - current behavior broadcasts event without persisting to DB
+      await this.ordersService.updateItemStatus(
+        itemId,
+        statusUpdate.status,
+        statusUpdate.notes,
+      );
 
       const updatedAt = new Date().toISOString();
 

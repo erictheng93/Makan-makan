@@ -17,12 +17,16 @@ const mockGetOrders = vi.hoisted(() =>
 const mockGetDailyStats = vi.hoisted(() =>
   vi.fn().mockResolvedValue({ completedToday: 0, cancelledToday: 0 }),
 );
+const mockUpdateItemStatus = vi.hoisted(() =>
+  vi.fn().mockResolvedValue(undefined),
+);
 
 vi.mock("../../orders/services/OrdersService", () => {
   return {
     OrdersService: class MockOrdersService {
       getOrders = mockGetOrders;
       getDailyStats = mockGetDailyStats;
+      updateItemStatus = mockUpdateItemStatus;
     },
   };
 });
