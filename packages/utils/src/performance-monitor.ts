@@ -442,7 +442,7 @@ export class PerformanceMonitor {
     });
 
     try {
-      longTaskObserver.observe({ entryTypes: ["longtask" as string] });
+      longTaskObserver.observe({ entryTypes: ["longtask"] });
     } catch (e) {
       // Long tasks not supported
     }
