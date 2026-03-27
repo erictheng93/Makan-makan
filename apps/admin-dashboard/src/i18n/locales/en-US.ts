@@ -206,6 +206,7 @@ const enUS: Messages = {
       cancelOrder: "Are you sure you want to cancel order {number}?",
     },
     defaultCustomer: "Anonymous",
+    updateFailed: "Failed to update order status",
   },
 
   // Table Management

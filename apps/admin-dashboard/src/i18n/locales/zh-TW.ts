@@ -206,6 +206,7 @@ const zhTW: Messages = {
       cancelOrder: "確定要取消訂單 {number} 嗎？",
     },
     defaultCustomer: "匿名客戶",
+    updateFailed: "訂單狀態更新失敗",
   },
 
   // 桌台管理
