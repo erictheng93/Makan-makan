@@ -1,295 +1,156 @@
 # MakanMakan 項目架構文檔
 
-## 📂 完整項目架構
+## 項目結構
 
 ```
 makanmakan/
-├── 📁 根目錄配置
-│   ├── package.json                 # 根目錄包管理
-│   ├── wrangler.toml               # 全局Wrangler配置
-│   ├── tsconfig.json               # TypeScript全局配置
-│   ├── .env.example                # 環境變數模板
-│   ├── .env.local                  # 本地環境變數(gitignore)
-│   ├── .gitignore                  # Git忽略文件
-│   ├── README.md                   # 項目說明文檔
-│   └── CLAUDE.md                   # Claude Code指引文檔
+├── apps/                          # 應用程式
+│   ├── api/                       # 核心 API (Cloudflare Workers + Hono)
+│   │   └── src/features/          # 功能模組 (34 modules)
+│   │       ├── authentication/    # 認證 (login, register, sessions, JWT)
+│   │       ├── users/             # 員工管理
+│   │       ├── customers/         # 顧客資料
+│   │       ├── verification/      # Email/手機驗證
+│   │       ├── restaurants/       # 餐廳 CRUD + 店鋪 QR
+│   │       ├── menu/              # 菜單管理 + 分類
+│   │       ├── orders/            # 訂單生命週期
+│   │       ├── guest-orders/      # Guest 訂餐 (免註冊)
+│   │       ├── group-orders/      # 團體訂餐 + 分帳
+│   │       ├── tables/            # 桌位管理
+│   │       ├── seats/             # 座位管理 + QR
+│   │       ├── qr-codes/          # QR 碼產生/模板
+│   │       ├── reservations/      # 預約系統
+│   │       ├── queue/             # 排隊系統 (legacy)
+│   │       ├── waiting-list/      # 候位系統 (modular)
+│   │       ├── pos/               # POS 收銀 (收銀機/班次/現金/收據)
+│   │       ├── kitchen/           # 廚房顯示 (SSE)
+│   │       ├── coupons/           # 優惠券
+│   │       ├── partnerships/      # 合作夥伴 + 會員
+│   │       ├── ingredients/       # 食材 + 食譜管理
+│   │       ├── forecast/          # 銷售/食材預測
+│   │       ├── discovery/         # 菜餚/餐廳搜尋
+│   │       ├── analytics/         # 儀表板分析
+│   │       ├── ai-analytics/      # AI 分析報告
+│   │       ├── scheduling/        # 排班 + 打卡 + 換班
+│   │       ├── leaves/            # 請假管理
+│   │       ├── integrations/      # 第三方平台 (Uber Eats, Foodpanda)
+│   │       ├── realtime/          # WebSocket Token 管理
+│   │       ├── sse/               # SSE 即時事件
+│   │       ├── notifications/     # 通知發送
+│   │       ├── system/            # 系統健康 + 錯誤報告
+│   │       ├── monitoring/        # 監控 + 警報
+│   │       ├── backup/            # 備份管理
+│   │       └── cache/             # 快取管理
+│   │
+│   ├── customer-app/              # 消費者前端 (Vue 3 + Cloudflare Pages)
+│   ├── admin-dashboard/           # 管理後台 (Vue 3 + Cloudflare Pages)
+│   ├── kitchen-display/           # 廚房顯示 (Vue 3 + Cloudflare Pages)
+│   ├── onboarding-app/            # 入職引導應用
+│   ├── management-portal/         # 管理入口
+│   ├── management-api/            # 管理 API
+│   ├── realtime/                  # 即時通訊 (Durable Objects)
+│   ├── image-processor/           # 圖片處理 (Workers + R2)
+│   ├── backup-scheduler/          # 備份排程 (Workers Cron)
+│   └── print-agent/               # 列印代理 (Node.js + Express + WebSocket)
 │
-├── 📁 apps/ (應用程式)
-│   ├── 🔧 api/                     # 核心API服務 (Cloudflare Workers)
-│   │   ├── src/
-│   │   │   ├── index.ts            # API主入口點
-│   │   │   ├── routes/             # API路由模組
-│   │   │   │   ├── auth.ts         # 認證路由
-│   │   │   │   ├── restaurants.ts  # 餐廳管理路由
-│   │   │   │   ├── menu.ts         # 菜單管理路由
-│   │   │   │   ├── orders.ts       # 訂單管理路由
-│   │   │   │   ├── tables.ts       # 桌台管理路由
-│   │   │   │   ├── users.ts        # 用戶管理路由
-│   │   │   │   └── analytics.ts    # 分析統計路由
-│   │   │   ├── middleware/         # 中間件
-│   │   │   │   ├── auth.ts         # 認證中間件
-│   │   │   │   ├── cors.ts         # CORS處理
-│   │   │   │   ├── rateLimit.ts    # 速率限制
-│   │   │   │   ├── validation.ts   # 資料驗證
-│   │   │   │   └── errorHandler.ts # 錯誤處理
-│   │   │   ├── services/           # 業務邏輯服務
-│   │   │   │   ├── authService.ts  # 認證服務
-│   │   │   │   ├── menuService.ts  # 菜單服務
-│   │   │   │   ├── orderService.ts # 訂單服務
-│   │   │   │   └── cacheService.ts # 快取服務
-│   │   │   └── utils/              # 工具函式
-│   │   │       ├── crypto.ts       # 加密工具
-│   │   │       ├── jwt.ts          # JWT處理
-│   │   │       └── validators.ts   # 驗證工具
-│   │   ├── wrangler.toml           # API專用Wrangler配置
-│   │   ├── package.json            # API依賴管理
-│   │   └── tsconfig.json           # API TypeScript配置
-│   │
-│   ├── 🎨 customer-app/            # 消費者前端應用 (Cloudflare Pages)
-│   │   ├── src/
-│   │   │   ├── main.ts             # Vue.js入口
-│   │   │   ├── App.vue             # 根組件
-│   │   │   ├── views/              # 頁面組件
-│   │   │   │   ├── QRScanView.vue  # QR碼掃描頁面
-│   │   │   │   ├── MenuView.vue    # 菜單瀏覽頁面
-│   │   │   │   ├── CartView.vue    # 購物車頁面
-│   │   │   │   └── OrderView.vue   # 訂單追蹤頁面
-│   │   │   ├── components/         # 通用組件
-│   │   │   │   ├── MenuCard.vue    # 菜單卡片
-│   │   │   │   ├── OrderStatus.vue # 訂單狀態
-│   │   │   │   └── QRScanner.vue   # QR掃描器
-│   │   │   ├── stores/             # Pinia狀態管理
-│   │   │   │   ├── cart.ts         # 購物車狀態
-│   │   │   │   ├── menu.ts         # 菜單狀態
-│   │   │   │   └── order.ts        # 訂單狀態
-│   │   │   ├── composables/        # Vue組合式函數
-│   │   │   │   ├── useApi.ts       # API請求
-│   │   │   │   ├── useWebSocket.ts # 即時通訊
-│   │   │   │   └── useQRScanner.ts # QR掃描
-│   │   │   └── assets/             # 靜態資源
-│   │   │       ├── css/
-│   │   │       ├── images/
-│   │   │       └── icons/
-│   │   ├── dist/                   # 構建輸出目錄
-│   │   ├── public/                 # 公共資源
-│   │   ├── index.html              # HTML模板
-│   │   ├── vite.config.ts          # Vite配置
-│   │   ├── package.json            # 前端依賴
-│   │   └── tsconfig.json           # 前端TypeScript配置
-│   │
-│   ├── 🎛️ admin-dashboard/          # 管理後台應用 (Cloudflare Pages)
-│   │   ├── src/
-│   │   │   ├── main.ts             # Vue.js入口
-│   │   │   ├── App.vue             # 根組件
-│   │   │   ├── views/              # 管理頁面
-│   │   │   │   ├── LoginView.vue   # 登入頁面
-│   │   │   │   ├── DashboardView.vue # 儀表板
-│   │   │   │   ├── OrdersView.vue  # 訂單管理
-│   │   │   │   ├── MenuView.vue    # 菜單管理
-│   │   │   │   ├── TablesView.vue  # 桌台管理
-│   │   │   │   ├── UsersView.vue   # 用戶管理
-│   │   │   │   └── AnalyticsView.vue # 數據分析
-│   │   │   ├── components/         # 管理組件
-│   │   │   │   ├── OrderCard.vue   # 訂單卡片
-│   │   │   │   ├── MenuEditor.vue  # 菜單編輯器
-│   │   │   │   ├── TableManager.vue # 桌台管理器
-│   │   │   │   └── UserForm.vue    # 用戶表單
-│   │   │   ├── layouts/            # 佈局組件
-│   │   │   │   ├── DefaultLayout.vue # 預設佈局
-│   │   │   │   ├── KitchenLayout.vue # 廚房顯示佈局
-│   │   │   │   └── CashierLayout.vue # 收銀員佈局
-│   │   │   └── router/             # 路由配置
-│   │   │       └── index.ts
-│   │   ├── dist/                   # 構建輸出
-│   │   ├── package.json
-│   │   └── vite.config.ts
-│   │
-│   ├── 🔄 realtime/                # 即時通訊服務 (Durable Objects)
-│   │   ├── src/
-│   │   │   ├── index.ts            # Durable Objects入口
-│   │   │   ├── OrderNotifier.ts    # 訂單通知對象
-│   │   │   ├── TableSession.ts     # 桌台會話對象
-│   │   │   └── RestaurantRoom.ts   # 餐廳房間對象
-│   │   ├── wrangler.toml
-│   │   └── package.json
-│   │
-│   └── 🖼️ image-processor/          # 圖片處理服務 (Cloudflare Workers)
-│       ├── src/
-│       │   ├── index.ts            # 圖片處理Worker
-│       │   ├── imageOptimizer.ts   # 圖片優化
-│       │   └── uploadHandler.ts    # 上傳處理
-│       ├── wrangler.toml
-│       └── package.json
+├── packages/                      # 共用套件
+│   ├── database/                  # Drizzle ORM Schema + Migrations
+│   │   ├── src/schema/            # Schema 定義 (source of truth)
+│   │   └── migrations_fresh/      # Generated migrations
+│   ├── shared-types/              # 共用 TypeScript 型別
+│   ├── shared/                    # 共用常數與工具
+│   ├── utils/                     # UUID v7、加密、日期等工具
+│   ├── ai-analytics/              # AI 分析引擎
+│   ├── queue-core/                # 排隊核心邏輯
+│   ├── queue-service/             # 排隊服務層
+│   └── testing-utils/             # 測試工具 + Factory Pattern
 │
-├── 📁 packages/ (共用包)
-│   ├── 📘 shared-types/            # 共用TypeScript型別定義
-│   │   ├── src/
-│   │   │   ├── database.ts         # 資料庫型別
-│   │   │   ├── api.ts              # API請求/響應型別
-│   │   │   ├── user.ts             # 用戶相關型別
-│   │   │   ├── restaurant.ts       # 餐廳相關型別
-│   │   │   ├── menu.ts             # 菜單相關型別
-│   │   │   ├── order.ts            # 訂單相關型別
-│   │   │   ├── table.ts            # 桌台相關型別
-│   │   │   ├── websocket.ts        # WebSocket訊息型別
-│   │   │   └── index.ts            # 統一匯出
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── 🗄️ database/                 # 資料庫相關功能
-│   │   ├── migrations/             # D1資料庫遷移文件
-│   │   │   ├── 0001_initial_schema.sql
-│   │   │   ├── 0002_add_indexes.sql
-│   │   │   ├── 0003_add_audit_logs.sql
-│   │   │   └── 0004_optimize_queries.sql
-│   │   ├── seeds/                  # 初始資料
-│   │   │   ├── development.sql
-│   │   │   ├── staging.sql
-│   │   │   └── categories.sql
-│   │   ├── scripts/                # 資料庫工具腳本
-│   │   │   ├── migrate.ts          # 遷移執行器
-│   │   │   ├── seed.ts             # 資料填充器
-│   │   │   ├── backup.ts           # 備份工具
-│   │   │   └── dataTransform.ts    # 資料轉換工具
-│   │   ├── src/                    # 資料庫查詢邏輯
-│   │   │   ├── queries.ts          # SQL查詢構建器
-│   │   │   ├── models.ts           # 資料模型
-│   │   │   └── validators.ts       # 資料驗證
-│   │   └── package.json
-│   │
-│   └── 🔧 utils/                    # 共用工具函式
-│       ├── src/
-│       │   ├── crypto.ts           # 加密解密工具
-│       │   ├── datetime.ts         # 日期時間工具
-│       │   ├── string.ts           # 字符串處理
-│       │   ├── validation.ts       # 通用驗證
-│       │   ├── qrcode.ts           # QR碼生成工具
-│       │   ├── cache.ts            # 快取工具
-│       │   └── index.ts
-│       └── package.json
+├── docs/                          # 文檔
+│   ├── api/                       # API 端點文檔 (300+ endpoints)
+│   ├── architecture/              # 架構設計
+│   ├── features/                  # 功能文檔
+│   ├── deployment/                # 部署指南
+│   ├── security/                  # 安全文檔
+│   ├── performance/               # 效能優化
+│   ├── testing/                   # 測試指南
+│   ├── user-manuals/              # 用戶手冊 (6 語言)
+│   └── archive/                   # 已完成功能的歷史文檔
 │
-├── 📁 docs/ (文檔)
-│   ├── api.md                      # API文檔
-│   ├── deployment.md               # 部署指南
-│   ├── development.md              # 開發指南
-│   ├── database-schema.md          # 資料庫設計文檔
-│   ├── project-architecture.md     # 此文檔
-│   ├── user-stories.md             # 用戶故事
-│   └── troubleshooting.md          # 問題排解
-│
-├── 📁 .github/ (CI/CD配置)
-│   └── workflows/
-│       ├── deploy-staging.yml      # 預發布環境部署
-│       ├── deploy-production.yml   # 生產環境部署
-│       ├── test.yml                # 自動化測試
-│       └── security-scan.yml       # 安全掃描
-│
-└── 📁 legacy/ (舊系統，僅供參考)
-    └── (現有的PHP系統文件)
+└── turbo.json                     # Turborepo 建置管道配置
 ```
 
-## 🔧 核心配置文件
+## Cloudflare 服務映射
 
-### 根目錄 package.json
+| 應用/功能  | Cloudflare 服務           | 目錄                     |
+| ---------- | ------------------------- | ------------------------ |
+| 消費者前端 | Pages                     | `apps/customer-app/`     |
+| 管理後台   | Pages                     | `apps/admin-dashboard/`  |
+| 廚房顯示   | Pages                     | `apps/kitchen-display/`  |
+| 核心 API   | Workers                   | `apps/api/`              |
+| 即時通訊   | Durable Objects           | `apps/realtime/`         |
+| 圖片處理   | Workers + R2 + Images API | `apps/image-processor/`  |
+| 備份排程   | Workers Cron + R2         | `apps/backup-scheduler/` |
+| 列印代理   | Local Node.js             | `apps/print-agent/`      |
+| 資料庫     | D1 (SQLite)               | `packages/database/`     |
+| 快取       | KV Store                  | API Worker bindings      |
+| 檔案儲存   | R2                        | API Worker bindings      |
 
-```json
-{
-  "name": "makanmakan",
-  "version": "2.0.0",
-  "description": "智慧雲端點餐平台 - 基於Cloudflare生態系統",
-  "private": true,
-  "workspaces": ["apps/*", "packages/*"],
-  "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "db:migrate:staging": "wrangler d1 migrations apply makanmakan-staging --env staging",
-    "db:migrate:prod": "wrangler d1 migrations apply makanmakan-prod --env production",
-    "deploy:staging": "npm run build && npm run deploy:staging --workspaces --if-present",
-    "deploy:prod": "npm run build && npm run deploy:prod --workspaces --if-present"
-  },
-  "keywords": [
-    "restaurant",
-    "ordering-system",
-    "cloudflare",
-    "serverless",
-    "vue.js",
-    "typescript"
-  ],
-  "author": "MakanMakan Team",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "wrangler": "^3.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0"
-  }
-}
+## 核心技術棧
+
+| 層級         | 技術                                        |
+| ------------ | ------------------------------------------- |
+| **Frontend** | Vue.js 3 + TypeScript + Vite + Tailwind CSS |
+| **Backend**  | Cloudflare Workers + Hono Framework         |
+| **Database** | Cloudflare D1 + Drizzle ORM                 |
+| **Cache**    | Cloudflare KV Store                         |
+| **Storage**  | Cloudflare R2 + Images API                  |
+| **Realtime** | Durable Objects (WebSocket) + SSE           |
+| **Build**    | Turborepo (parallel builds with caching)    |
+| **Testing**  | Vitest (unit) + Playwright (e2e)            |
+| **Print**    | Express + WebSocket (local agent)           |
+| **Security** | Cloudflare WAF + Zero Trust                 |
+
+## API 架構
+
+API 使用 **Feature-based modular architecture**，每個功能模組包含：
+
+```
+features/{module}/
+├── routes/index.ts      # Hono 路由定義
+├── services/            # 業務邏輯
+├── validators/          # Zod Schema 驗證
+└── types.ts             # 模組型別定義
 ```
 
-### TypeScript 全局配置
+共用層：
 
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "baseUrl": ".",
-    "paths": {
-      "@makanmakan/shared-types": ["packages/shared-types/src"],
-      "@makanmakan/database": ["packages/database/src"],
-      "@makanmakan/utils": ["packages/utils/src"]
-    }
-  },
-  "include": ["apps/**/*", "packages/**/*"],
-  "exclude": ["node_modules", "dist", "legacy"]
-}
+- `shared/middleware/` — 認證、RBAC、速率限制、CORS、錯誤處理
+- `shared/utils/` — ApiError、回應格式、加密
+- `shared/constants/` — 角色定義、狀態碼
+
+## 資料庫策略
+
+- **Schema 定義**: `packages/database/src/schema/` (Drizzle ORM)
+- **ID 策略**: UUID v7 (`TEXT` primary keys)
+- **時間戳**: `INTEGER` (Unix ms, `timestamp_ms` mode)
+- **查詢層**: Layer 1 (Drizzle Query Builder) + Layer 2 (Drizzle `sql` template)
+- **禁止**: Raw SQL string (Layer 3)
+
+## 開發工作流程
+
+```bash
+pnpm install              # 安裝依賴 (必須用 pnpm)
+pnpm dev                  # 啟動所有應用
+pnpm typecheck            # TypeScript 檢查
+pnpm test                 # 執行測試
+pnpm lint                 # 程式碼檢查
+pnpm deploy:staging       # 部署到 staging
+pnpm deploy:prod          # 部署到 production
 ```
-
-## 🌐 Cloudflare服務映射
-
-| 應用/功能  | Cloudflare服務        | 配置位置                |
-| ---------- | --------------------- | ----------------------- |
-| 消費者前端 | Pages                 | `apps/customer-app/`    |
-| 管理後台   | Pages                 | `apps/admin-dashboard/` |
-| 核心API    | Workers               | `apps/api/`             |
-| 即時通訊   | Durable Objects       | `apps/realtime/`        |
-| 圖片處理   | Workers + R2 + Images | `apps/image-processor/` |
-| 資料庫     | D1                    | `packages/database/`    |
-| 快取       | KV Store              | 各個應用配置            |
-
-## 📋 開發工作流程
-
-1. **本地開發**：`npm run dev` (啟動所有服務)
-2. **類型檢查**：`npm run typecheck`
-3. **代碼檢查**：`npm run lint`
-4. **構建應用**：`npm run build`
-5. **部署測試環境**：`npm run deploy:staging`
-6. **部署生產環境**：`npm run deploy:prod`
-
-## 🔄 版本控制策略
-
-- `main` - 生產環境分支
-- `develop` - 開發環境分支
-- `feature/*` - 功能分支
-- `hotfix/*` - 緊急修復分支
 
 ---
 
-**文檔版本**: v2.0  
-**創建時間**: 2025年8月23日  
-**更新時間**: 定期更新
+**最後更新**: 2026-03-28
+**功能模組**: 34
+**API 端點**: 300+
+**前端應用**: 3 (customer, admin, kitchen)

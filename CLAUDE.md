@@ -74,10 +74,27 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ## Development Commands
 
 ```bash
-pnpm test               # Unit tests
-pnpm typecheck          # TypeScript check
-pnpm test:integration   # Integration tests
-pnpm test:e2e           # End-to-end tests
+# Development
+pnpm dev                # Start all apps in parallel
+pnpm dev:api            # API only
+pnpm dev:customer       # Customer app only
+pnpm dev:admin          # Admin dashboard only
+pnpm dev:kitchen        # Kitchen display only
+
+# Testing
+pnpm test               # All vitest tests (unit + feature)
+pnpm test:unit          # Unit tests only
+pnpm test:e2e           # End-to-end tests (Playwright)
+pnpm test:e2e:ui        # E2E with Playwright UI
+pnpm test:ci            # CI pipeline tests (unit + e2e)
+pnpm test:coverage      # Tests with coverage report
+
+# Type checking & linting
+pnpm typecheck          # TypeScript check (all packages)
+pnpm lint               # Lint all packages
+pnpm lint:fix           # Auto-fix lint issues
+
+# Deployment
 pnpm deploy:staging     # Deploy to staging
 pnpm deploy:prod        # Deploy to production
 ```

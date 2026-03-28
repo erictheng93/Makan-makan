@@ -15,7 +15,6 @@
 
 **主要文檔**:
 
-- `schema-overview.md` - 資料庫 Schema 概覽（待創建）
 - `DATABASE_ARCHITECTURE_COMPARISON.md` - 架構比較分析
 - `database-optimization-analysis.md` - 優化分析報告
 - `DATABASE_REFACTORING_INDEX.md` - 重構索引
@@ -164,11 +163,32 @@
 
 - **Frontend**: Vue.js 3, TypeScript, Vite
 - **Backend**: Cloudflare Workers, Hono Framework
-- **Database**: Cloudflare D1 (SQLite-compatible)
+- **Database**: Cloudflare D1 (SQLite-compatible), Drizzle ORM
 - **Cache**: Cloudflare KV
 - **Storage**: Cloudflare R2
-- **Realtime**: Durable Objects (WebSocket)
+- **Realtime**: Durable Objects (WebSocket), SSE
+- **Build**: Turborepo (parallel builds)
 - **Testing**: Vitest, Playwright
+- **Print**: Local Node.js agent (Express + WebSocket)
+
+### 功能模組總覽 (34 modules)
+
+| 類別           | 模組                                           |
+| -------------- | ---------------------------------------------- |
+| **認證與用戶** | authentication, users, customers, verification |
+| **餐廳與菜單** | restaurants, menu, discovery                   |
+| **訂單系統**   | orders, guest-orders, group-orders             |
+| **桌位與座位** | tables, seats, qr-codes                        |
+| **排隊與預約** | queue, waiting-list, reservations              |
+| **收銀 POS**   | pos                                            |
+| **廚房**       | kitchen                                        |
+| **員工管理**   | scheduling, leaves                             |
+| **優惠與合作** | coupons, partnerships                          |
+| **食材與預測** | ingredients, forecast                          |
+| **分析**       | analytics, ai-analytics                        |
+| **整合平台**   | integrations                                   |
+| **即時通訊**   | realtime, sse, notifications                   |
+| **系統運維**   | system, monitoring, backup, cache              |
 
 ---
 
@@ -195,6 +215,7 @@
 
 ---
 
-**最後更新**: 2025-11-24
+**最後更新**: 2026-03-28
 **架構版本**: 2.0 (Cloudflare Serverless)
-**文檔總數**: 10+ 文件
+**功能模組**: 34
+**API 端點**: 300+
