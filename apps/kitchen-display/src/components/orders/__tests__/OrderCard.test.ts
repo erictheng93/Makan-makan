@@ -265,8 +265,9 @@ describe("OrderCard Component", () => {
         props: { order, statusType: "pending" },
       });
 
-      // Component uses text-ios-red for elapsed time past urgentThreshold
-      expect(wrapper.html()).toMatch(/text-ios-red|text-ios-orange/);
+      // The elapsed time text should be displayed and computed class reflects warning
+      expect(wrapper.text()).toContain("25");
+      expect(wrapper.vm.elapsedTimeClass).toContain("text-ios-red");
     });
 
     it("should display estimated time when enabled", () => {
@@ -295,48 +296,47 @@ describe("OrderCard Component", () => {
   });
 
   describe("Order Status", () => {
-    it("should apply correct class for pending status", () => {
+    it("should show start action for pending status", () => {
       const order = createMockOrder({ status: 1 }); // Pending
       const wrapper = mount(OrderCard, {
         props: { order, statusType: "pending" },
       });
 
-      // Component uses border-t-4 border-ios-orange for pending status
-      const html = wrapper.html();
-      expect(html).toContain("border-ios-orange");
+      // Pending status shows "開始製作" action button
+      expect(wrapper.text()).toContain("開始製作");
+      expect(wrapper.vm.statusBorderClass).toContain("border-ios-orange");
     });
 
-    it("should apply correct class for preparing status", () => {
+    it("should show complete action for preparing status", () => {
       const order = createMockOrder({ status: 2 }); // Preparing
       const wrapper = mount(OrderCard, {
         props: { order, statusType: "preparing" },
       });
 
-      // Component uses border-t-4 border-ios-blue for preparing status
-      const html = wrapper.html();
-      expect(html).toContain("border-ios-blue");
+      // Preparing status shows "標記完成" action button
+      expect(wrapper.text()).toContain("標記完成");
+      expect(wrapper.vm.statusBorderClass).toContain("border-ios-blue");
     });
 
-    it("should apply correct class for ready status", () => {
+    it("should show completed state for ready status", () => {
       const order = createMockOrder({ status: 3 }); // Ready
       const wrapper = mount(OrderCard, {
         props: { order, statusType: "ready" },
       });
 
-      // Component uses border-t-4 border-ios-green for ready status
-      const html = wrapper.html();
-      expect(html).toContain("border-ios-green");
+      // Ready status shows "已出餐" text
+      expect(wrapper.text()).toContain("已出餐");
+      expect(wrapper.vm.statusBorderClass).toContain("border-ios-green");
     });
 
-    it("should apply correct class for completed status", () => {
+    it("should show completed state for completed status", () => {
       const order = createMockOrder({ status: 4 }); // Completed
       const wrapper = mount(OrderCard, {
         props: { order, statusType: "ready" },
       });
 
-      // statusType ready → border-ios-green
-      const html = wrapper.html();
-      expect(html).toContain("border-ios-green");
+      // statusType ready → green border
+      expect(wrapper.vm.statusBorderClass).toContain("border-ios-green");
     });
   });
 

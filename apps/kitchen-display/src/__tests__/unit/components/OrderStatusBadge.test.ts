@@ -99,39 +99,33 @@ describe("OrderStatusBadge.vue", () => {
     });
   });
 
-  describe("CSS 類別", () => {
-    it("pending 狀態應該有 status-pending 類別", () => {
+  describe("狀態計算", () => {
+    it("pending 狀態應該計算正確的樣式類別", () => {
       const wrapper = createWrapper("pending");
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
-        "status-pending",
-      );
+      expect(wrapper.vm.statusClass).toBe("status-pending");
     });
 
-    it("preparing 狀態應該有 status-preparing 類別", () => {
+    it("preparing 狀態應該計算正確的樣式類別", () => {
       const wrapper = createWrapper("preparing");
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
-        "status-preparing",
-      );
+      expect(wrapper.vm.statusClass).toBe("status-preparing");
     });
 
-    it("ready 狀態應該有 status-ready 類別", () => {
+    it("ready 狀態應該計算正確的樣式類別", () => {
       const wrapper = createWrapper("ready");
 
-      expect(wrapper.find('[data-testid="status-badge"]').classes()).toContain(
-        "status-ready",
-      );
+      expect(wrapper.vm.statusClass).toBe("status-ready");
     });
 
-    it("所有狀態都應該有 status-badge 基礎類別", () => {
+    it("所有狀態都應該渲染為徽章元素", () => {
       const statuses = ["pending", "preparing", "ready", "completed"];
 
       statuses.forEach((status) => {
         const wrapper = createWrapper(status);
-        expect(
-          wrapper.find('[data-testid="status-badge"]').classes(),
-        ).toContain("status-badge");
+        const badge = wrapper.find('[data-testid="status-badge"]');
+        expect(badge.exists()).toBe(true);
+        expect(badge.text().length).toBeGreaterThan(0);
       });
     });
   });

@@ -7,6 +7,7 @@
     <template v-if="isFeatured">
       <!-- 特色標籤 -->
       <div
+        data-testid="featured-badge"
         class="bg-ios-blue text-white text-xs font-medium px-3 py-1 text-center"
       >
         {{ t("menuItemCard.featured") }}

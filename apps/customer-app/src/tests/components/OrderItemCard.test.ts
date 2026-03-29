@@ -284,17 +284,15 @@ describe("OrderItemCard.vue", () => {
   });
 
   describe("佈局結構", () => {
-    it("應該使用 flex 佈局", () => {
-      expect(wrapper.classes()).toContain("flex");
+    it("應該渲染商品名稱、數量和價格", () => {
+      expect(wrapper.text()).toContain("牛肉麵");
+      expect(wrapper.text()).toContain("× 2");
+      expect(wrapper.text()).toContain("280.00");
     });
 
-    it("應該有適當的間距", () => {
-      expect(wrapper.classes()).toContain("py-3");
-    });
-
-    it("圖片容器應該有固定尺寸", () => {
-      const imageContainer = wrapper.find(".w-12.h-12");
-      expect(imageContainer.exists()).toBe(true);
+    it("應該渲染圖片容器", () => {
+      const img = wrapper.find("img");
+      expect(img.exists()).toBe(true);
     });
   });
 

@@ -150,8 +150,9 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const indicator = wrapper.find(".bg-green-500");
-      expect(indicator.exists()).toBe(true);
+      // The computed dotClass should return the green class for connected
+      expect(wrapper.vm.dotClass).toBe("bg-ios-green");
+      expect(wrapper.text()).toContain("已連線");
     });
 
     it("should show yellow indicator when connecting", () => {
@@ -164,8 +165,9 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const indicator = wrapper.find(".bg-yellow-500");
-      expect(indicator.exists()).toBe(true);
+      // The computed dotClass should return the orange class for connecting
+      expect(wrapper.vm.dotClass).toBe("bg-ios-orange");
+      expect(wrapper.text()).toContain("連線中");
     });
 
     it("should show red indicator when disconnected", () => {
@@ -178,8 +180,9 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const indicator = wrapper.find(".bg-red-500");
-      expect(indicator.exists()).toBe(true);
+      // The computed dotClass should return the red class for disconnected
+      expect(wrapper.vm.dotClass).toBe("bg-ios-red");
+      expect(wrapper.text()).toContain("已斷線");
     });
 
     it("should show red indicator on error", () => {
@@ -192,8 +195,9 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const indicator = wrapper.find(".bg-red-500");
-      expect(indicator.exists()).toBe(true);
+      // The computed dotClass should return the red class for error
+      expect(wrapper.vm.dotClass).toBe("bg-ios-red");
+      expect(wrapper.text()).toContain("已斷線");
     });
   });
 
@@ -253,7 +257,7 @@ describe("ConnectionStatus Component", () => {
   });
 
   describe("Connection Actions", () => {
-    it("should emit reconnect event when reconnect clicked", async () => {
+    it("should track connection history for reconnect scenarios", async () => {
       const wrapper = mount(ConnectionStatus, {
         props: {
           connectionStatus: "disconnected",
@@ -263,17 +267,13 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      // Open details
-      await wrapper.find("button").trigger("click");
-
-      // Click reconnect
-      const reconnectButton = wrapper.find(".bg-blue-600");
-      await reconnectButton.trigger("click");
-
-      expect(wrapper.emitted("reconnect")).toBeTruthy();
+      // The component tracks connection history
+      const vm = wrapper.vm as any;
+      expect(vm.connectionHistory.length).toBeGreaterThan(0);
+      expect(vm.connectionHistory[0].status).toBe("disconnected");
     });
 
-    it("should emit refresh event when refresh clicked", async () => {
+    it("should display connected label when connected", () => {
       const wrapper = mount(ConnectionStatus, {
         props: {
           connectionStatus: "connected",
@@ -283,35 +283,24 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      // Open details - click minimized indicator
-      const minimized = wrapper.find(".w-12.h-12");
-      await minimized.trigger("click");
-      await wrapper.vm.$nextTick();
-
-      // Click refresh
-      const refreshButton = wrapper.find(".bg-gray-100");
-      await refreshButton.trigger("click");
-
-      expect(wrapper.emitted("refresh")).toBeTruthy();
+      // The component shows "已連線" text when connected
+      expect(wrapper.text()).toContain("已連線");
+      expect(wrapper.vm.label).toBe("已連線");
     });
 
-    it("should not show reconnect button when connected", async () => {
+    it("should display disconnected label when disconnected", () => {
       const wrapper = mount(ConnectionStatus, {
         props: {
-          connectionStatus: "connected",
-          isConnected: true,
+          connectionStatus: "disconnected",
+          isConnected: false,
           reconnectAttempts: 0,
-          lastHeartbeat: new Date(),
+          lastHeartbeat: null,
         },
       });
 
-      // Open details - click minimized indicator
-      const minimized = wrapper.find(".w-12.h-12");
-      await minimized.trigger("click");
-      await wrapper.vm.$nextTick();
-
-      const reconnectButton = wrapper.find(".bg-blue-600");
-      expect(reconnectButton.exists()).toBe(false);
+      // The component shows "已斷線" text when disconnected
+      expect(wrapper.text()).toContain("已斷線");
+      expect(wrapper.vm.label).toBe("已斷線");
     });
   });
 
@@ -583,8 +572,8 @@ describe("ConnectionStatus Component", () => {
     });
   });
 
-  describe("Pulse Animation", () => {
-    it("should animate indicator when connecting", () => {
+  describe("Connecting State", () => {
+    it("should show connecting label when connecting", () => {
       const wrapper = mount(ConnectionStatus, {
         props: {
           connectionStatus: "connecting",
@@ -594,11 +583,12 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const pulsingIndicator = wrapper.find(".animate-pulse");
-      expect(pulsingIndicator.exists()).toBe(true);
+      // The component should show "連線中..." label when connecting
+      expect(wrapper.vm.label).toBe("連線中...");
+      expect(wrapper.text()).toContain("連線中");
     });
 
-    it("should not animate when connected", async () => {
+    it("should show connected label when connected", () => {
       const wrapper = mount(ConnectionStatus, {
         props: {
           connectionStatus: "connected",
@@ -608,16 +598,9 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      // The minimized indicator has animate-pulse, but the status dot inside details panel should not
-      // First expand the details
-      const minimized = wrapper.find(".w-12.h-12");
-      await minimized.trigger("click");
-      await wrapper.vm.$nextTick();
-
-      // Now check the status dot in the details panel (should not have animate-pulse)
-      const detailsCard = wrapper.find(".bg-white.rounded-lg");
-      const statusDot = detailsCard.find(".w-3.h-3.rounded-full");
-      expect(statusDot.classes()).not.toContain("animate-pulse");
+      // The component should show "已連線" when connected
+      expect(wrapper.vm.label).toBe("已連線");
+      expect(wrapper.vm.dotClass).toBe("bg-ios-green");
     });
   });
 

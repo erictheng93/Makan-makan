@@ -351,13 +351,13 @@ describe("KitchenHeader Component", () => {
       const logoutButton = wrapper.find('[title="登出"]');
       await logoutButton.trigger("click");
 
-      // Confirm logout
-      const confirmButton = wrapper
+      // Confirm logout — the modal has two buttons: "取消" and "登出"
+      // Find the "登出" button inside the modal (not the header's logout button)
+      const modalButtons = wrapper
         .findAll("button")
-        .find(
-          (btn) =>
-            btn.text() === "登出" && btn.classes().includes("bg-red-600"),
-        );
+        .filter((btn) => btn.text() === "登出");
+      // The last "登出" button is the confirm one inside the modal
+      const confirmButton = modalButtons[modalButtons.length - 1];
       await confirmButton?.trigger("click");
 
       // Fast-forward timeout

@@ -151,6 +151,7 @@
         </div>
 
         <button
+          data-testid="continue-btn"
           :disabled="!selectedType"
           class="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-xl hover:bg-[#0066DD] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           @click="handleContinue"

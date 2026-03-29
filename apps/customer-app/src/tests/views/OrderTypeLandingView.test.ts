@@ -219,12 +219,12 @@ describe("OrderTypeLandingView", () => {
 
       await flushPromises();
 
-      // Takeaway button should have selected styling (green border)
+      // Takeaway button should have the selected state checkmark icon
       const buttons = wrapper.findAll("button");
       const takeawayBtn = buttons.find((btn) =>
         btn.text().includes("Takeaway"),
       );
-      expect(takeawayBtn?.classes()).toContain("border-green-500");
+      expect(takeawayBtn?.find("svg").exists()).toBe(true);
     });
 
     it("should update selection when delivery button is clicked", async () => {
@@ -241,8 +241,8 @@ describe("OrderTypeLandingView", () => {
       );
       await deliveryBtn?.trigger("click");
 
-      // Delivery button should now have selected styling (amber border)
-      expect(deliveryBtn?.classes()).toContain("border-amber-500");
+      // After clicking delivery, it should show the checkmark icon (selected state)
+      expect(deliveryBtn?.find("svg").exists()).toBe(true);
     });
   });
 
@@ -253,7 +253,7 @@ describe("OrderTypeLandingView", () => {
 
       await flushPromises();
 
-      const continueButton = wrapper.find("button.bg-indigo-600");
+      const continueButton = wrapper.find('[data-testid="continue-btn"]');
       await continueButton.trigger("click");
 
       expect(mockPush).toHaveBeenCalledWith(
@@ -273,7 +273,7 @@ describe("OrderTypeLandingView", () => {
       const store = useShopCartStore();
       const setFulfillmentTypeSpy = vi.spyOn(store, "setFulfillmentType");
 
-      const continueButton = wrapper.find("button.bg-indigo-600");
+      const continueButton = wrapper.find('[data-testid="continue-btn"]');
       await continueButton.trigger("click");
 
       expect(setFulfillmentTypeSpy).toHaveBeenCalledWith("takeaway");
@@ -298,7 +298,7 @@ describe("OrderTypeLandingView", () => {
       await wrapper.vm.$nextTick();
 
       // Click continue
-      const continueButton = wrapper.find("button.bg-indigo-600");
+      const continueButton = wrapper.find('[data-testid="continue-btn"]');
       await continueButton.trigger("click");
       await wrapper.vm.$nextTick();
 

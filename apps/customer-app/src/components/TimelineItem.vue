@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex items-start space-x-3">
+  <div class="relative flex items-start space-x-3" :data-status="status">
     <!-- 時間線圓點 -->
     <div class="flex-shrink-0 relative">
       <div
@@ -7,6 +7,7 @@
           'w-8 h-8 rounded-full flex items-center justify-center',
           statusClasses.dot,
         ]"
+        data-testid="status-dot"
       >
         <div v-if="status === 'completed'" class="w-4 h-4 text-white">
           <svg fill="currentColor" viewBox="0 0 20 20">
@@ -27,6 +28,7 @@
       <!-- 時間線連接線 -->
       <div
         v-if="!isLast"
+        data-testid="connector"
         :class="[
           'absolute top-8 left-1/2 w-0.5 h-16 transform -translate-x-1/2',
           status === 'completed' ? 'bg-ios-green' : 'bg-gray-300',
