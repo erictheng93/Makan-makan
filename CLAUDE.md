@@ -245,6 +245,60 @@ const result = await db
 - Layer 1: `apps/api/src/features/integrations/services/PlatformIntegrationService.ts`
 - Layer 2: `packages/ai-analytics/src/services/ProductAnalysisService.ts`
 
+### Testing Standards (Enforced)
+
+All new tests MUST follow these conventions. Existing tests are being migrated progressively.
+
+**1. Use factories from `@makanmakan/testing-utils`:**
+
+```typescript
+import {
+  userFactory,
+  orderFactory,
+  envFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
+
+beforeEach(() => {
+  resetAllFactories();
+});
+
+// Use factory with overrides for test-specific values
+const user = userFactory.buildShopOwner(1, { overrides: { id: 1 } });
+const env = envFactory.build();
+```
+
+Available factories: `userFactory`, `restaurantFactory`, `menuItemFactory`, `categoryFactory`, `orderFactory`, `orderItemFactory`, `envFactory`, `printJobFactory`, `printerDeviceFactory`, `printRequestFactory`, `realtimeAuthFactory`. See `packages/testing-utils/src/` for full API.
+
+**2. Verify mock calls (not just return values):**
+
+```typescript
+// Every vi.fn() mock for external calls (DB, API, WebSocket, cache) must have verification
+expect(mockService.createOrder).toHaveBeenCalledOnce();
+expect(mockService.createOrder).toHaveBeenCalledWith(
+  expect.objectContaining({ restaurantId: "1" }), // structural match, NOT exact
+);
+```
+
+- Use `expect.objectContaining()` — never exact-match timestamps, UUIDs, or generated values
+- Use `expect.any(String)`, `expect.any(Number)` for non-deterministic fields
+
+**3. No CSS class assertions:**
+
+```typescript
+// BAD — breaks when Tailwind classes change
+expect(wrapper.classes()).toContain("bg-green-500");
+
+// GOOD — test behavior, not styling
+expect(wrapper.find('[data-status="active"]').exists()).toBe(true);
+expect(wrapper.text()).toContain("已完成");
+expect(wrapper.vm.statusClass).toBe("active");
+```
+
+Use `data-testid`, `data-status`, `aria-*` attributes, text content, or Vue computed state instead.
+
+**4. Pre-commit check:** `scripts/check-factory-usage.cjs` runs on all `*.test.ts` files via lint-staged. It warns on missing factory usage, CSS class assertions, and mocks without verification.
+
 ## Error Handling
 
 ### Common Issues

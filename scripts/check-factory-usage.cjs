@@ -47,6 +47,20 @@ const CONFIG = {
     // 警告級別：建議修復
     warnings: [
       {
+        name: 'css-class-assertions',
+        message: '使用 CSS class 斷言 (.classes().toContain()) — 應改用 data-testid、data-status 或文字內容檢查',
+        check: (content, stats) => {
+          return stats.hasCSSClassAssertions
+        }
+      },
+      {
+        name: 'mock-without-verification',
+        message: '設置了 mock (vi.fn/vi.mock) 但未驗證 mock 呼叫 — 建議添加 toHaveBeenCalled* 斷言',
+        check: (content, stats) => {
+          return stats.hasMockSetup && !stats.hasMockVerification
+        }
+      },
+      {
         name: 'manual-data-creation',
         message: '手動創建測試數據，建議使用 factory',
         check: (content, stats) => {
@@ -94,10 +108,13 @@ function analyzeFile(filePath) {
     lineCount: content.split('\n').length,
     hasFactoryImport: /@makanmakan\/testing-utils/.test(content),
     hasFactoryUsage:
-      /userFactory|restaurantFactory|menuItemFactory|orderFactory|buildCompleteRestaurantData/.test(
+      /userFactory|restaurantFactory|menuItemFactory|orderFactory|categoryFactory|envFactory|printJobFactory|printerDeviceFactory|printRequestFactory|realtimeAuthFactory|buildCompleteRestaurantData/.test(
         content
       ),
-    hasResetCall: /resetAllFactories\s*\(\s*\)/.test(content)
+    hasResetCall: /resetAllFactories\s*\(\s*\)/.test(content),
+    hasCSSClassAssertions: /\.classes\(\)\s*\)\s*\.toContain|\.classes\(\)\.toContain/.test(content),
+    hasMockSetup: /vi\.fn\(\)|vi\.mock\(/.test(content),
+    hasMockVerification: /toHaveBeenCalled|toHaveBeenCalledWith|toHaveBeenCalledTimes|toHaveBeenCalledOnce|\.mock\.calls/.test(content)
   }
 
   const issues = {
@@ -239,7 +256,9 @@ function outputConsoleReport(report) {
     console.log('⚠️  發現 ' + report.summary.totalWarnings + ' 個警告，建議處理：')
     console.log('   1. 考慮使用 factory 替代手動數據創建')
     console.log('   2. 拆分過大的測試文件')
-    console.log('   3. 參考文檔：docs/testing/FACTORY_QUICK_REFERENCE.md\n')
+    console.log('   3. 用 data-testid/data-status 替代 CSS class 斷言')
+    console.log('   4. 為 mock 添加 toHaveBeenCalled* 驗證')
+    console.log('   5. 參考 CLAUDE.md Testing Standards 章節\n')
   }
 
   if (report.summary.totalErrors === 0 && report.summary.totalWarnings === 0) {
