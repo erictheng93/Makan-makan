@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useOrdersStore } from "../orders";
 import type { KitchenOrder, OrderStatus, KitchenSSEEvent } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock kitchen API - inline definition to avoid hoisting issues
 vi.mock("@/services/kitchenApi", () => ({
@@ -22,16 +23,17 @@ function createMockOrder(
   status: OrderStatus,
   priority: "normal" | "high" | "urgent" = "normal",
 ): KitchenOrder {
+  const base = orderFactory.build();
   return {
     id: parseInt(id) || 0,
     orderNumber: `ORD-${id}`,
-    tableId: 1,
+    tableId: base.tableId ?? 1,
     tableName: "T1",
     status,
     priority,
     createdAt: new Date().toISOString(),
     elapsedTime: 0,
-    estimatedTime: 15,
+    estimatedTime: base.estimatedPrepTime ?? 15,
     items: [],
     totalItems: 0,
   };
@@ -43,6 +45,7 @@ describe("Orders Store", () => {
   beforeEach(async () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
 
     // Get mocked kitchenApi
     const { kitchenApi } = await import("@/services/kitchenApi");

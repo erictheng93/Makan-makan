@@ -8,6 +8,7 @@ import { setActivePinia, createPinia } from "pinia";
 import { useOrderStore } from "../order";
 import { OrderStatus } from "@/types";
 import type { Order } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 vi.mock("@/services/api", () => ({
   api: {
@@ -21,21 +22,30 @@ vi.mock("@/services/api", () => ({
 import { api } from "@/services/api";
 
 function createMockOrder(id: number, status: OrderStatus): Order {
+  const fo = orderFactory.build({
+    overrides: {
+      id,
+      status,
+      tableId: id,
+      totalAmount: 1000 + id * 100,
+    },
+  });
   return {
-    id,
+    id: fo.id!,
     orderNumber: `ORD-${id.toString().padStart(3, "0")}`,
-    tableId: id,
+    tableId: fo.tableId!,
     tableName: `T${id}`,
     status,
-    totalAmount: 1000 + id * 100,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    totalAmount: fo.totalAmount,
+    createdAt: new Date(fo.createdAt).toISOString(),
+    updatedAt: new Date(fo.updatedAt).toISOString(),
     items: [],
   };
 }
 
 describe("Order Store", () => {
   beforeEach(() => {
+    resetAllFactories();
     setActivePinia(createPinia());
     vi.clearAllMocks();
   });

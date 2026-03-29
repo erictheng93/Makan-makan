@@ -25,6 +25,7 @@
     "@makanmakan/database": "workspace:*"
   },
   "devDependencies": {
+    "@makanmakan/testing-utils": "workspace:*",
     "typescript": "^5.3.3"
   }
 }

@@ -8,6 +8,7 @@ import { setActivePinia, createPinia } from "pinia";
 import { useOrdersStore } from "@/stores/orders";
 import { useAudioNotifications } from "@/composables/useAudioNotifications";
 import type { KitchenSSEEvent, KitchenOrder } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock services - inline definitions to avoid hoisting issues
 vi.mock("@/services/kitchenApi", () => ({
@@ -25,6 +26,27 @@ vi.mock("@/services/audioService", () => ({
   },
 }));
 
+// Helper to build a KitchenOrder using factory for base data
+function buildKitchenOrder(
+  overrides: Partial<KitchenOrder> = {},
+): KitchenOrder {
+  const base = orderFactory.build();
+  return {
+    id: base.id ?? 1,
+    orderNumber: base.orderNumber ?? "ORD-001",
+    tableId: base.tableId ?? 1,
+    tableName: "T1",
+    status: 1,
+    priority: "normal" as const,
+    createdAt: new Date().toISOString(),
+    elapsedTime: 0,
+    estimatedTime: base.estimatedPrepTime ?? 15,
+    totalItems: 0,
+    items: [],
+    ...overrides,
+  };
+}
+
 describe("Realtime Updates Integration", () => {
   let mockKitchenApi: any;
   let mockAudioService: any;
@@ -32,6 +54,7 @@ describe("Realtime Updates Integration", () => {
   beforeEach(async () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
 
     // Get mocked services
     const kitchenApiModule = await import("@/services/kitchenApi");
@@ -45,19 +68,7 @@ describe("Realtime Updates Integration", () => {
       const ordersStore = useOrdersStore();
       const { handleSSEEvent } = useAudioNotifications();
 
-      const newOrder: KitchenOrder = {
-        id: 1,
-        orderNumber: "ORD-001",
-        tableId: 1,
-        tableName: "T1",
-        status: 1,
-        priority: "normal",
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
-        totalItems: 0,
-        items: [],
-      };
+      const newOrder = buildKitchenOrder({ id: 1, orderNumber: "ORD-001" });
 
       const event: KitchenSSEEvent = {
         type: "NEW_ORDER",
@@ -80,19 +91,14 @@ describe("Realtime Updates Integration", () => {
       const ordersStore = useOrdersStore();
       const { handleSSEEvent } = useAudioNotifications();
 
-      const urgentOrder: KitchenOrder = {
+      const urgentOrder = buildKitchenOrder({
         id: 100,
         orderNumber: "ORD-URGENT",
         tableId: 5,
         tableName: "T5",
-        status: 1,
         priority: "urgent",
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
         estimatedTime: 10,
-        totalItems: 0,
-        items: [],
-      };
+      });
 
       const event: KitchenSSEEvent = {
         type: "NEW_ORDER",
@@ -113,19 +119,12 @@ describe("Realtime Updates Integration", () => {
       const { handleSSEEvent } = useAudioNotifications();
 
       ordersStore.orders = [
-        {
+        buildKitchenOrder({
           id: 1,
           orderNumber: "ORD-001",
-          tableId: 1,
-          tableName: "T1",
-          status: 2, // preparing
-          priority: "normal",
-          createdAt: new Date().toISOString(),
+          status: 2,
           elapsedTime: 10,
-          estimatedTime: 15,
-          totalItems: 0,
-          items: [],
-        },
+        }),
       ];
 
       // Use updateOrderStatus directly since handleSSEEvent expects item-level updates
@@ -151,19 +150,7 @@ describe("Realtime Updates Integration", () => {
       const { handleSSEEvent } = useAudioNotifications();
 
       ordersStore.orders = [
-        {
-          id: 1,
-          orderNumber: "ORD-001",
-          tableId: 1,
-          tableName: "T1",
-          status: 1,
-          priority: "normal",
-          createdAt: new Date().toISOString(),
-          elapsedTime: 0,
-          estimatedTime: 15,
-          totalItems: 0,
-          items: [],
-        },
+        buildKitchenOrder({ id: 1, orderNumber: "ORD-001" }),
       ];
 
       const event: KitchenSSEEvent = {
@@ -187,19 +174,14 @@ describe("Realtime Updates Integration", () => {
       const ordersStore = useOrdersStore();
       const { handleSSEEvent } = useAudioNotifications();
 
-      const orders = Array.from({ length: 5 }, (_, i) => ({
-        id: i + 1,
-        orderNumber: `ORD-${i}`,
-        tableId: i + 1,
-        tableName: `T${i}`,
-        status: 1,
-        priority: "normal" as const,
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
-        totalItems: 0,
-        items: [],
-      }));
+      const orders = Array.from({ length: 5 }, (_, i) =>
+        buildKitchenOrder({
+          id: i + 1,
+          orderNumber: `ORD-${i}`,
+          tableId: i + 1,
+          tableName: `T${i}`,
+        }),
+      );
 
       const events: KitchenSSEEvent[] = orders.map((order) => ({
         type: "NEW_ORDER" as const,
@@ -221,19 +203,7 @@ describe("Realtime Updates Integration", () => {
     it("should maintain order consistency during rapid updates", async () => {
       const ordersStore = useOrdersStore();
 
-      const order: KitchenOrder = {
-        id: 1,
-        orderNumber: "ORD-001",
-        tableId: 1,
-        tableName: "T1",
-        status: 1,
-        priority: "normal",
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
-        totalItems: 0,
-        items: [],
-      };
+      const order = buildKitchenOrder({ id: 1, orderNumber: "ORD-001" });
 
       ordersStore.orders = [order];
 
@@ -255,19 +225,7 @@ describe("Realtime Updates Integration", () => {
     it("should sync store state with UI updates", async () => {
       const ordersStore = useOrdersStore();
 
-      const initialOrder: KitchenOrder = {
-        id: 1,
-        orderNumber: "ORD-001",
-        tableId: 1,
-        tableName: "T1",
-        status: 1,
-        priority: "normal",
-        createdAt: new Date().toISOString(),
-        elapsedTime: 0,
-        estimatedTime: 15,
-        totalItems: 0,
-        items: [],
-      };
+      const initialOrder = buildKitchenOrder({ id: 1, orderNumber: "ORD-001" });
 
       ordersStore.orders = [initialOrder];
 
@@ -366,19 +324,12 @@ describe("Realtime Updates Integration", () => {
       for (let i = 0; i < 100; i++) {
         ordersStore.handleSSEEvent({
           type: "NEW_ORDER",
-          payload: {
+          payload: buildKitchenOrder({
             id: i + 1,
             orderNumber: `ORD-${i}`,
             tableId: (i % 10) + 1,
             tableName: `T${i % 10}`,
-            status: 1,
-            priority: "normal" as const,
-            createdAt: new Date().toISOString(),
-            elapsedTime: 0,
-            estimatedTime: 15,
-            totalItems: 0,
-            items: [],
-          },
+          }),
           timestamp: new Date().toISOString(),
           restaurantId: 1,
         });

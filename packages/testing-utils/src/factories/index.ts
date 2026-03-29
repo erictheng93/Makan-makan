@@ -19,11 +19,26 @@ export * from "./menu.factory";
 // Order factories
 export * from "./order.factory";
 
+// Env / infrastructure mocks
+export * from "./env.factory";
+
+// Print factories
+export * from "./print.factory";
+
+// Realtime factories
+export * from "./realtime.factory";
+
 // Import factories directly to avoid circular dependency
 import { userFactory } from "./user.factory";
 import { restaurantFactory } from "./restaurant.factory";
 import { categoryFactory, menuItemFactory } from "./menu.factory";
 import { orderFactory, orderItemFactory } from "./order.factory";
+import {
+  printJobFactory,
+  printerDeviceFactory,
+  printRequestFactory,
+} from "./print.factory";
+import { realtimeAuthFactory } from "./realtime.factory";
 
 /**
  * 重置所有工廠的序列計數器
@@ -35,6 +50,10 @@ export function resetAllFactories(): void {
   menuItemFactory.resetSequence();
   orderFactory.resetSequence();
   orderItemFactory.resetSequence();
+  printJobFactory.resetSequence();
+  printerDeviceFactory.resetSequence();
+  printRequestFactory.resetSequence();
+  realtimeAuthFactory.resetSequence();
 }
 
 /**

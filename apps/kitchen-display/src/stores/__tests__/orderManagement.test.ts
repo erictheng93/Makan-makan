@@ -7,11 +7,13 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useOrderManagementStore } from "../orderManagement";
 import type { KitchenOrder, OrderStatus, ItemStatus } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 function createMockOrder(
   id: number,
   overrides: Partial<KitchenOrder> = {},
 ): KitchenOrder {
+  const base = orderFactory.build();
   return {
     id,
     orderNumber: `ORD-${id.toString().padStart(3, "0")}`,
@@ -21,7 +23,7 @@ function createMockOrder(
     priority: "normal",
     createdAt: new Date().toISOString(),
     elapsedTime: 10,
-    estimatedTime: 15,
+    estimatedTime: base.estimatedPrepTime ?? 15,
     totalItems: 2,
     items: [
       {
@@ -39,6 +41,7 @@ function createMockOrder(
 describe("OrderManagement Store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    resetAllFactories();
   });
 
   describe("Selection Management", () => {

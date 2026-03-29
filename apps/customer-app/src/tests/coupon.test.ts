@@ -4,6 +4,7 @@ import { createPinia } from "pinia";
 import { createRouter, createWebHistory } from "vue-router";
 import { ref } from "vue";
 import CartView from "../views/CartView.vue";
+import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -15,13 +16,22 @@ const mockRouter = {
   replace: vi.fn(),
 };
 
+// Build a menu item from factory for the cart store mock
+const factoryItem = menuItemFactory.build({
+  overrides: { id: 1, name: "測試商品", price: 50 },
+});
+
 // Mock cart store
 const mockCartStore: any = {
   isEmpty: false,
   items: [
     {
       id: "1",
-      menuItem: { id: 1, name: "測試商品", price: 50 },
+      menuItem: {
+        id: factoryItem.id,
+        name: factoryItem.name,
+        price: factoryItem.price,
+      },
       quantity: 2,
       customizations: null,
       notes: "",
@@ -116,6 +126,7 @@ describe("Coupon Functionality in CartView", () => {
   });
 
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     global.fetch = vi.fn();
 

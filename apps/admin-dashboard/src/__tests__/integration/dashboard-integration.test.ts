@@ -14,6 +14,11 @@ import { ref, computed, readonly } from "vue";
 import { OrderStatus } from "@/types";
 import type { User, DashboardStats, Order } from "@/types";
 import { UserRole } from "@/types";
+import {
+  userFactory,
+  orderFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // Mock API
 vi.mock("@/services/api", () => ({
@@ -26,15 +31,18 @@ vi.mock("@/services/api", () => ({
 
 // Create a testable auth store with mutable state
 const createMockAuthStore = () => {
+  const factoryUser = userFactory.buildShopOwner(1, {
+    overrides: { username: "testuser", email: "test@example.com" },
+  });
   return defineStore("auth", () => {
     const user = ref<User | null>({
-      id: 1,
-      username: "testuser",
-      email: "test@example.com",
+      id: factoryUser.id!,
+      username: factoryUser.username,
+      email: factoryUser.email,
       role: UserRole.OWNER,
-      restaurantId: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      restaurantId: factoryUser.restaurantId,
+      createdAt: new Date(factoryUser.createdAt).toISOString(),
+      updatedAt: new Date(factoryUser.updatedAt).toISOString(),
     });
     const token = ref<string | null>("test-token");
     const isLoading = ref(false);
@@ -90,6 +98,7 @@ import { useNotificationStore } from "@/stores/notification";
 
 describe("Dashboard Integration Tests", () => {
   beforeEach(() => {
+    resetAllFactories();
     const pinia = createPinia();
     setActivePinia(pinia);
     vi.clearAllMocks();
@@ -153,22 +162,34 @@ describe("Dashboard Integration Tests", () => {
   });
 
   describe("Order Management Flow", () => {
+    /** Build a frontend Order from factory data */
+    const buildMockOrder = (overrides: Partial<Order> = {}): Order => {
+      const fo = orderFactory.buildPending({
+        overrides: {
+          id: overrides.id ?? 1,
+          orderNumber: "ORD-001",
+          tableId: 1,
+          totalAmount: 1000,
+        },
+      });
+      return {
+        id: fo.id!,
+        orderNumber: fo.orderNumber,
+        tableId: fo.tableId!,
+        tableName: "T1",
+        status: OrderStatus.PENDING,
+        totalAmount: fo.totalAmount,
+        createdAt: new Date(fo.createdAt).toISOString(),
+        updatedAt: new Date(fo.updatedAt).toISOString(),
+        items: [],
+        ...overrides,
+      };
+    };
+
     it("should fetch and update orders", async () => {
       const orderStore = useOrderStore();
 
-      const mockOrders: Order[] = [
-        {
-          id: 1,
-          orderNumber: "ORD-001",
-          tableId: 1,
-          tableName: "T1",
-          status: OrderStatus.PENDING,
-          totalAmount: 1000,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          items: [],
-        },
-      ];
+      const mockOrders: Order[] = [buildMockOrder()];
 
       vi.mocked(api.get).mockResolvedValue({
         data: { success: true, data: mockOrders },
@@ -185,19 +206,7 @@ describe("Dashboard Integration Tests", () => {
       const notificationStore = useNotificationStore();
 
       // First fetch orders to populate the store
-      const mockOrders: Order[] = [
-        {
-          id: 1,
-          orderNumber: "ORD-001",
-          tableId: 1,
-          tableName: "T1",
-          status: OrderStatus.PENDING,
-          totalAmount: 1000,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          items: [],
-        },
-      ];
+      const mockOrders: Order[] = [buildMockOrder()];
 
       vi.mocked(api.get).mockResolvedValue({
         data: { success: true, data: mockOrders },
@@ -318,19 +327,27 @@ describe("Dashboard Integration Tests", () => {
       const notificationStore = useNotificationStore();
 
       // Fetch orders
+      const workflowOrder = orderFactory.buildPending({
+        overrides: {
+          id: 1,
+          orderNumber: "ORD-001",
+          tableId: 1,
+          totalAmount: 1000,
+        },
+      });
       vi.mocked(api.get).mockResolvedValue({
         data: {
           success: true,
           data: [
             {
-              id: 1,
-              orderNumber: "ORD-001",
-              tableId: 1,
+              id: workflowOrder.id!,
+              orderNumber: workflowOrder.orderNumber,
+              tableId: workflowOrder.tableId!,
               tableName: "T1",
               status: OrderStatus.PENDING,
-              totalAmount: 1000,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
+              totalAmount: workflowOrder.totalAmount,
+              createdAt: new Date(workflowOrder.createdAt).toISOString(),
+              updatedAt: new Date(workflowOrder.updatedAt).toISOString(),
               items: [],
             },
           ],

@@ -4,6 +4,10 @@ import { setActivePinia, createPinia } from "pinia";
 import OrderTypeLandingView from "@/views/OrderTypeLandingView.vue";
 import { menuApi } from "@/services/menuApi";
 import { useShopCartStore } from "@/stores/shopCart";
+import {
+  restaurantFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // Mock menuApi
 vi.mock("@/services/menuApi", () => ({
@@ -19,10 +23,19 @@ vi.mock("vue-router", () => ({
   useRoute: vi.fn(() => ({ query: {} })),
 }));
 
+// Build restaurant mocks from factory
+const baseRestaurant = restaurantFactory.build({
+  overrides: {
+    name: "測試餐廳",
+    description: "美味的測試餐廳",
+    logoUrl: null,
+  },
+});
+
 const mockRestaurant = {
   id: "rest-001",
-  name: "測試餐廳",
-  description: "美味的測試餐廳",
+  name: baseRestaurant.name,
+  description: baseRestaurant.description,
   logo: null,
   settings: {
     enableDelivery: false,
@@ -47,6 +60,7 @@ describe("OrderTypeLandingView", () => {
   let wrapper: VueWrapper<any>;
 
   beforeEach(() => {
+    resetAllFactories();
     setActivePinia(createPinia());
     vi.clearAllMocks();
   });

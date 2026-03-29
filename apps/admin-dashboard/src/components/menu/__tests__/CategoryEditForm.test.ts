@@ -4,6 +4,7 @@
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
+import { categoryFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Module mocks ───────────────────────────────────────────────────────────
 
@@ -35,12 +36,15 @@ import CategoryEditForm from "../CategoryEditForm.vue";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+const factoryCategory = categoryFactory.build({
+  overrides: { id: 5, name: "Mains", description: "Main dishes", sortOrder: 3 },
+});
 const sampleCategory = {
-  id: 5,
-  name: "Mains",
+  id: factoryCategory.id,
+  name: factoryCategory.name,
   nameEn: "Mains EN",
-  description: "Main dishes",
-  sortOrder: 3,
+  description: factoryCategory.description,
+  sortOrder: factoryCategory.sortOrder,
 };
 
 const mountForm = (editingCategory?: typeof sampleCategory | null) => {
@@ -59,6 +63,7 @@ const mountForm = (editingCategory?: typeof sampleCategory | null) => {
 
 describe("CategoryEditForm", () => {
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
   });
 

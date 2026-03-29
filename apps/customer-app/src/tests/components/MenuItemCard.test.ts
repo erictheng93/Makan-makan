@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import MenuItemCard from "@/components/MenuItemCard.vue";
 import type { MenuItem } from "@makanmakan/shared-types";
+import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock formatPrice function
 vi.mock("@/utils/format", () => ({
@@ -11,25 +12,32 @@ vi.mock("@/utils/format", () => ({
 describe("MenuItemCard.vue", () => {
   let wrapper: VueWrapper<any>;
 
-  const mockMenuItem: MenuItem = {
-    id: 1,
+  // Build base from factory, then override fields that differ between
+  // MenuItemTestData (number restaurantId, number timestamps) and
+  // shared-types MenuItem (string restaurantId, string timestamps).
+  const mockMenuItem = {
+    ...menuItemFactory.build({
+      overrides: {
+        id: 1,
+        name: "牛肉麵",
+        description: "香濃牛肉湯配手工麵條",
+        price: 12000,
+        spiceLevel: 2,
+        isFeatured: true,
+        isAvailable: true,
+        inventoryCount: 50,
+        sortOrder: 1,
+        orderCount: 256,
+      },
+      relations: { restaurantId: 1, categoryId: 1 },
+    }),
     restaurantId: "1",
-    name: "牛肉麵",
-    description: "香濃牛肉湯配手工麵條",
-    price: 12000, // 120.00 in cents
     imageUrl: "/images/beef-noodles.jpg",
     imageVariants: {
       thumbnail: "/images/beef-noodles-thumb.jpg",
       medium: "/images/beef-noodles-med.jpg",
       large: "/images/beef-noodles-large.jpg",
     },
-    categoryId: 1,
-    isAvailable: true,
-    inventoryCount: 50,
-    spiceLevel: 2,
-    sortOrder: 1,
-    isFeatured: true,
-    orderCount: 256,
     createdAt: "2024-01-01T00:00:00Z",
     updatedAt: "2024-01-01T00:00:00Z",
     dietaryInfo: {
@@ -47,7 +55,7 @@ describe("MenuItemCard.vue", () => {
         {
           id: "1",
           name: "辣度",
-          type: "single",
+          type: "single" as const,
           required: false,
           choices: [
             { id: "1", name: "不辣", priceAdjustment: 0 },
@@ -61,9 +69,10 @@ describe("MenuItemCard.vue", () => {
         { id: "2", name: "青菜", price: 1500 },
       ],
     },
-  };
+  } as MenuItem;
 
   beforeEach(() => {
+    resetAllFactories();
     wrapper = mount(MenuItemCard, {
       props: {
         item: mockMenuItem,

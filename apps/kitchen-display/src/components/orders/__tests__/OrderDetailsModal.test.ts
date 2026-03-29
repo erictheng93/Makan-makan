@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, DOMWrapper } from "@vue/test-utils";
 import OrderDetailsModal from "../OrderDetailsModal.vue";
 import type { KitchenOrder, ItemStatus } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock Heroicons
 vi.mock("@heroicons/vue/24/outline", () => ({
@@ -68,6 +69,7 @@ function mountModal(props: { order: KitchenOrder; show: boolean }) {
 describe("OrderDetailsModal Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
   });
 
   describe("Component Visibility", () => {

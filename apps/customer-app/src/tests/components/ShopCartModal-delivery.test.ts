@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { useShopCartStore } from "@/stores/shopCart";
 import ShopCartModal from "@/components/ShopCartModal.vue";
+import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Mock dependencies ────────────────────────────────────────────────────────
 
@@ -52,10 +53,17 @@ function mountModal(props = DEFAULT_PROPS) {
 }
 
 function populateStore(store: ReturnType<typeof useShopCartStore>) {
+  const factoryItem = menuItemFactory.build({
+    overrides: { id: 1, name: "Test Item", price: 100 },
+  });
   store.items = [
     {
       id: "1",
-      menuItem: { id: 1, name: "Test Item", price: 100 } as any,
+      menuItem: {
+        id: factoryItem.id,
+        name: factoryItem.name,
+        price: factoryItem.price,
+      } as any,
       quantity: 1,
       price: 100,
       totalPrice: 100,
@@ -71,6 +79,7 @@ describe("ShopCartModal – delivery features", () => {
   let store: ReturnType<typeof useShopCartStore>;
 
   beforeEach(() => {
+    resetAllFactories();
     setActivePinia(createPinia());
     store = useShopCartStore();
     vi.clearAllMocks();

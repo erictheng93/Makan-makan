@@ -4,6 +4,11 @@
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
+import {
+  categoryFactory,
+  menuItemFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ── Module mocks ───────────────────────────────────────────────────────────
 
@@ -54,40 +59,96 @@ import CategoryPanel from "../CategoryPanel.vue";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-const sampleCategories = [
-  { id: 1, name: "Mains", nameEn: "Mains", sortOrder: 0 },
-  { id: 2, name: "Desserts", nameEn: "Desserts", sortOrder: 1 },
-];
+const buildSampleCategories = () => {
+  const cat1 = categoryFactory.build({
+    overrides: { id: 1, name: "Mains", sortOrder: 0 },
+  });
+  const cat2 = categoryFactory.build({
+    overrides: { id: 2, name: "Desserts", sortOrder: 1 },
+  });
+  return [
+    {
+      id: cat1.id,
+      name: cat1.name,
+      nameEn: "Mains",
+      sortOrder: cat1.sortOrder,
+    },
+    {
+      id: cat2.id,
+      name: cat2.name,
+      nameEn: "Desserts",
+      sortOrder: cat2.sortOrder,
+    },
+  ];
+};
 
-const sampleMenuItems = [
-  {
-    id: 10,
-    categoryId: 1,
-    name: "Nasi Lemak",
-    price: 12,
-    isFeatured: false,
-    isAvailable: true,
-    sortOrder: 0,
-  },
-  {
-    id: 11,
-    categoryId: 1,
-    name: "Roti Canai",
-    price: 5,
-    isFeatured: false,
-    isAvailable: false,
-    sortOrder: 1,
-  },
-  {
-    id: 12,
-    categoryId: 2,
-    name: "Cendol",
-    price: 8,
-    isFeatured: false,
-    isAvailable: true,
-    sortOrder: 0,
-  },
-];
+const buildSampleMenuItems = () => {
+  const item1 = menuItemFactory.build({
+    overrides: {
+      id: 10,
+      categoryId: 1,
+      name: "Nasi Lemak",
+      price: 12,
+      isFeatured: false,
+      isAvailable: true,
+      sortOrder: 0,
+    },
+  });
+  const item2 = menuItemFactory.build({
+    overrides: {
+      id: 11,
+      categoryId: 1,
+      name: "Roti Canai",
+      price: 5,
+      isFeatured: false,
+      isAvailable: false,
+      sortOrder: 1,
+    },
+  });
+  const item3 = menuItemFactory.build({
+    overrides: {
+      id: 12,
+      categoryId: 2,
+      name: "Cendol",
+      price: 8,
+      isFeatured: false,
+      isAvailable: true,
+      sortOrder: 0,
+    },
+  });
+  return [
+    {
+      id: item1.id,
+      categoryId: item1.categoryId,
+      name: item1.name,
+      price: item1.price,
+      isFeatured: item1.isFeatured,
+      isAvailable: item1.isAvailable,
+      sortOrder: item1.sortOrder,
+    },
+    {
+      id: item2.id,
+      categoryId: item2.categoryId,
+      name: item2.name,
+      price: item2.price,
+      isFeatured: item2.isFeatured,
+      isAvailable: item2.isAvailable,
+      sortOrder: item2.sortOrder,
+    },
+    {
+      id: item3.id,
+      categoryId: item3.categoryId,
+      name: item3.name,
+      price: item3.price,
+      isFeatured: item3.isFeatured,
+      isAvailable: item3.isAvailable,
+      sortOrder: item3.sortOrder,
+    },
+  ];
+};
+
+const sampleCategories = buildSampleCategories();
+const sampleMenuItems = buildSampleMenuItems();
 
 const mountPanel = (overrides: Record<string, unknown> = {}) => {
   return mount(CategoryPanel, {
@@ -107,6 +168,7 @@ const mountPanel = (overrides: Record<string, unknown> = {}) => {
 
 describe("CategoryPanel", () => {
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
   });
 

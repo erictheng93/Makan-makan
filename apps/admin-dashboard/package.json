@@ -47,6 +47,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@makanmakan/testing-utils": "workspace:*",
     "@pinia/testing": "^0.1.0",
     "@types/lodash-es": "^4.17.0",
     "@types/node": "^20.0.0",

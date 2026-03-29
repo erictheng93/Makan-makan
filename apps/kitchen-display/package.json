@@ -30,6 +30,7 @@
     "vue-toastification": "^2.0.0-rc.5"
   },
   "devDependencies": {
+    "@makanmakan/testing-utils": "workspace:*",
     "@types/howler": "^2.2.11",
     "@types/node": "^20.0.0",
     "@types/sortablejs": "^1.15.8",

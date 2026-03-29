@@ -26,6 +26,7 @@
     "@cloudflare/workers-types": "^4.20241230.0",
     "@makanmakan/database": "workspace:*",
     "@makanmakan/shared-types": "workspace:*",
+    "@makanmakan/testing-utils": "workspace:*",
     "@types/node": "^22.15.29",
     "typescript": "^5.8.3",
     "vitest": "^3.1.4",

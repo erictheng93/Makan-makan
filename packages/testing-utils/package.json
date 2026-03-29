@@ -8,6 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./factories": "./src/factories/index.ts",
+    "./vue-helpers": "./src/vue-helpers.ts",
+    "./mocks/mock-drizzle-db": "./src/mocks/mock-drizzle-db.ts",
     "./*": "./src/*"
   },
   "scripts": {
@@ -19,9 +21,14 @@
     "@makanmakan/shared-types": "workspace:*"
   },
   "devDependencies": {
+    "@pinia/testing": "^0.1.7",
+    "@vitest/ui": "^3.2.4",
+    "@vue/test-utils": "^2.4.0",
+    "pinia": "^2.1.0",
     "typescript": "^5.3.0",
     "vitest": "^3.2.4",
-    "@vitest/ui": "^3.2.4"
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0"
   },
   "keywords": [
     "testing",

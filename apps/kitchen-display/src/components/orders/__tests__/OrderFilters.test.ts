@@ -9,6 +9,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { nextTick } from "vue";
 import OrderFilters from "../OrderFilters.vue";
 import type { KitchenOrder } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock icons - 必須包含 template 屬性
 vi.mock("@heroicons/vue/24/outline", () => ({
@@ -31,72 +32,79 @@ vi.mock("@heroicons/vue/24/outline", () => ({
   Cog6ToothIcon: { name: "Cog6ToothIcon", template: "<svg />" },
 }));
 
-// Mock orders data
-const mockOrders: KitchenOrder[] = [
-  {
-    id: 1,
-    orderNumber: "ORD-001",
-    tableName: "A-1",
-    tableId: 1,
-    customerName: "張三",
-    priority: "normal",
-    status: 1, // confirmed
-    createdAt: new Date().toISOString(),
-    elapsedTime: 300,
-    totalItems: 1,
-    items: [
-      {
-        id: 1,
-        name: "宮保雞丁",
-        quantity: 2,
-        status: "pending",
-        notes: "不要辣",
-        priority: "normal",
-      },
-    ],
-  },
-  {
-    id: 2,
-    orderNumber: "ORD-002",
-    tableName: "B-2",
-    tableId: 2,
-    priority: "urgent",
-    status: 2, // preparing
-    createdAt: new Date().toISOString(),
-    elapsedTime: 600,
-    totalItems: 1,
-    items: [
-      {
-        id: 2,
-        name: "炒飯",
-        quantity: 1,
-        status: "preparing",
-        priority: "urgent",
-      },
-    ],
-  },
-  {
-    id: 3,
-    orderNumber: "ORD-003",
-    tableName: "C-3",
-    tableId: 3,
-    priority: "high",
-    status: 3, // ready
-    createdAt: new Date().toISOString(),
-    elapsedTime: 120,
-    totalItems: 1,
-    items: [
-      {
-        id: 3,
-        name: "湯麵",
-        quantity: 1,
-        status: "ready",
-        customizations: ["加辣", "加蛋"],
-        priority: "high",
-      },
-    ],
-  },
-];
+// Build mock orders using factory for base data
+function buildMockOrders(): KitchenOrder[] {
+  const base1 = orderFactory.build();
+  const base2 = orderFactory.build();
+  const base3 = orderFactory.build();
+  return [
+    {
+      id: 1,
+      orderNumber: "ORD-001",
+      tableName: "A-1",
+      tableId: 1,
+      customerName: "張三",
+      priority: "normal",
+      status: 1, // confirmed
+      createdAt: new Date().toISOString(),
+      elapsedTime: 300,
+      totalItems: 1,
+      items: [
+        {
+          id: 1,
+          name: "宮保雞丁",
+          quantity: 2,
+          status: "pending",
+          notes: "不要辣",
+          priority: "normal",
+        },
+      ],
+    },
+    {
+      id: 2,
+      orderNumber: "ORD-002",
+      tableName: "B-2",
+      tableId: 2,
+      priority: "urgent",
+      status: 2, // preparing
+      createdAt: new Date().toISOString(),
+      elapsedTime: 600,
+      totalItems: 1,
+      items: [
+        {
+          id: 2,
+          name: "炒飯",
+          quantity: 1,
+          status: "preparing",
+          priority: "urgent",
+        },
+      ],
+    },
+    {
+      id: 3,
+      orderNumber: "ORD-003",
+      tableName: "C-3",
+      tableId: 3,
+      priority: "high",
+      status: 3, // ready
+      createdAt: new Date().toISOString(),
+      elapsedTime: 120,
+      totalItems: 1,
+      items: [
+        {
+          id: 3,
+          name: "湯麵",
+          quantity: 1,
+          status: "ready",
+          customizations: ["加辣", "加蛋"],
+          priority: "high",
+        },
+      ],
+    },
+  ];
+}
+
+let mockOrders: KitchenOrder[];
 
 // Helper function to mount component with default props
 let pinia: ReturnType<typeof createPinia>;
@@ -119,6 +127,8 @@ describe("OrderFilters Component", () => {
     pinia = createPinia();
     setActivePinia(pinia);
     vi.clearAllMocks();
+    resetAllFactories();
+    mockOrders = buildMockOrders();
   });
   describe("Component Rendering", () => {
     it("should render filter header", () => {

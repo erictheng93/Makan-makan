@@ -4,6 +4,7 @@
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
+import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Module mocks ───────────────────────────────────────────────────────────
 
@@ -35,17 +36,30 @@ import MenuItemCard from "../MenuItemCard.vue";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+const factoryItem = menuItemFactory.build({
+  overrides: {
+    id: 1,
+    categoryId: 1,
+    name: "Nasi Lemak",
+    description: "Traditional Malaysian dish",
+    price: 12.5,
+    imageUrl: null,
+    isFeatured: false,
+    isAvailable: true,
+    sortOrder: 0,
+  },
+});
 const baseItem = {
-  id: 1,
-  categoryId: 1,
-  name: "Nasi Lemak",
+  id: factoryItem.id,
+  categoryId: factoryItem.categoryId,
+  name: factoryItem.name,
   nameEn: "Nasi Lemak",
-  description: "Traditional Malaysian dish",
-  price: 12.5,
-  imageUrl: null,
-  isFeatured: false,
-  isAvailable: true,
-  sortOrder: 0,
+  description: factoryItem.description,
+  price: factoryItem.price,
+  imageUrl: factoryItem.imageUrl,
+  isFeatured: factoryItem.isFeatured,
+  isAvailable: factoryItem.isAvailable,
+  sortOrder: factoryItem.sortOrder,
 };
 
 const mountCard = (itemOverrides = {}, categoryName?: string) => {
@@ -66,6 +80,7 @@ const mountCard = (itemOverrides = {}, categoryName?: string) => {
 
 describe("MenuItemCard", () => {
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
   });
 

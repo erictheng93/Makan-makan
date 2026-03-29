@@ -12,6 +12,7 @@ import type {
   KitchenSSEEvent,
   ItemStatus,
 } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Helper function to create order items with required fields
 function createMockItem(
@@ -28,18 +29,19 @@ function createMockItem(
   };
 }
 
-// Helper function to create orders with required fields
+// Helper function to create orders with required fields, using factory for base data
 function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
+  const base = orderFactory.build();
   return {
-    id: 1,
-    orderNumber: "ORD-001",
-    tableId: 1,
+    id: base.id ?? 1,
+    orderNumber: base.orderNumber ?? "ORD-001",
+    tableId: base.tableId ?? 1,
     tableName: "T1",
     status: 1,
     priority: "normal",
     createdAt: new Date().toISOString(),
     elapsedTime: 0,
-    estimatedTime: 15,
+    estimatedTime: base.estimatedPrepTime ?? 15,
     totalItems: 0,
     items: [],
     ...overrides,
@@ -76,6 +78,7 @@ describe("Order Workflow Integration", () => {
   beforeEach(async () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
 
     // Get mocked kitchenApi
     const { kitchenApi } = await import("@/services/kitchenApi");

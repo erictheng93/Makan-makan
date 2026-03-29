@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 const mockAuthApi = {
   login: vi.fn(),
@@ -20,6 +21,7 @@ describe("Auth Store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
 
     // Mock localStorage with Map for better tracking
     localStorageMock = new Map();
@@ -58,21 +60,22 @@ describe("Auth Store", () => {
 
   describe("Login", () => {
     it("should authenticate user successfully", async () => {
+      const chef = userFactory.buildChef(1);
       mockAuthApi.login.mockResolvedValue({
         success: true,
         data: {
           token: "test-token-123",
           user: {
-            id: 1,
-            username: "chef1",
-            role: 2,
-            restaurantId: 1,
+            id: chef.id,
+            username: chef.username,
+            role: chef.role,
+            restaurantId: chef.restaurantId,
           },
         },
       });
 
       const credentials = {
-        username: "chef1",
+        username: chef.username,
         password: "password123",
       };
 
@@ -149,11 +152,12 @@ describe("Auth Store", () => {
 
   describe("Role Management", () => {
     it("should check user role permissions", () => {
+      const chef = userFactory.buildChef(1);
       const user = {
-        id: 1,
-        username: "chef1",
-        role: 2, // Chef
-        restaurantId: 1,
+        id: chef.id,
+        username: chef.username,
+        role: chef.role, // Chef (role 2)
+        restaurantId: chef.restaurantId,
       };
 
       const canAccessKitchen = user.role <= 2;
@@ -161,11 +165,12 @@ describe("Auth Store", () => {
     });
 
     it("should restrict customer access", () => {
+      const cashier = userFactory.buildCashier(1);
       const user = {
-        id: 2,
-        username: "customer1",
-        role: 4, // Customer
-        restaurantId: 1,
+        id: cashier.id,
+        username: cashier.username,
+        role: cashier.role, // Cashier (role 4)
+        restaurantId: cashier.restaurantId,
       };
 
       const canAccessKitchen = user.role <= 2;
@@ -175,9 +180,15 @@ describe("Auth Store", () => {
 
   describe("Session Persistence", () => {
     it("should persist auth state across reloads", () => {
+      const chef = userFactory.buildChef(1);
       const authState = {
         token: "test-token",
-        user: { id: 1, username: "chef1", role: 2, restaurantId: 1 },
+        user: {
+          id: chef.id,
+          username: chef.username,
+          role: chef.role,
+          restaurantId: chef.restaurantId,
+        },
       };
 
       localStorage.setItem("auth-state", JSON.stringify(authState));

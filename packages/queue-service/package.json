@@ -18,6 +18,7 @@
   "author": "MakanMakan Team",
   "license": "MIT",
   "devDependencies": {
+    "@makanmakan/testing-utils": "workspace:*",
     "typescript": "^5.0.0"
   },
   "dependencies": {

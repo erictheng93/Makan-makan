@@ -8,6 +8,7 @@ import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import OrderCard from "../OrderCard.vue";
 import type { KitchenOrder, KitchenOrderItem } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock icons
 vi.mock("@heroicons/vue/24/outline", () => ({
@@ -72,6 +73,7 @@ describe("OrderCard Component", () => {
   beforeEach(() => {
     const pinia = createPinia();
     setActivePinia(pinia);
+    resetAllFactories();
   });
 
   describe("Order Display", () => {

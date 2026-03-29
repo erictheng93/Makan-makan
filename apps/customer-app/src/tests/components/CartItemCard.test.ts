@@ -1,38 +1,48 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import CartItemCard from "@/components/CartItemCard.vue";
-import type { CartItem } from "@makanmakan/shared-types";
+import type { CartItem, MenuItem } from "@makanmakan/shared-types";
+import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock formatPrice function
 vi.mock("@/utils/format", () => ({
   formatPrice: vi.fn((cents: number) => (cents / 100).toFixed(2)),
 }));
 
-describe("CartItemCard.vue", () => {
-  let wrapper: VueWrapper<any>;
-
-  const mockCartItem: CartItem = {
-    id: "cart-item-1",
-    menuItem: {
+// Helper: build a MenuItem compatible with shared-types
+function buildMenuItem(overrides: Partial<MenuItem> = {}): MenuItem {
+  const base = menuItemFactory.build({
+    overrides: {
       id: 1,
-      restaurantId: "1",
       name: "牛肉麵",
       description: "香濃牛肉湯配手工麵條",
       price: 12000,
-      imageUrl: "/images/beef-noodles.jpg",
-      imageVariants: {
-        thumbnail: "/images/beef-noodles-thumb.jpg",
-      },
-      categoryId: 1,
       isAvailable: true,
       inventoryCount: 50,
       spiceLevel: 1,
       sortOrder: 1,
       isFeatured: false,
       orderCount: 0,
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
     },
+    relations: { restaurantId: 1, categoryId: 1 },
+  });
+  return {
+    ...base,
+    restaurantId: "1",
+    imageUrl: "/images/beef-noodles.jpg",
+    imageVariants: { thumbnail: "/images/beef-noodles-thumb.jpg" },
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+    ...overrides,
+  } as MenuItem;
+}
+
+describe("CartItemCard.vue", () => {
+  let wrapper: VueWrapper<any>;
+
+  const mockCartItem: CartItem = {
+    id: "cart-item-1",
+    menuItem: buildMenuItem(),
     quantity: 2,
     price: 14000, // 包含客製化價格調整
     totalPrice: 28000, // price * quantity
@@ -61,6 +71,7 @@ describe("CartItemCard.vue", () => {
   };
 
   beforeEach(() => {
+    resetAllFactories();
     wrapper = mount(CartItemCard, {
       props: {
         item: mockCartItem,

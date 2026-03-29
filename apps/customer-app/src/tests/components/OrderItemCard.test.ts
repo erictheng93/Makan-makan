@@ -1,13 +1,42 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import OrderItemCard from "@/components/OrderItemCard.vue";
-import type { OrderItem } from "@makanmakan/shared-types";
+import type { OrderItem, MenuItem } from "@makanmakan/shared-types";
 import { OrderItemStatus } from "@makanmakan/shared-types";
+import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock formatPrice function
 vi.mock("@/utils/format", () => ({
   formatPrice: vi.fn((cents: number) => (cents / 100).toFixed(2)),
 }));
+
+// Helper: build a MenuItem compatible with shared-types
+function buildMenuItem(overrides: Partial<MenuItem> = {}): MenuItem {
+  const base = menuItemFactory.build({
+    overrides: {
+      id: 1,
+      name: "牛肉麵",
+      description: "香濃牛肉湯配手工麵條",
+      price: 12000,
+      isAvailable: true,
+      inventoryCount: 50,
+      spiceLevel: 1,
+      sortOrder: 1,
+      isFeatured: false,
+      orderCount: 0,
+    },
+    relations: { restaurantId: 1, categoryId: 1 },
+  });
+  return {
+    ...base,
+    restaurantId: "1",
+    imageUrl: "/images/beef-noodles.jpg",
+    imageVariants: { thumbnail: "/images/beef-noodles-thumb.jpg" },
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+    ...overrides,
+  } as MenuItem;
+}
 
 /**
  * OrderItemCard 元件測試
@@ -27,26 +56,7 @@ describe("OrderItemCard.vue", () => {
     id: 1,
     orderId: 123,
     menuItemId: 1,
-    menuItem: {
-      id: 1,
-      restaurantId: "1",
-      name: "牛肉麵",
-      description: "香濃牛肉湯配手工麵條",
-      price: 12000,
-      imageUrl: "/images/beef-noodles.jpg",
-      imageVariants: {
-        thumbnail: "/images/beef-noodles-thumb.jpg",
-      },
-      categoryId: 1,
-      isAvailable: true,
-      inventoryCount: 50,
-      spiceLevel: 1,
-      sortOrder: 1,
-      isFeatured: false,
-      orderCount: 0,
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
-    },
+    menuItem: buildMenuItem(),
     quantity: 2,
     unitPrice: 14000,
     totalPrice: 28000,
@@ -78,6 +88,7 @@ describe("OrderItemCard.vue", () => {
   };
 
   beforeEach(() => {
+    resetAllFactories();
     wrapper = mount(OrderItemCard, {
       props: {
         item: mockOrderItem,
