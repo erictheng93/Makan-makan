@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 import type { Env } from "../../../types/env";
 import type { Table } from "../types";
 
@@ -75,25 +76,7 @@ import { TablesService } from "../services/TablesService";
 // ---------------------------------------------------------------------------
 // Shared fixtures
 // ---------------------------------------------------------------------------
-const mockEnv: Env = {
-  DB: {} as any,
-  JWT_SECRET: "test-secret",
-  ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-  CACHE_KV: {} as any,
-  SLACK_WEBHOOK_URL: "https://hooks.slack.com/test",
-  NODE_ENV: "test",
-  API_VERSION: "v1",
-  TOKEN_BLACKLIST: {} as any,
-  IMAGES_BUCKET: {} as any,
-  BACKUP_STORAGE: {} as any,
-  JOB_QUEUE: {} as any,
-  REALTIME_ORDERS: {} as any,
-  ANALYTICS_ENGINE: {} as any,
-  RATE_LIMIT_KV: {} as any,
-  REALTIME_SESSION: {} as any,
-  CLOUDFLARE_IMAGES_KEY: "test-key",
-  CLOUDFLARE_ACCOUNT_ID: "test-account",
-};
+const mockEnv = envFactory.build() as unknown as Env;
 
 const mockTable: Table = {
   id: 1,
@@ -125,6 +108,7 @@ describe("Concurrency Tests", () => {
   let tablesService: TablesService;
 
   beforeEach(() => {
+    resetAllFactories();
     tablesService = new TablesService(mockEnv);
     vi.clearAllMocks();
   });
@@ -205,6 +189,7 @@ describe("Cross-Module Integration Tests", () => {
   let tablesService: TablesService;
 
   beforeEach(() => {
+    resetAllFactories();
     tablesService = new TablesService(mockEnv);
     vi.clearAllMocks();
   });

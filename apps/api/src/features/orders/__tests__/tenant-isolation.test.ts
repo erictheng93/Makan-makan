@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
 import { OrderStatus } from "@makanmakan/shared-types";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Mock dependencies ──────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ describe("OrdersService — Multi-Tenant Data Isolation", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockEnv = createMockEnv();
 
     const { OrderService, CouponService } =
@@ -291,7 +293,11 @@ describe("OrdersService — Multi-Tenant Data Isolation", () => {
 
       const calledFilters = mockBaseOrderService.getOrders.mock.calls[0][0];
       expect(calledFilters.status).toEqual(
-        expect.arrayContaining([OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY]),
+        expect.arrayContaining([
+          OrderStatus.CONFIRMED,
+          OrderStatus.PREPARING,
+          OrderStatus.READY,
+        ]),
       );
     });
   });

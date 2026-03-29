@@ -15,6 +15,7 @@ import type {
   UserProfile,
   SessionSummary,
 } from "../types";
+import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock dependencies
 vi.mock("../../../core/database");
@@ -61,28 +62,14 @@ const mockPerformance = {
 };
 
 // Mock environment
-const mockEnv: Env = {
-  NODE_ENV: "test",
-  JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
-  API_VERSION: "1.0.0",
-  ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-  DB: {} as any,
-  CACHE_KV: {} as any,
-  TOKEN_BLACKLIST: {} as any,
-  IMAGES_BUCKET: {} as any,
-  BACKUP_STORAGE: {} as any,
-  JOB_QUEUE: {} as any,
-  REALTIME_ORDERS: {} as any,
-  ANALYTICS_ENGINE: {} as any,
-  RATE_LIMIT_KV: {} as any,
-  REALTIME_SESSION: {} as any,
-};
+const mockEnv = envFactory.buildMinimal() as unknown as Env;
 
 describe("Authentication Feature", () => {
   let authService: AuthService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
 
     // Reset mockCache methods to return promises
     mockCache.get.mockResolvedValue(null);

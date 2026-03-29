@@ -7,6 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Env } from "../../../shared/types";
+import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock @makanmakan/shared-types to ensure enums are available
 vi.mock("@makanmakan/shared-types", async () => {
@@ -49,6 +50,7 @@ describe("Orders + Realtime Integration", () => {
   let mockOrderService: any;
 
   beforeEach(() => {
+    resetAllFactories();
     // Create mock services
     mockBroadcastService = {
       broadcastNewOrder: vi.fn().mockResolvedValue({
@@ -72,29 +74,14 @@ describe("Orders + Realtime Integration", () => {
     };
 
     // Mock environment
-    mockEnv = {
-      NODE_ENV: "test",
-      JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
-      API_VERSION: "1.0.0",
-      ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-      DB: {} as any,
+    mockEnv = envFactory.build({
       CACHE_KV: {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         put: vi.fn().mockResolvedValue(undefined),
         delete: vi.fn().mockResolvedValue(true),
       } as any,
-      TOKEN_BLACKLIST: {} as any,
-      IMAGES_BUCKET: {} as any,
-      BACKUP_STORAGE: {} as any,
-      JOB_QUEUE: {} as any,
-      REALTIME_ORDERS: {} as any,
-      ANALYTICS_ENGINE: {
-        writeDataPoint: vi.fn(),
-      } as any,
-      RATE_LIMIT_KV: {} as any,
-      REALTIME_SESSION: {} as any,
-    };
+    }) as unknown as Env;
 
     // Create service instance
     ordersService = new OrdersService(mockEnv);

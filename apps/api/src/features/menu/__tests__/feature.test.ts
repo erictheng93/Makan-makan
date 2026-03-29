@@ -5,6 +5,11 @@
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { Hono } from "hono";
+import {
+  envFactory,
+  createMockKV,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 import type { Env } from "../../../shared/types";
 import { MenuService } from "../services/MenuService";
 import routes from "../routes";
@@ -113,7 +118,8 @@ const mockLogger = {
 
 // Mock CacheKV with proper typing that simulates real KV behavior
 const mockCacheKV = {
-  get: vi.fn((key: string, type?: string) => {
+  ...createMockKV(),
+  get: vi.fn((_key: string, _type?: string) => {
     // When type is 'json', KV automatically parses JSON
     // Return null by default (cache miss)
     return Promise.resolve(null);
@@ -226,28 +232,9 @@ const _mockPopularityMetrics: PopularityMetrics = {
 };
 
 // Complete mock environment with all required Env properties
-const mockEnv: Env = {
-  NODE_ENV: "test",
-  JWT_SECRET: "test-jwt-secret-key-for-testing-only",
-  API_VERSION: "v1",
-  ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-  DB: {} as any,
-  CACHE_KV: mockCacheKV as any,
-  TOKEN_BLACKLIST: {} as any,
-  IMAGES_BUCKET: {} as any,
-  BACKUP_STORAGE: {} as any,
-  JOB_QUEUE: {} as any,
-  REALTIME_ORDERS: {} as any,
-  ANALYTICS_ENGINE: {
-    writeDataPoint: vi.fn(),
-  } as any,
-  RATE_LIMIT_KV: {} as any,
-  REALTIME_SESSION: {} as any,
-  API_BASE_URL: "http://localhost:8787",
-  INTERNAL_API_TOKEN: "test-token",
-  SLACK_WEBHOOK_URL: "https://hooks.slack.com/test/webhook",
-  CLOUDFLARE_IMAGES_KEY: "test-images-key",
-};
+const mockEnv = envFactory.build({
+  CACHE_KV: mockCacheKV,
+}) as unknown as Env;
 
 // Mock user for authentication tests
 const _mockUser = {
@@ -269,6 +256,7 @@ describe("Menu Feature Module", () => {
   let menuService: MenuService;
 
   beforeEach(() => {
+    resetAllFactories();
     app = new Hono<{ Bindings: Env }>();
     app.route("/", routes);
 

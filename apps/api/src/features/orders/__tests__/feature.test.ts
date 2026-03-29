@@ -13,6 +13,7 @@ import ordersRoutes from "../routes";
 import type { CreateOrderData, Order, CouponPreviewRequest } from "../types";
 import { OrderStatus, OrderPaymentStatus } from "@makanmakan/shared-types";
 import { orderSchemas } from "../schemas/validation";
+import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Create mock service instances at file scope
 const mockOrderServiceInstance = {
@@ -59,28 +60,9 @@ const mockLogger = {
 };
 
 // Test fixtures
-const mockEnv: Env = {
-  NODE_ENV: "test",
-  JWT_SECRET: "test-jwt-secret-key-for-testing-only",
-  API_VERSION: "v1",
-  ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-  DB: {} as any,
+const mockEnv = envFactory.build({
   CACHE_KV: mockCacheKV as any,
-  TOKEN_BLACKLIST: {} as any,
-  IMAGES_BUCKET: {} as any,
-  BACKUP_STORAGE: {} as any,
-  JOB_QUEUE: {} as any,
-  REALTIME_ORDERS: {} as any,
-  ANALYTICS_ENGINE: {
-    writeDataPoint: vi.fn(),
-  } as any,
-  RATE_LIMIT_KV: {} as any,
-  REALTIME_SESSION: {} as any,
-  API_BASE_URL: "http://localhost:8787",
-  INTERNAL_API_TOKEN: "test-token",
-  SLACK_WEBHOOK_URL: "https://hooks.slack.com/test/webhook",
-  CLOUDFLARE_IMAGES_KEY: "test-images-key",
-};
+}) as unknown as Env;
 
 const mockUser = {
   id: 1,
@@ -142,6 +124,7 @@ describe("Orders Feature", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
 
     // Create service instance
     ordersService = new OrdersService(mockEnv);

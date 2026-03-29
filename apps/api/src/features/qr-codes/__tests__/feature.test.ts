@@ -6,40 +6,16 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { QrCodesService } from "../services/QrCodesService";
 import type { Env } from "../../../shared/types";
+import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
-// Mock environment
-const mockEnv: Env = {
-  NODE_ENV: "test",
-  JWT_SECRET: "test-secret",
-  API_VERSION: "1.0.0",
-  ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-  DB: {} as any,
-  CACHE_KV: {
-    get: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    list: vi.fn(),
-  } as any,
-  TOKEN_BLACKLIST: {} as any,
-  IMAGES_BUCKET: {} as any,
-  BACKUP_STORAGE: {} as any,
-  JOB_QUEUE: {} as any,
-  REALTIME_ORDERS: {} as any,
-  ANALYTICS_ENGINE: {
-    writeDataPoint: vi.fn(),
-  } as any,
-  RATE_LIMIT_KV: {} as any,
-  REALTIME_SESSION: {} as any,
-  API_BASE_URL: "http://localhost:8787",
-  INTERNAL_API_TOKEN: "test-token",
-  SLACK_WEBHOOK_URL: "https://test-webhook.com",
-  CLOUDFLARE_IMAGES_KEY: "test-images-key",
-};
+// Mock environment — uses envFactory with full Env shape
+const mockEnv = envFactory.build() as Env;
 
 describe("QrCodesService", () => {
   let service: QrCodesService;
 
   beforeEach(() => {
+    resetAllFactories();
     service = new QrCodesService(mockEnv);
     vi.clearAllMocks();
   });
@@ -260,6 +236,7 @@ describe("QR Codes API Integration", () => {
   let service: QrCodesService;
 
   beforeEach(async () => {
+    resetAllFactories();
     // Dynamic import to avoid circular dependencies
     const { default: qrCodesRoutes } = await import("../routes/index");
     const { Hono } = await import("hono");
@@ -361,6 +338,7 @@ describe("QR Codes Performance", () => {
   let service: QrCodesService;
 
   beforeEach(() => {
+    resetAllFactories();
     service = new QrCodesService(mockEnv);
     vi.clearAllMocks();
   });

@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
 import { OrderStatus } from "@makanmakan/shared-types";
 import type { UserRole } from "../../../shared/constants";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock dependencies
 vi.mock("@makanmakan/database", () => ({
@@ -175,6 +176,7 @@ describe("Order Status State Machine", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockEnv = createMockEnv();
 
     const { OrderService, CouponService } =

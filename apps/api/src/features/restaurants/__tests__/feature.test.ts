@@ -4,6 +4,11 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  envFactory,
+  createMockKV,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 import { RestaurantsService } from "../services/RestaurantsService";
 import type { Env } from "../../../shared/types";
 import type {
@@ -14,33 +19,9 @@ import type {
 } from "../types";
 
 // Mock environment
-const mockEnv: Env = {
-  NODE_ENV: "test",
-  JWT_SECRET: "test-secret",
-  API_VERSION: "1.0.0",
-  ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-  DB: {} as any,
-  CACHE_KV: {
-    get: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    list: vi.fn(),
-  } as any,
-  TOKEN_BLACKLIST: {} as any,
-  IMAGES_BUCKET: {} as any,
-  BACKUP_STORAGE: {} as any,
-  JOB_QUEUE: {} as any,
-  REALTIME_ORDERS: {} as any,
-  ANALYTICS_ENGINE: {
-    writeDataPoint: vi.fn(),
-  } as any,
-  RATE_LIMIT_KV: {} as any,
-  REALTIME_SESSION: {} as any,
-  API_BASE_URL: "http://localhost:8787",
-  INTERNAL_API_TOKEN: "test-token",
-  SLACK_WEBHOOK_URL: "https://test-webhook.com",
-  CLOUDFLARE_IMAGES_KEY: "test-images-key",
-};
+const mockEnv = envFactory.build({
+  CACHE_KV: createMockKV(),
+}) as unknown as Env;
 
 // Mock restaurant data
 const mockRestaurant: Restaurant = {
@@ -82,6 +63,7 @@ describe("RestaurantsService", () => {
   let service: RestaurantsService;
 
   beforeEach(() => {
+    resetAllFactories();
     service = new RestaurantsService(mockEnv.DB, mockEnv, mockEnv.CACHE_KV);
     vi.clearAllMocks();
 
