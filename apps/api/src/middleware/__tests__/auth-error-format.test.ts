@@ -79,6 +79,13 @@ describe("auth middleware error format", () => {
     expect(res.status).toBe(401);
     const body = (await res.json()) as any;
     expect(body.error).toHaveProperty("code", "TOKEN_EXPIRED");
+
+    expect(verify).toHaveBeenCalledOnce();
+    expect(verify).toHaveBeenCalledWith(
+      "valid-token",
+      expect.any(String),
+      expect.any(String),
+    );
   });
 });
 

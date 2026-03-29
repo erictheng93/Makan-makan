@@ -240,6 +240,13 @@ describe("Authentication Routes", () => {
       expect(result.success).toBe(true);
       expect(result.data.token).toBe("test-access-token");
       expect(result.data.user.username).toBe("testuser");
+      expect(mockAuthService.login).toHaveBeenCalledOnce();
+      expect(mockAuthService.login).toHaveBeenCalledWith(
+        expect.objectContaining({
+          username: "testuser",
+          password: "testpass123",
+        }),
+      );
     });
 
     it("should return 401 for invalid credentials", async () => {
@@ -263,6 +270,7 @@ describe("Authentication Routes", () => {
       expect(res.status).toBe(401);
       expect(result.success).toBe(false);
       expect(result.error).toBe("Invalid username or password");
+      expect(mockAuthService.login).toHaveBeenCalledOnce();
     });
 
     it("should reject invalid username format", async () => {
@@ -330,6 +338,7 @@ describe("Authentication Routes", () => {
       expect(res.status).toBe(201);
       expect(result.success).toBe(true);
       expect(result.data.user.username).toBe("newcustomer");
+      expect(mockAuthService.register).toHaveBeenCalledOnce();
     });
 
     it("should return 409 for existing username", async () => {
@@ -355,6 +364,7 @@ describe("Authentication Routes", () => {
       expect(res.status).toBe(409);
       expect(result.success).toBe(false);
       expect(result.error).toContain("already exists");
+      expect(mockAuthService.register).toHaveBeenCalledOnce();
     });
   });
 
@@ -431,6 +441,7 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(201);
       expect(result.success).toBe(true);
+      expect(mockAuthService.register).toHaveBeenCalledOnce();
     });
 
     it("should reject staff registration by non-admin", async () => {
@@ -525,6 +536,7 @@ describe("Authentication Routes", () => {
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
       expect(result.data.token).toBe("new-access-token");
+      expect(mockAuthService.refreshToken).toHaveBeenCalledOnce();
     });
 
     it("should return 401 for invalid refresh token", async () => {
@@ -576,6 +588,7 @@ describe("Authentication Routes", () => {
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
       expect(result.message).toBe("Logout successful");
+      expect(mockAuthService.logout).toHaveBeenCalledOnce();
     });
 
     it("should return 500 for logout failure", async () => {
@@ -622,6 +635,7 @@ describe("Authentication Routes", () => {
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
       expect(result.data.username).toBe("testuser");
+      expect(mockAuthService.validateToken).toHaveBeenCalledOnce();
     });
 
     it("should return 401 for invalid token", async () => {
@@ -665,6 +679,7 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.getUserProfile).toHaveBeenCalledOnce();
     });
 
     it("should return 403 for accessing other user profile", async () => {
@@ -756,6 +771,11 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.updateUserProfile).toHaveBeenCalledOnce();
+      expect(mockAuthService.updateUserProfile).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.objectContaining({ fullName: "Updated Name" }),
+      );
     });
 
     it("should return 400 for failed update", async () => {
@@ -802,6 +822,7 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.changePassword).toHaveBeenCalledOnce();
     });
 
     it("should return 400 for incorrect current password", async () => {
@@ -855,6 +876,7 @@ describe("Authentication Routes", () => {
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
+      expect(mockAuthService.getUserSessions).toHaveBeenCalledOnce();
     });
   });
 
@@ -874,6 +896,7 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.terminateSession).toHaveBeenCalledOnce();
     });
 
     it("should return 400 for failed termination", async () => {
@@ -910,6 +933,7 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.terminateAllSessions).toHaveBeenCalledOnce();
     });
   });
 
@@ -930,6 +954,10 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.requestPasswordReset).toHaveBeenCalledOnce();
+      expect(mockAuthService.requestPasswordReset).toHaveBeenCalledWith(
+        "test@example.com",
+      );
     });
 
     it("should return 400 for failed request", async () => {
@@ -973,6 +1001,7 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.resetPassword).toHaveBeenCalledOnce();
     });
   });
 
@@ -993,6 +1022,7 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.verifyEmail).toHaveBeenCalledOnce();
     });
   });
 
@@ -1051,6 +1081,7 @@ describe("Authentication Routes", () => {
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
       expect(result.data.totalUsers).toBe(100);
+      expect(mockAuthService.getAuthStatistics).toHaveBeenCalledOnce();
     });
   });
 
@@ -1110,6 +1141,7 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
+      expect(mockAuthService.getSecurityEvents).toHaveBeenCalledOnce();
     });
   });
 

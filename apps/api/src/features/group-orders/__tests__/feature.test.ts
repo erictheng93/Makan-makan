@@ -156,6 +156,10 @@ describe("Group Orders Feature", () => {
       expect(result.data).toBeDefined();
       expect(result.data?.shareCode).toBeDefined();
       expect(result.data?.groupOrderId).toBeDefined();
+
+      // Verify DB mocks were called
+      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
     });
 
     it("should validate required fields", () => {
@@ -238,6 +242,10 @@ describe("Group Orders Feature", () => {
 
       const result = await groupOrderService.joinGroup(shareCode, memberData);
       expect(result.success).toBe(true);
+
+      // Verify DB mocks were called for lookups and insert
+      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockDb.insert).toHaveBeenCalled();
     });
 
     it("should validate member name requirements", () => {
@@ -462,6 +470,9 @@ describe("Group Orders Feature", () => {
       const result = await groupOrderService.createGroupOrder(createData, 1);
       expect(result.success).toBe(false);
       expect(result.error).toBe("Failed to create group order");
+
+      // Verify DB insert was attempted
+      expect(mockDb.insert).toHaveBeenCalled();
     });
 
     it("should generate unique share codes", async () => {
@@ -497,6 +508,10 @@ describe("Group Orders Feature", () => {
 
       // All codes should be unique
       expect(codes.size).toBe(100);
+
+      // Verify DB was called for each creation
+      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
     });
   });
 });

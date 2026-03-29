@@ -267,6 +267,7 @@ describe("Seats Routes", () => {
       expect(Array.isArray(json.data)).toBe(true);
       expect(json.total).toBe(1);
       expect(json.pagination).toBeDefined();
+      expect(mockSeatService.getSeatsByTableId).toHaveBeenCalledOnce();
     });
 
     it("returns 500 when service throws", async () => {
@@ -298,6 +299,7 @@ describe("Seats Routes", () => {
       };
       expect(json.success).toBe(true);
       expect(json.data.totalSeats).toBe(4);
+      expect(mockSeatService.getSeatStats).toHaveBeenCalledOnce();
     });
 
     it("returns 500 when service throws", async () => {
@@ -330,6 +332,7 @@ describe("Seats Routes", () => {
       expect(json.success).toBe(true);
       expect(json.data.id).toBe(1);
       expect(json.data.seatNumber).toBe("1");
+      expect(mockSeatService.getSeatByQRCode).toHaveBeenCalledOnce();
     });
 
     it("returns 404 when QR code not found", async () => {
@@ -379,6 +382,7 @@ describe("Seats Routes", () => {
       const json = (await res.json()) as { success: boolean; data: unknown };
       expect(json.success).toBe(true);
       expect(json.data).toBeDefined();
+      expect(mockSeatService.getSeatById).toHaveBeenCalledOnce();
     });
 
     it("returns 404 when seat not found", async () => {
@@ -423,6 +427,7 @@ describe("Seats Routes", () => {
       expect(json.success).toBe(true);
       expect(Array.isArray(json.data)).toBe(true);
       expect(json.message).toMatch(/Successfully created/);
+      expect(mockSeatService.createSeatsForTable).toHaveBeenCalledOnce();
     });
 
     it("returns 500 when service throws", async () => {
@@ -463,6 +468,7 @@ describe("Seats Routes", () => {
       };
       expect(json.success).toBe(true);
       expect(json.message).toMatch(/regenerated QR codes/);
+      expect(mockSeatService.batchGenerateSeatQRCodes).toHaveBeenCalledOnce();
     });
 
     it("returns 400 when service reports failure", async () => {
@@ -519,6 +525,7 @@ describe("Seats Routes", () => {
       };
       expect(json.success).toBe(true);
       expect(json.message).toBe("Seat updated successfully");
+      expect(mockSeatService.updateSeat).toHaveBeenCalledOnce();
     });
 
     it("returns 404 when seat not found", async () => {
@@ -566,6 +573,7 @@ describe("Seats Routes", () => {
       const json = (await res.json()) as { success: boolean; message: string };
       expect(json.success).toBe(true);
       expect(json.message).toBe("Seat deleted successfully");
+      expect(mockSeatService.deleteSeat).toHaveBeenCalledOnce();
     });
 
     it("returns 404 when seat not found before delete", async () => {
@@ -614,6 +622,7 @@ describe("Seats Routes", () => {
       const json = (await res.json()) as { success: boolean; message: string };
       expect(json.success).toBe(true);
       expect(json.message).toBe("All seats for the table deleted successfully");
+      expect(mockSeatService.deleteSeatsForTable).toHaveBeenCalledOnce();
     });
 
     it("returns 400 when deleteSeatsForTable returns false", async () => {
@@ -659,6 +668,7 @@ describe("Seats Routes", () => {
       const json = (await res.json()) as { success: boolean; message: string };
       expect(json.success).toBe(true);
       expect(json.message).toBe("Seat occupied successfully");
+      expect(mockSeatService.occupySeat).toHaveBeenCalledOnce();
     });
 
     it("returns 404 when seat not found", async () => {
@@ -746,6 +756,7 @@ describe("Seats Routes", () => {
       const json = (await res.json()) as { success: boolean; message: string };
       expect(json.success).toBe(true);
       expect(json.message).toBe("Seat released successfully");
+      expect(mockSeatService.releaseSeat).toHaveBeenCalledOnce();
     });
 
     it("returns 404 when seat not found", async () => {
@@ -807,6 +818,7 @@ describe("Seats Routes", () => {
       expect(json.success).toBe(true);
       expect(json.data.qrCode).toBe("QR-SEAT-NEW");
       expect(json.message).toBe("Seat QR code regenerated successfully");
+      expect(mockSeatService.regenerateSeatQRCode).toHaveBeenCalledOnce();
     });
 
     it("returns 404 when seat not found", async () => {

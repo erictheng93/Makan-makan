@@ -21,6 +21,7 @@ vi.mock("../../../core/monitoring", () => ({
 }));
 
 // Mock the MonitoringService to avoid singleton issues
+// Mock the MonitoringService to avoid singleton issues
 vi.mock("../services/MonitoringService", async () => {
   const mockAlertRules: any[] = [];
 

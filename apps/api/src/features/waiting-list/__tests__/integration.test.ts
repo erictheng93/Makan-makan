@@ -55,6 +55,11 @@ describe("Waiting List Service Tests", () => {
       });
       expect(result.id).toBe("wait-001");
       expect(result.status).toBe("waiting");
+
+      expect(mockJoinWaitingList).toHaveBeenCalledOnce();
+      expect(mockJoinWaitingList).toHaveBeenCalledWith(
+        expect.objectContaining({ restaurantId: "R-001", partySize: 4 }),
+      );
     });
 
     it("should handle service error", async () => {
@@ -73,6 +78,9 @@ describe("Waiting List Service Tests", () => {
       });
       const result = await mockGetWaitingListEntryById("wait-001");
       expect(result.id).toBe("wait-001");
+
+      expect(mockGetWaitingListEntryById).toHaveBeenCalledOnce();
+      expect(mockGetWaitingListEntryById).toHaveBeenCalledWith("wait-001");
     });
 
     it("should return null when not found", async () => {
@@ -90,6 +98,9 @@ describe("Waiting List Service Tests", () => {
       });
       const result = await mockGetQueueStatus("R-001");
       expect(result.totalWaiting).toBe(5);
+
+      expect(mockGetQueueStatus).toHaveBeenCalledOnce();
+      expect(mockGetQueueStatus).toHaveBeenCalledWith("R-001");
     });
   });
 
@@ -101,6 +112,11 @@ describe("Waiting List Service Tests", () => {
         partySize: 4,
       });
       expect(result.estimatedWaitMinutes).toBe(25);
+
+      expect(mockEstimateWaitTime).toHaveBeenCalledOnce();
+      expect(mockEstimateWaitTime).toHaveBeenCalledWith(
+        expect.objectContaining({ restaurantId: "R-001", partySize: 4 }),
+      );
     });
   });
 
@@ -112,6 +128,9 @@ describe("Waiting List Service Tests", () => {
       });
       const result = await mockCancelWaiting("wait-001");
       expect(result.status).toBe("cancelled");
+
+      expect(mockCancelWaiting).toHaveBeenCalledOnce();
+      expect(mockCancelWaiting).toHaveBeenCalledWith("wait-001");
     });
   });
 
@@ -123,6 +142,9 @@ describe("Waiting List Service Tests", () => {
       });
       const result = await mockConfirmWaiting("wait-001");
       expect(result.status).toBe("confirmed");
+
+      expect(mockConfirmWaiting).toHaveBeenCalledOnce();
+      expect(mockConfirmWaiting).toHaveBeenCalledWith("wait-001");
     });
   });
 
@@ -134,6 +156,11 @@ describe("Waiting List Service Tests", () => {
       });
       const result = await mockListWaitingList({ restaurantId: "1" });
       expect(result.data).toHaveLength(1);
+
+      expect(mockListWaitingList).toHaveBeenCalledOnce();
+      expect(mockListWaitingList).toHaveBeenCalledWith(
+        expect.objectContaining({ restaurantId: "1" }),
+      );
     });
 
     it("should support status filter", async () => {
@@ -154,6 +181,12 @@ describe("Waiting List Service Tests", () => {
       mockCallWaiting.mockResolvedValue({ id: "wait-001", status: "called" });
       const result = await mockCallWaiting("wait-001", { tableId: 1 });
       expect(result.status).toBe("called");
+
+      expect(mockCallWaiting).toHaveBeenCalledOnce();
+      expect(mockCallWaiting).toHaveBeenCalledWith(
+        "wait-001",
+        expect.objectContaining({ tableId: 1 }),
+      );
     });
   });
 
@@ -162,6 +195,9 @@ describe("Waiting List Service Tests", () => {
       mockMarkSeated.mockResolvedValue({ id: "wait-001", status: "seated" });
       const result = await mockMarkSeated("wait-001");
       expect(result.status).toBe("seated");
+
+      expect(mockMarkSeated).toHaveBeenCalledOnce();
+      expect(mockMarkSeated).toHaveBeenCalledWith("wait-001");
     });
   });
 
@@ -173,6 +209,9 @@ describe("Waiting List Service Tests", () => {
       });
       const result = await mockExpireWaiting("wait-001");
       expect(result.status).toBe("expired");
+
+      expect(mockExpireWaiting).toHaveBeenCalledOnce();
+      expect(mockExpireWaiting).toHaveBeenCalledWith("wait-001");
     });
   });
 
@@ -184,6 +223,9 @@ describe("Waiting List Service Tests", () => {
       });
       const result = await mockGetWaitingStats("1");
       expect(result.totalWaiting).toBe(10);
+
+      expect(mockGetWaitingStats).toHaveBeenCalledOnce();
+      expect(mockGetWaitingStats).toHaveBeenCalledWith("1");
     });
   });
 

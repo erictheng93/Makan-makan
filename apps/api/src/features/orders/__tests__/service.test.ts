@@ -300,6 +300,7 @@ describe("OrdersService", () => {
 
         expect(result.orders).toHaveLength(2);
         expect(result.total).toBe(2);
+        expect(mockBaseOrderService.getOrders).toHaveBeenCalledOnce();
       });
 
       it("should apply pagination", async () => {
@@ -331,6 +332,7 @@ describe("OrdersService", () => {
         const result = await service.getActiveOrders("1");
 
         expect(result).toHaveLength(2);
+        expect(mockBaseOrderService.getOrders).toHaveBeenCalledOnce();
       });
     });
   });
@@ -351,6 +353,7 @@ describe("OrdersService", () => {
         );
 
         expect(result?.status).toBe(OrderStatus.CONFIRMED);
+        expect(mockBaseOrderService.updateOrderStatus).toHaveBeenCalledOnce();
       });
 
       it("should return null for non-existent order", async () => {
@@ -391,6 +394,7 @@ describe("OrdersService", () => {
         );
 
         expect(result?.status).toBe(OrderStatus.CONFIRMED);
+        expect(mockBaseOrderService.updateOrderStatus).toHaveBeenCalledOnce();
       });
 
       it("should reject invalid status transition", async () => {
@@ -411,6 +415,7 @@ describe("OrdersService", () => {
         const result = await service.cancelOrder(1, "Customer request", 100);
 
         expect(result?.status).toBe(OrderStatus.CANCELLED);
+        expect(mockBaseOrderService.cancelOrder).toHaveBeenCalledOnce();
       });
 
       it("should return null if cancellation fails", async () => {
@@ -477,6 +482,7 @@ describe("OrdersService", () => {
         expect(result.valid).toBe(true);
         expect(result.discountAmount).toBe(500);
         expect(result.finalAmount).toBe(4500);
+        expect(mockCouponService.validateCoupon).toHaveBeenCalledOnce();
       });
 
       it("should handle invalid coupon", async () => {
@@ -624,6 +630,7 @@ describe("OrdersService", () => {
         );
 
         expect(result).toHaveLength(1);
+        expect(mockBaseOrderService.getOrders).toHaveBeenCalledOnce();
       });
     });
   });

@@ -155,6 +155,8 @@ describe("Forecast Routes", () => {
     expect(res.status).toBe(200);
     const json = (await res.json()) as { success: boolean };
     expect(json.success).toBe(true);
+
+    expect(mockServiceInstance.generateForecast).toHaveBeenCalledOnce();
   });
 
   it("GET /:restaurantId returns 200", async () => {
@@ -165,6 +167,8 @@ describe("Forecast Routes", () => {
     expect(res.status).toBe(200);
     const json = (await res.json()) as { success: boolean };
     expect(json.success).toBe(true);
+
+    expect(mockServiceInstance.getForecast).toHaveBeenCalledOnce();
   });
 
   it("GET /:restaurantId/accuracy returns 200", async () => {
@@ -173,12 +177,16 @@ describe("Forecast Routes", () => {
     );
     const res = await app.fetch(req, mockEnv);
     expect(res.status).toBe(200);
+
+    expect(mockServiceInstance.getAccuracy).toHaveBeenCalledOnce();
   });
 
   it("GET /:restaurantId/alerts returns 200", async () => {
     const req = new Request("http://localhost/forecast/test-restaurant/alerts");
     const res = await app.fetch(req, mockEnv);
     expect(res.status).toBe(200);
+
+    expect(mockServiceInstance.getAlerts).toHaveBeenCalledOnce();
   });
 
   // ─── Response Structure ─────────────────────────────────────────
@@ -255,6 +263,8 @@ describe("Forecast Routes", () => {
     expect(json.success).toBe(false);
     expect(json.error.code).toBeDefined();
     expect(json.error.message).toBeDefined();
+
+    expect(mockServiceInstance.generateForecast).toHaveBeenCalledOnce();
   });
 
   it("GET /:restaurantId returns 500 when service throws", async () => {
@@ -273,6 +283,8 @@ describe("Forecast Routes", () => {
     };
     expect(json.success).toBe(false);
     expect(json.error.code).toBeDefined();
+
+    expect(mockServiceInstance.getForecast).toHaveBeenCalledOnce();
   });
 
   it("GET /accuracy returns 500 when service throws", async () => {
@@ -291,6 +303,8 @@ describe("Forecast Routes", () => {
     };
     expect(json.success).toBe(false);
     expect(json.error.code).toBeDefined();
+
+    expect(mockServiceInstance.getAccuracy).toHaveBeenCalledOnce();
   });
 
   it("GET /alerts returns 500 when service throws", async () => {
@@ -305,6 +319,8 @@ describe("Forecast Routes", () => {
     };
     expect(json.success).toBe(false);
     expect(json.error.code).toBeDefined();
+
+    expect(mockServiceInstance.getAlerts).toHaveBeenCalledOnce();
   });
 
   it("POST /generate returns 500 when ApiError is thrown", async () => {
@@ -427,6 +443,8 @@ describe("Forecast Routes", () => {
     };
     expect(json.data.forecasts).toHaveLength(1);
     expect(json.data.forecasts[0].items).toHaveLength(1);
+
+    expect(mockServiceInstance.getForecast).toHaveBeenCalledOnce();
   });
 
   it("POST /generate passes multiple forecasts in data array", async () => {
@@ -465,5 +483,7 @@ describe("Forecast Routes", () => {
       data: { forecasts: unknown[] };
     };
     expect(json.data.forecasts).toHaveLength(2);
+
+    expect(mockServiceInstance.generateForecast).toHaveBeenCalledOnce();
   });
 });

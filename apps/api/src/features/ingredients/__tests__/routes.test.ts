@@ -135,6 +135,8 @@ describe("Ingredient Routes", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as any;
       expect(body.success).toBe(true);
+
+      expect(mockIngredientService.list).toHaveBeenCalledOnce();
     });
   });
 
@@ -149,6 +151,8 @@ describe("Ingredient Routes", () => {
       const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.data.ingredient).toBeDefined();
+
+      expect(mockIngredientService.create).toHaveBeenCalledOnce();
     });
   });
 
@@ -158,12 +162,16 @@ describe("Ingredient Routes", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as any;
       expect(body.success).toBe(true);
+
+      expect(mockIngredientService.get).toHaveBeenCalledOnce();
     });
 
     it("returns 404 for missing ingredient", async () => {
       mockIngredientService.get.mockResolvedValueOnce(null);
       const res = await app.request("/test-restaurant/999", { method: "GET" });
       expect(res.status).toBe(404);
+
+      expect(mockIngredientService.get).toHaveBeenCalledOnce();
     });
   });
 
@@ -175,6 +183,8 @@ describe("Ingredient Routes", () => {
         body: JSON.stringify({ name: "Updated Chicken" }),
       });
       expect(res.status).toBe(200);
+
+      expect(mockIngredientService.update).toHaveBeenCalledOnce();
     });
   });
 
@@ -182,6 +192,9 @@ describe("Ingredient Routes", () => {
     it("deletes an ingredient not in use", async () => {
       const res = await app.request("/test-restaurant/1", { method: "DELETE" });
       expect(res.status).toBe(200);
+
+      expect(mockRecipeService.getIngredientUsage).toHaveBeenCalledOnce();
+      expect(mockIngredientService.delete).toHaveBeenCalledOnce();
     });
 
     it("returns 409 if ingredient is in use", async () => {
@@ -190,6 +203,9 @@ describe("Ingredient Routes", () => {
       ]);
       const res = await app.request("/test-restaurant/1", { method: "DELETE" });
       expect(res.status).toBe(409);
+
+      expect(mockRecipeService.getIngredientUsage).toHaveBeenCalledOnce();
+      expect(mockIngredientService.delete).not.toHaveBeenCalled();
     });
   });
 
@@ -201,6 +217,8 @@ describe("Ingredient Routes", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as any;
       expect(body.success).toBe(true);
+
+      expect(mockIngredientService.getCategories).toHaveBeenCalledOnce();
     });
   });
 
@@ -212,6 +230,8 @@ describe("Ingredient Routes", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as any;
       expect(body.success).toBe(true);
+
+      expect(mockRecipeService.getRecipe).toHaveBeenCalledOnce();
     });
   });
 
@@ -227,6 +247,8 @@ describe("Ingredient Routes", () => {
         }),
       });
       expect(res.status).toBe(200);
+
+      expect(mockRecipeService.setRecipe).toHaveBeenCalledOnce();
     });
   });
 
@@ -238,6 +260,8 @@ describe("Ingredient Routes", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as any;
       expect(body.success).toBe(true);
+
+      expect(mockRecipeService.validateRecipe).toHaveBeenCalledOnce();
     });
   });
 });

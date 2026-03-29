@@ -140,6 +140,11 @@ describe("Auth Routes", () => {
       expect(result.data.token).toBe("mock-access-token");
       expect(result.data.user.username).toBe("testuser");
       expect(result.data.user.role).toBe(1);
+
+      expect(mockAuthServiceInstance.login).toHaveBeenCalledOnce();
+      expect(mockAuthServiceInstance.login).toHaveBeenCalledWith(
+        expect.objectContaining({ username: "testuser" }),
+      );
     });
 
     it("should reject login with invalid credentials", async () => {
@@ -164,6 +169,11 @@ describe("Auth Routes", () => {
       expect(response.status).toBe(401);
       expect(result.success).toBe(false);
       expect(result.error).toBe("Invalid username or password");
+
+      expect(mockAuthServiceInstance.login).toHaveBeenCalledOnce();
+      expect(mockAuthServiceInstance.login).toHaveBeenCalledWith(
+        expect.objectContaining({ username: "nonexistent" }),
+      );
     });
 
     it("should reject login with wrong password", async () => {
@@ -188,6 +198,11 @@ describe("Auth Routes", () => {
       expect(response.status).toBe(401);
       expect(result.success).toBe(false);
       expect(result.error).toBe("Invalid username or password");
+
+      expect(mockAuthServiceInstance.login).toHaveBeenCalledOnce();
+      expect(mockAuthServiceInstance.login).toHaveBeenCalledWith(
+        expect.objectContaining({ username: "testuser" }),
+      );
     });
 
     it("should reject login with missing credentials", async () => {

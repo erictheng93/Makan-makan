@@ -173,6 +173,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(201);
       expect(data.data.currentApprovalLevel).toBe(1);
+      expect(mockLeaveService.createLeaveRequest).toHaveBeenCalledOnce();
     });
 
     it("應該在第一級審批後進入第二級", async () => {
@@ -203,6 +204,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.currentApprovalLevel).toBe(2);
+      expect(mockLeaveService.approveLeaveRequest).toHaveBeenCalledOnce();
     });
 
     it("應該在最終審批後標記為已批准", async () => {
@@ -226,6 +228,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.status).toBe("approved");
+      expect(mockLeaveService.approveLeaveRequest).toHaveBeenCalledOnce();
     });
 
     it("應該在任一級拒絕後終止流程", async () => {
@@ -250,6 +253,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.status).toBe("rejected");
+      expect(mockLeaveService.rejectLeaveRequest).toHaveBeenCalledOnce();
     });
 
     it("應該記錄完整的審批歷史", async () => {
@@ -279,6 +283,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.approvalHistory).toHaveLength(2);
+      expect(mockLeaveService.getLeaveRequest).toHaveBeenCalledOnce();
     });
 
     it("應該驗證審批者權限", async () => {
@@ -403,6 +408,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.manualAdjustment).toBe(5);
+      expect(mockLeaveService.adjustLeaveBalance).toHaveBeenCalledOnce();
     });
 
     it("應該計算半天假", async () => {
@@ -437,6 +443,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(201);
       expect(data.data.totalDays).toBe(0.5);
+      expect(mockLeaveService.createLeaveRequest).toHaveBeenCalledOnce();
     });
 
     it("應該處理負數調整", async () => {
@@ -463,6 +470,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.manualAdjustment).toBe(-2);
+      expect(mockLeaveService.adjustLeaveBalance).toHaveBeenCalledOnce();
     });
   });
 
@@ -517,6 +525,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.cancelledSchedules).toHaveLength(2);
+      expect(mockLeaveService.approveLeaveRequest).toHaveBeenCalledOnce();
     });
 
     it("應該警告但允許提交有衝突的請假", async () => {
@@ -574,6 +583,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.restoredSchedules).toBeDefined();
+      expect(mockLeaveService.cancelLeaveRequest).toHaveBeenCalledOnce();
     });
   });
 
@@ -595,6 +605,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(200);
       expect(data.data.count).toBe(25);
+      expect(mockLeaveService.accrueLeaveBalances).toHaveBeenCalledOnce();
     });
 
     it("應該根據假別設定限制結轉天數", async () => {
@@ -755,6 +766,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(201);
       expect(data.data.requiredDocuments).toBeDefined();
+      expect(mockLeaveService.createLeaveRequest).toHaveBeenCalledOnce();
     });
   });
 
@@ -826,6 +838,7 @@ describe("Leaves Business Rules Tests", () => {
 
       expect(res.status).toBe(201);
       expect(data.data.totalDays).toBe(2);
+      expect(mockLeaveService.createLeaveRequest).toHaveBeenCalledOnce();
     });
   });
 });

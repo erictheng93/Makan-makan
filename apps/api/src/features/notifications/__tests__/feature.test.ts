@@ -84,6 +84,9 @@ describe("Notifications Feature Tests", () => {
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.data.message).toContain("successfully");
+      expect(
+        mockNotificationService.sendTestNotification,
+      ).toHaveBeenCalledOnce();
     });
 
     it("應該處理發送失敗", async () => {
@@ -251,6 +254,7 @@ describe("Notifications Feature Tests", () => {
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.data.message).toContain("successfully");
+      expect(mockNotificationService.sendNotification).toHaveBeenCalledOnce();
     });
 
     it("應該處理發送失敗", async () => {

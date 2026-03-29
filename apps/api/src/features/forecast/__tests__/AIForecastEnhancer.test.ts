@@ -164,6 +164,9 @@ describe("AIForecastEnhancer", () => {
       expect(result.enhancedForecasts).toEqual(forecasts);
       expect(result.recommendations).toEqual([]);
       expect(result.adjustmentReasons).toEqual({});
+
+      // Verify DB was queried for AI config
+      expect(mockDb.prepare).toHaveBeenCalled();
     });
 
     it("clamps adjustment factors to [0.5, 2.0] range", () => {
@@ -241,6 +244,9 @@ describe("AIForecastEnhancer", () => {
       expect(result.enhancedForecasts).toEqual(forecasts);
       expect(result.recommendations).toEqual([]);
       expect(result.adjustmentReasons).toEqual({});
+
+      // Verify DB was queried for AI config
+      expect(mockDb.prepare).toHaveBeenCalled();
     });
 
     it("applies adjustment factor correctly when factor is within valid range", () => {

@@ -189,6 +189,8 @@ describe("Leaves API Feature Tests", () => {
         expect(json.success).toBe(true);
         expect(json.data).toHaveLength(2);
         expect(json.data[0].code).toBe("ANNUAL");
+        expect(mockLeaveService.getLeaveTypes).toHaveBeenCalledOnce();
+        expect(mockLeaveService.getLeaveTypes).toHaveBeenCalledWith("R-001");
       });
 
       it("應該處理獲取假別類型時的錯誤", async () => {
@@ -246,6 +248,7 @@ describe("Leaves API Feature Tests", () => {
         expect(json.success).toBe(true);
         expect(json.data.code).toBe("MATERNITY");
         expect(json.data.gender).toBe("female");
+        expect(mockLeaveService.createLeaveType).toHaveBeenCalledOnce();
       });
     });
 
@@ -278,6 +281,7 @@ describe("Leaves API Feature Tests", () => {
         const json = (await res.json()) as ApiResponse;
         expect(json.success).toBe(true);
         expect(json.data.accrualAmount).toBe(15);
+        expect(mockLeaveService.updateLeaveType).toHaveBeenCalledOnce();
       });
     });
 
@@ -294,6 +298,7 @@ describe("Leaves API Feature Tests", () => {
         const json = (await res.json()) as ApiResponse;
         expect(json.success).toBe(true);
         expect(json.message).toContain("deleted");
+        expect(mockLeaveService.deleteLeaveType).toHaveBeenCalledOnce();
       });
     });
   });
@@ -342,6 +347,9 @@ describe("Leaves API Feature Tests", () => {
         expect(json.success).toBe(true);
         expect(json.data).toHaveLength(1);
         expect(json.data[0].remainingDays).toBe(9);
+        expect(
+          mockLeaveService.getEmployeeLeaveBalances,
+        ).toHaveBeenCalledOnce();
       });
 
       it("應該阻止非管理員查看他人餘額", async () => {
@@ -392,6 +400,7 @@ describe("Leaves API Feature Tests", () => {
         const json = (await res.json()) as ApiResponse;
         expect(json.success).toBe(true);
         expect(json.data.manualAdjustment).toBe(5);
+        expect(mockLeaveService.adjustLeaveBalance).toHaveBeenCalledOnce();
       });
     });
 
@@ -409,6 +418,7 @@ describe("Leaves API Feature Tests", () => {
         const json = (await res.json()) as ApiResponse;
         expect(json.success).toBe(true);
         expect(json.data.count).toBe(25);
+        expect(mockLeaveService.accrueLeaveBalances).toHaveBeenCalledOnce();
       });
     });
 
@@ -495,6 +505,7 @@ describe("Leaves API Feature Tests", () => {
         expect(json.success).toBe(true);
         expect(json.data).toHaveLength(1);
         expect(json.pagination!.total).toBe(1);
+        expect(mockLeaveService.getLeaveRequests).toHaveBeenCalledOnce();
       });
 
       it("應該支援按狀態過濾請假申請", async () => {
@@ -569,6 +580,7 @@ describe("Leaves API Feature Tests", () => {
         const json = (await res.json()) as ApiResponse;
         expect(json.success).toBe(true);
         expect(json.data.status).toBe("pending");
+        expect(mockLeaveService.createLeaveRequest).toHaveBeenCalledOnce();
       });
 
       it("應該拒絕餘額不足的請假申請", async () => {
@@ -630,6 +642,7 @@ describe("Leaves API Feature Tests", () => {
         const json = (await res.json()) as ApiResponse;
         expect(json.success).toBe(true);
         expect(json.data.status).toBe("approved");
+        expect(mockLeaveService.approveLeaveRequest).toHaveBeenCalledOnce();
       });
     });
 
@@ -658,6 +671,7 @@ describe("Leaves API Feature Tests", () => {
         const json = (await res.json()) as ApiResponse;
         expect(json.success).toBe(true);
         expect(json.data.status).toBe("rejected");
+        expect(mockLeaveService.rejectLeaveRequest).toHaveBeenCalledOnce();
       });
     });
 
@@ -693,6 +707,7 @@ describe("Leaves API Feature Tests", () => {
         const json = (await res.json()) as ApiResponse;
         expect(json.success).toBe(true);
         expect(json.data.status).toBe("cancelled");
+        expect(mockLeaveService.cancelLeaveRequest).toHaveBeenCalledOnce();
       });
     });
   });
@@ -735,6 +750,7 @@ describe("Leaves API Feature Tests", () => {
         expect(json.success).toBe(true);
         expect(json.data).toHaveLength(2);
         expect(json.data[0].name).toBe("元旦");
+        expect(mockLeaveService.getHolidays).toHaveBeenCalledOnce();
       });
     });
 

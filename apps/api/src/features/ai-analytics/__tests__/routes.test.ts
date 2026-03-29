@@ -56,7 +56,12 @@ function createApp(userRole: number) {
   const app = new Hono<{
     Bindings: typeof mockEnv;
     Variables: {
-      user: { id: number; username: string; role: number; restaurantId: string };
+      user: {
+        id: number;
+        username: string;
+        role: number;
+        restaurantId: string;
+      };
     };
   }>();
 
@@ -149,6 +154,8 @@ describe("AI Analytics Routes", () => {
       const json = (await res.json()) as { success: boolean; config: null };
       expect(json.success).toBe(true);
       expect(json.config).toBeNull();
+
+      expect(mockServiceInstance.getConfig).toHaveBeenCalledOnce();
     });
 
     it("should return availableProviders list when config is null", async () => {
@@ -188,6 +195,8 @@ describe("AI Analytics Routes", () => {
         config: { apiKeyEncrypted: string };
       };
       expect(json.config.apiKeyEncrypted).toBe("***");
+
+      expect(mockServiceInstance.getConfig).toHaveBeenCalledOnce();
     });
 
     it("should allow role 1 (owner) to access config", async () => {
@@ -242,6 +251,9 @@ describe("AI Analytics Routes", () => {
       const json = (await res.json()) as { success: boolean; message: string };
       expect(json.success).toBe(true);
       expect(json.message).toContain("saved successfully");
+
+      expect(mockServiceInstance.testProvider).toHaveBeenCalledOnce();
+      expect(mockServiceInstance.saveConfig).toHaveBeenCalledOnce();
     });
 
     it("should return 400 when testProvider returns failure", async () => {
@@ -263,6 +275,9 @@ describe("AI Analytics Routes", () => {
       };
       expect(json.success).toBe(false);
       expect(json.error.message).toContain("Provider test failed");
+
+      expect(mockServiceInstance.testProvider).toHaveBeenCalledOnce();
+      expect(mockServiceInstance.saveConfig).not.toHaveBeenCalled();
     });
 
     it("should return 500 when saveConfig throws", async () => {
@@ -341,6 +356,8 @@ describe("AI Analytics Routes", () => {
       expect(res.status).toBe(200);
       const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(true);
+
+      expect(mockServiceInstance.testProvider).toHaveBeenCalledOnce();
     });
 
     it("should return 500 when service throws", async () => {
@@ -441,6 +458,8 @@ describe("AI Analytics Routes", () => {
       expect(json.success).toBe(true);
       expect(json.report).toBeDefined();
       expect(json.cached).toBe(false);
+
+      expect(mockServiceInstance.generateReport).toHaveBeenCalledOnce();
     });
 
     it("should return 200 with report (role 1)", async () => {
@@ -509,6 +528,8 @@ describe("AI Analytics Routes", () => {
       };
       expect(json.success).toBe(true);
       expect(Array.isArray(json.products)).toBe(true);
+
+      expect(mockServiceInstance.getTrafficDrivers).toHaveBeenCalledOnce();
     });
 
     it("should return 500 when service throws", async () => {
@@ -527,6 +548,8 @@ describe("AI Analytics Routes", () => {
       };
       expect(json.success).toBe(false);
       expect(json.error.message).toContain("DB error");
+
+      expect(mockServiceInstance.getTrafficDrivers).toHaveBeenCalledOnce();
     });
   });
 
@@ -544,6 +567,8 @@ describe("AI Analytics Routes", () => {
         products: unknown[];
       };
       expect(json.success).toBe(true);
+
+      expect(mockServiceInstance.getBestsellers).toHaveBeenCalledOnce();
     });
 
     it("should return 500 when service throws", async () => {
@@ -558,6 +583,8 @@ describe("AI Analytics Routes", () => {
       expect(res.status).toBe(500);
       const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
+
+      expect(mockServiceInstance.getBestsellers).toHaveBeenCalledOnce();
     });
   });
 
@@ -575,6 +602,8 @@ describe("AI Analytics Routes", () => {
         products: unknown[];
       };
       expect(json.success).toBe(true);
+
+      expect(mockServiceInstance.getProfitLeaders).toHaveBeenCalledOnce();
     });
 
     it("should return 500 when service throws", async () => {
@@ -589,6 +618,8 @@ describe("AI Analytics Routes", () => {
       expect(res.status).toBe(500);
       const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
+
+      expect(mockServiceInstance.getProfitLeaders).toHaveBeenCalledOnce();
     });
   });
 
@@ -606,6 +637,8 @@ describe("AI Analytics Routes", () => {
         products: unknown[];
       };
       expect(json.success).toBe(true);
+
+      expect(mockServiceInstance.analyzeProducts).toHaveBeenCalledOnce();
     });
 
     it("should return 500 when service throws", async () => {
@@ -620,6 +653,8 @@ describe("AI Analytics Routes", () => {
       expect(res.status).toBe(500);
       const json = (await res.json()) as { success: boolean };
       expect(json.success).toBe(false);
+
+      expect(mockServiceInstance.analyzeProducts).toHaveBeenCalledOnce();
     });
   });
 
@@ -638,6 +673,8 @@ describe("AI Analytics Routes", () => {
       };
       expect(json.success).toBe(true);
       expect(Array.isArray(json.usage)).toBe(true);
+
+      expect(mockServiceInstance.getUsageStats).toHaveBeenCalledOnce();
     });
 
     it("should accept optional startDate and endDate query params", async () => {

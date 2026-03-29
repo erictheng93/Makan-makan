@@ -94,6 +94,10 @@ describe("KitchenService Orders", () => {
       expect(result).toHaveProperty("preparing");
       expect(result).toHaveProperty("ready");
       expect(result).toHaveProperty("stats");
+      expect(mockGetOrders).toHaveBeenCalledOnce();
+      expect(mockGetOrders).toHaveBeenCalledWith(
+        expect.objectContaining({ restaurantId: "test-restaurant-1" }),
+      );
     });
 
     it("should categorize orders by status", async () => {
@@ -185,6 +189,7 @@ describe("KitchenService Orders", () => {
       expect(result).toHaveProperty("status", "preparing");
       expect(result).toHaveProperty("updatedAt");
       expect(result).toHaveProperty("broadcastSent");
+      expect(mockUpdateItemStatus).toHaveBeenCalledOnce();
     });
 
     it("should broadcast status update to kitchen connections", async () => {
