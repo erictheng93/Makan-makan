@@ -9,6 +9,9 @@ import { QueueService } from "../services/QueueService";
 import {
   JoinQueueRequest,
   CallNextRequest,
+  SeatCustomerRequest,
+  CancelQueueRequest,
+  GetCurrentQueueRequest,
   QueueStatus,
   QueueType,
   NotificationType,
@@ -618,6 +621,345 @@ describe("QueueService", () => {
       expect(result1.data?.queueNumber).toBe(1);
       expect(result2.data?.queueNumber).toBe(2);
       expect(result3.data?.queueNumber).toBe(3);
+    });
+  });
+
+  describe("Seat Customer", () => {
+    const seatQueueId = "550e8400-e29b-41d4-a716-446655440001";
+    const seatQueueId2 = "550e8400-e29b-41d4-a716-446655440002";
+    const seatQueueId3 = "550e8400-e29b-41d4-a716-446655440003";
+
+    it("should seat a CALLED customer and calculate actualWaitMinutes", async () => {
+      const joinedAt = new Date(Date.now() - 20 * 60000); // 20 minutes ago
+      const queueEntry = {
+        id: seatQueueId,
+        restaurantId: 1,
+        queueNumber: 5,
+        customerName: "入座顧客",
+        status: "called",
+        joinedAt,
+        partySize: 4,
+      };
+
+      mockQueueRepository.findById.mockResolvedValue(queueEntry);
+      mockQueueRepository.update.mockResolvedValue({
+        ...queueEntry,
+        status: QueueStatus.SEATED,
+      });
+      mockNotificationService.sendNotification.mockResolvedValue(undefined);
+      mockEventService.recordEvent.mockResolvedValue(undefined);
+
+      const result = await queueService.seatCustomer({
+        queueId: seatQueueId,
+        tableId: 3,
+        operatorId: 10,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockQueueRepository.update).toHaveBeenCalledWith(
+        seatQueueId,
+        expect.objectContaining({
+          status: QueueStatus.SEATED,
+          assignedTableId: 3,
+          servedBy: 10,
+          actualWaitMinutes: expect.any(Number),
+        }),
+      );
+      // Actual wait should be approximately 20 minutes
+      const updateCall = mockQueueRepository.update.mock.calls[0][1];
+      expect(updateCall.actualWaitMinutes).toBeGreaterThanOrEqual(19);
+      expect(updateCall.actualWaitMinutes).toBeLessThanOrEqual(21);
+    });
+
+    it("should return error when customer not found", async () => {
+      mockQueueRepository.findById.mockResolvedValue(null);
+
+      const result = await queueService.seatCustomer({
+        queueId: seatQueueId2,
+        tableId: 1,
+        operatorId: 1,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("should return error when customer is not in CALLED status", async () => {
+      const queueEntry = {
+        id: seatQueueId3,
+        restaurantId: 1,
+        queueNumber: 3,
+        customerName: "已入座顧客",
+        status: QueueStatus.SEATED, // Already seated
+        joinedAt: new Date(),
+        partySize: 2,
+      };
+
+      mockQueueRepository.findById.mockResolvedValue(queueEntry);
+
+      const result = await queueService.seatCustomer({
+        queueId: seatQueueId3,
+        tableId: 1,
+        operatorId: 1,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+  });
+
+  describe("Cancel Queue", () => {
+    const cancelQueueId1 = "660e8400-e29b-41d4-a716-446655440001";
+    const cancelQueueId2 = "660e8400-e29b-41d4-a716-446655440002";
+    const cancelQueueId3 = "660e8400-e29b-41d4-a716-446655440003";
+    const cancelQueueId4 = "660e8400-e29b-41d4-a716-446655440004";
+
+    it("should cancel a WAITING customer", async () => {
+      const queueEntry = {
+        id: cancelQueueId1,
+        restaurantId: 1,
+        queueNumber: 7,
+        customerName: "取消顧客",
+        status: QueueStatus.WAITING,
+        joinedAt: new Date(),
+        partySize: 2,
+      };
+
+      mockQueueRepository.findById.mockResolvedValue(queueEntry);
+      mockQueueRepository.update.mockResolvedValue({
+        ...queueEntry,
+        status: QueueStatus.CANCELLED,
+      });
+      mockNotificationService.sendNotification.mockResolvedValue(undefined);
+      mockEventService.recordEvent.mockResolvedValue(undefined);
+
+      const result = await queueService.cancelQueue({
+        queueId: cancelQueueId1,
+        reason: "顧客自行取消",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockQueueRepository.update).toHaveBeenCalledWith(
+        cancelQueueId1,
+        expect.objectContaining({
+          status: QueueStatus.CANCELLED,
+          notes: "顧客自行取消",
+        }),
+      );
+    });
+
+    it("should return error when customer not found", async () => {
+      mockQueueRepository.findById.mockResolvedValue(null);
+
+      const result = await queueService.cancelQueue({
+        queueId: cancelQueueId2,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("should return error when customer is already SEATED", async () => {
+      const queueEntry = {
+        id: cancelQueueId3,
+        restaurantId: 1,
+        queueNumber: 4,
+        customerName: "已入座顧客",
+        status: QueueStatus.SEATED, // Can't cancel
+        joinedAt: new Date(),
+        partySize: 3,
+      };
+
+      mockQueueRepository.findById.mockResolvedValue(queueEntry);
+
+      const result = await queueService.cancelQueue({
+        queueId: cancelQueueId3,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("should pass checkInCode through validation", async () => {
+      const queueEntry = {
+        id: cancelQueueId4,
+        restaurantId: 1,
+        queueNumber: 8,
+        customerName: "驗證碼顧客",
+        status: QueueStatus.WAITING,
+        joinedAt: new Date(),
+        partySize: 2,
+        checkInCode: "ABC123",
+      };
+
+      mockQueueRepository.findById.mockResolvedValue(queueEntry);
+      mockQueueRepository.update.mockResolvedValue({
+        ...queueEntry,
+        status: QueueStatus.CANCELLED,
+      });
+      mockNotificationService.sendNotification.mockResolvedValue(undefined);
+      mockEventService.recordEvent.mockResolvedValue(undefined);
+
+      const result = await queueService.cancelQueue({
+        queueId: cancelQueueId4,
+        checkInCode: "ABC123",
+        cancelledBy: 5,
+        reason: "不想等了",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockEventService.recordEvent).toHaveBeenCalledWith(
+        1,
+        cancelQueueId4,
+        "queue_cancelled",
+        expect.objectContaining({
+          reason: "不想等了",
+          cancelledBy: 5,
+        }),
+        5,
+      );
+    });
+  });
+
+  describe("Get Current Queue", () => {
+    it("should return WAITING and CALLED entries", async () => {
+      const queueEntries = [
+        {
+          id: "queue_w1",
+          queueNumber: 1,
+          customerName: "等待顧客A",
+          customerPhone: "012-1111111",
+          partySize: 2,
+          status: QueueStatus.WAITING,
+          joinedAt: new Date("2023-06-01T10:00:00Z"),
+          estimatedWaitMinutes: 15,
+          priority: 0,
+          tablePreferences: [],
+          notificationMethods: [NotificationType.SMS],
+          specialRequests: null,
+          metadata: {},
+        },
+        {
+          id: "queue_c1",
+          queueNumber: 2,
+          customerName: "叫號顧客B",
+          customerPhone: "012-2222222",
+          partySize: 4,
+          status: QueueStatus.CALLED,
+          joinedAt: new Date("2023-06-01T10:05:00Z"),
+          estimatedWaitMinutes: 0,
+          priority: 1,
+          tablePreferences: [1],
+          notificationMethods: [NotificationType.SMS],
+          specialRequests: "靠窗",
+          metadata: {},
+        },
+      ];
+
+      mockQueueRepository.findByRestaurant.mockResolvedValue(queueEntries);
+
+      const result = await queueService.getCurrentQueue({
+        restaurantId: 1,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.queue).toHaveLength(2);
+      expect(result.data?.queue[0].id).toBe("queue_w1");
+      expect(result.data?.queue[1].id).toBe("queue_c1");
+      expect(result.data?.totalCount).toBe(2);
+    });
+
+    it("should respect pagination with limit", async () => {
+      const queueEntries = [
+        {
+          id: "queue_p1",
+          queueNumber: 1,
+          customerName: "分頁顧客",
+          customerPhone: null,
+          partySize: 2,
+          status: QueueStatus.WAITING,
+          joinedAt: new Date("2023-06-01T10:00:00Z"),
+          estimatedWaitMinutes: 10,
+          priority: 0,
+          tablePreferences: [],
+          notificationMethods: [],
+          specialRequests: null,
+          metadata: {},
+        },
+      ];
+
+      mockQueueRepository.findByRestaurant.mockResolvedValue(queueEntries);
+
+      const result = await queueService.getCurrentQueue({
+        restaurantId: 1,
+        limit: 1,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockQueueRepository.findByRestaurant).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          limit: 1,
+        }),
+      );
+    });
+
+    it("should return empty array for empty queue", async () => {
+      mockQueueRepository.findByRestaurant.mockResolvedValue([]);
+
+      const result = await queueService.getCurrentQueue({
+        restaurantId: 1,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.queue).toHaveLength(0);
+      expect(result.data?.totalCount).toBe(0);
+    });
+  });
+
+  describe("Cleanup Expired Queues", () => {
+    it("should mark old CALLED entries as NO_SHOW and delete old records", async () => {
+      mockQueueRepository.markExpiredAsNoShow.mockResolvedValue(3);
+      mockQueueRepository.deleteOldRecords.mockResolvedValue(5);
+
+      const result = await queueService.cleanupExpiredQueues();
+
+      expect(result.success).toBe(true);
+      expect(result.data?.cleanedCount).toBe(8); // 3 + 5
+      expect(mockQueueRepository.markExpiredAsNoShow).toHaveBeenCalledWith(15); // 15 min timeout
+      expect(mockQueueRepository.deleteOldRecords).toHaveBeenCalledWith(30); // 30 days
+    });
+
+    it("should delete records older than 30 days", async () => {
+      mockQueueRepository.markExpiredAsNoShow.mockResolvedValue(0);
+      mockQueueRepository.deleteOldRecords.mockResolvedValue(10);
+
+      const result = await queueService.cleanupExpiredQueues();
+
+      expect(result.success).toBe(true);
+      expect(result.data?.cleanedCount).toBe(10);
+      expect(mockQueueRepository.deleteOldRecords).toHaveBeenCalledWith(30);
+    });
+
+    it("should return cleaned count of 0 when nothing to clean", async () => {
+      mockQueueRepository.markExpiredAsNoShow.mockResolvedValue(0);
+      mockQueueRepository.deleteOldRecords.mockResolvedValue(0);
+
+      const result = await queueService.cleanupExpiredQueues();
+
+      expect(result.success).toBe(true);
+      expect(result.data?.cleanedCount).toBe(0);
+    });
+
+    it("should handle cleanup errors gracefully", async () => {
+      mockQueueRepository.markExpiredAsNoShow.mockRejectedValue(
+        new Error("Database error"),
+      );
+
+      const result = await queueService.cleanupExpiredQueues();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 });

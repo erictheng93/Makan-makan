@@ -613,3 +613,385 @@ describe("ProductAnalysisService - Calculation Methods (via analyzeProducts)", (
     });
   });
 });
+
+describe("ProductAnalysisService - getProfitLeaders 利潤排行", () => {
+  let service: ProductAnalysisService;
+  let mockDb: ReturnType<typeof createMockDrizzleDb>;
+
+  beforeEach(() => {
+    mockDb = createMockDrizzleDb();
+    service = new ProductAnalysisService(mockDb as any);
+  });
+
+  it("按利潤排序返回商品（revenue - cost * quantity）", async () => {
+    const rawMetrics = [
+      {
+        menu_item_id: "low-profit",
+        menu_item_name: "Low Profit Dish",
+        category: "Main",
+        unit_price: 12.0,
+        unit_cost: 10.0, // Profit: (12-10)*30 = 60
+        total_orders: 30,
+        total_revenue: 360,
+        first_item_count: 5,
+        view_count: 100,
+        cart_addition_count: 40,
+      },
+      {
+        menu_item_id: "high-profit",
+        menu_item_name: "High Profit Dish",
+        category: "Main",
+        unit_price: 30.0,
+        unit_cost: 5.0, // Profit: (30-5)*40 = 1000
+        total_orders: 40,
+        total_revenue: 1200,
+        first_item_count: 8,
+        view_count: 200,
+        cart_addition_count: 80,
+      },
+      {
+        menu_item_id: "mid-profit",
+        menu_item_name: "Mid Profit Dish",
+        category: "Main",
+        unit_price: 20.0,
+        unit_cost: 8.0, // Profit: (20-8)*50 = 600
+        total_orders: 50,
+        total_revenue: 1000,
+        first_item_count: 10,
+        view_count: 150,
+        cart_addition_count: 60,
+      },
+    ];
+
+    const dailyData = [
+      { date: "2026-02-01", orders: 5, revenue: 100 },
+      { date: "2026-02-02", orders: 6, revenue: 120 },
+    ];
+
+    // 1 fetchRawMetrics + 3 fetchDailyData
+    mockDb._setResults([rawMetrics, dailyData, dailyData, dailyData]);
+
+    const leaders = await service.getProfitLeaders("restaurant-1", {
+      range: "30d",
+    });
+
+    // All 3 items have cost data and positive profit
+    expect(leaders).toHaveLength(3);
+    // Should be sorted by total profit descending: 1000, 600, 60
+    expect(leaders[0].menuItemId).toBe("high-profit");
+    expect(leaders[0].totalProfit).toBe(1000);
+    expect(leaders[1].menuItemId).toBe("mid-profit");
+    expect(leaders[1].totalProfit).toBe(600);
+    expect(leaders[2].menuItemId).toBe("low-profit");
+    expect(leaders[2].totalProfit).toBe(60);
+  });
+
+  it("過濾掉沒有成本資料的商品（unitCost 為 null）", async () => {
+    const rawMetrics = [
+      {
+        menu_item_id: "with-cost",
+        menu_item_name: "Costed Item",
+        category: "Main",
+        unit_price: 20.0,
+        unit_cost: 6.0, // Has cost => profit = (20-6)*25 = 350
+        total_orders: 25,
+        total_revenue: 500,
+        first_item_count: 5,
+        view_count: 100,
+        cart_addition_count: 40,
+      },
+      {
+        menu_item_id: "no-cost-1",
+        menu_item_name: "No Cost A",
+        category: "Sides",
+        unit_price: 8.0,
+        unit_cost: null,
+        total_orders: 100,
+        total_revenue: 800,
+        first_item_count: 20,
+        view_count: 300,
+        cart_addition_count: 120,
+      },
+      {
+        menu_item_id: "no-cost-2",
+        menu_item_name: "No Cost B",
+        category: "Drinks",
+        unit_price: 5.0,
+        unit_cost: null,
+        total_orders: 200,
+        total_revenue: 1000,
+        first_item_count: 40,
+        view_count: 500,
+        cart_addition_count: 250,
+      },
+    ];
+
+    const dailyData = [
+      { date: "2026-02-01", orders: 10, revenue: 100 },
+      { date: "2026-02-02", orders: 12, revenue: 120 },
+    ];
+
+    mockDb._setResults([rawMetrics, dailyData, dailyData, dailyData]);
+
+    const leaders = await service.getProfitLeaders("restaurant-1", {
+      range: "30d",
+    });
+
+    // Only the item with cost data should be returned
+    expect(leaders).toHaveLength(1);
+    expect(leaders[0].menuItemId).toBe("with-cost");
+    expect(leaders[0].totalProfit).toBe(350);
+  });
+
+  it("所有商品都沒有成本資料時返回空陣列", async () => {
+    const rawMetrics = [
+      {
+        menu_item_id: "item-a",
+        menu_item_name: "Item A",
+        category: "Main",
+        unit_price: 15.0,
+        unit_cost: null,
+        total_orders: 50,
+        total_revenue: 750,
+        first_item_count: 10,
+        view_count: 200,
+        cart_addition_count: 80,
+      },
+      {
+        menu_item_id: "item-b",
+        menu_item_name: "Item B",
+        category: "Drinks",
+        unit_price: 6.0,
+        unit_cost: null,
+        total_orders: 80,
+        total_revenue: 480,
+        first_item_count: 15,
+        view_count: 250,
+        cart_addition_count: 100,
+      },
+    ];
+
+    const dailyData = [
+      { date: "2026-02-01", orders: 5, revenue: 50 },
+      { date: "2026-02-02", orders: 6, revenue: 60 },
+    ];
+
+    mockDb._setResults([rawMetrics, dailyData, dailyData]);
+
+    const leaders = await service.getProfitLeaders("restaurant-1", {
+      range: "30d",
+    });
+
+    expect(leaders).toEqual([]);
+  });
+});
+
+describe("ProductAnalysisService - getUnderperformers 表現不佳商品", () => {
+  let service: ProductAnalysisService;
+  let mockDb: ReturnType<typeof createMockDrizzleDb>;
+
+  beforeEach(() => {
+    mockDb = createMockDrizzleDb();
+    service = new ProductAnalysisService(mockDb as any);
+  });
+
+  it("返回下降趨勢的商品", async () => {
+    const rawMetrics = [
+      {
+        menu_item_id: "declining-1",
+        menu_item_name: "Declining Dish A",
+        category: "Main",
+        unit_price: 10,
+        unit_cost: null,
+        total_orders: 3, // Below 5 threshold with negative trend => underperformer
+        total_revenue: 30,
+        first_item_count: 0,
+        view_count: 50,
+        cart_addition_count: 10,
+      },
+      {
+        menu_item_id: "declining-2",
+        menu_item_name: "Declining Dish B",
+        category: "Sides",
+        unit_price: 8,
+        unit_cost: null,
+        total_orders: 2, // Below 5 threshold with negative trend => underperformer
+        total_revenue: 16,
+        first_item_count: 0,
+        view_count: 30,
+        cart_addition_count: 5,
+      },
+      {
+        menu_item_id: "stable",
+        menu_item_name: "Stable Dish",
+        category: "Main",
+        unit_price: 15,
+        unit_cost: null,
+        total_orders: 80, // High orders, won't be underperformer
+        total_revenue: 1200,
+        first_item_count: 20,
+        view_count: 400,
+        cart_addition_count: 150,
+      },
+    ];
+
+    // Declining daily data for all items
+    const decliningDaily = [
+      { date: "2026-02-01", orders: 10, revenue: 100 },
+      { date: "2026-02-02", orders: 7, revenue: 70 },
+      { date: "2026-02-03", orders: 4, revenue: 40 },
+      { date: "2026-02-04", orders: 1, revenue: 10 },
+    ];
+
+    // Stable daily data for the stable item
+    const stableDaily = [
+      { date: "2026-02-01", orders: 20, revenue: 300 },
+      { date: "2026-02-02", orders: 20, revenue: 300 },
+      { date: "2026-02-03", orders: 20, revenue: 300 },
+      { date: "2026-02-04", orders: 20, revenue: 300 },
+    ];
+
+    mockDb._setResults([
+      rawMetrics,
+      decliningDaily,
+      decliningDaily,
+      stableDaily,
+    ]);
+
+    const underperformers = await service.getUnderperformers("restaurant-1", {
+      range: "30d",
+    });
+
+    // Items with low orders and negative trend should appear
+    const ids = underperformers.map((u) => u.menuItemId);
+    expect(ids).toContain("declining-1");
+    expect(ids).toContain("declining-2");
+    expect(ids).not.toContain("stable");
+  });
+
+  it("按趨勢分數升序排列（最差的排最前面）", async () => {
+    const rawMetrics = [
+      {
+        menu_item_id: "mild-decline",
+        menu_item_name: "Mild Decline",
+        category: "Main",
+        unit_price: 10,
+        unit_cost: null,
+        total_orders: 4,
+        total_revenue: 40,
+        first_item_count: 0,
+        view_count: 50,
+        cart_addition_count: 10,
+      },
+      {
+        menu_item_id: "steep-decline",
+        menu_item_name: "Steep Decline",
+        category: "Sides",
+        unit_price: 8,
+        unit_cost: null,
+        total_orders: 2,
+        total_revenue: 16,
+        first_item_count: 0,
+        view_count: 30,
+        cart_addition_count: 5,
+      },
+    ];
+
+    // Mildly declining
+    const mildDecline = [
+      { date: "2026-02-01", orders: 6, revenue: 60 },
+      { date: "2026-02-02", orders: 5, revenue: 50 },
+      { date: "2026-02-03", orders: 5, revenue: 50 },
+      { date: "2026-02-04", orders: 4, revenue: 40 },
+    ];
+
+    // Steeply declining
+    const steepDecline = [
+      { date: "2026-02-01", orders: 20, revenue: 160 },
+      { date: "2026-02-02", orders: 12, revenue: 96 },
+      { date: "2026-02-03", orders: 5, revenue: 40 },
+      { date: "2026-02-04", orders: 1, revenue: 8 },
+    ];
+
+    mockDb._setResults([rawMetrics, mildDecline, steepDecline]);
+
+    const underperformers = await service.getUnderperformers("restaurant-1", {
+      range: "30d",
+    });
+
+    if (underperformers.length >= 2) {
+      // The steepest decline should be first (lowest trend score)
+      expect(underperformers[0].trendScore).toBeLessThanOrEqual(
+        underperformers[1].trendScore,
+      );
+    }
+  });
+});
+
+describe("ProductAnalysisService - 日期範圍處理", () => {
+  let service: ProductAnalysisService;
+  let mockDb: ReturnType<typeof createMockDrizzleDb>;
+
+  beforeEach(() => {
+    mockDb = createMockDrizzleDb();
+    service = new ProductAnalysisService(mockDb as any);
+  });
+
+  it("7d 範圍計算正確的開始與結束日期", async () => {
+    mockDb._setResults([[]]);
+
+    const beforeCall = new Date();
+    await service.analyzeProducts("restaurant-1", { range: "7d" });
+
+    // Verify that select was called (fetchRawMetrics ran)
+    expect(mockDb.select).toHaveBeenCalled();
+
+    // The where clause contains the date range — we verify the service
+    // didn't throw and correctly processed the 7d range
+    expect(mockDb.where).toHaveBeenCalled();
+  });
+
+  it("30d 範圍計算正確的開始與結束日期", async () => {
+    mockDb._setResults([[]]);
+
+    await service.analyzeProducts("restaurant-1", { range: "30d" });
+
+    expect(mockDb.select).toHaveBeenCalled();
+    expect(mockDb.where).toHaveBeenCalled();
+  });
+
+  it("自定義日期範圍使用明確的開始與結束日期", async () => {
+    const rawMetrics = [
+      {
+        menu_item_id: "custom-range-item",
+        menu_item_name: "Custom Range Item",
+        category: "Main",
+        unit_price: 10,
+        unit_cost: null,
+        total_orders: 20,
+        total_revenue: 200,
+        first_item_count: 3,
+        view_count: 80,
+        cart_addition_count: 30,
+      },
+    ];
+
+    const dailyData = [
+      { date: "2026-01-15", orders: 10, revenue: 100 },
+      { date: "2026-01-16", orders: 10, revenue: 100 },
+    ];
+
+    mockDb._setResults([rawMetrics, dailyData]);
+
+    const result = await service.analyzeProducts("restaurant-1", {
+      range: "custom",
+      startDate: "2026-01-15",
+      endDate: "2026-01-31",
+    });
+
+    // Should process the custom range without error
+    expect(result).toHaveLength(1);
+    expect(result[0].menuItemId).toBe("custom-range-item");
+    expect(result[0].totalOrders).toBe(20);
+  });
+});

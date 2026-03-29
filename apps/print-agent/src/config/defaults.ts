@@ -39,7 +39,7 @@ export function createDefaultConfig(): LocalPrintServiceConfig {
   };
 }
 
-function generateDefaultApiKey(restaurantId: string): string {
+export function generateDefaultApiKey(restaurantId: string): string {
   // Generate a basic API key for development
   const timestamp = Date.now();
   const random = crypto.randomUUID().replace(/-/g, "").substring(0, 9);
