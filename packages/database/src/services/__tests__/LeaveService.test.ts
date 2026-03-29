@@ -11,6 +11,7 @@ import {
   createMockEnv,
   createQueryChain,
 } from "./helpers/mockD1";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 describe("LeaveService", () => {
   let service: LeaveService;
@@ -18,6 +19,7 @@ describe("LeaveService", () => {
   let mockEnv: any;
 
   beforeEach(() => {
+    resetAllFactories();
     mockDb = createMockDatabase();
     mockEnv = createMockEnv();
     service = new LeaveService(mockDb as any, mockEnv);

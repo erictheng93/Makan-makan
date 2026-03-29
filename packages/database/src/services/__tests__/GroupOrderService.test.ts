@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { GroupOrderService } from "../GroupOrderService";
 import type { D1Database } from "@cloudflare/workers-types";
+import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ==========================================
 // Mock Database with basic filtering support
@@ -420,11 +421,10 @@ const createMockDB = () => {
   return db;
 };
 
-const createMockEnv = () => ({
-  DB: {} as D1Database,
-  JWT_SECRET: "test-secret",
-  CUSTOMER_APP_URL: "https://test.makanmakan.com",
-});
+const createMockEnv = () =>
+  envFactory.buildMinimal({
+    CUSTOMER_APP_URL: "https://test.makanmakan.com",
+  });
 
 // ==========================================
 // Mock drizzle-orm operators to return tagged objects
@@ -480,6 +480,7 @@ describe("GroupOrderService", () => {
   let mockEnv: any;
 
   beforeEach(() => {
+    resetAllFactories();
     mockDB = createMockDB();
     mockEnv = createMockEnv();
     service = new GroupOrderService(mockDB, mockEnv);

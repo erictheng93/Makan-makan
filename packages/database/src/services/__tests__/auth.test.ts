@@ -10,6 +10,7 @@ import {
   createMockEnv,
   setupMockDbResponses,
 } from "./helpers/mockD1";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock bcrypt and jwt modules
 vi.mock("bcryptjs", () => ({
@@ -40,6 +41,8 @@ describe("AuthService", () => {
   let mockEnv: any;
 
   beforeEach(() => {
+    resetAllFactories();
+
     // Create fresh mocks for each test
     mockDb = createMockDatabase();
     mockEnv = createMockEnv({
@@ -67,15 +70,17 @@ describe("AuthService", () => {
       },
     };
 
-    const mockUser = {
-      id: 1,
-      username: "testuser",
-      fullName: "Test User",
-      passwordHash: "$2a$10$hashedpassword",
-      role: 1,
-      restaurantId: "R-001",
-      isActive: true,
-    };
+    const mockUser = userFactory.buildShopOwner(1, {
+      overrides: {
+        id: 1,
+        username: "testuser",
+        fullName: "Test User",
+        passwordHash: "$2a$10$hashedpassword",
+        restaurantId: 1,
+      },
+    }) as any;
+    // Auth tests use restaurantId as string "R-001"
+    mockUser.restaurantId = "R-001";
 
     it("should successfully login with valid credentials", async () => {
       // Arrange
@@ -440,13 +445,16 @@ describe("AuthService", () => {
 
   describe("RefreshToken", () => {
     const mockUser = {
-      id: 1,
-      username: "testuser",
-      fullName: "Test User",
-      role: 1,
+      ...userFactory.buildShopOwner(1, {
+        overrides: {
+          id: 1,
+          username: "testuser",
+          fullName: "Test User",
+          restaurantId: 1,
+        },
+      }),
       restaurantId: "R-001",
-      isActive: true,
-    };
+    } as any;
 
     const mockSession = {
       id: "session-id",
@@ -579,13 +587,16 @@ describe("AuthService", () => {
 
   describe("ValidateToken", () => {
     const mockUser = {
-      id: 1,
-      username: "testuser",
-      fullName: "Test User",
-      role: 1,
+      ...userFactory.buildShopOwner(1, {
+        overrides: {
+          id: 1,
+          username: "testuser",
+          fullName: "Test User",
+          restaurantId: 1,
+        },
+      }),
       restaurantId: "R-001",
-      isActive: true,
-    };
+    } as any;
 
     const mockSession = {
       id: "session-id",

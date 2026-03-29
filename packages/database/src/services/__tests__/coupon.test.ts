@@ -5,6 +5,7 @@ import type {
   CreateCouponData,
   UseCouponData,
 } from "../coupon";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock database
 const mockDb = {
@@ -24,6 +25,7 @@ describe("CouponService", () => {
   let couponService: CouponService;
 
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     couponService = new CouponService(mockDb, { JWT_SECRET: "test-secret" });
   });

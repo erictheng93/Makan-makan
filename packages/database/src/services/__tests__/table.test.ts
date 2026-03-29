@@ -72,6 +72,10 @@ import {
   createQueryChain,
 } from "./helpers/mockD1";
 import type { CreateTableData, UpdateTableData, TableFilters } from "../table";
+import {
+  restaurantFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 describe("TableService", () => {
   let tableService: TableService;
@@ -136,6 +140,7 @@ describe("TableService", () => {
   };
 
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     mockDb = createMockDatabase();
     mockEnv = createMockEnv({

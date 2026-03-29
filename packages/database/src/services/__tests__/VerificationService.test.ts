@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { VerificationService } from "../VerificationService";
 import { NotificationService } from "../NotificationService";
 import { createMockDatabase, createMockEnv } from "./helpers/mockD1";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock bcrypt
 vi.mock("bcryptjs", () => ({
@@ -24,6 +25,8 @@ describe("VerificationService", () => {
   let mockEnv: any;
 
   beforeEach(() => {
+    resetAllFactories();
+
     // Create fresh mocks for each test
     mockDb = createMockDatabase();
     mockEnv = createMockEnv({
@@ -49,11 +52,15 @@ describe("VerificationService", () => {
 
   describe("requestPasswordReset", () => {
     const mockUser = {
-      id: 1,
-      username: "testuser",
-      email: "test@example.com",
-      phone: "+60123456789",
-      fullName: "Test User",
+      ...userFactory.build({
+        overrides: {
+          id: 1,
+          username: "testuser",
+          email: "test@example.com",
+          phone: "+60123456789",
+          fullName: "Test User",
+        },
+      }),
     };
 
     it("should successfully request password reset via email", async () => {
@@ -326,9 +333,13 @@ describe("VerificationService", () => {
 
   describe("sendEmailVerification", () => {
     const mockUser = {
-      id: 1,
-      email: "test@example.com",
-      fullName: "Test User",
+      ...userFactory.build({
+        overrides: {
+          id: 1,
+          email: "test@example.com",
+          fullName: "Test User",
+        },
+      }),
     };
 
     it("should successfully send email verification", async () => {

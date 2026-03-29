@@ -14,6 +14,7 @@ import {
   type SMSProvider,
 } from "../NotificationService";
 import type { CloudflareEnv } from "../base";
+import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ========================================
 // Mock Providers
@@ -106,18 +107,18 @@ describe("NotificationService", () => {
   let mockEnv: CloudflareEnv;
 
   beforeEach(() => {
+    resetAllFactories();
     mockDB = createMockDB();
     mockEmailProvider = new MockEmailProvider();
     mockSMSProvider = new MockSMSProvider();
 
-    mockEnv = {
+    mockEnv = envFactory.buildMinimal({
       RESEND_API_KEY: "test-resend-key",
       TWILIO_ACCOUNT_SID: "test-twilio-sid",
       TWILIO_AUTH_TOKEN: "test-twilio-token",
       TWILIO_PHONE_NUMBER: "+1234567890",
       NOTIFICATION_FROM_EMAIL: "test@makanmakan.com",
-      JWT_SECRET: "test-secret",
-    } as CloudflareEnv;
+    }) as unknown as CloudflareEnv;
 
     service = new NotificationService(mockDB, mockEnv);
     // Replace providers with mocks

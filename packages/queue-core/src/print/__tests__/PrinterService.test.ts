@@ -5,11 +5,16 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { PrinterService } from "../services/PrinterService";
 import type { PrintRequest } from "@makanmakan/shared-types";
+import {
+  printRequestFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 describe("PrinterService", () => {
   let printerService: PrinterService;
 
   beforeEach(async () => {
+    resetAllFactories();
     printerService = new PrinterService({
       queue: {
         maxConcurrentJobs: 2,
@@ -53,30 +58,7 @@ describe("PrinterService", () => {
 
   describe("Print Job Management", () => {
     it("should handle print request without available printers", async () => {
-      const printRequest: PrintRequest = {
-        country: "TW",
-        type: "receipt",
-        priority: "normal",
-        restaurantId: "1",
-        userId: "test-user",
-        data: {
-          order: {
-            id: "order-123",
-            items: [
-              {
-                name: "測試商品",
-                quantity: 2,
-                price: 10.5,
-                modifiers: [],
-              },
-            ],
-            subtotal: 21.0,
-            tax: 1.05,
-            total: 22.05,
-            createdAt: new Date(),
-          },
-        },
-      };
+      const printRequest = printRequestFactory.build();
 
       const result = await printerService.print(printRequest);
 

@@ -7,31 +7,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { PartnershipService } from "../PartnershipService";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { CloudflareEnv } from "../base";
-
-// Mock D1 Database
-const createMockD1 = (): D1Database => {
-  const mockResults: any[] = [];
-
-  return {
-    prepare: vi.fn().mockReturnValue({
-      bind: vi.fn().mockReturnThis(),
-      all: vi.fn().mockResolvedValue({ results: mockResults }),
-      first: vi.fn().mockResolvedValue(mockResults[0]),
-      run: vi.fn().mockResolvedValue({ success: true }),
-    }),
-    dump: vi.fn(),
-    batch: vi.fn(),
-    exec: vi.fn(),
-  } as any;
-};
-
-// Mock Environment
-const createMockEnv = (): CloudflareEnv =>
-  ({
-    DB: {} as D1Database,
-    JWT_SECRET: "test-secret",
-    CUSTOMER_APP_URL: "https://test.makanmakan.com",
-  }) as CloudflareEnv;
+import {
+  envFactory,
+  createMockD1Database,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 describe("PartnershipService", () => {
   let service: PartnershipService;
@@ -39,8 +19,11 @@ describe("PartnershipService", () => {
   let mockEnv: CloudflareEnv;
 
   beforeEach(() => {
-    mockDb = createMockD1();
-    mockEnv = createMockEnv();
+    resetAllFactories();
+    mockDb = createMockD1Database() as unknown as D1Database;
+    mockEnv = envFactory.buildMinimal({
+      CUSTOMER_APP_URL: "https://test.makanmakan.com",
+    }) as unknown as CloudflareEnv;
     service = new PartnershipService(mockDb, mockEnv);
   });
 

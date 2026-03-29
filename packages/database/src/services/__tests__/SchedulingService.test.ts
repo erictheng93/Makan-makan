@@ -24,6 +24,7 @@ import {
   createMockEnv,
   createQueryChain,
 } from "./helpers/mockD1";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 describe("SchedulingService", () => {
   let service: SchedulingService;
@@ -31,6 +32,7 @@ describe("SchedulingService", () => {
   let mockEnv: any;
 
   beforeEach(() => {
+    resetAllFactories();
     mockDb = createMockDatabase();
     mockEnv = createMockEnv();
     service = new SchedulingService(mockDb as any, mockEnv);

@@ -15,6 +15,7 @@ import {
   type BatchCreateSlotsRequest,
   type TableAssignmentRequest,
 } from "@makanmakan/shared-types";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ========================================
 // Mock Database
@@ -366,6 +367,7 @@ describe("ReservationService", () => {
   };
 
   beforeEach(() => {
+    resetAllFactories();
     mockDB = createMockDB();
     service = new ReservationService(mockDB as any, {} as any);
 

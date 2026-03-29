@@ -82,17 +82,22 @@ import type {
   UpdateOrderStatusData,
   OrderFilters,
 } from "../order";
+import {
+  restaurantFactory,
+  menuItemFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 describe("OrderService", () => {
   let orderService: OrderService;
   let mockDb: any;
   let mockEnv: any;
 
-  // Mock data
+  // Mock data - use factories for base data, override asserted values
   const mockRestaurant = {
-    id: 1,
-    name: "Test Restaurant",
-    isAvailable: true,
+    ...restaurantFactory.build({
+      overrides: { id: 1, name: "Test Restaurant", isAvailable: true },
+    }),
     settings: {
       minOrderAmount: 20,
       taxRate: 0.06,
@@ -109,13 +114,17 @@ describe("OrderService", () => {
   };
 
   const mockMenuItem = {
-    id: 1,
+    ...menuItemFactory.build({
+      overrides: {
+        id: 1,
+        name: "Burger",
+        price: 15.0,
+        isAvailable: true,
+        inventoryCount: 50,
+      },
+      relations: { restaurantId: 1, categoryId: 1 },
+    }),
     restaurantId: "R-001",
-    categoryId: 1,
-    name: "Burger",
-    price: 15.0,
-    isAvailable: true,
-    inventoryCount: 50,
   };
 
   const mockOrder = {
@@ -177,6 +186,7 @@ describe("OrderService", () => {
   };
 
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     mockDb = createMockDatabase();
     mockEnv = createMockEnv({

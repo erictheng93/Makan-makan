@@ -25,20 +25,103 @@ import type {
   UpdateMenuItemData,
   MenuFilters,
 } from "../menu";
+import {
+  menuItemFactory,
+  categoryFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 describe("MenuService", () => {
   let menuService: MenuService;
   let mockDb: any;
   let mockEnv: any;
 
-  // Mock data
-  const mockRestaurant = {
-    id: 1,
-    name: "Test Restaurant",
-    categories: [
-      {
+  // Mock data - use factories for menu items, keep structure for relational queries
+  const basePastaItem = menuItemFactory.build({
+    overrides: {
+      id: 1,
+      name: "Pasta",
+      description: "Delicious pasta",
+      ingredients: "pasta, sauce",
+      price: 12.99,
+      originalPrice: 15.99,
+      imageUrl: "pasta.jpg",
+      imageVariants: {} as any,
+      isAvailable: true,
+      isFeatured: true,
+      isPopular: true,
+      sortOrder: 1,
+      inventoryCount: 50,
+      spiceLevel: 0,
+      preparationTime: 15,
+      calories: 500,
+      dietaryInfo: { vegetarian: true },
+      allergens: ["gluten"],
+      options: [] as any,
+      keywords: "italian pasta",
+      orderCount: 100,
+      viewCount: 500,
+      rating: 4.5,
+      createdAt: new Date("2024-01-01").getTime(),
+      updatedAt: new Date("2024-01-01").getTime(),
+    },
+    relations: { restaurantId: 1, categoryId: 1 },
+  });
+
+  const baseCakeItem = menuItemFactory.build({
+    overrides: {
+      id: 2,
+      name: "Cake",
+      description: "Chocolate cake",
+      ingredients: "chocolate, flour",
+      price: 6.99,
+      originalPrice: null,
+      imageUrl: "cake.jpg",
+      imageVariants: {} as any,
+      isAvailable: true,
+      isFeatured: false,
+      isPopular: true,
+      sortOrder: 1,
+      inventoryCount: 20,
+      spiceLevel: 0,
+      preparationTime: 5,
+      calories: 300,
+      dietaryInfo: { vegetarian: true },
+      allergens: ["gluten", "dairy"],
+      options: [] as any,
+      keywords: "dessert cake",
+      orderCount: 80,
+      viewCount: 300,
+      rating: 4.8,
+      createdAt: new Date("2024-01-01").getTime(),
+      updatedAt: new Date("2024-01-01").getTime(),
+    },
+    relations: { restaurantId: 1, categoryId: 2 },
+  });
+
+  // Map factory output to the shape expected by relational queries
+  const pastaMenuItem = {
+    ...basePastaItem,
+    restaurantId: "R-001",
+    imageVariants: null,
+    options: null,
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+  };
+
+  const cakeMenuItem = {
+    ...baseCakeItem,
+    restaurantId: "R-001",
+    imageVariants: null,
+    options: null,
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+  };
+
+  const mockCategory1 = {
+    ...categoryFactory.build({
+      overrides: {
         id: 1,
-        restaurantId: "R-001",
         name: "Main Dishes",
         description: "Our main courses",
         sortOrder: 1,
@@ -46,43 +129,19 @@ describe("MenuService", () => {
         isVisible: true,
         itemCount: 2,
         imageUrl: "cat1.jpg",
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-01"),
-        menuItems: [
-          {
-            id: 1,
-            restaurantId: "R-001",
-            categoryId: 1,
-            name: "Pasta",
-            description: "Delicious pasta",
-            ingredients: "pasta, sauce",
-            price: 12.99,
-            originalPrice: 15.99,
-            imageUrl: "pasta.jpg",
-            imageVariants: null,
-            isAvailable: true,
-            isFeatured: true,
-            isPopular: true,
-            sortOrder: 1,
-            inventoryCount: 50,
-            spiceLevel: 0,
-            preparationTime: 15,
-            calories: 500,
-            dietaryInfo: { vegetarian: true },
-            allergens: ["gluten"],
-            options: null,
-            keywords: "italian pasta",
-            orderCount: 100,
-            viewCount: 500,
-            rating: 4.5,
-            createdAt: new Date("2024-01-01"),
-            updatedAt: new Date("2024-01-01"),
-          },
-        ],
       },
-      {
+      relations: { restaurantId: 1 },
+    }),
+    restaurantId: "R-001",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    menuItems: [pastaMenuItem],
+  };
+
+  const mockCategory2 = {
+    ...categoryFactory.build({
+      overrides: {
         id: 2,
-        restaurantId: "R-001",
         name: "Desserts",
         description: "Sweet treats",
         sortOrder: 2,
@@ -90,44 +149,22 @@ describe("MenuService", () => {
         isVisible: true,
         itemCount: 1,
         imageUrl: "cat2.jpg",
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-01"),
-        menuItems: [
-          {
-            id: 2,
-            restaurantId: "R-001",
-            categoryId: 2,
-            name: "Cake",
-            description: "Chocolate cake",
-            ingredients: "chocolate, flour",
-            price: 6.99,
-            originalPrice: null,
-            imageUrl: "cake.jpg",
-            imageVariants: null,
-            isAvailable: true,
-            isFeatured: false,
-            isPopular: true,
-            sortOrder: 1,
-            inventoryCount: 20,
-            spiceLevel: 0,
-            preparationTime: 5,
-            calories: 300,
-            dietaryInfo: { vegetarian: true },
-            allergens: ["gluten", "dairy"],
-            options: null,
-            keywords: "dessert cake",
-            orderCount: 80,
-            viewCount: 300,
-            rating: 4.8,
-            createdAt: new Date("2024-01-01"),
-            updatedAt: new Date("2024-01-01"),
-          },
-        ],
       },
-    ],
+      relations: { restaurantId: 1 },
+    }),
+    restaurantId: "R-001",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    menuItems: [cakeMenuItem],
   };
 
-  const mockMenuItem = mockRestaurant.categories[0].menuItems[0];
+  const mockRestaurant = {
+    id: 1,
+    name: "Test Restaurant",
+    categories: [mockCategory1, mockCategory2],
+  };
+
+  const mockMenuItem = pastaMenuItem;
 
   const validMenuItemData: CreateMenuItemData = {
     restaurantId: "R-001",
@@ -146,6 +183,7 @@ describe("MenuService", () => {
   };
 
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     mockDb = createMockDatabase();
     mockEnv = createMockEnv({

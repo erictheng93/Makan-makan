@@ -3,12 +3,16 @@
  * 測試訊息路由核心邏輯
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
 import type {
   RealtimeEvent,
   RealtimeAuthPayload,
 } from "@makanmakan/shared-types";
+import {
+  realtimeAuthFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 /**
  * 模擬 shouldSendEventToConnection 邏輯
@@ -80,7 +84,16 @@ function shouldSendEventToConnection(
   }
 }
 
+/** Helper: wrap a RealtimeAuthPayload in a connection-like object */
+function connWith(authOverrides: Partial<RealtimeAuthPayload>) {
+  return { auth: realtimeAuthFactory.build({ overrides: authOverrides }) };
+}
+
 describe("Message Routing Logic", () => {
+  beforeEach(() => {
+    resetAllFactories();
+  });
+
   describe("餐廳 ID 隔離", () => {
     it("應該只發送給相同餐廳 ID 的連線", () => {
       const event: RealtimeEvent = {
@@ -91,27 +104,19 @@ describe("Message Routing Logic", () => {
         data: {} as any,
       };
 
-      const matchingConnection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const matchingConnection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
-      const differentRestaurantConnection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_2",
-          restaurantId: "rest_2",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const differentRestaurantConnection = connWith({
+        roomType: "customer",
+        roomId: "room_2",
+        restaurantId: "rest_2",
+        role: "customer",
+      });
 
       expect(shouldSendEventToConnection(event, matchingConnection)).toBe(true);
       expect(
@@ -130,38 +135,26 @@ describe("Message Routing Logic", () => {
     };
 
     it("應該發送給所有角色", () => {
-      const customerConnection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const customerConnection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
-      const staffConnection = {
-        auth: {
-          roomType: "kitchen" as const,
-          roomId: "kitchen_1",
-          restaurantId: "rest_1",
-          role: "staff" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const staffConnection = connWith({
+        roomType: "kitchen",
+        roomId: "kitchen_1",
+        restaurantId: "rest_1",
+        role: "staff",
+      });
 
-      const adminConnection = {
-        auth: {
-          roomType: "admin" as const,
-          roomId: "admin_1",
-          restaurantId: "rest_1",
-          role: "admin" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const adminConnection = connWith({
+        roomType: "admin",
+        roomId: "admin_1",
+        restaurantId: "rest_1",
+        role: "admin",
+      });
 
       expect(
         shouldSendEventToConnection(newOrderEvent, customerConnection),
@@ -190,16 +183,12 @@ describe("Message Routing Logic", () => {
     };
 
     it("應該發送給顧客", () => {
-      const customerConnection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const customerConnection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
       expect(
         shouldSendEventToConnection(statusUpdateEvent, customerConnection),
@@ -207,16 +196,12 @@ describe("Message Routing Logic", () => {
     });
 
     it("應該發送給廚房員工", () => {
-      const staffConnection = {
-        auth: {
-          roomType: "kitchen" as const,
-          roomId: "kitchen_1",
-          restaurantId: "rest_1",
-          role: "staff" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const staffConnection = connWith({
+        roomType: "kitchen",
+        roomId: "kitchen_1",
+        restaurantId: "rest_1",
+        role: "staff",
+      });
 
       expect(
         shouldSendEventToConnection(statusUpdateEvent, staffConnection),
@@ -224,16 +209,12 @@ describe("Message Routing Logic", () => {
     });
 
     it("應該發送給管理員", () => {
-      const adminConnection = {
-        auth: {
-          roomType: "admin" as const,
-          roomId: "admin_1",
-          restaurantId: "rest_1",
-          role: "admin" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const adminConnection = connWith({
+        roomType: "admin",
+        roomId: "admin_1",
+        restaurantId: "rest_1",
+        role: "admin",
+      });
 
       expect(
         shouldSendEventToConnection(statusUpdateEvent, adminConnection),
@@ -256,16 +237,12 @@ describe("Message Routing Logic", () => {
     };
 
     it("應該發送給廚房員工", () => {
-      const staffConnection = {
-        auth: {
-          roomType: "kitchen" as const,
-          roomId: "kitchen_1",
-          restaurantId: "rest_1",
-          role: "staff" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const staffConnection = connWith({
+        roomType: "kitchen",
+        roomId: "kitchen_1",
+        restaurantId: "rest_1",
+        role: "staff",
+      });
 
       expect(shouldSendEventToConnection(kitchenEvent, staffConnection)).toBe(
         true,
@@ -273,16 +250,12 @@ describe("Message Routing Logic", () => {
     });
 
     it("應該發送給管理員", () => {
-      const adminConnection = {
-        auth: {
-          roomType: "admin" as const,
-          roomId: "admin_1",
-          restaurantId: "rest_1",
-          role: "admin" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const adminConnection = connWith({
+        roomType: "admin",
+        roomId: "admin_1",
+        restaurantId: "rest_1",
+        role: "admin",
+      });
 
       expect(shouldSendEventToConnection(kitchenEvent, adminConnection)).toBe(
         true,
@@ -290,16 +263,12 @@ describe("Message Routing Logic", () => {
     });
 
     it("不應該發送給顧客", () => {
-      const customerConnection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const customerConnection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
       expect(
         shouldSendEventToConnection(kitchenEvent, customerConnection),
@@ -321,38 +290,26 @@ describe("Message Routing Logic", () => {
     };
 
     it("應該發送給所有角色", () => {
-      const customerConnection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const customerConnection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
-      const staffConnection = {
-        auth: {
-          roomType: "kitchen" as const,
-          roomId: "kitchen_1",
-          restaurantId: "rest_1",
-          role: "staff" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const staffConnection = connWith({
+        roomType: "kitchen",
+        roomId: "kitchen_1",
+        restaurantId: "rest_1",
+        role: "staff",
+      });
 
-      const adminConnection = {
-        auth: {
-          roomType: "admin" as const,
-          roomId: "admin_1",
-          restaurantId: "rest_1",
-          role: "admin" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const adminConnection = connWith({
+        roomType: "admin",
+        roomId: "admin_1",
+        restaurantId: "rest_1",
+        role: "admin",
+      });
 
       expect(shouldSendEventToConnection(menuEvent, customerConnection)).toBe(
         true,
@@ -381,38 +338,26 @@ describe("Message Routing Logic", () => {
     };
 
     it("應該發送給所有角色", () => {
-      const customerConnection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const customerConnection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
-      const staffConnection = {
-        auth: {
-          roomType: "kitchen" as const,
-          roomId: "kitchen_1",
-          restaurantId: "rest_1",
-          role: "staff" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const staffConnection = connWith({
+        roomType: "kitchen",
+        roomId: "kitchen_1",
+        restaurantId: "rest_1",
+        role: "staff",
+      });
 
-      const adminConnection = {
-        auth: {
-          roomType: "admin" as const,
-          roomId: "admin_1",
-          restaurantId: "rest_1",
-          role: "admin" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const adminConnection = connWith({
+        roomType: "admin",
+        roomId: "admin_1",
+        restaurantId: "rest_1",
+        role: "admin",
+      });
 
       expect(shouldSendEventToConnection(systemEvent, customerConnection)).toBe(
         true,
@@ -442,16 +387,12 @@ describe("Message Routing Logic", () => {
         },
       };
 
-      const connection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const connection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
       expect(shouldSendEventToConnection(connectionAckEvent, connection)).toBe(
         false,
@@ -469,16 +410,12 @@ describe("Message Routing Logic", () => {
         },
       };
 
-      const connection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const connection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
       expect(shouldSendEventToConnection(heartbeatEvent, connection)).toBe(
         false,
@@ -498,38 +435,26 @@ describe("Message Routing Logic", () => {
         },
       } as RealtimeEvent;
 
-      const customerConnection = {
-        auth: {
-          roomType: "customer" as const,
-          roomId: "room_1",
-          restaurantId: "rest_1",
-          role: "customer" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const customerConnection = connWith({
+        roomType: "customer",
+        roomId: "room_1",
+        restaurantId: "rest_1",
+        role: "customer",
+      });
 
-      const staffConnection = {
-        auth: {
-          roomType: "kitchen" as const,
-          roomId: "kitchen_1",
-          restaurantId: "rest_1",
-          role: "staff" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const staffConnection = connWith({
+        roomType: "kitchen",
+        roomId: "kitchen_1",
+        restaurantId: "rest_1",
+        role: "staff",
+      });
 
-      const adminConnection = {
-        auth: {
-          roomType: "admin" as const,
-          roomId: "admin_1",
-          restaurantId: "rest_1",
-          role: "admin" as const,
-          exp: Math.floor(Date.now() / 1000) + 300,
-          iat: Math.floor(Date.now() / 1000),
-        },
-      };
+      const adminConnection = connWith({
+        roomType: "admin",
+        roomId: "admin_1",
+        restaurantId: "rest_1",
+        role: "admin",
+      });
 
       expect(
         shouldSendEventToConnection(unknownEvent, customerConnection),

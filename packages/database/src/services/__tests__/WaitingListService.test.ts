@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { WaitingListService } from "../WaitingListService";
 import type { WaitingStatus } from "@makanmakan/shared-types";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 describe("WaitingListService", () => {
   let service: WaitingListService;
@@ -13,6 +14,7 @@ describe("WaitingListService", () => {
   let mockEnv: any;
 
   beforeEach(() => {
+    resetAllFactories();
     mockDB = createMockDB();
     mockEnv = createMockEnv(mockDB);
     service = new WaitingListService(mockDB, mockEnv);

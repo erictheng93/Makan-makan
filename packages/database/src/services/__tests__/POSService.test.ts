@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { POSService } from "../POSService";
 import type { D1Database } from "@cloudflare/workers-types";
+import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ==========================================
 // Mock 設置
@@ -408,11 +409,10 @@ const getTableName = (table: any): string => {
   return "registers"; // 默认值
 };
 
-const createMockEnv = () => ({
-  DB: {} as D1Database,
-  JWT_SECRET: "test-secret",
-  CLOUDFLARE_IMAGES_KEY: "test-key",
-});
+const createMockEnv = () =>
+  envFactory.buildMinimal({
+    CLOUDFLARE_IMAGES_KEY: "test-key",
+  });
 
 // ==========================================
 // Test Suites
@@ -424,6 +424,7 @@ describe("POSService", () => {
   let mockEnv: any;
 
   beforeEach(() => {
+    resetAllFactories();
     mockDB = createMockDB();
     mockEnv = createMockEnv();
     service = new POSService(mockDB, mockEnv);
