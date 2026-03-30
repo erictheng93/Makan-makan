@@ -100,7 +100,7 @@ describe("Coupons API Integration", () => {
     });
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.code).toBe("WELCOME15");
@@ -127,7 +127,7 @@ describe("Coupons API Integration", () => {
     });
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.code).toBe("FLAT50");
@@ -148,7 +148,7 @@ describe("Coupons API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(Array.isArray(body.data)).toBe(true);
     expect(body.data.length).toBeGreaterThanOrEqual(3);
@@ -189,7 +189,7 @@ describe("Coupons API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.valid).toBe(true);
@@ -230,7 +230,7 @@ describe("Coupons API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     // Validation returns valid:false for expired coupons (it does not throw)
     expect(body.data.valid).toBe(false);
@@ -255,7 +255,7 @@ describe("Coupons API Integration", () => {
       }),
     });
     expect(createRes.status).toBe(201);
-    const created = await createRes.json();
+    const created = (await createRes.json()) as any;
     const couponId = created.data.id;
 
     // Deactivate it
@@ -271,7 +271,7 @@ describe("Coupons API Integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     // MockDrizzle update may return snake_case keys and integer 0/1 for booleans
@@ -283,7 +283,7 @@ describe("Coupons API Integration", () => {
     const res = await ctx.app.request("/api/v1/coupons");
 
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });

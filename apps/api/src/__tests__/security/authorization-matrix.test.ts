@@ -26,6 +26,12 @@ import {
   requireRestaurantAccess,
 } from "../../middleware/auth";
 import { ApiError } from "../../shared/utils/api-error";
+import {
+  envFactory,
+  userFactory,
+  restaurantFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ── 輔助函式 ──────────────────────────────────────────────────────────
 
@@ -56,15 +62,19 @@ function withErrorHandler(app: Hono<any>): void {
 }
 
 /** 建立模擬環境 */
-const createMockEnv = (overrides: any = {}) => ({
-  JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
-  TOKEN_BLACKLIST: {
-    get: vi.fn().mockResolvedValue(null),
-    put: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined),
-  },
-  ...overrides,
-});
+const createMockEnv = (overrides: any = {}) => {
+  const env = envFactory.build();
+  return {
+    ...env,
+    TOKEN_BLACKLIST: {
+      ...env.TOKEN_BLACKLIST,
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    },
+    ...overrides,
+  };
+};
 
 /** 建立 JWT token */
 const createToken = async (
@@ -105,7 +115,7 @@ const ALL_ROLES = [
   ROLES.CASHIER,
 ] as const;
 
-const RESTAURANT_ID = "rest-100";
+const RESTAURANT_ID = String(restaurantFactory.build().id);
 
 // ── 測試開始 ──────────────────────────────────────────────────────────
 
@@ -114,10 +124,20 @@ describe("Authorization Matrix (授權矩陣)", () => {
 
   /** 為指定角色和餐廳建立 Bearer token */
   const tokenForRole = async (role: number, restaurantId?: string) => {
+    const user =
+      role === 0
+        ? userFactory.buildAdmin()
+        : role === 1
+          ? userFactory.buildShopOwner(Number(restaurantId) || 1)
+          : role === 2
+            ? userFactory.buildChef(Number(restaurantId) || 1)
+            : role === 3
+              ? userFactory.buildServiceCrew(Number(restaurantId) || 1)
+              : userFactory.buildCashier(Number(restaurantId) || 1);
     return createToken(
       {
-        id: role * 100 + 1,
-        username: `user-role-${role}`,
+        id: user.id,
+        username: user.username,
         role,
         ...(restaurantId !== undefined && { restaurantId }),
       },
@@ -136,6 +156,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockEnv = createMockEnv();
   });
 

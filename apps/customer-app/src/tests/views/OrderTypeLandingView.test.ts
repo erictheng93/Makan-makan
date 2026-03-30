@@ -36,8 +36,10 @@ const mockRestaurant = {
   id: "rest-001",
   name: baseRestaurant.name,
   description: baseRestaurant.description,
-  logo: null,
+  logoUrl: null,
   settings: {
+    enableDineIn: false,
+    enableTakeaway: true,
     enableDelivery: false,
     deliveryFee: 0,
   },
@@ -45,12 +47,14 @@ const mockRestaurant = {
 
 const mockRestaurantWithLogo = {
   ...mockRestaurant,
-  logo: "https://example.com/logo.png",
+  logoUrl: "https://example.com/logo.png",
 };
 
 const mockRestaurantWithDelivery = {
   ...mockRestaurant,
   settings: {
+    enableDineIn: false,
+    enableTakeaway: true,
     enableDelivery: true,
     deliveryFee: 5000,
   },

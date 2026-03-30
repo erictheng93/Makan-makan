@@ -19,7 +19,7 @@ import { vi } from "vitest";
  */
 export const createMockD1Database = () => {
   const createPreparedStatement = () => ({
-    bind: vi.fn(function (this: any, ...params: any[]) {
+    bind: vi.fn(function (this: any, ..._params: any[]) {
       return {
         run: vi.fn().mockResolvedValue({
           success: true,
@@ -48,7 +48,7 @@ export const createMockD1Database = () => {
   });
 
   return {
-    prepare: vi.fn((sql: string) => createPreparedStatement()),
+    prepare: vi.fn((_sql: string) => createPreparedStatement()),
     exec: vi.fn().mockResolvedValue({
       count: 0,
       duration: 0.1,

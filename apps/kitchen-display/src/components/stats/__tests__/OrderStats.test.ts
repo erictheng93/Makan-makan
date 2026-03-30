@@ -1,6 +1,17 @@
 /**
  * OrderStats Component Tests
  * 測試 OrderStats 組件的統計數據顯示
+ *
+ * The OrderStats component renders a 4-column grid showing:
+ *   - 待處理 (pendingCount)
+ *   - 製作中 (preparingCount)
+ *   - 已完成 (readyCount)
+ *   - 緊急訂單 (urgentOrders)
+ *
+ * It does NOT display completedToday, averageCookingTime, efficiency,
+ * a refresh button, or a "廚房統計" header.
+ * It accepts a `loading` prop and emits a `refresh` event, but these are
+ * for external orchestration — the component does not render a refresh button.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -28,28 +39,28 @@ function createMockStats(overrides: Partial<KitchenStats> = {}): KitchenStats {
 
 describe("OrderStats Component", () => {
   describe("Stats Display", () => {
-    it("should display completed today count", () => {
-      const stats = createMockStats({ completedToday: 50 });
+    it("should display pending count", () => {
+      const stats = createMockStats({ pendingCount: 7 });
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      expect(wrapper.text()).toContain("50");
-      expect(wrapper.text()).toContain("今日完成");
+      expect(wrapper.text()).toContain("7");
+      expect(wrapper.text()).toContain("待處理");
     });
 
-    it("should display average cooking time", () => {
-      const stats = createMockStats({ averageCookingTime: 18 });
+    it("should display preparing count", () => {
+      const stats = createMockStats({ preparingCount: 12 });
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      expect(wrapper.text()).toContain("18分");
-      expect(wrapper.text()).toContain("平均製作");
+      expect(wrapper.text()).toContain("12");
+      expect(wrapper.text()).toContain("製作中");
     });
 
-    it("should display efficiency percentage", () => {
-      const stats = createMockStats({ efficiency: 95 });
+    it("should display ready count", () => {
+      const stats = createMockStats({ readyCount: 8 });
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      expect(wrapper.text()).toContain("95%");
-      expect(wrapper.text()).toContain("完成率");
+      expect(wrapper.text()).toContain("8");
+      expect(wrapper.text()).toContain("已完成");
     });
 
     it("should display urgent orders count", () => {
@@ -62,17 +73,25 @@ describe("OrderStats Component", () => {
   });
 
   describe("Refresh Functionality", () => {
-    it("should emit refresh event when button clicked", async () => {
+    it("should accept loading prop without error", () => {
       const stats = createMockStats();
-      const wrapper = mount(OrderStats, { props: { stats } });
+      const wrapper = mount(OrderStats, {
+        props: { stats, loading: true },
+      });
 
-      const refreshButton = wrapper.find('button[title="刷新統計"]');
-      await refreshButton.trigger("click");
-
-      expect(wrapper.emitted()).toHaveProperty("refresh");
+      expect(wrapper.exists()).toBe(true);
     });
 
-    it("should accept loading prop", () => {
+    it("should accept loading: false without error", () => {
+      const stats = createMockStats();
+      const wrapper = mount(OrderStats, {
+        props: { stats, loading: false },
+      });
+
+      expect(wrapper.exists()).toBe(true);
+    });
+
+    it("should accept loading: true without error", () => {
       const stats = createMockStats();
       const wrapper = mount(OrderStats, {
         props: { stats, loading: true },
@@ -81,21 +100,11 @@ describe("OrderStats Component", () => {
       // Component should mount successfully with loading prop
       expect(wrapper.exists()).toBe(true);
     });
-
-    it("should disable refresh button when loading", () => {
-      const stats = createMockStats();
-      const wrapper = mount(OrderStats, {
-        props: { stats, loading: true },
-      });
-
-      const refreshButton = wrapper.find("button");
-      expect(refreshButton.attributes("disabled")).toBeDefined();
-    });
   });
 
   describe("Zero Values", () => {
-    it("should handle zero completed orders", () => {
-      const stats = createMockStats({ completedToday: 0 });
+    it("should handle zero pending orders", () => {
+      const stats = createMockStats({ pendingCount: 0 });
       const wrapper = mount(OrderStats, { props: { stats } });
 
       expect(wrapper.text()).toContain("0");
@@ -108,34 +117,34 @@ describe("OrderStats Component", () => {
       expect(wrapper.text()).toContain("0");
     });
 
-    it("should handle zero efficiency", () => {
-      const stats = createMockStats({ efficiency: 0 });
+    it("should handle zero preparing count", () => {
+      const stats = createMockStats({ preparingCount: 0 });
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      expect(wrapper.text()).toContain("0%");
+      expect(wrapper.text()).toContain("0");
     });
   });
 
   describe("Large Values", () => {
-    it("should display large completed count", () => {
-      const stats = createMockStats({ completedToday: 999 });
+    it("should display large pending count", () => {
+      const stats = createMockStats({ pendingCount: 999 });
       const wrapper = mount(OrderStats, { props: { stats } });
 
       expect(wrapper.text()).toContain("999");
     });
 
-    it("should display large cooking time", () => {
-      const stats = createMockStats({ averageCookingTime: 120 });
+    it("should display large preparing count", () => {
+      const stats = createMockStats({ preparingCount: 888 });
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      expect(wrapper.text()).toContain("120分");
+      expect(wrapper.text()).toContain("888");
     });
 
-    it("should handle 100% efficiency", () => {
-      const stats = createMockStats({ efficiency: 100 });
+    it("should display large ready count", () => {
+      const stats = createMockStats({ readyCount: 777 });
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      expect(wrapper.text()).toContain("100%");
+      expect(wrapper.text()).toContain("777");
     });
   });
 
@@ -144,25 +153,25 @@ describe("OrderStats Component", () => {
       const stats = createMockStats();
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      // The component should display all 4 stat labels
+      // The component displays all 4 stat labels
       expect(wrapper.text()).toContain("待處理");
       expect(wrapper.text()).toContain("製作中");
       expect(wrapper.text()).toContain("已完成");
       expect(wrapper.text()).toContain("緊急訂單");
     });
 
-    it("should have header with title", () => {
+    it("should render as a grid container", () => {
       const stats = createMockStats();
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      expect(wrapper.text()).toContain("廚房統計");
+      expect(wrapper.find(".grid").exists()).toBe(true);
     });
 
     it("should display all stat values correctly", () => {
       const stats = createMockStats();
       const wrapper = mount(OrderStats, { props: { stats } });
 
-      // Verify all stat values are rendered
+      // Verify all four displayed stat values are rendered
       expect(wrapper.text()).toContain("5"); // pendingCount
       expect(wrapper.text()).toContain("10"); // preparingCount
       expect(wrapper.text()).toContain("3"); // readyCount

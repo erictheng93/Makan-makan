@@ -14,6 +14,7 @@ vi.mock("@/services/api", () => ({
   api: {
     get: vi.fn(),
     patch: vi.fn(),
+    put: vi.fn(),
     post: vi.fn(),
     delete: vi.fn(),
   },
@@ -272,7 +273,7 @@ describe("Order Store", () => {
       });
       await store.fetchOrders();
 
-      vi.mocked(api.patch).mockResolvedValue({
+      vi.mocked(api.put).mockResolvedValue({
         data: { success: true },
       });
 
@@ -291,7 +292,7 @@ describe("Order Store", () => {
       });
       await store.fetchOrders();
 
-      vi.mocked(api.patch).mockResolvedValue({
+      vi.mocked(api.put).mockResolvedValue({
         data: { success: true },
       });
 
@@ -309,7 +310,7 @@ describe("Order Store", () => {
       });
       await store.fetchOrders();
 
-      vi.mocked(api.patch).mockRejectedValue(new Error("Update failed"));
+      vi.mocked(api.put).mockRejectedValue(new Error("Update failed"));
 
       const result = await store.updateOrderStatus(1, OrderStatus.CONFIRMED);
 
@@ -326,7 +327,7 @@ describe("Order Store", () => {
       });
       await store.fetchOrders();
 
-      vi.mocked(api.patch).mockResolvedValue({
+      vi.mocked(api.put).mockResolvedValue({
         data: { success: true },
       });
 
@@ -374,7 +375,7 @@ describe("Order Store", () => {
       });
       await store.fetchOrders();
 
-      vi.mocked(api.patch).mockResolvedValue({
+      vi.mocked(api.put).mockResolvedValue({
         data: { success: true },
       });
 

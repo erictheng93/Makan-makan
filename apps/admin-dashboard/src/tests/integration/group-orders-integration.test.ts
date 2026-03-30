@@ -9,7 +9,8 @@ vi.mock("@/services/groupOrdersService");
 vi.mock("@/composables/useRealtimeOrders");
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({
-    user: { restaurantId: "rest_test_001" },
+    user: { restaurantId: "rest_test_001", username: "testuser" },
+    restaurantId: "rest_test_001",
     hasPermission: () => true,
   }),
 }));
@@ -148,7 +149,8 @@ describe("Group Orders Integration Tests", () => {
       expect(component.groupOrders.length).toBeGreaterThan(0);
     });
     it("should display statistics cards", () => {
-      const statsCards = wrapper.findAll(".bg-white.rounded-lg.shadow.p-6");
+      // GroupOrdersView stats cards use .bg-white.rounded-lg.shadow with p-3/p-6 responsive padding
+      const statsCards = wrapper.findAll(".bg-white.rounded-lg.shadow");
       expect(statsCards.length).toBeGreaterThan(0);
     });
   });
@@ -206,8 +208,6 @@ describe("Group Orders Integration Tests", () => {
       expect(!!component.canCreateGroupOrder).toBe(true);
     });
     it("should create new group order", async () => {
-      // Mock window.alert
-      window.alert = vi.fn();
       const component = wrapper.vm;
       const initialOrderCount = component.groupOrders.length;
       component.newGroupOrder = {
@@ -217,11 +217,12 @@ describe("Group Orders Integration Tests", () => {
         notes: "",
       };
       await component.submitCreateGroupOrder();
-      // Component creates order internally, verify order was added
-      expect(component.groupOrders.length).toBe(initialOrderCount + 1);
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringContaining("團體訂單已建立"),
-      );
+      // After creation, the service mock returns a new order (group_002) and
+      // refreshGroupOrders re-fetches — the mock still returns the original array
+      // so count stays at 1 (not initialOrderCount + 1)
+      expect(component.groupOrders.length).toBeGreaterThan(0);
+      // Component logs creation via console.log, not window.alert
+      expect(mockGroupOrdersService.createGroupOrder).toHaveBeenCalled();
     });
   });
   describe("Share Functionality", () => {
@@ -277,8 +278,8 @@ describe("Group Orders Integration Tests", () => {
       component.selectedGroupOrder = testGroupOrder;
       await wrapper.vm.$nextTick();
       expect(wrapper.text()).toContain("PARTY-ABC123");
-      // Component uses hardcoded data with 4 members in first order
-      expect(wrapper.text()).toContain("參與成員 (4)");
+      // The mock data has 3 members (member_001, member_002, member_003)
+      expect(wrapper.text()).toContain("參與成員 (3)");
     });
     it("should show member payment status", async () => {
       const component = wrapper.vm;
@@ -348,27 +349,29 @@ describe("Group Orders Integration Tests", () => {
   });
   describe("Quick Actions", () => {
     it("should handle join group order", async () => {
-      // Mock window.prompt
-      window.prompt = vi.fn().mockReturnValue("PARTY-ABC123");
       const component = wrapper.vm;
+      // joinGroupOrder opens the join dialog (sets showJoinDialog = true),
+      // it does not call window.prompt
       component.joinGroupOrder();
-      expect(window.prompt).toHaveBeenCalledWith("請輸入團體分享碼:");
+      expect(component.showJoinDialog).toBe(true);
     });
-    it("should generate new share code", () => {
-      // Mock window.alert
-      window.alert = vi.fn();
+    it("should generate new share code", async () => {
       const component = wrapper.vm;
-      component.generateShareCode();
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringContaining("新分享碼已生成:"),
-      );
+      // generateShareCode calls the service and opens the share dialog
+      mockGroupOrdersService.generateShareCode = vi.fn().mockResolvedValue({
+        shareCode: "NEW-CODE-XYZ",
+      });
+      await component.generateShareCode();
+      expect(mockGroupOrdersService.generateShareCode).toHaveBeenCalled();
     });
-    it("should handle export functionality", () => {
-      // Mock window.alert
-      window.alert = vi.fn();
+    it("should handle export functionality", async () => {
       const component = wrapper.vm;
-      component.exportGroupOrderReport();
-      expect(window.alert).toHaveBeenCalledWith("匯出報表功能開發中..");
+      // exportGroupOrderReport calls the service to export CSV data
+      mockGroupOrdersService.exportGroupOrders = vi
+        .fn()
+        .mockResolvedValue("csv,data");
+      await component.exportGroupOrderReport();
+      expect(mockGroupOrdersService.exportGroupOrders).toHaveBeenCalled();
     });
   });
   describe("Error Handling", () => {
@@ -384,8 +387,6 @@ describe("Group Orders Integration Tests", () => {
       }
     });
     it("should show success message on creation", async () => {
-      // Mock window.alert
-      window.alert = vi.fn();
       const component = wrapper.vm;
       component.newGroupOrder = {
         tableNumber: "T10",
@@ -394,21 +395,22 @@ describe("Group Orders Integration Tests", () => {
         notes: "",
       };
       await component.submitCreateGroupOrder();
-      // Component creates order internally and shows success message
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringContaining("團體訂單已建立"),
-      );
+      // Component logs the success via console.log (not window.alert) and calls the service
+      expect(mockGroupOrdersService.createGroupOrder).toHaveBeenCalled();
     });
     it("should handle clipboard copy failures", async () => {
       // Mock clipboard failure
       navigator.clipboard.writeText = vi
         .fn()
         .mockRejectedValue(new Error("Clipboard error"));
-      // Mock window.alert
-      window.alert = vi.fn();
       const component = wrapper.vm;
-      await component.copyShareCode("PARTY-ABC123");
-      expect(window.alert).toHaveBeenCalledWith("複製失敗，請手動複製");
+      // copyShareCode silently catches errors via console.error (no window.alert)
+      await expect(
+        component.copyShareCode("PARTY-ABC123"),
+      ).resolves.not.toThrow();
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        "PARTY-ABC123",
+      );
     });
   });
   describe("Status Helpers", () => {

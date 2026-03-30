@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { KitchenSSEEvent } from "@/types";
 
+// Mock @makanmakan/utils so isTokenExpired always returns false
+// (the test token "test-token-abc" is not a real JWT, so without this mock
+//  the service treats it as expired and never creates an EventSource)
+vi.mock("@makanmakan/utils", () => ({
+  isTokenExpired: vi.fn(() => false),
+}));
+
 // ─── MockEventSource ────────────────────────────────────────────────────────
 
 class MockEventSource {
@@ -166,8 +173,10 @@ describe("KitchenSSEService", () => {
 
       const es = MockEventSource.latest!;
       expect(es).toBeDefined();
-      expect(es.url).toBe("/api/v1/kitchen/42/events");
-      expect(es.withCredentials).toBe(true);
+      expect(es.url).toContain("/api/v1/kitchen/42/events");
+      expect(es.url).toContain("token=test-token-abc");
+      // EventSource is created without explicit options — withCredentials defaults to false
+      expect(es.withCredentials).toBe(false);
     });
 
     it("should call onConnectionChange with 'connecting' immediately", () => {
@@ -746,7 +755,7 @@ describe("KitchenSSEService", () => {
       service.connect();
 
       const es = MockEventSource.latest!;
-      expect(es.url).toBe("/api/v1/kitchen/7/events");
+      expect(es.url).toContain("/api/v1/kitchen/7/events");
     });
   });
 

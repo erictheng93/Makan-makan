@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { PrinterService } from "../services/PrinterService";
-import type { PrintRequest } from "@makanmakan/shared-types";
 import {
   printRequestFactory,
   resetAllFactories,

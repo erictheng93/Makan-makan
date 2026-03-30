@@ -15,21 +15,31 @@ import {
   generateGuestToken,
 } from "../../middleware/guestAuth";
 import { ApiError } from "../../shared/utils/api-error";
+import {
+  envFactory,
+  userFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ─── Mock Environment ────────────────────────────────────────────────────────
 
-const createMockEnv = (overrides: any = {}) => ({
-  JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
-  TOKEN_BLACKLIST: {
-    get: vi.fn().mockResolvedValue(null),
-    put: vi.fn().mockResolvedValue(undefined),
-  },
-  CACHE_KV: {
-    get: vi.fn().mockResolvedValue(null),
-    put: vi.fn().mockResolvedValue(undefined),
-  },
-  ...overrides,
-});
+const createMockEnv = (overrides: any = {}) => {
+  const env = envFactory.build();
+  return {
+    ...env,
+    TOKEN_BLACKLIST: {
+      ...env.TOKEN_BLACKLIST,
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn().mockResolvedValue(undefined),
+    },
+    CACHE_KV: {
+      ...env.CACHE_KV,
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn().mockResolvedValue(undefined),
+    },
+    ...overrides,
+  };
+};
 
 // ─── Error Handler Helper ────────────────────────────────────────────────────
 
@@ -58,11 +68,12 @@ function withErrorHandler(app: Hono<any>): void {
 
 /** 產生合法 JWT payload */
 function validPayload(overrides: Record<string, any> = {}) {
+  const defaultUser = userFactory.buildShopOwner(1);
   const now = Math.floor(Date.now() / 1000);
   return {
-    id: 1,
-    username: "testuser",
-    role: 1,
+    id: defaultUser.id,
+    username: defaultUser.username,
+    role: defaultUser.role,
     restaurantId: "S-20240101-001",
     iat: now - 60,
     exp: now + 3600,
@@ -70,7 +81,7 @@ function validPayload(overrides: Record<string, any> = {}) {
   };
 }
 
-const SECRET = "test-secret-key-that-is-at-least-32-chars-long";
+const SECRET = envFactory.build().JWT_SECRET;
 
 /** 建立帶有 authMiddleware 的測試 app */
 function createAuthApp(envOverrides: any = {}) {
@@ -124,6 +135,10 @@ function createGuestApp(envOverrides: any = {}) {
 // 1. JWT 操控攻擊 (JWT Manipulation Attacks)
 // =============================================================================
 describe("1. JWT 操控攻擊 (JWT Manipulation Attacks)", () => {
+  beforeEach(() => {
+    resetAllFactories();
+  });
+
   it("應拒絕使用 'none' 演算法的 token (algorithm confusion)", async () => {
     // 手動構建 "alg: none" token — base64url encode header + payload，不附簽名
     const header = btoa(JSON.stringify({ alg: "none", typ: "JWT" }))
@@ -236,6 +251,10 @@ describe("1. JWT 操控攻擊 (JWT Manipulation Attacks)", () => {
 // 2. Token 失效後重用 (Token Reuse After Invalidation)
 // =============================================================================
 describe("2. Token 失效後重用 (Token Reuse After Invalidation)", () => {
+  beforeEach(() => {
+    resetAllFactories();
+  });
+
   it("應拒絕已登出(黑名單)的 token", async () => {
     const token = await sign(validPayload(), SECRET, "HS256");
 
@@ -323,6 +342,10 @@ describe("2. Token 失效後重用 (Token Reuse After Invalidation)", () => {
 // 3. Token 時序攻擊 (Token Timing Attacks)
 // =============================================================================
 describe("3. Token 時序攻擊 (Token Timing Attacks)", () => {
+  beforeEach(() => {
+    resetAllFactories();
+  });
+
   it("應拒絕剛好到期的 token (exp = now)", async () => {
     const now = Math.floor(Date.now() / 1000);
     const token = await sign(
@@ -487,6 +510,7 @@ describe("4. 刷新令牌安全 (Refresh Token Security)", () => {
   let mockAuthService: any;
 
   beforeEach(async () => {
+    resetAllFactories();
     mockAuthService = {
       login: vi.fn(),
       register: vi.fn(),
@@ -677,6 +701,10 @@ describe("4. 刷新令牌安全 (Refresh Token Security)", () => {
 // 5. Guest Token 邊界測試 (Guest Token Boundary Tests)
 // =============================================================================
 describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
+  beforeEach(() => {
+    resetAllFactories();
+  });
+
   it("Guest token 用在 JWT 保護的端點時應被拒絕", async () => {
     const guestToken = generateGuestToken(); // gt_xxxx...
 
@@ -902,6 +930,10 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
 // 6. Token 聲明邊界測試 (Token Claim Boundary Tests)
 // =============================================================================
 describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
+  beforeEach(() => {
+    resetAllFactories();
+  });
+
   it("應拒絕 role = 5 的 token（customer role，auth middleware 只允許 0-4）", async () => {
     const token = await sign(validPayload({ role: 5 }), SECRET, "HS256");
 

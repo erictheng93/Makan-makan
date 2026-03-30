@@ -55,9 +55,9 @@ config:
       metricsNamespace: "lunch_peak"
 
   variables:
-    testUsername: "testuser"
-    testPassword: "testpass123"
-    restaurantId: "1"
+    testUsername: "{{ $processEnvironment.PERF_TEST_USERNAME }}"
+    testPassword: "{{ $processEnvironment.PERF_TEST_PASSWORD }}"
+    restaurantId: "{{ $processEnvironment.PERF_TEST_RESTAURANT_ID }}"
 
   processor: "./artillery-api-processor.js"
 

@@ -10,7 +10,6 @@ import {
   type FactoryOptions,
   randomString,
   randomUUID,
-  randomChoice,
   randomNumber,
 } from "./base.factory";
 
@@ -23,12 +22,6 @@ import type {
   PrintOptions,
   PrintError,
   PrinterCapabilities,
-  PrintJobType,
-  PrintJobPriority,
-  PrintJobStatus,
-  PrinterBrand,
-  PrinterConnection,
-  PrinterStatus,
 } from "@makanmakan/shared-types";
 
 // =============================================

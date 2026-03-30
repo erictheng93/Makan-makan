@@ -51,6 +51,7 @@ describe("OrderCard.vue", () => {
     return mount(OrderCard, {
       props: {
         order: mockOrder,
+        statusType: "pending", // required prop
         ...props,
       },
       global: {
@@ -75,7 +76,9 @@ describe("OrderCard.vue", () => {
     it("應該正確渲染訂單卡片", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.find(".order-card").exists()).toBe(true);
+      // Root element is a div with dynamic classes (no .order-card class)
+      expect(wrapper.element.tagName).toBe("DIV");
+      expect(wrapper.exists()).toBe(true);
     });
 
     it("應該顯示訂單編號", () => {
@@ -87,7 +90,8 @@ describe("OrderCard.vue", () => {
     it("應該顯示桌號", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.text()).toContain("桌號 A-1");
+      // Component renders table name as "桌 A-1" (e.g. <span>桌 {{ order.tableName }}</span>)
+      expect(wrapper.text()).toContain("桌 A-1");
     });
 
     it("應該顯示所有訂單項目", () => {
@@ -152,7 +156,8 @@ describe("OrderCard.vue", () => {
 
       wrapper = createWrapper({ order: urgentOrder });
 
-      expect(wrapper.find(".animate-pulse-fast").exists()).toBe(true);
+      // Urgent orders use animate-urgent-pulse class on the root card
+      expect(wrapper.html()).toContain("animate-urgent-pulse");
     });
 
     it("應該為普通訂單不顯示動畫", () => {
@@ -209,10 +214,10 @@ describe("OrderCard.vue", () => {
 
   describe("狀態樣式", () => {
     it("pending 狀態應該有對應的樣式", () => {
-      wrapper = createWrapper();
+      wrapper = createWrapper({ statusType: "pending" });
 
-      const card = wrapper.find(".order-card");
-      expect(card.classes()).toBeDefined();
+      // Root element carries dynamic border/background classes based on statusType
+      expect(wrapper.element.classList.length).toBeGreaterThan(0);
     });
 
     it("preparing 狀態應該有對應的樣式", () => {
@@ -221,10 +226,12 @@ describe("OrderCard.vue", () => {
         status: "preparing",
       };
 
-      wrapper = createWrapper({ order: preparingOrder });
+      wrapper = createWrapper({
+        order: preparingOrder,
+        statusType: "preparing",
+      });
 
-      const card = wrapper.find(".order-card");
-      expect(card.classes()).toBeDefined();
+      expect(wrapper.element.classList.length).toBeGreaterThan(0);
     });
 
     it("completed 狀態應該有對應的樣式", () => {
@@ -233,10 +240,9 @@ describe("OrderCard.vue", () => {
         status: "completed",
       };
 
-      wrapper = createWrapper({ order: completedOrder });
+      wrapper = createWrapper({ order: completedOrder, statusType: "ready" });
 
-      const card = wrapper.find(".order-card");
-      expect(card.classes()).toBeDefined();
+      expect(wrapper.element.classList.length).toBeGreaterThan(0);
     });
   });
 

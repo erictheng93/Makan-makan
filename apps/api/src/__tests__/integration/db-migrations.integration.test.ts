@@ -57,7 +57,7 @@ describe("Database Migrations Integration", () => {
     sqlDb = new SQL.Database();
 
     // Register `unixepoch` -- sql.js may use an older SQLite build that lacks it.
-    sqlDb.create_function("unixepoch", (arg: string | null) => {
+    (sqlDb as any).create_function("unixepoch", (arg: string | null) => {
       if (arg === "now" || arg === null) {
         return Math.floor(Date.now() / 1000);
       }

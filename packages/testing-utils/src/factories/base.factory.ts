@@ -31,7 +31,7 @@ export abstract class BaseFactory<T> {
    * 生成多筆測試數據
    */
   buildList(count: number, options?: FactoryOptions<T>): T[] {
-    return Array.from({ length: count }, (_, index) =>
+    return Array.from({ length: count }, () =>
       this.build({
         ...options,
         sequence: options?.sequence ?? this.sequenceCounter++,

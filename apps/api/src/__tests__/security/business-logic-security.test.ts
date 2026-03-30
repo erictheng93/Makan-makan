@@ -25,6 +25,12 @@ import {
 } from "../../features/authentication/routes";
 import { OrdersService } from "../../features/orders/services/OrdersService";
 import { requireRestaurantAccess } from "../../middleware/auth";
+import {
+  envFactory,
+  userFactory,
+  restaurantFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ── Mock dependencies ──────────────────────────────────────────────────
 
@@ -91,30 +97,27 @@ vi.mock("../../services/RealtimeBroadcastService", () => ({
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-const JWT_SECRET = "test-secret-key-that-is-at-least-32-chars-long";
+const JWT_SECRET = envFactory.build().JWT_SECRET;
 
-const createMockEnv = (): Record<string, any> => ({
-  JWT_SECRET,
-  NODE_ENV: "test",
-  DB: {
-    prepare: vi.fn(() => ({
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true }),
-      first: vi.fn().mockResolvedValue(null),
-      all: vi.fn().mockResolvedValue({ results: [] }),
-    })),
-  },
-  TOKEN_BLACKLIST: {
-    get: vi.fn().mockResolvedValue(null),
-    put: vi.fn().mockResolvedValue(undefined),
-  },
-  CACHE_KV: {
-    get: vi.fn().mockResolvedValue(null),
-    put: vi.fn().mockResolvedValue(undefined),
-    set: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined),
-  },
-});
+const createMockEnv = (): Record<string, any> => {
+  const env = envFactory.build();
+  return {
+    ...env,
+    NODE_ENV: "test",
+    TOKEN_BLACKLIST: {
+      ...env.TOKEN_BLACKLIST,
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn().mockResolvedValue(undefined),
+    },
+    CACHE_KV: {
+      ...env.CACHE_KV,
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+};
 
 /** Sign a JWT with standard claims */
 const createToken = async (
@@ -167,7 +170,9 @@ function createMockAuthService() {
 }
 
 /** Standard mock auth middleware — sets c.set("user", ...) from JWT */
-function createJwtAuthMiddleware(secret: string = JWT_SECRET): AuthMiddleware {
+function createJwtAuthMiddleware(
+  secret: string = envFactory.build().JWT_SECRET,
+): AuthMiddleware {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const authHeader = c.req.header("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -219,6 +224,7 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     env = createMockEnv();
     mockService = createMockAuthService();
 
@@ -254,15 +260,17 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
 
   // 用戶A嘗試存取用戶B的個人資料 — 必須被拒絕
   it("should return 403 when User A (role=1, id=10) tries to GET /profile/20 (User B)", async () => {
+    const ownerA = userFactory.buildShopOwner(1);
+    const userB = userFactory.buildShopOwner(2);
     const tokenA = await createToken({
-      id: 10,
-      username: "owner-a",
-      role: 1,
+      id: ownerA.id,
+      username: ownerA.username,
+      role: ownerA.role,
       restaurantId: "rest-A",
     });
 
     const res = await app.request(
-      "/auth/profile/20",
+      `/auth/profile/${userB.id}`,
       {
         method: "GET",
         headers: {
@@ -274,7 +282,7 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     // getUserProfile 不應該被呼叫 — 在權限檢查階段就被攔截
     expect(mockService.getUserProfile).not.toHaveBeenCalled();
@@ -282,15 +290,17 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
 
   // 用戶A嘗試修改用戶B的個人資料 — 必須被拒絕
   it("should return 403 when User A (role=1, id=10) tries to PUT /profile/20", async () => {
+    const ownerA = userFactory.buildShopOwner(1);
+    const userB = userFactory.buildShopOwner(2);
     const tokenA = await createToken({
-      id: 10,
-      username: "owner-a",
-      role: 1,
+      id: ownerA.id,
+      username: ownerA.username,
+      role: ownerA.role,
       restaurantId: "rest-A",
     });
 
     const res = await app.request(
-      "/auth/profile/20",
+      `/auth/profile/${userB.id}`,
       {
         method: "PUT",
         headers: {
@@ -303,7 +313,7 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     // updateUserProfile 不應該被呼叫
     expect(mockService.updateUserProfile).not.toHaveBeenCalled();
@@ -311,21 +321,23 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
 
   // 管理員可以存取任何用戶的個人資料
   it("should return 200 when Admin (role=0) tries to GET /profile/20", async () => {
+    const admin = userFactory.buildAdmin();
+    const userB = userFactory.buildShopOwner(1);
     const adminToken = await createToken({
-      id: 999,
-      username: "admin",
-      role: 0,
+      id: admin.id,
+      username: admin.username,
+      role: admin.role,
     });
 
     mockService.getUserProfile.mockResolvedValue({
-      id: 20,
-      username: "user-b",
-      fullName: "User B",
-      role: 1,
+      id: userB.id,
+      username: userB.username,
+      fullName: userB.fullName,
+      role: userB.role,
     });
 
     const res = await app.request(
-      "/auth/profile/20",
+      `/auth/profile/${userB.id}`,
       {
         method: "GET",
         headers: {
@@ -337,31 +349,32 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
-    expect(body.data.id).toBe(20);
+    expect(body.data.id).toBe(userB.id);
     expect(mockService.getUserProfile).toHaveBeenCalledOnce();
-    expect(mockService.getUserProfile).toHaveBeenCalledWith(20);
+    expect(mockService.getUserProfile).toHaveBeenCalledWith(userB.id);
   });
 
   // 用戶存取自己的個人資料 — 允許
   it("should return 200 when user accesses their own profile", async () => {
+    const ownerA = userFactory.buildShopOwner(1);
     const token = await createToken({
-      id: 10,
-      username: "owner-a",
-      role: 1,
+      id: ownerA.id,
+      username: ownerA.username,
+      role: ownerA.role,
       restaurantId: "rest-A",
     });
 
     mockService.getUserProfile.mockResolvedValue({
-      id: 10,
-      username: "owner-a",
-      fullName: "Owner A",
-      role: 1,
+      id: ownerA.id,
+      username: ownerA.username,
+      fullName: ownerA.fullName,
+      role: ownerA.role,
     });
 
     const res = await app.request(
-      "/auth/profile/10",
+      `/auth/profile/${ownerA.id}`,
       {
         method: "GET",
         headers: {
@@ -373,9 +386,9 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
-    expect(body.data.id).toBe(10);
+    expect(body.data.id).toBe(ownerA.id);
     expect(mockService.getUserProfile).toHaveBeenCalledOnce();
   });
 });
@@ -391,6 +404,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     env = createMockEnv();
     mockService = createMockAuthService();
 
@@ -436,10 +450,11 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
 
   // 店主嘗試註冊管理員帳號 — 必須被拒絕（權限提升攻擊）
   it("should return 403 when Owner (role=1) tries to register admin (role=0)", async () => {
+    const owner = userFactory.buildShopOwner(1);
     const ownerToken = await createToken({
-      id: 10,
-      username: "owner",
-      role: 1,
+      id: owner.id,
+      username: owner.username,
+      role: owner.role,
       restaurantId: "rest-A",
     });
 
@@ -461,7 +476,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Shop owners can only create staff accounts");
     // register 不應該被呼叫 — 在權限檢查階段就被攔截
@@ -470,10 +485,11 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
 
   // 店主嘗試註冊另一個店主帳號 — 必須被拒絕
   it("should return 403 when Owner (role=1) tries to register another owner (role=1)", async () => {
+    const owner = userFactory.buildShopOwner(1);
     const ownerToken = await createToken({
-      id: 10,
-      username: "owner",
-      role: 1,
+      id: owner.id,
+      username: owner.username,
+      role: owner.role,
       restaurantId: "rest-A",
     });
 
@@ -495,7 +511,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Shop owners can only create staff accounts");
     expect(mockService.register).not.toHaveBeenCalled();
@@ -503,10 +519,11 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
 
   // 店主註冊廚師帳號 — 允許
   it("should succeed when Owner (role=1) registers a chef (role=2)", async () => {
+    const owner = userFactory.buildShopOwner(1);
     const ownerToken = await createToken({
-      id: 10,
-      username: "owner",
-      role: 1,
+      id: owner.id,
+      username: owner.username,
+      role: owner.role,
       restaurantId: "rest-A",
     });
 
@@ -532,22 +549,23 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(mockService.register).toHaveBeenCalledOnce();
     // 驗證 createdBy 參數 — 傳入的是當前用戶 ID
     expect(mockService.register).toHaveBeenCalledWith(
       expect.objectContaining({ role: 2 }),
-      10, // createdBy = owner's ID
+      owner.id, // createdBy = owner's ID
     );
   });
 
   // 廚師嘗試註冊任何員工 — 必須被拒絕（只有 role 0/1 可以註冊）
   it("should return 403 when Chef (role=2) tries to register staff", async () => {
+    const chef = userFactory.buildChef(1);
     const chefToken = await createToken({
-      id: 20,
-      username: "chef",
-      role: 2,
+      id: chef.id,
+      username: chef.username,
+      role: chef.role,
       restaurantId: "rest-A",
     });
 
@@ -568,17 +586,18 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(mockService.register).not.toHaveBeenCalled();
   });
 
   // 收銀員嘗試註冊員工 — 必須被拒絕
   it("should return 403 when Cashier (role=4) tries to register staff", async () => {
+    const cashier = userFactory.buildCashier(1);
     const cashierToken = await createToken({
-      id: 30,
-      username: "cashier",
-      role: 4,
+      id: cashier.id,
+      username: cashier.username,
+      role: cashier.role,
       restaurantId: "rest-A",
     });
 
@@ -599,17 +618,18 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(mockService.register).not.toHaveBeenCalled();
   });
 
   // 管理員可以註冊任何角色的帳號
   it("should succeed when Admin (role=0) registers any role", async () => {
+    const admin = userFactory.buildAdmin();
     const adminToken = await createToken({
-      id: 999,
-      username: "admin",
-      role: 0,
+      id: admin.id,
+      username: admin.username,
+      role: admin.role,
     });
 
     mockService.register.mockResolvedValue({
@@ -634,7 +654,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(mockService.register).toHaveBeenCalledOnce();
   });
@@ -649,11 +669,12 @@ describe("Cross-Tenant Order Access — Service Level (跨租戶訂單存取)", 
   let mockEnv: ReturnType<typeof createMockEnv>;
   let mockBaseOrderService: any;
 
-  const RESTAURANT_A = "rest-A";
-  const RESTAURANT_B = "rest-B";
+  const RESTAURANT_A = String(restaurantFactory.build().id);
+  const RESTAURANT_B = String(restaurantFactory.build().id);
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockEnv = createMockEnv();
 
     const { OrderService, CouponService } =
@@ -820,6 +841,7 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     env = createMockEnv();
 
     app = new Hono<{ Bindings: Env }>();
@@ -841,10 +863,11 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
 
   // 店主嘗試存取其他餐廳 — 必須被拒絕
   it("should return 403 when Owner with restaurantId='rest-A' accesses /restaurant/rest-B/menu", async () => {
+    const owner = userFactory.buildShopOwner(1);
     const token = await createToken({
-      id: 10,
-      username: "owner-a",
-      role: 1,
+      id: owner.id,
+      username: owner.username,
+      role: owner.role,
       restaurantId: "rest-A",
     });
 
@@ -858,16 +881,17 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
   });
 
   // 店主存取自己的餐廳 — 允許
   it("should return 200 when Owner with restaurantId='rest-A' accesses /restaurant/rest-A/menu", async () => {
+    const owner = userFactory.buildShopOwner(1);
     const token = await createToken({
-      id: 10,
-      username: "owner-a",
-      role: 1,
+      id: owner.id,
+      username: owner.username,
+      role: owner.role,
       restaurantId: "rest-A",
     });
 
@@ -881,16 +905,17 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
     );
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
   });
 
   // 沒有 restaurantId 的廚師嘗試存取任何餐廳 — 必須被拒絕
   it("should return 403 when Chef with no restaurantId accesses any restaurant", async () => {
+    const chef = userFactory.buildChef(1);
     const token = await createToken({
-      id: 20,
-      username: "chef-orphan",
-      role: 2,
+      id: chef.id,
+      username: chef.username,
+      role: chef.role,
       // 故意不設定 restaurantId — 模擬異常狀態
     });
 
@@ -904,16 +929,17 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
   });
 
   // 管理員可以存取任何餐廳
   it("should return 200 when Admin accesses any restaurant", async () => {
+    const admin = userFactory.buildAdmin();
     const adminToken = await createToken({
-      id: 999,
-      username: "admin",
-      role: 0,
+      id: admin.id,
+      username: admin.username,
+      role: admin.role,
     });
 
     const res = await app.request(
@@ -926,7 +952,7 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
     );
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
   });
 });
@@ -942,6 +968,7 @@ describe("Session Hijacking Prevention (防止會話劫持)", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     env = createMockEnv();
     mockService = createMockAuthService();
 
@@ -978,10 +1005,11 @@ describe("Session Hijacking Prevention (防止會話劫持)", () => {
   // 用戶A的 token 用於終止用戶B的會話 — 實際上 session 路由使用 JWT 中的 user.id
   // 所以即使用戶A嘗試，terminateSession 仍然使用用戶A的 ID
   it("should use JWT user.id (not URL param) for session termination — prevents hijacking", async () => {
+    const userA = userFactory.buildShopOwner(1);
     const tokenA = await createToken({
-      id: 10,
-      username: "user-a",
-      role: 1,
+      id: userA.id,
+      username: userA.username,
+      role: userA.role,
       restaurantId: "rest-A",
     });
 
@@ -998,20 +1026,21 @@ describe("Session Hijacking Prevention (防止會話劫持)", () => {
     );
 
     expect(res.status).toBe(200);
-    // 驗證 terminateSession 使用的是 JWT 中的 user.id (10)，不是其他用戶的 ID
+    // 驗證 terminateSession 使用的是 JWT 中的 user.id，不是其他用戶的 ID
     expect(mockService.terminateSession).toHaveBeenCalledOnce();
     expect(mockService.terminateSession).toHaveBeenCalledWith(
-      10,
+      userA.id,
       "session-xyz",
     );
   });
 
   // 用戶A的 token 嘗試終止所有會話 — 只應終止自己的
   it("should use JWT user.id for terminate-all-sessions — prevents hijacking", async () => {
+    const userA = userFactory.buildShopOwner(1);
     const tokenA = await createToken({
-      id: 10,
-      username: "user-a",
-      role: 1,
+      id: userA.id,
+      username: userA.username,
+      role: userA.role,
       restaurantId: "rest-A",
     });
 
@@ -1027,17 +1056,18 @@ describe("Session Hijacking Prevention (防止會話劫持)", () => {
     );
 
     expect(res.status).toBe(200);
-    // 驗證 terminateAllSessions 使用的是 JWT 中的 user.id (10)
+    // 驗證 terminateAllSessions 使用的是 JWT 中的 user.id
     expect(mockService.terminateAllSessions).toHaveBeenCalledOnce();
-    expect(mockService.terminateAllSessions).toHaveBeenCalledWith(10);
+    expect(mockService.terminateAllSessions).toHaveBeenCalledWith(userA.id);
   });
 
   // 用戶A的 token 用於更改密碼 — change-password 使用 JWT 中的 user.id
   it("should use JWT user.id for change-password — prevents changing another user's password", async () => {
+    const userA = userFactory.buildShopOwner(1);
     const tokenA = await createToken({
-      id: 10,
-      username: "user-a",
-      role: 1,
+      id: userA.id,
+      username: userA.username,
+      role: userA.role,
       restaurantId: "rest-A",
     });
 
@@ -1061,10 +1091,10 @@ describe("Session Hijacking Prevention (防止會話劫持)", () => {
     );
 
     expect(res.status).toBe(200);
-    // 驗證 changePassword 使用的是 JWT 中的 user.id (10)
+    // 驗證 changePassword 使用的是 JWT 中的 user.id
     expect(mockService.changePassword).toHaveBeenCalledOnce();
     expect(mockService.changePassword).toHaveBeenCalledWith(
-      10, // JWT user.id — 不是通過 URL 參數傳入的
+      userA.id, // JWT user.id — 不是通過 URL 參數傳入的
       "OldPass@123",
       "NewPass@456",
     );
@@ -1072,15 +1102,16 @@ describe("Session Hijacking Prevention (防止會話劫持)", () => {
 
   // 用戶A查看會話列表 — 只應返回自己的會話
   it("should use JWT user.id for listing sessions — prevents viewing other users' sessions", async () => {
+    const userA = userFactory.buildShopOwner(1);
     const tokenA = await createToken({
-      id: 10,
-      username: "user-a",
-      role: 1,
+      id: userA.id,
+      username: userA.username,
+      role: userA.role,
       restaurantId: "rest-A",
     });
 
     mockService.getUserSessions.mockResolvedValue([
-      { id: "sess-1", userId: 10, createdAt: Date.now() },
+      { id: "sess-1", userId: userA.id, createdAt: Date.now() },
     ]);
 
     const res = await app.request(
@@ -1093,9 +1124,9 @@ describe("Session Hijacking Prevention (防止會話劫持)", () => {
     );
 
     expect(res.status).toBe(200);
-    // 驗證 getUserSessions 使用的是 JWT 中的 user.id (10)
+    // 驗證 getUserSessions 使用的是 JWT 中的 user.id
     expect(mockService.getUserSessions).toHaveBeenCalledOnce();
-    expect(mockService.getUserSessions).toHaveBeenCalledWith(10);
+    expect(mockService.getUserSessions).toHaveBeenCalledWith(userA.id);
   });
 });
 
@@ -1109,6 +1140,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     env = createMockEnv();
     app = new Hono<{ Bindings: Env }>();
     withErrorHandler(app);
@@ -1169,7 +1201,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
   });
 
@@ -1206,7 +1238,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Token does not match this order");
   });
@@ -1243,7 +1275,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
   });
 
@@ -1265,7 +1297,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Guest token expired or invalid");
   });
@@ -1281,17 +1313,18 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Missing or invalid guest token");
   });
 
   // JWT token（非訪客 token）嘗試存取訪客端點 — 必須被拒絕
   it("should return 401 when JWT token (not guest token) accesses guest endpoint", async () => {
+    const owner = userFactory.buildShopOwner(1);
     const jwtToken = await createToken({
-      id: 10,
-      username: "owner",
-      role: 1,
+      id: owner.id,
+      username: owner.username,
+      role: owner.role,
       restaurantId: "rest-A",
     });
 
@@ -1306,7 +1339,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
 
     // JWT token 不以 "gt_" 開頭，所以會被拒絕
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Missing or invalid guest token");
   });

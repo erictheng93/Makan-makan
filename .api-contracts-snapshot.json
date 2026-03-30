@@ -2,7 +2,6 @@
   "ai-analytics": {
     "GetConfigResponse": ["availableProviders", "config", "success"],
     "SaveConfigResponse": ["message", "success", "testResult"],
-    "TestProviderResponse": ["error", "latencyMs", "model", "success"],
     "GenerateReportResponse": ["cached", "report", "success"],
     "ProductAnalysisResponse": ["products", "success"],
     "UsageStatsResponse": ["success", "usage"],
@@ -52,21 +51,6 @@
     ]
   },
   "coupons": {
-    "CouponSchema": [
-      "code",
-      "description",
-      "discountType",
-      "discountValue",
-      "id",
-      "isActive",
-      "maxDiscount",
-      "minOrderAmount",
-      "restaurantId",
-      "usageLimit",
-      "usedCount",
-      "validFrom",
-      "validUntil"
-    ],
     "ValidateCouponResponse": ["data", "pagination", "success"],
     "ListCouponsResponse": ["data", "pagination", "success"],
     "GetCouponResponse": ["data", "success"],
@@ -80,19 +64,6 @@
     "BulkCouponResponse": ["data", "message", "success"]
   },
   "customers": {
-    "CustomerSchema": [
-      "email",
-      "fullName",
-      "id",
-      "loyaltyPoints",
-      "name",
-      "phone",
-      "preferences",
-      "role",
-      "totalOrders",
-      "totalSpent",
-      "username"
-    ],
     "GetMeResponse": ["data", "pagination", "success"],
     "GetMyOrdersResponse": ["data", "pagination", "success"],
     "RegisterCustomerResponse": ["data", "success", "token"],
@@ -101,15 +72,12 @@
   },
   "discovery": {
     "SearchResponse": ["data", "success"],
-    "BrowseRestaurantsResponse": ["items"],
-    "GetRestaurantMenuResponse": ["items"],
+    "BrowseRestaurantsResponse": ["data", "success"],
+    "GetRestaurantMenuResponse": ["data", "success"],
     "GetPopularItemsResponse": ["data", "success"],
     "ReindexResponse": ["data", "success"]
   },
   "group-orders": {
-    "GroupOrderSchema": ["hostId", "id", "restaurantId", "shareCode", "status"],
-    "GroupMemberSchema": ["groupOrderId", "id", "name"],
-    "CartItemSchema": ["id", "menuItemId", "name", "price", "quantity"],
     "ListGroupOrdersResponse": ["expiresAt", "shareCode", "shareUrl"],
     "GenerateShareCodeResponse": ["expiresAt", "shareCode", "shareUrl"],
     "CreateGroupOrderResponse": ["groupOrder", "member"],
@@ -138,15 +106,6 @@
       "staffNotes"
     ]
   },
-  "integrations": {
-    "IntegrationSchema": ["config", "id", "platform", "restaurantId", "status"],
-    "ListIntegrationsResponse": ["data"],
-    "GetIntegrationResponse": ["data"],
-    "ConnectIntegrationResponse": ["data"],
-    "UpdateIntegrationResponse": ["data"],
-    "DisconnectIntegrationResponse": ["data"],
-    "WebhookLogsResponse": ["data"]
-  },
   "kitchen": {
     "GetKitchenOrdersResponse": ["data", "message", "success"],
     "UpdateItemStatusResponse": ["data", "message", "success"],
@@ -154,17 +113,6 @@
     "BroadcastTestResponse": ["data", "message", "success"]
   },
   "leaves": {
-    "LeaveTypeSchema": ["id", "isPaid", "maxDays", "name", "restaurantId"],
-    "LeaveBalanceSchema": ["balance", "id", "leaveTypeId", "used", "userId"],
-    "LeaveRequestSchema": [
-      "endDate",
-      "id",
-      "leaveTypeId",
-      "reason",
-      "startDate",
-      "status",
-      "userId"
-    ],
     "ListLeaveTypesResponse": ["data", "success"],
     "GetLeaveTypeResponse": ["data", "success"],
     "CreateLeaveTypeResponse": ["data", "message", "success"],
@@ -180,33 +128,6 @@
     "CancelLeaveResponse": ["data", "message", "success"]
   },
   "menu": {
-    "CategorySchema": [
-      "description",
-      "id",
-      "isActive",
-      "name",
-      "restaurantId",
-      "sortOrder"
-    ],
-    "MenuItemSchema": [
-      "addOns",
-      "categoryId",
-      "customizations",
-      "description",
-      "dietaryInfo",
-      "id",
-      "imageUrl",
-      "isActive",
-      "isAvailable",
-      "isFeatured",
-      "name",
-      "preparationTime",
-      "price",
-      "restaurantId",
-      "sizes",
-      "sortOrder"
-    ],
-    "FullMenuSchema": ["categories", "items"],
     "GetMenuResponse": ["data", "success"],
     "GetFeaturedResponse": ["data", "success"],
     "GetPopularResponse": ["data", "pagination", "success"],
@@ -233,115 +154,47 @@
       "totalPrice",
       "unitPrice"
     ],
-    "OrderSchema": [
-      "customerId",
-      "discount",
-      "id",
-      "items",
-      "notes",
-      "orderNumber",
-      "orderType",
-      "paymentStatus",
-      "restaurantId",
-      "seatId",
-      "serviceCharge",
-      "status",
-      "subtotal",
-      "tableId",
-      "tax",
-      "totalAmount",
-      "userId"
-    ],
     "CreateOrderResponse": ["data", "success"],
     "GuestOrderResponse": ["data", "guestToken", "success"],
     "GetOrderResponse": ["data", "pagination", "success"],
     "ListOrdersResponse": ["data", "pagination", "success"],
-    "UpdateOrderStatusResponse": [
-      "averageOrderValue",
-      "totalOrders",
-      "totalRevenue"
-    ],
-    "CancelOrderResponse": ["averageOrderValue", "totalOrders", "totalRevenue"],
-    "OrderStatsResponse": ["averageOrderValue", "totalOrders", "totalRevenue"],
-    "OrderReceiptResponse": ["items", "orderId", "orderNumber", "totalAmount"],
-    "CouponPreviewResponse": ["discount", "valid"]
+    "UpdateOrderStatusResponse": ["data", "success"],
+    "CancelOrderResponse": ["message", "success"],
+    "OrderStatsResponse": ["data", "success"],
+    "OrderReceiptResponse": ["data", "success"],
+    "CouponPreviewResponse": ["data", "success"]
   },
   "partnerships": {
-    "PartnershipSchema": [
-      "id",
-      "organizationName",
-      "partnerName",
-      "restaurantId",
-      "status"
-    ],
-    "PlanSchema": [
-      "discountType",
-      "discountValue",
-      "id",
-      "name",
-      "partnershipId"
-    ],
-    "MemberSchema": ["email", "id", "name", "partnershipId", "phone", "status"],
-    "UsageLogSchema": ["amount", "id", "memberId"],
     "CreatePartnershipResponse": ["data", "success"],
-    "ListPartnershipsResponse": ["data", "success"],
     "GetPartnershipResponse": ["data", "success"],
     "UpdatePartnershipResponse": ["data", "success"],
-    "DeletePartnershipResponse": ["data", "success"],
+    "DeletePartnershipResponse": ["message", "success"],
     "PartnershipStatsResponse": ["data", "success"],
     "CreatePlanResponse": ["data", "success"],
-    "ListPlansResponse": ["data", "success"],
     "GetPlanResponse": ["data", "success"],
     "ValidatePlanResponse": ["data", "success"],
-    "VerifyMemberResponse": ["data", "success"],
-    "ListMembersResponse": ["data", "success"],
+    "VerifyMemberResponse": ["data", "message", "success"],
     "ApproveMemberResponse": ["data", "message", "success"],
-    "RejectMemberResponse": ["data", "success"],
-    "LogUsageResponse": ["data", "success"],
-    "ListUsageResponse": ["data", "success"]
+    "RejectMemberResponse": ["data", "message", "success"],
+    "LogUsageResponse": ["data", "message", "success"]
   },
   "pos": {
-    "RegisterSchema": ["id", "name", "restaurantId", "status"],
     "CreateRegisterResponse": ["data", "success"],
     "ListRegistersResponse": ["data", "success"],
     "GetRegisterStatusResponse": ["data", "success"]
   },
   "qr-codes": {
-    "QRCodeSchema": [
-      "code",
-      "id",
-      "imageUrl",
-      "restaurantId",
-      "targetId",
-      "targetType",
-      "url"
-    ],
-    "QRTemplateSchema": ["config", "id", "name"],
     "GenerateQRResponse": ["data", "message", "success"],
     "BulkGenerateResponse": ["data", "message", "success"],
     "GetQRStatsResponse": ["data", "success"],
     "ListTemplatesResponse": ["data", "success"],
     "GetTemplateResponse": ["data", "success"],
     "CreateTemplateResponse": ["data", "message", "success"],
-    "UpdateTemplateResponse": ["restaurant", "restaurantId", "valid"],
-    "DeleteTemplateResponse": ["restaurant", "restaurantId", "valid"],
-    "VerifyShopQRResponse": ["restaurant", "restaurantId", "valid"]
+    "UpdateTemplateResponse": ["data", "message", "success"],
+    "DeleteTemplateResponse": ["message", "success"],
+    "VerifyShopQRResponse": ["data", "success"]
   },
   "reservations": {
-    "ReservationSchema": [
-      "confirmationCode",
-      "customerEmail",
-      "customerName",
-      "customerPhone",
-      "id",
-      "notes",
-      "partySize",
-      "reservationDate",
-      "reservationTime",
-      "restaurantId",
-      "status",
-      "tableId"
-    ],
     "CreateReservationResponse": ["data", "message", "success"],
     "VerifyReservationResponse": ["data", "pagination", "success"],
     "CheckAvailabilityResponse": ["data", "pagination", "success"],
@@ -354,46 +207,6 @@
   },
   "restaurants": {
     "OperatingHoursSchema": ["close", "closed", "day", "open"],
-    "RestaurantSettingsSchema": [
-      "autoAcceptOrders",
-      "currency",
-      "enableLoyaltyProgram",
-      "enableQROrdering",
-      "enableShopQR",
-      "enableTableService",
-      "orderTimeout",
-      "serviceCharge",
-      "taxRate",
-      "timezone"
-    ],
-    "RestaurantSchema": [
-      "address",
-      "coverImageUrl",
-      "description",
-      "email",
-      "id",
-      "isActive",
-      "logoUrl",
-      "name",
-      "operatingHours",
-      "ownerId",
-      "phone",
-      "settings"
-    ],
-    "RestaurantStatsSchema": [
-      "averageOrderValue",
-      "totalCustomers",
-      "totalOrders",
-      "totalRevenue"
-    ],
-    "ShopQRCodeSchema": [
-      "id",
-      "isActive",
-      "qrCode",
-      "qrCodeUrl",
-      "restaurantId",
-      "shortUrl"
-    ],
     "ListRestaurantsResponse": ["data", "pagination", "success"],
     "GetRestaurantResponse": ["data", "success"],
     "CreateRestaurantResponse": ["data", "success"],
@@ -405,24 +218,6 @@
     "UpdateSettingsResponse": ["data", "success"]
   },
   "scheduling": {
-    "ShiftTemplateSchema": [
-      "endTime",
-      "id",
-      "name",
-      "restaurantId",
-      "startTime"
-    ],
-    "ScheduleSchema": [
-      "clockInAt",
-      "clockOutAt",
-      "date",
-      "id",
-      "restaurantId",
-      "shiftTemplateId",
-      "status",
-      "userId"
-    ],
-    "SwapRequestSchema": ["id", "requesterId", "status", "targetId"],
     "ListTemplatesResponse": ["data", "success"],
     "GetTemplateResponse": ["data", "success"],
     "CreateTemplateResponse": ["data", "message", "success"],
@@ -438,18 +233,6 @@
     "AttendanceReportResponse": ["data", "message", "success"]
   },
   "seats": {
-    "SeatSchema": [
-      "capacity",
-      "id",
-      "isActive",
-      "isOccupied",
-      "orderId",
-      "qrCode",
-      "restaurantId",
-      "seatName",
-      "seatNumber",
-      "tableId"
-    ],
     "PublicSeatInfoSchema": [
       "capacity",
       "id",
@@ -484,25 +267,12 @@
     ]
   },
   "users": {
-    "UserSchema": [
-      "avatar",
-      "email",
-      "fullName",
-      "id",
-      "isActive",
-      "name",
-      "phone",
-      "restaurantId",
-      "role",
-      "username"
-    ],
-    "ListUsersResponse": ["data", "meta", "success"],
     "GetUserResponse": ["data", "success"],
     "CreateUserResponse": ["data", "success"],
-    "UpdateUserResponse": ["activeUsers", "totalUsers"],
-    "DeleteUserResponse": ["activeUsers", "totalUsers"],
-    "ChangePasswordResponse": ["activeUsers", "totalUsers"],
-    "UserStatsResponse": ["activeUsers", "totalUsers"],
+    "UpdateUserResponse": ["data", "success"],
+    "DeleteUserResponse": ["message", "success"],
+    "ChangePasswordResponse": ["message", "success"],
+    "UserStatsResponse": ["data", "success"],
     "USER_SENSITIVE_FIELDS": [
       "hashedPassword",
       "password",
@@ -511,20 +281,9 @@
     ]
   },
   "waiting-list": {
-    "WaitingListEntrySchema": [
-      "customerName",
-      "customerPhone",
-      "estimatedWaitMinutes",
-      "id",
-      "notes",
-      "partySize",
-      "position",
-      "restaurantId",
-      "status"
-    ],
     "JoinQueueResponse": ["data", "message", "success"],
-    "GetEntryResponse": ["estimatedWait", "totalWaiting"],
-    "QueueStatusResponse": ["estimatedWait", "totalWaiting"],
+    "GetEntryResponse": ["data", "success"],
+    "QueueStatusResponse": ["data", "success"],
     "EstimateWaitResponse": ["data", "pagination", "success"],
     "ListWaitingResponse": ["data", "pagination", "success"],
     "CallNextResponse": ["data", "message", "success"],

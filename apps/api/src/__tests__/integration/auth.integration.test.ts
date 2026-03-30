@@ -54,7 +54,7 @@ describe("Auth Integration Tests", () => {
         }),
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       // The endpoint should create the user and return 201
       expect(res.status).toBe(201);
@@ -82,7 +82,7 @@ describe("Auth Integration Tests", () => {
         }),
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       // Should fail with conflict (409), bad request (400), or 500 if the mock
       // DB's UNIQUE constraint violation propagates unhandled through MockDrizzle.
@@ -102,7 +102,7 @@ describe("Auth Integration Tests", () => {
         }),
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(400);
       expect(body.success).toBe(false);
@@ -126,7 +126,7 @@ describe("Auth Integration Tests", () => {
         }),
       });
 
-      const registerBody = await registerRes.json();
+      const registerBody = (await registerRes.json()) as any;
       expect(registerRes.status).toBe(201);
       expect(registerBody.success).toBe(true);
 
@@ -144,7 +144,7 @@ describe("Auth Integration Tests", () => {
         }),
       });
 
-      const loginBody = await loginRes.json();
+      const loginBody = (await loginRes.json()) as any;
 
       expect(loginRes.status).not.toBe(404);
       if (loginRes.status === 200) {
@@ -183,7 +183,7 @@ describe("Auth Integration Tests", () => {
         }),
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(401);
       expect(body.success).toBe(false);
@@ -199,7 +199,7 @@ describe("Auth Integration Tests", () => {
         }),
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(401);
       expect(body.success).toBe(false);
@@ -235,7 +235,7 @@ describe("Auth Integration Tests", () => {
         },
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       // The auth middleware should pass with a valid JWT.
       // The /me handler then calls validateToken which checks sessions table.
@@ -276,7 +276,7 @@ describe("Auth Integration Tests", () => {
         }),
       });
 
-      const loginBody = await loginRes.json();
+      const loginBody = (await loginRes.json()) as any;
 
       // The login response may succeed or fail depending on whether the
       // registered customer (role 5) can log in. Role 5 tokens generate
@@ -290,7 +290,7 @@ describe("Auth Integration Tests", () => {
           },
         });
 
-        const meBody = await meRes.json();
+        const meBody = (await meRes.json()) as any;
 
         // Role 5 is rejected by auth middleware (role validation 0-4),
         // so /me will return 401 for customer tokens.
@@ -309,7 +309,7 @@ describe("Auth Integration Tests", () => {
         method: "GET",
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(401);
       expect(body.success).toBe(false);
@@ -325,7 +325,7 @@ describe("Auth Integration Tests", () => {
         },
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(401);
       expect(body.success).toBe(false);
@@ -348,7 +348,7 @@ describe("Auth Integration Tests", () => {
         },
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(401);
       expect(body.success).toBe(false);
@@ -368,7 +368,7 @@ describe("Auth Integration Tests", () => {
         },
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       // Admin (role 0) should pass both authMiddleware and requireRole([0])
       expect(res.status).toBe(200);
@@ -392,7 +392,7 @@ describe("Auth Integration Tests", () => {
         },
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(403);
       expect(body.success).toBe(false);
@@ -415,7 +415,7 @@ describe("Auth Integration Tests", () => {
         },
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(403);
       expect(body.success).toBe(false);
@@ -450,7 +450,7 @@ describe("Auth Integration Tests", () => {
         },
       );
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       // The kitchen route uses authMiddleware but does not explicitly use
       // requireRestaurantAccess. However, the service layer or the query
@@ -489,7 +489,7 @@ describe("Auth Integration Tests", () => {
         },
       );
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       // Admin should always have access
       expect(res.status).toBe(200);

@@ -224,10 +224,9 @@ describe("WaitingListView Component", () => {
       await flushPromises();
 
       const html = wrapper.html();
-      expect(html).toContain("waitingList.stats.waiting");
-      expect(html).toContain("waitingList.stats.avgWait");
-      expect(html).toContain("waitingList.stats.availableTables");
-      expect(html).toContain("waitingList.stats.todayTotal");
+      // WaitingListTab uses waitingList.queue and filter keys (not a stats section)
+      expect(html).toContain("waitingList.queue");
+      expect(html).toContain("waitingList.filter.status");
     });
   });
 

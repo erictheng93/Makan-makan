@@ -11,6 +11,17 @@ vi.mock("@/utils/format", () => ({
   formatPrice: vi.fn((n: number) => n.toString()),
 }));
 
+// Mock useCurrency so the component's formatPrice returns the raw number as a string,
+// which allows the test to assert on numeric values like "130".
+vi.mock("@/composables/useCurrency", () => ({
+  useCurrency: vi.fn(() => ({
+    formatPrice: vi.fn((n: number) => n.toString()),
+    formatAmount: vi.fn((n: number) => n.toString()),
+    currencySymbol: "$",
+    currencyCode: "TWD",
+  })),
+}));
+
 const mockRouterPush = vi.fn();
 vi.mock("vue-router", () => ({
   useRouter: vi.fn(() => ({ push: mockRouterPush })),

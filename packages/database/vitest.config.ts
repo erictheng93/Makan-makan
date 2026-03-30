@@ -28,6 +28,7 @@ export default defineConfig({
     // Sequence tests to avoid race conditions
     sequence: {
       shuffle: false,
+      groupOrder: "database",
     },
     // Increase test timeout for slower tests
     testTimeout: 30000,

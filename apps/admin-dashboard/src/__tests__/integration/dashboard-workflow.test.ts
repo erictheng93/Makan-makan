@@ -60,8 +60,8 @@ describe("Admin Dashboard Integration Tests", () => {
       // Component should mount successfully
       expect(wrapper.exists()).toBe(true);
 
-      // Should have heading
-      const heading = wrapper.find("h1");
+      // Should have heading (QueueDashboardTab uses h2, not h1)
+      const heading = wrapper.find("h2");
       expect(heading.exists()).toBe(true);
     });
 

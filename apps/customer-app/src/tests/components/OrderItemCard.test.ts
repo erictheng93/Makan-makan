@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
 import OrderItemCard from "@/components/OrderItemCard.vue";
 import type { OrderItem, MenuItem } from "@makanmakan/shared-types";
 import { OrderItemStatus } from "@makanmakan/shared-types";
@@ -8,6 +9,16 @@ import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
 // Mock formatPrice function
 vi.mock("@/utils/format", () => ({
   formatPrice: vi.fn((cents: number) => (cents / 100).toFixed(2)),
+}));
+
+// Mock useCurrency so the component's formatPrice uses the same mock logic
+vi.mock("@/composables/useCurrency", () => ({
+  useCurrency: vi.fn(() => ({
+    formatPrice: vi.fn((cents: number) => `$${(cents / 100).toFixed(2)}`),
+    formatAmount: vi.fn((amount: number) => `$${amount.toFixed(2)}`),
+    currencySymbol: "$",
+    currencyCode: "TWD",
+  })),
 }));
 
 // Helper: build a MenuItem compatible with shared-types
@@ -89,6 +100,7 @@ describe("OrderItemCard.vue", () => {
 
   beforeEach(() => {
     resetAllFactories();
+    setActivePinia(createPinia());
     wrapper = mount(OrderItemCard, {
       props: {
         item: mockOrderItem,

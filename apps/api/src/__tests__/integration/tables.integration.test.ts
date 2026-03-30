@@ -57,7 +57,7 @@ describe("Tables API Integration", () => {
     });
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.id).toEqual(expect.any(Number));
@@ -85,7 +85,7 @@ describe("Tables API Integration", () => {
     // exists (not 404) and auth works (not 401). Data assertions run only on success.
     expect(res.status).not.toBe(404);
     expect(res.status).not.toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     if (res.status === 200) {
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
@@ -104,7 +104,7 @@ describe("Tables API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.id).toBe(table.id);
@@ -128,7 +128,7 @@ describe("Tables API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
     expect(body.data.capacity).toBe(8);
   });
@@ -152,7 +152,7 @@ describe("Tables API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
   });
 
@@ -174,7 +174,7 @@ describe("Tables API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
   });
 
@@ -189,7 +189,7 @@ describe("Tables API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(true);
   });
 
@@ -205,7 +205,7 @@ describe("Tables API Integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as any;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });

@@ -58,7 +58,7 @@ describe("Menu API Integration", () => {
     });
 
     expect(res.status).toBe(201);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     expect(json.success).toBe(true);
     expect(json.data).toBeDefined();
     expect(json.data.id).toBeTypeOf("number");
@@ -88,7 +88,7 @@ describe("Menu API Integration", () => {
     // — a relational query that the mock Drizzle does not support (returns null → 500).
     // We verify the route is mounted and auth is not required (optionalAuth), not a 404.
     expect(res.status).not.toBe(404);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     if (res.status === 200) {
       expect(json.success).toBe(true);
       expect(json.data).toBeDefined();
@@ -120,7 +120,7 @@ describe("Menu API Integration", () => {
     });
 
     expect(res.status).toBe(201);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     expect(json.success).toBe(true);
     expect(json.data).toBeDefined();
     expect(json.data.id).toBeTypeOf("number");
@@ -151,7 +151,7 @@ describe("Menu API Integration", () => {
     // which the mock Drizzle may not fully support (sql LIKE templates, etc.).
     // We verify the route is mounted (not 404) and check data only if 200.
     expect(res.status).not.toBe(404);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     if (res.status === 200) {
       expect(json.success).toBe(true);
       expect(json.data).toBeInstanceOf(Array);
@@ -183,7 +183,7 @@ describe("Menu API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     expect(json.success).toBe(true);
     expect(json.data.price).toBe(65);
   });
@@ -214,7 +214,7 @@ describe("Menu API Integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     expect(json.success).toBe(true);
 
     // Verify in DB that the item is now unavailable
@@ -254,7 +254,7 @@ describe("Menu API Integration", () => {
     // support relational `with` queries, so this returns 500 in the test environment.
     // We verify the route is mounted and the auth middleware runs (not 404 / 401).
     expect(res.status).not.toBe(404);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     if (res.status === 200) {
       expect(json.success).toBe(true);
       expect(json.data).toBeDefined();
@@ -289,7 +289,7 @@ describe("Menu API Integration", () => {
 
     // Zod's z.number().positive() rejects negative and zero values
     expect(res.status).toBe(400);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     expect(json.success).toBe(false);
     expect(json.error).toBeDefined();
     expect(json.error.code).toBeDefined();
@@ -317,7 +317,7 @@ describe("Menu API Integration", () => {
     // (not 401 for missing auth, not 404 for missing route).
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(404);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     if (res.status === 200) {
       expect(json.success).toBe(true);
       expect(json.data).toBeDefined();
@@ -347,7 +347,7 @@ describe("Menu API Integration", () => {
     });
 
     expect(res.status).toBe(400);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     expect(json.success).toBe(false);
     expect(json.error).toBeDefined();
   });

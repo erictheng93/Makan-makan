@@ -65,7 +65,7 @@ vi.mock("@makanmakan/database", () => {
 import { UsersService } from "../services/UsersService";
 
 // Mock environment — uses envFactory with full Env shape
-const mockEnv = envFactory.build() as Env;
+const mockEnv = envFactory.build() as unknown as Env;
 
 // Mock user data
 const mockUser = {

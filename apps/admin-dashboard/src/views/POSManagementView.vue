@@ -928,11 +928,11 @@ const isProcessing = ref(false);
 // and will be wired to template loading indicators
 void api;
 void authStore;
-void isLoadingRegisters;
-void isLoadingTransactions;
-void isLoadingPromotions;
-void isLoadingStats;
-void isProcessing;
+void isLoadingRegisters.value;
+void isLoadingTransactions.value;
+void isLoadingPromotions.value;
+void isLoadingStats.value;
+void isProcessing.value;
 
 // 類型定義
 interface CashRegister {

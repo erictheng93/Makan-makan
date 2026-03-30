@@ -26,6 +26,7 @@ vi.mock("@/services/api", () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    put: vi.fn(),
   },
 }));
 
@@ -215,7 +216,7 @@ describe("Dashboard Integration Tests", () => {
       await orderStore.fetchOrders();
 
       // Now update the status
-      vi.mocked(api.patch).mockResolvedValue({
+      vi.mocked(api.put).mockResolvedValue({
         data: { success: true },
       });
 
@@ -358,7 +359,7 @@ describe("Dashboard Integration Tests", () => {
       expect(orderStore.pendingOrdersCount).toBe(1);
 
       // Update status
-      vi.mocked(api.patch).mockResolvedValue({
+      vi.mocked(api.put).mockResolvedValue({
         data: { success: true },
       });
 

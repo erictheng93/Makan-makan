@@ -265,9 +265,9 @@ describe("OrderCard Component", () => {
         props: { order, statusType: "pending" },
       });
 
-      // The elapsed time text should be displayed and computed class reflects warning
+      // The elapsed time text should be displayed and the red warning class is in the DOM
       expect(wrapper.text()).toContain("25");
-      expect(wrapper.vm.elapsedTimeClass).toContain("text-ios-red");
+      expect(wrapper.html()).toContain("text-ios-red");
     });
 
     it("should display estimated time when enabled", () => {
@@ -304,7 +304,7 @@ describe("OrderCard Component", () => {
 
       // Pending status shows "開始製作" action button
       expect(wrapper.text()).toContain("開始製作");
-      expect(wrapper.vm.statusBorderClass).toContain("border-ios-orange");
+      expect(wrapper.html()).toContain("border-ios-orange");
     });
 
     it("should show complete action for preparing status", () => {
@@ -315,7 +315,7 @@ describe("OrderCard Component", () => {
 
       // Preparing status shows "標記完成" action button
       expect(wrapper.text()).toContain("標記完成");
-      expect(wrapper.vm.statusBorderClass).toContain("border-ios-blue");
+      expect(wrapper.html()).toContain("border-ios-blue");
     });
 
     it("should show completed state for ready status", () => {
@@ -326,7 +326,7 @@ describe("OrderCard Component", () => {
 
       // Ready status shows "已出餐" text
       expect(wrapper.text()).toContain("已出餐");
-      expect(wrapper.vm.statusBorderClass).toContain("border-ios-green");
+      expect(wrapper.html()).toContain("border-ios-green");
     });
 
     it("should show completed state for completed status", () => {
@@ -336,7 +336,7 @@ describe("OrderCard Component", () => {
       });
 
       // statusType ready → green border
-      expect(wrapper.vm.statusBorderClass).toContain("border-ios-green");
+      expect(wrapper.html()).toContain("border-ios-green");
     });
   });
 

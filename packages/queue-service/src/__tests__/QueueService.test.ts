@@ -9,9 +9,6 @@ import { QueueService } from "../services/QueueService";
 import {
   JoinQueueRequest,
   CallNextRequest,
-  SeatCustomerRequest,
-  CancelQueueRequest,
-  GetCurrentQueueRequest,
   QueueStatus,
   QueueType,
   NotificationType,

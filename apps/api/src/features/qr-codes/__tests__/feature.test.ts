@@ -9,7 +9,7 @@ import type { Env } from "../../../shared/types";
 import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock environment — uses envFactory with full Env shape
-const mockEnv = envFactory.build() as Env;
+const mockEnv = envFactory.build() as unknown as Env;
 
 describe("QrCodesService", () => {
   let service: QrCodesService;

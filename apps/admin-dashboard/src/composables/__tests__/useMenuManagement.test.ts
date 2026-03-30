@@ -120,7 +120,9 @@ describe("useMenuManagement", () => {
       const { fetchMenu } = useMenuManagement();
       await fetchMenu();
 
-      expect(mockApiGet).toHaveBeenCalledWith("/menu/test-restaurant-id");
+      expect(mockApiGet).toHaveBeenCalledWith(
+        "/menu/test-restaurant-id?includeAll=true",
+      );
     });
 
     test("populates categories and menuItems on success", async () => {

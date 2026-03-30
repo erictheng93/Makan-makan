@@ -553,6 +553,7 @@ export async function createIntegrationTestApp(): Promise<IntegrationTestApp> {
   // 4. Create mock Drizzle (reusing createTestApp's inline mock pattern)
   // We import the db's mock drizzle via the same dataStore
   const { createInlineMockDrizzle } =
+    // @ts-expect-error -- optional helper module that may not exist
     await import("../../helpers/test-utils-drizzle-helper").catch(() => {
       // If the helper doesn't exist, we create the mock inline
       return { createInlineMockDrizzle: null };

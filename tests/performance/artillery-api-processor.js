@@ -10,8 +10,8 @@ const API_BASE_URL = process.env.API_URL || "http://localhost:8787";
  * 認證用戶（一般用戶）
  */
 async function authenticateUser(context, events) {
-  const username = context.vars.testUsername || "testuser";
-  const password = context.vars.testPassword || "testpass123";
+  const username = context.vars.testUsername || process.env.PERF_TEST_USERNAME;
+  const password = context.vars.testPassword || process.env.PERF_TEST_PASSWORD;
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
