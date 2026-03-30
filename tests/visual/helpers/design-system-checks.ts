@@ -43,11 +43,21 @@ export async function checkDesignSystem(
 
       // 1. 頁面背景色 = #F2F2F7
       if (!opts.skipBgCheck) {
-        const bodyBg = getComputedStyle(document.body).backgroundColor;
-        const htmlBg = getComputedStyle(
-          document.documentElement,
-        ).backgroundColor;
-        const effectiveBg = bodyBg !== "rgba(0, 0, 0, 0)" ? bodyBg : htmlBg;
+        // 依序檢查 body → #app → 第一個 min-h-screen 容器
+        const candidates = [
+          document.body,
+          document.getElementById("app"),
+          document.querySelector(".min-h-screen"),
+        ].filter(Boolean) as Element[];
+
+        let effectiveBg = "rgba(0, 0, 0, 0)";
+        for (const el of candidates) {
+          const bg = getComputedStyle(el).backgroundColor;
+          if (bg && bg !== "rgba(0, 0, 0, 0)") {
+            effectiveBg = bg;
+            break;
+          }
+        }
 
         if (
           effectiveBg !== tokens.pageBg &&
@@ -144,12 +154,20 @@ export async function checkDesignSystem(
           const shadow = getComputedStyle(el).boxShadow;
           if (!shadow || shadow === "none") return;
 
+          // 分割多重 shadow（逗號分隔）
+          // 排除 Tailwind ring shadow（格式: 0 0 0 Npx color，spread-only 無 blur）
+          const isRingShadow = /^(rgba?\([^)]+\)\s+)?0px 0px 0px \d+px/.test(
+            shadow,
+          );
+          if (isRingShadow) return;
+
           // 解析 rgba 中的 alpha 值
           const rgbaMatches = shadow.matchAll(
             /rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*([\d.]+)\s*)?\)/g,
           );
           for (const match of rgbaMatches) {
             const alpha = match[1] ? parseFloat(match[1]) : 1;
+            // 排除 ring shadow 中的 alpha（ring 通常有 0px 0px 0px 格式）
             if (alpha > tokens.maxShadowOpacity + 0.02) {
               // 加 2% 容差
               highShadowCount++;

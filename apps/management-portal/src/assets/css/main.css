@@ -9,14 +9,14 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-ios-bg text-gray-900;
   }
 }
 
 @layer components {
   /* 卡片樣式 */
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply bg-white rounded-2xl shadow-card p-6;
   }
 
   .card-header {

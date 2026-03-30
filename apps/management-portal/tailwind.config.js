@@ -5,7 +5,11 @@ export default {
   content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      boxShadow: {
+        card: "0 4px 16px rgba(0, 0, 0, 0.06)",
+      },
       colors: {
+        "ios-bg": "#F2F2F7",
         primary: {
           50: "#f0fdf4",
           100: "#dcfce7",

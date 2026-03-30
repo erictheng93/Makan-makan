@@ -10,7 +10,7 @@
   }
 
   body {
-    @apply font-sans text-gray-900 antialiased;
+    @apply font-sans text-gray-900 antialiased bg-[#F2F2F7];
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 

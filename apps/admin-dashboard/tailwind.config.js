@@ -28,6 +28,7 @@ export default {
           800: "#1e293b",
           900: "#0f172a",
         },
+        "ios-bg": "#F2F2F7",
         ios: {
           primary: "#007AFF",
           success: "#34C759",
