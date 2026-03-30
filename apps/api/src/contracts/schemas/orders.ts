@@ -1,0 +1,140 @@
+/**
+ * Orders API Response Contracts
+ *
+ * Defines the STABLE response shapes for order endpoints.
+ * Customer app and admin dashboard depend on these shapes.
+ */
+
+import { z } from "zod";
+import {
+  successEnvelope,
+  successWithMessage,
+  paginatedEnvelope,
+  messageOnlyResponse,
+  PaginationSchema,
+  TimestampFields,
+} from "../helpers";
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+export const OrderStatusEnum = z.enum([
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "delivered",
+  "paid",
+  "cancelled",
+]);
+
+export const PaymentStatusEnum = z.enum(["pending", "paid", "failed"]);
+
+export const OrderTypeEnum = z.enum(["shop", "table", "seat"]);
+
+// ---------------------------------------------------------------------------
+// Entity Schemas
+// ---------------------------------------------------------------------------
+
+export const OrderItemSchema = z.object({
+  id: z.union([z.number(), z.string()]),
+  orderId: z.union([z.number(), z.string()]),
+  menuItemId: z.union([z.number(), z.string()]),
+  name: z.string().optional(),
+  quantity: z.number().int().positive(),
+  unitPrice: z.number(),
+  totalPrice: z.number(),
+  customizations: z.unknown().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  status: z.string().optional(),
+  ...TimestampFields,
+});
+
+export const OrderSchema = z
+  .object({
+    id: z.union([z.number(), z.string()]),
+    restaurantId: z.string(),
+    tableId: z.union([z.number(), z.string()]).optional().nullable(),
+    seatId: z.union([z.number(), z.string()]).optional().nullable(),
+    customerId: z.union([z.number(), z.string()]).optional().nullable(),
+    userId: z.union([z.number(), z.string()]).optional().nullable(),
+    orderNumber: z.string().optional(),
+    status: z.string(),
+    paymentStatus: z.string().optional(),
+    orderType: z.string().optional(),
+    subtotal: z.number().optional(),
+    tax: z.number().optional(),
+    serviceCharge: z.number().optional(),
+    discount: z.number().optional(),
+    totalAmount: z.number(),
+    notes: z.string().optional().nullable(),
+    items: z.array(OrderItemSchema).optional(),
+    ...TimestampFields,
+  })
+  .passthrough();
+
+// ---------------------------------------------------------------------------
+// Response Contracts
+// ---------------------------------------------------------------------------
+
+export const CreateOrderResponse = z.object({
+  success: z.literal(true),
+  data: OrderSchema,
+});
+
+export const GuestOrderResponse = z.object({
+  success: z.literal(true),
+  data: OrderSchema,
+  guestToken: z.string().optional(),
+});
+
+export const GetOrderResponse = successEnvelope(OrderSchema);
+
+export const ListOrdersResponse = z.object({
+  success: z.literal(true),
+  data: z.array(OrderSchema),
+  pagination: PaginationSchema.optional(),
+});
+
+export const UpdateOrderStatusResponse = successEnvelope(OrderSchema);
+
+export const CancelOrderResponse = messageOnlyResponse;
+
+export const OrderStatsResponse = successEnvelope(
+  z
+    .object({
+      totalOrders: z.number(),
+      totalRevenue: z.number(),
+      averageOrderValue: z.number(),
+    })
+    .passthrough(),
+);
+
+export const OrderReceiptResponse = successEnvelope(
+  z
+    .object({
+      orderId: z.union([z.number(), z.string()]),
+      orderNumber: z.string().optional(),
+      items: z.array(
+        z
+          .object({
+            name: z.string(),
+            quantity: z.number(),
+            price: z.number(),
+          })
+          .passthrough(),
+      ),
+      totalAmount: z.number(),
+    })
+    .passthrough(),
+);
+
+export const CouponPreviewResponse = successEnvelope(
+  z
+    .object({
+      valid: z.boolean().optional(),
+      discount: z.number().optional(),
+    })
+    .passthrough(),
+);
