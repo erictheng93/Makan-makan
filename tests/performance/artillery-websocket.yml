@@ -30,17 +30,20 @@ config:
       arrivalRate: 10
       name: "Cool-down"
 
-  # 性能指標設定
+  # 性能指標設定 — 對齊 CLAUDE.md 效能目標（WebSocket Latency < 50ms）
   ensure:
     # WebSocket 連線成功率 > 99%
     - ws.connection_success_rate:
         min: 99
-    # 訊息延遲 P95 < 200ms
+    # 中位數延遲 < 50ms（CLAUDE.md: WebSocket Latency < 50ms）
+    - ws.response_time.median:
+        max: 50
+    # 訊息延遲 P95 < 100ms
     - ws.response_time.p95:
-        max: 200
-    # 訊息延遲 P99 < 500ms
+        max: 100
+    # 訊息延遲 P99 < 200ms
     - ws.response_time.p99:
-        max: 500
+        max: 200
 
   # 插件配置
   plugins:

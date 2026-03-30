@@ -9,7 +9,7 @@ const API_BASE_URL = process.env.API_URL || "http://localhost:8787";
 /**
  * 認證用戶（一般用戶）
  */
-async function authenticateUser(context, events, done) {
+async function authenticateUser(context, events) {
   const username = context.vars.testUsername || "testuser";
   const password = context.vars.testPassword || "testpass123";
 
@@ -44,14 +44,12 @@ async function authenticateUser(context, events, done) {
     events.emit("counter", "auth.user.error", 1);
     console.error("Error authenticating user:", error.message);
   }
-
-  return done();
 }
 
 /**
  * 認證管理員
  */
-async function authenticateAdmin(context, events, done) {
+async function authenticateAdmin(context, events) {
   const username = process.env.ADMIN_USERNAME || "admin";
   const password = process.env.ADMIN_PASSWORD || "admin123";
 
@@ -87,14 +85,12 @@ async function authenticateAdmin(context, events, done) {
     events.emit("counter", "auth.admin.error", 1);
     console.error("Error authenticating admin:", error.message);
   }
-
-  return done();
 }
 
 /**
  * 認證廚師
  */
-async function authenticateChef(context, events, done) {
+async function authenticateChef(context, events) {
   const username = process.env.CHEF_USERNAME || "chef1";
   const password = process.env.CHEF_PASSWORD || "chef123";
 
@@ -125,14 +121,12 @@ async function authenticateChef(context, events, done) {
     events.emit("counter", "auth.chef.error", 1);
     console.error("Error authenticating chef:", error.message);
   }
-
-  return done();
 }
 
 /**
  * 生成隨機訂單數據
  */
-function generateOrderData(context, events, done) {
+function generateOrderData(context, events) {
   const restaurantId = context.vars.restaurantId || "1";
   const tableId = Math.floor(Math.random() * 20) + 1;
 
@@ -157,13 +151,12 @@ function generateOrderData(context, events, done) {
   };
 
   events.emit("counter", "data.order.generated", 1);
-  return done();
 }
 
 /**
  * 生成隨機菜品數據
  */
-function generateMenuItemData(context, events, done) {
+function generateMenuItemData(context, events) {
   const random = Math.floor(Math.random() * 10000);
 
   context.vars.menuItemData = {
@@ -178,13 +171,12 @@ function generateMenuItemData(context, events, done) {
   };
 
   events.emit("counter", "data.menu_item.generated", 1);
-  return done();
 }
 
 /**
  * 生成隨機用戶數據
  */
-function generateUserData(context, events, done) {
+function generateUserData(context, events) {
   const timestamp = Date.now();
   const random = crypto.randomInt(10000);
 
@@ -199,13 +191,12 @@ function generateUserData(context, events, done) {
   };
 
   events.emit("counter", "data.user.generated", 1);
-  return done();
 }
 
 /**
  * 驗證回應時間
  */
-function validateResponseTime(context, events, done) {
+function validateResponseTime(context, events) {
   const startTime = context.vars.requestStartTime;
   if (startTime) {
     const endTime = Date.now();
@@ -224,24 +215,20 @@ function validateResponseTime(context, events, done) {
       events.emit("counter", "timeout_requests", 1);
     }
   }
-
-  return done();
 }
 
 /**
  * 記錄成功的請求
  */
-function logSuccessRequest(context, events, done) {
+function logSuccessRequest(context, events) {
   events.emit("counter", "requests.success", 1);
-  return done();
 }
 
 /**
  * 記錄失敗的請求
  */
-function logFailedRequest(context, events, done) {
+function logFailedRequest(context, events) {
   events.emit("counter", "requests.failed", 1);
-  return done();
 }
 
 /**
@@ -267,16 +254,15 @@ function randomString(length = 10) {
 /**
  * 設置請求開始時間
  */
-function setRequestStartTime(context, events, done) {
+function setRequestStartTime(context, events) {
   context.vars.requestStartTime = Date.now();
-  return done();
 }
 
 /**
  * 記錄 API 端點指標
  */
 function logEndpointMetrics(endpoint) {
-  return function (context, events, done) {
+  return function (context, events) {
     const startTime = context.vars.requestStartTime;
     if (startTime) {
       const responseTime = Date.now() - startTime;
@@ -287,7 +273,6 @@ function logEndpointMetrics(endpoint) {
       );
       events.emit("counter", `endpoint.${endpoint}.requests`, 1);
     }
-    return done();
   };
 }
 
@@ -295,19 +280,21 @@ function logEndpointMetrics(endpoint) {
  * 模擬思考時間（用戶行為模擬）
  */
 function thinkTime(min = 1000, max = 3000) {
-  return function (context, events, done) {
-    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-    setTimeout(() => {
-      events.emit("counter", "think_time.executed", 1);
-      done();
-    }, delay);
+  return function (context, events) {
+    return new Promise((resolve) => {
+      const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+      setTimeout(() => {
+        events.emit("counter", "think_time.executed", 1);
+        resolve();
+      }, delay);
+    });
   };
 }
 
 /**
  * 驗證 JSON 回應格式
  */
-function validateJsonResponse(context, events, done) {
+function validateJsonResponse(context, events) {
   try {
     if (context.vars.$response && context.vars.$response.body) {
       const body = JSON.parse(context.vars.$response.body);
@@ -322,14 +309,12 @@ function validateJsonResponse(context, events, done) {
   } catch (error) {
     events.emit("counter", "response.parse_error", 1);
   }
-
-  return done();
 }
 
 /**
  * 清理測試數據
  */
-async function cleanupTestData(context, events, done) {
+async function cleanupTestData(context, events) {
   // 這裡可以添加清理邏輯，例如刪除測試創建的數據
   // 注意：需要管理員權限
 
@@ -343,18 +328,15 @@ async function cleanupTestData(context, events, done) {
       context.vars.createdResourceIds.length,
     );
   }
-
-  return done();
 }
 
 /**
  * 記錄測試執行階段
  */
 function logPhase(phaseName) {
-  return function (context, events, done) {
+  return function (context, events) {
     events.emit("counter", `phase.${phaseName}`, 1);
     console.log(`Entering phase: ${phaseName}`);
-    return done();
   };
 }
 

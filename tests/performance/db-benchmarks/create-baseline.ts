@@ -11,14 +11,14 @@ import {
 } from "./db-performance-tester";
 import { createTestDB, cleanupTestDB } from "../../helpers/test-db";
 
-interface BenchmarkQuery {
+export interface BenchmarkQuery {
   name: string;
   query: string;
   params: any[];
   category: "menu" | "orders" | "tables" | "users" | "analytics";
 }
 
-const BENCHMARK_QUERIES: BenchmarkQuery[] = [
+export const BENCHMARK_QUERIES: BenchmarkQuery[] = [
   // Menu queries
   {
     name: "menu_items_by_restaurant",

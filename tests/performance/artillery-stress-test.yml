@@ -1,0 +1,140 @@
+# Artillery Stress Test Configuration
+# 漸進式壓力測試 — 找到 Cloudflare Workers 的崩潰點
+#
+# 用途：階梯式增加負載 50→100→200→500→1000 req/s，找到系統上限
+# 執行：pnpm test:stress
+#
+# 成功條件：
+#   - 記錄每個階段的 error rate 和回應時間
+#   - error rate > 5% 時標記為「系統上限」
+#   - 不設硬性 ensure 門檻（目的是探索上限，不是 pass/fail）
+
+config:
+  target: "http://localhost:8787"
+  phases:
+    # 暖身
+    - duration: 30
+      arrivalRate: 10
+      name: "Warmup"
+
+    # 階梯 1: 50 req/s（正常負載）
+    - duration: 60
+      arrivalRate: 50
+      name: "Step 1: 50 req/s (normal)"
+
+    # 階梯 2: 100 req/s（午餐尖峰）
+    - duration: 60
+      arrivalRate: 100
+      name: "Step 2: 100 req/s (peak)"
+
+    # 階梯 3: 200 req/s（高壓）
+    - duration: 60
+      arrivalRate: 200
+      name: "Step 3: 200 req/s (high)"
+
+    # 階梯 4: 500 req/s（壓力極限）
+    - duration: 60
+      arrivalRate: 500
+      name: "Step 4: 500 req/s (extreme)"
+
+    # 階梯 5: 1000 req/s（找崩潰點）
+    - duration: 30
+      arrivalRate: 1000
+      name: "Step 5: 1000 req/s (breaking point)"
+
+    # 恢復觀察：系統能否從高壓中恢復
+    - duration: 60
+      arrivalRate: 30
+      name: "Recovery observation"
+
+  http:
+    timeout: 30  # 壓力測試用更長 timeout
+    pool: 200
+
+  plugins:
+    expect: {}
+    metrics-by-endpoint:
+      metricsNamespace: "stress_test"
+
+  variables:
+    testUsername: "testuser"
+    testPassword: "testpass123"
+    restaurantId: "1"
+
+  processor: "./artillery-api-processor.js"
+
+scenarios:
+  # 壓力測試聚焦在最常見的讀寫混合操作
+
+  # 場景 1: 高頻讀取 — 菜單 API
+  - name: "Menu Read (Stress)"
+    weight: 40
+    flow:
+      - function: "authenticateUser"
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/items"
+          qs:
+            page: 1
+            pageSize: 20
+            status: "available"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  # 場景 2: 訂單列表讀取
+  - name: "Order List (Stress)"
+    weight: 20
+    flow:
+      - function: "authenticateUser"
+      - get:
+          url: "/api/v1/orders"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            page: 1
+            pageSize: 20
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  # 場景 3: 下單寫入（D1 寫入壓力）
+  - name: "Order Write (Stress)"
+    weight: 15
+    flow:
+      - function: "authenticateUser"
+      - post:
+          url: "/api/v1/orders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            restaurantId: "{{ restaurantId }}"
+            tableId: 1
+            items:
+              - menuItemId: 1
+                quantity: 1
+                notes: "壓力測試"
+
+  # 場景 4: 認證流程（JWT 生成壓力）
+  - name: "Auth (Stress)"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            username: "{{ testUsername }}"
+            password: "{{ testPassword }}"
+
+  # 場景 5: 分析查詢（複雜 DB 查詢壓力）
+  - name: "Analytics Query (Stress)"
+    weight: 10
+    flow:
+      - function: "authenticateAdmin"
+      - get:
+          url: "/api/v1/analytics/sales"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            startDate: "2025-01-01"
+            endDate: "2025-12-31"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+after:
+  flow:
+    - log: "Stress test completed. Review each step's error rate to identify the breaking point."

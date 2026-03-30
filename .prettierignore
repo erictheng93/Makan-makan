@@ -23,9 +23,6 @@ pnpm-lock.yaml
 legacy/
 Backup/
 
-# Storybook build
-storybook-static/
-
 # Test artifacts
 test-results/
 playwright-report/

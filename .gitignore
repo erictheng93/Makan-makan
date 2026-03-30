@@ -108,9 +108,8 @@ dist
 .cache/
 public
 
-# Storybook build outputs
+# Build outputs
 .out
-.storybook-out
 
 # Temporary folders
 tmp/

@@ -17,8 +17,6 @@ export default [
       "test-results/**",
       "**/*.vue.js",
       "*.config.js",
-      "storybook-static/**",
-      "**/*.stories.d.ts",
       "src/components/charts/**",
     ],
   },

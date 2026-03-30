@@ -1,0 +1,231 @@
+# Artillery Lunch Peak Load Test
+# 午餐尖峰時段模擬 — 100 concurrent users
+# 80% 讀取（菜單/訂單查詢）、20% 寫入（下單/更新狀態）
+#
+# 用途：驗證系統在正常營業尖峰下的穩定性
+# 執行：pnpm test:load:peak
+# 對齊 CLAUDE.md 效能目標：API P99 < 300ms, DB P95 < 100ms
+
+config:
+  target: "http://localhost:8787"
+  phases:
+    # 營業前暖身（開店前少量流量）
+    - duration: 30
+      arrivalRate: 5
+      name: "Pre-lunch warmup"
+
+    # 午餐開始 — 流量快速上升
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 50
+      name: "Lunch ramp-up (11:30-12:00)"
+
+    # 午餐尖峰 — 100 concurrent users 持續 5 分鐘
+    - duration: 300
+      arrivalRate: 100
+      name: "Lunch peak (12:00-12:30)"
+
+    # 午餐尾聲 — 流量下降
+    - duration: 120
+      arrivalRate: 50
+      rampTo: 10
+      name: "Post-lunch decline (12:30-13:00)"
+
+    # 收尾
+    - duration: 30
+      arrivalRate: 5
+      name: "Cool-down"
+
+  # 效能門檻 — 對齊 CLAUDE.md
+  ensure:
+    - http.response_time.p95:
+        max: 200
+    - http.response_time.p99:
+        max: 300
+    - http.codes.500:
+        max: 5
+
+  http:
+    timeout: 10
+    pool: 100  # 匹配 100 concurrent users
+
+  plugins:
+    expect: {}
+    metrics-by-endpoint:
+      metricsNamespace: "lunch_peak"
+
+  variables:
+    testUsername: "testuser"
+    testPassword: "testpass123"
+    restaurantId: "1"
+
+  processor: "./artillery-api-processor.js"
+
+scenarios:
+  # === 讀取場景（80% 總流量）===
+
+  # 場景 1: 顧客瀏覽菜單（最高頻場景）
+  - name: "Customer Browse Menu"
+    weight: 35
+    flow:
+      - function: "authenticateUser"
+      # 獲取分類
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/categories"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      # 獲取菜品列表
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/items"
+          qs:
+            page: 1
+            pageSize: 20
+            status: "available"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      # 搜尋菜品
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/items/search"
+          qs:
+            q: "雞"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 2: 廚房查看訂單列表
+  - name: "Kitchen View Orders"
+    weight: 20
+    flow:
+      - function: "authenticateChef"
+      - get:
+          url: "/api/v1/orders"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            status: "confirmed"
+            page: 1
+            pageSize: 20
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      # 查看單筆訂單詳情
+      - get:
+          url: "/api/v1/orders"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            status: "preparing"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 3: 桌台狀態查詢
+  - name: "Table Status Check"
+    weight: 15
+    flow:
+      - function: "authenticateUser"
+      - get:
+          url: "/api/v1/tables"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 4: 管理員看即時統計
+  - name: "Admin Dashboard Stats"
+    weight: 10
+    flow:
+      - function: "authenticateAdmin"
+      - parallel:
+          - get:
+              url: "/api/v1/analytics/summary"
+              qs:
+                restaurantId: "{{ restaurantId }}"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+          - get:
+              url: "/api/v1/orders"
+              qs:
+                restaurantId: "{{ restaurantId }}"
+                status: "all"
+                page: 1
+                pageSize: 10
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+
+  # === 寫入場景（20% 總流量）===
+
+  # 場景 5: 顧客下單
+  - name: "Customer Place Order"
+    weight: 12
+    flow:
+      - function: "authenticateUser"
+      # 先瀏覽菜單
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/items"
+          qs:
+            status: "available"
+            pageSize: 50
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      # 下單
+      - post:
+          url: "/api/v1/orders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            restaurantId: "{{ restaurantId }}"
+            tableId: 1
+            items:
+              - menuItemId: 1
+                quantity: 2
+                notes: "少辣"
+              - menuItemId: 2
+                quantity: 1
+          capture:
+            - json: "$.data.id"
+              as: "newOrderId"
+          expect:
+            - statusCode: 201
+
+  # 場景 6: 廚房更新訂單狀態
+  - name: "Kitchen Update Order Status"
+    weight: 8
+    flow:
+      - function: "authenticateChef"
+      # 取得待處理訂單
+      - get:
+          url: "/api/v1/orders"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            status: "confirmed"
+            pageSize: 5
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.data.orders[0].id"
+              as: "orderId"
+          expect:
+            - statusCode: 200
+      # 更新狀態為準備中
+      - put:
+          url: "/api/v1/orders/{{ orderId }}/status"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            status: "preparing"
+          expect:
+            - statusCode: 200
+
+after:
+  flow:
+    - log: "Lunch peak test completed."

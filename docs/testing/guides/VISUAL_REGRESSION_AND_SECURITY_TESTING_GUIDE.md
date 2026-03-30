@@ -7,10 +7,10 @@
 ## 目錄
 
 - [📸 視覺回歸測試](#-視覺回歸測試)
-  - [Chromatic 設置](#chromatic-設置)
-  - [Percy 設置（備選方案）](#percy-設置備選方案)
+  - [架構](#架構)
+  - [執行測試](#執行測試)
+  - [設計系統合規檢查](#設計系統合規檢查)
   - [本地開發工作流程](#本地開發工作流程)
-  - [CI/CD 整合](#cicd-整合-視覺測試)
 - [🔐 安全性測試](#-安全性測試)
   - [Snyk 依賴掃描](#snyk-依賴掃描)
   - [OWASP ZAP 動態掃描](#owasp-zap-動態掃描)
@@ -25,218 +25,59 @@
 
 ## 📸 視覺回歸測試
 
-視覺回歸測試用於自動檢測 UI 變更，確保介面修改不會破壞既有設計。我們提供兩個解決方案：
+使用 **Playwright 原生 `toHaveScreenshot()`** 進行視覺回歸測試，涵蓋全部 5 個前端應用。不依賴外部付費服務。
 
-### Chromatic 設置
+### 架構
 
-**Chromatic** 是官方推薦的 Storybook 視覺測試平台。
+- **配置**: `playwright.visual.config.ts`（根目錄）
+- **測試**: `tests/visual/*.visual.ts`（每個 app 一個檔案）
+- **工具**: `tests/visual/helpers/`（共用 utilities + 設計系統檢查）
+- **Baselines**: `tests/visual/__screenshots__/`（需 commit 到 repo）
 
-#### 1. 安裝依賴
-
-```bash
-cd apps/admin-dashboard
-pnpm add -D @storybook/vue3 @storybook/addon-essentials chromatic
-```
-
-#### 2. 初始化 Storybook（已配置）
-
-專案已包含以下配置檔案：
-
-- `.storybook/main.js` - Storybook 主配置
-- `.storybook/preview.js` - 全域裝飾器和參數
-- `chromatic.config.json` - Chromatic 專案設置
-
-#### 3. 環境變數設定
-
-在專案根目錄創建 `.env.local`：
-
-```env
-# Chromatic 專案 Token（從 https://www.chromatic.com 獲取）
-CHROMATIC_PROJECT_TOKEN=your_chromatic_project_token_here
-```
-
-**取得 Token 步驟：**
-
-1. 訪問 [Chromatic](https://www.chromatic.com/)
-2. 使用 GitHub 帳號登入
-3. 創建新專案或選擇現有專案
-4. 在專案設置中複製 Project Token
-
-#### 4. 創建組件 Story
-
-在組件目錄中創建 `*.stories.ts` 檔案：
-
-```typescript
-// apps/admin-dashboard/src/components/Button.stories.ts
-import type { Meta, StoryObj } from "@storybook/vue3";
-import Button from "./Button.vue";
-
-const meta: Meta<typeof Button> = {
-  title: "Components/Button",
-  component: Button,
-  tags: ["autodocs"],
-  argTypes: {
-    variant: {
-      control: "select",
-      options: ["primary", "secondary", "danger", "success"],
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-    },
-  },
-};
-
-export default meta;
-type Story = StoryObj<typeof Button>;
-
-// 基本按鈕
-export const Primary: Story = {
-  args: {
-    variant: "primary",
-    label: "Primary Button",
-  },
-};
-
-// 測試不同狀態
-export const AllStates: Story = {
-  render: () => ({
-    components: { Button },
-    template: `
-      <div style="display: flex; flex-direction: column; gap: 1rem;">
-        <Button variant="primary">Primary</Button>
-        <Button variant="primary" :disabled="true">Disabled</Button>
-        <Button variant="primary" :loading="true">Loading</Button>
-      </div>
-    `,
-  }),
-};
-
-// 響應式測試（多視口）
-export const Responsive: Story = {
-  parameters: {
-    viewport: {
-      viewports: {
-        mobile: { name: "Mobile", styles: { width: "375px", height: "667px" } },
-        tablet: {
-          name: "Tablet",
-          styles: { width: "768px", height: "1024px" },
-        },
-        desktop: {
-          name: "Desktop",
-          styles: { width: "1440px", height: "900px" },
-        },
-      },
-    },
-  },
-};
-```
-
-#### 5. 本地運行 Storybook
+### 執行測試
 
 ```bash
-# 從根目錄運行
-pnpm storybook
+# 啟動前端 dev servers（API 不需要，全部被 mock）
+pnpm dev
 
-# 或進入 admin-dashboard
-cd apps/admin-dashboard && pnpm storybook
-```
-
-訪問 `http://localhost:6006` 查看組件庫。
-
-#### 6. 執行 Chromatic 視覺測試
-
-```bash
-# 方法 1: 使用 npm script
-pnpm test:visual:chromatic
-
-# 方法 2: 直接運行
-cd apps/admin-dashboard
-pnpm chromatic --exit-zero-on-changes
-
-# 僅測試變更的故事（加速）
-pnpm chromatic --only-changed
-```
-
-#### 7. 查看測試結果
-
-測試完成後：
-
-1. 打開終端輸出的 Chromatic URL
-2. 審查視覺變更
-3. 接受 (Accept) 或拒絕 (Deny) 變更
-4. 在 PR 中查看 Chromatic 狀態報告
-
-**測試結果說明：**
-
-- ✅ **No changes detected** - 無視覺變更
-- 🔄 **Changes found** - 發現視覺差異，需人工審查
-- ❌ **Build failed** - 建構失敗，檢查錯誤訊息
-
----
-
-### Percy 設置（備選方案）
-
-**Percy** 是另一個強大的視覺測試平台，與 Playwright 整合良好。
-
-#### 1. 安裝依賴
-
-```bash
-pnpm add -D @percy/cli @percy/playwright
-```
-
-#### 2. 配置檔案（已完成）
-
-專案已包含：
-
-- `.percy.yml` - Percy 配置檔案
-- `tests/visual/percy-snapshots.test.ts` - Percy 測試腳本
-
-#### 3. 環境變數設定
-
-```env
-# Percy 專案 Token（從 https://percy.io 獲取）
-PERCY_TOKEN=your_percy_token_here
-```
-
-**取得 Token 步驟：**
-
-1. 訪問 [Percy.io](https://percy.io/)
-2. 創建帳號或登入
-3. 創建新專案
-4. 複製 Project Token
-
-#### 4. Percy 測試腳本說明
-
-`tests/visual/percy-snapshots.test.ts` 涵蓋：
-
-- ✅ Admin Dashboard 主要頁面（8+ 頁面）
-- ✅ Customer App 介面
-- ✅ Kitchen Display 系統
-- ✅ 響應式設計（多視口）
-- ✅ 深色模式
-- ✅ 錯誤狀態
-
-#### 5. 執行 Percy 測試
-
-```bash
-# 使用 npm script
+# 執行視覺回歸測試
 pnpm test:visual
 
-# 手動執行（需先啟動應用）
-pnpm build
-pnpm preview &  # 背景運行
-npx percy exec -- npx playwright test tests/visual/percy-snapshots.test.ts
+# 更新 screenshot baselines（UI 有預期變更時）
+pnpm test:visual:update
 ```
 
-#### 6. 查看 Percy 結果
+### 測試涵蓋範圍
 
-訪問 Percy Dashboard：
+| 檔案                          | 應用              | 頁面數 |
+| ----------------------------- | ----------------- | ------ |
+| `admin-dashboard.visual.ts`   | Admin Dashboard   | 10     |
+| `customer-app.visual.ts`      | Customer App      | 8      |
+| `kitchen-display.visual.ts`   | Kitchen Display   | 4      |
+| `management-portal.visual.ts` | Management Portal | 4      |
+| `onboarding-app.visual.ts`    | Onboarding App    | 4      |
+| `design-system.visual.ts`     | 全部 5 個 App     | 5      |
 
-- 查看快照對比
-- 審查視覺差異
-- 批准或拒絕變更
-- 在 PR 中查看狀態
+每個頁面在 3 個 viewport（Desktop 1440px / Tablet 768px / Mobile 375px）下截圖。
+
+### 設計系統合規檢查
+
+`design-system.visual.ts` 程式化驗證 Apple-Native Soft Minimalism 規範：
+
+- 頁面背景色 = `#F2F2F7`
+- 文字不使用純黑 `#000000`（應為 `#1C1C1E`）
+- Card border-radius ≥ 16px (`rounded-2xl`)
+- Shadow opacity ≤ 8%
+
+### CI 整合
+
+`visual-regression-tests` job 在 GitHub Actions 中自動執行，失敗時上傳 screenshot diffs 作為 artifacts。
+
+### 新增頁面測試
+
+1. 在對應的 `*.visual.ts` 檔案中新增 test case
+2. 執行 `pnpm test:visual:update` 產生新的 baseline
+3. Commit `__screenshots__/` 目錄中的新檔案
 
 ---
 

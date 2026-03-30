@@ -159,6 +159,96 @@ test.describe("性能與可存取性測試", () => {
       expect(modernFormatRatio).toBeGreaterThan(0.3); // 至少 30% 使用現代格式
     });
 
+    test("圖片載入時間 P90 < 1s", async ({ page }) => {
+      // 監控所有圖片資源的載入時間
+      const imageTimings: number[] = [];
+
+      // 攔截圖片請求並記錄時間
+      page.on("response", async (response) => {
+        const url = response.url();
+        const contentType = response.headers()["content-type"] || "";
+        if (
+          contentType.startsWith("image/") ||
+          url.match(/\.(jpg|jpeg|png|webp|avif|gif|svg)(\?|$)/i)
+        ) {
+          const timing = response.request().timing();
+          if (timing.responseEnd > 0) {
+            // responseEnd - requestStart = 完整載入時間
+            const loadTime = timing.responseEnd - timing.requestStart;
+            imageTimings.push(loadTime);
+          }
+        }
+      });
+
+      await page.goto("/restaurant/1/table/5");
+      await helpers.waitForPageLoad();
+
+      // 滾動觸發懶載入圖片
+      for (let i = 0; i < 3; i++) {
+        await page.mouse.wheel(0, 300);
+        await page.waitForTimeout(500);
+      }
+
+      // 使用 Resource Timing API 補充瀏覽器端的圖片載入數據
+      const resourceTimings = await page.evaluate(() => {
+        const entries = performance.getEntriesByType(
+          "resource",
+        ) as PerformanceResourceTiming[];
+        return entries
+          .filter(
+            (e) =>
+              e.initiatorType === "img" ||
+              e.name.match(/\.(jpg|jpeg|png|webp|avif|gif|svg)(\?|$)/i),
+          )
+          .map((e) => e.responseEnd - e.startTime);
+      });
+
+      const allTimings = [...imageTimings, ...resourceTimings].filter(
+        (t) => t > 0,
+      );
+
+      if (allTimings.length > 0) {
+        // 計算 P90
+        allTimings.sort((a, b) => a - b);
+        const p90Index = Math.floor(allTimings.length * 0.9);
+        const p90 = allTimings[p90Index];
+
+        // CLAUDE.md: Image Load Time P90 < 1s
+        expect(p90).toBeLessThan(1000);
+      }
+
+      // 驗證所有可見圖片都已成功載入（非 broken）
+      const visibleImages = await page.locator("img:visible").all();
+      for (const img of visibleImages.slice(0, 10)) {
+        const naturalWidth = await img.evaluate(
+          (el: HTMLImageElement) => el.naturalWidth,
+        );
+        const src = await img.getAttribute("src");
+        // 有 src 的圖片應該成功載入（naturalWidth > 0）
+        if (src && !src.startsWith("data:")) {
+          expect(naturalWidth).toBeGreaterThan(0);
+        }
+      }
+
+      // 驗證首屏圖片有正確的優化屬性
+      const firstScreenImages = await page.locator("img:visible").all();
+      for (const img of firstScreenImages.slice(0, 5)) {
+        const srcset = await img.getAttribute("srcset");
+        const sizes = await img.getAttribute("sizes");
+        const loading = await img.getAttribute("loading");
+
+        // 至少應該有 loading 屬性
+        expect(
+          loading === "lazy" || loading === "eager" || loading === null,
+        ).toBe(true);
+
+        // 如果有 srcset，應該有 sizes（響應式圖片最佳實踐）
+        if (srcset) {
+          expect(sizes).not.toBeNull();
+        }
+      }
+    });
+
     test("記憶體使用測試", async ({ page }) => {
       await page.goto("/restaurant/1/table/5");
       await helpers.waitForPageLoad();

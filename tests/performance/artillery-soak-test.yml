@@ -1,0 +1,168 @@
+# Artillery Soak Test Configuration
+# 長時間持續負載測試 — 檢測記憶體洩漏與效能漂移
+#
+# 用途：穩定 30 req/s 持續 30 分鐘，監控回應時間是否隨時間漂移
+# 執行：pnpm test:soak
+# 對齊 CLAUDE.md 效能目標：API P99 < 300ms
+#
+# 成功條件：
+#   - 最後 5 分鐘的 P95 不超過前 5 分鐘的 120%
+#   - error rate 全程 < 1%
+#   - 無 OOM 或連線池耗盡
+
+config:
+  target: "http://localhost:8787"
+  phases:
+    # 暖身
+    - duration: 60
+      arrivalRate: 10
+      name: "Warmup"
+
+    # 穩定負載持續 30 分鐘
+    - duration: 1800
+      arrivalRate: 30
+      name: "Sustained soak load (30 min)"
+
+    # 降載觀察恢復
+    - duration: 60
+      arrivalRate: 5
+      name: "Cool-down & recovery"
+
+  # 效能門檻 — Soak test 使用與 load test 相同標準
+  ensure:
+    - http.response_time.p95:
+        max: 200
+    - http.response_time.p99:
+        max: 300
+    - http.codes.500:
+        max: 5
+
+  http:
+    timeout: 15
+    pool: 50
+
+  plugins:
+    expect: {}
+    metrics-by-endpoint:
+      metricsNamespace: "soak_test"
+
+  variables:
+    testUsername: "testuser"
+    testPassword: "testpass123"
+    restaurantId: "1"
+
+  processor: "./artillery-api-processor.js"
+
+scenarios:
+  # 模擬正常營業混合流量，權重反映真實使用比例
+
+  # 場景 1: 菜單瀏覽（最高頻）
+  - name: "Menu Browse (Soak)"
+    weight: 40
+    flow:
+      - function: "authenticateUser"
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/categories"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/api/v1/menu/{{ restaurantId }}/items"
+          qs:
+            page: 1
+            pageSize: 20
+            status: "available"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 2: 訂單查詢
+  - name: "Order Queries (Soak)"
+    weight: 25
+    flow:
+      - function: "authenticateUser"
+      - get:
+          url: "/api/v1/orders"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            page: 1
+            pageSize: 20
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 3: 下單寫入
+  - name: "Order Creation (Soak)"
+    weight: 15
+    flow:
+      - function: "authenticateUser"
+      - post:
+          url: "/api/v1/orders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            restaurantId: "{{ restaurantId }}"
+            tableId: 1
+            items:
+              - menuItemId: 1
+                quantity: 1
+          expect:
+            - statusCode: 201
+
+  # 場景 4: 桌台查詢
+  - name: "Table Status (Soak)"
+    weight: 10
+    flow:
+      - function: "authenticateUser"
+      - get:
+          url: "/api/v1/tables"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 5: 分析報表（低頻但重查詢）
+  - name: "Analytics (Soak)"
+    weight: 5
+    flow:
+      - function: "authenticateAdmin"
+      - get:
+          url: "/api/v1/analytics/sales"
+          qs:
+            restaurantId: "{{ restaurantId }}"
+            startDate: "2025-01-01"
+            endDate: "2025-12-31"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 場景 6: 認證流程
+  - name: "Auth Flow (Soak)"
+    weight: 5
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            username: "{{ testUsername }}"
+            password: "{{ testPassword }}"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/api/v1/auth/verify"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+after:
+  flow:
+    - log: "Soak test completed. Check for response time drift in the report."

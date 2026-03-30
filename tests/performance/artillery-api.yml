@@ -35,17 +35,17 @@ config:
       arrivalRate: 10
       name: "Cool-down"
 
-  # 性能指標設定
+  # 性能指標設定 — 對齊 CLAUDE.md 效能目標
   ensure:
     # HTTP 請求成功率 > 99%
     - http.request_rate:
         min: 5
-    # 回應時間 P95 < 300ms
+    # 回應時間 P95 < 200ms（CLAUDE.md: P99 < 300ms，P95 應更嚴格）
     - http.response_time.p95:
-        max: 300
-    # 回應時間 P99 < 500ms
+        max: 200
+    # 回應時間 P99 < 300ms（CLAUDE.md: API Response Time P99 < 300ms）
     - http.response_time.p99:
-        max: 500
+        max: 300
     # 錯誤率 < 1%
     - http.codes.500:
         max: 10  # 每秒最多 10 個 500 錯誤

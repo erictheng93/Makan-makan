@@ -5,8 +5,12 @@
  * Usage: ts-node compare-performance.ts [--fail-on-regression]
  */
 
-import { PerformanceBaselineManager } from "./db-performance-tester";
-import { createBaseline } from "./create-baseline";
+import {
+  DatabasePerformanceTester,
+  PerformanceBaselineManager,
+} from "./db-performance-tester";
+import { createBaseline, BENCHMARK_QUERIES } from "./create-baseline";
+import { createTestDB, cleanupTestDB } from "../../helpers/test-db";
 
 interface RegressionConfig {
   warningThreshold: number; // Percentage increase that triggers warning
@@ -42,12 +46,35 @@ async function comparePerformance(config: RegressionConfig = DEFAULT_CONFIG) {
   );
   console.log();
 
-  // Run current benchmarks (reuse create-baseline logic)
+  // Run current benchmarks against the same queries
   console.log("🚀 Running Current Benchmarks...\n");
 
-  // For now, we'll simulate current results
-  // In actual implementation, this would run the benchmarks again
-  const currentResults = baseline.queries; // Placeholder
+  const db = await createTestDB();
+  const tester = new DatabasePerformanceTester(db);
+  const currentResults: Record<string, { avgTime: number; p95Time: number }> =
+    {};
+
+  for (const benchmark of BENCHMARK_QUERIES) {
+    process.stdout.write(`  [${benchmark.category}] ${benchmark.name}... `);
+    try {
+      const result = await tester.benchmarkQuery(
+        benchmark.query,
+        benchmark.params,
+        10,
+      );
+      currentResults[benchmark.name] = {
+        avgTime: Math.round(result.avgTime * 100) / 100,
+        p95Time: Math.round(result.p95Time * 100) / 100,
+      };
+      console.log(`${result.avgTime.toFixed(2)}ms`);
+    } catch (error: any) {
+      console.log(`❌ ${error.message}`);
+      currentResults[benchmark.name] = { avgTime: -1, p95Time: -1 };
+    }
+  }
+
+  await cleanupTestDB(db);
+  console.log();
 
   // Compare
   const comparison = baselineManager.compareWithBaseline(

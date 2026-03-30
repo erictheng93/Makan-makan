@@ -88,6 +88,8 @@ pnpm test:e2e           # End-to-end tests (Playwright)
 pnpm test:e2e:ui        # E2E with Playwright UI
 pnpm test:ci            # CI pipeline tests (unit + e2e)
 pnpm test:coverage      # Tests with coverage report
+pnpm test:visual        # Visual regression tests (Playwright screenshots)
+pnpm test:visual:update # Update screenshot baselines
 
 # Type checking & linting
 pnpm typecheck          # TypeScript check (all packages)

@@ -14,9 +14,6 @@
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --fix",
     "lint:fix": "eslint src --fix",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "chromatic": "chromatic --project-token=$CHROMATIC_PROJECT_TOKEN",
     "deploy:staging": "wrangler pages deploy dist --project-name=makanmakan-admin-staging",
     "deploy:prod": "wrangler pages deploy dist --project-name=makanmakan-admin"
   },

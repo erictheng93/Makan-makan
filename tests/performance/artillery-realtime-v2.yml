@@ -37,14 +37,14 @@ config:
       arrivalRate: 5
       name: "Cool-down"
 
-  # 效能指標門檻
+  # 效能指標門檻 — 對齊 CLAUDE.md 效能目標（WebSocket Latency < 50ms）
   ensure:
-    # P95 延遲 < 300ms
-    - p95: 300
-    # P99 延遲 < 500ms
-    - p99: 500
-    # 中位數延遲 < 100ms
-    - median: 100
+    # 中位數延遲 < 50ms（CLAUDE.md: WebSocket Latency < 50ms）
+    - median: 50
+    # P95 延遲 < 100ms
+    - p95: 100
+    # P99 延遲 < 200ms
+    - p99: 200
 
   # 插件配置
   plugins:
