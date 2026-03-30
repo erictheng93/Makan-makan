@@ -17,7 +17,7 @@ export const DESIGN_TOKENS = {
   maxShadowOpacity: 0.08, // 8%
 } as const;
 
-interface DesignSystemOptions {
+export interface DesignSystemOptions {
   /** 跳過頁面背景色檢查（某些頁面如 login 可能有不同背景） */
   skipBgCheck?: boolean;
   /** 跳過文字色檢查 */

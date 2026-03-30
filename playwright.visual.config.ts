@@ -8,6 +8,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./tests/visual",
+  testMatch: "**/*.visual.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -42,15 +43,17 @@ export default defineConfig({
     {
       name: "tablet",
       use: {
-        ...devices["iPad (gen 7)"],
+        ...devices["Desktop Chrome"],
         viewport: { width: 768, height: 1024 },
       },
     },
     {
       name: "mobile",
       use: {
-        ...devices["iPhone 12"],
+        ...devices["Desktop Chrome"],
         viewport: { width: 375, height: 812 },
+        isMobile: true,
+        hasTouch: true,
       },
     },
   ],
