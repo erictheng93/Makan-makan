@@ -430,6 +430,8 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     email: "staff@test.com",
     phone: "+60123456789",
     password: "Test@1234",
+    confirmPassword: "Test@1234",
+    restaurantId: "S-20240101-001",
   };
 
   // 店主嘗試註冊管理員帳號 — 必須被拒絕（權限提升攻擊）
@@ -452,7 +454,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
         body: JSON.stringify({
           ...staffPayload,
           role: 0,
-          restaurantId: "rest-A",
+          restaurantId: "S-20240101-001",
         }),
       },
       env,
@@ -486,7 +488,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
         body: JSON.stringify({
           ...staffPayload,
           role: 1,
-          restaurantId: "rest-A",
+          restaurantId: "S-20240101-001",
         }),
       },
       env,
@@ -524,7 +526,6 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
         body: JSON.stringify({
           ...staffPayload,
           role: 2,
-          restaurantId: "rest-A",
         }),
       },
       env,
@@ -561,7 +562,6 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
         body: JSON.stringify({
           ...staffPayload,
           role: 3,
-          restaurantId: "rest-A",
         }),
       },
       env,
@@ -593,7 +593,6 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
         body: JSON.stringify({
           ...staffPayload,
           role: 3,
-          restaurantId: "rest-A",
         }),
       },
       env,
@@ -629,7 +628,6 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
         body: JSON.stringify({
           ...staffPayload,
           role: 1,
-          restaurantId: "rest-A",
         }),
       },
       env,
@@ -1056,6 +1054,7 @@ describe("Session Hijacking Prevention (防止會話劫持)", () => {
         body: JSON.stringify({
           currentPassword: "OldPass@123",
           newPassword: "NewPass@456",
+          confirmPassword: "NewPass@456",
         }),
       },
       env,

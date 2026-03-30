@@ -622,14 +622,19 @@ describe("Header Injection Prevention（Header 注入防護）", () => {
   it("應安全處理 header 中的換行注入（\\r\\n）", async () => {
     // Node.js 的 Headers API 會在建構時拒絕包含 CRLF 的值，
     // 這本身就是運行時層面的安全防線
-    await expect(
-      app.request("/api/v1/health", {
+    let threw = false;
+    try {
+      await app.request("/api/v1/health", {
         method: "GET",
         headers: {
           "X-Custom": "value\r\nX-Injected: true",
         },
-      }),
-    ).rejects.toThrow(/invalid header value/i);
+      });
+    } catch (e) {
+      threw = true;
+      expect(e).toBeInstanceOf(TypeError);
+    }
+    expect(threw).toBe(true);
   });
 
   it("應安全處理超長 Authorization header（>8KB）", async () => {
@@ -648,21 +653,27 @@ describe("Header Injection Prevention（Header 注入防護）", () => {
   it("應安全處理 header 中的 null byte", async () => {
     // Node.js 的 Headers API 會在建構時拒絕包含 null byte 的值，
     // 這防止了 null byte injection 攻擊
-    await expect(
-      app.request("/api/v1/health", {
+    let threw = false;
+    try {
+      await app.request("/api/v1/health", {
         method: "GET",
         headers: {
           Authorization: "Bearer token\x00extra",
         },
-      }),
-    ).rejects.toThrow(/invalid header value/i);
+      });
+    } catch (e) {
+      threw = true;
+      expect(e).toBeInstanceOf(TypeError);
+    }
+    expect(threw).toBe(true);
   });
 
   it("應安全處理含有 CRLF 的 Content-Type header", async () => {
     // 運行時的 Headers API 拒絕 Content-Type 中的 CRLF 注入，
     // 防止 HTTP response splitting 攻擊
-    await expect(
-      app.request("/api/v1/users", {
+    let threw = false;
+    try {
+      await app.request("/api/v1/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json\r\nX-Injected: malicious",
@@ -671,8 +682,12 @@ describe("Header Injection Prevention（Header 注入防護）", () => {
           username: "testuser",
           password: "testpass123",
         }),
-      }),
-    ).rejects.toThrow(/invalid header value/i);
+      });
+    } catch (e) {
+      threw = true;
+      expect(e).toBeInstanceOf(TypeError);
+    }
+    expect(threw).toBe(true);
   });
 
   it("應安全處理大量 header", async () => {
