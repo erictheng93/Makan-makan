@@ -128,7 +128,8 @@ app.post("/", async (c) => {
     tableId: data.tableId,
     customerInfo: {
       name: data.guestName,
-      phone: data.phoneLastDigits, // Store last 3 digits in phone field
+      // phoneLastDigits is only 3 digits (for order dedup), not a real phone number.
+      // Don't pass it as phone — it would fail the 7-20 digit validation in OrdersService.
     },
     items: data.items.map((item) => ({
       menuItemId: item.menuItemId,
