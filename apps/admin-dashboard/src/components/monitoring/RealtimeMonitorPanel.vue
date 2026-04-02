@@ -4,7 +4,7 @@
  * WebSocket 連接監控儀表板組件
  */
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useI18n } from "vue-i18n";
+import { useI18n } from "@/i18n";
 import { api } from "@/services/api";
 import type { RealtimeOverview, RoomType } from "@/types/realtime";
 
