@@ -102,6 +102,24 @@
         </div>
       </form>
 
+      <!-- Chef redirect prompt -->
+      <div
+        v-if="showChefRedirect"
+        class="rounded-2xl bg-emerald-50 border border-emerald-200 p-6 text-center space-y-3"
+      >
+        <div class="text-3xl">👨‍🍳</div>
+        <p class="font-semibold text-emerald-800">廚師帳號請使用廚房顯示系統</p>
+        <p class="text-sm text-emerald-600">
+          此管理後台不適用於廚師角色，請前往專用的廚房看板系統。
+        </p>
+        <a
+          :href="KITCHEN_DISPLAY_URL"
+          class="inline-block w-full py-3 px-4 rounded-full bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors"
+        >
+          前往廚房顯示系統 →
+        </a>
+      </div>
+
       <div class="text-center">
         <p class="text-xs text-gray-500">
           © 2025 MakanMakan. All rights reserved.
@@ -122,19 +140,6 @@ import { Eye, EyeOff, AlertCircle } from "lucide-vue-next";
 // Kitchen Display App URL — Chef role redirects here instead of admin dashboard
 const KITCHEN_DISPLAY_URL =
   import.meta.env.VITE_KITCHEN_DISPLAY_URL || "http://localhost:3002";
-
-/**
- * Route user to the correct app/page based on role.
- * Chef → Kitchen Display (separate app, different UI paradigm)
- * Others → Admin Dashboard (default route per role)
- */
-const routeByRole = (role: number) => {
-  if (role === UserRole.CHEF) {
-    window.location.href = KITCHEN_DISPLAY_URL;
-    return;
-  }
-  router.push(authStore.getDefaultRoute());
-};
 
 const { t } = useI18n();
 const router = useRouter();
@@ -176,6 +181,9 @@ const validateForm = () => {
   return true;
 };
 
+// Chef redirect state — shown when a chef tries to log in here
+const showChefRedirect = ref(false);
+
 const handleSubmit = async () => {
   if (!validateForm()) return;
 
@@ -186,7 +194,16 @@ const handleSubmit = async () => {
     const result = await authStore.login(form.username, form.password);
 
     if (result.success) {
-      routeByRole(authStore.user?.role ?? -1);
+      const role = authStore.user?.role;
+      if (role === UserRole.CHEF) {
+        // Chef should use Kitchen Display, not Admin Dashboard.
+        // Log them out here and show redirect prompt instead of
+        // silently redirecting (which would require logging in twice).
+        await authStore.logout();
+        showChefRedirect.value = true;
+        return;
+      }
+      router.push(authStore.getDefaultRoute());
     } else {
       error.value = result.error || t("auth.loginFailed");
     }
@@ -207,7 +224,13 @@ const handleSubmit = async () => {
 // Auto-redirect if already authenticated
 onMounted(() => {
   if (authStore.isAuthenticated) {
-    routeByRole(authStore.user?.role ?? -1);
+    if (authStore.user?.role === UserRole.CHEF) {
+      // Chef shouldn't be in admin dashboard — show redirect
+      authStore.logout();
+      showChefRedirect.value = true;
+      return;
+    }
+    router.push(authStore.getDefaultRoute());
   }
 });
 </script>
