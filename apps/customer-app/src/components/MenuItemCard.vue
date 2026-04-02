@@ -405,7 +405,19 @@ const { formatPrice } = useCurrency();
 
 // Computed
 const isOutOfStock = computed(() => {
-  return props.item.inventoryCount === 0;
+  // inventoryCount === 0 means inventory tracking is not enabled (default).
+  // Only treat as out-of-stock when inventory tracking is active (count was > 0)
+  // and has been depleted, OR when the item is explicitly marked unavailable.
+  if (!props.item.isAvailable) return true;
+  if (
+    props.item.inventoryCount !== null &&
+    props.item.inventoryCount !== undefined &&
+    props.item.inventoryCount > 0
+  ) {
+    return false;
+  }
+  // inventoryCount of 0 with isAvailable=true means no inventory tracking
+  return false;
 });
 
 const hasCustomizations = computed(() => {
