@@ -144,7 +144,8 @@ const props = defineProps<{
 }>();
 
 // Numeric restaurantId (router params are always strings)
-const restaurantIdNum = computed(() => Number(props.restaurantId));
+// restaurantId is a UUID string — keep as string for comparison
+const restaurantIdNum = computed(() => props.restaurantId);
 
 // Composables
 const router = useRouter();

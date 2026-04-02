@@ -16,7 +16,7 @@ export const kitchenApi = {
    * 獲取廚房訂單資料
    */
   async getOrders(
-    restaurantId: number,
+    restaurantId: number | string,
   ): Promise<ApiResponse<KitchenOrdersResponse>> {
     try {
       const response = await api.get(`/kitchen/${restaurantId}/orders`);
@@ -43,7 +43,7 @@ export const kitchenApi = {
    * 更新訂單項目狀態
    */
   async updateItemStatus(
-    restaurantId: number,
+    restaurantId: number | string,
     orderId: number,
     itemId: number,
     request: UpdateItemStatusRequest,
@@ -76,7 +76,7 @@ export const kitchenApi = {
    * 批量更新訂單項目狀態
    */
   async batchUpdateItemStatus(
-    restaurantId: number,
+    restaurantId: number | string,
     updates: Array<{
       orderId: number;
       itemId: number;
@@ -122,7 +122,9 @@ export const kitchenApi = {
   /**
    * 獲取連接狀態
    */
-  async getConnectionStatus(restaurantId: number): Promise<ApiResponse> {
+  async getConnectionStatus(
+    restaurantId: number | string,
+  ): Promise<ApiResponse> {
     try {
       const response = await api.get(`/kitchen/${restaurantId}/connections`);
 
@@ -148,7 +150,7 @@ export const kitchenApi = {
    * 廣播測試事件 (開發用)
    */
   async broadcastTest(
-    restaurantId: number,
+    restaurantId: number | string,
     request: BroadcastTestRequest,
   ): Promise<ApiResponse> {
     try {
@@ -179,7 +181,7 @@ export const kitchenApi = {
    * 開始製作訂單項目
    */
   async startCooking(
-    restaurantId: number,
+    restaurantId: number | string,
     orderId: number,
     itemId: number,
   ): Promise<ApiResponse> {
@@ -192,7 +194,7 @@ export const kitchenApi = {
    * 標記訂單項目完成
    */
   async markItemReady(
-    restaurantId: number,
+    restaurantId: number | string,
     orderId: number,
     itemId: number,
   ): Promise<ApiResponse> {
@@ -205,7 +207,7 @@ export const kitchenApi = {
    * 批量開始製作訂單中的所有項目
    */
   async startAllItems(
-    restaurantId: number,
+    restaurantId: number | string,
     orderId: number,
     itemIds: number[],
   ): Promise<ApiResponse> {
@@ -222,7 +224,7 @@ export const kitchenApi = {
    * 批量標記訂單中的所有項目完成
    */
   async markAllItemsReady(
-    restaurantId: number,
+    restaurantId: number | string,
     orderId: number,
     itemIds: number[],
   ): Promise<ApiResponse> {

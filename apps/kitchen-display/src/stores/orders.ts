@@ -48,7 +48,7 @@ export const useOrdersStore = defineStore("orders", () => {
   /**
    * 從 API 獲取訂單資料
    */
-  const fetchOrders = async (restaurantId: number) => {
+  const fetchOrders = async (restaurantId: number | string) => {
     loading.value = true;
     error.value = null;
 
@@ -297,7 +297,7 @@ export const useOrdersStore = defineStore("orders", () => {
    * 開始製作訂單項目
    */
   const startCooking = async (
-    restaurantId: number,
+    restaurantId: number | string,
     orderId: number,
     itemId: number,
   ) => {
@@ -336,7 +336,7 @@ export const useOrdersStore = defineStore("orders", () => {
    * 標記項目完成
    */
   const markReady = async (
-    restaurantId: number,
+    restaurantId: number | string,
     orderId: number,
     itemId: number,
   ) => {
