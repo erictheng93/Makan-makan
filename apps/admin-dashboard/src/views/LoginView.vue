@@ -116,7 +116,25 @@ import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "@/i18n";
+import { UserRole } from "@/types";
 import { Eye, EyeOff, AlertCircle } from "lucide-vue-next";
+
+// Kitchen Display App URL — Chef role redirects here instead of admin dashboard
+const KITCHEN_DISPLAY_URL =
+  import.meta.env.VITE_KITCHEN_DISPLAY_URL || "http://localhost:3002";
+
+/**
+ * Route user to the correct app/page based on role.
+ * Chef → Kitchen Display (separate app, different UI paradigm)
+ * Others → Admin Dashboard (default route per role)
+ */
+const routeByRole = (role: number) => {
+  if (role === UserRole.CHEF) {
+    window.location.href = KITCHEN_DISPLAY_URL;
+    return;
+  }
+  router.push(authStore.getDefaultRoute());
+};
 
 const { t } = useI18n();
 const router = useRouter();
@@ -168,7 +186,7 @@ const handleSubmit = async () => {
     const result = await authStore.login(form.username, form.password);
 
     if (result.success) {
-      router.push("/dashboard");
+      routeByRole(authStore.user?.role ?? -1);
     } else {
       error.value = result.error || t("auth.loginFailed");
     }
@@ -189,7 +207,7 @@ const handleSubmit = async () => {
 // Auto-redirect if already authenticated
 onMounted(() => {
   if (authStore.isAuthenticated) {
-    router.push("/dashboard");
+    routeByRole(authStore.user?.role ?? -1);
   }
 });
 </script>

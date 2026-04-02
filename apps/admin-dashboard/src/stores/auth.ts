@@ -152,6 +152,8 @@ export const useAuthStore = defineStore("auth", () => {
       case UserRole.OWNER:
         return "/dashboard/owner-overview";
       case UserRole.CHEF:
+        // Chef should be redirected to Kitchen Display App (handled by LoginView)
+        // Fallback to dashboard if somehow reached here
         return "/dashboard";
       case UserRole.SERVICE:
         return "/service";
