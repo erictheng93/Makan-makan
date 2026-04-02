@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick } from "vue";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
@@ -152,9 +153,21 @@ const mockBalances = [
 ];
 
 const mockUsers = [
-  { id: 1, username: "alice", fullName: "Alice", role: 2 },
-  { id: 2, username: "bob", fullName: "Bob", role: 3 },
-  { id: 3, username: "charlie", fullName: "Charlie", role: 3 },
+  {
+    ...userFactory.buildChef(1, {
+      overrides: { id: 1, username: "alice", fullName: "Alice" },
+    }),
+  },
+  {
+    ...userFactory.buildServiceCrew(1, {
+      overrides: { id: 2, username: "bob", fullName: "Bob" },
+    }),
+  },
+  {
+    ...userFactory.buildServiceCrew(1, {
+      overrides: { id: 3, username: "charlie", fullName: "Charlie" },
+    }),
+  },
 ];
 
 // ──── Service mocks ────
@@ -412,6 +425,7 @@ describe("SchedulingTab", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockGetShiftTemplates.mockResolvedValue(mockShiftTemplates);
     mockGetSchedules.mockResolvedValue({
@@ -441,12 +455,11 @@ describe("SchedulingTab", () => {
   });
 
   it("should show date navigation arrows", () => {
-    // Left and right chevron buttons (the first two small icon buttons)
-    const navButtons = wrapper
-      .findAll("button")
-      .filter((btn) => btn.classes().some((c) => c.includes("rounded-full")));
-    // At least 2 navigation buttons (prev/next)
-    expect(navButtons.length).toBeGreaterThanOrEqual(2);
+    // Left and right chevron buttons
+    const prevBtn = wrapper.find('[data-testid="nav-prev"]');
+    const nextBtn = wrapper.find('[data-testid="nav-next"]');
+    expect(prevBtn.exists()).toBe(true);
+    expect(nextBtn.exists()).toBe(true);
   });
 
   it("should display a date range label", () => {
@@ -500,8 +513,8 @@ describe("SchedulingTab", () => {
     expect(monthBtn).toBeTruthy();
     await monthBtn!.trigger("click");
     await nextTick();
-    // Verify the month button gets the active class
-    expect(monthBtn!.classes().join(" ")).toContain("bg-white");
+    // Verify the month button gets the active state
+    expect(monthBtn!.attributes("data-active")).toBe("true");
   });
 
   // ── Shift templates display ──
@@ -600,6 +613,7 @@ describe("LeavesTab", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockGetLeaveTypes.mockResolvedValue(mockLeaveTypes);
     mockGetRequests.mockResolvedValue(mockLeaveRequests);
@@ -778,6 +792,7 @@ describe("EmployeeManagementView", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     // LeavesTab's loadData gets called from EmployeeManagementView's onMounted
     mockGetRequests.mockResolvedValue(mockLeaveRequests);
@@ -805,7 +820,7 @@ describe("EmployeeManagementView", () => {
   it("should highlight the active tab based on route path", () => {
     // Current mock route is /dashboard/employees/scheduling
     const activeLinks = wrapper.findAll("a").filter((a) => {
-      return a.classes().join(" ").includes("border-[#007AFF]");
+      return a.attributes("data-active") === "true";
     });
     expect(activeLinks.length).toBe(1);
     expect(activeLinks[0].text()).toContain("employees.tabs.scheduling");

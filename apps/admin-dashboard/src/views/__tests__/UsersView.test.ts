@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { ref, computed } from "vue";
 import { setActivePinia, createPinia } from "pinia";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock i18n
 vi.mock("@/i18n", () => ({
@@ -55,42 +56,54 @@ import { api } from "@/services/api";
 
 const mockUsers = [
   {
-    id: 1,
-    username: "owner1",
-    fullName: "Shop Owner",
-    email: "owner@test.com",
-    role: 1,
-    isActive: true,
+    ...userFactory.buildShopOwner(1, {
+      overrides: {
+        id: 1,
+        username: "owner1",
+        fullName: "Shop Owner",
+        email: "owner@test.com",
+        isActive: true,
+      },
+    }),
     lastLoginAt: "2024-01-15T10:00:00Z",
     createdAt: "2024-01-01T00:00:00Z",
   },
   {
-    id: 2,
-    username: "chef1",
-    fullName: "Head Chef",
-    email: "chef@test.com",
-    role: 2,
-    isActive: true,
+    ...userFactory.buildChef(1, {
+      overrides: {
+        id: 2,
+        username: "chef1",
+        fullName: "Head Chef",
+        email: "chef@test.com",
+        isActive: true,
+      },
+    }),
     lastLoginAt: null,
     createdAt: "2024-02-01T00:00:00Z",
   },
   {
-    id: 3,
-    username: "server1",
-    fullName: "Server One",
-    email: "server@test.com",
-    role: 3,
-    isActive: false,
+    ...userFactory.buildServiceCrew(1, {
+      overrides: {
+        id: 3,
+        username: "server1",
+        fullName: "Server One",
+        email: "server@test.com",
+        isActive: false,
+      },
+    }),
     lastLoginAt: "2024-03-01T10:00:00Z",
     createdAt: "2024-03-01T00:00:00Z",
   },
   {
-    id: 4,
-    username: "cashier1",
-    fullName: "Cashier One",
-    email: "",
-    role: 4,
-    isActive: true,
+    ...userFactory.buildCashier(1, {
+      overrides: {
+        id: 4,
+        username: "cashier1",
+        fullName: "Cashier One",
+        email: "",
+        isActive: true,
+      },
+    }),
     lastLoginAt: null,
     createdAt: "2024-04-01T00:00:00Z",
   },
@@ -117,6 +130,7 @@ async function mountView() {
 describe("UsersView Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockApiGetSuccess();
     vi.spyOn(window, "confirm").mockReturnValue(true);

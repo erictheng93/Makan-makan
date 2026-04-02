@@ -15,7 +15,7 @@
 
     <!-- System Health Overview -->
     <div class="health-overview">
-      <div class="health-card" :class="overallHealthClass">
+      <div class="health-card" :class="overallHealthClass" :data-health-status="systemHealth?.overall_status || 'unknown'">
         <div class="health-header">
           <h2>{{ t('backup.monitoring.systemHealth') }}</h2>
           <div class="health-status">

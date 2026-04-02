@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -191,6 +192,7 @@ function mountReservationTab() {
 describe("ReservationTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     setupMocks();
   });

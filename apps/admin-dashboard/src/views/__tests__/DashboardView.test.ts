@@ -9,6 +9,7 @@ import { setActivePinia, createPinia } from "pinia";
 import DashboardView from "../DashboardView.vue";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useAuthStore } from "@/stores/auth";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 // useOrderStore available if needed for future tests
 
 // Mock child components
@@ -81,11 +82,19 @@ describe("DashboardView Component", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
 
     // Setup authStore with restaurantId to avoid "餐廳 ID 不存在" error
+    const adminUser = userFactory.buildAdmin({
+      overrides: { id: 1, username: "testuser" },
+    });
     const authStore = useAuthStore();
     authStore.$patch({
-      user: { id: 1, username: "testuser", role: 0 },
+      user: {
+        id: adminUser.id,
+        username: adminUser.username,
+        role: adminUser.role,
+      },
       restaurantId: 1,
       isAuthenticated: true,
     });

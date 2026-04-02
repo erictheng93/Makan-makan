@@ -23,6 +23,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Icon stubs ────
 
@@ -123,6 +124,7 @@ const sampleIngredient = {
 describe("IngredientsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockIngredientList.mockResolvedValue({
       items: [sampleIngredient],

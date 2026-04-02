@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Mocks (must be declared before imports that use them) ──────────────────
 
@@ -222,6 +223,7 @@ function mountComponent() {
 describe("WaitingListView Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     setupServiceMocks();
   });
@@ -303,26 +305,20 @@ describe("WaitingListView Component", () => {
       const wrapper = mountComponent();
       await flushPromises();
 
-      // Default is card view — find the table view toggle button
-      const viewButtons = wrapper
-        .findAll("button")
-        .filter(
-          (b) =>
-            b.classes().includes("rounded-r-md") ||
-            b.classes().includes("rounded-l-md"),
-        );
-      expect(viewButtons.length).toBeGreaterThanOrEqual(2);
+      // Default is card view — find the view toggle buttons by data-testid
+      const cardToggle = wrapper.find('[data-testid="view-toggle-card"]');
+      const tableToggle = wrapper.find('[data-testid="view-toggle-table"]');
+      expect(cardToggle.exists()).toBe(true);
+      expect(tableToggle.exists()).toBe(true);
     });
 
     it("should render table view headers when table mode selected", async () => {
       const wrapper = mountComponent();
       await flushPromises();
 
-      // Click the list/table view toggle button
-      const listToggle = wrapper
-        .findAll("button")
-        .find((b) => b.classes().some((c) => c.includes("rounded-r-md")));
-      if (listToggle) {
+      // Click the table view toggle button
+      const listToggle = wrapper.find('[data-testid="view-toggle-table"]');
+      if (listToggle.exists()) {
         await listToggle.trigger("click");
         await nextTick();
         const html = wrapper.html();
@@ -781,10 +777,8 @@ describe("WaitingListView Component", () => {
       await flushPromises();
 
       // Switch to table view
-      const listToggle = wrapper
-        .findAll("button")
-        .find((b) => b.classes().some((c) => c.includes("rounded-r-md")));
-      if (listToggle) {
+      const listToggle = wrapper.find('[data-testid="view-toggle-table"]');
+      if (listToggle.exists()) {
         await listToggle.trigger("click");
         await nextTick();
         const html = wrapper.html();

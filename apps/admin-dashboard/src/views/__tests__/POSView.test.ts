@@ -7,23 +7,43 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick } from "vue";
+import {
+  orderFactory,
+  orderItemFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
+const mockCashierOrder1Item = orderItemFactory.build({
+  overrides: {
+    id: 1,
+    menuItemName: "Nasi Lemak",
+    quantity: 2,
+    unitPrice: 250,
+    totalPrice: 500,
+  } as any,
+  relations: { orderId: 1, menuItemId: 1 },
+});
+
 const mockCashierOrders = [
   {
-    id: 1,
-    orderNumber: "ORD-001",
+    ...orderFactory.build({
+      overrides: {
+        id: 1,
+        orderNumber: "ORD-001",
+        status: "ready",
+        paymentStatus: "unpaid",
+        subtotal: 500,
+        serviceCharge: 50,
+        taxAmount: 30,
+        discountAmount: 0,
+        totalAmount: 580,
+        createdAt: "2024-03-01T10:00:00Z" as any,
+      },
+    }),
     tableNumber: "A1",
     customerName: "Alice",
-    status: "ready",
-    paymentStatus: "unpaid",
-    createdAt: "2024-03-01T10:00:00Z",
-    subtotal: 500,
-    serviceCharge: 50,
-    taxAmount: 30,
-    discountAmount: 0,
-    totalAmount: 580,
     items: [
       {
         id: 1,
@@ -35,33 +55,41 @@ const mockCashierOrders = [
     ],
   },
   {
-    id: 2,
-    orderNumber: "ORD-002",
+    ...orderFactory.build({
+      overrides: {
+        id: 2,
+        orderNumber: "ORD-002",
+        status: "delivered",
+        paymentStatus: "unpaid",
+        subtotal: 300,
+        serviceCharge: 30,
+        taxAmount: 18,
+        discountAmount: 0,
+        totalAmount: 348,
+        createdAt: "2024-03-01T11:00:00Z" as any,
+      },
+    }),
     tableNumber: "",
     customerName: "Bob",
-    status: "delivered",
-    paymentStatus: "unpaid",
-    createdAt: "2024-03-01T11:00:00Z",
-    subtotal: 300,
-    serviceCharge: 30,
-    taxAmount: 18,
-    discountAmount: 0,
-    totalAmount: 348,
     items: [],
   },
   {
-    id: 3,
-    orderNumber: "ORD-003",
+    ...orderFactory.build({
+      overrides: {
+        id: 3,
+        orderNumber: "ORD-003",
+        status: "completed",
+        paymentStatus: "paid",
+        subtotal: 200,
+        serviceCharge: 20,
+        taxAmount: 12,
+        discountAmount: 0,
+        totalAmount: 232,
+        createdAt: "2024-03-01T09:00:00Z" as any,
+      },
+    }),
     tableNumber: "B2",
     customerName: "Carol",
-    status: "completed",
-    paymentStatus: "paid",
-    createdAt: "2024-03-01T09:00:00Z",
-    subtotal: 200,
-    serviceCharge: 20,
-    taxAmount: 12,
-    discountAmount: 0,
-    totalAmount: 232,
     items: [],
   },
 ];
@@ -261,6 +289,7 @@ describe("CashierView Component", () => {
   let CashierView: any;
 
   beforeEach(async () => {
+    resetAllFactories();
     vi.clearAllMocks();
     setActivePinia(createPinia());
 
@@ -651,6 +680,7 @@ describe("POSManagementView Component", () => {
   let POSManagementView: any;
 
   beforeEach(async () => {
+    resetAllFactories();
     vi.clearAllMocks();
     setActivePinia(createPinia());
 
@@ -993,14 +1023,8 @@ describe("POSManagementView Component", () => {
       const wrapper = mountPOS();
       await flushPromises();
       // ArrowPathIcon is stubbed but the button container exists
-      const refreshBtns = wrapper
-        .findAll("button")
-        .filter(
-          (b) =>
-            b.find("span").exists() &&
-            b.classes().some((c) => c.includes("bg-gray-100")),
-        );
-      expect(refreshBtns.length).toBeGreaterThan(0);
+      const refreshBtn = wrapper.find('[data-testid="refresh-btn"]');
+      expect(refreshBtn.exists()).toBe(true);
     });
   });
 
@@ -1058,6 +1082,7 @@ describe("POSManagementView Component", () => {
 
 describe("Shared POS Logic", () => {
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     setActivePinia(createPinia());
 

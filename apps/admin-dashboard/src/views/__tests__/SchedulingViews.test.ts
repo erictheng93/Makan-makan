@@ -27,6 +27,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Icon stubs ────
 
@@ -241,6 +242,7 @@ const sampleWeeklySummary = {
 describe("SchedulingView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockGetSchedules.mockResolvedValue([sampleSchedule]);
     mockGetShiftTemplates.mockResolvedValue([sampleTemplate]);
@@ -353,6 +355,7 @@ describe("SchedulingView", () => {
 describe("SchedulingAnalyticsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockGetDailyStats.mockResolvedValue(sampleDailyStats);
     mockGetWeeklySummary.mockResolvedValue(sampleWeeklySummary);

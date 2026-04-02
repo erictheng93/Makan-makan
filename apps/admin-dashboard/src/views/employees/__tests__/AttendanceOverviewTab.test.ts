@@ -17,6 +17,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { ref, computed } from "vue";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mocks (must precede component import) ────
 
@@ -103,35 +104,47 @@ function mountComponent(props: Record<string, any> = {}) {
 function setupActiveEmployees() {
   mockUsers.value = [
     {
-      id: 1,
-      username: "alice",
-      fullName: "Alice Wang",
-      isActive: true,
-      role: 1,
+      ...userFactory.buildShopOwner(1, {
+        overrides: {
+          id: 1,
+          username: "alice",
+          fullName: "Alice Wang",
+          isActive: true,
+        },
+      }),
       status: "active",
     },
     {
-      id: 2,
-      username: "bob",
-      fullName: "Bob Chen",
-      isActive: true,
-      role: 2,
+      ...userFactory.buildChef(1, {
+        overrides: {
+          id: 2,
+          username: "bob",
+          fullName: "Bob Chen",
+          isActive: true,
+        },
+      }),
       status: "active",
     },
     {
-      id: 3,
-      username: "carol",
-      fullName: "Carol Li",
-      isActive: true,
-      role: 3,
+      ...userFactory.buildServiceCrew(1, {
+        overrides: {
+          id: 3,
+          username: "carol",
+          fullName: "Carol Li",
+          isActive: true,
+        },
+      }),
       status: "active",
     },
     {
-      id: 4,
-      username: "dave",
-      fullName: "Dave Tan",
-      isActive: false,
-      role: 4,
+      ...userFactory.buildCashier(1, {
+        overrides: {
+          id: 4,
+          username: "dave",
+          fullName: "Dave Tan",
+          isActive: false,
+        },
+      }),
       status: "inactive",
     },
   ];
@@ -181,6 +194,7 @@ function setupOnLeave() {
 describe("AttendanceOverviewTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockUsers.value = [];
     mockClockedInList.value = [];
     mockClockedInLoading.value = false;

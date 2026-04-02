@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Hoisted mocks ────
 
@@ -192,6 +193,7 @@ function mountConfig() {
 describe("AIInsightsDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockGenerateReport.mockResolvedValue(null);
     mockError.value = null;
   });
@@ -344,6 +346,7 @@ describe("AIInsightsDashboard", () => {
 describe("AIProviderConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockGetConfig.mockResolvedValue(null);
     mockGetAvailableModels.mockResolvedValue([
       "claude-sonnet-4-20250514",
@@ -580,6 +583,7 @@ describe("AIProviderConfig", () => {
 describe("AIInsightsDashboard (Deeper)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockGenerateReport.mockResolvedValue(null);
     mockError.value = null;
   });
@@ -722,6 +726,7 @@ describe("ProductAnalyticsView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
     mockError.value = null;
     mockGetTrafficDrivers.mockResolvedValue(mockProducts);
     mockGetBestsellers.mockResolvedValue(mockProducts);

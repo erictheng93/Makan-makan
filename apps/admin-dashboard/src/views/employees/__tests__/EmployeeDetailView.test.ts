@@ -17,6 +17,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { ref, computed } from "vue";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mocks (must precede component import) ────
 
@@ -127,25 +128,31 @@ import EmployeeDetailView from "../EmployeeDetailView.vue";
 // ──── Mock Data ────
 
 const mockEmployee = {
-  id: 42,
-  username: "alice",
-  fullName: "Alice Wang",
-  email: "alice@test.com",
-  role: 1,
+  ...userFactory.buildShopOwner(1, {
+    overrides: {
+      id: 42,
+      username: "alice",
+      fullName: "Alice Wang",
+      email: "alice@test.com",
+      isActive: true,
+    },
+  }),
   status: "active" as const,
-  isActive: true,
   lastLoginAt: "2026-03-27T10:00:00Z",
   createdAt: "2026-01-01T00:00:00Z",
 };
 
 const mockChef = {
-  id: 99,
-  username: "bob",
-  fullName: "Bob Chen",
-  email: "bob@test.com",
-  role: 2,
+  ...userFactory.buildChef(1, {
+    overrides: {
+      id: 99,
+      username: "bob",
+      fullName: "Bob Chen",
+      email: "bob@test.com",
+      isActive: false,
+    },
+  }),
   status: "inactive" as const,
-  isActive: false,
   lastLoginAt: null,
   createdAt: "2026-02-15T00:00:00Z",
 };
@@ -171,6 +178,7 @@ function mountComponent() {
 describe("EmployeeDetailView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockEmployeeData.employee.value = null;
     mockEmployeeData.employeeLoading.value = false;
     mockEmployeeData.schedules.value = [];
@@ -296,7 +304,7 @@ describe("EmployeeDetailView", () => {
             a.attributes("href") === "/dashboard/employees/42" &&
             a.text().includes("Profile"),
         );
-      expect(activeLink?.classes()).toContain("border-[#007AFF]");
+      expect(activeLink?.attributes("data-active")).toBe("true");
     });
 
     it("should highlight schedule tab when on schedule path", () => {
@@ -311,7 +319,7 @@ describe("EmployeeDetailView", () => {
         .find(
           (a) => a.attributes("href") === "/dashboard/employees/42/schedule",
         );
-      expect(scheduleLink?.classes()).toContain("border-[#007AFF]");
+      expect(scheduleLink?.attributes("data-active")).toBe("true");
     });
   });
 

@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Module mocks ────────────────────────────────────────────────────────────
 
@@ -121,6 +122,7 @@ describe("NotFoundView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
   });
 
   it("renders the 404 heading", () => {
@@ -187,6 +189,7 @@ describe("UnauthorizedView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
   });
 
   it("renders the unauthorized title", () => {

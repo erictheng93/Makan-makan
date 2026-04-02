@@ -23,6 +23,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mocks ────
 
@@ -73,72 +74,92 @@ import ServiceView from "../ServiceView.vue";
 
 const sampleOrders = [
   {
-    id: 1,
-    orderNumber: "ORD-001",
+    ...orderFactory.build({
+      overrides: {
+        id: 1,
+        orderNumber: "ORD-001",
+        orderType: "dine_in",
+        status: "ready",
+        readyAt: new Date(Date.now() - 300000).toISOString() as any,
+        deliveredAt: null,
+        customerInfo: { name: "Alice", phone: "0912345678" },
+      },
+    }),
     tableNumber: "A1",
-    orderType: "dine_in",
-    status: "ready",
     priority: "high",
-    readyAt: new Date(Date.now() - 300000).toISOString(),
     deliveryStartTime: null,
-    customerInfo: { name: "Alice", phone: "0912345678" },
     deliveryNotes: "Extra napkins",
     assignedTo: null,
-    deliveredAt: null,
     items: [{ id: 1, quantity: 2, menuItemName: "牛肉麵" }],
   },
   {
-    id: 2,
-    orderNumber: "ORD-002",
+    ...orderFactory.build({
+      overrides: {
+        id: 2,
+        orderNumber: "ORD-002",
+        orderType: "dine_in",
+        status: "delivering",
+        readyAt: new Date(Date.now() - 600000).toISOString() as any,
+        deliveredAt: null,
+        customerInfo: { name: "Bob", phone: "0987654321" },
+      },
+    }),
     tableNumber: "B2",
-    orderType: "dine_in",
-    status: "delivering",
     priority: "normal",
-    readyAt: new Date(Date.now() - 600000).toISOString(),
     deliveryStartTime: new Date(Date.now() - 120000).toISOString(),
-    customerInfo: { name: "Bob", phone: "0987654321" },
     deliveryNotes: "",
     assignedTo: "current_user",
-    deliveredAt: null,
     items: [{ id: 2, quantity: 1, menuItemName: "滷肉飯" }],
   },
   {
-    id: 3,
-    orderNumber: "ORD-003",
+    ...orderFactory.build({
+      overrides: {
+        id: 3,
+        orderNumber: "ORD-003",
+        orderType: "dine_in",
+        status: "ready",
+        readyAt: new Date(Date.now() - 100000).toISOString() as any,
+        deliveredAt: null,
+        customerInfo: { name: "Charlie", phone: "" },
+      },
+    }),
     tableNumber: "A1",
-    orderType: "dine_in",
-    status: "ready",
     priority: "normal",
-    readyAt: new Date(Date.now() - 100000).toISOString(),
     deliveryStartTime: null,
-    customerInfo: { name: "Charlie", phone: "" },
     deliveryNotes: "",
     assignedTo: null,
-    deliveredAt: null,
     items: [{ id: 3, quantity: 3, menuItemName: "水餃" }],
   },
 ];
 
 const deliveredOrders = [
   {
-    id: 10,
-    orderNumber: "ORD-010",
-    status: "delivered",
-    deliveredAt: new Date(Date.now() - 3600000).toISOString(),
+    ...orderFactory.build({
+      overrides: {
+        id: 10,
+        orderNumber: "ORD-010",
+        status: "delivered",
+        deliveredAt: new Date(Date.now() - 3600000).toISOString() as any,
+        readyAt: new Date(Date.now() - 4000000).toISOString() as any,
+        createdAt: new Date(Date.now() - 4200000).toISOString() as any,
+        updatedAt: new Date(Date.now() - 3600000).toISOString() as any,
+      },
+    }),
     deliveryStartTime: new Date(Date.now() - 3900000).toISOString(),
-    readyAt: new Date(Date.now() - 4000000).toISOString(),
-    createdAt: new Date(Date.now() - 4200000).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000).toISOString(),
   },
   {
-    id: 11,
-    orderNumber: "ORD-011",
-    status: "delivered",
-    deliveredAt: new Date(Date.now() - 1800000).toISOString(),
+    ...orderFactory.build({
+      overrides: {
+        id: 11,
+        orderNumber: "ORD-011",
+        status: "delivered",
+        deliveredAt: new Date(Date.now() - 1800000).toISOString() as any,
+        readyAt: new Date(Date.now() - 2200000).toISOString() as any,
+        createdAt: new Date(Date.now() - 2400000).toISOString() as any,
+        updatedAt: new Date(Date.now() - 1800000).toISOString() as any,
+      },
+    }),
     deliveryStartTime: new Date(Date.now() - 2100000).toISOString(),
-    readyAt: new Date(Date.now() - 2200000).toISOString(),
-    createdAt: new Date(Date.now() - 2400000).toISOString(),
-    updatedAt: new Date(Date.now() - 1800000).toISOString(),
   },
 ];
 
@@ -191,6 +212,7 @@ function createWrapper() {
 
 describe("ServiceView", () => {
   beforeEach(() => {
+    resetAllFactories();
     setActivePinia(createPinia());
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });

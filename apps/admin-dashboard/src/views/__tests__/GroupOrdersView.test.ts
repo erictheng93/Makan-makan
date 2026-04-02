@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
@@ -314,6 +315,7 @@ describe("GroupOrdersView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
     mockGetGroupOrders.mockResolvedValue(mockGroupOrders);
     mockGetGroupOrderStats.mockResolvedValue(mockStats);
   });
@@ -727,20 +729,8 @@ describe("GroupOrdersView", () => {
       await shareCodeInput.setValue("GRP-TEST");
       await nextTick();
 
-      // Click the join submit button
-      const submitJoinBtn = wrapper
-        .findAll("button")
-        .find(
-          (b) =>
-            b.text() === "groupOrders.joinOrder" &&
-            b.classes().toString().includes("bg-blue-600"),
-        );
-      // Fall back to finding by matching text in the dialog footer
-      const allJoinBtns = wrapper
-        .findAll("button")
-        .filter((b) => b.text() === "groupOrders.joinOrder");
-      // The last one is the dialog submit button
-      const dialogSubmit = allJoinBtns[allJoinBtns.length - 1];
+      // Click the join submit button in the dialog
+      const dialogSubmit = wrapper.find('[data-testid="join-order-btn"]');
       await dialogSubmit.trigger("click");
       await flushPromises();
 

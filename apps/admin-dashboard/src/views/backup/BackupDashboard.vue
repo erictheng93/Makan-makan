@@ -20,7 +20,7 @@
     </div>
 
     <!-- System Health Status -->
-    <div class="health-status-card" :class="healthStatusClass">
+    <div class="health-status-card" :class="healthStatusClass" :data-health-status="systemHealth?.overall_status || 'unknown'">
       <div class="status-icon">
         <component :is="healthStatusIcon" />
       </div>

@@ -22,6 +22,7 @@
                   ? 'border-green-500 bg-green-50 text-green-700'
                   : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
               ]"
+              :data-active="autoRefresh"
               @click="toggleAutoRefresh"
             >
               <component

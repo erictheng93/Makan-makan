@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, nextTick } from "vue";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
@@ -102,9 +103,21 @@ const mockBalances = [
 ];
 
 const mockUsers = [
-  { id: 1, username: "alice", fullName: "Alice", role: 2 },
-  { id: 2, username: "bob", fullName: "Bob", role: 3 },
-  { id: 3, username: "charlie", fullName: "Charlie", role: 3 },
+  {
+    ...userFactory.buildChef(1, {
+      overrides: { id: 1, username: "alice", fullName: "Alice" },
+    }),
+  },
+  {
+    ...userFactory.buildServiceCrew(1, {
+      overrides: { id: 2, username: "bob", fullName: "Bob" },
+    }),
+  },
+  {
+    ...userFactory.buildServiceCrew(1, {
+      overrides: { id: 3, username: "charlie", fullName: "Charlie" },
+    }),
+  },
 ];
 
 // ──── Service mocks ────
@@ -229,6 +242,7 @@ describe("LeavesTab", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockGetLeaveTypes.mockResolvedValue(mockLeaveTypes);
     mockGetRequests.mockResolvedValue(mockLeaveRequests);

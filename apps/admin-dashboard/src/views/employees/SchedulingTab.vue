@@ -7,6 +7,7 @@
         class="flex items-center gap-1 bg-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.06)] px-2 py-1"
       >
         <button
+          data-testid="nav-prev"
           class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#F2F2F7] transition-colors text-[#1C1C1E]/60 hover:text-[#1C1C1E]"
           @click="shiftRange(-1)"
         >
@@ -18,6 +19,7 @@
           {{ rangeLabel }}
         </span>
         <button
+          data-testid="nav-next"
           class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#F2F2F7] transition-colors text-[#1C1C1E]/60 hover:text-[#1C1C1E]"
           @click="shiftRange(1)"
         >
@@ -45,6 +47,7 @@
               ? 'bg-white text-[#1C1C1E] shadow-sm'
               : 'text-[#1C1C1E]/50 hover:text-[#1C1C1E]/70'
           "
+          :data-active="viewMode === mode"
           @click="viewMode = mode"
         >
           {{

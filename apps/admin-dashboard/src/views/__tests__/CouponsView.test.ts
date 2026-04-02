@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import CouponsView from "../CouponsView.vue";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
@@ -110,9 +111,16 @@ vi.mock("@/composables/useAsyncModals", () => ({
 }));
 
 // Mock auth store
+const mockAdminUser = userFactory.buildAdmin({
+  overrides: { id: 1, username: "admin" },
+});
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({
-    user: { id: 1, username: "admin", role: 0 },
+    user: {
+      id: mockAdminUser.id,
+      username: mockAdminUser.username,
+      role: mockAdminUser.role,
+    },
     restaurantId: 1,
     isAuthenticated: true,
   }),
@@ -184,6 +192,7 @@ function mountView() {
 
 describe("CouponsView Component", () => {
   beforeEach(() => {
+    resetAllFactories();
     setActivePinia(createPinia());
     vi.clearAllMocks();
     vi.useFakeTimers();

@@ -6,17 +6,21 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import { ref } from "vue";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
 const mockEmployee = {
-  id: 1,
-  username: "alice",
-  fullName: "Alice",
-  email: "alice@test.com",
-  role: 2,
+  ...userFactory.buildChef(1, {
+    overrides: {
+      id: 1,
+      username: "alice",
+      fullName: "Alice",
+      email: "alice@test.com",
+      isActive: true,
+    },
+  }),
   status: "active" as const,
-  isActive: true,
   lastLoginAt: null,
   createdAt: "2026-01-01T00:00:00Z",
 };
@@ -137,6 +141,7 @@ describe("EmployeeLeaveTab", () => {
   let wrapper: VueWrapper;
 
   beforeEach(() => {
+    resetAllFactories();
     wrapper = mountComponent();
   });
 
@@ -189,16 +194,16 @@ describe("EmployeeLeaveTab", () => {
     expect(requestItems.length).toBe(3);
   });
 
-  it("should display status badges with correct classes for each status", () => {
-    const badges = wrapper.findAll(".rounded-full.text-xs.font-medium");
-    const badgeClasses = badges.map((b) => b.classes().join(" "));
+  it("should display status badges with correct status for each leave request", () => {
+    const badges = wrapper.findAll("[data-status]");
+    const statuses = badges.map((b) => b.attributes("data-status"));
 
     // pending
-    expect(badgeClasses.some((c) => c.includes("bg-amber-50"))).toBe(true);
+    expect(statuses).toContain("pending");
     // approved
-    expect(badgeClasses.some((c) => c.includes("bg-emerald-50"))).toBe(true);
+    expect(statuses).toContain("approved");
     // rejected
-    expect(badgeClasses.some((c) => c.includes("bg-red-50"))).toBe(true);
+    expect(statuses).toContain("rejected");
   });
 
   it("should display date range for each leave request", () => {

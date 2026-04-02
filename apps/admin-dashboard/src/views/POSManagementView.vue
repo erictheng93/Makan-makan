@@ -240,6 +240,7 @@
                   {{ t("pos.export") }}
                 </button>
                 <button
+                  data-testid="refresh-btn"
                   class="p-2 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
                   @click="refreshTransactions"
                 >

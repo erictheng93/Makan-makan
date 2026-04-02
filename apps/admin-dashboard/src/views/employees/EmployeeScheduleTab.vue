@@ -106,6 +106,7 @@
           <span
             class="px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0"
             :class="scheduleStatusClass(schedule.status)"
+            :data-status="schedule.status"
           >
             {{ scheduleStatusText(schedule.status) }}
           </span>

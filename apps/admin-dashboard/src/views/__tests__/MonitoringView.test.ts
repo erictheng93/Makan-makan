@@ -13,6 +13,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick, ref } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mocks (must precede component import) ────
 
@@ -349,6 +350,7 @@ async function mountComponent() {
 describe("MonitoringView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     setActivePinia(createPinia());
     setupMocks();
@@ -840,8 +842,8 @@ describe("MonitoringView", () => {
         .findAll("button")
         .find((b) => b.text().includes("monitoring.actions.autoRefresh"));
       expect(autoBtn).toBeDefined();
-      // Button should have green styling when active
-      expect(autoBtn!.classes()).toContain("border-green-500");
+      // Button should be marked as active
+      expect(autoBtn!.attributes("data-active")).toBe("true");
     });
 
     it("should toggle to manual refresh text after click", async () => {

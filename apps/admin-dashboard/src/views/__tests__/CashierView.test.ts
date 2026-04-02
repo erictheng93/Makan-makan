@@ -23,23 +23,32 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import {
+  orderFactory,
+  orderItemFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
 const mockCashierOrders = [
   {
-    id: 1,
-    orderNumber: "ORD-001",
+    ...orderFactory.build({
+      overrides: {
+        id: 1,
+        orderNumber: "ORD-001",
+        status: "ready",
+        paymentStatus: "unpaid",
+        subtotal: 500,
+        serviceCharge: 50,
+        taxAmount: 30,
+        discountAmount: 0,
+        totalAmount: 580,
+        createdAt: "2024-03-01T10:00:00Z" as any,
+      },
+    }),
     tableNumber: "A1",
     customerName: "Alice",
-    status: "ready",
-    paymentStatus: "unpaid",
-    createdAt: "2024-03-01T10:00:00Z",
-    subtotal: 500,
-    serviceCharge: 50,
-    taxAmount: 30,
-    discountAmount: 0,
-    totalAmount: 580,
     items: [
       {
         id: 1,
@@ -51,18 +60,22 @@ const mockCashierOrders = [
     ],
   },
   {
-    id: 2,
-    orderNumber: "ORD-002",
+    ...orderFactory.build({
+      overrides: {
+        id: 2,
+        orderNumber: "ORD-002",
+        status: "delivered",
+        paymentStatus: "unpaid",
+        subtotal: 300,
+        serviceCharge: 30,
+        taxAmount: 18,
+        discountAmount: 0,
+        totalAmount: 348,
+        createdAt: "2024-03-01T11:00:00Z" as any,
+      },
+    }),
     tableNumber: "",
     customerName: "Bob",
-    status: "delivered",
-    paymentStatus: "unpaid",
-    createdAt: "2024-03-01T11:00:00Z",
-    subtotal: 300,
-    serviceCharge: 30,
-    taxAmount: 18,
-    discountAmount: 0,
-    totalAmount: 348,
     items: [
       {
         id: 2,
@@ -74,18 +87,22 @@ const mockCashierOrders = [
     ],
   },
   {
-    id: 3,
-    orderNumber: "ORD-003",
+    ...orderFactory.build({
+      overrides: {
+        id: 3,
+        orderNumber: "ORD-003",
+        status: "completed",
+        paymentStatus: "paid",
+        subtotal: 200,
+        serviceCharge: 20,
+        taxAmount: 12,
+        discountAmount: 0,
+        totalAmount: 232,
+        createdAt: "2024-03-01T09:00:00Z" as any,
+      },
+    }),
     tableNumber: "B2",
     customerName: "Carol",
-    status: "completed",
-    paymentStatus: "paid",
-    createdAt: "2024-03-01T09:00:00Z",
-    subtotal: 200,
-    serviceCharge: 20,
-    taxAmount: 12,
-    discountAmount: 0,
-    totalAmount: 232,
     items: [],
   },
 ];
@@ -250,6 +267,7 @@ function mountCashier() {
 
 describe("CashierView", () => {
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     setActivePinia(createPinia());
     setupDefaultApiMocks();
@@ -499,13 +517,13 @@ describe("CashierView", () => {
       await orderRows[0].trigger("click");
       await nextTick();
 
-      // Cash button should be selected (has border-blue-500 class)
+      // Cash button should be selected
       const cashBtn = wrapper
         .findAll(".border-2")
         .find(
           (b) =>
             b.text().includes("cashier.paymentMethods.cash") &&
-            b.classes().includes("border-blue-500"),
+            b.attributes("data-selected") === "true",
         );
       expect(cashBtn).toBeTruthy();
     });
@@ -540,8 +558,8 @@ describe("CashierView", () => {
       await cardBtn!.trigger("click");
       await nextTick();
 
-      // Card button should now have blue border
-      expect(cardBtn!.classes()).toContain("border-blue-500");
+      // Card button should now be selected
+      expect(cardBtn!.attributes("data-selected")).toBe("true");
     });
   });
 

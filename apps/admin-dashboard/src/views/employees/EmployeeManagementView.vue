@@ -60,6 +60,7 @@
               ? 'border-[#007AFF] text-[#007AFF]'
               : 'border-transparent text-[#1C1C1E]/40 hover:text-[#1C1C1E]/70'
           "
+          :data-active="isActiveTab(tab.path)"
         >
           <component :is="tab.icon" class="w-4 h-4" />
           {{ tab.label }}

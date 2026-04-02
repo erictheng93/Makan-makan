@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mocks (must precede component imports) ────
 
@@ -95,6 +96,7 @@ describe("LoginView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
     localStorage.clear();
     sessionStorage.clear();
   });
@@ -307,6 +309,7 @@ describe("ForgotPasswordView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
     mockFetch.mockReset();
   });
 
@@ -457,6 +460,7 @@ describe("ResetPasswordView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
     mockFetch.mockReset();
     // Reset route query to default
     Object.assign(mockRouteQuery, { token: "test-token-123" });

@@ -32,6 +32,7 @@ import {
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mocks ────
 
@@ -165,29 +166,43 @@ function defaultApiMocks() {
       });
     }
     if (url.includes("/users")) {
+      const chef = userFactory.buildChef(1, {
+        overrides: { id: 1, username: "chef1", fullName: "王大廚" },
+      });
+      const cashier = userFactory.buildCashier(1, {
+        overrides: { id: 2, username: "cashier1", fullName: "小美" },
+      });
+      const serviceCrew = userFactory.buildServiceCrew(1, {
+        overrides: {
+          id: 3,
+          username: "service1",
+          fullName: "阿明",
+          isActive: false,
+        },
+      });
       return Promise.resolve({
         data: {
           success: true,
           data: [
             {
-              id: 1,
-              username: "chef1",
-              fullName: "王大廚",
-              role: 2,
+              id: chef.id,
+              username: chef.username,
+              fullName: chef.fullName,
+              role: chef.role,
               status: "active",
             },
             {
-              id: 2,
-              username: "cashier1",
-              fullName: "小美",
-              role: 4,
+              id: cashier.id,
+              username: cashier.username,
+              fullName: cashier.fullName,
+              role: cashier.role,
               status: "active",
             },
             {
-              id: 3,
-              username: "service1",
-              fullName: "阿明",
-              role: 3,
+              id: serviceCrew.id,
+              username: serviceCrew.username,
+              fullName: serviceCrew.fullName,
+              role: serviceCrew.role,
               status: "inactive",
             },
           ],
@@ -219,6 +234,7 @@ describe("OwnerView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     defaultApiMocks();
   });

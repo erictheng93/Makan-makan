@@ -14,6 +14,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mocks (must precede component import) ────
 
@@ -65,16 +66,19 @@ import type { EmployeeSchedule } from "@/types/scheduling";
 // ──── Mock Data ────
 
 const mockEmployee: Employee = {
-  id: 42,
-  username: "alice",
-  fullName: "Alice Wang",
-  email: "alice@test.com",
-  role: 1,
+  ...userFactory.buildShopOwner(1, {
+    overrides: {
+      id: 42,
+      username: "alice",
+      fullName: "Alice Wang",
+      email: "alice@test.com",
+      isActive: true,
+    },
+  }),
   status: "active",
-  isActive: true,
   lastLoginAt: "2026-03-27T10:00:00Z",
   createdAt: "2026-01-01T00:00:00Z",
-};
+} as Employee;
 
 const futureDate = "2026-04-15";
 const pastDate = "2026-03-01";
@@ -167,6 +171,7 @@ function mountComponent(props: Record<string, any> = {}) {
 describe("EmployeeProfileTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
   });
 
   // ─── 1. Quick Stats Cards ───

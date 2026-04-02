@@ -9,42 +9,74 @@ import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick } from "vue";
 import MenuView from "../MenuView.vue";
+import {
+  categoryFactory,
+  menuItemFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 
-const mockCategories = [
-  {
+const cat1 = categoryFactory.build({
+  overrides: {
     id: 1,
     name: "主食",
-    nameEn: "Main Course",
     description: "Main dishes",
     sortOrder: 0,
     isActive: true,
   },
-  {
+});
+const cat2 = categoryFactory.build({
+  overrides: {
     id: 2,
     name: "飲品",
-    nameEn: "Drinks",
     description: "Beverages",
     sortOrder: 1,
     isActive: true,
   },
-  {
+});
+const cat3 = categoryFactory.build({
+  overrides: {
     id: 3,
     name: "甜點",
-    nameEn: "Desserts",
     description: "Sweet treats",
     sortOrder: 2,
     isActive: true,
   },
+});
+
+const mockCategories = [
+  {
+    id: cat1.id,
+    name: cat1.name,
+    nameEn: "Main Course",
+    description: cat1.description,
+    sortOrder: cat1.sortOrder,
+    isActive: cat1.isActive,
+  },
+  {
+    id: cat2.id,
+    name: cat2.name,
+    nameEn: "Drinks",
+    description: cat2.description,
+    sortOrder: cat2.sortOrder,
+    isActive: cat2.isActive,
+  },
+  {
+    id: cat3.id,
+    name: cat3.name,
+    nameEn: "Desserts",
+    description: cat3.description,
+    sortOrder: cat3.sortOrder,
+    isActive: cat3.isActive,
+  },
 ];
 
-const mockMenuItems = [
-  {
+const item1 = menuItemFactory.build({
+  relations: { restaurantId: 1, categoryId: 1, categoryName: "主食" },
+  overrides: {
     id: 1,
-    categoryId: 1,
     name: "椰漿飯",
-    nameEn: "Nasi Lemak",
     description: "Coconut rice with sambal",
     price: 12.5,
     imageUrl: "https://example.com/nasi.jpg",
@@ -54,11 +86,12 @@ const mockMenuItems = [
     orderCount: 150,
     rating: 4.8,
   },
-  {
+});
+const item2 = menuItemFactory.build({
+  relations: { restaurantId: 1, categoryId: 1, categoryName: "主食" },
+  overrides: {
     id: 2,
-    categoryId: 1,
     name: "炒粿條",
-    nameEn: "Char Kway Teow",
     description: "Stir-fried flat noodles",
     price: 10.0,
     imageUrl: "https://example.com/ckt.jpg",
@@ -68,11 +101,12 @@ const mockMenuItems = [
     orderCount: 80,
     rating: 4.5,
   },
-  {
+});
+const item3 = menuItemFactory.build({
+  relations: { restaurantId: 1, categoryId: 2, categoryName: "飲品" },
+  overrides: {
     id: 3,
-    categoryId: 2,
     name: "拉茶",
-    nameEn: "Teh Tarik",
     description: "Pulled milk tea",
     price: 5.0,
     imageUrl: null,
@@ -82,11 +116,12 @@ const mockMenuItems = [
     orderCount: 200,
     rating: 4.9,
   },
-  {
+});
+const item4 = menuItemFactory.build({
+  relations: { restaurantId: 1, categoryId: 3, categoryName: "甜點" },
+  overrides: {
     id: 4,
-    categoryId: 3,
     name: "摩摩喳喳",
-    nameEn: "Bubur Cha Cha",
     description: "Sweet potato dessert",
     price: 6.0,
     imageUrl: "https://example.com/bubur.jpg",
@@ -94,6 +129,64 @@ const mockMenuItems = [
     isAvailable: true,
     sortOrder: 0,
     orderCount: 50,
+  },
+});
+
+const mockMenuItems = [
+  {
+    id: item1.id,
+    categoryId: item1.categoryId,
+    name: item1.name,
+    nameEn: "Nasi Lemak",
+    description: item1.description,
+    price: item1.price,
+    imageUrl: item1.imageUrl,
+    isFeatured: item1.isFeatured,
+    isAvailable: item1.isAvailable,
+    sortOrder: item1.sortOrder,
+    orderCount: item1.orderCount,
+    rating: item1.rating,
+  },
+  {
+    id: item2.id,
+    categoryId: item2.categoryId,
+    name: item2.name,
+    nameEn: "Char Kway Teow",
+    description: item2.description,
+    price: item2.price,
+    imageUrl: item2.imageUrl,
+    isFeatured: item2.isFeatured,
+    isAvailable: item2.isAvailable,
+    sortOrder: item2.sortOrder,
+    orderCount: item2.orderCount,
+    rating: item2.rating,
+  },
+  {
+    id: item3.id,
+    categoryId: item3.categoryId,
+    name: item3.name,
+    nameEn: "Teh Tarik",
+    description: item3.description,
+    price: item3.price,
+    imageUrl: item3.imageUrl,
+    isFeatured: item3.isFeatured,
+    isAvailable: item3.isAvailable,
+    sortOrder: item3.sortOrder,
+    orderCount: item3.orderCount,
+    rating: item3.rating,
+  },
+  {
+    id: item4.id,
+    categoryId: item4.categoryId,
+    name: item4.name,
+    nameEn: "Bubur Cha Cha",
+    description: item4.description,
+    price: item4.price,
+    imageUrl: item4.imageUrl,
+    isFeatured: item4.isFeatured,
+    isAvailable: item4.isAvailable,
+    sortOrder: item4.sortOrder,
+    orderCount: item4.orderCount,
   },
 ];
 
@@ -269,6 +362,7 @@ function resetMockState() {
 
 describe("MenuView Component", () => {
   beforeEach(() => {
+    resetAllFactories();
     setActivePinia(createPinia());
     vi.clearAllMocks();
     resetMockState();

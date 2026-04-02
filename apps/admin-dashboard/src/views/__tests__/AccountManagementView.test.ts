@@ -19,6 +19,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import {
+  userFactory,
+  restaurantFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ──── Mocks ────
 
@@ -67,38 +72,68 @@ import AccountManagementView from "../AccountManagementView.vue";
 
 // ──── Test data ────
 
+const restaurant1 = restaurantFactory.build({
+  overrides: { id: 1, name: "麵屋一號" },
+});
+const restaurant2 = restaurantFactory.build({
+  overrides: { id: 2, name: "壽司之神" },
+});
 const sampleRestaurants = [
-  { id: 1, name: "麵屋一號" },
-  { id: 2, name: "壽司之神" },
+  { id: restaurant1.id, name: restaurant1.name },
+  { id: restaurant2.id, name: restaurant2.name },
 ];
 
-const sampleOwners = [
-  {
+const owner1 = userFactory.buildShopOwner(1, {
+  overrides: {
     id: 10,
     username: "owner1",
     fullName: "王老闆",
     email: "owner1@test.com",
+  },
+});
+const owner2 = userFactory.buildShopOwner(2, {
+  overrides: {
+    id: 11,
+    username: "owner2",
+    fullName: "李老闆",
+    email: "owner2@test.com",
+  },
+});
+const sampleOwners = [
+  {
+    id: owner1.id,
+    username: owner1.username,
+    fullName: owner1.fullName,
+    email: owner1.email,
     restaurantId: "1",
     status: "active",
     createdAt: "2025-01-15T00:00:00Z",
   },
   {
-    id: 11,
-    username: "owner2",
-    fullName: "李老闆",
-    email: "owner2@test.com",
+    id: owner2.id,
+    username: owner2.username,
+    fullName: owner2.fullName,
+    email: owner2.email,
     restaurantId: "2",
     status: "inactive",
     createdAt: "2025-02-20T00:00:00Z",
   },
 ];
 
-const sampleAdmins = [
-  {
+const admin1 = userFactory.buildAdmin({
+  overrides: {
     id: 20,
     username: "admin1",
     fullName: "系統管理員",
     email: "admin@test.com",
+  },
+});
+const sampleAdmins = [
+  {
+    id: admin1.id,
+    username: admin1.username,
+    fullName: admin1.fullName,
+    email: admin1.email,
     status: "active",
     createdAt: "2025-01-01T00:00:00Z",
   },
@@ -155,6 +190,7 @@ describe("AccountManagementView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
     defaultApiMocks();
   });
 
@@ -178,7 +214,7 @@ describe("AccountManagementView", () => {
       const wrapper = createWrapper();
       await flushPromises();
       const tabs = wrapper.findAll("nav button");
-      expect(tabs[0].classes()).toContain("border-blue-600");
+      expect(tabs[0].attributes("data-active")).toBe("true");
     });
 
     it("should switch to admins tab when clicked", async () => {
@@ -187,7 +223,7 @@ describe("AccountManagementView", () => {
       const tabs = wrapper.findAll("nav button");
       await tabs[1].trigger("click");
       await nextTick();
-      expect(tabs[1].classes()).toContain("border-blue-600");
+      expect(tabs[1].attributes("data-active")).toBe("true");
     });
 
     it("should show admin form when admins tab is active", async () => {

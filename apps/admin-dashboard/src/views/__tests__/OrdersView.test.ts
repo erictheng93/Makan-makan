@@ -11,64 +11,77 @@ import { ref, computed, nextTick, reactive } from "vue";
 import OrdersView from "../OrdersView.vue";
 import { OrderStatus } from "@/types";
 import type { Order } from "@/types";
+import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
-const mockOrders: Order[] = [
-  {
-    id: 1,
-    restaurantId: "r1",
-    tableId: 1,
-    status: OrderStatus.PENDING,
-    totalAmount: 500,
-    createdAt: "2024-03-01T10:00:00Z",
-    updatedAt: "2024-03-01T10:00:00Z",
-    items: [],
-    customerInfo: { name: "Customer A" },
-  },
-  {
-    id: 2,
-    restaurantId: "r1",
-    tableId: 2,
-    status: OrderStatus.PREPARING,
-    totalAmount: 800,
-    createdAt: "2024-03-01T11:00:00Z",
-    updatedAt: "2024-03-01T11:00:00Z",
-    items: [
-      {
-        id: 1,
-        menuItemId: 1,
-        quantity: 2,
-        unitPrice: 400,
-        customizations: [],
-        menuItem: { id: 1, name: "Nasi Lemak" },
-      },
-    ],
-    customerInfo: { name: "Customer B" },
-  },
-  {
-    id: 3,
-    restaurantId: "r1",
-    tableId: undefined,
-    status: OrderStatus.COMPLETED,
-    totalAmount: 300,
-    createdAt: "2024-03-01T09:00:00Z",
-    updatedAt: "2024-03-01T12:00:00Z",
-    items: [],
-    customerInfo: undefined,
-  },
-  {
-    id: 4,
-    restaurantId: "r1",
-    tableId: 3,
-    status: OrderStatus.CANCELLED,
-    totalAmount: 200,
-    createdAt: "2024-03-01T08:00:00Z",
-    updatedAt: "2024-03-01T08:30:00Z",
-    items: [],
-    customerInfo: { name: "Customer D" },
-  },
-];
+function buildMockOrders(): Order[] {
+  // Use orderFactory with overrides to match the component's Order type
+  const order1Base = orderFactory.buildPending({ overrides: { id: 1 } });
+  const order2Base = orderFactory.buildInProgress({ overrides: { id: 2 } });
+  const order3Base = orderFactory.buildCompleted({ overrides: { id: 3 } });
+  const order4Base = orderFactory.build({
+    overrides: { id: 4, status: "cancelled" },
+  });
+
+  return [
+    {
+      id: order1Base.id!,
+      restaurantId: "r1",
+      tableId: 1,
+      status: OrderStatus.PENDING,
+      totalAmount: 500,
+      createdAt: "2024-03-01T10:00:00Z",
+      updatedAt: "2024-03-01T10:00:00Z",
+      items: [],
+      customerInfo: { name: "Customer A" },
+    },
+    {
+      id: order2Base.id!,
+      restaurantId: "r1",
+      tableId: 2,
+      status: OrderStatus.PREPARING,
+      totalAmount: 800,
+      createdAt: "2024-03-01T11:00:00Z",
+      updatedAt: "2024-03-01T11:00:00Z",
+      items: [
+        {
+          id: 1,
+          menuItemId: 1,
+          quantity: 2,
+          unitPrice: 400,
+          customizations: [],
+          menuItem: { id: 1, name: "Nasi Lemak" },
+        },
+      ],
+      customerInfo: { name: "Customer B" },
+    },
+    {
+      id: order3Base.id!,
+      restaurantId: "r1",
+      tableId: undefined,
+      status: OrderStatus.COMPLETED,
+      totalAmount: 300,
+      createdAt: "2024-03-01T09:00:00Z",
+      updatedAt: "2024-03-01T12:00:00Z",
+      items: [],
+      customerInfo: undefined,
+    },
+    {
+      id: order4Base.id!,
+      restaurantId: "r1",
+      tableId: 3,
+      status: OrderStatus.CANCELLED,
+      totalAmount: 200,
+      createdAt: "2024-03-01T08:00:00Z",
+      updatedAt: "2024-03-01T08:30:00Z",
+      items: [],
+      customerInfo: { name: "Customer D" },
+    },
+  ];
+}
+
+const mockOrders: Order[] = buildMockOrders();
 
 // ──── Mocks ────
 
@@ -178,6 +191,7 @@ describe("OrdersView Component", () => {
   let wrapper: VueWrapper;
 
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     setActivePinia(createPinia());
     // Populate mock store data

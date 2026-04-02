@@ -17,6 +17,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
+import {
+  restaurantFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
 // ──── Mocks ────
 
@@ -57,10 +61,34 @@ import PlatformOverview from "../PlatformOverview.vue";
 
 // ──── Test data ────
 
+const r1 = restaurantFactory.build({
+  overrides: {
+    id: 1,
+    name: "麵屋一號",
+    address: "台北市中山區",
+    isActive: true,
+  },
+});
+const r2 = restaurantFactory.build({
+  overrides: {
+    id: 2,
+    name: "壽司之神",
+    address: "台北市大安區",
+    isActive: true,
+  },
+});
+const r3 = restaurantFactory.build({
+  overrides: {
+    id: 3,
+    name: "休息中餐廳",
+    address: "台北市信義區",
+    isActive: false,
+  },
+});
 const sampleRestaurants = [
-  { id: 1, name: "麵屋一號", address: "台北市中山區", isActive: true },
-  { id: 2, name: "壽司之神", address: "台北市大安區", isActive: true },
-  { id: 3, name: "休息中餐廳", address: "台北市信義區", isActive: false },
+  { id: r1.id, name: r1.name, address: r1.address, isActive: r1.isActive },
+  { id: r2.id, name: r2.name, address: r2.address, isActive: r2.isActive },
+  { id: r3.id, name: r3.name, address: r3.address, isActive: r3.isActive },
 ];
 
 // ──── Helpers ────
@@ -96,6 +124,7 @@ describe("PlatformOverview", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    resetAllFactories();
     defaultApiMocks();
   });
 

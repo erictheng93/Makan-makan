@@ -275,6 +275,7 @@
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300',
                 ]"
+                :data-selected="selectedPaymentMethod === method.id"
                 @click="selectedPaymentMethod = method.id"
               >
                 <component :is="method.icon" class="w-6 h-6 mb-2" />

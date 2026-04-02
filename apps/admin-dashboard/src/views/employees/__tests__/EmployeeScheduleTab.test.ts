@@ -5,17 +5,21 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
+import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
 const mockEmployee = {
-  id: 1,
-  username: "alice",
-  fullName: "Alice",
-  email: "alice@test.com",
-  role: 2,
+  ...userFactory.buildChef(1, {
+    overrides: {
+      id: 1,
+      username: "alice",
+      fullName: "Alice",
+      email: "alice@test.com",
+      isActive: true,
+    },
+  }),
   status: "active" as const,
-  isActive: true,
   lastLoginAt: null,
   createdAt: "2026-01-01T00:00:00Z",
 };
@@ -136,6 +140,7 @@ describe("EmployeeScheduleTab", () => {
   let wrapper: VueWrapper;
 
   beforeEach(() => {
+    resetAllFactories();
     wrapper = mountComponent();
   });
 
@@ -218,16 +223,16 @@ describe("EmployeeScheduleTab", () => {
     expect(text).toContain("OT");
   });
 
-  it("should display status badges with correct classes", () => {
-    const badges = wrapper.findAll(".rounded-full.text-xs.font-medium");
-    const badgeClasses = badges.map((b) => b.classes().join(" "));
+  it("should display status badges with correct status", () => {
+    const badges = wrapper.findAll("[data-status]");
+    const statuses = badges.map((b) => b.attributes("data-status"));
 
     // completed
-    expect(badgeClasses.some((c) => c.includes("bg-emerald-50"))).toBe(true);
+    expect(statuses).toContain("completed");
     // scheduled
-    expect(badgeClasses.some((c) => c.includes("bg-blue-50"))).toBe(true);
+    expect(statuses).toContain("scheduled");
     // cancelled
-    expect(badgeClasses.some((c) => c.includes("bg-red-50"))).toBe(true);
+    expect(statuses).toContain("cancelled");
   });
 
   it("should display weekday, day, and month for each shift", () => {

@@ -99,6 +99,7 @@
                 : 'bg-white text-gray-700 hover:bg-gray-50',
               'px-4 py-2 text-sm font-medium rounded-l-md border border-gray-300',
             ]"
+            data-testid="view-toggle-card"
             @click="viewMode = 'card'"
           >
             <LayoutGrid class="w-4 h-4" />
@@ -110,6 +111,7 @@
                 : 'bg-white text-gray-700 hover:bg-gray-50',
               'px-4 py-2 text-sm font-medium rounded-r-md border border-l-0 border-gray-300',
             ]"
+            data-testid="view-toggle-table"
             @click="viewMode = 'table'"
           >
             <List class="w-4 h-4" />

@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mocks (must precede component import) ────
 
@@ -211,6 +212,7 @@ async function mountAndSwitchTab(tabText: string) {
 describe("SettingsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     // Mock window.confirm and window.alert
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(window, "alert").mockImplementation(() => {});
@@ -260,8 +262,7 @@ describe("SettingsView", () => {
         .findAll("nav button")
         .find((b) => b.text() === "基本設定");
       expect(generalTab).toBeDefined();
-      expect(generalTab!.classes()).toContain("border-blue-500");
-      expect(generalTab!.classes()).toContain("text-blue-600");
+      expect(generalTab!.attributes("data-active")).toBe("true");
     });
 
     it("should switch tab content on click", async () => {
@@ -270,13 +271,13 @@ describe("SettingsView", () => {
       const ordersTab = wrapper
         .findAll("nav button")
         .find((b) => b.text() === "訂單設定");
-      expect(ordersTab!.classes()).toContain("border-blue-500");
+      expect(ordersTab!.attributes("data-active")).toBe("true");
 
       // The general tab should no longer be highlighted
       const generalTab = wrapper
         .findAll("nav button")
         .find((b) => b.text() === "基本設定");
-      expect(generalTab!.classes()).toContain("border-transparent");
+      expect(generalTab!.attributes("data-active")).toBe("false");
     });
   });
 
@@ -525,8 +526,7 @@ describe("SettingsView", () => {
       const qrTab = wrapper
         .findAll("nav button")
         .find((b) => b.text() === "QR Code 設定");
-      expect(qrTab!.classes()).toContain("border-blue-500");
-      expect(qrTab!.classes()).toContain("text-blue-600");
+      expect(qrTab!.attributes("data-active")).toBe("true");
     });
 
     it("should have shop mode checkbox in QR tab", async () => {
@@ -605,7 +605,7 @@ describe("SettingsView", () => {
       const securityTab = wrapper
         .findAll("nav button")
         .find((b) => b.text() === "安全設定");
-      expect(securityTab!.classes()).toContain("border-blue-500");
+      expect(securityTab!.attributes("data-active")).toBe("true");
     });
   });
 
@@ -622,7 +622,7 @@ describe("SettingsView", () => {
       const integrationsTab = wrapper
         .findAll("nav button")
         .find((b) => b.text() === "外送平台串接");
-      expect(integrationsTab!.classes()).toContain("border-blue-500");
+      expect(integrationsTab!.attributes("data-active")).toBe("true");
     });
   });
 
@@ -763,7 +763,7 @@ describe("SettingsView", () => {
         expect(tab).toBeDefined();
         await tab!.trigger("click");
         await nextTick();
-        expect(tab!.classes()).toContain("border-blue-500");
+        expect(tab!.attributes("data-active")).toBe("true");
       }
     });
 
@@ -782,7 +782,7 @@ describe("SettingsView", () => {
       const generalTab = wrapper
         .findAll("nav button")
         .find((b) => b.text() === "基本設定");
-      expect(generalTab!.classes()).toContain("border-transparent");
+      expect(generalTab!.attributes("data-active")).toBe("false");
     });
 
     it("should modify restaurant name input", async () => {

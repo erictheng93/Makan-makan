@@ -31,6 +31,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick, ref } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Icon stubs ────
 
@@ -223,6 +224,7 @@ const sampleMetrics = {
 describe("BackupDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockGetSystemHealth.mockResolvedValue(sampleHealth);
     mockGetRestaurantMetrics.mockResolvedValue(sampleMetrics);
@@ -259,14 +261,14 @@ describe("BackupDashboard", () => {
     expect(refreshBtn).toBeTruthy();
   });
 
-  it("displays health status card with healthy class", async () => {
+  it("displays health status card with healthy status", async () => {
     const w = await mountDashboard();
     const card = w.find(".health-status-card");
     expect(card.exists()).toBe(true);
-    expect(card.classes()).toContain("health-healthy");
+    expect(card.attributes("data-health-status")).toBe("healthy");
   });
 
-  it("displays health status card with warning class", async () => {
+  it("displays health status card with warning status", async () => {
     mockGetSystemHealth.mockResolvedValue({
       ...sampleHealth,
       overall_status: "warning",
@@ -274,7 +276,7 @@ describe("BackupDashboard", () => {
     });
     const w = await mountDashboard();
     const card = w.find(".health-status-card");
-    expect(card.classes()).toContain("health-warning");
+    expect(card.attributes("data-health-status")).toBe("warning");
   });
 
   it("shows stats grid with backup metrics", async () => {
@@ -348,6 +350,7 @@ describe("BackupDashboard", () => {
 describe("BackupMonitoring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockGetSystemHealth.mockResolvedValue(sampleHealth);
     mockApiGet.mockResolvedValue({ data: { success: true, data: [] } });
@@ -380,9 +383,11 @@ describe("BackupMonitoring", () => {
     expect(w.find(".health-card").exists()).toBe(true);
   });
 
-  it("applies healthy class to health card", async () => {
+  it("applies healthy status to health card", async () => {
     const w = await mountMonitoring();
-    expect(w.find(".health-card").classes()).toContain("health-healthy");
+    expect(w.find(".health-card").attributes("data-health-status")).toBe(
+      "healthy",
+    );
   });
 
   it("shows health metrics (total restaurants, active configs, running, failed)", async () => {

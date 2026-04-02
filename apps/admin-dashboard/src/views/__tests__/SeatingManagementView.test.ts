@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Mocks (must be declared before imports that use them) ──────────────────
 
@@ -441,6 +442,7 @@ describe("SeatingManagementView", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockRoutePath.value = "/dashboard/seating";
     wrapper = mountSeatingManagement();
@@ -487,7 +489,7 @@ describe("SeatingManagementView", () => {
         (l) => l.attributes("href") === "/dashboard/seating",
       );
       expect(reservationLink).toBeDefined();
-      expect(reservationLink!.classes()).toContain("border-[#007AFF]");
+      expect(reservationLink!.attributes("data-active")).toBe("true");
     });
 
     it("should highlight active tab for table-setup route", async () => {
@@ -500,7 +502,7 @@ describe("SeatingManagementView", () => {
         (l) => l.attributes("href") === "/dashboard/seating/table-setup",
       );
       expect(tableSetupLink).toBeDefined();
-      expect(tableSetupLink!.classes()).toContain("border-[#007AFF]");
+      expect(tableSetupLink!.attributes("data-active")).toBe("true");
     });
 
     it("should render router-view for tab content", () => {
@@ -544,6 +546,7 @@ describe("ReservationTab", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockReservationService.listReservations.mockResolvedValue({
       success: true,
@@ -680,6 +683,7 @@ describe("TableSetupTab", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     mockApi.get.mockResolvedValue({
       data: { success: true, data: mockTables },
@@ -820,6 +824,7 @@ describe("QueueDashboardTab", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
 
     // queueService mock for fetching queue
@@ -897,6 +902,7 @@ describe("QueueDashboardTab", () => {
 describe("Error & Loading States", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
   });
 

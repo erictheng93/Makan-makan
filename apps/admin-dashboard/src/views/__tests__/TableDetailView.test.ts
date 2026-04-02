@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { ref } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Hoisted mocks ───────────────────────────────────────────────────────────
 
@@ -171,6 +172,7 @@ const mountView = (stubs: Record<string, any> = {}) => {
 describe("TableDetailView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllFactories();
     mockRouteParams.value = { id: "42" };
   });
 

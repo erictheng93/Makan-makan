@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Mocks (before component import) ──────────────────────────────────────────
 
@@ -171,6 +172,7 @@ async function mountAndWait() {
 
 describe("AnalyticsView Component", () => {
   beforeEach(() => {
+    resetAllFactories();
     vi.clearAllMocks();
     setActivePinia(createPinia());
   });

@@ -142,6 +142,7 @@
           <span
             class="px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0"
             :class="requestStatusClass(request.status)"
+            :data-status="request.status"
           >
             {{ requestStatusText(request.status) }}
           </span>

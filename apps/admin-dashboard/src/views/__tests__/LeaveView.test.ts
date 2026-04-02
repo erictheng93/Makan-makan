@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, nextTick } from "vue";
+import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ──── Mock data ────
 
@@ -207,6 +208,7 @@ describe("LeaveView", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetAllFactories();
     setActivePinia(createPinia());
     setupDefaultApiMocks();
     wrapper = mountComponent();
