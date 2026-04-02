@@ -36,9 +36,11 @@ export default defineConfig({
       "apps/kitchen-display",
       "apps/api",
       "apps/realtime",
+      "apps/onboarding-app",
       // Packages - each uses its own vitest.config.ts
       "packages/database",
       "packages/queue-core",
+      "packages/queue-service",
       "packages/utils",
     ],
 

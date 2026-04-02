@@ -59,9 +59,12 @@ describe("HomeView", () => {
   it("should render the demo link", () => {
     const wrapper = mountComponent();
 
-    const demoLink = wrapper.find('a[href="https://makanmakan.app/demo"]');
-    expect(demoLink.exists()).toBe(true);
-    expect(demoLink.text()).toContain("查看演示");
+    // demoUrl is built from VITE_CUSTOMER_APP_URL env var (defaults to http://localhost:3000)
+    // so the href is dynamic. Find the link by its text content instead.
+    const allLinks = wrapper.findAll("a");
+    const demoLink = allLinks.find((link) => link.text().includes("查看演示"));
+    expect(demoLink).toBeDefined();
+    expect(demoLink!.attributes("target")).toBe("_blank");
   });
 
   it("should render 4 feature cards", () => {
@@ -82,43 +85,37 @@ describe("HomeView", () => {
     expect(wrapper.text()).toContain("自動化部署流程");
   });
 
-  it("should render 3 pricing plans", () => {
+  it("should render the CTA section heading", () => {
     const wrapper = mountComponent();
 
-    expect(wrapper.text()).toContain("標準版");
-    expect(wrapper.text()).toContain("專業版");
-    expect(wrapper.text()).toContain("企業版");
+    // HomeView does not have a pricing section — it has features + CTA
+    expect(wrapper.find("h2").exists()).toBe(true);
+    expect(wrapper.text()).toContain("準備好開始了嗎？");
   });
 
-  it("should render pricing amounts", () => {
+  it("should render the description paragraph below heading", () => {
     const wrapper = mountComponent();
 
-    expect(wrapper.text()).toContain("$149");
-    expect(wrapper.text()).toContain("$299");
-    expect(wrapper.text()).toContain("議價");
+    expect(wrapper.text()).toContain("填寫申請表單");
+    expect(wrapper.text()).toContain("24 小時內");
   });
 
-  it("should highlight the recommended plan", () => {
+  it("should render feature card titles", () => {
     const wrapper = mountComponent();
 
-    expect(wrapper.text()).toContain("推薦");
+    expect(wrapper.text()).toContain("獨立環境");
+    expect(wrapper.text()).toContain("安全可靠");
+    expect(wrapper.text()).toContain("完整功能");
+    expect(wrapper.text()).toContain("快速部署");
   });
 
-  it("should render plan features list", () => {
+  it("should render feature card descriptions", () => {
     const wrapper = mountComponent();
 
-    // Standard plan features
-    expect(wrapper.text()).toContain("1 間餐廳");
-    expect(wrapper.text()).toContain("資料備份");
-
-    // Professional plan features
-    expect(wrapper.text()).toContain("最多 3 間餐廳");
-    expect(wrapper.text()).toContain("AI 分析");
-    expect(wrapper.text()).toContain("員工排班");
-
-    // Enterprise plan features
-    expect(wrapper.text()).toContain("無限餐廳");
-    expect(wrapper.text()).toContain("SLA 保證");
+    expect(wrapper.text()).toContain("完全隔離的雲端環境");
+    expect(wrapper.text()).toContain("Cloudflare 全球邊緣網絡");
+    expect(wrapper.text()).toContain("點餐、菜單管理");
+    expect(wrapper.text()).toContain("自動化部署流程");
   });
 
   it("should render CTA section with apply link", () => {
@@ -128,14 +125,14 @@ describe("HomeView", () => {
     expect(wrapper.text()).toContain("開始申請");
   });
 
-  it("should have multiple links to /apply for each plan", () => {
+  it("should have multiple links to /apply across the page", () => {
     const wrapper = mountComponent();
 
     const applyLinks = wrapper
       .findAll("a")
       .filter((link) => link.attributes("href") === "/apply");
 
-    // At least: hero CTA + 3 plan buttons + bottom CTA = 5
-    expect(applyLinks.length).toBeGreaterThanOrEqual(4);
+    // Hero CTA (立即申請) + bottom CTA (開始申請) = 2
+    expect(applyLinks.length).toBeGreaterThanOrEqual(2);
   });
 });

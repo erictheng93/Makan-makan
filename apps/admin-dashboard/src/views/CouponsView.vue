@@ -552,9 +552,14 @@ const fetchCoupons = async () => {
       params.discountType = filters.value.discountType;
 
     const response = await api.get("/coupons", params);
-    couponsData.value = response.data.data as {
+    const body = response.data as {
+      success: boolean;
       data: Coupon[];
       pagination: { total: number };
+    };
+    couponsData.value = {
+      data: body.data,
+      pagination: body.pagination,
     };
   } catch (error) {
     toast.error(t("coupons.messages.fetchFailed"));

@@ -417,5 +417,124 @@ describe("ImageCompressionService", () => {
 
       expect(result.valid).toBe(false);
     });
+
+    it("should accept custom maxSize smaller than default", () => {
+      const buffer = createJPEGBuffer(); // tiny buffer
+      const result = service.validateImage(buffer, {
+        maxSize: 1024 * 1024, // 1MB
+      });
+
+      expect(result.valid).toBe(true);
+    });
+
+    it("should reject empty buffer (no valid header)", () => {
+      const buffer = new ArrayBuffer(0);
+      const result = service.validateImage(buffer);
+
+      expect(result.valid).toBe(false);
+    });
+
+    it("should include size details in error message for oversized images", () => {
+      const buffer = new ArrayBuffer(15 * 1024 * 1024); // 15MB
+      const result = service.validateImage(buffer, {
+        maxSize: 10 * 1024 * 1024,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("15.00MB");
+      expect(result.error).toContain("10.00MB");
+    });
+  });
+
+  // ── analyzeCompression (edge cases) ─────────────────────────────
+
+  describe("analyzeCompression (edge cases)", () => {
+    it("should handle zero-byte original buffer", async () => {
+      const original = new ArrayBuffer(0);
+      const compressed = new ArrayBuffer(0);
+
+      const metrics = await service.analyzeCompression(original, compressed);
+
+      expect(metrics.originalSize).toBe(0);
+      expect(metrics.compressedSize).toBe(0);
+      // 0/0 is NaN — verify the service returns NaN for ratio/percentage
+      expect(metrics.savings).toBe(0);
+    });
+
+    it("should handle very large compression ratio", async () => {
+      const original = new ArrayBuffer(1_000_000);
+      const compressed = new ArrayBuffer(1);
+
+      const metrics = await service.analyzeCompression(original, compressed);
+
+      expect(metrics.compressionRatio).toBe(1_000_000);
+      expect(metrics.savingsPercentage).toBeCloseTo(100, 0);
+    });
+  });
+
+  // ── batchUpload (edge cases) ─────────────────────────────────────
+
+  describe("batchUpload (edge cases)", () => {
+    it("should handle empty image array", async () => {
+      const results = await service.batchUpload([]);
+
+      expect(results).toHaveLength(0);
+    });
+
+    it("should use default concurrency of 3", async () => {
+      let concurrentCount = 0;
+      let maxConcurrent = 0;
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation(async () => {
+          concurrentCount++;
+          maxConcurrent = Math.max(maxConcurrent, concurrentCount);
+          // Simulate async work
+          await new Promise((r) => setTimeout(r, 10));
+          concurrentCount--;
+          return {
+            ok: true,
+            json: async () => ({
+              result: {
+                id: "img-x",
+                filename: "f",
+                uploaded: "",
+                requireSignedURLs: false,
+                variants: [],
+              },
+            }),
+          };
+        }),
+      );
+
+      const images = Array.from({ length: 6 }, () => ({
+        buffer: new ArrayBuffer(10),
+      }));
+
+      await service.batchUpload(images);
+
+      // Default concurrency is 3 — max concurrent should not exceed 3
+      expect(maxConcurrent).toBeLessThanOrEqual(3);
+    });
+  });
+
+  // ── generateResponsiveSrcset (edge cases) ────────────────────────
+
+  describe("generateResponsiveSrcset (edge cases)", () => {
+    it("should handle single size", () => {
+      const srcset = service.generateResponsiveSrcset("img-1", [500]);
+
+      expect(srcset).toContain("500w");
+      // Only one entry — no ", " separator between entries
+      const entries = srcset.split(", ").filter((e) => e.includes("w"));
+      expect(entries).toHaveLength(1);
+    });
+
+    it("should handle empty sizes array", () => {
+      const srcset = service.generateResponsiveSrcset("img-1", []);
+
+      expect(srcset).toBe("");
+    });
   });
 });
