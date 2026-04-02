@@ -30,15 +30,14 @@ export function useCurrency() {
   );
 
   /**
-   * Format a cents amount using the current restaurant's currency.
-   * Note: Customer app stores prices in cents; this converts to dollars first.
+   * Format a price amount using the current restaurant's currency.
+   * Prices in the database are stored as dollar values (e.g. 320 = NT$320).
    */
-  const formatPrice = (cents: number): string => {
-    if (typeof cents !== "number" || isNaN(cents)) {
+  const formatPrice = (amount: number): string => {
+    if (typeof amount !== "number" || isNaN(amount)) {
       return sharedFormatCurrency(0, currencyCode.value);
     }
-    const dollars = cents / 100;
-    return sharedFormatCurrency(dollars, currencyCode.value);
+    return sharedFormatCurrency(amount, currencyCode.value);
   };
 
   /**
