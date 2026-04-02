@@ -51,7 +51,7 @@ INSERT OR REPLACE INTO restaurants (
   '{"monday":{"open":"11:00","close":"21:00"},"tuesday":{"open":"11:00","close":"21:00"},"wednesday":{"open":"11:00","close":"21:00"},"thursday":{"open":"11:00","close":"21:00"},"friday":{"open":"11:00","close":"22:00"},"saturday":{"open":"10:00","close":"22:00"},"sunday":{"open":"10:00","close":"21:00"}}',
   1, 1,
   1, 'SHOP-GRANDMA-001', '{"displayName":"阿嬤的味道 - 外帶","instructions":"請掃描此 QR Code 進行外帶點餐","requirePhone":true}',
-  '{"currency":"TWD","taxRate":0,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"autoConfirmOrders":false,"enableDineIn":true,"enableTakeaway":true,"enableDelivery":true,"deliveryFee":60,"estimatedPrepTimeMin":15,"estimatedPrepTimeMax":25}',
+  '{"currency":"TWD","taxRate":0,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"allowGuestOrders":true,"autoConfirmOrders":false,"enableDineIn":true,"enableTakeaway":true,"enableDelivery":true,"deliveryFee":60,"estimatedPrepTimeMin":15,"estimatedPrepTimeMax":25}',
   4.5, 128, 1520,
   unixepoch('now') * 1000, unixepoch('now') * 1000
 ),
@@ -64,7 +64,7 @@ INSERT OR REPLACE INTO restaurants (
   '{"monday":{"open":"11:30","close":"14:00"},"tuesday":{"open":"11:30","close":"14:00"},"wednesday":{"open":"11:30","close":"14:00"},"thursday":{"open":"11:30","close":"14:00"},"friday":{"open":"11:30","close":"14:00"},"saturday":{"open":"11:00","close":"21:00"},"sunday":{"open":"11:00","close":"21:00"}}',
   1, 1,
   0, NULL, NULL,
-  '{"currency":"TWD","taxRate":0.05,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"autoConfirmOrders":false,"minOrderAmount":300}',
+  '{"currency":"TWD","taxRate":0.05,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"allowGuestOrders":true,"autoConfirmOrders":false,"minOrderAmount":300}',
   4.8, 256, 3200,
   unixepoch('now') * 1000, unixepoch('now') * 1000
 ),
@@ -77,7 +77,7 @@ INSERT OR REPLACE INTO restaurants (
   '{"monday":{"open":"11:00","close":"21:00"},"tuesday":{"closed":true},"wednesday":{"open":"11:00","close":"21:00"},"thursday":{"open":"11:00","close":"21:00"},"friday":{"open":"11:00","close":"22:00"},"saturday":{"open":"11:00","close":"22:00"},"sunday":{"open":"11:00","close":"21:00"}}',
   1, 1,
   1, 'SHOP-SIAM-001', '{"displayName":"暹羅風味 - 外帶","instructions":"掃碼點餐，15分鐘後取餐","requirePhone":true}',
-  '{"currency":"TWD","taxRate":0,"serviceChargeRate":0,"allowOnlineOrdering":true,"autoConfirmOrders":true}',
+  '{"currency":"TWD","taxRate":0,"serviceChargeRate":0,"allowOnlineOrdering":true,"allowGuestOrders":true,"autoConfirmOrders":true}',
   4.3, 89, 890,
   unixepoch('now') * 1000, unixepoch('now') * 1000
 );
@@ -655,7 +655,7 @@ INSERT OR REPLACE INTO restaurants (
   '{"monday":{"open":"10:00","close":"22:00"},"tuesday":{"open":"10:00","close":"22:00"},"wednesday":{"open":"10:00","close":"22:00"},"thursday":{"open":"10:00","close":"22:00"},"friday":{"open":"10:00","close":"23:00"},"saturday":{"open":"09:00","close":"23:00"},"sunday":{"open":"09:00","close":"22:00"}}',
   1, 1,
   1, 'SHOP-DEMO-001', '{"displayName":"MakanMakan Demo - 體驗點餐","instructions":"歡迎體驗！請選擇外帶或外送，輸入任意 3 位數字即可開始瀏覽菜單。","requirePhone":true}',
-  '{"currency":"TWD","taxRate":0.05,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"autoConfirmOrders":true,"enableTakeaway":true,"enableDelivery":true,"deliveryFee":60,"estimatedPrepTimeMin":10,"estimatedPrepTimeMax":25}',
+  '{"currency":"TWD","taxRate":0.05,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"allowGuestOrders":true,"autoConfirmOrders":true,"enableTakeaway":true,"enableDelivery":true,"deliveryFee":60,"estimatedPrepTimeMin":10,"estimatedPrepTimeMax":25}',
   4.9, 520, 8800,
   '["台式","日式","泰式","義式"]', 2, 1, 1,
   unixepoch('now') * 1000, unixepoch('now') * 1000

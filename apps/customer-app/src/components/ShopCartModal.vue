@@ -511,12 +511,35 @@ const handleCheckout = async () => {
 
     // Use guest endpoint if no customer auth token
     const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
-    const endpoint = hasCustomerToken
-      ? "/api/v1/orders"
-      : "/api/v1/orders/guest";
+    let orderResult: any;
 
-    // Use apiClient for automatic token injection
-    const orderResult = await apiClient.post(endpoint, orderData);
+    if (hasCustomerToken) {
+      orderResult = await apiClient.post("/orders", orderData);
+    } else {
+      // Guest ordering — use /guest-orders endpoint (no auth required)
+      const guestOrderData = {
+        restaurantId: props.restaurantId,
+        guestName: "Guest",
+        phoneLastDigits: (props.phoneLastDigits || "000")
+          .slice(-3)
+          .padStart(3, "0"),
+        orderType: "shop" as const,
+        items: shopCartStore.items.map((item) => ({
+          menuItemId: item.menuItem.id,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          notes: item.notes,
+        })),
+        notes: orderData.deliveryInfo?.instructions,
+        deliveryInfo: orderData.deliveryInfo,
+      };
+      const guestResult = await apiClient.post("/guest-orders", guestOrderData);
+      // Store guest token for order tracking
+      if (guestResult.guestToken) {
+        localStorage.setItem("guest_auth_token", guestResult.guestToken);
+      }
+      orderResult = guestResult.order;
+    }
     // apiClient unwraps response.data.data, so orderResult IS the order object
     const orderId = orderResult.id;
 

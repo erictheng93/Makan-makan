@@ -72,7 +72,14 @@ app.post("/", async (c) => {
   }
 
   // 2. Check active order limit per phoneLastDigits + restaurant
-  const activeOrderKey = `guest_active:${data.restaurantId}:${data.phoneLastDigits}`;
+  // When phoneLastDigits is the default "000", use IP to differentiate anonymous users
+  const clientIp =
+    c.req.header("cf-connecting-ip") ||
+    c.req.header("x-forwarded-for") ||
+    "unknown";
+  const guestIdentifier =
+    data.phoneLastDigits === "000" ? `anon:${clientIp}` : data.phoneLastDigits;
+  const activeOrderKey = `guest_active:${data.restaurantId}:${guestIdentifier}`;
   const existingActiveOrder = await c.env.CACHE_KV.get(activeOrderKey);
   if (existingActiveOrder) {
     return c.json(

@@ -69,8 +69,11 @@ const guestOrderItemSchema = z.object({
 export const createGuestOrderSchema = z
   .object({
     restaurantId: z.string().min(1),
-    guestName: z.string().min(1).max(50),
-    phoneLastDigits: z.string().regex(/^\d{3}$/, "Must be exactly 3 digits"),
+    guestName: z.string().max(50).default("Guest"),
+    phoneLastDigits: z
+      .string()
+      .regex(/^\d{3}$/, "Must be exactly 3 digits")
+      .default("000"),
     orderType: z.enum(["shop", "table", "seat"]),
     tableId: z.number().int().positive().optional(),
     seatId: z.number().int().positive().optional(),
