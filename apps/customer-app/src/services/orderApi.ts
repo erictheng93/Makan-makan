@@ -27,12 +27,51 @@ export interface OrderTrackingInfo {
   queuePosition?: number;
 }
 
+export interface CreateGuestOrderRequest {
+  restaurantId: string;
+  guestName: string;
+  phoneLastDigits: string;
+  orderType: "shop" | "table" | "seat";
+  tableId?: number;
+  seatId?: number;
+  items: Array<{
+    menuItemId: number;
+    quantity: number;
+    customizations?: any;
+    notes?: string;
+  }>;
+  notes?: string;
+}
+
+export interface GuestOrderResponse {
+  order: Order;
+  guestToken: string;
+  tokenExpiresAt: string;
+}
+
 export const orderApi = {
   /**
-   * 創建新訂單
+   * 創建新訂單（需要登入）
    */
   async createOrder(orderData: CreateOrderRequest): Promise<Order> {
     const response = await apiClient.post<Order>("/orders", orderData);
+    return response;
+  },
+
+  /**
+   * 創建訪客訂單（內用掃碼，不需要登入）
+   */
+  async createGuestOrder(
+    orderData: CreateGuestOrderRequest,
+  ): Promise<GuestOrderResponse> {
+    const response = await apiClient.post<GuestOrderResponse>(
+      "/guest-orders",
+      orderData,
+    );
+    // Store guest token for subsequent requests (order tracking, etc.)
+    if (response.guestToken) {
+      localStorage.setItem("guest_auth_token", response.guestToken);
+    }
     return response;
   },
 

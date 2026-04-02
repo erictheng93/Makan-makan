@@ -625,6 +625,7 @@ import CartItemCard from "@/components/CartItemCard.vue";
 import ConfirmationModal from "@/components/ConfirmationModal.vue";
 import CouponRecommendation from "@/components/CouponRecommendation.vue";
 import { orderApi } from "@/services/orderApi";
+import type { CreateGuestOrderRequest } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
 import { useCurrency } from "@/composables/useCurrency";
 import type { CreateOrderRequest } from "@makanmakan/shared-types";
@@ -702,7 +703,7 @@ watch(
   { immediate: true },
 );
 
-// 提交訂單 Mutation
+// 提交訂單 Mutation (authenticated)
 const { mutate: createOrder } = useMutation({
   mutationFn: (orderData: CreateOrderRequest) =>
     orderApi.createOrder(orderData),
@@ -711,6 +712,23 @@ const { mutate: createOrder } = useMutation({
     cartStore.clearCart();
     router.push(
       `/restaurant/${props.restaurantId}/table/${props.tableId}/order/${order.id}`,
+    );
+  },
+  onError: (error: any) => {
+    toast.error(error?.message || t("toast.orderSubmitFailed"));
+    isSubmitting.value = false;
+  },
+});
+
+// 訪客訂單 Mutation (dine-in without login)
+const { mutate: createGuestOrder } = useMutation({
+  mutationFn: (orderData: CreateGuestOrderRequest) =>
+    orderApi.createGuestOrder(orderData),
+  onSuccess: (response) => {
+    toast.success(t("toast.orderSubmitSuccess"));
+    cartStore.clearCart();
+    router.push(
+      `/restaurant/${props.restaurantId}/table/${props.tableId}/order/${response.order.id}`,
     );
   },
   onError: (error: any) => {
@@ -998,26 +1016,48 @@ const submitOrder = async () => {
     isSubmitting.value = true;
     showConfirmation.value = false;
 
-    // 構建訂單資料
-    const orderData: CreateOrderRequest = {
-      restaurantId: props.restaurantId,
-      tableId: props.tableId,
-      customerName: customerInfo.value.name.trim() || undefined,
-      customerPhone: customerInfo.value.phone.trim() || undefined,
-      items: cartStore.items.map((item) => ({
-        menuItemId: item.menuItem.id,
-        quantity: item.quantity,
-        customizations: item.customizations,
-        notes: item.notes,
-      })),
-      notes: orderNotes.value.trim() || undefined,
-      couponCode: appliedCoupon.value
-        ? couponCode.value.trim().toUpperCase()
-        : undefined,
-    };
+    const isAuthenticated = !!localStorage.getItem("customer_auth_token");
+    const isDineIn = !!props.tableId;
 
-    // 提交訂單
-    createOrder(orderData);
+    if (!isAuthenticated && isDineIn) {
+      // 訪客內用點餐 — 使用 guest-orders API（不需要登入）
+      const guestOrderData: CreateGuestOrderRequest = {
+        restaurantId: props.restaurantId,
+        guestName: customerInfo.value.name.trim() || "Guest",
+        phoneLastDigits: customerInfo.value.phone.trim().slice(-3) || "000",
+        orderType: "table",
+        tableId: props.tableId,
+        items: cartStore.items.map((item) => ({
+          menuItemId: item.menuItem.id,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          notes: item.notes,
+        })),
+        notes: orderNotes.value.trim() || undefined,
+      };
+
+      createGuestOrder(guestOrderData);
+    } else {
+      // 已登入用戶 — 使用一般 orders API
+      const orderData: CreateOrderRequest = {
+        restaurantId: props.restaurantId,
+        tableId: props.tableId,
+        customerName: customerInfo.value.name.trim() || undefined,
+        customerPhone: customerInfo.value.phone.trim() || undefined,
+        items: cartStore.items.map((item) => ({
+          menuItemId: item.menuItem.id,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          notes: item.notes,
+        })),
+        notes: orderNotes.value.trim() || undefined,
+        couponCode: appliedCoupon.value
+          ? couponCode.value.trim().toUpperCase()
+          : undefined,
+      };
+
+      createOrder(orderData);
+    }
   } catch (error) {
     console.error("submitOrder failed:", error);
     toast.error(t("toast.orderSubmitFailed"));
