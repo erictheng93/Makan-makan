@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { useI18n } from "vue-i18n";
+import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import {
   UserPlus,
@@ -368,6 +368,7 @@ function switchTab(tab: TabType) {
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           "
+          :data-active="activeTab === 'owners'"
           @click="switchTab('owners')"
         >
           {{ t("accountManagement.tabOwners") }}
@@ -379,6 +380,7 @@ function switchTab(tab: TabType) {
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           "
+          :data-active="activeTab === 'admins'"
           @click="switchTab('admins')"
         >
           {{ t("accountManagement.tabAdmins") }}

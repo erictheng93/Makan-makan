@@ -5,6 +5,8 @@ import App from "./App.vue";
 import { setupGlobalErrorHandler, errorHandler } from "@/utils/errorHandler";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
 import { initI18n } from "./i18n";
+import Toast from "vue-toastification";
+import "vue-toastification/dist/index.css";
 import "./assets/css/main.css";
 
 async function bootstrap() {
@@ -16,6 +18,18 @@ async function bootstrap() {
 
   app.use(pinia);
   app.use(router);
+  app.use(Toast, {
+    position: "top-right",
+    timeout: 3000,
+    closeOnClick: true,
+    pauseOnFocusLoss: true,
+    pauseOnHover: true,
+    draggable: true,
+    showCloseButtonOnHover: false,
+    closeButton: "button",
+    icon: true,
+    rtl: false,
+  });
 
   // 註冊全局組件
   app.component("ErrorDisplay", ErrorDisplay);

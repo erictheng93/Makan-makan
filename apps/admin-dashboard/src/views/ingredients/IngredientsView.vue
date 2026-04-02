@@ -105,7 +105,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { useI18n } from "vue-i18n";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { ingredientApi } from "@/services/ingredientApi";
 import IngredientTable from "@/components/ingredients/IngredientTable.vue";
