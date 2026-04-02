@@ -164,13 +164,12 @@ class ApiClient {
   }
 
   private async handleAuthError() {
-    // 清除認證資訊 (customer tokens)
+    // 清除認證資訊 (customer tokens only)
+    // Note: Do NOT clear guest_auth_token here — guest tokens are
+    // independent from customer auth and should persist for order tracking.
+    // 401 errors from SSE/polling should not invalidate guest sessions.
     localStorage.removeItem("customer_auth_token");
     localStorage.removeItem("customer_refresh_token");
-    localStorage.removeItem("guest_auth_token");
-
-    // 可以在這裡添加重定向到登入頁面的邏輯
-    // window.location.href = '/login'
   }
 
   private getErrorMessage(status: number): string {
