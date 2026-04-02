@@ -295,10 +295,12 @@ router.beforeEach(async (to, from, next) => {
 
   // 檢查餐廳和桌台參數
   if (to.params.restaurantId && to.params.tableId) {
-    const restaurantId = Number(to.params.restaurantId);
+    const restaurantId = to.params.restaurantId as string;
     const tableId = Number(to.params.tableId);
 
-    if (isNaN(restaurantId) || isNaN(tableId)) {
+    // restaurantId is a UUID string — validate it's non-empty
+    // tableId must be a valid number
+    if (!restaurantId || isNaN(tableId) || tableId <= 0) {
       next({
         name: "Error",
         query: {
