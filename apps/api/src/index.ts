@@ -158,10 +158,10 @@ app.use(
         blockDuration: 120,
       },
       "/api/v1/guest-orders": {
-        requests: 5,
-        windowSeconds: 900,
-        burstMultiplier: 1.0,
-        blockDuration: 300,
+        requests: 60,
+        windowSeconds: 60,
+        burstMultiplier: 2.0,
+        blockDuration: 60,
       },
       "/api/v1/integrations/webhooks": {
         requests: 100,
