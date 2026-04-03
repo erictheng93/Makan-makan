@@ -84,11 +84,12 @@ export const orderApi = {
   },
 
   /**
-   * 獲取訪客訂單詳情 (uses guest token)
+   * 獲取訪客訂單詳情 (uses guest token from localStorage)
    */
   async getGuestOrder(orderId: number): Promise<Order> {
-    const response = await apiClient.get<Order>(`/orders/guest/${orderId}`);
-    return response;
+    const response = await apiClient.get<Order>(`/guest-orders/${orderId}`);
+    // API wraps in { order }, unwrap it
+    return (response as any).order || response;
   },
 
   /**
