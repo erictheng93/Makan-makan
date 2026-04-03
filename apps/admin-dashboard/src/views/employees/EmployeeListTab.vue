@@ -254,6 +254,62 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirm action modal -->
+    <div v-if="confirmAction" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div
+          class="fixed inset-0 bg-black/30 backdrop-blur-sm"
+          @click="cancelConfirm"
+        />
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full">
+          <div class="p-6 text-center">
+            <div
+              class="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4"
+              :class="
+                confirmAction.type === 'danger'
+                  ? 'bg-ios-error/10'
+                  : 'bg-ios-warning/10'
+              "
+            >
+              <AlertTriangle
+                class="h-6 w-6"
+                :class="
+                  confirmAction.type === 'danger'
+                    ? 'text-ios-error'
+                    : 'text-ios-warning'
+                "
+              />
+            </div>
+            <h3 class="text-[17px] font-bold text-[#1C1C1E] mb-2">
+              {{ confirmAction.title }}
+            </h3>
+            <p class="text-[14px] text-[#8E8E93] mb-6">
+              {{ confirmAction.message }}
+            </p>
+            <div class="flex gap-2.5 justify-center">
+              <button
+                class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors"
+                @click="cancelConfirm"
+              >
+                {{ t("common.cancel") }}
+              </button>
+              <button
+                class="px-5 py-2.5 text-[14px] font-semibold text-white rounded-full transition-colors"
+                :class="
+                  confirmAction.type === 'danger'
+                    ? 'bg-ios-error hover:bg-ios-error/90 shadow-[0_2px_8px_rgba(255,59,48,0.25)]'
+                    : 'bg-ios-warning hover:bg-ios-warning/90 shadow-[0_2px_8px_rgba(255,149,0,0.25)]'
+                "
+                @click="executeConfirm"
+              >
+                {{ confirmAction.confirmLabel }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -279,6 +335,7 @@ import {
   KeyRound,
   UserX,
   UserCheck,
+  AlertTriangle,
 } from "lucide-vue-next";
 
 const props = defineProps<{
@@ -351,23 +408,48 @@ const emit = defineEmits<{
   toggleStatus: [user: EmployeeWithStatus];
 }>();
 
+// Confirm action modal state
+const confirmAction = ref<{
+  type: "danger" | "warning";
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+} | null>(null);
+
+const cancelConfirm = () => {
+  confirmAction.value = null;
+};
+
+const executeConfirm = () => {
+  confirmAction.value?.onConfirm();
+  confirmAction.value = null;
+};
+
 const handleResetPassword = (user: EmployeeWithStatus) => {
-  if (confirm(t("users.confirm.resetPassword", { username: user.username }))) {
-    emit("resetPassword", user.id);
-  }
+  confirmAction.value = {
+    type: "warning",
+    title: t("users.actions.resetPassword"),
+    message: t("users.confirm.resetPassword", { username: user.username }),
+    confirmLabel: t("users.actions.resetPassword"),
+    onConfirm: () => emit("resetPassword", user.id),
+  };
 };
 
 const handleToggleStatus = (user: EmployeeWithStatus) => {
-  const action =
-    user.status === "active"
-      ? t("users.actions.disable")
-      : t("users.actions.enable");
-  if (
-    confirm(
-      t("users.confirm.toggleStatus", { action, username: user.username }),
-    )
-  ) {
-    emit("toggleStatus", user);
-  }
+  const isActive = user.status === "active";
+  const action = isActive
+    ? t("users.actions.disable")
+    : t("users.actions.enable");
+  confirmAction.value = {
+    type: isActive ? "danger" : "warning",
+    title: action,
+    message: t("users.confirm.toggleStatus", {
+      action,
+      username: user.username,
+    }),
+    confirmLabel: action,
+    onConfirm: () => emit("toggleStatus", user),
+  };
 };
 </script>
