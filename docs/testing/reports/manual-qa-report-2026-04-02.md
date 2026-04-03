@@ -227,6 +227,31 @@ Router.push → /restaurant/:id/table/:tableId/order/:orderId
 2. 完整跨角色訂單生命週期（需 WebSocket）
 3. 外帶掃碼 E2E
 4. Performance / 壓力測試（Artillery configs 已建好）
+5. 員工管理 CRUD
+6. 跨角色流程（Customer → Chef → Service → Cashier）
+
+---
+
+## E2E 場景：菜單 CRUD（2026-04-03）
+
+**角色**: Owner (grandmaShop / password123)
+**App**: Admin Dashboard (:3001) → 菜單管理
+
+| 操作    | 測試步驟                                 | API                      | UI                                  | 狀態     |
+| ------- | ---------------------------------------- | ------------------------ | ----------------------------------- | -------- |
+| Create  | 新增「QA測試雞排」NT$85，招牌小吃分類    | ✅ 成功                  | ✅ 計數 16→17，卡片出現             | **PASS** |
+| Read    | 頁面載入 16 項 + 4 分類 + 搜尋/篩選      | ✅                       | ✅                                  | **PASS** |
+| Update  | 改名「QA測試雞排（已改名）」+ 價格 85→95 | ✅ 成功                  | ✅ 立即反映                         | **PASS** |
+| Disable | 點「已下架」停售                         | ✅ 成功                  | ✅ 標籤變紅「已停售」，供應中 17→16 | **PASS** |
+| Delete  | 點「刪除」→ 確認 dialog → 確認           | ✅ API 刪除成功（16 項） | ⚠️ UI 未移除（cache 未 invalidate） | **BUG**  |
+
+### ISSUE-011: 菜品刪除後 UI 未從列表移除
+
+- **嚴重度**: Low（數據已正確刪除，僅 UI 顯示問題）
+- **根因**: `useMenuManagement` composable 刪除成功後沒有 refetch menu 列表或從 local state 移除該項
+- **影響**: 用戶點刪除後看不到變化，需離開頁面再回來
+- **API 驗證**: `GET /api/v1/menu/:restaurantId` 確認返回 16 項（QA 菜品已刪除）
+- **修復建議**: 刪除 mutation 的 `onSuccess` 應 `queryClient.invalidateQueries(['menu'])` 或從 local items 過濾
 
 ---
 
