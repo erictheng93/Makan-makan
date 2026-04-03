@@ -1,9 +1,9 @@
 # Test Progress Tracker
 
-> 最後更新: 2026-04-03 (Manual QA 6 roles complete)
+> 最後更新: 2026-04-03 (Manual QA complete + UX overhaul)
 > 測試總數: 308 files / 8,496 tests (all passing)
 > Typecheck: PASS (21/21 tasks)
-> Manual QA: 6 角色 70+ 頁面實測，10 bugs fixed — [完整報告](reports/manual-qa-report-2026-04-02.md)
+> Manual QA: 6 角色 70+ 頁面實測，12 bugs fixed，118 native dialogs replaced — [完整報告](reports/manual-qa-report-2026-04-02.md)
 
 ---
 
@@ -174,37 +174,43 @@
 
 ## Bug 追蹤（測試中發現）
 
-| Bug            | 位置                                           | 狀態       | 描述                                                  |
-| -------------- | ---------------------------------------------- | ---------- | ----------------------------------------------------- |
-| 優惠券列表空白 | `CouponsView.vue:554`                          | **已修復** | `response.data.data` 雙重解構導致列表為空             |
-| ISSUE-001      | `AccountManagementView.vue`                    | **已修復** | useI18n 錯誤 import + toast plugin 未註冊             |
-| ISSUE-002      | 10 個子元件 (forecast/ingredients/monitoring)  | **已修復** | 同 001，vue-i18n 錯誤 import                          |
-| ISSUE-003      | `customer-app/useCurrency.ts`                  | **已修復** | 價格被 /100（DB 存元，formatPrice 假設分）            |
-| ISSUE-004      | `customer-app/MenuItemCard.vue`                | **已修復** | inventoryCount=0 誤判為售完                           |
-| ISSUE-005      | `customer-app/router/index.ts`                 | **已修復** | UUID restaurantId → Number() = NaN                    |
-| ISSUE-006      | `customer-app/CartView.vue`                    | **已修復** | 內用匿名下單走錯 API endpoint                         |
-| ISSUE-007      | `ShopCartModal.vue` + seed data + schema       | **已修復** | 外帶 guest order 端點 + seed + validation             |
-| ISSUE-008      | `kitchen-display/EnhancedKitchenDashboard.vue` | **已修復** | 同 005，UUID → Number() = NaN                         |
-| ISSUE-009      | `guest-orders/routes/index.ts`                 | **已修復** | phoneLastDigits 3 位傳入 phone 欄位（要求 7-20 位）   |
-| ISSUE-010      | `customer-app/services/api.ts`                 | **已修復** | handleAuthError 清除 guest_auth_token                 |
-| ISSUE-011      | `admin-dashboard/useMenuManagement`            | **已修復** | 菜品刪除後 UI 未移除（soft delete + includeAll 帶回） |
+| Bug            | 位置                                           | 狀態       | 描述                                                              |
+| -------------- | ---------------------------------------------- | ---------- | ----------------------------------------------------------------- |
+| 優惠券列表空白 | `CouponsView.vue:554`                          | **已修復** | `response.data.data` 雙重解構導致列表為空                         |
+| ISSUE-001      | `AccountManagementView.vue`                    | **已修復** | useI18n 錯誤 import + toast plugin 未註冊                         |
+| ISSUE-002      | 10 個子元件 (forecast/ingredients/monitoring)  | **已修復** | 同 001，vue-i18n 錯誤 import                                      |
+| ISSUE-003      | `customer-app/useCurrency.ts`                  | **已修復** | 價格被 /100（DB 存元，formatPrice 假設分）                        |
+| ISSUE-004      | `customer-app/MenuItemCard.vue`                | **已修復** | inventoryCount=0 誤判為售完                                       |
+| ISSUE-005      | `customer-app/router/index.ts`                 | **已修復** | UUID restaurantId → Number() = NaN                                |
+| ISSUE-006      | `customer-app/CartView.vue`                    | **已修復** | 內用匿名下單走錯 API endpoint                                     |
+| ISSUE-007      | `ShopCartModal.vue` + seed data + schema       | **已修復** | 外帶 guest order 端點 + seed + validation                         |
+| ISSUE-008      | `kitchen-display/EnhancedKitchenDashboard.vue` | **已修復** | 同 005，UUID → Number() = NaN                                     |
+| ISSUE-009      | `guest-orders/routes/index.ts`                 | **已修復** | phoneLastDigits 3 位傳入 phone 欄位（要求 7-20 位）               |
+| ISSUE-010      | `customer-app/services/api.ts`                 | **已修復** | handleAuthError 清除 guest_auth_token                             |
+| ISSUE-011      | `admin-dashboard/useMenuManagement`            | **已修復** | 菜品刪除後 UI 未移除（soft delete + includeAll 帶回）             |
+| ISSUE-012      | `guest-orders/routes` + `OrdersService` + DB   | **已修復** | 外帶 guest order 失敗 "Table is not available"（shop 不需 table） |
 
 ---
 
 ## 變更日誌
 
-### 2026-04-03 (Manual QA — 6 roles, 10 bugs fixed)
+### 2026-04-03 (Manual QA — 6 roles, 12 bugs fixed + UX overhaul)
 
 - 完成 6 角色全面瀏覽器手動 QA 測試（Chrome DevTools）
   - Admin, Owner, Chef, Service Crew, Cashier, Customer（匿名）
   - 70+ 頁面逐頁測試，RBAC 全方向驗證
-- 發現並修復 10 個 bugs（ISSUE-001 ~ ISSUE-010）
-  - 4 Critical: 空白頁、價格/100、售完、路由 NaN
-  - 4 High: i18n imports、guest order 端點、phone 格式、token 清除
+- 發現並修復 12 個 bugs（ISSUE-001 ~ ISSUE-012）
+  - 5 Critical: 空白頁、價格/100、售完、路由 NaN、Kitchen Display 無權限
+  - 5 High: i18n imports、guest order 端點、phone 格式、token 清除、外帶 table error
   - 2 Medium: guest order schema、seed data
+- E2E 場景測試：登入流程、菜單 CRUD、員工 CRUD、跨角色訂單、內用/外帶掃碼
 - 驗證餐廳資料隔離（多租戶安全）— curl 實測跨餐廳存取被 403 阻擋
-- 驗證內用掃碼免登入點餐完整 E2E 流程 — 從掃碼到建立訂單全程匿名
-- UX 改進：Chef 在 Admin Dashboard 登入引導到 Kitchen Display
+- 驗證內用 + 外帶掃碼免登入點餐完整 E2E 流程
+- UX 大幅改善：
+  - Chef 登入引導到 Kitchen Display
+  - 全局 confirm() → 自訂 modal（33 處）
+  - 全局 alert() → toast notification（85 處）
+  - 零瀏覽器原生 dialog（118 處全部替換）
 - 完整報告: [manual-qa-report-2026-04-02.md](reports/manual-qa-report-2026-04-02.md)
 
 ### 2026-04-02 (100% Vue coverage verified)

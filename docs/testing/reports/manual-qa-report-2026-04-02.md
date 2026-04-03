@@ -3,7 +3,7 @@
 > 測試日期: 2026-04-02 ~ 2026-04-03
 > 測試者: Claude Code (Browser-based QA via Chrome DevTools)
 > 測試範圍: 6 角色 × 3 個 App，共 70+ 頁面
-> Bugs Found: 10 | Bugs Fixed: 10 | UX Improvements: 2
+> Bugs Found: 12 | Bugs Fixed: 12 | UX Improvements: 4 | Native Dialogs Replaced: 118
 
 ---
 
@@ -44,9 +44,11 @@
 
 ### Kitchen Display Bugs
 
-| #         | 嚴重度   | 描述                               | 根因                                                        | 修復                               | Commit    |
-| --------- | -------- | ---------------------------------- | ----------------------------------------------------------- | ---------------------------------- | --------- |
-| ISSUE-008 | Critical | Kitchen Display 永遠顯示「無權限」 | `restaurantIdNum` 把 UUID 轉 `Number()` = NaN，比較永遠失敗 | 保持 string + 更新 type signatures | `4daea54` |
+| #         | 嚴重度   | 描述                                           | 根因                                                        | 修復                                       | Commit    |
+| --------- | -------- | ---------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------ | --------- |
+| ISSUE-008 | Critical | Kitchen Display 永遠顯示「無權限」             | `restaurantIdNum` 把 UUID 轉 `Number()` = NaN，比較永遠失敗 | 保持 string + 更新 type signatures         | `4daea54` |
+| ISSUE-011 | Low      | 菜品刪除後 UI 未移除                           | 後端 soft delete + fetchMenu includeAll=true 帶回已刪除項   | 過濾 sortOrder===-1 + optimistic removal   | `bf7d9ad` |
+| ISSUE-012 | High     | 外帶 guest order 失敗 "Table is not available" | shop 模式不需 table，但 DB 無條件驗證 tableId               | 三層修復：route/Service/DB 跳過 table 驗證 | `78e086c` |
 
 ### UX 改進
 
@@ -54,6 +56,8 @@
 | ------ | ------------------------------------------------------------------------------------------------------- | --------- |
 | UX-001 | Chef 在 Admin Dashboard 登入 → 顯示友善提示卡片引導到 Kitchen Display（而非靜默 redirect 造成雙重登入） | `fc79f50` |
 | UX-002 | 放寬 guest-orders dev rate limit（5 req/15min → 60 req/min）                                            | `a5a1cc8` |
+| UX-003 | 員工停用/重置密碼：瀏覽器 confirm() → 自訂 modal（danger/warning 風格）                                 | `f906a39` |
+| UX-004 | 全局 alert() → toast notification（85 處，20 個檔案，0 殘留）                                           | `78e086c` |
 
 ---
 
@@ -347,7 +351,8 @@ paid → completed
 完成 6 角色全面手動 QA 測試：
 
 - 發現並修復 10 個 bugs（4 Critical, 4 High, 2 Medium）
-- 2 個 UX 改進（Chef 登入引導、rate limit 調整）
+- 4 個 UX 改進（Chef 登入引導、rate limit、confirm→modal、alert→toast）
+- 118 處瀏覽器原生 dialog 替換為自訂 UI（33 confirm + 85 alert）
 - 驗證 RBAC 矩陣全角色全方向正確
 - 驗證餐廳資料隔離（多租戶安全）
 - 驗證內用掃碼免登入點餐完整 E2E 流程
