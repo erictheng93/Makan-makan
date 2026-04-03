@@ -174,20 +174,20 @@
 
 ## Bug 追蹤（測試中發現）
 
-| Bug            | 位置                                           | 狀態       | 描述                                                    |
-| -------------- | ---------------------------------------------- | ---------- | ------------------------------------------------------- |
-| 優惠券列表空白 | `CouponsView.vue:554`                          | **已修復** | `response.data.data` 雙重解構導致列表為空               |
-| ISSUE-001      | `AccountManagementView.vue`                    | **已修復** | useI18n 錯誤 import + toast plugin 未註冊               |
-| ISSUE-002      | 10 個子元件 (forecast/ingredients/monitoring)  | **已修復** | 同 001，vue-i18n 錯誤 import                            |
-| ISSUE-003      | `customer-app/useCurrency.ts`                  | **已修復** | 價格被 /100（DB 存元，formatPrice 假設分）              |
-| ISSUE-004      | `customer-app/MenuItemCard.vue`                | **已修復** | inventoryCount=0 誤判為售完                             |
-| ISSUE-005      | `customer-app/router/index.ts`                 | **已修復** | UUID restaurantId → Number() = NaN                      |
-| ISSUE-006      | `customer-app/CartView.vue`                    | **已修復** | 內用匿名下單走錯 API endpoint                           |
-| ISSUE-007      | `ShopCartModal.vue` + seed data + schema       | **已修復** | 外帶 guest order 端點 + seed + validation               |
-| ISSUE-008      | `kitchen-display/EnhancedKitchenDashboard.vue` | **已修復** | 同 005，UUID → Number() = NaN                           |
-| ISSUE-009      | `guest-orders/routes/index.ts`                 | **已修復** | phoneLastDigits 3 位傳入 phone 欄位（要求 7-20 位）     |
-| ISSUE-010      | `customer-app/services/api.ts`                 | **已修復** | handleAuthError 清除 guest_auth_token                   |
-| ISSUE-011      | `admin-dashboard/useMenuManagement`            | **待修復** | 菜品刪除後 UI 未移除（API 已刪除，cache 未 invalidate） |
+| Bug            | 位置                                           | 狀態       | 描述                                                  |
+| -------------- | ---------------------------------------------- | ---------- | ----------------------------------------------------- |
+| 優惠券列表空白 | `CouponsView.vue:554`                          | **已修復** | `response.data.data` 雙重解構導致列表為空             |
+| ISSUE-001      | `AccountManagementView.vue`                    | **已修復** | useI18n 錯誤 import + toast plugin 未註冊             |
+| ISSUE-002      | 10 個子元件 (forecast/ingredients/monitoring)  | **已修復** | 同 001，vue-i18n 錯誤 import                          |
+| ISSUE-003      | `customer-app/useCurrency.ts`                  | **已修復** | 價格被 /100（DB 存元，formatPrice 假設分）            |
+| ISSUE-004      | `customer-app/MenuItemCard.vue`                | **已修復** | inventoryCount=0 誤判為售完                           |
+| ISSUE-005      | `customer-app/router/index.ts`                 | **已修復** | UUID restaurantId → Number() = NaN                    |
+| ISSUE-006      | `customer-app/CartView.vue`                    | **已修復** | 內用匿名下單走錯 API endpoint                         |
+| ISSUE-007      | `ShopCartModal.vue` + seed data + schema       | **已修復** | 外帶 guest order 端點 + seed + validation             |
+| ISSUE-008      | `kitchen-display/EnhancedKitchenDashboard.vue` | **已修復** | 同 005，UUID → Number() = NaN                         |
+| ISSUE-009      | `guest-orders/routes/index.ts`                 | **已修復** | phoneLastDigits 3 位傳入 phone 欄位（要求 7-20 位）   |
+| ISSUE-010      | `customer-app/services/api.ts`                 | **已修復** | handleAuthError 清除 guest_auth_token                 |
+| ISSUE-011      | `admin-dashboard/useMenuManagement`            | **已修復** | 菜品刪除後 UI 未移除（soft delete + includeAll 帶回） |
 
 ---
 
