@@ -462,6 +462,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
@@ -483,6 +484,7 @@ const ChefHatIcon = UserIcon; // Chef hat icon placeholder
 const CalculatorIcon = CurrencyDollarIcon; // Calculator icon placeholder
 
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 
 // Type definitions
@@ -683,9 +685,9 @@ const resetPassword = async (user: User) => {
       newPassword: tempPassword,
       confirmPassword: tempPassword,
     });
-    alert(t("users.confirm.resetPasswordSuccess"));
+    toast.success(t("users.confirm.resetPasswordSuccess"));
   } catch (error: any) {
-    alert(
+    toast.error(
       error.response?.data?.error?.message || t("users.errors.resetFailed"),
     );
   }
@@ -711,7 +713,7 @@ const toggleUserStatus = async (user: User) => {
     await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
     await fetchUsers();
   } catch (error: any) {
-    alert(
+    toast.error(
       error.response?.data?.error?.message || t("users.errors.toggleFailed"),
     );
   }
@@ -752,7 +754,9 @@ const saveUser = async () => {
     closeUserModal();
     await fetchUsers();
   } catch (error: any) {
-    alert(error.response?.data?.error?.message || t("users.errors.saveFailed"));
+    toast.error(
+      error.response?.data?.error?.message || t("users.errors.saveFailed"),
+    );
   }
 };
 

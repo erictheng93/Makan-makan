@@ -663,8 +663,10 @@ import { useRealtimeQueue } from "@/composables/useRealtimeQueue";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 
 const { t } = useI18n();
+const toast = useToast();
 
 // 使用候位類型定義 - 已從 queueService 導入
 // QueueItem 現在來自模組導出
@@ -990,16 +992,16 @@ const callNextCustomer = async () => {
       if (index !== -1) {
         queueItems.value[index] = result.data;
       }
-      alert(
+      toast.success(
         t("queue.alerts.called", {
           name: result.data.customerName || result.data.queueNumber,
         }),
       );
     } else {
-      alert(result.error || t("queue.alerts.callFailed"));
+      toast.error(result.error || t("queue.alerts.callFailed"));
     }
   } catch (err) {
-    alert(t("queue.alerts.callRetry"));
+    toast.error(t("queue.alerts.callRetry"));
     console.error("Failed to call next customer:", err);
   }
 };
@@ -1020,16 +1022,16 @@ const callCustomer = async (queueItem: QueueItem) => {
       if (index !== -1) {
         queueItems.value[index] = result.data;
       }
-      alert(
+      toast.success(
         t("queue.alerts.called", {
           name: queueItem.customerName || queueItem.queueNumber,
         }),
       );
     } else {
-      alert(result.error || t("queue.alerts.callFailed"));
+      toast.error(result.error || t("queue.alerts.callFailed"));
     }
   } catch (_error) {
-    alert(t("queue.alerts.callRetry"));
+    toast.error(t("queue.alerts.callRetry"));
     console.error("Failed to call customer:", error);
   }
 };
@@ -1081,7 +1083,7 @@ const submitAddToQueue = async () => {
 
     if (result.success && result.data) {
       closeAddDialog();
-      alert(
+      toast.success(
         t("queue.alerts.addedToQueue", {
           number: result.data.queueNumber,
           minutes: result.data.estimatedWaitMinutes,
@@ -1091,10 +1093,10 @@ const submitAddToQueue = async () => {
       // 刷新候位列表
       await refreshQueue();
     } else {
-      alert(result.error || t("queue.alerts.addFailed"));
+      toast.error(result.error || t("queue.alerts.addFailed"));
     }
   } catch (_error) {
-    alert(t("queue.alerts.addRetry"));
+    toast.error(t("queue.alerts.addRetry"));
     console.error("Failed to add to queue:", error);
   } finally {
     loading.value = false;
@@ -1137,19 +1139,19 @@ const confirmSeatAssignment = async () => {
       }
 
       closeSeatDialog();
-      alert(t("queue.alerts.seatSuccess"));
+      toast.success(t("queue.alerts.seatSuccess"));
     } else {
-      alert(result.error || t("queue.alerts.seatFailed"));
+      toast.error(result.error || t("queue.alerts.seatFailed"));
     }
   } catch (_error) {
-    alert(t("queue.alerts.seatRetry"));
+    toast.error(t("queue.alerts.seatRetry"));
     console.error("Failed to seat customer:", error);
   }
 };
 
 const editQueueItem = (queueItem: QueueItem) => {
   console.log("Edit queue item:", queueItem.id);
-  alert(t("queue.alerts.editInDev"));
+  toast.info(t("queue.alerts.editInDev"));
 };
 
 const cleanTable = async (table: Table) => {
@@ -1162,28 +1164,28 @@ const cleanTable = async (table: Table) => {
 
     table.status = "available";
     table.cleaningStatus = "clean";
-    alert(t("queue.alerts.cleanDone", { number: table.number }));
+    toast.success(t("queue.alerts.cleanDone", { number: table.number }));
   } catch (_error) {
     table.status = "occupied";
     table.cleaningStatus = "dirty";
-    alert(t("queue.alerts.cleanFailed"));
+    toast.error(t("queue.alerts.cleanFailed"));
   }
 };
 
 const sendNotification = () => {
-  alert(t("queue.alerts.notifyInDev"));
+  toast.info(t("queue.alerts.notifyInDev"));
 };
 
 const generateReport = () => {
-  alert(t("queue.alerts.reportInDev"));
+  toast.info(t("queue.alerts.reportInDev"));
 };
 
 const toggleAutoAssignment = () => {
   console.log("Auto assignment:", autoAssignment.value);
   if (autoAssignment.value) {
-    alert(t("queue.alerts.autoAssignOn"));
+    toast.success(t("queue.alerts.autoAssignOn"));
   } else {
-    alert(t("queue.alerts.autoAssignOff"));
+    toast.info(t("queue.alerts.autoAssignOff"));
   }
 };
 

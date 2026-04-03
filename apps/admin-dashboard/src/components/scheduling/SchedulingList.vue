@@ -427,10 +427,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import type { EmployeeSchedule } from "@/types/scheduling";
 
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 import {
   MagnifyingGlassIcon,
@@ -669,7 +671,7 @@ const handleExport = () => {
 
 const exportToCSV = (data: EmployeeSchedule[], filename: string) => {
   if (data.length === 0) {
-    alert(t("scheduling.noExportData"));
+    toast.warning(t("scheduling.noExportData"));
     return;
   }
 

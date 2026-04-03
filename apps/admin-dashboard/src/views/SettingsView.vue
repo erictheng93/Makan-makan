@@ -1265,6 +1265,7 @@ import { ref, reactive, onMounted } from "vue";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
@@ -1272,6 +1273,7 @@ import { setRestaurantCurrency } from "@/composables/useCurrency";
 import type { CurrencyCode } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 
@@ -1398,7 +1400,7 @@ const saveSettings = async () => {
     }, 3000);
   } catch (error) {
     console.error("Failed to save settings:", error);
-    alert(t("settings.alerts.saveFailed"));
+    toast.error(t("settings.alerts.saveFailed"));
   }
 };
 
@@ -1501,7 +1503,7 @@ const handleToggleShopMode = async () => {
       settings: shopQR.settings,
     });
 
-    alert(
+    toast.success(
       shopQR.enabled
         ? t("settings.alerts.shopModeEnabled")
         : t("settings.alerts.shopModeDisabled"),
@@ -1509,7 +1511,7 @@ const handleToggleShopMode = async () => {
     await loadShopQRInfo();
   } catch (error) {
     console.error("Failed to toggle shop mode:", error);
-    alert(t("settings.alerts.operationFailed"));
+    toast.error(t("settings.alerts.operationFailed"));
     shopQR.enabled = !shopQR.enabled;
   }
 };
@@ -1524,10 +1526,10 @@ const saveShopSettings = async () => {
       settings: shopQR.settings,
     });
 
-    alert(t("settings.alerts.settingsSaved"));
+    toast.success(t("settings.alerts.settingsSaved"));
   } catch (error) {
     console.error("Failed to save shop settings:", error);
-    alert(t("settings.alerts.saveFailed"));
+    toast.error(t("settings.alerts.saveFailed"));
   } finally {
     isSavingShopSettings.value = false;
   }
@@ -1548,10 +1550,10 @@ const generateShopQR = async () => {
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
       shopQR.version = data.version;
     }
-    alert(t("settings.alerts.qrGenerated"));
+    toast.success(t("settings.alerts.qrGenerated"));
   } catch (error) {
     console.error("Failed to generate shop QR:", error);
-    alert(t("settings.alerts.generateFailed"));
+    toast.error(t("settings.alerts.generateFailed"));
   } finally {
     isGeneratingQR.value = false;
   }
@@ -1579,11 +1581,13 @@ const regenerateShopQR = async () => {
       shopQR.qrCode = data.qrCode;
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
       shopQR.version = data.version;
-      alert(t("settings.alerts.qrRegenerated", { version: data.version }));
+      toast.success(
+        t("settings.alerts.qrRegenerated", { version: data.version }),
+      );
     }
   } catch (error) {
     console.error("Failed to regenerate shop QR:", error);
-    alert(t("settings.alerts.regenerateFailed"));
+    toast.error(t("settings.alerts.regenerateFailed"));
   } finally {
     isRegeneratingQR.value = false;
   }
@@ -1592,7 +1596,7 @@ const regenerateShopQR = async () => {
 const copyQRCode = () => {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(shopQR.qrCode).then(() => {
-      alert(t("settings.alerts.copied"));
+      toast.success(t("settings.alerts.copied"));
     });
   }
 };
@@ -1604,7 +1608,7 @@ const downloadQRCode = () => {
     link.download = `shop-qr-${shopQR.qrCode}.png`;
     link.click();
   } else {
-    alert(t("settings.alerts.downloadFailed"));
+    toast.error(t("settings.alerts.downloadFailed"));
   }
 };
 

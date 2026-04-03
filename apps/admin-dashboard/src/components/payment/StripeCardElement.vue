@@ -110,6 +110,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import {
   loadStripe,
   type Stripe,
@@ -159,6 +160,7 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 const { t } = useI18n();
+const toast = useToast();
 
 // Stripe 實例
 let stripe: Stripe | null = null;
@@ -399,7 +401,9 @@ const fillTestCard = (testCard: (typeof testCards.value)[0]) => {
     // 注意: Stripe Elements 不支援程式化填入資料
     // 這裡只是提供測試卡片號碼給開發者參考
     navigator.clipboard.writeText(testCard.number.replace(/\s/g, ""));
-    alert(t("payment.stripe.testCardCopied", { number: testCard.number }));
+    toast.success(
+      t("payment.stripe.testCardCopied", { number: testCard.number }),
+    );
   }
 };
 

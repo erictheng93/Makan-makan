@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import {
   XMarkIcon,
   DocumentArrowDownIcon,
@@ -37,6 +38,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const toast = useToast();
 
 // State
 const exportOptions = ref<ExportOptions>({
@@ -127,11 +129,11 @@ async function handleExport() {
       }, 1000);
     } else {
       console.error("Export failed:", result.error);
-      alert(t("exportReport.exportFailed", { error: result.error }));
+      toast.error(t("exportReport.exportFailed", { error: result.error }));
     }
   } catch (error) {
     console.error("Export error:", error);
-    alert(t("exportReport.exportError"));
+    toast.error(t("exportReport.exportError"));
   } finally {
     isExporting.value = false;
     exportProgress.value = 0;

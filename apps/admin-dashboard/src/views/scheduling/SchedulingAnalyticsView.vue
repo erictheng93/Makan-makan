@@ -99,6 +99,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useAuthStore } from "@/stores/auth";
 import { schedulingService } from "@/services/schedulingService";
 import WorkHoursChart from "@/components/charts/WorkHoursChart.vue";
@@ -106,6 +107,7 @@ import ShiftDistributionChart from "@/components/charts/ShiftDistributionChart.v
 import TrendChart from "@/components/charts/TrendChart.vue";
 
 const { t } = useI18n();
+const toast = useToast();
 const authStore = useAuthStore();
 const loading = ref(false);
 
@@ -314,7 +316,7 @@ const exportReport = () => {
 // 查看洞察詳情
 const viewInsightDetail = (insight: any) => {
   console.log("Viewing insight:", insight);
-  alert(
+  toast.info(
     `${t("schedulingAnalytics.viewInsightDetail")}:\n\n${insight.title}\n\n${insight.description}`,
   );
 };

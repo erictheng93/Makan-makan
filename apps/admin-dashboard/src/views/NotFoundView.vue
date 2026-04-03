@@ -154,6 +154,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useAuthStore } from "@/stores/auth";
 import {
   QuestionMarkCircleIcon,
@@ -176,6 +177,7 @@ import {
 const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
+const toast = useToast();
 const authStore = useAuthStore();
 
 // 響應式數據
@@ -285,7 +287,7 @@ const performSearch = () => {
   }
 
   // 如果沒有匹配的關鍵字，顯示提示
-  alert(t("notFound.noSearchResult", { query: searchQuery.value }));
+  toast.warning(t("notFound.noSearchResult", { query: searchQuery.value }));
 };
 
 // 生命周期

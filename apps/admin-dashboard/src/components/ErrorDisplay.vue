@@ -192,6 +192,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import {
   WifiIcon,
@@ -216,6 +217,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 
 // 響應式狀態
@@ -304,10 +306,10 @@ const handleClearCache = () => {
       errorHandler.clearCache();
     }
 
-    alert(t("errorDisplay.cacheClearedAlert"));
+    toast.success(t("errorDisplay.cacheClearedAlert"));
   } catch (error) {
     console.error("清理緩存失敗:", error);
-    alert(t("errorDisplay.cacheCleanFailed"));
+    toast.error(t("errorDisplay.cacheCleanFailed"));
   }
 };
 
@@ -344,7 +346,7 @@ const handleReportProblem = () => {
 
   // 在實際應用中，這裡應該打開問題回報表單或發送錯誤報告
   console.log("錯誤報告信息:", errorInfo);
-  alert(t("errorDisplay.reportNotImplemented"));
+  toast.info(t("errorDisplay.reportNotImplemented"));
 };
 
 const clearErrorStats = () => {

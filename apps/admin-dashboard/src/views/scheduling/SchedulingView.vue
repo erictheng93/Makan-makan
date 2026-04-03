@@ -286,6 +286,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { schedulingService } from "@/services/schedulingService";
@@ -314,6 +315,7 @@ import ShiftTemplateFormModal from "@/components/scheduling/ShiftTemplateFormMod
 
 // i18n
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 
 // Auth
@@ -568,7 +570,7 @@ const handleDeleteSchedule = async (schedule: EmployeeSchedule) => {
     console.error("Failed to delete schedule:", err);
     error.value =
       err instanceof Error ? err.message : "Failed to delete schedule";
-    alert(t("scheduling.deleteScheduleFailed"));
+    toast.error(t("scheduling.deleteScheduleFailed"));
   }
 };
 
@@ -589,7 +591,7 @@ const handleSaveSchedule = async (scheduleData: any) => {
     console.error("Failed to save schedule:", err);
     error.value =
       err instanceof Error ? err.message : "Failed to save schedule";
-    alert(t("scheduling.saveScheduleFailed"));
+    toast.error(t("scheduling.saveScheduleFailed"));
   }
 };
 
@@ -624,7 +626,7 @@ const handleSaveTemplate = async (templateData: any) => {
     console.error("Failed to save template:", err);
     error.value =
       err instanceof Error ? err.message : "Failed to save template";
-    alert(t("scheduling.saveTemplateFailed"));
+    toast.error(t("scheduling.saveTemplateFailed"));
   }
 };
 
@@ -644,14 +646,14 @@ const handleDeleteTemplate = async (template: ShiftTemplate) => {
     console.error("Failed to delete template:", err);
     error.value =
       err instanceof Error ? err.message : "Failed to delete template";
-    alert(t("scheduling.deleteTemplateFailed"));
+    toast.error(t("scheduling.deleteTemplateFailed"));
   }
 };
 
 const handleResolveConflict = async (conflict: SchedulingConflict) => {
   const userId = authStore.user?.id;
   if (!userId) {
-    alert(t("scheduling.cannotGetUserInfo"));
+    toast.error(t("scheduling.cannotGetUserInfo"));
     return;
   }
 
@@ -668,7 +670,7 @@ const handleResolveConflict = async (conflict: SchedulingConflict) => {
       console.error("Failed to resolve conflict:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to resolve conflict";
-      alert(t("scheduling.resolveConflictFailed"));
+      toast.error(t("scheduling.resolveConflictFailed"));
     }
   }
 };
@@ -684,7 +686,7 @@ const handleApproveSwap = async (request: SwapRequest) => {
 
   const managerId = authStore.user?.id;
   if (!managerId) {
-    alert(t("scheduling.cannotGetManagerInfo"));
+    toast.error(t("scheduling.cannotGetManagerInfo"));
     return;
   }
 
@@ -694,7 +696,7 @@ const handleApproveSwap = async (request: SwapRequest) => {
   } catch (err) {
     console.error("Failed to approve swap request:", err);
     error.value = err instanceof Error ? err.message : "Failed to approve swap";
-    alert(t("scheduling.approveSwapFailed"));
+    toast.error(t("scheduling.approveSwapFailed"));
   }
 };
 
@@ -703,7 +705,7 @@ const handleRejectSwap = async (request: SwapRequest) => {
   if (reason) {
     const managerId = authStore.user?.id;
     if (!managerId) {
-      alert(t("scheduling.cannotGetManagerInfo"));
+      toast.error(t("scheduling.cannotGetManagerInfo"));
       return;
     }
 
@@ -714,7 +716,7 @@ const handleRejectSwap = async (request: SwapRequest) => {
       console.error("Failed to reject swap request:", err);
       error.value =
         err instanceof Error ? err.message : "Failed to reject swap";
-      alert(t("scheduling.rejectSwapFailed"));
+      toast.error(t("scheduling.rejectSwapFailed"));
     }
   }
 };

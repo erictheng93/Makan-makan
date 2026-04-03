@@ -180,6 +180,7 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { X, Pencil, Trash2 } from "lucide-vue-next";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { schedulingService } from "@/services/schedulingService";
 import type { ShiftTemplate } from "@/types/scheduling";
@@ -197,6 +198,7 @@ const emit = defineEmits<{
   (e: "template-deleted", id: number): void;
 }>();
 
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 
 // ── Form state ──────────────────────────────────────────
@@ -296,7 +298,7 @@ async function handleDelete(id: number) {
     emit("template-deleted", id);
     if (editingId.value === id) resetForm();
   } catch (e: any) {
-    alert(e?.message || "刪除失敗，請再試一次");
+    toast.error(e?.message || "刪除失敗，請再試一次");
   }
 }
 </script>

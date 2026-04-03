@@ -214,6 +214,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useRouter, useRoute } from "vue-router";
 import { api } from "@/services/api";
@@ -223,6 +224,7 @@ import SeatManagement from "../components/tables/SeatManagement.vue";
 import QRModeSelector from "../components/tables/QRModeSelector.vue";
 
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const router = useRouter();
 const route = useRoute();
@@ -294,7 +296,7 @@ const loadSeats = async () => {
 
 const switchQRMode = async () => {
   if (table.value.status === "occupied") {
-    alert(t("tableDetail.confirm.occupiedError"));
+    toast.error(t("tableDetail.confirm.occupiedError"));
     return;
   }
 
@@ -333,7 +335,7 @@ const switchQRMode = async () => {
     }
   } catch (error) {
     console.error("Failed to switch QR mode:", error);
-    alert(t("tableDetail.confirm.switchFailed"));
+    toast.error(t("tableDetail.confirm.switchFailed"));
   }
 };
 
@@ -390,7 +392,7 @@ const regenerateQRCode = async () => {
     }
   } catch (error) {
     console.error("Failed to regenerate QR code:", error);
-    alert(t("tableDetail.confirm.regenerateFailed"));
+    toast.error(t("tableDetail.confirm.regenerateFailed"));
   }
 };
 

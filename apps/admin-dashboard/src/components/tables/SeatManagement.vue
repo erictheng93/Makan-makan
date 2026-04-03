@@ -307,11 +307,13 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { api } from "@/services/api";
 import { PlusIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatGrid from "./SeatGrid.vue";
@@ -413,7 +415,7 @@ const updateSeat = async () => {
     emit("update");
   } catch (error) {
     console.error("Failed to update seat:", error);
-    alert(t("seatManagement.alerts.updateFailed"));
+    toast.error(t("seatManagement.alerts.updateFailed"));
   }
 };
 
@@ -422,7 +424,7 @@ const deleteSeat = async () => {
   if (!selectedSeat.value) return;
 
   if (selectedSeat.value.isOccupied) {
-    alert(t("seatManagement.alerts.cannotDeleteOccupied"));
+    toast.warning(t("seatManagement.alerts.cannotDeleteOccupied"));
     return;
   }
 
@@ -444,7 +446,7 @@ const deleteSeat = async () => {
     emit("update");
   } catch (error) {
     console.error("Failed to delete seat:", error);
-    alert(t("seatManagement.alerts.deleteFailed"));
+    toast.error(t("seatManagement.alerts.deleteFailed"));
   }
 };
 
@@ -469,7 +471,7 @@ const releaseSeat = async () => {
     closeSeatModal();
   } catch (error) {
     console.error("Failed to release seat:", error);
-    alert(t("seatManagement.alerts.releaseFailed"));
+    toast.error(t("seatManagement.alerts.releaseFailed"));
   }
 };
 
@@ -491,10 +493,10 @@ const regenerateSeatQR = async () => {
     await api.post(`/seats/${selectedSeat.value.id}/regenerate-qr`);
 
     emit("update");
-    alert(t("seatManagement.alerts.regenerateSuccess"));
+    toast.success(t("seatManagement.alerts.regenerateSuccess"));
   } catch (error) {
     console.error("Failed to regenerate QR:", error);
-    alert(t("seatManagement.alerts.regenerateFailed"));
+    toast.error(t("seatManagement.alerts.regenerateFailed"));
   }
 };
 
@@ -512,14 +514,14 @@ const batchCreateSeats = async () => {
     emit("seatsCreated", createdSeats);
     showBatchCreateModal.value = false;
     emit("update");
-    alert(
+    toast.success(
       t("seatManagement.alerts.batchCreateSuccess", {
         count: batchForm.value.count,
       }),
     );
   } catch (error) {
     console.error("Failed to batch create seats:", error);
-    alert(t("seatManagement.alerts.batchCreateFailed"));
+    toast.error(t("seatManagement.alerts.batchCreateFailed"));
   }
 };
 
@@ -539,10 +541,10 @@ const regenerateAllQR = async () => {
     });
 
     emit("update");
-    alert(t("seatManagement.alerts.regenerateAllSuccess"));
+    toast.success(t("seatManagement.alerts.regenerateAllSuccess"));
   } catch (error) {
     console.error("Failed to regenerate all QR codes:", error);
-    alert(t("seatManagement.alerts.regenerateFailed"));
+    toast.error(t("seatManagement.alerts.regenerateFailed"));
   }
 };
 </script>

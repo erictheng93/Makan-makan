@@ -407,6 +407,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useCurrency } from "@/composables/useCurrency";
 import { api } from "@/services/api";
 import { ownerService } from "@/services/ownerService";
@@ -426,6 +427,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const toast = useToast();
 const { formatPrice } = useCurrency();
 const router = useRouter();
 
@@ -810,7 +812,7 @@ const handleEmergencyAlert = async (alertId: number, action: string) => {
     }
   } catch (err) {
     console.error("Error handling emergency alert:", err);
-    alert(t("owner.operationFailed"));
+    toast.error(t("owner.operationFailed"));
   }
 };
 

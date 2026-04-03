@@ -100,6 +100,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useEmployeeList } from "@/composables/useEmployeeList";
 import { useAuthStore } from "@/stores/auth";
 import { leavesService } from "@/services/leavesService";
@@ -121,6 +122,7 @@ import {
 
 const route = useRoute();
 const { t } = useI18n();
+const toast = useToast();
 const employeeList = useEmployeeList();
 const authStore = useAuthStore();
 
@@ -258,16 +260,16 @@ const handleSave = async (form: EmployeeFormData, isEdit: boolean) => {
     } else {
       errorMessage = error?.message || t("users.errors.saveFailed");
     }
-    alert(errorMessage);
+    toast.error(errorMessage);
   }
 };
 
 const handleResetPassword = async (userId: number) => {
   try {
     await employeeList.resetPassword(userId);
-    alert(t("users.confirm.resetPasswordSuccess"));
+    toast.success(t("users.confirm.resetPasswordSuccess"));
   } catch (error: any) {
-    alert(
+    toast.error(
       error.response?.data?.error?.message || t("users.errors.resetFailed"),
     );
   }
@@ -277,7 +279,7 @@ const handleToggleStatus = async (user: any) => {
   try {
     await employeeList.toggleUserStatus(user);
   } catch (error: any) {
-    alert(
+    toast.error(
       error.response?.data?.error?.message || t("users.errors.toggleFailed"),
     );
   }

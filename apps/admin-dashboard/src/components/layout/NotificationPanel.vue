@@ -204,6 +204,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useNotificationStore } from "@/stores/notification";
 import { useRouter } from "vue-router";
@@ -224,6 +225,7 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const notificationStore = useNotificationStore();
 const router = useRouter();
@@ -306,7 +308,7 @@ const handleOrderAction = (notification: any, action: string) => {
     router.push("/service");
   } else if (action === "prioritize") {
     // 優先處理邏輯
-    alert(t("notification.prioritized"));
+    toast.success(t("notification.prioritized"));
     markAsRead(notification.id);
   }
 };

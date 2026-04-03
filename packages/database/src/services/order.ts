@@ -126,12 +126,15 @@ export class OrderService extends BaseService {
         throw new Error("Restaurant is not available");
       }
 
-      const table = await this.db.query.tables.findFirst({
-        where: eq(tables.id, data.tableId),
-      });
+      // Only validate table for dine-in orders (tableId provided)
+      if (data.tableId) {
+        const table = await this.db.query.tables.findFirst({
+          where: eq(tables.id, data.tableId),
+        });
 
-      if (!table || !table.isActive) {
-        throw new Error("Table is not available");
+        if (!table || !table.isActive) {
+          throw new Error("Table is not available");
+        }
       }
 
       // 計算訂單總金額

@@ -241,6 +241,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useAuthStore } from "@/stores/auth";
 import { useEmployeeList } from "@/composables/useEmployeeList";
 import { toLocalDateStr } from "@/utils/dateUtils";
@@ -256,6 +257,7 @@ import { useConfirmModal } from "@/composables/useConfirmModal";
 
 // ── Auth / restaurant ────────────────────────────────────
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 const restaurantId = computed(() => authStore.restaurantId ?? "");
@@ -566,7 +568,7 @@ async function confirmAssign() {
     schedules.value = [...schedules.value, enrichedSchedule];
     pendingAssignment.value = null;
   } catch (e: any) {
-    alert(e?.message || t("employees.scheduling.assignFailed"));
+    toast.error(e?.message || t("employees.scheduling.assignFailed"));
   } finally {
     assigning.value = false;
   }
@@ -584,7 +586,7 @@ async function handleRemove(scheduleId: number) {
     await schedulingService.deleteSchedule(scheduleId);
     schedules.value = schedules.value.filter((s) => s.id !== scheduleId);
   } catch (e: any) {
-    alert(e?.message || t("employees.scheduling.removeFailed"));
+    toast.error(e?.message || t("employees.scheduling.removeFailed"));
   }
 }
 

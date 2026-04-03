@@ -148,7 +148,7 @@ export class OrdersService implements IOrdersService {
       // Convert feature-specific data to base service format
       const baseOrderData = {
         restaurantId: String(data.restaurantId),
-        tableId: data.tableId || 0, // Keep as number, default table for takeaway/delivery
+        tableId: data.tableId ?? undefined, // undefined for shop/takeaway orders (no table needed)
         customerId: data.customerId, // Keep as number
         customerInfo: data.customerInfo,
         items: data.items.map((item) => ({

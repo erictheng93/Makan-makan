@@ -97,6 +97,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
@@ -113,6 +114,7 @@ import type {
 } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const toast = useToast();
 const router = useRouter();
 const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
@@ -241,10 +243,10 @@ const handleSubmitRequest = async (formData: any) => {
     });
     await loadData();
     closeRequestDialog();
-    alert(t("leaveActions.submitSuccess"));
+    toast.success(t("leaveActions.submitSuccess"));
   } catch (error) {
     console.error("Failed to submit leave request:", error);
-    alert(t("leaveActions.submitFailed"));
+    toast.error(t("leaveActions.submitFailed"));
   }
 };
 
@@ -272,10 +274,10 @@ const handleCancelRequest = async (requestId: number) => {
       reason,
     });
     await loadData();
-    alert(t("leaveActions.cancelSuccess"));
+    toast.success(t("leaveActions.cancelSuccess"));
   } catch (error) {
     console.error("Failed to cancel request:", error);
-    alert(t("leaveActions.cancelFailed"));
+    toast.error(t("leaveActions.cancelFailed"));
   }
 };
 
@@ -297,10 +299,10 @@ const handleApproveRequest = async (requestId: number) => {
       approverId: authStore.user?.id,
     });
     await loadData();
-    alert(t("leaveActions.approveSuccess"));
+    toast.success(t("leaveActions.approveSuccess"));
   } catch (error) {
     console.error("Failed to approve request:", error);
-    alert(t("leaveActions.approveFailed"));
+    toast.error(t("leaveActions.approveFailed"));
   }
 };
 
@@ -318,10 +320,10 @@ const handleRejectRequest = async (requestId: number) => {
       reason,
     });
     await loadData();
-    alert(t("leaveActions.rejectSuccess"));
+    toast.success(t("leaveActions.rejectSuccess"));
   } catch (error) {
     console.error("Failed to reject request:", error);
-    alert(t("leaveActions.rejectFailed"));
+    toast.error(t("leaveActions.rejectFailed"));
   }
 };
 

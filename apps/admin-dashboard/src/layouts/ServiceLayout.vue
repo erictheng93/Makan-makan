@@ -275,6 +275,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useAuthStore } from "@/stores/auth";
 import type { SystemNotification, UrgentOrderAlert } from "@/types";
 import {
@@ -292,6 +293,7 @@ import { useConfirmModal } from "@/composables/useConfirmModal";
 
 const router = useRouter();
 const { t } = useI18n();
+const toast = useToast();
 const authStore = useAuthStore();
 const { confirm: confirmModal } = useConfirmModal();
 
@@ -355,12 +357,12 @@ const openNotifications = () => {
 
 const openProfile = () => {
   showUserMenu.value = false;
-  alert(t("serviceLayout.profileWIP"));
+  toast.info(t("serviceLayout.profileWIP"));
 };
 
 const openSettings = () => {
   showUserMenu.value = false;
-  alert(t("serviceLayout.settingsWIP"));
+  toast.info(t("serviceLayout.settingsWIP"));
 };
 
 const logout = async () => {

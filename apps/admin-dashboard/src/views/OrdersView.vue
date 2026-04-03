@@ -577,6 +577,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useCurrency } from "@/composables/useCurrency";
 import { useOrderStore } from "@/stores/order";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
@@ -596,6 +597,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const toast = useToast();
 const { formatPrice } = useCurrency();
 const router = useRouter();
 const { confirm: confirmModal } = useConfirmModal();
@@ -739,7 +741,7 @@ const updateOrderStatus = async (order: Order) => {
       nextStatus as OrderStatus,
     );
     if (!success) {
-      alert(orderStore.error || t("orders.updateFailed"));
+      toast.error(orderStore.error || t("orders.updateFailed"));
     }
   }
 };
