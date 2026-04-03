@@ -125,7 +125,8 @@ app.post("/", async (c) => {
   const ordersService = new OrdersService(c.env);
   const order = await ordersService.createOrder({
     restaurantId: data.restaurantId,
-    tableId: data.tableId,
+    // Only pass tableId for table/seat orders — shop orders don't need a table
+    tableId: data.orderType === "shop" ? undefined : data.tableId,
     customerInfo: {
       name: data.guestName,
       // phoneLastDigits is only 3 digits (for order dedup), not a real phone number.
