@@ -75,12 +75,14 @@ export function useMenuManagement() {
           ...c,
           nameEn: c.nameEn || "",
         }));
-        menuItems.value = payload.menuItems.map((item: any) => ({
-          ...item,
-          nameEn: item.nameEn || "",
-          isFeatured: !!item.isFeatured,
-          isAvailable: !!item.isAvailable,
-        }));
+        menuItems.value = payload.menuItems
+          .filter((item: any) => item.sortOrder !== -1) // Exclude soft-deleted items (sortOrder = -1)
+          .map((item: any) => ({
+            ...item,
+            nameEn: item.nameEn || "",
+            isFeatured: !!item.isFeatured,
+            isAvailable: !!item.isAvailable,
+          }));
       }
     } catch (error) {
       console.error("Failed to fetch menu:", error);
