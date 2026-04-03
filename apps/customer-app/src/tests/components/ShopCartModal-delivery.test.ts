@@ -334,9 +334,9 @@ describe("ShopCartModal – delivery features", () => {
     // Wait for async operations
     await wrapper.vm.$nextTick();
 
-    // Component uses guest endpoint when no customer_auth_token
+    // Component uses /guest-orders endpoint when no customer_auth_token
     expect(mockedApiClient.post).toHaveBeenCalledWith(
-      "/api/v1/orders/guest",
+      "/guest-orders",
       expect.objectContaining({
         deliveryInfo: expect.objectContaining({
           type: "delivery",

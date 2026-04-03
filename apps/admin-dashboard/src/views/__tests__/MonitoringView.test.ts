@@ -140,6 +140,17 @@ vi.mock("vue-toastification", () => ({
   }),
 }));
 
+// ── useConfirmModal Mock ──
+
+const mockMonitoringConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockMonitoringConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
 // ── Child component stubs ──
 
 vi.mock("@/components/monitoring/HealthScoreGauge.vue", () => ({
@@ -351,6 +362,8 @@ describe("MonitoringView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetAllFactories();
+    // Restore default confirm modal behavior after clearAllMocks
+    mockMonitoringConfirmModalFn.mockResolvedValue(true);
     vi.useFakeTimers({ shouldAdvanceTime: true });
     setActivePinia(createPinia());
     setupMocks();
@@ -774,7 +787,7 @@ describe("MonitoringView", () => {
     });
 
     it("should delete alert rule on trash click", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       const wrapper = await mountComponent();
       const ruleRow = wrapper.find(".border.border-gray-200.rounded-lg.p-4");
       const buttons = ruleRow.findAll("button");

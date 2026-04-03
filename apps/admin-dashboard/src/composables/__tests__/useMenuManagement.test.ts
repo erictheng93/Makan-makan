@@ -650,6 +650,10 @@ describe("useMenuManagement", () => {
           data: { error: { message: "Cannot delete item" } },
         };
         mockApiDelete.mockRejectedValue(serverError);
+        // The composable calls fetchMenu() in the catch block to restore state
+        mockApiGet.mockResolvedValue(
+          makeSuccessResponse({ categories: [], menuItems: [] }),
+        );
 
         const { deleteMenuItem } = useMenuManagement();
         await deleteMenuItem({
@@ -664,7 +668,10 @@ describe("useMenuManagement", () => {
 
         expect(mockToast.error).toHaveBeenCalledWith("Cannot delete item");
         expect(mockToast.success).not.toHaveBeenCalled();
-        expect(mockApiGet).not.toHaveBeenCalled();
+        // fetchMenu is called in the catch block to restore state after failed delete
+        expect(mockApiGet).toHaveBeenCalledWith(
+          "/menu/test-restaurant-id?includeAll=true",
+        );
       });
 
       test("deleteCategory shows error toast on 500", async () => {
@@ -1077,9 +1084,15 @@ describe("useMenuManagement", () => {
           },
         };
         mockApiDelete.mockRejectedValue(fkError);
+        // The composable calls fetchMenu() in the catch block to restore state
+        mockApiGet.mockResolvedValue(
+          makeSuccessResponse({
+            categories: sampleCategories,
+            menuItems: sampleItems,
+          }),
+        );
 
         const { deleteCategory, categories } = useMenuManagement();
-        const categoriesBefore = [...categories.value];
 
         await deleteCategory(1);
 
@@ -1087,10 +1100,12 @@ describe("useMenuManagement", () => {
           "Cannot delete category with existing items",
         );
         expect(mockToast.success).not.toHaveBeenCalled();
-        // Categories should not be refetched on error (no fetchMenu call)
-        expect(mockApiGet).not.toHaveBeenCalled();
-        // State should remain unchanged
-        expect(categories.value).toEqual(categoriesBefore);
+        // fetchMenu is called in the catch block to restore state after failed delete
+        expect(mockApiGet).toHaveBeenCalledWith(
+          "/menu/test-restaurant-id?includeAll=true",
+        );
+        // State should be restored to the fetched categories
+        expect(categories.value).toHaveLength(sampleCategories.length);
       });
 
       test("successful delete of category with items refetches menu", async () => {

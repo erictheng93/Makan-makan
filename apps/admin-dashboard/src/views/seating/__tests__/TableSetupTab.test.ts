@@ -58,6 +58,16 @@ vi.mock("@/stores/auth", () => ({
   }),
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockTableSetupConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockTableSetupConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
 // ── Imports ────────────────────────────────────────────────────────────────
 
 import TableSetupTab from "../TableSetupTab.vue";
@@ -137,6 +147,8 @@ describe("TableSetupTab", () => {
     vi.clearAllMocks();
     resetAllFactories();
     setActivePinia(createPinia());
+    // Restore default confirm modal behavior after clearAllMocks
+    mockTableSetupConfirmModalFn.mockResolvedValue(true);
     setupMocks();
   });
 
@@ -330,7 +342,7 @@ describe("TableSetupTab", () => {
     });
 
     it("should call batch QR API on batch generate click", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       const wrapper = mountTableSetupTab();
       await flushPromises();
 
@@ -350,7 +362,8 @@ describe("TableSetupTab", () => {
     });
 
     it("should not call batch QR API when user declines confirmation", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(false);
+      // Component uses useConfirmModal — mock it to return false
+      mockTableSetupConfirmModalFn.mockResolvedValueOnce(false);
       const wrapper = mountTableSetupTab();
       await flushPromises();
 

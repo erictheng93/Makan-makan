@@ -77,12 +77,12 @@ describe("Guest Orders Validation Schemas", () => {
 
     // ─── Guest Name Validation ───
 
-    it("should reject empty guestName", () => {
+    it("should accept empty guestName (defaults to 'Guest')", () => {
       const result = createGuestOrderSchema.safeParse({
         ...validShopOrder,
         guestName: "",
       });
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
 
     it("should reject guestName over 50 chars", () => {
@@ -251,16 +251,16 @@ describe("Guest Orders Validation Schemas", () => {
       expect(result.success).toBe(false);
     });
 
-    it("should reject missing guestName", () => {
+    it("should accept missing guestName (defaults to 'Guest')", () => {
       const { guestName: _g, ...rest } = validShopOrder;
       const result = createGuestOrderSchema.safeParse(rest);
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
 
-    it("should reject missing phoneLastDigits", () => {
+    it("should accept missing phoneLastDigits (defaults to '000')", () => {
       const { phoneLastDigits: _p, ...rest } = validShopOrder;
       const result = createGuestOrderSchema.safeParse(rest);
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
   });
 

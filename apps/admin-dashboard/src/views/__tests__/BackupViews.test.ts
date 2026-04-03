@@ -93,12 +93,24 @@ vi.mock("@/services/api", () => ({
 
 // ──── i18n (vue-i18n for BackupDashboard, @/i18n fallback) ────
 
+// Both BackupDashboard and BackupMonitoring import useI18n from 'vue-i18n' directly.
+// We must mock the library itself so it doesn't throw "Need to install with app.use".
 vi.mock("vue-i18n", () => ({
-  useI18n: () => ({ t: (key: string, params?: any) => key }),
+  useI18n: () => ({ t: (key: string, _params?: any) => key }),
 }));
 
 vi.mock("@/i18n", () => ({
-  useI18n: () => ({ t: (key: string, params?: any) => key }),
+  useI18n: () => ({ t: (key: string, _params?: any) => key }),
+}));
+
+// ──── useConfirmModal (BackupDashboard uses this instead of window.confirm) ────
+
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: vi.fn().mockResolvedValue(true),
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
 }));
 
 // ──── vue-router ────

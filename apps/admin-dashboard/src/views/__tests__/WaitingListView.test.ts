@@ -100,6 +100,16 @@ vi.mock("@/services/waitingListService", () => ({
   WaitingListService: mockWaitingListService,
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockWaitingConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockWaitingConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
 // Mock auth store
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({
@@ -225,6 +235,8 @@ describe("WaitingListView Component", () => {
     vi.clearAllMocks();
     resetAllFactories();
     setActivePinia(createPinia());
+    // Restore default confirm modal behavior after clearAllMocks
+    mockWaitingConfirmModalFn.mockResolvedValue(true);
     setupServiceMocks();
   });
 
@@ -590,7 +602,7 @@ describe("WaitingListView Component", () => {
     });
 
     it("should call cancelWaiting API on cancel click", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       const wrapper = mountComponent();
       await flushPromises();
 
@@ -608,7 +620,8 @@ describe("WaitingListView Component", () => {
     });
 
     it("should not cancel when user declines confirmation", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(false);
+      // Component uses useConfirmModal — mock it to return false
+      mockWaitingConfirmModalFn.mockResolvedValueOnce(false);
       const wrapper = mountComponent();
       await flushPromises();
 
@@ -632,7 +645,7 @@ describe("WaitingListView Component", () => {
     });
 
     it("should call expireWaiting API on expire click", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       const wrapper = mountComponent();
       await flushPromises();
 
@@ -649,7 +662,7 @@ describe("WaitingListView Component", () => {
     });
 
     it("should handle cancel API error", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       mockWaitingListService.cancelWaiting.mockRejectedValue(
         new Error("Failed"),
       );
@@ -876,7 +889,7 @@ describe("WaitingListView Component", () => {
     });
 
     it("should handle expire API error", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       mockWaitingListService.expireWaiting.mockRejectedValue(
         new Error("Failed"),
       );

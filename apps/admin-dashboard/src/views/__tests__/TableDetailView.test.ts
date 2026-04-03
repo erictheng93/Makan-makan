@@ -83,6 +83,16 @@ vi.mock("vue-router", () => ({
   }),
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockTableDetailConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockTableDetailConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
 // Stub heroicons
 vi.mock("@heroicons/vue/24/outline", () => {
   const stub = { template: "<span />" };
@@ -173,6 +183,7 @@ describe("TableDetailView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetAllFactories();
+    mockTableDetailConfirmModalFn.mockResolvedValue(true);
     mockRouteParams.value = { id: "42" };
   });
 
@@ -312,8 +323,7 @@ describe("TableDetailView", () => {
       mockApiPost.mockResolvedValue({
         data: { success: true, data: { qrCode: "https://example.com/qr/new" } },
       });
-      // Mock confirm to return true
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
 
       const wrapper = mountView();
       await flushPromises();

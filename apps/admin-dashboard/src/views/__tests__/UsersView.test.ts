@@ -13,6 +13,27 @@ vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockUsersConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockUsersConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
+// Mock vue-toastification
+const mockUsersToast = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+vi.mock("vue-toastification", () => ({
+  useToast: () => mockUsersToast,
+}));
+
 // Mock API
 vi.mock("@/services/api", () => ({
   api: {
@@ -132,6 +153,8 @@ describe("UsersView Component", () => {
     vi.clearAllMocks();
     resetAllFactories();
     setActivePinia(createPinia());
+    // Restore default confirm modal behavior after clearAllMocks
+    mockUsersConfirmModalFn.mockResolvedValue(true);
     mockApiGetSuccess();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(window, "alert").mockImplementation(() => {});
@@ -548,7 +571,8 @@ describe("UsersView Component", () => {
       await resetButton!.trigger("click");
       await flushPromises();
 
-      expect(window.confirm).toHaveBeenCalledOnce();
+      // Component uses useConfirmModal (not window.confirm)
+      expect(mockUsersConfirmModalFn).toHaveBeenCalledOnce();
       expect(api.post).toHaveBeenCalledOnce();
       expect(api.post).toHaveBeenCalledWith(
         expect.stringContaining("/reset-password"),
@@ -573,7 +597,8 @@ describe("UsersView Component", () => {
       await disableButton!.trigger("click");
       await flushPromises();
 
-      expect(window.confirm).toHaveBeenCalledOnce();
+      // Component uses useConfirmModal (not window.confirm)
+      expect(mockUsersConfirmModalFn).toHaveBeenCalledOnce();
       expect(api.patch).toHaveBeenCalledOnce();
       expect(api.patch).toHaveBeenCalledWith(
         expect.stringContaining("/status"),

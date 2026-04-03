@@ -84,6 +84,16 @@ vi.mock("@/stores/auth", () => ({
   }),
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockReservationTabConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockReservationTabConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
 // ── Imports ────────────────────────────────────────────────────────────────
 
 import ReservationTab from "../ReservationTab.vue";
@@ -194,6 +204,8 @@ describe("ReservationTab", () => {
     vi.clearAllMocks();
     resetAllFactories();
     setActivePinia(createPinia());
+    // Restore default confirm modal behavior after clearAllMocks
+    mockReservationTabConfirmModalFn.mockResolvedValue(true);
     setupMocks();
   });
 
@@ -329,7 +341,7 @@ describe("ReservationTab", () => {
 
   describe("Confirm / Cancel / Arrive / Seat API Calls", () => {
     it("should call confirm API on confirm button click", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       const wrapper = mountReservationTab();
       await flushPromises();
 
@@ -344,7 +356,7 @@ describe("ReservationTab", () => {
     });
 
     it("should show success toast after confirm", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       const wrapper = mountReservationTab();
       await flushPromises();
 
@@ -359,7 +371,8 @@ describe("ReservationTab", () => {
     });
 
     it("should not call confirm API when user declines", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(false);
+      // Component uses useConfirmModal — mock it to return false
+      mockReservationTabConfirmModalFn.mockResolvedValueOnce(false);
       const wrapper = mountReservationTab();
       await flushPromises();
 
@@ -372,7 +385,7 @@ describe("ReservationTab", () => {
     });
 
     it("should call cancel API on cancel button click", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       const wrapper = mountReservationTab();
       await flushPromises();
 
@@ -407,7 +420,7 @@ describe("ReservationTab", () => {
     });
 
     it("should handle confirm API error", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       mockReservationService.confirmReservation.mockRejectedValue(
         new Error("Failed"),
       );
@@ -423,7 +436,7 @@ describe("ReservationTab", () => {
     });
 
     it("should handle cancel API error", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       mockReservationService.cancelReservation.mockRejectedValue(
         new Error("Failed"),
       );
@@ -439,10 +452,11 @@ describe("ReservationTab", () => {
     });
 
     it("should reload list after successful confirm", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      // Component uses useConfirmModal (auto-resolves true via mock)
       const wrapper = mountReservationTab();
       await flushPromises();
       vi.clearAllMocks();
+      mockReservationTabConfirmModalFn.mockResolvedValue(true);
       setupMocks();
 
       const confirmBtn = wrapper.find(

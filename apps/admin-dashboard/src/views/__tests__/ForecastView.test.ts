@@ -76,7 +76,7 @@ vi.mock("@/services/ingredientApi", () => ({
 
 // ──── i18n ────
 
-vi.mock("vue-i18n", () => ({
+vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string, params?: any) => key }),
 }));
 

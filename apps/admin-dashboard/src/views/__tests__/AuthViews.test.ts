@@ -172,7 +172,7 @@ describe("LoginView", () => {
     await wrapper.find("form").trigger("submit");
     await flushPromises();
 
-    expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    expect(mockPush).toHaveBeenCalledWith("/dashboard/platform");
   });
 
   it("should show error message on login failure", async () => {

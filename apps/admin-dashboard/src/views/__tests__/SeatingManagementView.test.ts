@@ -221,6 +221,16 @@ vi.mock("@/components/tables/QRModeSelector.vue", () => ({
   default: { template: "<div data-testid='qr-mode-selector'></div>" },
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockSeatingConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockSeatingConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
 // Mock auth store
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({
@@ -548,6 +558,7 @@ describe("ReservationTab", () => {
     vi.clearAllMocks();
     resetAllFactories();
     setActivePinia(createPinia());
+    mockSeatingConfirmModalFn.mockResolvedValue(true);
     mockReservationService.listReservations.mockResolvedValue({
       success: true,
       data: mockReservations,
@@ -596,7 +607,7 @@ describe("ReservationTab", () => {
   });
 
   it("should call confirm API on confirm button click", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    // Component uses useConfirmModal (mocked to auto-resolve true)
     wrapper = mountReservationTab();
     await flushPromises();
 
@@ -613,7 +624,7 @@ describe("ReservationTab", () => {
   });
 
   it("should call cancel API on cancel button click", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    // Component uses useConfirmModal (mocked to auto-resolve true)
     wrapper = mountReservationTab();
     await flushPromises();
 

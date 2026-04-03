@@ -2,6 +2,18 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import QueueView from "@/views/seating/QueueDashboardTab.vue";
 
+// Mock vue-toastification — the component uses toast instead of window.alert
+const mockToast = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+};
+
+vi.mock("vue-toastification", () => ({
+  useToast: () => mockToast,
+}));
+
 // Mock the API service (used by cleanTable and fetchTables)
 vi.mock("@/services/api", () => ({
   api: {
@@ -484,8 +496,8 @@ describe("Queue Management Integration Tests", () => {
         notificationMethods: ["sms"],
       });
 
-      // Component uses "候位" terminology: "已新增至候位：3，預估等待 25 分鐘"
-      expect(window.alert).toHaveBeenCalledWith(
+      // Component uses toast.success (not window.alert) with "候位" terminology
+      expect(mockToast.success).toHaveBeenCalledWith(
         expect.stringContaining("候位"),
       );
     });
@@ -666,8 +678,8 @@ describe("Queue Management Integration Tests", () => {
 
       await component.submitAddToQueue();
 
-      // Component uses "候位" terminology
-      expect(window.alert).toHaveBeenCalledWith("加入候位失敗，請重試");
+      // Component uses toast.error (not window.alert) with "候位" terminology
+      expect(mockToast.error).toHaveBeenCalledWith("加入候位失敗，請重試");
     });
   });
 

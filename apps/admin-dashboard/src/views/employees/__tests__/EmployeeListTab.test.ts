@@ -62,6 +62,16 @@ vi.mock("vue-router", () => ({
   }),
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockEmployeeConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockEmployeeConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
 // Mock lucide-vue-next icons
 vi.mock("lucide-vue-next", () => {
   const stub = { template: "<span />" };
@@ -199,6 +209,8 @@ function mountComponent(
 describe("EmployeeListTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Restore default confirm modal behavior after clearAllMocks
+    mockEmployeeConfirmModalFn.mockResolvedValue(true);
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
@@ -313,16 +325,20 @@ describe("EmployeeListTab", () => {
       const resetButtons = wrapper.findAll('button[title="Reset Password"]');
       expect(resetButtons.length).toBe(4);
       await resetButtons[0].trigger("click");
-      expect(window.confirm).toHaveBeenCalled();
+      await flushPromises();
+      // Component uses useConfirmModal (not window.confirm)
+      expect(mockEmployeeConfirmModalFn).toHaveBeenCalled();
       expect(wrapper.emitted("resetPassword")).toBeTruthy();
       expect(wrapper.emitted("resetPassword")![0][0]).toBe(1);
     });
 
     it("should not emit resetPassword when confirm is cancelled", async () => {
-      (window.confirm as ReturnType<typeof vi.fn>).mockReturnValueOnce(false);
+      // Component uses useConfirmModal — mock it to return false
+      mockEmployeeConfirmModalFn.mockResolvedValueOnce(false);
       const wrapper = mountComponent();
       const resetButtons = wrapper.findAll('button[title="Reset Password"]');
       await resetButtons[0].trigger("click");
+      await flushPromises();
       expect(wrapper.emitted("resetPassword")).toBeFalsy();
     });
 
@@ -332,6 +348,7 @@ describe("EmployeeListTab", () => {
       const disableButtons = wrapper.findAll('button[title="Disable"]');
       expect(disableButtons.length).toBeGreaterThanOrEqual(1);
       await disableButtons[0].trigger("click");
+      await flushPromises();
       expect(wrapper.emitted("toggleStatus")).toBeTruthy();
     });
 

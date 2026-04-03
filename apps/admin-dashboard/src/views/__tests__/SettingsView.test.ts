@@ -172,6 +172,27 @@ vi.mock("@/composables/useCurrency", () => ({
   setRestaurantCurrency: vi.fn(),
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockSettingsConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockSettingsConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
+// Mock vue-toastification
+const mockSettingsToast = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+vi.mock("vue-toastification", () => ({
+  useToast: () => mockSettingsToast,
+}));
+
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({
     restaurantId: "test-restaurant-1",
@@ -213,7 +234,9 @@ describe("SettingsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetAllFactories();
-    // Mock window.confirm and window.alert
+    // Restore default confirm modal behavior after clearAllMocks
+    mockSettingsConfirmModalFn.mockResolvedValue(true);
+    // Mock window.confirm and window.alert (for any legacy window calls)
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(window, "alert").mockImplementation(() => {});
   });
@@ -461,10 +484,10 @@ describe("SettingsView", () => {
         .findAll("button")
         .find((b) => b.text() === "重置為預設值");
       await resetButton!.trigger("click");
-      await nextTick();
+      await flushPromises();
 
-      // confirm was called
-      expect(window.confirm).toHaveBeenCalled();
+      // Component uses useConfirmModal (not window.confirm)
+      expect(mockSettingsConfirmModalFn).toHaveBeenCalled();
     });
 
     it("should handle save error", async () => {
@@ -479,8 +502,8 @@ describe("SettingsView", () => {
       await saveButton!.trigger("click");
       await flushPromises();
 
-      // alert should be called with failure message
-      expect(window.alert).toHaveBeenCalledWith("儲存設定失敗，請稍後再試");
+      // Component uses toast.error (not window.alert)
+      expect(mockSettingsToast.error).toHaveBeenCalledWith("儲存設定失敗，請稍後再試");
     });
   });
 
@@ -670,7 +693,8 @@ describe("SettingsView", () => {
 
   describe("Save / Reset (Deeper)", () => {
     it("should not reset when confirm is cancelled", async () => {
-      (window.confirm as Mock).mockReturnValueOnce(false);
+      // Component uses useConfirmModal, not window.confirm
+      mockSettingsConfirmModalFn.mockResolvedValueOnce(false);
       const wrapper = mountSettings();
       await flushPromises();
 
@@ -682,10 +706,13 @@ describe("SettingsView", () => {
         .findAll("button")
         .find((b) => b.text() === "重置為預設值");
       await resetButton!.trigger("click");
-      await nextTick();
+      await flushPromises();
 
-      expect(window.confirm).toHaveBeenCalledWith(
-        "確定要將所有設定重置為預設值嗎？此操作無法恢復。",
+      // Confirm modal was shown with reset message
+      expect(mockSettingsConfirmModalFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "確定要將所有設定重置為預設值嗎？此操作無法恢復。",
+        }),
       );
     });
 
@@ -736,7 +763,8 @@ describe("SettingsView", () => {
       await saveButton!.trigger("click");
       await flushPromises();
 
-      expect(window.alert).toHaveBeenCalledWith("儲存設定失敗，請稍後再試");
+      // Component uses toast.error (not window.alert)
+      expect(mockSettingsToast.error).toHaveBeenCalledWith("儲存設定失敗，請稍後再試");
     });
   });
 

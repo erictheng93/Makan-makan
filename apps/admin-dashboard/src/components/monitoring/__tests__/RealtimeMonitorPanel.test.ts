@@ -28,7 +28,7 @@ const mockApiResponse = vi.hoisted(() => ({
 }));
 
 // Mock i18n
-vi.mock("vue-i18n", () => ({
+vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string, fallback: string) => fallback,
   }),

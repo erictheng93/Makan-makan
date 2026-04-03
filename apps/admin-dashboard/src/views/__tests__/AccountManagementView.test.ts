@@ -44,7 +44,7 @@ vi.mock("vue-router", () => ({
   useRoute: () => ({ params: {}, query: {} }),
 }));
 
-vi.mock("vue-i18n", () => ({
+vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
   }),

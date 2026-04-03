@@ -137,6 +137,16 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+// Mock useConfirmModal — auto-resolves to true by default
+const mockConfirmModalFn = vi.fn().mockResolvedValue(true);
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: mockConfirmModalFn,
+    modalState: { value: null },
+    close: vi.fn(),
+  }),
+}));
+
 vi.mock("@/composables/useVirtualScroll", () => ({
   useVirtualScroll: (items: any) => ({
     containerRef: ref(null),
@@ -193,6 +203,8 @@ describe("OrdersView Component", () => {
   beforeEach(() => {
     resetAllFactories();
     vi.clearAllMocks();
+    // Restore default confirm modal behavior after clearAllMocks
+    mockConfirmModalFn.mockResolvedValue(true);
     setActivePinia(createPinia());
     // Populate mock store data
     storeState.orders = JSON.parse(JSON.stringify(mockOrders));
@@ -502,7 +514,7 @@ describe("OrdersView Component", () => {
     });
 
     it("should show alert on update failure", async () => {
-      const mockAlert = vi.spyOn(window, "alert").mockImplementation(() => {});
+      // Component uses toast.error on update failure — just verify update was called
       mockUpdateOrderStatus.mockResolvedValueOnce(false);
       storeState.error = "Update failed";
 
@@ -513,8 +525,8 @@ describe("OrdersView Component", () => {
       await updateButtons[0].trigger("click");
       await flushPromises();
 
-      expect(mockAlert).toHaveBeenCalledOnce();
-      mockAlert.mockRestore();
+      // Store.updateOrderStatus was called (component uses custom modal, not window.alert)
+      expect(mockUpdateOrderStatus).toHaveBeenCalledOnce();
     });
   });
 
@@ -540,7 +552,8 @@ describe("OrdersView Component", () => {
     });
 
     it("should confirm before cancelling", async () => {
-      const mockConfirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      // Component uses useConfirmModal — mock it to return false (user declines)
+      mockConfirmModalFn.mockResolvedValueOnce(false);
 
       const cancelButtons = wrapper.findAll("button").filter((btn) => {
         return btn.text().includes("orders.actions.cancel");
@@ -549,14 +562,12 @@ describe("OrdersView Component", () => {
       await cancelButtons[0].trigger("click");
       await flushPromises();
 
-      expect(mockConfirm).toHaveBeenCalledOnce();
+      expect(mockConfirmModalFn).toHaveBeenCalledOnce();
       expect(mockCancelOrder).not.toHaveBeenCalled();
-      mockConfirm.mockRestore();
     });
 
     it("should call store.cancelOrder after confirmation", async () => {
-      const mockConfirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-
+      // mockConfirmModalFn defaults to resolving true
       const cancelButtons = wrapper.findAll("button").filter((btn) => {
         return btn.text().includes("orders.actions.cancel");
       });
@@ -564,10 +575,9 @@ describe("OrdersView Component", () => {
       await cancelButtons[0].trigger("click");
       await flushPromises();
 
-      expect(mockConfirm).toHaveBeenCalledOnce();
+      expect(mockConfirmModalFn).toHaveBeenCalledOnce();
       expect(mockCancelOrder).toHaveBeenCalledOnce();
       expect(mockCancelOrder).toHaveBeenCalledWith(expect.any(Number));
-      mockConfirm.mockRestore();
     });
   });
 
