@@ -554,10 +554,9 @@ const handleCheckout = async () => {
 
     // 導航到訂單追蹤頁面
     router.push({
-      name: "OrderTracking",
+      name: "ShopOrderTracking",
       params: {
         restaurantId: props.restaurantId,
-        tableId: 0, // 店家模式使用 0 或特殊值
         orderId,
       },
       query: {

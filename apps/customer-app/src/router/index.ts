@@ -158,6 +158,19 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/restaurant/:restaurantId/shop/order/:orderId",
+    name: "ShopOrderTracking",
+    component: () => import("@/views/OrderTrackingView.vue"),
+    props: (route) => ({
+      restaurantId: route.params.restaurantId,
+      tableId: 0,
+      orderId: Number(route.params.orderId),
+    }),
+    meta: {
+      titleKey: "navigation.orderTracking",
+    },
+  },
+  {
     path: "/restaurant/:restaurantId/table/:tableId/order/:orderId",
     name: "OrderTracking",
     component: () => import("@/views/OrderTrackingView.vue"),

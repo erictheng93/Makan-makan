@@ -53,6 +53,17 @@ export default defineConfig({
       name: "Tablet",
       use: { ...devices["iPad Pro"] },
     },
+
+    // Integration tests (real API, no mocking) — serial to avoid active-order dedup
+    {
+      name: "integration",
+      testDir: "./tests/e2e/integration",
+      fullyParallel: false,
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://localhost:3000",
+      },
+    },
   ],
 
   // webServer: {
