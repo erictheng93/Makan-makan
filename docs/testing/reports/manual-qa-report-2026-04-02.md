@@ -227,8 +227,8 @@ Router.push → /restaurant/:id/table/:tableId/order/:orderId
 2. 完整跨角色訂單生命週期（需 WebSocket）
 3. 外帶掃碼 E2E
 4. Performance / 壓力測試（Artillery configs 已建好）
-5. 員工管理 CRUD
-6. 跨角色流程（Customer → Chef → Service → Cashier）
+5. 跨角色流程（Customer → Chef → Service → Cashier）
+6. 全局 `confirm()` → 自訂 modal 替換（33 處待處理，員工列表已完成）
 
 ---
 
@@ -250,6 +250,40 @@ Router.push → /restaurant/:id/table/:tableId/order/:orderId
 - **根因**: 後端 DELETE 是 soft delete（設 sortOrder=-1），fetchMenu 帶 includeAll=true 把它帶回來
 - **修復**: fetchMenu 過濾 `sortOrder !== -1` + optimistic removal from local state
 - **Commit**: `f28851f`, `bf7d9ad`
+
+---
+
+## E2E 場景：員工管理 CRUD（2026-04-03）
+
+**角色**: Owner (grandmaShop / password123)
+**App**: Admin Dashboard (:3001) → 員工管理
+
+| 操作    | 測試步驟                                     | API     | UI                       | 狀態     |
+| ------- | -------------------------------------------- | ------- | ------------------------ | -------- |
+| Read    | 頁面載入 7 名員工 + 統計卡 + 搜尋/篩選       | ✅      | ✅                       | **PASS** |
+| Create  | 新增「QA測試廚師」，角色廚師                 | ✅ 成功 | ✅ 計數 7→8，列表出現    | **PASS** |
+| Update  | 改名「QA測試廚師（已改名）」+ 角色改為送菜員 | ✅ 成功 | ✅ 名稱更新              | **PASS** |
+| Disable | 點停用 → 自訂 modal 確認 → 確認              | ✅ 成功 | ✅ 狀態「活躍」→「停用」 | **PASS** |
+
+### UX 改進：停用確認 modal
+
+- **Before**: 瀏覽器原生 `confirm()` dialog
+- **After**: 自訂 modal（紅色 danger 風格，圓角卡片 + 背景模糊 + pill 按鈕）
+- **同時改進**: 重置密碼也改為自訂 modal（橙色 warning 風格）
+- **Commit**: `f906a39`
+
+### 待處理：全局 confirm() 替換
+
+搜索發現 Admin Dashboard 中有 **33 處**使用原生 `confirm()`，分佈在：
+
+- 員工列表（已修復）
+- 訂單取消、請假審核、排班刪除
+- 設定重置、QR 重新生成
+- 備份刪除、監控警報刪除
+- 座位管理（訂位確認/取消、候位過期/取消）
+- 登出確認
+
+建議：建立 `useConfirmModal` composable，統一替換。
 
 ---
 
