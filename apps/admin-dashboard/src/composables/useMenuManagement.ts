@@ -122,6 +122,11 @@ export function useMenuManagement() {
   const deleteCategory = async (categoryId: number) => {
     try {
       await api.delete(`/menu/categories/${categoryId}`);
+      // Optimistically remove from local state
+      categories.value = categories.value.filter((c) => c.id !== categoryId);
+      menuItems.value = menuItems.value.filter(
+        (i) => i.categoryId !== categoryId,
+      );
       toast.success(t("menu.toast.categoryDeleted"));
       if (selectedCategoryId.value === categoryId) {
         selectedCategoryId.value = null;
@@ -132,6 +137,7 @@ export function useMenuManagement() {
       toast.error(
         error.response?.data?.error?.message || t("menu.errors.deleteFailed"),
       );
+      await fetchMenu();
     }
   };
 
@@ -196,13 +202,18 @@ export function useMenuManagement() {
   const deleteMenuItem = async (item: MenuItemData) => {
     try {
       await api.delete(`/menu/items/${item.id}`);
+      // Optimistically remove from local state immediately so UI updates
+      menuItems.value = menuItems.value.filter((i) => i.id !== item.id);
       toast.success(t("menu.toast.itemDeleted"));
+      // Also refetch to sync with server (handles edge cache staleness)
       await fetchMenu();
     } catch (error: any) {
       console.error("Failed to delete menu item:", error);
       toast.error(
         error.response?.data?.error?.message || t("menu.errors.deleteFailed"),
       );
+      // Re-fetch to restore state if delete failed
+      await fetchMenu();
     }
   };
 
