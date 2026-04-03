@@ -223,12 +223,12 @@ Router.push → /restaurant/:id/table/:tableId/order/:orderId
 
 ### 建議的下一步測試
 
-1. 訂單追蹤頁 guest token 支援
-2. 完整跨角色訂單生命週期（需 WebSocket）
-3. 外帶掃碼 E2E
-4. Performance / 壓力測試（Artillery configs 已建好）
-5. 跨角色流程（Customer → Chef → Service → Cashier）
-6. 全局 `confirm()` → 自訂 modal 替換（33 處待處理，員工列表已完成）
+1. ~~訂單追蹤頁 guest token 支援~~ → **已修復**（endpoint 修正 `/guest-orders/:id`）
+2. ~~全局 `confirm()` → 自訂 modal 替換~~ → **已完成**（0 處殘留）
+3. ~~訂單狀態推進 E2E 自動化~~ → **已存在** `order-lifecycle.spec.ts`（940 行, 10 cases）
+4. 外帶掃碼 E2E（ShopCartModal 已修程式碼，未瀏覽器實測）
+5. Performance / 壓力測試（Artillery configs 已建好）
+6. `alert()` → toast 替換（~80 處，低優先）
 
 ---
 
