@@ -264,6 +264,8 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useToast } from "vue-toastification";
 import { customerOrderApi } from "@/services/customerOrderApi";
 import type { Order } from "@makanmakan/shared-types";
 
@@ -271,6 +273,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { t, tWithParams } = useI18n();
 const { formatPrice } = useCurrency();
+const { confirm: confirmModal } = useConfirmModal();
+const toast = useToast();
 
 const orders = ref<Order[]>([]);
 const isLoading = ref(false);
@@ -341,7 +345,13 @@ const viewOrderDetail = (orderId: number) => {
 
 // 取消訂單
 const cancelOrder = async (orderId: number) => {
-  if (!confirm(t("orderHistory.confirmCancelOrder"))) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("orderHistory.cancelOrder"),
+    message: t("orderHistory.confirmCancelOrder"),
+    confirmLabel: t("orderHistory.cancelOrder"),
+  });
+  if (!confirmed) return;
 
   try {
     await customerOrderApi.cancelOrder(
@@ -351,13 +361,19 @@ const cancelOrder = async (orderId: number) => {
     await loadOrders();
   } catch (error) {
     console.error("Failed to cancel order:", error);
-    alert(t("toast.cancelOrderFailed"));
+    toast.error(t("toast.cancelOrderFailed"));
   }
 };
 
 // 登出
 const handleLogout = async () => {
-  if (!confirm(t("orderHistory.confirmLogout"))) return;
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("orderHistory.logout"),
+    message: t("orderHistory.confirmLogout"),
+    confirmLabel: t("orderHistory.logout"),
+  });
+  if (!confirmed) return;
 
   await authStore.logout();
   router.push("/login");

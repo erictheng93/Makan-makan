@@ -166,11 +166,13 @@ import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "@/composables/useI18n";
+import { useToast } from "vue-toastification";
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 const { t } = useI18n();
+const toast = useToast();
 
 const verifying = ref(true);
 const success = ref(false);
@@ -225,13 +227,13 @@ const resendVerification = async () => {
     const data = await response.json();
 
     if (data.success) {
-      alert(t("auth.resendVerificationSuccess"));
+      toast.success(t("auth.resendVerificationSuccess"));
     } else {
-      alert(data.error || t("auth.resendFailed"));
+      toast.error(data.error || t("auth.resendFailed"));
     }
   } catch (err) {
     console.error("Resend verification error:", err);
-    alert(t("messages.networkError"));
+    toast.error(t("messages.networkError"));
   } finally {
     resending.value = false;
   }

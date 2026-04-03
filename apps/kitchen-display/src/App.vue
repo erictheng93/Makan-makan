@@ -50,6 +50,9 @@
         </div>
       </div>
     </ErrorBoundary>
+
+    <!-- 全域確認彈窗 -->
+    <ConfirmModal />
   </div>
 </template>
 
@@ -62,6 +65,7 @@ import {
 import { useSettingsStore } from "@/stores/settings";
 import { storeToRefs } from "pinia";
 import ErrorBoundary from "@/components/error/ErrorBoundary.vue";
+import ConfirmModal from "@/components/common/ConfirmModal.vue";
 import { useGlobalErrorHandler } from "@/composables/useErrorHandling";
 
 // Store

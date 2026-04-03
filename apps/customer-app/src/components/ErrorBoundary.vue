@@ -88,10 +88,12 @@
 import { ref, onErrorCaptured, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
+import { useToast } from "vue-toastification";
 
 // Composables
 const router = useRouter();
 const { t } = useI18n();
+const toast = useToast();
 
 // State
 const hasError = ref(false);
@@ -216,7 +218,7 @@ const handleReportError = () => {
     navigator.clipboard
       .writeText(JSON.stringify(errorReport, null, 2))
       .then(() => {
-        alert(t("toast.errorReportCopied"));
+        toast.success(t("toast.errorReportCopied"));
       })
       .catch(() => {
         // 降級處理

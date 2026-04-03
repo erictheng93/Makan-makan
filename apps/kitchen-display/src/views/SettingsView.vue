@@ -345,10 +345,12 @@ import { reactive, ref } from "vue";
 import { ArrowLeft, ChevronRight, Check } from "lucide-vue-next";
 import { useSettingsStore } from "@/stores/settings";
 import { useToast } from "vue-toastification";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { storeToRefs } from "pinia";
 
 const settingsStore = useSettingsStore();
 const toast = useToast();
+const { confirm: confirmModal } = useConfirmModal();
 const { settings: storeSettings } = storeToRefs(settingsStore);
 
 // Create reactive copy of settings
@@ -414,12 +416,18 @@ const setRefreshInterval = (val: number) => {
   showRefreshPicker.value = false;
 };
 
-const resetToDefaults = () => {
-  if (confirm("確定要恢復所有設定為預設值嗎？")) {
-    settingsStore.resetSettings();
-    Object.assign(settings, storeSettings.value);
-    toast.success("設定已恢復為預設值");
-  }
+const resetToDefaults = async () => {
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: "恢復預設值",
+    message: "確定要恢復所有設定為預設值嗎？",
+    confirmLabel: "恢復預設值",
+  });
+  if (!confirmed) return;
+
+  settingsStore.resetSettings();
+  Object.assign(settings, storeSettings.value);
+  toast.success("設定已恢復為預設值");
 };
 </script>
 

@@ -263,10 +263,12 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { customerOrderApi } from "@/services/customerOrderApi";
 import { useI18n } from "@/composables/useI18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 
 const router = useRouter();
 const authStore = useAuthStore();
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 
 const isLoading = ref(false);
 const profile = ref({
@@ -306,7 +308,13 @@ const loadProfile = async () => {
 
 // 登出
 const handleLogout = async () => {
-  if (!confirm(t("orderHistory.confirmLogout"))) return;
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("orderHistory.logout"),
+    message: t("orderHistory.confirmLogout"),
+    confirmLabel: t("orderHistory.logout"),
+  });
+  if (!confirmed) return;
 
   await authStore.logout();
   router.push("/login");

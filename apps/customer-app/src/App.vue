@@ -23,6 +23,9 @@
 
     <!-- 全域通知 -->
     <div id="toast-container" />
+
+    <!-- 全域確認彈窗 -->
+    <ConfirmModal />
   </div>
 </template>
 
@@ -31,6 +34,7 @@ import { ref, onMounted, onErrorCaptured } from "vue";
 import { RouterView } from "vue-router";
 import { useToast } from "vue-toastification";
 import ErrorBoundary from "@/components/ErrorBoundary.vue";
+import ConfirmModal from "@/components/common/ConfirmModal.vue";
 import { useAppStore } from "@/stores/app";
 import { useI18n } from "@/composables/useI18n";
 
