@@ -226,9 +226,10 @@ Router.push → /restaurant/:id/table/:tableId/order/:orderId
 1. ~~訂單追蹤頁 guest token 支援~~ → **已修復**（endpoint 修正 `/guest-orders/:id`）
 2. ~~全局 `confirm()` → 自訂 modal 替換~~ → **已完成**（0 處殘留）
 3. ~~訂單狀態推進 E2E 自動化~~ → **已存在** `order-lifecycle.spec.ts`（940 行, 10 cases）
-4. 外帶掃碼 E2E（ShopCartModal 已修程式碼，未瀏覽器實測）
-5. Performance / 壓力測試（Artillery configs 已建好）
-6. `alert()` → toast 替換（~80 處，低優先）
+4. ~~外帶掃碼 E2E~~ → **已實測**（ISSUE-012 已修，訂單建立成功，追蹤頁 redirect 待修）
+5. ~~`alert()` → toast 替換~~ → **已完成**（85 處全部替換，0 殘留）
+6. Performance / 壓力測試（Artillery configs 已建好）
+7. 外帶模式訂單追蹤頁 redirect（ShopCartModal 用 tableId:0 導致 router error）
 
 ---
 
