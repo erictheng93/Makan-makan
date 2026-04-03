@@ -287,6 +287,58 @@ Router.push → /restaurant/:id/table/:tableId/order/:orderId
 
 ---
 
+## E2E 場景：跨角色訂單流程（2026-04-03）
+
+### 測試方式
+
+1. Customer 透過 guest-orders API 下單（訂單 ID 14, pending 狀態）
+2. 各角色用 API 查詢訂單可見性
+3. 訂單狀態推進由 CSRF 保護的 PUT API 完成（瀏覽器內操作）
+
+### 訂單可見性（跨角色）
+
+| 角色                       | API 端點                   |               看到訂單 14                | 訂單總數         | 結果                |
+| -------------------------- | -------------------------- | :--------------------------------------: | ---------------- | ------------------- |
+| Owner (grandmaShop)        | `GET /orders/14`           |                ✅ pending                | 5 筆             | **PASS**            |
+| Chef (grandma_chef1)       | `GET /kitchen/:rid/orders` | ⚠️ 0 筆 (pending 未確認，廚房正確不顯示) | 0 筆             | **PASS** (設計正確) |
+| Cashier (grandma_cashier1) | `GET /orders`              |                ✅ pending                | 5 筆，2 筆待處理 | **PASS**            |
+| Service (grandma_service1) | `GET /orders`              |                ✅ pending                | 5 筆             | **PASS**            |
+
+### 訂單生命週期設計
+
+```
+Customer → pending
+  ↓ Owner/Cashier 確認
+confirmed
+  ↓ 自動/手動
+preparing → Chef 廚房看板顯示
+  ↓ Chef 完成
+ready → Service 送菜員看到
+  ↓ Service 送達
+delivered
+  ↓ Cashier 收款
+paid → completed
+```
+
+### 已驗證
+
+- ✅ Customer guest order 成功建立（訂單 14）
+- ✅ Owner 訂單管理看到新訂單（待處理 1→2）
+- ✅ Chef 廚房看板正確不顯示未確認訂單
+- ✅ Cashier 和 Service Crew 都能看到訂單
+- ✅ 跨餐廳隔離正確（只看到自己餐廳的訂單）
+
+### 未驗證（需瀏覽器 CSRF token）
+
+- 訂單狀態推進（pending → confirmed → preparing → ready → delivered → paid）
+- CSRF 保護正確阻擋 curl 直接 PUT，需透過前端 UI 操作
+
+### 結論
+
+跨角色**訂單可見性**和**資料隔離**已驗證通過。完整的狀態推進流程需要在瀏覽器中逐角色操作（CSRF 保護），建議在 E2E 自動化測試中覆蓋。
+
+---
+
 ## 變更日誌
 
 ### 2026-04-02 ~ 2026-04-03 (Manual QA)
