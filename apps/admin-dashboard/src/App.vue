@@ -1,6 +1,7 @@
 <template>
   <div id="app" class="min-h-screen">
     <router-view />
+    <ConfirmModal />
   </div>
 </template>
 
@@ -8,6 +9,7 @@
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import ConfirmModal from "@/components/common/ConfirmModal.vue";
 
 const authStore = useAuthStore();
 const router = useRouter();

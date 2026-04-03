@@ -580,6 +580,7 @@ import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { useOrderStore } from "@/stores/order";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import type { Order } from "@/types";
 import { OrderStatus } from "@/types";
 import {
@@ -597,6 +598,7 @@ import {
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
 const router = useRouter();
+const { confirm: confirmModal } = useConfirmModal();
 const orderStore = useOrderStore();
 
 // 響應式數據
@@ -743,12 +745,17 @@ const updateOrderStatus = async (order: Order) => {
 };
 
 const cancelOrder = async (order: Order) => {
-  if (
-    confirm(t("orders.confirms.cancelOrder", { number: getOrderNumber(order) }))
-  ) {
-    await orderStore.cancelOrder(order.id);
-    await refreshOrders();
-  }
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("orders.actions.cancel"),
+    message: t("orders.confirms.cancelOrder", {
+      number: getOrderNumber(order),
+    }),
+    confirmLabel: t("orders.actions.cancel"),
+  });
+  if (!confirmed) return;
+  await orderStore.cancelOrder(order.id);
+  await refreshOrders();
 };
 
 const canUpdateStatus = (status: string) => {

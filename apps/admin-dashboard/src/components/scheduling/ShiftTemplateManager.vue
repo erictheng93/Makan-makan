@@ -180,6 +180,7 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { X, Pencil, Trash2 } from "lucide-vue-next";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { schedulingService } from "@/services/schedulingService";
 import type { ShiftTemplate } from "@/types/scheduling";
 
@@ -195,6 +196,8 @@ const emit = defineEmits<{
   (e: "template-updated", template: ShiftTemplate): void;
   (e: "template-deleted", id: number): void;
 }>();
+
+const { confirm: confirmModal } = useConfirmModal();
 
 // ── Form state ──────────────────────────────────────────
 const editingId = ref<number | null>(null);
@@ -281,7 +284,13 @@ async function handleSave() {
 }
 
 async function handleDelete(id: number) {
-  if (!confirm("確定要刪除此班次模板？")) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: "刪除模板",
+    message: "確定要刪除此班次模板？",
+    confirmLabel: "刪除",
+  });
+  if (!confirmed) return;
   try {
     await schedulingService.deleteShiftTemplate(id);
     emit("template-deleted", id);

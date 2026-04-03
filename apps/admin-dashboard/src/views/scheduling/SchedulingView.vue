@@ -286,6 +286,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { schedulingService } from "@/services/schedulingService";
 import type {
@@ -313,6 +314,7 @@ import ShiftTemplateFormModal from "@/components/scheduling/ShiftTemplateFormMod
 
 // i18n
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 
 // Auth
 const authStore = useAuthStore();
@@ -551,16 +553,22 @@ const handleEditSchedule = (schedule: EmployeeSchedule) => {
 };
 
 const handleDeleteSchedule = async (schedule: EmployeeSchedule) => {
-  if (confirm(t("scheduling.confirmDeleteSchedule"))) {
-    try {
-      await schedulingService.deleteSchedule(schedule.id);
-      await refreshData();
-    } catch (err) {
-      console.error("Failed to delete schedule:", err);
-      error.value =
-        err instanceof Error ? err.message : "Failed to delete schedule";
-      alert(t("scheduling.deleteScheduleFailed"));
-    }
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("scheduling.deleteSchedule"),
+    message: t("scheduling.confirmDeleteSchedule"),
+    confirmLabel: t("common.delete"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await schedulingService.deleteSchedule(schedule.id);
+    await refreshData();
+  } catch (err) {
+    console.error("Failed to delete schedule:", err);
+    error.value =
+      err instanceof Error ? err.message : "Failed to delete schedule";
+    alert(t("scheduling.deleteScheduleFailed"));
   }
 };
 
@@ -621,16 +629,22 @@ const handleSaveTemplate = async (templateData: any) => {
 };
 
 const handleDeleteTemplate = async (template: ShiftTemplate) => {
-  if (confirm(t("scheduling.confirmDeleteTemplate", { name: template.name }))) {
-    try {
-      await schedulingService.deleteShiftTemplate(template.id);
-      await refreshData();
-    } catch (err) {
-      console.error("Failed to delete template:", err);
-      error.value =
-        err instanceof Error ? err.message : "Failed to delete template";
-      alert(t("scheduling.deleteTemplateFailed"));
-    }
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("scheduling.deleteTemplate"),
+    message: t("scheduling.confirmDeleteTemplate", { name: template.name }),
+    confirmLabel: t("common.delete"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await schedulingService.deleteShiftTemplate(template.id);
+    await refreshData();
+  } catch (err) {
+    console.error("Failed to delete template:", err);
+    error.value =
+      err instanceof Error ? err.message : "Failed to delete template";
+    alert(t("scheduling.deleteTemplateFailed"));
   }
 };
 
@@ -660,22 +674,27 @@ const handleResolveConflict = async (conflict: SchedulingConflict) => {
 };
 
 const handleApproveSwap = async (request: SwapRequest) => {
-  if (confirm(t("swapRequests.actions.approveConfirm"))) {
-    const managerId = authStore.user?.id;
-    if (!managerId) {
-      alert(t("scheduling.cannotGetManagerInfo"));
-      return;
-    }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("swapRequests.actions.approve"),
+    message: t("swapRequests.actions.approveConfirm"),
+    confirmLabel: t("swapRequests.actions.approve"),
+  });
+  if (!confirmed) return;
 
-    try {
-      await schedulingService.approveSwapRequest(request.id, managerId);
-      await refreshData();
-    } catch (err) {
-      console.error("Failed to approve swap request:", err);
-      error.value =
-        err instanceof Error ? err.message : "Failed to approve swap";
-      alert(t("scheduling.approveSwapFailed"));
-    }
+  const managerId = authStore.user?.id;
+  if (!managerId) {
+    alert(t("scheduling.cannotGetManagerInfo"));
+    return;
+  }
+
+  try {
+    await schedulingService.approveSwapRequest(request.id, managerId);
+    await refreshData();
+  } catch (err) {
+    console.error("Failed to approve swap request:", err);
+    error.value = err instanceof Error ? err.message : "Failed to approve swap";
+    alert(t("scheduling.approveSwapFailed"));
   }
 };
 

@@ -683,6 +683,7 @@ import {
 } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { ReservationService } from "@/services/reservationService";
 import type {
@@ -693,6 +694,7 @@ import type {
 const toast = useToast();
 const authStore = useAuthStore();
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 
 // State
 const loading = ref(false);
@@ -809,7 +811,13 @@ async function createReservation() {
  * Confirm reservation
  */
 async function confirmReservation(id: string) {
-  if (!confirm(t("reservation.confirmPrompt"))) return;
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("reservation.confirmTitle"),
+    message: t("reservation.confirmPrompt"),
+    confirmLabel: t("reservation.confirmAction"),
+  });
+  if (!confirmed) return;
 
   try {
     await ReservationService.confirmReservation(id);
@@ -853,7 +861,13 @@ async function markSeated(id: string) {
  * Cancel reservation
  */
 async function cancelReservation(id: string) {
-  if (!confirm(t("reservation.cancelPrompt"))) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("reservation.cancelTitle"),
+    message: t("reservation.cancelPrompt"),
+    confirmLabel: t("reservation.cancelAction"),
+  });
+  if (!confirmed) return;
 
   try {
     await ReservationService.cancelReservation(id);

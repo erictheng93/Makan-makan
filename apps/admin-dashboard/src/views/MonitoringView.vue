@@ -839,9 +839,11 @@ import MetricTrendChart from "@/components/monitoring/MetricTrendChart.vue";
 import AlertNotificationPanel from "@/components/monitoring/AlertNotificationPanel.vue";
 import CreateAlertRuleModal from "@/components/monitoring/CreateAlertRuleModal.vue";
 import { monitoringWebSocket } from "@/services/monitoringWebSocket";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 
 const toast = useToast();
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 
 // ============================================================================
 // State
@@ -1097,7 +1099,13 @@ async function toggleAlertRule(rule: AlertRule) {
 }
 
 async function deleteAlert(id: string) {
-  if (!confirm(t("monitoring.alerts.messages.deleteConfirm"))) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("monitoring.alerts.messages.deleteConfirm"),
+    message: t("monitoring.alerts.messages.deleteConfirm"),
+    confirmLabel: t("common.delete"),
+  });
+  if (!confirmed) return;
 
   try {
     await monitoringService.deleteAlertRule(id);

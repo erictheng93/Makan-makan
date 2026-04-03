@@ -1265,12 +1265,14 @@ import { ref, reactive, onMounted } from "vue";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
 import type { CurrencyCode } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 
 // 分頁選項
@@ -1400,10 +1402,16 @@ const saveSettings = async () => {
   }
 };
 
-const resetToDefaults = () => {
-  if (confirm(t("settings.confirms.resetDefaults"))) {
-    Object.assign(settings, defaultSettings);
-  }
+const resetToDefaults = async () => {
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("settings.confirms.resetDefaultsTitle"),
+    message: t("settings.confirms.resetDefaults"),
+    confirmLabel: t("settings.confirms.resetDefaultsAction"),
+  });
+  if (!confirmed) return;
+
+  Object.assign(settings, defaultSettings);
 };
 
 const loadSettings = async () => {
@@ -1550,9 +1558,13 @@ const generateShopQR = async () => {
 };
 
 const regenerateShopQR = async () => {
-  if (!confirm(t("settings.confirms.regenerateQR"))) {
-    return;
-  }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("settings.confirms.regenerateQRTitle"),
+    message: t("settings.confirms.regenerateQR"),
+    confirmLabel: t("settings.confirms.regenerateQRAction"),
+  });
+  if (!confirmed) return;
 
   try {
     isRegeneratingQR.value = true;

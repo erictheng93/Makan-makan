@@ -142,6 +142,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useConfirmModal } from '@/composables/useConfirmModal'
 import { useBackupStore } from '@/stores/backup'
 import { useAuthStore } from '@/stores/auth'
 // TODO: Import from @makanmakan/shared-types when workspace is configured
@@ -199,6 +200,7 @@ import CreateBackupModal from '@/components/backup/CreateBackupModal.vue'
 import RestoreBackupModal from '@/components/backup/RestoreBackupModal.vue'
 
 const { t } = useI18n()
+const { confirm: confirmModal } = useConfirmModal()
 const backupStore = useBackupStore()
 const authStore = useAuthStore()
 
@@ -340,7 +342,13 @@ const handleRestoreBackup = (backup: BackupRecord) => {
 }
 
 const handleDeleteBackup = async (backup: BackupRecord) => {
-  if (!confirm(t('backup.confirm.delete', { name: backup.name }))) return
+  const confirmed = await confirmModal({
+    type: 'danger',
+    title: t('backup.confirm.deleteTitle'),
+    message: t('backup.confirm.delete', { name: backup.name }),
+    confirmLabel: t('common.delete'),
+  })
+  if (!confirmed) return
 
   try {
     await backupStore.deleteBackup(backup.id)

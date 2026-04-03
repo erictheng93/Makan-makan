@@ -216,6 +216,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import type { ShiftTemplate } from "@/types/scheduling";
 import {
   QueueListIcon,
@@ -240,6 +241,7 @@ withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 
 const emit = defineEmits<{
   add: [];
@@ -265,9 +267,14 @@ const calculateDuration = (startTime: string, endTime: string): number => {
   return Math.round((durationMinutes / 60) * 10) / 10; // Round to 1 decimal place
 };
 
-const handleDelete = (template: ShiftTemplate) => {
-  if (confirm(t("shiftTemplates.confirm.delete", { name: template.name }))) {
-    emit("delete", template);
-  }
+const handleDelete = async (template: ShiftTemplate) => {
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("shiftTemplates.deleteTemplate"),
+    message: t("shiftTemplates.confirm.delete", { name: template.name }),
+    confirmLabel: t("common.delete"),
+  });
+  if (!confirmed) return;
+  emit("delete", template);
 };
 </script>

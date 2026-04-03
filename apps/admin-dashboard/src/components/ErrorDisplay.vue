@@ -192,6 +192,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import {
   WifiIcon,
   ExclamationTriangleIcon,
@@ -215,6 +216,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 
 // 響應式狀態
 const isConnected = ref(navigator.onLine);
@@ -313,16 +315,21 @@ const handleRefreshPage = () => {
   window.location.reload();
 };
 
-const handleResetSettings = () => {
-  if (confirm(t("errorDisplay.resetSettingsConfirm"))) {
-    const authToken = localStorage.getItem("auth_token");
-    localStorage.clear();
-    if (authToken) {
-      localStorage.setItem("auth_token", authToken);
-    }
-    sessionStorage.clear();
-    window.location.reload();
+const handleResetSettings = async () => {
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("errorDisplay.resetSettings"),
+    message: t("errorDisplay.resetSettingsConfirm"),
+    confirmLabel: t("errorDisplay.resetSettings"),
+  });
+  if (!confirmed) return;
+  const authToken = localStorage.getItem("auth_token");
+  localStorage.clear();
+  if (authToken) {
+    localStorage.setItem("auth_token", authToken);
   }
+  sessionStorage.clear();
+  window.location.reload();
 };
 
 const handleReportProblem = () => {

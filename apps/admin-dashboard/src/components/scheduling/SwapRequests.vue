@@ -309,9 +309,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import type { SwapRequest } from "@/types/scheduling";
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 import {
   ArrowPathIcon,
   CalendarIcon,
@@ -458,15 +460,25 @@ const formatShiftDate = (dateString: string): string => {
 };
 
 // Event Handlers
-const handleApprove = (request: SwapRequest) => {
-  if (confirm(t("swapRequests.actions.approveConfirm"))) {
-    emit("approve", request);
-  }
+const handleApprove = async (request: SwapRequest) => {
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("swapRequests.actions.approve"),
+    message: t("swapRequests.actions.approveConfirm"),
+    confirmLabel: t("swapRequests.actions.approve"),
+  });
+  if (!confirmed) return;
+  emit("approve", request);
 };
 
-const handleReject = (request: SwapRequest) => {
-  if (confirm(t("swapRequests.actions.rejectConfirm"))) {
-    emit("reject", request);
-  }
+const handleReject = async (request: SwapRequest) => {
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("swapRequests.actions.reject"),
+    message: t("swapRequests.actions.rejectConfirm"),
+    confirmLabel: t("swapRequests.actions.reject"),
+  });
+  if (!confirmed) return;
+  emit("reject", request);
 };
 </script>

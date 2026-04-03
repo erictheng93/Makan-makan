@@ -252,9 +252,11 @@ import SchedulingCalendarGrid from "@/components/scheduling/SchedulingCalendarGr
 import UnassignedSidebar from "@/components/scheduling/UnassignedSidebar.vue";
 import ShiftTemplateManager from "@/components/scheduling/ShiftTemplateManager.vue";
 import SchedulingConflictBar from "@/components/scheduling/SchedulingConflictBar.vue";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 
 // ── Auth / restaurant ────────────────────────────────────
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 const restaurantId = computed(() => authStore.restaurantId ?? "");
 
@@ -571,7 +573,13 @@ async function confirmAssign() {
 }
 
 async function handleRemove(scheduleId: number) {
-  if (!confirm(t("employees.scheduling.confirmRemove"))) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("employees.scheduling.confirmRemove"),
+    message: t("employees.scheduling.confirmRemove"),
+    confirmLabel: t("common.delete"),
+  });
+  if (!confirmed) return;
   try {
     await schedulingService.deleteSchedule(scheduleId);
     schedules.value = schedules.value.filter((s) => s.id !== scheduleId);

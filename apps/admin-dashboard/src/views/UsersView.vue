@@ -464,6 +464,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import { api } from "@/services/api";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 
 import {
   PlusIcon,
@@ -482,6 +483,7 @@ const ChefHatIcon = UserIcon; // Chef hat icon placeholder
 const CalculatorIcon = CurrencyDollarIcon; // Calculator icon placeholder
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 
 // Type definitions
 interface User {
@@ -668,19 +670,24 @@ const editUser = (user: User) => {
 };
 
 const resetPassword = async (user: User) => {
-  if (confirm(t("users.confirm.resetPassword", { username: user.username }))) {
-    try {
-      const tempPassword = `Reset${Date.now().toString(36)}!`;
-      await api.post(`/users/${user.id}/reset-password`, {
-        newPassword: tempPassword,
-        confirmPassword: tempPassword,
-      });
-      alert(t("users.confirm.resetPasswordSuccess"));
-    } catch (error: any) {
-      alert(
-        error.response?.data?.error?.message || t("users.errors.resetFailed"),
-      );
-    }
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("users.actions.resetPassword"),
+    message: t("users.confirm.resetPassword", { username: user.username }),
+    confirmLabel: t("users.actions.resetPassword"),
+  });
+  if (!confirmed) return;
+  try {
+    const tempPassword = `Reset${Date.now().toString(36)}!`;
+    await api.post(`/users/${user.id}/reset-password`, {
+      newPassword: tempPassword,
+      confirmPassword: tempPassword,
+    });
+    alert(t("users.confirm.resetPasswordSuccess"));
+  } catch (error: any) {
+    alert(
+      error.response?.data?.error?.message || t("users.errors.resetFailed"),
+    );
   }
 };
 
@@ -690,19 +697,23 @@ const toggleUserStatus = async (user: User) => {
     ? t("users.actions.enable")
     : t("users.actions.disable");
 
-  if (
-    confirm(
-      t("users.confirm.toggleStatus", { action, username: user.username }),
-    )
-  ) {
-    try {
-      await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
-      await fetchUsers();
-    } catch (error: any) {
-      alert(
-        error.response?.data?.error?.message || t("users.errors.toggleFailed"),
-      );
-    }
+  const confirmed = await confirmModal({
+    type: newIsActive ? "warning" : "danger",
+    title: action,
+    message: t("users.confirm.toggleStatus", {
+      action,
+      username: user.username,
+    }),
+    confirmLabel: action,
+  });
+  if (!confirmed) return;
+  try {
+    await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
+    await fetchUsers();
+  } catch (error: any) {
+    alert(
+      error.response?.data?.error?.message || t("users.errors.toggleFailed"),
+    );
   }
 };
 

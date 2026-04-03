@@ -214,6 +214,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useRouter, useRoute } from "vue-router";
 import { api } from "@/services/api";
 import { ArrowLeftIcon, XMarkIcon } from "@heroicons/vue/24/outline";
@@ -222,6 +223,7 @@ import SeatManagement from "../components/tables/SeatManagement.vue";
 import QRModeSelector from "../components/tables/QRModeSelector.vue";
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 const router = useRouter();
 const route = useRoute();
 
@@ -300,9 +302,13 @@ const switchQRMode = async () => {
     newQRMode.value === "table"
       ? t("tableDetail.tableMode")
       : t("tableDetail.seatMode");
-  if (!confirm(t("tableDetail.confirm.switchMode", { mode: modeName }))) {
-    return;
-  }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("tableDetail.confirm.switchModeTitle"),
+    message: t("tableDetail.confirm.switchMode", { mode: modeName }),
+    confirmLabel: t("tableDetail.confirm.switchModeAction"),
+  });
+  if (!confirmed) return;
 
   try {
     if (newQRMode.value === "seat") {
@@ -365,9 +371,13 @@ const printQRCode = () => {
 };
 
 const regenerateQRCode = async () => {
-  if (!confirm(t("tableDetail.confirm.regenerateConfirm"))) {
-    return;
-  }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("tableDetail.confirm.regenerateTitle"),
+    message: t("tableDetail.confirm.regenerateConfirm"),
+    confirmLabel: t("tableDetail.confirm.regenerateAction"),
+  });
+  if (!confirmed) return;
 
   try {
     const response = await api.post(

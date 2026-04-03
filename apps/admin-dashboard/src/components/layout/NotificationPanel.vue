@@ -204,6 +204,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useNotificationStore } from "@/stores/notification";
 import { useRouter } from "vue-router";
 import { format } from "date-fns";
@@ -223,6 +224,7 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 const notificationStore = useNotificationStore();
 const router = useRouter();
 
@@ -248,10 +250,15 @@ const markAllAsRead = () => {
   notificationStore.markAllAsRead();
 };
 
-const clearAll = () => {
-  if (confirm(t("notification.clearConfirm"))) {
-    notificationStore.clearAll();
-  }
+const clearAll = async () => {
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("notification.title"),
+    message: t("notification.clearConfirm"),
+    confirmLabel: t("notification.clearAll"),
+  });
+  if (!confirmed) return;
+  notificationStore.clearAll();
 };
 
 const toggleSound = () => {

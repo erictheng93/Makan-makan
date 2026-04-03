@@ -427,9 +427,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import type { EmployeeSchedule } from "@/types/scheduling";
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 import {
   MagnifyingGlassIcon,
   CalendarIcon,
@@ -610,36 +612,38 @@ const goToPage = (page: number) => {
 };
 
 // Methods - Batch Operations
-const batchConfirm = () => {
+const batchConfirm = async () => {
   if (selectedItems.value.length === 0) return;
 
-  if (
-    confirm(
-      t("scheduling.batch.confirmAction", {
-        count: selectedItems.value.length,
-      }),
-    )
-  ) {
-    emit("batchUpdate", selectedItems.value, "confirm");
-    selectedItems.value = [];
-    showBatchMenu.value = false;
-  }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("scheduling.batch.confirm"),
+    message: t("scheduling.batch.confirmAction", {
+      count: selectedItems.value.length,
+    }),
+    confirmLabel: t("common.confirm"),
+  });
+  if (!confirmed) return;
+  emit("batchUpdate", selectedItems.value, "confirm");
+  selectedItems.value = [];
+  showBatchMenu.value = false;
 };
 
-const batchCancel = () => {
+const batchCancel = async () => {
   if (selectedItems.value.length === 0) return;
 
-  if (
-    confirm(
-      t("scheduling.batch.cancelConfirm", {
-        count: selectedItems.value.length,
-      }),
-    )
-  ) {
-    emit("batchUpdate", selectedItems.value, "cancel");
-    selectedItems.value = [];
-    showBatchMenu.value = false;
-  }
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("scheduling.batch.cancel"),
+    message: t("scheduling.batch.cancelConfirm", {
+      count: selectedItems.value.length,
+    }),
+    confirmLabel: t("common.cancel"),
+  });
+  if (!confirmed) return;
+  emit("batchUpdate", selectedItems.value, "cancel");
+  selectedItems.value = [];
+  showBatchMenu.value = false;
 };
 
 const batchExport = () => {

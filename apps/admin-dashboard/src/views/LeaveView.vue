@@ -100,6 +100,7 @@ import { useI18n } from "@/i18n";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import LeaveBalanceCard from "@/components/leaves/LeaveBalanceCard.vue";
 import LeaveRequestDialog from "@/components/leaves/LeaveRequestDialog.vue";
 import LeaveRequestList from "@/components/leaves/LeaveRequestList.vue";
@@ -113,6 +114,7 @@ import type {
 
 const { t } = useI18n();
 const router = useRouter();
+const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 
 // 狀態
@@ -248,7 +250,13 @@ const handleSubmitRequest = async (formData: any) => {
 
 // 取消請假申請
 const handleCancelRequest = async (requestId: number) => {
-  if (!confirm(t("leaveActions.cancelConfirm"))) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("leaveActions.cancelConfirm"),
+    message: t("leaveActions.cancelConfirm"),
+    confirmLabel: t("common.cancel"),
+  });
+  if (!confirmed) return;
 
   try {
     const restaurantId = authStore.restaurantId;
@@ -273,7 +281,13 @@ const handleCancelRequest = async (requestId: number) => {
 
 // 批准請假申請
 const handleApproveRequest = async (requestId: number) => {
-  if (!confirm(t("leaveActions.approveConfirm"))) return;
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("leaveActions.approveConfirm"),
+    message: t("leaveActions.approveConfirm"),
+    confirmLabel: t("leaveActions.approve"),
+  });
+  if (!confirmed) return;
 
   try {
     const restaurantId = authStore.restaurantId;

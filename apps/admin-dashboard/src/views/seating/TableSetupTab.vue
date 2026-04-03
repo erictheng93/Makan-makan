@@ -358,6 +358,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import {
@@ -373,6 +374,7 @@ import QRModeSelector from "@/components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "@/components/tables/QRCodeRenderer.vue";
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 const qrModalRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
 
@@ -472,7 +474,13 @@ const getStatusButtonText = (status: string) =>
   t(`tables.statusAction.${status}`) || t("tables.statusAction.change");
 
 const generateAllQRCodes = async () => {
-  if (!confirm(t("tables.confirm.regenerateAllQR"))) return;
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("tables.confirm.regenerateAllQRTitle"),
+    message: t("tables.confirm.regenerateAllQR"),
+    confirmLabel: t("tables.confirm.regenerateAllQRAction"),
+  });
+  if (!confirmed) return;
 
   const restaurantId = authStore.restaurantId;
   if (!restaurantId) return;

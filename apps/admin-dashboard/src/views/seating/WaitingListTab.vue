@@ -779,6 +779,7 @@ import {
 } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { WaitingListService } from "@/services/waitingListService";
 import { format } from "date-fns";
@@ -792,6 +793,7 @@ import type {
 const toast = useToast();
 const authStore = useAuthStore();
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 
 // State
 const loading = ref(false);
@@ -983,7 +985,13 @@ async function markSeated(id: string) {
  * Mark expired
  */
 async function markExpired(id: string) {
-  if (!confirm(t("waitingList.expirePrompt"))) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("waitingList.expireTitle"),
+    message: t("waitingList.expirePrompt"),
+    confirmLabel: t("waitingList.expireAction"),
+  });
+  if (!confirmed) return;
 
   try {
     await WaitingListService.expireWaiting(id);
@@ -1000,7 +1008,13 @@ async function markExpired(id: string) {
  * Cancel entry
  */
 async function cancelEntry(entry: WaitingListEntry) {
-  if (!confirm(t("waitingList.cancelPrompt"))) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("waitingList.cancelTitle"),
+    message: t("waitingList.cancelPrompt"),
+    confirmLabel: t("waitingList.cancelAction"),
+  });
+  if (!confirmed) return;
 
   try {
     await WaitingListService.cancelWaiting(entry.id, entry.customerPhone);

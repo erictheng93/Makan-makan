@@ -108,6 +108,7 @@ import { ref, onMounted, computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { ingredientApi } from "@/services/ingredientApi";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import IngredientTable from "@/components/ingredients/IngredientTable.vue";
 import IngredientForm from "@/components/ingredients/IngredientForm.vue";
 import BulkImportDialog from "@/components/ingredients/BulkImportDialog.vue";
@@ -117,6 +118,7 @@ import type {
 } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 const restaurantId = computed(() => authStore.restaurantId || "");
 
@@ -201,7 +203,13 @@ async function handleSave(data: CreateIngredientRequest) {
 }
 
 async function confirmDelete(item: IngredientDefinitionResponse) {
-  if (!confirm(t("ingredients.confirmDelete", { name: item.name }))) return;
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("common.delete"),
+    message: t("ingredients.confirmDelete", { name: item.name }),
+    confirmLabel: t("common.delete"),
+  });
+  if (!confirmed) return;
   try {
     await ingredientApi.remove(restaurantId.value, item.id);
     await loadIngredients();

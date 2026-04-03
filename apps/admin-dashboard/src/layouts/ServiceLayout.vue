@@ -288,10 +288,12 @@ import {
   ListBulletIcon,
   StarIcon,
 } from "@heroicons/vue/24/outline";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 
 const router = useRouter();
 const { t } = useI18n();
 const authStore = useAuthStore();
+const { confirm: confirmModal } = useConfirmModal();
 
 // 響應式狀態
 const showUserMenu = ref(false);
@@ -361,12 +363,17 @@ const openSettings = () => {
   alert(t("serviceLayout.settingsWIP"));
 };
 
-const logout = () => {
+const logout = async () => {
   showUserMenu.value = false;
-  if (confirm(t("auth.confirmLogout"))) {
-    authStore.logout();
-    router.push("/login");
-  }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("auth.confirmLogout"),
+    message: t("auth.confirmLogout"),
+    confirmLabel: t("auth.logout"),
+  });
+  if (!confirmed) return;
+  authStore.logout();
+  router.push("/login");
 };
 
 const refreshData = () => {

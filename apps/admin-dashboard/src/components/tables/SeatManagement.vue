@@ -307,10 +307,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "@/i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import { api } from "@/services/api";
 import { PlusIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatGrid from "./SeatGrid.vue";
 
@@ -424,15 +426,15 @@ const deleteSeat = async () => {
     return;
   }
 
-  if (
-    !confirm(
-      t("seatManagement.alerts.deleteConfirm", {
-        seat: selectedSeat.value.seatNumber,
-      }),
-    )
-  ) {
-    return;
-  }
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("seatManagement.deleteSeat"),
+    message: t("seatManagement.alerts.deleteConfirm", {
+      seat: selectedSeat.value.seatNumber,
+    }),
+    confirmLabel: t("common.delete"),
+  });
+  if (!confirmed) return;
 
   try {
     await api.delete(`/seats/${selectedSeat.value.id}`);
@@ -450,15 +452,15 @@ const deleteSeat = async () => {
 const releaseSeat = async () => {
   if (!selectedSeat.value) return;
 
-  if (
-    !confirm(
-      t("seatManagement.alerts.releaseConfirm", {
-        seat: selectedSeat.value.seatNumber,
-      }),
-    )
-  ) {
-    return;
-  }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("seatManagement.releaseSeat"),
+    message: t("seatManagement.alerts.releaseConfirm", {
+      seat: selectedSeat.value.seatNumber,
+    }),
+    confirmLabel: t("seatManagement.releaseSeat"),
+  });
+  if (!confirmed) return;
 
   try {
     await api.post(`/seats/${selectedSeat.value.id}/release`);
@@ -475,15 +477,15 @@ const releaseSeat = async () => {
 const regenerateSeatQR = async () => {
   if (!selectedSeat.value) return;
 
-  if (
-    !confirm(
-      t("seatManagement.alerts.regenerateConfirm", {
-        seat: selectedSeat.value.seatNumber,
-      }),
-    )
-  ) {
-    return;
-  }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("seatManagement.regenerateQR"),
+    message: t("seatManagement.alerts.regenerateConfirm", {
+      seat: selectedSeat.value.seatNumber,
+    }),
+    confirmLabel: t("seatManagement.regenerateQR"),
+  });
+  if (!confirmed) return;
 
   try {
     await api.post(`/seats/${selectedSeat.value.id}/regenerate-qr`);
@@ -523,9 +525,13 @@ const batchCreateSeats = async () => {
 
 // 重新生成所有 QR
 const regenerateAllQR = async () => {
-  if (!confirm(t("seatManagement.alerts.regenerateAllConfirm"))) {
-    return;
-  }
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("seatManagement.regenerateQR"),
+    message: t("seatManagement.alerts.regenerateAllConfirm"),
+    confirmLabel: t("seatManagement.regenerateQR"),
+  });
+  if (!confirmed) return;
 
   try {
     await api.post("/seats/batch-regenerate-qr", {
