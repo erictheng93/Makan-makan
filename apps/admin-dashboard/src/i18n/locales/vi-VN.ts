@@ -4138,6 +4138,11 @@ const viVN: Messages = {
     markInternal: "Đánh dấu là ghi chú nội bộ (chỉ admin)",
     resolvedAt: "Đã xử lý lúc",
     attachment: "Tệp đính kèm",
+    editReply: "Chỉnh sửa trả lời",
+    deleteReply: "Xóa trả lời",
+    saveEdit: "Lưu",
+    cancelEdit: "Hủy",
+    replyDeleted: "Đã xóa trả lời",
     form: {
       title: "Gửi phản hồi mới",
       category: "Danh mục",

@@ -4389,6 +4389,11 @@ const enUS: Messages = {
     markInternal: "Mark as internal note (admins only)",
     resolvedAt: "Resolved at",
     attachment: "Attachment",
+    editReply: "Edit reply",
+    deleteReply: "Delete reply",
+    saveEdit: "Save",
+    cancelEdit: "Cancel",
+    replyDeleted: "Reply deleted",
     form: {
       title: "Submit New Feedback",
       category: "Category",

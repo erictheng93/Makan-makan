@@ -126,8 +126,54 @@
                 <span class="text-[10px] text-[#8E8E93] ml-auto">
                   {{ formatDate(response.createdAt) }}
                 </span>
+                <!-- Edit / Delete actions (own reply or admin) -->
+                <template v-if="canEditResponse(response)">
+                  <button
+                    v-if="editingResponseId !== response.id"
+                    @click="startEdit(response)"
+                    class="p-1 rounded-lg text-[#8E8E93] hover:text-[#007AFF] hover:bg-[#007AFF]/10 transition-colors"
+                    :title="t('feedback.editReply')"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleDeleteResponse(response.id)"
+                    class="p-1 rounded-lg text-[#8E8E93] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors"
+                    :title="t('feedback.deleteReply')"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </template>
               </div>
-              <p class="text-sm text-[#3C3C43] leading-relaxed whitespace-pre-wrap">
+
+              <!-- Inline edit mode -->
+              <template v-if="editingResponseId === response.id">
+                <textarea
+                  v-model="editingMessage"
+                  rows="3"
+                  maxlength="2000"
+                  class="w-full px-3 py-2 bg-gray-50 border border-[#007AFF]/30 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all resize-none"
+                />
+                <div class="flex items-center gap-2 mt-2">
+                  <button
+                    @click="handleUpdateResponse(response.id)"
+                    :disabled="!editingMessage.trim() || editingMessage === response.message"
+                    class="px-3 py-1 rounded-full text-xs font-semibold bg-[#007AFF] text-white hover:bg-[#0071E3] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    {{ t("feedback.saveEdit") }}
+                  </button>
+                  <button
+                    @click="cancelEdit"
+                    class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all"
+                  >
+                    {{ t("feedback.cancelEdit") }}
+                  </button>
+                </div>
+              </template>
+              <p
+                v-else
+                class="text-sm text-[#3C3C43] leading-relaxed whitespace-pre-wrap"
+              >
                 {{ response.message }}
               </p>
             </div>
@@ -173,32 +219,66 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Paperclip } from "lucide-vue-next";
+import { Paperclip, Pencil, Trash2 } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { useFeedback } from "@/composables/useFeedback";
-import type { FeedbackItem } from "@/composables/useFeedback";
+import type { FeedbackItem, FeedbackResponseItem } from "@/composables/useFeedback";
 
 const props = defineProps<{ feedback: FeedbackItem }>();
 const emit = defineEmits<{
   statusChanged: [status: string];
   replyAdded: [];
+  replyUpdated: [responseId: number, message: string];
+  replyDeleted: [responseId: number];
 }>();
 
 const { t } = useI18n();
 const authStore = useAuthStore();
-const { addResponse, updateStatus } = useFeedback();
+const { addResponse, updateStatus, updateResponse, deleteResponse } = useFeedback();
 
 const isAdmin = computed(() => authStore.user?.role === UserRole.ADMIN);
+const currentUserId = computed(() => authStore.user?.id);
 const replyMessage = ref("");
 const replyIsInternal = ref(false);
+
+// Edit state
+const editingResponseId = ref<number | null>(null);
+const editingMessage = ref("");
 
 const visibleResponses = computed(() => props.feedback.responses ?? []);
 
 function isAdminUser(userId: number) {
   // A heuristic — admin responses are those from non-restaurant users
   return userId !== props.feedback.userId;
+}
+
+function canEditResponse(response: FeedbackResponseItem): boolean {
+  if (isAdmin.value) return true;
+  return response.userId === currentUserId.value;
+}
+
+function startEdit(response: FeedbackResponseItem) {
+  editingResponseId.value = response.id;
+  editingMessage.value = response.message;
+}
+
+function cancelEdit() {
+  editingResponseId.value = null;
+  editingMessage.value = "";
+}
+
+async function handleUpdateResponse(responseId: number) {
+  if (!editingMessage.value.trim()) return;
+  await updateResponse(props.feedback.id, responseId, editingMessage.value.trim());
+  emit("replyUpdated", responseId, editingMessage.value.trim());
+  cancelEdit();
+}
+
+async function handleDeleteResponse(responseId: number) {
+  await deleteResponse(props.feedback.id, responseId);
+  emit("replyDeleted", responseId);
 }
 
 function getInitials(

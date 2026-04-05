@@ -12,6 +12,8 @@ import {
   addResponseSchema,
   feedbackFiltersSchema,
   feedbackIdParamSchema,
+  responseIdParamSchema,
+  updateResponseSchema,
 } from "../schemas/validation";
 import type { Env } from "../../../types/env";
 import { notFound, forbidden } from "../../../shared/utils/api-error";
@@ -187,6 +189,73 @@ routes.post(
     const response = await service.addResponse(id, user.id, message, internal);
 
     return c.json({ success: true, data: response }, 201);
+  },
+);
+
+// PUT /:id/responses/:responseId — 編輯回覆（作者本人或 admin）
+routes.put(
+  "/:id/responses/:responseId",
+  authMiddleware,
+  requireRole([0, 1]),
+  validateParams(responseIdParamSchema),
+  validateBody(updateResponseSchema),
+  async (c) => {
+    const user = c.get("user");
+    const { id, responseId } = c.get("validatedParams");
+    const { message } = c.get("validatedBody");
+    const service = new FeedbackService(c.env.DB as any, c.env as any);
+
+    // Owner: verify feedback belongs to their restaurant
+    if (user.role === 1) {
+      const feedback = await service.getFeedbackById(id);
+      if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
+      if (feedback.restaurantId !== user.restaurantId) {
+        throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
+      }
+    }
+
+    const updated = await service.updateResponse(
+      responseId,
+      user.id,
+      message,
+      user.role === 0,
+    );
+
+    if (!updated) throw notFound("Response not found or not yours", "RESPONSE_NOT_FOUND");
+
+    return c.json({ success: true, data: updated });
+  },
+);
+
+// DELETE /:id/responses/:responseId — 刪除回覆（作者本人或 admin）
+routes.delete(
+  "/:id/responses/:responseId",
+  authMiddleware,
+  requireRole([0, 1]),
+  validateParams(responseIdParamSchema),
+  async (c) => {
+    const user = c.get("user");
+    const { id, responseId } = c.get("validatedParams");
+    const service = new FeedbackService(c.env.DB as any, c.env as any);
+
+    // Owner: verify feedback belongs to their restaurant
+    if (user.role === 1) {
+      const feedback = await service.getFeedbackById(id);
+      if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
+      if (feedback.restaurantId !== user.restaurantId) {
+        throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
+      }
+    }
+
+    const deleted = await service.deleteResponse(
+      responseId,
+      user.id,
+      user.role === 0,
+    );
+
+    if (!deleted) throw notFound("Response not found or not yours", "RESPONSE_NOT_FOUND");
+
+    return c.json({ success: true });
   },
 );
 

@@ -50,3 +50,18 @@ export const feedbackFiltersSchema = z.object({
 export const feedbackIdParamSchema = z.object({
   id: z.coerce.number().int().positive("ID must be a positive integer"),
 });
+
+export const responseIdParamSchema = z.object({
+  id: z.coerce.number().int().positive("Feedback ID must be a positive integer"),
+  responseId: z.coerce
+    .number()
+    .int()
+    .positive("Response ID must be a positive integer"),
+});
+
+export const updateResponseSchema = z.object({
+  message: z
+    .string()
+    .min(1, "Message cannot be empty")
+    .max(2000, "Message must be at most 2000 characters"),
+});

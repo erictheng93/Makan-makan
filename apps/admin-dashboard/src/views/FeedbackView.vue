@@ -196,6 +196,8 @@
               :feedback="selectedFeedback"
               @status-changed="onStatusChanged"
               @reply-added="onReplyAdded"
+              @reply-updated="onReplyUpdated"
+              @reply-deleted="onReplyDeleted"
             />
           </div>
         </div>
@@ -289,6 +291,22 @@ async function onReplyAdded() {
   if (selectedFeedback.value) {
     selectedFeedback.value = await fetchFeedbackById(selectedFeedback.value.id);
   }
+}
+
+function onReplyUpdated(responseId: number, message: string) {
+  if (!selectedFeedback.value?.responses) return;
+  const responses = selectedFeedback.value.responses.map((r) =>
+    r.id === responseId ? { ...r, message } : r,
+  );
+  selectedFeedback.value = { ...selectedFeedback.value, responses };
+}
+
+function onReplyDeleted(responseId: number) {
+  if (!selectedFeedback.value?.responses) return;
+  const responses = selectedFeedback.value.responses.filter(
+    (r) => r.id !== responseId,
+  );
+  selectedFeedback.value = { ...selectedFeedback.value, responses };
 }
 
 function formatDate(ts: string | number): string {

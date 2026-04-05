@@ -4169,6 +4169,11 @@ const zhCN: Messages = {
     markInternal: "设为内部备注（仅管理员可见）",
     resolvedAt: "已处理于",
     attachment: "附件",
+    editReply: "编辑回复",
+    deleteReply: "删除回复",
+    saveEdit: "保存",
+    cancelEdit: "取消",
+    replyDeleted: "回复已删除",
     form: {
       title: "提交新反馈",
       category: "反馈类型",

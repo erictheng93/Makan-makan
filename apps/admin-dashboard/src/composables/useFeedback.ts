@@ -155,6 +155,37 @@ export function useFeedback() {
     }
   }
 
+  async function updateResponse(
+    feedbackId: number,
+    responseId: number,
+    message: string,
+  ) {
+    try {
+      const res = await api.put(
+        `/feedback/${feedbackId}/responses/${responseId}`,
+        { message },
+      );
+      return res.data.data as FeedbackResponseItem;
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.error?.message ?? t("feedback.updateError"),
+      );
+      throw err;
+    }
+  }
+
+  async function deleteResponse(feedbackId: number, responseId: number) {
+    try {
+      await api.delete(`/feedback/${feedbackId}/responses/${responseId}`);
+      toast.success(t("feedback.replyDeleted"));
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.error?.message ?? t("feedback.updateError"),
+      );
+      throw err;
+    }
+  }
+
   async function fetchStats() {
     try {
       const res = await api.get("/feedback/stats");
@@ -175,6 +206,8 @@ export function useFeedback() {
     fetchFeedbackById,
     updateStatus,
     addResponse,
+    updateResponse,
+    deleteResponse,
     fetchStats,
   };
 }

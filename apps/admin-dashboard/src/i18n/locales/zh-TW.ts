@@ -4390,6 +4390,11 @@ const zhTW: Messages = {
     markInternal: "設為內部備註（僅管理員可見）",
     resolvedAt: "已處理於",
     attachment: "附件",
+    editReply: "編輯回覆",
+    deleteReply: "刪除回覆",
+    saveEdit: "儲存",
+    cancelEdit: "取消",
+    replyDeleted: "回覆已刪除",
     form: {
       title: "提交新反饋",
       category: "反饋類型",

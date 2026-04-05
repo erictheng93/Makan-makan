@@ -4138,6 +4138,11 @@ const jaJP: Messages = {
     markInternal: "内部メモとして設定（管理者のみ）",
     resolvedAt: "解決日時",
     attachment: "添付ファイル",
+    editReply: "返信を編集",
+    deleteReply: "返信を削除",
+    saveEdit: "保存",
+    cancelEdit: "キャンセル",
+    replyDeleted: "返信を削除しました",
     form: {
       title: "新しいフィードバックを送信",
       category: "カテゴリ",

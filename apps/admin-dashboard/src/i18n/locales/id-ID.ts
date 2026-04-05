@@ -4158,6 +4158,11 @@ const idID: Messages = {
     markInternal: "Tandai sebagai catatan internal (hanya admin)",
     resolvedAt: "Diselesaikan pada",
     attachment: "Lampiran",
+    editReply: "Edit balasan",
+    deleteReply: "Hapus balasan",
+    saveEdit: "Simpan",
+    cancelEdit: "Batal",
+    replyDeleted: "Balasan dihapus",
     form: {
       title: "Kirim Umpan Balik Baru",
       category: "Kategori",

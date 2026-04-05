@@ -280,6 +280,56 @@ export class FeedbackService extends BaseService {
     }
   }
 
+  async updateResponse(
+    responseId: number,
+    userId: number,
+    message: string,
+    isAdmin: boolean = false,
+  ): Promise<FeedbackResponse | null> {
+    try {
+      const whereClause = isAdmin
+        ? eq(feedbackResponses.id, responseId)
+        : and(
+            eq(feedbackResponses.id, responseId),
+            eq(feedbackResponses.userId, userId),
+          );
+
+      const [updated] = await this.db
+        .update(feedbackResponses)
+        .set({ message })
+        .where(whereClause)
+        .returning();
+
+      return updated ?? null;
+    } catch (error) {
+      this.handleError(error, "updateResponse");
+    }
+  }
+
+  async deleteResponse(
+    responseId: number,
+    userId: number,
+    isAdmin: boolean = false,
+  ): Promise<boolean> {
+    try {
+      const whereClause = isAdmin
+        ? eq(feedbackResponses.id, responseId)
+        : and(
+            eq(feedbackResponses.id, responseId),
+            eq(feedbackResponses.userId, userId),
+          );
+
+      const result = await this.db
+        .delete(feedbackResponses)
+        .where(whereClause)
+        .returning({ id: feedbackResponses.id });
+
+      return result.length > 0;
+    } catch (error) {
+      this.handleError(error, "deleteResponse");
+    }
+  }
+
   async getFeedbackStats(restaurantId?: string): Promise<FeedbackStats> {
     try {
       const conditions: SQL[] = [];
