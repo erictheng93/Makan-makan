@@ -37,6 +37,7 @@ export { LeaveAnalyticsService } from "./LeaveAnalyticsService";
 // export { QueueService } from '@makanmakan/queue-service' // Temporarily disabled - using UnifiedQueueService
 export { PartnershipService } from "./PartnershipService";
 export { VerificationService } from "./VerificationService";
+export { FeedbackService } from "./FeedbackService";
 
 // 匯出類型定義
 export type { CreateRestaurantData, UpdateRestaurantData } from "./restaurant";
@@ -143,3 +144,9 @@ export type {
   MemberVerificationRequest,
   UsageStatistics,
 } from "./PartnershipService";
+
+export type {
+  CreateFeedbackData,
+  FeedbackFilters,
+  FeedbackStats,
+} from "./FeedbackService";

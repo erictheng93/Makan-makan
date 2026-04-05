@@ -30,6 +30,7 @@ export * from "./forecast";
 export * from "./discovery";
 export * from "./ai-analytics";
 export * from "./backup";
+export * from "./feedback";
 
 // 匯出所有關聯定義
 export { restaurantRelations } from "./restaurants";
@@ -114,6 +115,10 @@ export {
   backupAuditLogsRelations,
   restoreOperationsRelations,
 } from "./backup";
+export {
+  shopFeedbackRelations,
+  feedbackResponsesRelations,
+} from "./feedback";
 
 // 重新匯出類型
 export type { UserRole } from "./users";
@@ -157,6 +162,18 @@ export {
   USAGE_LOG_STATUS,
   USAGE_CHANNELS,
 } from "./partnerships";
+export type {
+  FeedbackCategory,
+  FeedbackPriority,
+  FeedbackStatus,
+  FeedbackModule,
+} from "./feedback";
+export {
+  FEEDBACK_CATEGORIES,
+  FEEDBACK_PRIORITIES,
+  FEEDBACK_STATUSES,
+  FEEDBACK_MODULES,
+} from "./feedback";
 export { PLATFORM_TYPES, MENU_SYNC_STATUS } from "./platform-integrations";
 export type { PlatformType, MenuSyncStatus } from "./platform-integrations";
 export { MENU_MAPPING_SYNC_STATUS } from "./platform-menu-mappings";

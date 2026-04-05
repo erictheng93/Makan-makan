@@ -1,0 +1,52 @@
+import { z } from "zod";
+import {
+  FEEDBACK_CATEGORIES,
+  FEEDBACK_PRIORITIES,
+  FEEDBACK_STATUSES,
+  FEEDBACK_MODULES,
+} from "@makanmakan/database";
+
+export const createFeedbackSchema = z.object({
+  subject: z
+    .string()
+    .min(5, "Subject must be at least 5 characters")
+    .max(200, "Subject must be at most 200 characters"),
+  description: z
+    .string()
+    .min(10, "Description must be at least 10 characters")
+    .max(5000, "Description must be at most 5000 characters"),
+  category: z.enum(FEEDBACK_CATEGORIES),
+  priority: z.enum(FEEDBACK_PRIORITIES).optional(),
+  relatedModule: z.enum(FEEDBACK_MODULES).optional(),
+  attachmentUrls: z
+    .array(z.string().url("Each attachment must be a valid URL"))
+    .max(5, "Maximum 5 attachments allowed")
+    .optional(),
+});
+
+export const updateFeedbackStatusSchema = z.object({
+  status: z.enum(FEEDBACK_STATUSES),
+});
+
+export const addResponseSchema = z.object({
+  message: z
+    .string()
+    .min(1, "Message cannot be empty")
+    .max(2000, "Message must be at most 2000 characters"),
+  isInternal: z.boolean().optional().default(false),
+});
+
+export const feedbackFiltersSchema = z.object({
+  category: z.enum(FEEDBACK_CATEGORIES).optional(),
+  status: z.enum(FEEDBACK_STATUSES).optional(),
+  priority: z.enum(FEEDBACK_PRIORITIES).optional(),
+  relatedModule: z.enum(FEEDBACK_MODULES).optional(),
+  restaurantId: z.string().optional(),
+  search: z.string().max(200).optional(),
+  page: z.coerce.number().int().positive().optional().default(1),
+  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+});
+
+export const feedbackIdParamSchema = z.object({
+  id: z.coerce.number().int().positive("ID must be a positive integer"),
+});

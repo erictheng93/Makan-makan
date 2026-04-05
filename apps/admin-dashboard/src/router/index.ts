@@ -184,6 +184,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "feedback",
+        name: "Feedback",
+        component: () => import("@/views/FeedbackView.vue"),
+        meta: {
+          titleKey: "pages.feedback",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
+      {
         path: "settings",
         name: "Settings",
         component: () => import("@/views/SettingsView.vue"),

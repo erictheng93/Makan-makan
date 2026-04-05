@@ -85,6 +85,7 @@ import {
   Globe,
   UserPlus,
   Crown,
+  MessageSquare,
 } from "lucide-vue-next";
 
 interface Props {
@@ -221,6 +222,13 @@ const navigationItems = computed(() => {
       label: t("nav.accountManagement"),
       icon: UserPlus,
       visible: authStore.isAdminRole,
+    },
+    {
+      name: "feedback",
+      path: "/dashboard/feedback",
+      label: t("nav.feedback"),
+      icon: MessageSquare,
+      visible: authStore.hasPermission([UserRole.ADMIN, UserRole.OWNER]),
     },
     {
       name: "monitoring",

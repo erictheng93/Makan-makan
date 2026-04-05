@@ -93,6 +93,7 @@ import integrationsFeature from "./features/integrations";
 import forecastFeature from "./features/forecast";
 import ingredientsFeature from "./features/ingredients";
 import discoveryFeature from "./features/discovery";
+import feedbackFeature from "./features/feedback";
 import { ErrorSanitizer } from "./utils/errorSanitizer";
 import { ApiError } from "./shared/utils/api-error";
 import type { Env } from "./types/env";
@@ -484,6 +485,7 @@ apiV1.route("/scheduling", schedulingFeature.routes);
 apiV1.route("/forecast", forecastFeature.routes);
 apiV1.route("/ingredients", ingredientsFeature.routes);
 apiV1.route("/discovery", discoveryFeature.routes);
+apiV1.route("/feedback", feedbackFeature.routes);
 apiV1.route("/notifications", notificationsRoutes);
 // 掛載 API 路由
 app.route("/api/v1", apiV1);
