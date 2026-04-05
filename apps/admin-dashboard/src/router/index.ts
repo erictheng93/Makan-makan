@@ -445,6 +445,7 @@ router.beforeEach(async (to, _, next) => {
     "Monitoring",
     "Settings",
     "AccountManagement",
+    "Feedback", // Admin views all shops' feedback at platform level
   ];
   if (authStore.isAdminRole && !authStore.hasRestaurantContext) {
     if (routeName && !platformRoutes.includes(routeName)) {
