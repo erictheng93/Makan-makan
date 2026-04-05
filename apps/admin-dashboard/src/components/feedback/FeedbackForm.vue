@@ -36,20 +36,32 @@
           <label class="block text-sm font-medium text-[#1C1C1E] mb-2">
             {{ t("feedback.form.priority") }}
           </label>
-          <div class="flex gap-2 flex-wrap">
+          <div class="flex items-center gap-5">
             <button
               v-for="p in priorities"
               :key="p.value"
               type="button"
               @click="form.priority = p.value"
-              class="px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200"
-              :class="
-                form.priority === p.value
-                  ? p.activeClass
-                  : 'bg-gray-100 text-[#3C3C43] hover:bg-gray-200'
-              "
+              class="flex flex-col items-center gap-1.5 group"
             >
-              {{ t(`feedback.priorities.${p.value}`) }}
+              <span
+                class="w-9 h-9 rounded-full transition-all duration-200"
+                :class="
+                  form.priority === p.value
+                    ? 'ring-2 ring-offset-2 shadow-md scale-110'
+                    : 'opacity-40 group-hover:opacity-70 group-hover:scale-105'
+                "
+                :style="{
+                  backgroundColor: p.color,
+                  '--tw-ring-color': p.color,
+                }"
+              />
+              <span
+                class="text-[10px] font-medium transition-colors duration-200"
+                :class="form.priority === p.value ? 'text-[#1C1C1E]' : 'text-[#8E8E93]'"
+              >
+                {{ t(`feedback.priorities.${p.value}`) }}
+              </span>
             </button>
           </div>
         </div>
@@ -166,10 +178,9 @@ const categories = [
 ];
 
 const priorities = [
-  { value: "low", activeClass: "bg-gray-500 text-white" },
-  { value: "medium", activeClass: "bg-[#007AFF] text-white" },
-  { value: "high", activeClass: "bg-[#FF9500] text-white" },
-  { value: "urgent", activeClass: "bg-[#FF3B30] text-white" },
+  { value: "low", color: "#34C759" },
+  { value: "medium", color: "#FFD60A" },
+  { value: "urgent", color: "#FF3B30" },
 ];
 
 const modules = [
