@@ -181,8 +181,9 @@
         </div>
       </div>
 
-      <div v-else class="px-5 py-8 text-center text-sm text-[#8E8E93]">
-        {{ t("feedback.noReplies") }}
+      <div v-else class="px-5 py-10 text-center">
+        <MessageCircle class="w-10 h-10 text-[#C7C7CC] mx-auto mb-2" />
+        <p class="text-sm text-[#8E8E93]">{{ t("feedback.noReplies") }}</p>
       </div>
 
       <!-- Reply input -->
@@ -219,7 +220,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Paperclip, Pencil, Trash2 } from "lucide-vue-next";
+import { Paperclip, Pencil, Trash2, MessageCircle } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
