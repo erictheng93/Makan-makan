@@ -1,7 +1,11 @@
 <template>
   <aside
     class="bg-white border-r border-gray-200 transition-all duration-300"
-    :class="isCollapsed ? 'w-16' : 'w-64'"
+    :class="[
+      isCollapsed ? 'w-16' : 'w-64',
+      isMobile ? 'fixed inset-y-0 left-0 z-40' : '',
+      isMobile && isCollapsed ? '-translate-x-full' : 'translate-x-0',
+    ]"
   >
     <div class="flex flex-col h-full">
       <!-- Logo -->
@@ -34,6 +38,7 @@
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
             ]"
             :title="item.disabled ? t('nav.selectRestaurantFirst') : ''"
+            @click="!item.disabled && emit('navigate')"
           >
             <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
             <span v-if="!isCollapsed" class="ml-3">{{ item.label }}</span>
@@ -90,11 +95,13 @@ import {
 
 interface Props {
   isCollapsed: boolean;
+  isMobile?: boolean;
 }
 
 defineProps<Props>();
-defineEmits<{
+const emit = defineEmits<{
   toggle: [];
+  navigate: [];
 }>();
 
 const route = useRoute();
