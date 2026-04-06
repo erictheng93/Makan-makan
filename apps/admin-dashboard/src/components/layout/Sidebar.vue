@@ -109,6 +109,7 @@ const platformItemNames = new Set([
   "monitoring",
   "settings",
   "account-management",
+  "feedback",
 ]);
 
 const needsRestaurantContext = computed(
