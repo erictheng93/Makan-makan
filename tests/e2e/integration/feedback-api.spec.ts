@@ -298,3 +298,304 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
     expect(res.status).toBe(403);
   });
 });
+
+// ─── Response CRUD ────────────────────────────────────────────────────────
+test.describe("Feedback Module — Response CRUD", () => {
+  let feedbackId: number;
+
+  test.beforeAll(async () => {
+    // Create a feedback to attach responses to
+    const auth = await loginOnce("grandmaShop");
+    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, {
+      subject: "Response CRUD test feedback",
+      description: "This feedback is used to test the response CRUD lifecycle end to end.",
+      category: "usability",
+      priority: "low",
+      relatedModule: "settings",
+    });
+    expect(res.status).toBe(201);
+    const json = (await res.json()) as { data: { id: number } };
+    feedbackId = json.data.id;
+  });
+
+  let responseId: number;
+
+  test("owner adds a public response to own feedback", async () => {
+    const auth = await loginOnce("grandmaShop");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}/responses`, {
+      method: "POST",
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      body: JSON.stringify({
+        message: "I noticed this happens mostly on mobile devices.",
+      }),
+    });
+    expect(res.status).toBe(201);
+    const json = (await res.json()) as {
+      success: boolean;
+      data: { id: number; message: string; isInternal: boolean };
+    };
+    expect(json.success).toBe(true);
+    expect(json.data.message).toContain("mobile devices");
+    expect(json.data.isInternal).toBe(false);
+    responseId = json.data.id;
+  });
+
+  test("admin adds an internal note", async () => {
+    const auth = await loginOnce("admin");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}/responses`, {
+      method: "POST",
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      body: JSON.stringify({
+        message: "Internal: escalating to mobile team.",
+        isInternal: true,
+      }),
+    });
+    expect(res.status).toBe(201);
+    const json = (await res.json()) as {
+      success: boolean;
+      data: { isInternal: boolean };
+    };
+    expect(json.success).toBe(true);
+    expect(json.data.isInternal).toBe(true);
+  });
+
+  test("owner sees only public responses (internal filtered out)", async () => {
+    const auth = await loginOnce("grandmaShop");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}`, {
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      data: { responses: Array<{ isInternal: boolean }> };
+    };
+    // Owner should NOT see internal notes
+    const internals = json.data.responses.filter((r) => r.isInternal);
+    expect(internals).toHaveLength(0);
+    expect(json.data.responses.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("admin sees all responses including internal", async () => {
+    const auth = await loginOnce("admin");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}`, {
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      data: { responses: Array<{ isInternal: boolean }> };
+    };
+    const internals = json.data.responses.filter((r) => r.isInternal);
+    expect(internals.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("owner edits own response", async () => {
+    const auth = await loginOnce("grandmaShop");
+    const res = await fetch(
+      `${API_URL}/api/v1/feedback/${feedbackId}/responses/${responseId}`,
+      {
+        method: "PUT",
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+        body: JSON.stringify({
+          message: "Updated: happens on both mobile and tablet.",
+        }),
+      },
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      success: boolean;
+      data: { message: string };
+    };
+    expect(json.success).toBe(true);
+    expect(json.data.message).toContain("tablet");
+  });
+
+  test("owner deletes own response", async () => {
+    // First add another response to delete
+    const auth = await loginOnce("grandmaShop");
+    const addRes = await fetch(
+      `${API_URL}/api/v1/feedback/${feedbackId}/responses`,
+      {
+        method: "POST",
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+        body: JSON.stringify({ message: "This response will be deleted." }),
+      },
+    );
+    expect(addRes.status).toBe(201);
+    const addJson = (await addRes.json()) as { data: { id: number } };
+    const deleteTargetId = addJson.data.id;
+
+    const delRes = await fetch(
+      `${API_URL}/api/v1/feedback/${feedbackId}/responses/${deleteTargetId}`,
+      {
+        method: "DELETE",
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      },
+    );
+    expect(delRes.status).toBe(200);
+    const delJson = (await delRes.json()) as { success: boolean };
+    expect(delJson.success).toBe(true);
+  });
+
+  test("japanShop cannot add response to grandmaShop's feedback — 403", async () => {
+    const auth = await loginOnce("japanShop");
+    const res = await fetch(
+      `${API_URL}/api/v1/feedback/${feedbackId}/responses`,
+      {
+        method: "POST",
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+        body: JSON.stringify({ message: "Unauthorized response." }),
+      },
+    );
+    expect(res.status).toBe(403);
+  });
+});
+
+// ─── Status Lifecycle ─────────────────────────────────────────────────────
+test.describe("Feedback Module — Status Lifecycle", () => {
+  let feedbackId: number;
+
+  test.beforeAll(async () => {
+    const auth = await loginOnce("grandmaShop");
+    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, {
+      subject: "Status lifecycle test",
+      description: "This feedback tests the full status lifecycle from open through closed.",
+      category: "performance",
+      priority: "medium",
+      relatedModule: "orders",
+    });
+    expect(res.status).toBe(201);
+    const json = (await res.json()) as { data: { id: number; status: string } };
+    feedbackId = json.data.id;
+    expect(json.data.status).toBe("open");
+  });
+
+  test("admin transitions status: open → in_progress", async () => {
+    const auth = await loginOnce("admin");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}/status`, {
+      method: "PUT",
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      body: JSON.stringify({ status: "in_progress" }),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      success: boolean;
+      data: { status: string };
+    };
+    expect(json.data.status).toBe("in_progress");
+  });
+
+  test("admin transitions status: in_progress → resolved (sets resolvedAt)", async () => {
+    const auth = await loginOnce("admin");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}/status`, {
+      method: "PUT",
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      body: JSON.stringify({ status: "resolved" }),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      success: boolean;
+      data: { status: string; resolvedAt: string | null; resolvedBy: number | null };
+    };
+    expect(json.data.status).toBe("resolved");
+    expect(json.data.resolvedAt).not.toBeNull();
+    expect(json.data.resolvedBy).not.toBeNull();
+  });
+
+  test("admin transitions status: resolved → closed", async () => {
+    const auth = await loginOnce("admin");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}/status`, {
+      method: "PUT",
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      body: JSON.stringify({ status: "closed" }),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      success: boolean;
+      data: { status: string };
+    };
+    expect(json.data.status).toBe("closed");
+  });
+
+  test("owner cannot edit feedback after it is closed (non-open status)", async () => {
+    const auth = await loginOnce("grandmaShop");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}`, {
+      method: "PATCH",
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      body: JSON.stringify({ subject: "Trying to edit closed feedback" }),
+    });
+    // Service returns null for non-open feedback → route throws 404
+    expect(res.status).toBe(404);
+  });
+
+  test("owner cannot delete feedback after it is closed", async () => {
+    const auth = await loginOnce("grandmaShop");
+    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}`, {
+      method: "DELETE",
+      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+// ─── Edit & Delete Feedback (Owner) ───────────────────────────────────────
+test.describe("Feedback Module — Owner Edit & Delete", () => {
+  test("owner can edit own open feedback", async () => {
+    const auth = await loginOnce("grandmaShop");
+    // Create a fresh feedback
+    const createRes = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, {
+      subject: "Editable feedback",
+      description: "This will be edited by the owner to verify the edit endpoint works.",
+      category: "other",
+      priority: "low",
+    });
+    expect(createRes.status).toBe(201);
+    const createJson = (await createRes.json()) as { data: { id: number } };
+
+    const editRes = await fetch(
+      `${API_URL}/api/v1/feedback/${createJson.data.id}`,
+      {
+        method: "PATCH",
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+        body: JSON.stringify({
+          subject: "Edited: Editable feedback",
+          priority: "high",
+        }),
+      },
+    );
+    expect(editRes.status).toBe(200);
+    const editJson = (await editRes.json()) as {
+      success: boolean;
+      data: { subject: string; priority: string };
+    };
+    expect(editJson.data.subject).toBe("Edited: Editable feedback");
+    expect(editJson.data.priority).toBe("high");
+  });
+
+  test("owner can delete own open feedback", async () => {
+    const auth = await loginOnce("grandmaShop");
+    const createRes = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, {
+      subject: "Deletable feedback",
+      description: "This will be deleted by the owner to verify the delete endpoint works.",
+      category: "other",
+    });
+    expect(createRes.status).toBe(201);
+    const createJson = (await createRes.json()) as { data: { id: number } };
+
+    const delRes = await fetch(
+      `${API_URL}/api/v1/feedback/${createJson.data.id}`,
+      {
+        method: "DELETE",
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      },
+    );
+    expect(delRes.status).toBe(200);
+
+    // Verify it's gone
+    const getRes = await fetch(
+      `${API_URL}/api/v1/feedback/${createJson.data.id}`,
+      {
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+      },
+    );
+    expect(getRes.status).toBe(404);
+  });
+});

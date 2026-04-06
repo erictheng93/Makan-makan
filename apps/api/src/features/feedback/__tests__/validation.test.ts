@@ -6,6 +6,8 @@ import {
   addResponseSchema,
   feedbackFiltersSchema,
   feedbackIdParamSchema,
+  responseIdParamSchema,
+  updateResponseSchema,
 } from "../schemas/validation";
 
 describe("Feedback Validation Schemas", () => {
@@ -458,6 +460,222 @@ describe("Feedback Validation Schemas", () => {
         attachmentUrls: Array(6).fill("https://example.com/a.png"),
       });
       expect(result.success).toBe(false);
+    });
+  });
+
+  // ─── updateResponseSchema ────────────────────────────────────────────
+  describe("updateResponseSchema", () => {
+    it("accepts valid message", () => {
+      const result = updateResponseSchema.safeParse({ message: "Updated reply" });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects empty message", () => {
+      const result = updateResponseSchema.safeParse({ message: "" });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts message at exactly 1 character", () => {
+      const result = updateResponseSchema.safeParse({ message: "A" });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts message at exactly 2000 characters", () => {
+      const result = updateResponseSchema.safeParse({
+        message: "A".repeat(2000),
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects message exceeding 2000 characters", () => {
+      const result = updateResponseSchema.safeParse({
+        message: "A".repeat(2001),
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects missing message field", () => {
+      const result = updateResponseSchema.safeParse({});
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects non-string message", () => {
+      const result = updateResponseSchema.safeParse({ message: 123 });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ─── responseIdParamSchema ───────────────────────────────────────────
+  describe("responseIdParamSchema", () => {
+    it("accepts valid integer ids", () => {
+      const result = responseIdParamSchema.safeParse({ id: 1, responseId: 5 });
+      expect(result.success).toBe(true);
+    });
+
+    it("coerces string ids to integers", () => {
+      const result = responseIdParamSchema.safeParse({
+        id: "3",
+        responseId: "7",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.id).toBe(3);
+        expect(result.data.responseId).toBe(7);
+      }
+    });
+
+    it("rejects zero feedback id", () => {
+      const result = responseIdParamSchema.safeParse({ id: 0, responseId: 1 });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects zero response id", () => {
+      const result = responseIdParamSchema.safeParse({ id: 1, responseId: 0 });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects negative ids", () => {
+      const result = responseIdParamSchema.safeParse({
+        id: -1,
+        responseId: -2,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects non-numeric strings", () => {
+      const result = responseIdParamSchema.safeParse({
+        id: "abc",
+        responseId: "xyz",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects float values", () => {
+      const result = responseIdParamSchema.safeParse({
+        id: 1.5,
+        responseId: 2.7,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects missing fields", () => {
+      expect(responseIdParamSchema.safeParse({ id: 1 }).success).toBe(false);
+      expect(responseIdParamSchema.safeParse({ responseId: 1 }).success).toBe(
+        false,
+      );
+      expect(responseIdParamSchema.safeParse({}).success).toBe(false);
+    });
+  });
+
+  // ─── Edge cases: attachmentUrls ──────────────────────────────────────
+  describe("createFeedbackSchema — attachment edge cases", () => {
+    const base = {
+      subject: "Attachment edge case test",
+      description: "Testing various attachment URL scenarios that exercise boundary conditions.",
+      category: "bug_report" as const,
+    };
+
+    it("accepts exactly 5 different URLs", () => {
+      const urls = Array.from(
+        { length: 5 },
+        (_, i) => `https://example.com/img${i}.png`,
+      );
+      const result = createFeedbackSchema.safeParse({
+        ...base,
+        attachmentUrls: urls,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects 6 URLs", () => {
+      const urls = Array.from(
+        { length: 6 },
+        (_, i) => `https://example.com/img${i}.png`,
+      );
+      const result = createFeedbackSchema.safeParse({
+        ...base,
+        attachmentUrls: urls,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects mixed valid and invalid URLs", () => {
+      const result = createFeedbackSchema.safeParse({
+        ...base,
+        attachmentUrls: ["https://valid.com/a.png", "not-a-url", "ftp://also-ok.com/b"],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts URLs with query parameters", () => {
+      const result = createFeedbackSchema.safeParse({
+        ...base,
+        attachmentUrls: ["https://example.com/img.png?token=abc&size=large"],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts URLs with fragments", () => {
+      const result = createFeedbackSchema.safeParse({
+        ...base,
+        attachmentUrls: ["https://example.com/page#section"],
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ─── Edge cases: filter combinations ─────────────────────────────────
+  describe("feedbackFiltersSchema — edge cases", () => {
+    it("accepts empty object (all defaults)", () => {
+      const result = feedbackFiltersSchema.safeParse({});
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.page).toBe(1);
+        expect(result.data.limit).toBe(20);
+      }
+    });
+
+    it("accepts all filters combined", () => {
+      const result = feedbackFiltersSchema.safeParse({
+        category: "bug_report",
+        status: "open",
+        priority: "high",
+        relatedModule: "pos",
+        restaurantId: "rest-1",
+        search: "checkout",
+        page: 2,
+        limit: 50,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects limit exceeding 100", () => {
+      const result = feedbackFiltersSchema.safeParse({ limit: 101 });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects page of 0", () => {
+      const result = feedbackFiltersSchema.safeParse({ page: 0 });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects negative page", () => {
+      const result = feedbackFiltersSchema.safeParse({ page: -1 });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects search exceeding 200 characters", () => {
+      const result = feedbackFiltersSchema.safeParse({
+        search: "A".repeat(201),
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts search at exactly 200 characters", () => {
+      const result = feedbackFiltersSchema.safeParse({
+        search: "A".repeat(200),
+      });
+      expect(result.success).toBe(true);
     });
   });
 });

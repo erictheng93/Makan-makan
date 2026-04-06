@@ -55,6 +55,8 @@ const mockService = vi.hoisted(() => ({
   addResponse: vi.fn(),
   getResponses: vi.fn(),
   getFeedbackStats: vi.fn(),
+  updateResponse: vi.fn(),
+  deleteResponse: vi.fn(),
 }));
 
 vi.mock("@makanmakan/database", async (importOriginal) => {
@@ -856,6 +858,259 @@ describe("Feedback Routes", () => {
 
       const res = await app.fetch(
         new Request("http://localhost/feedback/1", { method: "DELETE" }),
+        mockEnv,
+      );
+      expect(res.status).toBe(500);
+    });
+  });
+
+  // ── PUT /:id/responses/:responseId (edit response) ─────────────────────
+  describe("PUT /:id/responses/:responseId", () => {
+    beforeEach(() => {
+      state.validatedParams = { id: 1, responseId: 10 };
+      state.validatedBody = { message: "Updated reply" };
+      mockService.updateResponse.mockResolvedValue({
+        ...mockResponse,
+        id: 10,
+        message: "Updated reply",
+      });
+    });
+
+    it("returns 200 when admin edits any response", async () => {
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "PUT",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { success: boolean; data: any };
+      expect(json.success).toBe(true);
+      expect(json.data.message).toBe("Updated reply");
+
+      expect(mockService.updateResponse).toHaveBeenCalledOnce();
+      expect(mockService.updateResponse).toHaveBeenCalledWith(
+        10,
+        1, // admin user id
+        "Updated reply",
+        true, // isAdmin
+      );
+    });
+
+    it("owner can edit response on own feedback", async () => {
+      state.user = {
+        id: 2,
+        role: 1,
+        restaurantId: "restaurant-A",
+        username: "owner1",
+      };
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "PUT",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(200);
+
+      expect(mockService.getFeedbackById).toHaveBeenCalledOnce();
+      expect(mockService.updateResponse).toHaveBeenCalledWith(
+        10,
+        2, // owner user id
+        "Updated reply",
+        false, // isAdmin=false for owner
+      );
+    });
+
+    it("returns 403 when owner edits response on another user's feedback", async () => {
+      state.user = {
+        id: 99,
+        role: 1,
+        restaurantId: "restaurant-A",
+        username: "owner2",
+      };
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "PUT",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(403);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string };
+      };
+      expect(json.success).toBe(false);
+      expect(json.error.code).toBe("FEEDBACK_ACCESS_DENIED");
+
+      expect(mockService.updateResponse).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when feedback does not exist (owner path)", async () => {
+      state.user = {
+        id: 2,
+        role: 1,
+        restaurantId: "restaurant-A",
+        username: "owner1",
+      };
+      mockService.getFeedbackById.mockResolvedValue(null);
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "PUT",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(404);
+      expect(mockService.updateResponse).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when response not found (service returns null)", async () => {
+      mockService.updateResponse.mockResolvedValue(null);
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "PUT",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(404);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string };
+      };
+      expect(json.error.code).toBe("RESPONSE_NOT_FOUND");
+    });
+
+    it("returns 500 when service throws", async () => {
+      mockService.updateResponse.mockRejectedValue(
+        new Error("Update failed"),
+      );
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "PUT",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(500);
+    });
+  });
+
+  // ── DELETE /:id/responses/:responseId (delete response) ────────────────
+  describe("DELETE /:id/responses/:responseId", () => {
+    beforeEach(() => {
+      state.validatedParams = { id: 1, responseId: 10 };
+      mockService.deleteResponse.mockResolvedValue(true);
+    });
+
+    it("returns 200 when admin deletes any response", async () => {
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "DELETE",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { success: boolean };
+      expect(json.success).toBe(true);
+
+      expect(mockService.deleteResponse).toHaveBeenCalledOnce();
+      expect(mockService.deleteResponse).toHaveBeenCalledWith(
+        10,
+        1, // admin user id
+        true, // isAdmin
+      );
+    });
+
+    it("owner can delete response on own feedback", async () => {
+      state.user = {
+        id: 2,
+        role: 1,
+        restaurantId: "restaurant-A",
+        username: "owner1",
+      };
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "DELETE",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(200);
+
+      expect(mockService.getFeedbackById).toHaveBeenCalledOnce();
+      expect(mockService.deleteResponse).toHaveBeenCalledWith(
+        10,
+        2,
+        false, // isAdmin=false
+      );
+    });
+
+    it("returns 403 when owner deletes response on another user's feedback", async () => {
+      state.user = {
+        id: 99,
+        role: 1,
+        restaurantId: "restaurant-A",
+        username: "owner2",
+      };
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "DELETE",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(403);
+      expect(mockService.deleteResponse).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when feedback does not exist (owner path)", async () => {
+      state.user = {
+        id: 2,
+        role: 1,
+        restaurantId: "restaurant-A",
+        username: "owner1",
+      };
+      mockService.getFeedbackById.mockResolvedValue(null);
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "DELETE",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(404);
+      expect(mockService.deleteResponse).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when response not found (service returns false)", async () => {
+      mockService.deleteResponse.mockResolvedValue(false);
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "DELETE",
+        }),
+        mockEnv,
+      );
+      expect(res.status).toBe(404);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string };
+      };
+      expect(json.error.code).toBe("RESPONSE_NOT_FOUND");
+    });
+
+    it("returns 500 when service throws", async () => {
+      mockService.deleteResponse.mockRejectedValue(
+        new Error("Delete failed"),
+      );
+
+      const res = await app.fetch(
+        new Request("http://localhost/feedback/1/responses/10", {
+          method: "DELETE",
+        }),
         mockEnv,
       );
       expect(res.status).toBe(500);
