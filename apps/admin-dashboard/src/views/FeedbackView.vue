@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-[#1C1C1E]">
+        <h1 class="text-3xl font-bold text-[#1C1C1E]">
           {{ t("feedback.title") }}
         </h1>
         <p class="text-sm text-[#8E8E93] mt-0.5">
