@@ -140,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, computed } from "vue";
+import { reactive, computed, watch } from "vue";
 import {
   Bug,
   Lightbulb,
@@ -180,8 +180,27 @@ const categories = [
 const priorities = [
   { value: "low", color: "#34C759" },
   { value: "medium", color: "#FFD60A" },
+  { value: "high", color: "#FF9500" },
   { value: "urgent", color: "#FF3B30" },
 ];
+
+const categoryPriorityDefaults: Record<string, string> = {
+  bug_report: "high",
+  performance: "high",
+  billing: "urgent",
+  feature_request: "medium",
+  usability: "medium",
+  other: "low",
+};
+
+watch(
+  () => form.category,
+  (cat) => {
+    if (cat && categoryPriorityDefaults[cat]) {
+      form.priority = categoryPriorityDefaults[cat];
+    }
+  },
+);
 
 const modules = [
   "menu",

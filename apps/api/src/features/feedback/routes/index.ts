@@ -86,9 +86,9 @@ routes.get(
       search: query.search,
     };
 
-    // Owner role: force-filter to own restaurant
+    // Owner role: only see own feedback
     if (user.role === 1) {
-      filters.restaurantId = user.restaurantId;
+      filters.userId = user.id;
     } else if (query.restaurantId) {
       // Admin: optional filter by restaurant
       filters.restaurantId = query.restaurantId;
@@ -120,8 +120,8 @@ routes.get(
 
     if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
 
-    // Owner can only view their own restaurant's feedback
-    if (user.role === 1 && feedback.restaurantId !== user.restaurantId) {
+    // Owner can only view their own feedback
+    if (user.role === 1 && feedback.userId !== user.id) {
       throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
     }
 
@@ -179,7 +179,7 @@ routes.patch(
     if (user.role === 1) {
       const feedback = await service.getFeedbackById(id);
       if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-      if (feedback.restaurantId !== user.restaurantId) {
+      if (feedback.userId !== user.id) {
         throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
       }
     }
@@ -216,7 +216,7 @@ routes.delete(
     if (user.role === 1) {
       const feedback = await service.getFeedbackById(id);
       if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-      if (feedback.restaurantId !== user.restaurantId) {
+      if (feedback.userId !== user.id) {
         throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
       }
     }
@@ -251,7 +251,7 @@ routes.post(
     const feedback = await service.getFeedbackById(id);
     if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
 
-    if (user.role === 1 && feedback.restaurantId !== user.restaurantId) {
+    if (user.role === 1 && feedback.userId !== user.id) {
       throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
     }
 
@@ -281,7 +281,7 @@ routes.put(
     if (user.role === 1) {
       const feedback = await service.getFeedbackById(id);
       if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-      if (feedback.restaurantId !== user.restaurantId) {
+      if (feedback.userId !== user.id) {
         throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
       }
     }
@@ -314,7 +314,7 @@ routes.delete(
     if (user.role === 1) {
       const feedback = await service.getFeedbackById(id);
       if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-      if (feedback.restaurantId !== user.restaurantId) {
+      if (feedback.userId !== user.id) {
         throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
       }
     }

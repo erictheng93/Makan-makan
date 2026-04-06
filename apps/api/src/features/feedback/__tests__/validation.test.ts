@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   createFeedbackSchema,
+  updateFeedbackSchema,
   updateFeedbackStatusSchema,
   addResponseSchema,
   feedbackFiltersSchema,
@@ -383,6 +384,80 @@ describe("Feedback Validation Schemas", () => {
 
     it("rejects missing id", () => {
       expect(feedbackIdParamSchema.safeParse({}).success).toBe(false);
+    });
+  });
+
+  // ─── updateFeedbackSchema ───────────────────────────────────────────
+  describe("updateFeedbackSchema", () => {
+    it("accepts single field update (subject only)", () => {
+      const result = updateFeedbackSchema.safeParse({ subject: "Updated title" });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts multiple field update", () => {
+      const result = updateFeedbackSchema.safeParse({
+        subject: "New subject",
+        category: "feature_request",
+        priority: "high",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts all fields", () => {
+      const result = updateFeedbackSchema.safeParse({
+        subject: "Full update",
+        description: "Updated description with enough length",
+        category: "usability",
+        priority: "urgent",
+        relatedModule: "pos",
+        attachmentUrls: ["https://example.com/img.png"],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects empty object (no fields)", () => {
+      const result = updateFeedbackSchema.safeParse({});
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects subject shorter than 5 chars", () => {
+      const result = updateFeedbackSchema.safeParse({ subject: "Hi" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects description shorter than 10 chars", () => {
+      const result = updateFeedbackSchema.safeParse({ description: "Short" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid category", () => {
+      const result = updateFeedbackSchema.safeParse({ category: "invalid_cat" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid priority", () => {
+      const result = updateFeedbackSchema.safeParse({ priority: "super_high" });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts valid priority values", () => {
+      for (const p of ["low", "medium", "high", "urgent"]) {
+        expect(updateFeedbackSchema.safeParse({ priority: p }).success).toBe(true);
+      }
+    });
+
+    it("rejects attachmentUrls with invalid URL", () => {
+      const result = updateFeedbackSchema.safeParse({
+        attachmentUrls: ["not-a-url"],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects more than 5 attachments", () => {
+      const result = updateFeedbackSchema.safeParse({
+        attachmentUrls: Array(6).fill("https://example.com/a.png"),
+      });
+      expect(result.success).toBe(false);
     });
   });
 });
