@@ -12,7 +12,7 @@ const formatZodDetails = (error: z.ZodError) =>
   }));
 
 // 請求體驗證中間件
-export const validateBody = <T = any>(schema: z.ZodType<T, any, any>) => {
+export const validateBody = (schema: z.ZodSchema) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     try {
       const body = await c.req.json();

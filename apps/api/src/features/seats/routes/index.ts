@@ -167,7 +167,7 @@ routes.post(
   "/batch-create",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateBody(batchCreateSeatsSchema as any),
+  validateBody(batchCreateSeatsSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const seatService = createSeatService(c.env);
@@ -199,7 +199,7 @@ routes.post(
   "/batch-regenerate-qr",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateBody(batchRegenerateQRSchema as any),
+  validateBody(batchRegenerateQRSchema),
   async (c) => {
     const { tableId } = c.get("validatedBody");
     const seatService = createSeatService(c.env);
@@ -227,7 +227,7 @@ routes.put(
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
-  validateBody(updateSeatSchema as any),
+  validateBody(updateSeatSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const data = c.get("validatedBody");
@@ -321,7 +321,7 @@ routes.post(
     USER_ROLES.CASHIER,
   ]),
   validateParams(commonSchemas.idParam as any),
-  validateBody(occupySeatSchema as any),
+  validateBody(occupySeatSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const { orderId, occupiedBy } = c.get("validatedBody");

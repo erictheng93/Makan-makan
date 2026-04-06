@@ -109,7 +109,7 @@ app.post(
   "/",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateBody(createUserSchema as any),
+  validateBody(createUserSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const currentUser = c.get("user");
@@ -128,7 +128,7 @@ app.put(
   "/:id",
   authMiddleware,
   validateParams(commonSchemas.idParam as any),
-  validateBody(updateUserSchema as any),
+  validateBody(updateUserSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const data = c.get("validatedBody");
@@ -148,7 +148,7 @@ app.post(
   "/:id/password",
   authMiddleware,
   validateParams(commonSchemas.idParam as any),
-  validateBody(updatePasswordSchema as any),
+  validateBody(updatePasswordSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const { currentPassword, newPassword } = c.get("validatedBody");
@@ -174,7 +174,7 @@ app.patch(
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
-  validateBody(userStatusSchema as any),
+  validateBody(userStatusSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const { isActive } = c.get("validatedBody");
@@ -218,7 +218,7 @@ app.post(
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
-  validateBody(resetPasswordSchema as any),
+  validateBody(resetPasswordSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const { newPassword } = c.get("validatedBody");

@@ -38,7 +38,7 @@ const routes = new Hono<{ Bindings: Env }>();
  */
 routes.post(
   "/validate",
-  validateBody(validateCouponSchema as any),
+  validateBody(validateCouponSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const couponsService = new CouponsService(c.env.DB as any, c.env);
@@ -87,7 +87,7 @@ routes.post(
   "/",
   authMiddleware,
   requireRole([0, 1]), // 管理員和店主
-  validateBody(createCouponSchema as any),
+  validateBody(createCouponSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
@@ -211,7 +211,7 @@ routes.put(
   authMiddleware,
   requireRole([0, 1]), // 管理員和店主
   validateParams(idParamSchema as any),
-  validateBody(updateCouponSchema as any),
+  validateBody(updateCouponSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const data = c.get("validatedBody");
@@ -356,7 +356,7 @@ routes.post(
   "/bulk",
   authMiddleware,
   requireRole([0, 1]), // 管理員和店主
-  validateBody(bulkActionSchema as any),
+  validateBody(bulkActionSchema),
   async (c) => {
     const { couponIds, action } = c.get("validatedBody");
     const user = c.get("user");
@@ -407,7 +407,7 @@ routes.post(
 routes.post(
   "/use",
   authMiddleware,
-  validateBody(useCouponSchema as any),
+  validateBody(useCouponSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const couponsService = new CouponsService(c.env.DB as any, c.env);

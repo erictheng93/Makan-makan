@@ -171,7 +171,7 @@ routes.patch(
   authMiddleware,
   requireRole([0, 1]),
   validateParams(feedbackIdParamSchema),
-  validateBody(updateFeedbackSchema as any),
+  validateBody(updateFeedbackSchema),
   async (c) => {
     const user = c.get("user");
     const { id } = c.get("validatedParams");

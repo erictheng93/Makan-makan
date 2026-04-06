@@ -50,7 +50,7 @@ routes.post(
   "/",
   authMiddleware,
   requireRole([0, 1]), // Admin or Shop Owner
-  validateBody(createPartnershipSchema as any),
+  validateBody(createPartnershipSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
@@ -152,7 +152,7 @@ routes.put(
   authMiddleware,
   requireRole([0, 1]),
   validateParams(idParamSchema as any),
-  validateBody(updatePartnershipSchema as any),
+  validateBody(updatePartnershipSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const data = c.get("validatedBody");
@@ -203,7 +203,7 @@ routes.post(
   "/plans",
   authMiddleware,
   requireRole([0, 1]),
-  validateBody(createPlanSchema as any),
+  validateBody(createPlanSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
@@ -276,7 +276,7 @@ routes.get(
 routes.post(
   "/plans/validate",
   authMiddleware,
-  validateBody(validatePlanSchema as any),
+  validateBody(validatePlanSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
@@ -306,7 +306,7 @@ routes.put(
   authMiddleware,
   requireRole([0, 1]),
   validateParams(planIdParamSchema as any),
-  validateBody(updatePlanSchema as any),
+  validateBody(updatePlanSchema),
   async (c) => {
     const { planId } = c.get("validatedParams");
     const data = c.get("validatedBody");
@@ -355,7 +355,7 @@ routes.delete(
  */
 routes.post(
   "/members/verify",
-  validateBody(memberVerificationSchema as any),
+  validateBody(memberVerificationSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
@@ -431,7 +431,7 @@ routes.post(
   authMiddleware,
   requireRole([0, 1]),
   validateParams(memberIdParamSchema as any),
-  validateBody(approveMemberSchema as any),
+  validateBody(approveMemberSchema),
   async (c) => {
     const { memberId } = c.get("validatedParams");
     const data = c.get("validatedBody");
@@ -462,7 +462,7 @@ routes.post(
   authMiddleware,
   requireRole([0, 1]),
   validateParams(memberIdParamSchema as any),
-  validateBody(rejectMemberSchema as any),
+  validateBody(rejectMemberSchema),
   async (c) => {
     const { memberId } = c.get("validatedParams");
     const data = c.get("validatedBody");
@@ -488,7 +488,7 @@ routes.put(
   authMiddleware,
   requireRole([0, 1]),
   validateParams(memberIdParamSchema as any),
-  validateBody(updateMemberSchema as any),
+  validateBody(updateMemberSchema),
   async (c) => {
     const { memberId } = c.get("validatedParams");
     const data = c.get("validatedBody");
@@ -516,7 +516,7 @@ routes.post(
   "/usage",
   authMiddleware,
   requireRole([0, 1, 4]), // Admin, Shop Owner, or Cashier
-  validateBody(logUsageSchema as any),
+  validateBody(logUsageSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
@@ -569,7 +569,7 @@ routes.post(
   authMiddleware,
   requireRole([0, 1]),
   validateParams(idParamSchema as any),
-  validateBody(cancelUsageSchema as any),
+  validateBody(cancelUsageSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const data = c.get("validatedBody");

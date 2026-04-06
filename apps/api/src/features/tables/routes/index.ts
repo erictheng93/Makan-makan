@@ -147,7 +147,7 @@ app.post(
   "/",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateBody(tableSchemas.create as any),
+  validateBody(tableSchemas.create),
   createTableHandler,
 );
 
@@ -160,7 +160,7 @@ app.put(
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam as any),
-  validateBody(tableSchemas.update as any),
+  validateBody(tableSchemas.update),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const data = c.get("validatedBody") as any;
@@ -251,7 +251,7 @@ app.post(
     USER_ROLES.CASHIER,
   ]),
   validateParams(tableSchemas.idParam as any),
-  validateBody(tableSchemas.occupy as any),
+  validateBody(tableSchemas.occupy),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const { orderId, occupiedBy, estimatedMinutes } = c.get("validatedBody");
@@ -355,7 +355,7 @@ app.post(
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVICE]),
   validateParams(tableSchemas.idParam as any),
-  validateBody(tableSchemas.clean as any),
+  validateBody(tableSchemas.clean),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const { notes } = c.get("validatedBody");
@@ -401,7 +401,7 @@ app.post(
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam as any),
-  validateBody(tableSchemas.regenerateQR as any),
+  validateBody(tableSchemas.regenerateQR),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const { customData } = c.get("validatedBody");
@@ -449,7 +449,7 @@ app.post(
   "/bulk-qr",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateBody(tableSchemas.bulkQR as any),
+  validateBody(tableSchemas.bulkQR),
   async (c) => {
     const {
       restaurantId,
