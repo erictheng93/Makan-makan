@@ -86,15 +86,15 @@ describe("Provider Factory - createProvider", () => {
 
 describe("Provider Factory - getDefaultModel", () => {
   it("returns correct default model for anthropic", () => {
-    expect(getDefaultModel("anthropic")).toBe("claude-3-5-sonnet-20241022");
+    expect(getDefaultModel("anthropic")).toBe("claude-sonnet-4-6");
   });
 
   it("returns correct default model for openai", () => {
-    expect(getDefaultModel("openai")).toBe("gpt-4o");
+    expect(getDefaultModel("openai")).toBe("gpt-4.1");
   });
 
   it("returns correct default model for google", () => {
-    expect(getDefaultModel("google")).toBe("gemini-1.5-pro");
+    expect(getDefaultModel("google")).toBe("gemini-2.5-flash");
   });
 
   it("returns correct default model for deepseek", () => {
@@ -110,20 +110,20 @@ describe("Provider Factory - getAvailableModels", () => {
   it("returns multiple models for openai", () => {
     const models = getAvailableModels("openai");
     expect(models.length).toBeGreaterThan(0);
-    expect(models).toContain("gpt-4o");
-    expect(models).toContain("gpt-4o-mini");
+    expect(models).toContain("gpt-4.1");
+    expect(models).toContain("gpt-4.1-mini");
   });
 
   it("returns multiple models for anthropic", () => {
     const models = getAvailableModels("anthropic");
     expect(models.length).toBeGreaterThan(0);
-    expect(models).toContain("claude-3-5-sonnet-20241022");
+    expect(models).toContain("claude-sonnet-4-6");
   });
 
   it("returns multiple models for google", () => {
     const models = getAvailableModels("google");
     expect(models.length).toBeGreaterThan(0);
-    expect(models).toContain("gemini-1.5-pro");
+    expect(models).toContain("gemini-2.5-flash");
   });
 
   it("returns multiple models for deepseek", () => {
@@ -162,7 +162,7 @@ describe("Provider Factory - testProvider", () => {
 
     expect(result.success).toBe(true);
     expect(result.provider).toBe("openai");
-    expect(result.model).toBe("gpt-4o");
+    expect(result.model).toBe("gpt-4.1");
     expect(result.latencyMs).toBeDefined();
   });
 
@@ -203,8 +203,8 @@ describe("OpenAIProvider", () => {
     });
   });
 
-  it("uses default model gpt-4o when none specified", () => {
-    expect(provider.getModel()).toBe("gpt-4o");
+  it("uses default model gpt-4.1 when none specified", () => {
+    expect(provider.getModel()).toBe("gpt-4.1");
   });
 
   it("uses custom model when specified", () => {
@@ -223,7 +223,7 @@ describe("OpenAIProvider", () => {
         id: "chatcmpl-test",
         object: "chat.completion",
         created: Date.now(),
-        model: "gpt-4o",
+        model: "gpt-4.1",
         choices: [
           {
             index: 0,
@@ -333,8 +333,8 @@ describe("AnthropicProvider", () => {
     });
   });
 
-  it("uses default model claude-3-5-sonnet", () => {
-    expect(provider.getModel()).toBe("claude-3-5-sonnet-20241022");
+  it("uses default model claude-sonnet-4-6", () => {
+    expect(provider.getModel()).toBe("claude-sonnet-4-6");
   });
 
   it("sends correct Anthropic API request format", async () => {
@@ -345,7 +345,7 @@ describe("AnthropicProvider", () => {
         type: "message",
         role: "assistant",
         content: [{ type: "text", text: "Hello from Claude!" }],
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-sonnet-4-6",
         stop_reason: "end_turn",
         usage: { input_tokens: 10, output_tokens: 8 },
       }),
@@ -398,8 +398,8 @@ describe("GoogleProvider", () => {
     });
   });
 
-  it("uses default model gemini-1.5-pro", () => {
-    expect(provider.getModel()).toBe("gemini-1.5-pro");
+  it("uses default model gemini-2.5-flash", () => {
+    expect(provider.getModel()).toBe("gemini-2.5-flash");
   });
 
   it("sends correct Gemini API request format", async () => {
@@ -435,7 +435,7 @@ describe("GoogleProvider", () => {
     // Verify URL includes API key
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain("key=google-test-key");
-    expect(url).toContain("gemini-1.5-pro");
+    expect(url).toContain("gemini-2.5-flash");
   });
 
   it("throws when no candidates returned", async () => {

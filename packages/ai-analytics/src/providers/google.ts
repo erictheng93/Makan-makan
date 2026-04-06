@@ -42,7 +42,7 @@ export class GoogleProvider extends BaseLLMProvider {
   private readonly baseUrl = "https://generativelanguage.googleapis.com/v1beta";
 
   protected getDefaultModel(): string {
-    return "gemini-1.5-pro";
+    return "gemini-2.5-flash";
   }
 
   async chat(request: LLMRequest): Promise<LLMResponse> {

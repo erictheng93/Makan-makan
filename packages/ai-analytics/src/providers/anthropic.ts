@@ -40,7 +40,7 @@ export class AnthropicProvider extends BaseLLMProvider {
   private readonly apiVersion = "2023-06-01";
 
   protected getDefaultModel(): string {
-    return "claude-3-5-sonnet-20241022";
+    return "claude-sonnet-4-6";
   }
 
   async chat(request: LLMRequest): Promise<LLMResponse> {

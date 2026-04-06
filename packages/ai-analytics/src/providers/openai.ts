@@ -43,7 +43,7 @@ export class OpenAIProvider extends BaseLLMProvider {
   private readonly baseUrl = "https://api.openai.com/v1";
 
   protected getDefaultModel(): string {
-    return "gpt-4o";
+    return "gpt-4.1";
   }
 
   async chat(request: LLMRequest): Promise<LLMResponse> {
