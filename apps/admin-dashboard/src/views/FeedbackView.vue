@@ -109,19 +109,19 @@
           <div class="flex-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2 mb-1.5">
               <span
-                class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
                 :class="categoryClass(item.category)"
               >
                 {{ t(`feedback.categories.${item.category}`) }}
               </span>
               <span
-                class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
                 :class="statusClass(item.status)"
               >
                 {{ t(`feedback.statuses.${item.status}`) }}
               </span>
               <span
-                class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
                 :class="priorityClass(item.priority)"
               >
                 {{ t(`feedback.priorities.${item.priority}`) }}
@@ -133,7 +133,7 @@
             <p class="text-xs text-[#8E8E93] mt-1 line-clamp-2">
               {{ item.description }}
             </p>
-            <div class="flex items-center gap-3 mt-2 text-[10px] text-[#C7C7CC]">
+            <div class="flex items-center gap-3 mt-2 text-xs text-[#8E8E93]">
               <span v-if="isAdmin && item.restaurant">🏪 {{ item.restaurant.name }}</span>
               <span>{{ formatDate(item.createdAt) }}</span>
             </div>
