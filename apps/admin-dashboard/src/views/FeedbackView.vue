@@ -366,7 +366,8 @@ onMounted(() => {
 .sheet-leave-active {
   transition: all 0.3s ease-out;
 }
-.sheet-enter-from .sheet-leave-to {
+.sheet-enter-from,
+.sheet-leave-to {
   opacity: 0;
 }
 .sheet-enter-from > div:last-child {
