@@ -8,6 +8,7 @@ import {
 import { FeedbackService } from "@makanmakan/database";
 import {
   createFeedbackSchema,
+  updateFeedbackSchema,
   updateFeedbackStatusSchema,
   addResponseSchema,
   feedbackFiltersSchema,
@@ -159,6 +160,77 @@ routes.put(
       data: feedback,
       message: "Status updated successfully",
     });
+  },
+);
+
+// PATCH /:id — 編輯反饋（作者本人 open 狀態，或 admin 任意）
+routes.patch(
+  "/:id",
+  authMiddleware,
+  requireRole([0, 1]),
+  validateParams(feedbackIdParamSchema),
+  validateBody(updateFeedbackSchema as any),
+  async (c) => {
+    const user = c.get("user");
+    const { id } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const service = new FeedbackService(c.env.DB as any, c.env as any);
+
+    if (user.role === 1) {
+      const feedback = await service.getFeedbackById(id);
+      if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
+      if (feedback.restaurantId !== user.restaurantId) {
+        throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
+      }
+    }
+
+    const updated = await service.updateFeedback(
+      id,
+      data,
+      user.id,
+      user.role === 0,
+    );
+
+    if (!updated) {
+      throw notFound(
+        "Feedback not found or cannot be edited",
+        "FEEDBACK_NOT_EDITABLE",
+      );
+    }
+
+    return c.json({ success: true, data: updated });
+  },
+);
+
+// DELETE /:id — 刪除反饋（作者本人 open 狀態，或 admin 任意）
+routes.delete(
+  "/:id",
+  authMiddleware,
+  requireRole([0, 1]),
+  validateParams(feedbackIdParamSchema),
+  async (c) => {
+    const user = c.get("user");
+    const { id } = c.get("validatedParams");
+    const service = new FeedbackService(c.env.DB as any, c.env as any);
+
+    if (user.role === 1) {
+      const feedback = await service.getFeedbackById(id);
+      if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
+      if (feedback.restaurantId !== user.restaurantId) {
+        throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
+      }
+    }
+
+    const deleted = await service.deleteFeedback(id, user.id, user.role === 0);
+
+    if (!deleted) {
+      throw notFound(
+        "Feedback not found or cannot be deleted",
+        "FEEDBACK_NOT_DELETABLE",
+      );
+    }
+
+    return c.json({ success: true });
   },
 );
 

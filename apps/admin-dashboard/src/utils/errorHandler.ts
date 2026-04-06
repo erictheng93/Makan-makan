@@ -130,11 +130,16 @@ class ErrorReportingService {
       const errors = [...this.reportQueue];
       this.reportQueue = [];
 
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("csrf_token="))
+        ?.split("=")[1];
       const response = await fetch(this.REPORT_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
         body: JSON.stringify({ errors }),
       });

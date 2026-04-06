@@ -42,6 +42,49 @@ app.get(
 );
 
 /**
+ * GET /api/v1/users/stats
+ */
+app.get(
+  "/stats",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateQuery(userStatsSchema as any),
+  async (c) => {
+    const { restaurantId } = c.get("validatedQuery");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
+
+    const stats = await usersService.getUserStats(currentUser, restaurantId);
+
+    return c.json({ success: true, data: stats });
+  },
+);
+
+/**
+ * GET /api/v1/users/search
+ */
+app.get(
+  "/search",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateQuery(userSearchSchema as any),
+  async (c) => {
+    const { query, restaurantId, limit } = c.get("validatedQuery");
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
+
+    const results = await usersService.searchUsers(
+      currentUser,
+      query,
+      restaurantId,
+      limit,
+    );
+
+    return c.json({ success: true, data: results });
+  },
+);
+
+/**
  * GET /api/v1/users/:id
  */
 app.get(
@@ -185,49 +228,6 @@ app.post(
     await usersService.resetPassword(currentUser, parseInt(id), newPassword);
 
     return c.json({ success: true, message: "Password reset successfully" });
-  },
-);
-
-/**
- * GET /api/v1/users/stats
- */
-app.get(
-  "/stats",
-  authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateQuery(userStatsSchema as any),
-  async (c) => {
-    const { restaurantId } = c.get("validatedQuery");
-    const currentUser = c.get("user");
-    const usersService = new UsersService(c.env);
-
-    const stats = await usersService.getUserStats(currentUser, restaurantId);
-
-    return c.json({ success: true, data: stats });
-  },
-);
-
-/**
- * GET /api/v1/users/search
- */
-app.get(
-  "/search",
-  authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateQuery(userSearchSchema as any),
-  async (c) => {
-    const { query, restaurantId, limit } = c.get("validatedQuery");
-    const currentUser = c.get("user");
-    const usersService = new UsersService(c.env);
-
-    const results = await usersService.searchUsers(
-      currentUser,
-      query,
-      restaurantId,
-      limit,
-    );
-
-    return c.json({ success: true, data: results });
   },
 );
 

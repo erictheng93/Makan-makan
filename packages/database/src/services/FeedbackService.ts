@@ -27,6 +27,15 @@ export interface CreateFeedbackData {
   attachmentUrls?: string[];
 }
 
+export interface UpdateFeedbackData {
+  category?: FeedbackCategory;
+  priority?: FeedbackPriority;
+  relatedModule?: FeedbackModule;
+  subject?: string;
+  description?: string;
+  attachmentUrls?: string[];
+}
+
 export interface FeedbackFilters {
   restaurantId?: string;
   userId?: number;
@@ -223,6 +232,87 @@ export class FeedbackService extends BaseService {
       return updated;
     } catch (error) {
       this.handleError(error, "updateFeedbackStatus");
+    }
+  }
+
+  async updateFeedback(
+    id: number,
+    data: UpdateFeedbackData,
+    userId: number,
+    isAdmin: boolean = false,
+  ): Promise<ShopFeedback | null> {
+    try {
+      const whereClause = isAdmin
+        ? eq(shopFeedback.id, id)
+        : and(
+            eq(shopFeedback.id, id),
+            eq(shopFeedback.userId, userId),
+            eq(shopFeedback.status, "open"),
+          );
+
+      const updatePayload: Partial<typeof shopFeedback.$inferInsert> = {
+        updatedAt: new Date(),
+      };
+      if (data.category !== undefined) updatePayload.category = data.category;
+      if (data.priority !== undefined) updatePayload.priority = data.priority;
+      if (data.relatedModule !== undefined)
+        updatePayload.relatedModule = data.relatedModule;
+      if (data.subject !== undefined) updatePayload.subject = data.subject;
+      if (data.description !== undefined)
+        updatePayload.description = data.description;
+      if (data.attachmentUrls !== undefined) {
+        updatePayload.attachmentUrls = JSON.stringify(data.attachmentUrls);
+      }
+
+      const [updated] = await this.db
+        .update(shopFeedback)
+        .set(updatePayload)
+        .where(whereClause)
+        .returning();
+
+      return updated ?? null;
+    } catch (error) {
+      this.handleError(error, "updateFeedback");
+    }
+  }
+
+  async deleteFeedback(
+    id: number,
+    userId: number,
+    isAdmin: boolean = false,
+  ): Promise<boolean> {
+    try {
+      return await this.safeTransaction(async (tx) => {
+        const [existing] = await tx
+          .select({
+            id: shopFeedback.id,
+            status: shopFeedback.status,
+            userId: shopFeedback.userId,
+          })
+          .from(shopFeedback)
+          .where(eq(shopFeedback.id, id));
+
+        if (!existing) return false;
+
+        if (!isAdmin) {
+          if (existing.userId !== userId || existing.status !== "open") {
+            return false;
+          }
+        }
+
+        await tx
+          .delete(feedbackResponses)
+          .where(eq(feedbackResponses.feedbackId, id));
+
+        const result = await tx
+          .delete(shopFeedback)
+          .where(eq(shopFeedback.id, id))
+          .returning({ id: shopFeedback.id });
+
+        return result.length > 0;
+      });
+    } catch (error) {
+      this.handleError(error, "deleteFeedback");
     }
   }
 

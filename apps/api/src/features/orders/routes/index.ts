@@ -422,6 +422,113 @@ app.get(
 );
 
 /**
+ * Get order statistics
+ * GET /api/v1/orders/stats
+ */
+app.get(
+  "/stats",
+  authMiddleware,
+  requireRole([0, 1]), // Admin and Owner only
+  validateQuery(orderSchemas.stats),
+  async (c) => {
+    const query: StatsQueryInput = c.get("validatedQuery");
+    const user: AuthUser = c.get("user");
+    const ordersService = new OrdersService(c.env);
+
+    logger.debug("Getting order statistics", { query, userId: user.id });
+
+    // Determine restaurant ID
+    let restaurantId: string | undefined;
+    if (user.role === 1) {
+      // Owner only sees their restaurant
+      restaurantId = user.restaurantId;
+    } else if (query.restaurantId) {
+      restaurantId = query.restaurantId;
+    }
+
+    if (!restaurantId) {
+      throw badRequest("Restaurant ID is required");
+    }
+
+    const statistics = await ordersService.getOrderStatistics(restaurantId);
+
+    return c.json({
+      success: true,
+      data: statistics,
+    });
+  },
+);
+
+/**
+ * Get order analytics
+ * GET /api/v1/orders/analytics
+ */
+app.get(
+  "/analytics",
+  authMiddleware,
+  requireRole([0, 1]), // Admin and Owner only
+  validateQuery(orderSchemas.analytics),
+  async (c) => {
+    const query: AnalyticsQueryInput = c.get("validatedQuery");
+    const user: AuthUser = c.get("user");
+    const ordersService = new OrdersService(c.env);
+
+    logger.debug("Getting order analytics", { query, userId: user.id });
+
+    // Apply role-based filtering and type conversions
+    const filters = {
+      ...query,
+      dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
+      dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
+    };
+    if (user.role === 1) {
+      filters.restaurantId = user.restaurantId;
+    }
+
+    const analytics = await ordersService.getOrderAnalytics(
+      filters,
+      user.id,
+      toCallerContext(user),
+    );
+
+    return c.json({
+      success: true,
+      data: analytics,
+    });
+  },
+);
+
+/**
+ * Get active orders for restaurant
+ * GET /api/v1/orders/active
+ */
+app.get(
+  "/active",
+  authMiddleware,
+  requireRole([0, 1, 2, 3]), // All except cashier
+  async (c) => {
+    const user: AuthUser = c.get("user");
+    const ordersService = new OrdersService(c.env);
+
+    const restaurantId =
+      user.role === 0 ? c.req.query("restaurantId") || "" : user.restaurantId;
+
+    if (!restaurantId) {
+      throw badRequest("Restaurant ID is required");
+    }
+
+    logger.debug("Getting active orders", { restaurantId, userId: user.id });
+
+    const orders = await ordersService.getActiveOrders(restaurantId);
+
+    return c.json({
+      success: true,
+      data: orders,
+    });
+  },
+);
+
+/**
  * Get single order details
  * GET /api/v1/orders/:id
  */
@@ -638,83 +745,6 @@ app.delete(
 );
 
 /**
- * Get order statistics
- * GET /api/v1/orders/stats
- */
-app.get(
-  "/stats",
-  authMiddleware,
-  requireRole([0, 1]), // Admin and Owner only
-  validateQuery(orderSchemas.stats),
-  async (c) => {
-    const query: StatsQueryInput = c.get("validatedQuery");
-    const user: AuthUser = c.get("user");
-    const ordersService = new OrdersService(c.env);
-
-    logger.debug("Getting order statistics", { query, userId: user.id });
-
-    // Determine restaurant ID
-    let restaurantId: string | undefined;
-    if (user.role === 1) {
-      // Owner only sees their restaurant
-      restaurantId = user.restaurantId;
-    } else if (query.restaurantId) {
-      restaurantId = query.restaurantId;
-    }
-
-    if (!restaurantId) {
-      throw badRequest("Restaurant ID is required");
-    }
-
-    const statistics = await ordersService.getOrderStatistics(restaurantId);
-
-    return c.json({
-      success: true,
-      data: statistics,
-    });
-  },
-);
-
-/**
- * Get order analytics
- * GET /api/v1/orders/analytics
- */
-app.get(
-  "/analytics",
-  authMiddleware,
-  requireRole([0, 1]), // Admin and Owner only
-  validateQuery(orderSchemas.analytics),
-  async (c) => {
-    const query: AnalyticsQueryInput = c.get("validatedQuery");
-    const user: AuthUser = c.get("user");
-    const ordersService = new OrdersService(c.env);
-
-    logger.debug("Getting order analytics", { query, userId: user.id });
-
-    // Apply role-based filtering and type conversions
-    const filters = {
-      ...query,
-      dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
-      dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
-    };
-    if (user.role === 1) {
-      filters.restaurantId = user.restaurantId;
-    }
-
-    const analytics = await ordersService.getOrderAnalytics(
-      filters,
-      user.id,
-      toCallerContext(user),
-    );
-
-    return c.json({
-      success: true,
-      data: analytics,
-    });
-  },
-);
-
-/**
  * Bulk order operations
  * POST /api/v1/orders/bulk
  */
@@ -833,36 +863,6 @@ app.get(
     return c.json({
       success: true,
       data: receipt,
-    });
-  },
-);
-
-/**
- * Get active orders for restaurant
- * GET /api/v1/orders/active
- */
-app.get(
-  "/active",
-  authMiddleware,
-  requireRole([0, 1, 2, 3]), // All except cashier
-  async (c) => {
-    const user: AuthUser = c.get("user");
-    const ordersService = new OrdersService(c.env);
-
-    const restaurantId =
-      user.role === 0 ? c.req.query("restaurantId") || "" : user.restaurantId;
-
-    if (!restaurantId) {
-      throw badRequest("Restaurant ID is required");
-    }
-
-    logger.debug("Getting active orders", { restaurantId, userId: user.id });
-
-    const orders = await ordersService.getActiveOrders(restaurantId);
-
-    return c.json({
-      success: true,
-      data: orders,
     });
   },
 );

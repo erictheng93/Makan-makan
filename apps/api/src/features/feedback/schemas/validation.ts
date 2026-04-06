@@ -24,6 +24,11 @@ export const createFeedbackSchema = z.object({
     .optional(),
 });
 
+export const updateFeedbackSchema = createFeedbackSchema.partial().refine(
+  (data) => Object.values(data).some((v) => v !== undefined),
+  { message: "At least one field must be provided" },
+);
+
 export const updateFeedbackStatusSchema = z.object({
   status: z.enum(FEEDBACK_STATUSES),
 });

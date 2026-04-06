@@ -570,6 +570,12 @@ export class MonitoringService {
   }
 
   private getCacheHealthStatus(): ComponentHealth["status"] {
+    // No cache activity recorded yet — treat as healthy (not critical)
+    if (
+      this.metrics.cacheMetrics.totalKeys === 0 &&
+      this.metrics.cacheMetrics.hitRate === 0
+    )
+      return "healthy";
     if (
       this.metrics.cacheMetrics.hitRate <
       PERFORMANCE_THRESHOLDS.CACHE_HIT_RATE_CRITICAL

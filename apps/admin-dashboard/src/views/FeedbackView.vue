@@ -198,6 +198,8 @@
               @reply-added="onReplyAdded"
               @reply-updated="onReplyUpdated"
               @reply-deleted="onReplyDeleted"
+              @feedback-updated="onFeedbackUpdated"
+              @feedback-deleted="onFeedbackDeleted"
             />
           </div>
         </div>
@@ -307,6 +309,22 @@ function onReplyDeleted(responseId: number) {
     (r) => r.id !== responseId,
   );
   selectedFeedback.value = { ...selectedFeedback.value, responses };
+}
+
+function onFeedbackUpdated(updated: FeedbackItem) {
+  selectedFeedback.value = { ...selectedFeedback.value!, ...updated };
+  const idx = feedbackList.value.findIndex((f) => f.id === updated.id);
+  if (idx !== -1) {
+    feedbackList.value[idx] = { ...feedbackList.value[idx], ...updated };
+  }
+}
+
+function onFeedbackDeleted() {
+  if (!selectedFeedback.value) return;
+  feedbackList.value = feedbackList.value.filter(
+    (f) => f.id !== selectedFeedback.value!.id,
+  );
+  selectedFeedback.value = null;
 }
 
 function formatDate(ts: string | number): string {

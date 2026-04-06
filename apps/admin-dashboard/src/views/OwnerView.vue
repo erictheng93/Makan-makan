@@ -708,7 +708,7 @@ async function fetchAllData() {
         api.get("/orders/active"),
         api.get("/users/stats"),
         api.get("/users?limit=10"),
-        api.get("/health"),
+        api.get("/monitoring/health"),
       ]);
 
     // Dashboard summary + top items + table status

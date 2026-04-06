@@ -52,6 +52,15 @@ export interface FeedbackFilters {
   limit?: number;
 }
 
+export interface UpdateFeedbackPayload {
+  subject?: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+  relatedModule?: string;
+  attachmentUrls?: string[];
+}
+
 export interface CreateFeedbackPayload {
   subject: string;
   description: string;
@@ -186,6 +195,31 @@ export function useFeedback() {
     }
   }
 
+  async function updateFeedback(id: number, payload: UpdateFeedbackPayload) {
+    try {
+      const res = await api.patch(`/feedback/${id}`, payload);
+      toast.success(t("feedback.editSuccess"));
+      return res.data.data as FeedbackItem;
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.error?.message ?? t("feedback.updateError"),
+      );
+      throw err;
+    }
+  }
+
+  async function deleteFeedback(id: number) {
+    try {
+      await api.delete(`/feedback/${id}`);
+      toast.success(t("feedback.deleteSuccess"));
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.error?.message ?? t("feedback.updateError"),
+      );
+      throw err;
+    }
+  }
+
   async function fetchStats() {
     try {
       const res = await api.get("/feedback/stats");
@@ -208,6 +242,8 @@ export function useFeedback() {
     addResponse,
     updateResponse,
     deleteResponse,
+    updateFeedback,
+    deleteFeedback,
     fetchStats,
   };
 }
