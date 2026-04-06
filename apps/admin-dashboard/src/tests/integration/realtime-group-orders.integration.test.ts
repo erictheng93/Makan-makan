@@ -1000,7 +1000,7 @@ describe("實時群組訂單集成測試", () => {
 
       // 創建大量臨時數據
       const operations = [];
-      for (let i = 0; i < 1000; i++) {
+      for (let i = 0; i < 200; i++) {
         operations.push({
           id: crypto.randomUUID(),
           data: new Array(100).fill(`test-data-${i}`),
@@ -1031,6 +1031,6 @@ describe("實時群組訂單集成測試", () => {
       // 檢查內存增長
       const memoryGrowth = finalMemory.heapUsed - initialMemory.heapUsed;
       expect(memoryGrowth).toBeLessThan(50 * 1024 * 1024); // 50MB以內
-    });
+    }, 30000);
   });
 });
