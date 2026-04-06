@@ -21,7 +21,20 @@ import { notFound, forbidden } from "../../../shared/utils/api-error";
 
 const routes = new Hono<{ Bindings: Env }>();
 
-// POST / — 店主提交反饋
+/** Owner (role=1) can only access their own feedback. Returns the feedback record. */
+async function assertOwnerAccess(
+  service: FeedbackService,
+  feedbackId: number,
+  user: { role: number; id: number },
+) {
+  const feedback = await service.getFeedbackById(feedbackId);
+  if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
+  if (user.role === 1 && feedback.userId !== user.id) {
+    throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
+  }
+  return feedback;
+}
+
 routes.post(
   "/",
   authMiddleware,
@@ -60,14 +73,13 @@ routes.post(
   },
 );
 
-// GET /stats — 管理員統計（必須在 /:id 之前）
+// Must be registered before /:id to avoid route conflict
 routes.get("/stats", authMiddleware, requireRole([0]), async (c) => {
   const service = new FeedbackService(c.env.DB as any, c.env as any);
   const stats = await service.getFeedbackStats();
   return c.json({ success: true, data: stats });
 });
 
-// GET / — 列出反饋（admin 看全部，owner 只看自己的）
 routes.get(
   "/",
   authMiddleware,
@@ -105,7 +117,6 @@ routes.get(
   },
 );
 
-// GET /:id — 反饋詳情
 routes.get(
   "/:id",
   authMiddleware,
@@ -116,14 +127,7 @@ routes.get(
     const { id } = c.get("validatedParams");
     const service = new FeedbackService(c.env.DB as any, c.env as any);
 
-    const feedback = await service.getFeedbackById(id);
-
-    if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-
-    // Owner can only view their own feedback
-    if (user.role === 1 && feedback.userId !== user.id) {
-      throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
-    }
+    const feedback = await assertOwnerAccess(service, id, user);
 
     // Filter out internal responses for non-admins
     if (user.role !== 0) {
@@ -136,7 +140,6 @@ routes.get(
   },
 );
 
-// PUT /:id/status — 管理員更新狀態
 routes.put(
   "/:id/status",
   authMiddleware,
@@ -163,7 +166,6 @@ routes.put(
   },
 );
 
-// PATCH /:id — 編輯反饋（作者本人 open 狀態，或 admin 任意）
 routes.patch(
   "/:id",
   authMiddleware,
@@ -177,11 +179,7 @@ routes.patch(
     const service = new FeedbackService(c.env.DB as any, c.env as any);
 
     if (user.role === 1) {
-      const feedback = await service.getFeedbackById(id);
-      if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-      if (feedback.userId !== user.id) {
-        throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
-      }
+      await assertOwnerAccess(service, id, user);
     }
 
     const updated = await service.updateFeedback(
@@ -202,7 +200,6 @@ routes.patch(
   },
 );
 
-// DELETE /:id — 刪除反饋（作者本人 open 狀態，或 admin 任意）
 routes.delete(
   "/:id",
   authMiddleware,
@@ -214,11 +211,7 @@ routes.delete(
     const service = new FeedbackService(c.env.DB as any, c.env as any);
 
     if (user.role === 1) {
-      const feedback = await service.getFeedbackById(id);
-      if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-      if (feedback.userId !== user.id) {
-        throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
-      }
+      await assertOwnerAccess(service, id, user);
     }
 
     const deleted = await service.deleteFeedback(id, user.id, user.role === 0);
@@ -234,7 +227,6 @@ routes.delete(
   },
 );
 
-// POST /:id/responses — 新增回覆
 routes.post(
   "/:id/responses",
   authMiddleware,
@@ -247,13 +239,7 @@ routes.post(
     const { message, isInternal } = c.get("validatedBody");
     const service = new FeedbackService(c.env.DB as any, c.env as any);
 
-    // Verify feedback exists and owner has access
-    const feedback = await service.getFeedbackById(id);
-    if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-
-    if (user.role === 1 && feedback.userId !== user.id) {
-      throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
-    }
+    await assertOwnerAccess(service, id, user);
 
     // Only admins can post internal notes
     const internal = user.role === 0 ? (isInternal ?? false) : false;
@@ -264,7 +250,6 @@ routes.post(
   },
 );
 
-// PUT /:id/responses/:responseId — 編輯回覆（作者本人或 admin）
 routes.put(
   "/:id/responses/:responseId",
   authMiddleware,
@@ -277,13 +262,8 @@ routes.put(
     const { message } = c.get("validatedBody");
     const service = new FeedbackService(c.env.DB as any, c.env as any);
 
-    // Owner: verify feedback belongs to their restaurant
     if (user.role === 1) {
-      const feedback = await service.getFeedbackById(id);
-      if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-      if (feedback.userId !== user.id) {
-        throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
-      }
+      await assertOwnerAccess(service, id, user);
     }
 
     const updated = await service.updateResponse(
@@ -299,7 +279,6 @@ routes.put(
   },
 );
 
-// DELETE /:id/responses/:responseId — 刪除回覆（作者本人或 admin）
 routes.delete(
   "/:id/responses/:responseId",
   authMiddleware,
@@ -310,13 +289,8 @@ routes.delete(
     const { id, responseId } = c.get("validatedParams");
     const service = new FeedbackService(c.env.DB as any, c.env as any);
 
-    // Owner: verify feedback belongs to their restaurant
     if (user.role === 1) {
-      const feedback = await service.getFeedbackById(id);
-      if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");
-      if (feedback.userId !== user.id) {
-        throw forbidden("Access denied", "FEEDBACK_ACCESS_DENIED");
-      }
+      await assertOwnerAccess(service, id, user);
     }
 
     const deleted = await service.deleteResponse(

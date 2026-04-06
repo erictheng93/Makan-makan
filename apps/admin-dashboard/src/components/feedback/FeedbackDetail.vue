@@ -335,7 +335,7 @@ import type { FeedbackItem, FeedbackResponseItem, UpdateFeedbackPayload } from "
 
 const feedbackCategories = ["bug_report", "feature_request", "usability", "performance", "billing", "other"] as const;
 const feedbackPriorities = ["low", "medium", "high", "urgent"] as const;
-const feedbackModules = ["menu", "orders", "pos", "tables", "reservations", "scheduling", "analytics", "settings", "delivery", "other"] as const;
+const feedbackModules = ["menu", "orders", "pos", "tables", "reservations", "scheduling", "analytics", "settings", "integrations", "other"] as const;
 
 const props = defineProps<{ feedback: FeedbackItem }>();
 const emit = defineEmits<{

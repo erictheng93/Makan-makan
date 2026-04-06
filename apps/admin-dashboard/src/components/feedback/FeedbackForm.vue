@@ -41,7 +41,7 @@
               v-for="p in priorities"
               :key="p.value"
               type="button"
-              @click="form.priority = p.value"
+              @click="selectPriority(p.value)"
               class="flex flex-col items-center gap-1.5 group"
             >
               <span
@@ -193,14 +193,21 @@ const categoryPriorityDefaults: Record<string, string> = {
   other: "low",
 };
 
+let priorityManuallySet = false;
+
 watch(
   () => form.category,
   (cat) => {
-    if (cat && categoryPriorityDefaults[cat]) {
+    if (cat && categoryPriorityDefaults[cat] && !priorityManuallySet) {
       form.priority = categoryPriorityDefaults[cat];
     }
   },
 );
+
+function selectPriority(value: string) {
+  form.priority = value;
+  priorityManuallySet = true;
+}
 
 const modules = [
   "menu",
