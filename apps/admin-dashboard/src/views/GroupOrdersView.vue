@@ -108,9 +108,9 @@
     </div>
 
     <!-- 主要內容區域 -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-8">
       <!-- 左側：整體團體訂單列表 -->
-      <div class="lg:col-span-2">
+      <div class="xl:col-span-2">
         <div class="bg-white rounded-lg shadow">
           <div class="p-4 sm:p-6 border-b border-gray-200">
             <div

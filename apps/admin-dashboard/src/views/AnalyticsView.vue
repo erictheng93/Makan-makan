@@ -169,7 +169,7 @@
     </div>
 
     <!-- 圖表區域 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
       <!-- 營收趨勢圖 -->
       <div class="bg-white rounded-lg shadow p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
@@ -244,7 +244,7 @@
     </div>
 
     <!-- 熱門菜品和詳細數據 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <!-- 熱門菜品 -->
       <div class="bg-white rounded-lg shadow">
         <div class="p-6">
