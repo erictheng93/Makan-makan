@@ -525,6 +525,7 @@
     "orderDetails": "Chi tiết đơn hàng",
     "orderTime": "Thời gian đặt hàng",
     "customerName": "Tên khách hàng",
+    "pickupNumber": "Số lấy món",
     "tableNumber": "Số bàn",
     "orderedItems": "Món đã đặt",
     "orderNotes": "Ghi chú đơn hàng",

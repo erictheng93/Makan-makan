@@ -525,6 +525,7 @@
     "orderDetails": "订单详情",
     "orderTime": "下单时间",
     "customerName": "顾客姓名",
+    "pickupNumber": "取餐号码",
     "tableNumber": "桌号",
     "orderedItems": "订购餐点",
     "orderNotes": "订单备注",

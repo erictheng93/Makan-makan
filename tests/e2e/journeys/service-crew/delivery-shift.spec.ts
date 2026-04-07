@@ -19,10 +19,10 @@ import {
   mockRestaurantAPI,
   mockSSE,
   mockTableAPI,
+  preAuthAdmin,
 } from "../../helpers/mock-api";
 import { PERSONAS, RESTAURANT, createMockOrder } from "../../helpers/personas";
 import {
-  loginAs,
   expectNavigatedTo,
   expectErrorMessage,
 } from "../../helpers/assertions";
@@ -35,10 +35,12 @@ test.use({ ...devices["Pixel 5"] });
 // ---------------------------------------------------------------------------
 // Admin app base URL
 // ---------------------------------------------------------------------------
-const ADMIN_APP = "http://localhost:5174";
+const ADMIN_APP = process.env.E2E_ADMIN_URL || "http://localhost:3001";
 
 test.describe("Service crew delivery shift", () => {
   test.beforeEach(async ({ page }) => {
+    // Pre-seed auth so protected routes don't redirect to /login
+    await preAuthAdmin(page, PERSONAS.SERVICE_CREW);
     await mockAuthAPI(page, PERSONAS.SERVICE_CREW);
     await mockRestaurantAPI(page);
     await mockTableAPI(page);
@@ -68,14 +70,8 @@ test.describe("Service crew delivery shift", () => {
   // -------------------------------------------------------------------------
 
   test("should login as service crew and load dashboard", async ({ page }) => {
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(
-      page,
-      PERSONAS.SERVICE_CREW.username,
-      PERSONAS.SERVICE_CREW.password,
-    );
-
-    // Should navigate to dashboard or service-specific view
+    // preAuthAdmin in beforeEach seeds auth — navigate directly to dashboard
+    await page.goto(`${ADMIN_APP}/dashboard`);
     await expect(page).toHaveURL(/\/(dashboard|service)/);
 
     // Verify the main content area is visible
@@ -140,15 +136,9 @@ test.describe("Service crew delivery shift", () => {
       }),
     );
 
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(
-      page,
-      PERSONAS.SERVICE_CREW.username,
-      PERSONAS.SERVICE_CREW.password,
-    );
-
-    // Wait for the page to settle
-    await page.waitForTimeout(1000);
+    // Navigate directly to dashboard (preAuthAdmin handles auth)
+    await page.goto(`${ADMIN_APP}/dashboard`);
+    await page.waitForLoadState("networkidle");
 
     // Verify order cards/items are rendered
     const orderArea = page.locator(
@@ -219,14 +209,9 @@ test.describe("Service crew delivery shift", () => {
       }
     });
 
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(
-      page,
-      PERSONAS.SERVICE_CREW.username,
-      PERSONAS.SERVICE_CREW.password,
-    );
-
-    await page.waitForTimeout(1000);
+    // Navigate directly to dashboard (preAuthAdmin handles auth)
+    await page.goto(`${ADMIN_APP}/dashboard`);
+    await page.waitForLoadState("networkidle");
 
     // Find and click the pickup/deliver action button
     const pickupButton = page.locator(
@@ -305,14 +290,9 @@ test.describe("Service crew delivery shift", () => {
       }
     });
 
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(
-      page,
-      PERSONAS.SERVICE_CREW.username,
-      PERSONAS.SERVICE_CREW.password,
-    );
-
-    await page.waitForTimeout(1000);
+    // Navigate directly to dashboard (preAuthAdmin handles auth)
+    await page.goto(`${ADMIN_APP}/dashboard`);
+    await page.waitForLoadState("networkidle");
 
     // Find and click the delivered/complete action button
     const deliveredButton = page.locator(
@@ -337,14 +317,9 @@ test.describe("Service crew delivery shift", () => {
   // -------------------------------------------------------------------------
 
   test("should display delivery performance stats", async ({ page }) => {
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(
-      page,
-      PERSONAS.SERVICE_CREW.username,
-      PERSONAS.SERVICE_CREW.password,
-    );
-
-    await page.waitForTimeout(1000);
+    // Navigate directly to dashboard (preAuthAdmin handles auth)
+    await page.goto(`${ADMIN_APP}/dashboard`);
+    await page.waitForLoadState("networkidle");
 
     // Verify the dashboard or stats area shows performance-related content
     const statsArea = page.locator(
@@ -364,14 +339,9 @@ test.describe("Service crew delivery shift", () => {
   test("should handle network error and show error message", async ({
     page,
   }) => {
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(
-      page,
-      PERSONAS.SERVICE_CREW.username,
-      PERSONAS.SERVICE_CREW.password,
-    );
-
-    await page.waitForTimeout(500);
+    // Navigate directly to dashboard (preAuthAdmin handles auth)
+    await page.goto(`${ADMIN_APP}/dashboard`);
+    await page.waitForLoadState("networkidle");
 
     // Simulate a network error by aborting the next order API call
     await page.route("**/api/v1/orders", (route) => {

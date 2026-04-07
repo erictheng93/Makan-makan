@@ -525,6 +525,7 @@
     "orderDetails": "Order Details",
     "orderTime": "Order Time",
     "customerName": "Customer Name",
+    "pickupNumber": "Pickup Number",
     "tableNumber": "Table Number",
     "orderedItems": "Ordered Items",
     "orderNotes": "Order Notes",

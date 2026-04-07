@@ -150,7 +150,7 @@
         </div>
 
         <!-- 時間軸 -->
-        <div class="bg-white rounded-2xl p-6 shadow-card">
+        <div data-testid="order-timeline" class="bg-white rounded-2xl p-6 shadow-card">
           <h3 class="text-lg font-semibold text-ios-text mb-4">
             {{ t("orderTracking.orderTimeline") }}
           </h3>
@@ -196,6 +196,14 @@
               }}</span>
               <span class="font-medium text-ios-text">{{
                 formatDateTime(order.createdAt)
+              }}</span>
+            </div>
+            <div v-if="order.pickupNumber" class="flex justify-between text-sm">
+              <span class="text-ios-secondary">{{
+                t("orderTracking.pickupNumber")
+              }}</span>
+              <span data-testid="pickup-number" class="font-bold text-ios-blue text-base">{{
+                order.pickupNumber
               }}</span>
             </div>
             <div v-if="order.customerName" class="flex justify-between text-sm">

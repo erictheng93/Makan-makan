@@ -525,6 +525,7 @@
     "orderDetails": "訂單詳情",
     "orderTime": "下單時間",
     "customerName": "顧客姓名",
+    "pickupNumber": "取餐號碼",
     "tableNumber": "桌號",
     "orderedItems": "訂購餐點",
     "orderNotes": "訂單備註",

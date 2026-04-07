@@ -56,6 +56,7 @@
 
           <!-- 移除按鈕 -->
           <button
+            data-testid="remove-item"
             class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-ios-secondary active:bg-ios-red/10 active:text-ios-red transition-all duration-200"
             @click="$emit('remove', item.id)"
           >
@@ -116,6 +117,7 @@
 
             <button
               :disabled="item.quantity >= 99"
+              data-testid="qty-increase"
               class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               @click="updateQuantity(item.quantity + 1)"
             >

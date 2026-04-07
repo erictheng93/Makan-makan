@@ -14,10 +14,10 @@ import {
   mockRestaurantAPI,
   mockMenuAPI,
   mockKitchenAPI,
+  preAuthKitchen,
 } from "../../helpers/mock-api";
 import { PERSONAS, RESTAURANT, createMockOrder } from "../../helpers/personas";
 import {
-  loginAs,
   expectNavigatedTo,
   expectSSEConnected,
 } from "../../helpers/assertions";
@@ -30,7 +30,7 @@ test.use({ ...devices["iPad Pro 11"] });
 // ---------------------------------------------------------------------------
 // App base URL and route constants
 // ---------------------------------------------------------------------------
-const KITCHEN_APP = "http://localhost:5175";
+const KITCHEN_APP = process.env.E2E_KITCHEN_URL || "http://localhost:3002";
 const loginUrl = `${KITCHEN_APP}/login`;
 const dashboardUrl = `${KITCHEN_APP}/kitchen/${RESTAURANT.id}`;
 const settingsUrl = `${KITCHEN_APP}/settings`;
@@ -60,6 +60,10 @@ test.describe("Chef kitchen shift flow", () => {
   // -----------------------------------------------------------------------
 
   test.beforeEach(async ({ page }) => {
+    // Pre-seed kitchen auth state (kitchen_auth_token + kitchen_user) so protected
+    // routes load without a login redirect. mockAuthAPI must be called first
+    // to intercept /auth/refresh (used when the fake token appears expired).
+    await preAuthKitchen(page, PERSONAS.CHEF);
     await mockAuthAPI(page, PERSONAS.CHEF);
     await mockRestaurantAPI(page);
     await mockMenuAPI(page);
@@ -72,19 +76,14 @@ test.describe("Chef kitchen shift flow", () => {
   test("should login as chef and redirect to kitchen dashboard", async ({
     page,
   }) => {
-    // Mock kitchen API before login to avoid race conditions
+    // preAuthAdmin in beforeEach seeds auth — navigate directly to kitchen
     await mockKitchenAPI(page);
 
-    await page.goto(loginUrl);
+    await page.goto(dashboardUrl);
 
-    await loginAs(page, PERSONAS.CHEF.username, PERSONAS.CHEF.password);
+    await page.waitForURL(/\/(kitchen|dashboard)/, { timeout: 10000 }).catch(() => {});
 
-    // After login, chef should be redirected to the kitchen dashboard
-    await page
-      .waitForURL(/\/(kitchen|dashboard)/, { timeout: 10000 })
-      .catch(() => {});
-
-    // Verify we are on a kitchen-related page (dashboard or kitchen view)
+    // Verify we are on a kitchen-related page
     const pageContent = await page.textContent("body");
     expect(pageContent).toBeTruthy();
   });

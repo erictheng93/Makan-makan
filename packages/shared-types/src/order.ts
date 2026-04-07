@@ -84,6 +84,8 @@ export interface Order extends BaseEntity {
   reviewComment?: string;
   orderSource?: PlatformSource;
   deliveryInfo?: DeliveryInfo;
+  pickupNumber?: string;
+  fulfillmentType?: "dine-in" | "takeaway" | "delivery";
   items?: OrderItem[];
   restaurant?: RestaurantInfo;
   table?: TableInfo;

@@ -30,9 +30,8 @@ import { expectNavigatedTo, expectCartCount } from "../../helpers/assertions";
 test.use({ ...devices["iPhone 12"] });
 
 // ---------------------------------------------------------------------------
-// App base URL and route constants
+// Route constants — use relative paths; Playwright baseURL from config applies
 // ---------------------------------------------------------------------------
-const CUSTOMER_APP = "http://localhost:5173";
 const orderTypeUrl = `/restaurant/${RESTAURANT.id}/shop/order-type`;
 const verifyUrl = `/restaurant/${RESTAURANT.id}/shop/verify`;
 const shopMenuUrl = `/restaurant/${RESTAURANT.id}/shop/menu`;
@@ -106,7 +105,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
   test("should display order type landing page with restaurant info", async ({
     page,
   }) => {
-    await page.goto(`${CUSTOMER_APP}${orderTypeUrl}`);
+    await page.goto(orderTypeUrl);
 
     // Verify restaurant name is displayed
     await expect(page.locator(`text=${RESTAURANT.name}`).first()).toBeVisible({
@@ -132,18 +131,21 @@ test.describe("Guest shop takeaway ordering flow", () => {
   test("should navigate to phone verification after selecting Takeaway", async ({
     page,
   }) => {
-    await page.goto(`${CUSTOMER_APP}${orderTypeUrl}`);
+    await page.goto(orderTypeUrl);
 
     // Wait for page to load
     await expect(page.locator(`text=${RESTAURANT.name}`).first()).toBeVisible({
       timeout: 10000,
     });
 
-    // Click the Takeaway option
+    // Click the Takeaway option (selects the type)
     const takeawayOption = page.locator(
-      'button:has-text("Takeaway"), button:has-text("外帶"), button:has-text("自取"), [data-testid="order-type-takeaway"], a:has-text("Takeaway"), a:has-text("外帶")',
+      'button:has-text("Takeaway"), button:has-text("外帶"), button:has-text("自取"), [data-testid="order-type-takeaway"]',
     );
     await takeawayOption.first().click();
+
+    // Click the Continue button to proceed
+    await page.locator('[data-testid="continue-btn"]').first().click();
 
     // Should navigate to the phone verification page
     await expectNavigatedTo(page, "/shop/verify");
@@ -156,39 +158,20 @@ test.describe("Guest shop takeaway ordering flow", () => {
   test("should complete phone verification and proceed to menu", async ({
     page,
   }) => {
-    await page.goto(`${CUSTOMER_APP}${verifyUrl}`);
+    await page.goto(verifyUrl);
 
-    // Find and fill the phone number input
+    // Find and fill the phone number input (last 3 digits, e.g. "678")
     const phoneInput = page.locator(
-      'input[name="phone"], input[type="tel"], input[placeholder*="phone"], input[placeholder*="手機"], input[placeholder*="電話"], [data-testid="phone-input"]',
+      'input[type="tel"], input[id="phone"], [data-testid="phone-input"]',
     );
     await expect(phoneInput.first()).toBeVisible({ timeout: 10000 });
-    await phoneInput.first().fill("0912345678");
+    await phoneInput.first().fill("678");
 
-    // Click the send OTP / verify button
-    const sendBtn = page.locator(
-      'button:has-text("Send"), button:has-text("發送"), button:has-text("驗證"), button:has-text("Verify"), button[type="submit"], [data-testid="send-otp-btn"]',
+    // Click the verify / start ordering button
+    const verifyBtn = page.locator(
+      '[data-testid="verify-btn"], button:has-text("開始點餐"), button:has-text("Verify"), button:has-text("確認")',
     );
-    await sendBtn.first().click();
-
-    // If an OTP input appears, fill it with a mock code
-    const otpInput = page.locator(
-      'input[name="otp"], input[name="code"], input[placeholder*="OTP"], input[placeholder*="驗證碼"], [data-testid="otp-input"]',
-    );
-    if (
-      await otpInput
-        .first()
-        .isVisible({ timeout: 3000 })
-        .catch(() => false)
-    ) {
-      await otpInput.first().fill("123456");
-
-      // Submit the OTP
-      const verifyBtn = page.locator(
-        'button:has-text("Verify"), button:has-text("確認"), button:has-text("驗證"), button[type="submit"], [data-testid="verify-otp-btn"]',
-      );
-      await verifyBtn.first().click();
-    }
+    await verifyBtn.first().click();
 
     // Should navigate to the shop menu
     await expectNavigatedTo(page, "/shop/menu");
@@ -201,7 +184,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
   test("should display shop menu with categories and items", async ({
     page,
   }) => {
-    await page.goto(`${CUSTOMER_APP}${shopMenuUrl}`);
+    await page.goto(shopMenuUrl);
 
     // Verify category tabs are rendered
     for (const category of MENU_CATEGORIES) {
@@ -212,15 +195,13 @@ test.describe("Guest shop takeaway ordering flow", () => {
     }
 
     // Verify item cards show name and price for available items
-    for (const item of MENU_ITEMS.filter((i) => i.available)) {
+    for (const item of MENU_ITEMS.filter((i) => i.isAvailable)) {
       const itemCard = page.locator(`text=${item.name}`);
       await expect(itemCard.first()).toBeVisible();
     }
 
     // Verify item images are present
-    const menuImages = page.locator(
-      '[data-testid="menu-item"] img, .menu-item img, [class*="menu"] img',
-    );
+    const menuImages = page.locator("main img[alt]");
     await expect(menuImages.first()).toBeVisible();
   });
 
@@ -229,7 +210,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
   // -----------------------------------------------------------------------
 
   test("should add items to shop cart", async ({ page }) => {
-    await page.goto(`${CUSTOMER_APP}${shopMenuUrl}`);
+    await page.goto(shopMenuUrl);
 
     // Wait for menu to load
     await expect(
@@ -240,7 +221,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
@@ -263,7 +244,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
   test("should show takeaway fulfillment type in cart modal", async ({
     page,
   }) => {
-    await page.goto(`${CUSTOMER_APP}${shopMenuUrl}`);
+    await page.goto(shopMenuUrl);
 
     // Add an item first
     await expect(
@@ -272,7 +253,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
@@ -305,7 +286,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
   test("should show order summary with subtotal and no delivery fee", async ({
     page,
   }) => {
-    await page.goto(`${CUSTOMER_APP}${shopMenuUrl}`);
+    await page.goto(shopMenuUrl);
 
     // Add "牛肉麵" x1
     await expect(
@@ -314,7 +295,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
@@ -383,7 +364,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
   test("should submit takeaway order and redirect to tracking", async ({
     page,
   }) => {
-    await page.goto(`${CUSTOMER_APP}${shopMenuUrl}`);
+    await page.goto(shopMenuUrl);
 
     // Add "牛肉麵" x1
     await expect(
@@ -392,7 +373,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
@@ -414,19 +395,23 @@ test.describe("Guest shop takeaway ordering flow", () => {
     await cartLink.first().click();
 
     // Mock guest order submission with takeaway-specific response
-    await page.route("**/api/v1/orders/guest", (route) => {
+    await page.route("**/api/v1/guest-orders", (route) => {
       if (route.request().method() === "POST") {
         route.fulfill({
           status: 200,
           contentType: "application/json",
           body: JSON.stringify({
             success: true,
-            data: createMockOrder({
-              id: "order-takeaway-001",
-              orderNumber: "ORD-TAKEAWAY-001",
-              fulfillmentType: "takeaway",
-              pickupNumber: "T-042",
-            }),
+            data: {
+              order: createMockOrder({
+                id: "order-takeaway-001",
+                orderNumber: "ORD-TAKEAWAY-001",
+                fulfillmentType: "takeaway",
+                pickupNumber: "T-042",
+              }),
+              guestToken: "mock-guest-token",
+              tokenExpiresAt: "2099-01-01T00:00:00Z",
+            },
           }),
         });
       } else {
@@ -434,9 +419,9 @@ test.describe("Guest shop takeaway ordering flow", () => {
       }
     });
 
-    // Click the submit/place order button
+    // Click the submit/place order button in the cart modal
     const submitBtn = page.locator(
-      'button:has-text("送出"), button:has-text("Submit"), button:has-text("下單"), button:has-text("Place Order"), [data-testid="submit-order-btn"], [data-testid="place-order-btn"]',
+      '[data-testid="submit-order-btn"], button:has-text("確認訂單"), button:has-text("送出"), button:has-text("Place Order")',
     );
     await submitBtn.first().click();
 
@@ -448,9 +433,9 @@ test.describe("Guest shop takeaway ordering flow", () => {
       .catch(() => {});
 
     // Verify the order number is displayed on the tracking page
-    const orderNumber = page.locator(
-      'text=/ORD-/, [data-testid="order-number"]',
-    );
+    const orderNumber = page
+      .locator("text=/ORD-/")
+      .or(page.locator('[data-testid="order-number"]'));
     await expect(orderNumber.first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -482,14 +467,15 @@ test.describe("Guest shop takeaway ordering flow", () => {
 
     // Navigate directly to the order tracking page
     await page.goto(
-      `${CUSTOMER_APP}/restaurant/${RESTAURANT.id}/shop/order/${takeawayOrder.id}`,
+      `/restaurant/${RESTAURANT.id}/shop/order/${takeawayOrder.id}`,
     );
     await page.waitForLoadState("networkidle");
 
     // Verify the pickup number is displayed
-    const pickupNumber = page.locator(
-      'text=/T-042/, [data-testid="pickup-number"], [data-testid="queue-number"]',
-    );
+    const pickupNumber = page
+      .locator("text=T-042")
+      .or(page.locator('[data-testid="pickup-number"]'))
+      .or(page.locator('[data-testid="queue-number"]'));
     await expect(pickupNumber.first()).toBeVisible({ timeout: 10000 });
 
     // Verify the order number is also shown
@@ -504,7 +490,8 @@ test.describe("Guest shop takeaway ordering flow", () => {
   test("should persist cart across page refresh via localStorage", async ({
     page,
   }) => {
-    await page.goto(`${CUSTOMER_APP}${shopMenuUrl}`);
+    // Include phone param so shopCart.saveCart() doesn't bail early
+    await page.goto(`${shopMenuUrl}?phone=678`);
 
     // Wait for menu to load
     await expect(
@@ -515,7 +502,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 

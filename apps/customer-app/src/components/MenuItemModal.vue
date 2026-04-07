@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="show && item"
+    data-testid="menu-item-modal"
     class="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
     @click.self="$emit('close')"
   >
@@ -143,6 +144,7 @@
             <div class="flex items-center space-x-3">
               <button
                 :disabled="quantity <= 1"
+                data-testid="qty-decrease"
                 class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                 @click="quantity = Math.max(1, quantity - 1)"
               >
@@ -169,6 +171,7 @@
 
               <button
                 :disabled="quantity >= 99"
+                data-testid="qty-increase"
                 class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                 @click="quantity = Math.min(99, quantity + 1)"
               >

@@ -37,6 +37,7 @@
             </div>
 
             <button
+              data-testid="cart-btn"
               class="relative w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
               @click="
                 router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
@@ -58,6 +59,7 @@
               <!-- 購物車數量徽章 -->
               <div
                 v-if="cartStore.itemCount > 0"
+                data-testid="cart-count"
                 class="absolute -top-1 -right-1 w-5 h-5 bg-ios-red text-white text-xs rounded-full flex items-center justify-center font-medium"
               >
                 {{ cartStore.itemCount }}

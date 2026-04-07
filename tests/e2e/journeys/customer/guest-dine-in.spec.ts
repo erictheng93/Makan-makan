@@ -92,41 +92,37 @@ test.describe("Guest dine-in ordering flow", () => {
   test("should allow manual restaurant entry", async ({ page }) => {
     await page.goto("/");
 
-    // Tap the manual input button
+    // Tap the manual input button (opens ManualInputModal)
     const manualButton = page.locator(
-      'button:has-text("Manual"), button:has-text("手動"), [data-testid="manual-input-btn"], a:has-text("Manual"), a:has-text("手動")',
+      'button:has-text("手動"), button:has-text("Manual"), [data-testid="manual-input-btn"]',
     );
     await manualButton.first().click();
 
-    // Fill in restaurant ID
-    const restaurantInput = page.locator(
-      'input[name="restaurantId"], input[placeholder*="restaurant"], input[placeholder*="餐廳"], [data-testid="restaurant-id-input"]',
+    // Wait for modal to appear and fill in restaurant name search
+    const searchInput = page.locator(
+      'input[id="restaurant-name"], input[placeholder*="餐廳"], input[placeholder*="restaurant"]',
     );
-    await restaurantInput.first().fill(RESTAURANT.id);
+    await expect(searchInput.first()).toBeVisible({ timeout: 5000 });
+    await searchInput.first().fill(RESTAURANT.name);
 
-    // Fill in table ID
-    const tableInput = page.locator(
-      'input[name="tableId"], input[placeholder*="table"], input[placeholder*="桌"], [data-testid="table-id-input"]',
+    // Wait for search results dropdown and click the restaurant
+    const resultItem = page.locator(
+      `button:has-text("${RESTAURANT.name}"), [role="option"]:has-text("${RESTAURANT.name}")`,
     );
-    await tableInput.first().fill(TABLE.id);
+    await expect(resultItem.first()).toBeVisible({ timeout: 5000 });
+    await resultItem.first().click();
 
-    // Submit the form
-    const submitBtn = page.locator(
-      'button[type="submit"], button:has-text("Go"), button:has-text("前往"), button:has-text("確認"), [data-testid="manual-submit-btn"]',
+    // Click confirm button
+    const confirmBtn = page.locator(
+      'button:has-text("確認"), button:has-text("Confirm"), [data-testid="manual-submit-btn"]',
     );
-    await submitBtn.first().click();
+    await confirmBtn.first().click();
 
-    // Should navigate to the menu view and display menu content
+    // Should navigate to the shop order-type page
     await expectNavigatedTo(
       page,
-      `/restaurant/${RESTAURANT.id}/table/${TABLE.id}`,
+      `/restaurant/${RESTAURANT.id}/shop/order-type`,
     );
-
-    // Verify menu content loaded (restaurant name or at least one menu item visible)
-    const menuContent = page.locator(
-      `text=${RESTAURANT.name}, text=${MENU_ITEMS[0].name}`,
-    );
-    await expect(menuContent.first()).toBeVisible({ timeout: 10000 });
   });
 
   // -----------------------------------------------------------------------
@@ -146,14 +142,14 @@ test.describe("Guest dine-in ordering flow", () => {
     }
 
     // Verify item cards show name and price for available items
-    for (const item of MENU_ITEMS.filter((i) => i.available)) {
+    for (const item of MENU_ITEMS.filter((i) => i.isAvailable)) {
       const itemCard = page.locator(`text=${item.name}`);
       await expect(itemCard.first()).toBeVisible();
     }
 
     // Verify item images are present (at least one img tag in the menu area)
     const menuImages = page.locator(
-      '[data-testid="menu-item"] img, .menu-item img, [class*="menu"] img',
+      'main img[alt]',
     );
     await expect(menuImages.first()).toBeVisible();
   });
@@ -171,7 +167,7 @@ test.describe("Guest dine-in ordering flow", () => {
 
     // Verify a modal/dialog/sheet/drawer appears
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
@@ -179,9 +175,7 @@ test.describe("Guest dine-in ordering flow", () => {
     await expect(modal.first()).toContainText(MENU_ITEMS[0].description);
 
     // Verify the modal shows the item price (price is in cents: 18000 = NT$180)
-    const priceText = page
-      .locator(`${modal.first()} >> text=/180|18,000|18000/`)
-      .or(modal.first().locator("text=/180|18,000|18000/"));
+    const priceText = modal.first().locator("text=/180|18,000|18000/");
     await expect(priceText.first()).toBeVisible();
   });
 
@@ -196,7 +190,7 @@ test.describe("Guest dine-in ordering flow", () => {
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible();
 
@@ -241,7 +235,7 @@ test.describe("Guest dine-in ordering flow", () => {
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible();
 
@@ -268,7 +262,7 @@ test.describe("Guest dine-in ordering flow", () => {
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible();
 
@@ -320,7 +314,7 @@ test.describe("Guest dine-in ordering flow", () => {
     // Add "牛肉麵" x1
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible();
     await modal
@@ -378,7 +372,7 @@ test.describe("Guest dine-in ordering flow", () => {
     // Add "珍珠奶茶" x1
     await page.locator(`text=${MENU_ITEMS[2].name}`).first().click();
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible();
     await modal
@@ -427,7 +421,7 @@ test.describe("Guest dine-in ordering flow", () => {
     // Add "牛肉麵" x1
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
     const modal = page.locator(
-      '[role="dialog"], [data-testid="item-detail-modal"], [data-testid="customization-modal"], .modal, .sheet, .drawer, [class*="modal"], [class*="dialog"], [class*="sheet"], [class*="drawer"]',
+      '[data-testid="menu-item-modal"]',
     );
     await expect(modal.first()).toBeVisible();
     await modal
@@ -448,23 +442,29 @@ test.describe("Guest dine-in ordering flow", () => {
     await cartLink.first().click();
     await expectNavigatedTo(page, cartUrl);
 
-    // Click the submit/place order button
+    // Click the submit/place order button (opens ConfirmationModal)
     const submitBtn = page.locator(
-      'button:has-text("送出"), button:has-text("Submit"), button:has-text("下單"), button:has-text("Place Order"), [data-testid="submit-order-btn"], [data-testid="place-order-btn"]',
+      'button:has-text("送出"), button:has-text("Submit"), button:has-text("下單"), [data-testid="submit-order-btn"], [data-testid="place-order-btn"]',
     );
     await submitBtn.first().click();
 
+    // Confirm the order in the confirmation dialog
+    const confirmBtn = page.locator(
+      '[data-testid="shop-cart-modal"] button:has-text("確認"), [data-testid="confirmation-modal"] button:has-text("確認"), button:has-text("確認"), button:has-text("Confirm")',
+    );
+    await confirmBtn.first().click();
+
     // Verify redirect to the order tracking page
-    // The mock returns order id "order-guest" from the guest endpoint or "order-new" from the regular endpoint
+    // The mock returns order id "order-guest" from the guest endpoint
     await expectNavigatedTo(
       page,
       `/restaurant/${RESTAURANT.id}/table/${TABLE.id}/order/`,
     );
 
     // Verify the order number is displayed on the tracking page
-    const orderNumber = page.locator(
-      'text=/ORD-/, [data-testid="order-number"]',
-    );
+    const orderNumber = page
+      .locator("text=/ORD-/")
+      .or(page.locator('[data-testid="order-number"]'));
     await expect(orderNumber.first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -480,8 +480,8 @@ test.describe("Guest dine-in ordering flow", () => {
 
     // Verify the "pending" / "等待確認" status is shown
     const statusIndicator = page.locator(
-      '[data-testid="order-status"], [data-status], .order-status, .status-badge, text=/pending|等待|已送出|處理中/',
-    );
+      '[data-testid="order-status"], [data-status], .order-status, .status-badge',
+    ).or(page.locator('text=/等待|處理中|已送出|pending/'));
     await expect(statusIndicator.first()).toBeVisible({ timeout: 10000 });
 
     // Verify a timeline or step indicator is rendered
@@ -493,7 +493,7 @@ test.describe("Guest dine-in ordering flow", () => {
     // Simulate a status update by re-mocking the order endpoint with an advanced status
     const updatedOrder = createMockOrder({ status: 2 }); // status 2 = preparing / 準備中
     await page.route(
-      new RegExp(`\\*\\*/api/v1/orders/${order.id}`),
+      new RegExp(`/api/v1/orders/${order.id}$`),
       (route) => {
         if (route.request().method() === "GET") {
           route.fulfill({

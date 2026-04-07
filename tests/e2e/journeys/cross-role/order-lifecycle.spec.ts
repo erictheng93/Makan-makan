@@ -25,6 +25,8 @@ import {
   mockTableAPI,
   mockSSE,
   mockAnalyticsAPI,
+  preAuthAdmin,
+  preAuthKitchen,
 } from "../../helpers/mock-api";
 import {
   PERSONAS,
@@ -34,18 +36,15 @@ import {
   MENU_CATEGORIES,
   createMockOrder,
 } from "../../helpers/personas";
-import {
-  loginAs,
-  expectNavigatedTo,
-  expectToastMessage,
-} from "../../helpers/assertions";
 
 // ---------------------------------------------------------------------------
 // App base URLs — each role uses a different dev server
+// Override via E2E_CUSTOMER_URL / E2E_ADMIN_URL / E2E_KITCHEN_URL env vars,
+// or leave at defaults (matching each app's vite.config.ts port setting).
 // ---------------------------------------------------------------------------
-const CUSTOMER_APP = "http://localhost:5173";
-const ADMIN_APP = "http://localhost:5174";
-const KITCHEN_APP = "http://localhost:5175";
+const CUSTOMER_APP = process.env.E2E_CUSTOMER_URL || "http://localhost:3000";
+const ADMIN_APP = process.env.E2E_ADMIN_URL || "http://localhost:3001";
+const KITCHEN_APP = process.env.E2E_KITCHEN_URL || "http://localhost:3002";
 
 // ---------------------------------------------------------------------------
 // Shared state that evolves as the order moves through stages.
@@ -303,11 +302,8 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
       }
     });
 
-    // Navigate to admin login and authenticate as the owner
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(page, PERSONAS.OWNER.username, PERSONAS.OWNER.password);
-
-    // Navigate to orders page
+    // Pre-seed admin auth and navigate directly to orders (no login redirect)
+    await preAuthAdmin(page, PERSONAS.OWNER);
     await page.goto(`${ADMIN_APP}/dashboard/orders`);
     await page.waitForLoadState("networkidle");
 
@@ -363,11 +359,8 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
       }),
     );
 
-    // Navigate to kitchen login
-    await page.goto(`${KITCHEN_APP}/login`);
-    await loginAs(page, PERSONAS.CHEF.username, PERSONAS.CHEF.password);
-
-    // Navigate to kitchen display
+    // Pre-seed kitchen auth and navigate directly to kitchen display
+    await preAuthKitchen(page, PERSONAS.CHEF);
     await page.goto(`${KITCHEN_APP}/kitchen/${RESTAURANT.id}`);
     await page.waitForLoadState("networkidle");
 
@@ -393,6 +386,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
 
     currentOrderStatus = 1;
 
+    await preAuthKitchen(page, PERSONAS.CHEF);
     await mockAuthAPI(page, PERSONAS.CHEF);
     await mockRestaurantAPI(page);
     await mockMenuAPI(page);
@@ -556,15 +550,8 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
       }
     });
 
-    // Navigate to admin login as service crew
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(
-      page,
-      PERSONAS.SERVICE_CREW.username,
-      PERSONAS.SERVICE_CREW.password,
-    );
-
-    // Navigate to the orders / delivery section
+    // Pre-seed admin auth as service crew and navigate directly to orders
+    await preAuthAdmin(page, PERSONAS.SERVICE_CREW);
     await page.goto(`${ADMIN_APP}/dashboard/orders`);
     await page.waitForLoadState("networkidle");
 
@@ -586,6 +573,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
 
     currentOrderStatus = 3; // ready
 
+    await preAuthAdmin(page, PERSONAS.SERVICE_CREW);
     await mockAuthAPI(page, PERSONAS.SERVICE_CREW);
     await mockRestaurantAPI(page);
     await mockSSE(page);
@@ -684,6 +672,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
 
     currentOrderStatus = 4; // delivered
 
+    await preAuthAdmin(page, PERSONAS.CASHIER);
     await mockAuthAPI(page, PERSONAS.CASHIER);
     await mockRestaurantAPI(page);
     await mockSSE(page);
@@ -769,11 +758,8 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
       }
     });
 
-    // Login as cashier
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(page, PERSONAS.CASHIER.username, PERSONAS.CASHIER.password);
-
-    // Navigate to orders or POS page
+    // Pre-seed admin auth as cashier and navigate directly to orders
+    await preAuthAdmin(page, PERSONAS.CASHIER);
     await page.goto(`${ADMIN_APP}/dashboard/orders`);
     await page.waitForLoadState("networkidle");
 

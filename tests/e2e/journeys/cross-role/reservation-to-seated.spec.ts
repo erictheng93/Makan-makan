@@ -23,6 +23,7 @@ import {
   mockQueueAPI,
   mockSSE,
   mockAnalyticsAPI,
+  preAuthAdmin,
 } from "../../helpers/mock-api";
 import {
   PERSONAS,
@@ -31,13 +32,13 @@ import {
   MENU_ITEMS,
   MENU_CATEGORIES,
 } from "../../helpers/personas";
-import { loginAs, expectNavigatedTo } from "../../helpers/assertions";
+import { expectNavigatedTo } from "../../helpers/assertions";
 
 // ---------------------------------------------------------------------------
 // App base URLs
 // ---------------------------------------------------------------------------
-const CUSTOMER_APP = "http://localhost:5173";
-const ADMIN_APP = "http://localhost:5174";
+const CUSTOMER_APP = process.env.E2E_CUSTOMER_URL || "http://localhost:3000";
+const ADMIN_APP = process.env.E2E_ADMIN_URL || "http://localhost:3001";
 
 // ---------------------------------------------------------------------------
 // Shared reservation data that evolves through the flow
@@ -56,8 +57,11 @@ const RESERVATION = {
   createdAt: new Date().toISOString(),
 };
 
+test.use({ viewport: { width: 1280, height: 720 } });
+
 test.describe("Reservation to seated flow — Owner (desktop)", () => {
   test.beforeEach(async ({ page }) => {
+    await preAuthAdmin(page, PERSONAS.OWNER);
     await mockAuthAPI(page, PERSONAS.OWNER);
     await mockRestaurantAPI(page);
     await mockMenuAPI(page);
@@ -116,8 +120,8 @@ test.describe("Reservation to seated flow — Owner (desktop)", () => {
     // The route mock should intercept and return our mock data
     // (in real E2E, the page.route intercepts browser-level requests)
     // Here we verify the mock setup works by navigating to the seating page
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(page, PERSONAS.OWNER.username, PERSONAS.OWNER.password);
+    // preAuthAdmin in beforeEach seeds auth — navigate directly to dashboard
+    await page.goto(`${ADMIN_APP}/dashboard`);
     await expectNavigatedTo(page, "/dashboard");
   });
 
@@ -144,14 +148,8 @@ test.describe("Reservation to seated flow — Owner (desktop)", () => {
       }
     });
 
-    await page.goto(`${ADMIN_APP}/login`);
-    await loginAs(page, PERSONAS.OWNER.username, PERSONAS.OWNER.password);
-    await expectNavigatedTo(page, "/dashboard");
-
-    // Navigate to seating management
-    await page.click(
-      'a[href*="/seating"], [data-testid="nav-seating"], nav >> text=/seating|座位|桌位/i',
-    );
+    // Navigate directly to seating (preAuthAdmin handles auth)
+    await page.goto(`${ADMIN_APP}/dashboard/seating`);
     await expectNavigatedTo(page, "/dashboard/seating");
 
     // Click the reservations tab
@@ -469,7 +467,12 @@ test.describe("Reservation to seated flow — Owner (desktop)", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Reservation to seated flow — Customer (mobile)", () => {
-  test.use({ ...devices["iPhone 12"] });
+  // Cannot spread devices["iPhone 12"] here because it includes defaultBrowserType: "webkit"
+  // which forces a new worker and is only allowed at top level. Use viewport + userAgent only.
+  test.use({
+    viewport: devices["iPhone 12"].viewport,
+    userAgent: devices["iPhone 12"].userAgent,
+  });
 
   test.beforeEach(async ({ page }) => {
     await mockAuthAPI(page, PERSONAS.CUSTOMER);

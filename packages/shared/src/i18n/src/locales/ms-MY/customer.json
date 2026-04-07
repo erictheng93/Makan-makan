@@ -525,6 +525,7 @@
     "orderDetails": "Butiran Pesanan",
     "orderTime": "Masa Pesanan",
     "customerName": "Nama Pelanggan",
+    "pickupNumber": "Nombor Pengambilan",
     "tableNumber": "Nombor Meja",
     "orderedItems": "Item Dipesan",
     "orderNotes": "Nota Pesanan",

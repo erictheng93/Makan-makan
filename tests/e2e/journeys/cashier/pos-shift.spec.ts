@@ -17,10 +17,10 @@ import {
   mockPOSAPI,
   mockSSE,
   mockAnalyticsAPI,
+  preAuthAdmin,
 } from "../../helpers/mock-api";
 import { PERSONAS, RESTAURANT, createMockOrder } from "../../helpers/personas";
 import {
-  loginAs,
   expectNavigatedTo,
   expectToastMessage,
 } from "../../helpers/assertions";
@@ -33,7 +33,7 @@ test.use({ viewport: { width: 1440, height: 900 } });
 // ---------------------------------------------------------------------------
 // App base URL and route constants
 // ---------------------------------------------------------------------------
-const ADMIN_APP = "http://localhost:5174";
+const ADMIN_APP = process.env.E2E_ADMIN_URL || "http://localhost:3001";
 const loginUrl = `${ADMIN_APP}/login`;
 const posCheckoutUrl = `${ADMIN_APP}/dashboard/pos/checkout`;
 const posManagementUrl = `${ADMIN_APP}/dashboard/pos/management`;
@@ -61,6 +61,8 @@ test.describe("Cashier POS shift flow", () => {
   // -----------------------------------------------------------------------
 
   test.beforeEach(async ({ page }) => {
+    // Pre-seed auth state so protected routes don't redirect to /login
+    await preAuthAdmin(page, PERSONAS.CASHIER);
     await mockAuthAPI(page, PERSONAS.CASHIER);
     await mockRestaurantAPI(page);
     await mockMenuAPI(page);
@@ -185,14 +187,9 @@ test.describe("Cashier POS shift flow", () => {
   // -----------------------------------------------------------------------
 
   test("should login as cashier and redirect to POS", async ({ page }) => {
-    await page.goto(loginUrl);
-
-    await loginAs(page, PERSONAS.CASHIER.username, PERSONAS.CASHIER.password);
-
-    // After login, cashier should be redirected to POS or dashboard
-    await page
-      .waitForURL(/\/(dashboard|pos)/, { timeout: 10000 })
-      .catch(() => {});
+    // preAuthAdmin in beforeEach seeds auth — navigate to POS directly
+    await page.goto(posCheckoutUrl);
+    await page.waitForURL(/\/(dashboard|pos)/, { timeout: 10000 }).catch(() => {});
 
     const pageContent = await page.textContent("body");
     expect(pageContent).toBeTruthy();

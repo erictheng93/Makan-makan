@@ -525,6 +525,7 @@
     "orderDetails": "Detail Pesanan",
     "orderTime": "Waktu Pesanan",
     "customerName": "Nama Pelanggan",
+    "pickupNumber": "Nomor Pengambilan",
     "tableNumber": "Nomor Meja",
     "orderedItems": "Item yang Dipesan",
     "orderNotes": "Catatan Pesanan",

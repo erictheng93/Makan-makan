@@ -108,7 +108,7 @@ export const RESTAURANT = {
 };
 
 export const TABLE = {
-  id: "table-e2e-001",
+  id: 1, // numeric — router converts :tableId via Number()
   number: "A-1",
   capacity: 4,
   status: "available",
@@ -139,26 +139,29 @@ export const MENU_CATEGORIES = [
 
 export const MENU_ITEMS = [
   {
-    id: "item-1",
+    id: 1,
     name: "\u725b\u8089\u9eba",
     description: "\u9999\u6fc3\u6e6f\u982d\u914d\u8edf\u5ae9\u725b\u8089",
     price: 18000,
     categoryId: "cat-1",
     restaurantId: RESTAURANT_ID,
     imageUrl: "https://placehold.co/300x200?text=Noodles",
-    available: true,
-    customizations: {
+    isAvailable: true,
+    options: {
       sizes: [
-        { id: "s1", name: "\u5c0f", priceDiff: 0 },
-        { id: "s2", name: "\u5927", priceDiff: 3000 },
+        { id: "s1", name: "\u5c0f", priceAdjustment: 0 },
+        { id: "s2", name: "\u5927", priceAdjustment: 3000 },
       ],
-      options: [
+      customizations: [
         {
-          groupName: "\u8fa3\u5ea6",
-          items: [
-            { id: "o1", name: "\u4e0d\u8fa3", priceDiff: 0 },
-            { id: "o2", name: "\u5c0f\u8fa3", priceDiff: 0 },
-            { id: "o3", name: "\u5927\u8fa3", priceDiff: 0 },
+          id: "cust-1",
+          name: "\u8fa3\u5ea6",
+          type: "single",
+          required: false,
+          choices: [
+            { id: "o1", name: "\u4e0d\u8fa3", priceAdjustment: 0 },
+            { id: "o2", name: "\u5c0f\u8fa3", priceAdjustment: 0 },
+            { id: "o3", name: "\u5927\u8fa3", priceAdjustment: 0 },
           ],
         },
       ],
@@ -169,34 +172,34 @@ export const MENU_ITEMS = [
     },
   },
   {
-    id: "item-2",
+    id: 2,
     name: "\u6392\u9aa8\u98ef",
     description: "\u9999\u8108\u9165\u70b8\u6392\u9aa8",
     price: 16000,
     categoryId: "cat-2",
     restaurantId: RESTAURANT_ID,
     imageUrl: "https://placehold.co/300x200?text=Rice",
-    available: true,
+    isAvailable: true,
   },
   {
-    id: "item-3",
+    id: 3,
     name: "\u73cd\u73e0\u5976\u8336",
     description: "\u7d93\u5178\u53f0\u7063\u5976\u8336",
     price: 6000,
     categoryId: "cat-3",
     restaurantId: RESTAURANT_ID,
     imageUrl: "https://placehold.co/300x200?text=Tea",
-    available: true,
+    isAvailable: true,
   },
   {
-    id: "item-4",
+    id: 4,
     name: "\u6c34\u9905",
     description: "\u624b\u5de5\u9bae\u8089\u6c34\u9905",
     price: 8000,
     categoryId: "cat-1",
     restaurantId: RESTAURANT_ID,
     imageUrl: "https://placehold.co/300x200?text=Dumpling",
-    available: false,
+    isAvailable: false,
   },
 ];
 

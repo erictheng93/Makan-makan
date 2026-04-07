@@ -151,6 +151,7 @@
             <!-- Verify Button -->
             <button
               :disabled="!isValidInput || isLoading"
+              data-testid="verify-btn"
               class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               @click="handleVerify"
             >

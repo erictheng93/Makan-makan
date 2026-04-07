@@ -17,6 +17,7 @@ import {
 } from "./personas";
 
 const API = "**/api/v1";
+const API_RE = "/api/v1"; // regex-safe variant (no ** glob prefix)
 
 function json(data: any, status = 200) {
   return {
@@ -104,11 +105,31 @@ export async function mockRestaurantAPI(page: Page) {
       json({ success: true, data: [RESTAURANT], pagination: { total: 1 } }),
     ),
   );
+
+  // Restaurant discovery search (used by ManualInputModal)
+  await page.route(new RegExp(`${API_RE}/discovery/restaurants`), (route) =>
+    route.fulfill(
+      json({
+        success: true,
+        data: {
+          results: [
+            {
+              restaurantId: RESTAURANT.id,
+              name: RESTAURANT.name,
+              type: null,
+              district: null,
+              imageUrl: RESTAURANT.logoUrl,
+            },
+          ],
+        },
+      }),
+    ),
+  );
 }
 
 export async function mockMenuAPI(page: Page) {
   // Full menu (GET /menu/:restaurantId)
-  await page.route(new RegExp(`${API}/menu/[^/]+$`), (route) => {
+  await page.route(new RegExp(`${API_RE}/menu/[^/]+$`), (route) => {
     if (route.request().method() === "GET") {
       route.fulfill(
         json({
@@ -125,7 +146,7 @@ export async function mockMenuAPI(page: Page) {
   });
 
   // Menu item CRUD
-  await page.route(new RegExp(`${API}/menu/.+/items`), (route) => {
+  await page.route(new RegExp(`${API_RE}/menu/.+/items`), (route) => {
     const method = route.request().method();
     if (method === "POST") {
       route.fulfill(
@@ -137,7 +158,7 @@ export async function mockMenuAPI(page: Page) {
   });
 
   // Category endpoints
-  await page.route(new RegExp(`${API}/menu/.+/categories`), (route) => {
+  await page.route(new RegExp(`${API_RE}/menu/.+/categories`), (route) => {
     if (route.request().method() === "POST") {
       route.fulfill(
         json({ success: true, data: { id: "cat-new", name: "New Cat" } }),
@@ -166,11 +187,11 @@ export async function mockTableAPI(page: Page) {
     ),
   );
 
-  await page.route(new RegExp(`${API}/tables/qr/.+`), (route) =>
+  await page.route(new RegExp(`${API_RE}/tables/qr/.+`), (route) =>
     route.fulfill(json({ success: true, data: TABLE })),
   );
 
-  await page.route(new RegExp(`${API}/seats/qr/.+`), (route) =>
+  await page.route(new RegExp(`${API_RE}/seats/qr/.+`), (route) =>
     route.fulfill(
       json({
         success: true,
@@ -215,15 +236,34 @@ export async function mockOrderAPI(page: Page) {
     }
   });
 
-  // Guest order
-  await page.route(`${API}/orders/guest`, (route) =>
-    route.fulfill(
-      json({
-        success: true,
-        data: { ...order, id: "order-guest", orderNumber: "ORD-GUEST-001" },
-      }),
-    ),
-  );
+  // Guest order (dine-in without login)
+  const guestOrder = { ...order, id: "order-guest", orderNumber: "ORD-GUEST-001" };
+
+  await page.route(`${API}/guest-orders`, (route) => {
+    if (route.request().method() === "POST") {
+      route.fulfill(
+        json({
+          success: true,
+          data: {
+            order: guestOrder,
+            guestToken: "mock-guest-token",
+            tokenExpiresAt: "2099-01-01T00:00:00Z",
+          },
+        }),
+      );
+    } else {
+      route.continue();
+    }
+  });
+
+  // Guest order by ID (for tracking page when guest_auth_token is set)
+  await page.route(new RegExp(`${API_RE}/guest-orders/[^/]+$`), (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill(json({ success: true, data: guestOrder }));
+    } else {
+      route.continue();
+    }
+  });
 
   // Active orders
   await page.route(`${API}/orders/active`, (route) =>
@@ -231,7 +271,7 @@ export async function mockOrderAPI(page: Page) {
   );
 
   // Order by ID
-  await page.route(new RegExp(`${API}/orders/[^/]+$`), (route) => {
+  await page.route(new RegExp(`${API_RE}/orders/[^/]+$`), (route) => {
     const method = route.request().method();
     if (method === "GET") {
       route.fulfill(json({ success: true, data: order }));
@@ -267,7 +307,7 @@ export async function mockOrderAPI(page: Page) {
 export async function mockKitchenAPI(page: Page) {
   const order = createMockOrder({ status: 0 });
 
-  await page.route(new RegExp(`${API}/kitchen/.+/orders`), (route) =>
+  await page.route(new RegExp(`${API_RE}/kitchen/.+/orders`), (route) =>
     route.fulfill(
       json({
         success: true,
@@ -290,12 +330,12 @@ export async function mockKitchenAPI(page: Page) {
 
   // Update item status
   await page.route(
-    new RegExp(`${API}/kitchen/.+/orders/.+/items/.+`),
+    new RegExp(`${API_RE}/kitchen/.+/orders/.+/items/.+`),
     (route) => route.fulfill(json({ success: true, data: { status: 2 } })),
   );
 
   // SSE events — serve as text/event-stream
-  await page.route(new RegExp(`${API}/kitchen/.+/events`), (route) =>
+  await page.route(new RegExp(`${API_RE}/kitchen/.+/events`), (route) =>
     route.fulfill({
       status: 200,
       contentType: "text/event-stream",
@@ -308,7 +348,7 @@ export async function mockKitchenAPI(page: Page) {
   );
 
   // Connection status
-  await page.route(new RegExp(`${API}/kitchen/.+/connections`), (route) =>
+  await page.route(new RegExp(`${API_RE}/kitchen/.+/connections`), (route) =>
     route.fulfill(json({ success: true, data: { activeConnections: 1 } })),
   );
 }
@@ -318,7 +358,7 @@ export async function mockKitchenAPI(page: Page) {
 // ---------------------------------------------------------------------------
 
 export async function mockPOSAPI(page: Page) {
-  await page.route(new RegExp(`${API}/pos/registers`), (route) => {
+  await page.route(new RegExp(`${API_RE}/pos/registers`), (route) => {
     const method = route.request().method();
     if (method === "GET") {
       route.fulfill(
@@ -346,7 +386,7 @@ export async function mockPOSAPI(page: Page) {
     }
   });
 
-  await page.route(new RegExp(`${API}/pos/shifts`), (route) => {
+  await page.route(new RegExp(`${API_RE}/pos/shifts`), (route) => {
     const method = route.request().method();
     if (method === "POST") {
       route.fulfill(
@@ -364,7 +404,7 @@ export async function mockPOSAPI(page: Page) {
     }
   });
 
-  await page.route(new RegExp(`${API}/pos/receipts`), (route) =>
+  await page.route(new RegExp(`${API_RE}/pos/receipts`), (route) =>
     route.fulfill(
       json({
         success: true,
@@ -379,7 +419,7 @@ export async function mockPOSAPI(page: Page) {
 // ---------------------------------------------------------------------------
 
 export async function mockQueueAPI(page: Page) {
-  await page.route(new RegExp(`${API}/waiting-list`), (route) => {
+  await page.route(new RegExp(`${API_RE}/waiting-list`), (route) => {
     const method = route.request().method();
     if (method === "GET") {
       route.fulfill(
@@ -410,7 +450,7 @@ export async function mockQueueAPI(page: Page) {
     }
   });
 
-  await page.route(new RegExp(`${API}/reservations`), (route) => {
+  await page.route(new RegExp(`${API_RE}/reservations`), (route) => {
     const method = route.request().method();
     if (method === "GET") {
       route.fulfill(
@@ -438,7 +478,7 @@ export async function mockQueueAPI(page: Page) {
 // ---------------------------------------------------------------------------
 
 export async function mockSSE(page: Page) {
-  await page.route(new RegExp(`${API}/sse/events`), (route) =>
+  await page.route(new RegExp(`${API_RE}/sse/events`), (route) =>
     route.fulfill({
       status: 200,
       contentType: "text/event-stream",
@@ -485,6 +525,66 @@ export async function mockAnalyticsAPI(page: Page) {
         },
       }),
     ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Admin Auth Pre-seeding
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-seed the admin dashboard's localStorage auth state so that protected
+ * routes load without a login redirect.  Call this BEFORE page.goto().
+ *
+ * Admin auth store keys: auth_token, auth_user
+ * isAuthenticated = computed(() => !!user.value && !!token.value)
+ */
+export async function preAuthAdmin(page: Page, persona: Persona) {
+  await page.addInitScript(
+    ({ token, user }: { token: string; user: object }) => {
+      localStorage.setItem("auth_token", token);
+      localStorage.setItem("auth_user", JSON.stringify(user));
+    },
+    {
+      token: persona.token,
+      user: {
+        id: persona.id,
+        username: persona.username,
+        fullName: persona.fullName,
+        email: persona.email,
+        role: persona.role,
+        restaurantId: persona.restaurantId,
+      },
+    },
+  );
+}
+
+/**
+ * Pre-seed the kitchen display app's localStorage auth state.  Call BEFORE page.goto().
+ *
+ * Kitchen auth store keys: kitchen_auth_token, kitchen_user
+ * The router calls checkAuth() on init → reads localStorage → sets token+user → isAuthenticated=true.
+ * The fake token will be seen as expired (isTokenExpired returns true for non-JWT strings)
+ * which triggers a refresh call — mockAuthAPI must be set up first so /auth/refresh is intercepted.
+ */
+export async function preAuthKitchen(page: Page, persona: Persona) {
+  await page.addInitScript(
+    ({ token, user }: { token: string; user: object }) => {
+      localStorage.setItem("kitchen_auth_token", token);
+      localStorage.setItem("kitchen_user", JSON.stringify(user));
+    },
+    {
+      token: persona.token,
+      user: {
+        id: persona.id,
+        username: persona.username,
+        fullName: persona.fullName,
+        email: persona.email,
+        role: persona.role,
+        restaurantId: persona.restaurantId,
+        permissions: [] as string[],
+      },
+    },
   );
 }
 

@@ -9,6 +9,7 @@
     >
       <div
         v-if="show"
+        data-testid="shop-cart-modal"
         class="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
         @click.self="emit('close')"
       >
@@ -224,6 +225,7 @@
                       </div>
 
                       <button
+                        data-testid="remove-item"
                         class="ml-4 text-red-500 hover:text-red-700 transition-colors"
                         @click="shopCartStore.removeItem(item.id)"
                       >
@@ -364,6 +366,7 @@
               <!-- Checkout Button -->
               <button
                 :disabled="isSubmitting"
+                data-testid="submit-order-btn"
                 class="w-full bg-ios-blue text-white py-4 px-6 rounded-full font-semibold shadow-lg hover:shadow-xl active:scale-[0.98] transition-transform duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 @click="handleCheckout"
               >

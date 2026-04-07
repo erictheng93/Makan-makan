@@ -543,6 +543,7 @@
       <div class="max-w-md mx-auto">
         <button
           :disabled="!canPlaceOrder"
+          data-testid="submit-order-btn"
           :class="[
             'w-full font-semibold py-4 px-6 rounded-full flex items-center justify-center space-x-2',
             canPlaceOrder

@@ -15,7 +15,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.E2E_BASE_URL || "http://localhost:5173",
+    baseURL: process.env.E2E_BASE_URL || "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -24,34 +24,51 @@ export default defineConfig({
   },
 
   projects: [
-    // Desktop browsers
+    // Desktop browsers — customer & journey tests only
     {
       name: "chromium",
+      testIgnore: ["**/admin/**", "**/integration/**"],
       use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "firefox",
+      testIgnore: ["**/admin/**", "**/integration/**"],
       use: { ...devices["Desktop Firefox"] },
     },
     {
       name: "webkit",
+      testIgnore: ["**/admin/**", "**/integration/**"],
       use: { ...devices["Desktop Safari"] },
     },
 
-    // Mobile devices
+    // Mobile devices — customer & journey tests only
     {
       name: "Mobile Chrome",
+      testIgnore: ["**/admin/**", "**/integration/**"],
       use: { ...devices["Pixel 5"] },
     },
     {
       name: "Mobile Safari",
+      testIgnore: ["**/admin/**", "**/integration/**"],
       use: { ...devices["iPhone 12"] },
     },
 
-    // Tablet
+    // Tablet — customer & journey tests only
     {
       name: "Tablet",
+      testIgnore: ["**/admin/**", "**/integration/**"],
       use: { ...devices["iPad Pro"] },
+    },
+
+    // Admin dashboard tests — baseURL points to the admin app (port 3001)
+    {
+      name: "admin",
+      testDir: "./tests/e2e/admin",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.E2E_ADMIN_URL || "http://localhost:3001",
+        viewport: { width: 1280, height: 800 },
+      },
     },
 
     // Integration tests (real API, no mocking) — serial to avoid active-order dedup
