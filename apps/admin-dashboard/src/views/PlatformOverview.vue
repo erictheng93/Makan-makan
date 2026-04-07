@@ -12,7 +12,7 @@
 
     <!-- Stats Row -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
+      <div class="bg-white rounded-2xl shadow-ios-card p-4">
         <div class="text-sm font-medium text-gray-500">
           {{ t("platform.totalRestaurants") }}
         </div>
@@ -20,7 +20,7 @@
           {{ restaurants.length }}
         </div>
       </div>
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
+      <div class="bg-white rounded-2xl shadow-ios-card p-4">
         <div class="text-sm font-medium text-gray-500">
           {{ t("platform.active") }}
         </div>
@@ -28,7 +28,7 @@
           {{ activeCount }}
         </div>
       </div>
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
+      <div class="bg-white rounded-2xl shadow-ios-card p-4">
         <div class="text-sm font-medium text-gray-500">
           {{ t("platform.inactive") }}
         </div>
@@ -51,7 +51,7 @@
     <!-- Empty State -->
     <div
       v-else-if="restaurants.length === 0"
-      class="text-center py-12 bg-white rounded-lg border border-gray-200"
+      class="text-center py-12 bg-white rounded-2xl shadow-ios-card"
     >
       <Store class="mx-auto h-12 w-12 text-gray-400" />
       <h3 class="mt-2 text-sm font-medium text-gray-900">
@@ -67,7 +67,7 @@
       <div
         v-for="restaurant in restaurants"
         :key="restaurant.id"
-        class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow"
+        class="bg-white rounded-2xl shadow-ios-card p-5 hover:shadow-ios-float transition-shadow"
       >
         <div class="flex items-start justify-between">
           <div class="min-w-0 flex-1">
@@ -98,7 +98,7 @@
         </div>
 
         <button
-          class="mt-4 w-full px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+          class="mt-4 w-full px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-full hover:bg-primary-700 transition-colors"
           @click="manageRestaurant(restaurant)"
         >
           {{ t("platform.manage") }}

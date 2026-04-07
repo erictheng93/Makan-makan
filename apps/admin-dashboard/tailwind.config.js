@@ -37,6 +37,11 @@ export default {
           teal: "#30B0C7",
         },
       },
+      boxShadow: {
+        "ios-sm": "0 2px 8px rgba(0,0,0,0.04)",
+        "ios-card": "0 4px 16px rgba(0,0,0,0.06)",
+        "ios-float": "0 8px 30px rgba(0,0,0,0.08)",
+      },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui"],
       },

@@ -51,7 +51,7 @@
     <!-- 關鍵指標卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <!-- 總營收 -->
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-2xl shadow-ios-card p-6">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-green-100">
             <CurrencyDollarIcon class="h-8 w-8 text-green-600" />
@@ -84,7 +84,7 @@
       </div>
 
       <!-- 訂單數量 -->
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-2xl shadow-ios-card p-6">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-blue-100">
             <ShoppingBagIcon class="h-8 w-8 text-blue-600" />
@@ -117,7 +117,7 @@
       </div>
 
       <!-- 平均客單價 -->
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-2xl shadow-ios-card p-6">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-purple-100">
             <CalculatorIcon class="h-8 w-8 text-purple-600" />
@@ -150,7 +150,7 @@
       </div>
 
       <!-- 桌台使用率 -->
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-2xl shadow-ios-card p-6">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-yellow-100">
             <TableCellsIcon class="h-8 w-8 text-yellow-600" />
@@ -171,7 +171,7 @@
     <!-- 圖表區域 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
       <!-- 營收趨勢圖 -->
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-2xl shadow-ios-card p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ t("analytics.charts.revenueTrend") }}
         </h3>
@@ -212,7 +212,7 @@
       </div>
 
       <!-- 訂單狀態分布 -->
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-2xl shadow-ios-card p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ t("analytics.charts.orderStatusDist") }}
         </h3>
@@ -246,7 +246,7 @@
     <!-- 熱門菜品和詳細數據 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <!-- 熱門菜品 -->
-      <div class="bg-white rounded-lg shadow">
+      <div class="bg-white rounded-2xl shadow-ios-card">
         <div class="p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">
             {{ t("analytics.popularItems.title") }}
@@ -306,7 +306,7 @@
       </div>
 
       <!-- 營業時段分析 -->
-      <div class="bg-white rounded-lg shadow">
+      <div class="bg-white rounded-2xl shadow-ios-card">
         <div class="p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">
             {{ t("analytics.businessHours.title") }}
@@ -351,7 +351,7 @@
     </div>
 
     <!-- 詳細報表 -->
-    <div class="mt-8 bg-white rounded-lg shadow">
+    <div class="mt-8 bg-white rounded-2xl shadow-ios-card">
       <div class="p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ t("analytics.detailedReport.title") }}

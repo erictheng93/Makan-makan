@@ -10,13 +10,13 @@
   }
   
   body {
-    @apply bg-gray-50 text-gray-900 min-h-screen;
+    @apply bg-ios-bg text-gray-900 min-h-screen;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200;
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-full transition-colors duration-200;
   }
   
   .btn-primary {
@@ -32,7 +32,7 @@
   }
   
   .card {
-    @apply bg-white rounded-lg border border-gray-200 shadow-sm;
+    @apply bg-white rounded-2xl shadow-ios-card;
   }
   
   .form-input {
