@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-ios-bg">
     <!-- 頂部導航 -->
     <nav class="bg-white/80 backdrop-blur-xl shadow-card-sm">
-      <div class="max-w-md mx-auto px-4 py-4">
+      <div class="max-w-md lg:max-w-3xl mx-auto px-4 lg:px-8 py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div
@@ -23,98 +23,101 @@
     </nav>
 
     <!-- 主要內容 -->
-    <main class="max-w-md mx-auto px-4 py-8">
-      <!-- 歡迎區塊 -->
-      <div class="text-center mb-8">
-        <div
-          class="w-24 h-24 mx-auto mb-6 bg-ios-blue/10 rounded-2xl flex items-center justify-center"
-        >
-          <svg
-            class="w-12 h-12 text-ios-blue"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+    <main class="max-w-md lg:max-w-3xl mx-auto px-4 lg:px-8 py-8 lg:py-16">
+      <!-- 歡迎區塊 — tablet: two-column hero layout -->
+      <div class="lg:flex lg:items-center lg:gap-16 mb-8 lg:mb-16">
+        <!-- 圖示 + 文字 -->
+        <div class="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
+          <div
+            class="w-24 h-24 lg:w-32 lg:h-32 mx-auto lg:mx-0 mb-6 bg-ios-blue/10 rounded-2xl lg:rounded-3xl flex items-center justify-center"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-            />
-          </svg>
+            <svg
+              class="w-12 h-12 lg:w-16 lg:h-16 text-ios-blue"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <h2 class="text-2xl lg:text-4xl font-bold text-ios-text mb-2 lg:mb-3">
+            {{ t("home.title") }}
+          </h2>
+          <p class="text-ios-secondary text-base lg:text-lg">
+            {{ t("home.subtitle") }}
+          </p>
         </div>
-        <h2 class="text-2xl font-bold text-ios-text mb-2">
-          {{ t("home.title") }}
-        </h2>
-        <p class="text-ios-secondary text-base">
-          {{ t("home.subtitle") }}
-        </p>
-      </div>
 
-      <!-- 主要操作按鈕 -->
-      <div class="space-y-4">
-        <!-- 掃描QR碼按鈕 -->
-        <button
-          class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3 shadow-lg"
-          @click="startQRScan"
-        >
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <!-- 主要操作按鈕 — tablet: 右欄獨立 -->
+        <div class="lg:flex-1 lg:max-w-sm space-y-3 lg:space-y-4">
+          <!-- 掃描QR碼按鈕 -->
+          <button
+            class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3 shadow-lg"
+            @click="startQRScan"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M12 12h-4.01M12 12v4m6-4h.01M12 8h.01"
-            />
-          </svg>
-          <span>{{ t("home.scanQR") }}</span>
-        </button>
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M12 12h-4.01M12 12v4m6-4h.01M12 8h.01"
+              />
+            </svg>
+            <span>{{ t("home.scanQR") }}</span>
+          </button>
 
-        <!-- 手動輸入按鈕 -->
-        <button
-          class="w-full bg-gray-100 text-ios-text font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3"
-          @click="showManualInput = true"
-        >
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          <!-- 手動輸入按鈕 -->
+          <button
+            class="w-full bg-gray-100 text-ios-text font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3"
+            @click="showManualInput = true"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-          <span>{{ t("home.manualInput") }}</span>
-        </button>
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+            <span>{{ t("home.manualInput") }}</span>
+          </button>
 
-        <!-- 探索美食按鈕 -->
-        <router-link
-          to="/discover"
-          class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3 shadow-lg"
-        >
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          <!-- 探索美食按鈕 -->
+          <router-link
+            to="/discover"
+            class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3 shadow-lg"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <span>{{ t("home.discoverFood") }}</span>
-        </router-link>
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <span>{{ t("home.discoverFood") }}</span>
+          </router-link>
+        </div>
       </div>
 
       <!-- 最近使用的餐廳 -->
@@ -122,7 +125,7 @@
         <h3 class="text-lg font-semibold text-ios-text mb-4">
           {{ t("home.recentOrders") }}
         </h3>
-        <div class="space-y-3">
+        <div class="space-y-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
           <button
             v-for="restaurant in recentRestaurants"
             :key="restaurant.id"
@@ -174,18 +177,18 @@
       </div>
 
       <!-- 功能介紹 -->
-      <div class="mt-12 space-y-6">
-        <h3 class="text-lg font-semibold text-ios-text">
+      <div class="mt-12 lg:mt-16">
+        <h3 class="text-lg lg:text-xl font-semibold text-ios-text mb-6">
           {{ t("home.features.title") }}
         </h3>
 
-        <div class="grid gap-4">
-          <div class="flex items-start space-x-4">
+        <div class="grid gap-4 lg:grid-cols-3 lg:gap-6">
+          <div class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]">
             <div
-              class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"
+              class="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
             >
               <svg
-                class="w-5 h-5 text-green-600"
+                class="w-5 h-5 lg:w-6 lg:h-6 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -199,21 +202,21 @@
               </svg>
             </div>
             <div>
-              <h4 class="font-medium text-ios-text">
+              <h4 class="font-medium text-ios-text lg:text-base">
                 {{ t("home.features.qrOrder") }}
               </h4>
-              <p class="text-sm text-ios-secondary">
+              <p class="text-sm text-ios-secondary lg:mt-1">
                 {{ t("home.features.qrOrderDesc") }}
               </p>
             </div>
           </div>
 
-          <div class="flex items-start space-x-4">
+          <div class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]">
             <div
-              class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0"
+              class="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
             >
               <svg
-                class="w-5 h-5 text-blue-600"
+                class="w-5 h-5 lg:w-6 lg:h-6 text-blue-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -233,21 +236,21 @@
               </svg>
             </div>
             <div>
-              <h4 class="font-medium text-ios-text">
+              <h4 class="font-medium text-ios-text lg:text-base">
                 {{ t("home.features.realtime") }}
               </h4>
-              <p class="text-sm text-ios-secondary">
+              <p class="text-sm text-ios-secondary lg:mt-1">
                 {{ t("home.features.realtimeDesc") }}
               </p>
             </div>
           </div>
 
-          <div class="flex items-start space-x-4">
+          <div class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]">
             <div
-              class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0"
+              class="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
             >
               <svg
-                class="w-5 h-5 text-purple-600"
+                class="w-5 h-5 lg:w-6 lg:h-6 text-purple-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -261,10 +264,10 @@
               </svg>
             </div>
             <div>
-              <h4 class="font-medium text-ios-text">
+              <h4 class="font-medium text-ios-text lg:text-base">
                 {{ t("home.features.payment") }}
               </h4>
-              <p class="text-sm text-ios-secondary">
+              <p class="text-sm text-ios-secondary lg:mt-1">
                 {{ t("home.features.paymentDesc") }}
               </p>
             </div>
