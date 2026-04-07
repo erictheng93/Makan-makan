@@ -27,7 +27,8 @@
     "shoppingCart": "Keranjang Belanja",
     "orderTracking": "Lacak Pesanan",
     "error": "Terjadi Kesalahan",
-    "pageNotFound": "Halaman Tidak Ditemukan"
+    "pageNotFound": "Halaman Tidak Ditemukan",
+    "discover": "Temukan Makanan"
   },
   "home": {
     "title": "Selamat Datang di MakanMakan",

@@ -27,7 +27,8 @@
     "shoppingCart": "购物车",
     "orderTracking": "订单追踪",
     "error": "发生错误",
-    "pageNotFound": "页面不存在"
+    "pageNotFound": "页面不存在",
+    "discover": "探索美食"
   },
   "home": {
     "title": "欢迎来到 MakanMakan",

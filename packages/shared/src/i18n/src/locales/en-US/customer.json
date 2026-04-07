@@ -27,7 +27,8 @@
     "shoppingCart": "Shopping Cart",
     "orderTracking": "Order Tracking",
     "error": "An Error Occurred",
-    "pageNotFound": "Page Not Found"
+    "pageNotFound": "Page Not Found",
+    "discover": "Discover Food"
   },
   "home": {
     "title": "Welcome to MakanMakan",
