@@ -42,7 +42,7 @@ import RestaurantContextBanner from "@/components/layout/RestaurantContextBanner
 import { useSSE } from "@/composables/useSSE";
 import { useAuthStore } from "@/stores/auth";
 
-const MOBILE_BREAKPOINT = 768;
+const MOBILE_BREAKPOINT = 1024;
 const isMobile = ref(false);
 const isSidebarCollapsed = ref(false);
 const showNotifications = ref(false);
