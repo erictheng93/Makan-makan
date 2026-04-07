@@ -20,13 +20,9 @@
       >
         <img
           v-if="item.imageUrl"
-          v-lazy="{
-            src: getImageUrl(item.imageVariants?.medium || item.imageUrl),
-            placeholder: '/placeholder-food.jpg',
-            quality: 85,
-            progressive: true,
-          }"
+          :src="getImageUrl(item.imageVariants?.medium || item.imageUrl)"
           :alt="item.name"
+          loading="lazy"
           class="w-full h-full object-cover lazy-image"
         />
         <div
@@ -198,13 +194,9 @@
             >
               <img
                 v-if="item.imageUrl"
-                v-lazy="{
-                  src: getImageUrl(item.imageVariants?.medium || item.imageUrl),
-                  placeholder: '/placeholder-food.jpg',
-                  quality: 85,
-                  progressive: true,
-                }"
+                :src="getImageUrl(item.imageVariants?.medium || item.imageUrl)"
                 :alt="item.name"
+                loading="lazy"
                 class="w-full h-full object-cover lazy-image"
               />
               <div
