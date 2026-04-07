@@ -260,7 +260,17 @@ const customizationPrice = ref(0);
 
 // Computed
 const isOutOfStock = computed(() => {
-  return props.item?.inventoryCount === 0;
+  // Match MenuItemCard logic: inventoryCount === 0 means no tracking (not sold out).
+  // Only out-of-stock when explicitly marked unavailable or inventory depleted below zero.
+  if (!props.item?.isAvailable) return true;
+  if (
+    props.item?.inventoryCount !== null &&
+    props.item?.inventoryCount !== undefined &&
+    props.item?.inventoryCount > 0
+  ) {
+    return false;
+  }
+  return false;
 });
 
 const hasCustomizations = computed(() => {
