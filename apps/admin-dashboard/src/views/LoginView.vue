@@ -151,7 +151,7 @@ const error = ref("");
 
 const form = reactive({
   username: "admin",
-  password: "admin123",
+  password: "password123",
 });
 
 const errors = reactive({
