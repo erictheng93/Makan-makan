@@ -13,7 +13,6 @@ import {
   mockRestaurantAPI,
   mockMenuAPI,
   mockTableAPI,
-  mockOrderAPI,
   mockPOSAPI,
   mockSSE,
   mockAnalyticsAPI,
@@ -141,12 +140,13 @@ test.describe("Cashier POS — payment error handling", () => {
       await expect(
         page.locator('[data-testid="payment-error"], [role="alert"]').first()
       ).toBeVisible({ timeout: 5000 });
+      // Second click was made — both the success and conflict calls must have fired
+      expect(callCount).toBe(2);
     } else {
-      // Pay button hidden after first success = correct behavior
+      // Pay button hidden after first success = correct behavior, no duplicate call made
       await expect(payBtn.first()).toBeHidden();
+      expect(callCount).toBe(1);
     }
-
-    expect(callCount).toBeGreaterThanOrEqual(1);
   });
 
   // ---------------------------------------------------------------------------
@@ -225,6 +225,7 @@ test.describe("Cashier POS — payment error handling", () => {
     // Retry print button must be visible
     const retryPrint = page.locator('[data-testid="retry-print-btn"], button:has-text("重試列印")');
     await expect(retryPrint.first()).toBeVisible({ timeout: 5000 });
+    expect(receiptCallCount).toBeGreaterThan(0);
   });
 
   // ---------------------------------------------------------------------------
