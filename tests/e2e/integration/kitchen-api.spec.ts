@@ -12,6 +12,7 @@
 import { test, expect } from "@playwright/test";
 import {
   RESTAURANT_ID,
+  SAKURA_RESTAURANT_ID,
   MENU,
   USERS,
   loginAs,
@@ -156,5 +157,196 @@ test.describe("Kitchen API", () => {
     const updateData = await updateRes.json();
     expect(updateData.success).toBe(true);
     expect(updateData.data).toBeTruthy();
+  });
+
+  test("chef can progress an item from 'preparing' to 'ready'", async () => {
+    // 1. Create + confirm an order.
+    const orderResult = await createGuestOrder(RESTAURANT_ID, [
+      { menuItemId: MENU.HONG_CHA, quantity: 1 },
+    ]);
+    createdOrderId = orderResult.data.order.id;
+    const orderId = orderResult.data.order.id;
+
+    const ownerAuth = await loginAs(USERS.OWNER);
+    await updateOrderStatus(orderId, "confirmed", ownerAuth);
+
+    // 2. Chef fetches the order and extracts the first item id.
+    const chefAuth = await loginAs(USERS.CHEF);
+    const listRes = await fetch(
+      `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/orders`,
+      {
+        headers: {
+          Authorization: `Bearer ${chefAuth.token}`,
+          Origin: API_URL,
+        },
+      },
+    );
+    const listData = await listRes.json();
+    const kitchenOrder = (
+      listData.data.orders as Array<{
+        id: number;
+        items?: Array<{ id: number }>;
+      }>
+    ).find((o) => o.id === orderId);
+    expect(kitchenOrder).toBeTruthy();
+    const itemId = kitchenOrder!.items![0].id;
+
+    // 3. preparing
+    const prepRes = await fetch(
+      `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/orders/${orderId}/items/${itemId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${chefAuth.token}`,
+          Origin: API_URL,
+          "X-CSRF-Token": chefAuth.csrfToken,
+          Cookie: chefAuth.csrfCookie,
+        },
+        body: JSON.stringify({ status: "preparing" }),
+      },
+    );
+    expect(prepRes.status).toBe(200);
+
+    // 4. ready (second transition — the main gap this test closes)
+    const readyRes = await fetch(
+      `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/orders/${orderId}/items/${itemId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${chefAuth.token}`,
+          Origin: API_URL,
+          "X-CSRF-Token": chefAuth.csrfToken,
+          Cookie: chefAuth.csrfCookie,
+        },
+        body: JSON.stringify({ status: "ready" }),
+      },
+    );
+    expect(readyRes.status).toBe(200);
+    const readyData = await readyRes.json();
+    expect(readyData.success).toBe(true);
+  });
+
+  // ─── Cross-restaurant isolation ─────────────────────────────────────────────
+
+  test("sakura chef cannot access grandma restaurant's kitchen orders → 403", async () => {
+    const sakuraChefAuth = await loginAs(USERS.SAKURA_CHEF);
+
+    const res = await fetch(
+      `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/orders`,
+      {
+        headers: {
+          Authorization: `Bearer ${sakuraChefAuth.token}`,
+          Origin: API_URL,
+        },
+      },
+    );
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+  });
+
+  test("sakura chef cannot update items in grandma restaurant's order → 403", async () => {
+    // Create an order in grandma restaurant.
+    const orderResult = await createGuestOrder(RESTAURANT_ID, [
+      { menuItemId: MENU.HONG_CHA, quantity: 1 },
+    ]);
+    createdOrderId = orderResult.data.order.id;
+    const orderId = orderResult.data.order.id;
+
+    const ownerAuth = await loginAs(USERS.OWNER);
+    await updateOrderStatus(orderId, "confirmed", ownerAuth);
+
+    // Grandma chef fetches items to learn the item id.
+    const grandmaChefAuth = await loginAs(USERS.CHEF);
+    const listRes = await fetch(
+      `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/orders`,
+      {
+        headers: {
+          Authorization: `Bearer ${grandmaChefAuth.token}`,
+          Origin: API_URL,
+        },
+      },
+    );
+    const listData = await listRes.json();
+    const kitchenOrder = (
+      listData.data.orders as Array<{
+        id: number;
+        items?: Array<{ id: number }>;
+      }>
+    ).find((o) => o.id === orderId);
+    const itemId = kitchenOrder!.items![0].id;
+
+    // Sakura chef tries to update the item — should be blocked.
+    const sakuraChefAuth = await loginAs(USERS.SAKURA_CHEF);
+    const res = await fetch(
+      `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/orders/${orderId}/items/${itemId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sakuraChefAuth.token}`,
+          Origin: API_URL,
+          "X-CSRF-Token": sakuraChefAuth.csrfToken,
+          Cookie: sakuraChefAuth.csrfCookie,
+        },
+        body: JSON.stringify({ status: "preparing" }),
+      },
+    );
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+  });
+
+  // ─── SSE endpoint authorization ─────────────────────────────────────────────
+  // We only verify the HTTP handshake (auth check fires before the stream opens).
+  // A full streaming test would need a long-lived EventSource and time out.
+
+  test("owner cannot open kitchen SSE stream → 403", async () => {
+    const ownerAuth = await loginAs(USERS.OWNER);
+
+    const res = await fetch(
+      `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/events`,
+      {
+        headers: {
+          Authorization: `Bearer ${ownerAuth.token}`,
+          Origin: API_URL,
+          Accept: "text/event-stream",
+        },
+      },
+    );
+
+    expect(res.status).toBe(403);
+    // Drain the body so the connection closes cleanly.
+    try {
+      await res.body?.cancel();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  test("sakura chef cannot open grandma kitchen SSE stream → 403", async () => {
+    const sakuraChefAuth = await loginAs(USERS.SAKURA_CHEF);
+
+    const res = await fetch(
+      `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/events`,
+      {
+        headers: {
+          Authorization: `Bearer ${sakuraChefAuth.token}`,
+          Origin: API_URL,
+          Accept: "text/event-stream",
+        },
+      },
+    );
+
+    expect(res.status).toBe(403);
+    try {
+      await res.body?.cancel();
+    } catch {
+      /* ignore */
+    }
   });
 });
