@@ -2,11 +2,14 @@
 pnpm lint-staged
 
 # Factory 使用快速檢查（僅針對測試文件）
-if git diff --cached --name-only | grep -E '\.test\.ts$|\.spec\.ts$' > /dev/null; then
+# Use --diff-filter=ACM here too, otherwise a commit that only DELETES a
+# spec file enters this branch (the outer grep matches the deletion) and
+# then the inner grep's exit-1 propagates as the hook's final exit code.
+if git diff --cached --name-only --diff-filter=ACM | grep -qE '\.test\.ts$|\.spec\.ts$'; then
   echo "🧪 檢查測試文件 factory 使用..."
 
-  # 只檢查暫存的測試文件
-  STAGED_TEST_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.test\.ts$|\.spec\.ts$')
+  # 只檢查暫存的測試文件 (|| true so empty grep does not fail the hook)
+  STAGED_TEST_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.test\.ts$|\.spec\.ts$' || true)
 
   if [ -n "$STAGED_TEST_FILES" ]; then
     # 簡單檢查：是否有 factory 使用但沒有 resetAllFactories

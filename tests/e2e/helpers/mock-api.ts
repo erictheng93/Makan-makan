@@ -537,20 +537,53 @@ export async function mockAnalyticsAPI(page: Page) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Build a fake but well-formed JWT (header.payload.signature) with exp 24h
+ * out so that the admin/kitchen apps' isTokenExpired() check passes without
+ * triggering a refresh + redirect-to-login loop.
+ *
+ * Not signed correctly — only valid for tests where token decoding/expiry is
+ * the only check the client performs.
+ */
+function buildFakeJwt(persona: Persona): string {
+  const header = { alg: "HS256", typ: "JWT" };
+  const payload = {
+    id: persona.id,
+    username: persona.username,
+    role: persona.role,
+    restaurantId: persona.restaurantId,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
+  };
+  const b64 = (obj: object) =>
+    Buffer.from(JSON.stringify(obj))
+      .toString("base64")
+      .replace(/=+$/, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+  return `${b64(header)}.${b64(payload)}.fake-signature`;
+}
+
+/**
  * Pre-seed the admin dashboard's localStorage auth state so that protected
  * routes load without a login redirect.  Call this BEFORE page.goto().
  *
- * Admin auth store keys: auth_token, auth_user
+ * Admin auth store keys: auth_token, auth_user, auth_refresh_token
  * isAuthenticated = computed(() => !!user.value && !!token.value)
+ *
+ * The token must be a well-formed JWT with a future exp claim, otherwise
+ * the router's isTokenExpired() check fires refresh on every navigation,
+ * and refresh requires auth_refresh_token to even attempt the call.
  */
 export async function preAuthAdmin(page: Page, persona: Persona) {
+  const fakeJwt = buildFakeJwt(persona);
   await page.addInitScript(
     ({ token, user }: { token: string; user: object }) => {
       localStorage.setItem("auth_token", token);
+      localStorage.setItem("auth_refresh_token", token);
       localStorage.setItem("auth_user", JSON.stringify(user));
     },
     {
-      token: persona.token,
+      token: fakeJwt,
       user: {
         id: persona.id,
         username: persona.username,
