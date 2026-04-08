@@ -171,7 +171,7 @@ describe("Concurrency Tests", () => {
       ],
     });
 
-    const result = await tablesService.generateBulkQRCodes(1, [1, 2, 3]);
+    const result = await tablesService.generateBulkQRCodes("1", [1, 2, 3]);
 
     // 3 requested, only 2 succeeded — service should still return success:true
     expect(result.success).toBe(true);

@@ -111,7 +111,7 @@ describe("TablesService", () => {
 
       mockTableService.getRestaurantTables.mockResolvedValue(mockDbResult);
 
-      const result = await tablesService.getRestaurantTables(1, {
+      const result = await tablesService.getRestaurantTables("1", {
         page: 1,
         limit: 20,
       });
@@ -129,7 +129,7 @@ describe("TablesService", () => {
         new Error("Database error"),
       );
 
-      await expect(tablesService.getRestaurantTables(1, {})).rejects.toThrow(
+      await expect(tablesService.getRestaurantTables("1", {})).rejects.toThrow(
         "Failed to fetch restaurant tables",
       );
     });

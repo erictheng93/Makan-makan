@@ -110,7 +110,7 @@ describe("TablesService", () => {
 
       mockTableService.getRestaurantTables.mockResolvedValue(mockDbResult);
 
-      const result = await tablesService.getRestaurantTables(1, {
+      const result = await tablesService.getRestaurantTables("1", {
         page: 1,
         limit: 20,
       });
@@ -133,7 +133,7 @@ describe("TablesService", () => {
 
       mockTableService.getRestaurantTables.mockResolvedValue(mockDbResult);
 
-      const result = await tablesService.getRestaurantTables(1, {
+      const result = await tablesService.getRestaurantTables("1", {
         page: 1,
         limit: 20,
       });
@@ -155,7 +155,7 @@ describe("TablesService", () => {
 
       mockTableService.getRestaurantTables.mockResolvedValue(mockDbResult);
 
-      const result = await tablesService.getRestaurantTables(1, {
+      const result = await tablesService.getRestaurantTables("1", {
         page: 2,
         limit: 20,
       });
@@ -169,7 +169,7 @@ describe("TablesService", () => {
         new Error("Database error"),
       );
 
-      await expect(tablesService.getRestaurantTables(1, {})).rejects.toThrow(
+      await expect(tablesService.getRestaurantTables("1", {})).rejects.toThrow(
         "Failed to fetch restaurant tables",
       );
     });
@@ -182,7 +182,7 @@ describe("TablesService", () => {
         pagination: { page: 1, limit: 20, totalPages: 0 },
       });
 
-      await tablesService.getRestaurantTables(1, filters);
+      await tablesService.getRestaurantTables("1", filters);
 
       // Service converts restaurantId to string for database layer
       expect(mockTableService.getRestaurantTables).toHaveBeenCalledWith(
@@ -582,7 +582,7 @@ describe("TablesService", () => {
         ],
       });
 
-      const result = await tablesService.generateBulkQRCodes(1, tableIds);
+      const result = await tablesService.generateBulkQRCodes("1", tableIds);
 
       expect(result.success).toBe(true);
       expect(result.qrCodes).toHaveLength(3);
@@ -600,7 +600,7 @@ describe("TablesService", () => {
       });
 
       const result = await tablesService.generateBulkQRCodes(
-        1,
+        "1",
         tableIds,
         options,
       );
@@ -616,7 +616,7 @@ describe("TablesService", () => {
         error: "Bulk generation failed",
       });
 
-      const result = await tablesService.generateBulkQRCodes(1, [1, 2]);
+      const result = await tablesService.generateBulkQRCodes("1", [1, 2]);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Bulk generation failed");
@@ -627,7 +627,7 @@ describe("TablesService", () => {
         new Error("Bulk service error"),
       );
 
-      const result = await tablesService.generateBulkQRCodes(1, [1, 2]);
+      const result = await tablesService.generateBulkQRCodes("1", [1, 2]);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Failed to generate bulk QR codes");
@@ -639,7 +639,7 @@ describe("TablesService", () => {
         qrCodes: [{ tableId: 1, qrCode: "qr-1" }],
       });
 
-      const result = await tablesService.generateBulkQRCodes(1, [1]);
+      const result = await tablesService.generateBulkQRCodes("1", [1]);
 
       expect(result.qrCodes?.[0].format).toBe("png");
       expect(result.qrCodes?.[0].size).toBe("medium");
@@ -657,7 +657,7 @@ describe("TablesService", () => {
       ];
       mockTableService.getAvailableTables.mockResolvedValue(availableTables);
 
-      const result = await tablesService.getAvailableTables(1);
+      const result = await tablesService.getAvailableTables("1");
 
       expect(result).toHaveLength(2);
       // Service converts restaurantId to string for database layer
@@ -671,7 +671,7 @@ describe("TablesService", () => {
       const availableTables = [{ ...mockTable, capacity: 6 }];
       mockTableService.getAvailableTables.mockResolvedValue(availableTables);
 
-      const result = await tablesService.getAvailableTables(1, 6);
+      const result = await tablesService.getAvailableTables("1", 6);
 
       expect(result).toHaveLength(1);
       // Service converts restaurantId to string for database layer
@@ -681,7 +681,7 @@ describe("TablesService", () => {
     it("should return empty array when no tables available", async () => {
       mockTableService.getAvailableTables.mockResolvedValue([]);
 
-      const result = await tablesService.getAvailableTables(1);
+      const result = await tablesService.getAvailableTables("1");
 
       expect(result).toEqual([]);
     });
@@ -691,7 +691,7 @@ describe("TablesService", () => {
         new Error("Database error"),
       );
 
-      await expect(tablesService.getAvailableTables(1)).rejects.toThrow(
+      await expect(tablesService.getAvailableTables("1")).rejects.toThrow(
         "Failed to fetch available tables",
       );
     });
@@ -712,7 +712,7 @@ describe("TablesService", () => {
         byCapacity: { 2: 5, 4: 10, 6: 5 },
       });
 
-      const result = await tablesService.getTableStats(1);
+      const result = await tablesService.getTableStats("1");
 
       expect(result.total).toBe(20);
       expect(result.occupied).toBe(12);
@@ -732,7 +732,7 @@ describe("TablesService", () => {
         byCapacity: {},
       });
 
-      const result = await tablesService.getTableStats(1);
+      const result = await tablesService.getTableStats("1");
 
       expect(result.floorDistribution).toHaveLength(2);
       expect(result.floorDistribution[0].floor).toBe(1);
@@ -744,7 +744,7 @@ describe("TablesService", () => {
         new Error("Stats error"),
       );
 
-      await expect(tablesService.getTableStats(1)).rejects.toThrow(
+      await expect(tablesService.getTableStats("1")).rejects.toThrow(
         "Failed to fetch table statistics",
       );
     });
