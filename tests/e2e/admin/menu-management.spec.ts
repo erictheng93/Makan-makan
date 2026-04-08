@@ -152,7 +152,9 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     await expect(page.locator("text=所有菜品").first()).toBeVisible();
 
     // 驗證菜品 cards 出現
-    const menuItemCards = await page.locator('[data-testid="menu-grid-item"]').count();
+    const menuItemCards = await page
+      .locator('[data-testid="menu-grid-item"]')
+      .count();
     expect(menuItemCards).toBeGreaterThan(0);
 
     // 驗證具體菜品名稱
@@ -187,7 +189,9 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
     // 驗證其他分類菜品被隱藏（珍珠奶茶屬於飲料分類）
     await expect(
-      page.locator('[data-testid="menu-grid-item"]').filter({ hasText: "珍珠奶茶" }),
+      page
+        .locator('[data-testid="menu-grid-item"]')
+        .filter({ hasText: "珍珠奶茶" }),
     ).not.toBeVisible();
   });
 
@@ -614,7 +618,9 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
       // 芒果冰 isAvailable=false → 被過濾
       await expect(
-        page.locator('[data-testid="menu-grid-item"]').filter({ hasText: "芒果冰" }),
+        page
+          .locator('[data-testid="menu-grid-item"]')
+          .filter({ hasText: "芒果冰" }),
       ).not.toBeVisible();
     }
 
@@ -762,7 +768,9 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
 
     const fileInput = page.locator('input[type="file"]');
 
-    const isFileInputVisible = await fileInput.isVisible({ timeout: 3000 }).catch(() => false);
+    const isFileInputVisible = await fileInput
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
 
     if (!isFileInputVisible) {
       // File input not present in this UI variant — skip the upload assertion
@@ -779,7 +787,9 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
     // Error message MUST be visible — don't swallow this assertion
     const errorMessage = page
       .locator('[role="alert"], [data-testid="error-message"]')
-      .or(page.locator('text=/too large|過大|檔案大小|上傳失敗|File too large/i'))
+      .or(
+        page.locator("text=/too large|過大|檔案大小|上傳失敗|File too large/i"),
+      )
       .or(page.locator('[data-testid="upload-error"]'));
 
     await expect(errorMessage.first()).toBeVisible({ timeout: 5000 });

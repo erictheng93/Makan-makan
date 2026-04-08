@@ -22,6 +22,7 @@ allowed-tools:
   - Agent
   - AskUserQuestion
 ---
+
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
@@ -135,6 +136,7 @@ ask the user about telemetry. Use AskUserQuestion:
 > Change anytime with `gstack-config set telemetry off`.
 
 Options:
+
 - A) Help gstack get better! (recommended)
 - B) No thanks
 
@@ -142,10 +144,11 @@ If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
 
 If B: ask a follow-up AskUserQuestion:
 
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
+> How about anonymous mode? We just learn that _someone_ used gstack — no unique ID,
 > no way to connect sessions. Just a counter that helps us know if anyone's out there.
 
 Options:
+
 - A) Sure, anonymous is fine
 - B) No thanks, fully off
 
@@ -153,6 +156,7 @@ If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous
 If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
 
 Always run:
+
 ```bash
 touch ~/.gstack/.telemetry-prompted
 ```
@@ -167,6 +171,7 @@ ask the user about proactive behavior. Use AskUserQuestion:
 > a bug. We recommend keeping this on — it speeds up every part of your workflow.
 
 Options:
+
 - A) Keep it on (recommended)
 - B) Turn it off — I'll type /commands myself
 
@@ -174,6 +179,7 @@ If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
 If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
 
 Always run:
+
 ```bash
 touch ~/.gstack/.proactive-prompted
 ```
@@ -190,13 +196,13 @@ Use AskUserQuestion:
 > instead of answering directly. It's a one-time addition, about 15 lines.
 
 Options:
+
 - A) Add routing rules to CLAUDE.md (recommended)
 - B) No thanks, I'll invoke skills manually
 
 If A: Append this section to the end of CLAUDE.md:
 
 ```markdown
-
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
@@ -204,6 +210,7 @@ tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
 The skill has specialized workflows that produce better results than ad-hoc answers.
 
 Key routing rules:
+
 - Product ideas, "is this worth building", brainstorming → invoke office-hours
 - Bugs, errors, "why is this broken", 500 errors → invoke investigate
 - Ship, deploy, push, create PR → invoke ship
@@ -237,10 +244,12 @@ Use AskUserQuestion (one-time per project, check for `~/.gstack/.vendoring-warne
 > Want to migrate to team mode? It takes about 30 seconds.
 
 Options:
+
 - A) Yes, migrate to team mode now
 - B) No, I'll handle it myself
 
 If A:
+
 1. Run `git rm -r .claude/skills/gstack/`
 2. Run `echo '.claude/skills/gstack/' >> .gitignore`
 3. Run `~/.claude/skills/gstack/bin/gstack-team-init required` (or `optional`)
@@ -250,6 +259,7 @@ If A:
 If B: say "OK, you're on your own to keep the vendored copy up to date."
 
 Always run (regardless of choice):
+
 ```bash
 eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" 2>/dev/null || true
 touch ~/.gstack/.vendoring-warned-${SLUG:-unknown}
@@ -259,6 +269,7 @@ This only happens once per project. If the marker file exists, skip entirely.
 
 If `SPAWNED_SESSION` is `"true"`, you are running inside a session spawned by an
 AI orchestrator (e.g., OpenClaw). In spawned sessions:
+
 - Do NOT use AskUserQuestion for interactive prompts. Auto-choose the recommended option.
 - Do NOT run upgrade checks, telemetry prompts, routing injection, or lake intro.
 - Focus on completing the task and reporting results via prose output.
@@ -297,6 +308,7 @@ Use concrete tools, workflows, commands, files, outputs, evals, and tradeoffs wh
 Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupported claims.
 
 **Writing rules:**
+
 - No em dashes. Use commas, periods, or "..." instead.
 - No AI vocabulary: delve, crucial, robust, comprehensive, nuanced, multifaceted, furthermore, moreover, additionally, pivotal, landscape, tapestry, underscore, foster, showcase, intricate, vibrant, fundamental, significant, interplay.
 - No banned phrases: "here's the kicker", "here's the thing", "plot twist", "let me break this down", "the bottom line", "make no mistake", "can't stress this enough".
@@ -358,6 +370,7 @@ available]. [Health score if available]." Keep it to 2-3 sentences.
 ## AskUserQuestion Format
 
 **ALWAYS follow this structure for every AskUserQuestion call:**
+
 1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
 2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
 3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
@@ -373,18 +386,19 @@ AI makes completeness near-free. Always recommend the complete option over short
 
 **Effort reference** — always show both scales:
 
-| Task type | Human team | CC+gstack | Compression |
-|-----------|-----------|-----------|-------------|
-| Boilerplate | 2 days | 15 min | ~100x |
-| Tests | 1 day | 15 min | ~50x |
-| Feature | 1 week | 30 min | ~30x |
-| Bug fix | 4 hours | 15 min | ~20x |
+| Task type   | Human team | CC+gstack | Compression |
+| ----------- | ---------- | --------- | ----------- |
+| Boilerplate | 2 days     | 15 min    | ~100x       |
+| Tests       | 1 day      | 15 min    | ~50x        |
+| Feature     | 1 week     | 30 min    | ~30x        |
+| Bug fix     | 4 hours    | 15 min    | ~20x        |
 
 Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3=shortcut).
 
 ## Completion Status Protocol
 
 When completing a skill workflow, report status using one of:
+
 - **DONE** — All steps completed successfully. Evidence provided for each claim.
 - **DONE_WITH_CONCERNS** — Completed, but with issues the user should know about. List each concern.
 - **BLOCKED** — Cannot proceed. State what is blocking and what was tried.
@@ -395,11 +409,13 @@ When completing a skill workflow, report status using one of:
 It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result."
 
 Bad work is worse than no work. You will not be penalized for escalating.
+
 - If you have attempted a task 3 times without success, STOP and escalate.
 - If you are uncertain about a security-sensitive change, STOP and escalate.
 - If the scope of work exceeds what you can verify, STOP and escalate.
 
 Escalation format:
+
 ```
 STATUS: BLOCKED | NEEDS_CONTEXT
 REASON: [1-2 sentences]
@@ -410,6 +426,7 @@ RECOMMENDATION: [what the user should do next]
 ## Operational Self-Improvement
 
 Before completing, reflect on this session:
+
 - Did any commands fail unexpectedly?
 - Did you take a wrong approach and have to backtrack?
 - Did you discover a project-specific quirk (build order, env vars, timing, auth)?
@@ -522,15 +539,16 @@ Then write a `## GSTACK REVIEW REPORT` section to the end of the plan file:
 - If the output is `NO_REVIEWS` or empty: write this placeholder table:
 
 \`\`\`markdown
+
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | 0 | — | — |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | 0 | — | — |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | 0 | — | — |
-| DX Review | \`/plan-devex-review\` | Developer experience gaps | 0 | — | — |
+| Review        | Trigger                 | Why                             | Runs | Status | Findings |
+| ------------- | ----------------------- | ------------------------------- | ---- | ------ | -------- |
+| CEO Review    | \`/plan-ceo-review\`    | Scope & strategy                | 0    | —      | —        |
+| Codex Review  | \`/codex review\`       | Independent 2nd opinion         | 0    | —      | —        |
+| Eng Review    | \`/plan-eng-review\`    | Architecture & tests (required) | 0    | —      | —        |
+| Design Review | \`/plan-design-review\` | UI/UX gaps                      | 0    | —      | —        |
+| DX Review     | \`/plan-devex-review\`  | Developer experience gaps       | 0    | —      | —        |
 
 **VERDICT:** NO REVIEWS YET — run \`/autoplan\` for full review pipeline, or individual reviews above.
 \`\`\`
@@ -577,6 +595,7 @@ comparison boards. The user just needs to see the HTML file in any browser.
 
 If `DESIGN_READY`: the design binary is available for visual mockup generation.
 Commands:
+
 - `$D generate --brief "..." --output /path.png` — generate a single mockup
 - `$D variants --brief "..." --count 3 --output-dir /path/` — generate N style variants
 - `$D compare --images "a.png,b.png,c.png" --output /path/board.html --serve` — comparison board + HTTP server
@@ -604,6 +623,7 @@ fi
 ```
 
 If `NEEDS_SETUP`:
+
 1. Tell the user: "gstack browse needs a one-time build (~10 seconds). OK to proceed?" Then STOP and wait.
 2. Run: `cd <SKILL_DIR> && ./setup`
 3. If `bun` is not installed:
@@ -671,6 +691,7 @@ Read `DESIGN.md` if it exists in the repo root. These tokens take priority for
 system-level values (fonts, brand colors, spacing scale).
 
 Then check for prior finalized.html. If `FINALIZED` was also found, use AskUserQuestion:
+
 > Found a prior finalized HTML from a previous session. Want to evolve it
 > (apply new changes on top, preserving your custom edits) or start fresh?
 > A) Evolve — iterate on the existing HTML
@@ -685,11 +706,13 @@ visual reference.
 If `CEO_PLAN` or `VARIANTS` was found but no `APPROVED`:
 
 Read whichever context exists:
+
 - If CEO plan found: read it and summarize the product vision and design requirements.
 - If variant PNGs found: show them inline using the Read tool.
 - If DESIGN.md found: read it for design tokens and constraints.
 
 Use AskUserQuestion:
+
 > Found [CEO plan from /plan-ceo-review | design review variants from /plan-design-review | both]
 > but no approved design mockup.
 > A) Run /design-shotgun — explore design variants based on the existing plan context
@@ -707,6 +730,7 @@ If C: accept a PNG file path from the user and proceed with that as the referenc
 If none of the above produced any context:
 
 Use AskUserQuestion:
+
 > No design context found for this project. How do you want to start?
 > A) Run /plan-ceo-review first — think through the product strategy before designing
 > B) Run /plan-design-review first — design review with visual mockups
@@ -719,6 +743,7 @@ If D: proceed to Step 1 in "freeform mode." Ask the user for a screen name.
 ### Context summary
 
 After routing, output a brief context summary:
+
 - **Mode:** approved-mockup | plan-driven | freeform | evolve
 - **Visual reference:** path to approved PNG, or "none (plan-driven)" or "none (freeform)"
 - **CEO plan:** path or "none"
@@ -730,9 +755,11 @@ After routing, output a brief context summary:
 ## Step 1: Design Analysis
 
 1. If `$D` is available (`DESIGN_READY`), extract a structured implementation spec:
+
 ```bash
 $D prompt --image <approved-variant.png> --output json
 ```
+
 This returns colors, typography, layout structure, and component inventory via GPT-4o vision.
 
 2. If `$D` is not available, read the approved PNG inline using the Read tool.
@@ -746,9 +773,9 @@ This returns colors, typography, layout structure, and component inventory via G
    - **Freeform:** use AskUserQuestion to gather what the user wants to build. Ask about:
      purpose/audience, visual feel (dark/light, playful/serious, dense/spacious),
      content structure (hero, features, pricing, etc.), and any reference sites they like.
-   In both cases, describe the intended visual layout, colors, typography, and
-   component structure as your implementation spec. Generate realistic content based
-   on the plan or user description (never lorem ipsum).
+     In both cases, describe the intended visual layout, colors, typography, and
+     component structure as your implementation spec. Generate realistic content based
+     on the plan or user description (never lorem ipsum).
 
 4. Read `DESIGN.md` tokens. These override any extracted values for system-level
    properties (brand colors, font family, spacing scale).
@@ -763,13 +790,13 @@ This returns colors, typography, layout structure, and component inventory via G
 Analyze the approved design and classify it into a Pretext tier. Each tier uses
 different Pretext APIs for optimal results:
 
-| Design type | Pretext APIs | Use case |
-|-------------|-------------|----------|
-| Simple layout (landing, marketing) | `prepare()` + `layout()` | Resize-aware heights |
-| Card/grid (dashboard, listing) | `prepare()` + `layout()` | Self-sizing cards |
-| Chat/messaging UI | `prepareWithSegments()` + `walkLineRanges()` | Tight-fit bubbles, min-width |
-| Content-heavy (editorial, blog) | `prepareWithSegments()` + `layoutNextLine()` | Text around obstacles |
-| Complex editorial | Full engine + `layoutWithLines()` | Manual line rendering |
+| Design type                        | Pretext APIs                                 | Use case                     |
+| ---------------------------------- | -------------------------------------------- | ---------------------------- |
+| Simple layout (landing, marketing) | `prepare()` + `layout()`                     | Resize-aware heights         |
+| Card/grid (dashboard, listing)     | `prepare()` + `layout()`                     | Self-sizing cards            |
+| Chat/messaging UI                  | `prepareWithSegments()` + `walkLineRanges()` | Tight-fit bubbles, min-width |
+| Content-heavy (editorial, blog)    | `prepareWithSegments()` + `layoutNextLine()` | Text around obstacles        |
+| Complex editorial                  | Full engine + `layoutWithLines()`            | Manual line rendering        |
 
 State the chosen tier and why. Reference the specific Pretext APIs that will be used.
 
@@ -784,11 +811,13 @@ Check if the user's project uses a frontend framework:
 ```
 
 If a framework is detected, use AskUserQuestion:
+
 > Detected [React/Svelte/Vue] in your project. What format should the output be?
 > A) Vanilla HTML — self-contained preview file (recommended for first pass)
 > B) [React/Svelte/Vue] component — framework-native with Pretext hooks
 
 If the user chooses framework output, ask one follow-up:
+
 > A) TypeScript
 > B) JavaScript
 
@@ -803,6 +832,7 @@ If no framework detected: default to vanilla HTML, no question needed.
 ### Pretext Source Embedding
 
 For **vanilla HTML output**, check for the vendored Pretext bundle:
+
 ```bash
 _PRETEXT_VENDOR=""
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
@@ -818,6 +848,7 @@ _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
   Add a comment: `<!-- FALLBACK: vendor/pretext.js missing, using CDN -->`
 
 For **framework output**, add to the project's dependencies instead:
+
 ```bash
 # Detect package manager
 [ -f bun.lockb ] && echo "bun add @chenglou/pretext" || \
@@ -825,6 +856,7 @@ For **framework output**, add to the project's dependencies instead:
 [ -f yarn.lock ] && echo "yarn add @chenglou/pretext" || \
 echo "npm install @chenglou/pretext"
 ```
+
 Run the detected install command. Then use standard imports in the component.
 
 ### HTML Generation
@@ -836,6 +868,7 @@ For framework output, save to:
 `~/.gstack/projects/$SLUG/designs/<screen-name>-YYYYMMDD/finalized.[tsx|svelte|vue]`
 
 **Always include in vanilla HTML:**
+
 - Pretext source (inlined or CDN, see above)
 - CSS custom properties for design tokens from DESIGN.md / Step 1 extraction
 - Google Fonts via `<link>` tags + `document.fonts.ready` gate before first `prepare()`
@@ -850,6 +883,7 @@ For framework output, save to:
 - Real content extracted from the mockup (never lorem ipsum)
 
 **Never include (AI slop blacklist):**
+
 - Purple/blue gradients as default
 - Generic 3-column feature grids
 - Center-everything layouts with no visual hierarchy
@@ -867,118 +901,137 @@ Use these patterns based on the tier selected in Step 2. These are the correct
 Pretext API usage patterns. Follow them exactly.
 
 **Pattern 1: Basic height computation (Simple layout, Card/grid)**
+
 ```js
-import { prepare, layout } from './pretext-inline.js'
+import { prepare, layout } from "./pretext-inline.js";
 // Or if inlined: const { prepare, layout } = window.Pretext
 
 // 1. PREPARE — one-time, after fonts load
-await document.fonts.ready
-const elements = document.querySelectorAll('[data-pretext]')
-const prepared = new Map()
+await document.fonts.ready;
+const elements = document.querySelectorAll("[data-pretext]");
+const prepared = new Map();
 
 for (const el of elements) {
-  const text = el.textContent
-  const font = getComputedStyle(el).font
-  prepared.set(el, prepare(text, font))
+  const text = el.textContent;
+  const font = getComputedStyle(el).font;
+  prepared.set(el, prepare(text, font));
 }
 
 // 2. LAYOUT — cheap, call on every resize
 function relayout() {
   for (const [el, handle] of prepared) {
-    const { height } = layout(handle, el.clientWidth, parseFloat(getComputedStyle(el).lineHeight))
-    el.style.height = `${height}px`
+    const { height } = layout(
+      handle,
+      el.clientWidth,
+      parseFloat(getComputedStyle(el).lineHeight),
+    );
+    el.style.height = `${height}px`;
   }
 }
 
 // 3. RESIZE-AWARE
-new ResizeObserver(() => relayout()).observe(document.body)
-relayout()
+new ResizeObserver(() => relayout()).observe(document.body);
+relayout();
 
 // 4. CONTENT-EDITABLE — re-prepare when text changes
 for (const el of elements) {
-  if (el.contentEditable === 'true') {
+  if (el.contentEditable === "true") {
     new MutationObserver(() => {
-      const font = getComputedStyle(el).font
-      prepared.set(el, prepare(el.textContent, font))
-      relayout()
-    }).observe(el, { characterData: true, subtree: true, childList: true })
+      const font = getComputedStyle(el).font;
+      prepared.set(el, prepare(el.textContent, font));
+      relayout();
+    }).observe(el, { characterData: true, subtree: true, childList: true });
   }
 }
 ```
 
 **Pattern 2: Shrinkwrap / tight-fit containers (Chat bubbles)**
+
 ```js
-import { prepareWithSegments, walkLineRanges } from './pretext-inline.js'
+import { prepareWithSegments, walkLineRanges } from "./pretext-inline.js";
 
 // Find the tightest width that produces the same line count
 function shrinkwrap(text, font, maxWidth, lineHeight) {
-  const segs = prepareWithSegments(text, font)
-  let bestWidth = maxWidth
+  const segs = prepareWithSegments(text, font);
+  let bestWidth = maxWidth;
   walkLineRanges(segs, maxWidth, (lineCount, startIdx, endIdx) => {
     // walkLineRanges calls back with progressively narrower widths
     // The first call gives us the line count at maxWidth
     // We want the narrowest width that still produces this line count
-  })
+  });
   // Binary search for tightest width with same line count
-  const { lineCount: targetLines } = layout(prepare(text, font), maxWidth, lineHeight)
-  let lo = 0, hi = maxWidth
+  const { lineCount: targetLines } = layout(
+    prepare(text, font),
+    maxWidth,
+    lineHeight,
+  );
+  let lo = 0,
+    hi = maxWidth;
   while (hi - lo > 1) {
-    const mid = (lo + hi) / 2
-    const { lineCount } = layout(prepare(text, font), mid, lineHeight)
-    if (lineCount === targetLines) hi = mid
-    else lo = mid
+    const mid = (lo + hi) / 2;
+    const { lineCount } = layout(prepare(text, font), mid, lineHeight);
+    if (lineCount === targetLines) hi = mid;
+    else lo = mid;
   }
-  return hi
+  return hi;
 }
 ```
 
 **Pattern 3: Text around obstacles (Editorial layout)**
-```js
-import { prepareWithSegments, layoutNextLine } from './pretext-inline.js'
 
-function layoutAroundObstacles(text, font, containerWidth, lineHeight, obstacles) {
-  const segs = prepareWithSegments(text, font)
-  let state = null
-  let y = 0
-  const lines = []
+```js
+import { prepareWithSegments, layoutNextLine } from "./pretext-inline.js";
+
+function layoutAroundObstacles(
+  text,
+  font,
+  containerWidth,
+  lineHeight,
+  obstacles,
+) {
+  const segs = prepareWithSegments(text, font);
+  let state = null;
+  let y = 0;
+  const lines = [];
 
   while (true) {
     // Calculate available width at current y position, accounting for obstacles
-    let availWidth = containerWidth
+    let availWidth = containerWidth;
     for (const obs of obstacles) {
       if (y >= obs.top && y < obs.top + obs.height) {
-        availWidth -= obs.width
+        availWidth -= obs.width;
       }
     }
 
-    const result = layoutNextLine(segs, state, availWidth, lineHeight)
-    if (!result) break
+    const result = layoutNextLine(segs, state, availWidth, lineHeight);
+    if (!result) break;
 
-    lines.push({ text: result.text, width: result.width, x: 0, y })
-    state = result.state
-    y += lineHeight
+    lines.push({ text: result.text, width: result.width, x: 0, y });
+    state = result.state;
+    y += lineHeight;
   }
 
-  return { lines, totalHeight: y }
+  return { lines, totalHeight: y };
 }
 ```
 
 **Pattern 4: Full line-by-line rendering (Complex editorial)**
-```js
-import { prepareWithSegments, layoutWithLines } from './pretext-inline.js'
 
-const segs = prepareWithSegments(text, font)
-const { lines, height } = layoutWithLines(segs, containerWidth, lineHeight)
+```js
+import { prepareWithSegments, layoutWithLines } from "./pretext-inline.js";
+
+const segs = prepareWithSegments(text, font);
+const { lines, height } = layoutWithLines(segs, containerWidth, lineHeight);
 
 // lines = [{ text, width, x, y }, ...]
 // Use for Canvas/SVG rendering or custom DOM positioning
 for (const line of lines) {
-  const span = document.createElement('span')
-  span.textContent = line.text
-  span.style.position = 'absolute'
-  span.style.left = `${line.x}px`
-  span.style.top = `${line.y}px`
-  container.appendChild(span)
+  const span = document.createElement("span");
+  span.textContent = line.text;
+  span.style.position = "absolute";
+  span.style.left = `${line.x}px`;
+  span.style.top = `${line.y}px`;
+  container.appendChild(span);
 }
 ```
 
@@ -1033,14 +1086,16 @@ echo "PID: $_SERVER_PID"
 ```
 
 If python3 is not available, fall back to:
+
 ```bash
 open <path-to-finalized.html>
 ```
 
-Tell the user: "Live preview running at http://localhost:$_PORT/finalized.html.
+Tell the user: "Live preview running at http://localhost:$\_PORT/finalized.html.
 After each edit, just refresh the browser (Cmd+R) to see changes."
 
 When the refinement loop ends (Step 4 exits), kill the server:
+
 ```bash
 kill $_SERVER_PID 2>/dev/null || true
 ```
@@ -1061,6 +1116,7 @@ $B screenshot /tmp/gstack-verify-desktop.png --width 1440
 ```
 
 Show all three screenshots inline using the Read tool. Check for:
+
 - Text overflow (text cut off or extending beyond containers)
 - Layout collapse (elements overlapping or missing)
 - Responsive breakage (content not adapting to viewport)
@@ -1113,6 +1169,7 @@ Maximum 10 iterations. If the user hasn't said "done" after 10, use AskUserQuest
 If no `DESIGN.md` exists in the repo root, offer to create one from the generated HTML:
 
 Extract from the HTML:
+
 - CSS custom properties (colors, spacing, font sizes)
 - Font families and weights used
 - Color palette (primary, secondary, accent, neutral)
@@ -1121,6 +1178,7 @@ Extract from the HTML:
 - Shadow values
 
 Use AskUserQuestion:
+
 > No DESIGN.md found. I can extract the design tokens from the HTML we just built
 > and create a DESIGN.md for your project. This means future /design-shotgun and
 > /design-html runs will be style-consistent automatically.
@@ -1132,6 +1190,7 @@ If A: write `DESIGN.md` to the repo root with the extracted tokens.
 ### Save Metadata
 
 Write `finalized.json` alongside the HTML:
+
 ```json
 {
   "source_mockup": "<approved variant PNG path or null>",
@@ -1150,6 +1209,7 @@ Write `finalized.json` alongside the HTML:
 ### Next Steps
 
 Use AskUserQuestion:
+
 > Design finalized with Pretext-native layout. What's next?
 > A) Copy to project — copy the HTML/component into your codebase
 > B) Iterate more — keep refining

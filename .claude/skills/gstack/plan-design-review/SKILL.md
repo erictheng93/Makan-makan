@@ -18,6 +18,7 @@ allowed-tools:
   - Bash
   - AskUserQuestion
 ---
+
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
@@ -131,6 +132,7 @@ ask the user about telemetry. Use AskUserQuestion:
 > Change anytime with `gstack-config set telemetry off`.
 
 Options:
+
 - A) Help gstack get better! (recommended)
 - B) No thanks
 
@@ -138,10 +140,11 @@ If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
 
 If B: ask a follow-up AskUserQuestion:
 
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
+> How about anonymous mode? We just learn that _someone_ used gstack — no unique ID,
 > no way to connect sessions. Just a counter that helps us know if anyone's out there.
 
 Options:
+
 - A) Sure, anonymous is fine
 - B) No thanks, fully off
 
@@ -149,6 +152,7 @@ If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous
 If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
 
 Always run:
+
 ```bash
 touch ~/.gstack/.telemetry-prompted
 ```
@@ -163,6 +167,7 @@ ask the user about proactive behavior. Use AskUserQuestion:
 > a bug. We recommend keeping this on — it speeds up every part of your workflow.
 
 Options:
+
 - A) Keep it on (recommended)
 - B) Turn it off — I'll type /commands myself
 
@@ -170,6 +175,7 @@ If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
 If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
 
 Always run:
+
 ```bash
 touch ~/.gstack/.proactive-prompted
 ```
@@ -186,13 +192,13 @@ Use AskUserQuestion:
 > instead of answering directly. It's a one-time addition, about 15 lines.
 
 Options:
+
 - A) Add routing rules to CLAUDE.md (recommended)
 - B) No thanks, I'll invoke skills manually
 
 If A: Append this section to the end of CLAUDE.md:
 
 ```markdown
-
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
@@ -200,6 +206,7 @@ tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
 The skill has specialized workflows that produce better results than ad-hoc answers.
 
 Key routing rules:
+
 - Product ideas, "is this worth building", brainstorming → invoke office-hours
 - Bugs, errors, "why is this broken", 500 errors → invoke investigate
 - Ship, deploy, push, create PR → invoke ship
@@ -233,10 +240,12 @@ Use AskUserQuestion (one-time per project, check for `~/.gstack/.vendoring-warne
 > Want to migrate to team mode? It takes about 30 seconds.
 
 Options:
+
 - A) Yes, migrate to team mode now
 - B) No, I'll handle it myself
 
 If A:
+
 1. Run `git rm -r .claude/skills/gstack/`
 2. Run `echo '.claude/skills/gstack/' >> .gitignore`
 3. Run `~/.claude/skills/gstack/bin/gstack-team-init required` (or `optional`)
@@ -246,6 +255,7 @@ If A:
 If B: say "OK, you're on your own to keep the vendored copy up to date."
 
 Always run (regardless of choice):
+
 ```bash
 eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" 2>/dev/null || true
 touch ~/.gstack/.vendoring-warned-${SLUG:-unknown}
@@ -255,6 +265,7 @@ This only happens once per project. If the marker file exists, skip entirely.
 
 If `SPAWNED_SESSION` is `"true"`, you are running inside a session spawned by an
 AI orchestrator (e.g., OpenClaw). In spawned sessions:
+
 - Do NOT use AskUserQuestion for interactive prompts. Auto-choose the recommended option.
 - Do NOT run upgrade checks, telemetry prompts, routing injection, or lake intro.
 - Focus on completing the task and reporting results via prose output.
@@ -293,6 +304,7 @@ Use concrete tools, workflows, commands, files, outputs, evals, and tradeoffs wh
 Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupported claims.
 
 **Writing rules:**
+
 - No em dashes. Use commas, periods, or "..." instead.
 - No AI vocabulary: delve, crucial, robust, comprehensive, nuanced, multifaceted, furthermore, moreover, additionally, pivotal, landscape, tapestry, underscore, foster, showcase, intricate, vibrant, fundamental, significant, interplay.
 - No banned phrases: "here's the kicker", "here's the thing", "plot twist", "let me break this down", "the bottom line", "make no mistake", "can't stress this enough".
@@ -354,6 +366,7 @@ available]. [Health score if available]." Keep it to 2-3 sentences.
 ## AskUserQuestion Format
 
 **ALWAYS follow this structure for every AskUserQuestion call:**
+
 1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
 2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
 3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
@@ -369,18 +382,19 @@ AI makes completeness near-free. Always recommend the complete option over short
 
 **Effort reference** — always show both scales:
 
-| Task type | Human team | CC+gstack | Compression |
-|-----------|-----------|-----------|-------------|
-| Boilerplate | 2 days | 15 min | ~100x |
-| Tests | 1 day | 15 min | ~50x |
-| Feature | 1 week | 30 min | ~30x |
-| Bug fix | 4 hours | 15 min | ~20x |
+| Task type   | Human team | CC+gstack | Compression |
+| ----------- | ---------- | --------- | ----------- |
+| Boilerplate | 2 days     | 15 min    | ~100x       |
+| Tests       | 1 day      | 15 min    | ~50x        |
+| Feature     | 1 week     | 30 min    | ~30x        |
+| Bug fix     | 4 hours    | 15 min    | ~20x        |
 
 Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3=shortcut).
 
 ## Repo Ownership — See Something, Say Something
 
 `REPO_MODE` controls how to handle issues outside your branch:
+
 - **`solo`** — You own everything. Investigate and offer to fix proactively.
 - **`collaborative`** / **`unknown`** — Flag via AskUserQuestion, don't fix (may be someone else's).
 
@@ -389,9 +403,11 @@ Always flag anything that looks wrong — one sentence, what you noticed and its
 ## Search Before Building
 
 Before building anything unfamiliar, **search first.** See `~/.claude/skills/gstack/ETHOS.md`.
+
 - **Layer 1** (tried and true) — don't reinvent. **Layer 2** (new and popular) — scrutinize. **Layer 3** (first principles) — prize above all.
 
 **Eureka:** When first-principles reasoning contradicts conventional wisdom, name it and log:
+
 ```bash
 jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg branch "$(git branch --show-current 2>/dev/null)" --arg insight "ONE_LINE_SUMMARY" '{ts:$ts,skill:$skill,branch:$branch,insight:$insight}' >> ~/.gstack/analytics/eureka.jsonl 2>/dev/null || true
 ```
@@ -399,6 +415,7 @@ jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg b
 ## Completion Status Protocol
 
 When completing a skill workflow, report status using one of:
+
 - **DONE** — All steps completed successfully. Evidence provided for each claim.
 - **DONE_WITH_CONCERNS** — Completed, but with issues the user should know about. List each concern.
 - **BLOCKED** — Cannot proceed. State what is blocking and what was tried.
@@ -409,11 +426,13 @@ When completing a skill workflow, report status using one of:
 It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result."
 
 Bad work is worse than no work. You will not be penalized for escalating.
+
 - If you have attempted a task 3 times without success, STOP and escalate.
 - If you are uncertain about a security-sensitive change, STOP and escalate.
 - If the scope of work exceeds what you can verify, STOP and escalate.
 
 Escalation format:
+
 ```
 STATUS: BLOCKED | NEEDS_CONTEXT
 REASON: [1-2 sentences]
@@ -424,6 +443,7 @@ RECOMMENDATION: [what the user should do next]
 ## Operational Self-Improvement
 
 Before completing, reflect on this session:
+
 - Did any commands fail unexpectedly?
 - Did you take a wrong approach and have to backtrack?
 - Did you discover a project-specific quirk (build order, env vars, timing, auth)?
@@ -536,15 +556,16 @@ Then write a `## GSTACK REVIEW REPORT` section to the end of the plan file:
 - If the output is `NO_REVIEWS` or empty: write this placeholder table:
 
 \`\`\`markdown
+
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | 0 | — | — |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | 0 | — | — |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | 0 | — | — |
-| DX Review | \`/plan-devex-review\` | Developer experience gaps | 0 | — | — |
+| Review        | Trigger                 | Why                             | Runs | Status | Findings |
+| ------------- | ----------------------- | ------------------------------- | ---- | ------ | -------- |
+| CEO Review    | \`/plan-ceo-review\`    | Scope & strategy                | 0    | —      | —        |
+| Codex Review  | \`/codex review\`       | Independent 2nd opinion         | 0    | —      | —        |
+| Eng Review    | \`/plan-eng-review\`    | Architecture & tests (required) | 0    | —      | —        |
+| Design Review | \`/plan-design-review\` | UI/UX gaps                      | 0    | —      | —        |
+| DX Review     | \`/plan-devex-review\`  | Developer experience gaps       | 0    | —      | —        |
 
 **VERDICT:** NO REVIEWS YET — run \`/autoplan\` for full review pipeline, or individual reviews above.
 \`\`\`
@@ -572,14 +593,17 @@ Determine which branch this PR/MR targets, or the repo's default branch if no
 PR/MR exists. Use the result as "the base branch" in all subsequent steps.
 
 **If GitHub:**
+
 1. `gh pr view --json baseRefName -q .baseRefName` — if succeeds, use it
 2. `gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — if succeeds, use it
 
 **If GitLab:**
+
 1. `glab mr view -F json 2>/dev/null` and extract the `target_branch` field — if succeeds, use it
 2. `glab repo view -F json 2>/dev/null` and extract the `default_branch` field — if succeeds, use it
 
 **Git-native fallback (if unknown platform, or CLI commands fail):**
+
 1. `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'`
 2. If that fails: `git rev-parse --verify origin/main 2>/dev/null` → use `main`
 3. If that fails: `git rev-parse --verify origin/master 2>/dev/null` → use `master`
@@ -654,7 +678,7 @@ These aren't a checklist — they're how you see. The perceptual instincts that 
 5. **The question reflex** — First instinct is questions, not opinions. "Who is this for? What did they try before this?"
 6. **Edge case paranoia** — What if the name is 47 chars? Zero results? Network fails? Colorblind? RTL language?
 7. **The "Would I notice?" test** — Invisible = perfect. The highest compliment is not noticing the design.
-8. **Principled taste** — "This feels wrong" is traceable to a broken principle. Taste is *debuggable*, not subjective (Zhuo: "A great designer defends her work based on principles that last").
+8. **Principled taste** — "This feels wrong" is traceable to a broken principle. Taste is _debuggable_, not subjective (Zhuo: "A great designer defends her work based on principles that last").
 9. **Subtraction default** — "As little design as possible" (Rams). "Subtract the obvious, add the meaningful" (Maeda).
 10. **Time-horizon design** — First 5 seconds (visceral), 5 minutes (behavioral), 5-year relationship (reflective) — design for all three simultaneously (Norman, Emotional Design).
 11. **Design for trust** — Every design decision either builds or erodes trust. Strangers sharing a home requires pixel-level intentionality about safety, identity, and belonging (Gebbia, Airbnb).
@@ -679,21 +703,25 @@ git diff <base> --stat
 ```
 
 Then read:
+
 - The plan file (current plan or branch diff)
 - CLAUDE.md — project conventions
 - DESIGN.md — if it exists, ALL design decisions calibrate against it
 - TODOS.md — any design-related TODOs this plan touches
 
 Map:
-* What is the UI scope of this plan? (pages, components, interactions)
-* Does a DESIGN.md exist? If not, flag as a gap.
-* Are there existing design patterns in the codebase to align with?
-* What prior design reviews exist? (check reviews.jsonl)
+
+- What is the UI scope of this plan? (pages, components, interactions)
+- Does a DESIGN.md exist? If not, flag as a gap.
+- Are there existing design patterns in the codebase to align with?
+- What prior design reviews exist? (check reviews.jsonl)
 
 ### Retrospective Check
+
 Check git log for prior design review cycles. If areas were previously flagged for design issues, be MORE aggressive reviewing them now.
 
 ### UI Scope Detection
+
 Analyze the plan. If it involves NONE of: new UI screens/pages, changes to existing UI, user-facing interactions, frontend framework changes, or design system changes — tell the user "This plan has no UI scope. A design review isn't applicable." and exit early. Don't force design review on a backend change.
 
 Report findings before proceeding to Step 0.
@@ -729,6 +757,7 @@ comparison boards. The user just needs to see the HTML file in any browser.
 
 If `DESIGN_READY`: the design binary is available for visual mockup generation.
 Commands:
+
 - `$D generate --brief "..." --output /path.png` — generate a single mockup
 - `$D variants --brief "..." --count 3 --output-dir /path/` — generate N style variants
 - `$D compare --images "a.png,b.png,c.png" --output /path/board.html --serve` — comparison board + HTTP server
@@ -744,20 +773,25 @@ data, not project files. They persist across branches, conversations, and worksp
 ## Step 0: Design Scope Assessment
 
 ### 0A. Initial Design Rating
+
 Rate the plan's overall design completeness 0-10.
+
 - "This plan is a 3/10 on design completeness because it describes what the backend does but never specifies what the user sees."
 - "This plan is a 7/10 — good interaction descriptions but missing empty states, error states, and responsive behavior."
 
 Explain what a 10 looks like for THIS plan.
 
 ### 0B. DESIGN.md Status
+
 - If DESIGN.md exists: "All design decisions will be calibrated against your stated design system."
 - If no DESIGN.md: "No design system found. Recommend running /design-consultation first. Proceeding with universal design principles."
 
 ### 0C. Existing Design Leverage
+
 What existing UI patterns, components, or design decisions in the codebase should this plan reuse? Don't reinvent what already works.
 
 ### 0D. Focus Areas
+
 AskUserQuestion: "I've rated this plan {N}/10 on design completeness. The biggest gaps are {X, Y, Z}. I'll generate visual mockups next, then review all 7 dimensions. Want me to focus on specific areas instead of all 7?"
 
 **STOP.** Do NOT proceed until user responds.
@@ -772,6 +806,7 @@ Tell the user: "Generating visual mockups with the gstack designer. This is how 
 review design — real visuals, not text descriptions."
 
 The ONLY time you skip mockups is when:
+
 - `DESIGN_NOT_AVAILABLE` was printed (designer binary not found)
 - The plan has zero UI scope (pure backend/API/infrastructure)
 
@@ -784,6 +819,7 @@ designer outputs PNGs and HTML comparison boards for human review during the
 planning phase. Generating mockups during planning is the whole point.
 
 Allowed commands under this exception:
+
 - `mkdir -p ~/.gstack/projects/$SLUG/designs/...`
 - `$D generate`, `$D variants`, `$D compare`, `$D iterate`, `$D evolve`, `$D check`
 - `open` (fallback for viewing boards when `$B` is not available)
@@ -855,6 +891,7 @@ board IS the chooser. AskUserQuestion is just the blocking wait mechanism.
 **After the user responds to AskUserQuestion:**
 
 Check for feedback files next to the board HTML:
+
 - `$_DESIGN_DIR/feedback.json` — written when user clicks Submit (final choice)
 - `$_DESIGN_DIR/feedback-pending.json` — written when user clicks Regenerate/Remix/More Like This
 
@@ -872,6 +909,7 @@ fi
 ```
 
 The feedback JSON has this shape:
+
 ```json
 {
   "preferred": "A",
@@ -887,6 +925,7 @@ Read `preferred`, `ratings`, `comments`, `overall` from the JSON. Proceed with
 the approved variant.
 
 **If `feedback-pending.json` found:** The user clicked Regenerate/Remix on the board.
+
 1. Read `regenerateAction` from the JSON (`"different"`, `"match"`, `"more_like_B"`,
    `"remix"`, or custom text)
 2. If `regenerateAction` is `"remix"`, read `remixSpec` (e.g. `{"layout":"A","colors":"B"}`)
@@ -921,6 +960,7 @@ Is this right?"
 Use AskUserQuestion to verify before proceeding.
 
 **Save the approved choice:**
+
 ```bash
 echo '{"approved_variant":"<V>","feedback":"<FB>","date":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","screen":"<SCREEN>","branch":"'$(git branch --show-current 2>/dev/null)'"}' > "$_DESIGN_DIR/approved.json"
 ```
@@ -936,6 +976,7 @@ Note which direction was approved. This becomes the visual reference for all sub
 ## Design Outside Voices (parallel)
 
 Use AskUserQuestion:
+
 > "Want outside design voices before the detailed review? Codex evaluates against OpenAI's design hard rules + litmus checks; Claude subagent does an independent completeness review."
 >
 > A) Yes — run outside design voices
@@ -944,6 +985,7 @@ Use AskUserQuestion:
 If user chooses B, skip this step and continue.
 
 **Check Codex availability:**
+
 ```bash
 which codex 2>/dev/null && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 ```
@@ -951,6 +993,7 @@ which codex 2>/dev/null && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 **If Codex is available**, launch both voices simultaneously:
 
 1. **Codex design voice** (via Bash):
+
 ```bash
 TMPERR_DESIGN=$(mktemp /tmp/codex-design-XXXXXXXX)
 _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo" >&2; exit 1; }
@@ -981,24 +1024,27 @@ HARD RULES — first classify as MARKETING/LANDING PAGE vs APP UI vs HYBRID, the
 
 For each finding: what's wrong, what will happen if it ships unresolved, and the specific fix. Be opinionated. No hedging." -C "$_REPO_ROOT" -s read-only -c 'model_reasoning_effort="high"' --enable web_search_cached 2>"$TMPERR_DESIGN"
 ```
+
 Use a 5-minute timeout (`timeout: 300000`). After the command completes, read stderr:
+
 ```bash
 cat "$TMPERR_DESIGN" && rm -f "$TMPERR_DESIGN"
 ```
 
 2. **Claude design subagent** (via Agent tool):
-Dispatch a subagent with this prompt:
-"Read the plan file at [plan-file-path]. You are an independent senior product designer reviewing this plan. You have NOT seen any prior review. Evaluate:
+   Dispatch a subagent with this prompt:
+   "Read the plan file at [plan-file-path]. You are an independent senior product designer reviewing this plan. You have NOT seen any prior review. Evaluate:
 
 1. Information hierarchy: what does the user see first, second, third? Is it right?
-2. Missing states: loading, empty, error, success, partial — which are unspecified?
-3. User journey: what's the emotional arc? Where does it break?
-4. Specificity: does the plan describe SPECIFIC UI ("48px Söhne Bold header, #1a1a1a on white") or generic patterns ("clean modern card-based layout")?
-5. What design decisions will haunt the implementer if left ambiguous?
+1. Missing states: loading, empty, error, success, partial — which are unspecified?
+1. User journey: what's the emotional arc? Where does it break?
+1. Specificity: does the plan describe SPECIFIC UI ("48px Söhne Bold header, #1a1a1a on white") or generic patterns ("clean modern card-based layout")?
+1. What design decisions will haunt the implementer if left ambiguous?
 
 For each finding: what's wrong, severity (critical/high/medium), and the fix."
 
 **Error handling (all non-blocking):**
+
 - **Auth failure:** If stderr contains "auth", "login", "unauthorized", or "API key": "Codex authentication failed. Run `codex login` to authenticate."
 - **Timeout:** "Codex timed out after 5 minutes."
 - **Empty response:** "Codex returned no response."
@@ -1030,15 +1076,18 @@ DESIGN OUTSIDE VOICES — LITMUS SCORECARD:
 Fill in each cell from the Codex and subagent outputs. CONFIRMED = both agree. DISAGREE = models differ. NOT SPEC'D = not enough info to evaluate.
 
 **Pass integration (respects existing 7-pass contract):**
+
 - Hard rejections → raised as the FIRST items in Pass 1, tagged `[HARD REJECTION]`
 - Litmus DISAGREE items → raised in the relevant pass with both perspectives
 - Litmus CONFIRMED failures → pre-loaded as known issues in the relevant pass
 - Passes can skip discovery and go straight to fixing for pre-identified issues
 
 **Log the result:**
+
 ```bash
 ~/.claude/skills/gstack/bin/gstack-review-log '{"skill":"design-outside-voices","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","status":"STATUS","source":"SOURCE","commit":"'"$(git rev-parse --short HEAD)"'"}'
 ```
+
 Replace STATUS with "clean" or "issues_found", SOURCE with "codex+subagent", "codex-only", "subagent-only", or "unavailable".
 
 ## The 0-10 Rating Method
@@ -1046,6 +1095,7 @@ Replace STATUS with "clean" or "issues_found", SOURCE with "codex+subagent", "co
 For each design section, rate the plan 0-10 on that dimension. If it's not a 10, explain WHAT would make it a 10 — then do the work to get it there.
 
 Pattern:
+
 1. Rate: "Information Architecture: 4/10"
 2. Gap: "It's a 4 because the plan doesn't define content hierarchy. A 10 would have clear primary/secondary/tertiary for every screen."
 3. Fix: Edit the plan to add what's missing
@@ -1096,6 +1146,7 @@ If `CROSS_PROJECT` is `unset` (first time): Use AskUserQuestion:
 > where cross-contamination would be a concern.
 
 Options:
+
 - A) Enable cross-project learnings (recommended)
 - B) Keep learnings project-scoped only
 
@@ -1113,46 +1164,56 @@ This makes the compounding visible. The user should see that gstack is getting
 smarter on their codebase over time.
 
 ### Pass 1: Information Architecture
+
 Rate 0-10: Does the plan define what the user sees first, second, third?
 FIX TO 10: Add information hierarchy to the plan. Include ASCII diagram of screen/page structure and navigation flow. Apply "constraint worship" — if you can only show 3 things, which 3?
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY. If no issues, say so and move on. Do NOT proceed until user responds.
 
 ### Pass 2: Interaction State Coverage
+
 Rate 0-10: Does the plan specify loading, empty, error, success, partial states?
 FIX TO 10: Add interaction state table to the plan:
+
 ```
   FEATURE              | LOADING | EMPTY | ERROR | SUCCESS | PARTIAL
   ---------------------|---------|-------|-------|---------|--------
   [each UI feature]    | [spec]  | [spec]| [spec]| [spec]  | [spec]
 ```
+
 For each state: describe what the user SEES, not backend behavior.
 Empty states are features — specify warmth, primary action, context.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
 
 ### Pass 3: User Journey & Emotional Arc
+
 Rate 0-10: Does the plan consider the user's emotional experience?
 FIX TO 10: Add user journey storyboard:
+
 ```
   STEP | USER DOES        | USER FEELS      | PLAN SPECIFIES?
   -----|------------------|-----------------|----------------
   1    | Lands on page    | [what emotion?] | [what supports it?]
   ...
 ```
+
 Apply time-horizon design: 5-sec visceral, 5-min behavioral, 5-year reflective.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
 
 ### Pass 4: AI Slop Risk
+
 Rate 0-10: Does the plan describe specific, intentional UI — or generic patterns?
 FIX TO 10: Rewrite vague UI descriptions with specific alternatives.
 
 ### Design Hard Rules
 
 **Classifier — determine rule set before evaluating:**
+
 - **MARKETING/LANDING PAGE** (hero-driven, brand-forward, conversion-focused) → apply Landing Page Rules
 - **APP UI** (workspace-driven, data-dense, task-focused: dashboards, admin, settings) → apply App UI Rules
 - **HYBRID** (marketing shell with app-like sections) → apply Landing Page Rules to hero/marketing sections, App UI Rules to functional sections
 
 **Hard rejection criteria** (instant-fail patterns — flag if ANY apply):
+
 1. Generic SaaS card grid as first impression
 2. Beautiful image with weak brand
 3. Strong headline with no clear action
@@ -1162,6 +1223,7 @@ FIX TO 10: Rewrite vague UI descriptions with specific alternatives.
 7. App UI made of stacked cards instead of layout
 
 **Litmus checks** (answer YES/NO for each — used for cross-model consensus scoring):
+
 1. Brand/product unmistakable in first screen?
 2. One strong visual anchor present?
 3. Page understandable by scanning headlines only?
@@ -1171,6 +1233,7 @@ FIX TO 10: Rewrite vague UI descriptions with specific alternatives.
 7. Would design feel premium with all decorative shadows removed?
 
 **Landing page rules** (apply when classifier = MARKETING/LANDING):
+
 - First viewport reads as one composition, not a dashboard
 - Brand-first hierarchy: brand > headline > body > CTA
 - Typography: expressive, purposeful — no default stacks (Inter, Roboto, Arial, system)
@@ -1185,6 +1248,7 @@ FIX TO 10: Rewrite vague UI descriptions with specific alternatives.
 - Beautiful defaults: composition-first, brand as loudest text, two typefaces max, cardless by default, first viewport as poster not document
 
 **App UI rules** (apply when classifier = APP UI):
+
 - Calm surface hierarchy, strong typography, few colors
 - Dense but readable, minimal chrome
 - Organize: primary workspace, navigation, secondary context, one accent
@@ -1194,6 +1258,7 @@ FIX TO 10: Rewrite vague UI descriptions with specific alternatives.
 - Section headings state what area is or what user can do ("Selected KPIs", "Plan status")
 
 **Universal rules** (apply to ALL types):
+
 - Define CSS variables for color system
 - No default font stacks (Inter, Roboto, Arial, system)
 - One job per section
@@ -1201,6 +1266,7 @@ FIX TO 10: Rewrite vague UI descriptions with specific alternatives.
 - Cards earn their existence — no decorative card grids
 
 **AI Slop blacklist** (the 10 patterns that scream "AI-generated"):
+
 1. Purple/violet/indigo gradient backgrounds or blue-to-purple color schemes
 2. **The 3-column feature grid:** icon-in-colored-circle + bold title + 2-line description, repeated 3x symmetrically. THE most recognizable AI layout.
 3. Icons in colored circles as section decoration (SaaS starter template look)
@@ -1213,26 +1279,31 @@ FIX TO 10: Rewrite vague UI descriptions with specific alternatives.
 10. Cookie-cutter section rhythm (hero → 3 features → testimonials → pricing → CTA, every section same height)
 
 Source: [OpenAI "Designing Delightful Frontends with GPT-5.4"](https://developers.openai.com/blog/designing-delightful-frontends-with-gpt-5-4) (Mar 2026) + gstack design methodology.
+
 - "Cards with icons" → what differentiates these from every SaaS template?
 - "Hero section" → what makes this hero feel like THIS product?
 - "Clean, modern UI" → meaningless. Replace with actual design decisions.
 - "Dashboard with widgets" → what makes this NOT every other dashboard?
-If visual mockups were generated in Step 0.5, evaluate them against the AI slop blacklist above. Read each mockup image using the Read tool. Does the mockup fall into generic patterns (3-column grid, centered hero, stock-photo feel)? If so, flag it and offer to regenerate with more specific direction via `$D iterate --feedback "..."`.
-**STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
+  If visual mockups were generated in Step 0.5, evaluate them against the AI slop blacklist above. Read each mockup image using the Read tool. Does the mockup fall into generic patterns (3-column grid, centered hero, stock-photo feel)? If so, flag it and offer to regenerate with more specific direction via `$D iterate --feedback "..."`.
+  **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
 
 ### Pass 5: Design System Alignment
+
 Rate 0-10: Does the plan align with DESIGN.md?
 FIX TO 10: If DESIGN.md exists, annotate with specific tokens/components. If no DESIGN.md, flag the gap and recommend `/design-consultation`.
 Flag any new component — does it fit the existing vocabulary?
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
 
 ### Pass 6: Responsive & Accessibility
+
 Rate 0-10: Does the plan specify mobile/tablet, keyboard nav, screen readers?
 FIX TO 10: Add responsive specs per viewport — not "stacked on mobile" but intentional layout changes. Add a11y: keyboard nav patterns, ARIA landmarks, touch target sizes (44px min), color contrast requirements.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
 
 ### Pass 7: Unresolved Design Decisions
+
 Surface ambiguities that will haunt implementation:
+
 ```
   DECISION NEEDED              | IF DEFERRED, WHAT HAPPENS
   -----------------------------|---------------------------
@@ -1240,6 +1311,7 @@ Surface ambiguities that will haunt implementation:
   Mobile nav pattern?          | Desktop nav hides behind hamburger
   ...
 ```
+
 If visual mockups were generated in Step 0.5, reference them as evidence when surfacing unresolved decisions. A mockup makes decisions concrete — e.g., "Your approved mockup shows a sidebar nav, but the plan doesn't specify mobile behavior. What happens to this sidebar on 375px?"
 Each decision = one AskUserQuestion with recommendation + WHY + alternatives. Edit the plan with each decision as it's made.
 
@@ -1252,37 +1324,44 @@ AskUserQuestion: "The review passes changed [list major design changes]. Want me
 If yes, use `$D iterate` with feedback summarizing the changes, or `$D variants` with an updated brief. Save to the same `$_DESIGN_DIR` directory.
 
 ## CRITICAL RULE — How to ask questions
+
 Follow the AskUserQuestion format from the Preamble above. Additional rules for plan design reviews:
-* **One issue = one AskUserQuestion call.** Never combine multiple issues into one question.
-* Describe the design gap concretely — what's missing, what the user will experience if it's not specified.
-* Present 2-3 options. For each: effort to specify now, risk if deferred.
-* **Map to Design Principles above.** One sentence connecting your recommendation to a specific principle.
-* Label with issue NUMBER + option LETTER (e.g., "3A", "3B").
-* **Escape hatch:** If a section has no issues, say so and move on. If a gap has an obvious fix, state what you'll add and move on — don't waste a question on it. Only use AskUserQuestion when there is a genuine design choice with meaningful tradeoffs.
-* **NEVER use AskUserQuestion to ask which variant the user prefers.** Always create a comparison board first (`$D compare --serve`) and open it in the browser. The board has rating controls, comments, remix/regenerate buttons, and structured feedback output. Use AskUserQuestion ONLY to notify the user the board is open and wait for them to finish — not to present variants inline and ask "which do you prefer?" That is a degraded experience.
+
+- **One issue = one AskUserQuestion call.** Never combine multiple issues into one question.
+- Describe the design gap concretely — what's missing, what the user will experience if it's not specified.
+- Present 2-3 options. For each: effort to specify now, risk if deferred.
+- **Map to Design Principles above.** One sentence connecting your recommendation to a specific principle.
+- Label with issue NUMBER + option LETTER (e.g., "3A", "3B").
+- **Escape hatch:** If a section has no issues, say so and move on. If a gap has an obvious fix, state what you'll add and move on — don't waste a question on it. Only use AskUserQuestion when there is a genuine design choice with meaningful tradeoffs.
+- **NEVER use AskUserQuestion to ask which variant the user prefers.** Always create a comparison board first (`$D compare --serve`) and open it in the browser. The board has rating controls, comments, remix/regenerate buttons, and structured feedback output. Use AskUserQuestion ONLY to notify the user the board is open and wait for them to finish — not to present variants inline and ask "which do you prefer?" That is a degraded experience.
 
 ## Required Outputs
 
 ### "NOT in scope" section
+
 Design decisions considered and explicitly deferred, with one-line rationale each.
 
 ### "What already exists" section
+
 Existing DESIGN.md, UI patterns, and components that the plan should reuse.
 
 ### TODOS.md updates
+
 After all review passes are complete, present each potential TODO as its own individual AskUserQuestion. Never batch TODOs — one per question. Never silently skip this step.
 
 For design debt: missing a11y, unresolved responsive behavior, deferred empty states. Each TODO gets:
-* **What:** One-line description of the work.
-* **Why:** The concrete problem it solves or value it unlocks.
-* **Pros:** What you gain by doing this work.
-* **Cons:** Cost, complexity, or risks of doing it.
-* **Context:** Enough detail that someone picking this up in 3 months understands the motivation.
-* **Depends on / blocked by:** Any prerequisites.
+
+- **What:** One-line description of the work.
+- **Why:** The concrete problem it solves or value it unlocks.
+- **Pros:** What you gain by doing this work.
+- **Cons:** Cost, complexity, or risks of doing it.
+- **Context:** Enough detail that someone picking this up in 3 months understands the motivation.
+- **Depends on / blocked by:** Any prerequisites.
 
 Then present options: **A)** Add to TODOS.md **B)** Skip — not valuable enough **C)** Build it now in this PR instead of deferring.
 
 ### Completion Summary
+
 ```
   +====================================================================+
   |         DESIGN PLAN REVIEW — COMPLETION SUMMARY                    |
@@ -1311,6 +1390,7 @@ If all passes 8+: "Plan is design-complete. Run /design-review after implementat
 If any below 8: note what's unresolved and why (user chose to defer).
 
 ### Unresolved Decisions
+
 If any AskUserQuestion goes unanswered, note it here. Never silently default to an option.
 
 ### Approved Mockups
@@ -1342,6 +1422,7 @@ command breaks the review readiness dashboard in /ship.
 ```
 
 Substitute values from the Completion Summary:
+
 - **TIMESTAMP**: current ISO 8601 datetime
 - **STATUS**: "clean" if overall score 8+ AND 0 unresolved; otherwise "issues_open"
 - **initial_score**: initial overall design score before fixes (0-10)
@@ -1383,6 +1464,7 @@ Display:
 ```
 
 **Review tiers:**
+
 - **Eng Review (required by default):** The only review that gates shipping. Covers architecture, code quality, tests, performance. Can be disabled globally with \`gstack-config set skip_eng_review true\` (the "don't bother me" setting).
 - **CEO Review (optional):** Use your judgment. Recommend it for big product/business changes, new user-facing features, or scope decisions. Skip for bug fixes, refactors, infra, and cleanup.
 - **Design Review (optional):** Use your judgment. Recommend it for UI/UX changes. Skip for backend-only, infra, or prompt-only changes.
@@ -1390,12 +1472,14 @@ Display:
 - **Outside Voice (optional):** Independent plan review from a different AI model. Offered after all review sections complete in /plan-ceo-review and /plan-eng-review. Falls back to Claude subagent if Codex is unavailable. Never gates shipping.
 
 **Verdict logic:**
+
 - **CLEARED**: Eng Review has >= 1 entry within 7 days from either \`review\` or \`plan-eng-review\` with status "clean" (or \`skip_eng_review\` is \`true\`)
 - **NOT CLEARED**: Eng Review missing, stale (>7 days), or has open issues
 - CEO, Design, and Codex reviews are shown for context but never block shipping
 - If \`skip_eng_review\` config is \`true\`, Eng Review shows "SKIPPED (global)" and verdict is CLEARED
 
 **Staleness detection:** After displaying the dashboard, check if any existing reviews may be stale:
+
 - Parse the \`---HEAD---\` section from the bash output to get the current HEAD commit hash
 - For each review entry that has a \`commit\` field: compare it against the current HEAD. If different, count elapsed commits: \`git rev-list --count STORED_COMMIT..HEAD\`. Display: "Note: {skill} review from {date} may be stale — {N} commits since review"
 - For entries without a \`commit\` field (legacy entries): display "Note: {skill} review from {date} has no commit tracking — consider re-running for accurate staleness detection"
@@ -1438,15 +1522,17 @@ Summary. For prior reviews, use the JSONL fields directly — they contain all r
 Produce this markdown table:
 
 \`\`\`markdown
+
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | {runs} | {status} | {findings} |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | {runs} | {status} | {findings} |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | {runs} | {status} | {findings} |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | {runs} | {status} | {findings} |
-| DX Review | \`/plan-devex-review\` | Developer experience gaps | {runs} | {status} | {findings} |
+| Review        | Trigger                 | Why                             | Runs   | Status   | Findings   |
+| ------------- | ----------------------- | ------------------------------- | ------ | -------- | ---------- |
+| CEO Review    | \`/plan-ceo-review\`    | Scope & strategy                | {runs} | {status} | {findings} |
+| Codex Review  | \`/codex review\`       | Independent 2nd opinion         | {runs} | {status} | {findings} |
+| Eng Review    | \`/plan-eng-review\`    | Architecture & tests (required) | {runs} | {status} | {findings} |
+| Design Review | \`/plan-design-review\` | UI/UX gaps                      | {runs} | {status} | {findings} |
+| DX Review     | \`/plan-devex-review\`  | Developer experience gaps       | {runs} | {status} | {findings} |
+
 \`\`\`
 
 Below the table, add these lines (omit any that are empty/not applicable):
@@ -1515,6 +1601,7 @@ from exploring new directions, recommend /design-shotgun. If approved mockups ex
 need to be turned into working HTML, recommend /design-html.
 
 Use AskUserQuestion to present the next step. Include only applicable options:
+
 - **A)** Run /plan-eng-review next (required gate)
 - **B)** Run /plan-ceo-review (only if fundamental product gaps found)
 - **C)** Run /design-shotgun — explore visual design variants for issues found
@@ -1522,8 +1609,9 @@ Use AskUserQuestion to present the next step. Include only applicable options:
 - **E)** Skip — I'll handle next steps manually
 
 ## Formatting Rules
-* NUMBER issues (1, 2, 3...) and LETTERS for options (A, B, C...).
-* Label with NUMBER + LETTER (e.g., "3A", "3B").
-* One sentence max per option.
-* After each pass, pause and wait for feedback.
-* Rate before and after each pass for scannability.
+
+- NUMBER issues (1, 2, 3...) and LETTERS for options (A, B, C...).
+- Label with NUMBER + LETTER (e.g., "3A", "3B").
+- One sentence max per option.
+- After each pass, pause and wait for feedback.
+- Rate before and after each pass for scannability.

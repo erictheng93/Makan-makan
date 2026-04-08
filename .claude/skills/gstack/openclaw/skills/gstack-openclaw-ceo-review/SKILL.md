@@ -62,23 +62,28 @@ These are thinking instincts, not a checklist. Let them shape your perspective t
 ## Step 0: Nuclear Scope Challenge + Mode Selection
 
 ### 0A. Premise Challenge
+
 1. Is this the right problem to solve? Could a different framing yield a dramatically simpler or more impactful solution?
 2. What is the actual user/business outcome? Is the plan the most direct path to that outcome, or is it solving a proxy problem?
 3. What would happen if we did nothing? Real pain point or hypothetical one?
 
 ### 0B. Existing Code Leverage
+
 1. What existing code already partially or fully solves each sub-problem? Map every sub-problem to existing code.
 2. Is this plan rebuilding anything that already exists?
 
 ### 0C. Dream State Mapping
+
 Describe the ideal end state 12 months from now. Does this plan move toward that state or away from it?
 
 > CURRENT STATE → THIS PLAN → 12-MONTH IDEAL
 
 ### 0C-bis. Implementation Alternatives (MANDATORY)
+
 Produce 2-3 distinct approaches before selecting a mode:
 
 For each approach:
+
 - **Name**, Summary, Effort (S/M/L/XL), Risk (Low/Med/High)
 - Pros (2-3 bullets), Cons (2-3 bullets), Reuses (existing code leveraged)
 
@@ -99,6 +104,7 @@ Ask the user which approach to proceed with. Do NOT proceed without approval.
 **SCOPE REDUCTION:** Run the ruthless cut and follow-up PR separation.
 
 ### 0E. Temporal Interrogation
+
 Think ahead to implementation: What decisions will need to be made during implementation that should be resolved NOW?
 
 > HOUR 1 (foundations): What does the implementer need to know?
@@ -107,13 +113,16 @@ Think ahead to implementation: What decisions will need to be made during implem
 > HOUR 6+ (polish/tests): What will they wish they'd planned for?
 
 ### 0F. Mode Selection
+
 Present four options:
+
 1. **SCOPE EXPANSION** ... Dream big, propose the ambitious version
 2. **SELECTIVE EXPANSION** ... Hold baseline, cherry-pick expansions
 3. **HOLD SCOPE** ... Maximum rigor, make it bulletproof
 4. **SCOPE REDUCTION** ... Ruthless cut to minimum viable version
 
 Context-dependent defaults:
+
 - Greenfield feature → default EXPANSION
 - Feature enhancement → default SELECTIVE EXPANSION
 - Bug fix or hotfix → default HOLD SCOPE
@@ -131,36 +140,47 @@ Once selected, commit fully. Do not silently drift.
 Ask the user about each issue ONE AT A TIME. Do NOT batch.
 
 ### Section 1: Architecture Review
+
 Evaluate system design, component boundaries, data flow (all four paths), state machines, coupling, scaling, security architecture, production failure scenarios, rollback posture. Draw dependency graphs.
 
 ### Section 2: Error & Rescue Map
+
 For every new method or codepath that can fail: name the exception, whether it's rescued, what the rescue action is, and what the user sees. Catch-all error handling is always a smell.
 
 ### Section 3: Security & Threat Model
+
 Attack surface expansion, input validation, authorization, secrets management, dependency risk, data classification, injection vectors, audit logging.
 
 ### Section 4: Data Flow & Interaction Edge Cases
+
 Trace every new data flow through input → validation → transform → persist → output, noting what happens at each node for nil, empty, wrong type, too long, timeout, conflict, encoding issues.
 
 ### Section 5: Code Quality Review
+
 Organization, DRY violations, naming quality, error handling patterns, missing edge cases, over-engineering, under-engineering, cyclomatic complexity.
 
 ### Section 6: Test Review
+
 Diagram every new UX flow, data flow, codepath, background job, integration, and error path. For each: what type of test covers it? Does one exist? What's the gap?
 
 ### Section 7: Observability & Monitoring
+
 New metrics, dashboards, alerts, runbooks. For each new codepath: how would you know it's broken in production?
 
 ### Section 8: Database & State Management
+
 New tables, indexes, migrations, query patterns. N+1 query risks. Data integrity constraints.
 
 ### Section 9: API Design & Contract
+
 New endpoints, request/response shapes, backward compatibility, versioning, rate limiting.
 
 ### Section 10: Performance & Scalability
+
 What breaks at 10x load? At 100x? Memory, CPU, network, database hotspots.
 
 ### Section 11: Design & UX (only if the plan touches UI)
+
 Information hierarchy, empty/loading/error states, responsive strategy, accessibility, consistency with existing design patterns.
 
 ---
@@ -170,6 +190,7 @@ Information hierarchy, empty/loading/error states, responsive strategy, accessib
 After all sections are reviewed, produce a clean summary:
 
 **CEO REVIEW SUMMARY**
+
 - **Mode:** [selected mode]
 - **Strongest challenges:** [top 3 issues found]
 - **Recommended path:** [what to do next]

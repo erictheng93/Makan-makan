@@ -152,6 +152,7 @@ browser. One command: "This page is broken. Fix it."
 The browser isn't just a viewport. It's a window into the application's health.
 
 **Today:**
+
 - Console log capture — every `console.log`, `console.error`, and warning
 - Network request monitoring — every XHR, fetch, websocket, and static asset
 - Performance metrics — Core Web Vitals, resource timing, paint events
@@ -159,12 +160,14 @@ The browser isn't just a viewport. It's a window into the application's health.
 - CSS inspection — computed styles, box model, rule cascade
 
 **Next:**
+
 - Network request replay — "replay this failing request with different params"
 - Performance regression detection — "this page is 200ms slower than yesterday"
 - Dependency auditing — "this page loads 47 third-party scripts"
 - Accessibility auditing — "this form has no labels, these colors fail contrast"
 
 **Future:**
+
 - Full application telemetry — CPU, memory, GPU usage in real-time
 - Cross-browser testing — same test suite across Chrome, Firefox, Safari
 - Real user monitoring correlation — "this bug affects 12% of production users"
@@ -188,16 +191,16 @@ and the other watches the AI fix things in real-time.
 
 Every gstack skill becomes a browser capability.
 
-| Skill | Browser Capability |
-|-------|-------------------|
-| `/qa` | Test every page, find bugs, fix them, verify fixes |
-| `/design-review` | Screenshot → analyze → fix CSS → screenshot again |
-| `/investigate` | See the error in browser → trace to code → fix → verify |
-| `/benchmark` | Measure page performance → detect regressions → alert |
-| `/canary` | Monitor deployed site → screenshot periodically → alert on changes |
-| `/ship` | Run tests → review diff → create PR → verify deployment in browser |
-| `/cso` | Audit page for XSS, open redirects, clickjacking in real browser |
-| `/office-hours` | Browse competitor sites → synthesize observations → design doc |
+| Skill            | Browser Capability                                                 |
+| ---------------- | ------------------------------------------------------------------ |
+| `/qa`            | Test every page, find bugs, fix them, verify fixes                 |
+| `/design-review` | Screenshot → analyze → fix CSS → screenshot again                  |
+| `/investigate`   | See the error in browser → trace to code → fix → verify            |
+| `/benchmark`     | Measure page performance → detect regressions → alert              |
+| `/canary`        | Monitor deployed site → screenshot periodically → alert on changes |
+| `/ship`          | Run tests → review diff → create PR → verify deployment in browser |
+| `/cso`           | Audit page for XSS, open redirects, clickjacking in real browser   |
+| `/office-hours`  | Browse competitor sites → synthesize observations → design doc     |
 
 The command palette (Cmd+K) is the hub. You don't need to know the skills exist.
 You type what you want, the fuzzy filter finds the right skill, and the AI runs it
@@ -288,14 +291,14 @@ Synthetic monitoring with AI judgment. Not just "did the page return 200" but
 
 ## Competitive Landscape
 
-| Browser | Approach | Differentiator | Weakness |
-|---------|----------|---------------|----------|
-| **Atlas** | Chromium fork + AI layer | Agentic browser, "OWL" isolated Chromium | Consumer-focused, no code integration |
-| **Dia** | AI-native browser | Clean UI, built for AI interaction | No dev tools, no code editing |
-| **Comet** | AI browser | Multi-agent browsing | Early, unclear dev workflow |
-| **Chrome Auto Browse** | Extension | Google's own, deep Chrome integration | Extension-only, no code editing |
-| **Cursor** | VSCode fork + AI | Best-in-class code editing | No browser viewport |
-| **GStack Browser** | CC runtime + browser viewport | See bug in browser, fix in code, verify | Currently macOS-only, no consumer features |
+| Browser                | Approach                      | Differentiator                           | Weakness                                   |
+| ---------------------- | ----------------------------- | ---------------------------------------- | ------------------------------------------ |
+| **Atlas**              | Chromium fork + AI layer      | Agentic browser, "OWL" isolated Chromium | Consumer-focused, no code integration      |
+| **Dia**                | AI-native browser             | Clean UI, built for AI interaction       | No dev tools, no code editing              |
+| **Comet**              | AI browser                    | Multi-agent browsing                     | Early, unclear dev workflow                |
+| **Chrome Auto Browse** | Extension                     | Google's own, deep Chrome integration    | Extension-only, no code editing            |
+| **Cursor**             | VSCode fork + AI              | Best-in-class code editing               | No browser viewport                        |
+| **GStack Browser**     | CC runtime + browser viewport | See bug in browser, fix in code, verify  | Currently macOS-only, no consumer features |
 
 GStack Browser doesn't compete with consumer browsers. It competes with the
 workflow of switching between browser and editor. The goal is to make that switch
@@ -304,6 +307,7 @@ invisible.
 ## Design System
 
 From DESIGN.md:
+
 - **Primary accent:** Amber-500 (#F59E0B) — agent active, focus states, pulse
 - **Background:** Zinc-950 (#09090B) through Zinc-800 (#27272A) — dark, dense
 - **Typography:** JetBrains Mono (code/status), DM Sans (UI/labels)
@@ -313,28 +317,28 @@ From DESIGN.md:
 
 ## Implementation Status
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| .app bundle | **SHIPPED** | 389MB, launches in ~5s |
-| DMG packaging | **SHIPPED** | 189MB compressed |
-| `GSTACK_CHROMIUM_PATH` | **SHIPPED** | Custom Chromium binary support |
-| `BROWSE_EXTENSIONS_DIR` | **SHIPPED** | Extension path override |
-| Auth via `/health` | **SHIPPED** | Replaces .auth.json file approach, auto-refreshes on server restart |
-| Build script | **SHIPPED** | `scripts/build-app.sh` |
-| Model routing | **SHIPPED** | Sonnet for actions, Opus for analysis (`pickSidebarModel`) |
-| Debug logging | **SHIPPED** | 40+ silent catches → prefixed console logging across 4 files |
-| No idle timeout (headed) | **SHIPPED** | Browser stays alive as long as window is open |
-| Cookie import button | **SHIPPED** | One-click in sidebar footer, opens `/cookie-picker` |
-| Sidebar arrow hint | **SHIPPED** | Points to sidebar, hides only when sidebar actually opens |
-| Architecture doc | **SHIPPED** | `docs/designs/SIDEBAR_MESSAGE_FLOW.md` |
-| Command palette | Planned | Phase 1b |
-| Quick screenshot | Planned | Phase 1b |
-| Status bar | Planned | Phase 1b |
-| Dev server detection | Planned | Phase 1b |
-| BoomLooper integration | Future | Phase 2 |
-| Cross-platform | Future | Phase 3 |
-| Chromium fork | Trigger-gated | Phase 4 |
-| Native shell | Deferred | Phase 5 |
+| Component                | Status        | Notes                                                               |
+| ------------------------ | ------------- | ------------------------------------------------------------------- |
+| .app bundle              | **SHIPPED**   | 389MB, launches in ~5s                                              |
+| DMG packaging            | **SHIPPED**   | 189MB compressed                                                    |
+| `GSTACK_CHROMIUM_PATH`   | **SHIPPED**   | Custom Chromium binary support                                      |
+| `BROWSE_EXTENSIONS_DIR`  | **SHIPPED**   | Extension path override                                             |
+| Auth via `/health`       | **SHIPPED**   | Replaces .auth.json file approach, auto-refreshes on server restart |
+| Build script             | **SHIPPED**   | `scripts/build-app.sh`                                              |
+| Model routing            | **SHIPPED**   | Sonnet for actions, Opus for analysis (`pickSidebarModel`)          |
+| Debug logging            | **SHIPPED**   | 40+ silent catches → prefixed console logging across 4 files        |
+| No idle timeout (headed) | **SHIPPED**   | Browser stays alive as long as window is open                       |
+| Cookie import button     | **SHIPPED**   | One-click in sidebar footer, opens `/cookie-picker`                 |
+| Sidebar arrow hint       | **SHIPPED**   | Points to sidebar, hides only when sidebar actually opens           |
+| Architecture doc         | **SHIPPED**   | `docs/designs/SIDEBAR_MESSAGE_FLOW.md`                              |
+| Command palette          | Planned       | Phase 1b                                                            |
+| Quick screenshot         | Planned       | Phase 1b                                                            |
+| Status bar               | Planned       | Phase 1b                                                            |
+| Dev server detection     | Planned       | Phase 1b                                                            |
+| BoomLooper integration   | Future        | Phase 2                                                             |
+| Cross-platform           | Future        | Phase 3                                                             |
+| Chromium fork            | Trigger-gated | Phase 4                                                             |
+| Native shell             | Deferred      | Phase 5                                                             |
 
 ## The 12-Month Vision
 

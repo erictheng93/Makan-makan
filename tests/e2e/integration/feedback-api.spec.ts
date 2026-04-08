@@ -70,7 +70,10 @@ const THAI_FEEDBACKS = [
 ] as const;
 
 // ─── Auth cache (avoid repeat logins for the same user in one run) ───────
-const authCache = new Map<string, { token: string; csrfToken: string; csrfCookie: string }>();
+const authCache = new Map<
+  string,
+  { token: string; csrfToken: string; csrfCookie: string }
+>();
 async function loginOnce(username: string) {
   if (authCache.has(username)) return authCache.get(username)!;
   const auth = await loginAs(username);
@@ -110,7 +113,12 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
   // ── grandmaShop: feedback 1 ──────────────────────────────────────────
   test("grandmaShop submits feedback 1: bug report — menu images not showing", async () => {
     const auth = await loginOnce("grandmaShop");
-    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, GRANDMA_FEEDBACKS[0]);
+    const res = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      GRANDMA_FEEDBACKS[0],
+    );
 
     expect(res.status).toBe(201);
     const json = (await res.json()) as {
@@ -127,7 +135,12 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
   // ── grandmaShop: feedback 2 ──────────────────────────────────────────
   test("grandmaShop submits feedback 2: feature request — analytics comparison", async () => {
     const auth = await loginOnce("grandmaShop");
-    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, GRANDMA_FEEDBACKS[1]);
+    const res = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      GRANDMA_FEEDBACKS[1],
+    );
 
     expect(res.status).toBe(201);
     const json = (await res.json()) as {
@@ -143,7 +156,12 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
   // ── japanShop: feedback 1 ────────────────────────────────────────────
   test("japanShop submits feedback 1: bug report — duplicate confirmation email", async () => {
     const auth = await loginOnce("japanShop");
-    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, JAPAN_FEEDBACKS[0]);
+    const res = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      JAPAN_FEEDBACKS[0],
+    );
 
     expect(res.status).toBe(201);
     const json = (await res.json()) as {
@@ -159,7 +177,12 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
   // ── japanShop: feedback 2 ────────────────────────────────────────────
   test("japanShop submits feedback 2: feature request — table layout editor", async () => {
     const auth = await loginOnce("japanShop");
-    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, JAPAN_FEEDBACKS[1]);
+    const res = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      JAPAN_FEEDBACKS[1],
+    );
 
     expect(res.status).toBe(201);
     const json = (await res.json()) as {
@@ -174,7 +197,12 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
   // ── thaiShop: feedback 1 ─────────────────────────────────────────────
   test("thaiShop submits feedback 1: bug report — POS coupon freeze", async () => {
     const auth = await loginOnce("thaiShop");
-    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, THAI_FEEDBACKS[0]);
+    const res = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      THAI_FEEDBACKS[0],
+    );
 
     expect(res.status).toBe(201);
     const json = (await res.json()) as {
@@ -190,7 +218,12 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
   // ── thaiShop: feedback 2 ─────────────────────────────────────────────
   test("thaiShop submits feedback 2: feature request — Thai language support", async () => {
     const auth = await loginOnce("thaiShop");
-    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, THAI_FEEDBACKS[1]);
+    const res = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      THAI_FEEDBACKS[1],
+    );
 
     expect(res.status).toBe(201);
     const json = (await res.json()) as {
@@ -225,7 +258,11 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
     // Get a grandmaShop feedback ID
     const grandmaAuth = await loginOnce("grandmaShop");
     const listRes = await fetch(`${API_URL}/api/v1/feedback?limit=1`, {
-      headers: authHeaders(grandmaAuth.token, grandmaAuth.csrfToken, grandmaAuth.csrfCookie),
+      headers: authHeaders(
+        grandmaAuth.token,
+        grandmaAuth.csrfToken,
+        grandmaAuth.csrfCookie,
+      ),
     });
     const listJson = (await listRes.json()) as {
       feedback: Array<{ id: number }>;
@@ -236,7 +273,11 @@ test.describe("Feedback Module — Owner Submissions & Isolation", () => {
     // japanShop tries to access it
     const japanAuth = await loginOnce("japanShop");
     const res = await fetch(`${API_URL}/api/v1/feedback/${grandmaFeedbackId}`, {
-      headers: authHeaders(japanAuth.token, japanAuth.csrfToken, japanAuth.csrfCookie),
+      headers: authHeaders(
+        japanAuth.token,
+        japanAuth.csrfToken,
+        japanAuth.csrfCookie,
+      ),
     });
     expect(res.status).toBe(403);
 
@@ -306,13 +347,19 @@ test.describe("Feedback Module — Response CRUD", () => {
   test.beforeAll(async () => {
     // Create a feedback to attach responses to
     const auth = await loginOnce("grandmaShop");
-    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, {
-      subject: "Response CRUD test feedback",
-      description: "This feedback is used to test the response CRUD lifecycle end to end.",
-      category: "usability",
-      priority: "low",
-      relatedModule: "settings",
-    });
+    const res = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      {
+        subject: "Response CRUD test feedback",
+        description:
+          "This feedback is used to test the response CRUD lifecycle end to end.",
+        category: "usability",
+        priority: "low",
+        relatedModule: "settings",
+      },
+    );
     expect(res.status).toBe(201);
     const json = (await res.json()) as { data: { id: number } };
     feedbackId = json.data.id;
@@ -322,13 +369,16 @@ test.describe("Feedback Module — Response CRUD", () => {
 
   test("owner adds a public response to own feedback", async () => {
     const auth = await loginOnce("grandmaShop");
-    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}/responses`, {
-      method: "POST",
-      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
-      body: JSON.stringify({
-        message: "I noticed this happens mostly on mobile devices.",
-      }),
-    });
+    const res = await fetch(
+      `${API_URL}/api/v1/feedback/${feedbackId}/responses`,
+      {
+        method: "POST",
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+        body: JSON.stringify({
+          message: "I noticed this happens mostly on mobile devices.",
+        }),
+      },
+    );
     expect(res.status).toBe(201);
     const json = (await res.json()) as {
       success: boolean;
@@ -342,14 +392,17 @@ test.describe("Feedback Module — Response CRUD", () => {
 
   test("admin adds an internal note", async () => {
     const auth = await loginOnce("admin");
-    const res = await fetch(`${API_URL}/api/v1/feedback/${feedbackId}/responses`, {
-      method: "POST",
-      headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
-      body: JSON.stringify({
-        message: "Internal: escalating to mobile team.",
-        isInternal: true,
-      }),
-    });
+    const res = await fetch(
+      `${API_URL}/api/v1/feedback/${feedbackId}/responses`,
+      {
+        method: "POST",
+        headers: authHeaders(auth.token, auth.csrfToken, auth.csrfCookie),
+        body: JSON.stringify({
+          message: "Internal: escalating to mobile team.",
+          isInternal: true,
+        }),
+      },
+    );
     expect(res.status).toBe(201);
     const json = (await res.json()) as {
       success: boolean;
@@ -455,13 +508,19 @@ test.describe("Feedback Module — Status Lifecycle", () => {
 
   test.beforeAll(async () => {
     const auth = await loginOnce("grandmaShop");
-    const res = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, {
-      subject: "Status lifecycle test",
-      description: "This feedback tests the full status lifecycle from open through closed.",
-      category: "performance",
-      priority: "medium",
-      relatedModule: "orders",
-    });
+    const res = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      {
+        subject: "Status lifecycle test",
+        description:
+          "This feedback tests the full status lifecycle from open through closed.",
+        category: "performance",
+        priority: "medium",
+        relatedModule: "orders",
+      },
+    );
     expect(res.status).toBe(201);
     const json = (await res.json()) as { data: { id: number; status: string } };
     feedbackId = json.data.id;
@@ -493,7 +552,11 @@ test.describe("Feedback Module — Status Lifecycle", () => {
     expect(res.status).toBe(200);
     const json = (await res.json()) as {
       success: boolean;
-      data: { status: string; resolvedAt: string | null; resolvedBy: number | null };
+      data: {
+        status: string;
+        resolvedAt: string | null;
+        resolvedBy: number | null;
+      };
     };
     expect(json.data.status).toBe("resolved");
     expect(json.data.resolvedAt).not.toBeNull();
@@ -541,12 +604,18 @@ test.describe("Feedback Module — Owner Edit & Delete", () => {
   test("owner can edit own open feedback", async () => {
     const auth = await loginOnce("grandmaShop");
     // Create a fresh feedback
-    const createRes = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, {
-      subject: "Editable feedback",
-      description: "This will be edited by the owner to verify the edit endpoint works.",
-      category: "other",
-      priority: "low",
-    });
+    const createRes = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      {
+        subject: "Editable feedback",
+        description:
+          "This will be edited by the owner to verify the edit endpoint works.",
+        category: "other",
+        priority: "low",
+      },
+    );
     expect(createRes.status).toBe(201);
     const createJson = (await createRes.json()) as { data: { id: number } };
 
@@ -572,11 +641,17 @@ test.describe("Feedback Module — Owner Edit & Delete", () => {
 
   test("owner can delete own open feedback", async () => {
     const auth = await loginOnce("grandmaShop");
-    const createRes = await postFeedback(auth.token, auth.csrfToken, auth.csrfCookie, {
-      subject: "Deletable feedback",
-      description: "This will be deleted by the owner to verify the delete endpoint works.",
-      category: "other",
-    });
+    const createRes = await postFeedback(
+      auth.token,
+      auth.csrfToken,
+      auth.csrfCookie,
+      {
+        subject: "Deletable feedback",
+        description:
+          "This will be deleted by the owner to verify the delete endpoint works.",
+        category: "other",
+      },
+    );
     expect(createRes.status).toBe(201);
     const createJson = (await createRes.json()) as { data: { id: number } };
 

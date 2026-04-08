@@ -237,7 +237,11 @@ export async function mockOrderAPI(page: Page) {
   });
 
   // Guest order (dine-in without login)
-  const guestOrder = { ...order, id: "order-guest", orderNumber: "ORD-GUEST-001" };
+  const guestOrder = {
+    ...order,
+    id: "order-guest",
+    orderNumber: "ORD-GUEST-001",
+  };
 
   await page.route(`${API}/guest-orders`, (route) => {
     if (route.request().method() === "POST") {

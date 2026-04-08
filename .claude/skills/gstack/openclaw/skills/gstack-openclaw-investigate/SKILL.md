@@ -24,9 +24,11 @@ Gather context before forming any hypothesis.
 2. **Read the code:** Trace the code path from the symptom back to potential causes. Search for all references, read the logic around the failure point.
 
 3. **Check recent changes:**
+
    ```bash
    git log --oneline -20 -- <affected-files>
    ```
+
    Was this working before? What changed? A regression means the root cause is in the diff.
 
 4. **Reproduce:** Can you trigger the bug deterministically? If not, gather more evidence before proceeding.
@@ -54,6 +56,7 @@ Check if this bug matches a known pattern:
 **Stale cache** ... Shows old data, fixes on cache clear. Redis, CDN, browser cache.
 
 Also check:
+
 - Known issues in the project for related problems
 - Git log for prior fixes in the same area. Recurring bugs in the same files are an architectural smell, not a coincidence.
 
@@ -79,6 +82,7 @@ Before writing ANY fix, verify your hypothesis.
    - Add logging and wait (instrument the area and catch it next time)
 
 **Red flags** ... if you see any of these, slow down:
+
 - "Quick fix for now" ... there is no "for now." Fix it right or escalate.
 - Proposing a fix before tracing data flow ... you're guessing.
 - Each fix reveals a new problem elsewhere ... wrong layer, not wrong code.
@@ -112,6 +116,7 @@ Run the test suite.
 Output a structured debug report:
 
 **DEBUG REPORT**
+
 - **Symptom:** what the user observed
 - **Root cause:** what was actually wrong
 - **Fix:** what was changed, with file references

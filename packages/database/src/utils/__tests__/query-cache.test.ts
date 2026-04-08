@@ -31,7 +31,9 @@ describe("QueryCache", () => {
     it("should execute queryFn on cache miss and store result", async () => {
       mockKV.get.mockResolvedValue(null);
       mockKV.put.mockResolvedValue(undefined);
-      const queryFn = vi.fn().mockResolvedValue([{ id: 1, name: "Nasi Lemak" }]);
+      const queryFn = vi
+        .fn()
+        .mockResolvedValue([{ id: 1, name: "Nasi Lemak" }]);
 
       const result = await cache.getOrExecute("menu:1", queryFn, options);
 
@@ -209,9 +211,7 @@ describe("buildCacheKey", () => {
   });
 
   it("should append suffix when provided", () => {
-    expect(buildCacheKey("menu", "123", "items")).toBe(
-      "query:menu:123:items",
-    );
+    expect(buildCacheKey("menu", "123", "items")).toBe("query:menu:123:items");
   });
 
   it("should omit suffix when not provided", () => {

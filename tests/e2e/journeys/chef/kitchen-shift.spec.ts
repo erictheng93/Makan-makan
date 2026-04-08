@@ -81,11 +81,15 @@ test.describe("Chef kitchen shift flow", () => {
 
     await page.goto(dashboardUrl);
 
-    await page.waitForURL(/\/(kitchen|dashboard)/, { timeout: 10000 }).catch(() => {});
+    await page
+      .waitForURL(/\/(kitchen|dashboard)/, { timeout: 10000 })
+      .catch(() => {});
 
     // Verify we are on a kitchen-related page
     await expect(
-      page.locator('main, [role="main"], [data-testid="kitchen-display"]').first(),
+      page
+        .locator('main, [role="main"], [data-testid="kitchen-display"]')
+        .first(),
     ).toBeVisible({ timeout: 8000 });
   });
 
@@ -552,7 +556,9 @@ test.describe("Chef kitchen shift flow", () => {
     }
 
     // Verify the settings page loaded (at minimum)
-    await expect(page.locator('main, [role="main"]').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('main, [role="main"]').first()).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   // -----------------------------------------------------------------------

@@ -9,11 +9,11 @@
  * can import this directly.
  */
 
-import { spawnSync } from 'child_process';
-import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { spawnSync } from "child_process";
+import * as crypto from "crypto";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 // --- Interfaces ---
 
@@ -53,11 +53,17 @@ function copyDirSync(src: string, dest: string): void {
 
 /** Run a git command and return stdout. Throws on failure unless tolerateFailure is set. */
 function git(args: string[], cwd: string, tolerateFailure = false): string {
-  const result = spawnSync('git', args, { cwd, stdio: 'pipe', timeout: 30_000 });
-  const stdout = result.stdout?.toString().trim() ?? '';
-  const stderr = result.stderr?.toString().trim() ?? '';
+  const result = spawnSync("git", args, {
+    cwd,
+    stdio: "pipe",
+    timeout: 30_000,
+  });
+  const stdout = result.stdout?.toString().trim() ?? "";
+  const stderr = result.stderr?.toString().trim() ?? "";
   if (result.status !== 0 && !tolerateFailure) {
-    throw new Error(`git ${args.join(' ')} failed (exit ${result.status}): ${stderr || stdout}`);
+    throw new Error(
+      `git ${args.join(" ")} failed (exit ${result.status}): ${stderr || stdout}`,
+    );
   }
   return stdout;
 }
@@ -69,12 +75,12 @@ interface DedupIndex {
 }
 
 function getDedupPath(): string {
-  return path.join(os.homedir(), '.gstack-dev', 'harvests', 'dedup.json');
+  return path.join(os.homedir(), ".gstack-dev", "harvests", "dedup.json");
 }
 
 function loadDedupIndex(): DedupIndex {
   try {
-    const raw = fs.readFileSync(getDedupPath(), 'utf-8');
+    const raw = fs.readFileSync(getDedupPath(), "utf-8");
     return JSON.parse(raw);
   } catch {
     return { hashes: {} };
@@ -84,7 +90,7 @@ function loadDedupIndex(): DedupIndex {
 function saveDedupIndex(index: DedupIndex): void {
   const dir = path.dirname(getDedupPath());
   fs.mkdirSync(dir, { recursive: true });
-  const tmp = getDedupPath() + '.tmp';
+  const tmp = getDedupPath() + ".tmp";
   fs.writeFileSync(tmp, JSON.stringify(index, null, 2));
   fs.renameSync(tmp, getDedupPath());
 }
@@ -101,30 +107,34 @@ export class WorktreeManager {
     if (repoRoot) {
       this.repoRoot = repoRoot;
     } else {
-      this.repoRoot = git(['rev-parse', '--show-toplevel'], process.cwd());
+      this.repoRoot = git(["rev-parse", "--show-toplevel"], process.cwd());
     }
     this.runId = crypto.randomUUID();
 
     // Register cleanup on process exit
-    process.on('exit', () => {
+    process.on("exit", () => {
       this.cleanupAll();
     });
   }
 
   /** Create an isolated worktree. Returns the worktree path. Throws on failure. */
   create(testName: string): string {
-    const originalSha = git(['rev-parse', 'HEAD'], this.repoRoot);
+    const originalSha = git(["rev-parse", "HEAD"], this.repoRoot);
 
-    const worktreeBase = path.join(this.repoRoot, '.gstack-worktrees', this.runId);
+    const worktreeBase = path.join(
+      this.repoRoot,
+      ".gstack-worktrees",
+      this.runId,
+    );
     fs.mkdirSync(worktreeBase, { recursive: true });
 
     const worktreePath = path.join(worktreeBase, testName);
 
     // Create detached worktree at current HEAD
-    git(['worktree', 'add', '--detach', worktreePath, 'HEAD'], this.repoRoot);
+    git(["worktree", "add", "--detach", worktreePath, "HEAD"], this.repoRoot);
 
     // Copy gitignored build artifacts that tests need (config-driven)
-    const { getExternalHosts } = require('../hosts/index');
+    const { getExternalHosts } = require("../hosts/index");
     for (const hostConfig of getExternalHosts()) {
       const hostSrc = path.join(this.repoRoot, hostConfig.hostSubdir);
       if (fs.existsSync(hostSrc)) {
@@ -132,9 +142,9 @@ export class WorktreeManager {
       }
     }
 
-    const browseDist = path.join(this.repoRoot, 'browse', 'dist');
+    const browseDist = path.join(this.repoRoot, "browse", "dist");
     if (fs.existsSync(browseDist)) {
-      copyDirSync(browseDist, path.join(worktreePath, 'browse', 'dist'));
+      copyDirSync(browseDist, path.join(worktreePath, "browse", "dist"));
     }
 
     const info: WorktreeInfo = {
@@ -156,35 +166,54 @@ export class WorktreeManager {
     try {
       // Check if worktree directory still exists (agent may have deleted it)
       if (!fs.existsSync(info.path)) {
-        process.stderr.write(`  HARVEST [${testName}]: worktree dir deleted, skipping\n`);
+        process.stderr.write(
+          `  HARVEST [${testName}]: worktree dir deleted, skipping\n`,
+        );
         return null;
       }
 
       // Stage everything including untracked files
-      git(['-C', info.path, 'add', '-A'], info.path, true);
+      git(["-C", info.path, "add", "-A"], info.path, true);
 
       // Get diff against original SHA (captures both committed and uncommitted changes)
-      const patch = git(['-C', info.path, 'diff', info.originalSha, '--cached'], info.path, true);
+      const patch = git(
+        ["-C", info.path, "diff", info.originalSha, "--cached"],
+        info.path,
+        true,
+      );
 
       if (!patch) return null;
 
       // Get diff stat for human-readable output
-      const diffStat = git(['-C', info.path, 'diff', info.originalSha, '--cached', '--stat'], info.path, true);
+      const diffStat = git(
+        ["-C", info.path, "diff", info.originalSha, "--cached", "--stat"],
+        info.path,
+        true,
+      );
 
       // Get changed file names
-      const nameOnly = git(['-C', info.path, 'diff', info.originalSha, '--cached', '--name-only'], info.path, true);
-      const changedFiles = nameOnly.split('\n').filter(Boolean);
+      const nameOnly = git(
+        ["-C", info.path, "diff", info.originalSha, "--cached", "--name-only"],
+        info.path,
+        true,
+      );
+      const changedFiles = nameOnly.split("\n").filter(Boolean);
 
       // Dedup check
-      const hash = crypto.createHash('sha256').update(patch).digest('hex');
+      const hash = crypto.createHash("sha256").update(patch).digest("hex");
       const dedupIndex = loadDedupIndex();
       const isDuplicate = hash in dedupIndex.hashes;
 
-      let patchPath = '';
+      let patchPath = "";
 
       if (!isDuplicate) {
         // Save patch
-        const harvestDir = path.join(os.homedir(), '.gstack-dev', 'harvests', this.runId);
+        const harvestDir = path.join(
+          os.homedir(),
+          ".gstack-dev",
+          "harvests",
+          this.runId,
+        );
         fs.mkdirSync(harvestDir, { recursive: true });
         patchPath = path.join(harvestDir, `${testName}.patch`);
         fs.writeFileSync(patchPath, patch);
@@ -217,13 +246,15 @@ export class WorktreeManager {
     if (!info) return;
 
     try {
-      git(['worktree', 'remove', '--force', info.path], this.repoRoot, true);
+      git(["worktree", "remove", "--force", info.path], this.repoRoot, true);
     } catch {
       // Force remove the directory if git worktree remove fails
       try {
         fs.rmSync(info.path, { recursive: true, force: true });
-        git(['worktree', 'prune'], this.repoRoot, true);
-      } catch { /* non-fatal */ }
+        git(["worktree", "prune"], this.repoRoot, true);
+      } catch {
+        /* non-fatal */
+      }
     }
 
     this.active.delete(testName);
@@ -236,21 +267,23 @@ export class WorktreeManager {
     }
 
     // Clean up the run directory if empty
-    const runDir = path.join(this.repoRoot, '.gstack-worktrees', this.runId);
+    const runDir = path.join(this.repoRoot, ".gstack-worktrees", this.runId);
     try {
       const entries = fs.readdirSync(runDir);
       if (entries.length === 0) {
         fs.rmdirSync(runDir);
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 
   /** Remove worktrees from previous runs that weren't cleaned up. */
   pruneStale(): void {
     try {
-      git(['worktree', 'prune'], this.repoRoot, true);
+      git(["worktree", "prune"], this.repoRoot, true);
 
-      const worktreeBase = path.join(this.repoRoot, '.gstack-worktrees');
+      const worktreeBase = path.join(this.repoRoot, ".gstack-worktrees");
       if (!fs.existsSync(worktreeBase)) return;
 
       for (const entry of fs.readdirSync(worktreeBase)) {
@@ -265,10 +298,12 @@ export class WorktreeManager {
           const ageMs = Date.now() - stat.mtimeMs;
           if (ageMs < 3600_000) continue;
           fs.rmSync(entryPath, { recursive: true, force: true });
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
       }
     } catch {
-      process.stderr.write('  WORKTREE: prune failed (non-fatal)\n');
+      process.stderr.write("  WORKTREE: prune failed (non-fatal)\n");
     }
   }
 
@@ -276,22 +311,28 @@ export class WorktreeManager {
   printReport(): void {
     if (this.harvestResults.length === 0) return;
 
-    const nonDuplicates = this.harvestResults.filter(r => !r.isDuplicate);
-    process.stderr.write('\n=== HARVEST REPORT ===\n');
-    process.stderr.write(`${nonDuplicates.length} of ${this.harvestResults.length} test suites produced new changes:\n\n`);
+    const nonDuplicates = this.harvestResults.filter((r) => !r.isDuplicate);
+    process.stderr.write("\n=== HARVEST REPORT ===\n");
+    process.stderr.write(
+      `${nonDuplicates.length} of ${this.harvestResults.length} test suites produced new changes:\n\n`,
+    );
 
     for (const result of this.harvestResults) {
       if (result.isDuplicate) {
-        process.stderr.write(`  ${result.testName}: duplicate patch (skipped)\n`);
+        process.stderr.write(
+          `  ${result.testName}: duplicate patch (skipped)\n`,
+        );
       } else {
-        process.stderr.write(`  ${result.testName}: ${result.changedFiles.length} files changed\n`);
+        process.stderr.write(
+          `  ${result.testName}: ${result.changedFiles.length} files changed\n`,
+        );
         process.stderr.write(`    Patch: ${result.patchPath}\n`);
         process.stderr.write(`    Apply: git apply ${result.patchPath}\n`);
         if (result.diffStat) {
           process.stderr.write(`    ${result.diffStat}\n`);
         }
       }
-      process.stderr.write('\n');
+      process.stderr.write("\n");
     }
   }
 

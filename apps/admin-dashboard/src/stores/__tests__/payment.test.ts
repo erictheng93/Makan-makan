@@ -54,7 +54,11 @@ describe("Payment Store", () => {
     it("should set step to method and clear errors", async () => {
       // Mock loadPaymentMethods fetch
       vi.mocked(global.fetch).mockResolvedValue({
-        json: () => Promise.resolve({ success: true, data: { supportedMethods: ["credit_card"] } }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { supportedMethods: ["credit_card"] },
+          }),
       } as Response);
 
       const store = usePaymentStore();
@@ -195,9 +199,7 @@ describe("Payment Store", () => {
       const status = await store.checkPaymentStatus("tx-1");
 
       expect(status).toBe("completed");
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/payments/status/tx-1",
-      );
+      expect(global.fetch).toHaveBeenCalledWith("/api/payments/status/tx-1");
     });
 
     it("should return pending on error", async () => {

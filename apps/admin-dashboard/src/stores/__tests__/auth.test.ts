@@ -273,12 +273,10 @@ describe("Auth Store", () => {
       setActivePinia(createPinia());
 
       const store = useAuthStore();
-      expect(
-        store.hasPermission([UserRole.CASHIER, UserRole.SERVICE]),
-      ).toBe(true);
-      expect(
-        store.hasPermission([UserRole.ADMIN, UserRole.OWNER]),
-      ).toBe(false);
+      expect(store.hasPermission([UserRole.CASHIER, UserRole.SERVICE])).toBe(
+        true,
+      );
+      expect(store.hasPermission([UserRole.ADMIN, UserRole.OWNER])).toBe(false);
     });
   });
 

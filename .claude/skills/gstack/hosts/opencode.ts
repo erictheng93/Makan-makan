@@ -1,46 +1,52 @@
-import type { HostConfig } from '../scripts/host-config';
+import type { HostConfig } from "../scripts/host-config";
 
 const opencode: HostConfig = {
-  name: 'opencode',
-  displayName: 'OpenCode',
-  cliCommand: 'opencode',
+  name: "opencode",
+  displayName: "OpenCode",
+  cliCommand: "opencode",
   cliAliases: [],
 
-  globalRoot: '.config/opencode/skills/gstack',
-  localSkillRoot: '.opencode/skills/gstack',
-  hostSubdir: '.opencode',
+  globalRoot: ".config/opencode/skills/gstack",
+  localSkillRoot: ".opencode/skills/gstack",
+  hostSubdir: ".opencode",
   usesEnvVars: true,
 
   frontmatter: {
-    mode: 'allowlist',
-    keepFields: ['name', 'description'],
+    mode: "allowlist",
+    keepFields: ["name", "description"],
     descriptionLimit: null,
   },
 
   generation: {
     generateMetadata: false,
-    skipSkills: ['codex'],
+    skipSkills: ["codex"],
   },
 
   pathRewrites: [
-    { from: '~/.claude/skills/gstack', to: '~/.config/opencode/skills/gstack' },
-    { from: '.claude/skills/gstack', to: '.opencode/skills/gstack' },
-    { from: '.claude/skills', to: '.opencode/skills' },
+    { from: "~/.claude/skills/gstack", to: "~/.config/opencode/skills/gstack" },
+    { from: ".claude/skills/gstack", to: ".opencode/skills/gstack" },
+    { from: ".claude/skills", to: ".opencode/skills" },
   ],
 
   runtimeRoot: {
-    globalSymlinks: ['bin', 'browse/dist', 'browse/bin', 'gstack-upgrade', 'ETHOS.md'],
+    globalSymlinks: [
+      "bin",
+      "browse/dist",
+      "browse/bin",
+      "gstack-upgrade",
+      "ETHOS.md",
+    ],
     globalFiles: {
-      'review': ['checklist.md', 'TODOS-format.md'],
+      review: ["checklist.md", "TODOS-format.md"],
     },
   },
 
   install: {
     prefixable: false,
-    linkingStrategy: 'symlink-generated',
+    linkingStrategy: "symlink-generated",
   },
 
-  learningsMode: 'basic',
+  learningsMode: "basic",
 };
 
 export default opencode;

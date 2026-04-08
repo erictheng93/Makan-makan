@@ -16,9 +16,7 @@
  */
 
 import { test, expect, devices } from "@playwright/test";
-import {
-  mockAuthAPI,
-} from "../../helpers/mock-api";
+import { mockAuthAPI } from "../../helpers/mock-api";
 import { PERSONAS, createMockOrder } from "../../helpers/personas";
 
 // ---------------------------------------------------------------------------
@@ -359,7 +357,10 @@ test.describe("E. Token auto-refresh: mid-session expiry", () => {
         contentType: "application/json",
         body: JSON.stringify({
           success: false,
-          error: { code: "REFRESH_TOKEN_EXPIRED", message: "Refresh token expired" },
+          error: {
+            code: "REFRESH_TOKEN_EXPIRED",
+            message: "Refresh token expired",
+          },
         }),
       }),
     );

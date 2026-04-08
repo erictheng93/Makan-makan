@@ -3,6 +3,7 @@
 Injected by the orchestrator into spawned Claude Code sessions. Append to existing CLAUDE.md.
 
 ## Planning Discipline
+
 1. Read every file you will modify. Understand existing patterns first.
 2. Before writing code, state your plan: what, why, which files, test case, risk.
 3. When ambiguous, prefer: completeness over shortcuts, existing patterns over new ones,

@@ -61,7 +61,9 @@ async function deleteCategory(
   });
   if (!res.ok) {
     const text = await res.text();
-    console.warn(`deleteCategory(${id}) cleanup warning: ${res.status} ${text}`);
+    console.warn(
+      `deleteCategory(${id}) cleanup warning: ${res.status} ${text}`,
+    );
   }
 }
 
@@ -71,19 +73,16 @@ async function createMenuItem(
   price: number,
   auth: AuthCredentials,
 ): Promise<{ id: number; name: string; price: number; isAvailable: boolean }> {
-  const res = await fetch(
-    `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items`,
-    {
-      method: "POST",
-      headers: authHeaders(auth),
-      body: JSON.stringify({
-        categoryId,
-        name,
-        price,
-        description: "整合測試自動建立的品項",
-      }),
-    },
-  );
+  const res = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}/items`, {
+    method: "POST",
+    headers: authHeaders(auth),
+    body: JSON.stringify({
+      categoryId,
+      name,
+      price,
+      description: "整合測試自動建立的品項",
+    }),
+  });
   const data = await res.json();
   if (!res.ok || !data.success) {
     throw new Error(
@@ -103,7 +102,9 @@ async function deleteMenuItem(
   });
   if (!res.ok) {
     const text = await res.text();
-    console.warn(`deleteMenuItem(${id}) cleanup warning: ${res.status} ${text}`);
+    console.warn(
+      `deleteMenuItem(${id}) cleanup warning: ${res.status} ${text}`,
+    );
   }
 }
 
@@ -246,19 +247,16 @@ test.describe("Menu Items CRUD", () => {
   });
 
   test("owner can create a menu item with price", async () => {
-    const res = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items`,
-      {
-        method: "POST",
-        headers: authHeaders(ownerAuth),
-        body: JSON.stringify({
-          categoryId: scaffoldCategoryId,
-          name: "測試品項",
-          price: 15000, // NT$150 in cents
-          description: "整合測試品項",
-        }),
-      },
-    );
+    const res = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}/items`, {
+      method: "POST",
+      headers: authHeaders(ownerAuth),
+      body: JSON.stringify({
+        categoryId: scaffoldCategoryId,
+        name: "測試品項",
+        price: 15000, // NT$150 in cents
+        description: "整合測試品項",
+      }),
+    });
     const data = await res.json();
 
     expect(res.status).toBe(201);

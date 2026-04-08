@@ -43,42 +43,47 @@ async function callImageGeneration(
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "gpt-4o",
         input: prompt,
-        tools: [{
-          type: "image_generation",
-          size,
-          quality,
-        }],
+        tools: [
+          {
+            type: "image_generation",
+            size,
+            quality,
+          },
+        ],
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
       const error = await response.text();
-      if (response.status === 403 && error.includes("organization must be verified")) {
+      if (
+        response.status === 403 &&
+        error.includes("organization must be verified")
+      ) {
         throw new Error(
-          "OpenAI organization verification required.\n"
-          + "Go to https://platform.openai.com/settings/organization to verify.\n"
-          + "After verification, wait up to 15 minutes for access to propagate.",
+          "OpenAI organization verification required.\n" +
+            "Go to https://platform.openai.com/settings/organization to verify.\n" +
+            "After verification, wait up to 15 minutes for access to propagate.",
         );
       }
       throw new Error(`API error (${response.status}): ${error.slice(0, 200)}`);
     }
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
 
-    const imageItem = data.output?.find((item: any) =>
-      item.type === "image_generation_call"
+    const imageItem = data.output?.find(
+      (item: any) => item.type === "image_generation_call",
     );
 
     if (!imageItem?.result) {
       throw new Error(
-        `No image data in response. Output types: ${data.output?.map((o: any) => o.type).join(", ") || "none"}`
+        `No image data in response. Output types: ${data.output?.map((o: any) => o.type).join(", ") || "none"}`,
       );
     }
 
@@ -94,7 +99,9 @@ async function callImageGeneration(
 /**
  * Generate a single mockup from a brief.
  */
-export async function generate(options: GenerateOptions): Promise<GenerateResult> {
+export async function generate(
+  options: GenerateOptions,
+): Promise<GenerateResult> {
   const apiKey = requireApiKey();
 
   // Parse the brief
@@ -115,7 +122,12 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
     // Generate the image
     const startTime = Date.now();
-    const { responseId, imageData } = await callImageGeneration(apiKey, prompt, size, quality);
+    const { responseId, imageData } = await callImageGeneration(
+      apiKey,
+      prompt,
+      size,
+      quality,
+    );
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
     // Write to disk
@@ -127,7 +139,9 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     // Create session
     const session = createSession(responseId, prompt, options.output);
 
-    console.error(`Generated (${elapsed}s, ${(imageBuffer.length / 1024).toFixed(0)}KB) → ${options.output}`);
+    console.error(
+      `Generated (${elapsed}s, ${(imageBuffer.length / 1024).toFixed(0)}KB) → ${options.output}`,
+    );
 
     lastResult = {
       outputPath: options.output,

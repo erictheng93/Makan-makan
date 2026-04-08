@@ -17,60 +17,65 @@
         class="btn btn-sm"
         @click="emit('acknowledge', alert)"
       >
-        {{ t('backup.alerts.acknowledge') }}
+        {{ t("backup.alerts.acknowledge") }}
       </button>
       <button
         v-if="!alert.resolved"
         class="btn btn-sm btn-primary"
         @click="emit('resolve', alert)"
       >
-        {{ t('backup.alerts.resolve') }}
+        {{ t("backup.alerts.resolve") }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 interface BackupAlert {
-  id: string
-  restaurant_id: string
-  alert_type: 'backup_failed' | 'storage_quota_exceeded' | 'schedule_missed' | 'restoration_completed' | 'performance_degraded'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  title: string
-  message: string
-  related_backup_id?: string
-  triggered_at: string
-  acknowledged: boolean
-  acknowledged_by?: string
-  acknowledged_at?: string
-  resolved: boolean
-  resolved_at?: string
+  id: string;
+  restaurant_id: string;
+  alert_type:
+    | "backup_failed"
+    | "storage_quota_exceeded"
+    | "schedule_missed"
+    | "restoration_completed"
+    | "performance_degraded";
+  severity: "low" | "medium" | "high" | "critical";
+  title: string;
+  message: string;
+  related_backup_id?: string;
+  triggered_at: string;
+  acknowledged: boolean;
+  acknowledged_by?: string;
+  acknowledged_at?: string;
+  resolved: boolean;
+  resolved_at?: string;
 }
 
 const props = defineProps<{
-  alert: BackupAlert
-}>()
+  alert: BackupAlert;
+}>();
 
 const emit = defineEmits<{
-  acknowledge: [alert: BackupAlert]
-  resolve: [alert: BackupAlert]
-}>()
+  acknowledge: [alert: BackupAlert];
+  resolve: [alert: BackupAlert];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 const severityClass = computed(() => ({
-  'alert-low': props.alert.severity === 'low',
-  'alert-medium': props.alert.severity === 'medium',
-  'alert-high': props.alert.severity === 'high',
-  'alert-critical': props.alert.severity === 'critical',
-}))
+  "alert-low": props.alert.severity === "low",
+  "alert-medium": props.alert.severity === "medium",
+  "alert-high": props.alert.severity === "high",
+  "alert-critical": props.alert.severity === "critical",
+}));
 
 const formatTime = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString()
-}
+  return new Date(dateStr).toLocaleString();
+};
 </script>
 
 <style scoped>

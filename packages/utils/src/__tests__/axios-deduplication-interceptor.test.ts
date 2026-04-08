@@ -156,10 +156,9 @@ describe("axios-deduplication-interceptor", () => {
 
   describe("combineConfigs", () => {
     it("should merge multiple configs", () => {
-      const combined = combineConfigs(
-        withDedupTTL(10000),
-        { headers: { "X-Custom": "value" } },
-      );
+      const combined = combineConfigs(withDedupTTL(10000), {
+        headers: { "X-Custom": "value" },
+      });
       expect((combined as any).dedupTTL).toBe(10000);
       expect(combined.headers).toEqual({ "X-Custom": "value" });
     });
@@ -170,10 +169,7 @@ describe("axios-deduplication-interceptor", () => {
     });
 
     it("should let later configs override earlier ones", () => {
-      const combined = combineConfigs(
-        { timeout: 1000 },
-        { timeout: 5000 },
-      );
+      const combined = combineConfigs({ timeout: 1000 }, { timeout: 5000 });
       expect(combined.timeout).toBe(5000);
     });
   });

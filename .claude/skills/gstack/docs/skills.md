@@ -2,43 +2,43 @@
 
 Detailed guides for every gstack skill — philosophy, workflow, and examples.
 
-| Skill | Your specialist | What they do |
-|-------|----------------|--------------|
-| [`/office-hours`](#office-hours) | **YC Office Hours** | Start here. Six forcing questions that reframe your product before you write code. Pushes back on your framing, challenges premises, generates implementation alternatives. Design doc feeds into every downstream skill. |
-| [`/plan-ceo-review`](#plan-ceo-review) | **CEO / Founder** | Rethink the problem. Find the 10-star product hiding inside the request. Four modes: Expansion, Selective Expansion, Hold Scope, Reduction. |
-| [`/plan-eng-review`](#plan-eng-review) | **Eng Manager** | Lock in architecture, data flow, diagrams, edge cases, and tests. Forces hidden assumptions into the open. |
-| [`/plan-design-review`](#plan-design-review) | **Senior Designer** | Interactive plan-mode design review. Rates each dimension 0-10, explains what a 10 looks like, fixes the plan. Works in plan mode. |
-| [`/design-consultation`](#design-consultation) | **Design Partner** | Build a complete design system from scratch. Knows the landscape, proposes creative risks, generates realistic product mockups. Design at the heart of all other phases. |
-| [`/review`](#review) | **Staff Engineer** | Find the bugs that pass CI but blow up in production. Auto-fixes the obvious ones. Flags completeness gaps. |
-| [`/investigate`](#investigate) | **Debugger** | Systematic root-cause debugging. Iron Law: no fixes without investigation. Traces data flow, tests hypotheses, stops after 3 failed fixes. |
-| [`/design-review`](#design-review) | **Designer Who Codes** | Live-site visual audit + fix loop. 80-item audit, then fixes what it finds. Atomic commits, before/after screenshots. |
-| [`/design-shotgun`](#design-shotgun) | **Design Explorer** | Generate multiple AI design variants, open a comparison board in your browser, and iterate until you approve a direction. Taste memory biases toward your preferences. |
-| [`/design-html`](#design-html) | **Design Engineer** | Generates production-quality Pretext-native HTML. Works with approved mockups, CEO plans, design reviews, or from scratch. Text reflows on resize, heights adjust to content. Smart API routing per design type. Framework detection for React/Svelte/Vue. |
-| [`/qa`](#qa) | **QA Lead** | Test your app, find bugs, fix them with atomic commits, re-verify. Auto-generates regression tests for every fix. |
-| [`/qa-only`](#qa) | **QA Reporter** | Same methodology as /qa but report only. Use when you want a pure bug report without code changes. |
-| [`/ship`](#ship) | **Release Engineer** | Sync main, run tests, audit coverage, push, open PR. Bootstraps test frameworks if you don't have one. One command. |
-| [`/land-and-deploy`](#land-and-deploy) | **Release Engineer** | Merge the PR, wait for CI and deploy, verify production health. One command from "approved" to "verified in production." |
-| [`/canary`](#canary) | **SRE** | Post-deploy monitoring loop. Watches for console errors, performance regressions, and page failures using the browse daemon. |
-| [`/benchmark`](#benchmark) | **Performance Engineer** | Baseline page load times, Core Web Vitals, and resource sizes. Compare before/after on every PR. Track trends over time. |
-| [`/cso`](#cso) | **Chief Security Officer** | OWASP Top 10 + STRIDE threat modeling security audit. Scans for injection, auth, crypto, and access control issues. |
-| [`/document-release`](#document-release) | **Technical Writer** | Update all project docs to match what you just shipped. Catches stale READMEs automatically. |
-| [`/retro`](#retro) | **Eng Manager** | Team-aware weekly retro. Per-person breakdowns, shipping streaks, test health trends, growth opportunities. |
-| [`/browse`](#browse) | **QA Engineer** | Give the agent eyes. Real Chromium browser, real clicks, real screenshots. ~100ms per command. |
-| [`/setup-browser-cookies`](#setup-browser-cookies) | **Session Manager** | Import cookies from your real browser (Chrome, Arc, Brave, Edge) into the headless session. Test authenticated pages. |
-| [`/autoplan`](#autoplan) | **Review Pipeline** | One command, fully reviewed plan. Runs CEO → design → eng review automatically with encoded decision principles. Surfaces only taste decisions for your approval. |
-| [`/learn`](#learn) | **Memory** | Manage what gstack learned across sessions. Review, search, prune, and export project-specific patterns and preferences. |
-| | | |
-| **Multi-AI** | | |
-| [`/codex`](#codex) | **Second Opinion** | Independent review from OpenAI Codex CLI. Three modes: code review (pass/fail gate), adversarial challenge, and open consultation with session continuity. Cross-model analysis when both `/review` and `/codex` have run. |
-| | | |
-| **Safety & Utility** | | |
-| [`/careful`](#safety--guardrails) | **Safety Guardrails** | Warns before destructive commands (rm -rf, DROP TABLE, force-push, git reset --hard). Override any warning. Common build cleanups whitelisted. |
-| [`/freeze`](#safety--guardrails) | **Edit Lock** | Restrict all file edits to a single directory. Blocks Edit and Write outside the boundary. Accident prevention for debugging. |
-| [`/guard`](#safety--guardrails) | **Full Safety** | Combines /careful + /freeze in one command. Maximum safety for prod work. |
-| [`/unfreeze`](#safety--guardrails) | **Unlock** | Remove the /freeze boundary, allowing edits everywhere again. |
-| [`/open-gstack-browser`](#open-gstack-browser) | **GStack Browser** | Launch GStack Browser with sidebar, anti-bot stealth, auto model routing, cookie import, and Claude Code integration. Watch every action live. |
-| [`/setup-deploy`](#setup-deploy) | **Deploy Configurator** | One-time setup for `/land-and-deploy`. Detects your platform, production URL, and deploy commands. |
-| [`/gstack-upgrade`](#gstack-upgrade) | **Self-Updater** | Upgrade gstack to the latest version. Detects global vs vendored install, syncs both, shows what changed. |
+| Skill                                              | Your specialist            | What they do                                                                                                                                                                                                                                               |
+| -------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`/office-hours`](#office-hours)                   | **YC Office Hours**        | Start here. Six forcing questions that reframe your product before you write code. Pushes back on your framing, challenges premises, generates implementation alternatives. Design doc feeds into every downstream skill.                                  |
+| [`/plan-ceo-review`](#plan-ceo-review)             | **CEO / Founder**          | Rethink the problem. Find the 10-star product hiding inside the request. Four modes: Expansion, Selective Expansion, Hold Scope, Reduction.                                                                                                                |
+| [`/plan-eng-review`](#plan-eng-review)             | **Eng Manager**            | Lock in architecture, data flow, diagrams, edge cases, and tests. Forces hidden assumptions into the open.                                                                                                                                                 |
+| [`/plan-design-review`](#plan-design-review)       | **Senior Designer**        | Interactive plan-mode design review. Rates each dimension 0-10, explains what a 10 looks like, fixes the plan. Works in plan mode.                                                                                                                         |
+| [`/design-consultation`](#design-consultation)     | **Design Partner**         | Build a complete design system from scratch. Knows the landscape, proposes creative risks, generates realistic product mockups. Design at the heart of all other phases.                                                                                   |
+| [`/review`](#review)                               | **Staff Engineer**         | Find the bugs that pass CI but blow up in production. Auto-fixes the obvious ones. Flags completeness gaps.                                                                                                                                                |
+| [`/investigate`](#investigate)                     | **Debugger**               | Systematic root-cause debugging. Iron Law: no fixes without investigation. Traces data flow, tests hypotheses, stops after 3 failed fixes.                                                                                                                 |
+| [`/design-review`](#design-review)                 | **Designer Who Codes**     | Live-site visual audit + fix loop. 80-item audit, then fixes what it finds. Atomic commits, before/after screenshots.                                                                                                                                      |
+| [`/design-shotgun`](#design-shotgun)               | **Design Explorer**        | Generate multiple AI design variants, open a comparison board in your browser, and iterate until you approve a direction. Taste memory biases toward your preferences.                                                                                     |
+| [`/design-html`](#design-html)                     | **Design Engineer**        | Generates production-quality Pretext-native HTML. Works with approved mockups, CEO plans, design reviews, or from scratch. Text reflows on resize, heights adjust to content. Smart API routing per design type. Framework detection for React/Svelte/Vue. |
+| [`/qa`](#qa)                                       | **QA Lead**                | Test your app, find bugs, fix them with atomic commits, re-verify. Auto-generates regression tests for every fix.                                                                                                                                          |
+| [`/qa-only`](#qa)                                  | **QA Reporter**            | Same methodology as /qa but report only. Use when you want a pure bug report without code changes.                                                                                                                                                         |
+| [`/ship`](#ship)                                   | **Release Engineer**       | Sync main, run tests, audit coverage, push, open PR. Bootstraps test frameworks if you don't have one. One command.                                                                                                                                        |
+| [`/land-and-deploy`](#land-and-deploy)             | **Release Engineer**       | Merge the PR, wait for CI and deploy, verify production health. One command from "approved" to "verified in production."                                                                                                                                   |
+| [`/canary`](#canary)                               | **SRE**                    | Post-deploy monitoring loop. Watches for console errors, performance regressions, and page failures using the browse daemon.                                                                                                                               |
+| [`/benchmark`](#benchmark)                         | **Performance Engineer**   | Baseline page load times, Core Web Vitals, and resource sizes. Compare before/after on every PR. Track trends over time.                                                                                                                                   |
+| [`/cso`](#cso)                                     | **Chief Security Officer** | OWASP Top 10 + STRIDE threat modeling security audit. Scans for injection, auth, crypto, and access control issues.                                                                                                                                        |
+| [`/document-release`](#document-release)           | **Technical Writer**       | Update all project docs to match what you just shipped. Catches stale READMEs automatically.                                                                                                                                                               |
+| [`/retro`](#retro)                                 | **Eng Manager**            | Team-aware weekly retro. Per-person breakdowns, shipping streaks, test health trends, growth opportunities.                                                                                                                                                |
+| [`/browse`](#browse)                               | **QA Engineer**            | Give the agent eyes. Real Chromium browser, real clicks, real screenshots. ~100ms per command.                                                                                                                                                             |
+| [`/setup-browser-cookies`](#setup-browser-cookies) | **Session Manager**        | Import cookies from your real browser (Chrome, Arc, Brave, Edge) into the headless session. Test authenticated pages.                                                                                                                                      |
+| [`/autoplan`](#autoplan)                           | **Review Pipeline**        | One command, fully reviewed plan. Runs CEO → design → eng review automatically with encoded decision principles. Surfaces only taste decisions for your approval.                                                                                          |
+| [`/learn`](#learn)                                 | **Memory**                 | Manage what gstack learned across sessions. Review, search, prune, and export project-specific patterns and preferences.                                                                                                                                   |
+|                                                    |                            |                                                                                                                                                                                                                                                            |
+| **Multi-AI**                                       |                            |                                                                                                                                                                                                                                                            |
+| [`/codex`](#codex)                                 | **Second Opinion**         | Independent review from OpenAI Codex CLI. Three modes: code review (pass/fail gate), adversarial challenge, and open consultation with session continuity. Cross-model analysis when both `/review` and `/codex` have run.                                 |
+|                                                    |                            |                                                                                                                                                                                                                                                            |
+| **Safety & Utility**                               |                            |                                                                                                                                                                                                                                                            |
+| [`/careful`](#safety--guardrails)                  | **Safety Guardrails**      | Warns before destructive commands (rm -rf, DROP TABLE, force-push, git reset --hard). Override any warning. Common build cleanups whitelisted.                                                                                                             |
+| [`/freeze`](#safety--guardrails)                   | **Edit Lock**              | Restrict all file edits to a single directory. Blocks Edit and Write outside the boundary. Accident prevention for debugging.                                                                                                                              |
+| [`/guard`](#safety--guardrails)                    | **Full Safety**            | Combines /careful + /freeze in one command. Maximum safety for prod work.                                                                                                                                                                                  |
+| [`/unfreeze`](#safety--guardrails)                 | **Unlock**                 | Remove the /freeze boundary, allowing edits everywhere again.                                                                                                                                                                                              |
+| [`/open-gstack-browser`](#open-gstack-browser)     | **GStack Browser**         | Launch GStack Browser with sidebar, anti-bot stealth, auto model routing, cookie import, and Claude Code integration. Watch every action live.                                                                                                             |
+| [`/setup-deploy`](#setup-deploy)                   | **Deploy Configurator**    | One-time setup for `/land-and-deploy`. Detects your platform, production URL, and deploy commands.                                                                                                                                                         |
+| [`/gstack-upgrade`](#gstack-upgrade)               | **Self-Updater**           | Upgrade gstack to the latest version. Detects global vs vendored install, syncs both, shows what changed.                                                                                                                                                  |
 
 ---
 
@@ -46,18 +46,18 @@ Detailed guides for every gstack skill — philosophy, workflow, and examples.
 
 This is where every project should start.
 
-Before you plan, before you review, before you write code — sit down with a YC-style partner and think about what you're actually building. Not what you think you're building. What you're *actually* building.
+Before you plan, before you review, before you write code — sit down with a YC-style partner and think about what you're actually building. Not what you think you're building. What you're _actually_ building.
 
 ### The reframe
 
 Here's what happened on a real project. The user said: "I want to build a daily briefing app for my calendar." Reasonable request. Then it asked about the pain — specific examples, not hypotheticals. They described an assistant missing things, calendar items across multiple Google accounts with stale info, prep docs that were AI slop, events with wrong locations that took forever to track down.
 
-It came back with: *"I'm going to push back on the framing, because I think you've outgrown it. You said 'daily briefing app for multi-Google-Calendar management.' But what you actually described is a personal chief of staff AI."*
+It came back with: _"I'm going to push back on the framing, because I think you've outgrown it. You said 'daily briefing app for multi-Google-Calendar management.' But what you actually described is a personal chief of staff AI."_
 
 Then it extracted five capabilities the user didn't realize they were describing:
 
 1. **Watches your calendar** across all accounts and detects stale info, missing locations, permission gaps
-2. **Generates real prep work** — not logistics summaries, but *the intellectual work* of preparing for a board meeting, a podcast, a fundraiser
+2. **Generates real prep work** — not logistics summaries, but _the intellectual work_ of preparing for a board meeting, a podcast, a fundraiser
 3. **Manages your CRM** — who are you meeting, what's the relationship, what do they want, what's the history
 4. **Prioritizes your time** — flags when prep needs to start early, blocks time proactively, ranks events by importance
 5. **Trades money for leverage** — actively looks for ways to delegate or automate
@@ -127,13 +127,13 @@ If that is the real job, the whole plan changes.
 
 Now the model should ask:
 
-* Can we identify the product from the photo?
-* Can we infer the SKU or model number?
-* Can we search the web and draft the title and description automatically?
-* Can we pull specs, category, and pricing comps?
-* Can we suggest which photo will convert best as the hero image?
-* Can we detect when the uploaded photo is ugly, dark, cluttered, or low-trust?
-* Can we make the experience feel premium instead of like a dead form from 2007?
+- Can we identify the product from the photo?
+- Can we infer the SKU or model number?
+- Can we search the web and draft the title and description automatically?
+- Can we pull specs, category, and pricing comps?
+- Can we suggest which photo will convert best as the hero image?
+- Can we detect when the uploaded photo is ugly, dark, cluttered, or low-trust?
+- Can we make the experience feel premium instead of like a dead form from 2007?
 
 That is what `/plan-ceo-review` does for me.
 
@@ -159,14 +159,14 @@ Once the product direction is right, I want a different kind of intelligence ent
 
 This mode should nail:
 
-* architecture
-* system boundaries
-* data flow
-* state transitions
-* failure modes
-* edge cases
-* trust boundaries
-* test coverage
+- architecture
+- system boundaries
+- data flow
+- state transitions
+- failure modes
+- edge cases
+- trust boundaries
+- test coverage
 
 And one surprisingly big unlock for me: **diagrams**.
 
@@ -180,24 +180,24 @@ Take the same listing app example.
 
 Let's say `/plan-ceo-review` already did its job. We decided the real feature is not just photo upload. It is a smart listing flow that:
 
-* uploads photos
-* identifies the product
-* enriches the listing from the web
-* drafts a strong title and description
-* suggests the best hero image
+- uploads photos
+- identifies the product
+- enriches the listing from the web
+- drafts a strong title and description
+- suggests the best hero image
 
 Now `/plan-eng-review` takes over.
 
 Now I want the model to answer questions like:
 
-* What is the architecture for upload, classification, enrichment, and draft generation?
-* Which steps happen synchronously, and which go to background jobs?
-* Where are the boundaries between app server, object storage, vision model, search/enrichment APIs, and the listing database?
-* What happens if upload succeeds but enrichment fails?
-* What happens if product identification is low-confidence?
-* How do retries work?
-* How do we prevent duplicate jobs?
-* What gets persisted when, and what can be safely recomputed?
+- What is the architecture for upload, classification, enrichment, and draft generation?
+- Which steps happen synchronously, and which go to background jobs?
+- Where are the boundaries between app server, object storage, vision model, search/enrichment APIs, and the listing database?
+- What happens if upload succeeds but enrichment fails?
+- What happens if product identification is low-confidence?
+- How do retries work?
+- How do we prevent duplicate jobs?
+- What gets persisted when, and what can be safely recomputed?
 
 And this is where I want diagrams — architecture diagrams, state models, data-flow diagrams, test matrices. Diagrams force hidden assumptions into the open. They make hand-wavy planning much harder.
 
@@ -524,16 +524,16 @@ Passing tests do not mean the branch is safe.
 
 This is a structural audit, not a style nitpick pass. I want the model to look for things like:
 
-* N+1 queries
-* stale reads
-* race conditions
-* bad trust boundaries
-* missing indexes
-* escaping bugs
-* broken invariants
-* bad retry logic
-* tests that pass while missing the real failure mode
-* forgotten enum handlers — add a new status or type constant, and `/review` traces it through every switch statement and allowlist in your codebase, not just the files you changed
+- N+1 queries
+- stale reads
+- race conditions
+- bad trust boundaries
+- missing indexes
+- escaping bugs
+- broken invariants
+- bad retry logic
+- tests that pass while missing the real failure mode
+- forgotten enum handlers — add a new status or type constant, and `/review` traces it through every switch statement and allowlist in your codebase, not just the files you changed
 
 ### Fix-First
 
@@ -549,13 +549,13 @@ Suppose the smart listing flow is implemented and the tests are green.
 
 `/review` should still ask:
 
-* Did I introduce an N+1 query when rendering listing photos or draft suggestions?
-* Am I trusting client-provided file metadata instead of validating the actual file?
-* Can two tabs race and overwrite cover-photo selection or item details?
-* Do failed uploads leave orphaned files in storage forever?
-* Can the "exactly one hero image" rule break under concurrency?
-* If enrichment APIs partially fail, do I degrade gracefully or save garbage?
-* Did I accidentally create a prompt injection or trust-boundary problem by pulling web data into draft generation?
+- Did I introduce an N+1 query when rendering listing photos or draft suggestions?
+- Am I trusting client-provided file metadata instead of validating the actual file?
+- Can two tabs race and overwrite cover-photo selection or item details?
+- Do failed uploads leave orphaned files in storage forever?
+- Can the "exactly one hero image" rule break under concurrency?
+- If enrichment APIs partially fail, do I degrade gracefully or save garbage?
+- Did I accidentally create a prompt injection or trust-boundary problem by pulling web data into draft generation?
 
 That is the point of `/review`.
 

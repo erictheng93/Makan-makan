@@ -271,8 +271,7 @@ onUnmounted(() => {
         {{ t("realtime.loading") }}
       </span>
       <span>
-        {{ t("realtime.autoRefresh") }}:
-        {{ props.refreshInterval }}s
+        {{ t("realtime.autoRefresh") }}: {{ props.refreshInterval }}s
       </span>
     </div>
 

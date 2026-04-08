@@ -69,7 +69,9 @@ test.describe("POS — Card & Mobile Payment", () => {
         let body: object;
 
         // Peek at request body to decide which mock to return
-        const reqBody = route.request().postDataJSON() as { method?: string } | null;
+        const reqBody = route.request().postDataJSON() as {
+          method?: string;
+        } | null;
         const method = reqBody?.method ?? "";
 
         if (method === "mobile_pay" || url.includes("mobile")) {
@@ -146,7 +148,11 @@ test.describe("POS — Card & Mobile Payment", () => {
       // Verify card option is visually selected (aria, class, or icon)
       const selectedIndicator = page
         .locator('[data-testid="payment-card"][aria-selected="true"]')
-        .or(page.locator('[data-testid="payment-method-card"][aria-pressed="true"]'))
+        .or(
+          page.locator(
+            '[data-testid="payment-method-card"][aria-pressed="true"]',
+          ),
+        )
         .or(page.locator('button:has-text("信用卡")[class*="active"]'))
         .or(page.locator('button:has-text("信用卡")[class*="selected"]'))
         .or(page.locator('[data-testid="card-icon"]'));

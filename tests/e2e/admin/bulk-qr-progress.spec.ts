@@ -154,7 +154,10 @@ test.describe("Bulk QR generation", () => {
       const isError =
         currentUrl.includes("404") ||
         currentUrl.includes("error") ||
-        (await page.locator("text=/404|Not Found/i").isVisible({ timeout: 2000 }).catch(() => false));
+        (await page
+          .locator("text=/404|Not Found/i")
+          .isVisible({ timeout: 2000 })
+          .catch(() => false));
 
       if (!isError) {
         // Check for QR-related content
@@ -188,7 +191,11 @@ test.describe("Bulk QR generation", () => {
 
   test("should trigger bulk QR generation", async ({ page }) => {
     // Navigate to any QR-related page
-    const urlsToTry = ["/dashboard/qr", "/dashboard/qr-codes", "/dashboard/tables"];
+    const urlsToTry = [
+      "/dashboard/qr",
+      "/dashboard/qr-codes",
+      "/dashboard/tables",
+    ];
     for (const url of urlsToTry) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");
@@ -248,7 +255,11 @@ test.describe("Bulk QR generation", () => {
 
   test("should show generation progress or result", async ({ page }) => {
     // Navigate to a QR page
-    const urlsToTry = ["/dashboard/qr", "/dashboard/qr-codes", "/dashboard/tables"];
+    const urlsToTry = [
+      "/dashboard/qr",
+      "/dashboard/qr-codes",
+      "/dashboard/tables",
+    ];
     for (const url of urlsToTry) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");
@@ -286,7 +297,9 @@ test.describe("Bulk QR generation", () => {
           .then(() => true)
           .catch(() => false),
         page
-          .locator('[data-testid="bulk-progress"], [role="progressbar"], [data-testid="bulk-result"]')
+          .locator(
+            '[data-testid="bulk-progress"], [role="progressbar"], [data-testid="bulk-result"]',
+          )
           .first()
           .waitFor({ state: "visible", timeout: 8000 })
           .then(() => true)
@@ -309,7 +322,10 @@ test.describe("Bulk QR generation", () => {
           contentType: "application/json",
           body: JSON.stringify({
             success: false,
-            error: { code: "INTERNAL_ERROR", message: "Bulk generation failed" },
+            error: {
+              code: "INTERNAL_ERROR",
+              message: "Bulk generation failed",
+            },
           }),
         });
       } else {
@@ -324,7 +340,10 @@ test.describe("Bulk QR generation", () => {
           contentType: "application/json",
           body: JSON.stringify({
             success: false,
-            error: { code: "INTERNAL_ERROR", message: "Bulk generation failed" },
+            error: {
+              code: "INTERNAL_ERROR",
+              message: "Bulk generation failed",
+            },
           }),
         });
       } else {
@@ -333,7 +352,11 @@ test.describe("Bulk QR generation", () => {
     });
 
     // Navigate to QR page
-    const urlsToTry = ["/dashboard/qr", "/dashboard/qr-codes", "/dashboard/tables"];
+    const urlsToTry = [
+      "/dashboard/qr",
+      "/dashboard/qr-codes",
+      "/dashboard/tables",
+    ];
     for (const url of urlsToTry) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");
@@ -391,7 +414,11 @@ test.describe("Bulk QR generation", () => {
 
   test("should display generated QR codes list", async ({ page }) => {
     // Navigate to QR page
-    const urlsToTry = ["/dashboard/qr", "/dashboard/qr-codes", "/dashboard/tables"];
+    const urlsToTry = [
+      "/dashboard/qr",
+      "/dashboard/qr-codes",
+      "/dashboard/tables",
+    ];
     for (const url of urlsToTry) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");

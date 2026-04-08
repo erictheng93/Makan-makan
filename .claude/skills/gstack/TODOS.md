@@ -39,6 +39,7 @@
 **Context:** Google shipped Chrome DevTools MCP in Chrome 146+ (June 2025). It provides screenshots, console messages, performance traces, Lighthouse audits, and full page interaction through the user's real browser. gstack should use it for real-session access while keeping Playwright for headless CI/testing workflows.
 
 Potential new skills:
+
 - `/debug-browser`: JS error tracing with source-mapped stack traces
 - `/perf-debug`: performance traces, Core Web Vitals, network waterfall
 
@@ -277,7 +278,6 @@ Linux cookie import shipped in v0.11.11.0 (Wave 3). Supports Chrome, Chromium, B
 **Priority:** P2
 **Depends on:** None
 
-
 ### Visual verification with screenshots in PR body
 
 **What:** /ship Step 7.5: screenshot key pages after push, embed in PR body.
@@ -437,8 +437,6 @@ Linux cookie import shipped in v0.11.11.0 (Wave 3). Supports Chrome, Chromium, B
 **Priority:** P3
 **Depends on:** Video recording
 
-
-
 ### Extend worktree isolation to Claude E2E tests
 
 **What:** Add `useWorktree?: boolean` option to `runSkillTest()` so any Claude E2E test can opt into worktree mode for full repo context instead of tmpdir fixtures.
@@ -589,7 +587,6 @@ Shipped in v0.8.3. Step 8.5 added to `/ship` — after creating the PR, `/ship` 
 **Priority:** P3
 **Depends on:** gstack-diff-scope (shipped)
 
-
 ## Codex
 
 ### Codex→Claude reverse buddy check skill
@@ -641,6 +638,7 @@ Shipped in v0.6.5. TemplateContext in gen-skill-docs.ts bakes skill name into pr
 **Context:** All items are prose additions to `investigate/SKILL.md.tmpl`. No new scripts.
 
 **Items:**
+
 1. Stack trace auto-detection for freeze directory (parse deepest app frame)
 2. Freeze boundary widening (ask to widen instead of hard-block when hitting boundary)
 3. Post-fix auto-unfreeze + full test suite run
@@ -825,14 +823,16 @@ Shipped in v0.6.5. TemplateContext in gen-skill-docs.ts bakes skill name into pr
 ## Completed
 
 ### CI eval pipeline (v0.9.9.0)
+
 - GitHub Actions eval upload on Ubicloud runners ($0.006/run)
 - Within-file test concurrency (test() → testConcurrentIfSelected())
 - Eval artifact upload + PR comment with pass/fail + cost
 - Baseline comparison via artifact download from main
 - EVALS_CONCURRENCY=40 for ~6min wall clock (was ~18min)
-**Completed:** v0.9.9.0
+  **Completed:** v0.9.9.0
 
 ### Deploy pipeline (v0.9.8.0)
+
 - /land-and-deploy — merge PR, wait for CI/deploy, canary verification
 - /canary — post-deploy monitoring loop with anomaly detection
 - /benchmark — performance regression detection with Core Web Vitals
@@ -841,41 +841,47 @@ Shipped in v0.6.5. TemplateContext in gen-skill-docs.ts bakes skill name into pr
 - E2E model pinning (Sonnet default, Opus for quality tests)
 - E2E timing telemetry (first_response_ms, max_inter_turn_ms, wall_clock_ms)
 - test:e2e:fast tier, --retry 2 on all E2E scripts
-**Completed:** v0.9.8.0
+  **Completed:** v0.9.8.0
 
 ### Phase 1: Foundations (v0.2.0)
+
 - Rename to gstack
 - Restructure to monorepo layout
 - Setup script for skill symlinks
 - Snapshot command with ref-based element selection
 - Snapshot tests
-**Completed:** v0.2.0
+  **Completed:** v0.2.0
 
 ### Phase 2: Enhanced Browser (v0.2.0)
+
 - Annotated screenshots, snapshot diffing, dialog handling, file upload
 - Cursor-interactive elements, element state checks
 - CircularBuffer, async buffer flush, health check
 - Playwright error wrapping, useragent fix
 - 148 integration tests
-**Completed:** v0.2.0
+  **Completed:** v0.2.0
 
 ### Phase 3: QA Testing Agent (v0.3.0)
+
 - /qa SKILL.md with 6-phase workflow, 3 modes (full/quick/regression)
 - Issue taxonomy, severity classification, exploration checklist
 - Report template, health score rubric, framework detection
 - wait/console/cookie-import commands, find-browse binary
-**Completed:** v0.3.0
+  **Completed:** v0.3.0
 
 ### Phase 3.5: Browser Cookie Import (v0.3.x)
+
 - cookie-import-browser command (Chromium cookie DB decryption)
 - Cookie picker web UI, /setup-browser-cookies skill
 - 18 unit tests, browser registry (Comet, Chrome, Arc, Brave, Edge)
-**Completed:** v0.3.1
+  **Completed:** v0.3.1
 
 ### E2E test cost tracking
+
 - Track cumulative API spend, warn if over threshold
-**Completed:** v0.3.6
+  **Completed:** v0.3.6
 
 ### Auto-upgrade mode + smart update check
+
 - Config CLI (`bin/gstack-config`), auto-upgrade via `~/.gstack/config.yaml`, 12h cache TTL, exponential snooze backoff (24h→48h→1wk), "never ask again" option, vendored copy sync on upgrade
-**Completed:** v0.3.8
+  **Completed:** v0.3.8

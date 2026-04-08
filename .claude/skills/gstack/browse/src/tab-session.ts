@@ -16,7 +16,7 @@
  * Both paths pass TabSession to the same handler functions.
  */
 
-import type { Page, Locator, Frame } from 'playwright';
+import type { Page, Locator, Frame } from "playwright";
 
 export interface RefEntry {
   locator: Locator;
@@ -59,20 +59,22 @@ export class TabSession {
    * Resolve a selector that may be a @ref (e.g., "@e3", "@c1") or a CSS selector.
    * Returns { locator } for refs or { selector } for CSS selectors.
    */
-  async resolveRef(selector: string): Promise<{ locator: Locator } | { selector: string }> {
-    if (selector.startsWith('@e') || selector.startsWith('@c')) {
+  async resolveRef(
+    selector: string,
+  ): Promise<{ locator: Locator } | { selector: string }> {
+    if (selector.startsWith("@e") || selector.startsWith("@c")) {
       const ref = selector.slice(1); // "e3" or "c1"
       const entry = this.refMap.get(ref);
       if (!entry) {
         throw new Error(
-          `Ref ${selector} not found. Run 'snapshot' to get fresh refs.`
+          `Ref ${selector} not found. Run 'snapshot' to get fresh refs.`,
         );
       }
       const count = await entry.locator.count();
       if (count === 0) {
         throw new Error(
           `Ref ${selector} (${entry.role} "${entry.name}") is stale — element no longer exists. ` +
-          `Run 'snapshot' for fresh refs.`
+            `Run 'snapshot' for fresh refs.`,
         );
       }
       return { locator: entry.locator };
@@ -82,7 +84,7 @@ export class TabSession {
 
   /** Get the ARIA role for a ref selector, or null for CSS selectors / unknown refs. */
   getRefRole(selector: string): string | null {
-    if (selector.startsWith('@e') || selector.startsWith('@c')) {
+    if (selector.startsWith("@e") || selector.startsWith("@c")) {
       const entry = this.refMap.get(selector.slice(1));
       return entry?.role ?? null;
     }
@@ -96,7 +98,9 @@ export class TabSession {
   /** Get all ref entries for the /refs endpoint. */
   getRefEntries(): Array<{ ref: string; role: string; name: string }> {
     return Array.from(this.refMap.entries()).map(([ref, entry]) => ({
-      ref, role: entry.role, name: entry.name,
+      ref,
+      role: entry.role,
+      name: entry.name,
     }));
   }
 

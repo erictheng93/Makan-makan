@@ -12,10 +12,11 @@
  * Review logs are stored locally at ~/.gstack/reviews/review-log.jsonl.
  * Codex CLI prompts are written to temp files to prevent shell injection.
  */
-import type { TemplateContext } from './types';
-import { generateInvokeSkill } from './composition';
+import type { TemplateContext } from "./types";
+import { generateInvokeSkill } from "./composition";
 
-const CODEX_BOUNDARY = 'IMPORTANT: Do NOT read or execute any files under ~/.claude/, ~/.agents/, .claude/skills/, or agents/. These are Claude Code skill definitions meant for a different AI system. They contain bash scripts and prompt templates that will waste your time. Ignore them completely. Do NOT modify agents/openai.yaml. Stay focused on the repository code only.\\n\\n';
+const CODEX_BOUNDARY =
+  "IMPORTANT: Do NOT read or execute any files under ~/.claude/, ~/.agents/, .claude/skills/, or agents/. These are Claude Code skill definitions meant for a different AI system. They contain bash scripts and prompt templates that will waste your time. Ignore them completely. Do NOT modify agents/openai.yaml. Stay focused on the repository code only.\\n\\n";
 
 export function generateReviewDashboard(_ctx: TemplateContext): string {
   return `## Review Readiness Dashboard
@@ -209,9 +210,9 @@ Replace ITERATIONS, FOUND, FIXED, REMAINING, SCORE with actual values from the r
 }
 
 export function generateBenefitsFrom(ctx: TemplateContext): string {
-  if (!ctx.benefitsFrom || ctx.benefitsFrom.length === 0) return '';
+  if (!ctx.benefitsFrom || ctx.benefitsFrom.length === 0) return "";
 
-  const skillList = ctx.benefitsFrom.map(s => `\`/${s}\``).join(' or ');
+  const skillList = ctx.benefitsFrom.map((s) => `\`/${s}\``).join(" or ");
   const first = ctx.benefitsFrom[0];
 
   // Reuse the INVOKE_SKILL resolver for the actual loading instructions
@@ -259,7 +260,7 @@ If none was produced (user may have cancelled), proceed with standard review.`;
 
 export function generateCodexSecondOpinion(ctx: TemplateContext): string {
   // Codex host: strip entirely — Codex should never invoke itself
-  if (ctx.host === 'codex') return '';
+  if (ctx.host === "codex") return "";
 
   return `## Phase 3.5: Cross-Model Second Opinion (optional)
 
@@ -367,8 +368,8 @@ If A: revise the premise and note the revision. If B: proceed (and note that the
 // ─── Scope Drift Detection (shared between /review and /ship) ────────
 
 export function generateScopeDrift(ctx: TemplateContext): string {
-  const isShip = ctx.skillName === 'ship';
-  const stepNum = isShip ? '3.48' : '1.5';
+  const isShip = ctx.skillName === "ship";
+  const stepNum = isShip ? "3.48" : "1.5";
 
   return `## Step ${stepNum}: Scope Drift Detection
 
@@ -410,10 +411,10 @@ Before reviewing code quality, check: **did they build what was requested — no
 
 export function generateAdversarialStep(ctx: TemplateContext): string {
   // Codex host: strip entirely — Codex should never invoke itself
-  if (ctx.host === 'codex') return '';
+  if (ctx.host === "codex") return "";
 
-  const isShip = ctx.skillName === 'ship';
-  const stepNum = isShip ? '3.8' : '5.7';
+  const isShip = ctx.skillName === "ship";
+  const stepNum = isShip ? "3.8" : "5.7";
 
   return `## Step ${stepNum}: Adversarial review (always-on)
 
@@ -501,7 +502,7 @@ A) Investigate and fix now (recommended)
 B) Continue — review will still complete
 \`\`\`
 
-If A: address the findings${isShip ? '. After fixing, re-run tests (Step 3) since code has changed' : ''}. Re-run \`codex review\` to verify.
+If A: address the findings${isShip ? ". After fixing, re-run tests (Step 3) since code has changed" : ""}. Re-run \`codex review\` to verify.
 
 Read stderr for errors (same error handling as Codex adversarial above).
 
@@ -543,7 +544,7 @@ High-confidence findings (agreed on by multiple sources) should be prioritized f
 
 export function generateCodexPlanReview(ctx: TemplateContext): string {
   // Codex host: strip entirely — Codex should never invoke itself
-  if (ctx.host === 'codex') return '';
+  if (ctx.host === "codex") return "";
 
   return `## Outside Voice — Independent Plan Challenge (optional, recommended)
 
@@ -718,7 +719,7 @@ done
 
 // ─── Plan Completion Audit ────────────────────────────────────────────
 
-type PlanCompletionMode = 'ship' | 'review';
+type PlanCompletionMode = "ship" | "review";
 
 function generatePlanCompletionAuditInner(mode: PlanCompletionMode): string {
   const sections: string[] = [];
@@ -798,7 +799,7 @@ COMPLETION: 4/7 DONE, 1 PARTIAL, 1 NOT DONE, 1 CHANGED
 \`\`\``);
 
   // ── Gate logic (mode-specific) ──
-  if (mode === 'ship') {
+  if (mode === "ship") {
     sections.push(`
 ### Gate Logic
 
@@ -903,15 +904,17 @@ Plan items: N DONE, M PARTIAL, K NOT DONE
 **No plan file found:** Use commit messages and TODOS.md as fallback sources (see above). If no intent sources at all, skip with: "No intent sources detected — skipping completion audit."`);
   }
 
-  return sections.join('\n');
+  return sections.join("\n");
 }
 
 export function generatePlanCompletionAuditShip(_ctx: TemplateContext): string {
-  return generatePlanCompletionAuditInner('ship');
+  return generatePlanCompletionAuditInner("ship");
 }
 
-export function generatePlanCompletionAuditReview(_ctx: TemplateContext): string {
-  return generatePlanCompletionAuditInner('review');
+export function generatePlanCompletionAuditReview(
+  _ctx: TemplateContext,
+): string {
+  return generatePlanCompletionAuditInner("review");
 }
 
 // ─── Plan Verification Execution ──────────────────────────────────────
@@ -979,11 +982,11 @@ Add a \`## Verification Results\` section to the PR body (Step 8):
 // ─── Cross-Review Finding Dedup ──────────────────────────────────────
 
 export function generateCrossReviewDedup(ctx: TemplateContext): string {
-  const isShip = ctx.skillName === 'ship';
-  const stepNum = isShip ? '3.57' : '5.0';
+  const isShip = ctx.skillName === "ship";
+  const stepNum = isShip ? "3.57" : "5.0";
   const findingsRef = isShip
-    ? 'the checklist pass (Step 3.5) and specialist review (Step 3.55-3.56)'
-    : 'Step 4 critical pass and Step 4.5-4.6 specialists';
+    ? "the checklist pass (Step 3.5) and specialist review (Step 3.55-3.56)"
+    : "Step 4 critical pass and Step 4.5-4.6 specialists";
 
   return `### Step ${stepNum}: Cross-review finding dedup
 

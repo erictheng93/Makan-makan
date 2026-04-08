@@ -26,7 +26,10 @@ import { generateDesignToCodePrompt } from "./design-to-code";
 import { serve } from "./serve";
 import { gallery } from "./gallery";
 
-function parseArgs(argv: string[]): { command: string; flags: Record<string, string | boolean> } {
+function parseArgs(argv: string[]): {
+  command: string;
+  flags: Record<string, string | boolean>;
+} {
   const args = argv.slice(2); // skip bun/node and script path
   if (args.length === 0) {
     printUsage();
@@ -93,7 +96,8 @@ async function runSetup(): Promise<void> {
   console.log("\nRunning smoke test (generating a simple image)...");
   try {
     await generate({
-      brief: "A simple blue square centered on a white background. Minimal, geometric, clean.",
+      brief:
+        "A simple blue square centered on a white background. Minimal, geometric, clean.",
       output: "/tmp/gstack-design-smoke-test.png",
       size: "1024x1024",
       quality: "low",
@@ -136,7 +140,8 @@ async function main(): Promise<void> {
       // Parse --images as glob or multiple files
       const imagesArg = flags.images as string;
       const images = await resolveImagePaths(imagesArg);
-      const outputPath = (flags.output as string) || "/tmp/gstack-design-board.html";
+      const outputPath =
+        (flags.output as string) || "/tmp/gstack-design-board.html";
       compare({ images, output: outputPath });
       // If --serve flag is set, start HTTP server for the board
       if (flags.serve) {
@@ -157,7 +162,10 @@ async function main(): Promise<void> {
       console.error(`Generating implementation prompt from ${promptImage}...`);
       const proc2 = Bun.spawn(["git", "rev-parse", "--show-toplevel"]);
       const root = (await new Response(proc2.stdout).text()).trim();
-      const d2c = await generateDesignToCodePrompt(promptImage, root || undefined);
+      const d2c = await generateDesignToCodePrompt(
+        promptImage,
+        root || undefined,
+      );
       console.log(JSON.stringify(d2c, null, 2));
       break;
     }
@@ -225,7 +233,9 @@ async function main(): Promise<void> {
       }
       console.error(`Verifying implementation against approved mockup...`);
       const verifyResult = await verifyAgainstMockup(mockup, screenshot);
-      console.error(`Match: ${verifyResult.matchScore}/100 — ${verifyResult.pass ? "PASS" : "FAIL"}`);
+      console.error(
+        `Match: ${verifyResult.matchScore}/100 — ${verifyResult.pass ? "PASS" : "FAIL"}`,
+      );
       console.log(JSON.stringify(verifyResult, null, 2));
       break;
     }
@@ -259,7 +269,9 @@ async function main(): Promise<void> {
  */
 async function resolveImagePaths(input: string): Promise<string[]> {
   if (!input) {
-    console.error("--images is required. Provide glob pattern or comma-separated paths.");
+    console.error(
+      "--images is required. Provide glob pattern or comma-separated paths.",
+    );
     process.exit(1);
   }
 
@@ -268,7 +280,11 @@ async function resolveImagePaths(input: string): Promise<string[]> {
     const glob = new Bun.Glob(input);
     const paths: string[] = [];
     for await (const match of glob.scan({ absolute: true })) {
-      if (match.endsWith(".png") || match.endsWith(".jpg") || match.endsWith(".jpeg")) {
+      if (
+        match.endsWith(".png") ||
+        match.endsWith(".jpg") ||
+        match.endsWith(".jpeg")
+      ) {
         paths.push(match);
       }
     }
@@ -276,10 +292,10 @@ async function resolveImagePaths(input: string): Promise<string[]> {
   }
 
   // Comma-separated or single path
-  return input.split(",").map(p => p.trim());
+  return input.split(",").map((p) => p.trim());
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err.message || err);
   process.exit(1);
 });

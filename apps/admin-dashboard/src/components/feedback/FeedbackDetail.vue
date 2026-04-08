@@ -6,56 +6,89 @@
       <template v-if="isEditingFeedback">
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{ t("feedback.subjectLabel") }}</label>
+            <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
+              t("feedback.subjectLabel")
+            }}</label>
             <input
               v-model="editForm.subject"
               type="text"
               maxlength="200"
               class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all"
             />
-            <span class="text-[10px] text-[#8E8E93] mt-0.5 block text-right">{{ editForm.subject.length }}/200</span>
+            <span class="text-[10px] text-[#8E8E93] mt-0.5 block text-right"
+              >{{ editForm.subject.length }}/200</span
+            >
           </div>
           <div class="flex flex-wrap gap-3">
             <div class="flex-1 min-w-[120px]">
-              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{ t("feedback.typeLabel") }}</label>
-              <select v-model="editForm.category" class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all">
-                <option v-for="cat in feedbackCategories" :key="cat" :value="cat">{{ t(`feedback.categories.${cat}`) }}</option>
+              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
+                t("feedback.typeLabel")
+              }}</label>
+              <select
+                v-model="editForm.category"
+                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+              >
+                <option
+                  v-for="cat in feedbackCategories"
+                  :key="cat"
+                  :value="cat"
+                >
+                  {{ t(`feedback.categories.${cat}`) }}
+                </option>
               </select>
             </div>
             <div class="flex-1 min-w-[120px]">
-              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{ t("feedback.priorityLabel") }}</label>
-              <select v-model="editForm.priority" class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all">
-                <option v-for="p in feedbackPriorities" :key="p" :value="p">{{ t(`feedback.priorities.${p}`) }}</option>
+              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
+                t("feedback.priorityLabel")
+              }}</label>
+              <select
+                v-model="editForm.priority"
+                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+              >
+                <option v-for="p in feedbackPriorities" :key="p" :value="p">
+                  {{ t(`feedback.priorities.${p}`) }}
+                </option>
               </select>
             </div>
             <div class="flex-1 min-w-[120px]">
-              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{ t("feedback.moduleLabel") }}</label>
-              <select v-model="editForm.relatedModule" class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all">
-                <option v-for="m in feedbackModules" :key="m" :value="m">{{ t(`feedback.modules.${m}`) }}</option>
+              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
+                t("feedback.moduleLabel")
+              }}</label>
+              <select
+                v-model="editForm.relatedModule"
+                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+              >
+                <option v-for="m in feedbackModules" :key="m" :value="m">
+                  {{ t(`feedback.modules.${m}`) }}
+                </option>
               </select>
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{ t("feedback.descriptionLabel") }}</label>
+            <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
+              t("feedback.descriptionLabel")
+            }}</label>
             <textarea
               v-model="editForm.description"
               rows="4"
               maxlength="5000"
               class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all resize-none"
             />
-            <span class="text-[10px] text-[#8E8E93] mt-0.5 block text-right">{{ editForm.description.length }}/5000</span>
+            <span class="text-[10px] text-[#8E8E93] mt-0.5 block text-right"
+              >{{ editForm.description.length }}/5000</span
+            >
           </div>
           <div class="flex items-center gap-2">
             <button
-              @click="handleSaveFeedback"
               :disabled="!isEditFormValid"
               class="px-4 py-1.5 rounded-full text-xs font-semibold bg-[#007AFF] text-white hover:bg-[#0071E3] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              @click="handleSaveFeedback"
             >
               {{ t("feedback.saveEdit") }}
             </button>
             <button
-              @click="cancelFeedbackEdit"
               class="px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all"
+              @click="cancelFeedbackEdit"
             >
               {{ t("feedback.cancelEdit") }}
             </button>
@@ -89,7 +122,9 @@
               >
                 {{ t(`feedback.statuses.${feedback.status}`) }}
               </span>
-              <span class="px-2.5 py-0.5 rounded-full text-xs bg-gray-100 text-[#3C3C43]">
+              <span
+                class="px-2.5 py-0.5 rounded-full text-xs bg-gray-100 text-[#3C3C43]"
+              >
                 {{ t(`feedback.modules.${feedback.relatedModule}`) }}
               </span>
             </div>
@@ -99,16 +134,16 @@
             <!-- Edit / Delete feedback buttons -->
             <template v-if="canEditFeedback">
               <button
-                @click="startFeedbackEdit"
                 class="p-1.5 rounded-xl text-[#8E8E93] hover:text-[#007AFF] hover:bg-[#007AFF]/10 transition-colors"
                 :title="t('feedback.editFeedback')"
+                @click="startFeedbackEdit"
               >
                 <Pencil class="w-4 h-4" />
               </button>
               <button
-                @click="isDeletingFeedback = true"
                 class="p-1.5 rounded-xl text-[#8E8E93] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors"
                 :title="t('feedback.deleteFeedback')"
+                @click="isDeletingFeedback = true"
               >
                 <Trash2 class="w-4 h-4" />
               </button>
@@ -117,13 +152,19 @@
             <select
               v-if="isAdmin"
               :value="feedback.status"
-              @change="handleStatusChange"
               class="px-3 py-1.5 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+              @change="handleStatusChange"
             >
               <option value="open">{{ t("feedback.statuses.open") }}</option>
-              <option value="in_progress">{{ t("feedback.statuses.in_progress") }}</option>
-              <option value="resolved">{{ t("feedback.statuses.resolved") }}</option>
-              <option value="closed">{{ t("feedback.statuses.closed") }}</option>
+              <option value="in_progress">
+                {{ t("feedback.statuses.in_progress") }}
+              </option>
+              <option value="resolved">
+                {{ t("feedback.statuses.resolved") }}
+              </option>
+              <option value="closed">
+                {{ t("feedback.statuses.closed") }}
+              </option>
             </select>
           </div>
         </div>
@@ -142,14 +183,14 @@
           </p>
           <div class="flex gap-2 flex-shrink-0">
             <button
-              @click="isDeletingFeedback = false"
               class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all"
+              @click="isDeletingFeedback = false"
             >
               {{ t("feedback.cancelEdit") }}
             </button>
             <button
-              @click="handleDeleteFeedback"
               class="px-3 py-1 rounded-full text-xs font-semibold bg-[#FF3B30] text-white hover:bg-[#D63027] transition-all"
+              @click="handleDeleteFeedback"
             >
               {{ t("feedback.confirmDelete") }}
             </button>
@@ -158,7 +199,9 @@
       </template>
 
       <!-- Metadata footer -->
-      <div class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#8E8E93]">
+      <div
+        class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#8E8E93]"
+      >
         <span v-if="feedback.restaurant">
           🏪 {{ feedback.restaurant.name }}
         </span>
@@ -172,7 +215,10 @@
       </div>
 
       <!-- Attachments -->
-      <div v-if="feedback.attachmentUrls?.length" class="mt-3 flex flex-wrap gap-2">
+      <div
+        v-if="feedback.attachmentUrls?.length"
+        class="mt-3 flex flex-wrap gap-2"
+      >
         <a
           v-for="(url, i) in feedback.attachmentUrls"
           :key="i"
@@ -212,8 +258,8 @@
                 response.isInternal
                   ? 'bg-amber-100 text-amber-700'
                   : isAdminUser(response.userId)
-                  ? 'bg-[#007AFF]/10 text-[#007AFF]'
-                  : 'bg-gray-100 text-[#3C3C43]'
+                    ? 'bg-[#007AFF]/10 text-[#007AFF]'
+                    : 'bg-gray-100 text-[#3C3C43]'
               "
             >
               {{ getInitials(response.user) }}
@@ -221,7 +267,9 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-xs font-semibold text-[#1C1C1E]">
-                  {{ response.user?.fullName || response.user?.username || "—" }}
+                  {{
+                    response.user?.fullName || response.user?.username || "—"
+                  }}
                 </span>
                 <span
                   v-if="response.isInternal"
@@ -236,16 +284,16 @@
                 <template v-if="canEditResponse(response)">
                   <button
                     v-if="editingResponseId !== response.id"
-                    @click="startEdit(response)"
                     class="p-1 rounded-lg text-[#8E8E93] hover:text-[#007AFF] hover:bg-[#007AFF]/10 transition-colors"
                     :title="t('feedback.editReply')"
+                    @click="startEdit(response)"
                   >
                     <Pencil class="w-3.5 h-3.5" />
                   </button>
                   <button
-                    @click="handleDeleteResponse(response.id)"
                     class="p-1 rounded-lg text-[#8E8E93] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors"
                     :title="t('feedback.deleteReply')"
+                    @click="handleDeleteResponse(response.id)"
                   >
                     <Trash2 class="w-3.5 h-3.5" />
                   </button>
@@ -262,15 +310,18 @@
                 />
                 <div class="flex items-center gap-2 mt-2">
                   <button
-                    @click="handleUpdateResponse(response.id)"
-                    :disabled="!editingMessage.trim() || editingMessage === response.message"
+                    :disabled="
+                      !editingMessage.trim() ||
+                      editingMessage === response.message
+                    "
                     class="px-3 py-1 rounded-full text-xs font-semibold bg-[#007AFF] text-white hover:bg-[#0071E3] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    @click="handleUpdateResponse(response.id)"
                   >
                     {{ t("feedback.saveEdit") }}
                   </button>
                   <button
-                    @click="cancelEdit"
                     class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all"
+                    @click="cancelEdit"
                   >
                     {{ t("feedback.cancelEdit") }}
                   </button>
@@ -308,13 +359,15 @@
               type="checkbox"
               class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400"
             />
-            <span class="text-xs text-[#3C3C43]">{{ t("feedback.markInternal") }}</span>
+            <span class="text-xs text-[#3C3C43]">{{
+              t("feedback.markInternal")
+            }}</span>
           </label>
           <div v-else />
           <button
-            @click="handleReply"
             :disabled="!replyMessage.trim()"
             class="px-5 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0071E3] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            @click="handleReply"
           >
             {{ t("feedback.sendReply") }}
           </button>
@@ -331,11 +384,33 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { useFeedback } from "@/composables/useFeedback";
-import type { FeedbackItem, FeedbackResponseItem, UpdateFeedbackPayload } from "@/composables/useFeedback";
+import type {
+  FeedbackItem,
+  FeedbackResponseItem,
+  UpdateFeedbackPayload,
+} from "@/composables/useFeedback";
 
-const feedbackCategories = ["bug_report", "feature_request", "usability", "performance", "billing", "other"] as const;
+const feedbackCategories = [
+  "bug_report",
+  "feature_request",
+  "usability",
+  "performance",
+  "billing",
+  "other",
+] as const;
 const feedbackPriorities = ["low", "medium", "high", "urgent"] as const;
-const feedbackModules = ["menu", "orders", "pos", "tables", "reservations", "scheduling", "analytics", "settings", "integrations", "other"] as const;
+const feedbackModules = [
+  "menu",
+  "orders",
+  "pos",
+  "tables",
+  "reservations",
+  "scheduling",
+  "analytics",
+  "settings",
+  "integrations",
+  "other",
+] as const;
 
 const props = defineProps<{ feedback: FeedbackItem }>();
 const emit = defineEmits<{
@@ -349,7 +424,14 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const authStore = useAuthStore();
-const { addResponse, updateStatus, updateResponse, deleteResponse, updateFeedback, deleteFeedback } = useFeedback();
+const {
+  addResponse,
+  updateStatus,
+  updateResponse,
+  deleteResponse,
+  updateFeedback,
+  deleteFeedback,
+} = useFeedback();
 
 const isAdmin = computed(() => authStore.user?.role === UserRole.ADMIN);
 const currentUserId = computed(() => authStore.user?.id);
@@ -398,11 +480,16 @@ function cancelFeedbackEdit() {
 
 async function handleSaveFeedback() {
   const payload: UpdateFeedbackPayload = {};
-  if (editForm.subject !== props.feedback.subject) payload.subject = editForm.subject;
-  if (editForm.description !== props.feedback.description) payload.description = editForm.description;
-  if (editForm.category !== props.feedback.category) payload.category = editForm.category;
-  if (editForm.priority !== props.feedback.priority) payload.priority = editForm.priority;
-  if (editForm.relatedModule !== props.feedback.relatedModule) payload.relatedModule = editForm.relatedModule;
+  if (editForm.subject !== props.feedback.subject)
+    payload.subject = editForm.subject;
+  if (editForm.description !== props.feedback.description)
+    payload.description = editForm.description;
+  if (editForm.category !== props.feedback.category)
+    payload.category = editForm.category;
+  if (editForm.priority !== props.feedback.priority)
+    payload.priority = editForm.priority;
+  if (editForm.relatedModule !== props.feedback.relatedModule)
+    payload.relatedModule = editForm.relatedModule;
 
   if (Object.keys(payload).length === 0) {
     cancelFeedbackEdit();
@@ -444,7 +531,11 @@ function cancelEdit() {
 
 async function handleUpdateResponse(responseId: number) {
   if (!editingMessage.value.trim()) return;
-  await updateResponse(props.feedback.id, responseId, editingMessage.value.trim());
+  await updateResponse(
+    props.feedback.id,
+    responseId,
+    editingMessage.value.trim(),
+  );
   emit("replyUpdated", responseId, editingMessage.value.trim());
   cancelEdit();
 }

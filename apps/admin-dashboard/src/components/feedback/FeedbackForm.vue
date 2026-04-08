@@ -4,7 +4,7 @@
       {{ t("feedback.form.title") }}
     </h3>
 
-    <form @submit.prevent="handleSubmit" class="space-y-5">
+    <form class="space-y-5" @submit.prevent="handleSubmit">
       <!-- Category -->
       <div>
         <label class="block text-sm font-medium text-[#1C1C1E] mb-2">
@@ -16,13 +16,13 @@
             v-for="cat in categories"
             :key="cat.value"
             type="button"
-            @click="form.category = cat.value"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
             :class="
               form.category === cat.value
                 ? 'bg-[#007AFF] text-white shadow-sm'
                 : 'bg-gray-100 text-[#3C3C43] hover:bg-gray-200'
             "
+            @click="form.category = cat.value"
           >
             <component :is="cat.icon" class="w-3.5 h-3.5" />
             {{ t(`feedback.categories.${cat.value}`) }}
@@ -41,8 +41,8 @@
               v-for="p in priorities"
               :key="p.value"
               type="button"
-              @click="selectPriority(p.value)"
               class="flex flex-col items-center gap-1.5 group"
+              @click="selectPriority(p.value)"
             >
               <span
                 class="w-9 h-9 rounded-full transition-all duration-200"
@@ -58,7 +58,11 @@
               />
               <span
                 class="text-[10px] font-medium transition-colors duration-200"
-                :class="form.priority === p.value ? 'text-[#1C1C1E]' : 'text-[#8E8E93]'"
+                :class="
+                  form.priority === p.value
+                    ? 'text-[#1C1C1E]'
+                    : 'text-[#8E8E93]'
+                "
               >
                 {{ t(`feedback.priorities.${p.value}`) }}
               </span>
@@ -121,8 +125,8 @@
       <div class="flex gap-3 pt-1">
         <button
           type="button"
-          @click="$emit('cancel')"
           class="flex-1 py-2.5 rounded-full text-sm font-medium bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all duration-200"
+          @click="$emit('cancel')"
         >
           {{ t("common.cancel") }}
         </button>

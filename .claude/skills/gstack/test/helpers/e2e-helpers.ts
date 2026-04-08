@@ -5,19 +5,26 @@
  * tests across multiple files by category.
  */
 
-import { describe, test, beforeAll, afterAll } from 'bun:test';
-import type { SkillTestResult } from './session-runner';
-import { EvalCollector, judgePassed } from './eval-store';
-import type { EvalTestEntry } from './eval-store';
-import { selectTests, detectBaseBranch, getChangedFiles, E2E_TOUCHFILES, E2E_TIERS, GLOBAL_TOUCHFILES } from './touchfiles';
-import { WorktreeManager } from '../../lib/worktree';
-import type { HarvestResult } from '../../lib/worktree';
-import { spawnSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { describe, test, beforeAll, afterAll } from "bun:test";
+import type { SkillTestResult } from "./session-runner";
+import { EvalCollector, judgePassed } from "./eval-store";
+import type { EvalTestEntry } from "./eval-store";
+import {
+  selectTests,
+  detectBaseBranch,
+  getChangedFiles,
+  E2E_TOUCHFILES,
+  E2E_TIERS,
+  GLOBAL_TOUCHFILES,
+} from "./touchfiles";
+import { WorktreeManager } from "../../lib/worktree";
+import type { HarvestResult } from "../../lib/worktree";
+import { spawnSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
-export const ROOT = path.resolve(import.meta.dir, '..', '..');
+export const ROOT = path.resolve(import.meta.dir, "..", "..");
 
 // Skip unless EVALS=1. Session runner strips CLAUDE* env vars to avoid nested session issues.
 //
@@ -33,19 +40,23 @@ export const evalsEnabled = !!process.env.EVALS;
 export let selectedTests: string[] | null = null; // null = run all
 
 if (evalsEnabled && !process.env.EVALS_ALL) {
-  const baseBranch = process.env.EVALS_BASE
-    || detectBaseBranch(ROOT)
-    || 'main';
+  const baseBranch = process.env.EVALS_BASE || detectBaseBranch(ROOT) || "main";
   const changedFiles = getChangedFiles(baseBranch, ROOT);
 
   if (changedFiles.length > 0) {
-    const selection = selectTests(changedFiles, E2E_TOUCHFILES, GLOBAL_TOUCHFILES);
+    const selection = selectTests(
+      changedFiles,
+      E2E_TOUCHFILES,
+      GLOBAL_TOUCHFILES,
+    );
     selectedTests = selection.selected;
-    process.stderr.write(`\nE2E selection (${selection.reason}): ${selection.selected.length}/${Object.keys(E2E_TOUCHFILES).length} tests\n`);
+    process.stderr.write(
+      `\nE2E selection (${selection.reason}): ${selection.selected.length}/${Object.keys(E2E_TOUCHFILES).length} tests\n`,
+    );
     if (selection.skipped.length > 0) {
-      process.stderr.write(`  Skipped: ${selection.skipped.join(', ')}\n`);
+      process.stderr.write(`  Skipped: ${selection.skipped.join(", ")}\n`);
     }
-    process.stderr.write('\n');
+    process.stderr.write("\n");
   }
   // If changedFiles is empty (e.g., on main branch), selectedTests stays null → run all
 }
@@ -55,7 +66,7 @@ if (evalsEnabled && !process.env.EVALS_ALL) {
 // 'periodic' = periodic tests only (weekly cron / manual)
 // not set = run all selected tests (local dev default, backward compat)
 if (evalsEnabled && process.env.EVALS_TIER) {
-  const tier = process.env.EVALS_TIER as 'gate' | 'periodic';
+  const tier = process.env.EVALS_TIER as "gate" | "periodic";
   const tierTests = Object.entries(E2E_TIERS)
     .filter(([, t]) => t === tier)
     .map(([name]) => name);
@@ -63,7 +74,7 @@ if (evalsEnabled && process.env.EVALS_TIER) {
   if (selectedTests === null) {
     selectedTests = tierTests;
   } else {
-    selectedTests = selectedTests.filter(t => tierTests.includes(t));
+    selectedTests = selectedTests.filter((t) => tierTests.includes(t));
   }
   process.stderr.write(`EVALS_TIER=${tier}: ${selectedTests.length} tests\n\n`);
 }
@@ -71,15 +82,24 @@ if (evalsEnabled && process.env.EVALS_TIER) {
 export const describeE2E = evalsEnabled ? describe : describe.skip;
 
 /** Wrap a describe block to skip entirely if none of its tests are selected. */
-export function describeIfSelected(name: string, testNames: string[], fn: () => void) {
-  const anySelected = selectedTests === null || testNames.some(t => selectedTests!.includes(t));
+export function describeIfSelected(
+  name: string,
+  testNames: string[],
+  fn: () => void,
+) {
+  const anySelected =
+    selectedTests === null || testNames.some((t) => selectedTests!.includes(t));
   (anySelected ? describeE2E : describe.skip)(name, fn);
 }
 
 // Unique run ID for this E2E session — used for heartbeat + per-run log directory
-export const runId = new Date().toISOString().replace(/[:.]/g, '').replace('T', '-').slice(0, 15);
+export const runId = new Date()
+  .toISOString()
+  .replace(/[:.]/g, "")
+  .replace("T", "-")
+  .slice(0, 15);
 
-export const browseBin = path.resolve(ROOT, 'browse', 'dist', 'browse');
+export const browseBin = path.resolve(ROOT, "browse", "dist", "browse");
 
 // Check if Anthropic API key is available (needed for outcome evals)
 export const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
@@ -105,24 +125,24 @@ export function copyDirSync(src: string, dest: string) {
  */
 export function setupBrowseShims(dir: string) {
   // Symlink browse binary
-  const binDir = path.join(dir, 'browse', 'dist');
+  const binDir = path.join(dir, "browse", "dist");
   fs.mkdirSync(binDir, { recursive: true });
   if (fs.existsSync(browseBin)) {
-    fs.symlinkSync(browseBin, path.join(binDir, 'browse'));
+    fs.symlinkSync(browseBin, path.join(binDir, "browse"));
   }
 
   // find-browse shim
-  const findBrowseDir = path.join(dir, 'browse', 'bin');
+  const findBrowseDir = path.join(dir, "browse", "bin");
   fs.mkdirSync(findBrowseDir, { recursive: true });
   fs.writeFileSync(
-    path.join(findBrowseDir, 'find-browse'),
+    path.join(findBrowseDir, "find-browse"),
     `#!/bin/bash\necho "${browseBin}"\n`,
     { mode: 0o755 },
   );
 
   // remote-slug shim (returns test-project)
   fs.writeFileSync(
-    path.join(findBrowseDir, 'remote-slug'),
+    path.join(findBrowseDir, "remote-slug"),
     `#!/bin/bash\necho "test-project"\n`,
     { mode: 0o755 },
   );
@@ -131,25 +151,44 @@ export function setupBrowseShims(dir: string) {
 /**
  * Print cost summary after an E2E test.
  */
-export function logCost(label: string, result: { costEstimate: { turnsUsed: number; estimatedTokens: number; estimatedCost: number }; duration: number }) {
+export function logCost(
+  label: string,
+  result: {
+    costEstimate: {
+      turnsUsed: number;
+      estimatedTokens: number;
+      estimatedCost: number;
+    };
+    duration: number;
+  },
+) {
   const { turnsUsed, estimatedTokens, estimatedCost } = result.costEstimate;
   const durationSec = Math.round(result.duration / 1000);
-  console.log(`${label}: $${estimatedCost.toFixed(2)} (${turnsUsed} turns, ${(estimatedTokens / 1000).toFixed(1)}k tokens, ${durationSec}s)`);
+  console.log(
+    `${label}: $${estimatedCost.toFixed(2)} (${turnsUsed} turns, ${(estimatedTokens / 1000).toFixed(1)}k tokens, ${durationSec}s)`,
+  );
 }
 
 /**
  * Dump diagnostic info on planted-bug outcome failure (decision 1C).
  */
-export function dumpOutcomeDiagnostic(dir: string, label: string, report: string, judgeResult: any) {
+export function dumpOutcomeDiagnostic(
+  dir: string,
+  label: string,
+  report: string,
+  judgeResult: any,
+) {
   try {
-    const transcriptDir = path.join(dir, '.gstack', 'test-transcripts');
+    const transcriptDir = path.join(dir, ".gstack", "test-transcripts");
     fs.mkdirSync(transcriptDir, { recursive: true });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     fs.writeFileSync(
       path.join(transcriptDir, `${label}-outcome-${timestamp}.json`),
       JSON.stringify({ label, report, judgeResult }, null, 2),
     );
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 /**
@@ -168,13 +207,16 @@ export function recordE2E(
   extra?: Partial<EvalTestEntry>,
 ) {
   // Derive last tool call from transcript for machine-readable diagnostics
-  const lastTool = result.toolCalls.length > 0
-    ? `${result.toolCalls[result.toolCalls.length - 1].tool}(${JSON.stringify(result.toolCalls[result.toolCalls.length - 1].input).slice(0, 60)})`
-    : undefined;
+  const lastTool =
+    result.toolCalls.length > 0
+      ? `${result.toolCalls[result.toolCalls.length - 1].tool}(${JSON.stringify(result.toolCalls[result.toolCalls.length - 1].input).slice(0, 60)})`
+      : undefined;
 
   evalCollector?.addTest({
-    name, suite, tier: 'e2e',
-    passed: result.exitReason === 'success' && result.browseErrors.length === 0,
+    name,
+    suite,
+    tier: "e2e",
+    passed: result.exitReason === "success" && result.browseErrors.length === 0,
     duration_ms: result.duration,
     cost_usd: result.costEstimate.estimatedCost,
     transcript: result.transcript,
@@ -182,7 +224,10 @@ export function recordE2E(
     turns_used: result.costEstimate.turnsUsed,
     browse_errors: result.browseErrors,
     exit_reason: result.exitReason,
-    timeout_at_turn: result.exitReason === 'timeout' ? result.costEstimate.turnsUsed : undefined,
+    timeout_at_turn:
+      result.exitReason === "timeout"
+        ? result.costEstimate.turnsUsed
+        : undefined,
     last_tool_call: lastTool,
     model: result.model,
     first_response_ms: result.firstResponseMs,
@@ -192,12 +237,14 @@ export function recordE2E(
 }
 
 /** Finalize an eval collector (write results). */
-export async function finalizeEvalCollector(evalCollector: EvalCollector | null) {
+export async function finalizeEvalCollector(
+  evalCollector: EvalCollector | null,
+) {
   if (evalCollector) {
     try {
       await evalCollector.finalize();
     } catch (err) {
-      console.error('Failed to save eval results:', err);
+      console.error("Failed to save eval results:", err);
     }
   }
 }
@@ -205,33 +252,58 @@ export async function finalizeEvalCollector(evalCollector: EvalCollector | null)
 // Pre-seed preamble state files so E2E tests don't waste turns on lake intro + telemetry prompts.
 // These are one-time interactive prompts that burn 3-7 turns per test if not pre-seeded.
 if (evalsEnabled) {
-  const gstackDir = path.join(os.homedir(), '.gstack');
+  const gstackDir = path.join(os.homedir(), ".gstack");
   fs.mkdirSync(gstackDir, { recursive: true });
-  for (const f of ['.completeness-intro-seen', '.telemetry-prompted', '.proactive-prompted']) {
+  for (const f of [
+    ".completeness-intro-seen",
+    ".telemetry-prompted",
+    ".proactive-prompted",
+  ]) {
     const p = path.join(gstackDir, f);
-    if (!fs.existsSync(p)) fs.writeFileSync(p, '');
+    if (!fs.existsSync(p)) fs.writeFileSync(p, "");
   }
 }
 
 // Fail fast if Anthropic API is unreachable — don't burn through tests getting ConnectionRefused
 if (evalsEnabled) {
-  const check = spawnSync('sh', ['-c', 'echo "ping" | claude -p --max-turns 1 --output-format stream-json --verbose --dangerously-skip-permissions'], {
-    stdio: 'pipe', timeout: 30_000,
-  });
-  const output = check.stdout?.toString() || '';
-  if (output.includes('ConnectionRefused') || output.includes('Unable to connect')) {
-    throw new Error('Anthropic API unreachable — aborting E2E suite. Fix connectivity and retry.');
+  const check = spawnSync(
+    "sh",
+    [
+      "-c",
+      'echo "ping" | claude -p --max-turns 1 --output-format stream-json --verbose --dangerously-skip-permissions',
+    ],
+    {
+      stdio: "pipe",
+      timeout: 30_000,
+    },
+  );
+  const output = check.stdout?.toString() || "";
+  if (
+    output.includes("ConnectionRefused") ||
+    output.includes("Unable to connect")
+  ) {
+    throw new Error(
+      "Anthropic API unreachable — aborting E2E suite. Fix connectivity and retry.",
+    );
   }
 }
 
 /** Skip an individual test if not selected (for multi-test describe blocks). */
-export function testIfSelected(testName: string, fn: () => Promise<void>, timeout: number) {
+export function testIfSelected(
+  testName: string,
+  fn: () => Promise<void>,
+  timeout: number,
+) {
   const shouldRun = selectedTests === null || selectedTests.includes(testName);
   (shouldRun ? test : test.skip)(testName, fn, timeout);
 }
 
 /** Concurrent version — runs in parallel with other concurrent tests within the same describe block. */
-export function testConcurrentIfSelected(testName: string, fn: () => Promise<void>, timeout: number) {
+export function testConcurrentIfSelected(
+  testName: string,
+  fn: () => Promise<void>,
+  timeout: number,
+) {
   const shouldRun = selectedTests === null || selectedTests.includes(testName);
   (shouldRun ? test.concurrent : test.skip)(testName, fn, timeout);
 }
@@ -259,9 +331,13 @@ export function harvestAndCleanup(testName: string): HarvestResult | null {
   const result = mgr.harvest(testName);
   if (result) {
     if (result.isDuplicate) {
-      process.stderr.write(`\n  HARVEST [${testName}]: duplicate patch (skipped)\n`);
+      process.stderr.write(
+        `\n  HARVEST [${testName}]: duplicate patch (skipped)\n`,
+      );
     } else {
-      process.stderr.write(`\n  HARVEST [${testName}]: ${result.changedFiles.length} files changed\n`);
+      process.stderr.write(
+        `\n  HARVEST [${testName}]: ${result.changedFiles.length} files changed\n`,
+      );
       process.stderr.write(`  Patch: ${result.patchPath}\n`);
       process.stderr.write(`  ${result.diffStat}\n\n`);
     }
@@ -282,13 +358,17 @@ export function describeWithWorktree(
 ) {
   describeIfSelected(name, testNames, () => {
     let worktreePath: string;
-    beforeAll(() => { worktreePath = createTestWorktree(name); });
-    afterAll(() => { harvestAndCleanup(name); });
+    beforeAll(() => {
+      worktreePath = createTestWorktree(name);
+    });
+    afterAll(() => {
+      harvestAndCleanup(name);
+    });
     fn(() => worktreePath);
   });
 }
 
-export { judgePassed } from './eval-store';
-export { EvalCollector } from './eval-store';
-export type { EvalTestEntry } from './eval-store';
-export type { HarvestResult } from '../../lib/worktree';
+export { judgePassed } from "./eval-store";
+export { EvalCollector } from "./eval-store";
+export type { EvalTestEntry } from "./eval-store";
+export type { HarvestResult } from "../../lib/worktree";

@@ -193,8 +193,7 @@ describe("usePerformanceMonitor", () => {
 
   describe("clear", () => {
     it("should clear monitor and reset reactive state", () => {
-      const { clear, webVitals, metrics, resources } =
-        usePerformanceMonitor();
+      const { clear, webVitals, metrics, resources } = usePerformanceMonitor();
 
       clear();
 

@@ -66,7 +66,13 @@ The daemon model means:
 The server writes `.gstack/browse.json` (atomic write via tmp + rename, mode 0o600):
 
 ```json
-{ "pid": 12345, "port": 34567, "token": "uuid-v4", "startedAt": "...", "binaryVersion": "abc123" }
+{
+  "pid": 12345,
+  "port": 34567,
+  "token": "uuid-v4",
+  "startedAt": "...",
+  "binaryVersion": "abc123"
+}
 ```
 
 The CLI reads this file to find the server. If the file is missing or the server fails an HTTP health check, the CLI spawns a new server. On Windows, PID-based process detection is unreliable in Bun binaries, so the health check (GET /health) is the primary liveness signal on all platforms.
@@ -194,20 +200,20 @@ SKILL.md               (committed, auto-generated sections)
 
 Templates contain the workflows, tips, and examples that require human judgment. Placeholders are filled from source code at build time:
 
-| Placeholder | Source | What it generates |
-|-------------|--------|-------------------|
-| `{{COMMAND_REFERENCE}}` | `commands.ts` | Categorized command table |
-| `{{SNAPSHOT_FLAGS}}` | `snapshot.ts` | Flag reference with examples |
-| `{{PREAMBLE}}` | `gen-skill-docs.ts` | Startup block: update check, session tracking, contributor mode, AskUserQuestion format |
-| `{{BROWSE_SETUP}}` | `gen-skill-docs.ts` | Binary discovery + setup instructions |
-| `{{BASE_BRANCH_DETECT}}` | `gen-skill-docs.ts` | Dynamic base branch detection for PR-targeting skills (ship, review, qa, plan-ceo-review) |
-| `{{QA_METHODOLOGY}}` | `gen-skill-docs.ts` | Shared QA methodology block for /qa and /qa-only |
-| `{{DESIGN_METHODOLOGY}}` | `gen-skill-docs.ts` | Shared design audit methodology for /plan-design-review and /design-review |
-| `{{REVIEW_DASHBOARD}}` | `gen-skill-docs.ts` | Review Readiness Dashboard for /ship pre-flight |
-| `{{TEST_BOOTSTRAP}}` | `gen-skill-docs.ts` | Test framework detection, bootstrap, CI/CD setup for /qa, /ship, /design-review |
-| `{{CODEX_PLAN_REVIEW}}` | `gen-skill-docs.ts` | Optional cross-model plan review (Codex or Claude subagent fallback) for /plan-ceo-review and /plan-eng-review |
-| `{{DESIGN_SETUP}}` | `resolvers/design.ts` | Discovery pattern for `$D` design binary, mirrors `{{BROWSE_SETUP}}` |
-| `{{DESIGN_SHOTGUN_LOOP}}` | `resolvers/design.ts` | Shared comparison board feedback loop for /design-shotgun, /plan-design-review, /design-consultation |
+| Placeholder               | Source                | What it generates                                                                                              |
+| ------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `{{COMMAND_REFERENCE}}`   | `commands.ts`         | Categorized command table                                                                                      |
+| `{{SNAPSHOT_FLAGS}}`      | `snapshot.ts`         | Flag reference with examples                                                                                   |
+| `{{PREAMBLE}}`            | `gen-skill-docs.ts`   | Startup block: update check, session tracking, contributor mode, AskUserQuestion format                        |
+| `{{BROWSE_SETUP}}`        | `gen-skill-docs.ts`   | Binary discovery + setup instructions                                                                          |
+| `{{BASE_BRANCH_DETECT}}`  | `gen-skill-docs.ts`   | Dynamic base branch detection for PR-targeting skills (ship, review, qa, plan-ceo-review)                      |
+| `{{QA_METHODOLOGY}}`      | `gen-skill-docs.ts`   | Shared QA methodology block for /qa and /qa-only                                                               |
+| `{{DESIGN_METHODOLOGY}}`  | `gen-skill-docs.ts`   | Shared design audit methodology for /plan-design-review and /design-review                                     |
+| `{{REVIEW_DASHBOARD}}`    | `gen-skill-docs.ts`   | Review Readiness Dashboard for /ship pre-flight                                                                |
+| `{{TEST_BOOTSTRAP}}`      | `gen-skill-docs.ts`   | Test framework detection, bootstrap, CI/CD setup for /qa, /ship, /design-review                                |
+| `{{CODEX_PLAN_REVIEW}}`   | `gen-skill-docs.ts`   | Optional cross-model plan review (Codex or Claude subagent fallback) for /plan-ceo-review and /plan-eng-review |
+| `{{DESIGN_SETUP}}`        | `resolvers/design.ts` | Discovery pattern for `$D` design binary, mirrors `{{BROWSE_SETUP}}`                                           |
+| `{{DESIGN_SHOTGUN_LOOP}}` | `resolvers/design.ts` | Shared comparison board feedback loop for /design-shotgun, /plan-design-review, /design-consultation           |
 
 This is structurally sound — if a command exists in code, it appears in docs. If it doesn't exist, it can't appear.
 
@@ -231,11 +237,11 @@ Three reasons:
 
 ### Template test tiers
 
-| Tier | What | Cost | Speed |
-|------|------|------|-------|
-| 1 — Static validation | Parse every `$B` command in SKILL.md, validate against registry | Free | <2s |
-| 2 — E2E via `claude -p` | Spawn real Claude session, run each skill, check for errors | ~$3.85 | ~20min |
-| 3 — LLM-as-judge | Sonnet scores docs on clarity/completeness/actionability | ~$0.15 | ~30s |
+| Tier                    | What                                                            | Cost   | Speed  |
+| ----------------------- | --------------------------------------------------------------- | ------ | ------ |
+| 1 — Static validation   | Parse every `$B` command in SKILL.md, validate against registry | Free   | <2s    |
+| 2 — E2E via `claude -p` | Spawn real Claude session, run each skill, check for errors     | ~$3.85 | ~20min |
+| 3 — LLM-as-judge        | Sonnet scores docs on clarity/completeness/actionability        | ~$0.15 | ~30s   |
 
 Tier 1 runs on every `bun test`. Tiers 2+3 are gated behind `EVALS=1`. The idea is: catch 95% of issues for free, use LLMs only for judgment calls.
 
@@ -330,6 +336,7 @@ The `parseNDJSON()` function is pure — no I/O, no side effects — making it i
 **Non-fatal everything:** All observability I/O is wrapped in try/catch. A write failure never causes a test to fail. The tests themselves are the source of truth; observability is best-effort.
 
 **Machine-readable diagnostics:** Each test result includes `exit_reason` (success, timeout, error_max_turns, error_api, exit_code_N), `timeout_at_turn`, and `last_tool_call`. This enables `jq` queries like:
+
 ```bash
 jq '.tests[] | select(.exit_reason == "timeout") | .last_tool_call' ~/.gstack-dev/evals/_partial-e2e.json
 ```
@@ -345,11 +352,11 @@ The `EvalCollector` accumulates test results and writes them in two ways:
 
 ### Test tiers
 
-| Tier | What | Cost | Speed |
-|------|------|------|-------|
-| 1 — Static validation | Parse `$B` commands, validate against registry, observability unit tests | Free | <5s |
-| 2 — E2E via `claude -p` | Spawn real Claude session, run each skill, scan for errors | ~$3.85 | ~20min |
-| 3 — LLM-as-judge | Sonnet scores docs on clarity/completeness/actionability | ~$0.15 | ~30s |
+| Tier                    | What                                                                     | Cost   | Speed  |
+| ----------------------- | ------------------------------------------------------------------------ | ------ | ------ |
+| 1 — Static validation   | Parse `$B` commands, validate against registry, observability unit tests | Free   | <5s    |
+| 2 — E2E via `claude -p` | Spawn real Claude session, run each skill, scan for errors               | ~$3.85 | ~20min |
+| 3 — LLM-as-judge        | Sonnet scores docs on clarity/completeness/actionability                 | ~$0.15 | ~30s   |
 
 Tier 1 runs on every `bun test`. Tiers 2+3 are gated behind `EVALS=1`. The idea: catch 95% of issues for free, use LLMs only for judgment calls and integration testing.
 

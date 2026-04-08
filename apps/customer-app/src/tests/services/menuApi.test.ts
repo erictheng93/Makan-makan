@@ -69,9 +69,7 @@ describe("menuApi", () => {
 
       await menuApi.getCategoryMenu("r1", 3);
 
-      expect(mockGet).toHaveBeenCalledWith(
-        "/restaurants/r1/categories/3/menu",
-      );
+      expect(mockGet).toHaveBeenCalledWith("/restaurants/r1/categories/3/menu");
     });
   });
 
@@ -171,9 +169,7 @@ describe("menuApi", () => {
 
       const result = await menuApi.validateTable("r1", 1);
 
-      expect(mockGet).toHaveBeenCalledWith(
-        "/restaurants/r1/tables/1/validate",
-      );
+      expect(mockGet).toHaveBeenCalledWith("/restaurants/r1/tables/1/validate");
       expect(result.isValid).toBe(true);
     });
   });
@@ -204,9 +200,7 @@ describe("menuApi", () => {
 
       await menuApi.getMenu("r1", 2);
 
-      expect(mockGet).toHaveBeenCalledWith(
-        expect.stringContaining("/menu/r1"),
-      );
+      expect(mockGet).toHaveBeenCalledWith(expect.stringContaining("/menu/r1"));
     });
   });
 });

@@ -128,4 +128,83 @@ test.describe("Guest Order API", () => {
     const data = await res.json();
     expect(data.success).toBe(false);
   });
+
+  test("creates a delivery order with address and phone", async () => {
+    const result = await createGuestOrder(
+      RESTAURANT_ID,
+      [{ menuItemId: MENU.HONG_CHA, quantity: 1 }],
+      {
+        deliveryInfo: {
+          type: "delivery",
+          address: "台中市西屯區某某路100號",
+          phone: "0912345678",
+        },
+      },
+    );
+
+    createdOrderId = result.data.order.id;
+
+    expect(result.success).toBe(true);
+    expect(result.data.order.id).toBeGreaterThan(0);
+    expect(result.data.guestToken).toMatch(/^gt_/);
+  });
+
+  test("appends items to an existing order via guest token", async () => {
+    const created = await createGuestOrder(RESTAURANT_ID, [
+      { menuItemId: MENU.HONG_CHA, quantity: 1 },
+    ]);
+    createdOrderId = created.data.order.id;
+    const guestToken = created.data.guestToken;
+
+    const res = await fetch(
+      `http://localhost:8787/api/v1/guest-orders/${createdOrderId}/items`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${guestToken}`,
+        },
+        body: JSON.stringify({
+          items: [{ menuItemId: 13, quantity: 1 }],
+        }),
+      },
+    );
+
+    const data = await res.json();
+    expect(data.success).toBe(true);
+
+    const detail = await getGuestOrder(createdOrderId, guestToken);
+    expect(detail.success).toBe(true);
+    expect(detail.data.order.id).toBe(createdOrderId);
+  });
+
+  test("guest cancels their own order", async () => {
+    const created = await createGuestOrder(RESTAURANT_ID, [
+      { menuItemId: MENU.HONG_CHA, quantity: 1 },
+    ]);
+    createdOrderId = created.data.order.id;
+    const guestToken = created.data.guestToken;
+
+    const res = await fetch(
+      `http://localhost:8787/api/v1/guest-orders/${createdOrderId}/cancel`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${guestToken}`,
+        },
+        body: JSON.stringify({}),
+      },
+    );
+
+    const data = await res.json();
+    expect(data.success).toBe(true);
+
+    const detail = await getGuestOrder(createdOrderId, guestToken);
+    expect(detail.success).toBe(true);
+    const status = detail.data.order.status;
+    expect(
+      status === "cancelled" || status === "canceled" || status === 5,
+    ).toBe(true);
+  });
 });

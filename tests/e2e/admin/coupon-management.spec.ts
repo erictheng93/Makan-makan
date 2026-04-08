@@ -230,11 +230,14 @@ test.describe("Coupon management flow", () => {
         .or(page.locator('input[value="percentage"]'));
 
       if (
-        await percentageOption.first().isVisible({ timeout: 2000 }).catch(() => false)
+        await percentageOption
+          .first()
+          .isVisible({ timeout: 2000 })
+          .catch(() => false)
       ) {
-        const tagName = await percentageOption.first().evaluate((el) =>
-          el.tagName.toLowerCase()
-        );
+        const tagName = await percentageOption
+          .first()
+          .evaluate((el) => el.tagName.toLowerCase());
         if (tagName === "select") {
           await percentageOption.first().selectOption("percentage");
         } else {
@@ -332,7 +335,9 @@ test.describe("Coupon management flow", () => {
       .or(
         page
           .locator("tr:has-text('SAVE10')")
-          .locator('button:has-text("停用"), button:has-text("Deactivate"), input[type="checkbox"], [role="switch"]'),
+          .locator(
+            'button:has-text("停用"), button:has-text("Deactivate"), input[type="checkbox"], [role="switch"]',
+          ),
       );
 
     const btn = toggleBtn.first();

@@ -168,8 +168,7 @@ describe("auth store", () => {
       expect(store.isLoading).toBe(true);
 
       resolvePromise!({
-        json: () =>
-          Promise.resolve({ success: false, error: "fail" }),
+        json: () => Promise.resolve({ success: false, error: "fail" }),
       });
       await loginPromise;
 
@@ -406,9 +405,7 @@ describe("auth store", () => {
       const result = await store.checkAuth();
 
       expect(result).toBe(true);
-      expect(store.user).toEqual(
-        expect.objectContaining({ username: "u" }),
-      );
+      expect(store.user).toEqual(expect.objectContaining({ username: "u" }));
     });
   });
 
@@ -419,8 +416,7 @@ describe("auth store", () => {
   describe("clearError", () => {
     it("should clear the error state", async () => {
       mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({ success: false, error: "Some error" }),
+        json: () => Promise.resolve({ success: false, error: "Some error" }),
       });
 
       const store = useAuthStore();
@@ -474,7 +470,9 @@ describe("auth store", () => {
         "/api/v1/auth/refresh",
         expect.objectContaining({
           method: "POST",
-          headers: expect.objectContaining({ "X-Refresh-Token": "refresh-token" }),
+          headers: expect.objectContaining({
+            "X-Refresh-Token": "refresh-token",
+          }),
         }),
       );
     });

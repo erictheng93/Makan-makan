@@ -61,7 +61,9 @@ async function addItemAndGoToCart(page: import("@playwright/test").Page) {
       'button:has-text("加入"), button:has-text("Add"), button:has-text("加入購物車"), [data-testid="add-to-cart-btn"]',
     );
   await addToCartBtn.first().click();
-  await expect(modal.first()).toBeHidden({ timeout: 3000 }).catch(() => {});
+  await expect(modal.first())
+    .toBeHidden({ timeout: 3000 })
+    .catch(() => {});
 
   // Navigate to cart
   const cartLink = page.locator(
@@ -115,7 +117,10 @@ test.describe("Coupon: valid code applies discount", () => {
       'input[placeholder*="優惠"], input[placeholder*="coupon"], input[placeholder*="折扣"], input[name*="coupon"], [data-testid="coupon-input"]',
     );
 
-    const inputVisible = await couponInput.first().isVisible().catch(() => false);
+    const inputVisible = await couponInput
+      .first()
+      .isVisible()
+      .catch(() => false);
     if (!inputVisible) {
       test.skip(true, "Coupon input not present in cart");
       return;
@@ -137,9 +142,9 @@ test.describe("Coupon: valid code applies discount", () => {
 
     // Verify total is less than NT$180 (牛肉麵 base price = 18000 cents)
     // 10% off NT$180 → NT$162. Accept any of: 162, 16,200, NT$162
-    const reducedTotal = page.locator("text=/162|16,200/").or(
-      page.locator('[data-testid="order-total"]'),
-    );
+    const reducedTotal = page
+      .locator("text=/162|16,200/")
+      .or(page.locator('[data-testid="order-total"]'));
     await expect(reducedTotal.first()).toBeVisible({ timeout: 5000 });
   });
 });
@@ -184,7 +189,10 @@ test.describe("Coupon: invalid code shows error", () => {
       'input[placeholder*="優惠"], input[placeholder*="coupon"], input[placeholder*="折扣"], input[name*="coupon"], [data-testid="coupon-input"]',
     );
 
-    const inputVisible = await couponInput.first().isVisible().catch(() => false);
+    const inputVisible = await couponInput
+      .first()
+      .isVisible()
+      .catch(() => false);
     if (!inputVisible) {
       test.skip(true, "Coupon input not present in cart");
       return;
@@ -250,7 +258,10 @@ test.describe("Coupon: applied in order payload", () => {
       'input[placeholder*="優惠"], input[placeholder*="coupon"], input[placeholder*="折扣"], input[name*="coupon"], [data-testid="coupon-input"]',
     );
 
-    const inputVisible = await couponInput.first().isVisible().catch(() => false);
+    const inputVisible = await couponInput
+      .first()
+      .isVisible()
+      .catch(() => false);
     if (!inputVisible) {
       test.skip(true, "Coupon input not present in cart");
       return;
@@ -366,7 +377,10 @@ test.describe("Coupon: can remove applied coupon", () => {
       'input[placeholder*="優惠"], input[placeholder*="coupon"], input[placeholder*="折扣"], input[name*="coupon"], [data-testid="coupon-input"]',
     );
 
-    const inputVisible = await couponInput.first().isVisible().catch(() => false);
+    const inputVisible = await couponInput
+      .first()
+      .isVisible()
+      .catch(() => false);
     if (!inputVisible) {
       test.skip(true, "Coupon input not present in cart");
       return;
@@ -401,9 +415,16 @@ test.describe("Coupon: can remove applied coupon", () => {
       .or(page.locator('button:has-text("清除")'))
       .or(page.locator('[data-testid="remove-coupon"]'))
       .or(page.locator('[data-testid="clear-coupon"]'))
-      .or(page.locator('button[aria-label*="remove"], button[aria-label*="clear"]'));
+      .or(
+        page.locator(
+          'button[aria-label*="remove"], button[aria-label*="clear"]',
+        ),
+      );
 
-    const removeBtnVisible = await removeBtn.first().isVisible().catch(() => false);
+    const removeBtnVisible = await removeBtn
+      .first()
+      .isVisible()
+      .catch(() => false);
     if (!removeBtnVisible) {
       // Remove button not present — acceptable if coupon can be cleared by clearing input
       test.skip(true, "Remove coupon button not present");

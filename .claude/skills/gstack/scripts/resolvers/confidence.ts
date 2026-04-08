@@ -7,7 +7,7 @@
  *   5-6: show with caveat
  *   <5: suppress from main report
  */
-import type { TemplateContext } from './types';
+import type { TemplateContext } from "./types";
 
 export function generateConfidenceCalibration(_ctx: TemplateContext): string {
   return `## Confidence Calibration

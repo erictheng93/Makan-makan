@@ -94,7 +94,10 @@ test.beforeEach(async ({ page }) => {
     const url = new URL(route.request().url());
     const query = url.searchParams.get("q") || "";
 
-    if (query.toLowerCase().includes("牛肉") || query.toLowerCase().includes("noodle")) {
+    if (
+      query.toLowerCase().includes("牛肉") ||
+      query.toLowerCase().includes("noodle")
+    ) {
       route.fulfill(
         json({
           success: true,
@@ -102,9 +105,7 @@ test.beforeEach(async ({ page }) => {
         }),
       );
     } else {
-      route.fulfill(
-        json({ success: true, data: { results: [], total: 0 } }),
-      );
+      route.fulfill(json({ success: true, data: { results: [], total: 0 } }));
     }
   });
 });
@@ -131,9 +132,9 @@ test.describe("Discovery / Search feature", () => {
     await expect(searchInput.first()).toBeVisible({ timeout: 8000 });
 
     // At least one restaurant name visible
-    const restaurantName = page.locator(`text=${RESTAURANT.name}`).or(
-      page.locator("text=櫻花亭"),
-    );
+    const restaurantName = page
+      .locator(`text=${RESTAURANT.name}`)
+      .or(page.locator("text=櫻花亭"));
     await expect(restaurantName.first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -254,9 +255,8 @@ test.describe("Discovery / Search feature", () => {
     await restaurantCard.click();
 
     // Should navigate somewhere related to the restaurant
-    await expect(page).toHaveURL(
-      new RegExp(`/restaurant/${RESTAURANT.id}`),
-      { timeout: 8000 },
-    );
+    await expect(page).toHaveURL(new RegExp(`/restaurant/${RESTAURANT.id}`), {
+      timeout: 8000,
+    });
   });
 });

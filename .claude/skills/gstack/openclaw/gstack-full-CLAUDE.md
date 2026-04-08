@@ -3,6 +3,7 @@
 Injected by the orchestrator for complete feature builds. Append to existing CLAUDE.md.
 
 ## Full Pipeline
+
 1. Read CLAUDE.md and understand the project context.
 2. Run /autoplan to review your approach (CEO + eng + design review pipeline).
 3. Implement the approved plan. Follow the planning discipline above.

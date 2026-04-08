@@ -10,15 +10,13 @@
  *   - scripts/dev-skill.ts (watch mode)
  */
 
-import { ALL_COMMANDS } from '../../browse/src/commands';
-import { parseSnapshotArgs } from '../../browse/src/snapshot';
-import * as fs from 'fs';
-import * as path from 'path';
+import { ALL_COMMANDS } from "../../browse/src/commands";
+import { parseSnapshotArgs } from "../../browse/src/snapshot";
+import * as fs from "fs";
+import * as path from "path";
 
 /** CLI-only commands: valid $B invocations that are handled by the CLI, not the server */
-const CLI_COMMANDS = new Set([
-  'status', 'pair-agent', 'tunnel',
-]);
+const CLI_COMMANDS = new Set(["status", "pair-agent", "tunnel"]);
 
 export interface BrowseCommand {
   command: string;
@@ -38,8 +36,8 @@ export interface ValidationResult {
  * Extract all $B invocations from bash code blocks in a SKILL.md file.
  */
 export function extractBrowseCommands(skillPath: string): BrowseCommand[] {
-  const content = fs.readFileSync(skillPath, 'utf-8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(skillPath, "utf-8");
+  const lines = content.split("\n");
   const commands: BrowseCommand[] = [];
 
   let inBashBlock = false;
@@ -48,10 +46,10 @@ export function extractBrowseCommands(skillPath: string): BrowseCommand[] {
     const line = lines[i];
 
     // Detect code block boundaries
-    if (line.trimStart().startsWith('```')) {
+    if (line.trimStart().startsWith("```")) {
       if (inBashBlock) {
         inBashBlock = false;
-      } else if (line.trimStart().startsWith('```bash')) {
+      } else if (line.trimStart().startsWith("```bash")) {
         inBashBlock = true;
       }
       // Non-bash code blocks (```json, ```, ```js, etc.) are skipped
@@ -65,14 +63,14 @@ export function extractBrowseCommands(skillPath: string): BrowseCommand[] {
     const matches = line.matchAll(/\$B\s+(\S+)(?:\s+([^\$]*))?/g);
     for (const match of matches) {
       const command = match[1];
-      let argsStr = (match[2] || '').trim();
+      let argsStr = (match[2] || "").trim();
 
       // Strip inline comments (# ...) — but not inside quotes
       // Simple approach: remove everything from first unquoted # onward
       let inQuote = false;
       for (let j = 0; j < argsStr.length; j++) {
         if (argsStr[j] === '"') inQuote = !inQuote;
-        if (argsStr[j] === '#' && !inQuote) {
+        if (argsStr[j] === "#" && !inQuote) {
           argsStr = argsStr.slice(0, j).trim();
           break;
         }
@@ -112,7 +110,7 @@ export function validateSkill(skillPath: string): ValidationResult {
   };
 
   if (commands.length === 0) {
-    result.warnings.push('no $B commands found');
+    result.warnings.push("no $B commands found");
     return result;
   }
 
@@ -123,7 +121,7 @@ export function validateSkill(skillPath: string): ValidationResult {
     }
 
     // Validate snapshot flags
-    if (cmd.command === 'snapshot' && cmd.args.length > 0) {
+    if (cmd.command === "snapshot" && cmd.args.length > 0) {
       try {
         parseSnapshotArgs(cmd.args);
       } catch (err: any) {
@@ -142,7 +140,10 @@ export function validateSkill(skillPath: string): ValidationResult {
  * Extract all REMOTE_SLUG=$(...) assignment patterns from .md files in given subdirectories.
  * Returns a Map from filename → array of full assignment lines found.
  */
-export function extractRemoteSlugPatterns(rootDir: string, subdirs: string[]): Map<string, string[]> {
+export function extractRemoteSlugPatterns(
+  rootDir: string,
+  subdirs: string[],
+): Map<string, string[]> {
   const results = new Map<string, string[]>();
   const pattern = /^REMOTE_SLUG=\$\(.*\)$/;
 
@@ -150,13 +151,13 @@ export function extractRemoteSlugPatterns(rootDir: string, subdirs: string[]): M
     const dir = path.join(rootDir, subdir);
     if (!fs.existsSync(dir)) continue;
 
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
     for (const file of files) {
       const filePath = path.join(dir, file);
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = fs.readFileSync(filePath, "utf-8");
       const matches: string[] = [];
 
-      for (const line of content.split('\n')) {
+      for (const line of content.split("\n")) {
         const trimmed = line.trim();
         if (pattern.test(trimmed)) {
           matches.push(trimmed);
@@ -181,19 +182,19 @@ export function extractWeightsFromTable(content: string): Map<string, number> {
   const weights = new Map<string, number>();
 
   // Find the ### Weights section
-  const weightsIdx = content.indexOf('### Weights');
+  const weightsIdx = content.indexOf("### Weights");
   if (weightsIdx === -1) return weights;
 
   // Find the table within that section (stop at next heading or end)
   const section = content.slice(weightsIdx);
-  const lines = section.split('\n');
+  const lines = section.split("\n");
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
 
     // Stop at next heading
-    if (line.startsWith('#') && !line.startsWith('###')) break;
-    if (line.startsWith('### ') && i > 0) break;
+    if (line.startsWith("#") && !line.startsWith("###")) break;
+    if (line.startsWith("### ") && i > 0) break;
 
     // Parse table rows: | Category | N% |
     const match = line.match(/^\|\s*(\w[\w\s]*\w|\w+)\s*\|\s*(\d+)%\s*\|$/);
@@ -201,7 +202,7 @@ export function extractWeightsFromTable(content: string): Map<string, number> {
       const category = match[1].trim();
       const pct = parseInt(match[2], 10);
       // Skip header row
-      if (category !== 'Category' && !isNaN(pct)) {
+      if (category !== "Category" && !isNaN(pct)) {
         weights.set(category, pct);
       }
     }

@@ -43,7 +43,10 @@ test.describe("Auth API", () => {
     const res = await fetch(`${API_URL}/api/v1/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: USERS.ADMIN, password: "wrongpassword" }),
+      body: JSON.stringify({
+        username: USERS.ADMIN,
+        password: "wrongpassword",
+      }),
     });
     expect(res.ok).toBe(false);
   });

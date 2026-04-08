@@ -418,9 +418,7 @@ describe("FeedbackService", () => {
     });
 
     it("non-admin cannot delete another user's feedback", async () => {
-      const txSelectWhere = vi.fn(() => [
-        { id: 1, status: "open", userId: 2 },
-      ]);
+      const txSelectWhere = vi.fn(() => [{ id: 1, status: "open", userId: 2 }]);
       const txSelectFrom = vi.fn(() => ({ where: txSelectWhere }));
       mockTx.select.mockReturnValue({ from: txSelectFrom });
 
@@ -430,9 +428,7 @@ describe("FeedbackService", () => {
     });
 
     it("non-admin can delete own open feedback", async () => {
-      const txSelectWhere = vi.fn(() => [
-        { id: 1, status: "open", userId: 2 },
-      ]);
+      const txSelectWhere = vi.fn(() => [{ id: 1, status: "open", userId: 2 }]);
       const txSelectFrom = vi.fn(() => ({ where: txSelectWhere }));
       mockTx.select.mockReturnValue({ from: txSelectFrom });
 

@@ -341,9 +341,7 @@ test.describe("QR Code Generation", () => {
 
       // The response should contain a QR code value we can verify
       const qrCode: string | undefined =
-        genData.data?.qrCode ||
-        genData.data?.code ||
-        genData.data?.shopQrCode;
+        genData.data?.qrCode || genData.data?.code || genData.data?.shopQrCode;
 
       if (qrCode) {
         // Verify the QR code resolves to this restaurant (public endpoint)

@@ -28,6 +28,13 @@ export interface CreateOrderData {
   notes?: string;
   couponCode?: string;
   orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
+  deliveryInfo?: {
+    type: "dine_in" | "takeaway" | "delivery";
+    address?: string;
+    phone?: string;
+    instructions?: string;
+    deliveryFee?: number;
+  };
 }
 
 export interface UpdateOrderStatusData {
@@ -275,6 +282,7 @@ export class OrderService extends BaseService {
           notes: data.notes,
           couponCode: data.couponCode,
           orderSource: data.orderSource || "direct",
+          deliveryInfo: data.deliveryInfo,
           estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData),
         })
         .returning();

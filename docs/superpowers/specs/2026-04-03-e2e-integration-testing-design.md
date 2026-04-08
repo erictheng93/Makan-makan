@@ -42,6 +42,7 @@ Playwright (browser) → Customer App (:3000) → API (:8787) → D1 (local SQLi
 ### Test Configuration
 
 New Playwright project in `playwright.config.ts`:
+
 - Project name: `integration`
 - Base URL: `http://localhost:3000`
 - API URL: `http://localhost:8787`
@@ -51,6 +52,7 @@ New Playwright project in `playwright.config.ts`:
 ### Specs
 
 #### 1. `tests/e2e/integration/takeaway-order.spec.ts`
+
 - Navigate to shop QR landing page
 - Select "takeaway" order type
 - Complete phone verification (mock OTP via test bypass or direct API)
@@ -60,6 +62,7 @@ New Playwright project in `playwright.config.ts`:
 - Verify order appears in DB
 
 #### 2. `tests/e2e/integration/dine-in-order.spec.ts`
+
 - Navigate to table QR page (table with seeded data)
 - Browse menu, add items
 - Submit order
@@ -67,6 +70,7 @@ New Playwright project in `playwright.config.ts`:
 - Verify order in DB
 
 #### 3. `tests/e2e/integration/order-lifecycle.spec.ts`
+
 - Create order via API (or reuse from previous test)
 - Login as shop owner → confirm order
 - Login as chef → mark preparing → mark ready
@@ -83,6 +87,7 @@ New Playwright project in `playwright.config.ts`:
 ### Helper Utilities
 
 `tests/e2e/integration/helpers.ts`:
+
 - `getAdminToken()` — login as admin, cache token
 - `getRoleToken(role)` — login as specific role user
 - `cleanupOrder(orderId)` — delete test order
@@ -93,6 +98,7 @@ New Playwright project in `playwright.config.ts`:
 ### Lighthouse CI
 
 Add `.lighthouserc.json`:
+
 - URLs: customer app home, menu page, order tracking
 - Assertions: LCP < 2.5s, CLS < 0.1, INP < 200ms (warning thresholds)
 - Output: HTML report to `tests/performance/lighthouse/`
@@ -106,5 +112,6 @@ Add `.lighthouserc.json`:
 ## Implementation Plan
 
 Parallel execution:
+
 - **Worktree A**: P0 bug fix (ShopCartModal + router)
 - **Main**: P1 E2E specs + P2 Lighthouse + P3 a11y

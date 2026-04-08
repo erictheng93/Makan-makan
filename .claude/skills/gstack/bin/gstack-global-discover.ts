@@ -9,7 +9,15 @@
  *   gstack-global-discover --help
  */
 
-import { existsSync, readdirSync, statSync, readFileSync, openSync, readSync, closeSync } from "fs";
+import {
+  existsSync,
+  readdirSync,
+  statSync,
+  readFileSync,
+  openSync,
+  readSync,
+  closeSync,
+} from "fs";
 import { join, basename } from "path";
 import { execSync } from "child_process";
 import { homedir } from "os";
@@ -238,7 +246,7 @@ function scanClaudeCode(since: Date): Session[] {
 function resolveClaudeCodeCwd(
   dirPath: string,
   dirName: string,
-  jsonlFiles: string[]
+  jsonlFiles: string[],
 ): string | null {
   // Fast-path: decode directory name
   // e.g., -Users-garrytan-git-repo → /Users/garrytan/git/repo
@@ -291,7 +299,8 @@ function extractCwdFromJsonl(filePath: string): string | null {
 }
 
 function scanCodex(since: Date): Session[] {
-  const sessionsDir = process.env.CODEX_SESSIONS_DIR || join(homedir(), ".codex", "sessions");
+  const sessionsDir =
+    process.env.CODEX_SESSIONS_DIR || join(homedir(), ".codex", "sessions");
   if (!existsSync(sessionsDir)) return [];
 
   const sessions: Session[] = [];
@@ -313,8 +322,8 @@ function scanCodex(since: Date): Session[] {
           const dayPath = join(monthPath, day);
           if (!statSync(dayPath).isDirectory()) continue;
 
-          const files = readdirSync(dayPath).filter((f) =>
-            f.startsWith("rollout-") && f.endsWith(".jsonl")
+          const files = readdirSync(dayPath).filter(
+            (f) => f.startsWith("rollout-") && f.endsWith(".jsonl"),
           );
 
           for (const file of files) {
@@ -335,14 +344,18 @@ function scanCodex(since: Date): Session[] {
               const buf = Buffer.alloc(131072);
               const bytesRead = readSync(fd, buf, 0, 131072, 0);
               closeSync(fd);
-              const firstLine = buf.toString("utf-8", 0, bytesRead).split("\n")[0];
+              const firstLine = buf
+                .toString("utf-8", 0, bytesRead)
+                .split("\n")[0];
               if (!firstLine) continue;
               const meta = JSON.parse(firstLine);
               if (meta.type === "session_meta" && meta.payload?.cwd) {
                 sessions.push({ tool: "codex", cwd: meta.payload.cwd });
               }
             } catch {
-              console.error(`Warning: could not parse Codex session ${filePath}`);
+              console.error(
+                `Warning: could not parse Codex session ${filePath}`,
+              );
             }
           }
         }
@@ -364,7 +377,9 @@ function scanGemini(since: Date): Session[] {
   let projectsMap: Record<string, string> = {}; // name → path
   if (existsSync(projectsPath)) {
     try {
-      const data = JSON.parse(readFileSync(projectsPath, { encoding: "utf-8" }));
+      const data = JSON.parse(
+        readFileSync(projectsPath, { encoding: "utf-8" }),
+      );
       // Format: { projects: { "/path": "name" } } — we want name → path
       const projects = data.projects || {};
       for (const [path, name] of Object.entries(projects)) {
@@ -409,8 +424,8 @@ function scanGemini(since: Date): Session[] {
 
     let files: string[];
     try {
-      files = readdirSync(chatsDir).filter((f) =>
-        f.startsWith("session-") && f.endsWith(".json")
+      files = readdirSync(chatsDir).filter(
+        (f) => f.startsWith("session-") && f.endsWith(".json"),
       );
     } catch {
       continue;
@@ -515,8 +530,10 @@ async function resolveAndDeduplicate(sessions: Session[]): Promise<Repo[]> {
   // Sort by total sessions descending
   repos.sort(
     (a, b) =>
-      b.sessions.claude_code + b.sessions.codex + b.sessions.gemini -
-      (a.sessions.claude_code + a.sessions.codex + a.sessions.gemini)
+      b.sessions.claude_code +
+      b.sessions.codex +
+      b.sessions.gemini -
+      (a.sessions.claude_code + a.sessions.codex + a.sessions.gemini),
   );
 
   return repos;
@@ -538,7 +555,7 @@ async function main() {
 
   // Summary to stderr
   console.error(
-    `Discovered: ${ccSessions.length} CC sessions, ${codexSessions.length} Codex sessions, ${geminiSessions.length} Gemini sessions`
+    `Discovered: ${ccSessions.length} CC sessions, ${codexSessions.length} Codex sessions, ${geminiSessions.length} Gemini sessions`,
   );
 
   // Deduplicate
@@ -547,9 +564,15 @@ async function main() {
   console.error(`→ ${repos.length} unique repos`);
 
   // Count per-tool repo counts
-  const ccRepos = new Set(repos.filter((r) => r.sessions.claude_code > 0).map((r) => r.remote)).size;
-  const codexRepos = new Set(repos.filter((r) => r.sessions.codex > 0).map((r) => r.remote)).size;
-  const geminiRepos = new Set(repos.filter((r) => r.sessions.gemini > 0).map((r) => r.remote)).size;
+  const ccRepos = new Set(
+    repos.filter((r) => r.sessions.claude_code > 0).map((r) => r.remote),
+  ).size;
+  const codexRepos = new Set(
+    repos.filter((r) => r.sessions.codex > 0).map((r) => r.remote),
+  ).size;
+  const geminiRepos = new Set(
+    repos.filter((r) => r.sessions.gemini > 0).map((r) => r.remote),
+  ).size;
 
   const result: DiscoveryResult = {
     window: since,
@@ -569,15 +592,20 @@ async function main() {
   } else {
     // Summary format
     console.log(`Window: ${since} (since ${startDate})`);
-    console.log(`Sessions: ${allSessions.length} total (CC: ${ccSessions.length}, Codex: ${codexSessions.length}, Gemini: ${geminiSessions.length})`);
+    console.log(
+      `Sessions: ${allSessions.length} total (CC: ${ccSessions.length}, Codex: ${codexSessions.length}, Gemini: ${geminiSessions.length})`,
+    );
     console.log(`Repos: ${repos.length} unique`);
     console.log("");
     for (const repo of repos) {
-      const total = repo.sessions.claude_code + repo.sessions.codex + repo.sessions.gemini;
+      const total =
+        repo.sessions.claude_code + repo.sessions.codex + repo.sessions.gemini;
       const tools = [];
-      if (repo.sessions.claude_code > 0) tools.push(`CC:${repo.sessions.claude_code}`);
+      if (repo.sessions.claude_code > 0)
+        tools.push(`CC:${repo.sessions.claude_code}`);
       if (repo.sessions.codex > 0) tools.push(`Codex:${repo.sessions.codex}`);
-      if (repo.sessions.gemini > 0) tools.push(`Gemini:${repo.sessions.gemini}`);
+      if (repo.sessions.gemini > 0)
+        tools.push(`Gemini:${repo.sessions.gemini}`);
       console.log(`  ${repo.name} (${total} sessions) — ${tools.join(", ")}`);
       console.log(`    Remote: ${repo.remote}`);
       console.log(`    Paths: ${repo.paths.join(", ")}`);

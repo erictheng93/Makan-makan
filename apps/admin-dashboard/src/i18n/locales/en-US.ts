@@ -4411,9 +4411,11 @@ const enUS: Messages = {
       priority: "Priority",
       relatedModule: "Related Module",
       subject: "Subject",
-      subjectPlaceholder: "Briefly describe your issue or suggestion (5-200 chars)",
+      subjectPlaceholder:
+        "Briefly describe your issue or suggestion (5-200 chars)",
       description: "Description",
-      descriptionPlaceholder: "Describe the issue in detail, expected behavior, or any suggestion (10-5000 chars)",
+      descriptionPlaceholder:
+        "Describe the issue in detail, expected behavior, or any suggestion (10-5000 chars)",
       submit: "Submit Feedback",
     },
     categories: {

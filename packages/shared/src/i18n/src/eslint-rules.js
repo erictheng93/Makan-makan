@@ -6,51 +6,66 @@
 module.exports = {
   rules: {
     // Prevent hardcoded strings in Vue templates
-    'vue/no-bare-strings-in-template': [
-      'error',
+    "vue/no-bare-strings-in-template": [
+      "error",
       {
         allowlist: [
           // Allow single characters and numbers
           /^[0-9\s\-\+\*\/\(\)\[\]]+$/,
           // Allow common symbols
-          ':', '|', '—', '–', '•', '→', '←', '↑', '↓',
+          ":",
+          "|",
+          "—",
+          "–",
+          "•",
+          "→",
+          "←",
+          "↑",
+          "↓",
           // Allow debugging/development strings
-          'TODO', 'FIXME', 'DEBUG',
+          "TODO",
+          "FIXME",
+          "DEBUG",
           // Allow empty strings
-          ''
+          "",
         ],
         attributes: {
           // Allow certain attributes to have literal strings
-          '/.+/': ['title', 'aria-label', 'aria-labelledby', 'aria-describedby'],
-          'router-link': ['to'],
-          'nuxt-link': ['to']
+          "/.+/": [
+            "title",
+            "aria-label",
+            "aria-labelledby",
+            "aria-describedby",
+          ],
+          "router-link": ["to"],
+          "nuxt-link": ["to"],
         },
-        directives: ['v-text', 'v-html']
-      }
+        directives: ["v-text", "v-html"],
+      },
     ],
 
     // Custom rule: Ensure all text uses $t() function
-    'require-i18n-translation': {
+    "require-i18n-translation": {
       create(context) {
         return {
           // Check for hardcoded strings in JavaScript/TypeScript
           Literal(node) {
             if (
-              typeof node.value === 'string' &&
+              typeof node.value === "string" &&
               node.value.trim() &&
               !isAllowedString(node.value) &&
               !isInI18nContext(node)
             ) {
               context.report({
                 node,
-                message: `Hardcoded string "${node.value}" should use $t() for internationalization`
-              })
+                message: `Hardcoded string "${node.value}" should use $t() for internationalization`,
+              });
             }
           },
 
           // Check for template literals
           TemplateLiteral(node) {
-            node.quasis.forEach(quasi => {
+            node.quasis.forEach((quasi) => {
               if (
                 quasi.value.raw.trim() &&
                 !isAllowedString(quasi.value.raw) &&
@@ -58,12 +73,12 @@ module.exports = {
               ) {
                 context.report({
                   node: quasi,
-                  message: `Template literal "${quasi.value.raw}" should use $t() for internationalization`
-                })
+                  message: `Template literal "${quasi.value.raw}" should use $t() for internationalization`,
+                });
               }
-            })
-          }
-        }
+            });
+          },
+        };
 
         function isAllowedString(str) {
           return (
@@ -72,51 +87,60 @@ module.exports = {
             // Single characters
             str.length === 1 ||
             // URLs
-            str.startsWith('http') ||
+            str.startsWith("http") ||
             // File paths
-            str.includes('/') && !str.includes(' ') ||
+            (str.includes("/") && !str.includes(" ")) ||
             // CSS classes
-            str.includes('-') && !str.includes(' ') ||
+            (str.includes("-") && !str.includes(" ")) ||
             // Development strings
-            ['TODO', 'FIXME', 'DEBUG'].includes(str.toUpperCase())
-          )
+            ["TODO", "FIXME", "DEBUG"].includes(str.toUpperCase())
+          );
         }
 
         function isInI18nContext(node) {
           // Check if we're already in a $t() call or i18n configuration
-          let parent = node.parent
+          let parent = node.parent;
           while (parent) {
             if (
-              parent.type === 'CallExpression' &&
+              parent.type === "CallExpression" &&
               parent.callee &&
-              (parent.callee.name === '$t' || parent.callee.property?.name === 't')
+              (parent.callee.name === "$t" ||
+                parent.callee.property?.name === "t")
             ) {
-              return true
+              return true;
             }
-            parent = parent.parent
+            parent = parent.parent;
           }
-          return false
+          return false;
         }
-      }
-    }
+      },
+    },
   },
 
   // Configuration preset for MakanMakan projects
   configs: {
-    'makanmakan-i18n': {
-      plugins: ['vue'],
+    "makanmakan-i18n": {
+      plugins: ["vue"],
       rules: {
-        'vue/no-bare-strings-in-template': [
-          'error',
+        "vue/no-bare-strings-in-template": [
+          "error",
           {
             allowlist: [
               /^[0-9\s\-\+\*\/\(\)\[\]]+$/,
-              ':', '|', '—', '–', '•', '→', '←', '↑', '↓'
-            ]
-          }
+              ":",
+              "|",
+              "—",
+              "–",
+              "•",
+              "→",
+              "←",
+              "↑",
+              "↓",
+            ],
+          },
         ],
-        'require-i18n-translation': 'error'
-      }
-    }
-  }
-}
+        "require-i18n-translation": "error",
+      },
+    },
+  },
+};

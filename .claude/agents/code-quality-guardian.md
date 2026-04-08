@@ -62,6 +62,7 @@ Always structure your response using this exact format:
 **Issues Found:**
 
 [Issue Type] Detailed Description
+
 - **Impact:** Describe the scope of impact
 - **Suggestions:** Provide a fix
 

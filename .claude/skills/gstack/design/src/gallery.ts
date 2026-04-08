@@ -80,30 +80,36 @@ export function generateGalleryHtml(designsDir: string): string {
   // Sort by date, newest first
   sessions.sort((a, b) => b.date.localeCompare(a.date));
 
-  const sessionCards = sessions.map(session => {
-    const variantImgs = session.variants.map((vPath, i) => {
-      try {
-        const imgData = fs.readFileSync(vPath).toString("base64");
-        const ext = path.extname(vPath).slice(1) || "png";
-        const label = path.basename(vPath, `.${ext}`).replace("variant-", "");
-        const isApproved = session.approved?.approved_variant === label;
-        return `
+  const sessionCards = sessions
+    .map((session) => {
+      const variantImgs = session.variants
+        .map((vPath, i) => {
+          try {
+            const imgData = fs.readFileSync(vPath).toString("base64");
+            const ext = path.extname(vPath).slice(1) || "png";
+            const label = path
+              .basename(vPath, `.${ext}`)
+              .replace("variant-", "");
+            const isApproved = session.approved?.approved_variant === label;
+            return `
         <div class="gallery-variant ${isApproved ? "approved" : ""}">
           <img src="data:image/${ext};base64,${imgData}" alt="Variant ${label}" />
           <div class="gallery-variant-label">
             ${label}${isApproved ? ' <span class="approved-badge">approved</span>' : ""}
           </div>
         </div>`;
-      } catch {
-        return ""; // Skip unreadable images
-      }
-    }).filter(Boolean).join("\n");
+          } catch {
+            return ""; // Skip unreadable images
+          }
+        })
+        .filter(Boolean)
+        .join("\n");
 
-    const feedbackNote = session.approved?.feedback
-      ? `<div class="gallery-feedback">"${escapeHtml(String(session.approved.feedback))}"</div>`
-      : "";
+      const feedbackNote = session.approved?.feedback
+        ? `<div class="gallery-feedback">"${escapeHtml(String(session.approved.feedback))}"</div>`
+        : "";
 
-    return `
+      return `
     <div class="gallery-session">
       <div class="gallery-session-header">
         <h2>${escapeHtml(session.name)}</h2>
@@ -112,7 +118,8 @@ export function generateGalleryHtml(designsDir: string): string {
       ${feedbackNote}
       <div class="gallery-variants">${variantImgs}</div>
     </div>`;
-  }).join("\n");
+    })
+    .join("\n");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -236,7 +243,11 @@ function generateEmptyGallery(): string {
 }
 
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /**

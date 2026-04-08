@@ -447,9 +447,7 @@ test.describe("SSE: Reconnection after connection drop", () => {
     await expect(dashboardContent.first()).toBeVisible({ timeout: 8000 });
 
     // No uncaught errors from SSE failure
-    const uncaughtErrors = consoleErrors.filter((e) =>
-      e.includes("Uncaught"),
-    );
+    const uncaughtErrors = consoleErrors.filter((e) => e.includes("Uncaught"));
     expect(uncaughtErrors.length).toBe(0);
   });
 

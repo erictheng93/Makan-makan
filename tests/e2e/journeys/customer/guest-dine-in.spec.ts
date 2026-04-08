@@ -148,9 +148,7 @@ test.describe("Guest dine-in ordering flow", () => {
     }
 
     // Verify item images are present (at least one img tag in the menu area)
-    const menuImages = page.locator(
-      'main img[alt]',
-    );
+    const menuImages = page.locator("main img[alt]");
     await expect(menuImages.first()).toBeVisible();
   });
 
@@ -166,9 +164,7 @@ test.describe("Guest dine-in ordering flow", () => {
     await beefNoodleItem.first().click();
 
     // Verify a modal/dialog/sheet/drawer appears
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
     // Verify the modal shows the item description
@@ -189,9 +185,7 @@ test.describe("Guest dine-in ordering flow", () => {
     // Open "牛肉麵" detail modal
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible();
 
     // Select size "大" (large, +$30)
@@ -234,9 +228,7 @@ test.describe("Guest dine-in ordering flow", () => {
     // Open "牛肉麵" detail and add to cart
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible();
 
     // Click the add-to-cart button inside the modal
@@ -261,9 +253,7 @@ test.describe("Guest dine-in ordering flow", () => {
     // Add "牛肉麵" x1 via the modal
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible();
 
     const addToCartBtn = modal
@@ -313,9 +303,7 @@ test.describe("Guest dine-in ordering flow", () => {
 
     // Add "牛肉麵" x1
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible();
     await modal
       .first()
@@ -371,9 +359,7 @@ test.describe("Guest dine-in ordering flow", () => {
 
     // Add "珍珠奶茶" x1
     await page.locator(`text=${MENU_ITEMS[2].name}`).first().click();
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible();
     await modal
       .first()
@@ -420,9 +406,7 @@ test.describe("Guest dine-in ordering flow", () => {
 
     // Add "牛肉麵" x1
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible();
     await modal
       .first()
@@ -479,9 +463,11 @@ test.describe("Guest dine-in ordering flow", () => {
     await page.goto(`${menuUrl}/order/${order.id}`);
 
     // Verify the "pending" / "等待確認" status is shown
-    const statusIndicator = page.locator(
-      '[data-testid="order-status"], [data-status], .order-status, .status-badge',
-    ).or(page.locator('text=/等待|處理中|已送出|pending/'));
+    const statusIndicator = page
+      .locator(
+        '[data-testid="order-status"], [data-status], .order-status, .status-badge',
+      )
+      .or(page.locator("text=/等待|處理中|已送出|pending/"));
     await expect(statusIndicator.first()).toBeVisible({ timeout: 10000 });
 
     // Verify a timeline or step indicator is rendered
@@ -492,20 +478,17 @@ test.describe("Guest dine-in ordering flow", () => {
 
     // Simulate a status update by re-mocking the order endpoint with an advanced status
     const updatedOrder = createMockOrder({ status: 2 }); // status 2 = preparing / 準備中
-    await page.route(
-      new RegExp(`/api/v1/orders/${order.id}$`),
-      (route) => {
-        if (route.request().method() === "GET") {
-          route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ success: true, data: updatedOrder }),
-          });
-        } else {
-          route.continue();
-        }
-      },
-    );
+    await page.route(new RegExp(`/api/v1/orders/${order.id}$`), (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: updatedOrder }),
+        });
+      } else {
+        route.continue();
+      }
+    });
 
     // Trigger a refresh — either the app polls automatically or we reload
     await page.reload();

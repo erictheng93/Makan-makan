@@ -13,6 +13,7 @@ This checklist goes deeper than the main CRITICAL pass. The main agent already c
 ## Categories
 
 ### Input Validation at Trust Boundaries
+
 - User input accepted without validation at controller/handler level
 - Query parameters used directly in database queries or file paths
 - Request body fields accepted without type checking or schema validation
@@ -20,6 +21,7 @@ This checklist goes deeper than the main CRITICAL pass. The main agent already c
 - Webhook payloads processed without signature verification
 
 ### Auth & Authorization Bypass
+
 - Endpoints missing authentication middleware (check route definitions)
 - Authorization checks that default to "allow" instead of "deny"
 - Role escalation paths (user can modify their own role/permissions)
@@ -28,6 +30,7 @@ This checklist goes deeper than the main CRITICAL pass. The main agent already c
 - Token/API key validation that doesn't check expiration
 
 ### Injection Vectors (beyond SQL)
+
 - Command injection via subprocess calls with user-controlled arguments
 - Template injection (Jinja2, ERB, Handlebars) with user input
 - LDAP injection in directory queries
@@ -36,6 +39,7 @@ This checklist goes deeper than the main CRITICAL pass. The main agent already c
 - Header injection via user-controlled values in HTTP headers
 
 ### Cryptographic Misuse
+
 - Weak hashing algorithms (MD5, SHA1) for security-sensitive operations
 - Predictable randomness (Math.random, rand()) for tokens or secrets
 - Non-constant-time comparisons (==) on secrets, tokens, or digests
@@ -43,6 +47,7 @@ This checklist goes deeper than the main CRITICAL pass. The main agent already c
 - Missing salt in password hashing
 
 ### Secrets Exposure
+
 - API keys, tokens, or passwords in source code (even in comments)
 - Secrets logged in application logs or error messages
 - Credentials in URLs (query parameters or basic auth in URL)
@@ -50,6 +55,7 @@ This checklist goes deeper than the main CRITICAL pass. The main agent already c
 - PII stored in plaintext when encryption is expected
 
 ### XSS via Escape Hatches
+
 - Rails: .html_safe, raw() on user-controlled data
 - React: dangerouslySetInnerHTML with user content
 - Vue: v-html with user content
@@ -57,5 +63,6 @@ This checklist goes deeper than the main CRITICAL pass. The main agent already c
 - General: innerHTML assignment with unsanitized data
 
 ### Deserialization
+
 - Deserializing untrusted data (pickle, Marshal, YAML.load, JSON.parse of executable types)
 - Accepting serialized objects from user input or external APIs without schema validation

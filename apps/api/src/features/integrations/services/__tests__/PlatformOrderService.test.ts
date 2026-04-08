@@ -231,7 +231,9 @@ describe("PlatformOrderService", () => {
 
       expect(result).toBe(orderId);
       expect(mockAdapter.parseOrder).toHaveBeenCalledOnce();
-      expect(mockAdapter.parseOrder).toHaveBeenCalledWith({ somePayload: true });
+      expect(mockAdapter.parseOrder).toHaveBeenCalledWith({
+        somePayload: true,
+      });
 
       // Order insert should include restaurant and platform info
       expect(insertOrderChain.values).toHaveBeenCalledWith(
@@ -303,13 +305,11 @@ describe("PlatformOrderService", () => {
       const updateChain1 = makeUpdateChain();
       const updateChain2 = makeUpdateChain();
       let updateIdx = 0;
-      mockUpdate.mockImplementation(() => [updateChain1, updateChain2][updateIdx++]);
-
-      const result = await service.processWebhook(
-        platform,
-        {},
-        restaurantId,
+      mockUpdate.mockImplementation(
+        () => [updateChain1, updateChain2][updateIdx++],
       );
+
+      const result = await service.processWebhook(platform, {}, restaurantId);
 
       expect(result).toBe(orderId);
       expect(mockAdapter.acceptOrder).toHaveBeenCalledOnce();
@@ -392,7 +392,9 @@ describe("PlatformOrderService", () => {
       mockGetDecryptedCredentials.mockResolvedValue({ clientId: "c1" });
       mockAdapter.acceptOrder.mockRejectedValue(new Error("Platform down"));
 
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       // Should not throw despite auto-accept failure
       const result = await service.processWebhook(platform, {}, restaurantId);
@@ -468,7 +470,10 @@ describe("PlatformOrderService", () => {
     });
 
     it("should cancel order when already accepted and new status is cancelled", async () => {
-      const acceptedRecord = { ...platformOrderRecord, platformStatus: "accepted" };
+      const acceptedRecord = {
+        ...platformOrderRecord,
+        platformStatus: "accepted",
+      };
       const selectChain = makeSelectTerminalLimit([acceptedRecord]);
       mockSelect.mockReturnValue(selectChain);
 
@@ -493,7 +498,10 @@ describe("PlatformOrderService", () => {
     });
 
     it("should mark as ready and log when new status is ready", async () => {
-      const acceptedRecord = { ...platformOrderRecord, platformStatus: "accepted" };
+      const acceptedRecord = {
+        ...platformOrderRecord,
+        platformStatus: "accepted",
+      };
       const selectChain = makeSelectTerminalLimit([acceptedRecord]);
       mockSelect.mockReturnValue(selectChain);
 
@@ -535,8 +543,18 @@ describe("PlatformOrderService", () => {
   describe("getPlatformOrders", () => {
     it("should return filtered and paginated platform orders", async () => {
       const orders = [
-        { id: 1, orderId: 10, platform: "uber_eats", platformStatus: "received" },
-        { id: 2, orderId: 20, platform: "uber_eats", platformStatus: "accepted" },
+        {
+          id: 1,
+          orderId: 10,
+          platform: "uber_eats",
+          platformStatus: "received",
+        },
+        {
+          id: 2,
+          orderId: 20,
+          platform: "uber_eats",
+          platformStatus: "accepted",
+        },
       ];
 
       const selectChain = makeSelectTerminalOffset(orders);

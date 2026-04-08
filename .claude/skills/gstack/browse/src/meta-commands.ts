@@ -2,23 +2,33 @@
  * Meta commands — tabs, server control, screenshots, chain, diff, snapshot
  */
 
-import type { BrowserManager } from './browser-manager';
-import { handleSnapshot } from './snapshot';
-import { getCleanText } from './read-commands';
-import { READ_COMMANDS, WRITE_COMMANDS, META_COMMANDS, PAGE_CONTENT_COMMANDS, wrapUntrustedContent } from './commands';
-import { validateNavigationUrl } from './url-validation';
-import { checkScope, type TokenInfo } from './token-registry';
-import * as Diff from 'diff';
-import * as fs from 'fs';
-import * as path from 'path';
-import { TEMP_DIR, isPathWithin } from './platform';
-import { resolveConfig } from './config';
-import type { Frame } from 'playwright';
+import type { BrowserManager } from "./browser-manager";
+import { handleSnapshot } from "./snapshot";
+import { getCleanText } from "./read-commands";
+import {
+  READ_COMMANDS,
+  WRITE_COMMANDS,
+  META_COMMANDS,
+  PAGE_CONTENT_COMMANDS,
+  wrapUntrustedContent,
+} from "./commands";
+import { validateNavigationUrl } from "./url-validation";
+import { checkScope, type TokenInfo } from "./token-registry";
+import * as Diff from "diff";
+import * as fs from "fs";
+import * as path from "path";
+import { TEMP_DIR, isPathWithin } from "./platform";
+import { resolveConfig } from "./config";
+import type { Frame } from "playwright";
 
 // Security: Path validation to prevent path traversal attacks
 // Resolve safe directories through realpathSync to handle symlinks (e.g., macOS /tmp → /private/tmp)
-const SAFE_DIRECTORIES = [TEMP_DIR, process.cwd()].map(d => {
-  try { return fs.realpathSync(d); } catch { return d; }
+const SAFE_DIRECTORIES = [TEMP_DIR, process.cwd()].map((d) => {
+  try {
+    return fs.realpathSync(d);
+  } catch {
+    return d;
+  }
 });
 
 export function validateOutputPath(filePath: string): void {
@@ -34,33 +44,38 @@ export function validateOutputPath(filePath: string): void {
     try {
       realDir = fs.realpathSync(path.dirname(dir));
     } catch {
-      throw new Error(`Path must be within: ${SAFE_DIRECTORIES.join(', ')}`);
+      throw new Error(`Path must be within: ${SAFE_DIRECTORIES.join(", ")}`);
     }
   }
 
   const realResolved = path.join(realDir, path.basename(resolved));
-  const isSafe = SAFE_DIRECTORIES.some(dir => isPathWithin(realResolved, dir));
+  const isSafe = SAFE_DIRECTORIES.some((dir) =>
+    isPathWithin(realResolved, dir),
+  );
   if (!isSafe) {
-    throw new Error(`Path must be within: ${SAFE_DIRECTORIES.join(', ')}`);
+    throw new Error(`Path must be within: ${SAFE_DIRECTORIES.join(", ")}`);
   }
 }
 
 /** Escape special regex metacharacters in a user-supplied string to prevent ReDoS. */
 export function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** Tokenize a pipe segment respecting double-quoted strings. */
 function tokenizePipeSegment(segment: string): string[] {
   const tokens: string[] = [];
-  let current = '';
+  let current = "";
   let inQuote = false;
   for (let i = 0; i < segment.length; i++) {
     const ch = segment[i];
     if (ch === '"') {
       inQuote = !inQuote;
-    } else if (ch === ' ' && !inQuote) {
-      if (current) { tokens.push(current); current = ''; }
+    } else if (ch === " " && !inQuote) {
+      if (current) {
+        tokens.push(current);
+        current = "";
+      }
     } else {
       current += ch;
     }
@@ -73,7 +88,10 @@ function tokenizePipeSegment(segment: string): string[] {
 export interface MetaCommandOpts {
   chainDepth?: number;
   /** Callback to route subcommands through the full security pipeline (handleCommandInternal) */
-  executeCommand?: (body: { command: string; args?: string[]; tabId?: number }, tokenInfo?: TokenInfo | null) => Promise<{ status: number; result: string; json?: boolean }>;
+  executeCommand?: (
+    body: { command: string; args?: string[]; tabId?: number },
+    tokenInfo?: TokenInfo | null,
+  ) => Promise<{ status: number; result: string; json?: boolean }>;
 }
 
 export async function handleMetaCommand(
@@ -89,34 +107,37 @@ export async function handleMetaCommand(
 
   switch (command) {
     // ─── Tabs ──────────────────────────────────────────
-    case 'tabs': {
+    case "tabs": {
       const tabs = await bm.getTabListWithTitles();
-      return tabs.map(t =>
-        `${t.active ? '→ ' : '  '}[${t.id}] ${t.title || '(untitled)'} — ${t.url}`
-      ).join('\n');
+      return tabs
+        .map(
+          (t) =>
+            `${t.active ? "→ " : "  "}[${t.id}] ${t.title || "(untitled)"} — ${t.url}`,
+        )
+        .join("\n");
     }
 
-    case 'tab': {
+    case "tab": {
       const id = parseInt(args[0], 10);
-      if (isNaN(id)) throw new Error('Usage: browse tab <id>');
+      if (isNaN(id)) throw new Error("Usage: browse tab <id>");
       bm.switchTab(id);
       return `Switched to tab ${id}`;
     }
 
-    case 'newtab': {
+    case "newtab": {
       const url = args[0];
       const id = await bm.newTab(url);
-      return `Opened tab ${id}${url ? ` → ${url}` : ''}`;
+      return `Opened tab ${id}${url ? ` → ${url}` : ""}`;
     }
 
-    case 'closetab': {
+    case "closetab": {
       const id = args[0] ? parseInt(args[0], 10) : undefined;
       await bm.closeTab(id);
-      return `Closed tab${id ? ` ${id}` : ''}`;
+      return `Closed tab${id ? ` ${id}` : ""}`;
     }
 
     // ─── Server Control ────────────────────────────────
-    case 'status': {
+    case "status": {
       const page = session.getPage();
       const tabs = bm.getTabCount();
       const mode = bm.getConnectionMode();
@@ -126,46 +147,56 @@ export async function handleMetaCommand(
         `URL: ${page.url()}`,
         `Tabs: ${tabs}`,
         `PID: ${process.pid}`,
-      ].join('\n');
+      ].join("\n");
     }
 
-    case 'url': {
+    case "url": {
       return bm.getCurrentUrl();
     }
 
-    case 'stop': {
+    case "stop": {
       await shutdown();
-      return 'Server stopped';
+      return "Server stopped";
     }
 
-    case 'restart': {
+    case "restart": {
       // Signal that we want a restart — the CLI will detect exit and restart
-      console.log('[browse] Restart requested. Exiting for CLI to restart.');
+      console.log("[browse] Restart requested. Exiting for CLI to restart.");
       await shutdown();
-      return 'Restarting...';
+      return "Restarting...";
     }
 
     // ─── Visual ────────────────────────────────────────
-    case 'screenshot': {
+    case "screenshot": {
       // Parse priority: flags (--viewport, --clip) → selector (@ref, CSS) → output path
       const page = session.getPage();
       let outputPath = `${TEMP_DIR}/browse-screenshot.png`;
-      let clipRect: { x: number; y: number; width: number; height: number } | undefined;
+      let clipRect:
+        | { x: number; y: number; width: number; height: number }
+        | undefined;
       let targetSelector: string | undefined;
       let viewportOnly = false;
 
       const remaining: string[] = [];
       for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--viewport') {
+        if (args[i] === "--viewport") {
           viewportOnly = true;
-        } else if (args[i] === '--clip') {
+        } else if (args[i] === "--clip") {
           const coords = args[++i];
-          if (!coords) throw new Error('Usage: screenshot --clip x,y,w,h [path]');
-          const parts = coords.split(',').map(Number);
+          if (!coords)
+            throw new Error("Usage: screenshot --clip x,y,w,h [path]");
+          const parts = coords.split(",").map(Number);
           if (parts.length !== 4 || parts.some(isNaN))
-            throw new Error('Usage: screenshot --clip x,y,width,height — all must be numbers');
-          clipRect = { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
-        } else if (args[i].startsWith('--')) {
+            throw new Error(
+              "Usage: screenshot --clip x,y,width,height — all must be numbers",
+            );
+          clipRect = {
+            x: parts[0],
+            y: parts[1],
+            width: parts[2],
+            height: parts[3],
+          };
+        } else if (args[i].startsWith("--")) {
           throw new Error(`Unknown screenshot flag: ${args[i]}`);
         } else {
           remaining.push(args[i]);
@@ -175,10 +206,17 @@ export async function handleMetaCommand(
       // Separate target (selector/@ref) from output path
       for (const arg of remaining) {
         // File paths containing / and ending with an image/pdf extension are never CSS selectors
-        const isFilePath = arg.includes('/') && /\.(png|jpe?g|webp|pdf)$/i.test(arg);
+        const isFilePath =
+          arg.includes("/") && /\.(png|jpe?g|webp|pdf)$/i.test(arg);
         if (isFilePath) {
           outputPath = arg;
-        } else if (arg.startsWith('@e') || arg.startsWith('@c') || arg.startsWith('.') || arg.startsWith('#') || arg.includes('[')) {
+        } else if (
+          arg.startsWith("@e") ||
+          arg.startsWith("@c") ||
+          arg.startsWith(".") ||
+          arg.startsWith("#") ||
+          arg.includes("[")
+        ) {
           targetSelector = arg;
         } else {
           outputPath = arg;
@@ -188,15 +226,18 @@ export async function handleMetaCommand(
       validateOutputPath(outputPath);
 
       if (clipRect && targetSelector) {
-        throw new Error('Cannot use --clip with a selector/ref — choose one');
+        throw new Error("Cannot use --clip with a selector/ref — choose one");
       }
       if (viewportOnly && clipRect) {
-        throw new Error('Cannot use --viewport with --clip — choose one');
+        throw new Error("Cannot use --viewport with --clip — choose one");
       }
 
       if (targetSelector) {
         const resolved = await session.resolveRef(targetSelector);
-        const locator = 'locator' in resolved ? resolved.locator : page.locator(resolved.selector);
+        const locator =
+          "locator" in resolved
+            ? resolved.locator
+            : page.locator(resolved.selector);
         await locator.screenshot({ path: outputPath, timeout: 5000 });
         return `Screenshot saved (element): ${outputPath}`;
       }
@@ -207,25 +248,25 @@ export async function handleMetaCommand(
       }
 
       await page.screenshot({ path: outputPath, fullPage: !viewportOnly });
-      return `Screenshot saved${viewportOnly ? ' (viewport)' : ''}: ${outputPath}`;
+      return `Screenshot saved${viewportOnly ? " (viewport)" : ""}: ${outputPath}`;
     }
 
-    case 'pdf': {
+    case "pdf": {
       const page = session.getPage();
       const pdfPath = args[0] || `${TEMP_DIR}/browse-page.pdf`;
       validateOutputPath(pdfPath);
-      await page.pdf({ path: pdfPath, format: 'A4' });
+      await page.pdf({ path: pdfPath, format: "A4" });
       return `PDF saved: ${pdfPath}`;
     }
 
-    case 'responsive': {
+    case "responsive": {
       const page = session.getPage();
       const prefix = args[0] || `${TEMP_DIR}/browse-responsive`;
       validateOutputPath(prefix);
       const viewports = [
-        { name: 'mobile', width: 375, height: 812 },
-        { name: 'tablet', width: 768, height: 1024 },
-        { name: 'desktop', width: 1280, height: 720 },
+        { name: "mobile", width: 375, height: 812 },
+        { name: "tablet", width: 768, height: 1024 },
+        { name: "desktop", width: 1280, height: 720 },
       ];
       const originalViewport = page.viewportSize();
       const results: string[] = [];
@@ -235,7 +276,9 @@ export async function handleMetaCommand(
         const screenshotPath = `${prefix}-${vp.name}.png`;
         validateOutputPath(screenshotPath);
         await page.screenshot({ path: screenshotPath, fullPage: true });
-        results.push(`${vp.name} (${vp.width}x${vp.height}): ${screenshotPath}`);
+        results.push(
+          `${vp.name} (${vp.width}x${vp.height}): ${screenshotPath}`,
+        );
       }
 
       // Restore original viewport
@@ -243,39 +286,41 @@ export async function handleMetaCommand(
         await page.setViewportSize(originalViewport);
       }
 
-      return results.join('\n');
+      return results.join("\n");
     }
 
     // ─── Chain ─────────────────────────────────────────
-    case 'chain': {
+    case "chain": {
       // Read JSON array from args[0] (if provided) or expect it was passed as body
       const jsonStr = args[0];
-      if (!jsonStr) throw new Error(
-        'Usage: echo \'[["goto","url"],["text"]]\' | browse chain\n' +
-        '   or: browse chain \'goto url | click @e5 | snapshot -ic\''
-      );
+      if (!jsonStr)
+        throw new Error(
+          'Usage: echo \'[["goto","url"],["text"]]\' | browse chain\n' +
+            "   or: browse chain 'goto url | click @e5 | snapshot -ic'",
+        );
 
       let commands: string[][];
       try {
         commands = JSON.parse(jsonStr);
-        if (!Array.isArray(commands)) throw new Error('not array');
+        if (!Array.isArray(commands)) throw new Error("not array");
       } catch {
         // Fallback: pipe-delimited format "goto url | click @e5 | snapshot -ic"
-        commands = jsonStr.split(' | ')
-          .filter(seg => seg.trim().length > 0)
-          .map(seg => tokenizePipeSegment(seg.trim()));
+        commands = jsonStr
+          .split(" | ")
+          .filter((seg) => seg.trim().length > 0)
+          .map((seg) => tokenizePipeSegment(seg.trim()));
       }
 
       // Pre-validate ALL subcommands against the token's scope before executing any.
       // This prevents partial execution where some subcommands succeed before a
       // scope violation is hit, leaving the browser in an inconsistent state.
-      if (tokenInfo && tokenInfo.clientId !== 'root') {
+      if (tokenInfo && tokenInfo.clientId !== "root") {
         for (const cmd of commands) {
           const [name] = cmd;
           if (!checkScope(tokenInfo, name)) {
             throw new Error(
-              `Chain rejected: subcommand "${name}" not allowed by your token scope (${tokenInfo.scopes.join(', ')}). ` +
-              `All subcommands must be within scope.`
+              `Chain rejected: subcommand "${name}" not allowed by your token scope (${tokenInfo.scopes.join(", ")}). ` +
+                `All subcommands must be within scope.`,
             );
           }
         }
@@ -302,15 +347,17 @@ export async function handleMetaCommand(
           } else {
             // Parse error from JSON result
             let errMsg = cr.result;
-            try { errMsg = JSON.parse(cr.result).error || cr.result; } catch {}
+            try {
+              errMsg = JSON.parse(cr.result).error || cr.result;
+            } catch {}
             results.push(`[${name}] ERROR: ${errMsg}`);
           }
           lastWasWrite = WRITE_COMMANDS.has(name);
         }
       } else {
         // Fallback: direct dispatch (CLI mode, no server context)
-        const { handleReadCommand } = await import('./read-commands');
-        const { handleWriteCommand } = await import('./write-commands');
+        const { handleReadCommand } = await import("./read-commands");
+        const { handleWriteCommand } = await import("./write-commands");
 
         for (const cmd of commands) {
           const [name, ...cmdArgs] = cmd;
@@ -318,7 +365,7 @@ export async function handleMetaCommand(
             let result: string;
             if (WRITE_COMMANDS.has(name)) {
               if (bm.isWatching()) {
-                result = 'BLOCKED: write commands disabled in watch mode';
+                result = "BLOCKED: write commands disabled in watch mode";
               } else {
                 result = await handleWriteCommand(name, cmdArgs, session, bm);
               }
@@ -330,7 +377,14 @@ export async function handleMetaCommand(
               }
               lastWasWrite = false;
             } else if (META_COMMANDS.has(name)) {
-              result = await handleMetaCommand(name, cmdArgs, bm, shutdown, tokenInfo, opts);
+              result = await handleMetaCommand(
+                name,
+                cmdArgs,
+                bm,
+                shutdown,
+                tokenInfo,
+                opts,
+              );
               lastWasWrite = false;
             } else {
               throw new Error(`Unknown command: ${name}`);
@@ -344,43 +398,49 @@ export async function handleMetaCommand(
 
       // Wait for network to settle after write commands before returning
       if (lastWasWrite) {
-        await session.getPage().waitForLoadState('networkidle', { timeout: 2000 }).catch(() => {});
+        await session
+          .getPage()
+          .waitForLoadState("networkidle", { timeout: 2000 })
+          .catch(() => {});
       }
 
-      return results.join('\n\n');
+      return results.join("\n\n");
     }
 
     // ─── Diff ──────────────────────────────────────────
-    case 'diff': {
+    case "diff": {
       const [url1, url2] = args;
-      if (!url1 || !url2) throw new Error('Usage: browse diff <url1> <url2>');
+      if (!url1 || !url2) throw new Error("Usage: browse diff <url1> <url2>");
 
       const page = session.getPage();
       await validateNavigationUrl(url1);
-      await page.goto(url1, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      await page.goto(url1, { waitUntil: "domcontentloaded", timeout: 15000 });
       const text1 = await getCleanText(page);
 
       await validateNavigationUrl(url2);
-      await page.goto(url2, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      await page.goto(url2, { waitUntil: "domcontentloaded", timeout: 15000 });
       const text2 = await getCleanText(page);
 
       const changes = Diff.diffLines(text1, text2);
-      const output: string[] = [`--- ${url1}`, `+++ ${url2}`, ''];
+      const output: string[] = [`--- ${url1}`, `+++ ${url2}`, ""];
 
       for (const part of changes) {
-        const prefix = part.added ? '+' : part.removed ? '-' : ' ';
-        const lines = part.value.split('\n').filter(l => l.length > 0);
+        const prefix = part.added ? "+" : part.removed ? "-" : " ";
+        const lines = part.value.split("\n").filter((l) => l.length > 0);
         for (const line of lines) {
           output.push(`${prefix} ${line}`);
         }
       }
 
-      return wrapUntrustedContent(output.join('\n'), `diff: ${url1} vs ${url2}`);
+      return wrapUntrustedContent(
+        output.join("\n"),
+        `diff: ${url1} vs ${url2}`,
+      );
     }
 
     // ─── Snapshot ─────────────────────────────────────
-    case 'snapshot': {
-      const isScoped = tokenInfo && tokenInfo.clientId !== 'root';
+    case "snapshot": {
+      const isScoped = tokenInfo && tokenInfo.clientId !== "root";
       const snapshotResult = await handleSnapshot(args, session, {
         splitForScoped: !!isScoped,
       });
@@ -392,16 +452,18 @@ export async function handleMetaCommand(
     }
 
     // ─── Handoff ────────────────────────────────────
-    case 'handoff': {
-      const message = args.join(' ') || 'User takeover requested';
+    case "handoff": {
+      const message = args.join(" ") || "User takeover requested";
       return await bm.handoff(message);
     }
 
-    case 'resume': {
+    case "resume": {
       bm.resume();
       // Re-snapshot to capture current page state after human interaction
-      const isScoped2 = tokenInfo && tokenInfo.clientId !== 'root';
-      const snapshot = await handleSnapshot(['-i'], session, { splitForScoped: !!isScoped2 });
+      const isScoped2 = tokenInfo && tokenInfo.clientId !== "root";
+      const snapshot = await handleSnapshot(["-i"], session, {
+        splitForScoped: !!isScoped2,
+      });
       if (isScoped2) {
         return `RESUMED\n${snapshot}`;
       }
@@ -409,37 +471,48 @@ export async function handleMetaCommand(
     }
 
     // ─── Headed Mode ──────────────────────────────────────
-    case 'connect': {
+    case "connect": {
       // connect is handled as a pre-server command in cli.ts
       // If we get here, server is already running — tell the user
-      if (bm.getConnectionMode() === 'headed') {
-        return 'Already in headed mode with extension.';
+      if (bm.getConnectionMode() === "headed") {
+        return "Already in headed mode with extension.";
       }
-      return 'The connect command must be run from the CLI (not sent to a running server). Run: $B connect';
+      return "The connect command must be run from the CLI (not sent to a running server). Run: $B connect";
     }
 
-    case 'disconnect': {
-      if (bm.getConnectionMode() !== 'headed') {
-        return 'Not in headed mode — nothing to disconnect.';
+    case "disconnect": {
+      if (bm.getConnectionMode() !== "headed") {
+        return "Not in headed mode — nothing to disconnect.";
       }
       // Signal that we want a restart in headless mode
-      console.log('[browse] Disconnecting headed browser. Restarting in headless mode.');
+      console.log(
+        "[browse] Disconnecting headed browser. Restarting in headless mode.",
+      );
       await shutdown();
-      return 'Disconnected. Server will restart in headless mode on next command.';
+      return "Disconnected. Server will restart in headless mode on next command.";
     }
 
-    case 'focus': {
-      if (bm.getConnectionMode() !== 'headed') {
-        return 'focus requires headed mode. Run `$B connect` first.';
+    case "focus": {
+      if (bm.getConnectionMode() !== "headed") {
+        return "focus requires headed mode. Run `$B connect` first.";
       }
       try {
-        const { execSync } = await import('child_process');
+        const { execSync } = await import("child_process");
         // Try common Chromium-based browser app names to bring to foreground
-        const appNames = ['Comet', 'Google Chrome', 'Arc', 'Brave Browser', 'Microsoft Edge'];
+        const appNames = [
+          "Comet",
+          "Google Chrome",
+          "Arc",
+          "Brave Browser",
+          "Microsoft Edge",
+        ];
         let activated = false;
         for (const appName of appNames) {
           try {
-            execSync(`osascript -e 'tell application "${appName}" to activate'`, { stdio: 'pipe', timeout: 3000 });
+            execSync(
+              `osascript -e 'tell application "${appName}" to activate'`,
+              { stdio: "pipe", timeout: 3000 },
+            );
             activated = true;
             break;
           } catch {
@@ -448,14 +521,14 @@ export async function handleMetaCommand(
         }
 
         if (!activated) {
-          return 'Could not bring browser to foreground. macOS only.';
+          return "Could not bring browser to foreground. macOS only.";
         }
 
         // If a ref was passed, scroll it into view
-        if (args.length > 0 && args[0].startsWith('@')) {
+        if (args.length > 0 && args[0].startsWith("@")) {
           try {
             const resolved = await session.resolveRef(args[0]);
-            if ('locator' in resolved) {
+            if ("locator" in resolved) {
               await resolved.locator.scrollIntoViewIfNeeded({ timeout: 5000 });
               return `Browser activated. Scrolled ${args[0]} into view.`;
             }
@@ -464,150 +537,188 @@ export async function handleMetaCommand(
           }
         }
 
-        return 'Browser window activated.';
+        return "Browser window activated.";
       } catch (err: any) {
         return `focus failed: ${err.message}. macOS only.`;
       }
     }
 
     // ─── Watch ──────────────────────────────────────────
-    case 'watch': {
-      if (args[0] === 'stop') {
-        if (!bm.isWatching()) return 'Not currently watching.';
+    case "watch": {
+      if (args[0] === "stop") {
+        if (!bm.isWatching()) return "Not currently watching.";
         const result = bm.stopWatch();
         const durationSec = Math.round(result.duration / 1000);
-        const lastSnapshot = result.snapshots.length > 0
-          ? wrapUntrustedContent(result.snapshots[result.snapshots.length - 1], bm.getCurrentUrl())
-          : '(none)';
+        const lastSnapshot =
+          result.snapshots.length > 0
+            ? wrapUntrustedContent(
+                result.snapshots[result.snapshots.length - 1],
+                bm.getCurrentUrl(),
+              )
+            : "(none)";
         return [
           `WATCH STOPPED (${durationSec}s, ${result.snapshots.length} snapshots)`,
-          '',
-          'Last snapshot:',
+          "",
+          "Last snapshot:",
           lastSnapshot,
-        ].join('\n');
+        ].join("\n");
       }
 
-      if (bm.isWatching()) return 'Already watching. Run `$B watch stop` to stop.';
-      if (bm.getConnectionMode() !== 'headed') {
-        return 'watch requires headed mode. Run `$B connect` first.';
+      if (bm.isWatching())
+        return "Already watching. Run `$B watch stop` to stop.";
+      if (bm.getConnectionMode() !== "headed") {
+        return "watch requires headed mode. Run `$B connect` first.";
       }
 
       bm.startWatch();
-      return 'WATCHING — observing user browsing. Periodic snapshots every 5s.\nRun `$B watch stop` to stop and get summary.';
+      return "WATCHING — observing user browsing. Periodic snapshots every 5s.\nRun `$B watch stop` to stop and get summary.";
     }
 
     // ─── Inbox ──────────────────────────────────────────
-    case 'inbox': {
-      const { execSync } = await import('child_process');
+    case "inbox": {
+      const { execSync } = await import("child_process");
       let gitRoot: string;
       try {
-        gitRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+        gitRoot = execSync("git rev-parse --show-toplevel", {
+          encoding: "utf-8",
+          stdio: ["pipe", "pipe", "pipe"],
+        }).trim();
       } catch {
-        return 'Not in a git repository — cannot locate inbox.';
+        return "Not in a git repository — cannot locate inbox.";
       }
 
-      const inboxDir = path.join(gitRoot, '.context', 'sidebar-inbox');
-      if (!fs.existsSync(inboxDir)) return 'Inbox empty.';
+      const inboxDir = path.join(gitRoot, ".context", "sidebar-inbox");
+      if (!fs.existsSync(inboxDir)) return "Inbox empty.";
 
-      const files = fs.readdirSync(inboxDir)
-        .filter(f => f.endsWith('.json') && !f.startsWith('.'))
+      const files = fs
+        .readdirSync(inboxDir)
+        .filter((f) => f.endsWith(".json") && !f.startsWith("."))
         .sort()
         .reverse(); // newest first
 
-      if (files.length === 0) return 'Inbox empty.';
+      if (files.length === 0) return "Inbox empty.";
 
-      const messages: { timestamp: string; url: string; userMessage: string }[] = [];
+      const messages: {
+        timestamp: string;
+        url: string;
+        userMessage: string;
+      }[] = [];
       for (const file of files) {
         try {
-          const data = JSON.parse(fs.readFileSync(path.join(inboxDir, file), 'utf-8'));
+          const data = JSON.parse(
+            fs.readFileSync(path.join(inboxDir, file), "utf-8"),
+          );
           messages.push({
-            timestamp: data.timestamp || '',
-            url: data.page?.url || 'unknown',
-            userMessage: data.userMessage || '',
+            timestamp: data.timestamp || "",
+            url: data.page?.url || "unknown",
+            userMessage: data.userMessage || "",
           });
         } catch {
           // Skip malformed files
         }
       }
 
-      if (messages.length === 0) return 'Inbox empty.';
+      if (messages.length === 0) return "Inbox empty.";
 
       const lines: string[] = [];
-      lines.push(`SIDEBAR INBOX (${messages.length} message${messages.length === 1 ? '' : 's'})`);
-      lines.push('────────────────────────────────');
+      lines.push(
+        `SIDEBAR INBOX (${messages.length} message${messages.length === 1 ? "" : "s"})`,
+      );
+      lines.push("────────────────────────────────");
 
       for (const msg of messages) {
-        const ts = msg.timestamp ? `[${msg.timestamp}]` : '[unknown]';
-        lines.push(`${ts} ${wrapUntrustedContent(msg.url, 'inbox-url')}`);
-        lines.push(`  "${wrapUntrustedContent(msg.userMessage, 'inbox-message')}"`);
-        lines.push('');
+        const ts = msg.timestamp ? `[${msg.timestamp}]` : "[unknown]";
+        lines.push(`${ts} ${wrapUntrustedContent(msg.url, "inbox-url")}`);
+        lines.push(
+          `  "${wrapUntrustedContent(msg.userMessage, "inbox-message")}"`,
+        );
+        lines.push("");
       }
 
-      lines.push('────────────────────────────────');
+      lines.push("────────────────────────────────");
 
       // Handle --clear flag
-      if (args.includes('--clear')) {
+      if (args.includes("--clear")) {
         for (const file of files) {
-          try { fs.unlinkSync(path.join(inboxDir, file)); } catch {}
+          try {
+            fs.unlinkSync(path.join(inboxDir, file));
+          } catch {}
         }
-        lines.push(`Cleared ${files.length} message${files.length === 1 ? '' : 's'}.`);
+        lines.push(
+          `Cleared ${files.length} message${files.length === 1 ? "" : "s"}.`,
+        );
       }
 
-      return lines.join('\n');
+      return lines.join("\n");
     }
 
     // ─── State ────────────────────────────────────────
-    case 'state': {
+    case "state": {
       const [action, name] = args;
-      if (!action || !name) throw new Error('Usage: state save|load <name>');
+      if (!action || !name) throw new Error("Usage: state save|load <name>");
 
       // Sanitize name: alphanumeric + hyphens + underscores only
       if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-        throw new Error('State name must be alphanumeric (a-z, 0-9, _, -)');
+        throw new Error("State name must be alphanumeric (a-z, 0-9, _, -)");
       }
 
       const config = resolveConfig();
-      const stateDir = path.join(config.stateDir, 'browse-states');
+      const stateDir = path.join(config.stateDir, "browse-states");
       fs.mkdirSync(stateDir, { recursive: true });
       const statePath = path.join(stateDir, `${name}.json`);
 
-      if (action === 'save') {
+      if (action === "save") {
         const state = await bm.saveState();
         // V1: cookies + URLs only (not localStorage — breaks on load-before-navigate)
         const saveData = {
           version: 1,
           savedAt: new Date().toISOString(),
           cookies: state.cookies,
-          pages: state.pages.map(p => ({ url: p.url, isActive: p.isActive })),
+          pages: state.pages.map((p) => ({ url: p.url, isActive: p.isActive })),
         };
-        fs.writeFileSync(statePath, JSON.stringify(saveData, null, 2), { mode: 0o600 });
+        fs.writeFileSync(statePath, JSON.stringify(saveData, null, 2), {
+          mode: 0o600,
+        });
         return `State saved: ${statePath} (${state.cookies.length} cookies, ${state.pages.length} pages)\n⚠️  Cookies stored in plaintext. Delete when no longer needed.`;
       }
 
-      if (action === 'load') {
-        if (!fs.existsSync(statePath)) throw new Error(`State not found: ${statePath}`);
-        const data = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+      if (action === "load") {
+        if (!fs.existsSync(statePath))
+          throw new Error(`State not found: ${statePath}`);
+        const data = JSON.parse(fs.readFileSync(statePath, "utf-8"));
         if (!Array.isArray(data.cookies) || !Array.isArray(data.pages)) {
-          throw new Error('Invalid state file: expected cookies and pages arrays');
+          throw new Error(
+            "Invalid state file: expected cookies and pages arrays",
+          );
         }
         // Validate and filter cookies — reject malformed or internal-network cookies
         const validatedCookies = data.cookies.filter((c: any) => {
-          if (typeof c !== 'object' || !c) return false;
-          if (typeof c.name !== 'string' || typeof c.value !== 'string') return false;
-          if (typeof c.domain !== 'string' || !c.domain) return false;
-          const d = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
-          if (d === 'localhost' || d.endsWith('.internal') || d === '169.254.169.254') return false;
+          if (typeof c !== "object" || !c) return false;
+          if (typeof c.name !== "string" || typeof c.value !== "string")
+            return false;
+          if (typeof c.domain !== "string" || !c.domain) return false;
+          const d = c.domain.startsWith(".") ? c.domain.slice(1) : c.domain;
+          if (
+            d === "localhost" ||
+            d.endsWith(".internal") ||
+            d === "169.254.169.254"
+          )
+            return false;
           return true;
         });
         if (validatedCookies.length < data.cookies.length) {
-          console.warn(`[browse] Filtered ${data.cookies.length - validatedCookies.length} invalid cookies from state file`);
+          console.warn(
+            `[browse] Filtered ${data.cookies.length - validatedCookies.length} invalid cookies from state file`,
+          );
         }
         // Warn on state files older than 7 days
         if (data.savedAt) {
           const ageMs = Date.now() - new Date(data.savedAt).getTime();
           const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
           if (ageMs > SEVEN_DAYS) {
-            console.warn(`[browse] Warning: State file is ${Math.round(ageMs / 86400000)} days old. Consider re-saving.`);
+            console.warn(
+              `[browse] Warning: State file is ${Math.round(ageMs / 86400000)} days old. Consider re-saving.`,
+            );
           }
         }
         // Close existing pages, then restore (replace, not merge)
@@ -620,35 +731,41 @@ export async function handleMetaCommand(
         return `State loaded: ${data.cookies.length} cookies, ${data.pages.length} pages`;
       }
 
-      throw new Error('Usage: state save|load <name>');
+      throw new Error("Usage: state save|load <name>");
     }
 
     // ─── Frame ───────────────────────────────────────
-    case 'frame': {
+    case "frame": {
       const target = args[0];
-      if (!target) throw new Error('Usage: frame <selector|@ref|--name name|--url pattern|main>');
+      if (!target)
+        throw new Error(
+          "Usage: frame <selector|@ref|--name name|--url pattern|main>",
+        );
 
-      if (target === 'main') {
+      if (target === "main") {
         session.setFrame(null);
         session.clearRefs();
-        return 'Switched to main frame';
+        return "Switched to main frame";
       }
 
       const page = session.getPage();
       let frame: Frame | null = null;
 
-      if (target === '--name') {
-        if (!args[1]) throw new Error('Usage: frame --name <name>');
+      if (target === "--name") {
+        if (!args[1]) throw new Error("Usage: frame --name <name>");
         frame = page.frame({ name: args[1] });
-      } else if (target === '--url') {
-        if (!args[1]) throw new Error('Usage: frame --url <pattern>');
+      } else if (target === "--url") {
+        if (!args[1]) throw new Error("Usage: frame --url <pattern>");
         frame = page.frame({ url: new RegExp(escapeRegExp(args[1])) });
       } else {
         // CSS selector or @ref for the iframe element
         const resolved = await session.resolveRef(target);
-        const locator = 'locator' in resolved ? resolved.locator : page.locator(resolved.selector);
+        const locator =
+          "locator" in resolved
+            ? resolved.locator
+            : page.locator(resolved.selector);
         const elementHandle = await locator.elementHandle({ timeout: 5000 });
-        frame = await elementHandle?.contentFrame() ?? null;
+        frame = (await elementHandle?.contentFrame()) ?? null;
         await elementHandle?.dispose();
       }
 

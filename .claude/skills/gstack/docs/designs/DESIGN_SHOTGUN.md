@@ -63,11 +63,11 @@ no shared memory, no shared event bus, no WebSocket connection.
 
 ### The Three Files
 
-| File | Written when | Means | Agent action |
-|------|-------------|-------|-------------|
-| `feedback.json` | User clicks Submit | Final selection, done | Read it, proceed |
-| `feedback-pending.json` | User clicks Regenerate/More Like This | Wants new options | Read it, delete it, generate new variants, reload board |
-| `feedback.json` (round 2+) | User clicks Submit after regeneration | Final selection after iteration | Read it, proceed |
+| File                       | Written when                          | Means                           | Agent action                                            |
+| -------------------------- | ------------------------------------- | ------------------------------- | ------------------------------------------------------- |
+| `feedback.json`            | User clicks Submit                    | Final selection, done           | Read it, proceed                                        |
+| `feedback-pending.json`    | User clicks Regenerate/More Like This | Wants new options               | Read it, delete it, generate new variants, reload board |
+| `feedback.json` (round 2+) | User clicks Submit after regeneration | Final selection after iteration | Read it, proceed                                        |
 
 ### The State Machine
 
@@ -132,6 +132,7 @@ page is still open in Chrome. It looks interactive. The user might edit their
 feedback and click Submit again. Nothing happens because the server is gone.
 
 **Fix:** After successful POST, the board JS:
+
 - Disables ALL inputs (buttons, radios, textareas, star ratings)
 - Hides the Regenerate bar entirely
 - Replaces the Submit button with: "Feedback received! Return to your coding agent."
@@ -146,6 +147,7 @@ feedback and click Submit again. Nothing happens because the server is gone.
 the board open. User clicks Submit. The fetch() fails silently.
 
 **Fix:** The `postFeedback()` function has a `.catch()` handler. On network failure:
+
 - Shows red error banner: "Connection lost"
 - Displays the collected feedback JSON in a copyable `<pre>` block
 - User can copy-paste it directly into their coding agent
@@ -160,6 +162,7 @@ spinner spins forever.
 
 **Fix:** Progress polling has a hard 5-minute timeout (150 polls x 2s interval).
 After 5 minutes:
+
 - Spinner replaced with: "Something went wrong."
 - Shows: "Run `/design-shotgun` again in your coding agent."
 - Polling stops. Page becomes informational.
@@ -211,6 +214,7 @@ There is no port file written to disk.
 
 **Potential fix:** Write a `serve.pid` or `serve.port` file next to the board HTML
 on startup. Agent can read it anytime:
+
 ```bash
 cat "$_DESIGN_DIR/serve.port"  # → 54321
 ```
@@ -357,17 +361,17 @@ Same as regeneration, except:
 
 ## Files That Implement This
 
-| File | Role |
-|------|------|
-| `design/src/serve.ts` | HTTP server, state machine, file writing, browser launch |
-| `design/src/compare.ts` | Board HTML generation, JS for ratings/picks/regen, POST logic, post-submit lifecycle |
-| `design/src/cli.ts` | CLI entry point, wires `serve` and `compare --serve` commands |
-| `design/src/commands.ts` | Command registry, defines `serve` and `compare` with their args |
-| `scripts/resolvers/design.ts` | `generateDesignShotgunLoop()` — template resolver that outputs the polling loop and reload instructions |
-| `design-shotgun/SKILL.md.tmpl` | Skill template that orchestrates the full flow: context gathering, variant generation, `{{DESIGN_SHOTGUN_LOOP}}`, feedback confirmation |
-| `design/test/serve.test.ts` | Unit tests for HTTP endpoints and state transitions |
-| `design/test/feedback-roundtrip.test.ts` | E2E test: browser click → JS fetch → HTTP POST → file on disk |
-| `browse/test/compare-board.test.ts` | DOM-level tests for the comparison board UI |
+| File                                     | Role                                                                                                                                    |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `design/src/serve.ts`                    | HTTP server, state machine, file writing, browser launch                                                                                |
+| `design/src/compare.ts`                  | Board HTML generation, JS for ratings/picks/regen, POST logic, post-submit lifecycle                                                    |
+| `design/src/cli.ts`                      | CLI entry point, wires `serve` and `compare --serve` commands                                                                           |
+| `design/src/commands.ts`                 | Command registry, defines `serve` and `compare` with their args                                                                         |
+| `scripts/resolvers/design.ts`            | `generateDesignShotgunLoop()` — template resolver that outputs the polling loop and reload instructions                                 |
+| `design-shotgun/SKILL.md.tmpl`           | Skill template that orchestrates the full flow: context gathering, variant generation, `{{DESIGN_SHOTGUN_LOOP}}`, feedback confirmation |
+| `design/test/serve.test.ts`              | Unit tests for HTTP endpoints and state transitions                                                                                     |
+| `design/test/feedback-roundtrip.test.ts` | E2E test: browser click → JS fetch → HTTP POST → file on disk                                                                           |
+| `browse/test/compare-board.test.ts`      | DOM-level tests for the comparison board UI                                                                                             |
 
 ## What Could Still Go Wrong
 
@@ -399,33 +403,33 @@ Same as regeneration, except:
 
 ### What's Tested
 
-| Flow | Test | File |
-|------|------|------|
-| Submit → feedback.json on disk | browser click → file | `feedback-roundtrip.test.ts` |
-| Post-submit UI lockdown | inputs disabled, success shown | `feedback-roundtrip.test.ts` |
-| Regenerate → feedback-pending.json | chiclet + regen click → file | `feedback-roundtrip.test.ts` |
-| "More like this" → specific action | more_like_B in JSON | `feedback-roundtrip.test.ts` |
-| Spinner after regenerate | DOM shows loading text | `feedback-roundtrip.test.ts` |
-| Full regen → reload → submit | 2-round trip | `feedback-roundtrip.test.ts` |
-| Server starts on random port | port 0 binding | `serve.test.ts` |
-| HTML injection of server URL | __GSTACK_SERVER_URL check | `serve.test.ts` |
-| Invalid JSON rejection | 400 response | `serve.test.ts` |
-| HTML file validation | exit 1 if missing | `serve.test.ts` |
-| Timeout behavior | exit 1 after timeout | `serve.test.ts` |
-| Board DOM structure | radios, stars, chiclets | `compare-board.test.ts` |
+| Flow                               | Test                           | File                         |
+| ---------------------------------- | ------------------------------ | ---------------------------- |
+| Submit → feedback.json on disk     | browser click → file           | `feedback-roundtrip.test.ts` |
+| Post-submit UI lockdown            | inputs disabled, success shown | `feedback-roundtrip.test.ts` |
+| Regenerate → feedback-pending.json | chiclet + regen click → file   | `feedback-roundtrip.test.ts` |
+| "More like this" → specific action | more_like_B in JSON            | `feedback-roundtrip.test.ts` |
+| Spinner after regenerate           | DOM shows loading text         | `feedback-roundtrip.test.ts` |
+| Full regen → reload → submit       | 2-round trip                   | `feedback-roundtrip.test.ts` |
+| Server starts on random port       | port 0 binding                 | `serve.test.ts`              |
+| HTML injection of server URL       | \_\_GSTACK_SERVER_URL check    | `serve.test.ts`              |
+| Invalid JSON rejection             | 400 response                   | `serve.test.ts`              |
+| HTML file validation               | exit 1 if missing              | `serve.test.ts`              |
+| Timeout behavior                   | exit 1 after timeout           | `serve.test.ts`              |
+| Board DOM structure                | radios, stars, chiclets        | `compare-board.test.ts`      |
 
 ### What's NOT Tested
 
-| Gap | Risk | Priority |
-|-----|------|----------|
-| Double-click submit race | Low — inputs disable on first response | P3 |
-| Progress polling timeout (150 iterations) | Medium — 5 min is long to wait in a test | P2 |
-| Server crash during regeneration | Medium — user sees infinite spinner | P2 |
-| Network timeout during POST | Low — localhost is fast | P3 |
-| Backgrounded Chrome tab throttling intervals | Medium — could extend 5-min timeout to 30+ min | P2 |
-| Large feedback payload | Low — board constructs fixed-shape JSON | P3 |
-| Concurrent sessions (two boards, one server) | Low — each $D serve gets its own port | P3 |
-| Stale feedback file from prior session | Medium — could confuse new polling loop | P2 |
+| Gap                                          | Risk                                           | Priority |
+| -------------------------------------------- | ---------------------------------------------- | -------- |
+| Double-click submit race                     | Low — inputs disable on first response         | P3       |
+| Progress polling timeout (150 iterations)    | Medium — 5 min is long to wait in a test       | P2       |
+| Server crash during regeneration             | Medium — user sees infinite spinner            | P2       |
+| Network timeout during POST                  | Low — localhost is fast                        | P3       |
+| Backgrounded Chrome tab throttling intervals | Medium — could extend 5-min timeout to 30+ min | P2       |
+| Large feedback payload                       | Low — board constructs fixed-shape JSON        | P3       |
+| Concurrent sessions (two boards, one server) | Low — each $D serve gets its own port          | P3       |
+| Stale feedback file from prior session       | Medium — could confuse new polling loop        | P2       |
 
 ## Potential Improvements
 

@@ -17,14 +17,14 @@ code per day. 100+ commits per week. Not by a team. By one person, part-time,
 using the right tools. The compression ratio between human-team time and
 AI-assisted time ranges from 3x (research) to 100x (boilerplate):
 
-| Task type                   | Human team | AI-assisted | Compression |
-|-----------------------------|-----------|-------------|-------------|
-| Boilerplate / scaffolding   | 2 days    | 15 min      | ~100x       |
-| Test writing                | 1 day     | 15 min      | ~50x        |
-| Feature implementation      | 1 week    | 30 min      | ~30x        |
-| Bug fix + regression test   | 4 hours   | 15 min      | ~20x        |
-| Architecture / design       | 2 days    | 4 hours     | ~5x         |
-| Research / exploration      | 1 day     | 3 hours     | ~3x         |
+| Task type                 | Human team | AI-assisted | Compression |
+| ------------------------- | ---------- | ----------- | ----------- |
+| Boilerplate / scaffolding | 2 days     | 15 min      | ~100x       |
+| Test writing              | 1 day      | 15 min      | ~50x        |
+| Feature implementation    | 1 week     | 30 min      | ~30x        |
+| Bug fix + regression test | 4 hours    | 15 min      | ~20x        |
+| Architecture / design     | 2 days     | 4 hours     | ~5x         |
+| Research / exploration    | 1 day      | 3 hours     | ~3x         |
 
 This table changes everything about how you make build-vs-skip decisions.
 The last 10% of completeness that teams used to skip? It costs seconds now.
@@ -48,6 +48,7 @@ seconds with AI coding. "Ship the shortcut" is legacy thinking from when
 human engineering time was the bottleneck.
 
 **Anti-patterns:**
+
 - "Choose B — it covers 90% with less code." (If A is 70 lines more, choose A.)
 - "Let's defer tests to a follow-up PR." (Tests are the cheapest lake to boil.)
 - "This would take 2 weeks." (Say: "2 weeks human / ~1 hour AI-assisted.")
@@ -101,6 +102,7 @@ moments — zig while others zag. When you find one, name it. Celebrate it.
 Build on it.
 
 **Anti-patterns:**
+
 - Rolling a custom solution when the runtime has a built-in. (Layer 1 miss)
 - Accepting blog posts uncritically in novel territory. (Layer 2 mania)
 - Assuming tried-and-true is right without questioning premises. (Layer 3 blindness)
@@ -134,6 +136,7 @@ user's stated direction — present the recommendation, explain why you both
 think it's better, state what context you might be missing, and ask. Never act.
 
 **Anti-patterns:**
+
 - "The outside voice is right, so I'll incorporate it." (Present it. Ask.)
 - "Both models agree, so this must be correct." (Agreement is signal, not proof.)
 - "I'll make the change and tell the user afterward." (Ask first. Always.)

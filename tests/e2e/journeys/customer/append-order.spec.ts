@@ -116,10 +116,9 @@ test.describe("Append order: place second order for same table", () => {
       .catch(() => {});
 
     // Navigate to cart
-    const cartLink = page
-      .locator(
-        '[data-testid="cart-btn"], [data-testid="view-cart"], a[href*="cart"], button:has-text("購物車"), button:has-text("Cart")',
-      );
+    const cartLink = page.locator(
+      '[data-testid="cart-btn"], [data-testid="view-cart"], a[href*="cart"], button:has-text("購物車"), button:has-text("Cart")',
+    );
     await cartLink.first().click();
     await page.waitForLoadState("networkidle");
 
@@ -197,13 +196,16 @@ test.describe("Append order: second order shows in tracking", () => {
     });
 
     // Override guest-orders/:id for the second order
-    await page.route(new RegExp(`${API_RE}/guest-orders/order-guest-2$`), (route) => {
-      if (route.request().method() === "GET") {
-        route.fulfill(json({ success: true, data: secondOrder }));
-      } else {
-        route.continue();
-      }
-    });
+    await page.route(
+      new RegExp(`${API_RE}/guest-orders/order-guest-2$`),
+      (route) => {
+        if (route.request().method() === "GET") {
+          route.fulfill(json({ success: true, data: secondOrder }));
+        } else {
+          route.continue();
+        }
+      },
+    );
 
     await page.addInitScript(() => {
       localStorage.setItem("guest_auth_token", "mock-guest-token");
@@ -240,13 +242,16 @@ test.describe("Append order: first order unaffected after second", () => {
     });
 
     // Ensure the original order endpoint returns the original data
-    await page.route(new RegExp(`${API_RE}/guest-orders/order-guest$`), (route) => {
-      if (route.request().method() === "GET") {
-        route.fulfill(json({ success: true, data: originalOrder }));
-      } else {
-        route.continue();
-      }
-    });
+    await page.route(
+      new RegExp(`${API_RE}/guest-orders/order-guest$`),
+      (route) => {
+        if (route.request().method() === "GET") {
+          route.fulfill(json({ success: true, data: originalOrder }));
+        } else {
+          route.continue();
+        }
+      },
+    );
 
     await page.addInitScript(() => {
       localStorage.setItem("guest_auth_token", "mock-guest-token");
@@ -261,7 +266,10 @@ test.describe("Append order: first order unaffected after second", () => {
       .or(page.locator('[data-testid="error"]'))
       .or(page.locator("text=/500|error occurred/i"));
 
-    const hasError = await errorIndicator.first().isVisible().catch(() => false);
+    const hasError = await errorIndicator
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(hasError).toBe(false);
 
     // Verify original order number is displayed

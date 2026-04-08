@@ -112,6 +112,7 @@ Hour  Commits  ████████████████
 ```
 
 Identify:
+
 - Peak hours
 - Dead zones
 - Bimodal pattern (morning/evening) vs continuous
@@ -124,11 +125,13 @@ Identify:
 Detect sessions using **45-minute gap** threshold between consecutive commits.
 
 Classify sessions:
+
 - **Deep sessions** (50+ min)
 - **Medium sessions** (20-50 min)
 - **Micro sessions** (<20 min, single-commit)
 
 Calculate:
+
 - Total active coding time
 - Average session length
 - LOC per hour of active time
@@ -152,6 +155,7 @@ Flag if fix ratio exceeds 50% ... signals a "ship fast, fix fast" pattern that m
 ### Step 6: Hotspot Analysis
 
 Show top 10 most-changed files. Flag:
+
 - Files changed 5+ times (churn hotspots)
 - Test files vs production files in the hotspot list
 - VERSION/CHANGELOG frequency
@@ -161,6 +165,7 @@ Show top 10 most-changed files. Flag:
 ### Step 7: PR Size Distribution
 
 Estimate PR sizes and bucket them:
+
 - **Small** (<100 LOC)
 - **Medium** (100-500 LOC)
 - **Large** (500-1500 LOC)
@@ -203,6 +208,7 @@ For each contributor (including the current user), compute:
 ### Step 10: Week-over-Week Trends (if window >= 14d)
 
 Split into weekly buckets and show trends:
+
 - Commits per week (total and per-author)
 - LOC per week
 - Test ratio per week
@@ -224,6 +230,7 @@ git log origin/main --author="<user_name>" --format="%ad" --date=format:"%Y-%m-%
 ```
 
 Display both:
+
 - "Team shipping streak: 47 consecutive days"
 - "Your shipping streak: 32 consecutive days"
 
@@ -260,6 +267,7 @@ Save a JSON snapshot to `memory/retro-YYYY-MM-DD.json` with metrics, authors, ve
 Structure:
 
 **Tweetable summary** (first line):
+
 > Week of Mar 1: 47 commits (3 contributors), 3.2k LOC, 38% tests, 12 PRs, peak: 10pm | Streak: 47d
 
 Then sections:
@@ -281,6 +289,7 @@ Then sections:
 ## Compare Mode
 
 When the user says "compare":
+
 - Run the retro for the current window
 - Run the retro for the prior same-length window
 - Present side-by-side metrics with arrows showing improvement/regression

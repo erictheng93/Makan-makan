@@ -13,9 +13,13 @@
  * All output is shell-safe (single-quoted values, no eval needed).
  */
 
-import { ALL_HOST_CONFIGS, getHostConfig, ALL_HOST_NAMES } from '../hosts/index';
-import { validateAllConfigs } from './host-config';
-import { execSync } from 'child_process';
+import {
+  ALL_HOST_CONFIGS,
+  getHostConfig,
+  ALL_HOST_NAMES,
+} from "../hosts/index";
+import { validateAllConfigs } from "./host-config";
+import { execSync } from "child_process";
 
 const CLI_REGEX = /^[a-z][a-z0-9_-]*$/;
 const PATH_REGEX = /^[a-zA-Z0-9_.\/${}~-]+$/;
@@ -33,16 +37,16 @@ function validateValue(val: string, context: string): void {
 const [command, ...args] = process.argv.slice(2);
 
 switch (command) {
-  case 'list':
+  case "list":
     for (const name of ALL_HOST_NAMES) {
       console.log(name);
     }
     break;
 
-  case 'get': {
+  case "get": {
     const [hostName, field] = args;
     if (!hostName || !field) {
-      console.error('Usage: host-config-export.ts get <host> <field>');
+      console.error("Usage: host-config-export.ts get <host> <field>");
       process.exit(1);
     }
     const config = getHostConfig(hostName);
@@ -51,13 +55,13 @@ switch (command) {
       console.error(`Unknown field: ${field}`);
       process.exit(1);
     }
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       console.log(value);
-    } else if (typeof value === 'boolean') {
-      console.log(value ? '1' : '0');
+    } else if (typeof value === "boolean") {
+      console.log(value ? "1" : "0");
     } else if (Array.isArray(value)) {
       for (const item of value) {
-        console.log(typeof item === 'string' ? item : JSON.stringify(item));
+        console.log(typeof item === "string" ? item : JSON.stringify(item));
       }
     } else {
       console.log(JSON.stringify(value));
@@ -65,14 +69,14 @@ switch (command) {
     break;
   }
 
-  case 'detect': {
+  case "detect": {
     for (const config of ALL_HOST_CONFIGS) {
       const commands = [config.cliCommand, ...(config.cliAliases || [])];
       for (const cmd of commands) {
         try {
-          execSync(`command -v ${shellEscape(cmd)}`, { stdio: 'pipe' });
+          execSync(`command -v ${shellEscape(cmd)}`, { stdio: "pipe" });
           console.log(config.name);
-          break;  // Found this host, move to next
+          break; // Found this host, move to next
         } catch {
           // Binary not found, try next alias
         }
@@ -81,7 +85,7 @@ switch (command) {
     break;
   }
 
-  case 'validate': {
+  case "validate": {
     const errors = validateAllConfigs(ALL_HOST_CONFIGS);
     if (errors.length > 0) {
       for (const error of errors) {
@@ -93,10 +97,10 @@ switch (command) {
     break;
   }
 
-  case 'symlinks': {
+  case "symlinks": {
     const [hostName] = args;
     if (!hostName) {
-      console.error('Usage: host-config-export.ts symlinks <host>');
+      console.error("Usage: host-config-export.ts symlinks <host>");
       process.exit(1);
     }
     const config = getHostConfig(hostName);
@@ -104,7 +108,9 @@ switch (command) {
       console.log(link);
     }
     if (config.runtimeRoot.globalFiles) {
-      for (const [dir, files] of Object.entries(config.runtimeRoot.globalFiles)) {
+      for (const [dir, files] of Object.entries(
+        config.runtimeRoot.globalFiles,
+      )) {
         for (const file of files) {
           console.log(`${dir}/${file}`);
         }
@@ -114,6 +120,8 @@ switch (command) {
   }
 
   default:
-    console.error('Usage: host-config-export.ts <list|get|detect|validate|symlinks> [args]');
+    console.error(
+      "Usage: host-config-export.ts <list|get|detect|validate|symlinks> [args]",
+    );
     process.exit(1);
 }

@@ -6,23 +6,23 @@
  * NDJSON output for real-time progress, scans for browse errors.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { getProjectEvalDir } from './eval-store';
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import { getProjectEvalDir } from "./eval-store";
 
-const GSTACK_DEV_DIR = path.join(os.homedir(), '.gstack-dev');
-const HEARTBEAT_PATH = path.join(GSTACK_DEV_DIR, 'e2e-live.json'); // heartbeat stays global
+const GSTACK_DEV_DIR = path.join(os.homedir(), ".gstack-dev");
+const HEARTBEAT_PATH = path.join(GSTACK_DEV_DIR, "e2e-live.json"); // heartbeat stays global
 const PROJECT_DIR = path.dirname(getProjectEvalDir()); // ~/.gstack/projects/$SLUG/
 
 /** Sanitize test name for use as filename: strip leading slashes, replace / with - */
 export function sanitizeTestName(name: string): string {
-  return name.replace(/^\/+/, '').replace(/\//g, '-');
+  return name.replace(/^\/+/, "").replace(/\//g, "-");
 }
 
 /** Atomic write: write to .tmp then rename. Non-fatal on error. */
 function atomicWriteSync(filePath: string, data: string): void {
-  const tmp = filePath + '.tmp';
+  const tmp = filePath + ".tmp";
   fs.writeFileSync(tmp, data);
   fs.renameSync(tmp, filePath);
 }
@@ -31,7 +31,7 @@ export interface CostEstimate {
   inputChars: number;
   outputChars: number;
   estimatedTokens: number;
-  estimatedCost: number;  // USD
+  estimatedCost: number; // USD
   turnsUsed: number;
 }
 
@@ -79,7 +79,7 @@ export function parseNDJSON(lines: string[]): ParsedNDJSON {
   let resultLine: any = null;
   let turnCount = 0;
   let toolCallCount = 0;
-  const toolCalls: ParsedNDJSON['toolCalls'] = [];
+  const toolCalls: ParsedNDJSON["toolCalls"] = [];
 
   for (const line of lines) {
     if (!line.trim()) continue;
@@ -88,30 +88,32 @@ export function parseNDJSON(lines: string[]): ParsedNDJSON {
       transcript.push(event);
 
       // Track turns and tool calls from assistant events
-      if (event.type === 'assistant') {
+      if (event.type === "assistant") {
         turnCount++;
         const content = event.message?.content || [];
         for (const item of content) {
-          if (item.type === 'tool_use') {
+          if (item.type === "tool_use") {
             toolCallCount++;
             toolCalls.push({
-              tool: item.name || 'unknown',
+              tool: item.name || "unknown",
               input: item.input || {},
-              output: '',
+              output: "",
             });
           }
         }
       }
 
-      if (event.type === 'result') resultLine = event;
-    } catch { /* skip malformed lines */ }
+      if (event.type === "result") resultLine = event;
+    } catch {
+      /* skip malformed lines */
+    }
   }
 
   return { transcript, resultLine, turnCount, toolCallCount, toolCalls };
 }
 
 function truncate(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max) + '…' : s;
+  return s.length > max ? s.slice(0, max) + "…" : s;
 }
 
 // --- Main runner ---
@@ -131,12 +133,12 @@ export async function runSkillTest(options: {
     prompt,
     workingDirectory,
     maxTurns = 15,
-    allowedTools = ['Bash', 'Read', 'Write'],
+    allowedTools = ["Bash", "Read", "Write"],
     timeout = 120_000,
     testName,
     runId,
   } = options;
-  const model = options.model ?? process.env.EVALS_MODEL ?? 'claude-sonnet-4-6';
+  const model = options.model ?? process.env.EVALS_MODEL ?? "claude-sonnet-4-6";
 
   const startTime = Date.now();
   const startedAt = new Date().toISOString();
@@ -146,38 +148,54 @@ export async function runSkillTest(options: {
   const safeName = testName ? sanitizeTestName(testName) : null;
   if (runId) {
     try {
-      runDir = path.join(PROJECT_DIR, 'e2e-runs', runId);
+      runDir = path.join(PROJECT_DIR, "e2e-runs", runId);
       fs.mkdirSync(runDir, { recursive: true });
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 
   // Spawn claude -p with streaming NDJSON output. Prompt piped via stdin to
   // avoid shell escaping issues. --verbose is required for stream-json mode.
   const args = [
-    '-p',
-    '--model', model,
-    '--output-format', 'stream-json',
-    '--verbose',
-    '--dangerously-skip-permissions',
-    '--max-turns', String(maxTurns),
-    '--allowed-tools', ...allowedTools,
+    "-p",
+    "--model",
+    model,
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--dangerously-skip-permissions",
+    "--max-turns",
+    String(maxTurns),
+    "--allowed-tools",
+    ...allowedTools,
   ];
 
   // Write prompt to a temp file OUTSIDE workingDirectory to avoid race conditions
   // where afterAll cleanup deletes the dir before cat reads the file (especially
   // with --concurrent --retry). Using os.tmpdir() + unique suffix keeps it stable.
-  const promptFile = path.join(os.tmpdir(), `.prompt-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const promptFile = path.join(
+    os.tmpdir(),
+    `.prompt-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
   fs.writeFileSync(promptFile, prompt);
 
-  const proc = Bun.spawn(['sh', '-c', `cat "${promptFile}" | claude ${args.map(a => `"${a}"`).join(' ')}`], {
-    cwd: workingDirectory,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
+  const proc = Bun.spawn(
+    [
+      "sh",
+      "-c",
+      `cat "${promptFile}" | claude ${args.map((a) => `"${a}"`).join(" ")}`,
+    ],
+    {
+      cwd: workingDirectory,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
 
   // Race against timeout
-  let stderr = '';
-  let exitReason = 'unknown';
+  let stderr = "";
+  let exitReason = "unknown";
   let timedOut = false;
 
   const timeoutId = setTimeout(() => {
@@ -196,15 +214,15 @@ export async function runSkillTest(options: {
 
   const reader = proc.stdout.getReader();
   const decoder = new TextDecoder();
-  let buf = '';
+  let buf = "";
 
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buf += decoder.decode(value, { stream: true });
-      const lines = buf.split('\n');
-      buf = lines.pop() || '';
+      const lines = buf.split("\n");
+      buf = lines.pop() || "";
       for (const line of lines) {
         if (!line.trim()) continue;
         collectedLines.push(line);
@@ -212,11 +230,11 @@ export async function runSkillTest(options: {
         // Real-time progress to stderr + persistent logs
         try {
           const event = JSON.parse(line);
-          if (event.type === 'assistant') {
+          if (event.type === "assistant") {
             liveTurnCount++;
             const content = event.message?.content || [];
             for (const item of content) {
-              if (item.type === 'tool_use') {
+              if (item.type === "tool_use") {
                 liveToolCount++;
                 const now = Date.now();
                 const elapsed = Math.round((now - startTime) / 1000);
@@ -232,39 +250,66 @@ export async function runSkillTest(options: {
 
                 // Persist progress.log
                 if (runDir) {
-                  try { fs.appendFileSync(path.join(runDir, 'progress.log'), progressLine); } catch { /* non-fatal */ }
+                  try {
+                    fs.appendFileSync(
+                      path.join(runDir, "progress.log"),
+                      progressLine,
+                    );
+                  } catch {
+                    /* non-fatal */
+                  }
                 }
 
                 // Write heartbeat (atomic)
                 if (runId && testName) {
                   try {
                     const toolDesc = `${item.name}(${truncate(JSON.stringify(item.input || {}), 60)})`;
-                    atomicWriteSync(HEARTBEAT_PATH, JSON.stringify({
-                      runId,
-                      pid: proc.pid,
-                      startedAt,
-                      currentTest: testName,
-                      status: 'running',
-                      turn: liveTurnCount,
-                      toolCount: liveToolCount,
-                      lastTool: toolDesc,
-                      lastToolAt: new Date().toISOString(),
-                      elapsedSec: elapsed,
-                    }, null, 2) + '\n');
-                  } catch { /* non-fatal */ }
+                    atomicWriteSync(
+                      HEARTBEAT_PATH,
+                      JSON.stringify(
+                        {
+                          runId,
+                          pid: proc.pid,
+                          startedAt,
+                          currentTest: testName,
+                          status: "running",
+                          turn: liveTurnCount,
+                          toolCount: liveToolCount,
+                          lastTool: toolDesc,
+                          lastToolAt: new Date().toISOString(),
+                          elapsedSec: elapsed,
+                        },
+                        null,
+                        2,
+                      ) + "\n",
+                    );
+                  } catch {
+                    /* non-fatal */
+                  }
                 }
               }
             }
           }
-        } catch { /* skip — parseNDJSON will handle it later */ }
+        } catch {
+          /* skip — parseNDJSON will handle it later */
+        }
 
         // Append raw NDJSON line to per-test transcript file
         if (runDir && safeName) {
-          try { fs.appendFileSync(path.join(runDir, `${safeName}.ndjson`), line + '\n'); } catch { /* non-fatal */ }
+          try {
+            fs.appendFileSync(
+              path.join(runDir, `${safeName}.ndjson`),
+              line + "\n",
+            );
+          } catch {
+            /* non-fatal */
+          }
         }
       }
     }
-  } catch { /* stream read error — fall through to exit code handling */ }
+  } catch {
+    /* stream read error — fall through to exit code handling */
+  }
 
   // Flush remaining buffer
   if (buf.trim()) {
@@ -275,12 +320,16 @@ export async function runSkillTest(options: {
   const exitCode = await proc.exited;
   clearTimeout(timeoutId);
 
-  try { fs.unlinkSync(promptFile); } catch { /* non-fatal */ }
+  try {
+    fs.unlinkSync(promptFile);
+  } catch {
+    /* non-fatal */
+  }
 
   if (timedOut) {
-    exitReason = 'timeout';
+    exitReason = "timeout";
   } else if (exitCode === 0) {
-    exitReason = 'success';
+    exitReason = "success";
   } else {
     exitReason = `exit_code_${exitCode}`;
   }
@@ -293,7 +342,8 @@ export async function runSkillTest(options: {
   const browseErrors: string[] = [];
 
   // Scan transcript + stderr for browse errors
-  const allText = transcript.map(e => JSON.stringify(e)).join('\n') + '\n' + stderr;
+  const allText =
+    transcript.map((e) => JSON.stringify(e)).join("\n") + "\n" + stderr;
   for (const pattern of BROWSE_ERROR_PATTERNS) {
     const match = allText.match(pattern);
     if (match) {
@@ -303,11 +353,11 @@ export async function runSkillTest(options: {
 
   // Use resultLine for structured result data
   if (resultLine) {
-    if (resultLine.subtype === 'success' && resultLine.is_error) {
+    if (resultLine.subtype === "success" && resultLine.is_error) {
       // claude -p can return subtype=success with is_error=true (e.g. API connection failure)
-      exitReason = 'error_api';
-    } else if (resultLine.subtype === 'success') {
-      exitReason = 'success';
+      exitReason = "error_api";
+    } else if (resultLine.subtype === "success") {
+      exitReason = "success";
     } else if (resultLine.subtype) {
       // Preserve known subtypes like error_max_turns even if is_error is set
       exitReason = resultLine.subtype;
@@ -315,46 +365,72 @@ export async function runSkillTest(options: {
   }
 
   // Save failure transcript to persistent run directory (or fallback to workingDirectory)
-  if (browseErrors.length > 0 || exitReason !== 'success') {
+  if (browseErrors.length > 0 || exitReason !== "success") {
     try {
-      const failureDir = runDir || path.join(workingDirectory, '.gstack', 'test-transcripts');
+      const failureDir =
+        runDir || path.join(workingDirectory, ".gstack", "test-transcripts");
       fs.mkdirSync(failureDir, { recursive: true });
       const failureName = safeName
         ? `${safeName}-failure.json`
-        : `e2e-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        : `e2e-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
       fs.writeFileSync(
         path.join(failureDir, failureName),
-        JSON.stringify({
-          prompt: prompt.slice(0, 500),
-          testName: testName || 'unknown',
-          exitReason,
-          browseErrors,
-          duration,
-          turnAtTimeout: timedOut ? liveTurnCount : undefined,
-          lastToolCall: liveToolCount > 0 ? `tool #${liveToolCount}` : undefined,
-          stderr: stderr.slice(0, 2000),
-          result: resultLine ? { type: resultLine.type, subtype: resultLine.subtype, result: resultLine.result?.slice?.(0, 500) } : null,
-        }, null, 2),
+        JSON.stringify(
+          {
+            prompt: prompt.slice(0, 500),
+            testName: testName || "unknown",
+            exitReason,
+            browseErrors,
+            duration,
+            turnAtTimeout: timedOut ? liveTurnCount : undefined,
+            lastToolCall:
+              liveToolCount > 0 ? `tool #${liveToolCount}` : undefined,
+            stderr: stderr.slice(0, 2000),
+            result: resultLine
+              ? {
+                  type: resultLine.type,
+                  subtype: resultLine.subtype,
+                  result: resultLine.result?.slice?.(0, 500),
+                }
+              : null,
+          },
+          null,
+          2,
+        ),
       );
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 
   // Cost from result line (exact) or estimate from chars
   const turnsUsed = resultLine?.num_turns || 0;
   const estimatedCost = resultLine?.total_cost_usd || 0;
   const inputChars = prompt.length;
-  const outputChars = (resultLine?.result || '').length;
-  const estimatedTokens = (resultLine?.usage?.input_tokens || 0)
-    + (resultLine?.usage?.output_tokens || 0)
-    + (resultLine?.usage?.cache_read_input_tokens || 0);
+  const outputChars = (resultLine?.result || "").length;
+  const estimatedTokens =
+    (resultLine?.usage?.input_tokens || 0) +
+    (resultLine?.usage?.output_tokens || 0) +
+    (resultLine?.usage?.cache_read_input_tokens || 0);
 
   const costEstimate: CostEstimate = {
     inputChars,
     outputChars,
     estimatedTokens,
-    estimatedCost: Math.round((estimatedCost) * 100) / 100,
+    estimatedCost: Math.round(estimatedCost * 100) / 100,
     turnsUsed,
   };
 
-  return { toolCalls, browseErrors, exitReason, duration, output: resultLine?.result || '', costEstimate, transcript, model, firstResponseMs, maxInterTurnMs };
+  return {
+    toolCalls,
+    browseErrors,
+    exitReason,
+    duration,
+    output: resultLine?.result || "",
+    costEstimate,
+    transcript,
+    model,
+    firstResponseMs,
+    maxInterTurnMs,
+  };
 }

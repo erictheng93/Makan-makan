@@ -1,41 +1,48 @@
 <template>
   <div class="backup-dashboard">
     <div class="dashboard-header">
-      <h1>{{ t('backup.dashboard.title') }}</h1>
+      <h1>{{ t("backup.dashboard.title") }}</h1>
       <div class="header-actions">
-        <button
-          class="btn btn-primary"
-          @click="showCreateBackupModal = true"
-        >
-          {{ t('backup.actions.create') }}
+        <button class="btn btn-primary" @click="showCreateBackupModal = true">
+          {{ t("backup.actions.create") }}
         </button>
         <button
           class="btn btn-secondary"
           :disabled="isLoading"
           @click="refreshDashboard"
         >
-          {{ t('backup.actions.refresh') }}
+          {{ t("backup.actions.refresh") }}
         </button>
       </div>
     </div>
 
     <!-- System Health Status -->
-    <div class="health-status-card" :class="healthStatusClass" :data-health-status="systemHealth?.overall_status || 'unknown'">
+    <div
+      class="health-status-card"
+      :class="healthStatusClass"
+      :data-health-status="systemHealth?.overall_status || 'unknown'"
+    >
       <div class="status-icon">
         <component :is="healthStatusIcon" />
       </div>
       <div class="status-info">
-        <h3>{{ t(`backup.health.${systemHealth?.overall_status || 'unknown'}`) }}</h3>
+        <h3>
+          {{ t(`backup.health.${systemHealth?.overall_status || "unknown"}`) }}
+        </h3>
         <p>{{ healthStatusMessage }}</p>
       </div>
       <div class="status-metrics">
         <div class="metric">
-          <span class="metric-value">{{ systemHealth?.running_backups || 0 }}</span>
-          <span class="metric-label">{{ t('backup.metrics.running') }}</span>
+          <span class="metric-value">{{
+            systemHealth?.running_backups || 0
+          }}</span>
+          <span class="metric-label">{{ t("backup.metrics.running") }}</span>
         </div>
         <div class="metric">
-          <span class="metric-value">{{ systemHealth?.failed_backups_24h || 0 }}</span>
-          <span class="metric-label">{{ t('backup.metrics.failed24h') }}</span>
+          <span class="metric-value">{{
+            systemHealth?.failed_backups_24h || 0
+          }}</span>
+          <span class="metric-label">{{ t("backup.metrics.failed24h") }}</span>
         </div>
       </div>
     </div>
@@ -46,31 +53,37 @@
         <div class="stat-icon backup-icon">📦</div>
         <div class="stat-content">
           <div class="stat-value">{{ backupMetrics?.total_backups || 0 }}</div>
-          <div class="stat-label">{{ t('backup.stats.totalBackups') }}</div>
+          <div class="stat-label">{{ t("backup.stats.totalBackups") }}</div>
         </div>
       </div>
 
       <div class="stat-card">
         <div class="stat-icon success-icon">✅</div>
         <div class="stat-content">
-          <div class="stat-value">{{ backupMetrics?.successful_backups || 0 }}</div>
-          <div class="stat-label">{{ t('backup.stats.successful') }}</div>
+          <div class="stat-value">
+            {{ backupMetrics?.successful_backups || 0 }}
+          </div>
+          <div class="stat-label">{{ t("backup.stats.successful") }}</div>
         </div>
       </div>
 
       <div class="stat-card">
         <div class="stat-icon storage-icon">💾</div>
         <div class="stat-content">
-          <div class="stat-value">{{ formatFileSize(backupMetrics?.storage_usage_bytes || 0) }}</div>
-          <div class="stat-label">{{ t('backup.stats.storageUsed') }}</div>
+          <div class="stat-value">
+            {{ formatFileSize(backupMetrics?.storage_usage_bytes || 0) }}
+          </div>
+          <div class="stat-label">{{ t("backup.stats.storageUsed") }}</div>
         </div>
       </div>
 
       <div class="stat-card">
         <div class="stat-icon cost-icon">💰</div>
         <div class="stat-content">
-          <div class="stat-value">${{ (backupMetrics?.cost_estimation || 0).toFixed(3) }}</div>
-          <div class="stat-label">{{ t('backup.stats.estimatedCost') }}</div>
+          <div class="stat-value">
+            ${{ (backupMetrics?.cost_estimation || 0).toFixed(3) }}
+          </div>
+          <div class="stat-label">{{ t("backup.stats.estimatedCost") }}</div>
         </div>
       </div>
     </div>
@@ -78,9 +91,9 @@
     <!-- Recent Backups -->
     <div class="recent-backups-section">
       <div class="section-header">
-        <h2>{{ t('backup.recent.title') }}</h2>
+        <h2>{{ t("backup.recent.title") }}</h2>
         <router-link to="/backup/history" class="view-all-link">
-          {{ t('backup.recent.viewAll') }}
+          {{ t("backup.recent.viewAll") }}
         </router-link>
       </div>
 
@@ -97,20 +110,17 @@
 
       <div v-else class="empty-state">
         <div class="empty-icon">📦</div>
-        <h3>{{ t('backup.empty.title') }}</h3>
-        <p>{{ t('backup.empty.description') }}</p>
-        <button
-          class="btn btn-primary"
-          @click="showCreateBackupModal = true"
-        >
-          {{ t('backup.empty.createFirst') }}
+        <h3>{{ t("backup.empty.title") }}</h3>
+        <p>{{ t("backup.empty.description") }}</p>
+        <button class="btn btn-primary" @click="showCreateBackupModal = true">
+          {{ t("backup.empty.createFirst") }}
         </button>
       </div>
     </div>
 
     <!-- Backup Alerts -->
     <div v-if="alerts.length > 0" class="alerts-section">
-      <h2>{{ t('backup.alerts.title') }}</h2>
+      <h2>{{ t("backup.alerts.title") }}</h2>
       <div class="alert-list">
         <BackupAlert
           v-for="alert in alerts"
@@ -140,257 +150,271 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useConfirmModal } from '@/composables/useConfirmModal'
-import { useBackupStore } from '@/stores/backup'
-import { useAuthStore } from '@/stores/auth'
+import { ref, computed, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
+import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useBackupStore } from "@/stores/backup";
+import { useAuthStore } from "@/stores/auth";
 // TODO: Import from @makanmakan/shared-types when workspace is configured
 // import type { BackupRecord, BackupAlert as BackupAlertType } from '@makanmakan/shared-types'
 
 // Temporary type definitions
-type BackupStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
-type BackupType = 'full' | 'incremental' | 'differential'
-type StorageProvider = 'r2' | 'kv' | 'external'
+type BackupStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "cancelled";
+type BackupType = "full" | "incremental" | "differential";
+type StorageProvider = "r2" | "kv" | "external";
 
 interface BackupRecord {
-  id: string
-  restaurant_id: string
-  configuration_id: string
-  name: string
-  backup_type: BackupType
-  status: BackupStatus
-  file_size: number
-  compressed_size: number
-  records_count: number
-  tables_included: string[]
-  storage_provider: StorageProvider
-  storage_path: string
-  encryption_enabled: boolean
-  checksum: string
-  started_at: string
-  completed_at?: string
-  error_message?: string
-  created_by: string
-  expires_at?: string
-  metadata: any
+  id: string;
+  restaurant_id: string;
+  configuration_id: string;
+  name: string;
+  backup_type: BackupType;
+  status: BackupStatus;
+  file_size: number;
+  compressed_size: number;
+  records_count: number;
+  tables_included: string[];
+  storage_provider: StorageProvider;
+  storage_path: string;
+  encryption_enabled: boolean;
+  checksum: string;
+  started_at: string;
+  completed_at?: string;
+  error_message?: string;
+  created_by: string;
+  expires_at?: string;
+  metadata: any;
 }
 
 interface BackupAlert {
-  id: string
-  restaurant_id: string
-  alert_type: 'backup_failed' | 'storage_quota_exceeded' | 'schedule_missed' | 'restoration_completed' | 'performance_degraded'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  title: string
-  message: string
-  related_backup_id?: string
-  triggered_at: string
-  acknowledged: boolean
-  acknowledged_by?: string
-  acknowledged_at?: string
-  resolved: boolean
-  resolved_at?: string
+  id: string;
+  restaurant_id: string;
+  alert_type:
+    | "backup_failed"
+    | "storage_quota_exceeded"
+    | "schedule_missed"
+    | "restoration_completed"
+    | "performance_degraded";
+  severity: "low" | "medium" | "high" | "critical";
+  title: string;
+  message: string;
+  related_backup_id?: string;
+  triggered_at: string;
+  acknowledged: boolean;
+  acknowledged_by?: string;
+  acknowledged_at?: string;
+  resolved: boolean;
+  resolved_at?: string;
 }
 
-type BackupAlertType = BackupAlert
+type BackupAlertType = BackupAlert;
 
-import BackupListItem from '@/components/backup/BackupListItem.vue'
-import BackupAlert from '@/components/backup/BackupAlert.vue'
-import CreateBackupModal from '@/components/backup/CreateBackupModal.vue'
-import RestoreBackupModal from '@/components/backup/RestoreBackupModal.vue'
+import BackupListItem from "@/components/backup/BackupListItem.vue";
+import BackupAlert from "@/components/backup/BackupAlert.vue";
+import CreateBackupModal from "@/components/backup/CreateBackupModal.vue";
+import RestoreBackupModal from "@/components/backup/RestoreBackupModal.vue";
 
-const { t } = useI18n()
-const { confirm: confirmModal } = useConfirmModal()
-const backupStore = useBackupStore()
-const authStore = useAuthStore()
+const { t } = useI18n();
+const { confirm: confirmModal } = useConfirmModal();
+const backupStore = useBackupStore();
+const authStore = useAuthStore();
 
 // Reactive data
-const isLoading = ref(false)
-const showCreateBackupModal = ref(false)
-const showRestoreModal = ref(false)
-const selectedBackup = ref<BackupRecord | null>(null)
-const systemHealth = ref<any>(null)
-const backupMetrics = ref<any>(null)
-const recentBackups = ref<BackupRecord[]>([])
-const alerts = ref<BackupAlertType[]>([])
+const isLoading = ref(false);
+const showCreateBackupModal = ref(false);
+const showRestoreModal = ref(false);
+const selectedBackup = ref<BackupRecord | null>(null);
+const systemHealth = ref<any>(null);
+const backupMetrics = ref<any>(null);
+const recentBackups = ref<BackupRecord[]>([]);
+const alerts = ref<BackupAlertType[]>([]);
 
 // Computed properties
 const healthStatusClass = computed(() => {
-  const status = systemHealth.value?.overall_status
+  const status = systemHealth.value?.overall_status;
   return {
-    'health-healthy': status === 'healthy',
-    'health-warning': status === 'warning',
-    'health-critical': status === 'critical'
-  }
-})
+    "health-healthy": status === "healthy",
+    "health-warning": status === "warning",
+    "health-critical": status === "critical",
+  };
+});
 
 const healthStatusIcon = computed(() => {
-  const status = systemHealth.value?.overall_status
+  const status = systemHealth.value?.overall_status;
   switch (status) {
-    case 'healthy': return 'CheckCircleIcon'
-    case 'warning': return 'ExclamationTriangleIcon'
-    case 'critical': return 'XCircleIcon'
-    default: return 'QuestionMarkCircleIcon'
+    case "healthy":
+      return "CheckCircleIcon";
+    case "warning":
+      return "ExclamationTriangleIcon";
+    case "critical":
+      return "XCircleIcon";
+    default:
+      return "QuestionMarkCircleIcon";
   }
-})
+});
 
 const healthStatusMessage = computed(() => {
-  if (!systemHealth.value) return t('backup.health.loading')
+  if (!systemHealth.value) return t("backup.health.loading");
 
-  const { running_backups, failed_backups_24h } = systemHealth.value
+  const { running_backups, failed_backups_24h } = systemHealth.value;
 
   if (failed_backups_24h > 0) {
-    return t('backup.health.failuresDetected', { count: failed_backups_24h })
+    return t("backup.health.failuresDetected", { count: failed_backups_24h });
   }
 
   if (running_backups > 0) {
-    return t('backup.health.backupsRunning', { count: running_backups })
+    return t("backup.health.backupsRunning", { count: running_backups });
   }
 
-  return t('backup.health.allSystemsNormal')
-})
+  return t("backup.health.allSystemsNormal");
+});
 
 // Methods
 const formatFileSize = (bytes: number): string => {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let size = bytes
-  let unitIndex = 0
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = bytes;
+  let unitIndex = 0;
 
   while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024
-    unitIndex++
+    size /= 1024;
+    unitIndex++;
   }
 
-  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
-}
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
 
 const refreshDashboard = async () => {
-  if (isLoading.value) return
+  if (isLoading.value) return;
 
-  isLoading.value = true
+  isLoading.value = true;
 
   try {
     // Get current restaurant from auth store
-    const restaurantId = authStore.restaurantId
-    if (!restaurantId) throw new Error('No restaurant selected')
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) throw new Error("No restaurant selected");
 
     // Fetch all dashboard data
     await Promise.all([
       loadSystemHealth(),
       loadBackupMetrics(String(restaurantId)),
       loadRecentBackups(String(restaurantId)),
-      loadAlerts(String(restaurantId))
-    ])
+      loadAlerts(String(restaurantId)),
+    ]);
   } catch (error) {
-    console.error('Error refreshing dashboard:', error)
+    console.error("Error refreshing dashboard:", error);
     // Handle error (show toast notification)
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const loadSystemHealth = async () => {
   try {
-    systemHealth.value = await backupStore.getSystemHealth()
+    systemHealth.value = await backupStore.getSystemHealth();
   } catch (error) {
-    console.error('Error loading system health:', error)
+    console.error("Error loading system health:", error);
   }
-}
+};
 
 const loadBackupMetrics = async (restaurantId: string) => {
   try {
-    backupMetrics.value = await backupStore.getRestaurantMetrics(restaurantId)
+    backupMetrics.value = await backupStore.getRestaurantMetrics(restaurantId);
   } catch (error) {
-    console.error('Error loading backup metrics:', error)
+    console.error("Error loading backup metrics:", error);
   }
-}
+};
 
 const loadRecentBackups = async (restaurantId: string) => {
   try {
     const response = await backupStore.listBackups({
       restaurant_id: restaurantId,
       limit: 5,
-      sort_by: 'created_at',
-      sort_order: 'desc'
-    })
-    recentBackups.value = response
+      sort_by: "created_at",
+      sort_order: "desc",
+    });
+    recentBackups.value = response;
   } catch (error) {
-    console.error('Error loading recent backups:', error)
+    console.error("Error loading recent backups:", error);
   }
-}
+};
 
 const loadAlerts = async (restaurantId: string) => {
   try {
-    alerts.value = await backupStore.getRestaurantAlerts(restaurantId, true) // unresolved only
+    alerts.value = await backupStore.getRestaurantAlerts(restaurantId, true); // unresolved only
   } catch (error) {
-    console.error('Error loading alerts:', error)
+    console.error("Error loading alerts:", error);
   }
-}
+};
 
 // Event handlers
 const handleDownloadBackup = async (backup: BackupRecord) => {
   try {
-    await backupStore.downloadBackup(backup.id)
+    await backupStore.downloadBackup(backup.id);
   } catch (error) {
-    console.error('Error downloading backup:', error)
+    console.error("Error downloading backup:", error);
   }
-}
+};
 
 const handleRestoreBackup = (backup: BackupRecord) => {
-  selectedBackup.value = backup
-  showRestoreModal.value = true
-}
+  selectedBackup.value = backup;
+  showRestoreModal.value = true;
+};
 
 const handleDeleteBackup = async (backup: BackupRecord) => {
   const confirmed = await confirmModal({
-    type: 'danger',
-    title: t('backup.confirm.deleteTitle'),
-    message: t('backup.confirm.delete', { name: backup.name }),
-    confirmLabel: t('common.delete'),
-  })
-  if (!confirmed) return
+    type: "danger",
+    title: t("backup.confirm.deleteTitle"),
+    message: t("backup.confirm.delete", { name: backup.name }),
+    confirmLabel: t("common.delete"),
+  });
+  if (!confirmed) return;
 
   try {
-    await backupStore.deleteBackup(backup.id)
-    await refreshDashboard()
+    await backupStore.deleteBackup(backup.id);
+    await refreshDashboard();
   } catch (error) {
-    console.error('Error deleting backup:', error)
+    console.error("Error deleting backup:", error);
   }
-}
+};
 
 const handleBackupCreated = () => {
-  showCreateBackupModal.value = false
-  refreshDashboard()
-}
+  showCreateBackupModal.value = false;
+  refreshDashboard();
+};
 
 const handleRestoreCompleted = () => {
-  showRestoreModal.value = false
-  selectedBackup.value = null
-  refreshDashboard()
-}
+  showRestoreModal.value = false;
+  selectedBackup.value = null;
+  refreshDashboard();
+};
 
 const handleAcknowledgeAlert = async (alert: BackupAlertType) => {
   try {
-    await backupStore.acknowledgeAlert(alert.id)
-    await loadAlerts(String(authStore.restaurantId || ''))
+    await backupStore.acknowledgeAlert(alert.id);
+    await loadAlerts(String(authStore.restaurantId || ""));
   } catch (error) {
-    console.error('Error acknowledging alert:', error)
+    console.error("Error acknowledging alert:", error);
   }
-}
+};
 
 const handleResolveAlert = async (alert: BackupAlertType) => {
   try {
-    await backupStore.resolveAlert(alert.id)
-    await loadAlerts(String(authStore.restaurantId || ''))
+    await backupStore.resolveAlert(alert.id);
+    await loadAlerts(String(authStore.restaurantId || ""));
   } catch (error) {
-    console.error('Error resolving alert:', error)
+    console.error("Error resolving alert:", error);
   }
-}
+};
 
 // Lifecycle
 onMounted(() => {
-  refreshDashboard()
-})
+  refreshDashboard();
+});
 </script>
 
 <style scoped>

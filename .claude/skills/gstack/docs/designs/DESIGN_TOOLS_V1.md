@@ -34,6 +34,7 @@ A compiled TypeScript binary (`design/dist/design`) that wraps the OpenAI Images
 ## Cross-Model Perspective (Codex)
 
 Codex independently validated the core thesis: "The failure is not output quality within markdown; it is that the current unit of value is wrong." Key contributions:
+
 - Challenged premise #2 (opt-in → default-on) — accepted
 - Proposed vision-based quality gate: use GPT-4o vision to verify generated mockups for unreadable text, missing sections, broken layout, auto-retry once
 - Scoped 48-hour prototype: shared `visual_mockup.ts` utility, /office-hours + /plan-design-review only, hero mockup + 2 variants
@@ -93,6 +94,7 @@ $D setup
 ```
 
 **Brief input modes:**
+
 - `--brief "plain text"` — free-form text prompt (simple mode)
 - `--brief-file path.json` — structured JSON matching the `DesignBrief` interface (rich mode)
 - Skills construct a JSON brief file, write it to /tmp, and pass `--brief-file`
@@ -168,6 +170,7 @@ width for maximum image fidelity. Users scroll vertically through variants.
 ```
 
 **Visual spec:**
+
 - Background: #fff. No shadows, no card borders. Variant separation: 1px #e5e5e5 line.
 - Typography: system font stack. Header: 16px semibold. Labels: 14px semibold. Feedback placeholder: 13px regular #999.
 - Star rating: 5 clickable stars, filled=#000, unfilled=#ddd. Not colored, not animated.
@@ -178,12 +181,14 @@ width for maximum image fidelity. Users scroll vertically through variants.
 - Max-width: 1200px centered for mockup images. Margins: 24px sides.
 
 **Interaction states:**
+
 - Loading (page opens before images ready): skeleton pulse with "Generating variant A..." per card. Stars/textarea/pick disabled.
 - Partial failure (2 of 3 succeed): show good ones, error card for failed with per-variant [Retry].
 - Post-submit: "Feedback submitted! Return to your coding agent." Page stays open.
 - Regeneration: smooth transition, fade out old variants, skeleton pulses, fade in new. Scroll resets to top. Previous feedback cleared.
 
 **Feedback JSON structure** (written to hidden #feedback-result element):
+
 ```json
 {
   "preferred": "A",
@@ -210,38 +215,43 @@ Why sequential: Codex adversarial review identified that raster PNGs are opaque 
 
 **1. Stateless CLI, not daemon**
 Browse needs a persistent Chromium instance. Design is just API calls — no reason for a server. Session state for multi-turn iteration is a JSON file written to `/tmp/design-session-{id}.json` containing `previous_response_id`.
+
 - **Session ID:** generated from `${PID}-${timestamp}`, passed via `--session` flag
 - **Discovery:** the `generate` command creates the session file and prints its path; `iterate` reads it via `--session`
 - **Cleanup:** session files in /tmp are ephemeral (OS cleans up); no explicit cleanup needed
 
 **2. Structured brief input**
 The brief is the interface between skill prose and image generation. Skills construct it from design context:
+
 ```typescript
 interface DesignBrief {
-  goal: string;           // "Dashboard for coding assessment tool"
-  audience: string;       // "Technical users, YC partners"
-  style: string;          // "Dark theme, cream accents, minimal"
-  elements: string[];     // ["builder name", "score badge", "narrative letter"]
-  constraints?: string;   // "Max width 1024px, mobile-first"
-  reference?: string;     // Path to existing screenshot or DESIGN.md excerpt
-  screenType: string;     // "desktop-dashboard" | "mobile-app" | "landing-page" | etc.
+  goal: string; // "Dashboard for coding assessment tool"
+  audience: string; // "Technical users, YC partners"
+  style: string; // "Dark theme, cream accents, minimal"
+  elements: string[]; // ["builder name", "score badge", "narrative letter"]
+  constraints?: string; // "Max width 1024px, mobile-first"
+  reference?: string; // Path to existing screenshot or DESIGN.md excerpt
+  screenType: string; // "desktop-dashboard" | "mobile-app" | "landing-page" | etc.
 }
 ```
 
 **3. Default-on in design skills**
 Skills generate mockups by default. The template includes skip language:
+
 ```
 Generating visual mockup of the proposed design... (say "skip" if you don't need visuals)
 ```
 
 **4. Vision quality gate**
 After generating, optionally pass the image through GPT-4o vision to check:
+
 - Text readability (are labels/headings legible?)
 - Layout completeness (are all requested elements present?)
 - Visual coherence (does it look like a real UI, not a collage?)
-Auto-retry once on failure. If still fails, present anyway with a warning.
+  Auto-retry once on failure. If still fails, present anyway with a warning.
 
 **5. Output location: explorations in /tmp, approved finals in `docs/designs/`**
+
 - Exploration variants go to `/tmp/gstack-mockups-{session}/` (ephemeral, not committed)
 - Only the **user-approved final** mockup gets saved to `docs/designs/` (checked in)
 - Default output directory configurable via CLAUDE.md `design_output_dir` setting
@@ -261,20 +271,24 @@ Variant generation uses staggered parallel: start each API call 1 second apart v
 ### Template Integration
 
 **Add to existing resolver:** `scripts/resolvers/design.ts` (NOT a new file)
+
 - Add `generateDesignSetup()` for `{{DESIGN_SETUP}}` placeholder (mirrors `generateBrowseSetup()`)
 - Add `generateDesignMockup()` for `{{DESIGN_MOCKUP}}` placeholder (full exploration workflow)
 - Keeps all design resolvers in one file (consistent with existing codebase convention)
 
 **New HostPaths entry:** `types.ts`
+
 ```typescript
 // claude host:
-designDir: '~/.claude/skills/gstack/design/dist'
+designDir: "~/.claude/skills/gstack/design/dist";
 // codex host:
-designDir: '$GSTACK_DESIGN'
+designDir: "$GSTACK_DESIGN";
 ```
+
 Note: Codex runtime setup (`setup` script) must also export `GSTACK_DESIGN` env var, similar to how `GSTACK_BROWSE` is set.
 
 **`$D` resolution bash block** (generated by `{{DESIGN_SETUP}}`):
+
 ```bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 D=""
@@ -286,9 +300,11 @@ else
   echo "DESIGN_NOT_AVAILABLE"
 fi
 ```
+
 If `DESIGN_NOT_AVAILABLE`: skills fall back to HTML wireframe generation (existing `DESIGN_SKETCH` pattern). Design mockup is a progressive enhancement, not a hard requirement.
 
 **New functions in existing resolver:** `scripts/resolvers/design.ts`
+
 - Add `generateDesignSetup()` for `{{DESIGN_SETUP}}` — mirrors `generateBrowseSetup()` pattern
 - Add `generateDesignMockup()` for `{{DESIGN_MOCKUP}}` — the full generate+check+present workflow
 - Keeps all design resolvers in one file (consistent with existing codebase convention)
@@ -296,67 +312,72 @@ If `DESIGN_NOT_AVAILABLE`: skills fall back to HTML wireframe generation (existi
 ### Skill Integration (Priority Order)
 
 **1. /office-hours** — Replace the Visual Sketch section
+
 - After approach selection (Phase 4), generate hero mockup + 2 variants
 - Present all three via Read tool, ask user to pick
 - Iterate if requested
 - Save chosen mockup alongside design doc
 
 **2. /plan-design-review** — "What better looks like"
+
 - When rating a design dimension <7/10, generate a mockup showing what 10/10 would look like
 - Side-by-side: current (screenshot via $B) vs. proposed (mockup via $D)
 
 **3. /design-consultation** — Design system preview
+
 - Generate visual preview of proposed design system (typography, colors, components)
 - Replace the /tmp HTML preview page with a proper mockup
 
 **4. /design-review** — Design intent comparison
+
 - Generate "design intent" mockup from the plan/DESIGN.md specs
 - Compare against live site screenshot for visual delta
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `design/src/cli.ts` | Entry point, command dispatch |
-| `design/src/commands.ts` | Command registry |
-| `design/src/generate.ts` | GPT Image generation via Responses API |
-| `design/src/iterate.ts` | Multi-turn iteration with session state |
-| `design/src/variants.ts` | Generate N design variants |
-| `design/src/check.ts` | Vision-based quality gate |
-| `design/src/brief.ts` | Structured brief types + helpers |
-| `design/src/session.ts` | Session state management |
-| `design/src/compare.ts` | HTML comparison board generator |
-| `design/test/design.test.ts` | Integration tests (mock OpenAI API) |
+| File                                                   | Purpose                                            |
+| ------------------------------------------------------ | -------------------------------------------------- |
+| `design/src/cli.ts`                                    | Entry point, command dispatch                      |
+| `design/src/commands.ts`                               | Command registry                                   |
+| `design/src/generate.ts`                               | GPT Image generation via Responses API             |
+| `design/src/iterate.ts`                                | Multi-turn iteration with session state            |
+| `design/src/variants.ts`                               | Generate N design variants                         |
+| `design/src/check.ts`                                  | Vision-based quality gate                          |
+| `design/src/brief.ts`                                  | Structured brief types + helpers                   |
+| `design/src/session.ts`                                | Session state management                           |
+| `design/src/compare.ts`                                | HTML comparison board generator                    |
+| `design/test/design.test.ts`                           | Integration tests (mock OpenAI API)                |
 | (none — add to existing `scripts/resolvers/design.ts`) | `{{DESIGN_SETUP}}` + `{{DESIGN_MOCKUP}}` resolvers |
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `scripts/resolvers/types.ts` | Add `designDir` to `HostPaths` |
-| `scripts/resolvers/index.ts` | Register DESIGN_SETUP + DESIGN_MOCKUP resolvers |
-| `package.json` | Add `design` build command |
-| `setup` | Build design binary alongside browse |
-| `scripts/resolvers/preamble.ts` | Add `GSTACK_DESIGN` env var export for Codex host |
-| `test/gen-skill-docs.test.ts` | Update DESIGN_SKETCH test suite for new resolvers |
-| `setup` | Add design binary build + Codex/Kiro asset linking |
-| `office-hours/SKILL.md.tmpl` | Replace Visual Sketch section with `{{DESIGN_MOCKUP}}` |
+| File                               | Change                                                                |
+| ---------------------------------- | --------------------------------------------------------------------- |
+| `scripts/resolvers/types.ts`       | Add `designDir` to `HostPaths`                                        |
+| `scripts/resolvers/index.ts`       | Register DESIGN_SETUP + DESIGN_MOCKUP resolvers                       |
+| `package.json`                     | Add `design` build command                                            |
+| `setup`                            | Build design binary alongside browse                                  |
+| `scripts/resolvers/preamble.ts`    | Add `GSTACK_DESIGN` env var export for Codex host                     |
+| `test/gen-skill-docs.test.ts`      | Update DESIGN_SKETCH test suite for new resolvers                     |
+| `setup`                            | Add design binary build + Codex/Kiro asset linking                    |
+| `office-hours/SKILL.md.tmpl`       | Replace Visual Sketch section with `{{DESIGN_MOCKUP}}`                |
 | `plan-design-review/SKILL.md.tmpl` | Add `{{DESIGN_SETUP}}` + mockup generation for low-scoring dimensions |
 
 ### Existing Code to Reuse
 
-| Code | Location | Used For |
-|------|----------|----------|
-| Browse CLI pattern | `browse/src/cli.ts` | Command dispatch architecture |
-| `commands.ts` registry | `browse/src/commands.ts` | Single source of truth pattern |
-| `generateBrowseSetup()` | `scripts/resolvers/browse.ts` | Template for `generateDesignSetup()` |
+| Code                     | Location                      | Used For                              |
+| ------------------------ | ----------------------------- | ------------------------------------- |
+| Browse CLI pattern       | `browse/src/cli.ts`           | Command dispatch architecture         |
+| `commands.ts` registry   | `browse/src/commands.ts`      | Single source of truth pattern        |
+| `generateBrowseSetup()`  | `scripts/resolvers/browse.ts` | Template for `generateDesignSetup()`  |
 | `DESIGN_SKETCH` resolver | `scripts/resolvers/design.ts` | Template for `DESIGN_MOCKUP` resolver |
-| HostPaths system | `scripts/resolvers/types.ts` | Multi-host path resolution |
-| Build pipeline | `package.json` build script | `bun build --compile` pattern |
+| HostPaths system         | `scripts/resolvers/types.ts`  | Multi-host path resolution            |
+| Build pipeline           | `package.json` build script   | `bun build --compile` pattern         |
 
 ### API Details
 
 **Generate:** OpenAI Responses API with `image_generation` tool
+
 ```typescript
 const response = await openai.responses.create({
   model: "gpt-4o",
@@ -364,12 +385,15 @@ const response = await openai.responses.create({
   tools: [{ type: "image_generation", size: "1536x1024", quality: "high" }],
 });
 // Extract image from response output items
-const imageItem = response.output.find(item => item.type === "image_generation_call");
+const imageItem = response.output.find(
+  (item) => item.type === "image_generation_call",
+);
 const base64Data = imageItem.result; // base64-encoded PNG
 fs.writeFileSync(outputPath, Buffer.from(base64Data, "base64"));
 ```
 
 **Iterate:** Same API with `previous_response_id`
+
 ```typescript
 const response = await openai.responses.create({
   model: "gpt-4o",
@@ -378,19 +402,29 @@ const response = await openai.responses.create({
   tools: [{ type: "image_generation" }],
 });
 ```
+
 **NOTE:** Multi-turn image iteration via `previous_response_id` is an assumption that needs prototype validation. The Responses API supports conversation threading, but whether it retains visual context of generated images for edit-style iteration is not confirmed in docs. **Fallback:** if multi-turn doesn't work, `iterate` falls back to re-generating with the original brief + accumulated feedback in a single prompt.
 
 **Check:** GPT-4o vision
+
 ```typescript
 const check = await openai.chat.completions.create({
   model: "gpt-4o",
-  messages: [{
-    role: "user",
-    content: [
-      { type: "image_url", image_url: { url: `data:image/png;base64,${imageData}` } },
-      { type: "text", text: `Check this UI mockup. Brief: ${brief}. Is text readable? Are all elements present? Does it look like a real UI? Return PASS or FAIL with issues.` }
-    ]
-  }]
+  messages: [
+    {
+      role: "user",
+      content: [
+        {
+          type: "image_url",
+          image_url: { url: `data:image/png;base64,${imageData}` },
+        },
+        {
+          type: "text",
+          text: `Check this UI mockup. Brief: ${brief}. Is text readable? Are all elements present? Does it look like a real UI? Return PASS or FAIL with issues.`,
+        },
+      ],
+    },
+  ],
 });
 ```
 
@@ -401,6 +435,7 @@ const check = await openai.chat.completions.create({
 **Codex OAuth tokens DO NOT work for image generation.** Tested 2026-03-26: both the Images API and Responses API reject `~/.codex/auth.json` access_token with "Missing scopes: api.model.images.request". Codex CLI also has no native imagegen capability.
 
 **Auth resolution order:**
+
 1. Read `~/.gstack/openai.json` → `{ "api_key": "sk-..." }` (file permissions 0600)
 2. Fall back to `OPENAI_API_KEY` environment variable
 3. If neither exists → guided setup flow:
@@ -424,48 +459,55 @@ const check = await openai.chat.completions.create({
 ## CEO Expansion Scope (accepted via /plan-ceo-review SCOPE EXPANSION)
 
 ### 1. Design Memory + Exploration Width Control
+
 - Auto-extract visual language from approved mockups into DESIGN.md
 - If DESIGN.md exists, constrain future mockups to established design language
 - If no DESIGN.md (bootstrap), explore WIDE across diverse directions
 - Progressive constraint: more established design = narrower exploration band
 - Comparison board gets REGENERATE section with exploration controls:
   - "Something totally different" (wide exploration)
-  - "More like option ___" (narrow around a favorite)
+  - "More like option \_\_\_" (narrow around a favorite)
   - "Match my existing design" (constrain to DESIGN.md)
   - Free text input for specific direction changes
   - Regenerate refreshes the page, agent polls for new submission
 
 ### 2. Mockup Diffing
+
 - `$D diff --before old.png --after new.png` generates visual diff
 - Side-by-side with changed regions highlighted
 - Uses GPT-4o vision to identify differences
 - Used in: /design-review, iteration feedback, PR review
 
 ### 3. Screenshot-to-Mockup Evolution
+
 - `$D evolve --screenshot current.png --brief "make it calmer"`
 - Takes live site screenshot, generates mockup showing how it SHOULD look
 - Starts from reality, not blank canvas
 - Bridge between /design-review critique and visual fix proposal
 
 ### 4. Design Intent Verification
+
 - During /design-review, overlay approved mockup (docs/designs/) onto live screenshot
 - Highlight divergence: "You designed X, you built Y, here's the gap"
 - Closes the full loop: design -> implement -> verify visually
 - Combines $B screenshot + $D diff + vision analysis
 
 ### 5. Responsive Variants
+
 - `$D variants --brief "..." --viewports desktop,tablet,mobile`
 - Auto-generates mockups at multiple viewport sizes
 - Comparison board shows responsive grid for simultaneous approval
 - Makes responsive design a first-class concern from mockup stage
 
 ### 6. Design-to-Code Prompt
+
 - After comparison board approval, auto-generate structured implementation prompt
 - Extracts colors, typography, layout from approved PNG via vision analysis
 - Combines with DESIGN.md and HTML wireframe as structured spec
 - Bridges "approved design" to "agent starts coding" with zero interpretation gap
 
 ### Future Engines (NOT in this plan's scope)
+
 - Magic Patterns integration (extract patterns from existing designs)
 - Variant API (when they ship it, multi-variation React code + preview)
 - Figma MCP (bidirectional design file access)
@@ -488,6 +530,7 @@ const check = await openai.chat.completions.create({
 ## Distribution Plan
 
 The design binary is compiled and distributed alongside the browse binary:
+
 - `bun build --compile design/src/cli.ts --outfile design/dist/design`
 - Built during `./setup` and `bun run build`
 - Symlinked via existing `~/.claude/skills/gstack/` install path
@@ -495,12 +538,14 @@ The design binary is compiled and distributed alongside the browse binary:
 ## Next Steps (Implementation Order)
 
 ### Commit 0: Prototype validation (MUST PASS before building infrastructure)
+
 - Single-file prototype script (~50 lines) that sends 3 different design briefs to GPT Image API
 - Validates: text rendering quality, layout accuracy, visual coherence
 - If output is "embarrassingly bad AI art" for UI mockups, STOP. Re-evaluate approach.
 - This is the cheapest way to validate the core assumption before building 8 files of infrastructure.
 
 ### Commit 1: Design binary core (generate + check + compare)
+
 - `design/src/` with cli.ts, commands.ts, generate.ts, check.ts, brief.ts, session.ts, compare.ts
 - Auth module (read ~/.gstack/openai.json, fallback to env var, guided setup flow)
 - `compare` command generates HTML comparison board with per-variant feedback textareas
@@ -509,12 +554,14 @@ The design binary is compiled and distributed alongside the browse binary:
 - Unit tests with mock OpenAI API server
 
 ### Commit 2: Variants + iterate
+
 - `design/src/variants.ts`, `design/src/iterate.ts`
 - Staggered parallel generation (1s delay between starts, exponential backoff on 429)
 - Session state management for multi-turn
 - Tests for iteration flow + rate limit handling
 
 ### Commit 3: Template integration
+
 - Add `generateDesignSetup()` + `generateDesignMockup()` to existing `scripts/resolvers/design.ts`
 - Add `designDir` to `HostPaths` in `scripts/resolvers/types.ts`
 - Register DESIGN_SETUP + DESIGN_MOCKUP in `scripts/resolvers/index.ts`
@@ -523,15 +570,18 @@ The design binary is compiled and distributed alongside the browse binary:
 - Regenerate SKILL.md files
 
 ### Commit 4: /office-hours integration
+
 - Replace Visual Sketch section with `{{DESIGN_MOCKUP}}`
 - Sequential workflow: generate variants → $D compare → user feedback → DESIGN_SKETCH HTML wireframe
 - Save approved mockup to docs/designs/ (only the approved one, not explorations)
 
 ### Commit 5: /plan-design-review integration
+
 - Add `{{DESIGN_SETUP}}` and mockup generation for low-scoring dimensions
 - "What 10/10 looks like" mockup comparison
 
 ### Commit 6: Design Memory + Exploration Width Control (CEO expansion)
+
 - After mockup approval, extract visual language via GPT-4o vision
 - Write/update DESIGN.md with extracted colors, typography, spacing, layout patterns
 - If DESIGN.md exists, feed it as constraint context to all future mockup prompts
@@ -539,16 +589,19 @@ The design binary is compiled and distributed alongside the browse binary:
 - Progressive constraint logic in brief construction
 
 ### Commit 7: Mockup Diffing + Design Intent Verification (CEO expansion)
+
 - `$D diff` command: takes two PNGs, uses GPT-4o vision to identify differences, generates overlay
 - `$D verify` command: screenshots live site via $B, diffs against approved mockup from docs/designs/
 - Integration into /design-review template: auto-verify when approved mockup exists
 
 ### Commit 8: Screenshot-to-Mockup Evolution (CEO expansion)
+
 - `$D evolve` command: takes screenshot + brief, generates "how it should look" mockup
 - Sends screenshot as reference image to GPT Image API
 - Integration into /design-review: "Here's what the fix should look like" visual proposals
 
 ### Commit 9: Responsive Variants + Design-to-Code Prompt (CEO expansion)
+
 - `--viewports` flag on `$D variants` for multi-size generation
 - Comparison board responsive grid layout
 - Auto-generate structured implementation prompt after approval
@@ -581,6 +634,7 @@ Doc survived 1 round of adversarial review. 11 issues caught and fixed.
 Quality score: 7/10 → estimated 8.5/10 after fixes.
 
 Issues fixed:
+
 1. OpenAI SDK dependency declared
 2. Image data extraction path specified (response.output item shape)
 3. --check and --retry flags formally registered in command registry
@@ -608,13 +662,13 @@ Issues fixed:
 
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| Office Hours | `/office-hours` | Design brainstorm | 1 | DONE | 4 premises, 1 revised (Codex: opt-in->default-on) |
-| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | CLEAR | EXPANSION: 6 proposed, 6 accepted, 0 deferred |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR | 7 issues, 0 critical gaps, 4 outside voices |
-| Design Review | `/plan-design-review` | UI/UX gaps | 1 | CLEAR | score: 2/10 -> 8/10, 5 decisions made |
-| Outside Voice | structured + adversarial | Independent challenge | 4 | DONE | Sequential PNG->HTML workflow, trust boundary noted |
+| Review        | Trigger                  | Why                             | Runs | Status | Findings                                            |
+| ------------- | ------------------------ | ------------------------------- | ---- | ------ | --------------------------------------------------- |
+| Office Hours  | `/office-hours`          | Design brainstorm               | 1    | DONE   | 4 premises, 1 revised (Codex: opt-in->default-on)   |
+| CEO Review    | `/plan-ceo-review`       | Scope & strategy                | 1    | CLEAR  | EXPANSION: 6 proposed, 6 accepted, 0 deferred       |
+| Eng Review    | `/plan-eng-review`       | Architecture & tests (required) | 1    | CLEAR  | 7 issues, 0 critical gaps, 4 outside voices         |
+| Design Review | `/plan-design-review`    | UI/UX gaps                      | 1    | CLEAR  | score: 2/10 -> 8/10, 5 decisions made               |
+| Outside Voice | structured + adversarial | Independent challenge           | 4    | DONE   | Sequential PNG->HTML workflow, trust boundary noted |
 
 **CEO EXPANSIONS:** Design Memory + Exploration Width, Mockup Diffing, Screenshot Evolution, Design Intent Verification, Responsive Variants, Design-to-Code Prompt.
 **DESIGN DECISIONS:** Single-column full-width layout, per-card "More like this", explicit radio Pick, smooth fade regeneration, skeleton loading states.

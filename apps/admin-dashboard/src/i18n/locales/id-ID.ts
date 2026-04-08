@@ -4180,9 +4180,11 @@ const idID: Messages = {
       priority: "Prioritas",
       relatedModule: "Modul Terkait",
       subject: "Subjek",
-      subjectPlaceholder: "Deskripsikan masalah atau saran Anda (5-200 karakter)",
+      subjectPlaceholder:
+        "Deskripsikan masalah atau saran Anda (5-200 karakter)",
       description: "Deskripsi",
-      descriptionPlaceholder: "Jelaskan masalah secara detail (10-5000 karakter)",
+      descriptionPlaceholder:
+        "Jelaskan masalah secara detail (10-5000 karakter)",
       submit: "Kirim Umpan Balik",
     },
     categories: {

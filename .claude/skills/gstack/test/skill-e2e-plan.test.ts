@@ -1,35 +1,45 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { runSkillTest } from './helpers/session-runner';
+import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { runSkillTest } from "./helpers/session-runner";
 import {
-  ROOT, browseBin, runId, evalsEnabled,
-  describeIfSelected, testConcurrentIfSelected,
-  copyDirSync, setupBrowseShims, logCost, recordE2E,
-  createEvalCollector, finalizeEvalCollector,
-} from './helpers/e2e-helpers';
-import { spawnSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+  ROOT,
+  browseBin,
+  runId,
+  evalsEnabled,
+  describeIfSelected,
+  testConcurrentIfSelected,
+  copyDirSync,
+  setupBrowseShims,
+  logCost,
+  recordE2E,
+  createEvalCollector,
+  finalizeEvalCollector,
+} from "./helpers/e2e-helpers";
+import { spawnSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
-const evalCollector = createEvalCollector('e2e-plan');
+const evalCollector = createEvalCollector("e2e-plan");
 
 // --- Plan CEO Review E2E ---
 
-describeIfSelected('Plan CEO Review E2E', ['plan-ceo-review'], () => {
+describeIfSelected("Plan CEO Review E2E", ["plan-ceo-review"], () => {
   let planDir: string;
 
   beforeAll(() => {
-    planDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-plan-ceo-'));
+    planDir = fs.mkdtempSync(path.join(os.tmpdir(), "skill-e2e-plan-ceo-"));
     const run = (cmd: string, args: string[]) =>
-      spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
+      spawnSync(cmd, args, { cwd: planDir, stdio: "pipe", timeout: 5000 });
 
     // Init git repo (CEO review SKILL.md has a "System Audit" step that runs git)
-    run('git', ['init', '-b', 'main']);
-    run('git', ['config', 'user.email', 'test@test.com']);
-    run('git', ['config', 'user.name', 'Test']);
+    run("git", ["init", "-b", "main"]);
+    run("git", ["config", "user.email", "test@test.com"]);
+    run("git", ["config", "user.name", "Test"]);
 
     // Create a simple plan document for the agent to review
-    fs.writeFileSync(path.join(planDir, 'plan.md'), `# Plan: Add User Dashboard
+    fs.writeFileSync(
+      path.join(planDir, "plan.md"),
+      `# Plan: Add User Dashboard
 
 ## Context
 We're building a new user dashboard that shows recent activity, notifications, and quick actions.
@@ -49,26 +59,31 @@ We're building a new user dashboard that shows recent activity, notifications, a
 ## Open questions
 - Should we use WebSocket for real-time updates?
 - How do we handle users with 100k+ activity records?
-`);
+`,
+    );
 
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'add plan']);
+    run("git", ["add", "."]);
+    run("git", ["commit", "-m", "add plan"]);
 
     // Copy plan-ceo-review skill
-    fs.mkdirSync(path.join(planDir, 'plan-ceo-review'), { recursive: true });
+    fs.mkdirSync(path.join(planDir, "plan-ceo-review"), { recursive: true });
     fs.copyFileSync(
-      path.join(ROOT, 'plan-ceo-review', 'SKILL.md'),
-      path.join(planDir, 'plan-ceo-review', 'SKILL.md'),
+      path.join(ROOT, "plan-ceo-review", "SKILL.md"),
+      path.join(planDir, "plan-ceo-review", "SKILL.md"),
     );
   });
 
   afterAll(() => {
-    try { fs.rmSync(planDir, { recursive: true, force: true }); } catch {}
+    try {
+      fs.rmSync(planDir, { recursive: true, force: true });
+    } catch {}
   });
 
-  testConcurrentIfSelected('plan-ceo-review', async () => {
-    const result = await runSkillTest({
-      prompt: `Read plan-ceo-review/SKILL.md for the review workflow.
+  testConcurrentIfSelected(
+    "plan-ceo-review",
+    async () => {
+      const result = await runSkillTest({
+        prompt: `Read plan-ceo-review/SKILL.md for the review workflow.
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration or system audit steps.
 
@@ -76,45 +91,60 @@ Choose HOLD SCOPE mode. Skip any AskUserQuestion calls — this is non-interacti
 Write your complete review directly to ${planDir}/review-output.md
 
 Focus on reviewing the plan content: architecture, error handling, security, and performance.`,
-      workingDirectory: planDir,
-      maxTurns: 15,
-      timeout: 360_000,
-      testName: 'plan-ceo-review',
-      runId,
-      model: 'claude-opus-4-6',
-    });
+        workingDirectory: planDir,
+        maxTurns: 15,
+        timeout: 360_000,
+        testName: "plan-ceo-review",
+        runId,
+        model: "claude-opus-4-6",
+      });
 
-    logCost('/plan-ceo-review', result);
-    recordE2E(evalCollector, '/plan-ceo-review', 'Plan CEO Review E2E', result, {
-      passed: ['success', 'error_max_turns'].includes(result.exitReason),
-    });
-    // Accept error_max_turns — the CEO review is very thorough and may exceed turns
-    expect(['success', 'error_max_turns']).toContain(result.exitReason);
+      logCost("/plan-ceo-review", result);
+      recordE2E(
+        evalCollector,
+        "/plan-ceo-review",
+        "Plan CEO Review E2E",
+        result,
+        {
+          passed: ["success", "error_max_turns"].includes(result.exitReason),
+        },
+      );
+      // Accept error_max_turns — the CEO review is very thorough and may exceed turns
+      expect(["success", "error_max_turns"]).toContain(result.exitReason);
 
-    // Verify the review was written
-    const reviewPath = path.join(planDir, 'review-output.md');
-    if (fs.existsSync(reviewPath)) {
-      const review = fs.readFileSync(reviewPath, 'utf-8');
-      expect(review.length).toBeGreaterThan(200);
-    }
-  }, 420_000);
+      // Verify the review was written
+      const reviewPath = path.join(planDir, "review-output.md");
+      if (fs.existsSync(reviewPath)) {
+        const review = fs.readFileSync(reviewPath, "utf-8");
+        expect(review.length).toBeGreaterThan(200);
+      }
+    },
+    420_000,
+  );
 });
 
 // --- Plan CEO Review (SELECTIVE EXPANSION) E2E ---
 
-describeIfSelected('Plan CEO Review SELECTIVE EXPANSION E2E', ['plan-ceo-review-selective'], () => {
-  let planDir: string;
+describeIfSelected(
+  "Plan CEO Review SELECTIVE EXPANSION E2E",
+  ["plan-ceo-review-selective"],
+  () => {
+    let planDir: string;
 
-  beforeAll(() => {
-    planDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-plan-ceo-sel-'));
-    const run = (cmd: string, args: string[]) =>
-      spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
+    beforeAll(() => {
+      planDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "skill-e2e-plan-ceo-sel-"),
+      );
+      const run = (cmd: string, args: string[]) =>
+        spawnSync(cmd, args, { cwd: planDir, stdio: "pipe", timeout: 5000 });
 
-    run('git', ['init', '-b', 'main']);
-    run('git', ['config', 'user.email', 'test@test.com']);
-    run('git', ['config', 'user.name', 'Test']);
+      run("git", ["init", "-b", "main"]);
+      run("git", ["config", "user.email", "test@test.com"]);
+      run("git", ["config", "user.name", "Test"]);
 
-    fs.writeFileSync(path.join(planDir, 'plan.md'), `# Plan: Add User Dashboard
+      fs.writeFileSync(
+        path.join(planDir, "plan.md"),
+        `# Plan: Add User Dashboard
 
 ## Context
 We're building a new user dashboard that shows recent activity, notifications, and quick actions.
@@ -134,25 +164,30 @@ We're building a new user dashboard that shows recent activity, notifications, a
 ## Open questions
 - Should we use WebSocket for real-time updates?
 - How do we handle users with 100k+ activity records?
-`);
+`,
+      );
 
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'add plan']);
+      run("git", ["add", "."]);
+      run("git", ["commit", "-m", "add plan"]);
 
-    fs.mkdirSync(path.join(planDir, 'plan-ceo-review'), { recursive: true });
-    fs.copyFileSync(
-      path.join(ROOT, 'plan-ceo-review', 'SKILL.md'),
-      path.join(planDir, 'plan-ceo-review', 'SKILL.md'),
-    );
-  });
+      fs.mkdirSync(path.join(planDir, "plan-ceo-review"), { recursive: true });
+      fs.copyFileSync(
+        path.join(ROOT, "plan-ceo-review", "SKILL.md"),
+        path.join(planDir, "plan-ceo-review", "SKILL.md"),
+      );
+    });
 
-  afterAll(() => {
-    try { fs.rmSync(planDir, { recursive: true, force: true }); } catch {}
-  });
+    afterAll(() => {
+      try {
+        fs.rmSync(planDir, { recursive: true, force: true });
+      } catch {}
+    });
 
-  testConcurrentIfSelected('plan-ceo-review-selective', async () => {
-    const result = await runSkillTest({
-      prompt: `Read plan-ceo-review/SKILL.md for the review workflow.
+    testConcurrentIfSelected(
+      "plan-ceo-review-selective",
+      async () => {
+        const result = await runSkillTest({
+          prompt: `Read plan-ceo-review/SKILL.md for the review workflow.
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration or system audit steps.
 
@@ -161,44 +196,55 @@ For the cherry-pick ceremony, accept all expansion proposals automatically.
 Write your complete review directly to ${planDir}/review-output-selective.md
 
 Focus on reviewing the plan content: architecture, error handling, security, and performance.`,
-      workingDirectory: planDir,
-      maxTurns: 15,
-      timeout: 360_000,
-      testName: 'plan-ceo-review-selective',
-      runId,
-      model: 'claude-opus-4-6',
-    });
+          workingDirectory: planDir,
+          maxTurns: 15,
+          timeout: 360_000,
+          testName: "plan-ceo-review-selective",
+          runId,
+          model: "claude-opus-4-6",
+        });
 
-    logCost('/plan-ceo-review (SELECTIVE)', result);
-    recordE2E(evalCollector, '/plan-ceo-review-selective', 'Plan CEO Review SELECTIVE EXPANSION E2E', result, {
-      passed: ['success', 'error_max_turns'].includes(result.exitReason),
-    });
-    expect(['success', 'error_max_turns']).toContain(result.exitReason);
+        logCost("/plan-ceo-review (SELECTIVE)", result);
+        recordE2E(
+          evalCollector,
+          "/plan-ceo-review-selective",
+          "Plan CEO Review SELECTIVE EXPANSION E2E",
+          result,
+          {
+            passed: ["success", "error_max_turns"].includes(result.exitReason),
+          },
+        );
+        expect(["success", "error_max_turns"]).toContain(result.exitReason);
 
-    const reviewPath = path.join(planDir, 'review-output-selective.md');
-    if (fs.existsSync(reviewPath)) {
-      const review = fs.readFileSync(reviewPath, 'utf-8');
-      expect(review.length).toBeGreaterThan(200);
-    }
-  }, 420_000);
-});
+        const reviewPath = path.join(planDir, "review-output-selective.md");
+        if (fs.existsSync(reviewPath)) {
+          const review = fs.readFileSync(reviewPath, "utf-8");
+          expect(review.length).toBeGreaterThan(200);
+        }
+      },
+      420_000,
+    );
+  },
+);
 
 // --- Plan Eng Review E2E ---
 
-describeIfSelected('Plan Eng Review E2E', ['plan-eng-review'], () => {
+describeIfSelected("Plan Eng Review E2E", ["plan-eng-review"], () => {
   let planDir: string;
 
   beforeAll(() => {
-    planDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-plan-eng-'));
+    planDir = fs.mkdtempSync(path.join(os.tmpdir(), "skill-e2e-plan-eng-"));
     const run = (cmd: string, args: string[]) =>
-      spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
+      spawnSync(cmd, args, { cwd: planDir, stdio: "pipe", timeout: 5000 });
 
-    run('git', ['init', '-b', 'main']);
-    run('git', ['config', 'user.email', 'test@test.com']);
-    run('git', ['config', 'user.name', 'Test']);
+    run("git", ["init", "-b", "main"]);
+    run("git", ["config", "user.email", "test@test.com"]);
+    run("git", ["config", "user.name", "Test"]);
 
     // Create a plan with more engineering detail
-    fs.writeFileSync(path.join(planDir, 'plan.md'), `# Plan: Migrate Auth to JWT
+    fs.writeFileSync(
+      path.join(planDir, "plan.md"),
+      `# Plan: Migrate Auth to JWT
 
 ## Context
 Replace session-cookie auth with JWT tokens. Currently using express-session + Redis store.
@@ -227,26 +273,31 @@ Replace session-cookie auth with JWT tokens. Currently using express-session + R
 ## Not in scope
 - OAuth/OIDC integration
 - Rate limiting on refresh endpoint
-`);
+`,
+    );
 
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'add plan']);
+    run("git", ["add", "."]);
+    run("git", ["commit", "-m", "add plan"]);
 
     // Copy plan-eng-review skill
-    fs.mkdirSync(path.join(planDir, 'plan-eng-review'), { recursive: true });
+    fs.mkdirSync(path.join(planDir, "plan-eng-review"), { recursive: true });
     fs.copyFileSync(
-      path.join(ROOT, 'plan-eng-review', 'SKILL.md'),
-      path.join(planDir, 'plan-eng-review', 'SKILL.md'),
+      path.join(ROOT, "plan-eng-review", "SKILL.md"),
+      path.join(planDir, "plan-eng-review", "SKILL.md"),
     );
   });
 
   afterAll(() => {
-    try { fs.rmSync(planDir, { recursive: true, force: true }); } catch {}
+    try {
+      fs.rmSync(planDir, { recursive: true, force: true });
+    } catch {}
   });
 
-  testConcurrentIfSelected('plan-eng-review', async () => {
-    const result = await runSkillTest({
-      prompt: `Read plan-eng-review/SKILL.md for the review workflow.
+  testConcurrentIfSelected(
+    "plan-eng-review",
+    async () => {
+      const result = await runSkillTest({
+        prompt: `Read plan-eng-review/SKILL.md for the review workflow.
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration steps.
 
@@ -254,68 +305,92 @@ Proceed directly to the full review. Skip any AskUserQuestion calls — this is 
 Write your complete review directly to ${planDir}/review-output.md
 
 Focus on architecture, code quality, tests, and performance sections.`,
-      workingDirectory: planDir,
-      maxTurns: 15,
-      timeout: 360_000,
-      testName: 'plan-eng-review',
-      runId,
-      model: 'claude-opus-4-6',
-    });
+        workingDirectory: planDir,
+        maxTurns: 15,
+        timeout: 360_000,
+        testName: "plan-eng-review",
+        runId,
+        model: "claude-opus-4-6",
+      });
 
-    logCost('/plan-eng-review', result);
-    recordE2E(evalCollector, '/plan-eng-review', 'Plan Eng Review E2E', result, {
-      passed: ['success', 'error_max_turns'].includes(result.exitReason),
-    });
-    expect(['success', 'error_max_turns']).toContain(result.exitReason);
+      logCost("/plan-eng-review", result);
+      recordE2E(
+        evalCollector,
+        "/plan-eng-review",
+        "Plan Eng Review E2E",
+        result,
+        {
+          passed: ["success", "error_max_turns"].includes(result.exitReason),
+        },
+      );
+      expect(["success", "error_max_turns"]).toContain(result.exitReason);
 
-    // Verify the review was written
-    const reviewPath = path.join(planDir, 'review-output.md');
-    if (fs.existsSync(reviewPath)) {
-      const review = fs.readFileSync(reviewPath, 'utf-8');
-      expect(review.length).toBeGreaterThan(200);
-    }
-  }, 420_000);
+      // Verify the review was written
+      const reviewPath = path.join(planDir, "review-output.md");
+      if (fs.existsSync(reviewPath)) {
+        const review = fs.readFileSync(reviewPath, "utf-8");
+        expect(review.length).toBeGreaterThan(200);
+      }
+    },
+    420_000,
+  );
 });
 
 // --- Plan-Eng-Review Test-Plan Artifact E2E ---
 
-describeIfSelected('Plan-Eng-Review Test-Plan Artifact E2E', ['plan-eng-review-artifact'], () => {
-  let planDir: string;
-  let projectDir: string;
+describeIfSelected(
+  "Plan-Eng-Review Test-Plan Artifact E2E",
+  ["plan-eng-review-artifact"],
+  () => {
+    let planDir: string;
+    let projectDir: string;
 
-  beforeAll(() => {
-    planDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-plan-artifact-'));
-    const run = (cmd: string, args: string[]) =>
-      spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
+    beforeAll(() => {
+      planDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "skill-e2e-plan-artifact-"),
+      );
+      const run = (cmd: string, args: string[]) =>
+        spawnSync(cmd, args, { cwd: planDir, stdio: "pipe", timeout: 5000 });
 
-    run('git', ['init', '-b', 'main']);
-    run('git', ['config', 'user.email', 'test@test.com']);
-    run('git', ['config', 'user.name', 'Test']);
+      run("git", ["init", "-b", "main"]);
+      run("git", ["config", "user.email", "test@test.com"]);
+      run("git", ["config", "user.name", "Test"]);
 
-    // Create base commit on main
-    fs.writeFileSync(path.join(planDir, 'app.ts'), 'export function greet() { return "hello"; }\n');
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'initial']);
+      // Create base commit on main
+      fs.writeFileSync(
+        path.join(planDir, "app.ts"),
+        'export function greet() { return "hello"; }\n',
+      );
+      run("git", ["add", "."]);
+      run("git", ["commit", "-m", "initial"]);
 
-    // Create feature branch with changes
-    run('git', ['checkout', '-b', 'feature/add-dashboard']);
-    fs.writeFileSync(path.join(planDir, 'dashboard.ts'), `export function Dashboard() {
+      // Create feature branch with changes
+      run("git", ["checkout", "-b", "feature/add-dashboard"]);
+      fs.writeFileSync(
+        path.join(planDir, "dashboard.ts"),
+        `export function Dashboard() {
   const data = fetchStats();
   return { users: data.users, revenue: data.revenue };
 }
 function fetchStats() {
   return fetch('/api/stats').then(r => r.json());
 }
-`);
-    fs.writeFileSync(path.join(planDir, 'app.ts'), `import { Dashboard } from "./dashboard";
+`,
+      );
+      fs.writeFileSync(
+        path.join(planDir, "app.ts"),
+        `import { Dashboard } from "./dashboard";
 export function greet() { return "hello"; }
 export function main() { return Dashboard(); }
-`);
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'feat: add dashboard']);
+`,
+      );
+      run("git", ["add", "."]);
+      run("git", ["commit", "-m", "feat: add dashboard"]);
 
-    // Plan document
-    fs.writeFileSync(path.join(planDir, 'plan.md'), `# Plan: Add Dashboard
+      // Plan document
+      fs.writeFileSync(
+        path.join(planDir, "plan.md"),
+        `# Plan: Add Dashboard
 
 ## Changes
 1. New \`dashboard.ts\` with Dashboard component and fetchStats API call
@@ -324,52 +399,66 @@ export function main() { return Dashboard(); }
 ## Architecture
 - Dashboard fetches from \`/api/stats\` endpoint
 - Returns user count and revenue metrics
-`);
-    run('git', ['add', 'plan.md']);
-    run('git', ['commit', '-m', 'add plan']);
+`,
+      );
+      run("git", ["add", "plan.md"]);
+      run("git", ["commit", "-m", "add plan"]);
 
-    // Copy plan-eng-review skill
-    fs.mkdirSync(path.join(planDir, 'plan-eng-review'), { recursive: true });
-    fs.copyFileSync(
-      path.join(ROOT, 'plan-eng-review', 'SKILL.md'),
-      path.join(planDir, 'plan-eng-review', 'SKILL.md'),
-    );
+      // Copy plan-eng-review skill
+      fs.mkdirSync(path.join(planDir, "plan-eng-review"), { recursive: true });
+      fs.copyFileSync(
+        path.join(ROOT, "plan-eng-review", "SKILL.md"),
+        path.join(planDir, "plan-eng-review", "SKILL.md"),
+      );
 
-    // Set up remote-slug shim and browse shims (plan-eng-review uses remote-slug for artifact path)
-    setupBrowseShims(planDir);
+      // Set up remote-slug shim and browse shims (plan-eng-review uses remote-slug for artifact path)
+      setupBrowseShims(planDir);
 
-    // Create project directory for artifacts
-    projectDir = path.join(os.homedir(), '.gstack', 'projects', 'test-project');
-    fs.mkdirSync(projectDir, { recursive: true });
+      // Create project directory for artifacts
+      projectDir = path.join(
+        os.homedir(),
+        ".gstack",
+        "projects",
+        "test-project",
+      );
+      fs.mkdirSync(projectDir, { recursive: true });
 
-    // Clean up stale test-plan files from previous runs
-    try {
-      const staleFiles = fs.readdirSync(projectDir).filter(f => f.includes('test-plan'));
-      for (const f of staleFiles) {
-        fs.unlinkSync(path.join(projectDir, f));
-      }
-    } catch {}
-  });
-
-  afterAll(() => {
-    try { fs.rmSync(planDir, { recursive: true, force: true }); } catch {}
-    // Clean up test-plan artifacts (but not the project dir itself)
-    try {
-      const files = fs.readdirSync(projectDir);
-      for (const f of files) {
-        if (f.includes('test-plan')) {
+      // Clean up stale test-plan files from previous runs
+      try {
+        const staleFiles = fs
+          .readdirSync(projectDir)
+          .filter((f) => f.includes("test-plan"));
+        for (const f of staleFiles) {
           fs.unlinkSync(path.join(projectDir, f));
         }
-      }
-    } catch {}
-  });
+      } catch {}
+    });
 
-  testConcurrentIfSelected('plan-eng-review-artifact', async () => {
-    // Count existing test-plan files before
-    const beforeFiles = fs.readdirSync(projectDir).filter(f => f.includes('test-plan'));
+    afterAll(() => {
+      try {
+        fs.rmSync(planDir, { recursive: true, force: true });
+      } catch {}
+      // Clean up test-plan artifacts (but not the project dir itself)
+      try {
+        const files = fs.readdirSync(projectDir);
+        for (const f of files) {
+          if (f.includes("test-plan")) {
+            fs.unlinkSync(path.join(projectDir, f));
+          }
+        }
+      } catch {}
+    });
 
-    const result = await runSkillTest({
-      prompt: `Read plan-eng-review/SKILL.md for the review workflow.
+    testConcurrentIfSelected(
+      "plan-eng-review-artifact",
+      async () => {
+        // Count existing test-plan files before
+        const beforeFiles = fs
+          .readdirSync(projectDir)
+          .filter((f) => f.includes("test-plan"));
+
+        const result = await runSkillTest({
+          prompt: `Read plan-eng-review/SKILL.md for the review workflow.
 Skip the preamble bash block, lake intro, telemetry, and contributor mode sections — go straight to the review.
 
 Read plan.md — that's the plan to review. This is a standalone plan with source code in app.ts and dashboard.ts.
@@ -379,75 +468,104 @@ Proceed directly to the full review. Skip any AskUserQuestion calls — this is 
 IMPORTANT: After your review, you MUST write the test-plan artifact as described in the "Test Plan Artifact" section of SKILL.md. The remote-slug shim is at ${planDir}/browse/bin/remote-slug.
 
 Write your review to ${planDir}/review-output.md`,
-      workingDirectory: planDir,
-      maxTurns: 25,
-      allowedTools: ['Bash', 'Read', 'Write', 'Glob', 'Grep'],
-      timeout: 360_000,
-      testName: 'plan-eng-review-artifact',
-      runId,
-      model: 'claude-opus-4-6',
-    });
+          workingDirectory: planDir,
+          maxTurns: 25,
+          allowedTools: ["Bash", "Read", "Write", "Glob", "Grep"],
+          timeout: 360_000,
+          testName: "plan-eng-review-artifact",
+          runId,
+          model: "claude-opus-4-6",
+        });
 
-    logCost('/plan-eng-review artifact', result);
-    recordE2E(evalCollector, '/plan-eng-review test-plan artifact', 'Plan-Eng-Review Test-Plan Artifact E2E', result, {
-      passed: ['success', 'error_max_turns'].includes(result.exitReason),
-    });
+        logCost("/plan-eng-review artifact", result);
+        recordE2E(
+          evalCollector,
+          "/plan-eng-review test-plan artifact",
+          "Plan-Eng-Review Test-Plan Artifact E2E",
+          result,
+          {
+            passed: ["success", "error_max_turns"].includes(result.exitReason),
+          },
+        );
 
-    expect(['success', 'error_max_turns']).toContain(result.exitReason);
+        expect(["success", "error_max_turns"]).toContain(result.exitReason);
 
-    // Verify test-plan artifact was written
-    const afterFiles = fs.readdirSync(projectDir).filter(f => f.includes('test-plan'));
-    const newFiles = afterFiles.filter(f => !beforeFiles.includes(f));
-    console.log(`Test-plan artifacts: ${beforeFiles.length} before, ${afterFiles.length} after, ${newFiles.length} new`);
+        // Verify test-plan artifact was written
+        const afterFiles = fs
+          .readdirSync(projectDir)
+          .filter((f) => f.includes("test-plan"));
+        const newFiles = afterFiles.filter((f) => !beforeFiles.includes(f));
+        console.log(
+          `Test-plan artifacts: ${beforeFiles.length} before, ${afterFiles.length} after, ${newFiles.length} new`,
+        );
 
-    if (newFiles.length > 0) {
-      const content = fs.readFileSync(path.join(projectDir, newFiles[0]), 'utf-8');
-      console.log(`Test-plan artifact (${newFiles[0]}): ${content.length} chars`);
-      expect(content.length).toBeGreaterThan(50);
-    } else {
-      console.warn('No test-plan artifact found — agent may not have followed artifact instructions');
-    }
+        if (newFiles.length > 0) {
+          const content = fs.readFileSync(
+            path.join(projectDir, newFiles[0]),
+            "utf-8",
+          );
+          console.log(
+            `Test-plan artifact (${newFiles[0]}): ${content.length} chars`,
+          );
+          expect(content.length).toBeGreaterThan(50);
+        } else {
+          console.warn(
+            "No test-plan artifact found — agent may not have followed artifact instructions",
+          );
+        }
 
-    // Soft assertion: we expect an artifact but agent compliance is not guaranteed.
-    // Log rather than fail — the test-plan artifact is a bonus output, not the core test.
-    if (newFiles.length === 0) {
-      console.warn('SOFT FAIL: No test-plan artifact written — agent did not follow artifact instructions');
-    }
-  }, 420_000);
-});
+        // Soft assertion: we expect an artifact but agent compliance is not guaranteed.
+        // Log rather than fail — the test-plan artifact is a bonus output, not the core test.
+        if (newFiles.length === 0) {
+          console.warn(
+            "SOFT FAIL: No test-plan artifact written — agent did not follow artifact instructions",
+          );
+        }
+      },
+      420_000,
+    );
+  },
+);
 
 // --- Office Hours Spec Review E2E ---
 
-describeIfSelected('Office Hours Spec Review E2E', ['office-hours-spec-review'], () => {
-  let ohDir: string;
+describeIfSelected(
+  "Office Hours Spec Review E2E",
+  ["office-hours-spec-review"],
+  () => {
+    let ohDir: string;
 
-  beforeAll(() => {
-    ohDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-oh-spec-'));
-    const run = (cmd: string, args: string[]) =>
-      spawnSync(cmd, args, { cwd: ohDir, stdio: 'pipe', timeout: 5000 });
+    beforeAll(() => {
+      ohDir = fs.mkdtempSync(path.join(os.tmpdir(), "skill-e2e-oh-spec-"));
+      const run = (cmd: string, args: string[]) =>
+        spawnSync(cmd, args, { cwd: ohDir, stdio: "pipe", timeout: 5000 });
 
-    run('git', ['init', '-b', 'main']);
-    run('git', ['config', 'user.email', 'test@test.com']);
-    run('git', ['config', 'user.name', 'Test']);
-    fs.writeFileSync(path.join(ohDir, 'README.md'), '# Test Project\n');
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'init']);
+      run("git", ["init", "-b", "main"]);
+      run("git", ["config", "user.email", "test@test.com"]);
+      run("git", ["config", "user.name", "Test"]);
+      fs.writeFileSync(path.join(ohDir, "README.md"), "# Test Project\n");
+      run("git", ["add", "."]);
+      run("git", ["commit", "-m", "init"]);
 
-    // Copy office-hours skill
-    fs.mkdirSync(path.join(ohDir, 'office-hours'), { recursive: true });
-    fs.copyFileSync(
-      path.join(ROOT, 'office-hours', 'SKILL.md'),
-      path.join(ohDir, 'office-hours', 'SKILL.md'),
-    );
-  });
+      // Copy office-hours skill
+      fs.mkdirSync(path.join(ohDir, "office-hours"), { recursive: true });
+      fs.copyFileSync(
+        path.join(ROOT, "office-hours", "SKILL.md"),
+        path.join(ohDir, "office-hours", "SKILL.md"),
+      );
+    });
 
-  afterAll(() => {
-    try { fs.rmSync(ohDir, { recursive: true, force: true }); } catch {}
-  });
+    afterAll(() => {
+      try {
+        fs.rmSync(ohDir, { recursive: true, force: true });
+      } catch {}
+    });
 
-  testConcurrentIfSelected('office-hours-spec-review', async () => {
-    const result = await runSkillTest({
-      prompt: `Read office-hours/SKILL.md. I want to understand the spec review loop.
+    testConcurrentIfSelected(
+      "office-hours-spec-review",
+      async () => {
+        const result = await runSkillTest({
+          prompt: `Read office-hours/SKILL.md. I want to understand the spec review loop.
 
 Summarize what the "Spec Review Loop" section does — specifically:
 1. How many dimensions does the reviewer check?
@@ -456,58 +574,83 @@ Summarize what the "Spec Review Loop" section does — specifically:
 4. What metrics are tracked?
 
 Write your summary to ${ohDir}/spec-review-summary.md`,
-      workingDirectory: ohDir,
-      maxTurns: 8,
-      timeout: 120_000,
-      testName: 'office-hours-spec-review',
-      runId,
-    });
+          workingDirectory: ohDir,
+          maxTurns: 8,
+          timeout: 120_000,
+          testName: "office-hours-spec-review",
+          runId,
+        });
 
-    logCost('/office-hours spec review', result);
-    recordE2E(evalCollector, '/office-hours-spec-review', 'Office Hours Spec Review E2E', result);
-    expect(result.exitReason).toBe('success');
+        logCost("/office-hours spec review", result);
+        recordE2E(
+          evalCollector,
+          "/office-hours-spec-review",
+          "Office Hours Spec Review E2E",
+          result,
+        );
+        expect(result.exitReason).toBe("success");
 
-    const summaryPath = path.join(ohDir, 'spec-review-summary.md');
-    if (fs.existsSync(summaryPath)) {
-      const summary = fs.readFileSync(summaryPath, 'utf-8').toLowerCase();
-      expect(summary).toMatch(/5.*dimension|dimension.*5|completeness|consistency|clarity|scope|feasibility/);
-      expect(summary).toMatch(/agent|subagent/);
-      expect(summary).toMatch(/3.*iteration|iteration.*3|maximum.*3/);
-    }
-  }, 180_000);
-});
+        const summaryPath = path.join(ohDir, "spec-review-summary.md");
+        if (fs.existsSync(summaryPath)) {
+          const summary = fs.readFileSync(summaryPath, "utf-8").toLowerCase();
+          expect(summary).toMatch(
+            /5.*dimension|dimension.*5|completeness|consistency|clarity|scope|feasibility/,
+          );
+          expect(summary).toMatch(/agent|subagent/);
+          expect(summary).toMatch(/3.*iteration|iteration.*3|maximum.*3/);
+        }
+      },
+      180_000,
+    );
+  },
+);
 
 // --- Plan CEO Review Benefits-From E2E ---
 
-describeIfSelected('Plan CEO Review Benefits-From E2E', ['plan-ceo-review-benefits'], () => {
-  let benefitsDir: string;
+describeIfSelected(
+  "Plan CEO Review Benefits-From E2E",
+  ["plan-ceo-review-benefits"],
+  () => {
+    let benefitsDir: string;
 
-  beforeAll(() => {
-    benefitsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-benefits-'));
-    const run = (cmd: string, args: string[]) =>
-      spawnSync(cmd, args, { cwd: benefitsDir, stdio: 'pipe', timeout: 5000 });
+    beforeAll(() => {
+      benefitsDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "skill-e2e-benefits-"),
+      );
+      const run = (cmd: string, args: string[]) =>
+        spawnSync(cmd, args, {
+          cwd: benefitsDir,
+          stdio: "pipe",
+          timeout: 5000,
+        });
 
-    run('git', ['init', '-b', 'main']);
-    run('git', ['config', 'user.email', 'test@test.com']);
-    run('git', ['config', 'user.name', 'Test']);
-    fs.writeFileSync(path.join(benefitsDir, 'README.md'), '# Test Project\n');
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'init']);
+      run("git", ["init", "-b", "main"]);
+      run("git", ["config", "user.email", "test@test.com"]);
+      run("git", ["config", "user.name", "Test"]);
+      fs.writeFileSync(path.join(benefitsDir, "README.md"), "# Test Project\n");
+      run("git", ["add", "."]);
+      run("git", ["commit", "-m", "init"]);
 
-    fs.mkdirSync(path.join(benefitsDir, 'plan-ceo-review'), { recursive: true });
-    fs.copyFileSync(
-      path.join(ROOT, 'plan-ceo-review', 'SKILL.md'),
-      path.join(benefitsDir, 'plan-ceo-review', 'SKILL.md'),
-    );
-  });
+      fs.mkdirSync(path.join(benefitsDir, "plan-ceo-review"), {
+        recursive: true,
+      });
+      fs.copyFileSync(
+        path.join(ROOT, "plan-ceo-review", "SKILL.md"),
+        path.join(benefitsDir, "plan-ceo-review", "SKILL.md"),
+      );
+    });
 
-  afterAll(() => {
-    try { fs.rmSync(benefitsDir, { recursive: true, force: true }); } catch {}
-  });
+    afterAll(() => {
+      try {
+        fs.rmSync(benefitsDir, { recursive: true, force: true });
+      } catch {}
+    });
 
-  testConcurrentIfSelected('plan-ceo-review-benefits', async () => {
-    const result = await runSkillTest({
-      prompt: `Read plan-ceo-review/SKILL.md. Search for sections about "Prerequisite" or "office-hours" or "design doc found".
+    testConcurrentIfSelected(
+      "plan-ceo-review-benefits",
+      async () => {
+        const result = await runSkillTest({
+          prompt: `Read plan-ceo-review/SKILL.md. Search for sections about "Prerequisite" or "office-hours" or "design doc found".
 
 Summarize what happens when no design doc is found — specifically:
 1. Is /office-hours offered as a prerequisite?
@@ -515,43 +658,55 @@ Summarize what happens when no design doc is found — specifically:
 3. Is there a mid-session detection for when the user seems lost?
 
 Write your summary to ${benefitsDir}/benefits-summary.md`,
-      workingDirectory: benefitsDir,
-      maxTurns: 8,
-      timeout: 120_000,
-      testName: 'plan-ceo-review-benefits',
-      runId,
-    });
+          workingDirectory: benefitsDir,
+          maxTurns: 8,
+          timeout: 120_000,
+          testName: "plan-ceo-review-benefits",
+          runId,
+        });
 
-    logCost('/plan-ceo-review benefits-from', result);
-    recordE2E(evalCollector, '/plan-ceo-review-benefits', 'Plan CEO Review Benefits-From E2E', result);
-    expect(result.exitReason).toBe('success');
+        logCost("/plan-ceo-review benefits-from", result);
+        recordE2E(
+          evalCollector,
+          "/plan-ceo-review-benefits",
+          "Plan CEO Review Benefits-From E2E",
+          result,
+        );
+        expect(result.exitReason).toBe("success");
 
-    const summaryPath = path.join(benefitsDir, 'benefits-summary.md');
-    if (fs.existsSync(summaryPath)) {
-      const summary = fs.readFileSync(summaryPath, 'utf-8').toLowerCase();
-      expect(summary).toMatch(/office.hours/);
-      expect(summary).toMatch(/design doc|no design/i);
-    }
-  }, 180_000);
-});
+        const summaryPath = path.join(benefitsDir, "benefits-summary.md");
+        if (fs.existsSync(summaryPath)) {
+          const summary = fs.readFileSync(summaryPath, "utf-8").toLowerCase();
+          expect(summary).toMatch(/office.hours/);
+          expect(summary).toMatch(/design doc|no design/i);
+        }
+      },
+      180_000,
+    );
+  },
+);
 
 // --- Plan Review Report E2E ---
 // Verifies that plan-eng-review writes a "## GSTACK REVIEW REPORT" section
 // to the bottom of the plan file (the living review status footer).
 
-describeIfSelected('Plan Review Report E2E', ['plan-review-report'], () => {
+describeIfSelected("Plan Review Report E2E", ["plan-review-report"], () => {
   let planDir: string;
 
   beforeAll(() => {
-    planDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-review-report-'));
+    planDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "skill-e2e-review-report-"),
+    );
     const run = (cmd: string, args: string[]) =>
-      spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
+      spawnSync(cmd, args, { cwd: planDir, stdio: "pipe", timeout: 5000 });
 
-    run('git', ['init', '-b', 'main']);
-    run('git', ['config', 'user.email', 'test@test.com']);
-    run('git', ['config', 'user.name', 'Test']);
+    run("git", ["init", "-b", "main"]);
+    run("git", ["config", "user.email", "test@test.com"]);
+    run("git", ["config", "user.name", "Test"]);
 
-    fs.writeFileSync(path.join(planDir, 'plan.md'), `# Plan: Add Notifications System
+    fs.writeFileSync(
+      path.join(planDir, "plan.md"),
+      `# Plan: Add Notifications System
 
 ## Context
 We're building a real-time notification system for our SaaS app.
@@ -571,24 +726,27 @@ We're building a real-time notification system for our SaaS app.
 ## Open questions
 - Retry policy for failed WebSocket delivery?
 - Max notifications stored per user?
-`);
+`,
+    );
 
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'add plan']);
+    run("git", ["add", "."]);
+    run("git", ["commit", "-m", "add plan"]);
 
     // Copy plan-eng-review skill
-    fs.mkdirSync(path.join(planDir, 'plan-eng-review'), { recursive: true });
+    fs.mkdirSync(path.join(planDir, "plan-eng-review"), { recursive: true });
     fs.copyFileSync(
-      path.join(ROOT, 'plan-eng-review', 'SKILL.md'),
-      path.join(planDir, 'plan-eng-review', 'SKILL.md'),
+      path.join(ROOT, "plan-eng-review", "SKILL.md"),
+      path.join(planDir, "plan-eng-review", "SKILL.md"),
     );
   });
 
   afterAll(() => {
-    try { fs.rmSync(planDir, { recursive: true, force: true }); } catch {}
+    try {
+      fs.rmSync(planDir, { recursive: true, force: true });
+    } catch {}
   });
 
-  test('/plan-eng-review writes GSTACK REVIEW REPORT to plan file', async () => {
+  test("/plan-eng-review writes GSTACK REVIEW REPORT to plan file", async () => {
     const result = await runSkillTest({
       prompt: `Read plan-eng-review/SKILL.md for the review workflow.
 
@@ -603,38 +761,44 @@ This review report at the bottom of the plan is the MOST IMPORTANT deliverable o
       workingDirectory: planDir,
       maxTurns: 20,
       timeout: 360_000,
-      testName: 'plan-review-report',
+      testName: "plan-review-report",
       runId,
-      model: 'claude-opus-4-6',
+      model: "claude-opus-4-6",
     });
 
-    logCost('/plan-eng-review report', result);
-    recordE2E(evalCollector, '/plan-review-report', 'Plan Review Report E2E', result, {
-      passed: ['success', 'error_max_turns'].includes(result.exitReason),
-    });
-    expect(['success', 'error_max_turns']).toContain(result.exitReason);
+    logCost("/plan-eng-review report", result);
+    recordE2E(
+      evalCollector,
+      "/plan-review-report",
+      "Plan Review Report E2E",
+      result,
+      {
+        passed: ["success", "error_max_turns"].includes(result.exitReason),
+      },
+    );
+    expect(["success", "error_max_turns"]).toContain(result.exitReason);
 
     // Verify the review report was written to the plan file
-    const planContent = fs.readFileSync(path.join(planDir, 'plan.md'), 'utf-8');
+    const planContent = fs.readFileSync(path.join(planDir, "plan.md"), "utf-8");
 
     // Original plan content should still be present
-    expect(planContent).toContain('# Plan: Add Notifications System');
-    expect(planContent).toContain('WebSocket');
+    expect(planContent).toContain("# Plan: Add Notifications System");
+    expect(planContent).toContain("WebSocket");
 
     // Review report section must exist
-    expect(planContent).toContain('## GSTACK REVIEW REPORT');
+    expect(planContent).toContain("## GSTACK REVIEW REPORT");
 
     // Report should be at the bottom of the file
-    const reportIndex = planContent.lastIndexOf('## GSTACK REVIEW REPORT');
+    const reportIndex = planContent.lastIndexOf("## GSTACK REVIEW REPORT");
     const afterReport = planContent.slice(reportIndex);
 
     // Should contain the review table with standard rows
     expect(afterReport).toMatch(/\|\s*Review\s*\|/);
-    expect(afterReport).toContain('CEO Review');
-    expect(afterReport).toContain('Eng Review');
-    expect(afterReport).toContain('Design Review');
+    expect(afterReport).toContain("CEO Review");
+    expect(afterReport).toContain("Eng Review");
+    expect(afterReport).toContain("Design Review");
 
-    console.log('Plan review report found at bottom of plan.md');
+    console.log("Plan review report found at bottom of plan.md");
   }, 420_000);
 });
 
@@ -642,41 +806,59 @@ This review report at the bottom of the plan is the MOST IMPORTANT deliverable o
 // Verifies that Codex is properly offered (with availability check, user prompt,
 // and fallback) in office-hours, plan-ceo-review, plan-design-review, plan-eng-review.
 
-describeIfSelected('Codex Offering E2E', [
-  'codex-offered-office-hours', 'codex-offered-ceo-review',
-  'codex-offered-design-review', 'codex-offered-eng-review',
-], () => {
-  let testDir: string;
+describeIfSelected(
+  "Codex Offering E2E",
+  [
+    "codex-offered-office-hours",
+    "codex-offered-ceo-review",
+    "codex-offered-design-review",
+    "codex-offered-eng-review",
+  ],
+  () => {
+    let testDir: string;
 
-  beforeAll(() => {
-    testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-codex-offer-'));
-    const run = (cmd: string, args: string[]) =>
-      spawnSync(cmd, args, { cwd: testDir, stdio: 'pipe', timeout: 5000 });
-
-    run('git', ['init', '-b', 'main']);
-    run('git', ['config', 'user.email', 'test@test.com']);
-    run('git', ['config', 'user.name', 'Test']);
-    fs.writeFileSync(path.join(testDir, 'README.md'), '# Test Project\n');
-    run('git', ['add', '.']);
-    run('git', ['commit', '-m', 'init']);
-
-    // Copy all 4 SKILL.md files
-    for (const skill of ['office-hours', 'plan-ceo-review', 'plan-design-review', 'plan-eng-review']) {
-      fs.mkdirSync(path.join(testDir, skill), { recursive: true });
-      fs.copyFileSync(
-        path.join(ROOT, skill, 'SKILL.md'),
-        path.join(testDir, skill, 'SKILL.md'),
+    beforeAll(() => {
+      testDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "skill-e2e-codex-offer-"),
       );
-    }
-  });
+      const run = (cmd: string, args: string[]) =>
+        spawnSync(cmd, args, { cwd: testDir, stdio: "pipe", timeout: 5000 });
 
-  afterAll(() => {
-    try { fs.rmSync(testDir, { recursive: true, force: true }); } catch {}
-  });
+      run("git", ["init", "-b", "main"]);
+      run("git", ["config", "user.email", "test@test.com"]);
+      run("git", ["config", "user.name", "Test"]);
+      fs.writeFileSync(path.join(testDir, "README.md"), "# Test Project\n");
+      run("git", ["add", "."]);
+      run("git", ["commit", "-m", "init"]);
 
-  async function checkCodexOffering(skill: string, testName: string, featureName: string) {
-    const result = await runSkillTest({
-      prompt: `Read ${skill}/SKILL.md. Search for ALL sections related to "codex", "outside voice", or "second opinion".
+      // Copy all 4 SKILL.md files
+      for (const skill of [
+        "office-hours",
+        "plan-ceo-review",
+        "plan-design-review",
+        "plan-eng-review",
+      ]) {
+        fs.mkdirSync(path.join(testDir, skill), { recursive: true });
+        fs.copyFileSync(
+          path.join(ROOT, skill, "SKILL.md"),
+          path.join(testDir, skill, "SKILL.md"),
+        );
+      }
+    });
+
+    afterAll(() => {
+      try {
+        fs.rmSync(testDir, { recursive: true, force: true });
+      } catch {}
+    });
+
+    async function checkCodexOffering(
+      skill: string,
+      testName: string,
+      featureName: string,
+    ) {
+      const result = await runSkillTest({
+        prompt: `Read ${skill}/SKILL.md. Search for ALL sections related to "codex", "outside voice", or "second opinion".
 
 Summarize the Codex/${featureName} integration — answer these specific questions:
 1. How is Codex availability checked? (what exact bash command?)
@@ -686,47 +868,82 @@ Summarize the Codex/${featureName} integration — answer these specific questio
 5. What prompt/context is sent to Codex?
 
 Write your summary to ${testDir}/${testName}-summary.md`,
-      workingDirectory: testDir,
-      maxTurns: 8,
-      timeout: 120_000,
-      testName,
-      runId,
-    });
+        workingDirectory: testDir,
+        maxTurns: 8,
+        timeout: 120_000,
+        testName,
+        runId,
+      });
 
-    logCost(`/${skill} codex offering`, result);
-    recordE2E(evalCollector, `/${testName}`, 'Codex Offering E2E', result);
-    expect(result.exitReason).toBe('success');
+      logCost(`/${skill} codex offering`, result);
+      recordE2E(evalCollector, `/${testName}`, "Codex Offering E2E", result);
+      expect(result.exitReason).toBe("success");
 
-    const summaryPath = path.join(testDir, `${testName}-summary.md`);
-    expect(fs.existsSync(summaryPath)).toBe(true);
+      const summaryPath = path.join(testDir, `${testName}-summary.md`);
+      expect(fs.existsSync(summaryPath)).toBe(true);
 
-    const summary = fs.readFileSync(summaryPath, 'utf-8').toLowerCase();
-    // All skills should have codex availability check
-    expect(summary).toMatch(/which codex/);
-    // All skills should have fallback behavior
-    expect(summary).toMatch(/fallback|subagent|unavailable|not available|skip/);
-    // All skills should show it's optional/non-blocking
-    expect(summary).toMatch(/optional|non.?blocking|skip|not.*required/);
+      const summary = fs.readFileSync(summaryPath, "utf-8").toLowerCase();
+      // All skills should have codex availability check
+      expect(summary).toMatch(/which codex/);
+      // All skills should have fallback behavior
+      expect(summary).toMatch(
+        /fallback|subagent|unavailable|not available|skip/,
+      );
+      // All skills should show it's optional/non-blocking
+      expect(summary).toMatch(/optional|non.?blocking|skip|not.*required/);
 
-    console.log(`${skill}: Codex offering verified`);
-  }
+      console.log(`${skill}: Codex offering verified`);
+    }
 
-  testConcurrentIfSelected('codex-offered-office-hours', async () => {
-    await checkCodexOffering('office-hours', 'codex-offered-office-hours', 'second opinion');
-  }, 180_000);
+    testConcurrentIfSelected(
+      "codex-offered-office-hours",
+      async () => {
+        await checkCodexOffering(
+          "office-hours",
+          "codex-offered-office-hours",
+          "second opinion",
+        );
+      },
+      180_000,
+    );
 
-  testConcurrentIfSelected('codex-offered-ceo-review', async () => {
-    await checkCodexOffering('plan-ceo-review', 'codex-offered-ceo-review', 'outside voice');
-  }, 180_000);
+    testConcurrentIfSelected(
+      "codex-offered-ceo-review",
+      async () => {
+        await checkCodexOffering(
+          "plan-ceo-review",
+          "codex-offered-ceo-review",
+          "outside voice",
+        );
+      },
+      180_000,
+    );
 
-  testConcurrentIfSelected('codex-offered-design-review', async () => {
-    await checkCodexOffering('plan-design-review', 'codex-offered-design-review', 'design outside voices');
-  }, 180_000);
+    testConcurrentIfSelected(
+      "codex-offered-design-review",
+      async () => {
+        await checkCodexOffering(
+          "plan-design-review",
+          "codex-offered-design-review",
+          "design outside voices",
+        );
+      },
+      180_000,
+    );
 
-  testConcurrentIfSelected('codex-offered-eng-review', async () => {
-    await checkCodexOffering('plan-eng-review', 'codex-offered-eng-review', 'outside voice');
-  }, 180_000);
-});
+    testConcurrentIfSelected(
+      "codex-offered-eng-review",
+      async () => {
+        await checkCodexOffering(
+          "plan-eng-review",
+          "codex-offered-eng-review",
+          "outside voice",
+        );
+      },
+      180_000,
+    );
+  },
+);
 
 // Module-level afterAll — finalize eval collector after all tests complete
 afterAll(async () => {

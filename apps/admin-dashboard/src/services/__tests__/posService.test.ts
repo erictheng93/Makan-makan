@@ -117,10 +117,9 @@ describe("posService", () => {
 
       const result = await posService.endShift("s1", { endingCash: 1500 });
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/shifts/s1/end",
-        { endingCash: 1500 },
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/api/v1/pos/shifts/s1/end", {
+        endingCash: 1500,
+      });
       expect(result).toEqual(shift);
     });
 

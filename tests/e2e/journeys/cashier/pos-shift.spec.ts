@@ -189,7 +189,9 @@ test.describe("Cashier POS shift flow", () => {
   test("should login as cashier and redirect to POS", async ({ page }) => {
     // preAuthAdmin in beforeEach seeds auth — navigate to POS directly
     await page.goto(posCheckoutUrl);
-    await page.waitForURL(/\/(dashboard|pos)/, { timeout: 10000 }).catch(() => {});
+    await page
+      .waitForURL(/\/(dashboard|pos)/, { timeout: 10000 })
+      .catch(() => {});
 
     await expect(
       page.locator('main, [role="main"], [data-testid="pos-checkout"]').first(),

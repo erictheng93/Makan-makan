@@ -127,10 +127,7 @@ describe("ApiService", () => {
 
       await api.delete("/test/1");
 
-      expect(mockInstance.delete).toHaveBeenCalledWith(
-        "/test/1",
-        undefined,
-      );
+      expect(mockInstance.delete).toHaveBeenCalledWith("/test/1", undefined);
     });
 
     it("should call delete with data when provided", async () => {
@@ -153,11 +150,9 @@ describe("ApiService", () => {
 
       await api.upload("/upload", formData);
 
-      expect(mockInstance.post).toHaveBeenCalledWith(
-        "/upload",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
-      );
+      expect(mockInstance.post).toHaveBeenCalledWith("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
     });
   });
 });

@@ -7,11 +7,11 @@
  * Requires: ANTHROPIC_API_KEY env var
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic from "@anthropic-ai/sdk";
 
 export interface JudgeScore {
-  clarity: number;       // 1-5
-  completeness: number;  // 1-5
+  clarity: number; // 1-5
+  completeness: number; // 1-5
   actionability: number; // 1-5
   reasoning: string;
 }
@@ -32,34 +32,40 @@ export interface OutcomeJudgeResult {
 export async function callJudge<T>(prompt: string): Promise<T> {
   const client = new Anthropic();
 
-  const makeRequest = () => client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const makeRequest = () =>
+    client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    });
 
   let response;
   try {
     response = await makeRequest();
   } catch (err: any) {
     if (err.status === 429) {
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
       response = await makeRequest();
     } else {
       throw err;
     }
   }
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  const text =
+    response.content[0].type === "text" ? response.content[0].text : "";
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error(`Judge returned non-JSON: ${text.slice(0, 200)}`);
+  if (!jsonMatch)
+    throw new Error(`Judge returned non-JSON: ${text.slice(0, 200)}`);
   return JSON.parse(jsonMatch[0]) as T;
 }
 
 /**
  * Score documentation quality on clarity/completeness/actionability (1-5).
  */
-export async function judge(section: string, content: string): Promise<JudgeScore> {
+export async function judge(
+  section: string,
+  content: string,
+): Promise<JudgeScore> {
   return callJudge<JudgeScore>(`You are evaluating documentation quality for an AI coding agent's CLI tool reference.
 
 The agent reads this documentation to learn how to use a headless browser CLI. It needs to:
@@ -123,7 +129,7 @@ Respond with ONLY valid JSON:
 }
 
 Rules:
-- "detected" and "missed" arrays must only contain IDs from the ground truth: ${groundTruth.bugs.map((b: any) => b.id).join(', ')}
+- "detected" and "missed" arrays must only contain IDs from the ground truth: ${groundTruth.bugs.map((b: any) => b.id).join(", ")}
 - detection_rate = length of detected array
 - evidence_quality (1-5): Do detected bugs have screenshots, repro steps, or specific element references?
   5 = excellent evidence for every bug, 1 = no evidence at all`);

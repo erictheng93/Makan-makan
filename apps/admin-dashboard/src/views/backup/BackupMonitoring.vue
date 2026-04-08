@@ -1,60 +1,89 @@
 <template>
   <div class="backup-monitoring">
     <div class="monitoring-header">
-      <h1>{{ t('backup.monitoring.title') }}</h1>
+      <h1>{{ t("backup.monitoring.title") }}</h1>
       <div class="header-actions">
         <button
           class="btn btn-secondary"
           :disabled="isLoading"
           @click="refreshData"
         >
-          {{ t('backup.actions.refresh') }}
+          {{ t("backup.actions.refresh") }}
         </button>
       </div>
     </div>
 
     <!-- System Health Overview -->
     <div class="health-overview">
-      <div class="health-card" :class="overallHealthClass" :data-health-status="systemHealth?.overall_status || 'unknown'">
+      <div
+        class="health-card"
+        :class="overallHealthClass"
+        :data-health-status="systemHealth?.overall_status || 'unknown'"
+      >
         <div class="health-header">
-          <h2>{{ t('backup.monitoring.systemHealth') }}</h2>
+          <h2>{{ t("backup.monitoring.systemHealth") }}</h2>
           <div class="health-status">
             <component :is="healthIcon" :class="healthIconClass" />
-            <span class="status-text">{{ t(`backup.health.${systemHealth?.overall_status || 'unknown'}`) }}</span>
+            <span class="status-text">{{
+              t(`backup.health.${systemHealth?.overall_status || "unknown"}`)
+            }}</span>
           </div>
         </div>
 
         <div class="health-metrics">
           <div class="metric-group">
             <div class="metric">
-              <span class="metric-value">{{ systemHealth?.total_restaurants || 0 }}</span>
-              <span class="metric-label">{{ t('backup.monitoring.totalRestaurants') }}</span>
+              <span class="metric-value">{{
+                systemHealth?.total_restaurants || 0
+              }}</span>
+              <span class="metric-label">{{
+                t("backup.monitoring.totalRestaurants")
+              }}</span>
             </div>
             <div class="metric">
-              <span class="metric-value">{{ systemHealth?.active_configurations || 0 }}</span>
-              <span class="metric-label">{{ t('backup.monitoring.activeConfigs') }}</span>
+              <span class="metric-value">{{
+                systemHealth?.active_configurations || 0
+              }}</span>
+              <span class="metric-label">{{
+                t("backup.monitoring.activeConfigs")
+              }}</span>
             </div>
             <div class="metric">
-              <span class="metric-value">{{ systemHealth?.running_backups || 0 }}</span>
-              <span class="metric-label">{{ t('backup.monitoring.runningBackups') }}</span>
+              <span class="metric-value">{{
+                systemHealth?.running_backups || 0
+              }}</span>
+              <span class="metric-label">{{
+                t("backup.monitoring.runningBackups")
+              }}</span>
             </div>
             <div class="metric">
-              <span class="metric-value">{{ systemHealth?.failed_backups_24h || 0 }}</span>
-              <span class="metric-label">{{ t('backup.monitoring.failed24h') }}</span>
+              <span class="metric-value">{{
+                systemHealth?.failed_backups_24h || 0
+              }}</span>
+              <span class="metric-label">{{
+                t("backup.monitoring.failed24h")
+              }}</span>
             </div>
           </div>
 
           <div v-if="systemHealth?.storage_usage" class="storage-info">
-            <h3>{{ t('backup.monitoring.storageUsage') }}</h3>
+            <h3>{{ t("backup.monitoring.storageUsage") }}</h3>
             <div class="storage-bar">
               <div
                 class="storage-fill"
-                :style="{ width: systemHealth.storage_usage.usage_percentage + '%' }"
+                :style="{
+                  width: systemHealth.storage_usage.usage_percentage + '%',
+                }"
               ></div>
             </div>
             <div class="storage-details">
-              <span>{{ formatBytes(systemHealth.storage_usage.total_bytes) }}</span>
-              <span>{{ systemHealth.storage_usage.usage_percentage.toFixed(1) }}% used</span>
+              <span>{{
+                formatBytes(systemHealth.storage_usage.total_bytes)
+              }}</span>
+              <span
+                >{{ systemHealth.storage_usage.usage_percentage.toFixed(1) }}%
+                used</span
+              >
             </div>
           </div>
         </div>
@@ -64,12 +93,12 @@
     <!-- Performance Metrics Chart -->
     <div class="performance-section">
       <div class="chart-card">
-        <h3>{{ t('backup.monitoring.performanceTrends') }}</h3>
+        <h3>{{ t("backup.monitoring.performanceTrends") }}</h3>
         <div class="chart-controls">
           <select v-model="selectedPeriod" @change="loadPerformanceData">
-            <option value="24h">{{ t('backup.monitoring.last24h') }}</option>
-            <option value="7d">{{ t('backup.monitoring.last7days') }}</option>
-            <option value="30d">{{ t('backup.monitoring.last30days') }}</option>
+            <option value="24h">{{ t("backup.monitoring.last24h") }}</option>
+            <option value="7d">{{ t("backup.monitoring.last7days") }}</option>
+            <option value="30d">{{ t("backup.monitoring.last30days") }}</option>
           </select>
         </div>
 
@@ -78,7 +107,7 @@
         </div>
 
         <div v-else class="empty-chart">
-          <p>{{ t('backup.monitoring.noPerformanceData') }}</p>
+          <p>{{ t("backup.monitoring.noPerformanceData") }}</p>
         </div>
       </div>
     </div>
@@ -86,12 +115,18 @@
     <!-- Restaurant Status Grid -->
     <div class="restaurants-section">
       <div class="section-header">
-        <h3>{{ t('backup.monitoring.restaurantStatus') }}</h3>
+        <h3>{{ t("backup.monitoring.restaurantStatus") }}</h3>
         <div class="filter-controls">
           <select v-model="statusFilter" @change="filterRestaurants">
-            <option value="all">{{ t('backup.monitoring.allRestaurants') }}</option>
-            <option value="healthy">{{ t('backup.monitoring.healthyOnly') }}</option>
-            <option value="issues">{{ t('backup.monitoring.withIssues') }}</option>
+            <option value="all">
+              {{ t("backup.monitoring.allRestaurants") }}
+            </option>
+            <option value="healthy">
+              {{ t("backup.monitoring.healthyOnly") }}
+            </option>
+            <option value="issues">
+              {{ t("backup.monitoring.withIssues") }}
+            </option>
           </select>
         </div>
       </div>
@@ -107,26 +142,40 @@
             <h4>{{ restaurant.name }}</h4>
             <div class="status-indicator" :class="restaurant.status">
               <span class="status-dot"></span>
-              <span class="status-text">{{ t(`backup.monitoring.${restaurant.status}`) }}</span>
+              <span class="status-text">{{
+                t(`backup.monitoring.${restaurant.status}`)
+              }}</span>
             </div>
           </div>
 
           <div class="restaurant-metrics">
             <div class="metric-row">
-              <span class="metric-label">{{ t('backup.monitoring.lastBackup') }}</span>
-              <span class="metric-value">{{ formatDate(restaurant.last_backup_at) }}</span>
+              <span class="metric-label">{{
+                t("backup.monitoring.lastBackup")
+              }}</span>
+              <span class="metric-value">{{
+                formatDate(restaurant.last_backup_at)
+              }}</span>
             </div>
             <div class="metric-row">
-              <span class="metric-label">{{ t('backup.monitoring.successRate') }}</span>
+              <span class="metric-label">{{
+                t("backup.monitoring.successRate")
+              }}</span>
               <span class="metric-value">{{ restaurant.success_rate }}%</span>
             </div>
             <div class="metric-row">
-              <span class="metric-label">{{ t('backup.monitoring.totalBackups') }}</span>
+              <span class="metric-label">{{
+                t("backup.monitoring.totalBackups")
+              }}</span>
               <span class="metric-value">{{ restaurant.total_backups }}</span>
             </div>
             <div class="metric-row">
-              <span class="metric-label">{{ t('backup.monitoring.storageUsed') }}</span>
-              <span class="metric-value">{{ formatBytes(restaurant.storage_used) }}</span>
+              <span class="metric-label">{{
+                t("backup.monitoring.storageUsed")
+              }}</span>
+              <span class="metric-value">{{
+                formatBytes(restaurant.storage_used)
+              }}</span>
             </div>
           </div>
 
@@ -135,7 +184,7 @@
               class="btn btn-sm btn-primary"
               @click="viewRestaurantDetails(restaurant.id)"
             >
-              {{ t('backup.monitoring.viewDetails') }}
+              {{ t("backup.monitoring.viewDetails") }}
             </button>
           </div>
         </div>
@@ -145,7 +194,7 @@
     <!-- Critical Alerts -->
     <div v-if="criticalAlerts.length > 0" class="alerts-section">
       <div class="section-header">
-        <h3>{{ t('backup.monitoring.criticalAlerts') }}</h3>
+        <h3>{{ t("backup.monitoring.criticalAlerts") }}</h3>
         <span class="alert-count">{{ criticalAlerts.length }}</span>
       </div>
 
@@ -166,7 +215,8 @@
             <div class="alert-meta">
               <span>{{ formatDate(alert.triggered_at) }}</span>
               <span v-if="alert.related_backup_id">
-                {{ t('backup.monitoring.relatedBackup') }}: {{ alert.related_backup_id.slice(0, 8) }}...
+                {{ t("backup.monitoring.relatedBackup") }}:
+                {{ alert.related_backup_id.slice(0, 8) }}...
               </span>
             </div>
           </div>
@@ -176,14 +226,14 @@
               class="btn btn-sm btn-secondary"
               @click="acknowledgeAlert(alert.id)"
             >
-              {{ t('backup.monitoring.acknowledge') }}
+              {{ t("backup.monitoring.acknowledge") }}
             </button>
             <button
               v-if="!alert.resolved"
               class="btn btn-sm btn-primary"
               @click="resolveAlert(alert.id)"
             >
-              {{ t('backup.monitoring.resolve') }}
+              {{ t("backup.monitoring.resolve") }}
             </button>
           </div>
         </div>
@@ -193,211 +243,226 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { useBackupStore } from '@/stores/backup'
-import { api } from '@/services/api'
+import { ref, computed, onMounted, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
+import { useBackupStore } from "@/stores/backup";
+import { api } from "@/services/api";
 
 // Temporary type definitions
 interface BackupSystemHealth {
-  overall_status: 'healthy' | 'warning' | 'critical'
-  total_restaurants: number
-  active_configurations: number
-  running_backups: number
-  failed_backups_24h: number
+  overall_status: "healthy" | "warning" | "critical";
+  total_restaurants: number;
+  active_configurations: number;
+  running_backups: number;
+  failed_backups_24h: number;
   storage_usage: {
-    total_bytes: number
-    available_bytes: number
-    usage_percentage: number
-  }
+    total_bytes: number;
+    available_bytes: number;
+    usage_percentage: number;
+  };
   performance_metrics: {
-    average_backup_duration_minutes: number
-    average_success_rate_percentage: number
-    average_compression_ratio: number
-  }
+    average_backup_duration_minutes: number;
+    average_success_rate_percentage: number;
+    average_compression_ratio: number;
+  };
   alerts_summary: {
-    critical: number
-    high: number
-    medium: number
-    low: number
-  }
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
 }
 
 interface BackupAlert {
-  id: string
-  restaurant_id: string
-  alert_type: 'backup_failed' | 'storage_quota_exceeded' | 'schedule_missed' | 'restoration_completed' | 'performance_degraded'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  title: string
-  message: string
-  related_backup_id?: string
-  triggered_at: string
-  acknowledged: boolean
-  acknowledged_by?: string
-  acknowledged_at?: string
-  resolved: boolean
-  resolved_at?: string
+  id: string;
+  restaurant_id: string;
+  alert_type:
+    | "backup_failed"
+    | "storage_quota_exceeded"
+    | "schedule_missed"
+    | "restoration_completed"
+    | "performance_degraded";
+  severity: "low" | "medium" | "high" | "critical";
+  title: string;
+  message: string;
+  related_backup_id?: string;
+  triggered_at: string;
+  acknowledged: boolean;
+  acknowledged_by?: string;
+  acknowledged_at?: string;
+  resolved: boolean;
+  resolved_at?: string;
 }
 
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   ExclamationCircleIcon,
-  XCircleIcon
-} from '@heroicons/vue/24/outline'
+  XCircleIcon,
+} from "@heroicons/vue/24/outline";
 
-const { t } = useI18n()
-const router = useRouter()
-const backupStore = useBackupStore()
+const { t } = useI18n();
+const router = useRouter();
+const backupStore = useBackupStore();
 
 // Reactive data
-const isLoading = ref(false)
-const systemHealth = ref<BackupSystemHealth | null>(null)
-const performanceData = ref<any[]>([])
-const restaurants = ref<any[]>([])
-const criticalAlerts = ref<BackupAlert[]>([])
-const selectedPeriod = ref('7d')
-const statusFilter = ref('all')
+const isLoading = ref(false);
+const systemHealth = ref<BackupSystemHealth | null>(null);
+const performanceData = ref<any[]>([]);
+const restaurants = ref<any[]>([]);
+const criticalAlerts = ref<BackupAlert[]>([]);
+const selectedPeriod = ref("7d");
+const statusFilter = ref("all");
 
 // Chart reference
-const performanceChart = ref<HTMLCanvasElement>()
+const performanceChart = ref<HTMLCanvasElement>();
 
 // Computed properties
 const overallHealthClass = computed(() => {
-  const status = systemHealth.value?.overall_status
+  const status = systemHealth.value?.overall_status;
   return {
-    'health-healthy': status === 'healthy',
-    'health-warning': status === 'warning',
-    'health-critical': status === 'critical'
-  }
-})
+    "health-healthy": status === "healthy",
+    "health-warning": status === "warning",
+    "health-critical": status === "critical",
+  };
+});
 
 const healthIcon = computed(() => {
-  const status = systemHealth.value?.overall_status
+  const status = systemHealth.value?.overall_status;
   switch (status) {
-    case 'healthy': return CheckCircleIcon
-    case 'warning': return ExclamationTriangleIcon
-    case 'critical': return XCircleIcon
-    default: return ExclamationCircleIcon
+    case "healthy":
+      return CheckCircleIcon;
+    case "warning":
+      return ExclamationTriangleIcon;
+    case "critical":
+      return XCircleIcon;
+    default:
+      return ExclamationCircleIcon;
   }
-})
+});
 
 const healthIconClass = computed(() => {
-  const status = systemHealth.value?.overall_status
+  const status = systemHealth.value?.overall_status;
   return {
-    'text-green-500': status === 'healthy',
-    'text-yellow-500': status === 'warning',
-    'text-red-500': status === 'critical',
-    'text-gray-500': !status
-  }
-})
+    "text-green-500": status === "healthy",
+    "text-yellow-500": status === "warning",
+    "text-red-500": status === "critical",
+    "text-gray-500": !status,
+  };
+});
 
 const filteredRestaurants = computed(() => {
-  if (statusFilter.value === 'all') return restaurants.value
-  if (statusFilter.value === 'healthy') {
-    return restaurants.value.filter(r => r.status === 'healthy')
+  if (statusFilter.value === "all") return restaurants.value;
+  if (statusFilter.value === "healthy") {
+    return restaurants.value.filter((r) => r.status === "healthy");
   }
-  if (statusFilter.value === 'issues') {
-    return restaurants.value.filter(r => r.status !== 'healthy')
+  if (statusFilter.value === "issues") {
+    return restaurants.value.filter((r) => r.status !== "healthy");
   }
-  return restaurants.value
-})
+  return restaurants.value;
+});
 
 // Methods
 const formatBytes = (bytes: number): string => {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let size = bytes
-  let unitIndex = 0
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = bytes;
+  let unitIndex = 0;
 
   while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024
-    unitIndex++
+    size /= 1024;
+    unitIndex++;
   }
 
-  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
-}
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
 
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffHours = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60),
+  );
 
-  if (diffHours < 1) return t('backup.monitoring.justNow')
-  if (diffHours < 24) return t('backup.monitoring.hoursAgo', { hours: diffHours })
-  if (diffHours < 48) return t('backup.monitoring.yesterday')
+  if (diffHours < 1) return t("backup.monitoring.justNow");
+  if (diffHours < 24)
+    return t("backup.monitoring.hoursAgo", { hours: diffHours });
+  if (diffHours < 48) return t("backup.monitoring.yesterday");
 
-  return date.toLocaleDateString()
-}
+  return date.toLocaleDateString();
+};
 
 const getRestaurantStatusClass = (restaurant: any) => {
   return {
-    'status-healthy': restaurant.status === 'healthy',
-    'status-warning': restaurant.status === 'warning',
-    'status-critical': restaurant.status === 'critical'
-  }
-}
+    "status-healthy": restaurant.status === "healthy",
+    "status-warning": restaurant.status === "warning",
+    "status-critical": restaurant.status === "critical",
+  };
+};
 
 const refreshData = async () => {
-  if (isLoading.value) return
+  if (isLoading.value) return;
 
-  isLoading.value = true
+  isLoading.value = true;
 
   try {
     // Load system health and restaurants first
-    await Promise.all([
-      loadSystemHealth(),
-      loadRestaurants(),
-    ])
+    await Promise.all([loadSystemHealth(), loadRestaurants()]);
     // Then load data that depends on restaurant list
-    await Promise.all([
-      loadPerformanceData(),
-      loadCriticalAlerts(),
-    ])
+    await Promise.all([loadPerformanceData(), loadCriticalAlerts()]);
   } catch (error) {
-    console.error('Error refreshing monitoring data:', error)
+    console.error("Error refreshing monitoring data:", error);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const loadSystemHealth = async () => {
   try {
-    systemHealth.value = await backupStore.getSystemHealth()
+    systemHealth.value = await backupStore.getSystemHealth();
   } catch (error) {
-    console.error('Error loading system health:', error)
+    console.error("Error loading system health:", error);
   }
-}
+};
 
 const loadPerformanceData = async () => {
   try {
-    const now = new Date()
-    const periodDays = selectedPeriod.value === '24h' ? 1 : selectedPeriod.value === '7d' ? 7 : 30
-    const dateFrom = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString()
+    const now = new Date();
+    const periodDays =
+      selectedPeriod.value === "24h"
+        ? 1
+        : selectedPeriod.value === "7d"
+          ? 7
+          : 30;
+    const dateFrom = new Date(
+      now.getTime() - periodDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
     // Fetch backups from all restaurants in parallel
     const results = await Promise.all(
-      restaurants.value.map(r =>
-        backupStore.listBackups({
-          restaurant_id: r.id,
-          date_from: dateFrom,
-          date_to: now.toISOString(),
-          limit: 500,
-          sort_by: 'created_at',
-          sort_order: 'asc',
-        }).catch(() => [] as any[])
-      )
-    )
-    const allBackups = results.flat()
+      restaurants.value.map((r) =>
+        backupStore
+          .listBackups({
+            restaurant_id: r.id,
+            date_from: dateFrom,
+            date_to: now.toISOString(),
+            limit: 500,
+            sort_by: "created_at",
+            sort_order: "asc",
+          })
+          .catch(() => [] as any[]),
+      ),
+    );
+    const allBackups = results.flat();
 
     // Group by day and compute success rates
-    const dayMap = new Map<string, { total: number; success: number }>()
+    const dayMap = new Map<string, { total: number; success: number }>();
     for (const backup of allBackups) {
-      const day = new Date(backup.created_at).toISOString().split('T')[0]
-      const entry = dayMap.get(day) || { total: 0, success: 0 }
-      entry.total++
-      if (backup.status === 'completed') entry.success++
-      dayMap.set(day, entry)
+      const day = new Date(backup.created_at).toISOString().split("T")[0];
+      const entry = dayMap.get(day) || { total: 0, success: 0 };
+      entry.total++;
+      if (backup.status === "completed") entry.success++;
+      dayMap.set(day, entry);
     }
 
     performanceData.value = Array.from(dayMap.entries())
@@ -405,36 +470,39 @@ const loadPerformanceData = async () => {
       .map(([day, stats]) => ({
         timestamp: new Date(day),
         value: stats.total > 0 ? (stats.success / stats.total) * 100 : 100,
-      }))
+      }));
 
-    await nextTick()
+    await nextTick();
     if (performanceChart.value) {
-      renderPerformanceChart()
+      renderPerformanceChart();
     }
   } catch (error) {
-    console.error('Error loading performance data:', error)
+    console.error("Error loading performance data:", error);
   }
-}
+};
 
 const loadRestaurants = async () => {
   try {
-    const response = await api.get('/restaurants')
-    const rawData = response.data?.data || response.data
-    const restaurantList: any[] = Array.isArray(rawData) ? rawData : []
+    const response = await api.get("/restaurants");
+    const rawData = response.data?.data || response.data;
+    const restaurantList: any[] = Array.isArray(rawData) ? rawData : [];
 
     const restaurantsWithMetrics = await Promise.all(
       restaurantList.map(async (r: any) => {
         try {
-          const metrics = await backupStore.getRestaurantMetrics(r.id, 'week')
-          const successRate = metrics.total_backups > 0
-            ? Math.round((metrics.successful_backups / metrics.total_backups) * 100)
-            : 100
+          const metrics = await backupStore.getRestaurantMetrics(r.id, "week");
+          const successRate =
+            metrics.total_backups > 0
+              ? Math.round(
+                  (metrics.successful_backups / metrics.total_backups) * 100,
+                )
+              : 100;
 
-          let status: 'healthy' | 'warning' | 'critical' = 'healthy'
+          let status: "healthy" | "warning" | "critical" = "healthy";
           if (successRate < 80 || metrics.failed_backups > 3) {
-            status = 'critical'
+            status = "critical";
           } else if (successRate < 95 || metrics.failed_backups > 0) {
-            status = 'warning'
+            status = "warning";
           }
 
           return {
@@ -445,113 +513,125 @@ const loadRestaurants = async () => {
             success_rate: successRate,
             total_backups: metrics.total_backups || 0,
             storage_used: metrics.total_storage_used || 0,
-          }
+          };
         } catch {
           return {
             id: r.id,
             name: r.name,
-            status: 'critical' as const,
-            last_backup_at: '',
+            status: "critical" as const,
+            last_backup_at: "",
             success_rate: 0,
             total_backups: 0,
             storage_used: 0,
-          }
+          };
         }
-      })
-    )
+      }),
+    );
 
-    restaurants.value = restaurantsWithMetrics
+    restaurants.value = restaurantsWithMetrics;
   } catch (error) {
-    console.error('Error loading restaurants:', error)
+    console.error("Error loading restaurants:", error);
   }
-}
+};
 
 const loadCriticalAlerts = async () => {
   try {
-    const allAlerts: BackupAlert[] = []
+    const allAlerts: BackupAlert[] = [];
     for (const restaurant of restaurants.value) {
       try {
-        const alerts = await backupStore.getRestaurantAlerts(restaurant.id, true)
-        allAlerts.push(...alerts)
+        const alerts = await backupStore.getRestaurantAlerts(
+          restaurant.id,
+          true,
+        );
+        allAlerts.push(...alerts);
       } catch {
         // Skip restaurants where alerts are unavailable
       }
     }
     criticalAlerts.value = allAlerts
-      .filter(a => !a.resolved)
+      .filter((a) => !a.resolved)
       .sort((a, b) => {
-        const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }
-        const diff = (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4)
-        if (diff !== 0) return diff
-        return new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime()
-      })
+        const severityOrder: Record<string, number> = {
+          critical: 0,
+          high: 1,
+          medium: 2,
+          low: 3,
+        };
+        const diff =
+          (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4);
+        if (diff !== 0) return diff;
+        return (
+          new Date(b.triggered_at).getTime() -
+          new Date(a.triggered_at).getTime()
+        );
+      });
   } catch (error) {
-    console.error('Error loading critical alerts:', error)
+    console.error("Error loading critical alerts:", error);
   }
-}
+};
 
 const filterRestaurants = () => {
   // Filtering is handled by computed property
-}
+};
 
 const viewRestaurantDetails = (restaurantId: string) => {
-  router.push(`/backup/restaurant/${restaurantId}`)
-}
+  router.push(`/backup/restaurant/${restaurantId}`);
+};
 
 const acknowledgeAlert = async (alertId: string) => {
   try {
-    await backupStore.acknowledgeAlert(alertId)
-    await loadCriticalAlerts()
+    await backupStore.acknowledgeAlert(alertId);
+    await loadCriticalAlerts();
   } catch (error) {
-    console.error('Error acknowledging alert:', error)
+    console.error("Error acknowledging alert:", error);
   }
-}
+};
 
 const resolveAlert = async (alertId: string) => {
   try {
-    await backupStore.resolveAlert(alertId)
-    await loadCriticalAlerts()
+    await backupStore.resolveAlert(alertId);
+    await loadCriticalAlerts();
   } catch (error) {
-    console.error('Error resolving alert:', error)
+    console.error("Error resolving alert:", error);
   }
-}
+};
 
 // Chart rendering
 const renderPerformanceChart = () => {
-  const canvas = performanceChart.value
-  if (!canvas) return
+  const canvas = performanceChart.value;
+  if (!canvas) return;
 
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
 
   // Simple line chart implementation
   // In production, use a proper charting library like Chart.js
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Draw axes and data points
   // This is a simplified implementation
-  ctx.strokeStyle = '#3b82f6'
-  ctx.lineWidth = 2
-  ctx.beginPath()
+  ctx.strokeStyle = "#3b82f6";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
 
   performanceData.value.forEach((point, index) => {
-    const x = (index / (performanceData.value.length - 1)) * canvas.width
-    const y = canvas.height - ((point.value / 100) * canvas.height)
+    const x = (index / (performanceData.value.length - 1)) * canvas.width;
+    const y = canvas.height - (point.value / 100) * canvas.height;
 
     if (index === 0) {
-      ctx.moveTo(x, y)
+      ctx.moveTo(x, y);
     } else {
-      ctx.lineTo(x, y)
+      ctx.lineTo(x, y);
     }
-  })
+  });
 
-  ctx.stroke()
-}
+  ctx.stroke();
+};
 
 // Lifecycle
 onMounted(() => {
-  refreshData()
-})
+  refreshData();
+});
 </script>
 
 <style scoped>

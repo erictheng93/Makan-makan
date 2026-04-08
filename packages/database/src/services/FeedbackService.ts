@@ -1,12 +1,7 @@
 import { eq, and, desc, gte, lte, count, sql, like, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { BaseService } from "./base";
-import {
-  shopFeedback,
-  feedbackResponses,
-  users,
-  restaurants,
-} from "../schema";
+import { shopFeedback, feedbackResponses, users, restaurants } from "../schema";
 import type {
   ShopFeedback,
   FeedbackResponse,

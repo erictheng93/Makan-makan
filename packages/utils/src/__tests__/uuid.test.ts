@@ -29,15 +29,11 @@ describe("uuid", () => {
     });
 
     it("should accept a valid UUID v4", () => {
-      expect(
-        isValidUUID("550e8400-e29b-41d4-a716-446655440000"),
-      ).toBe(true);
+      expect(isValidUUID("550e8400-e29b-41d4-a716-446655440000")).toBe(true);
     });
 
     it("should accept uppercase UUIDs", () => {
-      expect(
-        isValidUUID("550E8400-E29B-41D4-A716-446655440000"),
-      ).toBe(true);
+      expect(isValidUUID("550E8400-E29B-41D4-A716-446655440000")).toBe(true);
     });
 
     it("should reject empty string", () => {
@@ -45,9 +41,7 @@ describe("uuid", () => {
     });
 
     it("should reject non-hex characters", () => {
-      expect(
-        isValidUUID("zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"),
-      ).toBe(false);
+      expect(isValidUUID("zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz")).toBe(false);
     });
 
     it("should reject wrong length", () => {

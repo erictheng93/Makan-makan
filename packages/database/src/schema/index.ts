@@ -115,10 +115,7 @@ export {
   backupAuditLogsRelations,
   restoreOperationsRelations,
 } from "./backup";
-export {
-  shopFeedbackRelations,
-  feedbackResponsesRelations,
-} from "./feedback";
+export { shopFeedbackRelations, feedbackResponsesRelations } from "./feedback";
 
 // 重新匯出類型
 export type { UserRole } from "./users";

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { FoodpandaAdapter } from "../FoodpandaAdapter";
-import type { PlatformCredentials, MenuSyncPayload } from "@makanmakan/shared-types";
+import type {
+  PlatformCredentials,
+  MenuSyncPayload,
+} from "@makanmakan/shared-types";
 
 describe("FoodpandaAdapter", () => {
   let adapter: FoodpandaAdapter;
@@ -28,9 +31,7 @@ describe("FoodpandaAdapter", () => {
         {
           id: 1,
           name: "Main",
-          items: [
-            { id: 10, name: "Roti Canai", price: 300, available: true },
-          ],
+          items: [{ id: 10, name: "Roti Canai", price: 300, available: true }],
         },
       ],
     };

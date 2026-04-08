@@ -5,6 +5,7 @@ Read ONLY the section for the current review pass. Do NOT load the entire file.
 ## Pass 1: Getting Started
 
 **Gold standards:**
+
 - **Stripe**: 7 lines of code to charge a card. Docs pre-fill YOUR test API keys when logged in. Stripe Shell runs CLI inside docs page. No local install needed.
 - **Vercel**: `git push` = live site on global CDN with HTTPS. Every PR gets preview URL. One CLI command: `vercel`.
 - **Clerk**: `<SignIn />`, `<SignUp />`, `<UserButton />`. 3 JSX components, working auth with email, social, MFA out of the box.
@@ -13,6 +14,7 @@ Read ONLY the section for the current review pass. Do NOT load the entire file.
 - **Twilio**: Virtual Phone in console. Send/receive SMS without buying a number, no credit card. Result: 62% improvement in activation.
 
 **Anti-patterns:**
+
 - Email verification before any value (breaks flow)
 - Credit card required before sandbox
 - "Choose your own adventure" with multiple paths (decision fatigue; one golden path wins)
@@ -23,6 +25,7 @@ Read ONLY the section for the current review pass. Do NOT load the entire file.
 ## Pass 2: API/CLI/SDK Design
 
 **Gold standards:**
+
 - **Stripe prefixed IDs**: `ch_` for charges, `cus_` for customers. Self-documenting. Impossible to pass wrong ID type.
 - **Stripe expandable objects**: Default returns ID strings. `expand[]` gets full objects inline. Nested expansion up to 4 levels.
 - **Stripe idempotency keys**: Pass `Idempotency-Key` header on mutations. Safe retries. No "did I double-charge?" anxiety.
@@ -33,6 +36,7 @@ Read ONLY the section for the current review pass. Do NOT load the entire file.
 - **shadcn/ui**: Copy source code into your project. You own every line. No dependency, no version conflicts.
 
 **Anti-patterns:**
+
 - Chatty API: requiring 5 calls for one user-visible action
 - Inconsistent naming: `/users` (plural) vs `/user/123` (singular) vs `/create-order` (verb in URL)
 - Implicit failure: 200 OK with error nested in response body
@@ -44,6 +48,7 @@ Read ONLY the section for the current review pass. Do NOT load the entire file.
 **Three tiers of error quality:**
 
 **Tier 1, Elm (Conversational Compiler):**
+
 ```
 -- TYPE MISMATCH ---- src/Main.elm
 I cannot do addition with String values like this one:
@@ -51,9 +56,11 @@ I cannot do addition with String values like this one:
      ^^^^^^^
 Hint: To put strings together, use the (++) operator instead.
 ```
+
 First person, complete sentences, exact location, suggested fix, further reading.
 
 **Tier 2, Rust (Annotated Source):**
+
 ```
 error[E0308]: mismatched types
  --> src/main.rs:4:20
@@ -62,12 +69,23 @@ help: consider borrowing here
 4 |     let name: &str = &get_name();
   |                       +
 ```
+
 Error code links to tutorial. Primary + secondary labels. Help section shows exact edit.
 
 **Tier 3, Stripe API (Structured with doc_url):**
+
 ```json
-{"error":{"type":"invalid_request_error","code":"resource_missing","message":"No such customer: 'cus_nonexistent'","param":"customer","doc_url":"https://stripe.com/docs/error-codes/resource-missing"}}
+{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "resource_missing",
+    "message": "No such customer: 'cus_nonexistent'",
+    "param": "customer",
+    "doc_url": "https://stripe.com/docs/error-codes/resource-missing"
+  }
+}
 ```
+
 Five fields, zero ambiguity.
 
 **The formula:** What happened + Why + How to fix + Where to learn more + Actual values that caused it.
@@ -77,6 +95,7 @@ Five fields, zero ambiguity.
 ## Pass 4: Documentation & Learning
 
 **Gold standards:**
+
 - **Stripe docs**: Three-column layout (nav / content / live code). API keys injected when logged in. Language switcher persists across ALL pages. Hover-to-highlight. Stripe Shell for in-browser API calls. Built and open-sourced Markdoc. Features don't ship until docs are finalized. Docs contributions affect performance reviews.
 - 52% of developers blocked by lack of documentation (Postman 2023)
 - Companies with world-class docs see 2.5x increase in adoption
@@ -85,6 +104,7 @@ Five fields, zero ambiguity.
 ## Pass 5: Upgrade & Migration Path
 
 **Gold standards:**
+
 - **Next.js**: `npx @next/codemod upgrade major`. One command upgrades Next.js, React, React DOM, runs all relevant codemods.
 - **AG Grid**: Every release from v31+ includes a codemod.
 - **Stripe API versioning**: One codebase internally. Version pinning per account. Breaking changes never surprise you.
@@ -94,6 +114,7 @@ Five fields, zero ambiguity.
 ## Pass 6: Developer Environment & Tooling
 
 **Gold standards:**
+
 - **Bun**: 100x faster than npm install, 4x faster than Node.js runtime. Speed IS DX.
 - 87 interruptions per day average; 25 minutes to recover from each. Devs code only 2-4 hours/day.
 - Each 1-point DXI improvement = 13 minutes saved per developer per week.
@@ -107,6 +128,7 @@ Five fields, zero ambiguity.
 ## Pass 8: DX Measurement
 
 **Three academic frameworks:**
+
 1. **SPACE** (Microsoft Research, 2021): Satisfaction, Performance, Activity, Communication, Efficiency. Measure at least 3 dimensions.
 2. **DevEx** (ACM Queue, 2023): Feedback Loops, Cognitive Load, Flow State. Combine perceptual + workflow data.
 3. **Fagerholm & Munch** (IEEE, 2012): Cognition, Affect, Conation. The psychological "trilogy of mind."

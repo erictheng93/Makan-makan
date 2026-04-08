@@ -8,16 +8,14 @@
         </h1>
         <p class="text-sm text-[#8E8E93] mt-0.5">
           {{
-            isAdmin
-              ? t("feedback.adminSubtitle")
-              : t("feedback.ownerSubtitle")
+            isAdmin ? t("feedback.adminSubtitle") : t("feedback.ownerSubtitle")
           }}
         </p>
       </div>
       <button
         v-if="!isAdmin && !showForm"
-        @click="showForm = true"
         class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#007AFF] text-white text-sm font-semibold hover:bg-[#0071E3] transition-all duration-200 shadow-sm"
+        @click="showForm = true"
       >
         <Plus class="w-4 h-4" />
         {{ t("feedback.submit") }}
@@ -43,13 +41,13 @@
           v-model="filters.search"
           type="text"
           :placeholder="t('feedback.searchPlaceholder')"
-          @input="debouncedFetch"
           class="flex-1 min-w-48 px-4 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] placeholder-[#8E8E93] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all"
+          @input="debouncedFetch"
         />
         <select
           v-model="filters.status"
-          @change="loadFeedback"
           class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+          @change="loadFeedback"
         >
           <option value="">{{ t("feedback.allStatuses") }}</option>
           <option v-for="s in statuses" :key="s" :value="s">
@@ -58,8 +56,8 @@
         </select>
         <select
           v-model="filters.category"
-          @change="loadFeedback"
           class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+          @change="loadFeedback"
         >
           <option value="">{{ t("feedback.allCategories") }}</option>
           <option v-for="c in categories" :key="c" :value="c">
@@ -68,8 +66,8 @@
         </select>
         <select
           v-model="filters.priority"
-          @change="loadFeedback"
           class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+          @change="loadFeedback"
         >
           <option value="">{{ t("feedback.allPriorities") }}</option>
           <option v-for="p in priorities" :key="p" :value="p">
@@ -86,13 +84,16 @@
       />
     </div>
 
-    <div v-else-if="feedbackList.length === 0" class="bg-white rounded-2xl p-12 shadow-sm text-center">
+    <div
+      v-else-if="feedbackList.length === 0"
+      class="bg-white rounded-2xl p-12 shadow-sm text-center"
+    >
       <MessageSquare class="w-12 h-12 text-[#C7C7CC] mx-auto mb-3" />
       <p class="text-[#8E8E93] text-sm">{{ t("feedback.noFeedback") }}</p>
       <button
         v-if="!isAdmin && !showForm"
-        @click="showForm = true"
         class="mt-4 px-5 py-2.5 rounded-full bg-[#007AFF] text-white text-sm font-semibold hover:bg-[#0071E3] transition-all"
+        @click="showForm = true"
       >
         {{ t("feedback.submit") }}
       </button>
@@ -102,8 +103,8 @@
       <div
         v-for="item in feedbackList"
         :key="item.id"
-        @click="openDetail(item)"
         class="bg-white rounded-2xl p-5 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 active:scale-[0.99]"
+        @click="openDetail(item)"
       >
         <div class="flex items-start gap-3">
           <div class="flex-1 min-w-0">
@@ -134,7 +135,9 @@
               {{ item.description }}
             </p>
             <div class="flex items-center gap-3 mt-2 text-xs text-[#8E8E93]">
-              <span v-if="isAdmin && item.restaurant">🏪 {{ item.restaurant.name }}</span>
+              <span v-if="isAdmin && item.restaurant"
+                >🏪 {{ item.restaurant.name }}</span
+              >
               <span>{{ formatDate(item.createdAt) }}</span>
             </div>
           </div>
@@ -150,8 +153,8 @@
     >
       <button
         :disabled="pagination.page <= 1"
-        @click="changePage(pagination.page - 1)"
         class="px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm text-[#007AFF] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
+        @click="changePage(pagination.page - 1)"
       >
         {{ t("common.previous") }}
       </button>
@@ -160,8 +163,8 @@
       </span>
       <button
         :disabled="pagination.page >= pagination.totalPages"
-        @click="changePage(pagination.page + 1)"
         class="px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm text-[#007AFF] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
+        @click="changePage(pagination.page + 1)"
       >
         {{ t("common.next") }}
       </button>
@@ -186,8 +189,8 @@
                 {{ t("feedback.detailTitle") }}
               </h2>
               <button
-                @click="selectedFeedback = null"
                 class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-[#3C3C43] hover:bg-gray-300 transition-colors"
+                @click="selectedFeedback = null"
               >
                 <X class="w-4 h-4" />
               </button>
@@ -218,18 +221,27 @@ import { useFeedback } from "@/composables/useFeedback";
 import FeedbackForm from "@/components/feedback/FeedbackForm.vue";
 import FeedbackDetail from "@/components/feedback/FeedbackDetail.vue";
 import FeedbackStats from "@/components/feedback/FeedbackStats.vue";
-import type { FeedbackItem, FeedbackStats as FeedbackStatsType } from "@/composables/useFeedback";
+import type {
+  FeedbackItem,
+  FeedbackStats as FeedbackStatsType,
+} from "@/composables/useFeedback";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
-const { isLoading, fetchFeedback, fetchFeedbackById, fetchStats } = useFeedback();
+const { isLoading, fetchFeedback, fetchFeedbackById, fetchStats } =
+  useFeedback();
 
 const isAdmin = computed(() => authStore.user?.role === UserRole.ADMIN);
 const showForm = ref(false);
 const feedbackList = ref<FeedbackItem[]>([]);
 const selectedFeedback = ref<FeedbackItem | null>(null);
 const stats = ref<FeedbackStatsType | null>(null);
-const pagination = ref<{ page: number; limit: number; total: number; totalPages: number } | null>(null);
+const pagination = ref<{
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+} | null>(null);
 
 const filters = reactive({
   search: "",
@@ -239,7 +251,14 @@ const filters = reactive({
   page: 1,
 });
 
-const categories = ["bug_report", "feature_request", "usability", "performance", "billing", "other"];
+const categories = [
+  "bug_report",
+  "feature_request",
+  "usability",
+  "performance",
+  "billing",
+  "other",
+];
 const statuses = ["open", "in_progress", "resolved", "closed"];
 const priorities = ["low", "medium", "high", "urgent"];
 
@@ -283,8 +302,11 @@ function onSubmitted(feedback: FeedbackItem) {
 function onStatusChanged(status: string) {
   if (selectedFeedback.value) {
     selectedFeedback.value = { ...selectedFeedback.value, status };
-    const idx = feedbackList.value.findIndex((f) => f.id === selectedFeedback.value!.id);
-    if (idx !== -1) feedbackList.value[idx] = { ...feedbackList.value[idx], status };
+    const idx = feedbackList.value.findIndex(
+      (f) => f.id === selectedFeedback.value!.id,
+    );
+    if (idx !== -1)
+      feedbackList.value[idx] = { ...feedbackList.value[idx], status };
     loadStats();
   }
 }

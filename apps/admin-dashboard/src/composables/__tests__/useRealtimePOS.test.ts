@@ -109,8 +109,13 @@ describe("useRealtimePOS", () => {
 
   describe("clearUpdates", () => {
     it("should clear all data arrays", () => {
-      const { clearUpdates, transactions, cashMovements, shiftEvents, registerStatuses } =
-        useRealtimePOS();
+      const {
+        clearUpdates,
+        transactions,
+        cashMovements,
+        shiftEvents,
+        registerStatuses,
+      } = useRealtimePOS();
 
       transactions.value.push({
         transactionId: "t1",
@@ -282,9 +287,33 @@ describe("useRealtimePOS", () => {
 
       const now = new Date().toISOString();
       transactions.value.push(
-        { transactionId: "t1", registerId: "r1", type: "sale", amount: 100, description: "", operatorId: 1, timestamp: now },
-        { transactionId: "t2", registerId: "r1", type: "sale", amount: 200, description: "", operatorId: 1, timestamp: now },
-        { transactionId: "t3", registerId: "r1", type: "refund", amount: -50, description: "", operatorId: 1, timestamp: now },
+        {
+          transactionId: "t1",
+          registerId: "r1",
+          type: "sale",
+          amount: 100,
+          description: "",
+          operatorId: 1,
+          timestamp: now,
+        },
+        {
+          transactionId: "t2",
+          registerId: "r1",
+          type: "sale",
+          amount: 200,
+          description: "",
+          operatorId: 1,
+          timestamp: now,
+        },
+        {
+          transactionId: "t3",
+          registerId: "r1",
+          type: "refund",
+          amount: -50,
+          description: "",
+          operatorId: 1,
+          timestamp: now,
+        },
       );
 
       expect(getTodaySalesTotal()).toBe(300);
@@ -295,8 +324,24 @@ describe("useRealtimePOS", () => {
 
       const now = new Date().toISOString();
       transactions.value.push(
-        { transactionId: "t1", registerId: "r1", type: "refund", amount: -50, description: "", operatorId: 1, timestamp: now },
-        { transactionId: "t2", registerId: "r1", type: "refund", amount: -30, description: "", operatorId: 1, timestamp: now },
+        {
+          transactionId: "t1",
+          registerId: "r1",
+          type: "refund",
+          amount: -50,
+          description: "",
+          operatorId: 1,
+          timestamp: now,
+        },
+        {
+          transactionId: "t2",
+          registerId: "r1",
+          type: "refund",
+          amount: -30,
+          description: "",
+          operatorId: 1,
+          timestamp: now,
+        },
       );
 
       expect(getTodayRefundsTotal()).toBe(80);

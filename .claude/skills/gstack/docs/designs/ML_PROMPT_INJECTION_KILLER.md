@@ -20,17 +20,18 @@ on the current page via browse commands. The allowlist prevents `curl` and `rm`,
 
 ## Industry State of the Art (March 2026)
 
-| System | Approach | Result | Source |
-|--------|----------|--------|--------|
-| Claude Code Auto Mode | Two-layer: input probe scans tool outputs, transcript classifier (Sonnet 4.6, reasoning-blind) runs on every action | 0.4% FPR, 5.7% FNR | [Anthropic](https://www.anthropic.com/engineering/claude-code-auto-mode) |
-| Perplexity BrowseSafe | ML classifier (Qwen3-30B-A3B MoE) + input normalization + trust boundaries | F1 ~0.91, but Lasso Security bypassed 36% with encoding tricks | [Perplexity Research](https://research.perplexity.ai/articles/browsesafe), [Lasso](https://www.lasso.security/blog/red-teaming-browsesafe-perplexity-prompt-injections-risks) |
-| Perplexity Comet | Defense-in-depth: ML classifiers + security reinforcement + user controls + notifications | CometJacking still worked via URL params | [Perplexity](https://www.perplexity.ai/hub/blog/mitigating-prompt-injection-in-comet), [LayerX](https://layerxsecurity.com/blog/cometjacking-how-one-click-can-turn-perplexitys-comet-ai-browser-against-you/) |
-| Meta Rule of Two | Architectural: agent must satisfy max 2 of {untrusted input, sensitive access, state change} | Design pattern, not a tool | [Meta AI](https://ai.meta.com/blog/practical-ai-agent-security/) |
-| ProtectAI DeBERTa-v3 | Fine-tuned 86M param binary classifier for prompt injection | 94.8% accuracy, 99.6% recall, 90.9% precision | [HuggingFace](https://huggingface.co/protectai/deberta-v3-base-prompt-injection-v2) |
-| tldrsec | Curated defense catalog: instructional, guardrails, firewalls, ensemble, canaries, architectural | "Prompt injection remains unsolved" | [GitHub](https://github.com/tldrsec/prompt-injection-defenses) |
-| Multi-Agent Defense | Pipeline of specialized agents for detection | 100% mitigation in lab conditions | [arXiv](https://arxiv.org/html/2509.14285v4) |
+| System                | Approach                                                                                                            | Result                                                         | Source                                                                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code Auto Mode | Two-layer: input probe scans tool outputs, transcript classifier (Sonnet 4.6, reasoning-blind) runs on every action | 0.4% FPR, 5.7% FNR                                             | [Anthropic](https://www.anthropic.com/engineering/claude-code-auto-mode)                                                                                                                                       |
+| Perplexity BrowseSafe | ML classifier (Qwen3-30B-A3B MoE) + input normalization + trust boundaries                                          | F1 ~0.91, but Lasso Security bypassed 36% with encoding tricks | [Perplexity Research](https://research.perplexity.ai/articles/browsesafe), [Lasso](https://www.lasso.security/blog/red-teaming-browsesafe-perplexity-prompt-injections-risks)                                  |
+| Perplexity Comet      | Defense-in-depth: ML classifiers + security reinforcement + user controls + notifications                           | CometJacking still worked via URL params                       | [Perplexity](https://www.perplexity.ai/hub/blog/mitigating-prompt-injection-in-comet), [LayerX](https://layerxsecurity.com/blog/cometjacking-how-one-click-can-turn-perplexitys-comet-ai-browser-against-you/) |
+| Meta Rule of Two      | Architectural: agent must satisfy max 2 of {untrusted input, sensitive access, state change}                        | Design pattern, not a tool                                     | [Meta AI](https://ai.meta.com/blog/practical-ai-agent-security/)                                                                                                                                               |
+| ProtectAI DeBERTa-v3  | Fine-tuned 86M param binary classifier for prompt injection                                                         | 94.8% accuracy, 99.6% recall, 90.9% precision                  | [HuggingFace](https://huggingface.co/protectai/deberta-v3-base-prompt-injection-v2)                                                                                                                            |
+| tldrsec               | Curated defense catalog: instructional, guardrails, firewalls, ensemble, canaries, architectural                    | "Prompt injection remains unsolved"                            | [GitHub](https://github.com/tldrsec/prompt-injection-defenses)                                                                                                                                                 |
+| Multi-Agent Defense   | Pipeline of specialized agents for detection                                                                        | 100% mitigation in lab conditions                              | [arXiv](https://arxiv.org/html/2509.14285v4)                                                                                                                                                                   |
 
 **Key insights:**
+
 - Claude Code auto mode's transcript classifier is **reasoning-blind** by design. It
   sees user messages + tool calls but strips Claude's own reasoning, preventing
   self-persuasion attacks.
@@ -48,6 +49,7 @@ on the current page via browse commands. The allowlist prevents `curl` and `rm`,
 ### Usable Now
 
 **1. ProtectAI DeBERTa-v3-base-prompt-injection-v2**
+
 - [HuggingFace](https://huggingface.co/protectai/deberta-v3-base-prompt-injection-v2)
 - 86M param binary classifier (injection / no injection)
 - 94.8% accuracy, 99.6% recall, 90.9% precision
@@ -56,6 +58,7 @@ on the current page via browse commands. The allowlist prevents `curl` and `rm`,
 - **Our pick for v1.** Small, fast, well-tested, maintained by a security team.
 
 **2. Perplexity BrowseSafe**
+
 - [HuggingFace model](https://huggingface.co/perplexity-ai/browsesafe) + [benchmark dataset](https://huggingface.co/datasets/perplexity-ai/browsesafe-bench)
 - Qwen3-30B-A3B (MoE), fine-tuned for browser agent injection
 - F1 ~0.91 on BrowseSafe-Bench (3,680 test samples, 11 attack types, 9 injection strategies)
@@ -63,6 +66,7 @@ on the current page via browse commands. The allowlist prevents `curl` and `rm`,
   gold for testing our own defenses.
 
 **3. @huggingface/transformers v4**
+
 - [npm](https://www.npmjs.com/package/@huggingface/transformers)
 - JavaScript ML inference library. Native Bun support (shipped Feb 2026).
 - WASM backend works in compiled binaries. WebGPU backend for acceleration.
@@ -70,21 +74,25 @@ on the current page via browse commands. The allowlist prevents `curl` and `rm`,
 - **This is the integration path for the DeBERTa model.**
 
 **4. theRizwan/llm-guard (TypeScript)**
+
 - [GitHub](https://github.com/theRizwan/llm-guard)
 - TypeScript/JS library for prompt injection, PII, jailbreak, profanity detection
 - Small project, unclear maintenance. Needs audit before depending on it.
 
 **5. ProtectAI Rebuff**
+
 - [GitHub](https://github.com/protectai/rebuff)
 - Multi-layer: heuristics + LLM classifier + vector DB of known attacks + canary tokens
 - Python-based. Architecture pattern is reusable, library is not.
 
 **6. ProtectAI LLM Guard (Python)**
+
 - [GitHub](https://github.com/protectai/llm-guard)
 - 15 input scanners, 20 output scanners. Mature, well-maintained.
 - Python-only. Would need sidecar process or reimplementation.
 
 **7. @openai/guardrails**
+
 - [npm](https://www.npmjs.com/package/@openai/guardrails)
 - OpenAI's TypeScript guardrails. LLM-based injection detection.
 - Requires OpenAI API calls (adds latency, cost, vendor dependency). Not ideal.
@@ -92,6 +100,7 @@ on the current page via browse commands. The allowlist prevents `curl` and `rm`,
 ### Benchmark Dataset
 
 **BrowseSafe-Bench** — 3,680 adversarial test cases from Perplexity:
+
 - 11 attack types with different security criticality levels
 - 9 injection strategies
 - 5 distractor types
@@ -106,38 +115,41 @@ on the current page via browse commands. The allowlist prevents `curl` and `rm`,
 
 ```typescript
 // Public API -- any gstack component can call these
-export async function loadModel(): Promise<void>
-export async function checkInjection(input: string): Promise<SecurityResult>
-export async function scanPageContent(html: string): Promise<SecurityResult>
-export function injectCanary(prompt: string): { prompt: string; canary: string }
-export function checkCanary(output: string, canary: string): boolean
-export function logAttempt(details: AttemptDetails): void
-export function getStatus(): SecurityStatus
+export async function loadModel(): Promise<void>;
+export async function checkInjection(input: string): Promise<SecurityResult>;
+export async function scanPageContent(html: string): Promise<SecurityResult>;
+export function injectCanary(prompt: string): {
+  prompt: string;
+  canary: string;
+};
+export function checkCanary(output: string, canary: string): boolean;
+export function logAttempt(details: AttemptDetails): void;
+export function getStatus(): SecurityStatus;
 
 type SecurityResult = {
-  verdict: 'safe' | 'warn' | 'block';
-  confidence: number;        // 0-1 from DeBERTa
-  layer: string;             // which layer caught it
-  pattern?: string;          // matched regex pattern (if regex layer)
-  decodedInput?: string;     // after encoding normalization
-}
+  verdict: "safe" | "warn" | "block";
+  confidence: number; // 0-1 from DeBERTa
+  layer: string; // which layer caught it
+  pattern?: string; // matched regex pattern (if regex layer)
+  decodedInput?: string; // after encoding normalization
+};
 
-type SecurityStatus = 'protected' | 'degraded' | 'inactive'
+type SecurityStatus = "protected" | "degraded" | "inactive";
 ```
 
 ### Defense Layers (full vision)
 
-| Layer | What | How | Status |
-|-------|------|-----|--------|
-| L0 | Model selection | Default to Opus | PR 1 (done) |
-| L1 | XML prompt framing | `<system>` + `<user-message>` with escaping | PR 1 (done) |
-| L2 | DeBERTa classifier | @huggingface/transformers v4 WASM, 94.8% accuracy | **THIS PR** |
-| L2b | Regex patterns | Decode base64/URL/HTML entities, then pattern match | **THIS PR** |
-| L3 | Page content scan | Pre-scan snapshot before prompt construction | **THIS PR** |
-| L4 | Bash command allowlist | Browse-only commands pass | PR 1 (done) |
-| L5 | Canary tokens | Random token per session, check output stream | **THIS PR** |
-| L6 | Transparent blocking | Show user what was caught and why | **THIS PR** |
-| L7 | Shield icon | Security status indicator (green/yellow/red) | **THIS PR** |
+| Layer | What                   | How                                                 | Status      |
+| ----- | ---------------------- | --------------------------------------------------- | ----------- |
+| L0    | Model selection        | Default to Opus                                     | PR 1 (done) |
+| L1    | XML prompt framing     | `<system>` + `<user-message>` with escaping         | PR 1 (done) |
+| L2    | DeBERTa classifier     | @huggingface/transformers v4 WASM, 94.8% accuracy   | **THIS PR** |
+| L2b   | Regex patterns         | Decode base64/URL/HTML entities, then pattern match | **THIS PR** |
+| L3    | Page content scan      | Pre-scan snapshot before prompt construction        | **THIS PR** |
+| L4    | Bash command allowlist | Browse-only commands pass                           | PR 1 (done) |
+| L5    | Canary tokens          | Random token per session, check output stream       | **THIS PR** |
+| L6    | Transparent blocking   | Show user what was caught and why                   | **THIS PR** |
+| L7    | Shield icon            | Security status indicator (green/yellow/red)        | **THIS PR** |
 
 ### Data Flow with ML Classifier
 
@@ -273,6 +285,7 @@ AskUserQuestion), not through the extension UI (which doesn't have an ask-user p
 ## Shield Icon UI
 
 Add to sidebar header:
+
 - Green shield: all defense layers active (model loaded, allowlist active)
 - Yellow shield: degraded (model not loaded, regex-only)
 - Red shield: inactive (security module error)
@@ -350,6 +363,7 @@ Components to port:
 **Effort:** XL (human: ~2 months / CC: ~1-2 weeks)
 
 **Why this might be worth it:**
+
 - 5ms inference means we can scan EVERYTHING: every message, every page, every tool
   output, every browse command response. No latency tradeoffs.
 - Zero external dependencies. Pure TypeScript. Works everywhere Bun works.
@@ -357,12 +371,14 @@ Components to port:
 - The tokenizer + inference engine could be published as a standalone package.
 
 **Why it might not:**
+
 - WASM at 50-100ms is probably good enough for the sidebar use case.
 - Maintaining a custom inference engine is a lot of ongoing work.
 - @huggingface/transformers will keep getting faster (WebGPU support is already landing).
 - The 5ms target matters more if we're scanning every tool output, which we're not doing yet.
 
 **Recommended path:**
+
 1. Ship WASM version (this PR)
 2. Benchmark real-world latency
 3. If latency is a bottleneck, explore Bun FFI + Apple Accelerate for matmul

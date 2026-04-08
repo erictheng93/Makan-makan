@@ -10,8 +10,8 @@
  * This module handles layers 1-3. Layer 4 is in cli.ts.
  */
 
-import { randomBytes } from 'crypto';
-import type { Page, Frame } from 'playwright';
+import { randomBytes } from "crypto";
+import type { Page, Frame } from "playwright";
 
 // ─── Datamarking (Layer 1) ──────────────────────────────────────
 
@@ -20,7 +20,7 @@ let sessionMarker: string | null = null;
 
 function ensureMarker(): string {
   if (!sessionMarker) {
-    sessionMarker = randomBytes(3).toString('base64').slice(0, 4);
+    sessionMarker = randomBytes(3).toString("base64").slice(0, 4);
   }
   return sessionMarker;
 }
@@ -44,8 +44,11 @@ export function datamarkContent(content: string): string {
   const marker = ensureMarker();
   // Insert marker as a Unicode tag sequence between sentences (after periods followed by space)
   // This is subtle enough to not corrupt output but detectable if exfiltrated
-  const zwsp = '\u200B'; // zero-width space
-  const taggedMarker = marker.split('').map(c => zwsp + c).join('');
+  const zwsp = "\u200B"; // zero-width space
+  const taggedMarker = marker
+    .split("")
+    .map((c) => zwsp + c)
+    .join("");
   // Insert after every 3rd sentence-ending period
   let count = 0;
   return content.replace(/(\. )/g, (match) => {
@@ -84,102 +87,126 @@ const ARIA_INJECTION_PATTERNS = [
  *   - clip/clip-path hiding
  *   - ARIA labels with injection patterns
  */
-export async function markHiddenElements(page: Page | Frame): Promise<string[]> {
-  return await page.evaluate((ariaPatterns: string[]) => {
-    const found: string[] = [];
-    const elements = document.querySelectorAll('body *');
+export async function markHiddenElements(
+  page: Page | Frame,
+): Promise<string[]> {
+  return await page.evaluate(
+    (ariaPatterns: string[]) => {
+      const found: string[] = [];
+      const elements = document.querySelectorAll("body *");
 
-    for (const el of elements) {
-      if (el instanceof HTMLElement) {
-        const style = window.getComputedStyle(el);
-        const text = el.textContent?.trim() || '';
-        if (!text) continue; // skip empty elements
+      for (const el of elements) {
+        if (el instanceof HTMLElement) {
+          const style = window.getComputedStyle(el);
+          const text = el.textContent?.trim() || "";
+          if (!text) continue; // skip empty elements
 
-        let isHidden = false;
-        let reason = '';
+          let isHidden = false;
+          let reason = "";
 
-        // Check opacity
-        if (parseFloat(style.opacity) < 0.1) {
-          isHidden = true;
-          reason = 'opacity < 0.1';
-        }
-        // Check font-size
-        else if (parseFloat(style.fontSize) < 1) {
-          isHidden = true;
-          reason = 'font-size < 1px';
-        }
-        // Check off-screen positioning
-        else if (style.position === 'absolute' || style.position === 'fixed') {
-          const rect = el.getBoundingClientRect();
-          if (rect.right < -100 || rect.bottom < -100 || rect.left > window.innerWidth + 100 || rect.top > window.innerHeight + 100) {
+          // Check opacity
+          if (parseFloat(style.opacity) < 0.1) {
             isHidden = true;
-            reason = 'off-screen';
+            reason = "opacity < 0.1";
           }
-        }
-        // Check same fg/bg color (text hiding)
-        else if (style.color === style.backgroundColor && text.length > 10) {
-          isHidden = true;
-          reason = 'same fg/bg color';
-        }
-        // Check clip-path hiding
-        else if (style.clipPath === 'inset(100%)' || style.clip === 'rect(0px, 0px, 0px, 0px)') {
-          isHidden = true;
-          reason = 'clip hiding';
-        }
-        // Check visibility: hidden
-        else if (style.visibility === 'hidden') {
-          isHidden = true;
-          reason = 'visibility hidden';
-        }
+          // Check font-size
+          else if (parseFloat(style.fontSize) < 1) {
+            isHidden = true;
+            reason = "font-size < 1px";
+          }
+          // Check off-screen positioning
+          else if (
+            style.position === "absolute" ||
+            style.position === "fixed"
+          ) {
+            const rect = el.getBoundingClientRect();
+            if (
+              rect.right < -100 ||
+              rect.bottom < -100 ||
+              rect.left > window.innerWidth + 100 ||
+              rect.top > window.innerHeight + 100
+            ) {
+              isHidden = true;
+              reason = "off-screen";
+            }
+          }
+          // Check same fg/bg color (text hiding)
+          else if (style.color === style.backgroundColor && text.length > 10) {
+            isHidden = true;
+            reason = "same fg/bg color";
+          }
+          // Check clip-path hiding
+          else if (
+            style.clipPath === "inset(100%)" ||
+            style.clip === "rect(0px, 0px, 0px, 0px)"
+          ) {
+            isHidden = true;
+            reason = "clip hiding";
+          }
+          // Check visibility: hidden
+          else if (style.visibility === "hidden") {
+            isHidden = true;
+            reason = "visibility hidden";
+          }
 
-        if (isHidden) {
-          el.setAttribute('data-gstack-hidden', 'true');
-          found.push(`[${el.tagName.toLowerCase()}] ${reason}: "${text.slice(0, 60)}..."`);
-        }
+          if (isHidden) {
+            el.setAttribute("data-gstack-hidden", "true");
+            found.push(
+              `[${el.tagName.toLowerCase()}] ${reason}: "${text.slice(0, 60)}..."`,
+            );
+          }
 
-        // Check ARIA labels for injection patterns
-        const ariaLabel = el.getAttribute('aria-label') || '';
-        const ariaLabelledBy = el.getAttribute('aria-labelledby');
-        let labelText = ariaLabel;
-        if (ariaLabelledBy) {
-          const labelEl = document.getElementById(ariaLabelledBy);
-          if (labelEl) labelText += ' ' + (labelEl.textContent || '');
-        }
+          // Check ARIA labels for injection patterns
+          const ariaLabel = el.getAttribute("aria-label") || "";
+          const ariaLabelledBy = el.getAttribute("aria-labelledby");
+          let labelText = ariaLabel;
+          if (ariaLabelledBy) {
+            const labelEl = document.getElementById(ariaLabelledBy);
+            if (labelEl) labelText += " " + (labelEl.textContent || "");
+          }
 
-        if (labelText) {
-          for (const pattern of ariaPatterns) {
-            if (new RegExp(pattern, 'i').test(labelText)) {
-              el.setAttribute('data-gstack-hidden', 'true');
-              found.push(`[${el.tagName.toLowerCase()}] ARIA injection: "${labelText.slice(0, 60)}..."`);
-              break;
+          if (labelText) {
+            for (const pattern of ariaPatterns) {
+              if (new RegExp(pattern, "i").test(labelText)) {
+                el.setAttribute("data-gstack-hidden", "true");
+                found.push(
+                  `[${el.tagName.toLowerCase()}] ARIA injection: "${labelText.slice(0, 60)}..."`,
+                );
+                break;
+              }
             }
           }
         }
       }
-    }
 
-    return found;
-  }, ARIA_INJECTION_PATTERNS.map(p => p.source));
+      return found;
+    },
+    ARIA_INJECTION_PATTERNS.map((p) => p.source),
+  );
 }
 
 /**
  * Get clean text with hidden elements stripped (for `text` command).
  * Uses clone + remove approach: clones body, removes marked elements, returns innerText.
  */
-export async function getCleanTextWithStripping(page: Page | Frame): Promise<string> {
+export async function getCleanTextWithStripping(
+  page: Page | Frame,
+): Promise<string> {
   return await page.evaluate(() => {
     const body = document.body;
-    if (!body) return '';
+    if (!body) return "";
     const clone = body.cloneNode(true) as HTMLElement;
     // Remove standard noise elements
-    clone.querySelectorAll('script, style, noscript, svg').forEach(el => el.remove());
+    clone
+      .querySelectorAll("script, style, noscript, svg")
+      .forEach((el) => el.remove());
     // Remove hidden-marked elements
-    clone.querySelectorAll('[data-gstack-hidden]').forEach(el => el.remove());
+    clone.querySelectorAll("[data-gstack-hidden]").forEach((el) => el.remove());
     return clone.innerText
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .join('\n');
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .join("\n");
   });
 }
 
@@ -189,16 +216,16 @@ export async function getCleanTextWithStripping(page: Page | Frame): Promise<str
  */
 export async function cleanupHiddenMarkers(page: Page | Frame): Promise<void> {
   await page.evaluate(() => {
-    document.querySelectorAll('[data-gstack-hidden]').forEach(el => {
-      el.removeAttribute('data-gstack-hidden');
+    document.querySelectorAll("[data-gstack-hidden]").forEach((el) => {
+      el.removeAttribute("data-gstack-hidden");
     });
   });
 }
 
 // ─── Content Envelope (wrapping) ────────────────────────────────
 
-const ENVELOPE_BEGIN = '═══ BEGIN UNTRUSTED WEB CONTENT ═══';
-const ENVELOPE_END = '═══ END UNTRUSTED WEB CONTENT ═══';
+const ENVELOPE_BEGIN = "═══ BEGIN UNTRUSTED WEB CONTENT ═══";
+const ENVELOPE_END = "═══ END UNTRUSTED WEB CONTENT ═══";
 
 /**
  * Wrap page content in a trust boundary envelope for scoped tokens.
@@ -210,22 +237,28 @@ export function wrapUntrustedPageContent(
   filterWarnings?: string[],
 ): string {
   // Escape envelope markers in content (zero-width space injection)
-  const zwsp = '\u200B';
+  const zwsp = "\u200B";
   const safeContent = content
-    .replace(/═══ BEGIN UNTRUSTED WEB CONTENT ═══/g, `═══ BEGIN UNTRUSTED WEB C${zwsp}ONTENT ═══`)
-    .replace(/═══ END UNTRUSTED WEB CONTENT ═══/g, `═══ END UNTRUSTED WEB C${zwsp}ONTENT ═══`);
+    .replace(
+      /═══ BEGIN UNTRUSTED WEB CONTENT ═══/g,
+      `═══ BEGIN UNTRUSTED WEB C${zwsp}ONTENT ═══`,
+    )
+    .replace(
+      /═══ END UNTRUSTED WEB CONTENT ═══/g,
+      `═══ END UNTRUSTED WEB C${zwsp}ONTENT ═══`,
+    );
 
   const parts: string[] = [];
 
   if (filterWarnings && filterWarnings.length > 0) {
-    parts.push(`⚠ CONTENT WARNINGS: ${filterWarnings.join('; ')}`);
+    parts.push(`⚠ CONTENT WARNINGS: ${filterWarnings.join("; ")}`);
   }
 
   parts.push(ENVELOPE_BEGIN);
   parts.push(safeContent);
   parts.push(ENVELOPE_END);
 
-  return parts.join('\n');
+  return parts.join("\n");
 }
 
 // ─── Content Filter Hooks (Layer 3) ─────────────────────────────
@@ -254,10 +287,10 @@ export function clearContentFilters(): void {
 }
 
 /** Get current filter mode from env */
-export function getFilterMode(): 'off' | 'warn' | 'block' {
+export function getFilterMode(): "off" | "warn" | "block" {
   const mode = process.env.BROWSE_CONTENT_FILTER?.toLowerCase();
-  if (mode === 'off' || mode === 'block') return mode;
-  return 'warn'; // default
+  if (mode === "off" || mode === "block") return mode;
+  return "warn"; // default
 }
 
 /**
@@ -270,7 +303,7 @@ export function runContentFilters(
   command: string,
 ): ContentFilterResult {
   const mode = getFilterMode();
-  if (mode === 'off') {
+  if (mode === "off") {
     return { safe: true, warnings: [] };
   }
 
@@ -281,7 +314,7 @@ export function runContentFilters(
     const result = filter(content, url, command);
     if (!result.safe) {
       allWarnings.push(...result.warnings);
-      if (mode === 'block') {
+      if (mode === "block") {
         blocked = true;
       }
     }
@@ -292,7 +325,7 @@ export function runContentFilters(
       safe: false,
       warnings: allWarnings,
       blocked: true,
-      message: `Content blocked: ${allWarnings.join('; ')}`,
+      message: `Content blocked: ${allWarnings.join("; ")}`,
     };
   }
 
@@ -305,20 +338,24 @@ export function runContentFilters(
 // ─── Built-in URL Blocklist Filter ──────────────────────────────
 
 const BLOCKLIST_DOMAINS = [
-  'requestbin.com',
-  'pipedream.com',
-  'webhook.site',
-  'hookbin.com',
-  'requestcatcher.com',
-  'burpcollaborator.net',
-  'interact.sh',
-  'canarytokens.com',
-  'ngrok.io',
-  'ngrok-free.app',
+  "requestbin.com",
+  "pipedream.com",
+  "webhook.site",
+  "hookbin.com",
+  "requestcatcher.com",
+  "burpcollaborator.net",
+  "interact.sh",
+  "canarytokens.com",
+  "ngrok.io",
+  "ngrok-free.app",
 ];
 
 /** Check if URL matches any blocklisted exfiltration domain */
-export function urlBlocklistFilter(content: string, url: string, _command: string): ContentFilterResult {
+export function urlBlocklistFilter(
+  content: string,
+  url: string,
+  _command: string,
+): ContentFilterResult {
   const warnings: string[] = [];
 
   // Check page URL
@@ -334,7 +371,9 @@ export function urlBlocklistFilter(content: string, url: string, _command: strin
   for (const contentUrl of contentUrls) {
     for (const domain of BLOCKLIST_DOMAINS) {
       if (contentUrl.includes(domain)) {
-        warnings.push(`Content contains blocklisted URL: ${contentUrl.slice(0, 100)}`);
+        warnings.push(
+          `Content contains blocklisted URL: ${contentUrl.slice(0, 100)}`,
+        );
         break;
       }
     }

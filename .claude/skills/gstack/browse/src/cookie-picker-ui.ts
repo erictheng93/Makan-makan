@@ -7,7 +7,10 @@
  * No cookie values exposed anywhere.
  */
 
-export function getCookiePickerHTML(serverPort: number, authToken?: string): string {
+export function getCookiePickerHTML(
+  serverPort: number,
+  authToken?: string,
+): string {
   const baseUrl = `http://127.0.0.1:${serverPort}`;
 
   return `<!DOCTYPE html>
@@ -341,7 +344,7 @@ export function getCookiePickerHTML(serverPort: number, authToken?: string): str
 <script>
 (function() {
   const BASE = '${baseUrl}';
-  const AUTH_TOKEN = '${authToken || ''}';
+  const AUTH_TOKEN = '${authToken || ""}';
   let activeBrowser = null;
   let activeProfile = 'Default';
   let allProfiles = [];

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { ref, nextTick } from "vue";
-import type { PaginationParams, PaginatedResponse, PaginationMeta } from "@makanmakan/shared-types";
+import type {
+  PaginationParams,
+  PaginatedResponse,
+  PaginationMeta,
+} from "@makanmakan/shared-types";
 
 const mockMeta = (hasNextPage: boolean): PaginationMeta => ({
   currentPage: 1,
@@ -31,7 +35,10 @@ import {
 } from "@/composables/usePagination";
 
 describe("useInfiniteScroll", () => {
-  let mockFetchFn: Mock<[PaginationParams], Promise<PaginatedResponse<unknown>>>;
+  let mockFetchFn: Mock<
+    [PaginationParams],
+    Promise<PaginatedResponse<unknown>>
+  >;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,8 +51,10 @@ describe("useInfiniteScroll", () => {
       pagination: mockMeta(false),
     });
 
-    const { items, isLoading, hasMore, isEmpty } =
-      useInfiniteScroll(mockFetchFn, { autoLoad: false });
+    const { items, isLoading, hasMore, isEmpty } = useInfiniteScroll(
+      mockFetchFn,
+      { autoLoad: false },
+    );
 
     expect(items.value).toEqual([]);
     expect(isLoading.value).toBe(false);
@@ -296,9 +305,7 @@ describe("useVirtualScroll", () => {
   });
 
   it("handleScroll should update visible items", async () => {
-    const items = ref(
-      Array.from({ length: 100 }, (_, i) => ({ id: i })),
-    );
+    const items = ref(Array.from({ length: 100 }, (_, i) => ({ id: i })));
 
     const { visibleItems, handleScroll } = useVirtualScroll(items, {
       itemHeight: 50,

@@ -10,7 +10,7 @@ const CACHE_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
 Deno.serve(async () => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
 
   try {
@@ -35,8 +35,12 @@ Deno.serve(async () => {
     }
 
     // Cache is stale or missing — recompute
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const weekAgo = new Date(
+      Date.now() - 7 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const twoWeeksAgo = new Date(
+      Date.now() - 14 * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
     // Weekly active (update checks this week)
     const { count: thisWeek } = await supabase
@@ -53,9 +57,8 @@ Deno.serve(async () => {
 
     const current = thisWeek ?? 0;
     const previous = lastWeek ?? 0;
-    const changePct = previous > 0
-      ? Math.round(((current - previous) / previous) * 100)
-      : 0;
+    const changePct =
+      previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0;
 
     // Top skills (last 7 days)
     const { data: skillRows } = await supabase
@@ -80,7 +83,9 @@ Deno.serve(async () => {
     // Crash clusters (top 5)
     const { data: crashes } = await supabase
       .from("crash_clusters")
-      .select("error_class, gstack_version, total_occurrences, identified_users")
+      .select(
+        "error_class, gstack_version, total_occurrences, identified_users",
+      )
       .limit(5);
 
     // Version distribution (last 7 days)
@@ -94,7 +99,8 @@ Deno.serve(async () => {
 
     for (const row of versionRows ?? []) {
       if (row.gstack_version) {
-        versionCounts[row.gstack_version] = (versionCounts[row.gstack_version] ?? 0) + 1;
+        versionCounts[row.gstack_version] =
+          (versionCounts[row.gstack_version] ?? 0) + 1;
       }
     }
     const topVersions = Object.entries(versionCounts)
@@ -111,13 +117,11 @@ Deno.serve(async () => {
     };
 
     // Upsert cache
-    await supabase
-      .from("community_pulse_cache")
-      .upsert({
-        id: 1,
-        data: result,
-        refreshed_at: new Date().toISOString(),
-      });
+    await supabase.from("community_pulse_cache").upsert({
+      id: 1,
+      data: result,
+      refreshed_at: new Date().toISOString(),
+    });
 
     return new Response(JSON.stringify(result), {
       status: 200,
@@ -128,11 +132,17 @@ Deno.serve(async () => {
     });
   } catch {
     return new Response(
-      JSON.stringify({ weekly_active: 0, change_pct: 0, top_skills: [], crashes: [], versions: [] }),
+      JSON.stringify({
+        weekly_active: 0,
+        change_pct: 0,
+        top_skills: [],
+        crashes: [],
+        versions: [],
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

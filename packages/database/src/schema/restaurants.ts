@@ -100,8 +100,12 @@ export const restaurants = sqliteTable("restaurants", {
   // Discovery fields
   cuisineTags: text("cuisine_tags", { mode: "json" }).$type<string[]>(),
   priceRange: integer("price_range"), // 1=budget, 2=mid, 3=premium
-  supportsTakeaway: integer("supports_takeaway", { mode: "boolean" }).notNull().default(false),
-  supportsDelivery: integer("supports_delivery", { mode: "boolean" }).notNull().default(false),
+  supportsTakeaway: integer("supports_takeaway", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  supportsDelivery: integer("supports_delivery", { mode: "boolean" })
+    .notNull()
+    .default(false),
 });
 
 export const restaurantRelations = relations(restaurants, ({ many }) => ({

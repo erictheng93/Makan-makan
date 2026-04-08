@@ -181,7 +181,9 @@ describe("discovery store", () => {
       store.updateFilters({ district: "KL" });
 
       expect(store.page).toBe(1);
-      expect(store.filters).toEqual(expect.objectContaining({ district: "KL" }));
+      expect(store.filters).toEqual(
+        expect.objectContaining({ district: "KL" }),
+      );
     });
 
     it("should trigger searchDishes when in search mode with query", async () => {

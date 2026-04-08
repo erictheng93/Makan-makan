@@ -36,27 +36,23 @@ const routes = new Hono<{ Bindings: Env }>();
  * POST /api/v1/coupons/validate
  * 公開端點，用於前端驗證優惠券
  */
-routes.post(
-  "/validate",
-  validateBody(validateCouponSchema),
-  async (c) => {
-    const data = c.get("validatedBody");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+routes.post("/validate", validateBody(validateCouponSchema), async (c) => {
+  const data = c.get("validatedBody");
+  const couponsService = new CouponsService(c.env.DB as any, c.env);
 
-    const result = await couponsService.validateCouponWithBusinessRules(
-      data.code,
-      data.restaurantId,
-      data.orderAmount,
-      data.userId,
-      data.menuItems,
-    );
+  const result = await couponsService.validateCouponWithBusinessRules(
+    data.code,
+    data.restaurantId,
+    data.orderAmount,
+    data.userId,
+    data.menuItems,
+  );
 
-    return c.json({
-      success: true,
-      data: result,
-    });
-  },
-);
+  return c.json({
+    success: true,
+    data: result,
+  });
+});
 
 /**
  * 獲取可用優惠券列表 (供客戶使用)

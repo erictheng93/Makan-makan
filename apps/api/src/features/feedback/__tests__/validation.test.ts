@@ -15,7 +15,8 @@ describe("Feedback Validation Schemas", () => {
   describe("createFeedbackSchema", () => {
     const valid = {
       subject: "Login page crashes on mobile",
-      description: "Whenever I open the login page on iOS Safari it crashes immediately.",
+      description:
+        "Whenever I open the login page on iOS Safari it crashes immediately.",
       category: "bug_report" as const,
     };
 
@@ -42,44 +43,57 @@ describe("Feedback Validation Schemas", () => {
 
     it("accepts subject at exactly 5 characters", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, subject: "A".repeat(5) }).success,
+        createFeedbackSchema.safeParse({ ...valid, subject: "A".repeat(5) })
+          .success,
       ).toBe(true);
     });
 
     it("accepts subject at exactly 200 characters", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, subject: "A".repeat(200) }).success,
+        createFeedbackSchema.safeParse({ ...valid, subject: "A".repeat(200) })
+          .success,
       ).toBe(true);
     });
 
     it("rejects subject longer than 200 characters", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, subject: "A".repeat(201) }).success,
+        createFeedbackSchema.safeParse({ ...valid, subject: "A".repeat(201) })
+          .success,
       ).toBe(false);
     });
 
     // description boundaries
     it("rejects description shorter than 10 characters", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, description: "Short" }).success,
+        createFeedbackSchema.safeParse({ ...valid, description: "Short" })
+          .success,
       ).toBe(false);
     });
 
     it("accepts description at exactly 10 characters", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, description: "A".repeat(10) }).success,
+        createFeedbackSchema.safeParse({
+          ...valid,
+          description: "A".repeat(10),
+        }).success,
       ).toBe(true);
     });
 
     it("accepts description at exactly 5000 characters", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, description: "A".repeat(5000) }).success,
+        createFeedbackSchema.safeParse({
+          ...valid,
+          description: "A".repeat(5000),
+        }).success,
       ).toBe(true);
     });
 
     it("rejects description longer than 5000 characters", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, description: "A".repeat(5001) }).success,
+        createFeedbackSchema.safeParse({
+          ...valid,
+          description: "A".repeat(5001),
+        }).success,
       ).toBe(false);
     });
 
@@ -103,7 +117,8 @@ describe("Feedback Validation Schemas", () => {
 
     it("rejects invalid category value", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, category: "complaint" }).success,
+        createFeedbackSchema.safeParse({ ...valid, category: "complaint" })
+          .success,
       ).toBe(false);
     });
 
@@ -119,20 +134,32 @@ describe("Feedback Validation Schemas", () => {
 
     it("rejects invalid priority value", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, priority: "critical" }).success,
+        createFeedbackSchema.safeParse({ ...valid, priority: "critical" })
+          .success,
       ).toBe(false);
     });
 
     it("allows missing priority (optional)", () => {
-      const { priority: _, ...withoutPriority } = { ...valid, priority: "high" };
+      const { priority: _, ...withoutPriority } = {
+        ...valid,
+        priority: "high",
+      };
       expect(createFeedbackSchema.safeParse(valid).success).toBe(true);
     });
 
     // relatedModule enum
     it("accepts all valid relatedModule values", () => {
       const modules = [
-        "menu", "orders", "pos", "tables", "reservations",
-        "scheduling", "analytics", "settings", "integrations", "other",
+        "menu",
+        "orders",
+        "pos",
+        "tables",
+        "reservations",
+        "scheduling",
+        "analytics",
+        "settings",
+        "integrations",
+        "other",
       ];
       for (const relatedModule of modules) {
         expect(
@@ -144,14 +171,16 @@ describe("Feedback Validation Schemas", () => {
 
     it("rejects invalid relatedModule value", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, relatedModule: "payments" }).success,
+        createFeedbackSchema.safeParse({ ...valid, relatedModule: "payments" })
+          .success,
       ).toBe(false);
     });
 
     // attachmentUrls
     it("accepts empty attachmentUrls array", () => {
       expect(
-        createFeedbackSchema.safeParse({ ...valid, attachmentUrls: [] }).success,
+        createFeedbackSchema.safeParse({ ...valid, attachmentUrls: [] })
+          .success,
       ).toBe(true);
     });
 
@@ -161,7 +190,8 @@ describe("Feedback Validation Schemas", () => {
         (_, i) => `https://example.com/img${i}.png`,
       );
       expect(
-        createFeedbackSchema.safeParse({ ...valid, attachmentUrls: urls }).success,
+        createFeedbackSchema.safeParse({ ...valid, attachmentUrls: urls })
+          .success,
       ).toBe(true);
     });
 
@@ -171,7 +201,8 @@ describe("Feedback Validation Schemas", () => {
         (_, i) => `https://example.com/img${i}.png`,
       );
       expect(
-        createFeedbackSchema.safeParse({ ...valid, attachmentUrls: urls }).success,
+        createFeedbackSchema.safeParse({ ...valid, attachmentUrls: urls })
+          .success,
       ).toBe(false);
     });
 
@@ -227,7 +258,8 @@ describe("Feedback Validation Schemas", () => {
   describe("addResponseSchema", () => {
     it("accepts valid message", () => {
       expect(
-        addResponseSchema.safeParse({ message: "Thank you for your feedback." }).success,
+        addResponseSchema.safeParse({ message: "Thank you for your feedback." })
+          .success,
       ).toBe(true);
     });
 
@@ -268,7 +300,8 @@ describe("Feedback Validation Schemas", () => {
 
     it("rejects non-boolean isInternal", () => {
       expect(
-        addResponseSchema.safeParse({ message: "Hello", isInternal: "yes" }).success,
+        addResponseSchema.safeParse({ message: "Hello", isInternal: "yes" })
+          .success,
       ).toBe(false);
     });
   });
@@ -306,11 +339,15 @@ describe("Feedback Validation Schemas", () => {
     });
 
     it("rejects limit greater than 100", () => {
-      expect(feedbackFiltersSchema.safeParse({ limit: 101 }).success).toBe(false);
+      expect(feedbackFiltersSchema.safeParse({ limit: 101 }).success).toBe(
+        false,
+      );
     });
 
     it("accepts limit equal to 100", () => {
-      expect(feedbackFiltersSchema.safeParse({ limit: 100 }).success).toBe(true);
+      expect(feedbackFiltersSchema.safeParse({ limit: 100 }).success).toBe(
+        true,
+      );
     });
 
     it("rejects negative page", () => {
@@ -340,9 +377,9 @@ describe("Feedback Validation Schemas", () => {
     });
 
     it("rejects invalid status filter", () => {
-      expect(
-        feedbackFiltersSchema.safeParse({ status: "stale" }).success,
-      ).toBe(false);
+      expect(feedbackFiltersSchema.safeParse({ status: "stale" }).success).toBe(
+        false,
+      );
     });
 
     it("accepts search string up to 200 characters", () => {
@@ -381,7 +418,9 @@ describe("Feedback Validation Schemas", () => {
     });
 
     it("rejects non-numeric string id", () => {
-      expect(feedbackIdParamSchema.safeParse({ id: "abc" }).success).toBe(false);
+      expect(feedbackIdParamSchema.safeParse({ id: "abc" }).success).toBe(
+        false,
+      );
     });
 
     it("rejects missing id", () => {
@@ -392,7 +431,9 @@ describe("Feedback Validation Schemas", () => {
   // ─── updateFeedbackSchema ───────────────────────────────────────────
   describe("updateFeedbackSchema", () => {
     it("accepts single field update (subject only)", () => {
-      const result = updateFeedbackSchema.safeParse({ subject: "Updated title" });
+      const result = updateFeedbackSchema.safeParse({
+        subject: "Updated title",
+      });
       expect(result.success).toBe(true);
     });
 
@@ -433,7 +474,9 @@ describe("Feedback Validation Schemas", () => {
     });
 
     it("rejects invalid category", () => {
-      const result = updateFeedbackSchema.safeParse({ category: "invalid_cat" });
+      const result = updateFeedbackSchema.safeParse({
+        category: "invalid_cat",
+      });
       expect(result.success).toBe(false);
     });
 
@@ -444,7 +487,9 @@ describe("Feedback Validation Schemas", () => {
 
     it("accepts valid priority values", () => {
       for (const p of ["low", "medium", "high", "urgent"]) {
-        expect(updateFeedbackSchema.safeParse({ priority: p }).success).toBe(true);
+        expect(updateFeedbackSchema.safeParse({ priority: p }).success).toBe(
+          true,
+        );
       }
     });
 
@@ -466,7 +511,9 @@ describe("Feedback Validation Schemas", () => {
   // ─── updateResponseSchema ────────────────────────────────────────────
   describe("updateResponseSchema", () => {
     it("accepts valid message", () => {
-      const result = updateResponseSchema.safeParse({ message: "Updated reply" });
+      const result = updateResponseSchema.safeParse({
+        message: "Updated reply",
+      });
       expect(result.success).toBe(true);
     });
 
@@ -571,7 +618,8 @@ describe("Feedback Validation Schemas", () => {
   describe("createFeedbackSchema — attachment edge cases", () => {
     const base = {
       subject: "Attachment edge case test",
-      description: "Testing various attachment URL scenarios that exercise boundary conditions.",
+      description:
+        "Testing various attachment URL scenarios that exercise boundary conditions.",
       category: "bug_report" as const,
     };
 
@@ -602,7 +650,11 @@ describe("Feedback Validation Schemas", () => {
     it("rejects mixed valid and invalid URLs", () => {
       const result = createFeedbackSchema.safeParse({
         ...base,
-        attachmentUrls: ["https://valid.com/a.png", "not-a-url", "ftp://also-ok.com/b"],
+        attachmentUrls: [
+          "https://valid.com/a.png",
+          "not-a-url",
+          "ftp://also-ok.com/b",
+        ],
       });
       expect(result.success).toBe(false);
     });

@@ -4414,7 +4414,8 @@ const zhTW: Messages = {
       subject: "主旨",
       subjectPlaceholder: "請簡短描述您的問題或建議（5-200字）",
       description: "詳細說明",
-      descriptionPlaceholder: "請詳細描述您遇到的問題、預期的功能，或任何想告訴我們的事（10-5000字）",
+      descriptionPlaceholder:
+        "請詳細描述您遇到的問題、預期的功能，或任何想告訴我們的事（10-5000字）",
       submit: "提交反饋",
     },
     categories: {

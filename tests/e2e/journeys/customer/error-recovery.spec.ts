@@ -16,7 +16,12 @@ import {
   mockOrderAPI,
   mockAuthAPI,
 } from "../../helpers/mock-api";
-import { RESTAURANT, MENU_ITEMS, PERSONAS, createMockOrder } from "../../helpers/personas";
+import {
+  RESTAURANT,
+  MENU_ITEMS,
+  PERSONAS,
+  createMockOrder,
+} from "../../helpers/personas";
 
 // ---------------------------------------------------------------------------
 // Mobile viewport for the entire file
@@ -119,7 +124,9 @@ test.describe("B. Order submission failure", () => {
       .first()
       .click();
 
-    await expect(modal.first()).toBeHidden({ timeout: 3000 }).catch(() => {});
+    await expect(modal.first())
+      .toBeHidden({ timeout: 3000 })
+      .catch(() => {});
 
     // 2. Navigate to cart
     const cartLink = page.locator(
@@ -182,7 +189,9 @@ test.describe("C. Discovery page API failure", () => {
   }) => {
     // Mock popular endpoint to fail — DiscoveryView sets store.error on failure
     await page.route(`**/api/v1/discovery/popular`, (route) =>
-      route.fulfill(serverError("DISCOVERY_UNAVAILABLE", "Discovery service unavailable")),
+      route.fulfill(
+        serverError("DISCOVERY_UNAVAILABLE", "Discovery service unavailable"),
+      ),
     );
 
     // Also stub search and restaurants so other requests don't interfere
@@ -201,7 +210,10 @@ test.describe("C. Discovery page API failure", () => {
       route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ success: true, data: { results: [], total: 0 } }),
+        body: JSON.stringify({
+          success: true,
+          data: { results: [], total: 0 },
+        }),
       }),
     );
 

@@ -28,7 +28,11 @@ describe("forecastApi", () => {
         data: { data: { forecasts } },
       });
 
-      const params = { startDate: "2026-04-01", endDate: "2026-04-07", type: "daily" };
+      const params = {
+        startDate: "2026-04-01",
+        endDate: "2026-04-07",
+        type: "daily",
+      };
       const result = await forecastApi.generate("r1", params as any);
 
       expect(mockApiPost).toHaveBeenCalledOnce();
@@ -117,7 +121,11 @@ describe("forecastApi", () => {
         data: { data: { forecasts } },
       });
 
-      const params = { startDate: "2026-04-01", endDate: "2026-04-07", useAI: true };
+      const params = {
+        startDate: "2026-04-01",
+        endDate: "2026-04-07",
+        useAI: true,
+      };
       const result = await forecastApi.generateIngredientForecast("r1", params);
 
       expect(mockApiPost).toHaveBeenCalledWith("/forecast/r1/generate", {

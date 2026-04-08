@@ -4,22 +4,22 @@ This document covers the command reference and internals of gstack's headless br
 
 ## Command reference
 
-| Category | Commands | What for |
-|----------|----------|----------|
-| Navigate | `goto`, `back`, `forward`, `reload`, `url` | Get to a page |
-| Read | `text`, `html`, `links`, `forms`, `accessibility` | Extract content |
-| Snapshot | `snapshot [-i] [-c] [-d N] [-s sel] [-D] [-a] [-o] [-C]` | Get refs, diff, annotate |
-| Interact | `click`, `fill`, `select`, `hover`, `type`, `press`, `scroll`, `wait`, `viewport`, `upload` | Use the page |
-| Inspect | `js`, `eval`, `css`, `attrs`, `is`, `console`, `network`, `dialog`, `cookies`, `storage`, `perf`, `inspect [selector] [--all]` | Debug and verify |
-| Style | `style <sel> <prop> <val>`, `style --undo [N]`, `cleanup [--all]`, `prettyscreenshot` | Live CSS editing and page cleanup |
-| Visual | `screenshot [--viewport] [--clip x,y,w,h] [sel\|@ref] [path]`, `pdf`, `responsive` | See what Claude sees |
-| Compare | `diff <url1> <url2>` | Spot differences between environments |
-| Dialogs | `dialog-accept [text]`, `dialog-dismiss` | Control alert/confirm/prompt handling |
-| Tabs | `tabs`, `tab`, `newtab`, `closetab` | Multi-page workflows |
-| Cookies | `cookie-import`, `cookie-import-browser` | Import cookies from file or real browser |
-| Multi-step | `chain` (JSON from stdin) | Batch commands in one call |
-| Handoff | `handoff [reason]`, `resume` | Switch to visible Chrome for user takeover |
-| Real browser | `connect`, `disconnect`, `focus` | Control real Chrome, visible window |
+| Category     | Commands                                                                                                                       | What for                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| Navigate     | `goto`, `back`, `forward`, `reload`, `url`                                                                                     | Get to a page                              |
+| Read         | `text`, `html`, `links`, `forms`, `accessibility`                                                                              | Extract content                            |
+| Snapshot     | `snapshot [-i] [-c] [-d N] [-s sel] [-D] [-a] [-o] [-C]`                                                                       | Get refs, diff, annotate                   |
+| Interact     | `click`, `fill`, `select`, `hover`, `type`, `press`, `scroll`, `wait`, `viewport`, `upload`                                    | Use the page                               |
+| Inspect      | `js`, `eval`, `css`, `attrs`, `is`, `console`, `network`, `dialog`, `cookies`, `storage`, `perf`, `inspect [selector] [--all]` | Debug and verify                           |
+| Style        | `style <sel> <prop> <val>`, `style --undo [N]`, `cleanup [--all]`, `prettyscreenshot`                                          | Live CSS editing and page cleanup          |
+| Visual       | `screenshot [--viewport] [--clip x,y,w,h] [sel\|@ref] [path]`, `pdf`, `responsive`                                             | See what Claude sees                       |
+| Compare      | `diff <url1> <url2>`                                                                                                           | Spot differences between environments      |
+| Dialogs      | `dialog-accept [text]`, `dialog-dismiss`                                                                                       | Control alert/confirm/prompt handling      |
+| Tabs         | `tabs`, `tab`, `newtab`, `closetab`                                                                                            | Multi-page workflows                       |
+| Cookies      | `cookie-import`, `cookie-import-browser`                                                                                       | Import cookies from file or real browser   |
+| Multi-step   | `chain` (JSON from stdin)                                                                                                      | Batch commands in one call                 |
+| Handoff      | `handoff [reason]`, `resume`                                                                                                   | Switch to visible Chrome for user takeover |
+| Real browser | `connect`, `disconnect`, `focus`                                                                                               | Control real Chrome, visible window        |
 
 All selector arguments accept CSS selectors, `@e` refs after `snapshot`, or `@c` refs after `snapshot -C`. 50+ commands total plus cookie import.
 
@@ -94,6 +94,7 @@ No DOM mutation. No injected scripts. Just Playwright's native accessibility API
 **Ref staleness detection:** SPAs can mutate the DOM without navigation (React router, tab switches, modals). When this happens, refs collected from a previous `snapshot` may point to elements that no longer exist. To handle this, `resolveRef()` runs an async `count()` check before using any ref — if the element count is 0, it throws immediately with a message telling the agent to re-run `snapshot`. This fails fast (~5ms) instead of waiting for Playwright's 30-second action timeout.
 
 **Extended snapshot features:**
+
 - `--diff` (`-D`): Stores each snapshot as a baseline. On the next `-D` call, returns a unified diff showing what changed. Use this to verify that an action (click, fill, etc.) actually worked.
 - `--annotate` (`-a`): Injects temporary overlay divs at each ref's bounding box, takes a screenshot with ref labels visible, then removes the overlays. Use `-o <path>` to control the output path.
 - `--cursor-interactive` (`-C`): Scans for non-ARIA interactive elements (divs with `cursor:pointer`, `onclick`, `tabindex>=0`) using `page.evaluate`. Assigns `@c1`, `@c2`... refs with deterministic `nth-child` CSS selectors. These are elements the ARIA tree misses but users can still click.
@@ -102,12 +103,12 @@ No DOM mutation. No injected scripts. Just Playwright's native accessibility API
 
 The `screenshot` command supports four modes:
 
-| Mode | Syntax | Playwright API |
-|------|--------|----------------|
-| Full page (default) | `screenshot [path]` | `page.screenshot({ fullPage: true })` |
-| Viewport only | `screenshot --viewport [path]` | `page.screenshot({ fullPage: false })` |
-| Element crop | `screenshot "#sel" [path]` or `screenshot @e3 [path]` | `locator.screenshot()` |
-| Region clip | `screenshot --clip x,y,w,h [path]` | `page.screenshot({ clip })` |
+| Mode                | Syntax                                                | Playwright API                         |
+| ------------------- | ----------------------------------------------------- | -------------------------------------- |
+| Full page (default) | `screenshot [path]`                                   | `page.screenshot({ fullPage: true })`  |
+| Viewport only       | `screenshot --viewport [path]`                        | `page.screenshot({ fullPage: false })` |
+| Element crop        | `screenshot "#sel" [path]` or `screenshot @e3 [path]` | `locator.screenshot()`                 |
+| Region clip         | `screenshot --clip x,y,w,h [path]`                    | `page.screenshot({ clip })`            |
 
 Element crop accepts CSS selectors (`.class`, `#id`, `[attr]`) or `@e`/`@c` refs from `snapshot`. Auto-detection: `@e`/`@c` prefix = ref, `.`/`#`/`[` prefix = CSS selector, `--` prefix = flag, everything else = output path.
 
@@ -132,13 +133,38 @@ Authorization: Bearer <token>
 ```
 
 Response:
+
 ```json
 {
   "results": [
-    {"index": 0, "status": 200, "result": "...page text...", "command": "text", "tabId": 1},
-    {"index": 1, "status": 200, "result": "...page text...", "command": "text", "tabId": 2},
-    {"index": 2, "status": 200, "result": "...snapshot...", "command": "snapshot", "tabId": 3},
-    {"index": 3, "status": 403, "result": "{\"error\":\"Element not found\"}", "command": "click", "tabId": 4}
+    {
+      "index": 0,
+      "status": 200,
+      "result": "...page text...",
+      "command": "text",
+      "tabId": 1
+    },
+    {
+      "index": 1,
+      "status": 200,
+      "result": "...page text...",
+      "command": "text",
+      "tabId": 2
+    },
+    {
+      "index": 2,
+      "status": 200,
+      "result": "...snapshot...",
+      "command": "snapshot",
+      "tabId": 3
+    },
+    {
+      "index": 3,
+      "status": 403,
+      "result": "{\"error\":\"Element not found\"}",
+      "command": "click",
+      "tabId": 4
+    }
   ],
   "duration": 2340,
   "total": 4,
@@ -148,6 +174,7 @@ Response:
 ```
 
 **Design decisions:**
+
 - Each command routes through `handleCommandInternal` — full security pipeline (scope checks, domain validation, tab ownership, content wrapping) enforced per command
 - Per-command error isolation: one failure doesn't abort the batch
 - Max 50 commands per batch
@@ -156,6 +183,7 @@ Response:
 - Ref scoping is already per-tab — no changes needed
 
 **Usage pattern** (agent crawling 20 pages):
+
 ```
 # Step 1: Open 20 tabs (via individual newtab commands or batch)
 # Step 2: Read all 20 pages at once
@@ -196,6 +224,7 @@ The window has a subtle green shimmer line at the top edge and a floating "gstac
 **How it works:** Playwright's `channel: 'chrome'` launches your system Chrome binary via a native pipe protocol — not CDP WebSocket. All existing browse commands work unchanged because they go through Playwright's abstraction layer.
 
 **When to use it:**
+
 - QA testing where you want to watch Claude click through your app
 - Design review where you need to see exactly what Claude sees
 - Debugging where headless behavior differs from real Chrome
@@ -203,12 +232,12 @@ The window has a subtle green shimmer line at the top edge and a floating "gstac
 
 **Commands:**
 
-| Command | What it does |
-|---------|-------------|
-| `connect` | Launch real Chrome, restart server in headed mode |
-| `disconnect` | Close real Chrome, restart in headless mode |
-| `focus` | Bring Chrome to foreground (macOS). `focus @e3` also scrolls element into view |
-| `status` | Shows `Mode: cdp` when connected, `Mode: launched` when headless |
+| Command      | What it does                                                                   |
+| ------------ | ------------------------------------------------------------------------------ |
+| `connect`    | Launch real Chrome, restart server in headed mode                              |
+| `disconnect` | Close real Chrome, restart in headless mode                                    |
+| `focus`      | Bring Chrome to foreground (macOS). `focus @e3` also scrolls element into view |
+| `status`     | Shows `Mode: cdp` when connected, `Mode: launched` when headless               |
 
 **CDP-aware skills:** When in real-browser mode, `/qa` and `/design-review` automatically skip cookie import prompts and headless workarounds.
 
@@ -254,13 +283,13 @@ Or do it manually:
 
 #### What you get
 
-| Feature | What it does |
-|---------|-------------|
-| **Toolbar badge** | Green dot when the browse server is reachable, gray when not |
-| **Side Panel** | Live scrolling feed of every browse command — shows command name, args, duration, status (success/error) |
-| **Refs tab** | After `$B snapshot`, shows the current @ref list (role + name) |
-| **@ref overlays** | Floating panel on the page showing current refs |
-| **Connection pill** | Small "gstack" pill in the bottom-right corner of every page when connected |
+| Feature             | What it does                                                                                             |
+| ------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Toolbar badge**   | Green dot when the browse server is reachable, gray when not                                             |
+| **Side Panel**      | Live scrolling feed of every browse command — shows command name, args, duration, status (success/error) |
+| **Refs tab**        | After `$B snapshot`, shows the current @ref list (role + name)                                           |
+| **@ref overlays**   | Floating panel on the page showing current refs                                                          |
+| **Connection pill** | Small "gstack" pill in the bottom-right corner of every page when connected                              |
 
 #### Troubleshooting
 
@@ -281,6 +310,7 @@ The Chrome side panel includes a chat interface. Type a message and a child Clau
 5. Progress streams back to the side panel in real time
 
 **What you can do:**
+
 - "Take a snapshot and describe what you see"
 - "Click the Login button, fill in the credentials, and submit"
 - "Go through every row in this table and extract the names and emails"
@@ -294,6 +324,7 @@ The Chrome side panel includes a chat interface. Type a message and a child Clau
 **Session isolation:** Each sidebar session runs in its own git worktree. The sidebar agent won't interfere with your main Claude Code session.
 
 **Authentication:** The sidebar agent uses the same browser session as headed mode. Two options:
+
 1. Log in manually in the headed browser ... your session persists for the sidebar agent
 2. Import cookies from your real Chrome via `/setup-browser-cookies`
 
@@ -331,8 +362,8 @@ For `eval` files, single-line files return the expression value directly. Multi-
 
 Each workspace gets its own isolated browser instance with its own Chromium process, tabs, cookies, and logs. State is stored in `.gstack/` inside the project root (detected via `git rev-parse --show-toplevel`).
 
-| Workspace | State file | Port |
-|-----------|------------|------|
+| Workspace         | State file                            | Port                 |
+| ----------------- | ------------------------------------- | -------------------- |
 | `/code/project-a` | `/code/project-a/.gstack/browse.json` | random (10000-60000) |
 | `/code/project-b` | `/code/project-b/.gstack/browse.json` | random (10000-60000) |
 
@@ -340,22 +371,22 @@ No port collisions. No shared state. Each project is fully isolated.
 
 ### Environment variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `BROWSE_PORT` | 0 (random 10000-60000) | Fixed port for the HTTP server (debug override) |
-| `BROWSE_IDLE_TIMEOUT` | 1800000 (30 min) | Idle shutdown timeout in ms |
-| `BROWSE_STATE_FILE` | `.gstack/browse.json` | Path to state file (CLI passes to server) |
-| `BROWSE_SERVER_SCRIPT` | auto-detected | Path to server.ts |
-| `BROWSE_CDP_URL` | (none) | Set to `channel:chrome` for real browser mode |
-| `BROWSE_CDP_PORT` | 0 | CDP port (used internally) |
+| Variable               | Default                | Description                                     |
+| ---------------------- | ---------------------- | ----------------------------------------------- |
+| `BROWSE_PORT`          | 0 (random 10000-60000) | Fixed port for the HTTP server (debug override) |
+| `BROWSE_IDLE_TIMEOUT`  | 1800000 (30 min)       | Idle shutdown timeout in ms                     |
+| `BROWSE_STATE_FILE`    | `.gstack/browse.json`  | Path to state file (CLI passes to server)       |
+| `BROWSE_SERVER_SCRIPT` | auto-detected          | Path to server.ts                               |
+| `BROWSE_CDP_URL`       | (none)                 | Set to `channel:chrome` for real browser mode   |
+| `BROWSE_CDP_PORT`      | 0                      | CDP port (used internally)                      |
 
 ### Performance
 
-| Tool | First call | Subsequent calls | Context overhead per call |
-|------|-----------|-----------------|--------------------------|
-| Chrome MCP | ~5s | ~2-5s | ~2000 tokens (schema + protocol) |
-| Playwright MCP | ~3s | ~1-3s | ~1500 tokens (schema + protocol) |
-| **gstack browse** | **~3s** | **~100-200ms** | **0 tokens** (plain text stdout) |
+| Tool              | First call | Subsequent calls | Context overhead per call        |
+| ----------------- | ---------- | ---------------- | -------------------------------- |
+| Chrome MCP        | ~5s        | ~2-5s            | ~2000 tokens (schema + protocol) |
+| Playwright MCP    | ~3s        | ~1-3s            | ~1500 tokens (schema + protocol) |
+| **gstack browse** | **~3s**    | **~100-200ms**   | **0 tokens** (plain text stdout) |
 
 The context overhead difference compounds fast. In a 20-command browser session, MCP tools burn 30,000-40,000 tokens on protocol framing alone. gstack burns zero.
 
@@ -415,20 +446,20 @@ Tests spin up a local HTTP server (`browse/test/test-server.ts`) serving HTML fi
 
 ### Source map
 
-| File | Role |
-|------|------|
-| `browse/src/cli.ts` | Entry point. Reads `.gstack/browse.json`, sends HTTP to the server, prints response. |
-| `browse/src/server.ts` | Bun HTTP server. Routes commands to the right handler. Manages idle timeout. |
-| `browse/src/browser-manager.ts` | Chromium lifecycle — launch, tab management, ref map, crash detection. |
-| `browse/src/snapshot.ts` | Parses accessibility tree, assigns `@e`/`@c` refs, builds Locator map. Handles `--diff`, `--annotate`, `-C`. |
-| `browse/src/read-commands.ts` | Non-mutating commands: `text`, `html`, `links`, `js`, `css`, `is`, `dialog`, `forms`, etc. Exports `getCleanText()`. |
-| `browse/src/write-commands.ts` | Mutating commands: `goto`, `click`, `fill`, `upload`, `dialog-accept`, `useragent` (with context recreation), etc. |
-| `browse/src/meta-commands.ts` | Server management, chain routing, diff (DRY via `getCleanText`), snapshot delegation. |
+| File                                  | Role                                                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `browse/src/cli.ts`                   | Entry point. Reads `.gstack/browse.json`, sends HTTP to the server, prints response.                                                             |
+| `browse/src/server.ts`                | Bun HTTP server. Routes commands to the right handler. Manages idle timeout.                                                                     |
+| `browse/src/browser-manager.ts`       | Chromium lifecycle — launch, tab management, ref map, crash detection.                                                                           |
+| `browse/src/snapshot.ts`              | Parses accessibility tree, assigns `@e`/`@c` refs, builds Locator map. Handles `--diff`, `--annotate`, `-C`.                                     |
+| `browse/src/read-commands.ts`         | Non-mutating commands: `text`, `html`, `links`, `js`, `css`, `is`, `dialog`, `forms`, etc. Exports `getCleanText()`.                             |
+| `browse/src/write-commands.ts`        | Mutating commands: `goto`, `click`, `fill`, `upload`, `dialog-accept`, `useragent` (with context recreation), etc.                               |
+| `browse/src/meta-commands.ts`         | Server management, chain routing, diff (DRY via `getCleanText`), snapshot delegation.                                                            |
 | `browse/src/cookie-import-browser.ts` | Decrypt Chromium cookies from macOS and Linux browser profiles using platform-specific safe-storage key lookup. Auto-detects installed browsers. |
-| `browse/src/cookie-picker-routes.ts` | HTTP routes for `/cookie-picker/*` — browser list, domain search, import, remove. |
-| `browse/src/cookie-picker-ui.ts` | Self-contained HTML generator for the interactive cookie picker (dark theme, no frameworks). |
-| `browse/src/activity.ts` | Activity streaming — `ActivityEntry` type, `CircularBuffer`, privacy filtering, SSE subscriber management. |
-| `browse/src/buffers.ts` | `CircularBuffer<T>` (O(1) ring buffer) + console/network/dialog capture with async disk flush. |
+| `browse/src/cookie-picker-routes.ts`  | HTTP routes for `/cookie-picker/*` — browser list, domain search, import, remove.                                                                |
+| `browse/src/cookie-picker-ui.ts`      | Self-contained HTML generator for the interactive cookie picker (dark theme, no frameworks).                                                     |
+| `browse/src/activity.ts`              | Activity streaming — `ActivityEntry` type, `CircularBuffer`, privacy filtering, SSE subscriber management.                                       |
+| `browse/src/buffers.ts`               | `CircularBuffer<T>` (O(1) ring buffer) + console/network/dialog capture with async disk flush.                                                   |
 
 ### Deploying to the active skill
 

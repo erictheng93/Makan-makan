@@ -31,11 +31,13 @@ During a `/office-hours` design session, we traced the architecture and discover
 ## The Fix
 
 ### Renamed
+
 - `connectCDP()` → `launchHeaded()`
 - `connectionMode: 'cdp'` → `connectionMode: 'headed'`
 - `BROWSE_CDP_URL` → `BROWSE_HEADED`
 
 ### Deleted
+
 - `chrome-launcher.ts` (361 LOC)
 - `attemptReconnect()` (dead method)
 - `preExistingTabIds` (dead concept)
@@ -43,11 +45,13 @@ During a `/office-hours` design session, we traced the architecture and discover
 - `cdp-connect.test.ts` (tests for deleted code)
 
 ### Converged
+
 - `$B handoff` now uses `launchPersistentContext()` + extension loading (same as `$B connect`)
 - One headed mode, not two
 - Handoff gives you the extension + side panel for free
 
 ### Gated
+
 - Sidebar chat behind `--chat` flag
 - `$B connect` (default): activity feed + refs only
 - `$B connect --chat`: + experimental standalone chat agent
@@ -78,6 +82,7 @@ Real Chrome blocks `--load-extension` when launched by Playwright. This is a Chr
 Playwright's bundled Chromium doesn't have this restriction because it's designed for testing and automation. The `ignoreDefaultArgs` option lets us bypass Playwright's own extension-blocking flags.
 
 If we ever want to access the user's real cookies/sessions, the path is:
+
 1. Cookie import (already works via `$B cookie-import`)
 2. Conductor session injection (future — sidebar sends messages to workspace agent)
 

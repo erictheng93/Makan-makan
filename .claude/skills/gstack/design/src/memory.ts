@@ -26,7 +26,9 @@ export interface ExtractedDesign {
 /**
  * Extract visual language from an approved mockup PNG.
  */
-export async function extractDesignLanguage(imagePath: string): Promise<ExtractedDesign> {
+export async function extractDesignLanguage(
+  imagePath: string,
+): Promise<ExtractedDesign> {
   const apiKey = requireApiKey();
   const imageData = fs.readFileSync(imagePath).toString("base64");
 
@@ -37,21 +39,22 @@ export async function extractDesignLanguage(imagePath: string): Promise<Extracte
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "gpt-4o",
-        messages: [{
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: { url: `data:image/png;base64,${imageData}` },
-            },
-            {
-              type: "text",
-              text: `Analyze this UI mockup and extract the design language. Return valid JSON only, no markdown:
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:image/png;base64,${imageData}` },
+              },
+              {
+                type: "text",
+                text: `Analyze this UI mockup and extract the design language. Return valid JSON only, no markdown:
 
 {
   "colors": [{"name": "primary", "hex": "#...", "usage": "buttons, links"}, ...],
@@ -62,9 +65,10 @@ export async function extractDesignLanguage(imagePath: string): Promise<Extracte
 }
 
 Extract real values from what you see. Be specific about hex colors and font sizes.`,
-            },
-          ],
-        }],
+              },
+            ],
+          },
+        ],
         max_tokens: 800,
         response_format: { type: "json_object" },
       }),
@@ -76,7 +80,7 @@ Extract real values from what you see. Be specific about hex colors and font siz
       return defaultDesign();
     }
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
     const content = data.choices?.[0]?.message?.content?.trim() || "";
     return JSON.parse(content) as ExtractedDesign;
   } catch (err: any) {

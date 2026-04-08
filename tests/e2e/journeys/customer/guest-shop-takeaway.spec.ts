@@ -220,9 +220,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     // Tap on first item to open detail modal
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
     // Click add-to-cart button inside the modal
@@ -252,9 +250,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     ).toBeVisible({ timeout: 10000 });
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
     await modal
@@ -294,9 +290,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     ).toBeVisible({ timeout: 10000 });
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
     await modal
@@ -372,9 +366,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     ).toBeVisible({ timeout: 10000 });
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
     await modal
@@ -501,9 +493,7 @@ test.describe("Guest shop takeaway ordering flow", () => {
     // Add "牛肉麵" x1
     await page.locator(`text=${MENU_ITEMS[0].name}`).first().click();
 
-    const modal = page.locator(
-      '[data-testid="menu-item-modal"]',
-    );
+    const modal = page.locator('[data-testid="menu-item-modal"]');
     await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
     await modal

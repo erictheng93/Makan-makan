@@ -503,7 +503,9 @@ describe("SettingsView", () => {
       await flushPromises();
 
       // Component uses toast.error (not window.alert)
-      expect(mockSettingsToast.error).toHaveBeenCalledWith("儲存設定失敗，請稍後再試");
+      expect(mockSettingsToast.error).toHaveBeenCalledWith(
+        "儲存設定失敗，請稍後再試",
+      );
     });
   });
 
@@ -764,7 +766,9 @@ describe("SettingsView", () => {
       await flushPromises();
 
       // Component uses toast.error (not window.alert)
-      expect(mockSettingsToast.error).toHaveBeenCalledWith("儲存設定失敗，請稍後再試");
+      expect(mockSettingsToast.error).toHaveBeenCalledWith(
+        "儲存設定失敗，請稍後再試",
+      );
     });
   });
 

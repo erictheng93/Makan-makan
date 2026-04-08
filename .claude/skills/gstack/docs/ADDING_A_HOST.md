@@ -21,6 +21,7 @@ hosts/
 ```
 
 Each config file exports a `HostConfig` object that tells the generator:
+
 - Where to put generated skills (paths)
 - How to transform frontmatter (allowlist/denylist fields)
 - What Claude-specific references to rewrite (paths, tool names)
@@ -42,47 +43,53 @@ minimal example. `hosts/factory.ts` shows tool rewrites and conditional fields.
 Create `hosts/myhost.ts`:
 
 ```typescript
-import type { HostConfig } from '../scripts/host-config';
+import type { HostConfig } from "../scripts/host-config";
 
 const myhost: HostConfig = {
-  name: 'myhost',
-  displayName: 'MyHost',
-  cliCommand: 'myhost',        // binary name for `command -v` detection
-  cliAliases: [],              // alternative binary names
+  name: "myhost",
+  displayName: "MyHost",
+  cliCommand: "myhost", // binary name for `command -v` detection
+  cliAliases: [], // alternative binary names
 
-  globalRoot: '.myhost/skills/gstack',
-  localSkillRoot: '.myhost/skills/gstack',
-  hostSubdir: '.myhost',
-  usesEnvVars: true,           // false only for Claude (uses literal ~ paths)
+  globalRoot: ".myhost/skills/gstack",
+  localSkillRoot: ".myhost/skills/gstack",
+  hostSubdir: ".myhost",
+  usesEnvVars: true, // false only for Claude (uses literal ~ paths)
 
   frontmatter: {
-    mode: 'allowlist',         // 'allowlist' keeps only listed fields
-    keepFields: ['name', 'description'],
-    descriptionLimit: null,    // set to 1024 for hosts with limits
+    mode: "allowlist", // 'allowlist' keeps only listed fields
+    keepFields: ["name", "description"],
+    descriptionLimit: null, // set to 1024 for hosts with limits
   },
 
   generation: {
-    generateMetadata: false,   // true only for Codex (openai.yaml)
-    skipSkills: ['codex'],     // codex skill is Claude-only
+    generateMetadata: false, // true only for Codex (openai.yaml)
+    skipSkills: ["codex"], // codex skill is Claude-only
   },
 
   pathRewrites: [
-    { from: '~/.claude/skills/gstack', to: '~/.myhost/skills/gstack' },
-    { from: '.claude/skills/gstack', to: '.myhost/skills/gstack' },
-    { from: '.claude/skills', to: '.myhost/skills' },
+    { from: "~/.claude/skills/gstack", to: "~/.myhost/skills/gstack" },
+    { from: ".claude/skills/gstack", to: ".myhost/skills/gstack" },
+    { from: ".claude/skills", to: ".myhost/skills" },
   ],
 
   runtimeRoot: {
-    globalSymlinks: ['bin', 'browse/dist', 'browse/bin', 'gstack-upgrade', 'ETHOS.md'],
-    globalFiles: { 'review': ['checklist.md', 'TODOS-format.md'] },
+    globalSymlinks: [
+      "bin",
+      "browse/dist",
+      "browse/bin",
+      "gstack-upgrade",
+      "ETHOS.md",
+    ],
+    globalFiles: { review: ["checklist.md", "TODOS-format.md"] },
   },
 
   install: {
     prefixable: false,
-    linkingStrategy: 'symlink-generated',
+    linkingStrategy: "symlink-generated",
   },
 
-  learningsMode: 'basic',
+  learningsMode: "basic",
 };
 
 export default myhost;
@@ -93,15 +100,33 @@ export default myhost;
 Edit `hosts/index.ts`:
 
 ```typescript
-import myhost from './myhost';
+import myhost from "./myhost";
 
 // Add to ALL_HOST_CONFIGS array:
 export const ALL_HOST_CONFIGS: HostConfig[] = [
-  claude, codex, factory, kiro, opencode, slate, cursor, openclaw, myhost
+  claude,
+  codex,
+  factory,
+  kiro,
+  opencode,
+  slate,
+  cursor,
+  openclaw,
+  myhost,
 ];
 
 // Add to re-exports:
-export { claude, codex, factory, kiro, opencode, slate, cursor, openclaw, myhost };
+export {
+  claude,
+  codex,
+  factory,
+  kiro,
+  opencode,
+  slate,
+  cursor,
+  openclaw,
+  myhost,
+};
 ```
 
 ### 3. Add to .gitignore
@@ -148,19 +173,19 @@ comments on every field.
 
 Key fields:
 
-| Field | Purpose |
-|-------|---------|
-| `frontmatter.mode` | `allowlist` (keep only listed) or `denylist` (strip listed) |
-| `frontmatter.descriptionLimit` | Max chars, `null` for no limit |
-| `frontmatter.descriptionLimitBehavior` | `error` (fail build), `truncate`, `warn` |
-| `frontmatter.conditionalFields` | Add fields based on template values (e.g., sensitive → disable-model-invocation) |
-| `frontmatter.renameFields` | Rename template fields (e.g., voice-triggers → triggers) |
-| `pathRewrites` | Literal replaceAll on content. Order matters. |
-| `toolRewrites` | Rewrite Claude tool names (e.g., "use the Bash tool" → "run this command") |
-| `suppressedResolvers` | Resolver functions that return empty for this host |
-| `coAuthorTrailer` | Git co-author string for commits |
-| `boundaryInstruction` | Anti-prompt-injection warning for cross-model invocations |
-| `adapter` | Path to adapter module for complex transformations |
+| Field                                  | Purpose                                                                          |
+| -------------------------------------- | -------------------------------------------------------------------------------- |
+| `frontmatter.mode`                     | `allowlist` (keep only listed) or `denylist` (strip listed)                      |
+| `frontmatter.descriptionLimit`         | Max chars, `null` for no limit                                                   |
+| `frontmatter.descriptionLimitBehavior` | `error` (fail build), `truncate`, `warn`                                         |
+| `frontmatter.conditionalFields`        | Add fields based on template values (e.g., sensitive → disable-model-invocation) |
+| `frontmatter.renameFields`             | Rename template fields (e.g., voice-triggers → triggers)                         |
+| `pathRewrites`                         | Literal replaceAll on content. Order matters.                                    |
+| `toolRewrites`                         | Rewrite Claude tool names (e.g., "use the Bash tool" → "run this command")       |
+| `suppressedResolvers`                  | Resolver functions that return empty for this host                               |
+| `coAuthorTrailer`                      | Git co-author string for commits                                                 |
+| `boundaryInstruction`                  | Anti-prompt-injection warning for cross-model invocations                        |
+| `adapter`                              | Path to adapter module for complex transformations                               |
 
 ## Adapter pattern (for hosts with different tool models)
 
@@ -174,6 +199,7 @@ exports `transform(content: string, config: HostConfig): string`.
 ## Validation
 
 The `validateHostConfig()` function in `scripts/host-config.ts` checks:
+
 - Name: lowercase alphanumeric with hyphens
 - CLI command: alphanumeric with hyphens/underscores
 - Paths: safe characters only (alphanumeric, `.`, `/`, `$`, `{}`, `~`, `-`, `_`)

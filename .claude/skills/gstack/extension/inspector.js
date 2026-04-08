@@ -27,8 +27,8 @@
   function createHighlight() {
     if (highlightEl) return;
 
-    highlightEl = document.createElement('div');
-    highlightEl.id = 'gstack-inspector-highlight';
+    highlightEl = document.createElement("div");
+    highlightEl.id = "gstack-inspector-highlight";
     highlightEl.style.cssText = `
       position: fixed;
       pointer-events: none;
@@ -40,8 +40,8 @@
     `;
     document.documentElement.appendChild(highlightEl);
 
-    tooltipEl = document.createElement('div');
-    tooltipEl.id = 'gstack-inspector-tooltip';
+    tooltipEl = document.createElement("div");
+    tooltipEl.id = "gstack-inspector-tooltip";
     tooltipEl.style.cssText = `
       position: fixed;
       pointer-events: none;
@@ -60,25 +60,32 @@
   }
 
   function removeHighlight() {
-    if (highlightEl) { highlightEl.remove(); highlightEl = null; }
-    if (tooltipEl) { tooltipEl.remove(); tooltipEl = null; }
+    if (highlightEl) {
+      highlightEl.remove();
+      highlightEl = null;
+    }
+    if (tooltipEl) {
+      tooltipEl.remove();
+      tooltipEl = null;
+    }
   }
 
   function updateHighlight(el) {
     if (!highlightEl || !tooltipEl) return;
     const rect = el.getBoundingClientRect();
 
-    highlightEl.style.top = rect.top + 'px';
-    highlightEl.style.left = rect.left + 'px';
-    highlightEl.style.width = rect.width + 'px';
-    highlightEl.style.height = rect.height + 'px';
-    highlightEl.style.display = 'block';
+    highlightEl.style.top = rect.top + "px";
+    highlightEl.style.left = rect.left + "px";
+    highlightEl.style.width = rect.width + "px";
+    highlightEl.style.height = rect.height + "px";
+    highlightEl.style.display = "block";
 
     // Build tooltip text: <tag> .classes WxH
     const tag = el.tagName.toLowerCase();
-    const classes = el.className && typeof el.className === 'string'
-      ? '.' + el.className.trim().split(/\s+/).join('.')
-      : '';
+    const classes =
+      el.className && typeof el.className === "string"
+        ? "." + el.className.trim().split(/\s+/).join(".")
+        : "";
     const dims = `${Math.round(rect.width)}x${Math.round(rect.height)}`;
     tooltipEl.textContent = `<${tag}> ${classes} ${dims}`.trim();
 
@@ -90,9 +97,9 @@
     let tooltipLeft = rect.left;
     if (tooltipLeft < 4) tooltipLeft = 4;
 
-    tooltipEl.style.top = tooltipTop + 'px';
-    tooltipEl.style.left = tooltipLeft + 'px';
-    tooltipEl.style.display = 'block';
+    tooltipEl.style.top = tooltipTop + "px";
+    tooltipEl.style.left = tooltipLeft + "px";
+    tooltipEl.style.display = "block";
   }
 
   // ─── Selector Generation ────────────────────────────────────────
@@ -100,7 +107,7 @@
   function buildSelector(el) {
     // If element has an id, use it directly
     if (el.id) {
-      const sel = '#' + CSS.escape(el.id);
+      const sel = "#" + CSS.escape(el.id);
       if (isUnique(sel)) return sel;
     }
 
@@ -108,21 +115,28 @@
     const parts = [];
     let current = el;
 
-    while (current && current !== document.body && current !== document.documentElement) {
+    while (
+      current &&
+      current !== document.body &&
+      current !== document.documentElement
+    ) {
       let part = current.tagName.toLowerCase();
 
       // If current has an id, use it and stop
       if (current.id) {
-        part = '#' + CSS.escape(current.id);
+        part = "#" + CSS.escape(current.id);
         parts.unshift(part);
         break;
       }
 
       // Add classes
-      if (current.className && typeof current.className === 'string') {
-        const classes = current.className.trim().split(/\s+/).filter(c => c.length > 0);
+      if (current.className && typeof current.className === "string") {
+        const classes = current.className
+          .trim()
+          .split(/\s+/)
+          .filter((c) => c.length > 0);
         if (classes.length > 0) {
-          part += '.' + classes.map(c => CSS.escape(c)).join('.');
+          part += "." + classes.map((c) => CSS.escape(c)).join(".");
         }
       }
 
@@ -130,7 +144,7 @@
       const parent = current.parentElement;
       if (parent) {
         const siblings = Array.from(parent.children).filter(
-          s => s.tagName === current.tagName
+          (s) => s.tagName === current.tagName,
         );
         if (siblings.length > 1) {
           const idx = siblings.indexOf(current) + 1;
@@ -143,11 +157,11 @@
     }
 
     // If we didn't reach an id, prepend body
-    if (parts.length > 0 && !parts[0].startsWith('#')) {
+    if (parts.length > 0 && !parts[0].startsWith("#")) {
       // Don't prepend body, just use the path as-is
     }
 
-    const selector = parts.join(' > ');
+    const selector = parts.join(" > ");
 
     // Verify uniqueness
     if (isUnique(selector)) return selector;
@@ -167,22 +181,65 @@
   // ─── Basic Mode Data Capture ────────────────────────────────────
 
   const KEY_PROPERTIES = [
-    'display', 'position', 'top', 'right', 'bottom', 'left',
-    'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
-    'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-    'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-    'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
-    'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
-    'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
-    'color', 'background-color', 'background-image',
-    'font-family', 'font-size', 'font-weight', 'line-height', 'letter-spacing',
-    'text-align', 'text-decoration', 'text-transform',
-    'overflow', 'overflow-x', 'overflow-y',
-    'opacity', 'z-index',
-    'flex-direction', 'justify-content', 'align-items', 'flex-wrap', 'gap',
-    'grid-template-columns', 'grid-template-rows',
-    'box-shadow', 'border-radius',
-    'transition', 'transform',
+    "display",
+    "position",
+    "top",
+    "right",
+    "bottom",
+    "left",
+    "width",
+    "height",
+    "min-width",
+    "max-width",
+    "min-height",
+    "max-height",
+    "margin-top",
+    "margin-right",
+    "margin-bottom",
+    "margin-left",
+    "padding-top",
+    "padding-right",
+    "padding-bottom",
+    "padding-left",
+    "border-top-width",
+    "border-right-width",
+    "border-bottom-width",
+    "border-left-width",
+    "border-top-style",
+    "border-right-style",
+    "border-bottom-style",
+    "border-left-style",
+    "border-top-color",
+    "border-right-color",
+    "border-bottom-color",
+    "border-left-color",
+    "color",
+    "background-color",
+    "background-image",
+    "font-family",
+    "font-size",
+    "font-weight",
+    "line-height",
+    "letter-spacing",
+    "text-align",
+    "text-decoration",
+    "text-transform",
+    "overflow",
+    "overflow-x",
+    "overflow-y",
+    "opacity",
+    "z-index",
+    "flex-direction",
+    "justify-content",
+    "align-items",
+    "flex-wrap",
+    "gap",
+    "grid-template-columns",
+    "grid-template-rows",
+    "box-shadow",
+    "border-radius",
+    "transition",
+    "transform",
   ];
 
   function captureBasicData(el) {
@@ -241,14 +298,20 @@
                 matchedRules.push({
                   selector: rule.selectorText,
                   properties,
-                  source: sheet.href || 'inline',
+                  source: sheet.href || "inline",
                 });
               }
-            } catch { /* skip rules that can't be matched */ }
+            } catch {
+              /* skip rules that can't be matched */
+            }
           }
-        } catch { /* cross-origin sheet — silently skip */ }
+        } catch {
+          /* cross-origin sheet — silently skip */
+        }
       }
-    } catch { /* CSSOM not available */ }
+    } catch {
+      /* CSSOM not available */
+    }
 
     return { computedStyles, boxModel, matchedRules };
   }
@@ -260,7 +323,11 @@
     // Ignore our own overlay elements
     const target = e.target;
     if (target === highlightEl || target === tooltipEl) return;
-    if (target.id === 'gstack-inspector-highlight' || target.id === 'gstack-inspector-tooltip') return;
+    if (
+      target.id === "gstack-inspector-highlight" ||
+      target.id === "gstack-inspector-tooltip"
+    )
+      return;
 
     updateHighlight(target);
   }
@@ -279,7 +346,11 @@
 
     const target = e.target;
     if (target === highlightEl || target === tooltipEl) return;
-    if (target.id === 'gstack-inspector-highlight' || target.id === 'gstack-inspector-tooltip') return;
+    if (
+      target.id === "gstack-inspector-highlight" ||
+      target.id === "gstack-inspector-tooltip"
+    )
+      return;
 
     const selector = buildSelector(target);
     const basicData = captureBasicData(target);
@@ -290,16 +361,22 @@
       try {
         frameInfo.frameSrc = window.location.href;
         frameInfo.frameName = window.name || null;
-      } catch { /* cross-origin frame */ }
+      } catch {
+        /* cross-origin frame */
+      }
     }
 
     chrome.runtime.sendMessage({
-      type: 'elementPicked',
+      type: "elementPicked",
       selector,
       tagName: target.tagName.toLowerCase(),
-      classes: target.className && typeof target.className === 'string'
-        ? target.className.trim().split(/\s+/).filter(c => c.length > 0)
-        : [],
+      classes:
+        target.className && typeof target.className === "string"
+          ? target.className
+              .trim()
+              .split(/\s+/)
+              .filter((c) => c.length > 0)
+          : [],
       id: target.id || null,
       dimensions: {
         width: Math.round(target.getBoundingClientRect().width),
@@ -314,11 +391,11 @@
 
   function onKeyDown(e) {
     if (!pickerActive) return;
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       stopPicker();
-      chrome.runtime.sendMessage({ type: 'pickerCancelled' });
+      chrome.runtime.sendMessage({ type: "pickerCancelled" });
     }
   }
 
@@ -328,18 +405,18 @@
     if (pickerActive) return;
     pickerActive = true;
     createHighlight();
-    document.addEventListener('mousemove', onMouseMove, true);
-    document.addEventListener('click', onClick, true);
-    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener("mousemove", onMouseMove, true);
+    document.addEventListener("click", onClick, true);
+    document.addEventListener("keydown", onKeyDown, true);
   }
 
   function stopPicker() {
     if (!pickerActive) return;
     pickerActive = false;
     removeHighlight();
-    document.removeEventListener('mousemove', onMouseMove, true);
-    document.removeEventListener('click', onClick, true);
-    document.removeEventListener('keydown', onKeyDown, true);
+    document.removeEventListener("mousemove", onMouseMove, true);
+    document.removeEventListener("click", onClick, true);
+    document.removeEventListener("keydown", onKeyDown, true);
   }
 
   // ─── Page Alteration Handlers ───────────────────────────────────
@@ -354,14 +431,15 @@
 
   function applyStyle(selector, property, value) {
     // Validate property name: alphanumeric + hyphens only
-    if (!/^[a-zA-Z-]+$/.test(property)) return { error: 'Invalid property name' };
+    if (!/^[a-zA-Z-]+$/.test(property))
+      return { error: "Invalid property name" };
     // Validate CSS value: block exfiltration vectors (url(), expression(), @import, javascript:, data:)
     if (/url\s*\(|expression\s*\(|@import|javascript:|data:/i.test(value)) {
-      return { error: 'CSS value contains blocked pattern' };
+      return { error: "CSS value contains blocked pattern" };
     }
 
     const el = findElement(selector);
-    if (!el) return { error: 'Element not found' };
+    if (!el) return { error: "Element not found" };
 
     // Track original value for resetAll
     if (!originalStyles.has(el)) {
@@ -372,20 +450,20 @@
       origMap.set(property, el.style.getPropertyValue(property));
     }
 
-    el.style.setProperty(property, value, 'important');
+    el.style.setProperty(property, value, "important");
     return { ok: true };
   }
 
   function toggleClass(selector, className, action) {
     if (!/^[a-zA-Z0-9_-]+$/.test(className)) {
-      return { error: 'Invalid class name' };
+      return { error: "Invalid class name" };
     }
     const el = findElement(selector);
-    if (!el) return { error: 'Element not found' };
+    if (!el) return { error: "Element not found" };
 
-    if (action === 'add') {
+    if (action === "add") {
       el.classList.add(className);
-    } else if (action === 'remove') {
+    } else if (action === "remove") {
       el.classList.remove(className);
     } else {
       el.classList.toggle(className);
@@ -395,15 +473,17 @@
 
   function injectCSS(id, css) {
     if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-      return { error: 'Invalid CSS injection id' };
+      return { error: "Invalid CSS injection id" };
     }
     if (/url\s*\(|expression\s*\(|@import|javascript:|data:/i.test(css)) {
-      return { error: 'CSS contains blocked pattern (url, expression, @import)' };
+      return {
+        error: "CSS contains blocked pattern (url, expression, @import)",
+      };
     }
     const styleId = `gstack-inject-${id}`;
     let styleEl = document.getElementById(styleId);
     if (!styleEl) {
-      styleEl = document.createElement('style');
+      styleEl = document.createElement("style");
       styleEl.id = styleId;
       document.head.appendChild(styleEl);
     }
@@ -438,32 +518,32 @@
   // ─── Message Listener ──────────────────────────────────────────
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type === 'startPicker') {
+    if (msg.type === "startPicker") {
       startPicker();
       sendResponse({ ok: true });
       return;
     }
-    if (msg.type === 'stopPicker') {
+    if (msg.type === "stopPicker") {
       stopPicker();
       sendResponse({ ok: true });
       return;
     }
-    if (msg.type === 'applyStyle') {
+    if (msg.type === "applyStyle") {
       const result = applyStyle(msg.selector, msg.property, msg.value);
       sendResponse(result);
       return;
     }
-    if (msg.type === 'toggleClass') {
+    if (msg.type === "toggleClass") {
       const result = toggleClass(msg.selector, msg.className, msg.action);
       sendResponse(result);
       return;
     }
-    if (msg.type === 'injectCSS') {
+    if (msg.type === "injectCSS") {
       const result = injectCSS(msg.id, msg.css);
       sendResponse(result);
       return;
     }
-    if (msg.type === 'resetAll') {
+    if (msg.type === "resetAll") {
       const result = resetAll();
       sendResponse(result);
       return;

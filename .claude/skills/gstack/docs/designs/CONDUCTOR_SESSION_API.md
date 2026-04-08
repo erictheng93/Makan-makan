@@ -6,12 +6,13 @@ When Claude controls your real browser via CDP (gstack `$B connect`), you look a
 windows: **Conductor** (to see Claude's thinking) and **Chrome** (to see Claude's actions).
 
 gstack's Chrome extension Side Panel shows browse activity — every command, result,
-and error. But for *full* session mirroring (Claude's thinking, tool calls, code edits),
+and error. But for _full_ session mirroring (Claude's thinking, tool calls, code edits),
 the Side Panel needs Conductor to expose the conversation stream.
 
 ## What this enables
 
 A "Session" tab in the gstack Chrome extension Side Panel that shows:
+
 - Claude's thinking/content (truncated for performance)
 - Tool call names + icons (Edit, Bash, Read, etc.)
 - Turn boundaries with cost estimates
@@ -80,6 +81,7 @@ The Chrome extension auto-selects a workspace by matching the browse server's gi
 Already scaffolded in the Side Panel "Session" tab (currently shows placeholder).
 
 When Conductor's API is available:
+
 1. Side Panel discovers Conductor via port probe or manual entry
 2. Fetches `/api/workspaces`, matches to browse server's repo
 3. Opens `EventSource` to `/workspace/{id}/session/stream`
@@ -99,10 +101,10 @@ internally (which it does for its own UI rendering).
 
 ## Design decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Transport | SSE (not WebSocket) | Unidirectional, auto-reconnect, simpler |
-| Format | Claude's stream-json | Conductor already parses this; no new schema |
-| Discovery | HTTP endpoint (not file) | Chrome extensions can't read filesystem |
-| Auth | None (localhost) | Same as browse server, CDP port, Claude Code |
-| Truncation | 500 chars | Side Panel is ~300px wide; long content useless |
+| Decision   | Choice                   | Rationale                                       |
+| ---------- | ------------------------ | ----------------------------------------------- |
+| Transport  | SSE (not WebSocket)      | Unidirectional, auto-reconnect, simpler         |
+| Format     | Claude's stream-json     | Conductor already parses this; no new schema    |
+| Discovery  | HTTP endpoint (not file) | Chrome extensions can't read filesystem         |
+| Auth       | None (localhost)         | Same as browse server, CDP port, Claude Code    |
+| Truncation | 500 chars                | Side Panel is ~300px wide; long content useless |

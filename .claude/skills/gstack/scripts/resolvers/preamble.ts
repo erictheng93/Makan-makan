@@ -1,5 +1,5 @@
-import type { TemplateContext } from './types';
-import { getHostConfig } from '../../hosts/index';
+import type { TemplateContext } from "./types";
+import { getHostConfig } from "../../hosts/index";
 
 /**
  * Preamble architecture — why every skill needs this
@@ -23,7 +23,7 @@ GSTACK_BIN="$GSTACK_ROOT/bin"
 GSTACK_BROWSE="$GSTACK_ROOT/browse/dist"
 GSTACK_DESIGN="$GSTACK_ROOT/design/dist"
 `
-    : '';
+    : "";
 
   return `## Preamble (run first)
 
@@ -656,7 +656,7 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 }
 
 function generateContextRecovery(ctx: TemplateContext): string {
-  const binDir = ctx.host === 'codex' ? '$GSTACK_BIN' : ctx.paths.binDir;
+  const binDir = ctx.host === "codex" ? "$GSTACK_BIN" : ctx.paths.binDir;
 
   return `## Context Recovery
 
@@ -719,7 +719,9 @@ available]. [Health score if available]." Keep it to 2-3 sentences.`;
 export function generatePreamble(ctx: TemplateContext): string {
   const tier = ctx.preambleTier ?? 4;
   if (tier < 1 || tier > 4) {
-    throw new Error(`Invalid preamble-tier: ${tier} in ${ctx.tmplPath}. Must be 1-4.`);
+    throw new Error(
+      `Invalid preamble-tier: ${tier} in ${ctx.tmplPath}. Must be 1-4.`,
+    );
   }
   const sections = [
     generatePreambleBash(ctx),
@@ -731,9 +733,17 @@ export function generatePreamble(ctx: TemplateContext): string {
     generateVendoringDeprecation(ctx),
     generateSpawnedSessionCheck(),
     generateVoiceDirective(tier),
-    ...(tier >= 2 ? [generateContextRecovery(ctx), generateAskUserFormat(ctx), generateCompletenessSection()] : []),
-    ...(tier >= 3 ? [generateRepoModeSection(), generateSearchBeforeBuildingSection(ctx)] : []),
+    ...(tier >= 2
+      ? [
+          generateContextRecovery(ctx),
+          generateAskUserFormat(ctx),
+          generateCompletenessSection(),
+        ]
+      : []),
+    ...(tier >= 3
+      ? [generateRepoModeSection(), generateSearchBeforeBuildingSection(ctx)]
+      : []),
     generateCompletionStatus(ctx),
   ];
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }

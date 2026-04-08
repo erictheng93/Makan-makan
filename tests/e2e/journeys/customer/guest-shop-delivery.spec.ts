@@ -250,8 +250,15 @@ test.describe("Guest shop delivery ordering flow", () => {
     // "shopCart.delivery" = "🛵 外送" in zh-TW
     const deliveryToggle = cartModal
       .first()
-      .locator('button:has-text("外送"), button:has-text("Delivery"), button:has-text("🛵")');
-    if (await deliveryToggle.first().isVisible({ timeout: 2000 }).catch(() => false)) {
+      .locator(
+        'button:has-text("外送"), button:has-text("Delivery"), button:has-text("🛵")',
+      );
+    if (
+      await deliveryToggle
+        .first()
+        .isVisible({ timeout: 2000 })
+        .catch(() => false)
+    ) {
       await deliveryToggle.first().click();
     }
 
@@ -311,9 +318,9 @@ test.describe("Guest shop delivery ordering flow", () => {
     await page.goto(`/restaurant/${RESTAURANT.id}/shop/menu?phone=678`);
 
     // Cart button should be visible since we pre-seeded an item
-    await expect(
-      page.locator('[data-testid="cart-btn"]').first(),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="cart-btn"]').first()).toBeVisible({
+      timeout: 10000,
+    });
     await page.locator('[data-testid="cart-btn"]').first().click();
 
     const cartModal = page.locator('[data-testid="shop-cart-modal"]');
@@ -402,8 +409,15 @@ test.describe("Guest shop delivery ordering flow", () => {
     // "shopCart.delivery" = "🛵 外送" in zh-TW
     const deliveryToggle = cartModal
       .first()
-      .locator('button:has-text("外送"), button:has-text("Delivery"), button:has-text("🛵")');
-    if (await deliveryToggle.first().isVisible({ timeout: 2000 }).catch(() => false)) {
+      .locator(
+        'button:has-text("外送"), button:has-text("Delivery"), button:has-text("🛵")',
+      );
+    if (
+      await deliveryToggle
+        .first()
+        .isVisible({ timeout: 2000 })
+        .catch(() => false)
+    ) {
       await deliveryToggle.first().click();
     }
 

@@ -10,7 +10,11 @@
 import fs from "fs";
 import path from "path";
 
-const CONFIG_PATH = path.join(process.env.HOME || "~", ".gstack", "openai.json");
+const CONFIG_PATH = path.join(
+  process.env.HOME || "~",
+  ".gstack",
+  "openai.json",
+);
 
 export function resolveApiKey(): string | null {
   // 1. Check ~/.gstack/openai.json
@@ -53,7 +57,9 @@ export function requireApiKey(): string {
     console.error("No OpenAI API key found.");
     console.error("");
     console.error("Run: $D setup");
-    console.error("  or save to ~/.gstack/openai.json: { \"api_key\": \"sk-...\" }");
+    console.error(
+      '  or save to ~/.gstack/openai.json: { "api_key": "sk-..." }',
+    );
     console.error("  or set OPENAI_API_KEY environment variable");
     console.error("");
     console.error("Get a key at: https://platform.openai.com/api-keys");

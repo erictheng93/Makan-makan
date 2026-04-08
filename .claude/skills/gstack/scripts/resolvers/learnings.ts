@@ -11,10 +11,10 @@
  * Cross-project discovery is opt-in. The resolver asks the user once via
  * AskUserQuestion and persists the preference via gstack-config.
  */
-import type { TemplateContext } from './types';
+import type { TemplateContext } from "./types";
 
 export function generateLearningsSearch(ctx: TemplateContext): string {
-  if (ctx.host === 'codex') {
+  if (ctx.host === "codex") {
     // Codex: simpler version, no cross-project, uses $GSTACK_BIN
     return `## Prior Learnings
 
@@ -68,7 +68,7 @@ smarter on their codebase over time.`;
 }
 
 export function generateLearningsLog(ctx: TemplateContext): string {
-  const binDir = ctx.host === 'codex' ? '$GSTACK_BIN' : ctx.paths.binDir;
+  const binDir = ctx.host === "codex" ? "$GSTACK_BIN" : ctx.paths.binDir;
 
   return `## Capture Learnings
 

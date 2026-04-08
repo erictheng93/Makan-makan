@@ -4,6 +4,7 @@ Injected by the orchestrator when the user wants to plan a Claude Code project.
 Append to existing CLAUDE.md.
 
 ## Planning Pipeline
+
 1. Read CLAUDE.md and understand the project context.
 2. Run /office-hours to produce a design doc (problem statement, premises, alternatives).
 3. Run /autoplan to review the design (CEO + eng + design + DX reviews + codex adversarial).

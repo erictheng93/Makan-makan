@@ -188,8 +188,9 @@ describe("useEmployeeData", () => {
         return Promise.resolve({ data: {} });
       });
 
-      const { fetchLeaveData, leaveBalances, leaveRequests } =
-        useEmployeeData(() => 42);
+      const { fetchLeaveData, leaveBalances, leaveRequests } = useEmployeeData(
+        () => 42,
+      );
       await fetchLeaveData(42);
 
       expect(mockApiGet).toHaveBeenCalledWith(
@@ -209,8 +210,9 @@ describe("useEmployeeData", () => {
         data: { data: null },
       });
 
-      const { fetchLeaveData, leaveBalances, leaveRequests } =
-        useEmployeeData(() => 42);
+      const { fetchLeaveData, leaveBalances, leaveRequests } = useEmployeeData(
+        () => 42,
+      );
       await fetchLeaveData(42);
 
       expect(leaveBalances.value).toEqual([]);
@@ -234,7 +236,9 @@ describe("useEmployeeData", () => {
         callOrder.push(url);
         if (url.includes("/users/")) {
           return Promise.resolve({
-            data: { data: { id: 42, username: "test", role: 1, isActive: true } },
+            data: {
+              data: { id: 42, username: "test", role: 1, isActive: true },
+            },
           });
         }
         return Promise.resolve({ data: { data: [] } });

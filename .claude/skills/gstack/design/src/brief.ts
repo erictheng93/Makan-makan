@@ -3,13 +3,13 @@
  */
 
 export interface DesignBrief {
-  goal: string;           // "Dashboard for coding assessment tool"
-  audience: string;       // "Technical users, YC partners"
-  style: string;          // "Dark theme, cream accents, minimal"
-  elements: string[];     // ["builder name", "score badge", "narrative letter"]
-  constraints?: string;   // "Max width 1024px, mobile-first"
-  reference?: string;     // DESIGN.md excerpt or style reference text
-  screenType: string;     // "desktop-dashboard" | "mobile-app" | "landing-page" | etc.
+  goal: string; // "Dashboard for coding assessment tool"
+  audience: string; // "Technical users, YC partners"
+  style: string; // "Dark theme, cream accents, minimal"
+  elements: string[]; // ["builder name", "score badge", "narrative letter"]
+  constraints?: string; // "Max width 1024px, mobile-first"
+  reference?: string; // DESIGN.md excerpt or style reference text
+  screenType: string; // "desktop-dashboard" | "mobile-app" | "landing-page" | etc.
 }
 
 /**
@@ -34,7 +34,7 @@ export function briefToPrompt(brief: DesignBrief): string {
   lines.push(
     "The mockup should look like a real production UI, not a wireframe or concept art.",
     "All text must be readable. Layout must be clean and intentional.",
-    "1536x1024 pixels."
+    "1536x1024 pixels.",
   );
 
   return lines.join(" ");

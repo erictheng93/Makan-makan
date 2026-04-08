@@ -263,7 +263,9 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     }
 
     // Verify the cart page loaded successfully (submit button visible or redirect happened)
-    await expect(page.locator("main, [role='main']").first()).toBeVisible({ timeout: 8000 });
+    await expect(page.locator("main, [role='main']").first()).toBeVisible({
+      timeout: 8000,
+    });
   });
 
   // =========================================================================
@@ -756,7 +758,12 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     const cashOption = page.locator(
       'button:has-text("Cash"), button:has-text("現金"), [data-testid="payment-cash"]',
     );
-    if (await cashOption.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (
+      await cashOption
+        .first()
+        .isVisible({ timeout: 3000 })
+        .catch(() => false)
+    ) {
       await cashOption.first().click();
     }
 
@@ -764,7 +771,12 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     const confirmBtn = page.locator(
       'button:has-text("Confirm"), button:has-text("確認"), [data-testid="confirm-payment-btn"]',
     );
-    if (await confirmBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (
+      await confirmBtn
+        .first()
+        .isVisible({ timeout: 3000 })
+        .catch(() => false)
+    ) {
       await confirmBtn.first().click();
     }
 

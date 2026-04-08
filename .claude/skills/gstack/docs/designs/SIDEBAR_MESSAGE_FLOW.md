@@ -144,26 +144,26 @@ If the server restarts, all three components get fresh tokens within 10s
 
 `pickSidebarModel(message)` in server.ts classifies messages:
 
-| Pattern | Model | Why |
-|---------|-------|-----|
-| "click @e24", "go to hn", "screenshot" | sonnet | Deterministic tool calls, no thinking needed |
-| "what does this page say?", "summarize" | opus | Needs comprehension |
-| "find bugs", "check for broken links" | opus | Analysis task |
-| "navigate to X and fill the form" | sonnet | Action-oriented, no analysis words |
+| Pattern                                 | Model  | Why                                          |
+| --------------------------------------- | ------ | -------------------------------------------- |
+| "click @e24", "go to hn", "screenshot"  | sonnet | Deterministic tool calls, no thinking needed |
+| "what does this page say?", "summarize" | opus   | Needs comprehension                          |
+| "find bugs", "check for broken links"   | opus   | Analysis task                                |
+| "navigate to X and fill the form"       | sonnet | Action-oriented, no analysis words           |
 
 Analysis words (`what`, `why`, `how`, `summarize`, `describe`, `analyze`, `read X and Y`)
 always override action verbs and force opus.
 
 ## Known Failure Modes
 
-| Failure | Symptom | Root Cause | Fix |
-|---------|---------|------------|-----|
-| Stale auth token | "Unauthorized" in input | Server restarted, background had old token | background.js refreshes token on every health poll |
-| Tab ID mismatch | Message sent, no response visible | Server assigned tabId 1, sidebar polling tabId 0 | switchChatTab preserves optimistic UI during switch |
-| Sidebar agent not running | Messages queue forever | Agent process failed to spawn or crashed | Check `ps aux | grep sidebar-agent` |
-| Agent stale token | Agent runs but no events appear in sidebar | sidebar-agent has old token from .gstack/browse.json | Agent re-reads token before each event POST |
-| Queue file missing | spawnClaude fails | Race between server start and agent start | Both sides create file if missing |
-| Optimistic UI blown away | User bubble + dots vanish | switchChatTab replaced DOM with welcome screen | Preserved DOM when lastOptimisticMsg is set |
+| Failure                   | Symptom                                    | Root Cause                                           | Fix                                                 |
+| ------------------------- | ------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------- | ------------------- |
+| Stale auth token          | "Unauthorized" in input                    | Server restarted, background had old token           | background.js refreshes token on every health poll  |
+| Tab ID mismatch           | Message sent, no response visible          | Server assigned tabId 1, sidebar polling tabId 0     | switchChatTab preserves optimistic UI during switch |
+| Sidebar agent not running | Messages queue forever                     | Agent process failed to spawn or crashed             | Check `ps aux                                       | grep sidebar-agent` |
+| Agent stale token         | Agent runs but no events appear in sidebar | sidebar-agent has old token from .gstack/browse.json | Agent re-reads token before each event POST         |
+| Queue file missing        | spawnClaude fails                          | Race between server start and agent start            | Both sides create file if missing                   |
+| Optimistic UI blown away  | User bubble + dots vanish                  | switchChatTab replaced DOM with welcome screen       | Preserved DOM when lastOptimisticMsg is set         |
 
 ## Per-Tab Concurrency
 
@@ -176,15 +176,15 @@ Each browser tab can run its own agent simultaneously:
 
 ## File Locations
 
-| Component | File | Runs in |
-|-----------|------|---------|
-| Sidebar UI | `extension/sidepanel.js` | Chrome side panel |
-| Service worker | `extension/background.js` | Chrome background |
-| Content script | `extension/content.js` | Page context |
-| Welcome page | `browse/src/welcome.html` | Page context |
-| HTTP server | `browse/src/server.ts` | Bun (compiled binary) |
-| Agent process | `browse/src/sidebar-agent.ts` | Bun (non-compiled, can spawn) |
-| CLI entry | `browse/src/cli.ts` | Bun (compiled binary) |
-| Queue file | `~/.gstack/sidebar-agent-queue.jsonl` | Filesystem |
-| State file | `.gstack/browse.json` | Filesystem |
-| Chat log | `~/.gstack/sessions/<id>/chat.jsonl` | Filesystem |
+| Component      | File                                  | Runs in                       |
+| -------------- | ------------------------------------- | ----------------------------- |
+| Sidebar UI     | `extension/sidepanel.js`              | Chrome side panel             |
+| Service worker | `extension/background.js`             | Chrome background             |
+| Content script | `extension/content.js`                | Page context                  |
+| Welcome page   | `browse/src/welcome.html`             | Page context                  |
+| HTTP server    | `browse/src/server.ts`                | Bun (compiled binary)         |
+| Agent process  | `browse/src/sidebar-agent.ts`         | Bun (non-compiled, can spawn) |
+| CLI entry      | `browse/src/cli.ts`                   | Bun (compiled binary)         |
+| Queue file     | `~/.gstack/sidebar-agent-queue.jsonl` | Filesystem                    |
+| State file     | `.gstack/browse.json`                 | Filesystem                    |
+| Chat log       | `~/.gstack/sessions/<id>/chat.jsonl`  | Filesystem                    |

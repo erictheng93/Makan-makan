@@ -26,8 +26,8 @@
  * Zero side effects on import. Safe to import from tests.
  */
 
-import * as crypto from 'crypto';
-import { READ_COMMANDS, WRITE_COMMANDS, META_COMMANDS } from './commands';
+import * as crypto from "crypto";
+import { READ_COMMANDS, WRITE_COMMANDS, META_COMMANDS } from "./commands";
 
 // ─── Scope Definitions ─────────────────────────────────────────
 // Derived from commands.ts, but reclassified by actual side effects.
@@ -37,36 +37,86 @@ import { READ_COMMANDS, WRITE_COMMANDS, META_COMMANDS } from './commands';
 
 /** Commands safe for read-only agents */
 export const SCOPE_READ = new Set([
-  'snapshot', 'text', 'html', 'links', 'forms', 'accessibility',
-  'console', 'network', 'perf', 'dialog', 'is', 'inspect',
-  'url', 'tabs', 'status', 'screenshot', 'pdf', 'css', 'attrs',
+  "snapshot",
+  "text",
+  "html",
+  "links",
+  "forms",
+  "accessibility",
+  "console",
+  "network",
+  "perf",
+  "dialog",
+  "is",
+  "inspect",
+  "url",
+  "tabs",
+  "status",
+  "screenshot",
+  "pdf",
+  "css",
+  "attrs",
 ]);
 
 /** Commands that modify page state or navigate */
 export const SCOPE_WRITE = new Set([
-  'goto', 'back', 'forward', 'reload',
-  'click', 'fill', 'select', 'hover', 'type', 'press', 'scroll', 'wait',
-  'upload', 'viewport', 'newtab', 'closetab',
-  'dialog-accept', 'dialog-dismiss',
+  "goto",
+  "back",
+  "forward",
+  "reload",
+  "click",
+  "fill",
+  "select",
+  "hover",
+  "type",
+  "press",
+  "scroll",
+  "wait",
+  "upload",
+  "viewport",
+  "newtab",
+  "closetab",
+  "dialog-accept",
+  "dialog-dismiss",
 ]);
 
 /** Dangerous commands — JS execution, credential access, browser-wide mutations */
 export const SCOPE_ADMIN = new Set([
-  'eval', 'js', 'cookies', 'storage',
-  'cookie', 'cookie-import', 'cookie-import-browser',
-  'header', 'useragent',
-  'style', 'cleanup', 'prettyscreenshot',
+  "eval",
+  "js",
+  "cookies",
+  "storage",
+  "cookie",
+  "cookie-import",
+  "cookie-import-browser",
+  "header",
+  "useragent",
+  "style",
+  "cleanup",
+  "prettyscreenshot",
   // Browser-wide destructive commands (from Codex adversarial finding):
-  'state', 'handoff', 'resume', 'stop', 'restart', 'connect', 'disconnect',
+  "state",
+  "handoff",
+  "resume",
+  "stop",
+  "restart",
+  "connect",
+  "disconnect",
 ]);
 
 /** Meta commands — generally safe but some need scope checking */
 export const SCOPE_META = new Set([
-  'tab', 'diff', 'frame', 'responsive', 'snapshot',
-  'watch', 'inbox', 'focus',
+  "tab",
+  "diff",
+  "frame",
+  "responsive",
+  "snapshot",
+  "watch",
+  "inbox",
+  "focus",
 ]);
 
-export type ScopeCategory = 'read' | 'write' | 'admin' | 'meta';
+export type ScopeCategory = "read" | "write" | "admin" | "meta";
 
 const SCOPE_MAP: Record<ScopeCategory, Set<string>> = {
   read: SCOPE_READ,
@@ -80,29 +130,29 @@ const SCOPE_MAP: Record<ScopeCategory, Set<string>> = {
 export interface TokenInfo {
   token: string;
   clientId: string;
-  type: 'session' | 'setup';
+  type: "session" | "setup";
   scopes: ScopeCategory[];
-  domains?: string[];          // glob patterns, e.g. ['*.myapp.com']
-  tabPolicy: 'own-only' | 'shared';
-  rateLimit: number;           // requests per second (0 = unlimited)
-  expiresAt: string | null;    // ISO8601, null = never
+  domains?: string[]; // glob patterns, e.g. ['*.myapp.com']
+  tabPolicy: "own-only" | "shared";
+  rateLimit: number; // requests per second (0 = unlimited)
+  expiresAt: string | null; // ISO8601, null = never
   createdAt: string;
-  usesRemaining?: number;      // for setup keys only
+  usesRemaining?: number; // for setup keys only
   issuedSessionToken?: string; // for setup keys: the session token that was issued
-  commandCount: number;        // how many commands have been executed
+  commandCount: number; // how many commands have been executed
 }
 
 export interface CreateTokenOptions {
   clientId: string;
   scopes?: ScopeCategory[];
   domains?: string[];
-  tabPolicy?: 'own-only' | 'shared';
+  tabPolicy?: "own-only" | "shared";
   rateLimit?: number;
   expiresSeconds?: number | null; // null = never, default = 86400 (24h)
 }
 
 export interface TokenRegistryState {
-  agents: Record<string, Omit<TokenInfo, 'commandCount'>>;
+  agents: Record<string, Omit<TokenInfo, "commandCount">>;
 }
 
 // ─── Rate Limiter ───────────────────────────────────────────────
@@ -114,7 +164,10 @@ interface RateBucket {
 
 const rateBuckets = new Map<string, RateBucket>();
 
-function checkRateLimit(clientId: string, limit: number): { allowed: boolean; retryAfterMs?: number } {
+function checkRateLimit(
+  clientId: string,
+  limit: number,
+): { allowed: boolean; retryAfterMs?: number } {
   if (limit <= 0) return { allowed: true };
 
   const now = Date.now();
@@ -137,7 +190,7 @@ function checkRateLimit(clientId: string, limit: number): { allowed: boolean; re
 // ─── Token Registry ─────────────────────────────────────────────
 
 const tokens = new Map<string, TokenInfo>();
-let rootToken: string = '';
+let rootToken: string = "";
 
 export function initRegistry(root: string): void {
   rootToken = root;
@@ -152,7 +205,7 @@ export function isRootToken(token: string): boolean {
 }
 
 function generateToken(prefix: string): string {
-  return `${prefix}${crypto.randomBytes(24).toString('hex')}`;
+  return `${prefix}${crypto.randomBytes(24).toString("hex")}`;
 }
 
 /**
@@ -162,35 +215,40 @@ function generateToken(prefix: string): string {
 export function createToken(opts: CreateTokenOptions): TokenInfo {
   const {
     clientId,
-    scopes = ['read', 'write'],
+    scopes = ["read", "write"],
     domains,
-    tabPolicy = 'own-only',
+    tabPolicy = "own-only",
     rateLimit = 10,
     expiresSeconds = 86400, // 24h default
   } = opts;
 
   // Validate inputs
-  const validScopes: ScopeCategory[] = ['read', 'write', 'admin', 'meta'];
+  const validScopes: ScopeCategory[] = ["read", "write", "admin", "meta"];
   for (const s of scopes) {
     if (!validScopes.includes(s as ScopeCategory)) {
-      throw new Error(`Invalid scope: ${s}. Valid: ${validScopes.join(', ')}`);
+      throw new Error(`Invalid scope: ${s}. Valid: ${validScopes.join(", ")}`);
     }
   }
-  if (rateLimit < 0) throw new Error('rateLimit must be >= 0');
-  if (expiresSeconds !== null && expiresSeconds !== undefined && expiresSeconds < 0) {
-    throw new Error('expiresSeconds must be >= 0 or null');
+  if (rateLimit < 0) throw new Error("rateLimit must be >= 0");
+  if (
+    expiresSeconds !== null &&
+    expiresSeconds !== undefined &&
+    expiresSeconds < 0
+  ) {
+    throw new Error("expiresSeconds must be >= 0 or null");
   }
 
-  const token = generateToken('gsk_sess_');
+  const token = generateToken("gsk_sess_");
   const now = new Date();
-  const expiresAt = expiresSeconds === null
-    ? null
-    : new Date(now.getTime() + expiresSeconds * 1000).toISOString();
+  const expiresAt =
+    expiresSeconds === null
+      ? null
+      : new Date(now.getTime() + expiresSeconds * 1000).toISOString();
 
   const info: TokenInfo = {
     token,
     clientId,
-    type: 'session',
+    type: "session",
     scopes,
     domains,
     tabPolicy,
@@ -203,7 +261,7 @@ export function createToken(opts: CreateTokenOptions): TokenInfo {
   // Overwrite if clientId already exists (re-pairing)
   // First revoke the old session token (but NOT setup keys — they track their issued session)
   for (const [t, existing] of tokens) {
-    if (existing.clientId === clientId && existing.type === 'session') {
+    if (existing.clientId === clientId && existing.type === "session") {
       tokens.delete(t);
       break;
     }
@@ -217,18 +275,20 @@ export function createToken(opts: CreateTokenOptions): TokenInfo {
  * Create a one-time setup key for the /pair-agent ceremony.
  * Setup keys expire in 5 minutes and can only be exchanged once.
  */
-export function createSetupKey(opts: Omit<CreateTokenOptions, 'clientId'> & { clientId?: string }): TokenInfo {
-  const token = generateToken('gsk_setup_');
+export function createSetupKey(
+  opts: Omit<CreateTokenOptions, "clientId"> & { clientId?: string },
+): TokenInfo {
+  const token = generateToken("gsk_setup_");
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString(); // 5 min
 
   const info: TokenInfo = {
     token,
     clientId: opts.clientId || `remote-${Date.now()}`,
-    type: 'setup',
-    scopes: opts.scopes || ['read', 'write'],
+    type: "setup",
+    scopes: opts.scopes || ["read", "write"],
     domains: opts.domains,
-    tabPolicy: opts.tabPolicy || 'own-only',
+    tabPolicy: opts.tabPolicy || "own-only",
     rateLimit: opts.rateLimit || 10,
     expiresAt,
     createdAt: now.toISOString(),
@@ -245,10 +305,13 @@ export function createSetupKey(opts: Omit<CreateTokenOptions, 'clientId'> & { cl
  * Idempotent: if the same key is presented again and the prior session
  * has 0 commands, returns the same session token (handles tunnel drops).
  */
-export function exchangeSetupKey(setupKey: string, sessionExpiresSeconds?: number | null): TokenInfo | null {
+export function exchangeSetupKey(
+  setupKey: string,
+  sessionExpiresSeconds?: number | null,
+): TokenInfo | null {
   const setup = tokens.get(setupKey);
   if (!setup) return null;
-  if (setup.type !== 'setup') return null;
+  if (setup.type !== "setup") return null;
 
   // Check expiry
   if (setup.expiresAt && new Date(setup.expiresAt) < new Date()) {
@@ -295,13 +358,13 @@ export function validateToken(token: string): TokenInfo | null {
   if (isRootToken(token)) {
     return {
       token: rootToken,
-      clientId: 'root',
-      type: 'session',
-      scopes: ['read', 'write', 'admin', 'meta'],
-      tabPolicy: 'shared',
+      clientId: "root",
+      type: "session",
+      scopes: ["read", "write", "admin", "meta"],
+      tabPolicy: "shared",
       rateLimit: 0, // unlimited
       expiresAt: null,
-      createdAt: '',
+      createdAt: "",
       commandCount: 0,
     };
   }
@@ -324,12 +387,12 @@ export function validateToken(token: string): TokenInfo | null {
  * but each subcommand within chain must be individually scope-checked.
  */
 export function checkScope(info: TokenInfo, command: string): boolean {
-  if (info.clientId === 'root') return true;
+  if (info.clientId === "root") return true;
 
   // Special case: chain is in SCOPE_META but requires that the caller
   // has scopes covering ALL subcommands. The actual subcommand check
   // happens at dispatch time, not here.
-  if (command === 'chain' && info.scopes.includes('meta')) return true;
+  if (command === "chain" && info.scopes.includes("meta")) return true;
 
   for (const scope of info.scopes) {
     if (SCOPE_MAP[scope]?.has(command)) return true;
@@ -343,7 +406,7 @@ export function checkScope(info: TokenInfo, command: string): boolean {
  * Returns true if no domain restrictions, or if the URL matches any glob.
  */
 export function checkDomain(info: TokenInfo, url: string): boolean {
-  if (info.clientId === 'root') return true;
+  if (info.clientId === "root") return true;
   if (!info.domains || info.domains.length === 0) return true;
 
   try {
@@ -363,7 +426,7 @@ export function checkDomain(info: TokenInfo, url: string): boolean {
 function matchDomainGlob(hostname: string, pattern: string): boolean {
   // Simple glob: *.example.com matches sub.example.com
   // Exact: example.com matches example.com only
-  if (pattern.startsWith('*.')) {
+  if (pattern.startsWith("*.")) {
     const suffix = pattern.slice(1); // .example.com
     return hostname.endsWith(suffix) || hostname === pattern.slice(2);
   }
@@ -373,8 +436,11 @@ function matchDomainGlob(hostname: string, pattern: string): boolean {
 /**
  * Check rate limit for a client. Returns { allowed, retryAfterMs? }.
  */
-export function checkRate(info: TokenInfo): { allowed: boolean; retryAfterMs?: number } {
-  if (info.clientId === 'root') return { allowed: true };
+export function checkRate(info: TokenInfo): {
+  allowed: boolean;
+  retryAfterMs?: number;
+} {
+  if (info.clientId === "root") return { allowed: true };
   return checkRateLimit(info.clientId, info.rateLimit);
 }
 
@@ -423,7 +489,7 @@ export function listTokens(): TokenInfo[] {
       tokens.delete(token);
       continue;
     }
-    if (info.type === 'session') {
+    if (info.type === "session") {
       result.push(info);
     }
   }
@@ -435,10 +501,10 @@ export function listTokens(): TokenInfo[] {
  * Serialize the token registry for state file persistence.
  */
 export function serializeRegistry(): TokenRegistryState {
-  const agents: TokenRegistryState['agents'] = {};
+  const agents: TokenRegistryState["agents"] = {};
 
   for (const info of tokens.values()) {
-    if (info.type === 'session') {
+    if (info.type === "session") {
       const { commandCount, ...rest } = info;
       agents[info.clientId] = rest;
     }
@@ -474,7 +540,9 @@ const CONNECT_WINDOW_MS = 60000;
 
 export function checkConnectRateLimit(): boolean {
   const now = Date.now();
-  connectAttempts = connectAttempts.filter(a => now - a.ts < CONNECT_WINDOW_MS);
+  connectAttempts = connectAttempts.filter(
+    (a) => now - a.ts < CONNECT_WINDOW_MS,
+  );
   if (connectAttempts.length >= CONNECT_RATE_LIMIT) return false;
   connectAttempts.push({ ts: now });
   return true;

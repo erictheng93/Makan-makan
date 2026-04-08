@@ -31,17 +31,18 @@ export async function diffMockups(
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "gpt-4o",
-        messages: [{
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Compare these two UI images. The first is the BEFORE (or design intent), the second is the AFTER (or actual implementation). Return valid JSON only:
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Compare these two UI images. The first is the BEFORE (or design intent), the second is the AFTER (or actual implementation). Return valid JSON only:
 
 {
   "differences": [
@@ -55,17 +56,18 @@ export async function diffMockups(
 severity: "high" = noticeable to any user, "medium" = visible on close inspection, "low" = minor/pixel-level.
 matchScore: 100 = identical, 0 = completely different.
 Focus on layout, typography, colors, spacing, and element presence/absence. Ignore rendering differences (anti-aliasing, sub-pixel).`,
-            },
-            {
-              type: "image_url",
-              image_url: { url: `data:image/png;base64,${beforeData}` },
-            },
-            {
-              type: "image_url",
-              image_url: { url: `data:image/png;base64,${afterData}` },
-            },
-          ],
-        }],
+              },
+              {
+                type: "image_url",
+                image_url: { url: `data:image/png;base64,${beforeData}` },
+              },
+              {
+                type: "image_url",
+                image_url: { url: `data:image/png;base64,${afterData}` },
+              },
+            ],
+          },
+        ],
         max_tokens: 600,
         response_format: { type: "json_object" },
       }),
@@ -74,11 +76,13 @@ Focus on layout, typography, colors, spacing, and element presence/absence. Igno
 
     if (!response.ok) {
       const error = await response.text();
-      console.error(`Diff API error (${response.status}): ${error.slice(0, 200)}`);
+      console.error(
+        `Diff API error (${response.status}): ${error.slice(0, 200)}`,
+      );
       return { differences: [], summary: "Diff unavailable", matchScore: -1 };
     }
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
     const content = data.choices?.[0]?.message?.content?.trim() || "";
     return JSON.parse(content) as DiffResult;
   } finally {
@@ -97,7 +101,7 @@ export async function verifyAgainstMockup(
   const diff = await diffMockups(mockupPath, screenshotPath);
 
   // Pass if matchScore >= 70 and no high-severity differences
-  const highSeverity = diff.differences.filter(d => d.severity === "high");
+  const highSeverity = diff.differences.filter((d) => d.severity === "high");
   const pass = diff.matchScore >= 70 && highSeverity.length === 0;
 
   return { pass, matchScore: diff.matchScore, diff };

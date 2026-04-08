@@ -46,6 +46,7 @@ Authorization: Bearer gsk_sess_...
 ### Endpoints
 
 #### POST /connect
+
 Exchange a setup key for a session token. No auth required. Rate-limited to 3/minute.
 
 ```json
@@ -54,6 +55,7 @@ Response: {"token": "gsk_sess_...", "expires": "ISO8601", "scopes": ["read","wri
 ```
 
 #### POST /command
+
 Send a browser command. Requires Bearer auth.
 
 ```json
@@ -62,44 +64,49 @@ Response: (plain text result of the command)
 ```
 
 #### GET /health
+
 Server status. No auth required. Returns status, tabs, mode, uptime.
 
 ### Commands
 
 #### Navigation
-| Command | Args | Description |
-|---------|------|-------------|
-| `goto` | `["URL"]` | Navigate to a URL |
-| `back` | `[]` | Go back |
-| `forward` | `[]` | Go forward |
-| `reload` | `[]` | Reload page |
+
+| Command   | Args      | Description       |
+| --------- | --------- | ----------------- |
+| `goto`    | `["URL"]` | Navigate to a URL |
+| `back`    | `[]`      | Go back           |
+| `forward` | `[]`      | Go forward        |
+| `reload`  | `[]`      | Reload page       |
 
 #### Reading Content
-| Command | Args | Description |
-|---------|------|-------------|
-| `snapshot` | `["-i"]` | Interactive snapshot with @ref labels (most useful) |
-| `text` | `[]` | Full page text |
-| `html` | `["selector?"]` | HTML of element or full page |
-| `links` | `[]` | All links on page |
-| `screenshot` | `["/tmp/s.png"]` | Take a screenshot |
-| `url` | `[]` | Current URL |
+
+| Command      | Args             | Description                                         |
+| ------------ | ---------------- | --------------------------------------------------- |
+| `snapshot`   | `["-i"]`         | Interactive snapshot with @ref labels (most useful) |
+| `text`       | `[]`             | Full page text                                      |
+| `html`       | `["selector?"]`  | HTML of element or full page                        |
+| `links`      | `[]`             | All links on page                                   |
+| `screenshot` | `["/tmp/s.png"]` | Take a screenshot                                   |
+| `url`        | `[]`             | Current URL                                         |
 
 #### Interaction
-| Command | Args | Description |
-|---------|------|-------------|
-| `click` | `["@e3"]` | Click an element (use @ref from snapshot) |
-| `fill` | `["@e5", "text"]` | Fill a form field |
-| `select` | `["@e7", "option"]` | Select dropdown value |
-| `type` | `["text"]` | Type text (keyboard) |
-| `press` | `["Enter"]` | Press a key |
-| `scroll` | `["down"]` | Scroll the page |
+
+| Command  | Args                | Description                               |
+| -------- | ------------------- | ----------------------------------------- |
+| `click`  | `["@e3"]`           | Click an element (use @ref from snapshot) |
+| `fill`   | `["@e5", "text"]`   | Fill a form field                         |
+| `select` | `["@e7", "option"]` | Select dropdown value                     |
+| `type`   | `["text"]`          | Type text (keyboard)                      |
+| `press`  | `["Enter"]`         | Press a key                               |
+| `scroll` | `["down"]`          | Scroll the page                           |
 
 #### Tabs
-| Command | Args | Description |
-|---------|------|-------------|
-| `newtab` | `["URL?"]` | Create a new tab (required before writing) |
-| `tabs` | `[]` | List all tabs |
-| `closetab` | `["id?"]` | Close a tab |
+
+| Command    | Args       | Description                                |
+| ---------- | ---------- | ------------------------------------------ |
+| `newtab`   | `["URL?"]` | Create a new tab (required before writing) |
+| `tabs`     | `[]`       | List all tabs                              |
+| `closetab` | `["id?"]`  | Close a tab                                |
 
 ## The Snapshot → @ref Pattern
 
@@ -120,18 +127,19 @@ CSS selectors. Always `snapshot -i` first, then use the refs.
 
 ## Scopes
 
-| Scope | What it allows |
-|-------|---------------|
-| `read` | snapshot, text, html, links, screenshot, url, tabs, console, etc. |
-| `write` | goto, click, fill, scroll, newtab, closetab, etc. |
-| `admin` | eval, js, cookies, storage, cookie-import, useragent, etc. |
-| `meta` | tab, diff, frame, responsive, watch |
+| Scope   | What it allows                                                    |
+| ------- | ----------------------------------------------------------------- |
+| `read`  | snapshot, text, html, links, screenshot, url, tabs, console, etc. |
+| `write` | goto, click, fill, scroll, newtab, closetab, etc.                 |
+| `admin` | eval, js, cookies, storage, cookie-import, useragent, etc.        |
+| `meta`  | tab, diff, frame, responsive, watch                               |
 
 Default tokens get `read` + `write`. Admin requires `--admin` flag when pairing.
 
 ## Tab Isolation
 
 Each agent owns the tabs it creates. Rules:
+
 - **Read:** Any agent can read any tab (snapshot, text, screenshot)
 - **Write:** Only the tab owner can write (click, fill, goto, etc.)
 - **Unowned tabs:** Pre-existing tabs are root-only for writes
@@ -139,11 +147,11 @@ Each agent owns the tabs it creates. Rules:
 
 ## Error Codes
 
-| Code | Meaning | What to do |
-|------|---------|------------|
-| 401 | Token invalid, expired, or revoked | Ask user to run /pair-agent again |
-| 403 | Command not in scope, or tab not yours | Use newtab, or ask for --admin |
-| 429 | Rate limit exceeded (>10 req/s) | Wait for Retry-After header |
+| Code | Meaning                                | What to do                        |
+| ---- | -------------------------------------- | --------------------------------- |
+| 401  | Token invalid, expired, or revoked     | Ask user to run /pair-agent again |
+| 403  | Command not in scope, or tab not yours | Use newtab, or ask for --admin    |
+| 429  | Rate limit exceeded (>10 req/s)        | Wait for Retry-After header       |
 
 ## Security Model
 

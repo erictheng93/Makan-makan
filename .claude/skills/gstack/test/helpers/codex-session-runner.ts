@@ -12,22 +12,22 @@
  * - Needs temp HOME with skill installed at ~/.codex/skills/{skillName}/SKILL.md
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 // --- Interfaces ---
 
 export interface CodexResult {
-  output: string;           // Full agent message text
-  reasoning: string[];      // [codex thinking] blocks
-  toolCalls: string[];      // [codex ran] commands
-  tokens: number;           // Total tokens used
-  exitCode: number;         // Process exit code
-  durationMs: number;       // Wall clock time
+  output: string; // Full agent message text
+  reasoning: string[]; // [codex thinking] blocks
+  toolCalls: string[]; // [codex ran] commands
+  tokens: number; // Total tokens used
+  exitCode: number; // Process exit code
+  durationMs: number; // Wall clock time
   sessionId: string | null; // Thread ID for session continuity
-  rawLines: string[];       // Raw JSONL lines for debugging
-  stderr: string;           // Stderr output (skill loading errors, auth failures)
+  rawLines: string[]; // Raw JSONL lines for debugging
+  stderr: string; // Stderr output (skill loading errors, auth failures)
 }
 
 // --- JSONL parser (ported from Python in codex/SKILL.md.tmpl) ---
@@ -60,34 +60,37 @@ export function parseCodexJSONL(lines: string[]): ParsedCodexJSONL {
     if (!line.trim()) continue;
     try {
       const obj = JSON.parse(line);
-      const t = obj.type || '';
+      const t = obj.type || "";
 
-      if (t === 'thread.started') {
-        const tid = obj.thread_id || '';
+      if (t === "thread.started") {
+        const tid = obj.thread_id || "";
         if (tid) sessionId = tid;
-      } else if (t === 'item.completed' && obj.item) {
+      } else if (t === "item.completed" && obj.item) {
         const item = obj.item;
-        const itype = item.type || '';
-        const text = item.text || '';
+        const itype = item.type || "";
+        const text = item.text || "";
 
-        if (itype === 'reasoning' && text) {
+        if (itype === "reasoning" && text) {
           reasoning.push(text);
-        } else if (itype === 'agent_message' && text) {
+        } else if (itype === "agent_message" && text) {
           outputParts.push(text);
-        } else if (itype === 'command_execution') {
-          const cmd = item.command || '';
+        } else if (itype === "command_execution") {
+          const cmd = item.command || "";
           if (cmd) toolCalls.push(cmd);
         }
-      } else if (t === 'turn.completed') {
+      } else if (t === "turn.completed") {
         const usage = obj.usage || {};
-        const turnTokens = (usage.input_tokens || 0) + (usage.output_tokens || 0);
+        const turnTokens =
+          (usage.input_tokens || 0) + (usage.output_tokens || 0);
         tokens += turnTokens;
       }
-    } catch { /* skip malformed lines */ }
+    } catch {
+      /* skip malformed lines */
+    }
   }
 
   return {
-    output: outputParts.join('\n'),
+    output: outputParts.join("\n"),
     reasoning,
     toolCalls,
     tokens,
@@ -109,20 +112,20 @@ export function installSkillToTempHome(
   skillName: string,
   tempHome?: string,
 ): string {
-  const home = tempHome || fs.mkdtempSync(path.join(os.tmpdir(), 'codex-e2e-'));
-  const destDir = path.join(home, '.codex', 'skills', skillName);
+  const home = tempHome || fs.mkdtempSync(path.join(os.tmpdir(), "codex-e2e-"));
+  const destDir = path.join(home, ".codex", "skills", skillName);
   fs.mkdirSync(destDir, { recursive: true });
 
-  const srcSkill = path.join(skillDir, 'SKILL.md');
+  const srcSkill = path.join(skillDir, "SKILL.md");
   if (fs.existsSync(srcSkill)) {
-    fs.copyFileSync(srcSkill, path.join(destDir, 'SKILL.md'));
+    fs.copyFileSync(srcSkill, path.join(destDir, "SKILL.md"));
   }
 
-  const srcOpenAIYaml = path.join(skillDir, 'agents', 'openai.yaml');
+  const srcOpenAIYaml = path.join(skillDir, "agents", "openai.yaml");
   if (fs.existsSync(srcOpenAIYaml)) {
-    const destAgentsDir = path.join(destDir, 'agents');
+    const destAgentsDir = path.join(destDir, "agents");
     fs.mkdirSync(destAgentsDir, { recursive: true });
-    fs.copyFileSync(srcOpenAIYaml, path.join(destAgentsDir, 'openai.yaml'));
+    fs.copyFileSync(srcOpenAIYaml, path.join(destAgentsDir, "openai.yaml"));
   }
 
   return home;
@@ -137,12 +140,12 @@ export function installSkillToTempHome(
  * and returns a CodexResult. Skips gracefully if codex binary is not found.
  */
 export async function runCodexSkill(opts: {
-  skillDir: string;         // Path to skill directory containing SKILL.md
-  prompt: string;           // What to ask Codex to do with the skill
-  timeoutMs?: number;       // Default 300000 (5 min)
-  cwd?: string;             // Working directory
-  skillName?: string;       // Skill name for installation (default: dirname)
-  sandbox?: string;         // Sandbox mode (default: 'read-only')
+  skillDir: string; // Path to skill directory containing SKILL.md
+  prompt: string; // What to ask Codex to do with the skill
+  timeoutMs?: number; // Default 300000 (5 min)
+  cwd?: string; // Working directory
+  skillName?: string; // Skill name for installation (default: dirname)
+  sandbox?: string; // Sandbox mode (default: 'read-only')
 }): Promise<CodexResult> {
   const {
     skillDir,
@@ -150,17 +153,17 @@ export async function runCodexSkill(opts: {
     timeoutMs = 300_000,
     cwd,
     skillName,
-    sandbox = 'read-only',
+    sandbox = "read-only",
   } = opts;
 
   const startTime = Date.now();
-  const name = skillName || path.basename(skillDir) || 'gstack';
+  const name = skillName || path.basename(skillDir) || "gstack";
 
   // Check if codex binary exists
-  const whichResult = Bun.spawnSync(['which', 'codex']);
+  const whichResult = Bun.spawnSync(["which", "codex"]);
   if (whichResult.exitCode !== 0) {
     return {
-      output: 'SKIP: codex binary not found',
+      output: "SKIP: codex binary not found",
       reasoning: [],
       toolCalls: [],
       tokens: 0,
@@ -168,12 +171,12 @@ export async function runCodexSkill(opts: {
       durationMs: Date.now() - startTime,
       sessionId: null,
       rawLines: [],
-      stderr: '',
+      stderr: "",
     };
   }
 
   // Set up temp HOME with skill installed
-  const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-e2e-'));
+  const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "codex-e2e-"));
   const realHome = os.homedir();
 
   try {
@@ -182,14 +185,14 @@ export async function runCodexSkill(opts: {
     // Symlink real Codex auth config so codex can authenticate from temp HOME.
     // Codex stores auth in ~/.codex/ — we need the config but not the skills
     // (we install our own test skills above).
-    const realCodexConfig = path.join(realHome, '.codex');
-    const tempCodexDir = path.join(tempHome, '.codex');
+    const realCodexConfig = path.join(realHome, ".codex");
+    const tempCodexDir = path.join(tempHome, ".codex");
     if (fs.existsSync(realCodexConfig)) {
       // Copy auth-related files from real ~/.codex/ into temp ~/.codex/
       // (skills/ is already set up by installSkillToTempHome)
       const entries = fs.readdirSync(realCodexConfig);
       for (const entry of entries) {
-        if (entry === 'skills') continue; // don't clobber our test skills
+        if (entry === "skills") continue; // don't clobber our test skills
         const src = path.join(realCodexConfig, entry);
         const dst = path.join(tempCodexDir, entry);
         if (!fs.existsSync(dst)) {
@@ -199,13 +202,13 @@ export async function runCodexSkill(opts: {
     }
 
     // Build codex exec command
-    const args = ['exec', prompt, '--json', '-s', sandbox];
+    const args = ["exec", prompt, "--json", "-s", sandbox];
 
     // Spawn codex with temp HOME so it discovers our installed skill
-    const proc = Bun.spawn(['codex', ...args], {
+    const proc = Bun.spawn(["codex", ...args], {
       cwd: cwd || skillDir,
-      stdout: 'pipe',
-      stderr: 'pipe',
+      stdout: "pipe",
+      stderr: "pipe",
       env: {
         ...process.env,
         HOME: tempHome,
@@ -225,15 +228,15 @@ export async function runCodexSkill(opts: {
 
     const reader = proc.stdout.getReader();
     const decoder = new TextDecoder();
-    let buf = '';
+    let buf = "";
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop() || '';
+        const lines = buf.split("\n");
+        buf = lines.pop() || "";
         for (const line of lines) {
           if (!line.trim()) continue;
           collectedLines.push(line);
@@ -241,20 +244,28 @@ export async function runCodexSkill(opts: {
           // Real-time progress to stderr
           try {
             const event = JSON.parse(line);
-            if (event.type === 'item.completed' && event.item) {
+            if (event.type === "item.completed" && event.item) {
               const item = event.item;
-              if (item.type === 'command_execution' && item.command) {
+              if (item.type === "command_execution" && item.command) {
                 const elapsed = Math.round((Date.now() - startTime) / 1000);
-                process.stderr.write(`  [codex ${elapsed}s] ran: ${item.command.slice(0, 100)}\n`);
-              } else if (item.type === 'agent_message' && item.text) {
+                process.stderr.write(
+                  `  [codex ${elapsed}s] ran: ${item.command.slice(0, 100)}\n`,
+                );
+              } else if (item.type === "agent_message" && item.text) {
                 const elapsed = Math.round((Date.now() - startTime) / 1000);
-                process.stderr.write(`  [codex ${elapsed}s] message: ${item.text.slice(0, 100)}\n`);
+                process.stderr.write(
+                  `  [codex ${elapsed}s] message: ${item.text.slice(0, 100)}\n`,
+                );
               }
             }
-          } catch { /* skip — parseCodexJSONL will handle it later */ }
+          } catch {
+            /* skip — parseCodexJSONL will handle it later */
+          }
         }
       }
-    } catch { /* stream read error — fall through to exit code handling */ }
+    } catch {
+      /* stream read error — fall through to exit code handling */
+    }
 
     // Flush remaining buffer
     if (buf.trim()) {
@@ -288,6 +299,10 @@ export async function runCodexSkill(opts: {
     };
   } finally {
     // Clean up temp HOME
-    try { fs.rmSync(tempHome, { recursive: true, force: true }); } catch { /* non-fatal */ }
+    try {
+      fs.rmSync(tempHome, { recursive: true, force: true });
+    } catch {
+      /* non-fatal */
+    }
   }
 }

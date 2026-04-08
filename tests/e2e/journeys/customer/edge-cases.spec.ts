@@ -83,9 +83,9 @@ test.describe("Error and Not-Found pages", () => {
   test("should navigate home from 404 page", async ({ page }) => {
     await page.goto("/nonexistent-xyz-abc");
 
-    await expect(
-      page.locator("text=/404|頁面不存在/").first(),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=/404|頁面不存在/").first()).toBeVisible({
+      timeout: 5000,
+    });
 
     await page
       .locator('button:has-text("首頁")')
@@ -185,7 +185,10 @@ test.describe("Empty cart state", () => {
     const redirectedToMenu = page.url().includes("/table/");
 
     // One of the two must be true
-    const emptyVisible = await isEmpty.first().isVisible().catch(() => false);
+    const emptyVisible = await isEmpty
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(emptyVisible || redirectedToMenu).toBe(true);
   });
 });
@@ -219,7 +222,9 @@ test.describe("Cart item removal", () => {
       )
       .first()
       .click();
-    await expect(modal.first()).toBeHidden({ timeout: 3000 }).catch(() => {});
+    await expect(modal.first())
+      .toBeHidden({ timeout: 3000 })
+      .catch(() => {});
 
     // Go to cart
     await page.locator('[data-testid="cart-btn"]').first().click();
@@ -236,7 +241,12 @@ test.describe("Cart item removal", () => {
       .or(page.locator('button[aria-label*="remove"]'))
       .or(page.locator('button[aria-label*="移除"]'));
 
-    if (await removeBtn.first().isVisible().catch(() => false)) {
+    if (
+      await removeBtn
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       await removeBtn.first().click();
     } else {
       // Fallback: decrease quantity via minus button (qty=1 → removes item)
@@ -266,7 +276,9 @@ test.describe("Order notes", () => {
     await mockOrderAPI(page);
   });
 
-  test("should include order notes in guest order payload", async ({ page }) => {
+  test("should include order notes in guest order payload", async ({
+    page,
+  }) => {
     await page.goto(menuUrl);
 
     // Add item
@@ -283,7 +295,9 @@ test.describe("Order notes", () => {
       )
       .first()
       .click();
-    await expect(modal.first()).toBeHidden({ timeout: 3000 }).catch(() => {});
+    await expect(modal.first())
+      .toBeHidden({ timeout: 3000 })
+      .catch(() => {});
 
     // Go to cart
     await page.locator('[data-testid="cart-btn"]').first().click();
@@ -291,7 +305,7 @@ test.describe("Order notes", () => {
 
     // Fill in order notes
     const notesInput = page
-      .locator('#order-notes')
+      .locator("#order-notes")
       .or(page.locator('textarea[placeholder*="備"]'))
       .or(page.locator('textarea[placeholder*="note"]'))
       .or(page.locator('[data-testid="order-notes"]'));
@@ -364,9 +378,7 @@ test.describe("Menu category tab navigation", () => {
     const drinksTab = page
       .locator(`button:has-text("${MENU_CATEGORIES[2].name}")`)
       .or(
-        page.locator(
-          `[data-testid="category-tab-${MENU_CATEGORIES[2].id}"]`,
-        ),
+        page.locator(`[data-testid="category-tab-${MENU_CATEGORIES[2].id}"]`),
       );
     await expect(drinksTab.first()).toBeVisible({ timeout: 5000 });
     await drinksTab.first().click();
@@ -441,7 +453,9 @@ test.describe("Shop order type: dine-in selection", () => {
       )
       .first()
       .click();
-    await expect(modal.first()).toBeHidden({ timeout: 3000 }).catch(() => {});
+    await expect(modal.first())
+      .toBeHidden({ timeout: 3000 })
+      .catch(() => {});
 
     // Open cart
     await page.locator('[data-testid="cart-btn"]').first().click();
@@ -454,7 +468,7 @@ test.describe("Shop order type: dine-in selection", () => {
 
     // The fulfillment type toggle section should be visible (外帶 / 外送 buttons)
     const fulfillmentToggle = page
-      .locator('text=/外帶|Takeaway|自取/')
+      .locator("text=/外帶|Takeaway|自取/")
       .or(page.locator('[data-testid="fulfillment-type"]'));
     await expect(fulfillmentToggle.first()).toBeVisible({ timeout: 5000 });
   });
@@ -481,7 +495,9 @@ test.describe("Language switcher", () => {
     await langBtn.click();
 
     // Language options dropdown should appear — each option is a button inside .language-switcher
-    const langOptions = page.locator(".language-switcher button").filter({ hasNotText: initialText ?? "" });
+    const langOptions = page
+      .locator(".language-switcher button")
+      .filter({ hasNotText: initialText ?? "" });
     await expect(langOptions.first()).toBeVisible({ timeout: 3000 });
 
     // Click the first non-current language option
@@ -521,7 +537,9 @@ test.describe("Shop cart item removal", () => {
       )
       .first()
       .click();
-    await expect(modal.first()).toBeHidden({ timeout: 3000 }).catch(() => {});
+    await expect(modal.first())
+      .toBeHidden({ timeout: 3000 })
+      .catch(() => {});
 
     // Open cart
     await page.locator('[data-testid="cart-btn"]').first().click();
@@ -542,7 +560,12 @@ test.describe("Shop cart item removal", () => {
       .or(cartModal.first().locator('button[aria-label*="移除"]'))
       .or(cartModal.first().locator('button[aria-label*="remove"]'));
 
-    if (await removeBtn.first().isVisible().catch(() => false)) {
+    if (
+      await removeBtn
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       await removeBtn.first().click();
     } else {
       // Fallback: decrease quantity via minus button (qty=1 → removes item)

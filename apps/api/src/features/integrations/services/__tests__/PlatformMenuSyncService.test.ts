@@ -168,7 +168,8 @@ describe("PlatformMenuSyncService", () => {
       ];
 
       // categories & menuItems: terminal .where(), mapping checks: terminal .limit(1)
-      const selectChainCategories = makeSelectChainTerminalWhere(categoriesData);
+      const selectChainCategories =
+        makeSelectChainTerminalWhere(categoriesData);
       const selectChainMenuItems = makeSelectChainTerminalWhere(menuItemsData);
       const selectChainMapping1 = makeSelectChainWithLimit([
         { id: 100, platformItemId: "old-plat-10" },
@@ -253,13 +254,17 @@ describe("PlatformMenuSyncService", () => {
       const updateChain1 = makeUpdateChain();
       const updateChain2 = makeUpdateChain();
       let updateIdx = 0;
-      mockUpdate.mockImplementation(() => [updateChain1, updateChain2][updateIdx++]);
+      mockUpdate.mockImplementation(
+        () => [updateChain1, updateChain2][updateIdx++],
+      );
 
       // select: categories (empty), menuItems (empty)
       const selectChain1 = makeSelectChainTerminalWhere([]);
       const selectChain2 = makeSelectChainTerminalWhere([]);
       let selectIdx = 0;
-      mockSelect.mockImplementation(() => [selectChain1, selectChain2][selectIdx++]);
+      mockSelect.mockImplementation(
+        () => [selectChain1, selectChain2][selectIdx++],
+      );
 
       mockAdapter.syncMenu.mockResolvedValue({
         success: true,
@@ -287,13 +292,19 @@ describe("PlatformMenuSyncService", () => {
       const updateChain1 = makeUpdateChain();
       const updateChain2 = makeUpdateChain();
       let updateIdx = 0;
-      mockUpdate.mockImplementation(() => [updateChain1, updateChain2][updateIdx++]);
+      mockUpdate.mockImplementation(
+        () => [updateChain1, updateChain2][updateIdx++],
+      );
 
       // select: categories, menuItems
-      const selectChain1 = makeSelectChainTerminalWhere([{ id: 1, name: "Cat", restaurantId }]);
+      const selectChain1 = makeSelectChainTerminalWhere([
+        { id: 1, name: "Cat", restaurantId },
+      ]);
       const selectChain2 = makeSelectChainTerminalWhere([]);
       let selectIdx = 0;
-      mockSelect.mockImplementation(() => [selectChain1, selectChain2][selectIdx++]);
+      mockSelect.mockImplementation(
+        () => [selectChain1, selectChain2][selectIdx++],
+      );
 
       mockGetDecryptedCredentials.mockResolvedValue({ clientId: "c1" });
       mockAdapter.syncMenu.mockRejectedValue(new Error("Platform API timeout"));
@@ -319,12 +330,16 @@ describe("PlatformMenuSyncService", () => {
       const updateChain1 = makeUpdateChain();
       const updateChain2 = makeUpdateChain();
       let updateIdx = 0;
-      mockUpdate.mockImplementation(() => [updateChain1, updateChain2][updateIdx++]);
+      mockUpdate.mockImplementation(
+        () => [updateChain1, updateChain2][updateIdx++],
+      );
 
       const selectChain1 = makeSelectChainTerminalWhere([]);
       const selectChain2 = makeSelectChainTerminalWhere([]);
       let selectIdx = 0;
-      mockSelect.mockImplementation(() => [selectChain1, selectChain2][selectIdx++]);
+      mockSelect.mockImplementation(
+        () => [selectChain1, selectChain2][selectIdx++],
+      );
 
       mockGetDecryptedCredentials.mockResolvedValue({ clientId: "c1" });
       mockAdapter.syncMenu.mockRejectedValue("string error");

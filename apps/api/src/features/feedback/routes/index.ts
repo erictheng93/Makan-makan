@@ -273,7 +273,8 @@ routes.put(
       user.role === 0,
     );
 
-    if (!updated) throw notFound("Response not found or not yours", "RESPONSE_NOT_FOUND");
+    if (!updated)
+      throw notFound("Response not found or not yours", "RESPONSE_NOT_FOUND");
 
     return c.json({ success: true, data: updated });
   },
@@ -299,7 +300,8 @@ routes.delete(
       user.role === 0,
     );
 
-    if (!deleted) throw notFound("Response not found or not yours", "RESPONSE_NOT_FOUND");
+    if (!deleted)
+      throw notFound("Response not found or not yours", "RESPONSE_NOT_FOUND");
 
     return c.json({ success: true });
   },

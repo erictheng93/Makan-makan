@@ -65,7 +65,11 @@ describe("ApiError", () => {
 
     it("badRequest accepts details", () => {
       const details = { field: "email", reason: "invalid format" };
-      const error = badRequest("Validation failed", "VALIDATION_ERROR", details);
+      const error = badRequest(
+        "Validation failed",
+        "VALIDATION_ERROR",
+        details,
+      );
       expect(error.status).toBe(400);
       expect(error.details).toEqual(details);
     });

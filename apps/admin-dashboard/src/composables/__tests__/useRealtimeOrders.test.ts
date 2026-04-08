@@ -82,10 +82,7 @@ describe("useRealtimeOrders", () => {
 
     // Second call: group order events
     expect(mockSubscribe).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        "group_order_created",
-        "group_order_updated",
-      ]),
+      expect.arrayContaining(["group_order_created", "group_order_updated"]),
       expect.any(Function),
       "r1",
     );

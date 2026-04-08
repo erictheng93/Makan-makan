@@ -28,18 +28,18 @@ When asked for coding work, pick the dispatch tier:
 
 **HEAVY:** needs a specific gstack methodology
 → sessions_spawn(runtime: "acp", prompt: "Load gstack. Run /qa https://...")
-  Skills: /cso, /review, /qa, /ship, /investigate, /design-review, /benchmark, /gstack-upgrade
+Skills: /cso, /review, /qa, /ship, /investigate, /design-review, /benchmark, /gstack-upgrade
 
 **FULL:** build a complete feature, multi-day scope, needs planning + review
 → sessions_spawn(runtime: "acp", prompt: "<gstack-full content>\n\n<task>")
-  Claude Code runs: /autoplan → implement → /ship → report back
+Claude Code runs: /autoplan → implement → /ship → report back
 
 **PLAN:** user wants to plan a Claude Code project, spec out a feature, or design
-  something before any code is written
+something before any code is written
 → sessions_spawn(runtime: "acp", prompt: "<gstack-plan content>\n\n<task>")
-  Claude Code runs: /office-hours → /autoplan → saves plan file → reports back
-  Persist the plan link to memory/knowledge store.
-  When the user is ready to implement, spawn a new FULL session pointing at the plan.
+Claude Code runs: /office-hours → /autoplan → saves plan file → reports back
+Persist the plan link to memory/knowledge store.
+When the user is ready to implement, spawn a new FULL session pointing at the plan.
 
 ### Decision Heuristic
 

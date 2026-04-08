@@ -177,8 +177,20 @@ describe("cart store", () => {
       store.initializeCart("rest-001", 1);
       store.addItem(buildMenuItem({ price: 10 }) as any, 1, {
         options: [
-          { id: "1", optionName: "spice", choiceId: "spicy-1", choiceName: "Extra spicy", priceAdjustment: 2 },
-          { id: "2", optionName: "onion", choiceId: "no-onion-2", choiceName: "No onion", priceAdjustment: 0 },
+          {
+            id: "1",
+            optionName: "spice",
+            choiceId: "spicy-1",
+            choiceName: "Extra spicy",
+            priceAdjustment: 2,
+          },
+          {
+            id: "2",
+            optionName: "onion",
+            choiceId: "no-onion-2",
+            choiceName: "No onion",
+            priceAdjustment: 0,
+          },
         ],
       });
 

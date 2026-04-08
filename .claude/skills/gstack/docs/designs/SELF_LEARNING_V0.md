@@ -40,11 +40,11 @@ a week and notice when it asks the same question twice.
 
 ## Differentiation
 
-| Tool | Memory model | Scope | Structure |
-|------|-------------|-------|-----------|
-| Cursor | Per-user chat memory | Per-session | Unstructured |
-| CLAUDE.md | Static file | Per-project | Manual |
-| Windsurf | Persistent context | Per-session | Unstructured |
+| Tool       | Memory model          | Scope                          | Structure                   |
+| ---------- | --------------------- | ------------------------------ | --------------------------- |
+| Cursor     | Per-user chat memory  | Per-session                    | Unstructured                |
+| CLAUDE.md  | Static file           | Per-project                    | Manual                      |
+| Windsurf   | Persistent context    | Per-session                    | Unstructured                |
 | **GStack** | **Per-project JSONL** | **Cross-session, cross-skill** | **Typed, scored, decaying** |
 
 ---
@@ -54,12 +54,12 @@ a week and notice when it asks the same question twice.
 gstack has four distinct persistence layers. They share storage patterns
 (JSONL in `~/.gstack/projects/$SLUG/`) but serve different purposes:
 
-| System | File | What it stores | Written by | Read by |
-|--------|------|---------------|------------|---------|
-| **Learnings** | `learnings.jsonl` | Institutional knowledge (pitfalls, patterns, preferences) | All skills | All skills (preamble) |
-| **Timeline** | `timeline.jsonl` | Event history (skill start/complete, branch, outcome) | Preamble (automatic) | /retro, preamble context recovery |
-| **Checkpoints** | `checkpoints/*.md` | Working state snapshots (decisions, remaining work, files) | /checkpoint, /ship, /investigate | Preamble context recovery, /checkpoint resume |
-| **Health** | `health-history.jsonl` | Code quality scores over time (per-tool, composite) | /health | /retro, /ship (gate), /health (trends) |
+| System          | File                   | What it stores                                             | Written by                       | Read by                                       |
+| --------------- | ---------------------- | ---------------------------------------------------------- | -------------------------------- | --------------------------------------------- |
+| **Learnings**   | `learnings.jsonl`      | Institutional knowledge (pitfalls, patterns, preferences)  | All skills                       | All skills (preamble)                         |
+| **Timeline**    | `timeline.jsonl`       | Event history (skill start/complete, branch, outcome)      | Preamble (automatic)             | /retro, preamble context recovery             |
+| **Checkpoints** | `checkpoints/*.md`     | Working state snapshots (decisions, remaining work, files) | /checkpoint, /ship, /investigate | Preamble context recovery, /checkpoint resume |
+| **Health**      | `health-history.jsonl` | Code quality scores over time (per-tool, composite)        | /health                          | /retro, /ship (gate), /health (trends)        |
 
 These are not overlapping. Learnings = what you know. Timeline = what happened.
 Checkpoints = where you are. Health = how good the code is. Each answers a
@@ -74,15 +74,17 @@ different question.
 **Headline:** Every session makes the next one smarter.
 
 What shipped:
+
 - Learnings persistence at `~/.gstack/projects/{slug}/learnings.jsonl`
 - `/learn` skill for manual review, search, prune, export
 - Confidence calibration on all review findings (1-10 scores with display rules)
 - Confidence decay for observed/inferred learnings (1pt/30d)
 - Cross-project learnings discovery (opt-in, AskUserQuestion consent)
 - "Learning applied" callouts when reviews match past learnings
-- Integration into /review, /ship, /plan-*, /office-hours, /investigate, /retro
+- Integration into /review, /ship, /plan-\*, /office-hours, /investigate, /retro
 
 Schema:
+
 ```json
 {
   "ts": "2026-03-28T12:00:00Z",
@@ -109,6 +111,7 @@ per key+type). No write-time mutation, no race conditions.
 **Headline:** 10 specialist reviewers on every PR.
 
 What shipped:
+
 - 7 parallel specialist subagents: always-on (testing, maintainability) +
   conditional (security, performance, data-migration, API contract, design) +
   red team (large diffs / critical findings)
@@ -128,6 +131,7 @@ Pre-check: review R2 quality metrics (PR quality scores, specialist hit rates,
 false positive rates, E2E test stability). If core loop has issues, fix those first.
 
 What ships:
+
 - E1: Adaptive specialist gating, auto-skip specialists with 0-finding track record.
   Store per-project hit rates via gstack-learnings-log. User can force with --security etc.
 - E3: Test stub generation, each specialist outputs TEST_STUB alongside findings.
@@ -143,6 +147,7 @@ What ships:
 **Headline:** Your AI sessions remember what happened.
 
 What shipped:
+
 - Session timeline: every skill auto-logs start/complete events to
   `~/.gstack/projects/$SLUG/timeline.jsonl`. Local-only, never sent anywhere,
   always on regardless of telemetry setting.
@@ -174,6 +179,7 @@ level applies. They interact but don't merge.
 What ships:
 
 **Ceremony levels:**
+
 - FULL: all specialists, adversarial, Codex structured review, coverage audit, plan
   completion. For large diffs, new features, migrations, auth changes.
 - STANDARD: adversarial + Codex, coverage audit, plan completion. For medium diffs,
@@ -181,6 +187,7 @@ What ships:
 - FAST: adversarial only. For small, well-tested changes on trusted projects.
 
 **Trust policy engine:**
+
 - Scope-aware trust. Trust is earned per change class, not globally. Clean history on
   docs-only PRs does not buy trust on migration PRs.
 - Change class detection: docs, tests, config, frontend, backend, migrations, auth,
@@ -193,11 +200,13 @@ What ships:
   It degrades trust for that change class by one level.
 
 **Scope assessment:**
+
 - TINY/SMALL/MEDIUM/LARGE classification in /review, /ship, /autoplan based on
   diff size, files touched, and change class.
 - Ceremony level = f(scope, trust, change class).
 
 **TODO lifecycle:**
+
 - /triage for interactive approval of incoming TODOs
 - /resolve for batch resolution via parallel agents
 
@@ -250,6 +259,7 @@ recover gracefully.
 ```
 
 What ships:
+
 - /autoship autonomous pipeline with the state machine above.
   Each phase writes to timeline.jsonl. Checkpoints auto-save before each phase.
   Compaction recovery: context recovery reads checkpoint + timeline, resumes at
@@ -268,6 +278,7 @@ R3 (session intelligence for persistence), R4 (adaptive ceremony for speed).
 **Headline:** Parallel execution infrastructure.
 
 What ships:
+
 - Swarm orchestration: multi-worktree parallel builds. Builds on Conductor
   workspace handoff from /checkpoint (R3). An orchestrator skill dispatches
   independent workstreams to parallel agents, each with its own worktree.
@@ -282,6 +293,7 @@ What ships:
 **Headline:** Visual design integration.
 
 What ships:
+
 - Figma design sync (pixel-matching iteration loop)
 - Feature video recording (auto-generated PR demos)
 - Cross-platform portability (Copilot, Kiro, Windsurf output)
@@ -291,20 +303,24 @@ What ships:
 ## Risk Register
 
 ### Proxy signals as permission to skip scrutiny
+
 (Identified by Codex review, 2026-04-01)
 
 /health scores, clean review history, and timeline patterns are useful signals.
 They are not proof of safety. If those signals feed ceremony reduction AND /autoship,
 the failure mode is rare, silent, high-severity mistakes. Mitigations:
+
 - Certain change classes never fast-track (migrations, auth, infra, new endpoints).
 - Trust degrades gradually, not binary reset.
 - /autoship always runs FULL ceremony on its first run per project. Trust is earned.
 
 ### Stale context recovery
+
 (Identified by Codex review, 2026-04-01)
 
 Context recovery can inject wrong-branch state, obsolete plans, or invalid
 checkpoints. Mitigations:
+
 - Checkpoints include branch name in YAML frontmatter. Context recovery filters
   by current branch.
 - Timeline grep filters by branch before showing LAST_SESSION.
@@ -312,9 +328,11 @@ checkpoints. Mitigations:
   stale rather than presenting as current.
 
 ### Validation metrics needed
+
 (Identified by Codex review, 2026-04-01)
 
 Before shipping R4 (Adaptive Ceremony), measure:
+
 - Predictive suggestion accuracy (did the user run the suggested skill?)
 - Trust policy false-skip rate (did fast-tracked PRs have post-merge issues?)
 - Context recovery accuracy (did recovered context match actual state?)

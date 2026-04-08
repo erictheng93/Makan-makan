@@ -44,9 +44,7 @@ describe("soft-delete", () => {
   describe("notDeleted", () => {
     it("should return an isNull SQL condition", () => {
       const result = notDeleted(mockTable.deletedAt);
-      expect(result).toEqual(
-        expect.objectContaining({ _type: "isNull" }),
-      );
+      expect(result).toEqual(expect.objectContaining({ _type: "isNull" }));
     });
   });
 

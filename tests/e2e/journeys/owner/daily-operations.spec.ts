@@ -79,15 +79,22 @@ test.describe("Owner daily operations", () => {
     // The SSE endpoint is mocked (heartbeat). Accept either the .connection-status
     // element OR any realtime-related indicator in the page.
     const sseIndicator = page
-      .locator('[data-testid="connection-status"], .connection-status, .sse-status')
+      .locator(
+        '[data-testid="connection-status"], .connection-status, .sse-status',
+      )
       .or(page.locator("text=/connected|已連線|real.?time|即時/i"));
-    const isVisible = await sseIndicator.first().isVisible({ timeout: 5000 }).catch(() => false);
+    const isVisible = await sseIndicator
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     // If the indicator is missing it means SSE connected silently — page should still load
     const mainArea = page.locator("main, [data-testid='dashboard']");
     await expect(mainArea.first()).toBeVisible({ timeout: 8000 });
     if (!isVisible) {
       // SSE indicator absent is acceptable — the app works without showing it
-      console.log("SSE indicator not found — dashboard loaded without explicit status element");
+      console.log(
+        "SSE indicator not found — dashboard loaded without explicit status element",
+      );
     }
   });
 

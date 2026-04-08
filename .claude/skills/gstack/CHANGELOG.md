@@ -3,18 +3,22 @@
 ## [0.15.16.0] - 2026-04-06
 
 ### Added
+
 - Per-tab state isolation via TabSession. Each browser tab now has its own ref map, snapshot baseline, and frame context. Previously these were global on BrowserManager, meaning snapshot refs from one tab could collide with another. This is the foundation for parallel multi-tab operations.
 - Batch endpoint documentation in BROWSER.md with API shape, design decisions, and usage patterns.
 
 ### Changed
+
 - Handler signatures across read-commands, write-commands, meta-commands, and snapshot now accept TabSession for per-tab operations and BrowserManager for global operations. This separation makes it explicit which operations are tab-scoped vs browser-scoped.
 
 ### Fixed
+
 - codex-review E2E test was copying the full 55KB SKILL.md (1,075 lines), burning 8 Read calls just to consume it and exhausting the 15-turn budget before reaching the actual review. Now extracts only the review-relevant section (~6KB/148 lines), cutting Read calls from 8 to 1. Test goes from perpetual timeout to passing in 141s.
 
 ## [0.15.15.1] - 2026-04-06
 
 ### Fixed
+
 - pair-agent tunnel drops after 15 seconds. The browse server was monitoring its parent process ID and self-terminating when the CLI exited. Now pair-agent sessions disable the parent watchdog so the server and tunnel stay alive.
 - `$B connect` crashes with "domains is not defined". A stray variable reference in the headed-mode status check prevented GStack Browser from initializing properly.
 
@@ -23,6 +27,7 @@
 Community security wave: 8 PRs from 4 contributors, every fix credited as co-author.
 
 ### Added
+
 - Cookie value redaction for tokens, API keys, JWTs, and session secrets in `browse cookies` output. Your secrets no longer appear in Claude's context.
 - IPv6 ULA prefix blocking (fc00::/7) in URL validation. Covers the full unique-local range, not just the literal `fd00::`. Hostnames like `fcustomer.com` are not false-positived.
 - Per-tab cancel signaling for sidebar agents. Stopping one tab's agent no longer kills all tabs.
@@ -38,6 +43,7 @@ Community security wave: 8 PRs from 4 contributors, every fix credited as co-aut
 - Supabase migration 003: column-level GRANT restricts anon UPDATE to (last_seen, gstack_version, os) only.
 
 ### Fixed
+
 - Windows: `extraEnv` now passes through to the Windows launcher (was silently dropped).
 - Windows: welcome page serves inline HTML instead of `about:blank` redirect (fixes ERR_UNSAFE_REDIRECT).
 - Headed mode: auth token returned even without Origin header (fixes Playwright Chromium extensions).
@@ -49,6 +55,7 @@ Community security wave: 8 PRs from 4 contributors, every fix credited as co-aut
 - SIGTERM/SIGKILL escalation in sidebar agent timeout handler (was bare `kill()`).
 
 ### For contributors
+
 - Queue files created with 0o700/0o600 permissions (server, CLI, sidebar-agent).
 - `escapeRegExp` utility exported from meta-commands.
 - State load filters cookies from localhost, .internal, and metadata domains.
@@ -117,17 +124,21 @@ When you share your browser with another AI agent via `/pair-agent`, that agent 
 ## [0.15.11.0] - 2026-04-05
 
 ### Changed
+
 - `/ship` re-runs now execute every verification step (tests, coverage audit, review, adversarial, TODOS, document-release) regardless of prior runs. Only actions (push, PR creation, VERSION bump) are idempotent. Re-running `/ship` means "run the whole checklist again."
 - `/ship` now runs the full Review Army specialist dispatch (testing, maintainability, security, performance, data-migration, api-contract, design, red-team) during pre-landing review, matching `/review`'s depth.
 
 ### Added
+
 - Cross-review finding dedup in `/ship`: findings the user already skipped in a prior `/review` or `/ship` are automatically suppressed on re-run (unless the relevant code changed).
 - PR body refresh after `/document-release`: the PR body is re-edited to include the docs commit, so it always reflects the truly final state.
 
 ### Fixed
+
 - Review Army diff size heuristic now counts insertions + deletions (was insertions-only, which missed deletion-heavy refactors).
 
 ### For contributors
+
 - Extracted cross-review dedup to shared `{{CROSS_REVIEW_DEDUP}}` resolver (DRY between `/review` and `/ship`).
 - Review Army step numbers adapt per-skill via `ctx.skillName` (ship: 3.55/3.56, review: 4.5/4.6), including prose references.
 - Added 3 regression guard tests for new ship template content.
@@ -204,7 +215,7 @@ Fourteen fixes for the security audit (#783). Design server no longer binds all 
 - **Prompt injection defense in design feedback.** User feedback is now wrapped in XML trust boundary markers with tag escaping. Accumulated feedback capped to last 5 iterations to limit poisoning.
 - **File and directory permissions hardened.** All ~/.gstack/ dirs now created with mode 0o700, files with 0o600. Setup script sets umask 077. Auth tokens, chat history, and browser logs no longer world-readable.
 - **TOCTOU race in setup symlink creation.** Removed existence check before mkdir -p (idempotent). Validates target isn't a symlink before creating the link.
-- **CORS wildcard removed.** Browse server no longer sends Access-Control-Allow-Origin: *. Chrome extension uses manifest host_permissions and isn't affected. Blocks malicious websites from making cross-origin requests.
+- **CORS wildcard removed.** Browse server no longer sends Access-Control-Allow-Origin: \*. Chrome extension uses manifest host_permissions and isn't affected. Blocks malicious websites from making cross-origin requests.
 - **Cookie picker auth mandatory.** Previously skipped auth when authToken was undefined. Now always requires Bearer token for all data/action routes.
 - **/health token gated on extension Origin.** Auth token only returned when request comes from chrome-extension:// origin. Prevents token leak when browse server is tunneled.
 - **DNS rebinding protection checks IPv6.** AAAA records now validated alongside A records. Blocks fe80:: link-local addresses.
@@ -1743,6 +1754,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - **Preview pages that look like your product.** The preview page now renders realistic product mockups — dashboards with sidebar nav and data tables, marketing pages with hero sections, settings pages with forms — not just font swatches and color palettes.
 
 ## 0.5.1 — 2026-03-17
+
 - **Know where you stand before you ship.** Every `/plan-ceo-review`, `/plan-eng-review`, and `/plan-design-review` now logs its result to a review tracker. At the end of each review, you see a **Review Readiness Dashboard** showing which reviews are done, when they ran, and whether they're clean — with a clear CLEARED TO SHIP or NOT READY verdict.
 - **`/ship` checks your reviews before creating the PR.** Pre-flight now reads the dashboard and asks if you want to continue when reviews are missing. Informational only — it won't block you, but you'll know what you skipped.
 - **One less thing to copy-paste.** The SLUG computation (that opaque sed pipeline for computing `owner-repo` from git remote) is now a shared `bin/gstack-slug` helper. All 14 inline copies across templates replaced with `source <(gstack-slug)`. If the format ever changes, fix it once.
@@ -1849,6 +1861,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 ## 0.4.0 — 2026-03-16
 
 ### Added
+
 - **QA-only skill** (`/qa-only`) — report-only QA mode that finds and documents bugs without making fixes. Hand off a clean bug report to your team without the agent touching your code.
 - **QA fix loop** — `/qa` now runs a find-fix-verify cycle: discover bugs, fix them, commit, re-navigate to confirm the fix took. One command to go from broken to shipped.
 - **Plan-to-QA artifact flow** — `/plan-eng-review` writes test-plan artifacts that `/qa` picks up automatically. Your engineering review now feeds directly into QA testing with no manual copy-paste.
@@ -1863,17 +1876,20 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - 3 new snapshot tests for ref staleness.
 
 ### Changed
+
 - QA skill prompt restructured with explicit two-cycle workflow (find → fix → verify).
 - `formatComparison()` now shows per-test turns and duration deltas alongside cost.
 - `printSummary()` shows turns and duration columns.
 - `eval-store.test.ts` fixed pre-existing `_partial` file assertion bug.
 
 ### Fixed
+
 - Browser ref staleness — refs collected before page mutation (e.g. SPA navigation) are now detected and re-collected. Eliminates a class of flaky QA failures on dynamic sites.
 
 ## 0.3.9 — 2026-03-15
 
 ### Added
+
 - **`bin/gstack-config` CLI** — simple get/set/list interface for `~/.gstack/config.yaml`. Used by update-check and upgrade skill for persistent settings (auto_upgrade, update_check).
 - **Smart update check** — 12h cache TTL (was 24h), exponential snooze backoff (24h → 48h → 1 week) when user declines upgrades, `update_check: false` config option to disable checks entirely. Snooze resets when a new version is released.
 - **Auto-upgrade mode** — set `auto_upgrade: true` in config or `GSTACK_AUTO_UPGRADE=1` env var to skip the upgrade prompt and update automatically.
@@ -1882,6 +1898,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - 25 new tests: 11 for gstack-config CLI, 14 for snooze/config paths in update-check.
 
 ### Changed
+
 - README upgrade/troubleshooting sections simplified to reference `/gstack-upgrade` instead of long paste commands.
 - Upgrade skill template bumped to v1.1.0 with `Write` tool permission for config editing.
 - All SKILL.md preambles updated with new upgrade flow description.
@@ -1889,6 +1906,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 ## 0.3.8 — 2026-03-14
 
 ### Added
+
 - **TODOS.md as single source of truth** — merged `TODO.md` (roadmap) and `TODOS.md` (near-term) into one file organized by skill/component with P0-P4 priority ordering and a Completed section.
 - **`/ship` Step 5.5: TODOS.md management** — auto-detects completed items from the diff, marks them done with version annotations, offers to create/reorganize TODOS.md if missing or unstructured.
 - **Cross-skill TODOS awareness** — `/plan-ceo-review`, `/plan-eng-review`, `/retro`, `/review`, and `/qa` now read TODOS.md for project context. `/retro` adds Backlog Health metric (open counts, P0/P1 items, churn).
@@ -1900,9 +1918,11 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - Static validation tests for `TODOS-format.md` references across skills.
 
 ### Fixed
+
 - **`.gitignore` append failures silently swallowed** — `ensureStateDir()` bare `catch {}` replaced with ENOENT-only silence; non-ENOENT errors (EACCES, ENOSPC) logged to `.gstack/browse-server.log`.
 
 ### Changed
+
 - `TODO.md` deleted — all items merged into `TODOS.md`.
 - `/ship` Step 3.75 and `/review` Step 5 now reference reply templates and escalation detection from `greptile-triage.md`.
 - `/ship` Step 6 commit ordering includes TODOS.md in the final commit alongside VERSION + CHANGELOG.
@@ -1911,12 +1931,14 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 ## 0.3.7 — 2026-03-14
 
 ### Added
+
 - **Screenshot element/region clipping** — `screenshot` command now supports element crop via CSS selector or @ref (`screenshot "#hero" out.png`, `screenshot @e3 out.png`), region clip (`screenshot --clip x,y,w,h out.png`), and viewport-only mode (`screenshot --viewport out.png`). Uses Playwright's native `locator.screenshot()` and `page.screenshot({ clip })`. Full page remains the default.
 - 10 new tests covering all screenshot modes (viewport, CSS, @ref, clip) and error paths (unknown flag, mutual exclusion, invalid coords, path validation, nonexistent selector).
 
 ## 0.3.6 — 2026-03-14
 
 ### Added
+
 - **E2E observability** — heartbeat file (`~/.gstack-dev/e2e-live.json`), per-run log directory (`~/.gstack-dev/e2e-runs/{runId}/`), progress.log, per-test NDJSON transcripts, persistent failure transcripts. All I/O non-fatal.
 - **`bun run eval:watch`** — live terminal dashboard reads heartbeat + partial eval file every 1s. Shows completed tests, current test with turn/tool info, stale detection (>10min), `--tail` for progress.log.
 - **Incremental eval saves** — `savePartial()` writes `_partial-e2e.json` after each test completes. Crash-resilient: partial results survive killed runs. Never cleaned up.
@@ -1935,6 +1957,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - `test/helpers/skill-parser.ts` — `getRemoteSlug()` for git remote detection.
 
 ### Fixed
+
 - **Browse binary discovery broken for agents** — replaced `find-browse` indirection with explicit `browse/dist/browse` path in SKILL.md setup blocks.
 - **Update check exit code 1 misleading agents** — added `|| true` to prevent non-zero exit when no update available.
 - **browse/SKILL.md missing setup block** — added `{{BROWSE_SETUP}}` placeholder.
@@ -1942,6 +1965,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - Planted-bug eval reliability — simplified prompts, lowered detection baselines, resilient to max_turns flakes.
 
 ### Changed
+
 - **Template system expanded** — `{{UPDATE_CHECK}}` and `{{BROWSE_SETUP}}` placeholders in `gen-skill-docs.ts`. All browse-using skills generate from single source of truth.
 - Enriched 14 command descriptions with specific arg formats, valid values, error behavior, and return types.
 - Setup block checks workspace-local path first (for development), falls back to global install.
@@ -1951,6 +1975,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 ## 0.3.3 — 2026-03-13
 
 ### Added
+
 - **SKILL.md template system** — `.tmpl` files with `{{COMMAND_REFERENCE}}` and `{{SNAPSHOT_FLAGS}}` placeholders, auto-generated from source code at build time. Structurally prevents command drift between docs and code.
 - **Command registry** (`browse/src/commands.ts`) — single source of truth for all browse commands with categories and enriched descriptions. Zero side effects, safe to import from build scripts and tests.
 - **Snapshot flags metadata** (`SNAPSHOT_FLAGS` array in `browse/src/snapshot.ts`) — metadata-driven parser replaces hand-coded switch/case. Adding a flag in one place updates the parser, docs, and tests.
@@ -1970,6 +1995,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - `.env.example` template for API key configuration
 
 ### Changed
+
 - Build now runs `gen:skill-docs` before compiling binaries
 - `parseSnapshotArgs` is metadata-driven (iterates `SNAPSHOT_FLAGS` instead of switch/case)
 - `server.ts` imports command sets from `commands.ts` instead of declaring inline
@@ -1978,12 +2004,14 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 ## 0.3.2 — 2026-03-13
 
 ### Fixed
+
 - Cookie import picker now returns JSON instead of HTML — `jsonResponse()` referenced `url` out of scope, crashing every API call
 - `help` command routed correctly (was unreachable due to META_COMMANDS dispatch ordering)
 - Stale servers from global install no longer shadow local changes — removed legacy `~/.claude/skills/gstack` fallback from `resolveServerScript()`
 - Crash log path references updated from `/tmp/` to `.gstack/`
 
 ### Added
+
 - **Diff-aware QA mode** — `/qa` on a feature branch auto-analyzes `git diff`, identifies affected pages/routes, detects the running app on localhost, and tests only what changed. No URL needed.
 - **Project-local browse state** — state file, logs, and all server state now live in `.gstack/` inside the project root (detected via `git rev-parse --show-toplevel`). No more `/tmp` state files.
 - **Shared config module** (`browse/src/config.ts`) — centralizes path resolution for CLI and server, eliminates duplicated port/state logic
@@ -2002,6 +2030,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - CONTRIBUTING.md with quick start, dev mode explanation, and instructions for testing branches in other repos
 
 ### Changed
+
 - State file location: `.gstack/browse.json` (was `/tmp/browse-server.json`)
 - Log files location: `.gstack/browse-{console,network,dialog}.log` (was `/tmp/browse-*.log`)
 - Atomic state file writes: `.json.tmp` → rename (prevents partial reads)
@@ -2013,6 +2042,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - README updated with Greptile setup instructions, diff-aware QA examples, and revised demo transcript
 
 ### Removed
+
 - `CONDUCTOR_PORT` magic offset (`browse_port = CONDUCTOR_PORT - 45600`)
 - Port scan range 9400-9409
 - Legacy fallback to `~/.claude/skills/gstack/browse/src/server.ts`

@@ -10,9 +10,9 @@ import path from "path";
 import { requireApiKey } from "./auth";
 
 export interface EvolveOptions {
-  screenshot: string;  // Path to current site screenshot
-  brief: string;       // What to change ("make it calmer", "fix the hierarchy")
-  output: string;      // Output path for evolved mockup
+  screenshot: string; // Path to current site screenshot
+  brief: string; // What to change ("make it calmer", "fix the hierarchy")
+  output: string; // Output path for evolved mockup
 }
 
 /**
@@ -58,31 +58,38 @@ export async function evolve(options: EvolveOptions): Promise<void> {
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "gpt-4o",
         input: evolvedPrompt,
-        tools: [{ type: "image_generation", size: "1536x1024", quality: "high" }],
+        tools: [
+          { type: "image_generation", size: "1536x1024", quality: "high" },
+        ],
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
       const error = await response.text();
-      if (response.status === 403 && error.includes("organization must be verified")) {
+      if (
+        response.status === 403 &&
+        error.includes("organization must be verified")
+      ) {
         throw new Error(
-          "OpenAI organization verification required.\n"
-          + "Go to https://platform.openai.com/settings/organization to verify.\n"
-          + "After verification, wait up to 15 minutes for access to propagate.",
+          "OpenAI organization verification required.\n" +
+            "Go to https://platform.openai.com/settings/organization to verify.\n" +
+            "After verification, wait up to 15 minutes for access to propagate.",
         );
       }
       throw new Error(`API error (${response.status}): ${error.slice(0, 300)}`);
     }
 
-    const data = await response.json() as any;
-    const imageItem = data.output?.find((item: any) => item.type === "image_generation_call");
+    const data = (await response.json()) as any;
+    const imageItem = data.output?.find(
+      (item: any) => item.type === "image_generation_call",
+    );
 
     if (!imageItem?.result) {
       throw new Error("No image data in response");
@@ -93,13 +100,21 @@ export async function evolve(options: EvolveOptions): Promise<void> {
     fs.writeFileSync(options.output, imageBuffer);
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.error(`Generated (${elapsed}s, ${(imageBuffer.length / 1024).toFixed(0)}KB) → ${options.output}`);
+    console.error(
+      `Generated (${elapsed}s, ${(imageBuffer.length / 1024).toFixed(0)}KB) → ${options.output}`,
+    );
 
-    console.log(JSON.stringify({
-      outputPath: options.output,
-      sourceScreenshot: options.screenshot,
-      brief: options.brief,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          outputPath: options.output,
+          sourceScreenshot: options.screenshot,
+          brief: options.brief,
+        },
+        null,
+        2,
+      ),
+    );
   } finally {
     clearTimeout(timeout);
   }
@@ -108,7 +123,10 @@ export async function evolve(options: EvolveOptions): Promise<void> {
 /**
  * Analyze a screenshot to produce a detailed description for re-generation.
  */
-async function analyzeScreenshot(apiKey: string, imageBase64: string): Promise<string> {
+async function analyzeScreenshot(
+  apiKey: string,
+  imageBase64: string,
+): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);
 
@@ -116,24 +134,26 @@ async function analyzeScreenshot(apiKey: string, imageBase64: string): Promise<s
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "gpt-4o",
-        messages: [{
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: { url: `data:image/png;base64,${imageBase64}` },
-            },
-            {
-              type: "text",
-              text: `Describe this UI in detail for re-creation. Include: overall layout structure, color scheme (hex values), typography (sizes, weights), specific text content visible, spacing between elements, alignment patterns, and any decorative elements. Be precise enough that someone could recreate this UI from your description alone. 200 words max.`,
-            },
-          ],
-        }],
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:image/png;base64,${imageBase64}` },
+              },
+              {
+                type: "text",
+                text: `Describe this UI in detail for re-creation. Include: overall layout structure, color scheme (hex values), typography (sizes, weights), specific text content visible, spacing between elements, alignment patterns, and any decorative elements. Be precise enough that someone could recreate this UI from your description alone. 200 words max.`,
+              },
+            ],
+          },
+        ],
         max_tokens: 400,
       }),
       signal: controller.signal,
@@ -143,8 +163,11 @@ async function analyzeScreenshot(apiKey: string, imageBase64: string): Promise<s
       return "Unable to analyze screenshot";
     }
 
-    const data = await response.json() as any;
-    return data.choices?.[0]?.message?.content?.trim() || "Unable to analyze screenshot";
+    const data = (await response.json()) as any;
+    return (
+      data.choices?.[0]?.message?.content?.trim() ||
+      "Unable to analyze screenshot"
+    );
   } finally {
     clearTimeout(timeout);
   }

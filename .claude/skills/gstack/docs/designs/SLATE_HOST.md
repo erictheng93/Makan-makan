@@ -65,6 +65,7 @@ gstack projects... CLAUDE.md works as-is.
 **Config file:** `slate.json` / `slate.jsonc` (NOT opencode.json)
 
 **Config options (from Slate docs):**
+
 - `privacy` (boolean) — disables telemetry/logging
 - Permissions: `allow`, `ask`, `deny` per tool (`read`, `edit`, `bash`, `grep`, `webfetch`, `websearch`, `*`)
 - Model slots: `models.main`, `models.subagent`, `models.search`, `models.reasoning`
@@ -94,6 +95,7 @@ capture actual JSONL events before building the session runner parser.
 ## Environment Variables (from binary strings)
 
 ### Slate-specific
+
 ```
 SLATE_API_KEY                              — API key
 SLATE_AGENT                                — agent selection
@@ -142,6 +144,7 @@ SLATE_TOKEN_DIR                           — token storage directory
 ```
 
 ### OpenCode legacy (still functional)
+
 ```
 OPENCODE_DISABLE_LSP_DOWNLOAD
 OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER

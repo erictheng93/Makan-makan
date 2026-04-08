@@ -1,11 +1,11 @@
-import { ALL_HOST_CONFIGS } from '../../hosts/index';
+import { ALL_HOST_CONFIGS } from "../../hosts/index";
 
 /**
  * Host type — derived from host configs in hosts/*.ts.
  * Adding a new host: create hosts/myhost.ts + add to hosts/index.ts.
  * Do NOT hardcode host names here.
  */
-export type Host = (typeof ALL_HOST_CONFIGS)[number]['name'];
+export type Host = (typeof ALL_HOST_CONFIGS)[number]["name"];
 
 export interface HostPaths {
   skillRoot: string;
@@ -25,11 +25,11 @@ function buildHostPaths(): Record<string, HostPaths> {
   for (const config of ALL_HOST_CONFIGS) {
     if (config.usesEnvVars) {
       paths[config.name] = {
-        skillRoot: '$GSTACK_ROOT',
+        skillRoot: "$GSTACK_ROOT",
         localSkillRoot: config.localSkillRoot,
-        binDir: '$GSTACK_BIN',
-        browseDir: '$GSTACK_BROWSE',
-        designDir: '$GSTACK_DESIGN',
+        binDir: "$GSTACK_BIN",
+        browseDir: "$GSTACK_BROWSE",
+        designDir: "$GSTACK_DESIGN",
       };
     } else {
       const root = `~/${config.globalRoot}`;
@@ -53,7 +53,7 @@ export interface TemplateContext {
   benefitsFrom?: string[];
   host: Host;
   paths: HostPaths;
-  preambleTier?: number;  // 1-4, controls which preamble sections are included
+  preambleTier?: number; // 1-4, controls which preamble sections are included
 }
 
 /** Resolver function signature. args is populated for parameterized placeholders like {{INVOKE_SKILL:name}}. */

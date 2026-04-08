@@ -71,9 +71,7 @@ describe("discoveryApi", () => {
 
       const result = await discoveryApi.getRestaurantMenu("r1");
 
-      expect(mockGet).toHaveBeenCalledWith(
-        "/discovery/restaurants/r1/menu",
-      );
+      expect(mockGet).toHaveBeenCalledWith("/discovery/restaurants/r1/menu");
       expect(result).toHaveLength(1);
     });
   });

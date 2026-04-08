@@ -40,7 +40,9 @@ Deno.serve(async (req) => {
     const events: TelemetryEvent[] = Array.isArray(body) ? body : [body];
 
     if (events.length > MAX_BATCH_SIZE) {
-      return new Response(`Batch too large (max ${MAX_BATCH_SIZE})`, { status: 400 });
+      return new Response(`Batch too large (max ${MAX_BATCH_SIZE})`, {
+        status: 400,
+      });
     }
 
     // Use the anon key, not the service role key.
@@ -51,12 +53,13 @@ Deno.serve(async (req) => {
     // See: https://supabase.com/docs/guides/database/postgres/row-level-security
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
     );
 
     // Validate and transform events
     const rows = [];
-    const installationUpserts: Map<string, { version: string; os: string }> = new Map();
+    const installationUpserts: Map<string, { version: string; os: string }> =
+      new Map();
 
     for (const event of events) {
       // Required fields
@@ -79,13 +82,21 @@ Deno.serve(async (req) => {
         arch: event.arch ? String(event.arch).slice(0, 20) : null,
         event_timestamp: event.ts,
         skill: event.skill ? String(event.skill).slice(0, 50) : null,
-        session_id: event.session_id ? String(event.session_id).slice(0, 50) : null,
-        duration_s: typeof event.duration_s === "number" ? event.duration_s : null,
+        session_id: event.session_id
+          ? String(event.session_id).slice(0, 50)
+          : null,
+        duration_s:
+          typeof event.duration_s === "number" ? event.duration_s : null,
         outcome: String(event.outcome).slice(0, 20),
-        error_class: event.error_class ? String(event.error_class).slice(0, 100) : null,
+        error_class: event.error_class
+          ? String(event.error_class).slice(0, 100)
+          : null,
         used_browse: event.used_browse === true,
-        concurrent_sessions: typeof event.sessions === "number" ? event.sessions : 1,
-        installation_id: event.installation_id ? String(event.installation_id).slice(0, 64) : null,
+        concurrent_sessions:
+          typeof event.sessions === "number" ? event.sessions : 1,
+        installation_id: event.installation_id
+          ? String(event.installation_id).slice(0, 64)
+          : null,
       });
 
       // Track installations for upsert
@@ -118,17 +129,15 @@ Deno.serve(async (req) => {
 
     // Upsert installations (update last_seen)
     for (const [id, data] of installationUpserts) {
-      await supabase
-        .from("installations")
-        .upsert(
-          {
-            installation_id: id,
-            last_seen: new Date().toISOString(),
-            gstack_version: data.version,
-            os: data.os,
-          },
-          { onConflict: "installation_id" }
-        );
+      await supabase.from("installations").upsert(
+        {
+          installation_id: id,
+          last_seen: new Date().toISOString(),
+          gstack_version: data.version,
+          os: data.os,
+        },
+        { onConflict: "installation_id" },
+      );
     }
 
     return new Response(JSON.stringify({ inserted: rows.length }), {

@@ -5,12 +5,12 @@
  * temp directories with test JSON files and calling handleMetaCommand.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { handleMetaCommand } from '../src/meta-commands';
-import { BrowserManager } from '../src/browser-manager';
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import { handleMetaCommand } from "../src/meta-commands";
+import { BrowserManager } from "../src/browser-manager";
 
 let tmpDir: string;
 let bm: BrowserManager;
@@ -35,8 +35,9 @@ interface InboxMessage {
 function readInbox(inboxDir: string): InboxMessage[] {
   if (!fs.existsSync(inboxDir)) return [];
 
-  const files = fs.readdirSync(inboxDir)
-    .filter(f => f.endsWith('.json') && !f.startsWith('.'))
+  const files = fs
+    .readdirSync(inboxDir)
+    .filter((f) => f.endsWith(".json") && !f.startsWith("."))
     .sort()
     .reverse();
 
@@ -45,11 +46,13 @@ function readInbox(inboxDir: string): InboxMessage[] {
   const messages: InboxMessage[] = [];
   for (const file of files) {
     try {
-      const data = JSON.parse(fs.readFileSync(path.join(inboxDir, file), 'utf-8'));
+      const data = JSON.parse(
+        fs.readFileSync(path.join(inboxDir, file), "utf-8"),
+      );
       messages.push({
-        timestamp: data.timestamp || '',
-        url: data.page?.url || 'unknown',
-        userMessage: data.userMessage || '',
+        timestamp: data.timestamp || "",
+        url: data.page?.url || "unknown",
+        userMessage: data.userMessage || "",
       });
     } catch {
       // Skip malformed files
@@ -60,29 +63,34 @@ function readInbox(inboxDir: string): InboxMessage[] {
 
 /** Replicate the inbox formatting logic from meta-commands.ts */
 function formatInbox(messages: InboxMessage[]): string {
-  if (messages.length === 0) return 'Inbox empty.';
+  if (messages.length === 0) return "Inbox empty.";
 
   const lines: string[] = [];
-  lines.push(`SIDEBAR INBOX (${messages.length} message${messages.length === 1 ? '' : 's'})`);
-  lines.push('────────────────────────────────');
+  lines.push(
+    `SIDEBAR INBOX (${messages.length} message${messages.length === 1 ? "" : "s"})`,
+  );
+  lines.push("────────────────────────────────");
 
   for (const msg of messages) {
-    const ts = msg.timestamp ? `[${msg.timestamp}]` : '[unknown]';
+    const ts = msg.timestamp ? `[${msg.timestamp}]` : "[unknown]";
     lines.push(`${ts} ${msg.url}`);
     lines.push(`  "${msg.userMessage}"`);
-    lines.push('');
+    lines.push("");
   }
 
-  lines.push('────────────────────────────────');
-  return lines.join('\n');
+  lines.push("────────────────────────────────");
+  return lines.join("\n");
 }
 
 /** Replicate the --clear logic from meta-commands.ts */
 function clearInbox(inboxDir: string): number {
-  const files = fs.readdirSync(inboxDir)
-    .filter(f => f.endsWith('.json') && !f.startsWith('.'));
+  const files = fs
+    .readdirSync(inboxDir)
+    .filter((f) => f.endsWith(".json") && !f.startsWith("."));
   for (const file of files) {
-    try { fs.unlinkSync(path.join(inboxDir, file)); } catch {}
+    try {
+      fs.unlinkSync(path.join(inboxDir, file));
+    } catch {}
   }
   return files.length;
 }
@@ -94,20 +102,27 @@ function writeTestInboxFile(
   timestamp: string,
 ): string {
   fs.mkdirSync(inboxDir, { recursive: true });
-  const filename = `${timestamp.replace(/:/g, '-')}-observation.json`;
+  const filename = `${timestamp.replace(/:/g, "-")}-observation.json`;
   const filePath = path.join(inboxDir, filename);
-  fs.writeFileSync(filePath, JSON.stringify({
-    type: 'observation',
-    timestamp,
-    page: { url: pageUrl, title: '' },
-    userMessage: message,
-    sidebarSessionId: 'test-session',
-  }, null, 2));
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify(
+      {
+        type: "observation",
+        timestamp,
+        page: { url: pageUrl, title: "" },
+        userMessage: message,
+        sidebarSessionId: "test-session",
+      },
+      null,
+      2,
+    ),
+  );
   return filePath;
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'file-drop-test-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "file-drop-test-"));
 });
 
 afterEach(() => {
@@ -116,26 +131,26 @@ afterEach(() => {
 
 // ─── Empty Inbox ─────────────────────────────────────────────────
 
-describe('inbox — empty states', () => {
-  test('no .context/sidebar-inbox directory returns empty', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
+describe("inbox — empty states", () => {
+  test("no .context/sidebar-inbox directory returns empty", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
     const messages = readInbox(inboxDir);
     expect(messages.length).toBe(0);
-    expect(formatInbox(messages)).toBe('Inbox empty.');
+    expect(formatInbox(messages)).toBe("Inbox empty.");
   });
 
-  test('empty inbox directory returns empty', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
+  test("empty inbox directory returns empty", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
     fs.mkdirSync(inboxDir, { recursive: true });
     const messages = readInbox(inboxDir);
     expect(messages.length).toBe(0);
-    expect(formatInbox(messages)).toBe('Inbox empty.');
+    expect(formatInbox(messages)).toBe("Inbox empty.");
   });
 
-  test('directory with only dotfiles returns empty', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
+  test("directory with only dotfiles returns empty", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
     fs.mkdirSync(inboxDir, { recursive: true });
-    fs.writeFileSync(path.join(inboxDir, '.tmp-file.json'), '{}');
+    fs.writeFileSync(path.join(inboxDir, ".tmp-file.json"), "{}");
     const messages = readInbox(inboxDir);
     expect(messages.length).toBe(0);
   });
@@ -143,96 +158,138 @@ describe('inbox — empty states', () => {
 
 // ─── Valid Messages ──────────────────────────────────────────────
 
-describe('inbox — valid messages', () => {
-  test('displays formatted output with timestamps and URLs', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
-    writeTestInboxFile(inboxDir, 'This button is broken', 'https://example.com/page', '2024-06-15T10:30:00.000Z');
-    writeTestInboxFile(inboxDir, 'Login form fails', 'https://example.com/login', '2024-06-15T10:31:00.000Z');
+describe("inbox — valid messages", () => {
+  test("displays formatted output with timestamps and URLs", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
+    writeTestInboxFile(
+      inboxDir,
+      "This button is broken",
+      "https://example.com/page",
+      "2024-06-15T10:30:00.000Z",
+    );
+    writeTestInboxFile(
+      inboxDir,
+      "Login form fails",
+      "https://example.com/login",
+      "2024-06-15T10:31:00.000Z",
+    );
 
     const messages = readInbox(inboxDir);
     expect(messages.length).toBe(2);
 
     const output = formatInbox(messages);
-    expect(output).toContain('SIDEBAR INBOX (2 messages)');
-    expect(output).toContain('https://example.com/page');
-    expect(output).toContain('https://example.com/login');
+    expect(output).toContain("SIDEBAR INBOX (2 messages)");
+    expect(output).toContain("https://example.com/page");
+    expect(output).toContain("https://example.com/login");
     expect(output).toContain('"This button is broken"');
     expect(output).toContain('"Login form fails"');
-    expect(output).toContain('[2024-06-15T10:30:00.000Z]');
-    expect(output).toContain('[2024-06-15T10:31:00.000Z]');
+    expect(output).toContain("[2024-06-15T10:30:00.000Z]");
+    expect(output).toContain("[2024-06-15T10:31:00.000Z]");
   });
 
-  test('single message uses singular form', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
-    writeTestInboxFile(inboxDir, 'Just one', 'https://example.com', '2024-06-15T10:30:00.000Z');
+  test("single message uses singular form", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
+    writeTestInboxFile(
+      inboxDir,
+      "Just one",
+      "https://example.com",
+      "2024-06-15T10:30:00.000Z",
+    );
 
     const messages = readInbox(inboxDir);
     const output = formatInbox(messages);
-    expect(output).toContain('1 message)');
-    expect(output).not.toContain('messages)');
+    expect(output).toContain("1 message)");
+    expect(output).not.toContain("messages)");
   });
 
-  test('messages sorted newest first', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
-    writeTestInboxFile(inboxDir, 'older', 'https://example.com', '2024-06-15T10:00:00.000Z');
-    writeTestInboxFile(inboxDir, 'newer', 'https://example.com', '2024-06-15T11:00:00.000Z');
+  test("messages sorted newest first", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
+    writeTestInboxFile(
+      inboxDir,
+      "older",
+      "https://example.com",
+      "2024-06-15T10:00:00.000Z",
+    );
+    writeTestInboxFile(
+      inboxDir,
+      "newer",
+      "https://example.com",
+      "2024-06-15T11:00:00.000Z",
+    );
 
     const messages = readInbox(inboxDir);
     // Filenames sort lexicographically, reversed = newest first
-    expect(messages[0].userMessage).toBe('newer');
-    expect(messages[1].userMessage).toBe('older');
+    expect(messages[0].userMessage).toBe("newer");
+    expect(messages[1].userMessage).toBe("older");
   });
 });
 
 // ─── Malformed Files ─────────────────────────────────────────────
 
-describe('inbox — malformed files', () => {
-  test('malformed JSON files are skipped gracefully', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
+describe("inbox — malformed files", () => {
+  test("malformed JSON files are skipped gracefully", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
     fs.mkdirSync(inboxDir, { recursive: true });
 
     // Write a valid message
-    writeTestInboxFile(inboxDir, 'valid message', 'https://example.com', '2024-06-15T10:30:00.000Z');
+    writeTestInboxFile(
+      inboxDir,
+      "valid message",
+      "https://example.com",
+      "2024-06-15T10:30:00.000Z",
+    );
 
     // Write a malformed JSON file
     fs.writeFileSync(
-      path.join(inboxDir, '2024-06-15T10-35-00.000Z-observation.json'),
-      'this is not valid json {{{',
+      path.join(inboxDir, "2024-06-15T10-35-00.000Z-observation.json"),
+      "this is not valid json {{{",
     );
 
     const messages = readInbox(inboxDir);
     expect(messages.length).toBe(1);
-    expect(messages[0].userMessage).toBe('valid message');
+    expect(messages[0].userMessage).toBe("valid message");
   });
 
-  test('JSON file missing fields uses defaults', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
+  test("JSON file missing fields uses defaults", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
     fs.mkdirSync(inboxDir, { recursive: true });
 
     // Write a JSON file with missing fields
     fs.writeFileSync(
-      path.join(inboxDir, '2024-06-15T10-30-00.000Z-observation.json'),
-      JSON.stringify({ type: 'observation' }),
+      path.join(inboxDir, "2024-06-15T10-30-00.000Z-observation.json"),
+      JSON.stringify({ type: "observation" }),
     );
 
     const messages = readInbox(inboxDir);
     expect(messages.length).toBe(1);
-    expect(messages[0].timestamp).toBe('');
-    expect(messages[0].url).toBe('unknown');
-    expect(messages[0].userMessage).toBe('');
+    expect(messages[0].timestamp).toBe("");
+    expect(messages[0].url).toBe("unknown");
+    expect(messages[0].userMessage).toBe("");
   });
 });
 
 // ─── Clear Flag ──────────────────────────────────────────────────
 
-describe('inbox — --clear flag', () => {
-  test('files deleted after clear', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
-    writeTestInboxFile(inboxDir, 'message 1', 'https://example.com', '2024-06-15T10:30:00.000Z');
-    writeTestInboxFile(inboxDir, 'message 2', 'https://example.com', '2024-06-15T10:31:00.000Z');
+describe("inbox — --clear flag", () => {
+  test("files deleted after clear", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
+    writeTestInboxFile(
+      inboxDir,
+      "message 1",
+      "https://example.com",
+      "2024-06-15T10:30:00.000Z",
+    );
+    writeTestInboxFile(
+      inboxDir,
+      "message 2",
+      "https://example.com",
+      "2024-06-15T10:31:00.000Z",
+    );
 
     // Verify files exist
-    const filesBefore = fs.readdirSync(inboxDir).filter(f => f.endsWith('.json') && !f.startsWith('.'));
+    const filesBefore = fs
+      .readdirSync(inboxDir)
+      .filter((f) => f.endsWith(".json") && !f.startsWith("."));
     expect(filesBefore.length).toBe(2);
 
     // Clear
@@ -240,32 +297,41 @@ describe('inbox — --clear flag', () => {
     expect(cleared).toBe(2);
 
     // Verify files deleted
-    const filesAfter = fs.readdirSync(inboxDir).filter(f => f.endsWith('.json') && !f.startsWith('.'));
+    const filesAfter = fs
+      .readdirSync(inboxDir)
+      .filter((f) => f.endsWith(".json") && !f.startsWith("."));
     expect(filesAfter.length).toBe(0);
   });
 
-  test('clear on empty directory does nothing', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
+  test("clear on empty directory does nothing", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
     fs.mkdirSync(inboxDir, { recursive: true });
 
     const cleared = clearInbox(inboxDir);
     expect(cleared).toBe(0);
   });
 
-  test('clear preserves dotfiles', () => {
-    const inboxDir = path.join(tmpDir, '.context', 'sidebar-inbox');
+  test("clear preserves dotfiles", () => {
+    const inboxDir = path.join(tmpDir, ".context", "sidebar-inbox");
     fs.mkdirSync(inboxDir, { recursive: true });
 
     // Write a dotfile and a regular file
-    fs.writeFileSync(path.join(inboxDir, '.keep'), '');
-    writeTestInboxFile(inboxDir, 'to be cleared', 'https://example.com', '2024-06-15T10:30:00.000Z');
+    fs.writeFileSync(path.join(inboxDir, ".keep"), "");
+    writeTestInboxFile(
+      inboxDir,
+      "to be cleared",
+      "https://example.com",
+      "2024-06-15T10:30:00.000Z",
+    );
 
     clearInbox(inboxDir);
 
     // Dotfile should remain
-    expect(fs.existsSync(path.join(inboxDir, '.keep'))).toBe(true);
+    expect(fs.existsSync(path.join(inboxDir, ".keep"))).toBe(true);
     // Regular file should be gone
-    const jsonFiles = fs.readdirSync(inboxDir).filter(f => f.endsWith('.json') && !f.startsWith('.'));
+    const jsonFiles = fs
+      .readdirSync(inboxDir)
+      .filter((f) => f.endsWith(".json") && !f.startsWith("."));
     expect(jsonFiles.length).toBe(0);
   });
 });

@@ -2,7 +2,7 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>{{ t('backup.restore.title') }}</h2>
+        <h2>{{ t("backup.restore.title") }}</h2>
         <button class="close-btn" @click="$emit('close')">×</button>
       </div>
 
@@ -10,29 +10,31 @@
         <div v-if="backup" class="backup-info">
           <h3>{{ backup.name }}</h3>
           <p class="backup-meta">
-            {{ t('backup.restore.createdAt') }}: {{ formatDate(backup.started_at) }}
+            {{ t("backup.restore.createdAt") }}:
+            {{ formatDate(backup.started_at) }}
           </p>
           <p class="backup-meta">
-            {{ t('backup.restore.size') }}: {{ formatFileSize(backup.file_size) }}
+            {{ t("backup.restore.size") }}:
+            {{ formatFileSize(backup.file_size) }}
           </p>
         </div>
 
         <div class="warning-box">
           <span class="warning-icon">⚠️</span>
           <div>
-            <strong>{{ t('backup.restore.warning') }}</strong>
-            <p>{{ t('backup.restore.warningMessage') }}</p>
+            <strong>{{ t("backup.restore.warning") }}</strong>
+            <p>{{ t("backup.restore.warningMessage") }}</p>
           </div>
         </div>
 
         <div class="restore-options">
           <label class="checkbox-label">
             <input v-model="overwriteExisting" type="checkbox" />
-            {{ t('backup.restore.overwriteExisting') }}
+            {{ t("backup.restore.overwriteExisting") }}
           </label>
           <label class="checkbox-label">
             <input v-model="createBackupFirst" type="checkbox" />
-            {{ t('backup.restore.createBackupFirst') }}
+            {{ t("backup.restore.createBackupFirst") }}
           </label>
         </div>
 
@@ -43,15 +45,15 @@
 
       <div class="modal-footer">
         <button class="btn btn-secondary" @click="$emit('close')">
-          {{ t('common.cancel') }}
+          {{ t("common.cancel") }}
         </button>
         <button
           class="btn btn-danger"
           :disabled="isRestoring"
           @click="handleRestore"
         >
-          <span v-if="isRestoring">{{ t('backup.restore.restoring') }}</span>
-          <span v-else>{{ t('backup.restore.confirm') }}</span>
+          <span v-if="isRestoring">{{ t("backup.restore.restoring") }}</span>
+          <span v-else>{{ t("backup.restore.confirm") }}</span>
         </button>
       </div>
     </div>
@@ -59,48 +61,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 
 interface BackupRecord {
-  id: string
-  name: string
-  file_size: number
-  started_at: string
+  id: string;
+  name: string;
+  file_size: number;
+  started_at: string;
 }
 
 const props = defineProps<{
-  backup: BackupRecord | null
-}>()
+  backup: BackupRecord | null;
+}>();
 
 const emit = defineEmits<{
-  close: []
-  restored: [backupId: string]
-}>()
+  close: [];
+  restored: [backupId: string];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const isRestoring = ref(false)
-const error = ref('')
-const overwriteExisting = ref(false)
-const createBackupFirst = ref(true)
+const isRestoring = ref(false);
+const error = ref("");
+const overwriteExisting = ref(false);
+const createBackupFirst = ref(true);
 
 const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString()
-}
+  return new Date(dateStr).toLocaleString();
+};
 
 const formatFileSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
-}
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+};
 
 const handleRestore = async () => {
-  if (!props.backup) return
+  if (!props.backup) return;
 
-  isRestoring.value = true
-  error.value = ''
+  isRestoring.value = true;
+  error.value = "";
 
   try {
     // TODO: Implement actual restore logic
@@ -110,16 +113,16 @@ const handleRestore = async () => {
     // })
 
     // Simulate restore for now
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    emit('restored', props.backup.id)
-    emit('close')
+    emit("restored", props.backup.id);
+    emit("close");
   } catch (err: any) {
-    error.value = err.message || t('backup.restore.error')
+    error.value = err.message || t("backup.restore.error");
   } finally {
-    isRestoring.value = false
+    isRestoring.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

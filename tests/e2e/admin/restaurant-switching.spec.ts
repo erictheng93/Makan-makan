@@ -152,7 +152,9 @@ test.describe("Multi-restaurant admin switching", () => {
       await page.waitForTimeout(500);
 
       const restaurant2Option = page.locator("text=第二家測試餐廳").first();
-      if (await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (
+        await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)
+      ) {
         await restaurant2Option.click();
       } else {
         test.skip();
@@ -214,7 +216,9 @@ test.describe("Multi-restaurant admin switching", () => {
       await selector.first().click();
       await page.waitForTimeout(500);
       const restaurant2Option = page.locator("text=第二家測試餐廳").first();
-      if (await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (
+        await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)
+      ) {
         await restaurant2Option.click();
       } else {
         test.skip();
@@ -263,7 +267,9 @@ test.describe("Multi-restaurant admin switching", () => {
       await selector.first().click();
       await page.waitForTimeout(500);
       const restaurant2Option = page.locator("text=第二家測試餐廳").first();
-      if (await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (
+        await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)
+      ) {
         await restaurant2Option.click();
       } else {
         test.skip();

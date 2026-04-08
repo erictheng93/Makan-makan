@@ -194,10 +194,7 @@ describe("MonitoringService", () => {
 
       const result = await service.getRecentAlerts();
 
-      expect(mockApiGet).toHaveBeenCalledWith(
-        "/monitoring/alerts/recent",
-        {},
-      );
+      expect(mockApiGet).toHaveBeenCalledWith("/monitoring/alerts/recent", {});
       expect(result).toEqual(alerts);
     });
 
@@ -208,10 +205,9 @@ describe("MonitoringService", () => {
 
       await service.getRecentAlerts(1000);
 
-      expect(mockApiGet).toHaveBeenCalledWith(
-        "/monitoring/alerts/recent",
-        { since: "1000" },
-      );
+      expect(mockApiGet).toHaveBeenCalledWith("/monitoring/alerts/recent", {
+        since: "1000",
+      });
     });
 
     it("should return empty array on error", async () => {
@@ -273,9 +269,7 @@ describe("MonitoringService", () => {
       });
 
       it("should return minutes ago", () => {
-        expect(service.formatRelativeTime(Date.now() - 300000)).toBe(
-          "5分鐘前",
-        );
+        expect(service.formatRelativeTime(Date.now() - 300000)).toBe("5分鐘前");
       });
     });
 

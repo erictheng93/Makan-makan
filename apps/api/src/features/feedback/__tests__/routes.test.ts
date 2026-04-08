@@ -241,7 +241,9 @@ describe("Feedback Routes", () => {
     });
 
     it("returns 500 when service throws", async () => {
-      mockService.createFeedback.mockRejectedValue(new Error("DB write failed"));
+      mockService.createFeedback.mockRejectedValue(
+        new Error("DB write failed"),
+      );
 
       const res = await app.fetch(
         new Request("http://localhost/feedback", { method: "POST" }),
@@ -371,7 +373,12 @@ describe("Feedback Routes", () => {
         ...mockFeedback,
         responses: [
           { ...mockResponse, isInternal: false },
-          { ...mockResponse, id: 2, message: "Internal note", isInternal: true },
+          {
+            ...mockResponse,
+            id: 2,
+            message: "Internal note",
+            isInternal: true,
+          },
         ],
       };
       mockService.getFeedbackById.mockResolvedValue(feedbackWithInternal);
@@ -402,7 +409,12 @@ describe("Feedback Routes", () => {
         restaurantId: "restaurant-A",
         responses: [
           { ...mockResponse, isInternal: false },
-          { ...mockResponse, id: 2, message: "Internal note", isInternal: true },
+          {
+            ...mockResponse,
+            id: 2,
+            message: "Internal note",
+            isInternal: true,
+          },
         ],
       });
 
@@ -463,7 +475,9 @@ describe("Feedback Routes", () => {
     });
 
     it("returns 500 when service throws", async () => {
-      mockService.getFeedbackById.mockRejectedValue(new Error("DB read failed"));
+      mockService.getFeedbackById.mockRejectedValue(
+        new Error("DB read failed"),
+      );
 
       const res = await app.fetch(
         new Request("http://localhost/feedback/1"),
@@ -553,12 +567,17 @@ describe("Feedback Routes", () => {
   // ─── POST /:id/responses — Add response ───────────────────────────
   describe("POST /:id/responses", () => {
     beforeEach(() => {
-      state.validatedBody = { message: "We are looking into this.", isInternal: false };
+      state.validatedBody = {
+        message: "We are looking into this.",
+        isInternal: false,
+      };
     });
 
     it("returns 201 when admin adds a public response", async () => {
       const res = await app.fetch(
-        new Request("http://localhost/feedback/1/responses", { method: "POST" }),
+        new Request("http://localhost/feedback/1/responses", {
+          method: "POST",
+        }),
         mockEnv,
       );
       expect(res.status).toBe(201);
@@ -575,10 +594,15 @@ describe("Feedback Routes", () => {
     });
 
     it("admin can post internal note (isInternal=true)", async () => {
-      state.validatedBody = { message: "Internal: needs DB check", isInternal: true };
+      state.validatedBody = {
+        message: "Internal: needs DB check",
+        isInternal: true,
+      };
 
       await app.fetch(
-        new Request("http://localhost/feedback/1/responses", { method: "POST" }),
+        new Request("http://localhost/feedback/1/responses", {
+          method: "POST",
+        }),
         mockEnv,
       );
 
@@ -604,7 +628,9 @@ describe("Feedback Routes", () => {
       });
 
       await app.fetch(
-        new Request("http://localhost/feedback/1/responses", { method: "POST" }),
+        new Request("http://localhost/feedback/1/responses", {
+          method: "POST",
+        }),
         mockEnv,
       );
 
@@ -621,7 +647,9 @@ describe("Feedback Routes", () => {
       mockService.getFeedbackById.mockResolvedValue(null);
 
       const res = await app.fetch(
-        new Request("http://localhost/feedback/1/responses", { method: "POST" }),
+        new Request("http://localhost/feedback/1/responses", {
+          method: "POST",
+        }),
         mockEnv,
       );
       expect(res.status).toBe(404);
@@ -648,7 +676,9 @@ describe("Feedback Routes", () => {
       });
 
       const res = await app.fetch(
-        new Request("http://localhost/feedback/1/responses", { method: "POST" }),
+        new Request("http://localhost/feedback/1/responses", {
+          method: "POST",
+        }),
         mockEnv,
       );
       expect(res.status).toBe(403);
@@ -666,7 +696,9 @@ describe("Feedback Routes", () => {
       mockService.addResponse.mockRejectedValue(new Error("Insert failed"));
 
       const res = await app.fetch(
-        new Request("http://localhost/feedback/1/responses", { method: "POST" }),
+        new Request("http://localhost/feedback/1/responses", {
+          method: "POST",
+        }),
         mockEnv,
       );
       expect(res.status).toBe(500);
@@ -984,9 +1016,7 @@ describe("Feedback Routes", () => {
     });
 
     it("returns 500 when service throws", async () => {
-      mockService.updateResponse.mockRejectedValue(
-        new Error("Update failed"),
-      );
+      mockService.updateResponse.mockRejectedValue(new Error("Update failed"));
 
       const res = await app.fetch(
         new Request("http://localhost/feedback/1/responses/10", {
@@ -1103,9 +1133,7 @@ describe("Feedback Routes", () => {
     });
 
     it("returns 500 when service throws", async () => {
-      mockService.deleteResponse.mockRejectedValue(
-        new Error("Delete failed"),
-      );
+      mockService.deleteResponse.mockRejectedValue(new Error("Delete failed"));
 
       const res = await app.fetch(
         new Request("http://localhost/feedback/1/responses/10", {

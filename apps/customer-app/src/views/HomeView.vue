@@ -183,7 +183,9 @@
         </h3>
 
         <div class="grid gap-4 lg:grid-cols-3 lg:gap-6">
-          <div class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]">
+          <div
+            class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]"
+          >
             <div
               class="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
             >
@@ -211,7 +213,9 @@
             </div>
           </div>
 
-          <div class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]">
+          <div
+            class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]"
+          >
             <div
               class="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
             >
@@ -245,7 +249,9 @@
             </div>
           </div>
 
-          <div class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]">
+          <div
+            class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]"
+          >
             <div
               class="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
             >

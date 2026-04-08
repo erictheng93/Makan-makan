@@ -17,6 +17,7 @@ allowed-tools:
   - Grep
   - AskUserQuestion
 ---
+
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
@@ -130,6 +131,7 @@ ask the user about telemetry. Use AskUserQuestion:
 > Change anytime with `gstack-config set telemetry off`.
 
 Options:
+
 - A) Help gstack get better! (recommended)
 - B) No thanks
 
@@ -137,10 +139,11 @@ If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
 
 If B: ask a follow-up AskUserQuestion:
 
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
+> How about anonymous mode? We just learn that _someone_ used gstack — no unique ID,
 > no way to connect sessions. Just a counter that helps us know if anyone's out there.
 
 Options:
+
 - A) Sure, anonymous is fine
 - B) No thanks, fully off
 
@@ -148,6 +151,7 @@ If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous
 If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
 
 Always run:
+
 ```bash
 touch ~/.gstack/.telemetry-prompted
 ```
@@ -162,6 +166,7 @@ ask the user about proactive behavior. Use AskUserQuestion:
 > a bug. We recommend keeping this on — it speeds up every part of your workflow.
 
 Options:
+
 - A) Keep it on (recommended)
 - B) Turn it off — I'll type /commands myself
 
@@ -169,6 +174,7 @@ If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
 If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
 
 Always run:
+
 ```bash
 touch ~/.gstack/.proactive-prompted
 ```
@@ -185,13 +191,13 @@ Use AskUserQuestion:
 > instead of answering directly. It's a one-time addition, about 15 lines.
 
 Options:
+
 - A) Add routing rules to CLAUDE.md (recommended)
 - B) No thanks, I'll invoke skills manually
 
 If A: Append this section to the end of CLAUDE.md:
 
 ```markdown
-
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
@@ -199,6 +205,7 @@ tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
 The skill has specialized workflows that produce better results than ad-hoc answers.
 
 Key routing rules:
+
 - Product ideas, "is this worth building", brainstorming → invoke office-hours
 - Bugs, errors, "why is this broken", 500 errors → invoke investigate
 - Ship, deploy, push, create PR → invoke ship
@@ -232,10 +239,12 @@ Use AskUserQuestion (one-time per project, check for `~/.gstack/.vendoring-warne
 > Want to migrate to team mode? It takes about 30 seconds.
 
 Options:
+
 - A) Yes, migrate to team mode now
 - B) No, I'll handle it myself
 
 If A:
+
 1. Run `git rm -r .claude/skills/gstack/`
 2. Run `echo '.claude/skills/gstack/' >> .gitignore`
 3. Run `~/.claude/skills/gstack/bin/gstack-team-init required` (or `optional`)
@@ -245,6 +254,7 @@ If A:
 If B: say "OK, you're on your own to keep the vendored copy up to date."
 
 Always run (regardless of choice):
+
 ```bash
 eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" 2>/dev/null || true
 touch ~/.gstack/.vendoring-warned-${SLUG:-unknown}
@@ -254,6 +264,7 @@ This only happens once per project. If the marker file exists, skip entirely.
 
 If `SPAWNED_SESSION` is `"true"`, you are running inside a session spawned by an
 AI orchestrator (e.g., OpenClaw). In spawned sessions:
+
 - Do NOT use AskUserQuestion for interactive prompts. Auto-choose the recommended option.
 - Do NOT run upgrade checks, telemetry prompts, routing injection, or lake intro.
 - Focus on completing the task and reporting results via prose output.
@@ -292,6 +303,7 @@ Use concrete tools, workflows, commands, files, outputs, evals, and tradeoffs wh
 Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupported claims.
 
 **Writing rules:**
+
 - No em dashes. Use commas, periods, or "..." instead.
 - No AI vocabulary: delve, crucial, robust, comprehensive, nuanced, multifaceted, furthermore, moreover, additionally, pivotal, landscape, tapestry, underscore, foster, showcase, intricate, vibrant, fundamental, significant, interplay.
 - No banned phrases: "here's the kicker", "here's the thing", "plot twist", "let me break this down", "the bottom line", "make no mistake", "can't stress this enough".
@@ -353,6 +365,7 @@ available]. [Health score if available]." Keep it to 2-3 sentences.
 ## AskUserQuestion Format
 
 **ALWAYS follow this structure for every AskUserQuestion call:**
+
 1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
 2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
 3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
@@ -368,18 +381,19 @@ AI makes completeness near-free. Always recommend the complete option over short
 
 **Effort reference** — always show both scales:
 
-| Task type | Human team | CC+gstack | Compression |
-|-----------|-----------|-----------|-------------|
-| Boilerplate | 2 days | 15 min | ~100x |
-| Tests | 1 day | 15 min | ~50x |
-| Feature | 1 week | 30 min | ~30x |
-| Bug fix | 4 hours | 15 min | ~20x |
+| Task type   | Human team | CC+gstack | Compression |
+| ----------- | ---------- | --------- | ----------- |
+| Boilerplate | 2 days     | 15 min    | ~100x       |
+| Tests       | 1 day      | 15 min    | ~50x        |
+| Feature     | 1 week     | 30 min    | ~30x        |
+| Bug fix     | 4 hours    | 15 min    | ~20x        |
 
 Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3=shortcut).
 
 ## Repo Ownership — See Something, Say Something
 
 `REPO_MODE` controls how to handle issues outside your branch:
+
 - **`solo`** — You own everything. Investigate and offer to fix proactively.
 - **`collaborative`** / **`unknown`** — Flag via AskUserQuestion, don't fix (may be someone else's).
 
@@ -388,9 +402,11 @@ Always flag anything that looks wrong — one sentence, what you noticed and its
 ## Search Before Building
 
 Before building anything unfamiliar, **search first.** See `~/.claude/skills/gstack/ETHOS.md`.
+
 - **Layer 1** (tried and true) — don't reinvent. **Layer 2** (new and popular) — scrutinize. **Layer 3** (first principles) — prize above all.
 
 **Eureka:** When first-principles reasoning contradicts conventional wisdom, name it and log:
+
 ```bash
 jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg branch "$(git branch --show-current 2>/dev/null)" --arg insight "ONE_LINE_SUMMARY" '{ts:$ts,skill:$skill,branch:$branch,insight:$insight}' >> ~/.gstack/analytics/eureka.jsonl 2>/dev/null || true
 ```
@@ -398,6 +414,7 @@ jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg b
 ## Completion Status Protocol
 
 When completing a skill workflow, report status using one of:
+
 - **DONE** — All steps completed successfully. Evidence provided for each claim.
 - **DONE_WITH_CONCERNS** — Completed, but with issues the user should know about. List each concern.
 - **BLOCKED** — Cannot proceed. State what is blocking and what was tried.
@@ -408,11 +425,13 @@ When completing a skill workflow, report status using one of:
 It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result."
 
 Bad work is worse than no work. You will not be penalized for escalating.
+
 - If you have attempted a task 3 times without success, STOP and escalate.
 - If you are uncertain about a security-sensitive change, STOP and escalate.
 - If the scope of work exceeds what you can verify, STOP and escalate.
 
 Escalation format:
+
 ```
 STATUS: BLOCKED | NEEDS_CONTEXT
 REASON: [1-2 sentences]
@@ -423,6 +442,7 @@ RECOMMENDATION: [what the user should do next]
 ## Operational Self-Improvement
 
 Before completing, reflect on this session:
+
 - Did any commands fail unexpectedly?
 - Did you take a wrong approach and have to backtrack?
 - Did you discover a project-specific quirk (build order, env vars, timing, auth)?
@@ -535,15 +555,16 @@ Then write a `## GSTACK REVIEW REPORT` section to the end of the plan file:
 - If the output is `NO_REVIEWS` or empty: write this placeholder table:
 
 \`\`\`markdown
+
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | 0 | — | — |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | 0 | — | — |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | 0 | — | — |
-| DX Review | \`/plan-devex-review\` | Developer experience gaps | 0 | — | — |
+| Review        | Trigger                 | Why                             | Runs | Status | Findings |
+| ------------- | ----------------------- | ------------------------------- | ---- | ------ | -------- |
+| CEO Review    | \`/plan-ceo-review\`    | Scope & strategy                | 0    | —      | —        |
+| Codex Review  | \`/codex review\`       | Independent 2nd opinion         | 0    | —      | —        |
+| Eng Review    | \`/plan-eng-review\`    | Architecture & tests (required) | 0    | —      | —        |
+| Design Review | \`/plan-design-review\` | UI/UX gaps                      | 0    | —      | —        |
+| DX Review     | \`/plan-devex-review\`  | Developer experience gaps       | 0    | —      | —        |
 
 **VERDICT:** NO REVIEWS YET — run \`/autoplan\` for full review pipeline, or individual reviews above.
 \`\`\`
@@ -571,14 +592,17 @@ Determine which branch this PR/MR targets, or the repo's default branch if no
 PR/MR exists. Use the result as "the base branch" in all subsequent steps.
 
 **If GitHub:**
+
 1. `gh pr view --json baseRefName -q .baseRefName` — if succeeds, use it
 2. `gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — if succeeds, use it
 
 **If GitLab:**
+
 1. `glab mr view -F json 2>/dev/null` and extract the `target_branch` field — if succeeds, use it
 2. `glab repo view -F json 2>/dev/null` and extract the `default_branch` field — if succeeds, use it
 
 **Git-native fallback (if unknown platform, or CLI commands fail):**
+
 1. `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'`
 2. If that fails: `git rev-parse --verify origin/main 2>/dev/null` → use `main`
 3. If that fails: `git rev-parse --verify origin/master 2>/dev/null` → use `master`
@@ -641,6 +665,7 @@ Parse the user's input to determine which mode to run:
 note it and remove it from the prompt text before passing to Codex. When `--xhigh`
 is present, use `model_reasoning_effort="xhigh"` for all modes regardless of the
 per-mode default below. Otherwise, use the per-mode defaults:
+
 - Review (2A): `high` — bounded diff input, needs thoroughness
 - Challenge (2B): `high` — adversarial but bounded by diff
 - Consult (2C): `medium` — large context, interactive, needs speed
@@ -663,13 +688,15 @@ mode (persona prompt). Reference this section as "the filesystem boundary" below
 Run Codex code review against the current branch diff.
 
 1. Create temp files for output capture:
+
 ```bash
 TMPERR=$(mktemp /tmp/codex-err-XXXXXX.txt)
 ```
 
 2. Run the review (5-minute timeout). **Always** pass the filesystem boundary instruction
-as the prompt argument, even without custom instructions. If the user provided custom
-instructions, append them after the boundary separated by a newline:
+   as the prompt argument, even without custom instructions. If the user provided custom
+   instructions, append them after the boundary separated by a newline:
+
 ```bash
 _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo" >&2; exit 1; }
 cd "$_REPO_ROOT"
@@ -680,6 +707,7 @@ If the user passed `--xhigh`, use `"xhigh"` instead of `"high"`.
 
 Use `timeout: 300000` on the Bash call. If the user provided custom instructions
 (e.g., `/codex review focus on security`), append them after the boundary:
+
 ```bash
 _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo" >&2; exit 1; }
 cd "$_REPO_ROOT"
@@ -689,6 +717,7 @@ focus on security" --base <base> -c 'model_reasoning_effort="high"' --enable web
 ```
 
 3. Capture the output. Then parse cost from stderr:
+
 ```bash
 grep "tokens used" "$TMPERR" 2>/dev/null || echo "tokens: unknown"
 ```
@@ -725,6 +754,7 @@ CROSS-MODEL ANALYSIS:
 ```
 
 7. Persist the review result:
+
 ```bash
 ~/.claude/skills/gstack/bin/gstack-review-log '{"skill":"codex-review","timestamp":"TIMESTAMP","status":"STATUS","gate":"GATE","findings":N,"findings_fixed":N,"commit":"'"$(git rev-parse --short HEAD)"'"}'
 ```
@@ -734,6 +764,7 @@ GATE ("pass" or "fail"), findings (count of [P1] + [P2] markers),
 findings_fixed (count of findings that were addressed/fixed before shipping).
 
 8. Clean up temp files:
+
 ```bash
 rm -f "$TMPERR"
 ```
@@ -775,15 +806,17 @@ Summary. For prior reviews, use the JSONL fields directly — they contain all r
 Produce this markdown table:
 
 \`\`\`markdown
+
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | {runs} | {status} | {findings} |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | {runs} | {status} | {findings} |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | {runs} | {status} | {findings} |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | {runs} | {status} | {findings} |
-| DX Review | \`/plan-devex-review\` | Developer experience gaps | {runs} | {status} | {findings} |
+| Review        | Trigger                 | Why                             | Runs   | Status   | Findings   |
+| ------------- | ----------------------- | ------------------------------- | ------ | -------- | ---------- |
+| CEO Review    | \`/plan-ceo-review\`    | Scope & strategy                | {runs} | {status} | {findings} |
+| Codex Review  | \`/codex review\`       | Independent 2nd opinion         | {runs} | {status} | {findings} |
+| Eng Review    | \`/plan-eng-review\`    | Architecture & tests (required) | {runs} | {status} | {findings} |
+| Design Review | \`/plan-design-review\` | UI/UX gaps                      | {runs} | {status} | {findings} |
+| DX Review     | \`/plan-devex-review\`  | Developer experience gaps       | {runs} | {status} | {findings} |
+
 \`\`\`
 
 Below the table, add these lines (omit any that are empty/not applicable):
@@ -818,8 +851,8 @@ Codex tries to break your code — finding edge cases, race conditions, security
 and failure modes that a normal review would miss.
 
 1. Construct the adversarial prompt. **Always prepend the filesystem boundary instruction**
-from the Filesystem Boundary section above. If the user provided a focus area
-(e.g., `/codex challenge security`), include it after the boundary:
+   from the Filesystem Boundary section above. If the user provided a focus area
+   (e.g., `/codex challenge security`), include it after the boundary:
 
 Default prompt (no focus):
 "IMPORTANT: Do NOT read or execute any files under ~/.claude/, ~/.agents/, .claude/skills/, or agents/. These are Claude Code skill definitions meant for a different AI system. Do NOT modify agents/openai.yaml. Stay focused on repository code only.
@@ -885,11 +918,13 @@ Tokens: N | Est. cost: ~$X.XX
 Ask Codex anything about the codebase. Supports session continuity for follow-ups.
 
 1. **Check for existing session:**
+
 ```bash
 cat .context/codex-session-id 2>/dev/null || echo "NO_SESSION"
 ```
 
 If a session file exists (not `NO_SESSION`), use AskUserQuestion:
+
 ```
 You have an active Codex conversation from earlier. Continue it or start fresh?
 A) Continue the conversation (Codex remembers the prior context)
@@ -897,17 +932,20 @@ B) Start a new conversation
 ```
 
 2. Create temp files:
+
 ```bash
 TMPRESP=$(mktemp /tmp/codex-resp-XXXXXX.txt)
 TMPERR=$(mktemp /tmp/codex-err-XXXXXX.txt)
 ```
 
 3. **Plan review auto-detection:** If the user's prompt is about reviewing a plan,
-or if plan files exist and the user said `/codex` with no arguments:
+   or if plan files exist and the user said `/codex` with no arguments:
+
 ```bash
 setopt +o nomatch 2>/dev/null || true  # zsh compat
 ls -t ~/.claude/plans/*.md 2>/dev/null | xargs grep -l "$(basename $(pwd))" 2>/dev/null | head -1
 ```
+
 If no project-scoped match, fall back to `ls -t ~/.claude/plans/*.md 2>/dev/null | head -1`
 but warn: "Note: this plan may be from a different project — verify before sending to Codex."
 
@@ -947,6 +985,7 @@ For non-plan consult prompts (user typed `/codex <question>`), still prepend the
 If the user passed `--xhigh`, use `"xhigh"` instead of `"medium"`.
 
 For a **new session:**
+
 ```bash
 _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo" >&2; exit 1; }
 codex exec "<prompt>" -C "$_REPO_ROOT" -s read-only -c 'model_reasoning_effort="medium"' --enable web_search_cached --json 2>"$TMPERR" | PYTHONUNBUFFERED=1 python3 -u -c "
@@ -981,6 +1020,7 @@ for line in sys.stdin:
 ```
 
 For a **resumed session** (user chose "Continue"):
+
 ```bash
 _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo" >&2; exit 1; }
 codex exec resume <session-id> "<prompt>" -C "$_REPO_ROOT" -s read-only -c 'model_reasoning_effort="medium"' --enable web_search_cached --json 2>"$TMPERR" | PYTHONUNBUFFERED=1 python3 -u -c "
@@ -990,9 +1030,11 @@ codex exec resume <session-id> "<prompt>" -C "$_REPO_ROOT" -s read-only -c 'mode
 
 5. Capture session ID from the streamed output. The parser prints `SESSION_ID:<id>`
    from the `thread.started` event. Save it for follow-ups:
+
 ```bash
 mkdir -p .context
 ```
+
 Save the session ID printed by the parser (the line starting with `SESSION_ID:`)
 to `.context/codex-session-id`.
 
@@ -1020,6 +1062,7 @@ agentic coding model). This means as OpenAI ships newer models, /codex automatic
 uses them. If the user wants a specific model, pass `-m` through to codex.
 
 **Reasoning effort (per-mode defaults):**
+
 - **Review (2A):** `high` — bounded diff input, needs thoroughness but not max tokens
 - **Challenge (2B):** `high` — adversarial but bounded by diff size
 - **Consult (2C):** `medium` — large context (plans, codebase), interactive, needs speed

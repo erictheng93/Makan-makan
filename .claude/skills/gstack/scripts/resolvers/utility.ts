@@ -1,4 +1,4 @@
-import type { TemplateContext } from './types';
+import type { TemplateContext } from "./types";
 
 export function generateSlugEval(ctx: TemplateContext): string {
   return `eval "$(${ctx.paths.binDir}/gstack-slug 2>/dev/null)"`;
@@ -367,9 +367,12 @@ Minimum 0 per category.
 }
 
 export function generateCoAuthorTrailer(ctx: TemplateContext): string {
-  const { getHostConfig } = require('../../hosts/index');
+  const { getHostConfig } = require("../../hosts/index");
   const hostConfig = getHostConfig(ctx.host);
-  return hostConfig.coAuthorTrailer || 'Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>';
+  return (
+    hostConfig.coAuthorTrailer ||
+    "Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+  );
 }
 
 export function generateChangelogWorkflow(_ctx: TemplateContext): string {

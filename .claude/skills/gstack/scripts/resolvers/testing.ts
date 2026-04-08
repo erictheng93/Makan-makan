@@ -1,4 +1,4 @@
-import type { TemplateContext } from './types';
+import type { TemplateContext } from "./types";
 
 export function generateTestBootstrap(_ctx: TemplateContext): string {
   return `## Test Framework Bootstrap
@@ -177,18 +177,24 @@ Only commit if there are changes. Stage all bootstrap files (config, test direct
 //   │  review: Fix-First ASK, INFORMATIONAL gaps     │
 //   └────────────────────────────────────────────────┘
 
-type CoverageAuditMode = 'plan' | 'ship' | 'review';
+type CoverageAuditMode = "plan" | "ship" | "review";
 
 function generateTestCoverageAuditInner(mode: CoverageAuditMode): string {
   const sections: string[] = [];
 
   // ── Intro (mode-specific) ──
-  if (mode === 'ship') {
-    sections.push(`100% coverage is the goal — every untested path is a path where bugs hide and vibe coding becomes yolo coding. Evaluate what was ACTUALLY coded (from the diff), not what was planned.`);
-  } else if (mode === 'plan') {
-    sections.push(`100% coverage is the goal. Evaluate every codepath in the plan and ensure the plan includes tests for each one. If the plan is missing tests, add them — the plan should be complete enough that implementation includes full test coverage from the start.`);
+  if (mode === "ship") {
+    sections.push(
+      `100% coverage is the goal — every untested path is a path where bugs hide and vibe coding becomes yolo coding. Evaluate what was ACTUALLY coded (from the diff), not what was planned.`,
+    );
+  } else if (mode === "plan") {
+    sections.push(
+      `100% coverage is the goal. Evaluate every codepath in the plan and ensure the plan includes tests for each one. If the plan is missing tests, add them — the plan should be complete enough that implementation includes full test coverage from the start.`,
+    );
   } else {
-    sections.push(`100% coverage is the goal. Evaluate every codepath changed in the diff and identify test gaps. Gaps become INFORMATIONAL findings that follow the Fix-First flow.`);
+    sections.push(
+      `100% coverage is the goal. Evaluate every codepath changed in the diff and identify test gaps. Gaps become INFORMATIONAL findings that follow the Fix-First flow.`,
+    );
   }
 
   // ── Test framework detection (shared) ──
@@ -213,10 +219,10 @@ ls jest.config.* vitest.config.* playwright.config.* cypress.config.* .rspec pyt
 ls -d test/ tests/ spec/ __tests__/ cypress/ e2e/ 2>/dev/null
 \`\`\`
 
-3. **If no framework detected:**${mode === 'ship' ? ' falls through to the Test Framework Bootstrap step (Step 2.5) which handles full setup.' : ' still produce the coverage diagram, but skip test generation.'}`);
+3. **If no framework detected:**${mode === "ship" ? " falls through to the Test Framework Bootstrap step (Step 2.5) which handles full setup." : " still produce the coverage diagram, but skip test generation."}`);
 
   // ── Before/after count (ship only) ──
-  if (mode === 'ship') {
+  if (mode === "ship") {
     sections.push(`
 **0. Before/after test count:**
 
@@ -229,17 +235,19 @@ Store this number for the PR body.`);
   }
 
   // ── Codepath tracing methodology (shared, with mode-specific source) ──
-  const traceSource = mode === 'plan'
-    ? `**Step 1. Trace every codepath in the plan:**
+  const traceSource =
+    mode === "plan"
+      ? `**Step 1. Trace every codepath in the plan:**
 
 Read the plan document. For each new feature, service, endpoint, or component described, trace how data will flow through the code — don't just list planned functions, actually follow the planned execution:`
-    : `**${mode === 'ship' ? '1' : 'Step 1'}. Trace every codepath changed** using \`git diff origin/<base>...HEAD\`:
+      : `**${mode === "ship" ? "1" : "Step 1"}. Trace every codepath changed** using \`git diff origin/<base>...HEAD\`:
 
 Read every changed file. For each one, trace how data flows through the code — don't just list functions, actually follow the execution:`;
 
-  const traceStep1 = mode === 'plan'
-    ? `1. **Read the plan.** For each planned component, understand what it does and how it connects to existing code.`
-    : `1. **Read the diff.** For each changed file, read the full file (not just the diff hunk) to understand context.`;
+  const traceStep1 =
+    mode === "plan"
+      ? `1. **Read the plan.** For each planned component, understand what it does and how it connects to existing code.`
+      : `1. **Read the diff.** For each changed file, read the full file (not just the diff hunk) to understand context.`;
 
   sections.push(`
 ${traceSource}
@@ -261,7 +269,7 @@ This is the critical step — you're building a map of every line of code that c
 
   // ── User flow coverage (shared) ──
   sections.push(`
-**${mode === 'ship' ? '2' : 'Step 2'}. Map user flows, interactions, and error states:**
+**${mode === "ship" ? "2" : "Step 2"}. Map user flows, interactions, and error states:**
 
 Code coverage isn't enough — you need to cover how real users interact with the changed code. For each changed feature, think through:
 
@@ -282,7 +290,7 @@ Add these to your diagram alongside the code branches. A user flow with no test 
 
   // ── Check branches against tests + quality rubric (shared) ──
   sections.push(`
-**${mode === 'ship' ? '3' : 'Step 3'}. Check each branch against existing tests:**
+**${mode === "ship" ? "3" : "Step 3"}. Check each branch against existing tests:**
 
 Go through your diagram branch by branch — both code paths AND user flows. For each one, search for a test that exercises it:
 - Function \`processPayment()\` → look for \`billing.test.ts\`, \`billing.spec.ts\`, \`test/billing_test.rb\`
@@ -322,18 +330,18 @@ When checking each branch, also determine whether a unit test or E2E/integration
   sections.push(`
 ### REGRESSION RULE (mandatory)
 
-**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is ${mode === 'plan' ? 'added to the plan as a critical requirement' : 'written immediately'}. No AskUserQuestion. No skipping. Regressions are the highest-priority test because they prove something broke.
+**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is ${mode === "plan" ? "added to the plan as a critical requirement" : "written immediately"}. No AskUserQuestion. No skipping. Regressions are the highest-priority test because they prove something broke.
 
 A regression is when:
 - The diff modifies existing behavior (not new code)
 - The existing test suite (if any) doesn't cover the changed path
 - The change introduces a new failure mode for existing callers
 
-When uncertain whether a change is a regression, err on the side of writing the test.${mode !== 'plan' ? '\n\nFormat: commit as `test: regression test for {what broke}`' : ''}`);
+When uncertain whether a change is a regression, err on the side of writing the test.${mode !== "plan" ? "\n\nFormat: commit as `test: regression test for {what broke}`" : ""}`);
 
   // ── ASCII coverage diagram (shared) ──
   sections.push(`
-**${mode === 'ship' ? '4' : 'Step 4'}. Output ASCII coverage diagram:**
+**${mode === "ship" ? "4" : "Step 4"}. Output ASCII coverage diagram:**
 
 Include BOTH code paths and user flows in the same diagram. Mark E2E-worthy and eval-worthy paths:
 
@@ -379,10 +387,10 @@ GAPS: 8 paths need tests (2 need E2E, 1 needs eval)
 ─────────────────────────────────
 \`\`\`
 
-**Fast path:** All paths covered → "${mode === 'ship' ? 'Step 3.4' : mode === 'review' ? 'Step 4.75' : 'Test review'}: All new code paths have test coverage ✓" Continue.`);
+**Fast path:** All paths covered → "${mode === "ship" ? "Step 3.4" : mode === "review" ? "Step 4.75" : "Test review"}: All new code paths have test coverage ✓" Continue.`);
 
   // ── Mode-specific action section ──
-  if (mode === 'plan') {
+  if (mode === "plan") {
     sections.push(`
 **Step 5. Add missing tests to the plan:**
 
@@ -428,7 +436,7 @@ Repo: {owner/repo}
 \`\`\`
 
 This file is consumed by \`/qa\` and \`/qa-only\` as primary test input. Include only the information that helps a QA tester know **what to test and where** — not implementation details.`);
-  } else if (mode === 'ship') {
+  } else if (mode === "ship") {
     sections.push(`
 **5. Generate tests for uncovered paths:**
 
@@ -557,17 +565,17 @@ This is INFORMATIONAL — does not block /review. But it makes low coverage visi
 If coverage percentage cannot be determined, skip the warning silently.`);
   }
 
-  return sections.join('\n');
+  return sections.join("\n");
 }
 
 export function generateTestCoverageAuditPlan(_ctx: TemplateContext): string {
-  return generateTestCoverageAuditInner('plan');
+  return generateTestCoverageAuditInner("plan");
 }
 
 export function generateTestCoverageAuditShip(_ctx: TemplateContext): string {
-  return generateTestCoverageAuditInner('ship');
+  return generateTestCoverageAuditInner("ship");
 }
 
 export function generateTestCoverageAuditReview(_ctx: TemplateContext): string {
-  return generateTestCoverageAuditInner('review');
+  return generateTestCoverageAuditInner("review");
 }

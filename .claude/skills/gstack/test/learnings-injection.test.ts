@@ -2,7 +2,12 @@ import { describe, test, expect } from "bun:test";
 import { readFileSync } from "fs";
 import path from "path";
 
-const SCRIPT = path.join(import.meta.dir, "..", "bin", "gstack-learnings-search");
+const SCRIPT = path.join(
+  import.meta.dir,
+  "..",
+  "bin",
+  "gstack-learnings-search",
+);
 
 describe("gstack-learnings-search injection prevention", () => {
   const script = readFileSync(SCRIPT, "utf-8");

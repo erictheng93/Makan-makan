@@ -2,13 +2,13 @@
 
 ## What we're building
 
-Right now when Claude is working in a Conductor workspace — editing files, running tests, browsing your app — you can only watch from Conductor's chat window. If Claude is doing QA on your website, you see tool calls scrolling by but you can't actually *see* the browser.
+Right now when Claude is working in a Conductor workspace — editing files, running tests, browsing your app — you can only watch from Conductor's chat window. If Claude is doing QA on your website, you see tool calls scrolling by but you can't actually _see_ the browser.
 
 We built a Chrome sidebar that fixes this. When you run `$B connect`, Chrome opens with a side panel that shows everything Claude is doing in real time. You can type messages in the sidebar and Claude acts on them — "click the signup button", "go to the settings page", "summarize what you see."
 
 The problem: the sidebar currently runs its own separate Claude instance. It can't see what the main Conductor session is doing, and the main session can't see what the sidebar is doing. They're two separate agents that don't talk to each other.
 
-The fix is simple: make the sidebar a *window into* the Conductor session, not a separate thing.
+The fix is simple: make the sidebar a _window into_ the Conductor session, not a separate thing.
 
 ## What we need from Conductor (3 things)
 

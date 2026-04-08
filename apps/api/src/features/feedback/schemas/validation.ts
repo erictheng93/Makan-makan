@@ -24,10 +24,11 @@ export const createFeedbackSchema = z.object({
     .optional(),
 });
 
-export const updateFeedbackSchema = createFeedbackSchema.partial().refine(
-  (data) => Object.values(data).some((v) => v !== undefined),
-  { message: "At least one field must be provided" },
-);
+export const updateFeedbackSchema = createFeedbackSchema
+  .partial()
+  .refine((data) => Object.values(data).some((v) => v !== undefined), {
+    message: "At least one field must be provided",
+  });
 
 export const updateFeedbackStatusSchema = z.object({
   status: z.enum(FEEDBACK_STATUSES),
@@ -57,7 +58,10 @@ export const feedbackIdParamSchema = z.object({
 });
 
 export const responseIdParamSchema = z.object({
-  id: z.coerce.number().int().positive("Feedback ID must be a positive integer"),
+  id: z.coerce
+    .number()
+    .int()
+    .positive("Feedback ID must be a positive integer"),
   responseId: z.coerce
     .number()
     .int()

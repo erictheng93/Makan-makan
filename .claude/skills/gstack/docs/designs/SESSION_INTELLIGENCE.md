@@ -23,6 +23,7 @@ survive compaction. Because nobody else has gstack's artifact architecture.
 ## The Insight
 
 gstack already writes structured artifacts to `~/.gstack/projects/$SLUG/`:
+
 - CEO plans: `ceo-plans/`
 - Design reviews: `design-reviews/`
 - Eng reviews: `eng-reviews/`
@@ -70,6 +71,7 @@ After compaction, re-read them."
 ## The Features
 
 ### Layer 1: Context Recovery (preamble, all skills)
+
 ~10 lines of prose in the preamble. After compaction or context degradation,
 the agent checks `~/.gstack/projects/$SLUG/` for recent plans, reviews, and
 checkpoints. Lists the directory, reads the most recent file.
@@ -77,6 +79,7 @@ checkpoints. Lists the directory, reads the most recent file.
 Cost: near-zero. Benefit: every skill's plans/reviews survive compaction.
 
 ### Layer 2: Session Timeline (preamble, all skills)
+
 Every skill appends a one-line JSONL entry to `timeline.jsonl`: timestamp,
 skill name, branch, key outcome. `/retro` renders it.
 
@@ -84,6 +87,7 @@ Makes the project's AI-assisted work history visible. "This week: 3 /review,
 2 /ship, 1 /investigate across branches feature-auth and fix-billing."
 
 ### Layer 3: Cross-Session Injection (preamble, all skills)
+
 When a new session starts on a branch with recent artifacts, the preamble
 prints a one-liner: "Last session: implemented JWT auth, 3/5 tasks done.
 Plan: ~/.gstack/projects/$SLUG/checkpoints/latest.md"
@@ -91,11 +95,13 @@ Plan: ~/.gstack/projects/$SLUG/checkpoints/latest.md"
 The agent knows where you left off before reading any files.
 
 ### Layer 4: /checkpoint (opt-in skill)
+
 Manual snapshot of working state: what's being done, files being edited,
 decisions made, what's remaining. Useful before stepping away, before
 complex operations, for workspace handoffs, or coming back after days.
 
 ### Layer 5: /health (opt-in skill)
+
 Code quality dashboard: type-check, lint, test suite, dead code scan.
 Composite 0-10 score. Tracks over time. `/retro` shows trends. `/ship`
 gates on configurable threshold.
@@ -109,9 +115,9 @@ Session 1: /plan-ceo-review produces a plan. Saved to disk.
 Session 2: Agent reads the plan after preamble. Doesn't re-ask decisions.
 Session 3: /checkpoint saves progress. Timeline shows 2 /review, 1 /ship.
 Session 4: Compaction fires mid-refactor. Agent re-reads the checkpoint.
-           Recovers key decisions, types, remaining work. Continues.
+Recovers key decisions, types, remaining work. Continues.
 Session 5: /retro rolls up the week. Health trend: 6/10 → 8/10.
-           Timeline shows 12 skill invocations across 3 branches.
+Timeline shows 12 skill invocations across 3 branches.
 
 The project's AI history is no longer ephemeral. It persists, compounds,
 and makes every future session smarter. That's the session intelligence

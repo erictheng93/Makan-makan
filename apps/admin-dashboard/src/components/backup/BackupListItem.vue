@@ -8,11 +8,15 @@
       <div class="backup-info">
         <h3 class="backup-name">{{ backup.name }}</h3>
         <div class="backup-meta">
-          <span class="backup-type">{{ t(`backup.types.${backup.backup_type}`) }}</span>
+          <span class="backup-type">{{
+            t(`backup.types.${backup.backup_type}`)
+          }}</span>
           <span class="backup-separator">•</span>
           <span class="backup-date">{{ formatDate(backup.started_at) }}</span>
           <span class="backup-separator">•</span>
-          <span class="backup-size">{{ formatFileSize(backup.file_size) }}</span>
+          <span class="backup-size">{{
+            formatFileSize(backup.file_size)
+          }}</span>
         </div>
         <div v-if="backup.status !== 'completed'" class="backup-status">
           <span class="status-badge" :class="`status-${backup.status}`">
@@ -29,12 +33,17 @@
       <!-- Progress indicator for in-progress backups -->
       <div v-if="backup.status === 'in_progress'" class="progress-indicator">
         <div class="spinner"></div>
-        <span class="progress-text">{{ t('backup.status.processing') }}</span>
+        <span class="progress-text">{{ t("backup.status.processing") }}</span>
       </div>
 
       <!-- Duration for completed backups -->
-      <div v-else-if="backup.status === 'completed' && backup.completed_at" class="duration-info">
-        <span class="duration">{{ formatDuration(backup.started_at, backup.completed_at) }}</span>
+      <div
+        v-else-if="backup.status === 'completed' && backup.completed_at"
+        class="duration-info"
+      >
+        <span class="duration">{{
+          formatDuration(backup.started_at, backup.completed_at)
+        }}</span>
       </div>
 
       <!-- Action buttons -->
@@ -83,40 +92,52 @@
     <div v-if="showDetails" class="backup-details">
       <div class="details-grid">
         <div class="detail-item">
-          <span class="detail-label">{{ t('backup.details.id') }}</span>
+          <span class="detail-label">{{ t("backup.details.id") }}</span>
           <span class="detail-value">{{ backup.id }}</span>
         </div>
 
         <div class="detail-item">
-          <span class="detail-label">{{ t('backup.details.configuration') }}</span>
-          <span class="detail-value">{{ backup.configuration_id || t('backup.details.manual') }}</span>
+          <span class="detail-label">{{
+            t("backup.details.configuration")
+          }}</span>
+          <span class="detail-value">{{
+            backup.configuration_id || t("backup.details.manual")
+          }}</span>
         </div>
 
         <div class="detail-item">
-          <span class="detail-label">{{ t('backup.details.recordsCount') }}</span>
-          <span class="detail-value">{{ backup.records_count?.toLocaleString() || 0 }}</span>
+          <span class="detail-label">{{
+            t("backup.details.recordsCount")
+          }}</span>
+          <span class="detail-value">{{
+            backup.records_count?.toLocaleString() || 0
+          }}</span>
         </div>
 
         <div class="detail-item">
-          <span class="detail-label">{{ t('backup.details.storage') }}</span>
-          <span class="detail-value">{{ backup.storage_provider.toUpperCase() }}</span>
+          <span class="detail-label">{{ t("backup.details.storage") }}</span>
+          <span class="detail-value">{{
+            backup.storage_provider.toUpperCase()
+          }}</span>
         </div>
 
         <div class="detail-item">
-          <span class="detail-label">{{ t('backup.details.encrypted') }}</span>
+          <span class="detail-label">{{ t("backup.details.encrypted") }}</span>
           <span class="detail-value">
-            {{ backup.encryption_enabled ? t('common.yes') : t('common.no') }}
+            {{ backup.encryption_enabled ? t("common.yes") : t("common.no") }}
           </span>
         </div>
 
         <div class="detail-item">
-          <span class="detail-label">{{ t('backup.details.checksum') }}</span>
-          <span class="detail-value checksum">{{ backup.checksum || '-' }}</span>
+          <span class="detail-label">{{ t("backup.details.checksum") }}</span>
+          <span class="detail-value checksum">{{
+            backup.checksum || "-"
+          }}</span>
         </div>
       </div>
 
       <div v-if="backup.tables_included" class="tables-info">
-        <span class="detail-label">{{ t('backup.details.tables') }}:</span>
+        <span class="detail-label">{{ t("backup.details.tables") }}:</span>
         <div class="table-tags">
           <span
             v-for="table in backup.tables_included"
@@ -129,24 +150,39 @@
       </div>
 
       <div v-if="backup.metadata?.performance_metrics" class="performance-info">
-        <h4>{{ t('backup.details.performance') }}</h4>
+        <h4>{{ t("backup.details.performance") }}</h4>
         <div class="performance-grid">
           <div class="metric">
-            <span class="metric-label">{{ t('backup.metrics.duration') }}</span>
+            <span class="metric-label">{{ t("backup.metrics.duration") }}</span>
             <span class="metric-value">
-              {{ Math.round(backup.metadata.performance_metrics.backup_duration_ms / 1000) }}s
+              {{
+                Math.round(
+                  backup.metadata.performance_metrics.backup_duration_ms / 1000,
+                )
+              }}s
             </span>
           </div>
           <div class="metric">
-            <span class="metric-label">{{ t('backup.metrics.compression') }}</span>
+            <span class="metric-label">{{
+              t("backup.metrics.compression")
+            }}</span>
             <span class="metric-value">
-              {{ Math.round(backup.metadata.performance_metrics.compression_ratio * 100) }}%
+              {{
+                Math.round(
+                  backup.metadata.performance_metrics.compression_ratio * 100,
+                )
+              }}%
             </span>
           </div>
           <div class="metric">
-            <span class="metric-label">{{ t('backup.metrics.uploadSpeed') }}</span>
+            <span class="metric-label">{{
+              t("backup.metrics.uploadSpeed")
+            }}</span>
             <span class="metric-value">
-              {{ backup.metadata.performance_metrics.upload_speed_mbps.toFixed(1) }} MB/s
+              {{
+                backup.metadata.performance_metrics.upload_speed_mbps.toFixed(1)
+              }}
+              MB/s
             </span>
           </div>
         </div>
@@ -156,54 +192,59 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
 // TODO: Import from @makanmakan/shared-types when workspace is configured
 // import type { BackupRecord } from '@makanmakan/shared-types'
 
 // Temporary type definition
-type BackupStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
-type BackupType = 'full' | 'incremental' | 'differential'
-type StorageProvider = 'r2' | 'kv' | 'external'
+type BackupStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "cancelled";
+type BackupType = "full" | "incremental" | "differential";
+type StorageProvider = "r2" | "kv" | "external";
 
 interface BackupRecord {
-  id: string
-  restaurant_id: string
-  configuration_id: string
-  name: string
-  backup_type: BackupType
-  status: BackupStatus
-  file_size: number
-  compressed_size: number
-  records_count: number
-  tables_included: string[]
-  storage_provider: StorageProvider
-  storage_path: string
-  encryption_enabled: boolean
-  checksum: string
-  started_at: string
-  completed_at?: string
-  error_message?: string
-  created_by: string
-  expires_at?: string
+  id: string;
+  restaurant_id: string;
+  configuration_id: string;
+  name: string;
+  backup_type: BackupType;
+  status: BackupStatus;
+  file_size: number;
+  compressed_size: number;
+  records_count: number;
+  tables_included: string[];
+  storage_provider: StorageProvider;
+  storage_path: string;
+  encryption_enabled: boolean;
+  checksum: string;
+  started_at: string;
+  completed_at?: string;
+  error_message?: string;
+  created_by: string;
+  expires_at?: string;
   metadata: {
     tables_info: Array<{
-      table_name: string
-      record_count: number
-      estimated_size: number
-    }>
+      table_name: string;
+      record_count: number;
+      estimated_size: number;
+    }>;
     performance_metrics: {
-      backup_duration_ms: number
-      compression_ratio: number
-      upload_speed_mbps: number
-    }
+      backup_duration_ms: number;
+      compression_ratio: number;
+      upload_speed_mbps: number;
+    };
     database_snapshot: {
-      version: string
-      schema_hash: string
-      total_tables: number
-      total_records: number
-    }
-  }
+      version: string;
+      schema_hash: string;
+      total_tables: number;
+      total_records: number;
+    };
+  };
 }
 
 // Icons (using placeholder components - replace with actual icons)
@@ -215,88 +256,94 @@ import {
   ArrowDownTrayIcon as DownloadIcon,
   ArrowPathIcon,
   InformationCircleIcon,
-  TrashIcon
-} from '@heroicons/vue/24/outline'
+  TrashIcon,
+} from "@heroicons/vue/24/outline";
 
 const props = defineProps<{
-  backup: BackupRecord
-}>()
+  backup: BackupRecord;
+}>();
 
 defineEmits<{
-  download: [backup: BackupRecord]
-  restore: [backup: BackupRecord]
-  delete: [backup: BackupRecord]
-}>()
+  download: [backup: BackupRecord];
+  restore: [backup: BackupRecord];
+  delete: [backup: BackupRecord];
+}>();
 
-const { t } = useI18n()
-const showDetails = ref(false)
+const { t } = useI18n();
+const showDetails = ref(false);
 
 // Computed properties
 const statusClass = computed(() => ({
-  'status-completed': props.backup.status === 'completed',
-  'status-in_progress': props.backup.status === 'in_progress',
-  'status-failed': props.backup.status === 'failed',
-  'status-pending': props.backup.status === 'pending',
-  'status-cancelled': props.backup.status === 'cancelled'
-}))
+  "status-completed": props.backup.status === "completed",
+  "status-in_progress": props.backup.status === "in_progress",
+  "status-failed": props.backup.status === "failed",
+  "status-pending": props.backup.status === "pending",
+  "status-cancelled": props.backup.status === "cancelled",
+}));
 
 const statusIcon = computed(() => {
   switch (props.backup.status) {
-    case 'completed': return CheckCircleIcon
-    case 'failed': return XCircleIcon
-    case 'in_progress': return ClockIcon
-    case 'pending': return ClockIcon
-    case 'cancelled': return XCircleIcon
-    default: return ExclamationTriangleIcon
+    case "completed":
+      return CheckCircleIcon;
+    case "failed":
+      return XCircleIcon;
+    case "in_progress":
+      return ClockIcon;
+    case "pending":
+      return ClockIcon;
+    case "cancelled":
+      return XCircleIcon;
+    default:
+      return ExclamationTriangleIcon;
   }
-})
+});
 
 const iconClass = computed(() => ({
-  'text-green-500': props.backup.status === 'completed',
-  'text-red-500': props.backup.status === 'failed',
-  'text-blue-500': props.backup.status === 'in_progress',
-  'text-yellow-500': props.backup.status === 'pending',
-  'text-gray-500': props.backup.status === 'cancelled'
-}))
+  "text-green-500": props.backup.status === "completed",
+  "text-red-500": props.backup.status === "failed",
+  "text-blue-500": props.backup.status === "in_progress",
+  "text-yellow-500": props.backup.status === "pending",
+  "text-gray-500": props.backup.status === "cancelled",
+}));
 
 // Methods
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString)
+  const date = new Date(dateString);
   return date.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 const formatFileSize = (bytes: number): string => {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let size = bytes
-  let unitIndex = 0
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = bytes;
+  let unitIndex = 0;
 
   while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024
-    unitIndex++
+    size /= 1024;
+    unitIndex++;
   }
 
-  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
-}
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
 
 const formatDuration = (startTime: string, endTime: string): string => {
-  const start = new Date(startTime)
-  const end = new Date(endTime)
-  const duration = Math.round((end.getTime() - start.getTime()) / 1000)
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const duration = Math.round((end.getTime() - start.getTime()) / 1000);
 
   if (duration < 60) {
-    return `${duration}s`
+    return `${duration}s`;
   } else if (duration < 3600) {
-    return `${Math.round(duration / 60)}m`
+    return `${Math.round(duration / 60)}m`;
   } else {
-    return `${Math.round(duration / 3600)}h`
+    return `${Math.round(duration / 3600)}h`;
   }
-}
+};
 </script>
 
 <style scoped>
@@ -520,7 +567,7 @@ const formatDuration = (startTime: string, endTime: string): string => {
 }
 
 .checksum {
-  font-family: 'Monaco', 'Menlo', monospace;
+  font-family: "Monaco", "Menlo", monospace;
   font-size: 0.75rem;
   word-break: break-all;
 }

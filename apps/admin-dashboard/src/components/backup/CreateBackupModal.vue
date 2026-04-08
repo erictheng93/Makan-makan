@@ -2,7 +2,7 @@
   <div class="modal-overlay" @click="handleOverlayClick">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
-        <h2>{{ t('backup.create.title') }}</h2>
+        <h2>{{ t("backup.create.title") }}</h2>
         <button class="close-btn" @click="$emit('close')">
           <XMarkIcon />
         </button>
@@ -11,18 +11,18 @@
       <form class="backup-form" @submit.prevent="handleSubmit">
         <!-- Basic Information -->
         <div class="form-section">
-          <h3>{{ t('backup.create.basicInfo') }}</h3>
+          <h3>{{ t("backup.create.basicInfo") }}</h3>
 
           <div class="form-group">
             <label for="backup-name" class="form-label">
-              {{ t('backup.create.name') }} *
+              {{ t("backup.create.name") }} *
             </label>
             <input
               id="backup-name"
               v-model="form.name"
               type="text"
               class="form-input"
-              :class="{ 'error': errors.name }"
+              :class="{ error: errors.name }"
               :placeholder="t('backup.create.namePlaceholder')"
               required
             />
@@ -31,7 +31,7 @@
 
           <div class="form-group">
             <label for="backup-description" class="form-label">
-              {{ t('backup.create.description') }}
+              {{ t("backup.create.description") }}
             </label>
             <textarea
               id="backup-description"
@@ -44,7 +44,7 @@
 
           <div class="form-group">
             <label for="backup-type" class="form-label">
-              {{ t('backup.create.type') }} *
+              {{ t("backup.create.type") }} *
             </label>
             <select
               id="backup-type"
@@ -52,21 +52,27 @@
               class="form-select"
               required
             >
-              <option value="full">{{ t('backup.types.full') }}</option>
-              <option value="incremental">{{ t('backup.types.incremental') }}</option>
-              <option value="differential">{{ t('backup.types.differential') }}</option>
+              <option value="full">{{ t("backup.types.full") }}</option>
+              <option value="incremental">
+                {{ t("backup.types.incremental") }}
+              </option>
+              <option value="differential">
+                {{ t("backup.types.differential") }}
+              </option>
             </select>
-            <p class="form-help">{{ getBackupTypeDescription(form.backup_type || 'full') }}</p>
+            <p class="form-help">
+              {{ getBackupTypeDescription(form.backup_type || "full") }}
+            </p>
           </div>
         </div>
 
         <!-- Configuration Selection -->
         <div class="form-section">
-          <h3>{{ t('backup.create.configuration') }}</h3>
+          <h3>{{ t("backup.create.configuration") }}</h3>
 
           <div class="form-group">
             <label class="form-label">
-              {{ t('backup.create.useConfiguration') }}
+              {{ t("backup.create.useConfiguration") }}
             </label>
             <div class="radio-group">
               <label class="radio-option">
@@ -76,7 +82,7 @@
                   value="existing"
                   @change="handleConfigModeChange"
                 />
-                <span>{{ t('backup.create.useExisting') }}</span>
+                <span>{{ t("backup.create.useExisting") }}</span>
               </label>
               <label class="radio-option">
                 <input
@@ -85,7 +91,7 @@
                   value="manual"
                   @change="handleConfigModeChange"
                 />
-                <span>{{ t('backup.create.manualConfig') }}</span>
+                <span>{{ t("backup.create.manualConfig") }}</span>
               </label>
             </div>
           </div>
@@ -93,7 +99,7 @@
           <!-- Existing Configuration Selection -->
           <div v-if="configMode === 'existing'" class="form-group">
             <label for="config-select" class="form-label">
-              {{ t('backup.create.selectConfig') }} *
+              {{ t("backup.create.selectConfig") }} *
             </label>
             <select
               id="config-select"
@@ -101,13 +107,17 @@
               class="form-select"
               required
             >
-              <option value="">{{ t('backup.create.selectConfigPlaceholder') }}</option>
+              <option value="">
+                {{ t("backup.create.selectConfigPlaceholder") }}
+              </option>
               <option
                 v-for="config in configurations"
                 :key="config.id"
                 :value="config.id"
               >
-                {{ config.name }} ({{ t(`backup.types.${config.backup_type}`) }})
+                {{ config.name }} ({{
+                  t(`backup.types.${config.backup_type}`)
+                }})
               </option>
             </select>
           </div>
@@ -115,11 +125,11 @@
 
         <!-- Manual Configuration -->
         <div v-if="configMode === 'manual'" class="form-section">
-          <h3>{{ t('backup.create.advancedOptions') }}</h3>
+          <h3>{{ t("backup.create.advancedOptions") }}</h3>
 
           <div class="form-group">
             <label class="form-label">
-              {{ t('backup.create.tableSelection') }}
+              {{ t("backup.create.tableSelection") }}
             </label>
             <div class="radio-group">
               <label class="radio-option">
@@ -129,7 +139,7 @@
                   value="all"
                   @change="handleTableModeChange"
                 />
-                <span>{{ t('backup.create.allTables') }}</span>
+                <span>{{ t("backup.create.allTables") }}</span>
               </label>
               <label class="radio-option">
                 <input
@@ -138,7 +148,7 @@
                   value="include"
                   @change="handleTableModeChange"
                 />
-                <span>{{ t('backup.create.includeTables') }}</span>
+                <span>{{ t("backup.create.includeTables") }}</span>
               </label>
               <label class="radio-option">
                 <input
@@ -147,7 +157,7 @@
                   value="exclude"
                   @change="handleTableModeChange"
                 />
-                <span>{{ t('backup.create.excludeTables') }}</span>
+                <span>{{ t("backup.create.excludeTables") }}</span>
               </label>
             </div>
           </div>
@@ -155,7 +165,7 @@
           <!-- Include Tables -->
           <div v-if="tableMode === 'include'" class="form-group">
             <label class="form-label">
-              {{ t('backup.create.tablesToInclude') }} *
+              {{ t("backup.create.tablesToInclude") }} *
             </label>
             <div class="checkbox-grid">
               <label
@@ -176,7 +186,7 @@
           <!-- Exclude Tables -->
           <div v-if="tableMode === 'exclude'" class="form-group">
             <label class="form-label">
-              {{ t('backup.create.tablesToExclude') }}
+              {{ t("backup.create.tablesToExclude") }}
             </label>
             <div class="checkbox-grid">
               <label
@@ -197,18 +207,17 @@
 
         <!-- Execution Options -->
         <div class="form-section">
-          <h3>{{ t('backup.create.execution') }}</h3>
+          <h3>{{ t("backup.create.execution") }}</h3>
 
           <div class="form-group">
             <label class="checkbox-option large">
-              <input
-                v-model="form.force_immediate"
-                type="checkbox"
-              />
+              <input v-model="form.force_immediate" type="checkbox" />
               <div>
-                <span class="checkbox-label">{{ t('backup.create.forceImmediate') }}</span>
+                <span class="checkbox-label">{{
+                  t("backup.create.forceImmediate")
+                }}</span>
                 <p class="checkbox-description">
-                  {{ t('backup.create.forceImmediateDescription') }}
+                  {{ t("backup.create.forceImmediateDescription") }}
                 </p>
               </div>
             </label>
@@ -222,7 +231,7 @@
             class="btn btn-secondary"
             @click="$emit('close')"
           >
-            {{ t('common.cancel') }}
+            {{ t("common.cancel") }}
           </button>
           <button
             type="submit"
@@ -230,7 +239,11 @@
             :disabled="isSubmitting"
           >
             <span v-if="isSubmitting" class="loading-spinner"></span>
-            {{ isSubmitting ? t('backup.create.creating') : t('backup.create.create') }}
+            {{
+              isSubmitting
+                ? t("backup.create.creating")
+                : t("backup.create.create")
+            }}
           </button>
         </div>
       </form>
@@ -239,198 +252,213 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useBackupStore } from '@/stores/backup'
-import { useAuthStore } from '@/stores/auth'
+import { ref, reactive, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
+import { useBackupStore } from "@/stores/backup";
+import { useAuthStore } from "@/stores/auth";
 // TODO: Import from @makanmakan/shared-types when workspace is configured
 // import type { BackupConfiguration, CreateBackupRequest } from '@makanmakan/shared-types'
 
 // Temporary type definitions
-type BackupType = 'full' | 'incremental' | 'differential'
-type StorageProvider = 'r2' | 'kv' | 'external'
+type BackupType = "full" | "incremental" | "differential";
+type StorageProvider = "r2" | "kv" | "external";
 
 interface BackupConfiguration {
-  id: string
-  restaurant_id: string
-  name: string
-  description?: string
-  backup_type: BackupType
-  schedule_enabled: boolean
-  schedule_cron?: string
-  retention_days: number
-  include_tables?: string[]
-  exclude_tables?: string[]
-  compression_enabled: boolean
-  encryption_enabled: boolean
-  storage_provider: StorageProvider
-  max_parallel_backups: number
-  notifications_enabled: boolean
-  notification_channels: string[]
-  created_by: string
-  created_at: string
-  updated_at: string
+  id: string;
+  restaurant_id: string;
+  name: string;
+  description?: string;
+  backup_type: BackupType;
+  schedule_enabled: boolean;
+  schedule_cron?: string;
+  retention_days: number;
+  include_tables?: string[];
+  exclude_tables?: string[];
+  compression_enabled: boolean;
+  encryption_enabled: boolean;
+  storage_provider: StorageProvider;
+  max_parallel_backups: number;
+  notifications_enabled: boolean;
+  notification_channels: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface CreateBackupRequest {
-  restaurant_id: string
-  configuration_id?: string
-  name: string
-  description?: string
-  backup_type?: BackupType
-  include_tables?: string[]
-  exclude_tables?: string[]
-  force_immediate?: boolean
+  restaurant_id: string;
+  configuration_id?: string;
+  name: string;
+  description?: string;
+  backup_type?: BackupType;
+  include_tables?: string[];
+  exclude_tables?: string[];
+  force_immediate?: boolean;
 }
 
-import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon } from "@heroicons/vue/24/outline";
 
 const emit = defineEmits<{
-  close: []
-  created: [backupId: string]
-}>()
+  close: [];
+  created: [backupId: string];
+}>();
 
-const { t } = useI18n()
-const backupStore = useBackupStore()
-const authStore = useAuthStore()
+const { t } = useI18n();
+const backupStore = useBackupStore();
+const authStore = useAuthStore();
 
 // Reactive data
-const isSubmitting = ref(false)
-const configMode = ref<'existing' | 'manual'>('existing')
-const tableMode = ref<'all' | 'include' | 'exclude'>('all')
-const configurations = ref<BackupConfiguration[]>([])
+const isSubmitting = ref(false);
+const configMode = ref<"existing" | "manual">("existing");
+const tableMode = ref<"all" | "include" | "exclude">("all");
+const configurations = ref<BackupConfiguration[]>([]);
 const availableTables = ref<string[]>([
-  'orders', 'order_items', 'menu_items', 'customers',
-  'tables', 'reservations', 'payments', 'users'
-])
+  "orders",
+  "order_items",
+  "menu_items",
+  "customers",
+  "tables",
+  "reservations",
+  "payments",
+  "users",
+]);
 
 const form = reactive<CreateBackupRequest>({
-  restaurant_id: '',
-  name: '',
-  description: '',
-  backup_type: 'full',
-  configuration_id: '',
+  restaurant_id: "",
+  name: "",
+  description: "",
+  backup_type: "full",
+  configuration_id: "",
   include_tables: [],
   exclude_tables: [],
-  force_immediate: false
-})
+  force_immediate: false,
+});
 
 const errors = reactive({
-  name: ''
-})
+  name: "",
+});
 
 // Methods
 const handleOverlayClick = (event: Event) => {
   if (event.target === event.currentTarget) {
-    emit('close')
+    emit("close");
   }
-}
+};
 
 const getBackupTypeDescription = (type: string | undefined): string => {
-  return t(`backup.types.${type}Description`)
-}
+  return t(`backup.types.${type}Description`);
+};
 
 const handleConfigModeChange = () => {
-  if (configMode.value === 'existing') {
-    form.include_tables = []
-    form.exclude_tables = []
-    form.configuration_id = ''
+  if (configMode.value === "existing") {
+    form.include_tables = [];
+    form.exclude_tables = [];
+    form.configuration_id = "";
   } else {
-    form.configuration_id = undefined
+    form.configuration_id = undefined;
   }
-}
+};
 
 const handleTableModeChange = () => {
-  form.include_tables = []
-  form.exclude_tables = []
-}
+  form.include_tables = [];
+  form.exclude_tables = [];
+};
 
 const validateForm = (): boolean => {
-  errors.name = ''
+  errors.name = "";
 
   if (!form.name.trim()) {
-    errors.name = t('backup.errors.nameRequired')
-    return false
+    errors.name = t("backup.errors.nameRequired");
+    return false;
   }
 
   if (form.name.length > 100) {
-    errors.name = t('backup.errors.nameTooLong')
-    return false
+    errors.name = t("backup.errors.nameTooLong");
+    return false;
   }
 
-  if (configMode.value === 'existing' && !form.configuration_id) {
-    return false
+  if (configMode.value === "existing" && !form.configuration_id) {
+    return false;
   }
 
-  if (tableMode.value === 'include' && (!form.include_tables || form.include_tables.length === 0)) {
-    return false
+  if (
+    tableMode.value === "include" &&
+    (!form.include_tables || form.include_tables.length === 0)
+  ) {
+    return false;
   }
 
-  return true
-}
+  return true;
+};
 
 const handleSubmit = async () => {
-  if (!validateForm() || isSubmitting.value) return
+  if (!validateForm() || isSubmitting.value) return;
 
-  isSubmitting.value = true
+  isSubmitting.value = true;
 
   try {
     // Clean up form data based on mode
     const submitData: CreateBackupRequest = {
-      restaurant_id: String(authStore.restaurantId || ''),
+      restaurant_id: String(authStore.restaurantId || ""),
       name: form.name.trim(),
       description: form.description?.trim() || undefined,
       backup_type: form.backup_type,
-      force_immediate: form.force_immediate
-    }
+      force_immediate: form.force_immediate,
+    };
 
-    if (configMode.value === 'existing') {
-      submitData.configuration_id = form.configuration_id
+    if (configMode.value === "existing") {
+      submitData.configuration_id = form.configuration_id;
     } else {
       // Manual configuration
-      if (tableMode.value === 'include') {
-        submitData.include_tables = [...(form.include_tables || [])]
-      } else if (tableMode.value === 'exclude') {
-        submitData.exclude_tables = [...(form.exclude_tables || [])]
+      if (tableMode.value === "include") {
+        submitData.include_tables = [...(form.include_tables || [])];
+      } else if (tableMode.value === "exclude") {
+        submitData.exclude_tables = [...(form.exclude_tables || [])];
       }
     }
 
-    const response = await backupStore.createBackup(submitData)
+    const response = await backupStore.createBackup(submitData);
 
-    emit('created', response.backup_id)
+    emit("created", response.backup_id);
   } catch (error) {
-    console.error('Error creating backup:', error)
+    console.error("Error creating backup:", error);
     // Handle error (show toast notification)
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 
 const loadConfigurations = async () => {
   try {
-    const restaurantId = authStore.restaurantId
-    if (!restaurantId) return
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
 
-    configurations.value = await backupStore.getBackupConfigurations(String(restaurantId))
+    configurations.value = await backupStore.getBackupConfigurations(
+      String(restaurantId),
+    );
   } catch (error) {
-    console.error('Error loading configurations:', error)
+    console.error("Error loading configurations:", error);
   }
-}
+};
 
 // Generate default backup name
 const generateDefaultName = (): string => {
-  const now = new Date()
-  const restaurantName = 'Restaurant'
-  const timestamp = now.toISOString().slice(0, 16).replace('T', '_').replace(':', '-')
-  return `${restaurantName}_Backup_${timestamp}`
-}
+  const now = new Date();
+  const restaurantName = "Restaurant";
+  const timestamp = now
+    .toISOString()
+    .slice(0, 16)
+    .replace("T", "_")
+    .replace(":", "-");
+  return `${restaurantName}_Backup_${timestamp}`;
+};
 
 // Lifecycle
 onMounted(() => {
-  form.restaurant_id = String(authStore.restaurantId || '')
-  form.name = generateDefaultName()
-  loadConfigurations()
-})
+  form.restaurant_id = String(authStore.restaurantId || "");
+  form.name = generateDefaultName();
+  loadConfigurations();
+});
 </script>
 
 <style scoped>

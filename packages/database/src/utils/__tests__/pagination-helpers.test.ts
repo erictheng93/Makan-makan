@@ -137,7 +137,11 @@ describe("pagination-helpers", () => {
     it("should build response with data and pagination metadata", () => {
       const data = [{ id: 1 }, { id: 2 }];
 
-      const response = createPaginatedResponse(data, { page: 1, pageSize: 20 }, 50);
+      const response = createPaginatedResponse(
+        data,
+        { page: 1, pageSize: 20 },
+        50,
+      );
 
       expect(response.data).toEqual(data);
       expect(response.pagination).toEqual(
@@ -152,7 +156,11 @@ describe("pagination-helpers", () => {
     });
 
     it("should calculate hasNextPage correctly", () => {
-      const response = createPaginatedResponse([], { page: 3, pageSize: 20 }, 50);
+      const response = createPaginatedResponse(
+        [],
+        { page: 3, pageSize: 20 },
+        50,
+      );
 
       expect(response.pagination.hasNextPage).toBe(false); // page 3 * 20 = 60 > 50
     });

@@ -38,6 +38,7 @@ variants to force all tests. Run `eval:select` to preview which tests would run.
 (in `test/helpers/touchfiles.ts`). CI runs only gate tests (`EVALS_TIER=gate`);
 periodic tests run weekly via cron or manually. Use `EVALS_TIER=gate` or
 `EVALS_TIER=periodic` to filter. When adding new E2E tests, classify them:
+
 1. Safety guardrail or deterministic functional test? -> `gate`
 2. Quality benchmark, Opus model test, or non-deterministic? -> `periodic`
 3. Requires external service (Codex, Gemini)? -> `periodic`
@@ -160,6 +161,7 @@ SKILL.md.tmpl files are **prompt templates read by Claude**, not bash scripts.
 Each bash code block runs in a separate shell — variables do not persist between blocks.
 
 Rules:
+
 - **Use natural language for logic and state.** Don't use shell variables to pass
   state between code blocks. Instead, tell Claude what to remember and reference
   it in prose (e.g., "the base branch detected in Step 0").
@@ -195,6 +197,7 @@ could break other Claude Code sessions using gstack concurrently.
 
 **Check once per session:** Run `ls -la .claude/skills/gstack` to see if it's a
 symlink or a real copy. If it's a symlink to your working directory, be aware that:
+
 - Template changes + `bun run gen:skill-docs` immediately affect all gstack invocations
 - Breaking changes to SKILL.md.tmpl files can break concurrent gstack sessions
 - During large refactors, remove the symlink (`rm .claude/skills/gstack`) so the
@@ -208,7 +211,8 @@ Names are either short (`qa`) or namespaced (`gstack-qa`), controlled by
 skip the interactive prompt.
 
 **Note:** Vendoring gstack into a project's repo is deprecated. Use global install
-+ `./setup --team` instead. See README.md for team mode instructions.
+
+- `./setup --team` instead. See README.md for team mode instructions.
 
 **For plan reviews:** When reviewing plans that modify skill templates or the
 gen-skill-docs pipeline, consider whether the changes should be tested in isolation
@@ -242,6 +246,7 @@ into separate commits before pushing. Each commit should be independently
 understandable and revertable.
 
 Examples of good bisection:
+
 - Rename/move separate from behavior changes
 - Test infrastructure (touchfiles, helpers) separate from test implementations
 - Template changes separate from generated file regeneration
@@ -275,6 +280,7 @@ own version bump and CHANGELOG entry. The entry describes what THIS branch adds 
 not what was already on main.
 
 **When to write the CHANGELOG entry:**
+
 - At `/ship` time (Step 5), not during development or mid-branch.
 - The entry covers ALL commits on this branch vs the base branch.
 - Never fold new work into an existing CHANGELOG entry from a prior version that
@@ -282,6 +288,7 @@ not what was already on main.
   bump to v0.10.1.0 with a new entry — don't edit the v0.10.0.0 entry.
 
 **Key questions before writing:**
+
 1. What branch am I on? What did THIS branch change?
 2. Is the base branch version already released? (If yes, bump and create new entry.)
 3. Does an existing entry on this branch already cover earlier work? (If yes, replace
@@ -294,10 +301,11 @@ features, bump to v0.13.9.0 with a new entry. Never jam your changes into an ent
 already landed on main. Your entry goes on top because your branch lands next.
 
 **After merging main, always check:**
+
 - Does CHANGELOG have your branch's own entry separate from main's entries?
 - Is VERSION higher than main's VERSION?
 - Is your entry the topmost entry in CHANGELOG (above main's latest)?
-If any answer is no, fix it before continuing.
+  If any answer is no, fix it before continuing.
 
 **After any CHANGELOG edit that moves, adds, or removes entries,** immediately run
 `grep "^## \[" CHANGELOG.md` and verify the full version sequence is contiguous
@@ -319,14 +327,14 @@ CHANGELOG.md is **for users**, not contributors. Write it like product release n
 
 When estimating or discussing effort, always show both human-team and CC+gstack time:
 
-| Task type | Human team | CC+gstack | Compression |
-|-----------|-----------|-----------|-------------|
-| Boilerplate / scaffolding | 2 days | 15 min | ~100x |
-| Test writing | 1 day | 15 min | ~50x |
-| Feature implementation | 1 week | 30 min | ~30x |
-| Bug fix + regression test | 4 hours | 15 min | ~20x |
-| Architecture / design | 2 days | 4 hours | ~5x |
-| Research / exploration | 1 day | 3 hours | ~3x |
+| Task type                 | Human team | CC+gstack | Compression |
+| ------------------------- | ---------- | --------- | ----------- |
+| Boilerplate / scaffolding | 2 days     | 15 min    | ~100x       |
+| Test writing              | 1 day      | 15 min    | ~50x        |
+| Feature implementation    | 1 week     | 30 min    | ~30x        |
+| Bug fix + regression test | 4 hours    | 15 min    | ~20x        |
+| Architecture / design     | 2 days     | 4 hours   | ~5x         |
+| Research / exploration    | 1 day      | 3 hours   | ~3x         |
 
 Completeness is cheap. Don't recommend shortcuts when the complete implementation
 is a "lake" (achievable) not an "ocean" (multi-quarter migration). See the
@@ -359,6 +367,7 @@ a preamble text change affects agent behavior, a new helper changes timing, a
 regenerated SKILL.md shifts prompt context.
 
 **Required before attributing a failure to "pre-existing":**
+
 1. Run the same eval on main (or base branch) and show it fails there too
 2. If it passes on main but fails on the branch — it IS your change. Trace the blame.
 3. If you can't run on main, say "unverified — may or may not be related" and flag it
@@ -389,16 +398,23 @@ Instead, extract only the section the test actually needs:
 
 ```typescript
 // BAD — agent reads 1900 lines, burns tokens on irrelevant sections
-fs.copyFileSync(path.join(ROOT, 'ship', 'SKILL.md'), path.join(dir, 'ship-SKILL.md'));
+fs.copyFileSync(
+  path.join(ROOT, "ship", "SKILL.md"),
+  path.join(dir, "ship-SKILL.md"),
+);
 
 // GOOD — agent reads ~60 lines, finishes in 38s instead of timing out
-const full = fs.readFileSync(path.join(ROOT, 'ship', 'SKILL.md'), 'utf-8');
-const start = full.indexOf('## Review Readiness Dashboard');
-const end = full.indexOf('\n---\n', start);
-fs.writeFileSync(path.join(dir, 'ship-SKILL.md'), full.slice(start, end > start ? end : undefined));
+const full = fs.readFileSync(path.join(ROOT, "ship", "SKILL.md"), "utf-8");
+const start = full.indexOf("## Review Readiness Dashboard");
+const end = full.indexOf("\n---\n", start);
+fs.writeFileSync(
+  path.join(dir, "ship-SKILL.md"),
+  full.slice(start, end > start ? end : undefined),
+);
 ```
 
 Also when running targeted E2E tests to debug failures:
+
 - Run in **foreground** (`bun test ...`), not background with `&` and `tee`
 - Never `pkill` running eval processes and restart — you lose results and waste money
 - One clean run beats three killed-and-restarted runs
@@ -435,5 +451,6 @@ The active skill lives at `~/.claude/skills/gstack/`. After making changes:
 3. Rebuild: `cd ~/.claude/skills/gstack && bun run build`
 
 Or copy the binaries directly:
+
 - `cp browse/dist/browse ~/.claude/skills/gstack/browse/dist/browse`
 - `cp design/dist/design ~/.claude/skills/gstack/design/dist/design`

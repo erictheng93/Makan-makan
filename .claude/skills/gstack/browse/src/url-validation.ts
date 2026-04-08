@@ -4,18 +4,18 @@
  */
 
 export const BLOCKED_METADATA_HOSTS = new Set([
-  '169.254.169.254',  // AWS/GCP/Azure instance metadata
-  'fe80::1',          // IPv6 link-local — common metadata endpoint alias
-  '::ffff:169.254.169.254', // IPv4-mapped IPv6 form of the metadata IP
-  'metadata.google.internal', // GCP metadata
-  'metadata.azure.internal',  // Azure IMDS
+  "169.254.169.254", // AWS/GCP/Azure instance metadata
+  "fe80::1", // IPv6 link-local — common metadata endpoint alias
+  "::ffff:169.254.169.254", // IPv4-mapped IPv6 form of the metadata IP
+  "metadata.google.internal", // GCP metadata
+  "metadata.azure.internal", // Azure IMDS
 ]);
 
 /**
  * IPv6 prefixes to block (CIDR-style). Any address starting with these
  * hex prefixes is rejected. Covers the full ULA range (fc00::/7 = fc00:: and fd00::).
  */
-const BLOCKED_IPV6_PREFIXES = ['fc', 'fd'];
+const BLOCKED_IPV6_PREFIXES = ["fc", "fd"];
 
 /**
  * Check if an IPv6 address falls within a blocked prefix range.
@@ -24,11 +24,11 @@ const BLOCKED_IPV6_PREFIXES = ['fc', 'fd'];
  * like fd.example.com or fcustomer.com.
  */
 function isBlockedIpv6(addr: string): boolean {
-  const normalized = addr.toLowerCase().replace(/^\[|\]$/g, '');
+  const normalized = addr.toLowerCase().replace(/^\[|\]$/g, "");
   // Must contain a colon to be an IPv6 address — avoids false positives on
   // hostnames like fd.example.com or fcustomer.com
-  if (!normalized.includes(':')) return false;
-  return BLOCKED_IPV6_PREFIXES.some(prefix => normalized.startsWith(prefix));
+  if (!normalized.includes(":")) return false;
+  return BLOCKED_IPV6_PREFIXES.some((prefix) => normalized.startsWith(prefix));
 }
 
 /**
@@ -39,11 +39,12 @@ function isBlockedIpv6(addr: string): boolean {
  */
 function normalizeHostname(hostname: string): string {
   // Strip IPv6 brackets
-  let h = hostname.startsWith('[') && hostname.endsWith(']')
-    ? hostname.slice(1, -1)
-    : hostname;
+  let h =
+    hostname.startsWith("[") && hostname.endsWith("]")
+      ? hostname.slice(1, -1)
+      : hostname;
   // Strip trailing dot
-  if (h.endsWith('.')) h = h.slice(0, -1);
+  if (h.endsWith(".")) h = h.slice(0, -1);
   return h;
 }
 
@@ -56,9 +57,14 @@ function isMetadataIp(hostname: string): boolean {
   try {
     const probe = new URL(`http://${hostname}`);
     const normalized = probe.hostname;
-    if (BLOCKED_METADATA_HOSTS.has(normalized) || isBlockedIpv6(normalized)) return true;
+    if (BLOCKED_METADATA_HOSTS.has(normalized) || isBlockedIpv6(normalized))
+      return true;
     // Also check after stripping trailing dot
-    if (normalized.endsWith('.') && BLOCKED_METADATA_HOSTS.has(normalized.slice(0, -1))) return true;
+    if (
+      normalized.endsWith(".") &&
+      BLOCKED_METADATA_HOSTS.has(normalized.slice(0, -1))
+    )
+      return true;
   } catch {
     // Not a valid hostname — can't be a metadata IP
   }
@@ -75,23 +81,27 @@ function isMetadataIp(hostname: string): boolean {
  */
 async function resolvesToBlockedIp(hostname: string): Promise<boolean> {
   try {
-    const dns = await import('node:dns');
+    const dns = await import("node:dns");
     const { resolve4, resolve6 } = dns.promises;
 
     // Check IPv4 A records
     const v4Check = resolve4(hostname).then(
-      (addresses) => addresses.some(addr => BLOCKED_METADATA_HOSTS.has(addr)),
+      (addresses) => addresses.some((addr) => BLOCKED_METADATA_HOSTS.has(addr)),
       () => false, // ENODATA / ENOTFOUND — no A records, not a risk
     );
 
     // Check IPv6 AAAA records — the gap that issue #668 identified
     const v6Check = resolve6(hostname).then(
-      (addresses) => addresses.some(addr => {
-        const normalized = addr.toLowerCase();
-        return BLOCKED_METADATA_HOSTS.has(normalized) || isBlockedIpv6(normalized) ||
-          // fe80::/10 is link-local — always block (covers all fe80:: addresses)
-          normalized.startsWith('fe80:');
-      }),
+      (addresses) =>
+        addresses.some((addr) => {
+          const normalized = addr.toLowerCase();
+          return (
+            BLOCKED_METADATA_HOSTS.has(normalized) ||
+            isBlockedIpv6(normalized) ||
+            // fe80::/10 is link-local — always block (covers all fe80:: addresses)
+            normalized.startsWith("fe80:")
+          );
+        }),
       () => false, // ENODATA / ENOTFOUND — no AAAA records, not a risk
     );
 
@@ -111,28 +121,35 @@ export async function validateNavigationUrl(url: string): Promise<void> {
     throw new Error(`Invalid URL: ${url}`);
   }
 
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error(
-      `Blocked: scheme "${parsed.protocol}" is not allowed. Only http: and https: URLs are permitted.`
+      `Blocked: scheme "${parsed.protocol}" is not allowed. Only http: and https: URLs are permitted.`,
     );
   }
 
   const hostname = normalizeHostname(parsed.hostname.toLowerCase());
 
-  if (BLOCKED_METADATA_HOSTS.has(hostname) || isMetadataIp(hostname) || isBlockedIpv6(hostname)) {
+  if (
+    BLOCKED_METADATA_HOSTS.has(hostname) ||
+    isMetadataIp(hostname) ||
+    isBlockedIpv6(hostname)
+  ) {
     throw new Error(
-      `Blocked: ${parsed.hostname} is a cloud metadata endpoint. Access is denied for security.`
+      `Blocked: ${parsed.hostname} is a cloud metadata endpoint. Access is denied for security.`,
     );
   }
 
   // DNS rebinding protection: resolve hostname and check if it points to metadata IPs.
   // Skip for loopback/private IPs — they can't be DNS-rebinded and the async DNS
   // resolution adds latency that breaks concurrent E2E tests under load.
-  const isLoopback = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-  const isPrivateNet = /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(hostname);
-  if (!isLoopback && !isPrivateNet && await resolvesToBlockedIp(hostname)) {
+  const isLoopback =
+    hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  const isPrivateNet = /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(
+    hostname,
+  );
+  if (!isLoopback && !isPrivateNet && (await resolvesToBlockedIp(hostname))) {
     throw new Error(
-      `Blocked: ${parsed.hostname} resolves to a cloud metadata IP. Possible DNS rebinding attack.`
+      `Blocked: ${parsed.hostname} resolves to a cloud metadata IP. Possible DNS rebinding attack.`,
     );
   }
 }
