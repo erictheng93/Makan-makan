@@ -36,7 +36,7 @@ app.post(
   ]),
   validateBody(qrCodeSchemas.generate),
   async (c) => {
-    const data = c.req.valid("json" as never) as any;
+    const data = c.get("validatedBody") as any;
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
@@ -56,7 +56,7 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(qrCodeSchemas.bulk),
   async (c) => {
-    const data = c.req.valid("json" as never) as any;
+    const data = c.get("validatedBody") as any;
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
@@ -79,7 +79,7 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    const { id } = c.req.valid("param" as never) as any;
+    const { id } = c.get("validatedParams") as any;
     const service = new QrCodesService(c.env);
 
     const result = await service.downloadQR(id);
@@ -103,7 +103,7 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.batchParams),
   async (c) => {
-    const { batchId } = c.req.valid("param" as never) as any;
+    const { batchId } = c.get("validatedParams") as any;
     const service = new QrCodesService(c.env);
 
     const result = await service.downloadBatch(batchId);
@@ -128,7 +128,7 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateQuery(qrCodeSchemas.stats),
   async (c) => {
-    const query = c.req.valid("query" as never) as any;
+    const query = c.get("validatedQuery") as any;
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
@@ -149,7 +149,7 @@ app.get(
   authMiddleware,
   validateQuery(qrCodeSchemas.listTemplates),
   async (c) => {
-    const query = c.req.valid("query" as never) as any;
+    const query = c.get("validatedQuery") as any;
     const service = new QrCodesService(c.env);
 
     const templates = await service.listTemplates(query.category);
@@ -164,7 +164,7 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    const { id } = c.req.valid("param" as never) as any;
+    const { id } = c.get("validatedParams") as any;
     const service = new QrCodesService(c.env);
 
     const template = await service.getTemplate(id);
@@ -184,7 +184,7 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(qrCodeSchemas.createTemplate),
   async (c) => {
-    const data = c.req.valid("json" as never) as any;
+    const data = c.get("validatedBody") as any;
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
@@ -209,8 +209,8 @@ app.put(
   validateParams(qrCodeSchemas.params),
   validateBody(qrCodeSchemas.updateTemplate),
   async (c) => {
-    const { id } = c.req.valid("param" as never) as any;
-    const data = c.req.valid("json" as never) as any;
+    const { id } = c.get("validatedParams") as any;
+    const data = c.get("validatedBody") as any;
     const service = new QrCodesService(c.env);
 
     const template = await service.updateTemplate(id, data);
@@ -233,7 +233,7 @@ app.delete(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    const { id } = c.req.valid("param" as never) as any;
+    const { id } = c.get("validatedParams") as any;
     const service = new QrCodesService(c.env);
 
     const deleted = await service.deleteTemplate(id);
@@ -260,7 +260,7 @@ app.get(
   "/verify/shop/:qrCode",
   validateParams(qrCodeSchemas.shopQrCode),
   async (c) => {
-    const { qrCode } = c.req.valid("param" as never) as any;
+    const { qrCode } = c.get("validatedParams") as any;
 
     // Import RestaurantsService dynamically to avoid circular dependencies
     const { RestaurantsService } =

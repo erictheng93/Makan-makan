@@ -96,10 +96,81 @@ interface OrderStatusResponse {
 // ─── Auth ───
 
 /**
+ * File-backed token cache shared across every Playwright worker / spec file.
+ * JWTs are good for 24h so caching for the duration of a single test run is
+ * safe, and the API login rate limiter (~50 req/min, then 60s block) makes
+ * an in-memory map insufficient — it would only survive within one module
+ * import scope.
+ *
+ * Cache file lives under tests/e2e/.tmp/ and is rewritten atomically. Old
+ * entries (>20 min) are ignored on read. Delete the file to force a fresh
+ * login on the next run.
+ */
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+
+const CACHE_FILE = resolve(process.cwd(), "tests/e2e/.tmp/auth-cache.json");
+const CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes
+
+interface CachedAuth extends AuthCredentials {
+  ts: number;
+}
+
+function readCacheFile(): Record<string, CachedAuth> {
+  try {
+    if (!existsSync(CACHE_FILE)) return {};
+    const raw = readFileSync(CACHE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function writeCacheFile(cache: Record<string, CachedAuth>): void {
+  try {
+    mkdirSync(dirname(CACHE_FILE), { recursive: true });
+    writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+  } catch {
+    /* swallow — cache miss next time is fine */
+  }
+}
+
+const memCache = new Map<string, AuthCredentials>();
+
+export function clearLoginCache(username?: string): void {
+  if (username) {
+    memCache.delete(username);
+    const disk = readCacheFile();
+    delete disk[username];
+    writeCacheFile(disk);
+  } else {
+    memCache.clear();
+    writeCacheFile({});
+  }
+}
+
+/**
  * Login as a seeded user and return both the JWT token and CSRF token.
  * The CSRF token is returned in the X-CSRF-Token response header on login.
+ * Results are cached per-username (in-memory + on disk) to keep the login
+ * rate limit happy.
  */
 export async function loginAs(username: string): Promise<AuthCredentials> {
+  const inMem = memCache.get(username);
+  if (inMem) return inMem;
+
+  const disk = readCacheFile();
+  const onDisk = disk[username];
+  if (onDisk && Date.now() - onDisk.ts < CACHE_TTL_MS) {
+    const creds: AuthCredentials = {
+      token: onDisk.token,
+      csrfToken: onDisk.csrfToken,
+      csrfCookie: onDisk.csrfCookie,
+    };
+    memCache.set(username, creds);
+    return creds;
+  }
+
   const res = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: {
@@ -134,7 +205,18 @@ export async function loginAs(username: string): Promise<AuthCredentials> {
     csrfCookie = `csrf_token=${csrfToken}`;
   }
 
-  return { token: data.data.token, csrfToken, csrfCookie };
+  const creds: AuthCredentials = {
+    token: data.data.token,
+    csrfToken,
+    csrfCookie,
+  };
+  memCache.set(username, creds);
+
+  const cache = readCacheFile();
+  cache[username] = { ...creds, ts: Date.now() };
+  writeCacheFile(cache);
+
+  return creds;
 }
 
 // ─── Guest Orders ───
@@ -159,29 +241,49 @@ export async function createGuestOrder(
     };
   } = {},
 ): Promise<GuestOrderResponse> {
-  const body: Record<string, unknown> = {
-    restaurantId,
-    orderType: options.orderType ?? "shop",
-    items,
-    guestName: options.guestName ?? "E2E Test",
-    phoneLastDigits: options.phoneLastDigits ?? uniquePhone(),
-  };
-  if (options.tableId != null) body.tableId = options.tableId;
-  if (options.notes) body.notes = options.notes;
-  if (options.deliveryInfo) body.deliveryInfo = options.deliveryInfo;
+  // The API enforces an active-order-per-phoneLastDigits limit via a KV key
+  // with a 2-hour TTL. The admin DELETE endpoint we use for cleanup does not
+  // clear that KV entry, so phone digits get "burned" between test runs.
+  // We auto-retry with fresh phone digits if we hit the 429 dedup error.
+  const maxAttempts = options.phoneLastDigits ? 1 : 12;
 
-  const res = await fetch(`${API_URL}/api/v1/guest-orders`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok || !data.success) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const body: Record<string, unknown> = {
+      restaurantId,
+      orderType: options.orderType ?? "shop",
+      items,
+      guestName: options.guestName ?? "E2E Test",
+      phoneLastDigits: options.phoneLastDigits ?? uniquePhone(),
+    };
+    if (options.tableId != null) body.tableId = options.tableId;
+    if (options.notes) body.notes = options.notes;
+    if (options.deliveryInfo) body.deliveryInfo = options.deliveryInfo;
+
+    const res = await fetch(`${API_URL}/api/v1/guest-orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return data as GuestOrderResponse;
+    }
+
+    // Retry on the active-order dedup 429 — likely a stale KV entry from a
+    // previous run that the admin DELETE never cleared.
+    const dedupHit =
+      res.status === 429 &&
+      typeof data?.error === "string" &&
+      data.error.includes("active order");
+    if (dedupHit && attempt < maxAttempts - 1) continue;
+
     throw new Error(
       `createGuestOrder failed: ${res.status} ${JSON.stringify(data)}`,
     );
   }
-  return data as GuestOrderResponse;
+
+  // Unreachable — the loop either returns or throws.
+  throw new Error("createGuestOrder: exhausted retries");
 }
 
 /**

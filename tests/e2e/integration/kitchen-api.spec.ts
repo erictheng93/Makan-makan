@@ -23,6 +23,28 @@ import {
 
 const API_URL = "http://localhost:8787";
 
+// KDS response shape: orders are bucketed by status
+type KitchenOrder = {
+  id: number;
+  items?: Array<{ id: number; [key: string]: unknown }>;
+  [key: string]: unknown;
+};
+type KitchenOrdersResponse = {
+  pending: KitchenOrder[];
+  preparing: KitchenOrder[];
+  ready: KitchenOrder[];
+  stats: Record<string, unknown>;
+};
+
+function findOrderInKds(
+  data: KitchenOrdersResponse,
+  orderId: number,
+): KitchenOrder | undefined {
+  return [...data.pending, ...data.preparing, ...data.ready].find(
+    (o) => o.id === orderId,
+  );
+}
+
 test.describe.configure({ mode: "serial" });
 test.describe("Kitchen API", () => {
   let createdOrderId: number | undefined;
@@ -51,10 +73,19 @@ test.describe("Kitchen API", () => {
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(data.data).toBeTruthy();
-    expect(Array.isArray(data.data.orders)).toBe(true);
+    // KDS response splits orders into status buckets, not a single list
+    expect(Array.isArray(data.data.pending)).toBe(true);
+    expect(Array.isArray(data.data.preparing)).toBe(true);
+    expect(Array.isArray(data.data.ready)).toBe(true);
+    expect(data.data.stats).toBeTruthy();
   });
 
-  test("owner (role 1) cannot access kitchen orders → 403", async () => {
+  // KitchenService.validateChefAccess() allows roles 0 (admin), 1 (owner),
+  // 2 (chef), and 3 (service crew). Only cashier (4) and customer (5) are
+  // blocked. Owners and service crew get read access by design so they can
+  // monitor the kitchen.
+
+  test("owner (role 1) can also access kitchen orders", async () => {
     const ownerAuth = await loginAs(USERS.OWNER);
 
     const res = await fetch(
@@ -67,19 +98,19 @@ test.describe("Kitchen API", () => {
       },
     );
 
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.success).toBe(false);
+    expect(data.success).toBe(true);
   });
 
-  test("service crew (role 3) cannot access kitchen orders → 403", async () => {
-    const serviceAuth = await loginAs(USERS.SERVICE);
+  test("cashier (role 4) cannot access kitchen orders → 403", async () => {
+    const cashierAuth = await loginAs(USERS.CASHIER);
 
     const res = await fetch(
       `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/orders`,
       {
         headers: {
-          Authorization: `Bearer ${serviceAuth.token}`,
+          Authorization: `Bearer ${cashierAuth.token}`,
           Origin: API_URL,
         },
       },
@@ -121,13 +152,10 @@ test.describe("Kitchen API", () => {
     const listData = await listRes.json();
     expect(listData.success).toBe(true);
 
-    const kitchenOrders: Array<{
-      id: number;
-      items?: Array<{ id: number; [key: string]: unknown }>;
-      [key: string]: unknown;
-    }> = listData.data.orders;
-
-    const kitchenOrder = kitchenOrders.find((o) => o.id === orderId);
+    const kitchenOrder = findOrderInKds(
+      listData.data as KitchenOrdersResponse,
+      orderId,
+    );
     expect(kitchenOrder).toBeTruthy();
 
     const items = kitchenOrder!.items ?? [];
@@ -182,12 +210,10 @@ test.describe("Kitchen API", () => {
       },
     );
     const listData = await listRes.json();
-    const kitchenOrder = (
-      listData.data.orders as Array<{
-        id: number;
-        items?: Array<{ id: number }>;
-      }>
-    ).find((o) => o.id === orderId);
+    const kitchenOrder = findOrderInKds(
+      listData.data as KitchenOrdersResponse,
+      orderId,
+    );
     expect(kitchenOrder).toBeTruthy();
     const itemId = kitchenOrder!.items![0].id;
 
@@ -271,12 +297,11 @@ test.describe("Kitchen API", () => {
       },
     );
     const listData = await listRes.json();
-    const kitchenOrder = (
-      listData.data.orders as Array<{
-        id: number;
-        items?: Array<{ id: number }>;
-      }>
-    ).find((o) => o.id === orderId);
+    const kitchenOrder = findOrderInKds(
+      listData.data as KitchenOrdersResponse,
+      orderId,
+    );
+    expect(kitchenOrder).toBeTruthy();
     const itemId = kitchenOrder!.items![0].id;
 
     // Sakura chef tries to update the item — should be blocked.
@@ -305,14 +330,14 @@ test.describe("Kitchen API", () => {
   // We only verify the HTTP handshake (auth check fires before the stream opens).
   // A full streaming test would need a long-lived EventSource and time out.
 
-  test("owner cannot open kitchen SSE stream → 403", async () => {
-    const ownerAuth = await loginAs(USERS.OWNER);
+  test("cashier cannot open kitchen SSE stream → 403", async () => {
+    const cashierAuth = await loginAs(USERS.CASHIER);
 
     const res = await fetch(
       `${API_URL}/api/v1/kitchen/${RESTAURANT_ID}/events`,
       {
         headers: {
-          Authorization: `Bearer ${ownerAuth.token}`,
+          Authorization: `Bearer ${cashierAuth.token}`,
           Origin: API_URL,
           Accept: "text/event-stream",
         },

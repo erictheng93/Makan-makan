@@ -154,7 +154,11 @@ test.describe("Menu Categories CRUD", () => {
     createdCategoryId = category.id;
 
     // The public menu endpoint returns categories within the menu response
-    const res = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
+    // (cache-bust to bypass stale Cache API entries — same workaround as
+    // the menu-items test below).
+    const res = await fetch(
+      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
+    );
     const data = await res.json();
 
     expect(res.ok).toBe(true);
@@ -279,20 +283,22 @@ test.describe("Menu Items CRUD", () => {
     );
     createdItemId = item.id;
 
-    // Guest fetch — no auth headers
-    const res = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
+    // Guest fetch — append cache-buster to skip the Cache API layer (local
+    // dev does not invalidate Cache API on writes; KV is invalidated but the
+    // Cache API tier persists stale entries).
+    const res = await fetch(
+      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
+    );
     const data = await res.json();
 
     expect(res.ok).toBe(true);
     expect(data.success).toBe(true);
 
-    // Walk through all categories and their items to find our new item
-    const categories: Array<{
-      id: number;
-      items?: Array<{ id: number; name: string }>;
-    }> = data.data?.categories ?? [];
-    const allItems = categories.flatMap((c) => c.items ?? []);
-    const found = allItems.some((i) => i.id === item.id);
+    // Menu response has two top-level lists: `categories` and `menuItems`.
+    // Items are not nested inside categories.
+    const items: Array<{ id: number; name: string }> =
+      data.data?.menuItems ?? [];
+    const found = items.some((i) => i.id === item.id);
     expect(found).toBe(true);
   });
 
@@ -377,16 +383,15 @@ test.describe("Menu Items CRUD", () => {
     });
 
     // Guest fetch should NOT see the unavailable item
-    const res = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
+    const res = await fetch(
+      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
+    );
     const data = await res.json();
 
     expect(res.ok).toBe(true);
-    const categories: Array<{
-      id: number;
-      items?: Array<{ id: number; isAvailable: boolean }>;
-    }> = data.data?.categories ?? [];
-    const allItems = categories.flatMap((c) => c.items ?? []);
-    const found = allItems.some((i) => i.id === item.id);
+    const items: Array<{ id: number; isAvailable: boolean }> =
+      data.data?.menuItems ?? [];
+    const found = items.some((i) => i.id === item.id);
     expect(found).toBe(false);
   });
 });
@@ -425,13 +430,15 @@ test.describe("KV Cache invalidation", () => {
     );
     createdItemId = item.id;
 
-    // 2. Confirm item appears in the public menu
-    const before = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
+    // 2. Confirm item appears in the public menu (cache-bust to bypass
+    // Cache API which is not invalidated in local dev — items live in
+    // data.menuItems, not nested inside categories).
+    const before = await fetch(
+      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
+    );
     const beforeData = await before.json();
-    const beforeCategories: Array<{
-      items?: Array<{ id: number; name: string }>;
-    }> = beforeData.data?.categories ?? [];
-    const beforeItems = beforeCategories.flatMap((c) => c.items ?? []);
+    const beforeItems: Array<{ id: number; name: string }> =
+      beforeData.data?.menuItems ?? [];
     expect(beforeItems.some((i) => i.id === item.id)).toBe(true);
 
     // 3. Update the item's name
@@ -443,13 +450,13 @@ test.describe("KV Cache invalidation", () => {
     });
     expect(updateRes.status).toBe(200);
 
-    // 4. Immediately re-fetch — KV cache should be invalidated, new name visible
-    const after = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
+    // 4. Immediately re-fetch with cache-bust — KV cache should be invalidated.
+    const after = await fetch(
+      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
+    );
     const afterData = await after.json();
-    const afterCategories: Array<{
-      items?: Array<{ id: number; name: string }>;
-    }> = afterData.data?.categories ?? [];
-    const afterItems = afterCategories.flatMap((c) => c.items ?? []);
+    const afterItems: Array<{ id: number; name: string }> =
+      afterData.data?.menuItems ?? [];
     const updatedItem = afterItems.find((i) => i.id === item.id);
 
     expect(updatedItem).toBeDefined();
