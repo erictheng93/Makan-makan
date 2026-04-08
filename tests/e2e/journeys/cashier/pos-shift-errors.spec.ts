@@ -223,7 +223,7 @@ test.describe("Cashier POS — payment error handling", () => {
     ).toBeVisible({ timeout: 5000 });
 
     // Retry print button must be visible
-    const retryPrint = page.locator('[data-testid="retry-print-btn"], button:has-text("重試列印"), button:has-text("Retry Print")');
+    const retryPrint = page.locator('[data-testid="retry-print-btn"], button:has-text("重試列印")');
     await expect(retryPrint.first()).toBeVisible({ timeout: 5000 });
   });
 
