@@ -71,6 +71,7 @@ function convertStatusArray(
   status: string | string[] | undefined,
 ): DbOrderStatus[] | undefined {
   if (!status) return undefined;
+  // safe: validated by orderStatusSchema upstream before reaching this route
   return (typeof status === "string" ? [status] : status) as DbOrderStatus[];
 }
 
