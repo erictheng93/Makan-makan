@@ -26,10 +26,9 @@ const emit = defineEmits<{
 
 // i18n
 const { t: _t } = useI18n();
-// Wrapper to support string fallbacks (vue-i18n v9 types don't allow string as 2nd arg)
+// vue-i18n v9 types don't allow string as 2nd arg (expects NamedValue), so cast
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const t = (key: string, fallback?: string): string =>
-  (_t as any)(key, fallback);
+const t = _t as unknown as (key: string, fallback?: string) => string;
 
 // State
 const isLoading = ref(false);
