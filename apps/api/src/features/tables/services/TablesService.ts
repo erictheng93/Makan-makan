@@ -40,12 +40,12 @@ export class TablesService {
    * Get tables for a restaurant with filtering and pagination
    */
   async getRestaurantTables(
-    restaurantId: number,
+    restaurantId: string,
     filters: Omit<TableFilters, "restaurantId">,
   ): Promise<TableListResult> {
     try {
       const result = await this.tableService.getRestaurantTables(
-        String(restaurantId),
+        restaurantId,
         filters,
       );
       return {
@@ -82,12 +82,7 @@ export class TablesService {
    */
   async createTable(data: CreateTableData): Promise<Table> {
     try {
-      // Convert restaurantId to string for database layer
-      const dbData = {
-        ...data,
-        restaurantId: String(data.restaurantId),
-      };
-      const newTable = await this.tableService.createTable(dbData);
+      const newTable = await this.tableService.createTable(data);
       return newTable;
     } catch (error) {
       this.logError("createTable", error);
@@ -193,13 +188,13 @@ export class TablesService {
    * Generate QR codes for multiple tables
    */
   async generateBulkQRCodes(
-    restaurantId: number,
+    restaurantId: string,
     tableIds: number[],
     options?: QRCodeOptions,
   ): Promise<BulkQRResult> {
     try {
       const result = await this.tableService.generateBulkQRCodes(
-        String(restaurantId),
+        restaurantId,
         tableIds,
         options,
       );
@@ -232,12 +227,12 @@ export class TablesService {
    * Get available tables for a restaurant
    */
   async getAvailableTables(
-    restaurantId: number,
+    restaurantId: string,
     capacity?: number,
   ): Promise<Table[]> {
     try {
       const availableTables = await this.tableService.getAvailableTables(
-        String(restaurantId),
+        restaurantId,
         capacity,
       );
       return availableTables;
@@ -250,9 +245,9 @@ export class TablesService {
   /**
    * Get table statistics for a restaurant
    */
-  async getTableStats(restaurantId: number): Promise<TableStats> {
+  async getTableStats(restaurantId: string): Promise<TableStats> {
     try {
-      const stats = await this.tableService.getTableStats(String(restaurantId));
+      const stats = await this.tableService.getTableStats(restaurantId);
 
       // Calculate total capacity from byCapacity distribution
       const totalCapacity = Object.entries(stats.byCapacity).reduce(

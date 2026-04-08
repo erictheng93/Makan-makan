@@ -20,7 +20,7 @@ export const tableFeaturesSchema = z
 
 // Create table schema
 export const createTableSchema = z.object({
-  restaurantId: z.number().int().positive(),
+  restaurantId: z.string(),
   number: z.string().min(1).max(50),
   name: z.string().min(1).max(50).optional(),
   capacity: z.number().int().positive(),
@@ -47,7 +47,7 @@ export const updateTableSchema = z.object({
 
 // Table filters schema
 export const tableFilterSchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: z.string().optional(),
   floor: z.string().regex(/^\d+$/).transform(Number).optional(),
   section: z.string().optional(),
   isOccupied: z
@@ -98,20 +98,20 @@ export const qrCodeOptionsSchema = z
 
 // Bulk QR generation schema
 export const generateQRBulkSchema = z.object({
-  restaurantId: z.number().int().positive(),
+  restaurantId: z.string(),
   tableIds: z.array(z.number().int().positive()).min(1).max(50),
   options: qrCodeOptionsSchema,
 });
 
 // Available tables query schema
 export const availableTablesQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number),
+  restaurantId: z.string(),
   capacity: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 
 // Table stats query schema
 export const tableStatsQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number),
+  restaurantId: z.string(),
 });
 
 // QR code lookup schema

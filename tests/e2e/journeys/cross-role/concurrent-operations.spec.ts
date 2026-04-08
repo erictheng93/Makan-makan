@@ -22,13 +22,23 @@ import {
   mockPOSAPI,
   preAuthAdmin,
 } from "../../helpers/mock-api";
-import { PERSONAS, RESTAURANT, TABLE, MENU_ITEMS, createMockOrder } from "../../helpers/personas";
+import {
+  PERSONAS,
+  RESTAURANT,
+  TABLE,
+  MENU_ITEMS,
+  createMockOrder,
+} from "../../helpers/personas";
 
 const CUSTOMER_APP = process.env.E2E_CUSTOMER_URL || "http://localhost:3000";
 const ADMIN_APP = process.env.E2E_ADMIN_URL || "http://localhost:3001";
 
 function fulfillJson(route: any, status: number, body: object) {
-  route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  route.fulfill({
+    status,
+    contentType: "application/json",
+    body: JSON.stringify(body),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -36,7 +46,9 @@ function fulfillJson(route: any, status: number, body: object) {
 // Customer A adds item to cart; when submitting, API returns OUT_OF_STOCK (stock was depleted by Customer B)
 // ---------------------------------------------------------------------------
 
-test("should block checkout and flag item when order submit returns OUT_OF_STOCK", async ({ page }) => {
+test("should block checkout and flag item when order submit returns OUT_OF_STOCK", async ({
+  page,
+}) => {
   await mockAuthAPI(page, PERSONAS.CUSTOMER);
   await mockRestaurantAPI(page);
   await mockMenuAPI(page);
@@ -50,7 +62,10 @@ test("should block checkout and flag item when order submit returns OUT_OF_STOCK
         error: {
           code: "OUT_OF_STOCK",
           message: "Item is no longer available",
-          details: { itemId: String(MENU_ITEMS[0].id), itemName: MENU_ITEMS[0].name },
+          details: {
+            itemId: String(MENU_ITEMS[0].id),
+            itemName: MENU_ITEMS[0].name,
+          },
         },
       });
     } else if (route.request().method() === "GET") {
@@ -72,7 +87,10 @@ test("should block checkout and flag item when order submit returns OUT_OF_STOCK
         error: {
           code: "OUT_OF_STOCK",
           message: "Item is no longer available",
-          details: { itemId: String(MENU_ITEMS[0].id), itemName: MENU_ITEMS[0].name },
+          details: {
+            itemId: String(MENU_ITEMS[0].id),
+            itemName: MENU_ITEMS[0].name,
+          },
         },
       });
     } else {
@@ -81,28 +99,38 @@ test("should block checkout and flag item when order submit returns OUT_OF_STOCK
   });
 
   // Navigate to cart page (assumed to have items in session state)
-  await page.goto(`${CUSTOMER_APP}/restaurant/${RESTAURANT.id}/table/${TABLE.id}/cart`);
+  await page.goto(
+    `${CUSTOMER_APP}/restaurant/${RESTAURANT.id}/table/${TABLE.id}/cart`,
+  );
   await page.waitForLoadState("networkidle");
 
   // Attempt to submit order
-  const submitBtn = page.locator('[data-testid="submit-order-btn"], button:has-text("送出訂單")');
-  const hasSubmit = await submitBtn.first().isVisible({ timeout: 5000 }).catch(() => false);
+  const submitBtn = page.locator(
+    '[data-testid="submit-order-btn"], button:has-text("送出訂單")',
+  );
+  const hasSubmit = await submitBtn
+    .first()
+    .isVisible({ timeout: 5000 })
+    .catch(() => false);
 
   if (hasSubmit) {
     await submitBtn.first().click();
 
     // UI must show an out-of-stock error — either as alert, toast, or inline item flag
     await expect(
-      page.locator('[data-testid="stock-error"], [role="alert"]').first()
+      page.locator('[data-testid="stock-error"], [role="alert"]').first(),
     ).toBeVisible({ timeout: 6000 });
 
     // Checkout must be blocked — submit button disabled or hidden after error
-
   } else {
     // Cart may be empty in a fresh test context — navigate to menu and add item first
-    await page.goto(`${CUSTOMER_APP}/restaurant/${RESTAURANT.id}/table/${TABLE.id}`);
+    await page.goto(
+      `${CUSTOMER_APP}/restaurant/${RESTAURANT.id}/table/${TABLE.id}`,
+    );
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("main, [role='main']").first()).toBeVisible({ timeout: 8000 });
+    await expect(page.locator("main, [role='main']").first()).toBeVisible({
+      timeout: 8000,
+    });
     // Test passes if page loads — out-of-stock scenario requires cart state
   }
 });
@@ -112,10 +140,16 @@ test("should block checkout and flag item when order submit returns OUT_OF_STOCK
 // Crew member clicks "Accept/Deliver" but order was already claimed by another crew member
 // ---------------------------------------------------------------------------
 
-test("should show conflict error when order is already claimed by another crew member", async ({ page }) => {
+test("should show conflict error when order is already claimed by another crew member", async ({
+  page,
+}) => {
   let claimCallCount = 0;
 
-  const readyOrder = createMockOrder({ status: 3, id: "order-claim-001", orderNumber: "ORD-CLAIM-001" });
+  const readyOrder = createMockOrder({
+    status: 3,
+    id: "order-claim-001",
+    orderNumber: "ORD-CLAIM-001",
+  });
 
   await preAuthAdmin(page, PERSONAS.SERVICE_CREW);
   await mockAuthAPI(page, PERSONAS.SERVICE_CREW);
@@ -145,7 +179,10 @@ test("should show conflict error when order is already claimed by another crew m
       claimCallCount++;
       fulfillJson(route, 409, {
         success: false,
-        error: { code: "ORDER_ALREADY_CLAIMED", message: "Order already picked up by another crew member" },
+        error: {
+          code: "ORDER_ALREADY_CLAIMED",
+          message: "Order already picked up by another crew member",
+        },
       });
     } else if (method === "GET") {
       fulfillJson(route, 200, { success: true, data: readyOrder });
@@ -157,24 +194,33 @@ test("should show conflict error when order is already claimed by another crew m
   await page.goto(`${ADMIN_APP}/dashboard/orders`);
   await page.waitForLoadState("networkidle");
 
-  await expect(page.locator(`text=${readyOrder.orderNumber}`).first()).toBeVisible({ timeout: 10000 });
+  await expect(
+    page.locator(`text=${readyOrder.orderNumber}`).first(),
+  ).toBeVisible({ timeout: 10000 });
   await page.locator(`text=${readyOrder.orderNumber}`).first().click();
 
-  const deliverBtn = page.locator('[data-testid="deliver-btn"], button:has-text("送餐")');
-  const hasDeliver = await deliverBtn.first().isVisible({ timeout: 5000 }).catch(() => false);
+  const deliverBtn = page.locator(
+    '[data-testid="deliver-btn"], button:has-text("送餐")',
+  );
+  const hasDeliver = await deliverBtn
+    .first()
+    .isVisible({ timeout: 5000 })
+    .catch(() => false);
 
   if (hasDeliver) {
     await deliverBtn.first().click();
 
     // Conflict error must be communicated to crew member
     await expect(
-      page.locator('[data-testid="claim-error"], [role="alert"]').first()
+      page.locator('[data-testid="claim-error"], [role="alert"]').first(),
     ).toBeVisible({ timeout: 5000 });
 
     expect(claimCallCount).toBeGreaterThanOrEqual(1);
   } else {
     // If no deliver button on orders page, mark as conditional pass
-    await expect(page.locator("main, [role='main']").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("main, [role='main']").first()).toBeVisible({
+      timeout: 5000,
+    });
   }
 });
 
@@ -182,7 +228,9 @@ test("should show conflict error when order is already claimed by another crew m
 // Scenario 3: Cashier attempts to pay an already-paid order
 // ---------------------------------------------------------------------------
 
-test("should show already-paid error when cashier processes duplicate payment", async ({ page }) => {
+test("should show already-paid error when cashier processes duplicate payment", async ({
+  page,
+}) => {
   let payCallCount = 0;
 
   const alreadyPaidOrder = createMockOrder({
@@ -214,38 +262,53 @@ test("should show already-paid error when cashier processes duplicate payment", 
   });
 
   // Payment endpoint always returns ALREADY_PAID
-  await page.route(new RegExp("/api/v1/(pos/payments|orders/.+/pay|payments)"), (route) => {
-    if (route.request().method() === "POST") {
-      payCallCount++;
-      fulfillJson(route, 409, {
-        success: false,
-        error: { code: "ALREADY_PAID", message: "This order has already been paid" },
-      });
-    } else {
-      route.continue();
-    }
-  });
+  await page.route(
+    new RegExp("/api/v1/(pos/payments|orders/.+/pay|payments)"),
+    (route) => {
+      if (route.request().method() === "POST") {
+        payCallCount++;
+        fulfillJson(route, 409, {
+          success: false,
+          error: {
+            code: "ALREADY_PAID",
+            message: "This order has already been paid",
+          },
+        });
+      } else {
+        route.continue();
+      }
+    },
+  );
 
   const posUrl = `${ADMIN_APP}/dashboard/pos/checkout`;
   await page.goto(posUrl);
   await page.waitForLoadState("networkidle");
 
-  await expect(page.locator(`text=${alreadyPaidOrder.orderNumber}`).first()).toBeVisible({ timeout: 10000 });
+  await expect(
+    page.locator(`text=${alreadyPaidOrder.orderNumber}`).first(),
+  ).toBeVisible({ timeout: 10000 });
   await page.locator(`text=${alreadyPaidOrder.orderNumber}`).first().click();
 
-  const payBtn = page.locator('[data-testid="pay-btn"], button:has-text("收款")');
-  const hasPayBtn = await payBtn.first().isVisible({ timeout: 5000 }).catch(() => false);
+  const payBtn = page.locator(
+    '[data-testid="pay-btn"], button:has-text("收款")',
+  );
+  const hasPayBtn = await payBtn
+    .first()
+    .isVisible({ timeout: 5000 })
+    .catch(() => false);
 
   if (hasPayBtn) {
     await payBtn.first().click();
 
     // Must show already-paid error
     await expect(
-      page.locator('[data-testid="payment-error"], [role="alert"]').first()
+      page.locator('[data-testid="payment-error"], [role="alert"]').first(),
     ).toBeVisible({ timeout: 5000 });
 
     expect(payCallCount).toBeGreaterThanOrEqual(1);
   } else {
-    await expect(page.locator("main, [role='main']").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("main, [role='main']").first()).toBeVisible({
+      timeout: 5000,
+    });
   }
 });
