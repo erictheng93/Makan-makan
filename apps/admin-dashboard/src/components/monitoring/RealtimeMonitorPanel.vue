@@ -24,10 +24,8 @@ const emit = defineEmits<{
   (e: "refresh"): void;
 }>();
 
-// i18n
+// i18n — cast _t to accept string fallback; vue-i18n v9 types only allow NamedValue
 const { t: _t } = useI18n();
-// vue-i18n v9 types don't allow string as 2nd arg (expects NamedValue), so cast
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const t = _t as unknown as (key: string, fallback?: string) => string;
 
 // State
