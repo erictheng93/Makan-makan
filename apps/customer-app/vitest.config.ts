@@ -21,6 +21,9 @@ export default defineConfig({
       "@makanmakan/shared-types": fileURLToPath(
         new URL("../../packages/shared-types/src", import.meta.url),
       ),
+      "@makanmakan/i18n": fileURLToPath(
+        new URL("../../packages/shared/src/i18n/src", import.meta.url),
+      ),
     },
   },
 });
