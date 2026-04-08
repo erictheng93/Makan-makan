@@ -132,12 +132,11 @@ export class KitchenService implements IKitchenService {
       // Query actual orders from database
       const ordersService = this.ordersService;
 
-      // Get orders that are relevant to kitchen (confirmed, preparing, ready)
-      const relevantStatuses = [
-        OrderStatus.CONFIRMED,
-        OrderStatus.PREPARING,
-        OrderStatus.READY,
-      ];
+      // Get orders that are relevant to kitchen (confirmed, preparing, ready).
+      // OrdersService.getOrders matches against the DB status column which
+      // stores string values, so we must pass string statuses (not numeric
+      // OrderStatus enum members) or the SQL filter returns nothing.
+      const relevantStatuses = ["confirmed", "preparing", "ready"];
 
       const result = await ordersService.getOrders({
         restaurantId,

@@ -700,6 +700,15 @@ export function geoIntelligentRateLimitMiddleware(
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const path = c.req.path;
 
+    // Skip rate limiting entirely in local development. The integration test
+    // suite makes hundreds of requests in <1min from the same loopback IP,
+    // which trips the geo-rate-limiter and blocks the whole IP for minutes.
+    // Production is unaffected — staging/production set NODE_ENV explicitly.
+    if ((c.env.NODE_ENV as string) === "development") {
+      await next();
+      return;
+    }
+
     // Skip rate limiting for certain paths
     if (options.skipPaths?.some((skipPath) => path.includes(skipPath))) {
       await next();

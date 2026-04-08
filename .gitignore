@@ -204,3 +204,6 @@ tmpclaude-*
 .worktrees/
 .superpowers/
 .gstack/
+
+# E2E integration test auth cache
+tests/e2e/.tmp/
