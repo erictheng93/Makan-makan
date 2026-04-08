@@ -1,0 +1,36 @@
+# Dependabot configuration
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Purpose: auto-bump GitHub Actions references — including the SHA-pinned ones
+# introduced in PR #7 (tj-actions/changed-files, snyk/actions/node) — so they
+# don't rot silently. Dependabot natively handles SHA-pinned action refs and
+# will update both the pinned SHA and the trailing `# vX.Y.Z` version comment.
+#
+# Scope note: this config intentionally covers github-actions ONLY. Adding
+# npm/package ecosystems for this monorepo is a separate, larger initiative
+# (multiple workspaces, frontend/backend split, React + Vue + Workers) and
+# should be done with its own planning step, not bundled here.
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    # Group minor + patch bumps into a single PR to reduce review noise.
+    # Major bumps still get individual PRs so breaking changes are reviewed
+    # one at a time — this matches how PR #7 handled the v4→v5 transition.
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Cap concurrent PRs so Dependabot doesn't flood the queue if many
+    # actions update in the same month.
+    open-pull-requests-limit: 5
+    # Match the repo's conventional commit style.
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
