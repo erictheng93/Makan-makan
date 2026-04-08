@@ -91,7 +91,8 @@ test.describe("Delivery zone validation", () => {
     const cartModal = page.locator('[data-testid="shop-cart-modal"]');
     await expect(cartModal.first()).toBeVisible({ timeout: 5000 });
 
-    // Switch to delivery mode if the toggle is present
+    // Switch to delivery mode — click toggle if present, then assert address
+    // input becomes visible (hard prerequisite: delivery mode must be active)
     const deliveryToggle = cartModal
       .first()
       .locator('button:has-text("外送"), button:has-text("Delivery")');
@@ -104,12 +105,13 @@ test.describe("Delivery zone validation", () => {
       await deliveryToggle.first().click();
     }
 
-    // Fill in a valid delivery address and trigger blur validation
     const addressInput = cartModal
       .first()
       .locator(
         'input[placeholder*="地址"], [data-testid="delivery-address"]',
       );
+    // Hard assertion — delivery address input must be visible; fails if delivery
+    // mode toggle was missing or non-functional
     await expect(addressInput.first()).toBeVisible({ timeout: 8000 });
     await addressInput.first().fill("台北市信義區測試路 123 號");
     await addressInput.first().press("Tab");
@@ -161,7 +163,8 @@ test.describe("Delivery zone validation", () => {
     const cartModal = page.locator('[data-testid="shop-cart-modal"]');
     await expect(cartModal.first()).toBeVisible({ timeout: 5000 });
 
-    // Switch to delivery mode if the toggle is present
+    // Switch to delivery mode — click toggle if present, then assert address
+    // input becomes visible (hard prerequisite: delivery mode must be active)
     const deliveryToggle = cartModal
       .first()
       .locator('button:has-text("外送"), button:has-text("Delivery")');
@@ -174,12 +177,13 @@ test.describe("Delivery zone validation", () => {
       await deliveryToggle.first().click();
     }
 
-    // Fill in an address outside the delivery zone and trigger blur validation
     const addressInput = cartModal
       .first()
       .locator(
         'input[placeholder*="地址"], [data-testid="delivery-address"]',
       );
+    // Hard assertion — delivery address input must be visible; fails if delivery
+    // mode toggle was missing or non-functional
     await expect(addressInput.first()).toBeVisible({ timeout: 8000 });
     await addressInput.first().fill("新北市汐止區超遠路 999 號");
     await addressInput.first().press("Tab");
@@ -217,7 +221,8 @@ test.describe("Delivery zone validation", () => {
     const cartModal = page.locator('[data-testid="shop-cart-modal"]');
     await expect(cartModal.first()).toBeVisible({ timeout: 5000 });
 
-    // Switch to delivery mode if the toggle is present
+    // Switch to delivery mode — click toggle if present, then assert address
+    // input becomes visible (hard prerequisite: delivery mode must be active)
     const deliveryToggle = cartModal
       .first()
       .locator('button:has-text("外送"), button:has-text("Delivery")');
@@ -230,12 +235,13 @@ test.describe("Delivery zone validation", () => {
       await deliveryToggle.first().click();
     }
 
-    // Fill an incomplete address (no city/district prefix)
     const addressInput = cartModal
       .first()
       .locator(
         'input[placeholder*="地址"], [data-testid="delivery-address"]',
       );
+    // Hard assertion — delivery address input must be visible; fails if delivery
+    // mode toggle was missing or non-functional
     await expect(addressInput.first()).toBeVisible({ timeout: 8000 });
     await addressInput.first().fill("測試路");
 
@@ -248,13 +254,11 @@ test.describe("Delivery zone validation", () => {
       .first()
       .click();
 
-    // Inline field error should be visible
+    // Inline field error scoped to the address field should be visible
     await expect(
       cartModal
         .first()
-        .locator(
-          '[data-testid="address-error"], [data-testid="field-error"]',
-        )
+        .locator('[data-testid="address-error"], [role="alert"]')
         .first(),
     ).toBeVisible({ timeout: 5000 });
 
