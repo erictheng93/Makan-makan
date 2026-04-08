@@ -94,7 +94,7 @@ test("should block checkout and flag item when order submit returns OUT_OF_STOCK
 
     // UI must show an out-of-stock error — either as alert, toast, or inline item flag
     await expect(
-      page.locator('[role="alert"], [data-testid="stock-error"], text=/out.of.stock|缺貨|已售完|無法下單/i').first()
+      page.locator('[data-testid="stock-error"], [role="alert"]').first()
     ).toBeVisible({ timeout: 6000 });
 
     // Checkout must be blocked — submit button disabled or hidden after error
@@ -171,7 +171,7 @@ test("should show conflict error when order is already claimed by another crew m
 
     // Conflict error must be communicated to crew member
     await expect(
-      page.locator('[role="alert"], [data-testid="claim-error"], text=/already.claimed|已被接取|已有人接單/i').first()
+      page.locator('[data-testid="claim-error"], [role="alert"]').first()
     ).toBeVisible({ timeout: 5000 });
 
     expect(claimCallCount).toBeGreaterThanOrEqual(1);
@@ -244,7 +244,7 @@ test("should show already-paid error when cashier processes duplicate payment", 
 
     // Must show already-paid error
     await expect(
-      page.locator('[role="alert"], [data-testid="payment-error"], text=/already.paid|已結帳|重複付款/i').first()
+      page.locator('[data-testid="payment-error"], [role="alert"]').first()
     ).toBeVisible({ timeout: 5000 });
 
     expect(payCallCount).toBeGreaterThanOrEqual(1);
