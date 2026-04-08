@@ -7,7 +7,7 @@ import { useToast } from "vue-toastification";
 import type { KitchenSSEEvent, ConnectionStatus } from "@/types";
 
 export interface UseKitchenSSEOptions {
-  restaurantId: number;
+  restaurantId: string | number;
   onNewOrder?: (event: KitchenSSEEvent) => void;
   onOrderUpdate?: (event: KitchenSSEEvent) => void;
   onOrderCancelled?: (event: KitchenSSEEvent) => void;

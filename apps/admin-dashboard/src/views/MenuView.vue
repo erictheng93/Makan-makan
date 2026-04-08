@@ -232,6 +232,7 @@
         />
         <div
           class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          data-testid="item-modal"
         >
           <div class="p-6">
             <h3 class="text-[18px] font-bold text-[#1C1C1E] mb-5">

@@ -154,6 +154,8 @@ test.describe("Service crew delivery shift", () => {
   test("should pick up an order and change status to delivering", async ({
     page,
   }) => {
+    let statusUpdated = false;
+
     const readyOrder = createMockOrder({
       id: "order-pickup",
       orderNumber: "ORD-P01",
@@ -190,6 +192,7 @@ test.describe("Service crew delivery shift", () => {
         route.request().method() === "PUT" ||
         route.request().method() === "PATCH"
       ) {
+        statusUpdated = true;
         route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -217,18 +220,12 @@ test.describe("Service crew delivery shift", () => {
     const pickupButton = page.locator(
       'button:has-text("Pick up"), button:has-text("取餐"), button:has-text("Deliver"), button:has-text("送餐"), [data-testid="pickup-order"], [data-testid="deliver-order"]',
     );
-    if (
-      await pickupButton
-        .first()
-        .isVisible({ timeout: 3000 })
-        .catch(() => false)
-    ) {
-      await pickupButton.first().click();
-    }
+    await expect(pickupButton.first()).toBeVisible({ timeout: 3000 });
+    await pickupButton.first().click();
+    await page.waitForTimeout(500);
 
-    // Verify the page still renders without errors
-    const mainArea = page.locator("main, [data-testid='dashboard']");
-    await expect(mainArea.first()).toBeVisible();
+    // Verify the status update API was triggered
+    expect(statusUpdated).toBe(true);
   });
 
   // -------------------------------------------------------------------------
@@ -236,6 +233,8 @@ test.describe("Service crew delivery shift", () => {
   // -------------------------------------------------------------------------
 
   test("should mark order as delivered", async ({ page }) => {
+    let deliveryCompleted = false;
+
     const deliveringOrder = createMockOrder({
       id: "order-delivering",
       orderNumber: "ORD-D01",
@@ -271,6 +270,7 @@ test.describe("Service crew delivery shift", () => {
         route.request().method() === "PUT" ||
         route.request().method() === "PATCH"
       ) {
+        deliveryCompleted = true;
         route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -298,18 +298,12 @@ test.describe("Service crew delivery shift", () => {
     const deliveredButton = page.locator(
       'button:has-text("Delivered"), button:has-text("已送達"), button:has-text("Complete"), button:has-text("完成"), [data-testid="mark-delivered"], [data-testid="complete-delivery"]',
     );
-    if (
-      await deliveredButton
-        .first()
-        .isVisible({ timeout: 3000 })
-        .catch(() => false)
-    ) {
-      await deliveredButton.first().click();
-    }
+    await expect(deliveredButton.first()).toBeVisible({ timeout: 3000 });
+    await deliveredButton.first().click();
+    await page.waitForTimeout(500);
 
-    // Verify the page remains functional
-    const mainArea = page.locator("main, [data-testid='dashboard']");
-    await expect(mainArea.first()).toBeVisible();
+    // Verify the status update API was triggered
+    expect(deliveryCompleted).toBe(true);
   });
 
   // -------------------------------------------------------------------------

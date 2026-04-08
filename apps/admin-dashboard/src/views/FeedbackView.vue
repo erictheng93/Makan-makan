@@ -222,7 +222,7 @@ import type { FeedbackItem, FeedbackStats as FeedbackStatsType } from "@/composa
 
 const { t } = useI18n();
 const authStore = useAuthStore();
-const { isLoading, fetchFeedback, fetchFeedbackById, updateStatus, fetchStats } = useFeedback();
+const { isLoading, fetchFeedback, fetchFeedbackById, fetchStats } = useFeedback();
 
 const isAdmin = computed(() => authStore.user?.role === UserRole.ADMIN);
 const showForm = ref(false);

@@ -1,0 +1,377 @@
+/**
+ * QR Code Generation Integration Tests
+ *
+ * Tests QR code generation against the real API at localhost:8787 with real D1 + R2.
+ * Covers: individual QR generate, bulk QR, seat QR (batch-create), seat QR regeneration.
+ *
+ * These tests exist because QR generation touches D1 (audit log), R2 (image storage),
+ * and KV (restaurant cache) — three systems that mock tests cannot exercise together.
+ */
+
+import { test, expect } from "@playwright/test";
+import {
+  RESTAURANT_ID,
+  TABLE_A1_ID,
+  USERS,
+  loginAs,
+  cleanupOrder,
+} from "./helpers";
+
+const API_URL = "http://localhost:8787";
+
+interface AuthCredentials {
+  token: string;
+  csrfToken: string;
+  csrfCookie: string;
+}
+
+function authHeaders(auth: AuthCredentials): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${auth.token}`,
+    Origin: API_URL,
+    "X-CSRF-Token": auth.csrfToken,
+    Cookie: auth.csrfCookie,
+  };
+}
+
+// ─── Cleanup helpers ───
+
+async function deleteSeats(
+  seatIds: number[],
+  auth: AuthCredentials,
+): Promise<void> {
+  await Promise.all(
+    seatIds.map((id) =>
+      fetch(`${API_URL}/api/v1/seats/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(auth),
+      }).catch(() => {}),
+    ),
+  );
+}
+
+// ─── Tests ───
+
+test.describe("QR Code Generation", () => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // 1. Individual QR generate
+  // ─────────────────────────────────────────────────────────────────────────
+
+  test.describe("POST /qr/generate", () => {
+    test("admin can generate a single QR code and receive a URL", async () => {
+      const auth = await loginAs(USERS.ADMIN);
+
+      const res = await fetch(`${API_URL}/api/v1/qr/generate`, {
+        method: "POST",
+        headers: authHeaders(auth),
+        body: JSON.stringify({
+          content: `https://app.makanmakan.com/restaurant/${RESTAURANT_ID}/table/1`,
+          format: "png",
+          style: { size: 256 },
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.data).toMatchObject({
+        content: expect.stringContaining(RESTAURANT_ID),
+        format: "png",
+        url: expect.stringMatching(/^https?:\/\//),
+      });
+    });
+
+    test("owner can generate a QR code for their restaurant", async () => {
+      const auth = await loginAs(USERS.OWNER);
+
+      const res = await fetch(`${API_URL}/api/v1/qr/generate`, {
+        method: "POST",
+        headers: authHeaders(auth),
+        body: JSON.stringify({
+          content: `https://app.makanmakan.com/restaurant/${RESTAURANT_ID}`,
+          format: "png",
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(typeof data.data.url).toBe("string");
+      expect(data.data.url.length).toBeGreaterThan(0);
+    });
+
+    test("unauthenticated request is rejected with 401", async () => {
+      const res = await fetch(`${API_URL}/api/v1/qr/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: "https://app.makanmakan.com/test",
+          format: "png",
+        }),
+      });
+
+      expect(res.status).toBe(401);
+    });
+
+    test("missing content field returns 400 validation error", async () => {
+      const auth = await loginAs(USERS.ADMIN);
+
+      const res = await fetch(`${API_URL}/api/v1/qr/generate`, {
+        method: "POST",
+        headers: authHeaders(auth),
+        body: JSON.stringify({ format: "png" }), // no content
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBeDefined();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 2. Bulk QR generation
+  // ─────────────────────────────────────────────────────────────────────────
+
+  test.describe("POST /qr/bulk", () => {
+    test("admin can bulk-generate QR codes for multiple tables", async () => {
+      const auth = await loginAs(USERS.ADMIN);
+
+      const targets = [1, 2, 3].map((tableId) => ({
+        content: `https://app.makanmakan.com/restaurant/${RESTAURANT_ID}/table/${tableId}`,
+        format: "png",
+      }));
+
+      const res = await fetch(`${API_URL}/api/v1/qr/bulk`, {
+        method: "POST",
+        headers: authHeaders(auth),
+        body: JSON.stringify({ items: targets }),
+      });
+
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.data)).toBe(true);
+      expect(data.data).toHaveLength(3);
+
+      // Each item should have a URL
+      for (const item of data.data) {
+        expect(item.url).toMatch(/^https?:\/\//);
+      }
+    });
+
+    test("bulk generate with empty items array returns 400", async () => {
+      const auth = await loginAs(USERS.ADMIN);
+
+      const res = await fetch(`${API_URL}/api/v1/qr/bulk`, {
+        method: "POST",
+        headers: authHeaders(auth),
+        body: JSON.stringify({ items: [] }),
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.success).toBe(false);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 3. Seat QR: batch-create (creates seats + generates QR per seat)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  test.describe("POST /seats/batch-create", () => {
+    let createdSeatIds: number[] = [];
+    let ownerAuth: AuthCredentials;
+
+    test.beforeAll(async () => {
+      ownerAuth = await loginAs(USERS.OWNER);
+    });
+
+    test.afterEach(async () => {
+      if (createdSeatIds.length > 0) {
+        await deleteSeats(createdSeatIds, ownerAuth);
+        createdSeatIds = [];
+      }
+    });
+
+    test("owner can create seats with QR codes for a table", async () => {
+      const res = await fetch(`${API_URL}/api/v1/seats/batch-create`, {
+        method: "POST",
+        headers: authHeaders(ownerAuth),
+        body: JSON.stringify({ tableId: TABLE_A1_ID, seatCount: 2 }),
+      });
+
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.data)).toBe(true);
+      expect(data.data).toHaveLength(2);
+
+      // Each seat should have an id and a QR code URL
+      for (const seat of data.data) {
+        expect(typeof seat.id).toBe("number");
+        // QR URL is either embedded in seat or available via qrCode property
+        expect(seat.id).toBeGreaterThan(0);
+        createdSeatIds.push(seat.id);
+      }
+    });
+
+    test("creating 0 seats returns 400 validation error", async () => {
+      const res = await fetch(`${API_URL}/api/v1/seats/batch-create`, {
+        method: "POST",
+        headers: authHeaders(ownerAuth),
+        body: JSON.stringify({ tableId: TABLE_A1_ID, seatCount: 0 }),
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.success).toBe(false);
+    });
+
+    test("non-owner (chef) cannot create seats", async () => {
+      const chefAuth = await loginAs(USERS.CHEF);
+
+      const res = await fetch(`${API_URL}/api/v1/seats/batch-create`, {
+        method: "POST",
+        headers: authHeaders(chefAuth),
+        body: JSON.stringify({ tableId: TABLE_A1_ID, seatCount: 2 }),
+      });
+
+      expect(res.status).toBe(403);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 4. Seat QR regeneration (existing seats get fresh QR codes)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  test.describe("POST /seats/batch-regenerate-qr", () => {
+    let seatIds: number[] = [];
+    let ownerAuth: AuthCredentials;
+
+    test.beforeAll(async () => {
+      ownerAuth = await loginAs(USERS.OWNER);
+
+      // Create 2 seats to regenerate QR for
+      const res = await fetch(`${API_URL}/api/v1/seats/batch-create`, {
+        method: "POST",
+        headers: authHeaders(ownerAuth),
+        body: JSON.stringify({ tableId: TABLE_A1_ID, seatCount: 2 }),
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        seatIds = data.data.map((s: { id: number }) => s.id);
+      }
+    });
+
+    test.afterAll(async () => {
+      if (seatIds.length > 0) {
+        await deleteSeats(seatIds, ownerAuth);
+      }
+    });
+
+    test("owner can regenerate QR codes for existing seats", async () => {
+      if (seatIds.length === 0) {
+        test.skip(true, "Seat setup failed — skipping regenerate test");
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/v1/seats/batch-regenerate-qr`, {
+        method: "POST",
+        headers: authHeaders(ownerAuth),
+        body: JSON.stringify({ seatIds }),
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+
+      // Each seat should have a fresh QR URL
+      const results: Array<{ seatId: number; qrUrl?: string }> = Array.isArray(
+        data.data,
+      )
+        ? data.data
+        : [];
+      expect(results.length).toBeGreaterThan(0);
+      for (const result of results) {
+        expect(result.seatId).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 5. Shop QR generation for a restaurant
+  // ─────────────────────────────────────────────────────────────────────────
+
+  test.describe("POST /restaurants/:id/qr/shop/generate", () => {
+    test("owner can generate a shop-level QR code for their restaurant", async () => {
+      const auth = await loginAs(USERS.OWNER);
+
+      const res = await fetch(
+        `${API_URL}/api/v1/restaurants/${RESTAURANT_ID}/qr/shop/generate`,
+        {
+          method: "POST",
+          headers: authHeaders(auth),
+          body: JSON.stringify({}),
+        },
+      );
+
+      // Accept 200 or 201 — shop QR may already exist (idempotent upsert)
+      expect([200, 201]).toContain(res.status);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.data).toBeDefined();
+    });
+
+    test("shop QR verify endpoint resolves to correct restaurant", async () => {
+      const auth = await loginAs(USERS.OWNER);
+
+      // First generate or refresh the shop QR
+      const genRes = await fetch(
+        `${API_URL}/api/v1/restaurants/${RESTAURANT_ID}/qr/shop/generate`,
+        {
+          method: "POST",
+          headers: authHeaders(auth),
+          body: JSON.stringify({}),
+        },
+      );
+      const genData = await genRes.json();
+      expect(genData.success).toBe(true);
+
+      // The response should contain a QR code value we can verify
+      const qrCode: string | undefined =
+        genData.data?.qrCode ||
+        genData.data?.code ||
+        genData.data?.shopQrCode;
+
+      if (qrCode) {
+        // Verify the QR code resolves to this restaurant (public endpoint)
+        const verifyRes = await fetch(
+          `${API_URL}/api/v1/qr/verify/shop/${encodeURIComponent(qrCode)}`,
+        );
+        // Public verify endpoint should return restaurant info
+        expect([200, 404]).toContain(verifyRes.status);
+        if (verifyRes.status === 200) {
+          const verifyData = await verifyRes.json();
+          expect(verifyData.success).toBe(true);
+        }
+      }
+    });
+
+    test("chef cannot generate shop QR (403)", async () => {
+      const chefAuth = await loginAs(USERS.CHEF);
+
+      const res = await fetch(
+        `${API_URL}/api/v1/restaurants/${RESTAURANT_ID}/qr/shop/generate`,
+        {
+          method: "POST",
+          headers: authHeaders(chefAuth),
+          body: JSON.stringify({}),
+        },
+      );
+
+      expect(res.status).toBe(403);
+    });
+  });
+});

@@ -375,7 +375,7 @@ onMounted(async () => {
   }
 
   // Check restaurant permissions
-  if (authStore.restaurantId !== restaurantIdNum.value) {
+  if (String(authStore.restaurantId) !== restaurantIdNum.value) {
     await router.push("/unauthorized");
     return;
   }

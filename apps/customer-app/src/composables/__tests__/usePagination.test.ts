@@ -1,5 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { ref, nextTick } from "vue";
+import type { PaginationParams, PaginatedResponse, PaginationMeta } from "@makanmakan/shared-types";
+
+const mockMeta = (hasNextPage: boolean): PaginationMeta => ({
+  currentPage: 1,
+  pageSize: 10,
+  totalItems: 0,
+  totalPages: 1,
+  hasNextPage,
+  hasPreviousPage: false,
+  startIndex: 0,
+  endIndex: 0,
+});
 
 // We need to test the composables in isolation. Since they use onMounted/onUnmounted,
 // we need to mock Vue lifecycle hooks for unit testing outside components.
@@ -19,7 +31,7 @@ import {
 } from "@/composables/usePagination";
 
 describe("useInfiniteScroll", () => {
-  let mockFetchFn: ReturnType<typeof vi.fn>;
+  let mockFetchFn: Mock<[PaginationParams], Promise<PaginatedResponse<unknown>>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -29,7 +41,7 @@ describe("useInfiniteScroll", () => {
   it("should initialize with empty items and hasMore = true", () => {
     mockFetchFn.mockResolvedValue({
       data: [],
-      pagination: { hasNextPage: false },
+      pagination: mockMeta(false),
     });
 
     const { items, isLoading, hasMore, isEmpty } =
@@ -44,7 +56,7 @@ describe("useInfiniteScroll", () => {
   it("loadMore should fetch and append items", async () => {
     mockFetchFn.mockResolvedValueOnce({
       data: [{ id: 1 }, { id: 2 }],
-      pagination: { hasNextPage: true },
+      pagination: mockMeta(true),
     });
 
     const { items, loadMore, hasMore } = useInfiniteScroll(mockFetchFn, {
@@ -65,7 +77,7 @@ describe("useInfiniteScroll", () => {
   it("should stop loading when hasNextPage is false", async () => {
     mockFetchFn.mockResolvedValueOnce({
       data: [{ id: 1 }],
-      pagination: { hasNextPage: false },
+      pagination: mockMeta(false),
     });
 
     const { loadMore, hasMore, canLoadMore } = useInfiniteScroll(mockFetchFn, {
@@ -83,11 +95,11 @@ describe("useInfiniteScroll", () => {
     mockFetchFn
       .mockResolvedValueOnce({
         data: [{ id: 1 }],
-        pagination: { hasNextPage: true },
+        pagination: mockMeta(true),
       })
       .mockResolvedValueOnce({
         data: [{ id: 2 }],
-        pagination: { hasNextPage: false },
+        pagination: mockMeta(false),
       });
 
     const { items, loadMore } = useInfiniteScroll(mockFetchFn, {
@@ -120,11 +132,11 @@ describe("useInfiniteScroll", () => {
     mockFetchFn
       .mockResolvedValueOnce({
         data: [{ id: 1 }],
-        pagination: { hasNextPage: true },
+        pagination: mockMeta(true),
       })
       .mockResolvedValueOnce({
         data: [{ id: 99 }],
-        pagination: { hasNextPage: false },
+        pagination: mockMeta(false),
       });
 
     const { items, loadMore, refresh } = useInfiniteScroll(mockFetchFn, {
@@ -143,7 +155,7 @@ describe("useInfiniteScroll", () => {
   it("search should set query and refresh", async () => {
     mockFetchFn.mockResolvedValue({
       data: [],
-      pagination: { hasNextPage: false },
+      pagination: mockMeta(false),
     });
 
     const { search } = useInfiniteScroll(mockFetchFn, {
@@ -161,7 +173,7 @@ describe("useInfiniteScroll", () => {
   it("should respect custom pageSize", async () => {
     mockFetchFn.mockResolvedValue({
       data: [],
-      pagination: { hasNextPage: false },
+      pagination: mockMeta(false),
     });
 
     const { loadMore } = useInfiniteScroll(mockFetchFn, {

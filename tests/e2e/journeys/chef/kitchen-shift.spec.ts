@@ -84,8 +84,9 @@ test.describe("Chef kitchen shift flow", () => {
     await page.waitForURL(/\/(kitchen|dashboard)/, { timeout: 10000 }).catch(() => {});
 
     // Verify we are on a kitchen-related page
-    const pageContent = await page.textContent("body");
-    expect(pageContent).toBeTruthy();
+    await expect(
+      page.locator('main, [role="main"], [data-testid="kitchen-display"]').first(),
+    ).toBeVisible({ timeout: 8000 });
   });
 
   // -----------------------------------------------------------------------
@@ -215,8 +216,7 @@ test.describe("Chef kitchen shift flow", () => {
     // The notification may or may not appear depending on implementation;
     // verify at least that the page is still functional after the event
     await page.waitForTimeout(1000);
-    const pageContent = await page.textContent("body");
-    expect(pageContent).toBeTruthy();
+    await expect(page.locator('main, [role="main"]').first()).toBeVisible();
   });
 
   // -----------------------------------------------------------------------
@@ -301,18 +301,12 @@ test.describe("Chef kitchen shift flow", () => {
     const startBtn = page.locator(
       'button:has-text("Start Cooking"), button:has-text("開始製作"), button:has-text("開始"), [data-testid="start-cooking-btn"]',
     );
-    if (
-      await startBtn
-        .first()
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-    ) {
-      await startBtn.first().click();
-      await page.waitForTimeout(1000);
+    await expect(startBtn.first()).toBeVisible({ timeout: 5000 });
+    await startBtn.first().click();
+    await page.waitForTimeout(1000);
 
-      // Verify the status update was triggered
-      expect(statusUpdated).toBe(true);
-    }
+    // Verify the status update was triggered
+    expect(statusUpdated).toBe(true);
   });
 
   // -----------------------------------------------------------------------
@@ -444,18 +438,12 @@ test.describe("Chef kitchen shift flow", () => {
     const readyBtn = page.locator(
       'button:has-text("Mark Ready"), button:has-text("完成"), button:has-text("出餐"), button:has-text("Ready"), [data-testid="mark-ready-btn"]',
     );
-    if (
-      await readyBtn
-        .first()
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-    ) {
-      await readyBtn.first().click();
-      await page.waitForTimeout(1000);
+    await expect(readyBtn.first()).toBeVisible({ timeout: 5000 });
+    await readyBtn.first().click();
+    await page.waitForTimeout(1000);
 
-      // Verify the status update was triggered
-      expect(markedReady).toBe(true);
-    }
+    // Verify the status update was triggered
+    expect(markedReady).toBe(true);
   });
 
   // -----------------------------------------------------------------------
@@ -484,28 +472,45 @@ test.describe("Chef kitchen shift flow", () => {
         .isVisible({ timeout: 5000 })
         .catch(() => false)
     ) {
-      // Click to switch view
-      await viewToggle.first().click();
-      await page.waitForTimeout(500);
-
-      // Verify the view changed (look for grid-specific or kanban-specific layout markers)
+      // Record initial view state before toggling
       const gridView = page.locator(
         '[data-testid="grid-view"], [class*="grid"], [data-view="grid"]',
       );
       const kanbanView = page.locator(
         '[data-testid="kanban-view"], [class*="kanban"], [class*="column"], [data-view="kanban"]',
       );
+      const wasGrid = await gridView
+        .first()
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
+      const wasKanban = await kanbanView
+        .first()
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
 
-      // One of the views should be visible
-      const hasGrid = await gridView
+      // Click to switch view
+      await viewToggle.first().click();
+      await page.waitForTimeout(500);
+
+      // Verify the view actually changed from the initial state
+      const isNowGrid = await gridView
         .first()
         .isVisible({ timeout: 2000 })
         .catch(() => false);
-      const hasKanban = await kanbanView
+      const isNowKanban = await kanbanView
         .first()
         .isVisible({ timeout: 2000 })
         .catch(() => false);
-      expect(hasGrid || hasKanban).toBe(true);
+
+      // If we started in kanban, we should now be in grid, and vice versa
+      if (wasKanban && !wasGrid) {
+        expect(isNowGrid).toBe(true);
+      } else if (wasGrid && !wasKanban) {
+        expect(isNowKanban).toBe(true);
+      } else {
+        // Could not determine initial state; at minimum a view container should exist
+        expect(isNowGrid || isNowKanban).toBe(true);
+      }
     }
   });
 
@@ -547,8 +552,7 @@ test.describe("Chef kitchen shift flow", () => {
     }
 
     // Verify the settings page loaded (at minimum)
-    const pageContent = await page.textContent("body");
-    expect(pageContent).toBeTruthy();
+    await expect(page.locator('main, [role="main"]').first()).toBeVisible({ timeout: 5000 });
   });
 
   // -----------------------------------------------------------------------

@@ -238,24 +238,19 @@ test.describe("Cart item removal", () => {
 
     if (await removeBtn.first().isVisible().catch(() => false)) {
       await removeBtn.first().click();
-
-      // Item should disappear from cart — check h3 heading (cart item name),
-      // not the full page which may have a toast with the item name
-      await expect(
-        page.locator(`h3:has-text("${MENU_ITEMS[0].name}")`),
-      ).toBeHidden({ timeout: 8000 });
     } else {
-      // Fallback: decrease quantity via minus button
+      // Fallback: decrease quantity via minus button (qty=1 → removes item)
       const minusBtn = page
         .locator('[data-testid="qty-decrease"]')
         .or(page.locator('button:has-text("−")'));
-      if (await minusBtn.first().isVisible().catch(() => false)) {
-        await minusBtn.first().click();
-        await expect(
-          page.locator(`h3:has-text("${MENU_ITEMS[0].name}")`),
-        ).toBeHidden({ timeout: 8000 });
-      }
+      await expect(minusBtn.first()).toBeVisible({ timeout: 5000 });
+      await minusBtn.first().click();
     }
+
+    // Item should disappear from cart regardless of which removal method was used
+    await expect(
+      page.locator(`h3:has-text("${MENU_ITEMS[0].name}")`),
+    ).toBeHidden({ timeout: 8000 });
   });
 });
 
@@ -549,23 +544,19 @@ test.describe("Shop cart item removal", () => {
 
     if (await removeBtn.first().isVisible().catch(() => false)) {
       await removeBtn.first().click();
-      // Item should disappear from cart modal
-      await expect(
-        cartModal.first().locator(`text=${MENU_ITEMS[0].name}`),
-      ).toBeHidden({ timeout: 3000 });
     } else {
-      // Fallback: decrease quantity via increase button (qty-increase exists)
-      // The minus button removes when qty=1, look for qty-decrease
+      // Fallback: decrease quantity via minus button (qty=1 → removes item)
       const minusBtn = cartModal
         .first()
         .locator('[data-testid="qty-decrease"]')
         .or(cartModal.first().locator('button:has-text("−")'));
-      if (await minusBtn.first().isVisible().catch(() => false)) {
-        await minusBtn.first().click();
-        await expect(
-          cartModal.first().locator(`text=${MENU_ITEMS[0].name}`),
-        ).toBeHidden({ timeout: 3000 });
-      }
+      await expect(minusBtn.first()).toBeVisible({ timeout: 5000 });
+      await minusBtn.first().click();
     }
+
+    // Item should disappear from cart modal regardless of removal method
+    await expect(
+      cartModal.first().locator(`text=${MENU_ITEMS[0].name}`),
+    ).toBeHidden({ timeout: 3000 });
   });
 });

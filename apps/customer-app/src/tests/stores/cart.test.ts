@@ -139,10 +139,10 @@ describe("cart store", () => {
 
       const menuItem = buildMenuItem() as any;
       store.addItem(menuItem, 1, {
-        size: { id: 1, name: "Large", priceAdjustment: 5 },
+        size: { id: "1", name: "Large", priceAdjustment: 5 },
       });
       store.addItem(menuItem, 1, {
-        size: { id: 2, name: "Small", priceAdjustment: 0 },
+        size: { id: "2", name: "Small", priceAdjustment: 0 },
       });
 
       expect(store.items).toHaveLength(2);
@@ -152,7 +152,7 @@ describe("cart store", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
       store.addItem(buildMenuItem({ price: 10 }) as any, 1, {
-        size: { id: 1, name: "Large", priceAdjustment: 5 },
+        size: { id: "1", name: "Large", priceAdjustment: 5 },
       });
 
       expect(store.items[0].price).toBe(15);
@@ -164,8 +164,8 @@ describe("cart store", () => {
       store.initializeCart("rest-001", 1);
       store.addItem(buildMenuItem({ price: 10 }) as any, 1, {
         addOns: [
-          { id: 1, name: "Egg", unitPrice: 2 },
-          { id: 2, name: "Sambal", unitPrice: 1 },
+          { id: "1", name: "Egg", unitPrice: 2, quantity: 1, totalPrice: 2 },
+          { id: "2", name: "Sambal", unitPrice: 1, quantity: 1, totalPrice: 1 },
         ],
       });
 
@@ -177,8 +177,8 @@ describe("cart store", () => {
       store.initializeCart("rest-001", 1);
       store.addItem(buildMenuItem({ price: 10 }) as any, 1, {
         options: [
-          { id: 1, name: "Extra spicy", priceAdjustment: 2 },
-          { id: 2, name: "No onion", priceAdjustment: 0 },
+          { id: "1", optionName: "spice", choiceId: "spicy-1", choiceName: "Extra spicy", priceAdjustment: 2 },
+          { id: "2", optionName: "onion", choiceId: "no-onion-2", choiceName: "No onion", priceAdjustment: 0 },
         ],
       });
 
@@ -189,7 +189,7 @@ describe("cart store", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
       store.addItem(buildMenuItem({ price: 5 }) as any, 1, {
-        size: { id: 1, name: "Tiny", priceAdjustment: -10 },
+        size: { id: "1", name: "Tiny", priceAdjustment: -10 },
       });
 
       expect(store.items[0].price).toBe(0);

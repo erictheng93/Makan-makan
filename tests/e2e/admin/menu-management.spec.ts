@@ -141,7 +141,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
   test("應該顯示 master-detail 菜單列表", async ({ page }) => {
     // 等待右側 VirtualMenuGrid 容器出現
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
@@ -152,7 +152,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     await expect(page.locator("text=所有菜品").first()).toBeVisible();
 
     // 驗證菜品 cards 出現
-    const menuItemCards = await page.locator(".virtual-grid-item").count();
+    const menuItemCards = await page.locator('[data-testid="menu-grid-item"]').count();
     expect(menuItemCards).toBeGreaterThan(0);
 
     // 驗證具體菜品名稱
@@ -167,13 +167,13 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
   test("應該能夠按分類篩選菜品（client-side）", async ({ page }) => {
     // 等待頁面與左側分類面板載入
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
     // 點擊左側面板中的「麵食」分類列
     const categoryRow = page
-      .locator("[data-category-id], .category-row, li")
+      .locator('[data-testid="category-row"], [data-category-id], li')
       .filter({ hasText: "麵食" })
       .first();
 
@@ -187,7 +187,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
     // 驗證其他分類菜品被隱藏（珍珠奶茶屬於飲料分類）
     await expect(
-      page.locator(".virtual-grid-item").filter({ hasText: "珍珠奶茶" }),
+      page.locator('[data-testid="menu-grid-item"]').filter({ hasText: "珍珠奶茶" }),
     ).not.toBeVisible();
   });
 
@@ -221,7 +221,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     });
 
     // 等待右側面板載入
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
@@ -232,7 +232,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
     // 等待菜品表單模態框出現
     await page.waitForSelector(
-      '[data-testid="menu-item-form"], .modal:visible, .dialog:visible',
+      '[data-testid="menu-item-form"], [data-testid="item-modal"], [role="dialog"]',
       { timeout: 5000 },
     );
 
@@ -305,11 +305,11 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     });
 
     // 等待 grid 載入後，hover 第一個菜品 card 以顯示 hover actions
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
-    const firstCard = page.locator(".virtual-grid-item").first();
+    const firstCard = page.locator('[data-testid="menu-grid-item"]').first();
     await firstCard.hover();
 
     // 點擊 hover 顯示的編輯按鈕
@@ -321,7 +321,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
     // 等待編輯模態框載入
     await page.waitForSelector(
-      '[data-testid="menu-item-form"], .modal:visible',
+      '[data-testid="menu-item-form"], [data-testid="item-modal"], [role="dialog"]',
       { timeout: 5000 },
     );
 
@@ -361,11 +361,11 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     });
 
     // 等待 grid 載入，hover 第一個 card
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
-    const firstCard = page.locator(".virtual-grid-item").first();
+    const firstCard = page.locator('[data-testid="menu-grid-item"]').first();
     await firstCard.hover();
 
     // 點擊 hover 顯示的刪除按鈕
@@ -420,34 +420,20 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
     // 點擊左側面板 header 中的「新增」按鈕
     const addCategoryButton = page
-      .locator(
-        ':text("分類管理") ~ * button:has-text("新增"), ' +
-          'button:near(:text("分類管理")):has-text("新增"), ' +
-          '[data-testid="add-category-btn"]',
-      )
+      .locator('[data-testid="add-category-btn"]')
       .first();
 
-    // 備選：直接找 category panel header 區域中的按鈕
-    const panelAddBtn = page
-      .locator('.category-panel button:has-text("新增")')
-      .first();
-
-    const btnToClick = (await addCategoryButton.isVisible({ timeout: 3000 }))
-      ? addCategoryButton
-      : panelAddBtn;
-
-    await btnToClick.click();
+    await addCategoryButton.click();
 
     // 等待內嵌分類表單出現（非 modal）
-    await page.waitForSelector("[data-category-form], .category-inline-form", {
+    await page.waitForSelector("[data-category-form]", {
       timeout: 5000,
     });
 
     // 填寫分類名稱
     const nameInput = page
       .locator(
-        '[data-category-form] input[name="name"], [data-category-form] input[placeholder*="名稱"], ' +
-          ".category-inline-form input",
+        '[data-category-form] input[name="name"], [data-category-form] input[placeholder*="名稱"]',
       )
       .first();
 
@@ -456,8 +442,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     // 提交內嵌表單
     await page.click(
       '[data-category-form] button[type="submit"], ' +
-        '[data-category-form] button:has-text("確定"), ' +
-        '.category-inline-form button[type="submit"]',
+        '[data-category-form] button:has-text("確定")',
     );
 
     // 等待創建完成
@@ -500,11 +485,11 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     });
 
     // 等待 grid 載入，hover 第一張 card
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
-    const firstCard = page.locator(".virtual-grid-item").first();
+    const firstCard = page.locator('[data-testid="menu-grid-item"]').first();
     await firstCard.hover();
 
     const editButton = firstCard
@@ -514,7 +499,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     await editButton.click();
 
     // 等待模態框
-    await page.waitForSelector(".modal:visible", { timeout: 5000 });
+    await page.waitForSelector('[data-testid="item-modal"]', { timeout: 5000 });
 
     // 查找圖片上傳輸入
     const fileInput = page.locator('input[type="file"], #imageUpload');
@@ -556,11 +541,11 @@ test.describe("Admin Dashboard - 菜單管理", () => {
     });
 
     // 等待 grid 載入，hover 第一張 card
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
-    const firstCard = page.locator(".virtual-grid-item").first();
+    const firstCard = page.locator('[data-testid="menu-grid-item"]').first();
     await firstCard.hover();
 
     // 點擊 hover 顯示的切換按鈕
@@ -581,7 +566,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
   test("應該能夠搜尋菜品", async ({ page }) => {
     // 等待右側面板 header 中的搜尋輸入框
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
@@ -602,14 +587,14 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
     // 驗證其他菜品被過濾
     const visibleCards = await page
-      .locator(".virtual-grid-item:visible")
+      .locator('[data-testid="menu-grid-item"]:visible')
       .count();
 
     expect(visibleCards).toBeLessThanOrEqual(1);
   });
 
   test("應該顯示可用狀態篩選 pills", async ({ page }) => {
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
@@ -629,7 +614,7 @@ test.describe("Admin Dashboard - 菜單管理", () => {
 
       // 芒果冰 isAvailable=false → 被過濾
       await expect(
-        page.locator(".virtual-grid-item").filter({ hasText: "芒果冰" }),
+        page.locator('[data-testid="menu-grid-item"]').filter({ hasText: "芒果冰" }),
       ).not.toBeVisible();
     }
 
@@ -694,7 +679,7 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
     await expect(page).toHaveURL(/.*\/dashboard\/menu/);
 
     // 等待 grid 載入
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
@@ -703,21 +688,22 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
     await addButton.click();
 
     // 等待表單模態框
-    await page.waitForSelector(".modal:visible", { timeout: 5000 });
+    await page.waitForSelector('[data-testid="item-modal"]', { timeout: 5000 });
 
     // 提交空表單
     await page.click('button[type="submit"], button:has-text("確定")');
 
     // 驗證錯誤訊息
     await page.waitForSelector(
-      '.error-message, .text-red-500, [role="alert"]',
+      'input:invalid, [role="alert"], [data-testid="error-message"]',
       {
         timeout: 3000,
       },
     );
 
     const errorExists = await page
-      .locator(".error-message, .text-red-500")
+      .locator('input:invalid, [role="alert"], [data-testid="error-message"]')
+      .first()
       .isVisible();
     expect(errorExists).toBe(true);
   });
@@ -759,12 +745,12 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
     });
 
     await page.click("text=菜單管理");
-    await page.waitForSelector(".virtual-menu-grid-container", {
+    await page.waitForSelector('[data-testid="menu-grid-container"]', {
       timeout: 10000,
     });
 
     // Hover 第一個 card 並點擊編輯
-    const firstCard = page.locator(".virtual-grid-item").first();
+    const firstCard = page.locator('[data-testid="menu-grid-item"]').first();
     await firstCard.hover();
 
     await firstCard
@@ -772,25 +758,30 @@ test.describe("Admin Dashboard - 菜單管理（錯誤處理）", () => {
       .first()
       .click();
 
-    await page.waitForSelector(".modal:visible", { timeout: 5000 });
+    await page.waitForSelector('[data-testid="item-modal"]', { timeout: 5000 });
 
     const fileInput = page.locator('input[type="file"]');
 
-    if (await fileInput.isVisible({ timeout: 3000 })) {
-      await fileInput.setInputFiles({
-        name: "large-image.jpg",
-        mimeType: "image/jpeg",
-        buffer: Buffer.alloc(10 * 1024 * 1024), // 10MB
-      });
+    const isFileInputVisible = await fileInput.isVisible({ timeout: 3000 }).catch(() => false);
 
-      // 等待錯誤訊息（即時上傳觸發時）
-      await page
-        .waitForSelector('.error-message, .alert-error, [role="alert"]', {
-          timeout: 3000,
-        })
-        .catch(() => {
-          // 某些實現可能在表單提交時才顯示錯誤，可接受
-        });
+    if (!isFileInputVisible) {
+      // File input not present in this UI variant — skip the upload assertion
+      test.skip(true, "File input not present in menu item edit form");
+      return;
     }
+
+    await fileInput.setInputFiles({
+      name: "large-image.jpg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.alloc(10 * 1024 * 1024), // 10MB
+    });
+
+    // Error message MUST be visible — don't swallow this assertion
+    const errorMessage = page
+      .locator('[role="alert"], [data-testid="error-message"]')
+      .or(page.locator('text=/too large|過大|檔案大小|上傳失敗|File too large/i'))
+      .or(page.locator('[data-testid="upload-error"]'));
+
+    await expect(errorMessage.first()).toBeVisible({ timeout: 5000 });
   });
 });

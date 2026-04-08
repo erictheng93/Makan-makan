@@ -3,6 +3,7 @@
     ref="container"
     :style="{ height: containerHeight + 'px', overflowY: 'auto' }"
     class="virtual-menu-grid-container grid gap-6"
+    data-testid="menu-grid-container"
     :class="gridCols"
     @scroll="handleScroll"
   >
@@ -21,6 +22,7 @@
       :key="menuItem.id"
       :style="{ minHeight: itemHeight + 'px' }"
       class="virtual-grid-item"
+      data-testid="menu-grid-item"
     >
       <slot :menu-item="menuItem" :index="menuItem._virtualIndex" />
     </div>

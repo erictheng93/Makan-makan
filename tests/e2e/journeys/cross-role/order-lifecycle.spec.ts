@@ -144,7 +144,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
 
     // Select the large size if the size option is visible
     const largeOption = page.locator(
-      `text=${MENU_ITEMS[0].customizations!.sizes[1].name}`,
+      `text=${MENU_ITEMS[0].options.sizes[1].name}`,
     );
     if (await largeOption.isVisible({ timeout: 2000 }).catch(() => false)) {
       await largeOption.click();
@@ -152,7 +152,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
 
     // Select mild spice if the spice option is visible
     const mildSpice = page.locator(
-      `text=${MENU_ITEMS[0].customizations!.options[0].items[1].name}`,
+      `text=${MENU_ITEMS[0].options.customizations[0].choices[1].name}`,
     );
     if (await mildSpice.isVisible({ timeout: 2000 }).catch(() => false)) {
       await mildSpice.click();
@@ -262,9 +262,8 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
         });
     }
 
-    // Verify something indicating the order was placed or the cart page loaded
-    const pageContent = await page.textContent("body");
-    expect(pageContent).toBeTruthy();
+    // Verify the cart page loaded successfully (submit button visible or redirect happened)
+    await expect(page.locator("main, [role='main']").first()).toBeVisible({ timeout: 8000 });
   });
 
   // =========================================================================
@@ -463,19 +462,10 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     const startBtn = page.locator(
       'button:has-text("Start Cooking"), button:has-text("開始製作"), button:has-text("開始"), [data-testid="start-cooking-btn"]',
     );
-    if (
-      await startBtn
-        .first()
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-    ) {
-      await startBtn.first().click();
-      currentOrderStatus = 2; // preparing
-
-      // After clicking, the order should move to "preparing" column or change state
-      // Wait a moment for the UI to update
-      await page.waitForTimeout(1000);
-    }
+    await expect(startBtn.first()).toBeVisible({ timeout: 5000 });
+    await startBtn.first().click();
+    currentOrderStatus = 2; // preparing
+    await page.waitForTimeout(1000);
 
     // Now update the mock to return status=3 (ready) for the next action
     await page.route(new RegExp(`/api/v1/kitchen/.+/orders/.+`), (route) => {
@@ -501,19 +491,13 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     const readyBtn = page.locator(
       'button:has-text("Mark Ready"), button:has-text("完成"), button:has-text("出餐"), button:has-text("Ready"), [data-testid="mark-ready-btn"]',
     );
-    if (
-      await readyBtn
-        .first()
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-    ) {
-      await readyBtn.first().click();
-      currentOrderStatus = 3; // ready
-    }
+    await expect(readyBtn.first()).toBeVisible({ timeout: 5000 });
+    await readyBtn.first().click();
+    currentOrderStatus = 3; // ready
+    await page.waitForTimeout(1000);
 
-    // Verify a success indicator (toast, status change, or card movement)
-    // The order should now appear in the "ready" column or show a success state
-    expect(capturedStatusUpdate).toBeGreaterThanOrEqual(2);
+    // Verify status updates were triggered for both transitions
+    expect(capturedStatusUpdate).toBe(3);
   });
 
   // =========================================================================
@@ -645,21 +629,13 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     const deliverBtn = page.locator(
       'button:has-text("Deliver"), button:has-text("Pickup"), button:has-text("送餐"), button:has-text("已送達"), button:has-text("Mark Delivered"), [data-testid="deliver-btn"], [data-testid="mark-delivered-btn"]',
     );
+    await expect(deliverBtn.first()).toBeVisible({ timeout: 5000 });
+    await deliverBtn.first().click();
+    await page.waitForTimeout(1000);
 
-    if (
-      await deliverBtn
-        .first()
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-    ) {
-      await deliverBtn.first().click();
-      // Expect confirmation or status change
-      await page.waitForTimeout(1000);
-    }
-
-    // Verify the delivery action was attempted (button click or API call)
-    // The order should now be at status 4 (delivered)
-    expect(currentOrderStatus).toBeGreaterThanOrEqual(3);
+    // Verify the delivery API call was made
+    expect(deliveryMarked).toBe(true);
+    expect(currentOrderStatus).toBe(4);
   });
 
   // =========================================================================
@@ -773,44 +749,28 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     const payBtn = page.locator(
       'button:has-text("Process Payment"), button:has-text("Pay"), button:has-text("收款"), button:has-text("結帳"), button:has-text("Complete"), [data-testid="process-payment-btn"], [data-testid="pay-btn"]',
     );
+    await expect(payBtn.first()).toBeVisible({ timeout: 5000 });
+    await payBtn.first().click();
 
-    if (
-      await payBtn
-        .first()
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-    ) {
-      await payBtn.first().click();
-
-      // If a payment method modal appears, select cash
-      const cashOption = page.locator(
-        'button:has-text("Cash"), button:has-text("現金"), [data-testid="payment-cash"]',
-      );
-      if (
-        await cashOption
-          .first()
-          .isVisible({ timeout: 3000 })
-          .catch(() => false)
-      ) {
-        await cashOption.first().click();
-      }
-
-      // Confirm payment if a confirmation button appears
-      const confirmBtn = page.locator(
-        'button:has-text("Confirm"), button:has-text("確認"), [data-testid="confirm-payment-btn"]',
-      );
-      if (
-        await confirmBtn
-          .first()
-          .isVisible({ timeout: 3000 })
-          .catch(() => false)
-      ) {
-        await confirmBtn.first().click();
-      }
+    // If a payment method modal appears, select cash
+    const cashOption = page.locator(
+      'button:has-text("Cash"), button:has-text("現金"), [data-testid="payment-cash"]',
+    );
+    if (await cashOption.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+      await cashOption.first().click();
     }
 
-    // Verify the flow reached the payment stage
-    expect(currentOrderStatus).toBeGreaterThanOrEqual(4);
+    // Confirm payment if a confirmation button appears
+    const confirmBtn = page.locator(
+      'button:has-text("Confirm"), button:has-text("確認"), [data-testid="confirm-payment-btn"]',
+    );
+    if (await confirmBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+      await confirmBtn.first().click();
+    }
+
+    // Verify payment API was called
+    expect(paymentProcessed).toBe(true);
+    expect(currentOrderStatus).toBe(5);
   });
 
   // =========================================================================

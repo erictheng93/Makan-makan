@@ -191,8 +191,9 @@ test.describe("Cashier POS shift flow", () => {
     await page.goto(posCheckoutUrl);
     await page.waitForURL(/\/(dashboard|pos)/, { timeout: 10000 }).catch(() => {});
 
-    const pageContent = await page.textContent("body");
-    expect(pageContent).toBeTruthy();
+    await expect(
+      page.locator('main, [role="main"], [data-testid="pos-checkout"]').first(),
+    ).toBeVisible({ timeout: 8000 });
   });
 
   // -----------------------------------------------------------------------
@@ -526,20 +527,14 @@ test.describe("Cashier POS shift flow", () => {
     const payBtn = page.locator(
       'button:has-text("Pay"), button:has-text("Process"), button:has-text("收款"), button:has-text("結帳"), button:has-text("確認付款"), [data-testid="process-payment-btn"], [data-testid="pay-btn"], [data-testid="confirm-payment-btn"]',
     );
-    if (
-      await payBtn
-        .first()
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-    ) {
-      await payBtn.first().click();
+    await expect(payBtn.first()).toBeVisible({ timeout: 5000 });
+    await payBtn.first().click();
 
-      // Verify success confirmation (toast, modal, or status change)
-      const success = page.locator(
-        '[role="alert"], [data-testid="payment-success"], text=/success|成功|已完成|completed/i',
-      );
-      await expect(success.first()).toBeVisible({ timeout: 5000 });
-    }
+    // Verify success confirmation (toast, modal, or status change)
+    const success = page.locator(
+      '[role="alert"], [data-testid="payment-success"], text=/success|成功|已完成|completed/i',
+    );
+    await expect(success.first()).toBeVisible({ timeout: 5000 });
   });
 
   // -----------------------------------------------------------------------
@@ -600,23 +595,17 @@ test.describe("Cashier POS shift flow", () => {
       'button:has-text("Print"), button:has-text("列印"), button:has-text("印"), button:has-text("Receipt"), button:has-text("收據"), [data-testid="print-receipt-btn"], [data-testid="print-btn"]',
     );
 
-    if (
-      await printBtn
-        .first()
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-    ) {
-      await printBtn.first().click();
+    await expect(printBtn.first()).toBeVisible({ timeout: 5000 });
+    await printBtn.first().click();
 
-      // Verify print confirmation
-      const printConfirm = page.locator(
-        '[role="alert"], text=/printed|已列印|列印成功|success/i, [data-testid="print-success"]',
-      );
-      await expect(printConfirm.first()).toBeVisible({ timeout: 5000 });
+    // Verify print confirmation
+    const printConfirm = page.locator(
+      '[role="alert"], text=/printed|已列印|列印成功|success/i, [data-testid="print-success"]',
+    );
+    await expect(printConfirm.first()).toBeVisible({ timeout: 5000 });
 
-      // Verify the receipt API was called
-      expect(receiptPrinted).toBe(true);
-    }
+    // Verify the receipt API was called
+    expect(receiptPrinted).toBe(true);
   });
 
   // -----------------------------------------------------------------------
@@ -696,42 +685,35 @@ test.describe("Cashier POS shift flow", () => {
     const endShiftBtn = page.locator(
       'button:has-text("End Shift"), button:has-text("結束班次"), button:has-text("關班"), [data-testid="end-shift-btn"]',
     );
+    await expect(endShiftBtn.first()).toBeVisible({ timeout: 5000 });
+    await endShiftBtn.first().click();
 
+    // Enter ending cash amount if prompted (optional confirmation dialog)
+    const endCashInput = page.locator(
+      'input[name="endingCash"], input[name="ending_cash"], input[placeholder*="cash"], input[placeholder*="現金"], [data-testid="ending-cash-input"]',
+    );
     if (
-      await endShiftBtn
+      await endCashInput
         .first()
-        .isVisible({ timeout: 5000 })
+        .isVisible({ timeout: 3000 })
         .catch(() => false)
     ) {
-      await endShiftBtn.first().click();
+      await endCashInput.first().fill("3500");
 
-      // Enter ending cash amount if prompted
-      const endCashInput = page.locator(
-        'input[name="endingCash"], input[name="ending_cash"], input[placeholder*="cash"], input[placeholder*="現金"], [data-testid="ending-cash-input"]',
+      // Confirm end shift
+      const confirmBtn = page.locator(
+        'button:has-text("Confirm"), button:has-text("確認"), button:has-text("End"), button[type="submit"], [data-testid="confirm-end-shift-btn"]',
       );
-      if (
-        await endCashInput
-          .first()
-          .isVisible({ timeout: 3000 })
-          .catch(() => false)
-      ) {
-        await endCashInput.first().fill("3500");
-
-        // Confirm end shift
-        const confirmBtn = page.locator(
-          'button:has-text("Confirm"), button:has-text("確認"), button:has-text("End"), button[type="submit"], [data-testid="confirm-end-shift-btn"]',
-        );
-        await confirmBtn.first().click();
-      }
-
-      // Verify reconciliation summary appears
-      const reconciliation = page.locator(
-        '[data-testid="reconciliation"], [data-testid="shift-summary"], text=/reconciliation|結算|對帳|結班/i',
-      );
-      await expect(reconciliation.first()).toBeVisible({ timeout: 5000 });
-
-      // Verify the shift was ended via API
-      expect(shiftEnded).toBe(true);
+      await confirmBtn.first().click();
     }
+
+    // Verify reconciliation summary appears
+    const reconciliation = page.locator(
+      '[data-testid="reconciliation"], [data-testid="shift-summary"], text=/reconciliation|結算|對帳|結班/i',
+    );
+    await expect(reconciliation.first()).toBeVisible({ timeout: 5000 });
+
+    // Verify the shift was ended via API
+    expect(shiftEnded).toBe(true);
   });
 });

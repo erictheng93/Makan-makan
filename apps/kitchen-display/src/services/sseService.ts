@@ -2,7 +2,7 @@ import type { KitchenSSEEvent, ConnectionStatus } from "@/types";
 import { isTokenExpired } from "@makanmakan/utils";
 
 export interface SSEOptions {
-  restaurantId: number;
+  restaurantId: string | number;
   onMessage?: (event: KitchenSSEEvent) => void;
   onConnectionChange?: (status: ConnectionStatus) => void;
   onError?: (error: Event) => void;

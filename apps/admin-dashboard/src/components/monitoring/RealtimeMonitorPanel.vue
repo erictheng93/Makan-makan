@@ -112,11 +112,11 @@ async function fetchOverview() {
 function getRoomLabel(roomType: RoomType): string {
   switch (roomType) {
     case "kitchen":
-      return t("realtime.rooms.kitchen", "廚房");
+      return t("realtime.rooms.kitchen");
     case "admin":
-      return t("realtime.rooms.admin", "管理後台");
+      return t("realtime.rooms.admin");
     case "customer":
-      return t("realtime.rooms.customer", "顧客");
+      return t("realtime.rooms.customer");
     default:
       return roomType;
   }
@@ -182,7 +182,7 @@ onUnmounted(() => {
           :class="totalConnections > 0 ? 'bg-green-500' : 'bg-gray-400'"
         />
         <h3 class="text-lg font-semibold text-gray-900">
-          {{ t("realtime.title", "即時連接監控") }}
+          {{ t("realtime.title") }}
         </h3>
       </div>
       <div class="flex items-center space-x-3">
@@ -225,7 +225,7 @@ onUnmounted(() => {
           {{ totalConnections }}
         </div>
         <div class="text-sm text-gray-500">
-          {{ t("realtime.totalConnections", "總連接數") }}
+          {{ t("realtime.totalConnections") }}
         </div>
       </div>
 
@@ -251,8 +251,8 @@ onUnmounted(() => {
           <div class="text-xs text-gray-500 mt-1">
             {{
               room.status === "active"
-                ? t("realtime.status.active", "活躍")
-                : t("realtime.status.inactive", "閒置")
+                ? t("realtime.status.active")
+                : t("realtime.status.inactive")
             }}
           </div>
         </div>
@@ -264,14 +264,14 @@ onUnmounted(() => {
       class="px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500"
     >
       <span v-if="lastRefresh">
-        {{ t("realtime.lastUpdate", "最後更新") }}:
+        {{ t("realtime.lastUpdate") }}:
         {{ formatTime(lastRefresh.toISOString()) }}
       </span>
       <span v-else>
-        {{ t("realtime.loading", "載入中...") }}
+        {{ t("realtime.loading") }}
       </span>
       <span>
-        {{ t("realtime.autoRefresh", "自動刷新") }}:
+        {{ t("realtime.autoRefresh") }}:
         {{ props.refreshInterval }}s
       </span>
     </div>

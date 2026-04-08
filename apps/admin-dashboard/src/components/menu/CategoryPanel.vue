@@ -11,6 +11,7 @@
         </h2>
         <button
           class="flex items-center gap-1 px-3.5 py-1.5 bg-[#E8F5E9] text-[#2D8E47] rounded-full text-[13px] font-semibold hover:bg-[#D4EDDA] transition-colors"
+          data-testid="add-category-btn"
           @click="$emit('add-category')"
         >
           <PlusIcon class="h-3.5 w-3.5" />
@@ -60,6 +61,7 @@
               ? 'bg-ios-primary/[0.06]'
               : 'hover:bg-ios-primary/[0.03]',
           ]"
+          data-testid="category-row"
           @click="emit('select', category.id)"
         >
           <!-- Active indicator bar -->
