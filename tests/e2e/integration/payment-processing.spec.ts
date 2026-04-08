@@ -56,6 +56,9 @@ test.describe("Payment processing integration", () => {
     await mockPOSAPI(page);
     await mockSSE(page);
     await mockAnalyticsAPI(page);
+    // mockOrderAPI intentionally omitted: each test registers its own "**/api/v1/orders**"
+    // route via setupPaymentTest (or inline). Playwright processes handlers in registration
+    // order, so a beforeEach-level handler would shadow per-test overrides.
   });
 
   // Helper: route orders list + payment endpoint with given response
@@ -307,6 +310,8 @@ test.describe("Payment processing integration", () => {
     } else {
       // Zero-amount orders may auto-complete — check for success state directly
       await expect(page.locator("main, [role='main']").first()).toBeVisible({ timeout: 5000 });
+      // Auto-complete must NOT have triggered the payment endpoint
+      expect(paymentCalled).toBe(false);
     }
   });
 
