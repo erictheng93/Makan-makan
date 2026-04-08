@@ -99,7 +99,7 @@ test.describe("Stock validation at checkout", () => {
     await expect(
       page
         .locator(
-          '[data-testid="out-of-stock-error"], [data-testid="stock-error"], [role="alert"]',
+          '[data-testid="out-of-stock-error"], [role="alert"]',
         )
         .first(),
     ).toBeVisible({ timeout: 8000 });
@@ -162,7 +162,7 @@ test.describe("Stock validation at checkout", () => {
     await expect(
       page
         .locator(
-          '[data-testid="partial-stock-error"], [data-testid="remove-continue-btn"], [role="alert"]',
+          '[data-testid="partial-stock-error"], [role="alert"]',
         )
         .first(),
     ).toBeVisible({ timeout: 8000 });
