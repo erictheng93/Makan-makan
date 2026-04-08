@@ -188,7 +188,7 @@ test.describe("Delivery zone validation", () => {
     await expect(
       page
         .locator('[data-testid="zone-error"]')
-        .or(page.locator("text=/超出外送範圍|外送範圍/"))
+        .or(page.locator("text=/超出外送範圍/"))
         .first(),
     ).toBeVisible({ timeout: 8000 });
 
