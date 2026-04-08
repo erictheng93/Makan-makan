@@ -17,13 +17,12 @@ import {
   mockRestaurantAPI,
   mockMenuAPI,
   mockTableAPI,
-  mockOrderAPI,
   mockSSE,
   mockAnalyticsAPI,
   mockPOSAPI,
   preAuthAdmin,
-} from "../helpers/mock-api";
-import { PERSONAS, RESTAURANT, TABLE, MENU_ITEMS, createMockOrder } from "../helpers/personas";
+} from "../../helpers/mock-api";
+import { PERSONAS, RESTAURANT, TABLE, MENU_ITEMS, createMockOrder } from "../../helpers/personas";
 
 const CUSTOMER_APP = process.env.E2E_CUSTOMER_URL || "http://localhost:3000";
 const ADMIN_APP = process.env.E2E_ADMIN_URL || "http://localhost:3001";
@@ -98,9 +97,7 @@ test("should block checkout and flag item when order submit returns OUT_OF_STOCK
     ).toBeVisible({ timeout: 6000 });
 
     // Checkout must be blocked — submit button disabled or hidden after error
-    const submitAfterError = await submitBtn.first().isEnabled().catch(() => false);
-    // Either disabled or the error message is displayed — both are acceptable outcomes
-    expect(submitAfterError === false || true).toBeTruthy(); // error was shown (checked above)
+
   } else {
     // Cart may be empty in a fresh test context — navigate to menu and add item first
     await page.goto(`${CUSTOMER_APP}/restaurant/${RESTAURANT.id}/table/${TABLE.id}`);
