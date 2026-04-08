@@ -17,14 +17,10 @@ import {
   mockMenuAPI,
   mockTableAPI,
   mockOrderAPI,
-  mockSSE,
-  mockAnalyticsAPI,
-  preAuthAdmin,
 } from "../../helpers/mock-api";
 import { PERSONAS, RESTAURANT, TABLE, MENU_ITEMS, createMockOrder } from "../../helpers/personas";
 
 const CUSTOMER_APP = process.env.E2E_CUSTOMER_URL || "http://localhost:3000";
-const ADMIN_APP = process.env.E2E_ADMIN_URL || "http://localhost:3001";
 
 // Apply iPhone 12 viewport for all customer tests in this file
 test.use({ ...devices["iPhone 12"] });
