@@ -295,7 +295,10 @@ describe("OrdersService", () => {
 
         const result = await service.getOrders({
           restaurantId: "1",
-          status: [OrderStatus.PENDING],
+          // OrderQueryFilters.status uses the DB string-union OrderStatus,
+          // not the shared-types numeric enum (which is still used for the
+          // mock order objects below). `as const` narrows the literal type.
+          status: ["pending"] as const,
         });
 
         expect(result.orders).toHaveLength(2);

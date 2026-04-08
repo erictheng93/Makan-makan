@@ -6,6 +6,13 @@
 // BaseEntity import available for future use
 import type { UserRole } from "../../../shared/constants";
 
+// Import the database's string-union OrderStatus for query filters.
+// The DB stores status as a text column (see packages/database/src/schema/orders.ts),
+// so filter values must be strings. The shared-types numeric OrderStatus enum
+// (imported below) is preserved for transition rules, history records, and other
+// places where the legacy numeric representation is used.
+import type { OrderStatus as DbOrderStatus } from "@makanmakan/database";
+
 // Import shared order types from packages/shared-types
 import type {
   Order as SharedOrder,
@@ -130,7 +137,9 @@ export interface CouponPreviewRequest {
 // Order Query and Filter Types
 export interface OrderQueryFilters {
   restaurantId?: string;
-  status?: OrderStatus[];
+  // Uses the DB string-union OrderStatus, not the legacy numeric enum,
+  // because the orders.status column is text and the SQL filter compares strings.
+  status?: DbOrderStatus[];
   paymentStatus?: OrderPaymentStatus[];
   orderType?: "shop" | "table" | "seat";
   fulfillmentType?: "dine_in" | "takeaway" | "delivery";

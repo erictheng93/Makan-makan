@@ -623,7 +623,8 @@ export class OrdersService implements IOrdersService {
   async getActiveOrders(restaurantId: string): Promise<Order[]> {
     const filters: OrderQueryFilters = {
       restaurantId,
-      status: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY],
+      // DB stores status as text — must use string literals matching the schema
+      status: ["confirmed", "preparing", "ready"],
       limit: 100,
     };
     const result = await this.getOrders(filters);
@@ -1209,7 +1210,7 @@ export class OrdersService implements IOrdersService {
   ): import("@makanmakan/database").OrderFilters {
     return {
       restaurantId: filters.restaurantId,
-      status: filters.status as string | string[] | undefined,
+      status: filters.status,
       tableId: filters.tableId,
       dateRange:
         filters.dateFrom && filters.dateTo

@@ -133,14 +133,13 @@ export class KitchenService implements IKitchenService {
       const ordersService = this.ordersService;
 
       // Get orders that are relevant to kitchen (confirmed, preparing, ready).
-      // OrdersService.getOrders matches against the DB status column which
-      // stores string values, so we must pass string statuses (not numeric
-      // OrderStatus enum members) or the SQL filter returns nothing.
-      const relevantStatuses = ["confirmed", "preparing", "ready"];
-
+      // OrderQueryFilters.status uses the DB string-union OrderStatus
+      // (see apps/api/src/features/orders/types/index.ts), so we pass string
+      // literals matching the orders.status text column. `as const` is needed
+      // so TypeScript narrows the literal types instead of widening to string[].
       const result = await ordersService.getOrders({
         restaurantId,
-        status: relevantStatuses,
+        status: ["confirmed", "preparing", "ready"] as const,
       });
 
       // Transform orders to KitchenOrder format

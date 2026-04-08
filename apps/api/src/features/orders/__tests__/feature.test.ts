@@ -284,7 +284,9 @@ describe("Orders Feature", () => {
         // Arrange
         const filters = {
           restaurantId: "1",
-          status: [OrderStatus.PENDING],
+          // OrderQueryFilters.status uses the DB string-union, not the
+          // shared-types numeric enum (see apps/api/src/features/orders/types/index.ts).
+          status: ["pending" as const],
           page: 1,
           limit: 20,
         };
