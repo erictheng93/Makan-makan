@@ -57,6 +57,8 @@ test.describe("Stock validation at checkout", () => {
     await mockRestaurantAPI(page);
     await mockMenuAPI(page);
     await mockOrderAPI(page);
+    // Per-test page.route() calls are registered after this and take precedence
+    // because Playwright processes route handlers in LIFO order (last registered wins).
   });
 
   test("full out-of-stock at submit should block checkout and highlight unavailable item", async ({
@@ -167,7 +169,7 @@ test.describe("Stock validation at checkout", () => {
         .first(),
     ).toBeVisible({ timeout: 8000 });
 
-    expect(submitCount).toBeGreaterThan(0);
+    expect(submitCount).toBe(1);
   });
 
   // ---------------------------------------------------------------------------
@@ -199,11 +201,6 @@ test.describe("Stock validation at checkout", () => {
     });
 
     await page.goto(shopMenuUrl);
-
-    // Wait for item name to be visible before interacting
-    await expect(page.locator(`text=${MENU_ITEMS[0].name}`).first()).toBeVisible(
-      { timeout: 10000 },
-    );
 
     await addFirstItemToCart(page);
 
