@@ -21,6 +21,7 @@ export function uniquePhone(): string {
 
 // Seeded test data constants
 export const RESTAURANT_ID = "019469a0-0001-7000-8000-000000000001";
+export const SAKURA_RESTAURANT_ID = "019469a0-0002-7000-8000-000000000002";
 export const TABLE_A1_ID = 1;
 export const TABLE_B1_ID = 3;
 
@@ -38,6 +39,7 @@ export const USERS = {
   CHEF: "grandma_chef1",
   SERVICE: "grandma_service1",
   CASHIER: "grandma_cashier1",
+  SAKURA_CHEF: "sakura_chef1",
 } as const;
 
 // ─── Types ───
