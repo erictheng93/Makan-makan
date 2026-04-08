@@ -107,9 +107,7 @@ test.describe("Delivery zone validation", () => {
 
     const addressInput = cartModal
       .first()
-      .locator(
-        'input[placeholder*="地址"], [data-testid="delivery-address"]',
-      );
+      .locator('input[placeholder*="地址"], [data-testid="delivery-address"]');
     // Hard assertion — delivery address input must be visible; fails if delivery
     // mode toggle was missing or non-functional
     await expect(addressInput.first()).toBeVisible({ timeout: 8000 });
@@ -179,9 +177,7 @@ test.describe("Delivery zone validation", () => {
 
     const addressInput = cartModal
       .first()
-      .locator(
-        'input[placeholder*="地址"], [data-testid="delivery-address"]',
-      );
+      .locator('input[placeholder*="地址"], [data-testid="delivery-address"]');
     // Hard assertion — delivery address input must be visible; fails if delivery
     // mode toggle was missing or non-functional
     await expect(addressInput.first()).toBeVisible({ timeout: 8000 });
@@ -237,9 +233,7 @@ test.describe("Delivery zone validation", () => {
 
     const addressInput = cartModal
       .first()
-      .locator(
-        'input[placeholder*="地址"], [data-testid="delivery-address"]',
-      );
+      .locator('input[placeholder*="地址"], [data-testid="delivery-address"]');
     // Hard assertion — delivery address input must be visible; fails if delivery
     // mode toggle was missing or non-functional
     await expect(addressInput.first()).toBeVisible({ timeout: 8000 });
@@ -248,9 +242,7 @@ test.describe("Delivery zone validation", () => {
     // Click submit — frontend validation should prevent the API call
     await cartModal
       .first()
-      .locator(
-        '[data-testid="submit-order-btn"], button:has-text("確認訂單")',
-      )
+      .locator('[data-testid="submit-order-btn"], button:has-text("確認訂單")')
       .first()
       .click();
 

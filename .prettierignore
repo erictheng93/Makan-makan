@@ -26,3 +26,11 @@ Backup/
 # Test artifacts
 test-results/
 playwright-report/
+
+# Documentation (not subject to Prettier formatting)
+docs/
+CLAUDE.md
+CONTRIBUTING.md
+README.md
+packages/database/migrations_v2/
+tests/performance/**/*.md

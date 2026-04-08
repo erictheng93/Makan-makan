@@ -100,9 +100,7 @@ test.describe("Stock validation at checkout", () => {
     // Error or out-of-stock indicator should appear
     await expect(
       page
-        .locator(
-          '[data-testid="out-of-stock-error"], [role="alert"]',
-        )
+        .locator('[data-testid="out-of-stock-error"], [role="alert"]')
         .first(),
     ).toBeVisible({ timeout: 8000 });
 
@@ -163,9 +161,7 @@ test.describe("Stock validation at checkout", () => {
     // Error or CTA element should appear
     await expect(
       page
-        .locator(
-          '[data-testid="partial-stock-error"], [role="alert"]',
-        )
+        .locator('[data-testid="partial-stock-error"], [role="alert"]')
         .first(),
     ).toBeVisible({ timeout: 8000 });
 
