@@ -135,12 +135,11 @@ test.describe("Coupon API", () => {
     createdCouponId = json.data.id;
   });
 
-  // ── 2. GET /available/:restaurantId returns success + array ──────────────
-  // Note: this endpoint is KV-cached and the create endpoint does NOT invalidate
-  // the cache, so a freshly created coupon may not appear here for the cache TTL.
-  // We only assert the endpoint shape, not that our specific coupon is present.
+  // ── 2. GET /available/:restaurantId returns the newly created coupon ────
 
-  test("GET /available/:restaurantId returns success and an array", async () => {
+  test("GET /available/:restaurantId includes the newly created coupon", async () => {
+    expect(createdCouponId).toBeDefined();
+
     const res = await fetch(
       `${API_URL}/api/v1/coupons/available/${RESTAURANT_ID}`,
     );
@@ -154,6 +153,11 @@ test.describe("Coupon API", () => {
 
     expect(json.success).toBe(true);
     expect(Array.isArray(json.data)).toBe(true);
+
+    const found = json.data.find((c) => c.id === createdCouponId);
+    expect(found).toBeDefined();
+    expect(found?.code).toBe(COUPON_CODE);
+    expect(found?.isActive).toBe(true);
   });
 
   // ── 2b. Owner GET /coupons (admin list, not cached) sees the new coupon ──

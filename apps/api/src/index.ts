@@ -193,12 +193,12 @@ app.use(
   "*",
   smartCacheMiddleware({
     defaultTtl: 300, // 使用預設值，避免全域範圍的 process.env 存取
-    varyHeaders: [
-      "Authorization",
-      "X-Restaurant-ID",
-      "CF-IPCountry",
-      "User-Agent",
-    ],
+    // User-Agent was previously listed but it shards the cache per-client
+    // (curl, each browser, etc.), making invalidation impossible — every
+    // unique UA gets its own Cache API entry that the writer/invalidator
+    // can't enumerate. Drop it. Authorization is handled by short-circuiting
+    // the cache for authenticated requests, so it's redundant here too.
+    varyHeaders: ["X-Restaurant-ID", "CF-IPCountry"],
     cacheTags: (c) => {
       const restaurantId =
         c.req.param("restaurantId") || c.get("user")?.restaurantId;

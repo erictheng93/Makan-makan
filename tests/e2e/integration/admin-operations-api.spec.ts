@@ -212,24 +212,10 @@ test.describe("Users API", () => {
     });
     const data = await res.json();
 
-    // Note: if restaurantId:1 is rejected (400), the API may require the UUID
-    // instead of the numeric rowid. In that case, createdUserId will remain
-    // undefined and the subsequent deactivation test will skip gracefully.
-    if (!res.ok) {
-      console.warn(
-        `create user returned ${res.status}: ${JSON.stringify(data)} — ` +
-          "known issue: restaurantId schema mismatch (integer vs UUID). Skipping.",
-      );
-      return;
-    }
-
     expect(res.status).toBe(201);
     expect(data.success).toBe(true);
-    // Note: the API has a known bug where it overrides `username` to the
-    // current user's username and stores restaurantId as the numeric rowid
-    // instead of the UUID. We can't assert on those fields. We only verify
-    // an ID was returned so the deactivate test can proceed.
     expect(data.data.id).toBeDefined();
+    expect(data.data.username).toBe(username);
     expect(data.data.fullName).toBe("E2E Test User");
     expect(data.data.role).toBe(3);
 

@@ -172,6 +172,12 @@ app.post("/", async (c) => {
   await c.env.CACHE_KV.put(activeOrderKey, String(order.id), {
     expirationTtl: twoHoursInSeconds,
   });
+  // Reverse mapping so any cancel path (admin DELETE, guest cancel, cleanup
+  // jobs) can locate and clear the active-order key without knowing the
+  // original phoneLastDigits + restaurantId combo.
+  await c.env.CACHE_KV.put(`guest_active_lookup:${order.id}`, activeOrderKey, {
+    expirationTtl: twoHoursInSeconds,
+  });
 
   // 7. Return order + guestToken
   const tokenExpiresAt = new Date(
@@ -281,7 +287,10 @@ app.post("/:id/cancel", guestTokenAuth, async (c) => {
   // Clean up KV keys
   const guestData = c.get("guestOrder");
   const activeOrderKey = `guest_active:${guestData.restaurantId}:${guestData.phoneLastDigits}`;
-  await c.env.CACHE_KV.delete(activeOrderKey);
+  await Promise.allSettled([
+    c.env.CACHE_KV.delete(activeOrderKey),
+    c.env.CACHE_KV.delete(`guest_active_lookup:${orderId}`),
+  ]);
 
   // Also remove guest token to prevent further access
   const authHeader = c.req.header("Authorization");

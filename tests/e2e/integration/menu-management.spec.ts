@@ -153,12 +153,8 @@ test.describe("Menu Categories CRUD", () => {
     const category = await createCategory("列表測試分類", ownerAuth);
     createdCategoryId = category.id;
 
-    // The public menu endpoint returns categories within the menu response
-    // (cache-bust to bypass stale Cache API entries — same workaround as
-    // the menu-items test below).
-    const res = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
-    );
+    // The public menu endpoint returns categories within the menu response.
+    const res = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
     const data = await res.json();
 
     expect(res.ok).toBe(true);
@@ -283,12 +279,9 @@ test.describe("Menu Items CRUD", () => {
     );
     createdItemId = item.id;
 
-    // Guest fetch — append cache-buster to skip the Cache API layer (local
-    // dev does not invalidate Cache API on writes; KV is invalidated but the
-    // Cache API tier persists stale entries).
-    const res = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
-    );
+    // Guest fetch — write-through cache invalidation should make the new
+    // item visible immediately on the next public read.
+    const res = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
     const data = await res.json();
 
     expect(res.ok).toBe(true);
@@ -383,9 +376,7 @@ test.describe("Menu Items CRUD", () => {
     });
 
     // Guest fetch should NOT see the unavailable item
-    const res = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
-    );
+    const res = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
     const data = await res.json();
 
     expect(res.ok).toBe(true);
@@ -430,12 +421,9 @@ test.describe("KV Cache invalidation", () => {
     );
     createdItemId = item.id;
 
-    // 2. Confirm item appears in the public menu (cache-bust to bypass
-    // Cache API which is not invalidated in local dev — items live in
-    // data.menuItems, not nested inside categories).
-    const before = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
-    );
+    // 2. Confirm item appears in the public menu — items live in
+    // data.menuItems, not nested inside categories.
+    const before = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
     const beforeData = await before.json();
     const beforeItems: Array<{ id: number; name: string }> =
       beforeData.data?.menuItems ?? [];
@@ -450,10 +438,9 @@ test.describe("KV Cache invalidation", () => {
     });
     expect(updateRes.status).toBe(200);
 
-    // 4. Immediately re-fetch with cache-bust — KV cache should be invalidated.
-    const after = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}?_=${Date.now()}`,
-    );
+    // 4. Immediately re-fetch — both KV and Cache API tiers should have been
+    // invalidated by the PUT, so the new name is visible right away.
+    const after = await fetch(`${API_URL}/api/v1/menu/${RESTAURANT_ID}`);
     const afterData = await after.json();
     const afterItems: Array<{ id: number; name: string }> =
       afterData.data?.menuItems ?? [];

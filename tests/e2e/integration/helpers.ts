@@ -241,11 +241,12 @@ export async function createGuestOrder(
     };
   } = {},
 ): Promise<GuestOrderResponse> {
-  // The API enforces an active-order-per-phoneLastDigits limit via a KV key
-  // with a 2-hour TTL. The admin DELETE endpoint we use for cleanup does not
-  // clear that KV entry, so phone digits get "burned" between test runs.
-  // We auto-retry with fresh phone digits if we hit the 429 dedup error.
-  const maxAttempts = options.phoneLastDigits ? 1 : 12;
+  // The API enforces one-active-order-per-phoneLastDigits via a KV key. Both
+  // the admin DELETE and guest cancel paths now clear that key on success,
+  // but stale entries from earlier runs (or interrupted tests) can still
+  // burn a phone slot. Retry a couple of times with fresh digits to absorb
+  // that.
+  const maxAttempts = options.phoneLastDigits ? 1 : 4;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const body: Record<string, unknown> = {
@@ -269,8 +270,6 @@ export async function createGuestOrder(
       return data as GuestOrderResponse;
     }
 
-    // Retry on the active-order dedup 429 — likely a stale KV entry from a
-    // previous run that the admin DELETE never cleared.
     const dedupHit =
       res.status === 429 &&
       typeof data?.error === "string" &&

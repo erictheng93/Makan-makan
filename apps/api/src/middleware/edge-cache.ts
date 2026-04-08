@@ -412,21 +412,20 @@ export function smartCacheMiddleware(
       c.env,
     );
 
-    // Skip caching for certain conditions
-    if (options.shouldCache && !options.shouldCache(c)) {
-      await next();
-      return;
-    }
-
-    // Build cache key based on request
     const method = c.req.method;
     const path = c.req.path;
     const query = c.req.url.includes("?") ? c.req.url.split("?")[1] : "";
     const cacheKey = `${method}:${path}:${query}`;
 
-    // For GET requests, try cache first (skip for authenticated admin requests)
+    // shouldCache decides whether this request should be cached, but we still
+    // need to run mutations through the rest of the middleware so the
+    // post-mutation invalidation block fires. Track the decision but never
+    // early-exit for non-GET methods.
+    const cacheable = options.shouldCache ? options.shouldCache(c) : true;
+
+    // For cacheable GET requests, try cache first (skip for authenticated requests)
     const hasAuth = !!c.req.header("Authorization");
-    if (method === "GET" && !hasAuth) {
+    if (cacheable && method === "GET" && !hasAuth) {
       const vary = options.varyHeaders
         ?.map((header) => c.req.header(header) || "")
         .filter(Boolean);
@@ -459,21 +458,48 @@ export function smartCacheMiddleware(
       const restaurantId =
         c.req.param("restaurantId") || c.get("user")?.restaurantId;
 
-      // Run cache invalidation in the background to avoid blocking the response
-      if (restaurantId && path.includes("/menu")) {
-        // Delete from KV directly (skip Cache API which can hang in local dev)
+      // Synchronously invalidate both cache tiers before the response goes
+      // out — fire-and-forget invalidation lost races against the next GET
+      // and left clients reading stale menus immediately after a write.
+      // Both KV and Cache API must be cleared; the earlier code only touched
+      // KV "to avoid local-dev hangs".
+      if (restaurantId) {
         const kv = c.env.CACHE_KV;
         if (kv) {
-          kv.delete(`GET:/api/v1/menu/${restaurantId}:`).catch(() => {});
-          kv.delete(`GET:/api/v1/menu/${restaurantId}:includeAll=true`).catch(
-            () => {},
-          );
+          // Build the list of cache keys that this mutation should invalidate.
+          // Each entry mirrors a public GET endpoint that smartCacheMiddleware
+          // serves out of cache for unauthenticated readers.
+          const keys: string[] = [];
+
+          if (path.includes("/menu")) {
+            keys.push(
+              `GET:/api/v1/menu/${restaurantId}:`,
+              `GET:/api/v1/menu/${restaurantId}:includeAll=true`,
+            );
+          }
+          if (path.includes("/coupons")) {
+            keys.push(`GET:/api/v1/coupons/available/${restaurantId}:`);
+          }
+          if (path.includes("/restaurants") || path.includes("/menu")) {
+            keys.push(`GET:/api/v1/restaurants/${restaurantId}:`);
+          }
+
+          if (keys.length > 0) {
+            await Promise.allSettled(
+              keys.flatMap((key) => [
+                kv.delete(key),
+                // Cache API delete uses the same URL the cache writer built
+                // via EdgeCacheManager.buildCacheKey — must match exactly.
+                caches.default.delete(`https://cache.makanmakan.app/${key}`),
+              ]),
+            );
+          }
         }
       }
     }
 
     // Cache successful GET responses (skip authenticated requests for real-time data)
-    if (method === "GET" && c.res.status === 200 && !hasAuth) {
+    if (cacheable && method === "GET" && c.res.status === 200 && !hasAuth) {
       try {
         const responseData = await c.res.clone().json();
 

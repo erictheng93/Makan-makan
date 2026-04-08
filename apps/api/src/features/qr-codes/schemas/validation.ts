@@ -72,7 +72,11 @@ const shopQrCodeParam = z.object({
   qrCode: z
     .string()
     .min(1, "QR code is required")
-    .regex(/^SHOP-\d+-\d+$/, "Invalid shop QR code format"),
+    // Two formats coexist:
+    //   - Seeded short codes:    SHOP-GRANDMA-001
+    //   - Generated UUID codes:  SHOP-019469a0-0001-7000-8000-000000000001-1775000000
+    // Allow alphanumerics + dashes throughout, with a SHOP- prefix.
+    .regex(/^SHOP-[A-Za-z0-9-]+$/, "Invalid shop QR code format"),
 });
 
 // QR Generation schemas
