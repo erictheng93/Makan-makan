@@ -239,31 +239,6 @@ export const authApi = {
       };
     }
   },
-
-  // 檢查廚師權限
-  async checkKitchenAccess(
-    restaurantId: number,
-  ): Promise<ApiResponse<boolean>> {
-    try {
-      const response = await api.get(`/auth/kitchen-access/${restaurantId}`);
-
-      return {
-        success: true,
-        data: response.data.hasAccess,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error: any) {
-      console.error("Check kitchen access API error:", error);
-
-      const message =
-        error.response?.data?.message || error.message || "權限檢查失敗";
-      return {
-        success: false,
-        error: message,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  },
 };
 
 export default api;
