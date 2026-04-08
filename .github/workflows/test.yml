@@ -526,7 +526,7 @@ jobs:
         continue-on-error: true
 
       - name: 🛡️ Snyk 深度安全掃描
-        uses: snyk/actions/node@master
+        uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # pinned from master on 2026-04-08
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
