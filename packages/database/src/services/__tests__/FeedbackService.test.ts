@@ -20,7 +20,7 @@ function createMockDb() {
   return {
     select: vi.fn(() => ({
       from: fromFn,
-    })),
+    })) as any,
     insert: vi.fn(() => ({
       values: valuesFn,
     })),
@@ -301,7 +301,7 @@ describe("FeedbackService", () => {
 
       await service.updateFeedbackStatus(1, "closed");
 
-      const setArg = mockDb._set.mock.calls[0][0];
+      const setArg = (mockDb._set.mock.calls[0] as any[])[0];
       expect(setArg.resolvedAt).toBeUndefined();
       expect(setArg.resolvedBy).toBeUndefined();
     });
@@ -363,7 +363,7 @@ describe("FeedbackService", () => {
 
       await service.updateFeedback(1, { priority: "high" }, 1, true);
 
-      const setArg = mockDb._set.mock.calls[0][0];
+      const setArg = (mockDb._set.mock.calls[0] as any[])[0];
       expect(setArg.priority).toBe("high");
       expect(setArg.subject).toBeUndefined();
       expect(setArg.description).toBeUndefined();
@@ -460,7 +460,7 @@ describe("FeedbackService", () => {
       };
 
       // update (updatedAt)
-      mockDb._where.mockReturnValueOnce(undefined);
+      mockDb._where.mockReturnValueOnce(undefined as any);
       // insert response
       mockDb._returning.mockResolvedValue([expected]);
 
@@ -485,7 +485,7 @@ describe("FeedbackService", () => {
     });
 
     it("supports internal notes", async () => {
-      mockDb._where.mockReturnValueOnce(undefined);
+      mockDb._where.mockReturnValueOnce(undefined as any);
       mockDb._returning.mockResolvedValue([
         { id: 11, isInternal: true, message: "Internal note" },
       ]);
@@ -623,7 +623,7 @@ describe("FeedbackService", () => {
       const totalFrom = vi.fn(() => ({
         where: vi.fn(() => [{ total: 10 }]),
       }));
-      mockDb.select.mockReturnValueOnce({ from: totalFrom });
+      mockDb.select.mockReturnValueOnce({ from: totalFrom } as any);
 
       // status stats
       const statusFrom = vi.fn(() => ({
@@ -634,7 +634,7 @@ describe("FeedbackService", () => {
           ]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: statusFrom });
+      mockDb.select.mockReturnValueOnce({ from: statusFrom } as any);
 
       // category stats
       const categoryFrom = vi.fn(() => ({
@@ -645,7 +645,7 @@ describe("FeedbackService", () => {
           ]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: categoryFrom });
+      mockDb.select.mockReturnValueOnce({ from: categoryFrom } as any);
 
       // priority stats
       const priorityFrom = vi.fn(() => ({
@@ -656,13 +656,13 @@ describe("FeedbackService", () => {
           ]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: priorityFrom });
+      mockDb.select.mockReturnValueOnce({ from: priorityFrom } as any);
 
       // avg resolution
       const avgFrom = vi.fn(() => ({
         where: vi.fn(() => [{ avgMs: 86400000 }]),
       }));
-      mockDb.select.mockReturnValueOnce({ from: avgFrom });
+      mockDb.select.mockReturnValueOnce({ from: avgFrom } as any);
 
       const result = await service.getFeedbackStats();
 

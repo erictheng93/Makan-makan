@@ -99,7 +99,7 @@ vi.mock('@makanmakan/database', () => ({
 }))
 
 vi.stubGlobal('crypto', {
-  ...globalThis.crypto,
+  ...(globalThis as any).crypto,
   randomUUID: vi.fn().mockReturnValue('mock-schedule-uuid')
 })
 

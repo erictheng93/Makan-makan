@@ -160,7 +160,6 @@ export class OrdersService implements IOrdersService {
         notes: data.notes,
         couponCode: data.couponCode,
         orderSource: data.orderSource,
-        deliveryInfo: data.deliveryInfo,
       };
 
       // Create order using base service

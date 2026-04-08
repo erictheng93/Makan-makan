@@ -16,7 +16,7 @@ import type {
 
 export interface CreateOrderData {
   restaurantId: string;
-  tableId: number;
+  tableId?: number;
   customerId?: number;
   customerInfo?: { name?: string; phone?: string; email?: string };
   items: Array<{

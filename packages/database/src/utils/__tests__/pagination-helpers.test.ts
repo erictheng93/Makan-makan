@@ -35,7 +35,6 @@ import {
   applySorting,
   getTotalCount,
   createPaginatedResponse,
-  buildCacheKey,
 } from "../pagination-helpers";
 
 describe("pagination-helpers", () => {

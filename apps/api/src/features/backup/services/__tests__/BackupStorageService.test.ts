@@ -14,7 +14,7 @@ import type { BackupRecord } from '@makanmakan/shared-types'
 const MOCK_HASH = new Uint8Array([0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89])
 
 vi.stubGlobal('crypto', {
-  ...globalThis.crypto,
+  ...(globalThis as any).crypto,
   subtle: {
     digest: vi.fn().mockResolvedValue(MOCK_HASH.buffer),
     importKey: vi.fn().mockResolvedValue('mock-key-material'),
