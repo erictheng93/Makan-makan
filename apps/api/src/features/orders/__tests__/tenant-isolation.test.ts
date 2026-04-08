@@ -292,12 +292,12 @@ describe("OrdersService — Multi-Tenant Data Isolation", () => {
       await service.getActiveOrders(RESTAURANT_A);
 
       const calledFilters = mockBaseOrderService.getOrders.mock.calls[0][0];
+      // The DB orders.status column is text, so getActiveOrders passes string
+      // literals (matching the DB schema's OrderStatus union) — not the legacy
+      // numeric OrderStatus enum from shared-types, which would silently fail
+      // the SQL inArray comparison against a TEXT column.
       expect(calledFilters.status).toEqual(
-        expect.arrayContaining([
-          OrderStatus.CONFIRMED,
-          OrderStatus.PREPARING,
-          OrderStatus.READY,
-        ]),
+        expect.arrayContaining(["confirmed", "preparing", "ready"]),
       );
     });
   });

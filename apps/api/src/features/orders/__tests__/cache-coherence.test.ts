@@ -6,6 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
+import type { OrderQueryFilters } from "../types";
 import { OrderStatus } from "@makanmakan/shared-types";
 import { resetAllFactories } from "@makanmakan/testing-utils";
 
@@ -746,7 +747,14 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       const filters1 = { restaurantId: "1" };
       const filters2 = { restaurantId: "2" };
-      const filters3 = { restaurantId: "1", status: [OrderStatus.PENDING] };
+      // OrderQueryFilters.status uses the DB string-union, not the
+      // shared-types numeric enum (see apps/api/src/features/orders/types/index.ts).
+      // The type annotation lets TypeScript narrow the literal via contextual
+      // typing (avoids the `readonly`/mutable mismatch from a bare `as const`).
+      const filters3: OrderQueryFilters = {
+        restaurantId: "1",
+        status: ["pending"],
+      };
 
       await service.getOrderAnalytics(filters1);
       await service.getOrderAnalytics(filters2);

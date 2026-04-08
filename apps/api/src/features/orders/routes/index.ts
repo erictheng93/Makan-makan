@@ -32,6 +32,10 @@ import {
 } from "../../../shared/utils/api-error";
 import type { CallerContext } from "../types";
 import { ROLE_STATUS_PERMISSIONS } from "../types";
+// DB-schema string-union OrderStatus, used for query filter values that must
+// match the orders.status TEXT column at runtime. Aliased to avoid clashing
+// with the legacy numeric OrderStatus from @makanmakan/shared-types above.
+import type { OrderStatus as DbOrderStatus } from "@makanmakan/database";
 
 /** Convert auth user to CallerContext for service-layer defence-in-depth */
 function toCallerContext(user: AuthUser): CallerContext {
@@ -57,15 +61,17 @@ function stringToOrderStatus(status: string): OrderStatus {
   return statusMap[status as keyof typeof statusMap] ?? OrderStatus.PENDING;
 }
 
-// Helper function to convert status array
+// Helper function to normalise the status query parameter into a string array.
+// The DB stores orders.status as text (see packages/database/src/schema/orders.ts),
+// so the filter must remain as strings — converting to the legacy numeric
+// OrderStatus enum produced silent zero-result queries because the SQL inArray
+// compared a TEXT column against integer values. Validation (orderStatusSchema
+// in schemas/validation.ts) has already ensured each entry is a valid status.
 function convertStatusArray(
   status: string | string[] | undefined,
-): OrderStatus[] | undefined {
+): DbOrderStatus[] | undefined {
   if (!status) return undefined;
-  if (typeof status === "string") {
-    return [stringToOrderStatus(status)];
-  }
-  return status.map((s) => stringToOrderStatus(s));
+  return (typeof status === "string" ? [status] : status) as DbOrderStatus[];
 }
 
 // Helper function to convert payment status
