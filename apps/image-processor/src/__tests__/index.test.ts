@@ -109,7 +109,7 @@ describe("Main App (index.ts)", () => {
       const res = await app.request("/", undefined, env as any);
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.name).toBe("MakanMakan Image Processing Service");
       expect(body.version).toBe("v1");
     });
@@ -117,7 +117,7 @@ describe("Main App (index.ts)", () => {
     it("should list all features", async () => {
       const app = buildTestApp();
       const res = await app.request("/", undefined, env as any);
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(body.features).toContain("Image upload and storage");
       expect(body.features).toContain("Security scanning");
@@ -127,7 +127,7 @@ describe("Main App (index.ts)", () => {
     it("should include limits from env", async () => {
       const app = buildTestApp();
       const res = await app.request("/", undefined, env as any);
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(body.limits.maxFileSize).toBe("10MB");
       expect(body.limits.allowedFormats).toContain("image/jpeg");
@@ -144,7 +144,7 @@ describe("Main App (index.ts)", () => {
       const res = await app.request("/info", undefined, env as any);
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.service).toBe("MakanMakan Image Processor");
       expect(body.capabilities.upload).toBe(true);
       expect(body.capabilities.transformation).toBe(true);
@@ -153,7 +153,7 @@ describe("Main App (index.ts)", () => {
     it("should list supported input and output formats", async () => {
       const app = buildTestApp();
       const res = await app.request("/info", undefined, env as any);
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(body.supportedFormats.input).toContain("image/jpeg");
       expect(body.supportedFormats.output).toContain("image/webp");
@@ -173,7 +173,7 @@ describe("Main App (index.ts)", () => {
       );
 
       expect(res.status).toBe(404);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
       expect(body.error).toBe("API endpoint not found");
       expect(body.path).toBe("/nonexistent/endpoint");
@@ -188,7 +188,7 @@ describe("Main App (index.ts)", () => {
       const res = await app.request("/throw", undefined, env as any);
 
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
       expect(body.error).toBe("Test error");
       expect(body.stack).toBeDefined();
@@ -199,7 +199,7 @@ describe("Main App (index.ts)", () => {
       const app = buildTestApp();
 
       const res = await app.request("/throw", undefined, prodEnv as any);
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(500);
       expect(body.error).toBe("Internal server error");

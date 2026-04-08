@@ -317,7 +317,7 @@ describe("Analytics Routes", () => {
       const res = await app.request("/dashboard", undefined, env as any);
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
       expect(body.error).toContain("authorization");
     });
@@ -331,7 +331,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
     });
 
@@ -344,7 +344,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(403);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
       expect(body.error).toContain("permissions");
     });
@@ -358,7 +358,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
     });
 
@@ -371,7 +371,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
     });
   });
@@ -388,7 +388,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.data.totalImages).toBe(42);
       expect(body.data.storageUsage.total).toBe(1024000);
@@ -434,7 +434,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
     });
 
@@ -450,7 +450,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
       expect(body.error).toBe("Failed to get analytics dashboard");
     });
@@ -468,7 +468,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.data.totalStorage).toBe(2048000);
       expect(body.data.imageCount).toBe(50);
@@ -502,7 +502,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
     });
   });
@@ -519,7 +519,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.data.totalViews).toBe(5000);
     });
@@ -567,7 +567,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.data.avgProcessingTime).toBe(95);
       expect(body.data.successRate).toBe(0.99);
@@ -618,7 +618,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.data.type).toBe("summary");
       expect(body.data.format).toBe("json");
@@ -635,7 +635,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.data.type).toBe("storage");
       expect(body.data.format).toBe("csv");
       expect(body.data.download_url).toContain(".csv");
@@ -650,7 +650,7 @@ describe("Analytics Routes", () => {
         env as any,
       );
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       const expiresAt = new Date(body.data.expires_at).getTime();
       const twentyFourHours = 24 * 60 * 60 * 1000;
 
@@ -720,7 +720,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(true);
       expect(body.data.totalImages).toBe(0);
       expect(body.data.mostUsedVariants).toEqual([]);
@@ -746,7 +746,7 @@ describe("Analytics Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.data.imageCount).toBe(0);
       expect(body.data.byCategory).toEqual([]);
     });

@@ -17,6 +17,7 @@ export default defineConfig({
           include: [
             "tests/unit/**/*.test.{js,ts}",
             "tests/e2e/**/*.test.{js,ts}",
+            "tests/performance/**/*.test.{js,ts}",
           ],
           exclude: [
             "**/node_modules/**",

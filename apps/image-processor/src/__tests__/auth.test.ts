@@ -73,7 +73,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.user.id).toBe(1);
       expect(body.user.username).toBe("testuser");
       expect(body.user.role).toBe(0);
@@ -86,7 +86,7 @@ describe("Auth Middleware", () => {
       const res = await req(app, "/test");
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("authorization");
     });
 
@@ -128,7 +128,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("Invalid role");
     });
 
@@ -148,7 +148,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("Invalid token claims");
     });
 
@@ -167,7 +167,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("too old");
     });
 
@@ -186,7 +186,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("invalidated");
     });
 
@@ -218,7 +218,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(500);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("Server configuration");
     });
   });
@@ -237,7 +237,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(res.status).toBe(200);
       expect(body.user).not.toBeNull();
       expect(body.user.id).toBe(1);
@@ -250,7 +250,7 @@ describe("Auth Middleware", () => {
       );
 
       const res = await req(app, "/test");
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(200);
       expect(body.user).toBeNull();
@@ -266,7 +266,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: "Bearer invalid-token-here" },
       });
 
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(res.status).toBe(200);
       expect(body.user).toBeNull();
     });
@@ -301,7 +301,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(403);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("Insufficient permissions");
     });
 
@@ -336,7 +336,7 @@ describe("Auth Middleware", () => {
       const res = await req(app, "/test");
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("API key required");
     });
 
@@ -349,7 +349,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("Invalid API key");
     });
   });
@@ -436,7 +436,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(429);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("Rate limit");
     });
 
@@ -479,7 +479,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(413);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("File too large");
     });
 

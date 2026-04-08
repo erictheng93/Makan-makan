@@ -72,7 +72,7 @@ describe("Validation Middleware", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.data.name).toBe("test");
     });
 
@@ -91,7 +91,7 @@ describe("Validation Middleware", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.success).toBe(false);
       expect(body.error).toBe("Validation failed");
     });
@@ -128,7 +128,7 @@ describe("Validation Middleware", () => {
       });
 
       const res = await app.request("/test?page=5");
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(200);
       expect(body.data.page).toBe(5);
@@ -160,7 +160,7 @@ describe("Validation Middleware", () => {
       });
 
       const res = await app.request("/abc123");
-      const body = await res.json();
+      const body = (await res.json()) as any;
 
       expect(res.status).toBe(200);
       expect(body.data.id).toBe("abc123");
@@ -393,7 +393,7 @@ describe("Validation Middleware", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toBe("Invalid file type");
     });
 
@@ -479,7 +479,7 @@ describe("Validation Middleware", () => {
 
       const res = await app.request("/upload", { method: "POST" });
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("mismatch");
     });
 
@@ -502,7 +502,7 @@ describe("Validation Middleware", () => {
 
       const res = await app.request("/upload", { method: "POST" });
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = (await res.json()) as any;
       expect(body.error).toContain("Invalid image file format");
     });
 
