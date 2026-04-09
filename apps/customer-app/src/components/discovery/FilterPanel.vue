@@ -1,5 +1,7 @@
 <template>
-  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <div
+    class="bg-ios-card rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] overflow-hidden"
+  >
     <button
       class="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-gray-700"
       @click="isOpen = !isOpen"
@@ -20,36 +22,39 @@
         />
       </svg>
     </button>
-    <div v-if="isOpen" class="px-4 pb-4 space-y-4 border-t border-gray-100">
+    <div
+      v-if="isOpen"
+      class="px-4 pb-4 space-y-4 border-t border-ios-separator"
+    >
       <div class="pt-3 flex flex-wrap gap-2">
         <button
-          class="px-3 py-1.5 text-xs rounded-full border transition-colors"
+          class="px-3 py-1.5 text-xs rounded-full transition-colors"
           :class="
             filters.openNow
-              ? 'bg-green-100 border-green-300 text-green-700'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              ? 'bg-ios-green/15 text-ios-green font-semibold'
+              : 'bg-ios-bg text-ios-secondary hover:bg-ios-separator'
           "
           @click="toggle('openNow')"
         >
           {{ t("discovery.openNow") }}
         </button>
         <button
-          class="px-3 py-1.5 text-xs rounded-full border transition-colors"
+          class="px-3 py-1.5 text-xs rounded-full transition-colors"
           :class="
             filters.takeaway
-              ? 'bg-blue-100 border-blue-300 text-blue-700'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              ? 'bg-ios-blue/15 text-ios-blue font-semibold'
+              : 'bg-ios-bg text-ios-secondary hover:bg-ios-separator'
           "
           @click="toggle('takeaway')"
         >
           {{ t("discovery.takeaway") }}
         </button>
         <button
-          class="px-3 py-1.5 text-xs rounded-full border transition-colors"
+          class="px-3 py-1.5 text-xs rounded-full transition-colors"
           :class="
             filters.delivery
-              ? 'bg-purple-100 border-purple-300 text-purple-700'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              ? 'bg-ios-orange/15 text-ios-orange font-semibold'
+              : 'bg-ios-bg text-ios-secondary hover:bg-ios-separator'
           "
           @click="toggle('delivery')"
         >
@@ -62,7 +67,7 @@
         </label>
         <select
           :value="filters.district || ''"
-          class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+          class="w-full text-sm bg-ios-bg rounded-xl px-3 py-2 focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
           @change="onDistrictChange"
         >
           <option value="">{{ t("discovery.allDistricts") }}</option>

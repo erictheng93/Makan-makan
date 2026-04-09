@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col">
+  <div class="min-h-screen bg-ios-bg flex flex-col">
     <!-- Header -->
     <header class="bg-white shadow-sm">
       <div class="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
@@ -35,7 +35,7 @@
         <div v-if="restaurant" class="bg-white rounded-lg shadow-md p-6 mb-6">
           <div class="text-center">
             <div
-              class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center"
+              class="w-20 h-20 mx-auto mb-4 bg-ios-blue rounded-full flex items-center justify-center"
             >
               <svg
                 class="w-10 h-10 text-white"
@@ -152,7 +152,7 @@
             <button
               :disabled="!isValidInput || isLoading"
               data-testid="verify-btn"
-              class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              class="w-full bg-ios-blue hover:bg-ios-blue/90 text-white py-3.5 px-6 rounded-full font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               @click="handleVerify"
             >
               <span v-if="!isLoading">{{

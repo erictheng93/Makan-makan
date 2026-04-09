@@ -154,11 +154,11 @@ function getMemberShareAmount(memberId: string): number {
       <button
         v-for="mode in modes"
         :key="mode.id"
-        class="p-4 rounded-xl border-2 transition-all text-left"
+        class="p-4 rounded-2xl transition-all text-left shadow-[0_2px_8px_rgb(0,0,0,0.04)]"
         :class="[
           modelValue.mode === mode.id
-            ? 'border-indigo-500 bg-indigo-50'
-            : 'border-gray-200 bg-white hover:border-gray-300',
+            ? 'bg-ios-blue/10 ring-2 ring-ios-blue'
+            : 'bg-ios-card hover:bg-ios-bg',
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
         ]"
         :disabled="disabled"
@@ -169,8 +169,8 @@ function getMemberShareAmount(memberId: string): number {
             class="w-10 h-10 rounded-full flex items-center justify-center"
             :class="
               modelValue.mode === mode.id
-                ? 'bg-indigo-500 text-white'
-                : 'bg-gray-100 text-gray-500'
+                ? 'bg-ios-blue text-white'
+                : 'bg-ios-bg text-ios-secondary'
             "
           >
             <svg
@@ -196,9 +196,9 @@ function getMemberShareAmount(memberId: string): number {
     </div>
 
     <!-- Equal Split Preview -->
-    <div v-if="modelValue.mode === 'equal'" class="bg-gray-50 rounded-xl p-4">
+    <div v-if="modelValue.mode === 'equal'" class="bg-ios-bg rounded-2xl p-4">
       <div class="text-center mb-4">
-        <div class="text-3xl font-bold text-indigo-600">
+        <div class="text-3xl font-bold text-ios-blue">
           {{ formatPrice(perPersonAmount) }}
         </div>
         <div class="text-sm text-gray-500">
@@ -222,7 +222,7 @@ function getMemberShareAmount(memberId: string): number {
     </div>
 
     <!-- Custom Shares Editor -->
-    <div v-if="modelValue.mode === 'custom'" class="bg-gray-50 rounded-xl p-4">
+    <div v-if="modelValue.mode === 'custom'" class="bg-ios-bg rounded-2xl p-4">
       <div class="mb-3 flex items-center justify-between">
         <span class="text-sm font-medium text-gray-700">
           {{ t("group.customShares") }}
@@ -231,8 +231,8 @@ function getMemberShareAmount(memberId: string): number {
           class="text-xs px-2 py-0.5 rounded-full"
           :class="
             isValidCustomShares
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-700'
+              ? 'bg-ios-green/15 text-ios-green'
+              : 'bg-ios-red/15 text-ios-red'
           "
         >
           {{ totalSharePercentage.toFixed(0) }}%
@@ -257,7 +257,7 @@ function getMemberShareAmount(memberId: string): number {
               step="5"
               :value="customShares[member.id] || 0"
               :disabled="disabled"
-              class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              class="flex-1 h-2 bg-ios-separator rounded-full appearance-none cursor-pointer accent-ios-blue"
               @input="
                 updateCustomShare(
                   member.id,
@@ -296,7 +296,7 @@ function getMemberShareAmount(memberId: string): number {
     <!-- Single Payer Selection -->
     <div
       v-if="modelValue.mode === 'single_payer'"
-      class="bg-gray-50 rounded-xl p-4"
+      class="bg-ios-bg rounded-2xl p-4"
     >
       <div class="mb-3 text-sm font-medium text-gray-700">
         {{ t("group.selectPayer") }}
@@ -305,11 +305,11 @@ function getMemberShareAmount(memberId: string): number {
         <button
           v-for="member in members"
           :key="member.id"
-          class="w-full p-3 rounded-lg border-2 transition-all flex items-center justify-between"
+          class="w-full p-3 rounded-2xl transition-all flex items-center justify-between"
           :class="[
             selectedPayer === member.id
-              ? 'border-indigo-500 bg-white'
-              : 'border-gray-200 bg-white hover:border-gray-300',
+              ? 'bg-ios-card ring-2 ring-ios-blue'
+              : 'bg-ios-card hover:bg-ios-bg',
             disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
           ]"
           :disabled="disabled"
@@ -320,8 +320,8 @@ function getMemberShareAmount(memberId: string): number {
               class="w-8 h-8 rounded-full flex items-center justify-center"
               :class="
                 selectedPayer === member.id
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-gray-100 text-gray-500'
+                  ? 'bg-ios-blue text-white'
+                  : 'bg-ios-bg text-ios-secondary'
               "
             >
               <svg
@@ -348,7 +348,7 @@ function getMemberShareAmount(memberId: string): number {
           </div>
           <span
             v-if="selectedPayer === member.id"
-            class="text-lg font-bold text-indigo-600"
+            class="text-lg font-bold text-ios-blue"
           >
             {{ formatPrice(totalAmount) }}
           </span>
@@ -364,7 +364,7 @@ function getMemberShareAmount(memberId: string): number {
   appearance: none;
   width: 16px;
   height: 16px;
-  background: #4f46e5;
+  background: #007aff;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -372,7 +372,7 @@ function getMemberShareAmount(memberId: string): number {
 .split-bill-selector input[type="range"]::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  background: #4f46e5;
+  background: #007aff;
   border-radius: 50%;
   cursor: pointer;
   border: none;

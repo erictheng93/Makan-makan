@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+    class="bg-ios-card rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] p-4 hover:shadow-[0_4px_16px_rgb(0,0,0,0.06)] transition-shadow cursor-pointer"
     @click="$emit('select', dish)"
   >
     <div class="flex items-start justify-between">
@@ -13,7 +13,7 @@
           </span>
         </p>
         <div class="flex items-center gap-2 mt-2">
-          <span class="text-indigo-600 font-semibold">
+          <span class="text-ios-blue font-semibold">
             {{ formatPrice(dish.price) }}
           </span>
           <span

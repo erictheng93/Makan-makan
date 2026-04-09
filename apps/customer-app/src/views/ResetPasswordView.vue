@@ -21,7 +21,7 @@
       <!-- Token 驗證中 -->
       <div
         v-if="verifying"
-        class="bg-white rounded-2xl shadow-xl p-8 text-center"
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8 text-center"
       >
         <svg
           class="animate-spin mx-auto h-12 w-12 text-orange-500"
@@ -46,7 +46,10 @@
       </div>
 
       <!-- Token 錯誤 -->
-      <div v-else-if="tokenError" class="bg-white rounded-2xl shadow-xl p-8">
+      <div
+        v-else-if="tokenError"
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
+      >
         <div class="text-center">
           <svg
             class="mx-auto h-16 w-16 text-red-400"
@@ -83,7 +86,10 @@
       </div>
 
       <!-- 重設成功 -->
-      <div v-else-if="success" class="bg-white rounded-2xl shadow-xl p-8">
+      <div
+        v-else-if="success"
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
+      >
         <div class="text-center">
           <svg
             class="mx-auto h-16 w-16 text-green-400"
@@ -112,7 +118,10 @@
       </div>
 
       <!-- 重設密碼表單 -->
-      <div v-else class="bg-white rounded-2xl shadow-xl p-8">
+      <div
+        v-else
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
+      >
         <form class="space-y-6" @submit.prevent="handleSubmit">
           <!-- 新密碼 -->
           <div>
@@ -129,7 +138,7 @@
                 :type="showNewPassword ? 'text' : 'password'"
                 required
                 autocomplete="new-password"
-                class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                class="w-full px-4 py-3 pr-10 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
                 :class="{ 'border-red-500': errors.newPassword }"
                 :placeholder="t('auth.newPasswordPlaceholder')"
               />
@@ -211,7 +220,7 @@
                 :type="showConfirmPassword ? 'text' : 'password'"
                 required
                 autocomplete="new-password"
-                class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                class="w-full px-4 py-3 pr-10 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
                 :class="{ 'border-red-500': errors.confirmPassword }"
                 :placeholder="t('auth.confirmPasswordPlaceholder')"
               />
@@ -289,7 +298,7 @@
             <button
               type="submit"
               :disabled="isLoading"
-              class="w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+              class="w-full flex justify-center items-center px-4 py-3.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               :class="{ 'opacity-50 cursor-not-allowed': isLoading }"
             >
               <svg

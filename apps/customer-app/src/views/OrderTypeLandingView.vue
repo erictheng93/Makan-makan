@@ -1,18 +1,18 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-ios-bg">
     <div class="max-w-md mx-auto px-4 py-8">
       <div
         v-if="isLoading"
         class="flex justify-center items-center min-h-[60vh]"
       >
         <div
-          class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-ios-blue"
         ></div>
       </div>
 
       <div v-else-if="error" class="text-center py-12">
         <p class="text-red-500 mb-4">{{ error }}</p>
-        <button class="text-indigo-600 underline" @click="fetchRestaurant">
+        <button class="text-ios-blue underline" @click="fetchRestaurant">
           {{ t("common.retry") }}
         </button>
       </div>

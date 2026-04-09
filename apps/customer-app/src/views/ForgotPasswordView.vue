@@ -55,7 +55,10 @@
       </div>
 
       <!-- 忘記密碼表單 -->
-      <div v-if="!success" class="bg-white rounded-2xl shadow-xl p-8">
+      <div
+        v-if="!success"
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
+      >
         <form class="space-y-6" @submit.prevent="handleSubmit">
           <!-- Email 輸入 -->
           <div>
@@ -71,7 +74,7 @@
               type="email"
               required
               autocomplete="email"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
               :class="{ 'border-red-500': errors.email }"
               :placeholder="t('auth.emailPlaceholderForgot')"
             />
@@ -108,7 +111,7 @@
             <button
               type="submit"
               :disabled="isLoading"
-              class="w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+              class="w-full flex justify-center items-center px-4 py-3.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               :class="{ 'opacity-50 cursor-not-allowed': isLoading }"
             >
               <svg

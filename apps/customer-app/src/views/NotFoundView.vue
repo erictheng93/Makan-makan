@@ -1,38 +1,46 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="max-w-md mx-auto text-center px-4">
-      <div class="mb-8">
-        <div class="text-9xl font-bold text-gray-300 mb-4">404</div>
-        <svg
-          class="w-16 h-16 mx-auto text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+  <div class="min-h-screen bg-ios-bg flex items-center justify-center px-5">
+    <div
+      class="w-full max-w-md bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8 text-center"
+    >
+      <div class="mb-6">
+        <div class="text-7xl font-bold text-ios-tertiary mb-3">404</div>
+        <div
+          class="w-16 h-16 mx-auto rounded-full bg-ios-bg flex items-center justify-center"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-3-1v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
+          <svg
+            class="w-8 h-8 text-ios-secondary"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-3-1v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
       </div>
 
-      <h1 class="text-2xl font-bold text-gray-900 mb-4">
+      <h1 class="text-2xl font-bold text-ios-text mb-2">
         {{ t("errorBoundary.notFoundTitle") }}
       </h1>
-      <p class="text-gray-600 mb-8">{{ t("errorBoundary.notFoundMessage") }}</p>
+      <p class="text-ios-secondary mb-8">
+        {{ t("errorBoundary.notFoundMessage") }}
+      </p>
 
-      <div class="space-y-4">
+      <div class="space-y-3">
         <button
-          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+          class="w-full bg-ios-blue hover:bg-ios-blue/90 text-white font-semibold py-3.5 px-6 rounded-full transition-colors"
           @click="goBack"
         >
           {{ t("common.back") }}
         </button>
 
         <button
-          class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors"
+          class="w-full bg-ios-bg hover:bg-ios-separator text-ios-text font-semibold py-3.5 px-6 rounded-full transition-colors"
           @click="goHome"
         >
           {{ t("common.home") }}

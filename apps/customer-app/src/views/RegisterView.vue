@@ -15,7 +15,9 @@
       </div>
 
       <!-- 註冊表單 -->
-      <div class="bg-white rounded-2xl shadow-xl p-8">
+      <div
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
+      >
         <form class="space-y-5" @submit.prevent="handleSubmit">
           <!-- 帳號輸入 -->
           <div>
@@ -31,7 +33,7 @@
               type="text"
               required
               autocomplete="username"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
               :class="{ 'border-red-500': errors.username }"
               :placeholder="t('auth.usernamePlaceholder')"
             />
@@ -54,7 +56,7 @@
               type="text"
               required
               autocomplete="name"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
               :class="{ 'border-red-500': errors.fullName }"
               :placeholder="t('auth.displayNamePlaceholder')"
             />
@@ -78,7 +80,7 @@
                 :type="showPassword ? 'text' : 'password'"
                 required
                 autocomplete="new-password"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition pr-12"
+                class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition pr-12"
                 :class="{ 'border-red-500': errors.password }"
                 :placeholder="t('auth.passwordPlaceholderWithMin')"
               />
@@ -144,7 +146,7 @@
                 :type="showConfirmPassword ? 'text' : 'password'"
                 required
                 autocomplete="new-password"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition pr-12"
+                class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition pr-12"
                 :class="{ 'border-red-500': errors.confirmPassword }"
                 :placeholder="t('auth.confirmPasswordPlaceholder')"
               />
@@ -207,7 +209,7 @@
               v-model="form.email"
               type="email"
               autocomplete="email"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
               :class="{ 'border-red-500': errors.email }"
               :placeholder="t('auth.emailPlaceholder')"
             />
@@ -229,7 +231,7 @@
               v-model="form.phone"
               type="tel"
               autocomplete="tel"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
               :class="{ 'border-red-500': errors.phone }"
               :placeholder="t('auth.phonePlaceholder')"
             />
@@ -239,10 +241,7 @@
           </div>
 
           <!-- 錯誤提示 -->
-          <div
-            v-if="error"
-            class="bg-red-50 border border-red-200 rounded-lg p-4"
-          >
+          <div v-if="error" class="bg-ios-red/10 rounded-xl p-4">
             <div class="flex items-center">
               <svg
                 class="w-5 h-5 text-red-400 mr-2"
@@ -265,7 +264,7 @@
           <button
             type="submit"
             :disabled="isLoading"
-            class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 px-4 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3.5 px-4 rounded-full font-semibold hover:from-orange-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="isLoading" class="flex items-center justify-center">
               <div

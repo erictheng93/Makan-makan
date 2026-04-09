@@ -253,7 +253,7 @@
               <div
                 v-for="coupon in availableCoupons"
                 :key="coupon.id"
-                class="rounded-2xl p-4 bg-gray-50 active:bg-gray-100 cursor-pointer transition-all duration-200"
+                class="rounded-2xl p-4 bg-ios-bg active:bg-ios-separator cursor-pointer transition-all duration-200"
                 :class="{
                   'bg-ios-blue/10 shadow-card-sm':
                     selectedCoupon?.id === coupon.id,
@@ -329,7 +329,7 @@
                     </div>
                     <div
                       v-else
-                      class="w-5 h-5 border-2 border-gray-300 rounded-full"
+                      class="w-5 h-5 border-2 border-ios-separator rounded-full"
                     />
                   </div>
                 </div>
@@ -339,7 +339,7 @@
             <!-- 應用選擇的優惠券 -->
             <div
               v-if="selectedCoupon && !appliedCoupon"
-              class="mt-4 pt-4 border-t border-gray-200"
+              class="mt-4 pt-4 border-t border-ios-separator"
             >
               <button
                 class="w-full bg-ios-blue text-white py-2.5 px-4 rounded-full active:scale-[0.98] transition-transform duration-150 font-medium"
@@ -357,7 +357,7 @@
               <span class="text-sm font-medium text-ios-text">{{
                 t("cart.orEnterCode")
               }}</span>
-              <div class="flex-1 h-px bg-gray-200" />
+              <div class="flex-1 h-px bg-ios-separator" />
             </div>
 
             <div class="flex space-x-3">
@@ -367,13 +367,13 @@
                 type="text"
                 :placeholder="t('cart.couponPlaceholder')"
                 :disabled="isValidatingCoupon"
-                class="flex-1 px-4 py-2.5 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200 disabled:bg-gray-50"
+                class="flex-1 px-4 py-2.5 bg-ios-bg rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200 disabled:opacity-50"
                 @input="onCouponInput"
                 @keyup.enter="validateCoupon"
               />
               <button
                 :disabled="!couponCode.trim() || isValidatingCoupon"
-                class="px-5 py-2.5 bg-ios-blue text-white text-sm font-medium rounded-full active:scale-95 transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400"
+                class="px-5 py-2.5 bg-ios-blue text-white text-sm font-semibold rounded-full active:scale-95 transition-transform duration-150 disabled:bg-ios-separator disabled:text-ios-tertiary"
                 @click="validateCoupon"
               >
                 <div
@@ -486,7 +486,7 @@
             v-model="orderNotes"
             rows="3"
             :placeholder="t('menuItem.notesPlaceholder')"
-            class="w-full px-4 py-3 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary resize-none transition-all duration-200"
+            class="w-full px-4 py-3 bg-ios-bg rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary resize-none transition-all duration-200"
           />
         </div>
 
@@ -511,7 +511,7 @@
                 v-model="customerInfo.name"
                 type="text"
                 :placeholder="t('order.details.customerName')"
-                class="w-full px-4 py-3 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200"
+                class="w-full px-4 py-3 bg-ios-bg rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200"
               />
             </div>
 
@@ -527,7 +527,7 @@
                 v-model="customerInfo.phone"
                 type="tel"
                 :placeholder="t('order.details.phone')"
-                class="w-full px-4 py-3 bg-gray-100 rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200"
+                class="w-full px-4 py-3 bg-ios-bg rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary transition-all duration-200"
               />
             </div>
           </div>

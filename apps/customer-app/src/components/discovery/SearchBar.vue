@@ -5,7 +5,7 @@
         v-model="query"
         type="text"
         :placeholder="t('discovery.searchPlaceholder')"
-        class="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-gray-900"
+        class="w-full pl-10 pr-10 py-3 rounded-xl bg-ios-card focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all text-ios-text shadow-[0_2px_8px_rgb(0,0,0,0.04)]"
         @input="onInput"
         @keyup.enter="onSearch"
       />
@@ -46,7 +46,7 @@
       <button
         v-for="keyword in keywords"
         :key="keyword"
-        class="px-3 py-1.5 text-sm bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 rounded-full transition-colors"
+        class="px-3 py-1.5 text-sm bg-ios-card hover:bg-ios-blue/10 text-ios-text hover:text-ios-blue rounded-full transition-colors"
         @click="selectKeyword(keyword)"
       >
         {{ keyword }}

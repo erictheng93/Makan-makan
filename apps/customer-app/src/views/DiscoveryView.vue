@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-ios-bg">
     <nav class="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
       <div class="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
         <button
@@ -42,7 +42,7 @@
 
       <div v-if="store.loading" class="flex justify-center py-12">
         <div
-          class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-ios-blue"
         ></div>
       </div>
 

@@ -1,15 +1,17 @@
 <template>
   <div
     v-if="hasError"
-    class="min-h-screen bg-gray-50 flex items-center justify-center p-4"
+    class="min-h-screen bg-ios-bg flex items-center justify-center px-5"
   >
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+    <div
+      class="max-w-md w-full bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8 text-center"
+    >
       <!-- 錯誤圖標 -->
       <div
-        class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"
+        class="w-16 h-16 bg-ios-red/10 rounded-full flex items-center justify-center mx-auto mb-4"
       >
         <svg
-          class="w-8 h-8 text-red-600"
+          class="w-8 h-8 text-ios-red"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -24,26 +26,26 @@
       </div>
 
       <!-- 錯誤標題 -->
-      <h1 class="text-xl font-bold text-gray-900 mb-2">
+      <h1 class="text-xl font-bold text-ios-text mb-2">
         {{ errorTitle }}
       </h1>
 
       <!-- 錯誤描述 -->
-      <p class="text-gray-600 mb-6">
+      <p class="text-ios-secondary mb-6">
         {{ errorMessage }}
       </p>
 
       <!-- 操作按鈕 -->
       <div class="space-y-3">
         <button
-          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+          class="w-full bg-ios-blue hover:bg-ios-blue/90 text-white font-semibold py-3.5 px-4 rounded-full transition-colors"
           @click="handleRetry"
         >
           {{ t("errorBoundary.reload") }}
         </button>
 
         <button
-          class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors"
+          class="w-full bg-ios-bg hover:bg-ios-separator text-ios-text font-semibold py-3.5 px-4 rounded-full transition-colors"
           @click="handleGoHome"
         >
           {{ t("errorBoundary.goHome") }}
@@ -71,7 +73,7 @@
           {{ t("errorBoundary.persistentIssue") }}
         </p>
         <button
-          class="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
+          class="text-sm text-ios-blue hover:text-ios-blue/80 font-semibold"
           @click="handleReportError"
         >
           {{ t("errorBoundary.reportIssue") }}

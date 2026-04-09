@@ -18,7 +18,7 @@
       <!-- 驗證中 -->
       <div
         v-if="verifying"
-        class="bg-white rounded-2xl shadow-xl p-8 text-center"
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8 text-center"
       >
         <svg
           class="animate-spin mx-auto h-16 w-16 text-green-500"
@@ -46,7 +46,10 @@
       </div>
 
       <!-- 驗證成功 -->
-      <div v-else-if="success" class="bg-white rounded-2xl shadow-xl p-8">
+      <div
+        v-else-if="success"
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
+      >
         <div class="text-center">
           <div
             class="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4"
@@ -86,13 +89,13 @@
 
           <div class="mt-8 space-y-3">
             <button
-              class="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+              class="w-full px-4 py-3.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               @click="handleContinue"
             >
               {{ t("auth.startOrdering") }}
             </button>
             <button
-              class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+              class="w-full px-4 py-2 bg-ios-bg text-ios-text rounded-full hover:bg-ios-separator transition"
               @click="$router.push('/profile')"
             >
               {{ t("auth.viewProfile") }}
@@ -102,7 +105,10 @@
       </div>
 
       <!-- 驗證失敗 -->
-      <div v-else class="bg-white rounded-2xl shadow-xl p-8">
+      <div
+        v-else
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
+      >
         <div class="text-center">
           <div
             class="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4"
@@ -142,14 +148,14 @@
           <div class="mt-8 space-y-3">
             <button
               :disabled="resending"
-              class="w-full px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
+              class="w-full px-4 py-3.5 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition font-semibold"
               :class="{ 'opacity-50 cursor-not-allowed': resending }"
               @click="resendVerification"
             >
               {{ resending ? t("auth.sending") : t("auth.resendVerification") }}
             </button>
             <button
-              class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+              class="w-full px-4 py-2 bg-ios-bg text-ios-text rounded-full hover:bg-ios-separator transition"
               @click="$router.push('/login')"
             >
               {{ t("auth.backToLogin") }}

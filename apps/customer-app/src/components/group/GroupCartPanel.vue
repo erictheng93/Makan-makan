@@ -73,13 +73,14 @@ function getMemberName(memberId: string): string {
 
 function getMemberColor(memberId: string): string {
   // Generate consistent color based on member ID
+  // Low-saturation pastel palette (design-system 4.3 pastel accents)
   const colors = [
-    "bg-blue-100 text-blue-800",
-    "bg-green-100 text-green-800",
-    "bg-yellow-100 text-yellow-800",
-    "bg-purple-100 text-purple-800",
-    "bg-pink-100 text-pink-800",
-    "bg-indigo-100 text-indigo-800",
+    "bg-ios-blue/15 text-ios-blue",
+    "bg-ios-green/15 text-ios-green",
+    "bg-ios-orange/15 text-ios-orange",
+    "bg-ios-red/15 text-ios-red",
+    "bg-ios-teal/15 text-ios-teal",
+    "bg-ios-blue/15 text-ios-blue",
   ];
   const index = Math.abs(memberId.charCodeAt(0)) % colors.length;
   return colors[index];
@@ -88,12 +89,10 @@ function getMemberColor(memberId: string): string {
 
 <template>
   <div
-    class="group-cart-panel bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+    class="group-cart-panel bg-ios-card rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] overflow-hidden"
   >
     <!-- Header -->
-    <div
-      class="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
-    >
+    <div class="px-4 py-3 bg-ios-blue text-white">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
           <svg
@@ -275,11 +274,11 @@ function getMemberColor(memberId: string): string {
               'single_payer',
             ] as const"
             :key="mode"
-            class="px-2 py-1.5 text-xs font-medium rounded-lg transition-colors"
+            class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
             :class="
               splitBillConfig.mode === mode
-                ? 'bg-indigo-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                ? 'bg-ios-blue text-white'
+                : 'bg-ios-bg text-ios-secondary hover:bg-ios-separator'
             "
             @click="emit('change-split-mode', mode)"
           >
@@ -298,7 +297,7 @@ function getMemberColor(memberId: string): string {
         </div>
         <div class="flex justify-between text-sm">
           <span class="text-gray-600">{{ t("group.myShare") }}</span>
-          <span class="font-bold text-indigo-600">{{
+          <span class="font-bold text-ios-blue">{{
             formatPrice(myShare)
           }}</span>
         </div>

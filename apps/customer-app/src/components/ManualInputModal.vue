@@ -47,8 +47,8 @@
             v-model="searchQuery"
             type="text"
             :placeholder="t('manualInput.restaurantNamePlaceholder')"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            :class="{ 'border-red-500': error }"
+            class="w-full px-3 py-2 bg-ios-bg rounded-xl focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
+            :class="{ 'ring-2 ring-ios-red': error }"
             autocomplete="off"
             @input="handleSearchInput"
           />
@@ -122,7 +122,7 @@
             class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 flex items-center justify-center"
           >
             <div
-              class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 mr-2"
+              class="animate-spin rounded-full h-4 w-4 border-b-2 border-ios-blue mr-2"
             />
             <span class="text-sm text-gray-500">{{
               t("manualInput.searching")
@@ -133,7 +133,7 @@
         <!-- 已選餐廳顯示 -->
         <div
           v-if="selectedRestaurant"
-          class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl"
+          class="flex items-center gap-3 p-3 bg-ios-blue/10 rounded-xl"
         >
           <div
             v-if="selectedRestaurant.imageUrl"
@@ -147,7 +147,7 @@
           </div>
           <div
             v-else
-            class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0"
+            class="w-10 h-10 rounded-xl bg-ios-blue/10 flex items-center justify-center flex-shrink-0"
           >
             <span class="text-lg">🍽️</span>
           </div>
@@ -214,7 +214,7 @@
       <div class="px-6 py-4 bg-gray-50 rounded-b-2xl space-y-3">
         <button
           :disabled="!selectedRestaurant || loading"
-          class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center"
+          class="w-full bg-ios-blue hover:bg-ios-blue/90 disabled:bg-ios-tertiary text-white font-semibold py-3.5 px-4 rounded-full transition-colors flex items-center justify-center"
           @click="handleConfirm"
         >
           <div
@@ -226,7 +226,7 @@
 
         <button
           :disabled="loading"
-          class="w-full bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors"
+          class="w-full bg-ios-bg hover:bg-ios-separator disabled:opacity-50 text-ios-text font-semibold py-3.5 px-4 rounded-full transition-colors"
           @click="$emit('update:show', false)"
         >
           {{ t("common.cancel") }}

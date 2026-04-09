@@ -134,7 +134,7 @@
           >
             <div class="flex items-center space-x-3">
               <div
-                class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0"
+                class="w-12 h-12 bg-ios-bg rounded-2xl flex items-center justify-center flex-shrink-0"
               >
                 <svg
                   class="w-6 h-6 text-ios-tertiary"
@@ -187,10 +187,10 @@
             class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]"
           >
             <div
-              class="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
+              class="w-10 h-10 lg:w-12 lg:h-12 bg-ios-green/15 rounded-2xl flex items-center justify-center flex-shrink-0"
             >
               <svg
-                class="w-5 h-5 lg:w-6 lg:h-6 text-green-600"
+                class="w-5 h-5 lg:w-6 lg:h-6 text-ios-green"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -217,10 +217,10 @@
             class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]"
           >
             <div
-              class="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
+              class="w-10 h-10 lg:w-12 lg:h-12 bg-ios-blue/15 rounded-2xl flex items-center justify-center flex-shrink-0"
             >
               <svg
-                class="w-5 h-5 lg:w-6 lg:h-6 text-blue-600"
+                class="w-5 h-5 lg:w-6 lg:h-6 text-ios-blue"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -253,10 +253,10 @@
             class="flex items-start space-x-4 lg:flex-col lg:space-x-0 lg:space-y-4 lg:bg-white lg:rounded-2xl lg:p-6 lg:shadow-[0_2px_12px_rgb(0,0,0,0.06)]"
           >
             <div
-              class="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0"
+              class="w-10 h-10 lg:w-12 lg:h-12 bg-ios-teal/15 rounded-2xl flex items-center justify-center flex-shrink-0"
             >
               <svg
-                class="w-5 h-5 lg:w-6 lg:h-6 text-purple-600"
+                class="w-5 h-5 lg:w-6 lg:h-6 text-ios-teal"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

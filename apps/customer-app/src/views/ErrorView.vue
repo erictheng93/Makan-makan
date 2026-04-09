@@ -1,9 +1,13 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="max-w-md mx-auto text-center px-4">
-      <div class="mb-8">
+  <div class="min-h-screen bg-ios-bg flex items-center justify-center px-5">
+    <div
+      class="w-full max-w-md bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8 text-center"
+    >
+      <div
+        class="w-20 h-20 mx-auto mb-6 rounded-full bg-ios-red/10 flex items-center justify-center"
+      >
         <svg
-          class="w-24 h-24 mx-auto text-gray-400"
+          class="w-10 h-10 text-ios-red"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -17,23 +21,23 @@
         </svg>
       </div>
 
-      <h1 class="text-3xl font-bold text-gray-900 mb-4">
+      <h1 class="text-2xl font-bold text-ios-text mb-2">
         {{ t("errors.general") }}
       </h1>
-      <p class="text-gray-600 mb-8">
+      <p class="text-ios-secondary mb-8">
         {{ errorMessage || t("errors.generalDesc") }}
       </p>
 
-      <div class="space-y-4">
+      <div class="space-y-3">
         <button
-          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+          class="w-full bg-ios-blue hover:bg-ios-blue/90 text-white font-semibold py-3.5 px-6 rounded-full transition-colors"
           @click="retry"
         >
           {{ t("errorView.retry") }}
         </button>
 
         <button
-          class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors"
+          class="w-full bg-ios-bg hover:bg-ios-separator text-ios-text font-semibold py-3.5 px-6 rounded-full transition-colors"
           @click="goHome"
         >
           {{ t("errorView.goHome") }}

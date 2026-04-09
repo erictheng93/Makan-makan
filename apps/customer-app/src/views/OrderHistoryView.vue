@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-ios-bg">
     <!-- Header -->
-    <div class="bg-white shadow">
+    <div class="bg-ios-card shadow-[0_2px_8px_rgb(0,0,0,0.04)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center py-6">
           <div class="flex items-center">
@@ -29,7 +29,9 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Filters -->
-      <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <div
+        class="bg-ios-card rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] p-4 mb-6"
+      >
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Status Filter -->
           <div>
@@ -38,7 +40,7 @@
             </label>
             <select
               v-model="filters.status"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              class="w-full px-3 py-2 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
               @change="loadOrders"
             >
               <option value="">{{ t("orderHistory.allStatus") }}</option>
@@ -60,7 +62,7 @@
             <input
               v-model="filters.dateFrom"
               type="date"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              class="w-full px-3 py-2 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
               @change="loadOrders"
             />
           </div>
@@ -73,7 +75,7 @@
             <input
               v-model="filters.dateTo"
               type="date"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              class="w-full px-3 py-2 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
               @change="loadOrders"
             />
           </div>
@@ -82,7 +84,7 @@
         <!-- Reset Button -->
         <div class="mt-4 flex justify-end">
           <button
-            class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
+            class="px-4 py-2 text-sm text-ios-secondary hover:text-ios-text bg-ios-bg hover:bg-ios-separator rounded-full transition"
             @click="resetFilters"
           >
             {{ t("orderHistory.resetFilter") }}
@@ -100,7 +102,7 @@
       <!-- Empty State -->
       <div
         v-else-if="orders.length === 0"
-        class="bg-white rounded-lg shadow p-12 text-center"
+        class="bg-ios-card rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] p-12 text-center"
       >
         <svg
           class="mx-auto h-12 w-12 text-gray-400"
@@ -124,7 +126,7 @@
         <div class="mt-6">
           <router-link
             to="/menu"
-            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+            class="inline-flex items-center px-5 py-2.5 shadow-md text-sm font-semibold rounded-full text-white bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 transition"
           >
             {{ t("orderHistory.startOrdering") }}
           </router-link>
@@ -136,7 +138,7 @@
         <div
           v-for="order in orders"
           :key="order.id"
-          class="bg-white rounded-lg shadow hover:shadow-md transition cursor-pointer"
+          class="bg-ios-card rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgb(0,0,0,0.06)] transition cursor-pointer"
           @click="viewOrderDetail(order.id)"
         >
           <div class="p-6">
@@ -203,17 +205,17 @@
 
             <!-- Action Buttons -->
             <div
-              class="mt-4 pt-4 border-t border-gray-200 flex justify-end space-x-2"
+              class="mt-4 pt-4 border-t border-ios-separator flex justify-end space-x-2"
             >
               <button
-                class="px-4 py-2 text-sm font-medium text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition"
+                class="px-4 py-2 text-sm font-semibold text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-full transition"
                 @click.stop="viewOrderDetail(order.id)"
               >
                 {{ t("orderHistory.viewDetails") }}
               </button>
               <button
                 v-if="order.status === 0"
-                class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+                class="px-4 py-2 text-sm font-semibold text-ios-red hover:bg-ios-red/10 rounded-full transition"
                 @click.stop="cancelOrder(order.id)"
               >
                 {{ t("orderTracking.cancelOrder") }}
@@ -226,17 +228,17 @@
       <!-- Pagination -->
       <div
         v-if="pagination.totalPages > 1"
-        class="bg-white rounded-lg shadow p-4 mt-6 flex justify-between items-center"
+        class="bg-ios-card rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] p-4 mt-6 flex justify-between items-center"
       >
         <button
           :disabled="pagination.page === 1"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-4 py-2 text-sm font-semibold text-ios-text bg-ios-bg hover:bg-ios-separator rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition"
           @click="changePage(pagination.page - 1)"
         >
           {{ t("orderHistory.prevPage") }}
         </button>
 
-        <span class="text-sm text-gray-700">
+        <span class="text-sm text-ios-secondary">
           {{
             tWithParams("orderHistory.pageInfo", {
               current: pagination.page,
@@ -248,7 +250,7 @@
 
         <button
           :disabled="pagination.page === pagination.totalPages"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-4 py-2 text-sm font-semibold text-ios-text bg-ios-bg hover:bg-ios-separator rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition"
           @click="changePage(pagination.page + 1)"
         >
           {{ t("orderHistory.nextPage") }}
@@ -379,18 +381,18 @@ const handleLogout = async () => {
   router.push("/login");
 };
 
-// 獲取狀態樣式
+// 獲取狀態樣式 (iOS semantic colors, design-system 4.2)
 const getStatusClass = (status: number) => {
   const classes: Record<number, string> = {
-    0: "bg-yellow-100 text-yellow-800",
-    1: "bg-blue-100 text-blue-800",
-    2: "bg-purple-100 text-purple-800",
-    3: "bg-green-100 text-green-800",
-    4: "bg-green-100 text-green-800",
-    5: "bg-green-100 text-green-800",
-    6: "bg-red-100 text-red-800",
+    0: "bg-ios-orange/15 text-ios-orange", // pending
+    1: "bg-ios-blue/15 text-ios-blue", // confirmed
+    2: "bg-ios-teal/15 text-ios-teal", // preparing
+    3: "bg-ios-green/15 text-ios-green", // completed
+    4: "bg-ios-green/15 text-ios-green", // served
+    5: "bg-ios-green/15 text-ios-green", // paid
+    6: "bg-ios-red/15 text-ios-red", // cancelled
   };
-  return classes[status] || "bg-gray-100 text-gray-800";
+  return classes[status] || "bg-ios-bg text-ios-secondary";
 };
 
 // 獲取狀態文字 (computed for reactivity when language changes)
