@@ -4,6 +4,7 @@ import {
   waitForPageStable,
   mockDynamicContent,
   mockAllAPIs,
+  expectPageRendered,
 } from "./helpers/visual-test-utils";
 
 const BASE_URL = APP_URLS.management; // http://localhost:3010
@@ -16,6 +17,7 @@ test.describe("Management Portal — Visual Regression", () => {
   test("dashboard", async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
     await waitForPageStable(page);
+    await expectPageRendered(page, { mustContain: /MakanMakan|總覽/ });
     await mockDynamicContent(page);
     await expect(page).toHaveScreenshot("management-dashboard.png");
   });
@@ -23,6 +25,7 @@ test.describe("Management Portal — Visual Regression", () => {
   test("tenants list", async ({ page }) => {
     await page.goto(`${BASE_URL}/tenants`);
     await waitForPageStable(page);
+    await expectPageRendered(page);
     await mockDynamicContent(page);
     await expect(page).toHaveScreenshot("management-tenants.png");
   });
@@ -30,6 +33,7 @@ test.describe("Management Portal — Visual Regression", () => {
   test("deployments", async ({ page }) => {
     await page.goto(`${BASE_URL}/deployments`);
     await waitForPageStable(page);
+    await expectPageRendered(page);
     await mockDynamicContent(page);
     await expect(page).toHaveScreenshot("management-deployments.png");
   });
@@ -37,6 +41,7 @@ test.describe("Management Portal — Visual Regression", () => {
   test("system health", async ({ page }) => {
     await page.goto(`${BASE_URL}/health`);
     await waitForPageStable(page);
+    await expectPageRendered(page);
     await mockDynamicContent(page);
     await expect(page).toHaveScreenshot("management-health.png");
   });

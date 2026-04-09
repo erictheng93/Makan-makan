@@ -5,6 +5,7 @@ import {
   mockDynamicContent,
   loginAs,
   mockAllAPIs,
+  expectPageRendered,
 } from "./helpers/visual-test-utils";
 
 const BASE_URL = APP_URLS.kitchen; // http://localhost:3002
@@ -18,6 +19,7 @@ test.describe("Kitchen Display — Visual Regression", () => {
     test("login page", async ({ page }) => {
       await page.goto(`${BASE_URL}/login`);
       await waitForPageStable(page);
+      await expectPageRendered(page, { mustContain: /廚房|Kitchen/ });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("kitchen-login.png");
     });
@@ -31,6 +33,10 @@ test.describe("Kitchen Display — Visual Regression", () => {
     test("order queue", async ({ page }) => {
       await page.goto(`${BASE_URL}/kitchen/test-restaurant-1`);
       await waitForPageStable(page);
+      await expectPageRendered(page, {
+        notAt: "/login",
+        mustContain: /廚房看板|Kitchen/,
+      });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("kitchen-order-queue.png");
     });
@@ -38,6 +44,7 @@ test.describe("Kitchen Display — Visual Regression", () => {
     test("settings", async ({ page }) => {
       await page.goto(`${BASE_URL}/settings`);
       await waitForPageStable(page);
+      await expectPageRendered(page, { notAt: "/login" });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("kitchen-settings.png");
     });
@@ -45,6 +52,7 @@ test.describe("Kitchen Display — Visual Regression", () => {
     test("order history", async ({ page }) => {
       await page.goto(`${BASE_URL}/history`);
       await waitForPageStable(page);
+      await expectPageRendered(page, { notAt: "/login" });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("kitchen-history.png");
     });
