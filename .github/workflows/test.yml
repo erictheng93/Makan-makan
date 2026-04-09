@@ -92,7 +92,7 @@ jobs:
         continue-on-error: true
 
       - name: ☂️ 上傳覆蓋率到 Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/coverage-final.json
