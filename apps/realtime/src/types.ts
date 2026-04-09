@@ -1,6 +1,7 @@
 export interface Env {
   ENVIRONMENT?: string;
   REALTIME_SESSION: DurableObjectNamespace;
+  ANALYTICS_ENGINE?: AnalyticsEngineDataset;
   [key: string]: any;
 }
 

@@ -27,25 +27,29 @@ interface ConnectionInfo {
   };
 }
 
+interface OrderStateTransition {
+  from: OrderLifecycleState;
+  to: OrderLifecycleState;
+  timestamp: number;
+  triggeredBy: number;
+  metadata?: Record<string, unknown>;
+}
+
+interface OrderEstimatedTimes {
+  preparation: number;
+  ready: number;
+  completion: number;
+}
+
 interface OrderState {
   id: string;
   currentState: OrderLifecycleState;
   previousState?: OrderLifecycleState;
   restaurantId: number;
-  transitions: Array<{
-    from: OrderLifecycleState;
-    to: OrderLifecycleState;
-    timestamp: number;
-    triggeredBy: number;
-    metadata?: any;
-  }>;
-  estimatedTimes: {
-    preparation: number;
-    ready: number;
-    completion: number;
-  };
+  transitions: Array<OrderStateTransition>;
+  estimatedTimes: OrderEstimatedTimes;
   priority: "low" | "normal" | "high" | "critical";
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 interface GroupOrderState {
@@ -90,7 +94,7 @@ interface CartItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  customizations: Record<string, any>;
+  customizations: Record<string, unknown>;
   specialInstructions?: string;
   addedAt: number;
   updatedAt: number;
@@ -110,6 +114,45 @@ interface SplitBill {
   paidAt?: number;
 }
 
+/**
+ * Group order as persisted in Durable Object storage — Maps are
+ * serialized to plain Records so they survive JSON round-trips.
+ */
+type SerializedGroupOrder = Omit<
+  GroupOrderState,
+  "members" | "cart" | "splitBills"
+> & {
+  members: Record<string, GroupMember>;
+  cart: Record<string, CartItem>;
+  splitBills: Record<string, SplitBill>;
+};
+
+/**
+ * Group order shape sent over the wire to clients — Maps are flattened
+ * to arrays for easier consumption by the frontend.
+ */
+interface GroupOrderClientView {
+  id: string;
+  shareCode: string;
+  status: GroupOrderState["status"];
+  restaurantId: number;
+  members: GroupMember[];
+  cart: CartItem[];
+  splitBills: SplitBill[];
+  totalAmount: number;
+  settings: GroupOrderState["settings"];
+  lastActivity: number;
+  createdAt: number;
+  expiresAt: number;
+}
+
+/**
+ * Shape of WebSocket messages sent to clients. Keeping this loose
+ * (Record<string, unknown>) because message bodies vary widely; tightening
+ * further would require a discriminated union across every handler.
+ */
+type OutboundMessage = Record<string, unknown>;
+
 enum OrderLifecycleState {
   PENDING = "pending",
   CONFIRMED = "confirmed",
@@ -124,20 +167,24 @@ interface SessionState {
   activeConnections: Map<string, ConnectionInfo>;
   orderStates: Map<string, OrderState>;
   groupOrderStates: Map<string, GroupOrderState>;
-  restaurantMetrics: Map<number, any>;
+  restaurantMetrics: Map<number, unknown>;
   lastActivity: number;
   hibernated: boolean;
   totalMessages: number;
-  errors: Array<{ timestamp: number; error: string; context: any }>;
+  errors: Array<{
+    timestamp: number;
+    error: string;
+    context: Record<string, unknown>;
+  }>;
 }
 
-export class AdvancedRealtimeSession extends DurableObject {
+export class AdvancedRealtimeSession extends DurableObject<Env> {
   private sessionState: SessionState;
   private stateTransitions: Map<OrderLifecycleState, OrderLifecycleState[]> =
     new Map();
-  private hibernationTimer?: number;
-  private metricsTimer?: number;
-  private cleanupTimer?: number;
+  private hibernationTimer?: ReturnType<typeof setInterval>;
+  private metricsTimer?: ReturnType<typeof setInterval>;
+  private cleanupTimer?: ReturnType<typeof setInterval>;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
@@ -382,8 +429,8 @@ export class AdvancedRealtimeSession extends DurableObject {
     data: {
       orderId: string;
       newState: OrderLifecycleState;
-      metadata?: any;
-      estimatedTimes?: any;
+      metadata?: Record<string, unknown>;
+      estimatedTimes?: Partial<OrderEstimatedTimes>;
     },
   ): Promise<void> {
     const { orderId, newState, metadata, estimatedTimes } = data;
@@ -398,10 +445,11 @@ export class AdvancedRealtimeSession extends DurableObject {
         currentState: OrderLifecycleState.PENDING,
         restaurantId: connectionInfo.restaurantId,
         transitions: [],
-        estimatedTimes: estimatedTimes || {
+        estimatedTimes: {
           preparation: 0,
           ready: 0,
           completion: 0,
+          ...estimatedTimes,
         },
         priority: "normal",
         metadata: metadata || {},
@@ -469,7 +517,7 @@ export class AdvancedRealtimeSession extends DurableObject {
    */
   async notifyOtherRestaurantSessions(
     orderState: OrderState,
-    transition: any,
+    transition: OrderStateTransition,
   ): Promise<void> {
     try {
       // Get other restaurant sessions that need to be notified
@@ -480,8 +528,8 @@ export class AdvancedRealtimeSession extends DurableObject {
 
       const promises = relatedSessions.map(async (sessionName) => {
         try {
-          const id = (this.env as any).REALTIME_SESSION.idFromName(sessionName);
-          const obj = (this.env as any).REALTIME_SESSION.get(id);
+          const id = this.env.REALTIME_SESSION.idFromName(sessionName);
+          const obj = this.env.REALTIME_SESSION.get(id);
 
           const response = await obj.fetch(
             new Request("http://localhost/broadcast", {
@@ -616,16 +664,14 @@ export class AdvancedRealtimeSession extends DurableObject {
       for (const [key, groupOrderData] of groupOrderStates) {
         const groupOrderId = key.replace("group_order:", "");
 
-        // Deserialize group order
+        // Deserialize group order: Maps were stored as Records on write,
+        // rebuild them here so the in-memory type matches GroupOrderState.
+        const serialized = groupOrderData as SerializedGroupOrder;
         const groupOrder: GroupOrderState = {
-          ...(groupOrderData as any),
-          members: new Map(
-            Object.entries((groupOrderData as any).members || {}),
-          ),
-          cart: new Map(Object.entries((groupOrderData as any).cart || {})),
-          splitBills: new Map(
-            Object.entries((groupOrderData as any).splitBills || {}),
-          ),
+          ...serialized,
+          members: new Map(Object.entries(serialized.members || {})),
+          cart: new Map(Object.entries(serialized.cart || {})),
+          splitBills: new Map(Object.entries(serialized.splitBills || {})),
         };
 
         // Only load non-expired group orders
@@ -677,12 +723,12 @@ export class AdvancedRealtimeSession extends DurableObject {
         }
       },
       5 * 60 * 1000,
-    ) as any;
+    );
 
     // Metrics collection every minute
     this.metricsTimer = setInterval(async () => {
       await this.collectAndSendMetrics();
-    }, 60 * 1000) as any;
+    }, 60 * 1000);
 
     // Cleanup old data every hour
     this.cleanupTimer = setInterval(
@@ -690,7 +736,7 @@ export class AdvancedRealtimeSession extends DurableObject {
         await this.cleanupOldData();
       },
       60 * 60 * 1000,
-    ) as any;
+    );
   }
 
   /**
@@ -700,68 +746,83 @@ export class AdvancedRealtimeSession extends DurableObject {
     event: string,
     connectionInfo: ConnectionInfo,
   ): void {
-    if ((this.env as any).ANALYTICS_ENGINE) {
-      (this.env as any).ANALYTICS_ENGINE.writeDataPoint({
-        blobs: [
-          event,
-          connectionInfo.userId.toString(),
-          connectionInfo.restaurantId.toString(),
-          connectionInfo.metadata.country,
-          connectionInfo.metadata.city,
-          connectionInfo.metadata.deviceType,
-          connectionInfo.metadata.sessionId,
-        ],
-        doubles: [Date.now(), connectionInfo.role],
-        indexes: [connectionInfo.restaurantId, connectionInfo.userId],
-      }).catch((error: any) => console.error("Analytics error:", error));
+    const analytics = this.env.ANALYTICS_ENGINE;
+    if (analytics) {
+      try {
+        analytics.writeDataPoint({
+          blobs: [
+            event,
+            connectionInfo.userId.toString(),
+            connectionInfo.restaurantId.toString(),
+            connectionInfo.metadata.country,
+            connectionInfo.metadata.city,
+            connectionInfo.metadata.deviceType,
+            connectionInfo.metadata.sessionId,
+          ],
+          doubles: [Date.now(), connectionInfo.role],
+          indexes: [connectionInfo.restaurantId.toString()],
+        });
+      } catch (error) {
+        console.error("Analytics error:", error);
+      }
     }
   }
 
   private recordOrderStateAnalytics(
     orderState: OrderState,
-    transition: any,
+    transition: OrderStateTransition,
     connectionInfo: ConnectionInfo,
   ): void {
-    if ((this.env as any).ANALYTICS_ENGINE) {
-      (this.env as any).ANALYTICS_ENGINE.writeDataPoint({
-        blobs: [
-          "order_state_transition",
-          orderState.id,
-          transition.from,
-          transition.to,
-          orderState.priority,
-          connectionInfo.userId.toString(),
-        ],
-        doubles: [
-          transition.timestamp,
-          orderState.estimatedTimes.preparation,
-          orderState.estimatedTimes.ready,
-          orderState.estimatedTimes.completion,
-        ],
-        indexes: [orderState.restaurantId, connectionInfo.userId],
-      }).catch((error: any) => console.error("Analytics error:", error));
+    const analytics = this.env.ANALYTICS_ENGINE;
+    if (analytics) {
+      try {
+        analytics.writeDataPoint({
+          blobs: [
+            "order_state_transition",
+            orderState.id,
+            transition.from,
+            transition.to,
+            orderState.priority,
+            connectionInfo.userId.toString(),
+          ],
+          doubles: [
+            transition.timestamp,
+            orderState.estimatedTimes.preparation,
+            orderState.estimatedTimes.ready,
+            orderState.estimatedTimes.completion,
+          ],
+          indexes: [orderState.restaurantId.toString()],
+        });
+      } catch (error) {
+        console.error("Analytics error:", error);
+      }
     }
   }
 
   private recordMessageAnalytics(
     connectionInfo: ConnectionInfo,
-    message: any,
+    message: OutboundMessage,
   ): void {
-    if ((this.env as any).ANALYTICS_ENGINE) {
-      (this.env as any).ANALYTICS_ENGINE.writeDataPoint({
-        blobs: [
-          "websocket_message",
-          message.type || "unknown",
-          connectionInfo.metadata.deviceType,
-          connectionInfo.metadata.country,
-        ],
-        doubles: [Date.now(), JSON.stringify(message).length],
-        indexes: [connectionInfo.restaurantId, connectionInfo.userId],
-      }).catch((error: any) => console.error("Analytics error:", error));
+    const analytics = this.env.ANALYTICS_ENGINE;
+    if (analytics) {
+      try {
+        analytics.writeDataPoint({
+          blobs: [
+            "websocket_message",
+            typeof message.type === "string" ? message.type : "unknown",
+            connectionInfo.metadata.deviceType,
+            connectionInfo.metadata.country,
+          ],
+          doubles: [Date.now(), JSON.stringify(message).length],
+          indexes: [connectionInfo.restaurantId.toString()],
+        });
+      } catch (error) {
+        console.error("Analytics error:", error);
+      }
     }
   }
 
-  private recordError(error: any, context: any): void {
+  private recordError(error: unknown, context: Record<string, unknown>): void {
     this.sessionState.errors.push({
       timestamp: Date.now(),
       error: error instanceof Error ? error.message : String(error),
@@ -783,7 +844,7 @@ export class AdvancedRealtimeSession extends DurableObject {
 
   private async sendMessage(
     connectionInfo: ConnectionInfo,
-    message: any,
+    message: OutboundMessage,
   ): Promise<void> {
     try {
       if (connectionInfo.socket.readyState === WebSocket.OPEN) {
@@ -802,7 +863,7 @@ export class AdvancedRealtimeSession extends DurableObject {
 
   private async broadcastOrderStateChange(
     orderState: OrderState,
-    transition: any,
+    transition: OrderStateTransition,
   ): Promise<void> {
     const message = {
       type: "order_state_changed",
@@ -827,14 +888,14 @@ export class AdvancedRealtimeSession extends DurableObject {
   // Additional helper methods would continue here...
   private async handleSubscription(
     _connectionInfo: ConnectionInfo,
-    _data: any,
+    _data: Record<string, unknown>,
   ): Promise<void> {
     // Implementation for handling subscriptions
   }
 
   private async handleBroadcastMessage(
     _connectionInfo: ConnectionInfo,
-    _data: any,
+    _data: Record<string, unknown>,
   ): Promise<void> {
     // Implementation for handling broadcast messages
   }
@@ -848,7 +909,7 @@ export class AdvancedRealtimeSession extends DurableObject {
 
   private async handleStateSyncRequest(
     _connectionInfo: ConnectionInfo,
-    _data: any,
+    _data: Record<string, unknown>,
   ): Promise<void> {
     // Implementation for state synchronization
   }
@@ -901,7 +962,7 @@ export class AdvancedRealtimeSession extends DurableObject {
   private async updateRestaurantMetrics(
     _restaurantId: number,
     _orderState: OrderState,
-    _transition: any,
+    _transition: OrderStateTransition,
   ): Promise<void> {
     // Implementation for updating restaurant metrics
   }
@@ -1079,7 +1140,7 @@ export class AdvancedRealtimeSession extends DurableObject {
       menuItemName: string;
       quantity: number;
       unitPrice: number;
-      customizations?: Record<string, any>;
+      customizations?: Record<string, unknown>;
       specialInstructions?: string;
     },
   ): Promise<void> {
@@ -1178,7 +1239,7 @@ export class AdvancedRealtimeSession extends DurableObject {
       groupOrderId: string;
       itemId: string;
       quantity?: number;
-      customizations?: Record<string, any>;
+      customizations?: Record<string, unknown>;
       specialInstructions?: string;
     },
   ): Promise<void> {
@@ -1688,7 +1749,7 @@ export class AdvancedRealtimeSession extends DurableObject {
 
   private async broadcastGroupOrderEvent(
     groupOrder: GroupOrderState,
-    event: any,
+    event: Record<string, unknown>,
   ): Promise<void> {
     const message = {
       type: "group_order_event",
@@ -1705,7 +1766,9 @@ export class AdvancedRealtimeSession extends DurableObject {
     }
   }
 
-  private serializeGroupOrder(groupOrder: GroupOrderState): any {
+  private serializeGroupOrder(
+    groupOrder: GroupOrderState,
+  ): SerializedGroupOrder {
     return {
       ...groupOrder,
       members: Object.fromEntries(groupOrder.members),
@@ -1714,7 +1777,9 @@ export class AdvancedRealtimeSession extends DurableObject {
     };
   }
 
-  private serializeGroupOrderForClient(groupOrder: GroupOrderState): any {
+  private serializeGroupOrderForClient(
+    groupOrder: GroupOrderState,
+  ): GroupOrderClientView {
     return {
       id: groupOrder.id,
       shareCode: groupOrder.shareCode,
