@@ -37,59 +37,12 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: (id: string) => {
-          // Core dependencies
-          if (id.includes("vue") && !id.includes("toastification")) {
-            return "vue-core";
-          }
-          if (id.includes("pinia") || id.includes("vue-router")) {
-            return "vue-ecosystem";
-          }
-
-          // UI components and icons
-          if (id.includes("@headlessui") || id.includes("@heroicons")) {
-            return "ui-components";
-          }
-
-          // Audio processing
-          if (id.includes("howler") || id.includes("audio")) {
-            return "audio-system";
-          }
-
-          // Statistics and analytics
-          if (
-            id.includes("chart") ||
-            id.includes("statistics") ||
-            id.includes("analytics")
-          ) {
-            return "statistics";
-          }
-
-          // Utilities and helpers
-          if (id.includes("@vueuse") || id.includes("date-fns")) {
-            return "utilities";
-          }
-
-          // HTTP and data fetching
-          if (id.includes("axios") || id.includes("@tanstack/vue-query")) {
-            return "data-fetching";
-          }
-
-          // Toast and notifications
-          if (id.includes("toastification")) {
-            return "notifications";
-          }
-
-          // Large third-party libraries
-          if (id.includes("sortablejs")) {
-            return "sortable";
-          }
-
-          // Node modules (vendor chunk for other dependencies)
-          if (id.includes("node_modules")) {
-            return "vendor";
-          }
-        },
+        // NOTE: Custom manualChunks was removed because its substring matching
+        // (`id.includes("vue")`) was too loose — it pulled @vueuse, vue-router,
+        // and vue-toastification's transitive deps into the "vue-core" chunk,
+        // creating a `vue-core -> notifications -> vue-core` circular chunk
+        // that blew up at runtime with "Cannot access 'k' before initialization".
+        // Rollup's default chunk splitting handles this correctly.
         chunkFileNames: () => {
           return `assets/[name]-[hash].js`;
         },

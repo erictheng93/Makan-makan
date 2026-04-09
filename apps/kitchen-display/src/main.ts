@@ -6,6 +6,7 @@ import Toast from "vue-toastification";
 import App from "./App.vue";
 import routes from "./router";
 import { performanceOptimizationService } from "./services/performanceOptimizationService";
+import { useAuthStore } from "./stores/auth";
 
 // CSS imports
 import "./assets/css/main.css";
@@ -59,6 +60,18 @@ if ((window as any).__lazyComponentPlugin) {
 
 app.use(pinia);
 app.use(router);
+
+// Rehydrate auth state from localStorage BEFORE mount.
+// Without this, refreshing any protected view (dashboard, settings, history)
+// kicks the user back to /login because views check `authStore.isAuthenticated`
+// in onMounted and the store state is never restored from localStorage
+// automatically — `initialize()` has to be called explicitly. This was also
+// why the visual regression tests for authenticated kitchen pages always
+// captured the login page as their baseline.
+const authStore = useAuthStore();
+authStore.initialize().catch((err) => {
+  console.error("[kitchen] auth initialize failed:", err);
+});
 
 // Initialize performance optimization services
 performanceOptimizationService.setupImageOptimization();
