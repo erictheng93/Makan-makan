@@ -570,14 +570,14 @@ jobs:
         continue-on-error: true
 
       - name: 🔒 CodeQL 靜態分析初始化
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript
           queries: +security-extended,security-and-quality
         continue-on-error: true
 
       - name: 🔍 執行 CodeQL 分析
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:javascript"
         continue-on-error: true
