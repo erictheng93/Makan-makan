@@ -100,7 +100,7 @@ jobs:
           name: unit-tests-node-${{ matrix.node-version }}
 
       - name: 📎 上傳測試結果
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: unit-test-results-node-${{ matrix.node-version }}
@@ -210,7 +210,7 @@ jobs:
           fi
 
       - name: 📎 上傳測試報告
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report-${{ matrix.browser }}
@@ -218,7 +218,7 @@ jobs:
           retention-days: 7
 
       - name: 📸 上傳測試截圖
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-screenshots-${{ matrix.browser }}
@@ -302,7 +302,7 @@ jobs:
           fi
 
       - name: 📎 上傳性能測試報告
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: performance-test-reports
@@ -405,7 +405,7 @@ jobs:
           echo "詳細報告請查看 Artifacts 區域" >> $GITHUB_STEP_SUMMARY
 
       - name: 📎 上傳性能基準線
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: db-performance-baseline
@@ -520,7 +520,7 @@ jobs:
         run: npx playwright test --config playwright.visual.config.ts
 
       - name: 📎 上傳測試報告
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: visual-regression-report
@@ -528,7 +528,7 @@ jobs:
           retention-days: 30
 
       - name: 📎 上傳 Screenshot Diffs（失敗時）
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: visual-regression-diffs
@@ -640,7 +640,7 @@ jobs:
           fi
 
       - name: 📎 上傳安全測試報告
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: security-test-reports
