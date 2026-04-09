@@ -133,7 +133,10 @@ test.describe("B. Order submission failure", () => {
       '[data-testid="cart-btn"], [data-testid="view-cart"], a[href*="cart"], button:has-text("購物車"), button:has-text("Cart")',
     );
     await cartLink.first().click();
-    await expect(page).toHaveURL(new RegExp(cartUrl.replace(/\//g, "\\/")), {
+    // Escape ALL regex metacharacters (not just `/`) to satisfy
+    // CodeQL `js/incomplete-sanitization` and be correct for arbitrary input.
+    const escapedCartUrl = cartUrl.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+    await expect(page).toHaveURL(new RegExp(escapedCartUrl), {
       timeout: 8000,
     });
 

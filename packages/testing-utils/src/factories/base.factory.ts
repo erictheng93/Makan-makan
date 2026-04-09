@@ -120,13 +120,13 @@ export function randomEmail(domain: string = "test.com"): string {
 
 /**
  * 輔助函數：生成隨機 UUID v4
+ *
+ * 使用 Web Crypto API（Node 19+ / 瀏覽器 / Workers 皆支援）以符合
+ * CodeQL `js/insecure-randomness` 規範；避免將 Math.random() 輸出
+ * 用於可能被視為 security context 的欄位（例如 userId）。
  */
 export function randomUUID(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  return globalThis.crypto.randomUUID();
 }
 
 /**
