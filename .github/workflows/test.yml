@@ -440,45 +440,72 @@ jobs:
             });
 
   # 視覺回歸測試 (Playwright native screenshots)
+  #
+  # Runs inside the pinned Playwright Linux container so the CI environment
+  # byte-matches what scripts/update-visual-baselines.sh produces locally.
+  # Upgrading Playwright requires bumping BOTH the image tag below AND the
+  # @playwright/test version in package.json in the same PR.
   visual-regression-tests:
     name: 👁️ 視覺回歸測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
     if: github.event_name == 'push' || github.event_name == 'pull_request'
-    continue-on-error: true # Screenshot baselines may not match in CI without up-to-date snapshots
+    container:
+      image: mcr.microsoft.com/playwright:v1.57.0-noble
+      options: --ipc=host
 
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v5
 
-      - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
-
-      - name: 🔧 設置 Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+      - name: 📦 啟用 pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.24.0 --activate
 
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
-      - name: 🎭 安裝 Playwright Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: 🏗️ 建置所有前端應用
-        run: pnpm run build
+      - name: 🏗️ 建置 5 個前端應用（scoped）
+        # Scoped build: visual regression only needs the 5 frontend preview
+        # servers. Avoids unrelated build failures in backend workers and
+        # keeps this job fast. Must match scripts/update-visual-baselines.sh.
+        #
+        # VITE_API_BASE_URL: customer-app's api.ts throws at module init if
+        # unset. Use a relative `/api/v1` so requests go to the same origin —
+        # customer-app's CSP meta tag only allows `connect-src 'self' https:
+        # wss: https://*.makanmakan.app`, so an absolute http://mock.local URL
+        # would be blocked by CSP before Playwright can intercept it.
+        env:
+          VITE_API_BASE_URL: /api/v1
+        run: |
+          pnpm build \
+            --filter=makanmakan-customer-app \
+            --filter=makanmakan-admin-dashboard \
+            --filter=makanmakan-kitchen-display \
+            --filter=makanmakan-management-portal \
+            --filter=makanmakan-onboarding-app
 
       - name: 🚀 啟動 Preview Servers
+        # Each preview runs in a subshell so `cd` does not leak between lines.
+        # --host 0.0.0.0 ensures the test runner (same container) can reach them.
         run: |
-          cd apps/admin-dashboard && npx vite preview --port 3001 &
-          cd apps/customer-app && npx vite preview --port 3000 &
-          cd apps/kitchen-display && npx vite preview --port 3002 &
-          cd apps/management-portal && npx vite preview --port 3010 &
-          cd apps/onboarding-app && npx vite preview --port 3011 &
+          mkdir -p /tmp/preview-logs
+          (cd apps/customer-app      && npx vite preview --port 3000 --host 0.0.0.0 > /tmp/preview-logs/customer.log   2>&1 &)
+          (cd apps/admin-dashboard   && npx vite preview --port 3001 --host 0.0.0.0 > /tmp/preview-logs/admin.log      2>&1 &)
+          (cd apps/kitchen-display   && npx vite preview --port 3002 --host 0.0.0.0 > /tmp/preview-logs/kitchen.log    2>&1 &)
+          (cd apps/management-portal && npx vite preview --port 3010 --host 0.0.0.0 > /tmp/preview-logs/management.log 2>&1 &)
+          (cd apps/onboarding-app    && npx vite preview --port 3011 --host 0.0.0.0 > /tmp/preview-logs/onboarding.log 2>&1 &)
 
       - name: ⏳ 等待所有服務啟動
-        run: npx wait-on http://localhost:3001 http://localhost:3000 http://localhost:3002 http://localhost:3010 http://localhost:3011 --timeout 60000
+        run: |
+          npx wait-on \
+            http://localhost:3000 \
+            http://localhost:3001 \
+            http://localhost:3002 \
+            http://localhost:3010 \
+            http://localhost:3011 \
+            --timeout 120000
 
       - name: 📸 執行視覺回歸測試
         run: npx playwright test --config playwright.visual.config.ts
