@@ -100,7 +100,6 @@ describe("Onboarding Flow Integration", () => {
 
       expect(wrapper.text()).toContain("獨立環境");
       expect(wrapper.text()).toContain("安全可靠");
-      expect(wrapper.text()).toContain("完整功能");
       expect(wrapper.text()).toContain("快速部署");
     });
   });

@@ -3,9 +3,11 @@ import { RouterView } from "vue-router";
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-primary-50 to-white">
+  <div class="min-h-screen bg-ios-bg">
     <!-- Header -->
-    <header class="bg-white shadow-sm">
+    <header
+      class="bg-white/80 backdrop-blur-md shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+    >
       <div class="max-w-4xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div class="flex items-center">
           <span class="text-2xl font-bold text-primary-600">MakanMakan</span>

@@ -79,10 +79,9 @@ describe("App.vue", () => {
     expect(wrapper.find("footer").exists()).toBe(true);
   });
 
-  it("should have gradient background on root element", () => {
+  it("should render a full-height root layout", () => {
     const wrapper = mountComponent();
     const root = wrapper.find(".min-h-screen");
     expect(root.exists()).toBe(true);
-    expect(root.classes()).toContain("bg-gradient-to-b");
   });
 });

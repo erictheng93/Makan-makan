@@ -23,8 +23,8 @@ describe("HomeView", () => {
           },
           CloudIcon: { template: "<svg />" },
           ShieldCheckIcon: { template: "<svg />" },
-          CubeIcon: { template: "<svg />" },
           RocketLaunchIcon: { template: "<svg />" },
+          ArrowRightIcon: { template: "<svg />" },
         },
       },
     });
@@ -37,11 +37,12 @@ describe("HomeView", () => {
     expect(wrapper.text()).toContain("專屬管理系統");
   });
 
-  it("should render the description text", () => {
+  it("should render the hero subtitle", () => {
     const wrapper = mountComponent();
 
-    expect(wrapper.text()).toContain("MakanMakan 獨立部署方案");
+    expect(wrapper.text()).toContain("獨立部署");
     expect(wrapper.text()).toContain("數據安全");
+    expect(wrapper.text()).toContain("24 小時");
   });
 
   it("should render the apply button linking to /apply", () => {
@@ -67,12 +68,11 @@ describe("HomeView", () => {
     expect(demoLink!.attributes("target")).toBe("_blank");
   });
 
-  it("should render 4 feature cards", () => {
+  it("should render 3 core feature cards", () => {
     const wrapper = mountComponent();
 
     expect(wrapper.text()).toContain("獨立環境");
     expect(wrapper.text()).toContain("安全可靠");
-    expect(wrapper.text()).toContain("完整功能");
     expect(wrapper.text()).toContain("快速部署");
   });
 
@@ -81,41 +81,21 @@ describe("HomeView", () => {
 
     expect(wrapper.text()).toContain("完全隔離的雲端環境");
     expect(wrapper.text()).toContain("Cloudflare 全球邊緣網絡");
-    expect(wrapper.text()).toContain("點餐、菜單管理");
     expect(wrapper.text()).toContain("自動化部署流程");
   });
 
   it("should render the CTA section heading", () => {
     const wrapper = mountComponent();
 
-    // HomeView does not have a pricing section — it has features + CTA
     expect(wrapper.find("h2").exists()).toBe(true);
     expect(wrapper.text()).toContain("準備好開始了嗎？");
   });
 
-  it("should render the description paragraph below heading", () => {
+  it("should render the CTA description paragraph", () => {
     const wrapper = mountComponent();
 
     expect(wrapper.text()).toContain("填寫申請表單");
     expect(wrapper.text()).toContain("24 小時內");
-  });
-
-  it("should render feature card titles", () => {
-    const wrapper = mountComponent();
-
-    expect(wrapper.text()).toContain("獨立環境");
-    expect(wrapper.text()).toContain("安全可靠");
-    expect(wrapper.text()).toContain("完整功能");
-    expect(wrapper.text()).toContain("快速部署");
-  });
-
-  it("should render feature card descriptions", () => {
-    const wrapper = mountComponent();
-
-    expect(wrapper.text()).toContain("完全隔離的雲端環境");
-    expect(wrapper.text()).toContain("Cloudflare 全球邊緣網絡");
-    expect(wrapper.text()).toContain("點餐、菜單管理");
-    expect(wrapper.text()).toContain("自動化部署流程");
   });
 
   it("should render CTA section with apply link", () => {
