@@ -124,9 +124,16 @@ export function randomEmail(domain: string = "test.com"): string {
  * 使用 Web Crypto API（Node 19+ / 瀏覽器 / Workers 皆支援）以符合
  * CodeQL `js/insecure-randomness` 規範；避免將 Math.random() 輸出
  * 用於可能被視為 security context 的欄位（例如 userId）。
+ *
+ * Uses bare `crypto` (not `globalThis.crypto`) because the
+ * @cloudflare/workers-types definitions declare `crypto` as a bare
+ * global without augmenting the `globalThis` interface, so the
+ * `globalThis.crypto` form fails to typecheck in Workers apps that
+ * transitively import this file. The bare form is equivalent at
+ * runtime on every target (Node 19+, browsers, Workers).
  */
 export function randomUUID(): string {
-  return globalThis.crypto.randomUUID();
+  return crypto.randomUUID();
 }
 
 /**
