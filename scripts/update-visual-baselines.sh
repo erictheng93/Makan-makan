@@ -202,5 +202,27 @@ fi
 
 LINUX_COUNT=$(find "${REPO_ROOT}/tests/visual" -type f -name '*-linux.png' | wc -l | tr -d ' ')
 ok "Produced ${LINUX_COUNT} *-linux.png baselines."
+
+# ----------------------------------------------------------------------------
+# 6. Auto-regenerate the audit HTML if it exists (so browser reload picks up
+#    the new baselines). file:// PNGs are cached aggressively, and the
+#    generator writes cache-busting `?t=<mtime>` URLs, so regenerating the
+#    HTML after a baseline regen is enough — no need for hard-reload.
+# ----------------------------------------------------------------------------
+AUDIT_HTML="/tmp/visual-baselines-full/index.html"
+AUDIT_GENERATOR="${REPO_ROOT}/scripts/generate-visual-audit-html.mjs"
+
+if [[ -f "${AUDIT_HTML}" && -f "${AUDIT_GENERATOR}" ]]; then
+  log "Regenerating audit HTML (${AUDIT_HTML} exists)..."
+  if node "${AUDIT_GENERATOR}"; then
+    ok "Audit HTML refreshed — reload your browser tab to see new baselines."
+  else
+    warn "Audit HTML regen failed. Run manually: node scripts/generate-visual-audit-html.mjs"
+  fi
+else
+  log "Audit HTML not found at ${AUDIT_HTML} — skipping regen."
+  log "To enable hand-eye audit, run: node scripts/generate-visual-audit-html.mjs"
+fi
+
 ok "Review the diff with: git status tests/visual"
 ok "Commit with:          git add tests/visual && git commit"
