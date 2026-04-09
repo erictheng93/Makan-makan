@@ -65,8 +65,11 @@ jobs:
       - name: Comment on PR if docs need update
         if: steps.check-docs.outputs.needs_docs_update == 'true'
         uses: actions/github-script@v8
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         with:
           script: |
+            const changedFiles = process.env.CHANGED_FILES || '';
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -78,47 +81,48 @@ jobs:
               comment.body.includes('📝 測試文檔更新提醒')
             );
 
-            const commentBody = `## 📝 測試文檔更新提醒
-
-⚠️ **檢測到測試文件已修改,但測試文檔未更新**
-
-### 已變更的測試文件
-
-\`\`\`
-${{ steps.changed-files.outputs.all_changed_files }}
-\`\`\`
-
-### 📋 建議行動
-
-請確認是否需要更新以下文檔:
-
-- [ ] \`docs/testing/TESTING_GUIDE.md\` - 如果新增了測試類型或改變了測試策略
-- [ ] 相關模組的 README - 如果新增了測試範例或使用說明
-- [ ] \`docs/testing/\` 下的專項文檔 - 如果涉及特定測試領域
-
-### ℹ️ 何時需要更新文檔？
-
-**需要更新**:
-- ✅ 新增了測試場景或測試用例
-- ✅ 修改了測試策略或測試方法
-- ✅ 新增了測試工具或測試輔助函數
-- ✅ 修改了重要的測試配置
-
-**不需要更新**:
-- ✅ 只是修復測試中的小 bug
-- ✅ 只是調整測試數據
-- ✅ 只是重構測試代碼但功能不變
-
-### 🔗 相關文檔
-
-- [測試指南](../docs/testing/TESTING_GUIDE.md)
-- [測試文檔維護指南](../docs/testing/TEST_DOCUMENTATION_GUIDE.md)
-- [貢獻指南](../CONTRIBUTING.md)
-
----
-
-如果您認為此次變更不需要更新文檔,請在 PR 描述中說明原因。
-            `;
+            const commentBody = [
+              "## 📝 測試文檔更新提醒",
+              "",
+              "⚠️ **檢測到測試文件已修改,但測試文檔未更新**",
+              "",
+              "### 已變更的測試文件",
+              "",
+              "```",
+              changedFiles,
+              "```",
+              "",
+              "### 📋 建議行動",
+              "",
+              "請確認是否需要更新以下文檔:",
+              "",
+              "- [ ] `docs/testing/TESTING_GUIDE.md` - 如果新增了測試類型或改變了測試策略",
+              "- [ ] 相關模組的 README - 如果新增了測試範例或使用說明",
+              "- [ ] `docs/testing/` 下的專項文檔 - 如果涉及特定測試領域",
+              "",
+              "### ℹ️ 何時需要更新文檔？",
+              "",
+              "**需要更新**:",
+              "- ✅ 新增了測試場景或測試用例",
+              "- ✅ 修改了測試策略或測試方法",
+              "- ✅ 新增了測試工具或測試輔助函數",
+              "- ✅ 修改了重要的測試配置",
+              "",
+              "**不需要更新**:",
+              "- ✅ 只是修復測試中的小 bug",
+              "- ✅ 只是調整測試數據",
+              "- ✅ 只是重構測試代碼但功能不變",
+              "",
+              "### 🔗 相關文檔",
+              "",
+              "- [測試指南](../docs/testing/TESTING_GUIDE.md)",
+              "- [測試文檔維護指南](../docs/testing/TEST_DOCUMENTATION_GUIDE.md)",
+              "- [貢獻指南](../CONTRIBUTING.md)",
+              "",
+              "---",
+              "",
+              "如果您認為此次變更不需要更新文檔,請在 PR 描述中說明原因。",
+            ].join("\n");
 
             if (botComment) {
               await github.rest.issues.updateComment({
