@@ -16,9 +16,31 @@ export interface CustomerUser {
   role: number; // 5 for customer
 }
 
+// Hydrate user from localStorage for instant restore on page refresh.
+// Without this, refreshing any authenticated view kicks the user back to
+// /login because the router guard checks `isAuthenticated` (which depends
+// on `!!user`) before `checkAuth()` has a chance to fetch the user.
+const hydrateUser = (): CustomerUser | null => {
+  try {
+    const saved = localStorage.getItem("customer_user");
+    return saved ? (JSON.parse(saved) as CustomerUser) : null;
+  } catch {
+    localStorage.removeItem("customer_user");
+    return null;
+  }
+};
+
+const persistUser = (u: CustomerUser | null): void => {
+  if (u) {
+    localStorage.setItem("customer_user", JSON.stringify(u));
+  } else {
+    localStorage.removeItem("customer_user");
+  }
+};
+
 export const useAuthStore = defineStore("auth", () => {
   // 狀態
-  const user = ref<CustomerUser | null>(null);
+  const user = ref<CustomerUser | null>(hydrateUser());
   const token = ref<string | null>(localStorage.getItem("customer_auth_token"));
   const refreshToken = ref<string | null>(
     localStorage.getItem("customer_refresh_token"),
@@ -81,6 +103,7 @@ export const useAuthStore = defineStore("auth", () => {
         if (refreshToken.value) {
           localStorage.setItem("customer_refresh_token", refreshToken.value);
         }
+        persistUser(user.value);
 
         if (token.value) scheduleProactiveRefresh(token.value);
 
@@ -132,6 +155,7 @@ export const useAuthStore = defineStore("auth", () => {
         if (refreshToken.value) {
           localStorage.setItem("customer_refresh_token", refreshToken.value);
         }
+        persistUser(user.value);
 
         if (token.value) scheduleProactiveRefresh(token.value);
 
@@ -171,6 +195,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       localStorage.removeItem("customer_auth_token");
       localStorage.removeItem("customer_refresh_token");
+      persistUser(null);
       clearRefreshTimer();
     }
   };
@@ -224,6 +249,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (data.success && data.data) {
         user.value = data.data;
+        persistUser(user.value);
         if (token.value) scheduleProactiveRefresh(token.value);
         return true;
       }
