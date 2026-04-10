@@ -806,7 +806,75 @@ This decision is a Phase 0.5 hard gate item — the user should approve before P
 ## 9. Client-Side Caches
 
 ### 9.1 kitchen-display localStorage
+
+**Storage layer:** `localStorage` (NOT IndexedDB) under key `kitchen-cached-orders`.
+
+**Code:** `apps/kitchen-display/src/services/offlineService.ts`
+- `cacheOrders(orders: KitchenOrder[])` — line 145-151. Serializes the entire array as JSON.
+- `getCachedOrders(): KitchenOrder[]` — line 153-161.
+- `validateCachedData()` — line 475-491. **Asserts `typeof order.status === "number"` (line 485)** as the cache validity check.
+
+**What triggers cache invalidation:**
+- Validator returns `false` → caller treats cache as invalid → next sync rebuilds from API.
+- After unification, status will be a string at runtime → validator returns `false` for every cached entry → cache rebuild triggered for every active kitchen-display tab on first load after deploy.
+
+**Volume estimate:**
+- Per kitchen-display user: typically 20-100 active orders cached at any time during service hours.
+- Per restaurant peak: ~100-300 entries.
+- Worst-case invalidation storm size: `(active KDS tabs) × (cached orders per tab)` — bounded by total kitchen-display sessions across the fleet.
+- **Per-user impact:** one-time API call to repopulate (`GET /api/v1/kitchen/orders`) on first load after the new bundle ships. ~50ms-1s depending on network. Acceptable.
+- **Fleet impact:** if all kitchen-display tabs reload within a 5-minute window after deploy, each one fires one extra `GET` request — bounded thundering herd. Recommend Phase 6.2 staggered deploy if fleet > ~100 active tabs.
+
+**Migration approach (recommended):**
+1. Update the validator to assert `typeof order.status === "string"` AS PART OF Phase 5 (the kitchen-display sweep PR), so old number-typed caches are explicitly rejected.
+2. Do NOT add a coercion layer — cache rebuild is cheap and explicit invalidation is safer than silent migration.
+3. Add a migration log line so we can confirm the storm size in monitoring.
+
 ### 9.2 Browser bundle caching
+
+**Customer-app (`apps/customer-app/vite.config.ts`):**
+- **VitePWA `registerType: 'autoUpdate'`** (line 23). The service worker auto-updates the cached bundle when a new build ships. Existing tabs continue running the old bundle until they reload.
+- **Workbox runtime caching:**
+  - `^https://api.makanmakan.app/` → `NetworkFirst`, 24h, max 100 entries (line 28-37). Wire-format change: ✅ safe — new responses always go to network first.
+  - `^https://images.makanmakan.app/` → `CacheFirst`, 7 days. Not status-relevant.
+- **Bundle hash:** Vite default — yes, content-hashed filenames. Old bundle stays cached until SW activates new version.
+- **`__APP_VERSION__: "1.0.0"`** (line 109) is **hardcoded** in `vite.config.ts`. There is NO build-time version stamp that the frontend could read to detect "I'm running an old bundle vs new bundle." This is a gap for Phase 6.3 forced reload — the plan needs to add a build-time version injection BEFORE it can implement bundle-version detection.
+- **Customer-app IndexedDB (`apps/customer-app/src/utils/offline-storage.ts`):** Has `offlineOrders` and `cachedMenuItems` stores. The `OfflineOrder` interface (lines 6-24) **does NOT include a `status` field** — these are customer-created draft orders pending sync, not server-side order records. ✅ No migration risk in customer-app's IndexedDB.
+
+**Open customer-app tab risk:**
+- A customer with the OrderTrackingView open (which polls `/api/v1/orders/:id`) will receive a string status from the new API while their JS code expects numeric. As documented in §3, the existing code already silently degrades when this happens (Record-by-number lookups return undefined, fall through to defaults). So the migration won't make things worse — just keeps them broken until the user's tab reloads.
+- **Mitigation:** Phase 6.3 should add a server header or API response envelope field `apiStatusFormat: "string"` and have the frontend assert it on each response. If mismatch, force `window.location.reload()`. The `__APP_VERSION__` gap means we can't do bundle-version checking; an API-side signal is the only cheap option.
+
+**Admin-dashboard, kitchen-display:** No PWA / service worker. Standard Vite output, hash-busted, but staff-tab usage means many tabs stay open across deploys. Same forced-reload signal recommended.
+
+## 10. Canonical State Decision (for Phase 0.5)
+
+(populated by Task 10)
+
+## 11. Migration Risk Register
+
+| Risk | Likelihood | Impact | Mitigation (Phase) | Rollback trigger |
+|------|------------|--------|---------------------|------------------|
+| DO hibernated state has legacy `serving`/`completed` values | high | broadcast emits unknown values; frontend Zod rejects | Phase 4 lazy migration (§8 Option A) | `realtime_broadcast_error_total` > 1% over 5 min |
+| Open customer-app tab on old bundle | certain (every restaurant context) | UI silently shows "unknown" status (already broken — same failure mode) | Phase 6.3 server-signaled forced reload (no bundle versioning today — see §9.2) | Customer support tickets > 5/hour |
+| kitchen-display localStorage cache rejection storm | certain | one-time `GET /api/v1/kitchen/orders` per active tab | Phase 5 — flip validator to `typeof === "string"`, accept the rebuild | N/A — expected behavior |
+| Customer-app `OrderTrackingView.vue` Record<number,…> lookups silently fail | certain (already failing in prod) | UI shows default branch instead of correct icon/color | Phase 5 — full rewrite of OrderTrackingView | N/A — already broken |
+| API emits mixed wire format during staged deploy | medium | downstream Zod validators reject | Phase 6.1 dual-emit window OR atomic deploy | API 5xx > 0.5% |
+| Contract test (`pnpm contract:check`) blocks deploy | low | blocks merge | §7 finding: snapshot tracks field names only, not enum values — won't trip | N/A |
+| OpenAPI/Swagger UI still serves wrong 5-member enum | high (existing) | external API consumers get wrong contract | Phase 2 update `apps/api/src/openapi/integration.ts:277-283` in lockstep | N/A — bug already shipped |
+| `state-machine.test.ts` reverse-lookup `OrderStatus[upper]` breaks | high | 79-ref test file fails | Phase 2 Task 14 — rewrite to direct string lookup | CI red |
+| `cache-coherence.test.ts` `OrderStatus.PENDING` sites break | high | 76-ref test file fails | Phase 2 — bulk rewrite | CI red |
+| `permissions.test.ts` 10 sites break | high | test file fails | Phase 2 Task 15 — bulk rewrite | CI red |
+| 4 admin-dashboard local OrderStatus definitions drift further | high | future feature work uses wrong type | Phase 3 — delete all 4, re-export from shared-types | N/A — sweep target |
+| `apps/kitchen-display/src/types/index.ts:3` numeric union breaks 28 hardcoded comparisons in one PR | high | mass type errors when local type changes from `0\|1\|...\|6` to string union | Phase 5 — staged: rename type first, then sweep all 28 sites in same PR | CI red |
+| `apps/api/src/features/orders/schemas/validation.ts` Zod enum missing `refunded` rejects valid status | medium | API 400s on `?status=refunded` | Phase 2 — add `refunded` to both Zod schemas (validation.ts + contracts/orders.ts + openapi/integration.ts) | API 4xx spike |
+| `testing-utils/order.factory.ts` ships wrong status set (`COMPLETED`, no `PAID`/`REFUNDED`) | high | tests across monorepo build wrong fixtures | Phase 2 Task 13 — update factory in lockstep with shared-types | CI red |
+| `OrdersService.normalizeStatus` numeric map missing `7: refunded` | medium | API 500 if a numeric `7` ever arrives | Phase 2 Task 14 — delete the method entirely | observed once |
+| `useRealtimeOrderStatus.ts` inline 6-member union missing `paid`/`delivered`/`refunded` | medium | WebSocket message validation rejects | Phase 3 — replace with shared-types `OrderStatusUpdateEvent['data']['status']` | realtime errors |
+| `kitchen-display/src/utils/offline-storage.ts` IndexedDB schema with `"received"` value (not in DB) | high | persisted IndexedDB rows have unrecognizable status | Phase 5 — bump dbVersion + onupgradeneeded migration | observable on read |
+| `e2e/journeys/cross-role/order-lifecycle.spec.ts` uses numeric `currentOrderStatus` counter | medium | E2E test breaks when API returns strings | Phase 2 Task 12 — write Phase 1 regression first; spec rewrite in Phase 6 | E2E red |
+| `apps/api/src/openapi/integration.ts` 5-member enum mismatches DB | high (existing) | public Swagger docs wrong | Phase 2 in lockstep | N/A — pre-existing |
+| `OrderPermissions` interface unused in production | medium | dead code grows | Phase 3 sweep — flag for product decision | N/A |
 
 ## 10. Canonical State Decision (for Phase 0.5)
 
