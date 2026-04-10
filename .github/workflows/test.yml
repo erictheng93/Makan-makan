@@ -191,6 +191,14 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
       options: --ipc=host
+    env:
+      # GitHub Actions runs container steps as root, but $HOME is set to
+      # /github/home which is owned by `pwuser` (the Playwright container's
+      # non-root user). Firefox Nightly refuses to launch under this
+      # mismatch: "Running Nightly as root in a regular user's session is
+      # not supported." Override HOME so Firefox sees a root-owned homedir.
+      # Chromium and WebKit don't have this restriction but it doesn't hurt.
+      HOME: /root
 
     strategy:
       matrix:
