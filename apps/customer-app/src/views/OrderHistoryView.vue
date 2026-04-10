@@ -214,7 +214,7 @@
                 {{ t("orderHistory.viewDetails") }}
               </button>
               <button
-                v-if="order.status === 0"
+                v-if="order.status === 'pending'"
                 class="px-4 py-2 text-sm font-semibold text-ios-red hover:bg-ios-red/10 rounded-full transition"
                 @click.stop="cancelOrder(order.id)"
               >
@@ -382,33 +382,33 @@ const handleLogout = async () => {
 };
 
 // 獲取狀態樣式 (iOS semantic colors, design-system 4.2)
-const getStatusClass = (status: number) => {
-  const classes: Record<number, string> = {
-    0: "bg-ios-orange/15 text-ios-orange", // pending
-    1: "bg-ios-blue/15 text-ios-blue", // confirmed
-    2: "bg-ios-teal/15 text-ios-teal", // preparing
-    3: "bg-ios-green/15 text-ios-green", // completed
-    4: "bg-ios-green/15 text-ios-green", // served
-    5: "bg-ios-green/15 text-ios-green", // paid
-    6: "bg-ios-red/15 text-ios-red", // cancelled
+const getStatusClass = (status: string) => {
+  const classes: Record<string, string> = {
+    pending: "bg-ios-orange/15 text-ios-orange",
+    confirmed: "bg-ios-blue/15 text-ios-blue",
+    preparing: "bg-ios-teal/15 text-ios-teal",
+    ready: "bg-ios-green/15 text-ios-green",
+    delivered: "bg-ios-green/15 text-ios-green",
+    paid: "bg-ios-green/15 text-ios-green",
+    cancelled: "bg-ios-red/15 text-ios-red",
   };
   return classes[status] || "bg-ios-bg text-ios-secondary";
 };
 
 // 獲取狀態文字 (computed for reactivity when language changes)
 const statusTexts = computed(
-  (): Record<number, string> => ({
-    0: t("orderHistory.statusPending"),
-    1: t("orderHistory.statusConfirmed"),
-    2: t("orderHistory.statusPreparing"),
-    3: t("orderHistory.statusCompleted"),
-    4: t("orderHistory.statusServed"),
-    5: t("orderHistory.statusPaid"),
-    6: t("orderHistory.statusCancelled"),
+  (): Record<string, string> => ({
+    pending: t("orderHistory.statusPending"),
+    confirmed: t("orderHistory.statusConfirmed"),
+    preparing: t("orderHistory.statusPreparing"),
+    ready: t("orderHistory.statusCompleted"),
+    delivered: t("orderHistory.statusServed"),
+    paid: t("orderHistory.statusPaid"),
+    cancelled: t("orderHistory.statusCancelled"),
   }),
 );
 
-const getStatusText = (status: number) => {
+const getStatusText = (status: string) => {
   return statusTexts.value[status] || t("orderHistory.statusUnknown");
 };
 

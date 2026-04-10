@@ -270,15 +270,15 @@ export const formatSpiceLevel = (spiceLevel: number): string => {
  * @param status 訂單狀態代碼
  * @returns 狀態描述字串
  */
-export const formatOrderStatus = (status: number): string => {
-  const statuses: Record<number, string> = {
-    0: t("format.orderPending"),
-    1: t("format.orderConfirmed"),
-    2: t("format.orderPreparing"),
-    3: t("format.orderReady"),
-    4: t("format.orderDelivered"),
-    5: t("format.orderPaid"),
-    6: t("format.orderCancelled"),
+export const formatOrderStatus = (status: string): string => {
+  const statuses: Record<string, string> = {
+    pending: t("format.orderPending"),
+    confirmed: t("format.orderConfirmed"),
+    preparing: t("format.orderPreparing"),
+    ready: t("format.orderReady"),
+    delivered: t("format.orderDelivered"),
+    paid: t("format.orderPaid"),
+    cancelled: t("format.orderCancelled"),
   };
 
   return statuses[status] || t("format.unknownStatus");
