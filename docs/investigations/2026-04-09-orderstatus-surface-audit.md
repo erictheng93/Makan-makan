@@ -510,10 +510,114 @@ return cachedOrders.every(
 
 ## 5. Dead Code
 
+Code paths discovered during the audit that are unused or no-op once the canonical type lands. These should be deleted in Phase 3 sweep, not preserved as compatibility shims.
+
+| Item | File:line | Why dead | Phase to remove |
+|------|-----------|----------|-----------------|
+| `OrdersService.normalizeStatus()` | `apps/api/src/features/orders/services/OrdersService.ts:1227-1243` | Bridge layer; all 4 callers pass already-validated strings | Phase 2 Task 14 |
+| `statusStringToEnum` local Record | `apps/api/src/features/orders/services/OrdersService.ts:1273-1281` | String→numeric back-conversion that exists only because the return type is the wrong shape | Phase 2 Task 15 |
+| `OrdersService.checkOrderPermissions()` | `apps/api/src/features/orders/services/OrdersService.ts:945-973` | **Unreferenced from any HTTP route or service caller** — only invoked in `permissions.test.ts`. Either wire it to a route or delete. | Phase 3 sweep — flag for product decision |
+| `OrderPermissions` interface | `apps/api/src/features/orders/types/index.ts:323-336` | Same — no consumer outside tests | Phase 3 — delete with above |
+| `OrderStatus.COMPLETED` member | `apps/admin-dashboard/src/types/index.ts:124` | Not in DB; canonical mapping is `delivered`. The bucket `[OrderStatus.COMPLETED, OrderStatus.PAID]` in `stores/order.ts:32` collapses to `[PAID]`. | Phase 3 |
+| `OrderLifecycleState.SERVING` | `apps/realtime/src/advanced-realtime-session.ts:161` | UI-derivable from `ready` + crew assignment per Phase 0.5 proposal | Phase 4 (after user approves drop) |
+| `OrderLifecycleState.COMPLETED` | `apps/realtime/src/advanced-realtime-session.ts:162` | Realtime-local naming drift; replace with `delivered` | Phase 4 |
+| `realtime` transition map `[SERVING, [COMPLETED]]` | `apps/realtime/src/advanced-realtime-session.ts:222-223` | Whole row gone after `SERVING`/`COMPLETED` removal | Phase 4 |
+| `KitchenService` numeric `typeof` guards | `apps/api/src/features/kitchen/services/KitchenService.ts:157, 178` | Defensive bridges no longer needed | Phase 2 Task 17 |
+| `apps/customer-app/src/utils/format.ts:formatOrderStatus(status: number)` whole signature | `apps/customer-app/src/utils/format.ts:273-285` | Param type wrong AND lookup table keyed by numbers; entire helper is broken in production today | Phase 5 (rewrite) |
+| `apps/api/src/examples/*.ts.disabled` | n/a | already disabled, has stale numeric refs | Phase 3 — delete the files |
+| `priority3-progress1.txt`, `priority3-analysis.txt` | `apps/kitchen-display/` | Scratch analysis docs, not source | Phase 3 — delete |
+
 ## 6. Bidirectional Mapping Surface
 
 ### 6.1 OrdersService.normalizeStatus
+
+**Definition:** `apps/api/src/features/orders/services/OrdersService.ts:1227-1243`
+
+```ts
+/**
+ * 將狀態值標準化為小寫字符串
+ */
+private normalizeStatus(status: OrderStatus | number | string): string {
+  const statusMap: Record<number, string> = {
+    0: "pending",
+    1: "confirmed",
+    2: "preparing",
+    3: "ready",
+    4: "delivered",
+    5: "paid",
+    6: "cancelled",
+  };
+
+  if (typeof status === "number") {
+    return statusMap[status] || String(status);
+  }
+
+  return String(status).toLowerCase();
+}
+```
+
+**Inputs accepted:**
+- `OrderStatus` (the shared-types numeric enum, which TypeScript treats as `number`)
+- bare `number` (legacy wire format from older clients)
+- bare `string` (DB format / new clients)
+
+**Numeric→string map completeness:** ❌ **incomplete — missing `7: "refunded"`.** Any numeric status of `7` falls through to `String(status)` which returns the string `"7"` — invalid value, will fail downstream Zod validation. This is currently masked because no caller emits `7`, but if Phase 2 Task 13 adds `REFUNDED = 7` to the enum (which it won't — the rewrite goes to a string union directly) or if a test fixture happens to use `7`, it crashes.
+
+**Call sites (4 total in OrdersService.ts):**
+
+| File:line | Caller | Input source |
+|-----------|--------|--------------|
+| `OrdersService.ts:306` | `createOrder()` body — `status: this.normalizeStatus(data.status)` | `data.status` from request validation, already a string per `validation.ts:23` Zod enum. The normalize call is dead — input is already a lowercase string. |
+| `OrdersService.ts:407` | `updateOrderStatus()` — `status: this.normalizeStatus(statusData.status)` | `statusData.status: OrderStatus` from `OrderStatusUpdateData`, Zod-validated. Same — already canonical. |
+| `OrdersService.ts:1250` | `validateStatusTransition()` — normalize `currentStatus` | param typed `OrderStatus \| number \| string` — bridge layer, will collapse in Task 16 |
+| `OrdersService.ts:1251` | `validateStatusTransition()` — normalize `newStatus` | same |
+
+**Conclusion:** All 4 call sites of `normalizeStatus` are no-ops once shared-types becomes a string union. Phase 2 Task 14 deletes the method outright. No external (cross-file) callers.
+
 ### 6.2 OrdersService.getAllowedStatusTransitions — caller audit
+
+**Definition:** `apps/api/src/features/orders/services/OrdersService.ts:1271-1285`
+
+```ts
+private getAllowedStatusTransitions(userRole: UserRole): OrderStatus[] {
+  const stringStatuses = ROLE_STATUS_PERMISSIONS[userRole] || [];
+  const statusStringToEnum: Record<string, OrderStatus> = {
+    pending: OrderStatus.PENDING,
+    confirmed: OrderStatus.CONFIRMED,
+    preparing: OrderStatus.PREPARING,
+    ready: OrderStatus.READY,
+    delivered: OrderStatus.DELIVERED,
+    paid: OrderStatus.PAID,
+    cancelled: OrderStatus.CANCELLED,
+  };
+  return stringStatuses
+    .map((s) => statusStringToEnum[s])
+    .filter((s): s is OrderStatus => s !== undefined);
+}
+```
+
+**Note:** Method is `private`. The numeric `OrderStatus[]` return value never escapes the class except via `OrderPermissions.allowedStatusTransitions`.
+
+**Direct call sites (1 total):**
+
+| File:line | Caller | What it does |
+|-----------|--------|--------------|
+| `OrdersService.ts:963` | `checkOrderPermissions()` — assigns to `allowedStatusTransitions: this.getAllowedStatusTransitions(userRole)` in returned `OrderPermissions` object | Returns through `OrderPermissions.allowedStatusTransitions: OrderStatus[]` (typed at `types/index.ts:333`) |
+
+**Indirect call sites via `checkOrderPermissions` (7 across the monorepo):**
+
+| File:line | Caller | Wire exposure | Migration impact |
+|-----------|--------|---------------|------------------|
+| `apps/api/src/features/orders/services/OrdersService.ts:945` | definition itself | n/a | n/a |
+| `apps/api/src/features/orders/types/index.ts:471` | interface declaration only | n/a | n/a |
+| `apps/api/src/features/orders/__tests__/permissions.test.ts:87` | unit test — calls method directly | none | rewrite to expect string array |
+| `apps/api/src/features/orders/__tests__/permissions.test.ts:104, 116, 132, 143, 154, 169, 180, 191, 203` | 9 more permissions test invocations | none | same — bulk rewrite |
+
+**Wire exposure:** **NONE.** A grep across `apps/api/src/features/orders/routes/` shows zero references to `checkOrderPermissions`, no HTTP route returns `OrderPermissions`, and no realtime broadcast emits the field. The numeric `OrderStatus[]` return type is **purely internal** — the only consumers are 10 test cases in `permissions.test.ts`.
+
+**Migration impact:** Phase 2 Task 15 can rewrite the return type to `OrderStatus[]` (string union) with **no wire-format risk**. The 10 test cases need bulk replacement of `OrderStatus.PENDING` → `'pending'` etc. There is no public API contract test for `OrderPermissions`.
+
+**⚠️ Dead-code candidate:** `checkOrderPermissions` itself appears to have no production caller — only test invocations. Section 5 (Dead Code) should flag it for either route exposure or deletion.
 
 ## 7. External Wire Consumers
 
