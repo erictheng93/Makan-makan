@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
 import type { OrderQueryFilters } from "../types";
-import { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock dependencies
@@ -118,7 +118,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       const cachedOrder = {
         id: 1,
         orderNumber: "ORD-001",
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(cachedOrder);
 
@@ -133,7 +133,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       const dbOrder = {
         id: 2,
         orderNumber: "ORD-002",
-        status: OrderStatus.CONFIRMED,
+        status: "confirmed" as OrderStatus,
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(null);
       mockBaseOrderService.getOrder.mockResolvedValue(dbOrder);
@@ -219,18 +219,22 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     it("should delete both full and basic cache keys after updateOrder", async () => {
       const existingOrder = {
         id: 10,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       const updatedOrder = {
         id: 10,
-        status: OrderStatus.CONFIRMED,
+        status: "confirmed" as OrderStatus,
         restaurantId: "1",
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
       mockBaseOrderService.updateOrderStatus.mockResolvedValue(updatedOrder);
 
-      await service.updateOrder(10, { status: OrderStatus.CONFIRMED }, 100);
+      await service.updateOrder(
+        10,
+        { status: "confirmed" as OrderStatus },
+        100,
+      );
 
       expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("order:10:full");
       expect(mockEnv.CACHE_KV.delete).toHaveBeenCalledWith("order:10:basic");
@@ -239,12 +243,12 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     it("should delete both cache keys after updateOrderStatus", async () => {
       const existingOrder = {
         id: 20,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       const updatedOrder = {
         id: 20,
-        status: OrderStatus.CONFIRMED,
+        status: "confirmed" as OrderStatus,
         restaurantId: "1",
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
@@ -252,7 +256,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       await service.updateOrderStatus(
         20,
-        { status: OrderStatus.CONFIRMED },
+        { status: "confirmed" as OrderStatus },
         100,
         0, // admin role
       );
@@ -262,7 +266,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     });
 
     it("should delete both cache keys after cancelOrder", async () => {
-      const cancelledOrder = { id: 30, status: OrderStatus.CANCELLED };
+      const cancelledOrder = { id: 30, status: "cancelled" as OrderStatus };
       mockBaseOrderService.cancelOrder.mockResolvedValue(cancelledOrder);
 
       await service.cancelOrder(30, "Customer request", 100);
@@ -299,19 +303,23 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       const callOrder: string[] = [];
       const existingOrder = {
         id: 50,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
       mockBaseOrderService.updateOrderStatus.mockImplementation(async () => {
         callOrder.push("db_write");
-        return { id: 50, status: OrderStatus.CONFIRMED };
+        return { id: 50, status: "confirmed" as OrderStatus };
       });
       mockEnv.CACHE_KV.delete.mockImplementation(async () => {
         callOrder.push("cache_invalidate");
       });
 
-      await service.updateOrder(50, { status: OrderStatus.CONFIRMED }, 100);
+      await service.updateOrder(
+        50,
+        { status: "confirmed" as OrderStatus },
+        100,
+      );
 
       // DB write should happen before any cache invalidation
       const dbIndex = callOrder.indexOf("db_write");
@@ -323,13 +331,17 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       const callOrder: string[] = [];
       const existingOrder = {
         id: 51,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
       mockBaseOrderService.updateOrderStatus.mockImplementation(async () => {
         callOrder.push("db_write");
-        return { id: 51, status: OrderStatus.CONFIRMED, restaurantId: "1" };
+        return {
+          id: 51,
+          status: "confirmed" as OrderStatus,
+          restaurantId: "1",
+        };
       });
       mockEnv.CACHE_KV.delete.mockImplementation(async () => {
         callOrder.push("cache_invalidate");
@@ -337,7 +349,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       await service.updateOrderStatus(
         51,
-        { status: OrderStatus.CONFIRMED },
+        { status: "confirmed" as OrderStatus },
         100,
         0,
       );
@@ -350,7 +362,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     it("should NOT invalidate cache when DB write fails in updateOrderStatus", async () => {
       const existingOrder = {
         id: 52,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
@@ -360,7 +372,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       await expect(
         service.updateOrderStatus(
           52,
-          { status: OrderStatus.CONFIRMED },
+          { status: "confirmed" as OrderStatus },
           100,
           0,
         ),
@@ -391,13 +403,13 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       const originalOrder = {
         id: 60,
         orderNumber: "ORD-060",
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       const updatedOrder = {
         id: 60,
         orderNumber: "ORD-060",
-        status: OrderStatus.CONFIRMED,
+        status: "confirmed" as OrderStatus,
         restaurantId: "1",
       };
 
@@ -406,7 +418,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       mockBaseOrderService.getOrder.mockResolvedValueOnce(originalOrder);
 
       const firstRead = await service.getOrder(60);
-      expect(firstRead?.status).toBe(OrderStatus.PENDING);
+      expect(firstRead?.status).toBe("pending" as OrderStatus);
       expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:60:full",
         JSON.stringify(originalOrder),
@@ -424,7 +436,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       await service.updateOrderStatus(
         60,
-        { status: OrderStatus.CONFIRMED },
+        { status: "confirmed" as OrderStatus },
         100,
         0,
       );
@@ -438,7 +450,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       mockBaseOrderService.getOrder.mockResolvedValueOnce(updatedOrder);
 
       const secondRead = await service.getOrder(60);
-      expect(secondRead?.status).toBe(OrderStatus.CONFIRMED);
+      expect(secondRead?.status).toBe("confirmed" as OrderStatus);
       // DB was queried: once for step 1, once for step 3 = 2 times total
       // (broadcastOrderStatusUpdate receives the order directly, no extra DB call)
       expect(mockBaseOrderService.getOrder).toHaveBeenCalledTimes(2);
@@ -447,12 +459,12 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     it("should return fresh data after cancelOrder", async () => {
       const originalOrder = {
         id: 61,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       const cancelledOrder = {
         id: 61,
-        status: OrderStatus.CANCELLED,
+        status: "cancelled" as OrderStatus,
         restaurantId: "1",
       };
 
@@ -474,7 +486,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       mockBaseOrderService.getOrder.mockResolvedValueOnce(cancelledOrder);
 
       const finalRead = await service.getOrder(61);
-      expect(finalRead?.status).toBe(OrderStatus.CANCELLED);
+      expect(finalRead?.status).toBe("cancelled" as OrderStatus);
     });
   });
 
@@ -508,7 +520,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       mockEnv.CACHE_KV.get.mockResolvedValue(null);
       mockBaseOrderService.getOrder.mockResolvedValue({
         id: 71,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
       });
       mockEnv.CACHE_KV.put.mockRejectedValue(new Error("KV write failed"));
 
@@ -517,7 +529,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     });
 
     it("should propagate error when cacheKV.delete throws during invalidation in cancelOrder (current behavior)", async () => {
-      const cancelledOrder = { id: 72, status: OrderStatus.CANCELLED };
+      const cancelledOrder = { id: 72, status: "cancelled" as OrderStatus };
       mockBaseOrderService.cancelOrder.mockResolvedValue(cancelledOrder);
       mockEnv.CACHE_KV.delete.mockRejectedValue(new Error("KV delete failed"));
 
@@ -530,18 +542,18 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     it("should propagate error when cacheKV.delete throws during invalidation in updateOrder (current behavior)", async () => {
       const existingOrder = {
         id: 73,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
       mockBaseOrderService.updateOrderStatus.mockResolvedValue({
         id: 73,
-        status: OrderStatus.CONFIRMED,
+        status: "confirmed" as OrderStatus,
       });
       mockEnv.CACHE_KV.delete.mockRejectedValue(new Error("KV delete failed"));
 
       await expect(
-        service.updateOrder(73, { status: OrderStatus.CONFIRMED }, 100),
+        service.updateOrder(73, { status: "confirmed" as OrderStatus }, 100),
       ).rejects.toThrow("KV delete failed");
     });
   });
@@ -565,12 +577,12 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     it("should demonstrate potential stale cache after concurrent read + write", async () => {
       const staleOrder = {
         id: 80,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       const freshOrder = {
         id: 80,
-        status: OrderStatus.CONFIRMED,
+        status: "confirmed" as OrderStatus,
         restaurantId: "1",
       };
 
@@ -594,7 +606,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       // T2: Update completes while T1 is still waiting for DB
       await service.updateOrderStatus(
         80,
-        { status: OrderStatus.CONFIRMED },
+        { status: "confirmed" as OrderStatus },
         100,
         0,
       );
@@ -609,7 +621,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       // T1 writes stale data to cache AFTER T2's invalidation
       // This is the race condition — cache now holds stale PENDING status
-      expect(result?.status).toBe(OrderStatus.PENDING);
+      expect(result?.status).toBe("pending" as OrderStatus);
       // The cache.set from T1 happened after T2's delete — stale data is cached
       expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         "order:80:full",
@@ -621,12 +633,12 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     it("should have correct cache state after sequential getOrder then updateOrderStatus", async () => {
       const pendingOrder = {
         id: 81,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       const confirmedOrder = {
         id: 81,
-        status: OrderStatus.CONFIRMED,
+        status: "confirmed" as OrderStatus,
         restaurantId: "1",
       };
 
@@ -649,7 +661,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
       );
       await service.updateOrderStatus(
         81,
-        { status: OrderStatus.CONFIRMED },
+        { status: "confirmed" as OrderStatus },
         100,
         0,
       );
@@ -660,7 +672,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     });
 
     it("should handle two concurrent reads (thundering herd) without error", async () => {
-      const order = { id: 82, status: OrderStatus.PENDING };
+      const order = { id: 82, status: "pending" as OrderStatus };
 
       // Both reads see cache miss
       mockEnv.CACHE_KV.get.mockResolvedValue(null);
@@ -792,12 +804,12 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     it("should NOT invalidate analytics cache when individual order is updated", async () => {
       const existingOrder = {
         id: 90,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         restaurantId: "1",
       };
       const updatedOrder = {
         id: 90,
-        status: OrderStatus.CONFIRMED,
+        status: "confirmed" as OrderStatus,
         restaurantId: "1",
       };
       mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
@@ -805,7 +817,7 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
 
       await service.updateOrderStatus(
         90,
-        { status: OrderStatus.CONFIRMED },
+        { status: "confirmed" as OrderStatus },
         100,
         0,
       );

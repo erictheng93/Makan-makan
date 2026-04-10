@@ -303,7 +303,7 @@ export class OrdersService implements IOrdersService {
       if (data.status !== undefined) {
         updatedOrder =
           (await this.baseOrderService.updateOrderStatus(id, {
-            status: this.normalizeStatus(data.status),
+            status: data.status,
             notes: data.notes,
           })) || updatedOrder;
       }
@@ -404,7 +404,7 @@ export class OrdersService implements IOrdersService {
 
       // Update using base service
       const updatedOrder = await this.baseOrderService.updateOrderStatus(id, {
-        status: this.normalizeStatus(statusData.status),
+        status: statusData.status,
         notes: statusData.notes,
       });
 
@@ -1221,67 +1221,31 @@ export class OrdersService implements IOrdersService {
     };
   }
 
-  /**
-   * 將狀態值標準化為小寫字符串
-   */
-  private normalizeStatus(status: OrderStatus | number | string): string {
-    const statusMap: Record<number, string> = {
-      0: "pending",
-      1: "confirmed",
-      2: "preparing",
-      3: "ready",
-      4: "delivered",
-      5: "paid",
-      6: "cancelled",
-    };
-
-    if (typeof status === "number") {
-      return statusMap[status] || String(status);
-    }
-
-    return String(status).toLowerCase();
-  }
-
   private validateStatusTransition(
-    currentStatus: OrderStatus | number | string,
-    newStatus: OrderStatus | number | string,
+    currentStatus: OrderStatus,
+    newStatus: OrderStatus,
     userRole?: UserRole,
   ): void {
-    const normalizedCurrent = this.normalizeStatus(currentStatus);
-    const normalizedNew = this.normalizeStatus(newStatus);
-
-    if (!ORDER_STATUS_TRANSITIONS[normalizedCurrent]?.includes(normalizedNew)) {
+    if (!ORDER_STATUS_TRANSITIONS[currentStatus]?.includes(newStatus)) {
       throw conflict(
-        `Invalid status transition from ${normalizedCurrent} to ${normalizedNew}`,
+        `Invalid status transition from ${currentStatus} to ${newStatus}`,
         "INVALID_STATUS_TRANSITION",
       );
     }
 
     if (
       userRole !== undefined &&
-      !ROLE_STATUS_PERMISSIONS[userRole]?.includes(normalizedNew)
+      !ROLE_STATUS_PERMISSIONS[userRole]?.includes(newStatus)
     ) {
       throw forbidden(
-        `Insufficient permissions for status transition to ${normalizedNew}`,
+        `Insufficient permissions for status transition to ${newStatus}`,
         "FORBIDDEN",
       );
     }
   }
 
   private getAllowedStatusTransitions(userRole: UserRole): OrderStatus[] {
-    const stringStatuses = ROLE_STATUS_PERMISSIONS[userRole] || [];
-    const statusStringToEnum: Record<string, OrderStatus> = {
-      pending: OrderStatus.PENDING,
-      confirmed: OrderStatus.CONFIRMED,
-      preparing: OrderStatus.PREPARING,
-      ready: OrderStatus.READY,
-      delivered: OrderStatus.DELIVERED,
-      paid: OrderStatus.PAID,
-      cancelled: OrderStatus.CANCELLED,
-    };
-    return stringStatuses
-      .map((s) => statusStringToEnum[s])
-      .filter((s): s is OrderStatus => s !== undefined);
+    return (ROLE_STATUS_PERMISSIONS[userRole] ?? []) as OrderStatus[];
   }
 
   private formatCustomizations(

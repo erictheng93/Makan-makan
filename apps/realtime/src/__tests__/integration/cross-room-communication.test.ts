@@ -14,7 +14,7 @@ import type {
   RealtimeEvent,
   OrderStatusUpdateEvent,
 } from "@makanmakan/shared-types";
-import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmakan/shared-types";
 
 // Use mapping for event types to match actual enum values
 const EventTypes = {
@@ -612,8 +612,8 @@ describe("Cross-Room Communication", () => {
         data: {
           orderId: 1,
           orderNumber: "ORD-001",
-          status: OrderStatus.PREPARING,
-          previousStatus: OrderStatus.CONFIRMED,
+          status: "preparing",
+          previousStatus: "confirmed",
         },
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
@@ -629,7 +629,7 @@ describe("Cross-Room Communication", () => {
       );
       expect(customerConn?.messages).toHaveLength(1);
       const receivedEvent = customerConn?.messages[0] as OrderStatusUpdateEvent;
-      expect(receivedEvent.data.status).toBe(OrderStatus.PREPARING);
+      expect(receivedEvent.data.status).toBe("preparing");
     });
 
     it("訂單完成應該通知所有相關方", () => {
@@ -639,8 +639,8 @@ describe("Cross-Room Communication", () => {
         data: {
           orderId: 1,
           orderNumber: "ORD-001",
-          status: OrderStatus.READY,
-          previousStatus: OrderStatus.PREPARING,
+          status: "ready",
+          previousStatus: "preparing",
         },
         timestamp: Date.now(),
         restaurantId: "restaurant-123",

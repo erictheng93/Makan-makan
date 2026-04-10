@@ -421,59 +421,78 @@ const { mutate: cancelOrder } = useMutation({
 
 // Computed
 const canCancelOrder = computed(() => {
-  return order.value?.status === 0 || order.value?.status === 1; // PENDING or CONFIRMED
+  return (
+    order.value?.status === "pending" || order.value?.status === "confirmed"
+  ); // PENDING or CONFIRMED
 });
 
+const statusOrder = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "delivered",
+  "paid",
+] as const;
+
 const estimatedTime = computed(() => {
-  if (!order.value || order.value.status >= 3) return null;
+  if (
+    !order.value ||
+    statusOrder.indexOf(order.value.status as (typeof statusOrder)[number]) >= 3
+  )
+    return null;
   return order.value.estimatedPrepTime || null;
 });
 
 const orderTimeline = computed(() => {
   if (!order.value) return [];
 
+  const currentStepIndex = statusOrder.indexOf(
+    order.value.status as (typeof statusOrder)[number],
+  );
+
   const timeline = [
     {
-      status: 0,
+      status: "pending",
       title: t("orderTracking.timeline.created"),
       description: t("orderTracking.timeline.createdDesc"),
       time: order.value.createdAt,
       completed: true,
     },
     {
-      status: 1,
+      status: "confirmed",
       title: t("orderTracking.timeline.confirmed"),
       description: t("orderTracking.timeline.confirmedDesc"),
       time: order.value.confirmedAt,
-      completed: order.value.status >= 1,
+      completed: currentStepIndex >= 1,
     },
     {
-      status: 2,
+      status: "preparing",
       title: t("orderTracking.timeline.preparing"),
       description: t("orderTracking.timeline.preparingDesc"),
       time: null,
-      completed: order.value.status >= 2,
+      completed: currentStepIndex >= 2,
     },
     {
-      status: 3,
+      status: "ready",
       title: t("orderTracking.timeline.ready"),
       description: t("orderTracking.timeline.readyDesc"),
       time: order.value.readyAt,
-      completed: order.value.status >= 3,
+      completed: currentStepIndex >= 3,
     },
     {
-      status: 4,
+      status: "delivered",
       title: t("orderTracking.timeline.served"),
       description: t("orderTracking.timeline.servedDesc"),
       time: order.value.deliveredAt,
-      completed: order.value.status >= 4,
+      completed: currentStepIndex >= 4,
     },
   ];
 
   // 如果訂單被取消，添加取消狀態
-  if (order.value.status === 6) {
+  if (order.value.status === "cancelled") {
     timeline.push({
-      status: 6,
+      status: "cancelled",
       title: t("orderTracking.timeline.cancelled"),
       description: t("orderTracking.timeline.cancelledDesc"),
       time: order.value.updatedAt,
@@ -485,51 +504,55 @@ const orderTimeline = computed(() => {
 });
 
 // Status maps as computed for reactivity when language changes
-const statusTitles = computed(() => ({
-  0: t("orderTracking.status.pending"),
-  1: t("orderTracking.status.confirmed"),
-  2: t("orderTracking.status.preparing"),
-  3: t("orderTracking.status.ready"),
-  4: t("orderTracking.status.served"),
-  5: t("orderTracking.status.paid"),
-  6: t("orderTracking.status.cancelled"),
-}));
+const statusTitles = computed(
+  (): Record<string, string> => ({
+    pending: t("orderTracking.status.pending"),
+    confirmed: t("orderTracking.status.confirmed"),
+    preparing: t("orderTracking.status.preparing"),
+    ready: t("orderTracking.status.ready"),
+    delivered: t("orderTracking.status.served"),
+    paid: t("orderTracking.status.paid"),
+    cancelled: t("orderTracking.status.cancelled"),
+  }),
+);
 
-const statusDescriptions = computed(() => ({
-  0: t("orderTracking.statusDesc.pending"),
-  1: t("orderTracking.statusDesc.confirmed"),
-  2: t("orderTracking.statusDesc.preparing"),
-  3: t("orderTracking.statusDesc.ready"),
-  4: t("orderTracking.statusDesc.served"),
-  5: t("orderTracking.statusDesc.paid"),
-  6: t("orderTracking.statusDesc.cancelled"),
-}));
+const statusDescriptions = computed(
+  (): Record<string, string> => ({
+    pending: t("orderTracking.statusDesc.pending"),
+    confirmed: t("orderTracking.statusDesc.confirmed"),
+    preparing: t("orderTracking.statusDesc.preparing"),
+    ready: t("orderTracking.statusDesc.ready"),
+    delivered: t("orderTracking.statusDesc.served"),
+    paid: t("orderTracking.statusDesc.paid"),
+    cancelled: t("orderTracking.statusDesc.cancelled"),
+  }),
+);
 
 // Methods
 const getStatusIcon = (status: OrderStatus) => {
-  const icons = {
-    0: ClockIcon, // PENDING
-    1: CheckCircleIcon, // CONFIRMED
-    2: FireIcon, // PREPARING
-    3: CheckCircleIcon, // READY
-    4: TruckIcon, // DELIVERED
-    5: CheckCircleIcon, // PAID
-    6: XCircleIcon, // CANCELLED
+  const icons: Record<string, any> = {
+    pending: ClockIcon,
+    confirmed: CheckCircleIcon,
+    preparing: FireIcon,
+    ready: CheckCircleIcon,
+    delivered: TruckIcon,
+    paid: CheckCircleIcon,
+    cancelled: XCircleIcon,
   };
   return icons[status] || ClockIcon;
 };
 
 const getStatusColor = (status: OrderStatus) => {
-  const colors = {
-    0: { bg: "bg-ios-orange/15", text: "text-ios-orange" },
-    1: { bg: "bg-ios-blue/15", text: "text-ios-blue" },
-    2: { bg: "bg-ios-orange/15", text: "text-ios-orange" },
-    3: { bg: "bg-ios-green/15", text: "text-ios-green" },
-    4: { bg: "bg-ios-green/15", text: "text-ios-green" },
-    5: { bg: "bg-ios-green/15", text: "text-ios-green" },
-    6: { bg: "bg-ios-red/15", text: "text-ios-red" },
+  const colors: Record<string, { bg: string; text: string }> = {
+    pending: { bg: "bg-ios-orange/15", text: "text-ios-orange" },
+    confirmed: { bg: "bg-ios-blue/15", text: "text-ios-blue" },
+    preparing: { bg: "bg-ios-orange/15", text: "text-ios-orange" },
+    ready: { bg: "bg-ios-green/15", text: "text-ios-green" },
+    delivered: { bg: "bg-ios-green/15", text: "text-ios-green" },
+    paid: { bg: "bg-ios-green/15", text: "text-ios-green" },
+    cancelled: { bg: "bg-ios-red/15", text: "text-ios-red" },
   };
-  return colors[status] || colors[0];
+  return colors[status] || colors["pending"];
 };
 
 const getStatusTitle = (status: OrderStatus) => {
@@ -543,16 +566,16 @@ const getStatusDescription = (status: OrderStatus) => {
 };
 
 const getProgressPercentage = (status: OrderStatus) => {
-  const percentages = {
-    0: 20, // PENDING
-    1: 40, // CONFIRMED
-    2: 60, // PREPARING
-    3: 80, // READY
-    4: 100, // DELIVERED
-    5: 100, // PAID
-    6: 0, // CANCELLED
+  const percentages: Record<string, number> = {
+    pending: 20,
+    confirmed: 40,
+    preparing: 60,
+    ready: 80,
+    delivered: 100,
+    paid: 100,
+    cancelled: 0,
   };
-  return percentages[status] || 0;
+  return percentages[status] ?? 0;
 };
 
 const getConnectionMessage = (status: string) => {

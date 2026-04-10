@@ -933,7 +933,31 @@ This decision is a Phase 0.5 hard gate item — the user should approve before P
 
 ## 12. Phase 0.5 Decisions (User Approved)
 
-(to be filled in at Phase 0.5 — Task 11)
+**Date:** 2026-04-10
+**Approver:** Eric (user)
+
+1. **Q1 — Canonical state set:** ✅ **Approved as proposed.** 8-state set `pending / confirmed / preparing / ready / delivered / paid / cancelled / refunded`, matching DB schema exactly.
+
+2. **Q2 — `serving` removal:** ✅ **Approved.** `OrderLifecycleState.SERVING` removed from realtime. UI derives "currently serving" from `status === 'ready'` + crew assignment.
+
+3. **Q3 — DO migration strategy:** ✅ **Approved — Option A (lazy migration on wakeup).** Coercion table `{ completed: 'delivered', serving: 'ready' }` applied in `loadPersistedState()` before in-memory hydration. Coercion code deletable after 60-day safety window once `orderstate_legacy_migration_total` metric reaches zero.
+
+4. **Q4 — Scope expansion:** ✅ **Approved (a) — add 9 extra sites to Phase 2/3/5.** The plan's task list will be expanded in-flight to cover:
+   - `apps/admin-dashboard/src/types/index.ts` (4th definition)
+   - `apps/admin-dashboard/src/components/dashboard/RecentOrders.vue` (5th)
+   - `apps/kitchen-display/src/types/index.ts` (6th — numeric literal union)
+   - `packages/testing-utils/src/factories/order.factory.ts` (7th)
+   - `apps/api/src/openapi/integration.ts` (8th — public Swagger)
+   - `apps/admin-dashboard/src/composables/useRealtimeOrderStatus.ts` (inline union)
+   - `apps/kitchen-display/src/utils/offline-storage.ts` (IndexedDB schema)
+   - `apps/api/src/features/orders/schemas/validation.ts` Zod enum
+   - `apps/api/src/contracts/schemas/orders.ts` Zod enum
+
+5. **Q5 — OrderTrackingView.vue pre-existing bug:** ✅ **Architect verdict (a) — fold into Phase 5 unification sweep.** Rationale: both hotfix paths require bridge code that Phase 5 would delete within the same sprint. The bug is latent (silent UI fallback, no support tickets), so urgency does not justify two rounds of touching the same file during the highest-risk migration window. Phase 5 customer-app sweep PR will add a component test locking in post-fix behavior for `OrderTrackingView.getStatusIcon/Color/Title/Description/ProgressPercentage` as an extra regression guard.
+
+6. **Q6 — `OrderPermissions` dead code:** ✅ **Architect verdict (a) — delete in Phase 3.** Rationale: `checkOrderPermissions(userId, userRole, _orderId?)` has an underscore-prefixed `_orderId` indicating intentionally unused — original intent was per-order ACL that was never implemented. Every returned field is a pure function of `userRole`, already expressible via `ROLE_STATUS_PERMISSIONS` + shared constants. Production caller count is zero. Wiring to an HTTP route would create a stale role-wrapper endpoint that frontends don't need and that cements a wrong abstraction (role→capability mapping belongs in type-safe constants, not in HTTP queries). If future product work requires fine-grained per-resource ACL, design it clean-sheet with proper per-order context.
+
+**Phase 0.5 gate: CLEARED.** Proceeding to Phase 1.
 
 
 ## 11. Migration Risk Register

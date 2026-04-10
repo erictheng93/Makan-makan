@@ -17,20 +17,12 @@ vi.mock("@makanmakan/shared-types", async () => {
       KITCHEN_ITEM_STATUS: "kitchen_item_status",
       MENU_AVAILABILITY_UPDATE: "menu_availability_update",
     },
-    OrderStatus: {
-      PENDING: 0,
-      CONFIRMED: 1,
-      PREPARING: 2,
-      READY: 3,
-      DELIVERED: 4,
-      PAID: 5,
-      CANCELLED: 6,
-    },
   };
 });
 
 // Import after mocking
-import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 import type {
   NewOrderEvent,
   OrderStatusUpdateEvent,
@@ -193,8 +185,8 @@ describe("Broadcast Integration Tests", () => {
         data: {
           orderId: 123,
           orderNumber: "ORD-001",
-          status: OrderStatus.PREPARING,
-          previousStatus: OrderStatus.PENDING,
+          status: "preparing" as OrderStatus,
+          previousStatus: "pending" as OrderStatus,
           estimatedTime: 15,
           message: "您的訂單正在準備中",
           updatedBy: {
@@ -224,8 +216,8 @@ describe("Broadcast Integration Tests", () => {
       expect(result.recipientCount).toBeGreaterThan(0);
 
       const history = mockDurableObject.getBroadcastHistory();
-      expect(history[0].data.status).toBe(OrderStatus.PREPARING);
-      expect(history[0].data.previousStatus).toBe(OrderStatus.PENDING);
+      expect(history[0].data.status).toBe("preparing");
+      expect(history[0].data.previousStatus).toBe("pending");
     });
   });
 

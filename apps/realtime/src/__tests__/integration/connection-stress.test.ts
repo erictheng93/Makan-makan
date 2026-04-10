@@ -16,7 +16,7 @@ import type {
   RealtimeAuthPayload,
   RealtimeEvent,
 } from "@makanmakan/shared-types";
-import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmakan/shared-types";
 
 // Use mapping for event types to match actual enum values
 const EventTypes = {
@@ -512,8 +512,8 @@ describe("Connection Stress Integration Tests", () => {
           data: {
             orderId: i,
             orderNumber: `ORD-${String(i).padStart(3, "0")}`,
-            status: OrderStatus.PREPARING,
-            previousStatus: OrderStatus.CONFIRMED,
+            status: "preparing",
+            previousStatus: "confirmed",
             updatedBy: { userId: 1, userName: "Test", role: "staff" },
           },
           timestamp: Date.now(),
@@ -580,8 +580,8 @@ describe("Connection Stress Integration Tests", () => {
             data: {
               orderId: i,
               orderNumber: `ORD-${String(i).padStart(3, "0")}`,
-              status: OrderStatus.PREPARING,
-              previousStatus: OrderStatus.CONFIRMED,
+              status: "preparing",
+              previousStatus: "confirmed",
             },
             timestamp: Date.now(),
             restaurantId: "restaurant-1",
@@ -1076,8 +1076,8 @@ describe("Connection Stress Integration Tests", () => {
           data: {
             orderId: i,
             orderNumber: `ORD-${String(i).padStart(3, "0")}`,
-            status: OrderStatus.PREPARING,
-            previousStatus: OrderStatus.CONFIRMED,
+            status: "preparing",
+            previousStatus: "confirmed",
           },
           timestamp: Date.now(),
           restaurantId: "restaurant-1",
@@ -1114,8 +1114,8 @@ describe("Connection Stress Integration Tests", () => {
           data: {
             orderId: i,
             orderNumber: `ORD-${String(i).padStart(3, "0")}`,
-            status: OrderStatus.PREPARING,
-            previousStatus: OrderStatus.CONFIRMED,
+            status: "preparing",
+            previousStatus: "confirmed",
           },
           timestamp: Date.now(),
           restaurantId: "restaurant-1",

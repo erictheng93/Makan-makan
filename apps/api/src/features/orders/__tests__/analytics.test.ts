@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Env } from "../../../shared/types";
 import { OrdersService } from "../services/OrdersService";
-import { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock services
@@ -209,9 +209,9 @@ describe("Orders Analytics", () => {
   describe("getActiveOrders", () => {
     it("should return only active orders", async () => {
       const activeOrders = [
-        { id: 1, status: OrderStatus.CONFIRMED, restaurantId: "1" },
-        { id: 2, status: OrderStatus.PREPARING, restaurantId: "1" },
-        { id: 3, status: OrderStatus.READY, restaurantId: "1" },
+        { id: 1, status: "confirmed" as OrderStatus, restaurantId: "1" },
+        { id: 2, status: "preparing" as OrderStatus, restaurantId: "1" },
+        { id: 3, status: "ready" as OrderStatus, restaurantId: "1" },
       ];
 
       mockOrderServiceInstance.getOrders.mockResolvedValue({

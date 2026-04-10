@@ -46,19 +46,13 @@ function toCallerContext(user: AuthUser): CallerContext {
   };
 }
 
-// Helper function to convert string status to enum value
+// Helper function to convert string status to canonical OrderStatus.
+// With the string-union rewrite (Issue #9), this is mostly a no-op identity
+// function. The only non-trivial mapping is 'completed' → 'delivered' for
+// legacy clients that still send the old realtime naming.
 function stringToOrderStatus(status: string): OrderStatus {
-  const statusMap = {
-    pending: OrderStatus.PENDING,
-    confirmed: OrderStatus.CONFIRMED,
-    preparing: OrderStatus.PREPARING,
-    ready: OrderStatus.READY,
-    delivered: OrderStatus.DELIVERED,
-    paid: OrderStatus.PAID,
-    cancelled: OrderStatus.CANCELLED,
-    completed: OrderStatus.DELIVERED, // Map 'completed' to DELIVERED
-  };
-  return statusMap[status as keyof typeof statusMap] ?? OrderStatus.PENDING;
+  if (status === "completed") return "delivered";
+  return (status as OrderStatus) || "pending";
 }
 
 // Helper function to normalise the status query parameter into a string array.
