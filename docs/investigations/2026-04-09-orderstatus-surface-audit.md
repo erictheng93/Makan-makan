@@ -1,12 +1,52 @@
 # OrderStatus Surface Audit
 
 **Date:** 2026-04-09
+**Last updated:** 2026-04-10
 **Related issue:** #9
-**Status:** In progress
+**Status:** Complete — awaiting Phase 0.5 decision
 
 ## Summary
 
-(Filled in at end of Phase 0)
+**Total surface area:** **114 source files** across 11 apps/packages (within Issue #9's 80-120 estimate). The two unchanged areas are `apps/management-portal` and `apps/onboarding-app` (zero references).
+
+**OrderStatus-shaped definitions discovered:** **11 distinct definitions** — Issue #9 stated "three". The four extra named ones are:
+- (4) `apps/admin-dashboard/src/types/index.ts:117` — string enum
+- (5) `apps/admin-dashboard/src/components/dashboard/RecentOrders.vue:124` — inline string union
+- (6) `apps/kitchen-display/src/types/index.ts:3` — **numeric literal union `0|1|2|3|4|5|6`**
+- (7) `packages/testing-utils/src/factories/order.factory.ts:84` — string const
+- (8) `apps/api/src/openapi/integration.ts:277` — public Swagger Zod enum (5 members only)
+
+Plus four implicit/inline status unions:
+- `apps/admin-dashboard/src/composables/useRealtimeOrderStatus.ts:6-12` — 6-member WebSocket schema
+- `apps/kitchen-display/src/utils/offline-storage.ts:6-16` — 4-member IndexedDB schema with the never-elsewhere value `"received"`
+- `apps/api/src/features/orders/schemas/validation.ts:23-31` — Zod, missing `refunded`
+- `apps/api/src/contracts/schemas/orders.ts:22-30` — Zod, missing `refunded`
+
+**Hardcoded numeric literal sites:** **33 sites in 13 files** (Issue #9 said "9+"). All in `apps/customer-app` (5) and `apps/kitchen-display` (28). Admin-dashboard and api have **zero** hardcoded numeric literals — those drift purely at the type level.
+
+**Runtime `typeof status === "number"` guards:** **5 sites in 3 files** (Issue #9 said "4 sites") — bridging numeric/string wire formats. All become dead code (or, in the kitchen-display case, get flipped to `"string"` to trigger one-time cache invalidation).
+
+**Dead code identified for deletion in Phase 3 sweep:**
+- `OrdersService.normalizeStatus`, `statusStringToEnum` Record, `OrderLifecycleState.SERVING/COMPLETED`, KitchenService numeric guards, `OrderPermissions` interface (no production caller), `apps/api/src/examples/*.ts.disabled`, `apps/kitchen-display/priority3-*.txt`.
+
+**DO migration strategy:** **Option A — lazy migration on wakeup** (§8.3) with a narrow value-coercion table (`completed → delivered`, `serving → ready`) deletable after 60-day safety window. Recommended over cron-sweep (no DO enumeration API available) and dual-read (overkill for one-time rename).
+
+**External consumer risk:** **None outside the monorepo.** No SDK packages exist. The dynamically-generated Swagger UI at `apps/api/src/openapi/integration.ts:277` ships a wrong 5-member enum that must be updated in lockstep, but no third party is known to consume it.
+
+**Critical pre-existing bugs surfaced by the audit:**
+1. `apps/customer-app/src/views/OrderTrackingView.vue` — uses `Record<number, …>` lookups for icons/colors/titles/progress against a string `.status` field. Currently silently degrading to default UI branches. Same pattern in `OrderHistoryView.vue`, `OrderItemCard.vue`, `format.ts`. This migration FIXES those, doesn't break them.
+2. `apps/api/src/openapi/integration.ts` Swagger UI enum has only 5 members — public API docs misrepresent the contract.
+3. `OrdersService.normalizeStatus` numeric→string map missing `7: "refunded"` — would 500 if a numeric `7` ever arrived.
+
+**Estimated execution effort:** Phase 1-8 of the implementation plan. Phases 0/0.5 (this) committed in 10 commits. Phase 1 is a single failing-test commit. Phases 2-5 are the bulk of the rewrite (touching ~80-90 files across api/realtime/customer/kitchen/admin and the testing-utils factory). Phase 6 is the deploy choreography. Phases 7-8 are post-deploy verification + cleanup (delete coercion table after 60-day window).
+
+**Plan adjustments triggered by this audit (require user awareness, not necessarily a re-plan):**
+- Plan §1 says "three definitions" — actual is 11. Phase 3 sweep targets must be expanded to all 11.
+- Plan does not currently mention `apps/api/src/openapi/integration.ts` — must be added to Phase 2 task list.
+- Plan does not mention `apps/kitchen-display/src/types/index.ts` numeric literal union explicitly — Phase 5 must call it out.
+- Plan §6 caller audit estimate of "external wire risk" is downgraded: `getAllowedStatusTransitions` has zero HTTP/realtime callers (only test).
+- Plan Phase 6.3 forced-reload requires building a server-signaled mechanism — there is no `__APP_VERSION__` build-time stamp today.
+
 
 ## 1. Type Definitions Inventory
 
@@ -849,7 +889,52 @@ This decision is a Phase 0.5 hard gate item — the user should approve before P
 
 ## 10. Canonical State Decision (for Phase 0.5)
 
-(populated by Task 10)
+**Proposed canonical set (8 states):** `pending`, `confirmed`, `preparing`, `ready`, `delivered`, `paid`, `cancelled`, `refunded`
+
+**Rationale:** matches DB schema (`packages/database/src/schema/orders.ts:14-26`) exactly. The DB is the single immutable source of truth — every other definition in the monorepo must converge on this set.
+
+**Realtime divergence resolution:**
+- **Drop `serving`** — The `OrderLifecycleState.SERVING` value in `apps/realtime/src/advanced-realtime-session.ts:161` does not exist in the DB schema. Per the plan's Canonical Decisions §2, "currently serving" is a UI display state that can be derived from `status === 'ready'` plus a crew assignment. Migration coerces persisted `serving` → `ready` (Option A in §8).
+- **Replace `completed` with `delivered`** — The `OrderLifecycleState.COMPLETED` value in the same file is realtime-local naming drift; the DB calls this state `delivered`. Migration coerces persisted `completed` → `delivered`.
+
+**shared-types changes:**
+- Replace the entire numeric `enum OrderStatus { PENDING = 0, ... }` (`packages/shared-types/src/order.ts:95-103`) with a string-union derived from `ORDER_STATUSES = [...] as const`.
+- Add `'refunded'` (currently missing — see §1.1).
+- Drop `'completed'` from any consumer that still uses it.
+
+**Migration mechanics for hibernated DO state (§8.4):**
+- **Option A: lazy migration on wakeup**, with coercion table `{ completed: 'delivered', serving: 'ready' }` applied in `loadPersistedState()` before in-memory hydration.
+- Coercion code is delete-able after a 60-day safety window once the `orderstate_legacy_migration_total` metric reaches zero.
+
+**Decisions requiring explicit user approval in Phase 0.5:**
+
+1. **Q1 — Canonical state set:** Approve the 8-state canonical set `pending/confirmed/preparing/ready/delivered/paid/cancelled/refunded`?
+
+2. **Q2 — `serving` removal:** The current realtime `OrderLifecycleState` includes `serving`, which is not in the DB schema. Proposal: drop it and derive "currently serving" in the UI from `status === 'ready'` plus a crew assignment field. Approve, or want `serving` retained as a separate first-class state?
+
+3. **Q3 — DO migration strategy:** Recommended is **Option A (lazy migration on wakeup)** from §8.3, with the coercion table `completed → delivered` and `serving → ready`, deletable after 60 days. Approve, or prefer Option B (cron sweep) or Option C (versioned dual-read)?
+
+4. **Q4 — Scope expansion** (added by this audit): The plan was written assuming 3 OrderStatus definitions. Audit found **11**. Phase 3 sweep must visit all 11. The plan's task list as written does NOT cover:
+   - `apps/admin-dashboard/src/types/index.ts` (4th)
+   - `apps/admin-dashboard/src/components/dashboard/RecentOrders.vue` (5th)
+   - `apps/kitchen-display/src/types/index.ts` (6th — numeric literal union)
+   - `packages/testing-utils/src/factories/order.factory.ts` (7th — drives every test fixture)
+   - `apps/api/src/openapi/integration.ts` (8th — public Swagger contract)
+   - `apps/admin-dashboard/src/composables/useRealtimeOrderStatus.ts` (inline 6-member union)
+   - `apps/kitchen-display/src/utils/offline-storage.ts` (IndexedDB schema with `received` value)
+   - `apps/api/src/features/orders/schemas/validation.ts` Zod enum (missing `refunded`)
+   - `apps/api/src/contracts/schemas/orders.ts` Zod enum (missing `refunded`)
+
+   Approve adding these to Phase 2/3/5 task lists, or want a re-plan via `superpowers:writing-plans`?
+
+5. **Q5 — Pre-existing `OrderTrackingView.vue` bug** (added by this audit): The customer-app order tracking view has been silently degrading to default UI branches in production because of `Record<number, …>` lookups against a string status field. Phase 5 of the plan rewrites this. Approve treating the migration as the bug fix, or want a separate hotfix PR ahead of the unification work?
+
+6. **Q6 — `OrderPermissions` dead-code decision** (added by this audit): `OrdersService.checkOrderPermissions` and the associated `OrderPermissions` interface have **no production caller** — only `permissions.test.ts`. Approve deleting in Phase 3, or wire it to an HTTP route as originally intended?
+
+## 12. Phase 0.5 Decisions (User Approved)
+
+(to be filled in at Phase 0.5 — Task 11)
+
 
 ## 11. Migration Risk Register
 
