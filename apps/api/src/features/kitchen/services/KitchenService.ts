@@ -198,10 +198,10 @@ export class KitchenService implements IKitchenService {
         };
       });
 
-      // Filter by status for backwards compatibility (o.status is numeric: 1=confirmed, 2=preparing, 3=ready)
-      const pending = kitchenOrders.filter((o) => o.status === 1);
-      const preparing = kitchenOrders.filter((o) => o.status === 2);
-      const ready = kitchenOrders.filter((o) => o.status === 3);
+      // Filter by canonical string status (OrderStatus unification, Issue #9)
+      const pending = kitchenOrders.filter((o) => o.status === "confirmed");
+      const preparing = kitchenOrders.filter((o) => o.status === "preparing");
+      const ready = kitchenOrders.filter((o) => o.status === "ready");
 
       // Get daily stats for completedToday count
       const dailyStats = await ordersService.getDailyStats(restaurantId);
