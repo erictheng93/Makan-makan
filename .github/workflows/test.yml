@@ -29,7 +29,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: 🔧 設置 Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -64,7 +64,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: 🔧 設置 Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
@@ -123,7 +123,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: 🔧 設置 Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -240,7 +240,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: 🔧 設置 Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -358,7 +358,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: 🔧 設置 Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -555,7 +555,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: 🔧 設置 Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -861,7 +861,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: 🔧 設置 Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
