@@ -335,12 +335,18 @@ jobs:
         continue-on-error: true
 
   # 資料庫性能測試
+  #
+  # As of Issue #9 / 2026-04-10 the test fixture uses a real in-memory
+  # SQLite database with the full Drizzle migration stack applied (see
+  # tests/helpers/test-db.ts + tests/helpers/d1-adapter.ts). The test suite
+  # therefore actually exercises query planner behavior and index selection,
+  # so the historical `continue-on-error: true` workaround has been
+  # removed — failures here now fail the pipeline.
   database-performance-tests:
     name: 🗄️ 資料庫性能測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
     if: github.event_name == 'push' || github.event_name == 'pull_request'
-    continue-on-error: true # Requires real D1 database; mock DB index checks always fail
 
     steps:
       - name: 📦 Checkout 程式碼

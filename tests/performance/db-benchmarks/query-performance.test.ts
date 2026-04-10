@@ -17,7 +17,7 @@ import { createTestDB, cleanupTestDB } from "../../helpers/test-db";
 describe("Database Query Performance Benchmarks", () => {
   let db: any;
   let tester: DatabasePerformanceTester;
-  let testRestaurantId: number;
+  let testRestaurantId: string;
   const PERFORMANCE_THRESHOLD_MS = 100; // Queries should complete within 100ms
 
   beforeAll(async () => {
@@ -75,18 +75,20 @@ describe("Database Query Performance Benchmarks", () => {
     });
 
     it("should handle menu item search efficiently", async () => {
+      // Note: real schema does not have a `name_en` column on menu_items;
+      // search now only matches the single `name` field.
       const query = `
         SELECT * FROM menu_items
         WHERE restaurant_id = ?
           AND is_available = true
-          AND (name LIKE ? OR name_en LIKE ?)
+          AND name LIKE ?
         LIMIT 20
       `;
 
       const searchTerm = "%beef%";
       const result = await tester.benchmarkQuery(
         query,
-        [testRestaurantId, searchTerm, searchTerm],
+        [testRestaurantId, searchTerm],
         10,
       );
 
@@ -98,12 +100,14 @@ describe("Database Query Performance Benchmarks", () => {
     });
 
     it("should fetch menu items with category JOIN efficiently", async () => {
+      // categories.display_order does not exist in the real schema; the
+      // equivalent column is `sort_order`.
       const query = `
         SELECT mi.*, c.name as category_name
         FROM menu_items mi
         LEFT JOIN categories c ON mi.category_id = c.id
         WHERE mi.restaurant_id = ? AND mi.is_available = true
-        ORDER BY c.display_order, mi.sort_order
+        ORDER BY c.sort_order, mi.sort_order
         LIMIT 50
       `;
 
@@ -119,10 +123,11 @@ describe("Database Query Performance Benchmarks", () => {
 
   describe("Order Queries", () => {
     it("should fetch orders list efficiently", async () => {
+      // Real schema uses `created_at_ms` (integer Unix ms), not `created_at`.
       const query = `
         SELECT * FROM orders
         WHERE restaurant_id = ?
-        ORDER BY created_at DESC
+        ORDER BY created_at_ms DESC
         LIMIT 20
       `;
 
@@ -137,10 +142,13 @@ describe("Database Query Performance Benchmarks", () => {
     });
 
     it("should validate index usage for orders query", async () => {
+      // Index `orders_restaurant_status_idx` covers (restaurant_id, status,
+      // created_at_ms) and is the canonical filter+sort path for the
+      // "list orders by status, newest first" use case.
       const query = `
         SELECT * FROM orders
         WHERE restaurant_id = ? AND status = ?
-        ORDER BY created_at DESC
+        ORDER BY created_at_ms DESC
       `;
 
       const result = await tester.validateIndexUsage(query, [
@@ -188,13 +196,13 @@ describe("Database Query Performance Benchmarks", () => {
     it("should handle order status updates efficiently", async () => {
       const query = `
         UPDATE orders
-        SET status = ?, updated_at = ?
+        SET status = ?, updated_at_ms = ?
         WHERE id = ?
       `;
 
       const result = await tester.benchmarkQuery(
         query,
-        ["confirmed", new Date().toISOString(), 1],
+        ["confirmed", Date.now(), 1],
         10,
       );
 
@@ -273,16 +281,20 @@ describe("Database Query Performance Benchmarks", () => {
 
   describe("Analytics Queries", () => {
     it("should calculate daily revenue efficiently", async () => {
+      // `created_at_ms` is integer Unix milliseconds; convert to a date
+      // string via `unixepoch` for grouping. Status is `delivered` per the
+      // canonical state machine in packages/database/src/schema/orders.ts
+      // (the legacy `completed` value never existed at the SQL level).
       const query = `
         SELECT
-          DATE(created_at) as date,
+          DATE(created_at_ms / 1000, 'unixepoch') as date,
           COUNT(*) as order_count,
           SUM(total_amount) as revenue
         FROM orders
         WHERE restaurant_id = ?
-          AND created_at >= DATE('now', '-30 days')
-          AND status = 'completed'
-        GROUP BY DATE(created_at)
+          AND created_at_ms >= (unixepoch('now', '-30 days') * 1000)
+          AND status = 'delivered'
+        GROUP BY DATE(created_at_ms / 1000, 'unixepoch')
         ORDER BY date DESC
       `;
 
@@ -306,7 +318,7 @@ describe("Database Query Performance Benchmarks", () => {
         JOIN menu_items mi ON oi.menu_item_id = mi.id
         JOIN orders o ON oi.order_id = o.id
         WHERE o.restaurant_id = ?
-          AND o.created_at >= DATE('now', '-7 days')
+          AND o.created_at_ms >= (unixepoch('now', '-7 days') * 1000)
         GROUP BY mi.id, mi.name
         ORDER BY total_quantity DESC
         LIMIT 10
@@ -396,112 +408,121 @@ describe("Database Query Performance Benchmarks", () => {
 });
 
 /**
- * Helper: Setup test data
+ * Helper: Seed deterministic test data
+ *
+ * Returns the restaurant_id (text public_id) used by the seeded rows so the
+ * benchmark queries can bind it. The restaurant_id is text because the real
+ * schema declares `restaurants.id text PRIMARY KEY` and every other table's
+ * `restaurant_id` column is `text NOT NULL`.
+ *
+ * Notes on the rewrite vs. the original mock-era version:
+ * - Timestamps are integer Unix milliseconds in `*_ms` columns (current
+ *   Drizzle schema), not ISO strings in `created_at` columns.
+ * - Restaurants now require `address`, `district`, `phone` (NOT NULL).
+ * - Tables require a unique `qr_code` text column.
+ * - Orders require `order_number` (unique) and `subtotal`.
+ * - Order items require `total_price`.
+ * - `categories.display_order` and `name_en` columns do not exist; use
+ *   `sort_order` and skip the English name column.
+ * - `menu_items.name_en` does not exist either.
+ * - Status uses canonical string values matching the DB schema (no numeric).
  */
-async function setupTestData(db: any): Promise<number> {
-  const restaurantId = 1;
+async function setupTestData(db: {
+  prepare(sql: string): {
+    bind(...args: unknown[]): { run(): Promise<unknown> };
+  };
+}): Promise<string> {
+  const restaurantId = "perf_test_r1";
+  const now = Date.now();
 
-  // Create restaurant
+  // Create restaurant — text PK, all required NOT NULL fields populated.
   await db
     .prepare(
-      `
-    INSERT OR IGNORE INTO restaurants (id, name, type, category, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `,
+      `INSERT OR IGNORE INTO restaurants (
+        id, name, type, category, address, district, phone,
+        created_at_ms, updated_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       restaurantId,
       "Performance Test Restaurant",
       "Casual Dining",
       "Restaurant",
-      new Date().toISOString(),
-      new Date().toISOString(),
+      "123 Test Road",
+      "西區",
+      "04-1234-5678",
+      now,
+      now,
     )
     .run();
 
-  // Create categories (10)
+  // Create categories (10) — name only (no name_en column), sort_order
+  // (no display_order column).
   for (let i = 1; i <= 10; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO categories (id, restaurant_id, name, name_en, display_order, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO categories (
+          id, restaurant_id, name, sort_order, is_active,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .bind(
-        i,
-        restaurantId,
-        `分類 ${i}`,
-        `Category ${i}`,
-        i,
-        1,
-        new Date().toISOString(),
-        new Date().toISOString(),
-      )
+      .bind(i, restaurantId, `分類 ${i}`, i, 1, now, now)
       .run();
   }
 
-  // Create menu items (100)
+  // Create menu items (100) — distribute across categories.
   for (let i = 1; i <= 100; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO menu_items (
-        id, restaurant_id, category_id, name, name_en,
-        price, is_available, sort_order, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO menu_items (
+          id, restaurant_id, category_id, name, price, is_available, sort_order,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         i,
         restaurantId,
-        (i % 10) + 1, // Distribute across categories
+        (i % 10) + 1,
         `菜品 ${i}`,
-        `Item ${i}`,
-        Math.floor(Math.random() * 200) + 50, // 50-250
+        Math.floor(Math.random() * 200) + 50,
         1,
         i,
-        new Date().toISOString(),
-        new Date().toISOString(),
+        now,
+        now,
       )
       .run();
   }
 
-  // Create tables (20)
+  // Create tables (20) — qr_code is NOT NULL UNIQUE, generate per row.
   for (let i = 1; i <= 20; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO tables (
-        id, restaurant_id, number, capacity, is_active, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO tables (
+          id, restaurant_id, number, capacity, qr_code, is_active,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         i,
         restaurantId,
         `T${i}`,
-        Math.floor(Math.random() * 6) + 2, // 2-8 seats
+        Math.floor(Math.random() * 6) + 2,
+        `qr_${restaurantId}_t${i}`,
         1,
-        new Date().toISOString(),
-        new Date().toISOString(),
+        now,
+        now,
       )
       .run();
   }
 
-  // Create users (5)
+  // Create users (5).
   for (let i = 1; i <= 5; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO users (
-        id, restaurant_id, username, email, full_name, password_hash,
-        role, is_active, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO users (
+          id, restaurant_id, username, email, full_name, password_hash,
+          role, is_active, created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         i,
@@ -510,62 +531,161 @@ async function setupTestData(db: any): Promise<number> {
         `test${i}@example.com`,
         `Test User ${i}`,
         "hashedpassword",
-        i % 5, // Different roles
+        i % 5,
         1,
-        new Date().toISOString(),
-        new Date().toISOString(),
+        now,
+        now,
       )
       .run();
   }
 
-  // Create orders (50)
+  // Create orders (50) — order_number unique per row, subtotal/total_amount
+  // both NOT NULL. Status uses canonical string values (no numeric).
+  const statuses = ["pending", "confirmed", "preparing", "delivered"] as const;
   for (let i = 1; i <= 50; i++) {
+    const subtotal = Math.floor(Math.random() * 500) + 100;
+    const createdMs =
+      now - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000);
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO orders (
-        id, restaurant_id, table_id, status, total_amount,
-        created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO orders (
+          id, restaurant_id, table_id, order_number, status, subtotal, total_amount,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         i,
         restaurantId,
-        (i % 20) + 1, // Distribute across tables
-        ["pending", "confirmed", "preparing", "completed"][i % 4],
-        Math.floor(Math.random() * 500) + 100, // 100-600
-        new Date(
-          Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
-        ).toISOString(), // Last 30 days
-        new Date().toISOString(),
+        (i % 20) + 1,
+        `PERF-${i.toString().padStart(6, "0")}`,
+        statuses[i % statuses.length],
+        subtotal,
+        subtotal,
+        createdMs,
+        createdMs,
       )
       .run();
 
-    // Create order items (2-5 per order)
+    // Create order items (2-5 per order) — total_price is NOT NULL.
     const itemCount = Math.floor(Math.random() * 4) + 2;
     for (let j = 1; j <= itemCount; j++) {
+      const quantity = Math.floor(Math.random() * 3) + 1;
+      const unitPrice = Math.floor(Math.random() * 200) + 50;
       await db
         .prepare(
-          `
-        INSERT OR IGNORE INTO order_items (
-          order_id, menu_item_id, quantity, unit_price, created_at, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-      `,
+          `INSERT OR IGNORE INTO order_items (
+            order_id, menu_item_id, quantity, unit_price, total_price,
+            created_at_ms, updated_at_ms
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           i,
           Math.floor(Math.random() * 100) + 1,
-          Math.floor(Math.random() * 3) + 1,
-          Math.floor(Math.random() * 200) + 50,
-          new Date().toISOString(),
-          new Date().toISOString(),
+          quantity,
+          unitPrice,
+          quantity * unitPrice,
+          now,
+          now,
         )
         .run();
     }
   }
+
+  // Decoy data: seed 5 unrelated restaurants each with their own
+  // categories + menu_items + orders so that the test restaurant only
+  // accounts for ~15% of every table. Without this, ANALYZE concludes
+  // that `WHERE restaurant_id = ?` matches 100% of rows and the planner
+  // chooses a full SCAN over any index — which makes the index-usage
+  // assertions fail not because the index is wrong but because the
+  // workload doesn't justify it. Decoy data makes the test reflect a
+  // real multi-tenant deployment.
+  for (let r = 1; r <= 5; r++) {
+    const decoyId = `decoy_r${r}`;
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO restaurants (
+          id, name, type, category, address, district, phone,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        decoyId,
+        `Decoy ${r}`,
+        "Casual Dining",
+        "Restaurant",
+        "456 Other Road",
+        "東區",
+        "04-9999-0000",
+        now,
+        now,
+      )
+      .run();
+    // 5 decoy categories per decoy restaurant — IDs offset to avoid clash
+    // with the test restaurant's categories.
+    for (let c = 1; c <= 5; c++) {
+      const catId = 100 + r * 10 + c;
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO categories (
+            id, restaurant_id, name, sort_order, is_active,
+            created_at_ms, updated_at_ms
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(catId, decoyId, `Decoy Cat ${r}-${c}`, c, 1, now, now)
+        .run();
+    }
+    // 50 decoy menu items per decoy restaurant (250 total decoy items).
+    for (let i = 1; i <= 50; i++) {
+      const itemId = 1000 + r * 100 + i;
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO menu_items (
+            id, restaurant_id, category_id, name, price, is_available, sort_order,
+            created_at_ms, updated_at_ms
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          itemId,
+          decoyId,
+          100 + r * 10 + ((i % 5) + 1),
+          `Decoy Item ${r}-${i}`,
+          150,
+          1,
+          i,
+          now,
+          now,
+        )
+        .run();
+    }
+    // 20 decoy orders per decoy restaurant (100 total).
+    for (let o = 1; o <= 20; o++) {
+      const orderId = 1000 + r * 100 + o;
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO orders (
+            id, restaurant_id, table_id, order_number, status, subtotal, total_amount,
+            created_at_ms, updated_at_ms
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          orderId,
+          decoyId,
+          null,
+          `DECOY-${r}-${o.toString().padStart(4, "0")}`,
+          statuses[o % statuses.length],
+          150,
+          150,
+          now,
+          now,
+        )
+        .run();
+    }
+  }
+
+  // Re-run ANALYZE so the planner sees the freshly inserted rows (test
+  // data + decoys) when EXPLAIN QUERY PLAN runs in the index-validation
+  // tests.
+  await db.prepare("ANALYZE").bind().run();
 
   return restaurantId;
 }

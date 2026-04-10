@@ -9,6 +9,12 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { DatabasePerformanceTester } from "./db-performance-tester";
 import { createTestDB, cleanupTestDB } from "../../helpers/test-db";
 
+// Restaurants use a text public_id as primary key (see migration 0006).
+// All child tables (`menu_items`, `categories`, `orders`, ...) reference it
+// via their own `restaurant_id text NOT NULL` column. Tests must bind a
+// matching string, not an integer.
+const TEST_RESTAURANT_ID = "n1_test_r1";
+
 describe("N+1 Query Detection", () => {
   let db: any;
   let tester: DatabasePerformanceTester;
@@ -30,8 +36,11 @@ describe("N+1 Query Detection", () => {
 
       // Step 1: Load orders
       const ordersQuery = `SELECT * FROM orders WHERE restaurant_id = ? LIMIT 10`;
-      const ordersResult = await db.prepare(ordersQuery).bind(1).all();
-      await tester.measureQuery(ordersQuery, [1]);
+      const ordersResult = await db
+        .prepare(ordersQuery)
+        .bind(TEST_RESTAURANT_ID)
+        .all();
+      await tester.measureQuery(ordersQuery, [TEST_RESTAURANT_ID]);
 
       // Step 2: Load items for each order (N+1 problem!)
       for (const order of ordersResult.results) {
@@ -77,7 +86,7 @@ describe("N+1 Query Detection", () => {
         LIMIT 10
       `;
 
-      await tester.measureQuery(query, [1]);
+      await tester.measureQuery(query, [TEST_RESTAURANT_ID]);
 
       const analysis = tester.stopQueryLogging();
 
@@ -99,17 +108,23 @@ describe("N+1 Query Detection", () => {
 
       // Load menu items
       const itemsQuery = `SELECT * FROM menu_items WHERE restaurant_id = ? AND is_available = true LIMIT 20`;
-      const itemsResult = await db.prepare(itemsQuery).bind(1).all();
-      await tester.measureQuery(itemsQuery, [1]);
+      const itemsResult = await db
+        .prepare(itemsQuery)
+        .bind(TEST_RESTAURANT_ID)
+        .all();
+      await tester.measureQuery(itemsQuery, [TEST_RESTAURANT_ID]);
 
-      // Load category for each item (N+1!)
-      const categoryIds = new Set<number>();
+      // Load category for each item (true N+1: one query per item, no
+      // dedup). The previous version deduped via a Set so total queries
+      // capped at the number of distinct category_ids — with only 5
+      // categories that gives 5 calls, which is exactly equal to (not
+      // greater than) the analyzer's threshold of 5 and so does not
+      // register as N+1. Removing the dedup matches the realistic naive
+      // pattern this test is supposed to represent: a sloppy ORM hydrating
+      // category for every row.
+      const categoryQuery = `SELECT * FROM categories WHERE id = ?`;
       for (const item of itemsResult.results) {
-        if (!categoryIds.has(item.category_id)) {
-          const categoryQuery = `SELECT * FROM categories WHERE id = ?`;
-          await tester.measureQuery(categoryQuery, [item.category_id]);
-          categoryIds.add(item.category_id);
-        }
+        await tester.measureQuery(categoryQuery, [item.category_id]);
       }
 
       const analysis = tester.stopQueryLogging();
@@ -126,16 +141,17 @@ describe("N+1 Query Detection", () => {
     it("should NOT detect N+1 when using JOIN for categories", async () => {
       tester.startQueryLogging();
 
+      // Real schema uses `sort_order` (no `display_order` column).
       const query = `
-        SELECT mi.*, c.name as category_name, c.display_order as category_order
+        SELECT mi.*, c.name as category_name, c.sort_order as category_order
         FROM menu_items mi
         LEFT JOIN categories c ON mi.category_id = c.id
         WHERE mi.restaurant_id = ? AND mi.is_available = true
-        ORDER BY c.display_order, mi.sort_order
+        ORDER BY c.sort_order, mi.sort_order
         LIMIT 20
       `;
 
-      await tester.measureQuery(query, [1]);
+      await tester.measureQuery(query, [TEST_RESTAURANT_ID]);
 
       const analysis = tester.stopQueryLogging();
 
@@ -153,8 +169,11 @@ describe("N+1 Query Detection", () => {
 
       // Load users
       const usersQuery = `SELECT * FROM users WHERE restaurant_id = ? LIMIT 10`;
-      const usersResult = await db.prepare(usersQuery).bind(1).all();
-      await tester.measureQuery(usersQuery, [1]);
+      const usersResult = await db
+        .prepare(usersQuery)
+        .bind(TEST_RESTAURANT_ID)
+        .all();
+      await tester.measureQuery(usersQuery, [TEST_RESTAURANT_ID]);
 
       // Check permissions for each user (simulated)
       for (const user of usersResult.results) {
@@ -221,14 +240,18 @@ describe("N+1 Query Detection", () => {
       tester.startQueryLogging();
 
       // Simulate order creation workflow
-      // 1. Validate restaurant exists
-      await tester.measureQuery(`SELECT * FROM restaurants WHERE id = ?`, [1]);
+      // 1. Validate restaurant exists (restaurants.id is text PK)
+      await tester.measureQuery(`SELECT * FROM restaurants WHERE id = ?`, [
+        TEST_RESTAURANT_ID,
+      ]);
 
-      // 2. Validate table exists
+      // 2. Validate table exists (tables.id is integer PK)
       await tester.measureQuery(`SELECT * FROM tables WHERE id = ?`, [1]);
 
       // 3. Validate each menu item (N+1 problem!)
-      const menuItemIds = [1, 2, 3, 4, 5];
+      // 6 items so the per-item query count exceeds the analyzer's
+      // strict-greater-than-5 N+1 threshold.
+      const menuItemIds = [1, 2, 3, 4, 5, 6];
       for (const itemId of menuItemIds) {
         await tester.measureQuery(
           `SELECT * FROM menu_items WHERE id = ? AND is_available = true`,
@@ -236,13 +259,20 @@ describe("N+1 Query Detection", () => {
         );
       }
 
-      // 4. Create order
-      await tester.measureQuery(`INSERT INTO orders (...) VALUES (...)`, []);
+      // 4. Create order — using a parseable no-op SELECT keyed by a
+      // distinctive comment so the query log groups it as a single repeated
+      // pattern. Real INSERT would have side effects across iterations and
+      // require unique order_numbers; for query-counting purposes the
+      // string identity is what matters.
+      await tester.measureQuery(
+        `SELECT 'INSERT INTO orders (...) VALUES (...)' AS _stub`,
+        [],
+      );
 
-      // 5. Create order items (multiple inserts)
+      // 5. Create order items (multiple inserts) — same no-op stub.
       for (const _itemId of menuItemIds) {
         await tester.measureQuery(
-          `INSERT INTO order_items (...) VALUES (...)`,
+          `SELECT 'INSERT INTO order_items (...) VALUES (...)' AS _stub`,
           [],
         );
       }
@@ -267,7 +297,9 @@ describe("N+1 Query Detection", () => {
 
       // Optimized workflow
       // 1. Validate restaurant, table, and all menu items in fewer queries
-      await tester.measureQuery(`SELECT * FROM restaurants WHERE id = ?`, [1]);
+      await tester.measureQuery(`SELECT * FROM restaurants WHERE id = ?`, [
+        TEST_RESTAURANT_ID,
+      ]);
       await tester.measureQuery(`SELECT * FROM tables WHERE id = ?`, [1]);
 
       // 2. Batch validate menu items
@@ -278,12 +310,17 @@ describe("N+1 Query Detection", () => {
         menuItemIds,
       );
 
-      // 3. Create order
-      await tester.measureQuery(`INSERT INTO orders (...) VALUES (...)`, []);
+      // 3. Create order — parseable no-op stub (see comment above for the
+      // naive workflow on why we use a SELECT here instead of a real
+      // INSERT).
+      await tester.measureQuery(
+        `SELECT 'INSERT INTO orders (...) VALUES (...)' AS _stub`,
+        [],
+      );
 
       // 4. Batch insert order items (if supported, or use transaction)
       await tester.measureQuery(
-        `INSERT INTO order_items (...) VALUES (...), (...), (...)`,
+        `SELECT 'INSERT INTO order_items (...) VALUES (...), (...), (...)' AS _stub`,
         [],
       );
 
@@ -307,11 +344,11 @@ describe("N+1 Query Detection", () => {
       // Naive implementation
       const orders = await db
         .prepare(`SELECT * FROM orders WHERE restaurant_id = ? LIMIT 20`)
-        .bind(1)
+        .bind(TEST_RESTAURANT_ID)
         .all();
       await tester.measureQuery(
         `SELECT * FROM orders WHERE restaurant_id = ? LIMIT 20`,
-        [1],
+        [TEST_RESTAURANT_ID],
       );
 
       for (const order of orders.results) {
@@ -356,10 +393,10 @@ describe("N+1 Query Detection", () => {
         WHERE o.restaurant_id = ?
           AND o.status IN ('confirmed', 'preparing')
         GROUP BY o.id
-        ORDER BY o.created_at ASC
+        ORDER BY o.created_at_ms ASC
       `;
 
-      await tester.measureQuery(query, [1]);
+      await tester.measureQuery(query, [TEST_RESTAURANT_ID]);
 
       const analysis = tester.stopQueryLogging();
       analysis.endpoint = "GET /api/v1/kitchen/:id/orders";
@@ -375,153 +412,125 @@ describe("N+1 Query Detection", () => {
 });
 
 /**
- * Helper: Setup test data
+ * Helper: Seed deterministic test data
+ *
+ * See the equivalent function in `query-performance.test.ts` for the full
+ * rationale on why every column name, type, and required-NOT-NULL field is
+ * the way it is. This version uses smaller row counts (5 categories, 30
+ * menu items, 10 tables, 15 orders, 10 users) since N+1 detection only
+ * needs enough data to demonstrate query patterns.
  */
 async function setupTestData(db: any): Promise<void> {
-  const restaurantId = 1;
+  const restaurantId = TEST_RESTAURANT_ID;
+  const now = Date.now();
 
-  // Create restaurant
   await db
     .prepare(
-      `
-    INSERT OR IGNORE INTO restaurants (id, name, type, category, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `,
+      `INSERT OR IGNORE INTO restaurants (
+        id, name, type, category, address, district, phone,
+        created_at_ms, updated_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       restaurantId,
-      "Test Restaurant",
+      "N+1 Test Restaurant",
       "Casual",
       "Restaurant",
-      new Date().toISOString(),
-      new Date().toISOString(),
+      "123 Test Road",
+      "西區",
+      "04-1234-5678",
+      now,
+      now,
     )
     .run();
 
-  // Create categories
   for (let i = 1; i <= 5; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO categories (id, restaurant_id, name, name_en, display_order, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO categories (
+          id, restaurant_id, name, sort_order, is_active,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .bind(
-        i,
-        restaurantId,
-        `Category ${i}`,
-        `Category ${i}`,
-        i,
-        1,
-        new Date().toISOString(),
-        new Date().toISOString(),
-      )
+      .bind(i, restaurantId, `Category ${i}`, i, 1, now, now)
       .run();
   }
 
-  // Create menu items
   for (let i = 1; i <= 30; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO menu_items (
-        id, restaurant_id, category_id, name, name_en, price, is_available, sort_order, created_at, updated_at
+        `INSERT OR IGNORE INTO menu_items (
+          id, restaurant_id, category_id, name, price, is_available, sort_order,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-      )
-      .bind(
-        i,
-        restaurantId,
-        (i % 5) + 1,
-        `Item ${i}`,
-        `Item ${i}`,
-        100,
-        1,
-        i,
-        new Date().toISOString(),
-        new Date().toISOString(),
-      )
+      .bind(i, restaurantId, (i % 5) + 1, `Item ${i}`, 100, 1, i, now, now)
       .run();
   }
 
-  // Create tables
   for (let i = 1; i <= 10; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO tables (id, restaurant_id, number, capacity, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO tables (
+          id, restaurant_id, number, capacity, qr_code, is_active,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         i,
         restaurantId,
         `T${i}`,
         4,
+        `qr_${restaurantId}_t${i}`,
         1,
-        new Date().toISOString(),
-        new Date().toISOString(),
+        now,
+        now,
       )
       .run();
   }
 
-  // Create orders with items
+  const statuses = ["pending", "confirmed", "preparing"] as const;
   for (let i = 1; i <= 15; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO orders (
-        id, restaurant_id, table_id, status, total_amount, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO orders (
+          id, restaurant_id, table_id, order_number, status, subtotal, total_amount,
+          created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         i,
         restaurantId,
         (i % 10) + 1,
-        ["pending", "confirmed", "preparing"][i % 3],
+        `N1-${i.toString().padStart(6, "0")}`,
+        statuses[i % statuses.length],
         200,
-        new Date().toISOString(),
-        new Date().toISOString(),
+        200,
+        now,
+        now,
       )
       .run();
 
-    // Create order items
     for (let j = 1; j <= 3; j++) {
       await db
         .prepare(
-          `
-        INSERT OR IGNORE INTO order_items (
-          order_id, menu_item_id, quantity, unit_price, created_at, updated_at
+          `INSERT OR IGNORE INTO order_items (
+            order_id, menu_item_id, quantity, unit_price, total_price,
+            created_at_ms, updated_at_ms
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
-        VALUES (?, ?, ?, ?, ?, ?)
-      `,
-        )
-        .bind(
-          i,
-          ((i + j) % 30) + 1,
-          j,
-          100,
-          new Date().toISOString(),
-          new Date().toISOString(),
-        )
+        .bind(i, ((i + j) % 30) + 1, j, 100, j * 100, now, now)
         .run();
     }
   }
 
-  // Create users
   for (let i = 1; i <= 10; i++) {
     await db
       .prepare(
-        `
-      INSERT OR IGNORE INTO users (
-        id, restaurant_id, username, email, full_name, password_hash, role, is_active, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
+        `INSERT OR IGNORE INTO users (
+          id, restaurant_id, username, email, full_name, password_hash,
+          role, is_active, created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         i,
@@ -532,9 +541,13 @@ async function setupTestData(db: any): Promise<void> {
         "hash",
         i % 5,
         1,
-        new Date().toISOString(),
-        new Date().toISOString(),
+        now,
+        now,
       )
       .run();
   }
+
+  // Refresh planner stats after seeding (mirrors createTestDB's initial
+  // ANALYZE so subsequent EXPLAIN QUERY PLAN runs see realistic stats).
+  await db.prepare("ANALYZE").bind().run();
 }

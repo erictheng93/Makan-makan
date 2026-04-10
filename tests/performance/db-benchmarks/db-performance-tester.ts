@@ -108,8 +108,22 @@ export class DatabasePerformanceTester {
     const executionTime = endTime - startTime;
     const rowsReturned = result.results?.length || 0;
 
-    // Check if index was used (from query plan)
-    const indexUsed = queryPlan?.includes("USING INDEX") || false;
+    // Check if index was used (from query plan).
+    //
+    // SQLite's `EXPLAIN QUERY PLAN` `detail` column reports several
+    // index-using forms; we accept any of them as "indexed":
+    //
+    //   - SEARCH ... USING INDEX <name>          (regular indexed search)
+    //   - SEARCH ... USING COVERING INDEX <name> (index alone satisfies SELECT)
+    //   - SEARCH ... USING INTEGER PRIMARY KEY   (rowid lookup, also an index)
+    //   - SEARCH ... USING PRIMARY KEY           (PK index lookup)
+    //
+    // The previous implementation only checked the literal substring
+    // "USING INDEX" which (a) misses COVERING INDEX since "COVERING " sits
+    // between USING and INDEX, and (b) misses PRIMARY KEY lookups entirely.
+    const indexUsed =
+      queryPlan !== undefined &&
+      /USING (COVERING )?INDEX|USING (INTEGER )?PRIMARY KEY/.test(queryPlan);
 
     const perfResult: QueryPerformanceResult = {
       query,
