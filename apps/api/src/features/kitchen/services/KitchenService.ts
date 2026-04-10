@@ -153,35 +153,30 @@ export class KitchenService implements IKitchenService {
           orderNumber: order.orderNumber,
           tableId: order.tableId || 0, // Default to 0 if no table
           tableName: order.tableId ? `Table ${order.tableId}` : "No Table",
+          // TODO(Phase 5): Remove this string→number bridge when kitchen-display
+          // migrates to the canonical string union (Issue #9, Phase 5).
           status:
-            typeof order.status === "number"
-              ? order.status
-              : order.status === "confirmed"
-                ? 1
-                : order.status === "preparing"
-                  ? 2
-                  : order.status === "ready"
-                    ? 3
-                    : 0,
+            order.status === "confirmed"
+              ? 1
+              : order.status === "preparing"
+                ? 2
+                : order.status === "ready"
+                  ? 3
+                  : order.status === "delivered"
+                    ? 4
+                    : order.status === "paid"
+                      ? 5
+                      : order.status === "cancelled"
+                        ? 6
+                        : 0,
           items: (order.items || []).map((item) => {
-            // Map OrderItemStatus enum to string literals
-            const statusMap: Record<
-              number,
-              "pending" | "preparing" | "ready" | "completed"
-            > = {
-              0: "pending", // PENDING
-              1: "preparing", // PREPARING
-              2: "ready", // READY
-              3: "completed", // DELIVERED
-            };
+            // item.status is already a string — pass through directly.
             const itemStatus =
-              typeof item.status === "number"
-                ? statusMap[item.status] || "pending"
-                : (item.status as
-                    | "pending"
-                    | "preparing"
-                    | "ready"
-                    | "completed");
+              (item.status as
+                | "pending"
+                | "preparing"
+                | "ready"
+                | "completed") || "pending";
 
             return {
               id: item.id,
@@ -204,13 +199,9 @@ export class KitchenService implements IKitchenService {
       });
 
       // Filter by status for backwards compatibility
-      const pending = kitchenOrders.filter(
-        (o) => o.status === OrderStatus.CONFIRMED,
-      );
-      const preparing = kitchenOrders.filter(
-        (o) => o.status === OrderStatus.PREPARING,
-      );
-      const ready = kitchenOrders.filter((o) => o.status === OrderStatus.READY);
+      const pending = kitchenOrders.filter((o) => o.status === "confirmed");
+      const preparing = kitchenOrders.filter((o) => o.status === "preparing");
+      const ready = kitchenOrders.filter((o) => o.status === "ready");
 
       // Get daily stats for completedToday count
       const dailyStats = await ordersService.getDailyStats(restaurantId);
