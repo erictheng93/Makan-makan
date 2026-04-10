@@ -8,15 +8,16 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // CI workers: 4 — empirically the customer-app tests are read-mostly
-  // (they hit a static preview build, no backend mutations), so parallel
-  // workers don't contend on shared state. The previous `workers: 1`
-  // forced ~158 tests through one process and pushed runtime past the
-  // 25-minute job timeout. Bumping to 4 brings expected runtime to
-  // ~6-8 minutes per browser. The `integration` project keeps its own
-  // `fullyParallel: false` so its sequential semantics aren't affected
-  // by this global setting.
-  workers: process.env.CI ? 4 : undefined,
+  // CI workers: 2 — conservative parallelism inside the Playwright
+  // Docker container. 4 workers caused Firefox OOM / browser-crash
+  // ("Target page, context or browser has been closed") because the
+  // GitHub Actions runner only has ~7 GB RAM and 4 simultaneous
+  // Firefox processes exceeded that. 2 workers halves sequential
+  // runtime (158 tests → ~8 min per browser) while staying within
+  // the container's memory budget. The `integration` project keeps
+  // its own `fullyParallel: false` so its sequential semantics are
+  // unaffected by this global setting.
+  workers: process.env.CI ? 2 : undefined,
   reporter: [
     ["html", { outputFolder: "playwright-report" }],
     ["json", { outputFile: "playwright-report/results.json" }],
