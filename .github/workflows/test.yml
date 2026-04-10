@@ -366,6 +366,15 @@ jobs:
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
+      - name: 🔨 編譯 better-sqlite3 native binding
+        # pnpm 10 + `--frozen-lockfile` does not always run the package's
+        # `install` script even when `onlyBuiltDependencies` allowlists it,
+        # so the prebuild-install step that downloads the native binding is
+        # skipped and `new Database(...)` throws "Could not locate the
+        # bindings file" inside tests/helpers/test-db.ts. Force the rebuild
+        # explicitly so the binding is always present for the perf suite.
+        run: pnpm rebuild better-sqlite3
+
       - name: 📊 檢查性能基準線是否存在
         id: check-baseline
         run: |
