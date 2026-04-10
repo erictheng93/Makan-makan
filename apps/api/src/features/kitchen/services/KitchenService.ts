@@ -198,10 +198,13 @@ export class KitchenService implements IKitchenService {
         };
       });
 
-      // Filter by canonical string status (OrderStatus unification, Issue #9)
-      const pending = kitchenOrders.filter((o) => o.status === "confirmed");
-      const preparing = kitchenOrders.filter((o) => o.status === "preparing");
-      const ready = kitchenOrders.filter((o) => o.status === "ready");
+      // Filter by the NUMERIC status that the bridge at lines 158-171 outputs.
+      // These comparisons use numbers (1, 2, 3) because the kitchen-display
+      // backward-compat bridge above maps canonical strings → legacy numbers.
+      // When the bridge is removed in Phase 5, change these to string comparisons.
+      const pending = kitchenOrders.filter((o) => o.status === 1);
+      const preparing = kitchenOrders.filter((o) => o.status === 2);
+      const ready = kitchenOrders.filter((o) => o.status === 3);
 
       // Get daily stats for completedToday count
       const dailyStats = await ordersService.getDailyStats(restaurantId);
