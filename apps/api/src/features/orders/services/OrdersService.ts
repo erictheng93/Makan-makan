@@ -1245,19 +1245,7 @@ export class OrdersService implements IOrdersService {
   }
 
   private getAllowedStatusTransitions(userRole: UserRole): OrderStatus[] {
-    const stringStatuses = ROLE_STATUS_PERMISSIONS[userRole] || [];
-    const statusStringToEnum: Record<string, OrderStatus> = {
-      pending: OrderStatus.PENDING,
-      confirmed: OrderStatus.CONFIRMED,
-      preparing: OrderStatus.PREPARING,
-      ready: OrderStatus.READY,
-      delivered: OrderStatus.DELIVERED,
-      paid: OrderStatus.PAID,
-      cancelled: OrderStatus.CANCELLED,
-    };
-    return stringStatuses
-      .map((s) => statusStringToEnum[s])
-      .filter((s): s is OrderStatus => s !== undefined);
+    return (ROLE_STATUS_PERMISSIONS[userRole] ?? []) as OrderStatus[];
   }
 
   private formatCustomizations(
