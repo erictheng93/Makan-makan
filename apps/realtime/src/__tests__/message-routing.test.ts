@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmakan/shared-types";
 import type {
   RealtimeEvent,
   RealtimeAuthPayload,
@@ -177,8 +177,8 @@ describe("Message Routing Logic", () => {
       data: {
         orderId: 1,
         orderNumber: "ORD-001",
-        status: OrderStatus.PREPARING,
-        previousStatus: OrderStatus.PENDING,
+        status: "preparing",
+        previousStatus: "pending",
       },
     };
 

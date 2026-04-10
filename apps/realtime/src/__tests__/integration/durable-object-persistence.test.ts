@@ -15,8 +15,9 @@ import type {
   RealtimeEvent,
   NewOrderEvent,
   OrderStatusUpdateEvent,
+  OrderStatus,
 } from "@makanmakan/shared-types";
-import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmakan/shared-types";
 
 // Use mapping for event types to match actual enum values
 const _EventTypes = {
@@ -56,8 +57,8 @@ function createNewOrderEvent(
 function createOrderStatusUpdateEvent(
   eventId: string,
   orderId: number,
-  status: OrderStatus = OrderStatus.PREPARING,
-  previousStatus: OrderStatus = OrderStatus.PENDING,
+  status: OrderStatus = "preparing",
+  previousStatus: OrderStatus = "pending",
   restaurantId = "restaurant-123",
 ): OrderStatusUpdateEvent {
   return {
@@ -315,8 +316,8 @@ describe("Durable Object Persistence", () => {
         createOrderStatusUpdateEvent(
           "event-2",
           1,
-          OrderStatus.PREPARING,
-          OrderStatus.PENDING,
+          "preparing",
+          "pending",
           "table-001",
         ),
       ];
@@ -441,8 +442,8 @@ describe("Durable Object Persistence", () => {
         createOrderStatusUpdateEvent(
           "event-001",
           1,
-          OrderStatus.READY,
-          OrderStatus.PREPARING,
+          "ready",
+          "preparing",
           "restaurant-456",
         ),
       );

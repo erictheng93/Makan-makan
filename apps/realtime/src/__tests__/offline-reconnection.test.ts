@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { RealtimeEventType, OrderStatus } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmakan/shared-types";
 import type { RealtimeEvent } from "@makanmakan/shared-types";
 
 // Mock CloseEvent for Node.js environment
@@ -393,8 +393,8 @@ describe("Offline Reconnection Tests", () => {
                 data: {
                   orderId: 123,
                   orderNumber: "ORD-001",
-                  status: OrderStatus.PREPARING,
-                  previousStatus: OrderStatus.PENDING,
+                  status: "preparing",
+                  previousStatus: "pending",
                 },
               };
               eventHistory.addEvent(event);
