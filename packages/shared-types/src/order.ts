@@ -92,15 +92,26 @@ export interface Order extends BaseEntity {
   customer?: CustomerProfile;
 }
 
-export enum OrderStatus {
-  PENDING = 0,
-  CONFIRMED = 1,
-  PREPARING = 2,
-  READY = 3,
-  DELIVERED = 4,
-  PAID = 5,
-  CANCELLED = 6,
-}
+/**
+ * Canonical OrderStatus — matches the DB schema in
+ * `packages/database/src/schema/orders.ts` exactly. Do not re-introduce a
+ * numeric variant. See `docs/investigations/2026-04-09-orderstatus-surface-audit.md`
+ * for the full history of why this is a string union and
+ * `docs/superpowers/plans/2026-04-09-orderstatus-unification.md` Issue #9
+ * for the migration plan.
+ */
+export const ORDER_STATUSES = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "delivered",
+  "paid",
+  "cancelled",
+  "refunded",
+] as const;
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export enum OrderPaymentStatus {
   PENDING = 0,
