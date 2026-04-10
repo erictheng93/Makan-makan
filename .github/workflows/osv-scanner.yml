@@ -21,6 +21,12 @@ on:
   push:
     branches: [ "main" ]
 
+# Cancel in-flight runs on the same PR when a new commit lands; never cancel
+# scheduled or push-to-main scans.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   # Require writing security events to upload SARIF file to security tab
   security-events: write

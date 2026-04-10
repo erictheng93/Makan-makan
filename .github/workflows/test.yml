@@ -7,6 +7,13 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+# Cancel in-flight runs on the same PR when a new commit lands so reviewers
+# only see the latest result; on push to main/develop never cancel because
+# we want main's history to record every commit's status.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
   security-events: write
@@ -20,6 +27,7 @@ jobs:
   lint-and-typecheck:
     name: 📝 程式碼檢查
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: 📦 Checkout 程式碼
@@ -51,6 +59,7 @@ jobs:
     name: 🧪 單元測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
+    timeout-minutes: 20
 
     strategy:
       matrix:
@@ -114,6 +123,7 @@ jobs:
     name: ⚡ Workers 測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
+    timeout-minutes: 15
 
     steps:
       - name: 📦 Checkout 程式碼
@@ -135,13 +145,29 @@ jobs:
         run: pnpm add -g wrangler
 
       - name: ⚡ 測試 Cloudflare Workers
-        run: pnpm run test:workers || echo "No workers tests found, skipping"
+        # Existence check (not `||`) so the step distinguishes "no tests in
+        # this directory yet" (skip) from "tests exist but failed" (fail).
+        # The previous `pnpm run test:workers || echo "skip"` swallowed all
+        # failures regardless of cause.
+        run: |
+          if [ -d "tests/unit/workers" ] && [ -n "$(find tests/unit/workers -name '*.test.ts' -print -quit)" ]; then
+            pnpm run test:workers
+          else
+            echo "No workers tests found in tests/unit/workers, skipping"
+          fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: 📊 Workers 整合測試
-        run: pnpm run test:workers:integration || echo "No workers integration tests found, skipping"
+        # Same existence-check pattern as above. Integration tests live
+        # under tests/integration/workers per the package.json script.
+        run: |
+          if [ -d "tests/integration/workers" ] && [ -n "$(find tests/integration/workers -name '*.test.ts' -print -quit)" ]; then
+            pnpm run test:workers:integration
+          else
+            echo "No workers integration tests found in tests/integration/workers, skipping"
+          fi
         env:
           TEST_D1_DATABASE: ${{ secrets.TEST_D1_DATABASE }}
           TEST_KV_NAMESPACE: ${{ secrets.TEST_KV_NAMESPACE }}
@@ -161,6 +187,7 @@ jobs:
     name: 🎭 E2E 測試
     runs-on: ubuntu-latest
     needs: [unit-tests, workers-tests]
+    timeout-minutes: 25
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
       options: --ipc=host
@@ -196,8 +223,11 @@ jobs:
         run: npx wait-on http://localhost:4173 --timeout 60000
 
       - name: 🧪 執行 E2E 測試 (${{ matrix.browser }})
+        # NO continue-on-error: real failures must fail the pipeline so the
+        # branch protection gate works. If a test is genuinely flaky, fix it
+        # at the source or set Playwright's `retries` in playwright.config.ts
+        # — do not paper over with continue-on-error here.
         run: npx playwright test --project=${{ matrix.browser }}
-        continue-on-error: true
         env:
           E2E_BASE_URL: http://localhost:4173
 
@@ -231,6 +261,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: e2e-tests
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    timeout-minutes: 30
 
     steps:
       - name: 📦 Checkout 程式碼
@@ -347,6 +378,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
     if: github.event_name == 'push' || github.event_name == 'pull_request'
+    timeout-minutes: 15
 
     steps:
       - name: 📦 Checkout 程式碼
@@ -474,6 +506,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
     if: github.event_name == 'push' || github.event_name == 'pull_request'
+    timeout-minutes: 25
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
       options: --ipc=host
@@ -555,6 +588,7 @@ jobs:
     name: 🔐 安全性測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
+    timeout-minutes: 30
 
     steps:
       - name: 📦 Checkout 程式碼
@@ -711,6 +745,7 @@ jobs:
         performance-tests,
       ]
     if: always()
+    timeout-minutes: 5
 
     steps:
       - name: 📦 Checkout 程式碼
@@ -861,6 +896,7 @@ jobs:
       ]
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment: staging
+    timeout-minutes: 20
 
     steps:
       - name: 📦 Checkout 程式碼

@@ -12,6 +12,10 @@ on:
   # 允許手動觸發
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
   pull-requests: write
@@ -21,6 +25,7 @@ jobs:
   check-factory-usage:
     name: 檢查 Factory 使用情況
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
