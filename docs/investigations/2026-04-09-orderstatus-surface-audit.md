@@ -389,7 +389,124 @@ Plus **2 Zod enum schemas** in `apps/api`:
 
 ## 3. Hardcoded Numeric Literal Sites
 
+Sites where code compares `.status` against a numeric literal `0`-`6`. **All of these are bugs waiting to fire**: the DB returns strings, so most of these comparisons silently evaluate `false` and the UI degrades to a default branch.
+
+**Total: 33 sites across 13 files.**
+
+| File:line | Code | Canonical replacement |
+|-----------|------|----------------------|
+| `apps/customer-app/src/views/OrderHistoryView.vue:217` | `v-if="order.status === 0"` | `v-if="order.status === 'pending'"` |
+| `apps/customer-app/src/views/OrderTrackingView.vue:424` | `return order.value?.status === 0 \|\| order.value?.status === 1; // PENDING or CONFIRMED` | `return order.value?.status === 'pending' \|\| order.value?.status === 'confirmed'` |
+| `apps/customer-app/src/views/OrderTrackingView.vue:474` | `if (order.value.status === 6) {` | `if (order.value.status === 'cancelled') {` |
+| `apps/customer-app/src/views/OrderTrackingView.vue:476` | `status: 6,` (timeline entry) | `status: 'cancelled',` |
+| `apps/customer-app/src/views/OrderTrackingView.vue:488-496` | `statusTitles = computed(() => ({ 0: ..., 1: ..., 2: ..., 3: ..., 4: ..., 5: ..., 6: ... }))` | rewrite as `Record<OrderStatus, string>` keyed by string values; add `refunded`; remove dead `5: paid` index if it overlaps |
+| `apps/customer-app/src/views/OrderTrackingView.vue:498-506` | `statusDescriptions = computed(() => ({ 0..6: ... }))` | same |
+| `apps/customer-app/src/views/OrderTrackingView.vue:510-519` | `getStatusIcon: { 0: ClockIcon, 1: CheckCircleIcon, 2: FireIcon, 3: CheckCircleIcon, 4: TruckIcon, 5: CheckCircleIcon, 6: XCircleIcon }` | rewrite keys as strings |
+| `apps/customer-app/src/views/OrderTrackingView.vue:522-532` | `getStatusColor: { 0..6: { bg, text } }` | rewrite keys as strings |
+| `apps/customer-app/src/views/OrderTrackingView.vue:545-555` | `getProgressPercentage: { 0: 20, 1: 40, 2: 60, 3: 80, 4: 100, 5: 100, 6: 0 }` | rewrite keys as strings; add `refunded: 0` |
+| `apps/customer-app/src/components/OrderItemCard.vue:71` | `v-if="item.status === 1"` | `v-if="item.status === 'confirmed'"` (verify intent — may actually want `preparing`) |
+| `apps/customer-app/src/utils/format.ts:273-285` | `formatOrderStatus(status: number)` with `Record<number, string>` | `formatOrderStatus(status: OrderStatus): string` keyed by string values |
+| `apps/kitchen-display/src/services/kitchenStatisticsService.ts:185` | `const pending = orders.filter((o) => o.status === 1).length;` | `o.status === 'confirmed'` (mislabel: `1` is `CONFIRMED` not `PENDING` in legacy) |
+| `apps/kitchen-display/src/services/kitchenStatisticsService.ts:186` | `const cooking = orders.filter((o) => o.status === 2).length;` | `o.status === 'preparing'` |
+| `apps/kitchen-display/src/services/kitchenStatisticsService.ts:423` | `(o: KitchenOrder) => o.status === 1,` | `o.status === 'confirmed'` |
+| `apps/kitchen-display/src/views/EnhancedKitchenDashboard.vue:210` | `filteredOrders.value.filter((order) => order.status === 1)` | `order.status === 'confirmed'` |
+| `apps/kitchen-display/src/views/EnhancedKitchenDashboard.vue:214` | `filteredOrders.value.filter((order) => order.status === 2)` | `order.status === 'preparing'` |
+| `apps/kitchen-display/src/views/EnhancedKitchenDashboard.vue:218` | `filteredOrders.value.filter((order) => order.status === 3)` | `order.status === 'ready'` |
+| `apps/kitchen-display/src/views/HistoryView.vue:75` | `order.status === 6` | `order.status === 'cancelled'` |
+| `apps/kitchen-display/src/views/HistoryView.vue:94` | `order.status === 6 ? 'text-ios-tertiary' : 'text-ios-secondary'` | `order.status === 'cancelled'` |
+| `apps/kitchen-display/src/views/HistoryView.vue:244` | `(o) => o.status === 4 \|\| o.status === 5,` | `o.status === 'delivered' \|\| o.status === 'paid'` |
+| `apps/kitchen-display/src/components/orders/OrderCard.vue:299` | `const isCancelled = computed(() => props.order.status === 6);` | `props.order.status === 'cancelled'` |
+| `apps/kitchen-display/src/components/orders/OrderCard.vue:302` | `if (props.order.status === 6) return "border-t-4 border-[#8E8E93]";` | `=== 'cancelled'` |
+| `apps/kitchen-display/src/components/orders/PriorityTimingManager.vue:349` | `const pendingOrders = props.orders.filter((order) => order.status === 1);` | `=== 'confirmed'` |
+| `apps/kitchen-display/src/components/orders/PriorityTimingManager.vue:350` | `const preparingOrders = props.orders.filter((order) => order.status === 2);` | `=== 'preparing'` |
+| `apps/kitchen-display/src/components/orders/PriorityTimingManager.vue:456` | `order.status === 1` | `=== 'confirmed'` |
+| `apps/kitchen-display/src/components/orders/PriorityTimingManager.vue:458` | `: order.status === 2` | `=== 'preparing'` |
+| `apps/kitchen-display/src/components/orders/OrderFilters.vue:455` | `() => props.orders.filter((o) => o.status === 1).length,` | `=== 'confirmed'` |
+| `apps/kitchen-display/src/components/orders/OrderFilters.vue:458` | `() => props.orders.filter((o) => o.status === 2).length,` | `=== 'preparing'` |
+| `apps/kitchen-display/src/components/orders/OrderFilters.vue:461` | `() => props.orders.filter((o) => o.status === 3).length,` | `=== 'ready'` |
+| `apps/kitchen-display/src/components/orders/OrderFilters.vue:494` | `count: props.orders.filter((o) => o.status === 1).length,` | `=== 'confirmed'` |
+| `apps/kitchen-display/src/components/orders/OrderFilters.vue:501` | `count: props.orders.filter((o) => o.status === 2).length,` | `=== 'preparing'` |
+| `apps/kitchen-display/src/components/orders/OrderFilters.vue:508` | `count: props.orders.filter((o) => o.status === 3).length,` | `=== 'ready'` |
+| `apps/kitchen-display/src/components/workflow/WorkflowAutomation.vue:645` | `(order) => order.status === 1 && !order.assignedChef,` | `=== 'confirmed'` |
+| `apps/kitchen-display/src/components/workflow/WorkflowAutomation.vue:665` | `(order) => order.status === 1 && order.assignedChef,` | `=== 'confirmed'` |
+| `apps/kitchen-display/src/components/workflow/WorkflowAutomation.vue:677` | `order.status === 2 && ...` | `=== 'preparing'` |
+| `apps/kitchen-display/src/stores/orders.ts:31` | `() => orders.value.filter((order) => order.status === 1), // CONFIRMED` | `=== 'confirmed'` |
+| `apps/kitchen-display/src/stores/orders.ts:35` | `() => orders.value.filter((order) => order.status === 2), // PREPARING` | `=== 'preparing'` |
+| `apps/kitchen-display/src/stores/orders.ts:39` | `() => orders.value.filter((order) => order.status === 3), // READY` | `=== 'ready'` |
+| `apps/kitchen-display/src/composables/useAudioNotifications.ts:196` | `return elapsedMinutes >= estimatedTime * 0.8 && order.status === 2;` | `=== 'preparing'` |
+
+**⚠️ Semantic note:** The legacy numeric mapping in customer-app/kitchen-display reads `0=PENDING, 1=CONFIRMED, 2=PREPARING, 3=READY, 4=DELIVERED, 5=PAID, 6=CANCELLED` — matches `shared-types/src/order.ts:95-103`. The mappings ARE internally consistent across customer-app and kitchen-display, so the rewrite is mechanical. The breakage is purely in the wire-format mismatch between numeric runtime literals and the DB string return values.
+
 ## 4. Runtime `typeof status === "number"` Guards
+
+**Total: 5 sites in 3 files.** Each guard exists to bridge the dual numeric/string wire format. After unification, all 5 become dead code (or, in one case, a cache invalidation trigger).
+
+### 4.1 `apps/api/src/features/orders/services/OrdersService.ts:1238`
+
+```ts
+private normalizeStatus(status: OrderStatus | number | string): OrderStatus {
+  if (typeof status === "number") {
+    // map numeric → string via lookup
+  }
+  // ...
+}
+```
+
+**Why it exists:** Bidirectional bridge between numeric shared-types enum and DB string. The whole `normalizeStatus` method is the bridge layer.
+**Safe to delete after unification?** ✅ Yes — Phase 2 Task 14 removes the entire method.
+
+### 4.2 `apps/api/src/features/orders/routes/index.ts:75`
+
+```ts
+return (typeof status === "string" ? [status] : status) as DbOrderStatus[];
+```
+
+**Why it exists:** The query string can be `?status=pending` (string) or `?status=pending,confirmed` (also string but parsed to array). This guard normalizes single → array.
+**Safe to delete after unification?** ⚠️ **No** — this guard distinguishes scalar vs array, NOT numeric vs string. Re-read in Phase 2 Task 17 to confirm. Likely keep but rename for clarity.
+
+### 4.3 `apps/api/src/features/orders/routes/index.ts:95`
+
+```ts
+if (typeof status === "string") {
+  // single-value path
+}
+```
+
+**Why it exists:** Same scalar vs array distinction as 4.2.
+**Safe to delete after unification?** Same as 4.2.
+
+### 4.4 `apps/api/src/features/kitchen/services/KitchenService.ts:157`
+
+```ts
+typeof order.status === "number"
+```
+
+**Why it exists:** Defensive guard against orders flowing through KitchenService whose `status` field somehow arrived as a number — in practice this happens when an old client emits the legacy wire format. Phase 2 Task 17 documents the guard's removal.
+**Safe to delete after unification?** ✅ Yes (after Phase 6.3 — once dual-emit window closes).
+
+### 4.5 `apps/api/src/features/kitchen/services/KitchenService.ts:178`
+
+```ts
+typeof item.status === "number"
+```
+
+**Why it exists:** Same as 4.4 but for `OrderItem.status` (note: `OrderItemStatus` is a separate type — verify in Phase 0 dead-code section whether it has the same drift).
+**Safe to delete after unification?** Same as 4.4.
+
+### 4.6 `apps/kitchen-display/src/services/offlineService.ts:485` — *additional finding*
+
+```ts
+return cachedOrders.every(
+  (order) =>
+    order.id &&
+    order.orderNumber &&
+    Array.isArray(order.items) &&
+    typeof order.status === "number",
+);
+```
+
+**Why it exists:** localStorage cache validator — asserts that every cached order has a numeric status field. **Currently the validator is correct under the local `OrderStatus = 0|1|2|3|4|5|6` numeric literal type** (definition #6).
+**Safe to delete after unification?** ⚠️ **Critical** — this guard is the load-bearing mechanism that will trigger one-time cache invalidation across every kitchen-display tab the moment we ship the new bundle. We **must** keep it (or replace it with `typeof === "string"`) so old caches are explicitly rejected — not silently rendered with type-mismatched data. See §9.1 for full handling.
 
 ## 5. Dead Code
 
