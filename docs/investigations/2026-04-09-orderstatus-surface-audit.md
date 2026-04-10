@@ -679,6 +679,130 @@ The plan and this investigation doc are the only matches inside `docs/`. No READ
 
 ## 8. Durable Object Hibernated State
 
+The realtime DO persists state to `ctx.storage` so that hibernated sessions can wake up and resume. Any change to the in-memory `OrderLifecycleState` enum changes the shape of the persisted bytes — old hibernated sessions waking up after deploy will deserialize state with the OLD enum value into the NEW type.
+
+### 8.1 Persisted shape inventory
+
+| File:line | `ctx.storage.put` call | Key pattern | Persisted type | Contains status? |
+|-----------|------------------------|-------------|----------------|------------------|
+| `apps/realtime/src/advanced-realtime-session.ts:496` | `ctx.storage.put('order:${orderId}', orderState)` | `order:<id>` | `OrderState` (line 44-53) | ✅ **YES** — `currentState: OrderLifecycleState`, `previousState?: OrderLifecycleState`, plus `transitions[].from/.to: OrderLifecycleState` |
+| `apps/realtime/src/advanced-realtime-session.ts:1034, 1108, 1206, 1317, 1411, 1503, 1602` | `ctx.storage.put('group_order:${id}', ...)` | `group_order:<id>` | `GroupOrderState` (line 55-73) | ⚠️ **YES indirectly** — `status: 'active' \| 'ordering' \| 'checkout' \| 'completed' \| 'cancelled'` is its own union (NOT `OrderLifecycleState`), but it does include a `completed` value that's also being deprecated. Plus members have `paymentStatus: 'unpaid' \| 'pending' \| 'paid'` — separate concern, leave alone. |
+| `apps/realtime/src/advanced-realtime-session.ts:623` | `ctx.storage.put('hibernation_state', { hibernatedAt, ... })` | `hibernation_state` | `{ hibernatedAt: number, ... }` | ❌ no status |
+| `apps/realtime/src/advanced-realtime-session.ts:1810` | `ctx.storage.delete('group_order:${id}')` | n/a | n/a | n/a (delete) |
+| (write) | `ctx.storage.put('metrics:${restaurantId}', metric)` (implied by `loadPersistedState` line 687-690) | `metrics:<id>` | restaurant metrics | ❌ no order status |
+
+**Bottom line — keys that hold `OrderLifecycleState` values:**
+- ✅ `order:<id>` — every active order. **High volume.** Worst case = peak concurrent active orders per DO instance.
+
+### 8.2 Hibernation lifecycle
+
+From `advanced-realtime-session.ts:711-723`:
+- Background timer fires every 5 minutes (`hibernationTimer`)
+- A session hibernates after `30 minutes` of inactivity AND zero active connections
+- On hibernate: connections closed with code 1000, hibernation state written to storage, in-memory state remains until DO is unloaded
+
+From `advanced-realtime-session.ts:649-706`:
+- `loadPersistedState()` runs at construction (line 229)
+- Reads ALL `order:*` keys via `ctx.storage.list<OrderState>({ prefix: 'order:' })`
+- Deserializes each entry directly into `sessionState.orderStates: Map<string, OrderState>`
+- **No version check**, no migration step, no schema validation
+
+**How long can a hibernated session live before wakeup?**
+DO storage is durable until explicit delete or 30-day inactivity expiration (Cloudflare default). In practice: orders persist until they reach terminal state (`delivered`/`paid`/`cancelled`/`refunded`) and are pruned by application logic, OR until the DO instance is replaced (deploy, region failover, etc.).
+
+**What happens when a session wakes up with an unrecognized schema version?**
+- TypeScript types are erased at runtime, so the DO will deserialize OLD values (`'completed'`, `'serving'`) into the NEW `OrderLifecycleState` field unchanged.
+- The next `broadcastOrderStateChange` call will emit `currentState: 'completed'` over the wire.
+- Frontends that have shipped the canonical 8-state set will receive an unknown value and either crash on Zod validation or silently fall through to a default UI branch.
+- The transition map (`stateTransitions: Map<OrderLifecycleState, OrderLifecycleState[]>` line 183) will have lost its key entries for `SERVING` and `COMPLETED` if they're removed — any incoming transition request involving those states throws `Invalid state transition`.
+
+**Volume estimate for the migration window:** unknown without telemetry, but bounded by `(active orders per restaurant) × (restaurants with hibernated sessions)`. At single-restaurant peak hours, expect ~50-200 `order:*` keys per DO. Across the fleet during a deploy, count is dominated by long-running sessions for restaurants with no incoming traffic.
+
+### 8.3 Migration strategy options
+
+#### Option A: Lazy migration on wakeup
+
+In `loadPersistedState()`, after `ctx.storage.list<OrderState>(...)`, walk each `OrderState` and rewrite legacy values:
+- `'completed'` → `'delivered'`
+- `'serving'` → `'ready'` (closest semantic match — actual "serving" was always derivable)
+- Remove unknown values entirely (skip the entry, log a warning)
+
+For each migrated entry, write back via `ctx.storage.put` so the next wakeup is clean.
+
+**Pros:**
+- Zero coordination — each DO migrates itself the first time it loads after deploy
+- No separate cron worker needed
+- Unmigrated entries simply stay legacy until their DO wakes; no global rollout dependency
+- Migration code can be deleted in a follow-up after a safety window (e.g. 30 days post-deploy)
+
+**Cons:**
+- A DO that never wakes up keeps stale data forever — but those orders are by definition orphaned (no traffic), so they'll be pruned by the existing `expiresAt` cleanup or never observed
+- Adds startup latency for sessions with many orders (linear in `order:*` count, but `ctx.storage.put` is batched and fast)
+- If migration code has a bug, every wakeup is broken until hotfix
+
+**Risk:** ⚪ low — bounded blast radius (one DO instance), recoverable, no data loss
+
+#### Option B: Explicit sweep via cron worker
+
+Add a one-shot Worker that lists all DO instance IDs (via `state.id.toString()` index, or via the bindings list), opens each one, calls a `/migrate-state` admin endpoint, and walks the storage rewriting legacy values.
+
+**Pros:**
+- Predictable migration window — when the cron finishes, every DO is clean
+- Easier to monitor (one log per DO)
+- Safer rollback — can pause the cron if errors spike
+
+**Cons:**
+- Requires building a DO enumeration mechanism (Cloudflare doesn't expose one natively — must be tracked via D1 or KV)
+- More code, more moving parts
+- Cron must run before frontends ship the canonical bundle (otherwise migrate-while-broadcasting race)
+- ❌ **Probably impractical for this codebase** — there's no DO instance index today
+
+**Risk:** 🟡 medium — additional infra, race conditions during sweep
+
+#### Option C: Versioned schema with dual-read
+
+Add a `schemaVersion: number` field to `OrderState`. On read, branch on version: `1` (legacy values) vs `2` (canonical values). Continue writing as `2`.
+
+**Pros:**
+- No "migration moment" — code handles both forms forever
+- Most resilient to slow / never-waking DOs
+- Easy to layer on top of Option A for safety
+
+**Cons:**
+- Permanent code complexity
+- Two code paths to test
+- Dead-code accumulation if not actively pruned later
+
+**Risk:** ⚪ low but encourages tech debt
+
+### 8.4 Recommendation
+
+**Recommendation: Option A (lazy migration on wakeup), with a value-coercion table that's narrow enough to delete cleanly after a 60-day safety window.**
+
+Rationale:
+- Volume is bounded and self-pruning (each `order:*` entry has a natural lifecycle ending in a terminal status).
+- Cloudflare DOs have no native enumeration API → Option B requires building infrastructure that doesn't pay for itself.
+- Option C is overkill for a one-time enum rename and creates permanent dead code.
+- Option A's failure mode is "DO startup error" which is recoverable via hotfix and bounded to one instance.
+
+**Concrete plan for Option A in Phase 4:**
+1. Add a `migrateLegacyOrderStates()` private method to `AdvancedRealtimeSession` that walks `ctx.storage.list({ prefix: 'order:' })`, applies the coercion table, and writes back.
+2. Call it from `loadPersistedState()` BEFORE populating `sessionState.orderStates`.
+3. The coercion table:
+
+```ts
+const LEGACY_VALUE_MAP: Record<string, OrderLifecycleState> = {
+  completed: 'delivered',
+  serving: 'ready',
+};
+```
+
+4. Log a counter metric `orderstate_legacy_migration_total` per coerced entry.
+5. Add an integration test in `apps/realtime/src/__tests__/integration/durable-object-persistence.test.ts` that seeds storage with legacy values, instantiates a fresh session, and asserts the values are coerced.
+6. Schedule a cleanup PR for ~60 days after deploy that deletes the migration code once the metric reaches zero.
+
+This decision is a Phase 0.5 hard gate item — the user should approve before Phase 4 begins.
+
 ## 9. Client-Side Caches
 
 ### 9.1 kitchen-display localStorage
