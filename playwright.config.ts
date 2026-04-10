@@ -8,7 +8,15 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // CI workers: 4 — empirically the customer-app tests are read-mostly
+  // (they hit a static preview build, no backend mutations), so parallel
+  // workers don't contend on shared state. The previous `workers: 1`
+  // forced ~158 tests through one process and pushed runtime past the
+  // 25-minute job timeout. Bumping to 4 brings expected runtime to
+  // ~6-8 minutes per browser. The `integration` project keeps its own
+  // `fullyParallel: false` so its sequential semantics aren't affected
+  // by this global setting.
+  workers: process.env.CI ? 4 : undefined,
   reporter: [
     ["html", { outputFolder: "playwright-report" }],
     ["json", { outputFile: "playwright-report/results.json" }],

@@ -211,16 +211,37 @@ jobs:
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
-      - name: 🏗️ 建置應用程式
-        run: pnpm run build
+      - name: 🏗️ 建置 customer-app（scoped）
+        # Only customer-app is needed for the chromium/firefox/webkit
+        # projects (they all `testIgnore` admin/ + integration/). Building
+        # only what we need shaves ~3 minutes off the install + build phase
+        # and avoids tripping over unrelated build failures in backend
+        # workers.
+        run: pnpm build --filter=makanmakan-customer-app
 
-      - name: 🚀 啟動測試服務器
+      - name: 🚀 啟動 customer-app preview server
+        # Previously this ran `pnpm run preview` (recursive) which started
+        # ALL 5 apps' preview servers in parallel. 4 of them defaulted to
+        # port 4173 and raced for it; only one would bind successfully.
+        # The customer-app config explicitly uses port 3000 so it wasn't
+        # in the race — meaning the wait-on below was waiting for whichever
+        # admin/kitchen/management/onboarding app won the port 4173 race,
+        # NOT for customer-app. Tests then ran against the wrong app, and
+        # every customer-element selector hit the 15s actionTimeout +
+        # retried 2x = 45s per failure. With ~150 customer tests this
+        # blew through the 25-minute job timeout.
+        #
+        # Fix: start ONLY the customer-app preview, on the port the
+        # customer-app config already declares (3000), and point the test
+        # base URL at it. --host 0.0.0.0 mirrors visual-regression-tests
+        # for safety in case the test runner ever moves to a sibling
+        # container.
         run: |
-          pnpm run preview &
+          (cd apps/customer-app && npx vite preview --port 3000 --host 0.0.0.0 > /tmp/customer-preview.log 2>&1 &)
           echo $! > server.pid
 
-      - name: ⏳ 等待服務器啟動
-        run: npx wait-on http://localhost:4173 --timeout 60000
+      - name: ⏳ 等待 customer-app 就緒
+        run: npx wait-on http://localhost:3000 --timeout 60000
 
       - name: 🧪 執行 E2E 測試 (${{ matrix.browser }})
         # NO continue-on-error: real failures must fail the pipeline so the
@@ -229,7 +250,7 @@ jobs:
         # — do not paper over with continue-on-error here.
         run: npx playwright test --project=${{ matrix.browser }}
         env:
-          E2E_BASE_URL: http://localhost:4173
+          E2E_BASE_URL: http://localhost:3000
 
       - name: 🛑 停止測試服務器
         if: always()
