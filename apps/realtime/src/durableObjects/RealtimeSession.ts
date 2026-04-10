@@ -20,7 +20,7 @@ interface ConnectionInfo {
   connectedAt: number;
   lastActivity: number;
   auth?: RealtimeAuthPayload; // 認證資訊
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   // 離線重連支援
   lastEventId?: string; // 最後接收的事件 ID
   missedEvents?: RealtimeEvent[]; // 離線期間錯過的事件

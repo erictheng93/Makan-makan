@@ -2,12 +2,14 @@ export interface Env {
   ENVIRONMENT?: string;
   REALTIME_SESSION: DurableObjectNamespace;
   ANALYTICS_ENGINE?: AnalyticsEngineDataset;
-  [key: string]: any;
+  DB: D1Database;
+  JWT_SECRET: string;
+  TOKEN_BLACKLIST?: KVNamespace;
 }
 
 export interface RealtimeMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: number;
   id: string;
 }
