@@ -621,6 +621,62 @@ private getAllowedStatusTransitions(userRole: UserRole): OrderStatus[] {
 
 ## 7. External Wire Consumers
 
+**SDK directories checked:** None found. Monorepo apps are: `admin-dashboard`, `api`, `backup-scheduler`, `customer-app`, `image-processor`, `kitchen-display`, `management-api`, `management-portal`, `onboarding-app`, `print-agent`, `realtime`. None of these are an SDK package.
+- `apps/management-api` — 0 OrderStatus references
+- `apps/print-agent` — 0 OrderStatus references
+- `apps/backup-scheduler` — 0 references
+- `apps/image-processor` — 0 references
+
+**No partner / mobile SDK exists in the monorepo.** No `apps/sdk-*` or `packages/sdk-*` directory.
+
+**API documentation checked:** OpenAPI/Swagger schema is generated dynamically from `apps/api/src/openapi/integration.ts`, NOT from a static spec file (no `openapi.{json,yaml}` exists in the repo).
+
+**🚨 8th OrderStatus definition discovered: `apps/api/src/openapi/integration.ts:277-283`**
+
+```ts
+const OrderStatus = z.enum([
+  "pending",
+  "preparing",
+  "ready",
+  "completed",
+  "cancelled",
+]);
+```
+
+This is the **public** OrderStatus exposed via Swagger UI to anyone reading the API docs. It has only **5 members** and:
+- ❌ Missing `confirmed` (in DB)
+- ❌ Missing `delivered` (in DB) — uses `completed` instead, which doesn't exist in DB
+- ❌ Missing `paid` (in DB)
+- ❌ Missing `refunded` (in DB)
+
+This means external clients reading the public API docs are being told the wrong contract. Any automated client generation against the Swagger UI gets a broken enum. Phase 2 must update this to the canonical 8-member set in lockstep with shared-types.
+
+There is also a sub-schema `OrderItem.status` at line 291 with `z.enum(["pending", "preparing", "ready"])` — only 3 members. This is a separate `OrderItemStatus` and is **out of scope** for this plan but flagged for separate cleanup.
+
+**Contract test snapshot checked:** `scripts/check-api-contracts.cjs` reads `apps/api/src/contracts/schemas/*.ts` and stores a field-name snapshot in `.api-contracts-snapshot.json`. Inspection shows the snapshot tracks **field names only, not enum values** — `UpdateOrderStatusResponse: ["data", "success"]` with no enum content. Therefore:
+- Changing the enum membership in `OrderStatusEnum` (`apps/api/src/contracts/schemas/orders.ts:22-30`) will **NOT** trip the contract test. This is good news — Phase 2 doesn't need to coordinate with `pnpm contract:update`.
+- ⚠️ However, the contract snapshot has a blind spot for enum drift — recommend Phase 8 (post-cleanup) to either delete this contract or extend the snapshot generator to capture enum values.
+
+**Postman collections / Insomnia exports:** None found in repo.
+
+**Public-facing markdown docs that may pin enum values:**
+
+```bash
+rg -l 'OrderStatus|status.*pending' docs/ --type md
+```
+
+The plan and this investigation doc are the only matches inside `docs/`. No README or developer-facing doc currently documents the canonical enum.
+
+**Conclusion / Finding:**
+
+✅ **No external SDK depends on the numeric wire format** — the only consumers are first-party apps within this monorepo.
+
+⚠️ **One public API consumer at risk:** the dynamically-generated Swagger UI served from `apps/api/src/openapi/integration.ts`. Anyone using the public API docs has been told a 5-member string enum that mismatches reality. Phase 2 must update the OpenAPI integration schema as part of the canonical-type rollout.
+
+⚠️ **Contract test blind spot:** `.api-contracts-snapshot.json` tracks field names only, not enum values. The migration won't trigger contract failure, but a follow-up should extend the snapshot generator (out of scope for this plan).
+
+✅ **No legacy mobile / partner SDK** — wire format change is internal-only.
+
 ## 8. Durable Object Hibernated State
 
 ## 9. Client-Side Caches
