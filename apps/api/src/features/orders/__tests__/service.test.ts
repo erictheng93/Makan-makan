@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
-import { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock dependencies
@@ -134,7 +134,7 @@ describe("OrdersService", () => {
           orderNumber: "ORD-001",
           restaurantId: "1",
           totalAmount: 5000,
-          status: OrderStatus.PENDING,
+          status: "pending" as OrderStatus,
           items: validOrderData.items,
           createdAt: new Date().toISOString(),
         };
@@ -326,8 +326,8 @@ describe("OrdersService", () => {
       it("should return active orders for restaurant", async () => {
         mockBaseOrderService.getOrders.mockResolvedValue({
           orders: [
-            { id: 1, status: OrderStatus.CONFIRMED },
-            { id: 2, status: OrderStatus.PREPARING },
+            { id: 1, status: "confirmed" as OrderStatus },
+            { id: 2, status: "preparing" as OrderStatus },
           ],
           pagination: { page: 1, limit: 100, total: 2, totalPages: 1 },
         });
@@ -343,19 +343,19 @@ describe("OrdersService", () => {
   describe("Order Updates", () => {
     describe("updateOrder", () => {
       it("should update order successfully", async () => {
-        const existingOrder = { id: 1, status: OrderStatus.PENDING };
-        const updatedOrder = { id: 1, status: OrderStatus.CONFIRMED };
+        const existingOrder = { id: 1, status: "pending" as OrderStatus };
+        const updatedOrder = { id: 1, status: "confirmed" as OrderStatus };
 
         mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
         mockBaseOrderService.updateOrderStatus.mockResolvedValue(updatedOrder);
 
         const result = await service.updateOrder(
           1,
-          { status: OrderStatus.CONFIRMED },
+          { status: "confirmed" as OrderStatus },
           100,
         );
 
-        expect(result?.status).toBe(OrderStatus.CONFIRMED);
+        expect(result?.status).toBe("confirmed" as OrderStatus);
         expect(mockBaseOrderService.updateOrderStatus).toHaveBeenCalledOnce();
       });
 
@@ -365,7 +365,7 @@ describe("OrdersService", () => {
 
         const result = await service.updateOrder(
           999,
-          { status: OrderStatus.CONFIRMED },
+          { status: "confirmed" as OrderStatus },
           100,
         );
 
@@ -377,12 +377,12 @@ describe("OrdersService", () => {
       it("should update status and broadcast", async () => {
         const existingOrder = {
           id: 1,
-          status: OrderStatus.PENDING,
+          status: "pending" as OrderStatus,
           restaurantId: "1",
         };
         const updatedOrder = {
           id: 1,
-          status: OrderStatus.CONFIRMED,
+          status: "confirmed" as OrderStatus,
           restaurantId: "1",
         };
 
@@ -391,33 +391,38 @@ describe("OrdersService", () => {
 
         const result = await service.updateOrderStatus(
           1,
-          { status: OrderStatus.CONFIRMED, notes: "Confirmed by manager" },
+          { status: "confirmed" as OrderStatus, notes: "Confirmed by manager" },
           100,
           1,
         );
 
-        expect(result?.status).toBe(OrderStatus.CONFIRMED);
+        expect(result?.status).toBe("confirmed" as OrderStatus);
         expect(mockBaseOrderService.updateOrderStatus).toHaveBeenCalledOnce();
       });
 
       it("should reject invalid status transition", async () => {
-        const existingOrder = { id: 1, status: OrderStatus.DELIVERED };
+        const existingOrder = { id: 1, status: "delivered" as OrderStatus };
         mockEnv.CACHE_KV.get.mockResolvedValue(existingOrder);
 
         await expect(
-          service.updateOrderStatus(1, { status: OrderStatus.PENDING }, 100, 1),
+          service.updateOrderStatus(
+            1,
+            { status: "pending" as OrderStatus },
+            100,
+            1,
+          ),
         ).rejects.toThrow();
       });
     });
 
     describe("cancelOrder", () => {
       it("should cancel order successfully", async () => {
-        const cancelledOrder = { id: 1, status: OrderStatus.CANCELLED };
+        const cancelledOrder = { id: 1, status: "cancelled" as OrderStatus };
         mockBaseOrderService.cancelOrder.mockResolvedValue(cancelledOrder);
 
         const result = await service.cancelOrder(1, "Customer request", 100);
 
-        expect(result?.status).toBe(OrderStatus.CANCELLED);
+        expect(result?.status).toBe("cancelled" as OrderStatus);
         expect(mockBaseOrderService.cancelOrder).toHaveBeenCalledOnce();
       });
 
@@ -643,7 +648,7 @@ describe("OrdersService", () => {
       it("should return status history", async () => {
         const order = {
           id: 1,
-          status: OrderStatus.DELIVERED,
+          status: "delivered" as OrderStatus,
           updatedAt: new Date().toISOString(),
           notes: "Delivered to customer",
         };
@@ -652,7 +657,7 @@ describe("OrdersService", () => {
         const result = await service.getOrderStatusHistory(1);
 
         expect(result).toHaveLength(1);
-        expect(result[0].status).toBe(OrderStatus.DELIVERED);
+        expect(result[0].status).toBe("delivered" as OrderStatus);
       });
 
       it("should return empty array for non-existent order", async () => {

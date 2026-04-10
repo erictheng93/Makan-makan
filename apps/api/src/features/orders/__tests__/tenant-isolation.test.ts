@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
-import { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 import { resetAllFactories } from "@makanmakan/testing-utils";
 
 // ── Mock dependencies ──────────────────────────────────────────────────
@@ -320,7 +320,7 @@ describe("OrdersService — Multi-Tenant Data Isolation", () => {
       await expect(
         service.updateOrderStatus(
           50,
-          { status: OrderStatus.CONFIRMED },
+          { status: "confirmed" as OrderStatus },
           10,
           1,
           callerFromA,

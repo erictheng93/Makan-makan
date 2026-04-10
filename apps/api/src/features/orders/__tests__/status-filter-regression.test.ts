@@ -29,7 +29,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ORDER_STATUS } from "@makanmakan/database";
-import { OrderStatus as SharedTypesOrderStatus } from "@makanmakan/shared-types";
+import { ORDER_STATUSES } from "@makanmakan/shared-types";
 import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 import { OrdersService } from "../services/OrdersService";
 
@@ -115,15 +115,11 @@ describe("OrderStatus canonical set invariants (Issue #9)", () => {
     expect(testValues).toEqual(dbValues);
   });
 
-  // Block A: the signal flare — fails until Phase 2 rewrites shared-types
+  // Block A: the signal flare — passes now that Phase 2 Task 13 rewrote shared-types
+  // to a string union. ORDER_STATUSES is the runtime const array of all valid statuses.
   it("shared-types OrderStatus matches the DB canonical set (FAILS until Phase 2 Task 13)", () => {
-    // For a numeric enum, Object.values emits both string keys and numeric values.
-    // Filter to strings, lowercase, and compare as a set.
-    const sharedValues = new Set(
-      Object.values(SharedTypesOrderStatus)
-        .filter((v): v is string => typeof v === "string")
-        .map((v) => v.toLowerCase()),
-    );
+    // ORDER_STATUSES is the runtime array exported alongside the OrderStatus type alias.
+    const sharedValues = new Set(ORDER_STATUSES as unknown as string[]);
     const canonical = new Set(CANONICAL_ORDER_STATUSES);
     expect(sharedValues).toEqual(canonical);
   });

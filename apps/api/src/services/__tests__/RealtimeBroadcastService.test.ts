@@ -17,15 +17,6 @@ vi.mock("@makanmakan/shared-types", async () => {
       KITCHEN_ITEM_STATUS: "kitchen_item_status",
       MENU_AVAILABILITY_UPDATE: "menu_availability_update",
     },
-    OrderStatus: {
-      PENDING: 0,
-      CONFIRMED: 1,
-      PREPARING: 2,
-      READY: 3,
-      DELIVERED: 4,
-      PAID: 5,
-      CANCELLED: 6,
-    },
   };
 });
 
@@ -35,8 +26,8 @@ import type { Env } from "../../shared/types";
 import {
   type NewOrderEvent,
   type OrderStatusUpdateEvent,
+  type OrderStatus,
   RealtimeEventType,
-  OrderStatus,
 } from "@makanmakan/shared-types";
 
 // Mock logger
@@ -262,8 +253,8 @@ describe("RealtimeBroadcastService", () => {
         data: {
           orderId: 200,
           orderNumber: "#200",
-          status: OrderStatus.PREPARING,
-          previousStatus: OrderStatus.PENDING,
+          status: "preparing" as OrderStatus,
+          previousStatus: "pending" as OrderStatus,
           estimatedTime: 15,
           message: "Order is being prepared",
           updatedBy: {

@@ -35,7 +35,7 @@ vi.mock("@makanmakan/shared-types", async () => {
 
 // Import after mocking
 import { OrdersService } from "../services/OrdersService";
-import { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 
 // RealtimeEventType for assertions
 const RealtimeEventType = {
@@ -125,7 +125,7 @@ describe("Orders + Realtime Integration", () => {
         customerPhone: "+1234567890",
         totalAmount: 2000,
         subtotal: 2000,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         paymentStatus: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -191,7 +191,7 @@ describe("Orders + Realtime Integration", () => {
         orderNumber: "#002",
         totalAmount: 500,
         subtotal: 500,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         paymentStatus: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -303,7 +303,7 @@ describe("Orders + Realtime Integration", () => {
       await ordersService.broadcastOrderUpdate({
         orderId: 4,
         newStatus: "confirmed" as any,
-        previousStatus: OrderStatus.PENDING,
+        previousStatus: "pending" as OrderStatus,
         notes: "Order confirmed",
         updatedBy: 1,
         updatedAt: new Date(),
@@ -320,7 +320,7 @@ describe("Orders + Realtime Integration", () => {
       await ordersService.broadcastOrderUpdate({
         orderId: 999,
         newStatus: "confirmed" as any,
-        previousStatus: OrderStatus.PENDING,
+        previousStatus: "pending" as OrderStatus,
         updatedBy: 1,
         updatedAt: new Date(),
       });
@@ -355,7 +355,7 @@ describe("Orders + Realtime Integration", () => {
         orderNumber: "#005",
         totalAmount: 4500,
         subtotal: 4500,
-        status: OrderStatus.PENDING,
+        status: "pending" as OrderStatus,
         paymentStatus: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
-import { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 import type { UserRole } from "../../../shared/constants";
 import { resetAllFactories } from "@makanmakan/testing-utils";
 
@@ -226,9 +226,7 @@ describe("Order Status State Machine", () => {
             const result = await service.updateOrderStatus(
               1,
               {
-                status: OrderStatus[
-                  toStatus.toUpperCase() as keyof typeof OrderStatus
-                ] as unknown as OrderStatus,
+                status: toStatus as OrderStatus,
               },
               100,
               0,
@@ -248,9 +246,7 @@ describe("Order Status State Machine", () => {
               service.updateOrderStatus(
                 1,
                 {
-                  status: OrderStatus[
-                    toStatus.toUpperCase() as keyof typeof OrderStatus
-                  ] as unknown as OrderStatus,
+                  status: toStatus as OrderStatus,
                 },
                 100,
                 0,
@@ -291,9 +287,7 @@ describe("Order Status State Machine", () => {
               const result = await service.updateOrderStatus(
                 1,
                 {
-                  status: OrderStatus[
-                    targetStatus.toUpperCase() as keyof typeof OrderStatus
-                  ] as unknown as OrderStatus,
+                  status: targetStatus as OrderStatus,
                 },
                 100,
                 role,
@@ -326,9 +320,7 @@ describe("Order Status State Machine", () => {
                 service.updateOrderStatus(
                   1,
                   {
-                    status: OrderStatus[
-                      targetStatus.toUpperCase() as keyof typeof OrderStatus
-                    ] as unknown as OrderStatus,
+                    status: targetStatus as OrderStatus,
                   },
                   100,
                   role,
@@ -351,7 +343,7 @@ describe("Order Status State Machine", () => {
         // No userRole parameter means role check is skipped
         const result = await service.updateOrderStatus(
           1,
-          { status: OrderStatus.CONFIRMED },
+          { status: "confirmed" as OrderStatus },
           100,
           undefined,
         );
@@ -367,7 +359,7 @@ describe("Order Status State Machine", () => {
         await expect(
           service.updateOrderStatus(
             1,
-            { status: OrderStatus.DELIVERED },
+            { status: "delivered" as OrderStatus },
             100,
             undefined,
           ),
@@ -399,9 +391,7 @@ describe("Order Status State Machine", () => {
           const result = await service.updateOrderStatus(
             1,
             {
-              status: OrderStatus[
-                targetStatus.toUpperCase() as keyof typeof OrderStatus
-              ] as unknown as OrderStatus,
+              status: targetStatus as OrderStatus,
             },
             100,
             0, // Admin
@@ -414,7 +404,7 @@ describe("Order Status State Machine", () => {
           await expect(
             service.updateOrderStatus(
               1,
-              { status: OrderStatus.CONFIRMED },
+              { status: "confirmed" as OrderStatus },
               100,
               0,
             ),
@@ -423,17 +413,17 @@ describe("Order Status State Machine", () => {
       });
     }
 
-    it("should handle numeric enum values for new status (OrderStatus.PENDING = 0)", async () => {
+    it('should handle string status values for new status ("pending" = 0)', async () => {
       const mockOrder = createMockOrder("confirmed");
       mockEnv.CACHE_KV.get.mockResolvedValue(mockOrder);
 
       const updatedOrder = createMockOrder("preparing");
       mockBaseOrderService.updateOrderStatus.mockResolvedValue(updatedOrder);
 
-      // OrderStatus.PREPARING = 2, passed as numeric
+      // "preparing" as OrderStatus = 2, passed as numeric
       const result = await service.updateOrderStatus(
         1,
-        { status: OrderStatus.PREPARING },
+        { status: "preparing" as OrderStatus },
         100,
         0,
       );
@@ -451,7 +441,7 @@ describe("Order Status State Machine", () => {
 
       const result = await service.updateOrderStatus(
         1,
-        { status: OrderStatus.CONFIRMED }, // enum value = 1
+        { status: "confirmed" as OrderStatus }, // enum value = 1
         100,
         0,
       );
@@ -491,7 +481,7 @@ describe("Order Status State Machine", () => {
         await expect(
           service.updateOrderStatus(
             1,
-            { status: OrderStatus.CONFIRMED },
+            { status: "confirmed" as OrderStatus },
             100,
             0,
           ),
@@ -505,7 +495,7 @@ describe("Order Status State Machine", () => {
         await expect(
           service.updateOrderStatus(
             1,
-            { status: OrderStatus.CONFIRMED },
+            { status: "confirmed" as OrderStatus },
             100,
             0,
           ),
@@ -551,9 +541,7 @@ describe("Order Status State Machine", () => {
             service.updateOrderStatus(
               1,
               {
-                status: OrderStatus[
-                  status.toUpperCase() as keyof typeof OrderStatus
-                ] as unknown as OrderStatus,
+                status: status as OrderStatus,
               },
               100,
               0,
@@ -573,9 +561,7 @@ describe("Order Status State Machine", () => {
             service.updateOrderStatus(
               1,
               {
-                status: OrderStatus[
-                  targetStatus.toUpperCase() as keyof typeof OrderStatus
-                ] as unknown as OrderStatus,
+                status: targetStatus as OrderStatus,
               },
               100,
               0,
@@ -593,9 +579,7 @@ describe("Order Status State Machine", () => {
             service.updateOrderStatus(
               1,
               {
-                status: OrderStatus[
-                  targetStatus.toUpperCase() as keyof typeof OrderStatus
-                ] as unknown as OrderStatus,
+                status: targetStatus as OrderStatus,
               },
               100,
               0,
@@ -612,7 +596,7 @@ describe("Order Status State Machine", () => {
 
         const result = await service.updateOrderStatus(
           999,
-          { status: OrderStatus.CONFIRMED },
+          { status: "confirmed" as OrderStatus },
           100,
           0,
         );
@@ -641,7 +625,7 @@ describe("Order Status State Machine", () => {
 
           const result = await service.updateOrderStatus(
             1,
-            { status: OrderStatus.CANCELLED },
+            { status: "cancelled" as OrderStatus },
             100,
             0, // Admin
           );
@@ -661,7 +645,7 @@ describe("Order Status State Machine", () => {
           await expect(
             service.updateOrderStatus(
               1,
-              { status: OrderStatus.CANCELLED },
+              { status: "cancelled" as OrderStatus },
               100,
               0,
             ),
@@ -704,9 +688,7 @@ describe("Order Status State Machine", () => {
           const result = await service.updateOrderStatus(
             1,
             {
-              status: OrderStatus[
-                toStatus.toUpperCase() as keyof typeof OrderStatus
-              ] as unknown as OrderStatus,
+              status: toStatus as OrderStatus,
             },
             100,
             0, // Admin

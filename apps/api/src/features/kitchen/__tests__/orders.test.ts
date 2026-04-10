@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { KitchenService } from "../services/KitchenService";
 import type { KitchenSSEEvent, OrderItemStatusUpdate } from "../types";
-import { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 
 // Mock OrdersService with hoisted mock for flexibility
 const mockGetOrders = vi.hoisted(() => vi.fn());
@@ -20,7 +20,7 @@ const mockOrdersData = {
       id: 1,
       orderNumber: "ORD-001",
       tableId: 1,
-      status: OrderStatus.CONFIRMED,
+      status: "confirmed" as OrderStatus,
       createdAt: new Date().toISOString(),
       items: [
         {
@@ -39,7 +39,7 @@ const mockOrdersData = {
       id: 2,
       orderNumber: "ORD-002",
       tableId: 2,
-      status: OrderStatus.PREPARING,
+      status: "preparing" as OrderStatus,
       createdAt: new Date().toISOString(),
       items: [
         {

@@ -11,7 +11,8 @@ import type { Env } from "../../../shared/types";
 import { OrdersService } from "../services/OrdersService";
 import ordersRoutes from "../routes";
 import type { CreateOrderData, Order, CouponPreviewRequest } from "../types";
-import { OrderStatus, OrderPaymentStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmakan/shared-types";
+import { OrderPaymentStatus } from "@makanmakan/shared-types";
 import { orderSchemas } from "../schemas/validation";
 import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
@@ -363,7 +364,7 @@ describe("Orders Feature", () => {
         // Arrange
         mockOrderServiceInstance.cancelOrder.mockResolvedValue({
           ...mockOrder,
-          status: OrderStatus.CANCELLED,
+          status: "cancelled" as OrderStatus,
         });
 
         // Act
@@ -374,7 +375,7 @@ describe("Orders Feature", () => {
           1,
           "Customer request",
         );
-        expect(result?.status).toBe(OrderStatus.CANCELLED);
+        expect(result?.status).toBe("cancelled" as OrderStatus);
         expect(mockCacheKV.delete).toHaveBeenCalled(); // Cache should be invalidated
       });
 
