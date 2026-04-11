@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./types";
+import type { OrderStatus } from "@makanmakan/shared-types";
 
 /**
  * Advanced Durable Object with Enterprise-Grade Features:
@@ -28,8 +29,8 @@ interface ConnectionInfo {
 }
 
 interface OrderStateTransition {
-  from: OrderLifecycleState;
-  to: OrderLifecycleState;
+  from: OrderStatus;
+  to: OrderStatus;
   timestamp: number;
   triggeredBy: number;
   metadata?: Record<string, unknown>;
@@ -43,8 +44,8 @@ interface OrderEstimatedTimes {
 
 interface OrderState {
   id: string;
-  currentState: OrderLifecycleState;
-  previousState?: OrderLifecycleState;
+  currentState: OrderStatus;
+  previousState?: OrderStatus;
   restaurantId: number;
   transitions: Array<OrderStateTransition>;
   estimatedTimes: OrderEstimatedTimes;
@@ -153,14 +154,11 @@ interface GroupOrderClientView {
  */
 type OutboundMessage = Record<string, unknown>;
 
-enum OrderLifecycleState {
-  PENDING = "pending",
-  CONFIRMED = "confirmed",
-  PREPARING = "preparing",
-  READY = "ready",
-  SERVING = "serving",
-  COMPLETED = "completed",
-  CANCELLED = "cancelled",
+const CURRENT_DO_STATE_VERSION = 2;
+
+interface PersistedSessionHeader {
+  version: number;
+  writtenAt: number;
 }
 
 interface SessionState {
@@ -171,6 +169,7 @@ interface SessionState {
   lastActivity: number;
   hibernated: boolean;
   totalMessages: number;
+  version: number;
   errors: Array<{
     timestamp: number;
     error: string;
@@ -180,8 +179,7 @@ interface SessionState {
 
 export class AdvancedRealtimeSession extends DurableObject<Env> {
   private sessionState: SessionState;
-  private stateTransitions: Map<OrderLifecycleState, OrderLifecycleState[]> =
-    new Map();
+  private stateTransitions: Map<OrderStatus, OrderStatus[]> = new Map();
   private hibernationTimer?: ReturnType<typeof setInterval>;
   private metricsTimer?: ReturnType<typeof setInterval>;
   private cleanupTimer?: ReturnType<typeof setInterval>;
@@ -198,30 +196,20 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
       lastActivity: Date.now(),
       hibernated: false,
       totalMessages: 0,
+      version: CURRENT_DO_STATE_VERSION,
       errors: [],
     };
 
     // Define valid state transitions for order lifecycle
-    this.stateTransitions = new Map([
-      [
-        OrderLifecycleState.PENDING,
-        [OrderLifecycleState.CONFIRMED, OrderLifecycleState.CANCELLED],
-      ],
-      [
-        OrderLifecycleState.CONFIRMED,
-        [OrderLifecycleState.PREPARING, OrderLifecycleState.CANCELLED],
-      ],
-      [
-        OrderLifecycleState.PREPARING,
-        [OrderLifecycleState.READY, OrderLifecycleState.CANCELLED],
-      ],
-      [
-        OrderLifecycleState.READY,
-        [OrderLifecycleState.SERVING, OrderLifecycleState.CANCELLED],
-      ],
-      [OrderLifecycleState.SERVING, [OrderLifecycleState.COMPLETED]],
-      [OrderLifecycleState.COMPLETED, []],
-      [OrderLifecycleState.CANCELLED, []],
+    this.stateTransitions = new Map<OrderStatus, OrderStatus[]>([
+      ["pending", ["confirmed", "cancelled"]],
+      ["confirmed", ["preparing", "cancelled"]],
+      ["preparing", ["ready", "cancelled"]],
+      ["ready", ["delivered", "cancelled"]],
+      ["delivered", ["paid", "refunded"]],
+      ["paid", ["refunded"]],
+      ["cancelled", []],
+      ["refunded", []],
     ]);
 
     // Initialize persistent state
@@ -428,7 +416,7 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
     connectionInfo: ConnectionInfo,
     data: {
       orderId: string;
-      newState: OrderLifecycleState;
+      newState: OrderStatus;
       metadata?: Record<string, unknown>;
       estimatedTimes?: Partial<OrderEstimatedTimes>;
     },
@@ -442,7 +430,7 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
       // Create new order state
       orderState = {
         id: orderId,
-        currentState: OrderLifecycleState.PENDING,
+        currentState: "pending",
         restaurantId: connectionInfo.restaurantId,
         transitions: [],
         estimatedTimes: {
@@ -625,6 +613,7 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
         activeConnectionsCount: this.sessionState.activeConnections.size,
         orderStatesCount: this.sessionState.orderStates.size,
         totalMessages: this.sessionState.totalMessages,
+        version: this.sessionState.version,
       });
 
       // Clear in-memory state
@@ -644,10 +633,68 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
   }
 
   /**
+   * Migrate persisted DO state from an older version to the current one.
+   * Called lazily on wakeup when the stored version is behind CURRENT_DO_STATE_VERSION.
+   */
+  private async migrateDOState(fromVersion: number): Promise<void> {
+    if (fromVersion < 2) {
+      const legacyMap: Record<string, string> = {
+        serving: "ready",
+        completed: "delivered",
+      };
+
+      const orderStates = await this.ctx.storage.list({ prefix: "order:" });
+      let migratedCount = 0;
+      for (const [key, raw] of orderStates) {
+        const state = raw as { currentState?: string; previousState?: string };
+        let changed = false;
+        const updates: Record<string, unknown> = { ...(raw as object) };
+
+        if (state.currentState && legacyMap[state.currentState]) {
+          updates.currentState = legacyMap[state.currentState];
+          changed = true;
+        }
+        if (state.previousState && legacyMap[state.previousState]) {
+          updates.previousState = legacyMap[state.previousState];
+          changed = true;
+        }
+
+        if (changed) {
+          await this.ctx.storage.put(key, updates);
+          migratedCount++;
+        }
+      }
+
+      if (migratedCount > 0) {
+        console.log(
+          `DO state migration: coerced ${migratedCount} order states from v1 to v2`,
+        );
+      }
+
+      await this.ctx.storage.put("session_version", {
+        version: CURRENT_DO_STATE_VERSION,
+        writtenAt: Date.now(),
+      } satisfies PersistedSessionHeader);
+    }
+  }
+
+  /**
    * Load persisted state on initialization
    */
   private async loadPersistedState(): Promise<void> {
     try {
+      // Check version and run lazy migration if needed
+      const header =
+        await this.ctx.storage.get<PersistedSessionHeader>("session_version");
+      const persistedVersion = header?.version ?? 1;
+
+      if (persistedVersion < CURRENT_DO_STATE_VERSION) {
+        console.log(
+          `DO state migration: ${persistedVersion} → ${CURRENT_DO_STATE_VERSION}`,
+        );
+        await this.migrateDOState(persistedVersion);
+      }
+
       // Load order states
       const orderStates = await this.ctx.storage.list<OrderState>({
         prefix: "order:",
