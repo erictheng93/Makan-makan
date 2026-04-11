@@ -98,7 +98,6 @@ jobs:
 
       - name: 📊 產生覆蓋率報告
         run: pnpm run test:coverage
-        continue-on-error: true
 
       - name: ☂️ 上傳覆蓋率到 Codecov
         uses: codecov/codecov-action@v6
@@ -323,13 +322,11 @@ jobs:
           echo $! > realtime-server.pid
         env:
           NODE_ENV: test
-        continue-on-error: true
 
       - name: ⏳ 等待服務器啟動
         run: |
           npx wait-on http://localhost:8787/api/v1/health --timeout 60000
           npx wait-on ws://localhost:8788 --timeout 60000
-        continue-on-error: true
 
       - name: 📦 安裝 Artillery
         run: pnpm add -g artillery@latest
@@ -343,7 +340,6 @@ jobs:
           API_URL: http://localhost:8787
           TEST_USERNAME: testuser
           TEST_PASSWORD: testpass123
-        continue-on-error: true
 
       - name: 🌐 執行 WebSocket 負載測試
         run: |
@@ -353,7 +349,6 @@ jobs:
         env:
           API_URL: http://localhost:8787
           WS_URL: ws://localhost:8788
-        continue-on-error: true
 
       - name: 📊 生成 Artillery 報告
         if: always()
@@ -640,8 +635,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🔍 基礎依賴漏洞掃描
-        run: pnpm audit --audit-level high
-        continue-on-error: true
+        run: pnpm audit --audit-level critical
 
       - name: 🛡️ Snyk 深度安全掃描
         uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # pinned from master on 2026-04-08
@@ -649,7 +643,6 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --all-projects --severity-threshold=high --json-file-output=snyk-report.json
-        continue-on-error: true
 
       - name: 📊 Snyk 許可證合規檢查
         if: always()
@@ -665,13 +658,11 @@ jobs:
         with:
           languages: javascript
           queries: +security-extended,security-and-quality
-        continue-on-error: true
 
       - name: 🔍 執行 CodeQL 分析
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:javascript"
-        continue-on-error: true
 
       - name: 🏗️ 建置應用程式 (OWASP ZAP 準備)
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
