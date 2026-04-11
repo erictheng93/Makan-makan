@@ -221,10 +221,10 @@ describe("Order Factory", () => {
     expect(inProgress.preparingAt).toBeDefined();
   });
 
-  it("應該生成已完成訂單", () => {
-    const completed = orderFactory.buildCompleted();
+  it("應該生成已付款訂單", () => {
+    const completed = orderFactory.buildPaid();
 
-    expect(completed.status).toBe("completed");
+    expect(completed.status).toBe("paid");
     expect(completed.paymentStatus).toBe("paid");
     expect(completed.paymentMethod).toBeDefined();
   });

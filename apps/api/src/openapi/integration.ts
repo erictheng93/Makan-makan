@@ -276,10 +276,13 @@ export const MenuSchemas = {
 // Define order-related schemas first to avoid circular reference
 const OrderStatus = z.enum([
   "pending",
+  "confirmed",
   "preparing",
   "ready",
-  "completed",
+  "delivered",
+  "paid",
   "cancelled",
+  "refunded",
 ]);
 const OrderItem = z.object({
   id: z.string(),

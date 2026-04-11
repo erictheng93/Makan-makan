@@ -523,9 +523,10 @@ export const ORDER_STATUS_TRANSITIONS: Record<string, readonly string[]> = {
   confirmed: ["preparing", "cancelled"],
   preparing: ["ready", "cancelled"],
   ready: ["delivered", "cancelled"],
-  delivered: ["paid"],
+  delivered: ["paid", "refunded"],
   paid: [],
   cancelled: [],
+  refunded: [],
 } as const;
 
 /**
