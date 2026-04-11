@@ -77,6 +77,9 @@ jobs:
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
+      - name: 🏗️ 建置內部套件
+        run: pnpm run build
+
       - name: 🧪 執行所有單元測試（含覆蓋率）
         run: pnpm run test:coverage
 
@@ -586,6 +589,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🛡️ Snyk 深度安全掃描
+        # continue-on-error: Snyk is an external SaaS — auth failures (SNYK-0005)
+        # and maintenance windows (503) should not block the pipeline. CodeQL
+        # remains the hard-fail SAST gate.
+        continue-on-error: true
         uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # pinned from master on 2026-04-08
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
