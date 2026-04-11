@@ -152,23 +152,19 @@ jobs:
           TEST_D1_DATABASE: ${{ secrets.TEST_D1_DATABASE }}
           TEST_KV_NAMESPACE: ${{ secrets.TEST_KV_NAMESPACE }}
 
-  # E2E 測試
+  # E2E 測試 (mock API — no real backend needed)
+  #
+  # All customer/journey tests use page.route() mocks from
+  # tests/e2e/helpers/mock-api.ts to intercept API calls. Admin tests
+  # use preAuthAdmin() + mock routes. Integration tests (real API) are
+  # excluded — they require a live backend and should run in nightly CI.
   #
   # Runs inside the pinned Playwright Linux container so browser binaries
-  # and system dependencies are pre-installed. This replaces the previous
-  # `npx playwright install --with-deps` step which took ~8min for chromium
-  # (binary ~170MB + apt packages ~200MB) and caused the job to dominate
-  # the critical path on every PR. Matches the pattern used by
-  # visual-regression-tests below.
-  #
-  # Upgrading Playwright requires bumping BOTH the image tag below AND the
-  # @playwright/test version in package.json in the same PR.
+  # and system dependencies are pre-installed. Upgrading Playwright
+  # requires bumping BOTH the image tag below AND the @playwright/test
+  # version in package.json in the same PR.
   e2e-tests:
     name: 🎭 E2E 測試
-    # DISABLED: 131/158 tests fail because the suite needs a mock API or
-    # real backend — the static Vite preview has no data. Tracked in
-    # Issue #16. Remove `if: false` once the tests are fixed.
-    if: false
     runs-on: ubuntu-latest
     needs: [unit-tests, workers-tests]
     timeout-minutes: 25
@@ -176,26 +172,13 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
       options: --ipc=host
     env:
-      # GitHub Actions runs container steps as root, but $HOME is set to
-      # /github/home which is owned by `pwuser` (the Playwright container's
-      # non-root user). Firefox Nightly refuses to launch under this
-      # mismatch: "Running Nightly as root in a regular user's session is
-      # not supported." Override HOME so Firefox sees a root-owned homedir.
-      # Chromium and WebKit don't have this restriction but it doesn't hurt.
       HOME: /root
-
-    strategy:
-      matrix:
-        browser: [chromium, firefox, webkit]
 
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v5
 
       - name: 📦 啟用 pnpm via corepack
-        # Container has Node 22 preinstalled but no pnpm. Corepack is the
-        # supported way to activate the exact pnpm version pinned in
-        # package.json's `packageManager` field.
         run: |
           corepack enable
           corepack prepare pnpm@10.24.0 --activate
@@ -203,60 +186,47 @@ jobs:
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
-      - name: 🏗️ 建置 customer-app（scoped）
-        # Only customer-app is needed for the chromium/firefox/webkit
-        # projects (they all `testIgnore` admin/ + integration/). Building
-        # only what we need shaves ~3 minutes off the install + build phase
-        # and avoids tripping over unrelated build failures in backend
-        # workers.
-        run: pnpm build --filter=makanmakan-customer-app
-
-      - name: 🚀 啟動 customer-app preview server
-        # Previously this ran `pnpm run preview` (recursive) which started
-        # ALL 5 apps' preview servers in parallel. 4 of them defaulted to
-        # port 4173 and raced for it; only one would bind successfully.
-        # The customer-app config explicitly uses port 3000 so it wasn't
-        # in the race — meaning the wait-on below was waiting for whichever
-        # admin/kitchen/management/onboarding app won the port 4173 race,
-        # NOT for customer-app. Tests then ran against the wrong app, and
-        # every customer-element selector hit the 15s actionTimeout +
-        # retried 2x = 45s per failure. With ~150 customer tests this
-        # blew through the 25-minute job timeout.
-        #
-        # Fix: start ONLY the customer-app preview, on the port the
-        # customer-app config already declares (3000), and point the test
-        # base URL at it. --host 0.0.0.0 mirrors visual-regression-tests
-        # for safety in case the test runner ever moves to a sibling
-        # container.
+      - name: 🏗️ 建置 customer-app + admin-dashboard
+        env:
+          VITE_API_BASE_URL: /api/v1
         run: |
-          (cd apps/customer-app && npx vite preview --port 3000 --host 0.0.0.0 > /tmp/customer-preview.log 2>&1 &)
-          echo $! > server.pid
+          pnpm build \
+            --filter=makanmakan-customer-app \
+            --filter=makanmakan-admin-dashboard
 
-      - name: ⏳ 等待 customer-app 就緒
-        run: npx wait-on http://localhost:3000 --timeout 60000
+      - name: 🚀 啟動 preview servers
+        run: |
+          mkdir -p /tmp/preview-logs
+          (cd apps/customer-app    && npx vite preview --port 3000 --host 0.0.0.0 > /tmp/preview-logs/customer.log 2>&1 &)
+          (cd apps/admin-dashboard && npx vite preview --port 3001 --host 0.0.0.0 > /tmp/preview-logs/admin.log    2>&1 &)
 
-      - name: 🧪 執行 E2E 測試 (${{ matrix.browser }})
-        # NO continue-on-error: real failures must fail the pipeline so the
-        # branch protection gate works. If a test is genuinely flaky, fix it
-        # at the source or set Playwright's `retries` in playwright.config.ts
-        # — do not paper over with continue-on-error here.
-        run: npx playwright test --project=${{ matrix.browser }}
+      - name: ⏳ 等待 preview servers 就緒
+        run: |
+          npx wait-on \
+            http://localhost:3000 \
+            http://localhost:3001 \
+            --timeout 60000
+
+      - name: 🧪 執行 E2E 測試 (chromium + admin)
+        # Runs customer/journey tests on chromium + admin dashboard tests.
+        # Integration tests are excluded (they need a real backend).
+        # Multi-browser expansion (firefox, webkit) can be added once
+        # chromium is green.
+        run: npx playwright test --project=chromium --project=admin
         env:
           E2E_BASE_URL: http://localhost:3000
+          E2E_ADMIN_URL: http://localhost:3001
 
       - name: 🛑 停止測試服務器
         if: always()
         run: |
-          if [ -f server.pid ]; then
-            kill $(cat server.pid) || true
-            rm server.pid
-          fi
+          pkill -f "vite preview" || true
 
       - name: 📎 上傳測試報告
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: playwright-report-${{ matrix.browser }}
+          name: playwright-report-e2e
           path: playwright-report/
           retention-days: 7
 
@@ -264,7 +234,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-screenshots-${{ matrix.browser }}
+          name: playwright-screenshots-e2e
           path: test-results/
           retention-days: 7
 
@@ -892,7 +862,7 @@ jobs:
       [
         unit-tests,
         workers-tests,
-        # e2e-tests,  # disabled — Issue #16
+        e2e-tests,
         security-tests,
         visual-regression-tests,
       ]
