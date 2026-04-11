@@ -582,8 +582,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import { useOrderStore } from "@/stores/order";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import { useConfirmModal } from "@/composables/useConfirmModal";
-import type { Order } from "@/types";
-import { OrderStatus } from "@/types";
+import type { Order, OrderStatus } from "@/types";
 import {
   ClockIcon,
   CheckCircleIcon,
@@ -656,18 +655,15 @@ const navigateToMenuItem = (item: any) => {
 // 計算屬性
 const stats = computed(() => ({
   pending: orderStore.orders.filter((o) =>
-    [OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(o.status),
+    (["pending", "confirmed"] as OrderStatus[]).includes(o.status),
   ).length,
   preparing: orderStore.orders.filter((o) =>
-    [OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED].includes(
-      o.status,
-    ),
+    (["preparing", "ready", "delivered"] as OrderStatus[]).includes(o.status),
   ).length,
   completed: orderStore.orders.filter((o) =>
-    [OrderStatus.COMPLETED, OrderStatus.PAID].includes(o.status),
+    (["delivered", "paid"] as OrderStatus[]).includes(o.status),
   ).length,
-  cancelled: orderStore.orders.filter((o) => o.status === OrderStatus.CANCELLED)
-    .length,
+  cancelled: orderStore.orders.filter((o) => o.status === "cancelled").length,
 }));
 
 const filteredOrders = computed(() => {
@@ -734,7 +730,7 @@ const viewOrderDetails = (order: Order) => {
 };
 
 const updateOrderStatus = async (order: Order) => {
-  const nextStatus = getNextStatus(order.status as string);
+  const nextStatus = getNextStatus(order.status);
   if (nextStatus) {
     const success = await orderStore.updateOrderStatus(
       order.id,

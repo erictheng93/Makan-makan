@@ -1,3 +1,9 @@
+// Re-export canonical OrderStatus from shared-types (string union, not enum).
+// Use string literals directly: "pending", "confirmed", etc. — not OrderStatus.PENDING.
+import type { OrderStatus } from "@makanmakan/shared-types";
+export type { OrderStatus } from "@makanmakan/shared-types";
+export { ORDER_STATUSES } from "@makanmakan/shared-types";
+
 export interface User {
   id: number;
   username: string;
@@ -112,17 +118,6 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
-}
-
-export enum OrderStatus {
-  PENDING = "pending",
-  CONFIRMED = "confirmed",
-  PREPARING = "preparing",
-  READY = "ready",
-  DELIVERED = "delivered",
-  PAID = "paid",
-  COMPLETED = "completed",
-  CANCELLED = "cancelled",
 }
 
 export interface OrderItem {

@@ -1,15 +1,10 @@
 import { ref, computed, onUnmounted } from "vue";
 import { useToast, POSITION } from "vue-toastification";
+import type { OrderStatus } from "@/types";
 
 interface OrderStatusUpdate {
   orderId: string;
-  status:
-    | "pending"
-    | "confirmed"
-    | "preparing"
-    | "ready"
-    | "delivered"
-    | "cancelled";
+  status: OrderStatus;
   tableNumber?: string;
   customerName?: string;
   timestamp: string;

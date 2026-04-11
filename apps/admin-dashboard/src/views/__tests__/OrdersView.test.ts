@@ -9,7 +9,6 @@ import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick, reactive } from "vue";
 import OrdersView from "../OrdersView.vue";
-import { OrderStatus } from "@/types";
 import type { Order } from "@/types";
 import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
@@ -29,7 +28,7 @@ function buildMockOrders(): Order[] {
       id: order1Base.id!,
       restaurantId: "r1",
       tableId: 1,
-      status: OrderStatus.PENDING,
+      status: "pending",
       totalAmount: 500,
       createdAt: "2024-03-01T10:00:00Z",
       updatedAt: "2024-03-01T10:00:00Z",
@@ -40,7 +39,7 @@ function buildMockOrders(): Order[] {
       id: order2Base.id!,
       restaurantId: "r1",
       tableId: 2,
-      status: OrderStatus.PREPARING,
+      status: "preparing",
       totalAmount: 800,
       createdAt: "2024-03-01T11:00:00Z",
       updatedAt: "2024-03-01T11:00:00Z",
@@ -60,7 +59,7 @@ function buildMockOrders(): Order[] {
       id: order3Base.id!,
       restaurantId: "r1",
       tableId: undefined,
-      status: OrderStatus.COMPLETED,
+      status: "delivered",
       totalAmount: 300,
       createdAt: "2024-03-01T09:00:00Z",
       updatedAt: "2024-03-01T12:00:00Z",
@@ -71,7 +70,7 @@ function buildMockOrders(): Order[] {
       id: order4Base.id!,
       restaurantId: "r1",
       tableId: 3,
-      status: OrderStatus.CANCELLED,
+      status: "cancelled",
       totalAmount: 200,
       createdAt: "2024-03-01T08:00:00Z",
       updatedAt: "2024-03-01T08:30:00Z",

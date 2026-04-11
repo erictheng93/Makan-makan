@@ -11,7 +11,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia, defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
-import { OrderStatus } from "@/types";
 import type { User, DashboardStats, Order } from "@/types";
 import { UserRole } from "@/types";
 import {
@@ -178,7 +177,7 @@ describe("Dashboard Integration Tests", () => {
         orderNumber: fo.orderNumber,
         tableId: fo.tableId!,
         tableName: "T1",
-        status: OrderStatus.PENDING,
+        status: "pending",
         totalAmount: fo.totalAmount,
         createdAt: new Date(fo.createdAt).toISOString(),
         updatedAt: new Date(fo.updatedAt).toISOString(),
@@ -220,7 +219,7 @@ describe("Dashboard Integration Tests", () => {
         data: { success: true },
       });
 
-      await orderStore.updateOrderStatus(1, OrderStatus.CONFIRMED);
+      await orderStore.updateOrderStatus(1, "confirmed");
 
       notificationStore.addNotification({
         type: "success",
@@ -228,7 +227,7 @@ describe("Dashboard Integration Tests", () => {
         message: "Order status changed to confirmed",
       });
 
-      expect(orderStore.orders[0].status).toBe(OrderStatus.CONFIRMED);
+      expect(orderStore.orders[0].status).toBe("confirmed");
       expect(notificationStore.notifications).toHaveLength(1);
     });
   });
@@ -345,7 +344,7 @@ describe("Dashboard Integration Tests", () => {
               orderNumber: workflowOrder.orderNumber,
               tableId: workflowOrder.tableId!,
               tableName: "T1",
-              status: OrderStatus.PENDING,
+              status: "pending",
               totalAmount: workflowOrder.totalAmount,
               createdAt: new Date(workflowOrder.createdAt).toISOString(),
               updatedAt: new Date(workflowOrder.updatedAt).toISOString(),
@@ -363,7 +362,7 @@ describe("Dashboard Integration Tests", () => {
         data: { success: true },
       });
 
-      await orderStore.updateOrderStatus(1, OrderStatus.PREPARING);
+      await orderStore.updateOrderStatus(1, "preparing");
 
       // Add notification
       notificationStore.addNotification({
@@ -372,7 +371,7 @@ describe("Dashboard Integration Tests", () => {
         message: "Order is now being prepared",
       });
 
-      expect(orderStore.orders[0].status).toBe(OrderStatus.PREPARING);
+      expect(orderStore.orders[0].status).toBe("preparing");
       expect(orderStore.preparingOrders).toHaveLength(1);
       expect(notificationStore.unreadCount).toBe(1);
     });
