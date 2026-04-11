@@ -663,8 +663,12 @@ export class QueueService implements IQueueService {
   }
 
   private isWithinBusinessHours(
-    _businessHours: Record<string, unknown>,
+    businessHours: Record<string, unknown>,
   ): boolean {
+    // When no business hours are configured, treat as always open
+    if (!businessHours || Object.keys(businessHours).length === 0) {
+      return true;
+    }
     // Simplified business hours check
     const now = new Date();
     const currentHour = now.getHours();

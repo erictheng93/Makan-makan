@@ -18,7 +18,7 @@ function buildMockOrders(): Order[] {
   // Use orderFactory with overrides to match the component's Order type
   const order1Base = orderFactory.buildPending({ overrides: { id: 1 } });
   const order2Base = orderFactory.buildInProgress({ overrides: { id: 2 } });
-  const order3Base = orderFactory.buildCompleted({ overrides: { id: 3 } });
+  const order3Base = orderFactory.buildPaid({ overrides: { id: 3 } });
   const order4Base = orderFactory.build({
     overrides: { id: 4, status: "cancelled" },
   });
@@ -244,11 +244,11 @@ describe("OrdersView Component", () => {
 
     it("should show correct preparing count", () => {
       // preparing stat includes PREPARING + READY + DELIVERED
-      // Our data has 1 preparing order (id=2)
+      // Our data has 2 orders in this bucket: order2 (preparing) + order3 (delivered)
       const statsGrid = wrapper.find(".grid.grid-cols-2");
       const cards = statsGrid.findAll(":scope > div");
       const preparingCard = cards[1];
-      expect(preparingCard.text()).toContain("1");
+      expect(preparingCard.text()).toContain("2");
     });
 
     it("should show correct completed count", () => {

@@ -73,8 +73,8 @@ describe("QueueService", () => {
   let queueService: QueueService;
 
   beforeEach(() => {
-    // Reset mocks
-    vi.clearAllMocks();
+    // Reset mocks including any queued mockResolvedValueOnce values from prior tests
+    vi.resetAllMocks();
 
     queueService = new QueueService(
       mockQueueRepository,

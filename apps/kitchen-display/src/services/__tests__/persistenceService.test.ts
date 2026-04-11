@@ -216,7 +216,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
         id: "a3",
         type: "update_status",
         orderId: 12,
-        payload: { status: 4 },
+        payload: { status: "delivered" },
         timestamp: Date.now(),
         synced: false,
         retryCount: 0,
@@ -225,11 +225,9 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       const cached = offlineService.getCachedOrders();
       // Note: updateOrderStatus recalculates based on items, but
       // update_status sets it explicitly first.
-      // Since all items are still "pending", updateOrderStatus sets status=1,
-      // but the payload set status=4 first. The final value depends on
-      // updateOrderStatus overriding. Let's verify the items-based recalculation.
-      // All items pending -> status = 1
-      expect(cached[0].status).toBe(1);
+      // Since all items are still "pending", updateOrderStatus overrides to "confirmed".
+      // All items pending -> status = "confirmed"
+      expect(cached[0].status).toBe("confirmed");
     });
 
     it("should update order priority for priority_change action", () => {
@@ -498,9 +496,9 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       expect(offlineService.validateCachedData()).toBe(false);
     });
 
-    it("should return false when an order has non-number status", () => {
+    it("should return false when an order has non-string status", () => {
       const badOrder = makeOrder({ id: 43 });
-      (badOrder as any).status = "ready"; // string instead of number
+      (badOrder as any).status = 3; // number instead of string
       offlineService.cacheOrders([badOrder]);
 
       expect(offlineService.validateCachedData()).toBe(false);
