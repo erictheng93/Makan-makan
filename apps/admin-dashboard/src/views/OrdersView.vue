@@ -103,8 +103,8 @@
                 {{ t("orders.status.delivered") }}
               </option>
               <option value="paid">{{ t("orders.status.paid") }}</option>
-              <option value="completed">
-                {{ t("orders.status.completed") }}
+              <option value="refunded">
+                {{ t("orders.status.refunded") }}
               </option>
               <option value="cancelled">
                 {{ t("orders.status.cancelled") }}
@@ -757,7 +757,7 @@ const cancelOrder = async (order: Order) => {
 };
 
 const canUpdateStatus = (status: string) => {
-  return !["completed", "cancelled", "paid"].includes(status);
+  return !["delivered", "cancelled", "paid", "refunded"].includes(status);
 };
 
 const canCancel = (status: string) => {
@@ -797,7 +797,7 @@ const getStatusText = (status: string) => {
     ready: t("orders.status.ready"),
     delivered: t("orders.status.delivered"),
     paid: t("orders.status.paid"),
-    completed: t("orders.status.completed"),
+    refunded: t("orders.status.refunded"),
     cancelled: t("orders.status.cancelled"),
   };
   return texts[status] || status;
