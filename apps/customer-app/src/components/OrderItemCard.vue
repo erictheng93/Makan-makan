@@ -68,7 +68,7 @@
               ]"
             >
               <div
-                v-if="item.status === 1"
+                v-if="item.status === 'confirmed'"
                 class="w-2 h-2 bg-current rounded-full animate-pulse mr-1"
               />
               {{ statusText }}
