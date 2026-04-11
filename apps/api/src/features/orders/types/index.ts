@@ -320,19 +320,6 @@ export interface OrderStatusTransition {
   }>;
 }
 
-export interface OrderPermissions {
-  canView: boolean;
-  canCreate: boolean;
-  canUpdate: boolean;
-  canCancel: boolean;
-  canUpdateStatus: boolean;
-  canUpdatePayment: boolean;
-  canViewAllRestaurants: boolean;
-  canManageItems: boolean;
-  canViewAnalytics: boolean;
-  allowedStatusTransitions: OrderStatus[];
-}
-
 // Integration and External Data
 export interface PaymentIntegration {
   provider: "stripe" | "paypal" | "square" | "local_gateway";
@@ -466,13 +453,6 @@ export interface IOrdersService {
     filters: OrderQueryFilters,
     format: "csv" | "excel" | "pdf",
   ): Promise<Buffer>;
-
-  // Permissions
-  checkOrderPermissions(
-    userId: number,
-    userRole: UserRole,
-    orderId?: number,
-  ): Promise<OrderPermissions>;
 
   // Real-time Updates
   broadcastOrderUpdate(event: OrderUpdateEvent): Promise<void>;
