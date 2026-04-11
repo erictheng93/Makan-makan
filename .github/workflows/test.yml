@@ -61,10 +61,6 @@ jobs:
     needs: lint-and-typecheck
     timeout-minutes: 20
 
-    strategy:
-      matrix:
-        node-version: [22]
-
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v5
@@ -72,31 +68,16 @@ jobs:
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v5
 
-      - name: 🔧 設置 Node.js ${{ matrix.node-version }}
+      - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
-      - name: 🧪 執行根目錄單元測試
-        run: pnpm run test:unit
-
-      - name: 🔄 執行 Realtime 功能測試
-        run: pnpm exec vitest run apps/api/src/features/realtime --reporter=verbose
-
-      - name: 📊 執行 Admin Dashboard 組件測試
-        run: pnpm exec vitest run apps/admin-dashboard/src --reporter=verbose
-
-      - name: 🍳 執行 Kitchen Display 測試
-        run: pnpm exec vitest run apps/kitchen-display/src --reporter=verbose
-
-      - name: 👤 執行 Customer App 測試
-        run: pnpm exec vitest run apps/customer-app/src --reporter=verbose
-
-      - name: 📊 產生覆蓋率報告
+      - name: 🧪 執行所有單元測試（含覆蓋率）
         run: pnpm run test:coverage
 
       - name: ☂️ 上傳覆蓋率到 Codecov
@@ -105,13 +86,13 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/coverage-final.json
           flags: unit-tests
-          name: unit-tests-node-${{ matrix.node-version }}
+          name: unit-tests
 
       - name: 📎 上傳測試結果
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: unit-test-results-node-${{ matrix.node-version }}
+          name: unit-test-results
           path: |
             coverage/
             test-results/
