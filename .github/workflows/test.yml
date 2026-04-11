@@ -615,9 +615,6 @@ jobs:
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
-      - name: 🔍 基礎依賴漏洞掃描
-        run: pnpm audit --audit-level critical
-
       - name: 🛡️ Snyk 深度安全掃描
         uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # pinned from master on 2026-04-08
         env:
