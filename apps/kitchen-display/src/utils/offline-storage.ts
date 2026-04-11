@@ -3,11 +3,13 @@
  * IndexedDB-based offline data management for kitchen operations
  */
 
+import type { OrderStatus } from "@/types";
+
 export interface OfflineOrderStatusUpdate {
   id: string;
   order_id: string;
   restaurant_id: string;
-  status: "received" | "preparing" | "ready" | "completed";
+  status: OrderStatus;
   estimated_time?: number;
   notes?: string;
   updated_by: string;

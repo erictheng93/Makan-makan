@@ -37,7 +37,7 @@ function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
     orderNumber: base.orderNumber ?? "ORD-001",
     tableId: base.tableId ?? 1,
     tableName: "T1",
-    status: 1,
+    status: "confirmed",
     priority: "normal",
     createdAt: new Date().toISOString(),
     elapsedTime: 0,
@@ -94,7 +94,7 @@ describe("Order Workflow Integration", () => {
         id: 1,
         orderNumber: "ORD-001",
         tableName: "T1",
-        status: 1,
+        status: "confirmed",
         priority: "normal",
         totalItems: 1,
         items: [
@@ -113,18 +113,18 @@ describe("Order Workflow Integration", () => {
       expect(store.pendingOrders).toHaveLength(1);
 
       // Start preparing (local state update, no API call)
-      store.updateOrderStatus(1, 2);
-      expect(store.orders[0].status).toBe(2);
+      store.updateOrderStatus(1, "preparing");
+      expect(store.orders[0].status).toBe("preparing");
       expect(store.preparingOrders).toHaveLength(1);
 
       // Mark as ready
-      store.updateOrderStatus(1, 3);
-      expect(store.orders[0].status).toBe(3);
+      store.updateOrderStatus(1, "ready");
+      expect(store.orders[0].status).toBe("ready");
       expect(store.readyOrders).toHaveLength(1);
 
-      // Complete order (status 4 would be COMPLETED)
-      store.updateOrderStatus(1, 4);
-      expect(store.orders[0].status).toBe(4);
+      // Complete order (delivered)
+      store.updateOrderStatus(1, "delivered");
+      expect(store.orders[0].status).toBe("delivered");
     });
 
     it("should handle item-level status updates", async () => {
@@ -134,7 +134,7 @@ describe("Order Workflow Integration", () => {
         id: 1,
         orderNumber: "ORD-001",
         tableName: "T1",
-        status: 2,
+        status: "preparing",
         priority: "normal",
         elapsedTime: 5,
         totalItems: 2,
@@ -185,7 +185,7 @@ describe("Order Workflow Integration", () => {
         tableId: 1,
         orderNumber: "ORD-001",
         tableName: "T1",
-        status: 1,
+        status: "confirmed",
         priority: "normal",
         totalItems: 0,
       });
@@ -195,7 +195,7 @@ describe("Order Workflow Integration", () => {
         tableId: 2,
         orderNumber: "ORD-002",
         tableName: "T2",
-        status: 1,
+        status: "confirmed",
         priority: "urgent",
         estimatedTime: 10,
         totalItems: 0,
@@ -222,7 +222,7 @@ describe("Order Workflow Integration", () => {
           tableId: i + 1,
           orderNumber: `ORD-${String(i).padStart(3, "0")}`,
           tableName: `T${i + 1}`,
-          status: 1,
+          status: "confirmed",
           priority: i < 3 ? "urgent" : "normal",
           totalItems: 0,
         }),
@@ -236,7 +236,7 @@ describe("Order Workflow Integration", () => {
 
       // Process first 5 orders to preparing
       for (let i = 0; i < 5; i++) {
-        store.updateOrderStatus(i, 2); // Use number ID, local method
+        store.updateOrderStatus(i, "preparing"); // Use number ID, local method
       }
 
       expect(store.preparingOrders).toHaveLength(5);
@@ -252,7 +252,7 @@ describe("Order Workflow Integration", () => {
           tableId: i + 1,
           orderNumber: `ORD-${i}`,
           tableName: `T${i}`,
-          status: 1,
+          status: "confirmed",
           totalItems: 0,
           priority: "normal",
         }),
@@ -263,7 +263,7 @@ describe("Order Workflow Integration", () => {
       // Update multiple orders simultaneously (local method, synchronous)
       const orderIds = [0, 1, 2, 3, 4];
       orderIds.forEach((i) => {
-        store.updateOrderStatus(i, 2);
+        store.updateOrderStatus(i, "preparing");
       });
 
       // Total count should remain the same
@@ -285,7 +285,7 @@ describe("Order Workflow Integration", () => {
           tableId: 1,
           orderNumber: "ORD-001",
           tableName: "T1",
-          status: 1,
+          status: "confirmed",
           priority: "normal",
           totalItems: 1,
           items: [
@@ -327,7 +327,7 @@ describe("Order Workflow Integration", () => {
         tableId: 5,
         orderNumber: "ORD-NEW",
         tableName: "T5",
-        status: 1,
+        status: "confirmed",
         priority: "urgent",
         totalItems: 0,
       });
@@ -352,7 +352,7 @@ describe("Order Workflow Integration", () => {
           tableId: 1,
           orderNumber: "ORD-001",
           tableName: "T1",
-          status: 1,
+          status: "confirmed",
           priority: "normal",
           totalItems: 1,
           items: [
@@ -383,7 +383,7 @@ describe("Order Workflow Integration", () => {
       const order = store.orders.find((o) => o.id === 1);
       // The handler updates item status and then recalculates order status
       expect(order?.items[0].status).toBe("preparing");
-      expect(order?.status).toBe(2); // Should be PREPARING after item update
+      expect(order?.status).toBe("preparing"); // Should be PREPARING after item update
     });
 
     it("should remove cancelled order from SSE event", () => {
@@ -395,7 +395,7 @@ describe("Order Workflow Integration", () => {
           tableId: 1,
           orderNumber: "ORD-001",
           tableName: "T1",
-          status: 1,
+          status: "confirmed",
           priority: "normal",
           totalItems: 0,
         }),

@@ -58,7 +58,7 @@ function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
     tableId: 1,
     tableName: "T1",
     customerName: "張三",
-    status: 1, // Pending
+    status: "confirmed", // Pending
     priority: "normal",
     createdAt: new Date(now).toISOString(),
     elapsedTime: 0,
@@ -297,7 +297,7 @@ describe("OrderCard Component", () => {
 
   describe("Order Status", () => {
     it("should show start action for pending status", () => {
-      const order = createMockOrder({ status: 1 }); // Pending
+      const order = createMockOrder({ status: "confirmed" }); // Pending
       const wrapper = mount(OrderCard, {
         props: { order, statusType: "pending" },
       });
@@ -308,7 +308,7 @@ describe("OrderCard Component", () => {
     });
 
     it("should show complete action for preparing status", () => {
-      const order = createMockOrder({ status: 2 }); // Preparing
+      const order = createMockOrder({ status: "preparing" }); // Preparing
       const wrapper = mount(OrderCard, {
         props: { order, statusType: "preparing" },
       });
@@ -319,7 +319,7 @@ describe("OrderCard Component", () => {
     });
 
     it("should show completed state for ready status", () => {
-      const order = createMockOrder({ status: 3 }); // Ready
+      const order = createMockOrder({ status: "ready" }); // Ready
       const wrapper = mount(OrderCard, {
         props: { order, statusType: "ready" },
       });
@@ -330,7 +330,7 @@ describe("OrderCard Component", () => {
     });
 
     it("should show completed state for completed status", () => {
-      const order = createMockOrder({ status: 4 }); // Completed
+      const order = createMockOrder({ status: "delivered" }); // Completed
       const wrapper = mount(OrderCard, {
         props: { order, statusType: "ready" },
       });
@@ -564,14 +564,14 @@ describe("OrderCard Component", () => {
   describe("Computed Properties", () => {
     it("should determine correct status type", () => {
       const statusTypes = [
-        { status: 1 as const, expected: "pending" },
-        { status: 2 as const, expected: "preparing" },
-        { status: 3 as const, expected: "ready" },
-        { status: 4 as const, expected: "completed" },
+        { status: "confirmed" as const, expected: "pending" },
+        { status: "preparing" as const, expected: "preparing" },
+        { status: "ready" as const, expected: "ready" },
+        { status: "delivered" as const, expected: "completed" },
       ];
 
       statusTypes.forEach(({ status, expected }) => {
-        const order = createMockOrder({ status: status as 1 | 2 | 3 | 4 });
+        const order = createMockOrder({ status });
         const wrapper = mount(OrderCard, {
           props: { order, statusType: "pending" },
         });

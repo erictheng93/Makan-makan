@@ -56,7 +56,7 @@ describe("Multi-Order Handling Integration", () => {
       const store = useOrdersStore();
 
       const orders = Array.from({ length: 50 }, (_, i) =>
-        createMockOrder(String(i), 1),
+        createMockOrder(String(i), "confirmed"),
       );
 
       store.orders = orders;
@@ -69,12 +69,12 @@ describe("Multi-Order Handling Integration", () => {
       const store = useOrdersStore();
 
       store.orders = Array.from({ length: 20 }, (_, i) =>
-        createMockOrder(String(i), 1),
+        createMockOrder(String(i), "confirmed"),
       );
 
       // Update first 10 orders - updateOrderStatus is a local state update (no API call)
       for (let i = 0; i < 10; i++) {
-        store.updateOrderStatus(i, 2);
+        store.updateOrderStatus(i, "preparing");
       }
 
       // Verify local state was updated
@@ -85,16 +85,16 @@ describe("Multi-Order Handling Integration", () => {
     it("should maintain consistency with rapid updates", async () => {
       const store = useOrdersStore();
 
-      store.orders = [createMockOrder("1", 1)];
+      store.orders = [createMockOrder("1", "confirmed")];
 
       // Rapid sequential updates - updateOrderStatus is a local state update
-      store.updateOrderStatus(1, 2);
-      store.updateOrderStatus(1, 3);
-      store.updateOrderStatus(1, 4);
+      store.updateOrderStatus(1, "preparing");
+      store.updateOrderStatus(1, "ready");
+      store.updateOrderStatus(1, "delivered");
 
       // Verify final state
       const order = store.orders.find((o) => o.id === 1);
-      expect(order?.status).toBe(4);
+      expect(order?.status).toBe("delivered");
     });
   });
 
@@ -103,10 +103,10 @@ describe("Multi-Order Handling Integration", () => {
       const store = useOrdersStore();
 
       const orders = [
-        { ...createMockOrder("1", 1), priority: "urgent" as const },
-        { ...createMockOrder("2", 1), priority: "normal" as const },
-        { ...createMockOrder("3", 1), priority: "urgent" as const },
-        { ...createMockOrder("4", 1), priority: "normal" as const },
+        { ...createMockOrder("1", "confirmed"), priority: "urgent" as const },
+        { ...createMockOrder("2", "confirmed"), priority: "normal" as const },
+        { ...createMockOrder("3", "confirmed"), priority: "urgent" as const },
+        { ...createMockOrder("4", "confirmed"), priority: "normal" as const },
       ];
 
       store.orders = orders;
@@ -120,12 +120,12 @@ describe("Multi-Order Handling Integration", () => {
 
       store.orders = [
         {
-          ...createMockOrder("1", 1),
+          ...createMockOrder("1", "confirmed"),
           priority: "urgent" as const,
           createdAt: new Date().toISOString(),
         },
         {
-          ...createMockOrder("2", 1),
+          ...createMockOrder("2", "confirmed"),
           priority: "normal" as const,
           createdAt: new Date().toISOString(),
         },
@@ -167,10 +167,16 @@ describe("Multi-Order Handling Integration", () => {
 
       const startTime = performance.now();
 
+      const statuses: OrderStatus[] = [
+        "confirmed",
+        "preparing",
+        "ready",
+        "delivered",
+      ];
       store.orders = Array.from({ length: 100 }, (_, i) =>
         createMockOrder(
           String(i),
-          (Math.floor(Math.random() * 4) + 1) as OrderStatus,
+          statuses[Math.floor(Math.random() * statuses.length)],
         ),
       );
 
@@ -184,8 +190,14 @@ describe("Multi-Order Handling Integration", () => {
     it("should filter orders efficiently", () => {
       const store = useOrdersStore();
 
+      const statusCycle: OrderStatus[] = [
+        "confirmed",
+        "preparing",
+        "ready",
+        "delivered",
+      ];
       store.orders = Array.from({ length: 200 }, (_, i) =>
-        createMockOrder(String(i), ((i % 4) + 1) as OrderStatus),
+        createMockOrder(String(i), statusCycle[i % 4]),
       );
 
       const startTime = performance.now();
@@ -209,7 +221,7 @@ describe("Multi-Order Handling Integration", () => {
       const store = useOrdersStore();
 
       const orders = Array.from({ length: 10 }, (_, i) => {
-        const order = createMockOrder(String(i), 1);
+        const order = createMockOrder(String(i), "confirmed");
         order.createdAt = new Date(Date.now() + i * 1000).toISOString();
         return order;
       });
@@ -229,15 +241,15 @@ describe("Multi-Order Handling Integration", () => {
       const store = useOrdersStore();
 
       const orders = Array.from({ length: 20 }, (_, i) =>
-        createMockOrder(String(i), 1),
+        createMockOrder(String(i), "confirmed"),
       );
 
       store.orders = orders;
 
       // Process first 10 to preparing
       for (let i = 0; i < 10; i++) {
-        await store.updateOrderStatus(String(i), 2);
-        orders[i].status = 2;
+        await store.updateOrderStatus(String(i), "preparing");
+        orders[i].status = "preparing";
       }
 
       expect(store.preparingOrders).toHaveLength(10);
@@ -245,8 +257,8 @@ describe("Multi-Order Handling Integration", () => {
 
       // Process first 5 to ready
       for (let i = 0; i < 5; i++) {
-        await store.updateOrderStatus(String(i), 3);
-        orders[i].status = 3;
+        await store.updateOrderStatus(String(i), "ready");
+        orders[i].status = "ready";
       }
 
       expect(store.readyOrders).toHaveLength(5);
@@ -261,7 +273,7 @@ describe("Multi-Order Handling Integration", () => {
       // Use numeric IDs (100+) to avoid collision with other tests
       const events: KitchenSSEEvent[] = Array.from({ length: 30 }, (_, i) => ({
         type: "NEW_ORDER" as const,
-        payload: createMockOrder(String(100 + i), 1),
+        payload: createMockOrder(String(100 + i), "confirmed"),
         timestamp: new Date().toISOString(),
         restaurantId: 1,
       }));
@@ -276,15 +288,15 @@ describe("Multi-Order Handling Integration", () => {
     it("should maintain order consistency with rapid events", () => {
       const store = useOrdersStore();
 
-      store.orders = [createMockOrder("1", 1)];
+      store.orders = [createMockOrder("1", "confirmed")];
 
       // Use updateOrderStatus directly since handleSSEEvent expects item-level updates
       // The store derives order status from item statuses
-      store.updateOrderStatus(1, 2);
-      store.updateOrderStatus(1, 3);
+      store.updateOrderStatus(1, "preparing");
+      store.updateOrderStatus(1, "ready");
 
       const order = store.orders.find((o) => o.id === 1);
-      expect(order?.status).toBe(3);
+      expect(order?.status).toBe("ready");
     });
   });
 
@@ -292,12 +304,13 @@ describe("Multi-Order Handling Integration", () => {
     it("should handle large order sets without memory issues", () => {
       const store = useOrdersStore();
 
-      // Create 500 orders with status 1-3 (pending, preparing, ready)
-      // Note: status 4 (completed) is not tracked by the computed filters
+      // Create 500 orders with status confirmed/preparing/ready
+      // Note: delivered (4) is not tracked by the computed filters
+      const activeStatuses: OrderStatus[] = ["confirmed", "preparing", "ready"];
       const largeOrderSet = Array.from({ length: 500 }, (_, i) =>
         createMockOrder(
           String(i),
-          (Math.floor(Math.random() * 3) + 1) as OrderStatus,
+          activeStatuses[Math.floor(Math.random() * activeStatuses.length)],
         ),
       );
 

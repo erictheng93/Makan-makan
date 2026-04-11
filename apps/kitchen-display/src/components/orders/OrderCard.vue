@@ -296,10 +296,10 @@ const {
 
 // Derived state
 const isUrgent = computed(() => props.order.priority === "urgent");
-const isCancelled = computed(() => props.order.status === 6);
+const isCancelled = computed(() => props.order.status === "cancelled");
 
 const statusBorderClass = computed(() => {
-  if (props.order.status === 6) return "border-t-4 border-[#8E8E93]";
+  if (props.order.status === "cancelled") return "border-t-4 border-[#8E8E93]";
   const map: Record<string, string> = {
     pending: "border-t-4 border-ios-orange",
     preparing: "border-t-4 border-ios-blue",

@@ -2,7 +2,30 @@
 import { ref, reactive } from "vue";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useOrdersStore } from "@/stores/orders";
-import type { KitchenOrder } from "@/types";
+import type { KitchenOrder, OrderStatus } from "@/types";
+
+// Status grouping helpers (replaces former numeric comparisons)
+const COMPLETED_STATUSES: OrderStatus[] = [
+  "ready",
+  "delivered",
+  "paid",
+  "cancelled",
+  "refunded",
+];
+const ACTIVE_STATUSES: OrderStatus[] = ["pending", "confirmed", "preparing"];
+const AT_OR_PAST_PREPARING_STATUSES: OrderStatus[] = [
+  "preparing",
+  "ready",
+  "delivered",
+  "paid",
+  "cancelled",
+  "refunded",
+];
+const isCompleted = (status: OrderStatus) =>
+  COMPLETED_STATUSES.includes(status);
+const isActive = (status: OrderStatus) => ACTIVE_STATUSES.includes(status);
+const isAtOrPastPreparing = (status: OrderStatus) =>
+  AT_OR_PAST_PREPARING_STATUSES.includes(status);
 
 export interface TimeRange {
   start: Date;
@@ -181,12 +204,12 @@ class KitchenStatisticsService {
   // Order statistics
   private computeOrderStatistics(orders: KitchenOrder[]): OrderStatistics {
     const total = orders.length;
-    const completed = orders.filter((o) => o.status >= 3).length;
-    const pending = orders.filter((o) => o.status === 1).length;
-    const cooking = orders.filter((o) => o.status === 2).length;
+    const completed = orders.filter((o) => isCompleted(o.status)).length;
+    const pending = orders.filter((o) => o.status === "confirmed").length;
+    const cooking = orders.filter((o) => o.status === "preparing").length;
 
     const cookingTimes = orders
-      .filter((o) => o.status >= 3 && o.elapsedTime)
+      .filter((o) => isCompleted(o.status) && o.elapsedTime)
       .map((o) => o.elapsedTime);
 
     const avgCookingTime =
@@ -196,7 +219,7 @@ class KitchenStatisticsService {
         : 0;
 
     const waitTimes = orders
-      .filter((o) => o.status >= 2)
+      .filter((o) => isAtOrPastPreparing(o.status))
       .map((o) => this.calculateWaitTime(o));
 
     const avgWaitTime =
@@ -224,7 +247,7 @@ class KitchenStatisticsService {
   private computePerformanceMetrics(
     orders: KitchenOrder[],
   ): PerformanceMetrics {
-    const completedOrders = orders.filter((o) => o.status >= 3);
+    const completedOrders = orders.filter((o) => isCompleted(o.status));
 
     // Efficiency: completed orders vs total orders with consideration of time
     const efficiency = this.calculateEfficiency(completedOrders, orders);
@@ -283,7 +306,7 @@ class KitchenStatisticsService {
     >();
 
     orders
-      .filter((o) => o.assignedChef && o.status >= 3)
+      .filter((o) => o.assignedChef && isCompleted(o.status))
       .forEach((order) => {
         const chefId = String(order.assignedChef!);
         const existing = chefStats.get(chefId) || {
@@ -360,7 +383,7 @@ class KitchenStatisticsService {
         existing.count++;
         existing.totalCookTime += item.cookingTime || 0;
 
-        if (order.status >= 3) {
+        if (isCompleted(order.status)) {
           existing.successfulOrders++;
         }
 
@@ -390,7 +413,7 @@ class KitchenStatisticsService {
     // This would typically come from customer feedback data
     // For now, we'll simulate based on order completion times and other factors
 
-    const completedOrders = orders.filter((o) => o.status >= 3);
+    const completedOrders = orders.filter((o) => isCompleted(o.status));
 
     // Simulate satisfaction based on wait times
     const avgSatisfaction =
@@ -415,12 +438,12 @@ class KitchenStatisticsService {
   // Real-time statistics
   private computeRealTimeStats() {
     const currentOrders: KitchenOrder[] = this.ordersStore.orders;
-    const activeOrders = currentOrders.filter(
-      (o: KitchenOrder) => o.status < 3,
+    const activeOrders = currentOrders.filter((o: KitchenOrder) =>
+      isActive(o.status),
     ).length;
 
     const waitingOrders = currentOrders.filter(
-      (o: KitchenOrder) => o.status === 1,
+      (o: KitchenOrder) => o.status === "confirmed",
     );
     const avgWaitingTime =
       waitingOrders.length > 0
@@ -498,7 +521,7 @@ class KitchenStatisticsService {
         );
       });
 
-      const completed = hourOrders.filter((o) => o.status >= 3).length;
+      const completed = hourOrders.filter((o) => isCompleted(o.status)).length;
 
       trends.push({
         time: hourStart.toLocaleTimeString("zh-TW", {
@@ -536,7 +559,7 @@ class KitchenStatisticsService {
     const itemTimes: Record<string, { totalTime: number; count: number }> = {};
 
     orders
-      .filter((o) => o.status >= 3)
+      .filter((o) => isCompleted(o.status))
       .forEach((order) => {
         order.items.forEach((item) => {
           if (!itemTimes[item.name]) {
@@ -580,7 +603,8 @@ class KitchenStatisticsService {
     // Calculate current workload for the chef
     const orders: KitchenOrder[] = this.ordersStore.orders;
     const activeOrders = orders.filter(
-      (o: KitchenOrder) => String(o.assignedChef) === chefId && o.status < 3,
+      (o: KitchenOrder) =>
+        String(o.assignedChef) === chefId && isActive(o.status),
     ).length;
 
     return Math.min(activeOrders * 20, 100); // Assume max 5 concurrent orders
@@ -651,7 +675,9 @@ class KitchenStatisticsService {
       (order: KitchenOrder) => new Date(order.createdAt) >= today,
     );
 
-    const completed = todayOrders.filter((o: KitchenOrder) => o.status >= 3);
+    const completed = todayOrders.filter((o: KitchenOrder) =>
+      isCompleted(o.status),
+    );
     const avgCookTime =
       completed.length > 0
         ? completed.reduce(

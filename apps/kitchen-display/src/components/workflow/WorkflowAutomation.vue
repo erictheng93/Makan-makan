@@ -642,7 +642,7 @@ const processAutoAssignment = () => {
 
   // Find unassigned orders
   const unassignedOrders = props.orders.filter(
-    (order) => order.status === 1 && !order.assignedChef,
+    (order) => order.status === "confirmed" && !order.assignedChef,
   );
 
   unassignedOrders.forEach((order) => {
@@ -662,7 +662,7 @@ const processAutoProgression = () => {
   // Auto-start ready orders
   setTimeout(() => {
     const readyToStart = props.orders.filter(
-      (order) => order.status === 1 && order.assignedChef,
+      (order) => order.status === "confirmed" && order.assignedChef,
     );
 
     readyToStart.forEach((order) => {
@@ -674,7 +674,7 @@ const processAutoProgression = () => {
   setTimeout(() => {
     const readyToComplete = props.orders.filter(
       (order) =>
-        order.status === 2 &&
+        order.status === "preparing" &&
         order.estimatedTime &&
         order.elapsedTime >= order.estimatedTime,
     );

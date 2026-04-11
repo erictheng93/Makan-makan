@@ -346,8 +346,12 @@ const hasThresholdChanges = computed(
 );
 
 const estimatedCompletionTimes = computed(() => {
-  const pendingOrders = props.orders.filter((order) => order.status === 1);
-  const preparingOrders = props.orders.filter((order) => order.status === 2);
+  const pendingOrders = props.orders.filter(
+    (order) => order.status === "confirmed",
+  );
+  const preparingOrders = props.orders.filter(
+    (order) => order.status === "preparing",
+  );
 
   const pendingAvg =
     pendingOrders.length > 0
@@ -453,9 +457,9 @@ const generateTimingReport = () => {
           : "普通",
     預估時間: `${order.estimatedTime || "未設定"}分`,
     狀態:
-      order.status === 1
+      order.status === "confirmed"
         ? "已確認"
-        : order.status === 2
+        : order.status === "preparing"
           ? "製作中"
           : "準備完成",
     延遲狀況:

@@ -180,7 +180,7 @@ export function useAudioNotifications() {
       const elapsedMinutes = Math.floor(
         (now - new Date(order.createdAt).getTime()) / (1000 * 60),
       );
-      return elapsedMinutes >= 30 && order.status !== 3; // Not ready yet
+      return elapsedMinutes >= 30 && order.status !== "ready"; // Not ready yet
     });
 
     if (overdueOrders.length > 0) {
@@ -193,7 +193,9 @@ export function useAudioNotifications() {
         (now - new Date(order.createdAt).getTime()) / (1000 * 60),
       );
       const estimatedTime = order.estimatedTime || 15;
-      return elapsedMinutes >= estimatedTime * 0.8 && order.status === 2; // Still preparing
+      return (
+        elapsedMinutes >= estimatedTime * 0.8 && order.status === "preparing"
+      ); // Still preparing
     });
 
     if (nearCompletionOrders.length > 0) {

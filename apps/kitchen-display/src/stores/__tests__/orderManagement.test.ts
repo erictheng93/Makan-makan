@@ -19,7 +19,7 @@ function createMockOrder(
     orderNumber: `ORD-${id.toString().padStart(3, "0")}`,
     tableName: `T${id}`,
     tableId: id,
-    status: 1 as OrderStatus,
+    status: "confirmed" as OrderStatus,
     priority: "normal",
     createdAt: new Date().toISOString(),
     elapsedTime: 10,
@@ -119,12 +119,12 @@ describe("OrderManagement Store", () => {
     it("should filter orders by status", () => {
       const store = useOrderManagementStore();
       const orders = [
-        createMockOrder(1, { status: 1 }),
-        createMockOrder(2, { status: 2 }),
-        createMockOrder(3, { status: 1 }),
+        createMockOrder(1, { status: "confirmed" }),
+        createMockOrder(2, { status: "preparing" }),
+        createMockOrder(3, { status: "confirmed" }),
       ];
 
-      store.setFilter("status", [1]);
+      store.setFilter("status", ["confirmed"]);
       const filtered = store.filterOrders(orders);
 
       expect(filtered).toHaveLength(2);
@@ -879,13 +879,22 @@ describe("OrderManagement Store", () => {
     it("should combine orderType filter with status filter", () => {
       const store = useOrderManagementStore();
       const orders = [
-        createMockOrder(1, { status: 1, deliveryInfo: { type: "takeaway" } }),
-        createMockOrder(2, { status: 2, deliveryInfo: { type: "takeaway" } }),
-        createMockOrder(3, { status: 1, deliveryInfo: { type: "dine_in" } }),
+        createMockOrder(1, {
+          status: "confirmed",
+          deliveryInfo: { type: "takeaway" },
+        }),
+        createMockOrder(2, {
+          status: "preparing",
+          deliveryInfo: { type: "takeaway" },
+        }),
+        createMockOrder(3, {
+          status: "confirmed",
+          deliveryInfo: { type: "dine_in" },
+        }),
       ];
 
       store.setFilter("orderTypes", ["takeaway"]);
-      store.setFilter("status", [1]);
+      store.setFilter("status", ["confirmed"]);
       const filtered = store.filterOrders(orders);
 
       expect(filtered).toHaveLength(1);

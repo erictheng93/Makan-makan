@@ -86,7 +86,10 @@ describe("Orders Store", () => {
 
   describe("Fetch Orders", () => {
     it("should fetch and load orders successfully", async () => {
-      const mockOrders = [createMockOrder("1", 1), createMockOrder("2", 2)];
+      const mockOrders = [
+        createMockOrder("1", "confirmed"),
+        createMockOrder("2", "preparing"),
+      ];
 
       mockKitchenApi.getOrders.mockResolvedValue({
         success: true,
@@ -143,9 +146,9 @@ describe("Orders Store", () => {
     it("should filter pending orders", () => {
       const store = useOrdersStore();
       store.orders = [
-        createMockOrder("1", 1), // pending
-        createMockOrder("2", 2), // preparing
-        createMockOrder("3", 1), // pending
+        createMockOrder("1", "confirmed"), // pending
+        createMockOrder("2", "preparing"), // preparing
+        createMockOrder("3", "confirmed"), // pending
       ];
 
       expect(store.pendingOrders).toHaveLength(2);
@@ -154,9 +157,9 @@ describe("Orders Store", () => {
     it("should filter preparing orders", () => {
       const store = useOrdersStore();
       store.orders = [
-        createMockOrder("1", 1),
-        createMockOrder("2", 2), // preparing
-        createMockOrder("3", 2), // preparing
+        createMockOrder("1", "confirmed"),
+        createMockOrder("2", "preparing"), // preparing
+        createMockOrder("3", "preparing"), // preparing
       ];
 
       expect(store.preparingOrders).toHaveLength(2);
@@ -165,9 +168,9 @@ describe("Orders Store", () => {
     it("should filter ready orders", () => {
       const store = useOrdersStore();
       store.orders = [
-        createMockOrder("1", 3), // ready
-        createMockOrder("2", 2),
-        createMockOrder("3", 3), // ready
+        createMockOrder("1", "ready"), // ready
+        createMockOrder("2", "preparing"),
+        createMockOrder("3", "ready"), // ready
       ];
 
       expect(store.readyOrders).toHaveLength(2);
@@ -176,9 +179,9 @@ describe("Orders Store", () => {
     it("should filter urgent orders", () => {
       const store = useOrdersStore();
       store.orders = [
-        createMockOrder("1", 1, "urgent"),
-        createMockOrder("2", 1, "normal"),
-        createMockOrder("3", 2, "urgent"),
+        createMockOrder("1", "confirmed", "urgent"),
+        createMockOrder("2", "confirmed", "normal"),
+        createMockOrder("3", "preparing", "urgent"),
       ];
 
       expect(store.urgentOrders).toHaveLength(2);
@@ -187,9 +190,9 @@ describe("Orders Store", () => {
     it("should count total orders", () => {
       const store = useOrdersStore();
       store.orders = [
-        createMockOrder("1", 1),
-        createMockOrder("2", 2),
-        createMockOrder("3", 3),
+        createMockOrder("1", "confirmed"),
+        createMockOrder("2", "preparing"),
+        createMockOrder("3", "ready"),
       ];
 
       expect(store.totalOrders).toBe(3);
@@ -200,18 +203,18 @@ describe("Orders Store", () => {
     it("should update order status", async () => {
       // Note: updateOrderStatus updates local state only, no API call
       const store = useOrdersStore();
-      store.orders = [createMockOrder("1", 1)];
+      store.orders = [createMockOrder("1", "confirmed")];
 
-      store.updateOrderStatus("1", 2);
+      store.updateOrderStatus("1", "preparing");
 
       const order = store.orders.find((o) => o.id === 1);
-      expect(order?.status).toBe(2);
+      expect(order?.status).toBe("preparing");
     });
 
     it("should update item status", async () => {
       // Note: updateItemStatus updates local state only, no API call
       const store = useOrdersStore();
-      const mockOrder = createMockOrder("1", 1);
+      const mockOrder = createMockOrder("1", "confirmed");
       mockOrder.items = [
         { id: 101, name: "Test Item", status: "pending", quantity: 1 },
       ] as any;
@@ -228,7 +231,7 @@ describe("Orders Store", () => {
   describe("SSE Event Handling", () => {
     it("should handle NEW_ORDER event", () => {
       const store = useOrdersStore();
-      const newOrder = createMockOrder("1", 1);
+      const newOrder = createMockOrder("1", "confirmed");
 
       const event: KitchenSSEEvent = {
         type: "NEW_ORDER",
@@ -244,7 +247,7 @@ describe("Orders Store", () => {
 
     it("should handle ORDER_STATUS_UPDATE event", () => {
       const store = useOrdersStore();
-      const mockOrder = createMockOrder("1", 1);
+      const mockOrder = createMockOrder("1", "confirmed");
       mockOrder.items = [
         { id: 101, name: "Test Item", status: "pending", quantity: 1 },
       ] as any;
@@ -269,7 +272,10 @@ describe("Orders Store", () => {
 
     it("should handle ORDER_CANCELLED event", () => {
       const store = useOrdersStore();
-      store.orders = [createMockOrder("1", 1), createMockOrder("2", 2)];
+      store.orders = [
+        createMockOrder("1", "confirmed"),
+        createMockOrder("2", "preparing"),
+      ];
 
       // Note: handleOrderCancelled expects orderId at top level of event
       const event: KitchenSSEEvent = {
@@ -290,7 +296,10 @@ describe("Orders Store", () => {
   describe("Clear and Reset", () => {
     it("should clear all orders", () => {
       const store = useOrdersStore();
-      store.orders = [createMockOrder("1", 1), createMockOrder("2", 2)];
+      store.orders = [
+        createMockOrder("1", "confirmed"),
+        createMockOrder("2", "preparing"),
+      ];
 
       store.clearOrders();
 

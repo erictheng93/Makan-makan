@@ -269,11 +269,11 @@ class OfflineService {
     );
 
     if (allReady) {
-      order.status = 3; // Ready
+      order.status = "ready"; // Ready
     } else if (anyPreparing) {
-      order.status = 2; // Preparing
+      order.status = "preparing"; // Preparing
     } else {
-      order.status = 1; // Confirmed
+      order.status = "confirmed"; // Confirmed
     }
   }
 
@@ -482,7 +482,7 @@ class OfflineService {
           order.id &&
           order.orderNumber &&
           Array.isArray(order.items) &&
-          typeof order.status === "number",
+          typeof order.status === "string",
       );
     } catch (error) {
       console.error("Data validation failed:", error);
