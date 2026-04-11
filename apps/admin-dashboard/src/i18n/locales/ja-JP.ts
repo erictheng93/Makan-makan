@@ -1894,8 +1894,9 @@ const jaJP: Messages = {
     },
     orderStatus: {
       ready: "支払い可能",
+      delivered: "配膳済み",
       processing: "処理中",
-      completed: "完了",
+      paid: "支払い済み",
       refunded: "返金済み",
     },
     refund: "返金",
@@ -2607,7 +2608,7 @@ const jaJP: Messages = {
       orderStatusDist: "注文ステータス分布",
     },
     orderStatus: {
-      completed: "完了",
+      delivered: "配達完了",
       preparing: "調理中",
       pending: "保留中",
       cancelled: "キャンセル済み",

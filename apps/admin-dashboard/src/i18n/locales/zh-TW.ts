@@ -2066,7 +2066,7 @@ const zhTW: Messages = {
       ready: "待結帳",
       delivered: "已出餐",
       processing: "處理中",
-      completed: "已完成",
+      paid: "已付款",
       refunded: "已退款",
     },
     shiftReport: "班次報告",
@@ -2834,7 +2834,7 @@ const zhTW: Messages = {
       orderStatusDist: "訂單狀態分布",
     },
     orderStatus: {
-      completed: "已完成",
+      delivered: "已送達",
       preparing: "製作中",
       pending: "待確認",
       cancelled: "已取消",

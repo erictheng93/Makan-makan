@@ -210,7 +210,7 @@ export function createMockOrder(overrides: Record<string, any> = {}) {
     restaurantId: RESTAURANT_ID,
     tableId: TABLE.id,
     tableName: TABLE.number,
-    status: 0,
+    status: "pending",
     items: [
       {
         id: "oi-1",

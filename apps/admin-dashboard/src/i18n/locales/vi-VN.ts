@@ -1891,8 +1891,9 @@ const viVN: Messages = {
     },
     orderStatus: {
       ready: "Sẵn sàng thanh toán",
+      delivered: "Đã giao món",
       processing: "Đang xử lý",
-      completed: "Hoàn thành",
+      paid: "Đã thanh toán",
       refunded: "Đã hoàn tiền",
     },
     refund: "Hoàn tiền",
@@ -2605,7 +2606,7 @@ const viVN: Messages = {
       orderStatusDist: "Phân bố trạng thái đơn hàng",
     },
     orderStatus: {
-      completed: "Hoàn thành",
+      delivered: "Đã hoàn tất",
       preparing: "Đang chuẩn bị",
       pending: "Đang chờ",
       cancelled: "Đã hủy",

@@ -425,7 +425,7 @@ describe("AnalyticsView Component", () => {
     it("should display status labels", async () => {
       setupSuccessfulApiMocks();
       const wrapper = await mountAndWait();
-      expect(wrapper.text()).toContain("analytics.orderStatus.completed");
+      expect(wrapper.text()).toContain("analytics.orderStatus.delivered");
       expect(wrapper.text()).toContain("analytics.orderStatus.preparing");
       expect(wrapper.text()).toContain("analytics.orderStatus.pending");
       expect(wrapper.text()).toContain("analytics.orderStatus.cancelled");

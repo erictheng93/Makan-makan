@@ -1974,8 +1974,9 @@ const zhCN: Messages = {
     },
     orderStatus: {
       ready: "待结账",
+      delivered: "已出餐",
       processing: "处理中",
-      completed: "已完成",
+      paid: "已付款",
       refunded: "已退款",
     },
     refund: "退款",
@@ -2677,7 +2678,7 @@ const zhCN: Messages = {
       orderStatusDist: "订单状态分布",
     },
     orderStatus: {
-      completed: "已完成",
+      delivered: "已送达",
       preparing: "制作中",
       pending: "待确认",
       cancelled: "已取消",

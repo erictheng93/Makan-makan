@@ -1154,7 +1154,7 @@ const getOrderStatusText = (status: string) => {
   const texts: Record<string, string> = {
     ready: t("cashier.orderStatus.ready"),
     delivered: t("cashier.orderStatus.delivered"),
-    completed: t("cashier.orderStatus.completed"),
+    paid: t("cashier.orderStatus.paid"),
   };
   return texts[status] || status;
 };
