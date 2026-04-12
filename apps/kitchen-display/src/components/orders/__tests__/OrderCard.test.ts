@@ -666,6 +666,42 @@ describe("OrderCard Component", () => {
       expect(wrapper.text()).toContain("VIP包廂A區第一桌");
     });
 
+    // Regression: "Table Table 4" duplication when tableName starts with "Table "
+    // and the i18n label (`orders.table` → "Table") was prepended unconditionally.
+    // Fix strips a leading "Table " / "桌 " prefix so the localized label doesn't duplicate.
+    it("should not duplicate the 'Table' label when tableName starts with 'Table '", () => {
+      const order = createMockOrder({ tableName: "Table 4" });
+      const wrapper = mount(OrderCard, {
+        props: { order, statusType: "pending" },
+      });
+
+      const text = wrapper.text();
+      expect(text).not.toContain("Table Table");
+      expect(text).not.toContain("桌 Table");
+      // Default locale is zh-TW, so the label renders as "桌 4"
+      expect(text).toContain("桌 4");
+    });
+
+    it("should not duplicate the '桌' label when tableName starts with '桌 '", () => {
+      const order = createMockOrder({ tableName: "桌 7" });
+      const wrapper = mount(OrderCard, {
+        props: { order, statusType: "pending" },
+      });
+
+      const text = wrapper.text();
+      expect(text).not.toContain("桌 桌");
+      expect(text).toContain("桌 7");
+    });
+
+    it("should pass through table names without a 'Table'/'桌' prefix", () => {
+      const order = createMockOrder({ tableName: "A-12" });
+      const wrapper = mount(OrderCard, {
+        props: { order, statusType: "pending" },
+      });
+
+      expect(wrapper.text()).toContain("桌 A-12");
+    });
+
     it("should handle very large item quantities", () => {
       const order = createMockOrder({
         items: [

@@ -60,8 +60,12 @@
           >
             <ClipboardList class="w-8 h-8 text-ios-secondary" />
           </div>
-          <p class="text-ios-text font-semibold text-lg mb-1">目前沒有訂單</p>
-          <p class="text-ios-secondary text-sm">新訂單將在這裡顯示</p>
+          <p class="text-ios-text font-semibold text-lg mb-1">
+            {{ t("kitchen.noOrders") }}
+          </p>
+          <p class="text-ios-secondary text-sm">
+            {{ t("kitchen.newOrdersHint") }}
+          </p>
         </div>
 
         <!-- Order Cards Grid -->
@@ -89,7 +93,7 @@
         <div class="text-center">
           <div class="loading-spinner w-12 h-12 mx-auto mb-4" />
           <p class="text-base font-medium text-ios-secondary">
-            載入廚房訂單中…
+            {{ t("kitchen.loadingOrders") }}
           </p>
         </div>
       </div>
@@ -124,6 +128,7 @@ import { useToast } from "vue-toastification";
 import { ClipboardList } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
+import { useI18n } from "@/i18n";
 import { useOrdersStore } from "@/stores/orders";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useKitchenSSE } from "@/composables/useKitchenSSE";
@@ -152,6 +157,7 @@ const router = useRouter();
 const toast = useToast();
 const authStore = useAuthStore();
 const settingsStore = useSettingsStore();
+const { t } = useI18n();
 const ordersStore = useOrdersStore();
 const orderManagementStore = useOrderManagementStore();
 
@@ -188,7 +194,9 @@ const showDetailsModal = ref(false);
 const viewMode = ref<"kanban" | "grid">("kanban");
 
 // Computed
-const restaurantName = computed(() => authStore.user?.name || "廚房系統");
+const restaurantName = computed(
+  () => authStore.user?.name || t("kitchen.systemName"),
+);
 
 const {
   orders,
@@ -237,29 +245,29 @@ const fetchOrders = async () => {
   try {
     await ordersStore.fetchOrders(restaurantIdNum.value);
     if (ordersError.value) {
-      toast.error("載入訂單失敗：" + ordersError.value);
+      toast.error(t("kitchen.loadOrdersFailed") + ordersError.value);
     }
   } catch (error: any) {
     console.error("Failed to fetch orders:", error);
-    toast.error("載入訂單失敗：" + error.message);
+    toast.error(t("kitchen.loadOrdersFailed") + error.message);
   }
 };
 
 const handleStartCooking = async (orderId: number, itemId: number) => {
   try {
     await ordersStore.startCooking(restaurantIdNum.value, orderId, itemId);
-    toast.success("開始製作！");
+    toast.success(t("kitchen.startedPreparing"));
   } catch (error: any) {
-    toast.error("操作失敗：" + error.message);
+    toast.error(t("kitchen.operationFailed") + error.message);
   }
 };
 
 const handleMarkReady = async (orderId: number, itemId: number) => {
   try {
     await ordersStore.markReady(restaurantIdNum.value, orderId, itemId);
-    toast.success("餐點已完成！");
+    toast.success(t("kitchen.orderCompleted"));
   } catch (error: any) {
-    toast.error("操作失敗：" + error.message);
+    toast.error(t("kitchen.operationFailed") + error.message);
   }
 };
 
@@ -275,7 +283,7 @@ const handleOrderStatusChanged = async (
   try {
     await fetchOrders();
   } catch (error: any) {
-    toast.error("狀態更新失敗：" + error.message);
+    toast.error(t("kitchen.statusUpdateFailed") + error.message);
   }
 };
 
@@ -290,7 +298,7 @@ const handleBatchStartOrder = async (orderId: number) => {
     }
     await fetchOrders();
   } catch (error: any) {
-    toast.error("批量開始製作失敗：" + error.message);
+    toast.error(t("kitchen.batchStartFailed") + error.message);
   }
 };
 
@@ -305,7 +313,7 @@ const handleBatchCompleteOrder = async (orderId: number) => {
     }
     await fetchOrders();
   } catch (error: any) {
-    toast.error("批量完成製作失敗：" + error.message);
+    toast.error(t("kitchen.batchCompleteFailed") + error.message);
   }
 };
 
@@ -314,7 +322,7 @@ const handleUpdateOrderStatus = async (_orderId: number, _status: any) => {
     await fetchOrders();
     showDetailsModal.value = false;
   } catch (error: any) {
-    toast.error("更新狀態失敗：" + error.message);
+    toast.error(t("kitchen.updateStatusFailed") + error.message);
   }
 };
 
@@ -322,9 +330,9 @@ const handleLogout = async () => {
   try {
     await authStore.logout();
     await router.push("/login");
-    toast.success("已登出");
+    toast.success(t("kitchen.loggedOut"));
   } catch (error: any) {
-    toast.error("登出失敗：" + error.message);
+    toast.error(t("kitchen.logoutFailed") + error.message);
   }
 };
 

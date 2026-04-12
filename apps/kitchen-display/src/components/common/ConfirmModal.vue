@@ -39,7 +39,7 @@
                 class="px-5 py-2.5 text-[14px] font-semibold text-ios-text bg-ios-bg rounded-full hover:bg-ios-separator transition-colors"
                 @click="close(false)"
               >
-                取消
+                {{ t("confirmModal.cancel") }}
               </button>
               <button
                 class="px-5 py-2.5 text-[14px] font-semibold text-white rounded-full transition-colors"
@@ -62,7 +62,10 @@
 
 <script setup lang="ts">
 import { AlertTriangle } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+
+const { t } = useI18n();
 
 const { modalState, close } = useConfirmModal();
 </script>

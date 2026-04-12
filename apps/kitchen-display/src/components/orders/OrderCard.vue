@@ -29,7 +29,7 @@
           {{ order.orderNumber }}
         </span>
         <span v-if="order.tableName" class="text-lg font-bold text-ios-blue">
-          桌 {{ order.tableName }}
+          {{ t("orders.table") }} {{ displayTableName }}
         </span>
       </div>
 
@@ -109,30 +109,32 @@
                 class="flex flex-col items-center text-ios-secondary"
               >
                 <ClockIcon class="w-4 h-4" />
-                <span class="text-xs">{{ item.estimatedTime }}分</span>
+                <span class="text-xs"
+                  >{{ item.estimatedTime }}{{ t("time.min") }}</span
+                >
               </div>
 
               <button
                 v-if="item.status === 'pending'"
                 class="min-h-[44px] px-3 py-1 rounded-full bg-ios-blue text-white text-sm font-semibold"
-                title="開始製作"
+                :title="t('orders.startPreparing')"
                 @click.stop="handleStartCooking(item.id)"
               >
-                開始
+                {{ t("orders.startItem") }}
               </button>
               <button
                 v-else-if="item.status === 'preparing'"
                 class="min-h-[44px] px-3 py-1 rounded-full bg-ios-green text-white text-sm font-semibold"
-                title="標記完成"
+                :title="t('orders.markComplete')"
                 @click.stop="handleMarkReady(item.id)"
               >
-                完成
+                {{ t("orders.completeItem") }}
               </button>
               <span
                 v-else-if="item.status === 'ready'"
                 class="text-sm px-3 py-1 rounded-full bg-ios-bg text-ios-secondary font-semibold"
               >
-                已完成
+                {{ t("orders.itemCompleted") }}
               </span>
             </div>
           </div>
@@ -151,7 +153,7 @@
             v-if="item.customizations && item.customizations.length"
             class="mt-1 text-sm text-ios-blue"
           >
-            <span class="font-medium">客製：</span>
+            <span class="font-medium">{{ t("orders.customization") }}</span>
             {{ item.customizations.join("、") }}
           </div>
         </div>
@@ -171,7 +173,7 @@
         v-if="order.deliveryInfo?.type === 'delivery'"
         class="mb-4 p-3 bg-[#E3F2FD] rounded-xl text-sm text-[#0D47A1] space-y-1"
       >
-        <div class="font-semibold">🛵 外送資訊</div>
+        <div class="font-semibold">{{ t("orders.deliveryInfo") }}</div>
         <div v-if="order.deliveryInfo.address">
           📍 {{ order.deliveryInfo.address }}
         </div>
@@ -186,7 +188,7 @@
         v-else-if="order.deliveryInfo?.type === 'takeaway'"
         class="mb-4 p-3 bg-[#FFF3E0] rounded-xl text-sm text-[#E65100] font-semibold"
       >
-        🛍️ 外帶訂單 — 請準備打包
+        {{ t("orders.takeawayNote") }}
       </div>
 
       <!-- Progress bar (preparing orders with estimated time) -->
@@ -195,7 +197,7 @@
         class="mb-4"
       >
         <div class="flex justify-between text-xs text-ios-secondary mb-1">
-          <span>進度</span>
+          <span>{{ t("orders.progress") }}</span>
           <span>{{ getProgressPercentage(order) }}%</span>
         </div>
         <div class="w-full bg-ios-bg rounded-full h-1.5">
@@ -215,7 +217,7 @@
           @click="handleStartAll"
         >
           <PlayIcon class="w-4 h-4" />
-          開始製作
+          {{ t("orders.startPreparing") }}
         </button>
         <button
           v-else-if="statusType === 'preparing'"
@@ -223,20 +225,20 @@
           @click="handleMarkAllReady"
         >
           <CheckIcon class="w-4 h-4" />
-          ✓ 標記完成
+          {{ t("orders.markCompleteBtn") }}
         </button>
         <div
           v-else-if="statusType === 'ready'"
           class="flex-1 min-h-[44px] rounded-full py-3 font-bold text-ios-secondary bg-ios-bg flex items-center justify-center"
         >
-          已出餐
+          {{ t("orders.served") }}
         </div>
 
         <!-- Secondary: view details + keyboard hint -->
         <div class="flex items-center gap-2 shrink-0">
           <button
             class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center text-ios-secondary hover:text-ios-text transition-colors"
-            title="查看詳情"
+            :title="t('orders.viewDetails')"
             @click="$emit('view-details', order)"
           >
             <EyeIcon class="w-5 h-5" />
@@ -265,6 +267,7 @@ import {
   FlameIcon,
 } from "lucide-vue-next";
 import { computed } from "vue";
+import { useI18n } from "@/i18n";
 import { useSettingsStore } from "@/stores/settings";
 import type { KitchenOrder } from "@/types";
 import { storeToRefs } from "pinia";
@@ -276,6 +279,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 // Emits
 const emit = defineEmits<{
@@ -298,6 +303,13 @@ const {
 const isUrgent = computed(() => props.order.priority === "urgent");
 const isCancelled = computed(() => props.order.status === "cancelled");
 
+// Strip "Table ", "桌 ", "Table-", "桌-" prefixes so the localized t('orders.table') prefix
+// doesn't end up duplicated (e.g. "Table Table 4" in English mode).
+const displayTableName = computed(() => {
+  const name = props.order.tableName ?? "";
+  return name.replace(/^(Table|桌)[\s-]*/i, "");
+});
+
 const statusBorderClass = computed(() => {
   if (props.order.status === "cancelled") return "border-t-4 border-[#8E8E93]";
   const map: Record<string, string> = {
@@ -315,9 +327,24 @@ const orderTypeBadge = computed(() => {
     string,
     { label: string; emoji: string; bg: string; text: string }
   > = {
-    dine_in: { label: "內用", emoji: "🪑", bg: "#E3F2FD", text: "#007AFF" },
-    takeaway: { label: "外帶", emoji: "🛍️", bg: "#FFF3E0", text: "#FF9500" },
-    delivery: { label: "外送", emoji: "🛵", bg: "#E8EAF6", text: "#283593" },
+    dine_in: {
+      label: t("orderType.dineIn"),
+      emoji: "🪑",
+      bg: "#E3F2FD",
+      text: "#007AFF",
+    },
+    takeaway: {
+      label: t("orderType.takeaway"),
+      emoji: "🛍️",
+      bg: "#FFF3E0",
+      text: "#FF9500",
+    },
+    delivery: {
+      label: t("orderType.delivery"),
+      emoji: "🛵",
+      bg: "#E8EAF6",
+      text: "#283593",
+    },
   };
   return badges[type] || badges.dine_in;
 });
@@ -330,24 +357,29 @@ const platformBadge = computed(() => {
     { label: string; emoji: string; bg: string; text: string }
   > = {
     uber_eats: {
-      label: "Uber Eats",
+      label: t("platform.uberEats"),
       emoji: "🟢",
       bg: "#E8F5E9",
       text: "#004D40",
     },
     foodpanda: {
-      label: "Foodpanda",
+      label: t("platform.foodpanda"),
       emoji: "🦋",
       bg: "#FFEBEE",
       text: "#B71C1C",
     },
     grabfood: {
-      label: "GrabFood",
+      label: t("platform.grabFood"),
       emoji: "🟠",
       bg: "#E8F5E9",
       text: "#1B5E20",
     },
-    direct: { label: "直接", emoji: "📦", bg: "#F2F2F7", text: "#1C1C1E" },
+    direct: {
+      label: t("platform.direct"),
+      emoji: "📦",
+      bg: "#F2F2F7",
+      text: "#1C1C1E",
+    },
   };
   return (
     badges[source] || {
@@ -402,11 +434,11 @@ const getProgressPercentage = (order: KitchenOrder) => {
 // Methods
 const formatElapsedTime = (minutes: number) => {
   if (minutes < 60) {
-    return `${minutes}分鐘`;
+    return `${minutes}${t("time.minutes")}`;
   }
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  return `${hours}時${remainingMinutes}分`;
+  return `${hours}${t("time.hour")}${remainingMinutes}${t("time.min")}`;
 };
 
 const formatOrderTime = (dateString: string) => {

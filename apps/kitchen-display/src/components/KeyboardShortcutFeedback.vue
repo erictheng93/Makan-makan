@@ -5,7 +5,7 @@
       <div v-if="showHelp" class="shortcut-help-overlay" @click="hideHelp">
         <div class="shortcut-help-panel" @click.stop>
           <div class="help-header">
-            <h2>鍵盤快捷鍵</h2>
+            <h2>{{ t("shortcuts.title") }}</h2>
             <button class="close-button" @click="hideHelp">
               <!-- <Icon name="x" size="20" /> -->
             </button>
@@ -47,7 +47,10 @@
         </div>
 
         <div class="help-footer">
-          <p>按 <kbd>?</kbd> 或 <kbd>Esc</kbd> 關閉此幫助</p>
+          <p>
+            {{ t("shortcuts.helpTip") }} <kbd>?</kbd> {{ t("shortcuts.or") }}
+            <kbd>Esc</kbd> {{ t("shortcuts.closeHelp") }}
+          </p>
         </div>
       </div>
     </Teleport>
@@ -89,12 +92,18 @@
   <div v-if="showStatusBar" class="shortcut-status-bar">
     <div class="status-section">
       <!-- <Icon name="keyboard" size="16" /> -->
-      <span>快捷鍵: {{ enabled ? "啟用" : "停用" }}</span>
+      <span
+        >{{ t("shortcuts.shortcutLabel") }}
+        {{ enabled ? t("common.enabled") : t("common.disabled") }}</span
+      >
     </div>
 
     <div class="status-section">
       <!-- <Icon name="zap" size="16" /> -->
-      <span>最後動作: {{ lastActionName || "無" }}</span>
+      <span
+        >{{ t("shortcuts.lastAction") }}
+        {{ lastActionName || t("shortcuts.none") }}</span
+      >
     </div>
 
     <div class="status-section actions">
@@ -139,8 +148,8 @@
   <!-- Shortcut Learning Mode -->
   <div v-if="learningMode" class="learning-overlay">
     <div class="learning-panel">
-      <h3>學習模式</h3>
-      <p>按下任意鍵盤組合來查看對應的快捷鍵功能</p>
+      <h3>{{ t("shortcuts.learningMode") }}</h3>
+      <p>{{ t("shortcuts.learningInstruction") }}</p>
 
       <div v-if="learningKeys.length > 0" class="learning-current">
         <div class="learning-keys">
@@ -164,13 +173,13 @@
 
       <div v-else class="learning-no-match">
         <!-- <Icon name="minus-circle" class="no-match-icon" /> -->
-        <span>此組合鍵未設定快捷鍵</span>
+        <span>{{ t("shortcuts.noShortcutBound") }}</span>
       </div>
     </div>
 
     <div class="learning-controls">
       <button class="learning-exit" @click="exitLearningMode">
-        退出學習模式
+        {{ t("shortcuts.exitLearningMode") }}
       </button>
     </div>
   </div>
@@ -178,11 +187,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   useKeyboardShortcuts,
   type KeyboardShortcut,
 } from "@/composables/useKeyboardShortcuts";
 // Icon component temporarily removed - TODO: Replace with heroicons
+
+const { t } = useI18n();
 
 // Composables
 const {
@@ -357,24 +369,14 @@ const checkContextualHints = () => {
   if (currentHour >= 11 && currentHour <= 14) {
     // Lunch rush hints
     setTimeout(() => {
-      showContextHint(
-        "午餐時間到了！按空格鍵快速完成訂單",
-        ["Space"],
-        "info",
-        "clock",
-      );
+      showContextHint(t("shortcuts.lunchHint"), ["Space"], "info", "clock");
     }, 5000);
   }
 
   if (currentHour >= 18 && currentHour <= 21) {
     // Dinner rush hints
     setTimeout(() => {
-      showContextHint(
-        "晚餐繁忙時段，按 M 切換音效提醒",
-        ["M"],
-        "warning",
-        "volume-2",
-      );
+      showContextHint(t("shortcuts.dinnerHint"), ["M"], "warning", "volume-2");
     }, 3000);
   }
 };

@@ -13,7 +13,10 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import type { ConnectionStatus } from "@/types";
+
+const { t } = useI18n();
 
 // Props
 interface Props {
@@ -80,25 +83,25 @@ const textClass = computed(() => {
 
 const label = computed(() => {
   const map: Record<ConnectionStatus, string> = {
-    connected: "已連線",
-    connecting: "連線中...",
-    disconnected: "已斷線",
-    error: "已斷線",
+    connected: t("connection.connected"),
+    connecting: t("connection.connecting"),
+    disconnected: t("connection.disconnected"),
+    error: t("connection.disconnected"),
   };
-  return map[props.connectionStatus] ?? "未知狀態";
+  return map[props.connectionStatus] ?? t("connection.unknownStatus");
 });
 
 // Utility methods kept for external use / history tracking
 const formatLastHeartbeat = () => {
-  if (!props.lastHeartbeat) return "無";
+  if (!props.lastHeartbeat) return t("connection.noHeartbeat");
 
   const now = new Date();
   const diff = now.getTime() - props.lastHeartbeat.getTime();
 
   if (diff < 60000) {
-    return `${Math.floor(diff / 1000)}秒前`;
+    return `${Math.floor(diff / 1000)}${t("connection.secondsAgo")}`;
   } else if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)}分前`;
+    return `${Math.floor(diff / 60000)}${t("connection.minutesAgo")}`;
   } else {
     return props.lastHeartbeat.toLocaleTimeString("zh-TW", {
       hour: "2-digit",

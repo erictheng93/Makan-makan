@@ -8,7 +8,9 @@
       <!-- 音效控制 -->
       <button
         class="audio-control"
-        :title="audioEnabled ? '關閉音效' : '開啟音效'"
+        :title="
+          audioEnabled ? t('shortcuts.audioToggle') : t('shortcuts.audioToggle')
+        "
         @click="toggleAudio"
       >
         <component
@@ -24,26 +26,26 @@
         @click="showKeyboardHelp = false"
       >
         <div class="bg-white rounded-xl p-6 max-w-md w-full">
-          <h3 class="text-lg font-semibold mb-4">鍵盤快捷鍵</h3>
+          <h3 class="text-lg font-semibold mb-4">{{ t("shortcuts.title") }}</h3>
           <div class="space-y-2 text-sm">
             <div class="flex justify-between">
-              <span>標記完成</span>
+              <span>{{ t("shortcuts.markComplete") }}</span>
               <span class="keyboard-hint">Space</span>
             </div>
             <div class="flex justify-between">
-              <span>開始製作</span>
+              <span>{{ t("shortcuts.startPreparing") }}</span>
               <span class="keyboard-hint">Enter</span>
             </div>
             <div class="flex justify-between">
-              <span>音效開關</span>
+              <span>{{ t("shortcuts.audioToggle") }}</span>
               <span class="keyboard-hint">M</span>
             </div>
             <div class="flex justify-between">
-              <span>全屏模式</span>
+              <span>{{ t("shortcuts.fullscreen") }}</span>
               <span class="keyboard-hint">F</span>
             </div>
             <div class="flex justify-between">
-              <span>幫助</span>
+              <span>{{ t("shortcuts.help") }}</span>
               <span class="keyboard-hint">?</span>
             </div>
           </div>
@@ -62,6 +64,9 @@ import {
   Volume2 as SpeakerWaveIcon,
   VolumeX as SpeakerXMarkIcon,
 } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 import { useSettingsStore } from "@/stores/settings";
 import { storeToRefs } from "pinia";
 import ErrorBoundary from "@/components/error/ErrorBoundary.vue";

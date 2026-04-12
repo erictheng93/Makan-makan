@@ -8,13 +8,15 @@
       >
         <ArrowLeft class="w-5 h-5 text-ios-text" />
       </button>
-      <h1 class="text-2xl font-extrabold text-ios-text">設定</h1>
+      <h1 class="text-2xl font-extrabold text-ios-text">
+        {{ t("settings.title") }}
+      </h1>
       <div class="flex-1" />
       <button
         class="text-ios-red text-sm font-semibold"
         @click="resetToDefaults"
       >
-        恢復預設
+        {{ t("settings.restoreDefaults") }}
       </button>
     </div>
 
@@ -24,14 +26,16 @@
       <div
         class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
       >
-        顯示
+        {{ t("settings.display") }}
       </div>
       <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
         <!-- Font Size Segmented Control -->
         <div
           class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg"
         >
-          <span class="text-[15px] font-medium text-ios-text">字體大小</span>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("settings.fontSize")
+          }}</span>
           <div class="bg-ios-bg rounded-full p-0.5 inline-flex gap-0.5">
             <button
               v-for="opt in fontSizeOptions"
@@ -53,9 +57,9 @@
         <div
           class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg"
         >
-          <span class="text-[15px] font-medium text-ios-text"
-            >顯示顧客姓名</span
-          >
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("settings.showCustomerName")
+          }}</span>
           <button
             class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0"
             :class="settings.showCustomerNames ? 'bg-ios-green' : 'bg-ios-bg'"
@@ -74,9 +78,9 @@
 
         <!-- Show Estimated Time -->
         <div class="flex items-center justify-between py-3.5 px-4">
-          <span class="text-[15px] font-medium text-ios-text"
-            >顯示預估時間</span
-          >
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("settings.showEstimatedTime")
+          }}</span>
           <button
             class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0"
             :class="settings.showEstimatedTime ? 'bg-ios-green' : 'bg-ios-bg'"
@@ -98,14 +102,16 @@
       <div
         class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
       >
-        音效
+        {{ t("settings.audio") }}
       </div>
       <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
         <!-- Sound Notifications Toggle -->
         <div
           class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg"
         >
-          <span class="text-[15px] font-medium text-ios-text">音效通知</span>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("settings.audioNotifications")
+          }}</span>
           <button
             class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0"
             :class="settings.audioEnabled ? 'bg-ios-green' : 'bg-ios-bg'"
@@ -125,7 +131,9 @@
         <!-- Volume Slider -->
         <div class="py-3.5 px-4 border-b border-ios-bg">
           <div class="flex items-center justify-between mb-2.5">
-            <span class="text-[15px] font-medium text-ios-text">音量</span>
+            <span class="text-[15px] font-medium text-ios-text">{{
+              t("settings.volume")
+            }}</span>
             <span class="text-[15px] font-medium text-ios-secondary"
               >{{ settings.soundVolume }}%</span
             >
@@ -159,9 +167,11 @@
           class="flex items-center justify-between py-3.5 px-4 cursor-pointer active:bg-ios-bg transition-colors"
           @click="showSoundPicker = true"
         >
-          <span class="text-[15px] font-medium text-ios-text">通知音效</span>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("settings.notificationSound")
+          }}</span>
           <div class="flex items-center gap-1.5 text-ios-secondary">
-            <span class="text-[15px]">預設</span>
+            <span class="text-[15px]">{{ t("settings.soundDefault") }}</span>
             <ChevronRight class="w-4 h-4" />
           </div>
         </div>
@@ -171,7 +181,7 @@
       <div
         class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
       >
-        時間門檻
+        {{ t("settings.timeThresholds") }}
       </div>
       <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
         <!-- Urgent Threshold Disclosure -->
@@ -179,10 +189,12 @@
           class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg cursor-pointer active:bg-ios-bg transition-colors"
           @click="showUrgentPicker = true"
         >
-          <span class="text-[15px] font-medium text-ios-text">緊急時間</span>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("settings.urgentTime")
+          }}</span>
           <div class="flex items-center gap-1.5">
             <span class="text-[15px] font-medium text-ios-red"
-              >{{ settings.urgentThreshold }} 分鐘</span
+              >{{ settings.urgentThreshold }} {{ t("common.minutes") }}</span
             >
             <ChevronRight class="w-4 h-4 text-ios-secondary" />
           </div>
@@ -193,12 +205,12 @@
           class="flex items-center justify-between py-3.5 px-4 cursor-pointer active:bg-ios-bg transition-colors"
           @click="showRefreshPicker = true"
         >
-          <span class="text-[15px] font-medium text-ios-text"
-            >自動刷新間隔</span
-          >
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("settings.autoRefreshInterval")
+          }}</span>
           <div class="flex items-center gap-1.5">
             <span class="text-[15px] font-medium text-ios-blue"
-              >{{ settings.refreshInterval }} 秒</span
+              >{{ settings.refreshInterval }} {{ t("common.seconds") }}</span
             >
             <ChevronRight class="w-4 h-4 text-ios-secondary" />
           </div>
@@ -221,12 +233,14 @@
           class="relative w-full bg-white rounded-t-3xl shadow-card-lg px-4 pt-5 pb-8"
         >
           <div class="flex items-center justify-between mb-4">
-            <span class="text-lg font-bold text-ios-text">緊急時間</span>
+            <span class="text-lg font-bold text-ios-text">{{
+              t("settings.urgentTime")
+            }}</span>
             <button
               class="text-ios-blue font-semibold text-[15px]"
               @click="showUrgentPicker = false"
             >
-              完成
+              {{ t("common.done") }}
             </button>
           </div>
           <div class="grid grid-cols-4 gap-2">
@@ -241,7 +255,7 @@
               "
               @click="setUrgentThreshold(val)"
             >
-              {{ val }} 分
+              {{ val }} {{ t("settings.min") }}
             </button>
           </div>
         </div>
@@ -263,12 +277,14 @@
           class="relative w-full bg-white rounded-t-3xl shadow-card-lg px-4 pt-5 pb-8"
         >
           <div class="flex items-center justify-between mb-4">
-            <span class="text-lg font-bold text-ios-text">自動刷新間隔</span>
+            <span class="text-lg font-bold text-ios-text">{{
+              t("settings.autoRefreshInterval")
+            }}</span>
             <button
               class="text-ios-blue font-semibold text-[15px]"
               @click="showRefreshPicker = false"
             >
-              完成
+              {{ t("common.done") }}
             </button>
           </div>
           <div class="grid grid-cols-4 gap-2">
@@ -283,7 +299,7 @@
               "
               @click="setRefreshInterval(val)"
             >
-              {{ val }} 秒
+              {{ val }} {{ t("common.seconds") }}
             </button>
           </div>
         </div>
@@ -305,12 +321,14 @@
           class="relative w-full bg-white rounded-t-3xl shadow-card-lg px-4 pt-5 pb-8"
         >
           <div class="flex items-center justify-between mb-4">
-            <span class="text-lg font-bold text-ios-text">通知音效</span>
+            <span class="text-lg font-bold text-ios-text">{{
+              t("settings.notificationSound")
+            }}</span>
             <button
               class="text-ios-blue font-semibold text-[15px]"
               @click="showSoundPicker = false"
             >
-              完成
+              {{ t("common.done") }}
             </button>
           </div>
           <div class="space-y-1">
@@ -341,16 +359,18 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, computed } from "vue";
 import { ArrowLeft, ChevronRight, Check } from "lucide-vue-next";
 import { useSettingsStore } from "@/stores/settings";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useI18n } from "@/i18n";
 import { storeToRefs } from "pinia";
 
 const settingsStore = useSettingsStore();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
+const { t } = useI18n();
 const { settings: storeSettings } = storeToRefs(settingsStore);
 
 // Create reactive copy of settings
@@ -363,21 +383,21 @@ const showSoundPicker = ref(false);
 const selectedSound = ref("default");
 
 // Options
-const fontSizeOptions = [
-  { value: "normal" as const, label: "一般" },
-  { value: "large" as const, label: "大" },
-  { value: "extra-large" as const, label: "特大" },
-];
+const fontSizeOptions = computed(() => [
+  { value: "normal" as const, label: t("settings.fontNormal") },
+  { value: "large" as const, label: t("settings.fontLarge") },
+  { value: "extra-large" as const, label: t("settings.fontExtraLarge") },
+]);
 
 const urgentOptions = [5, 10, 15, 20, 25, 30, 45, 60];
 const refreshOptions = [5, 10, 15, 20, 30, 45, 60, 120];
 
-const soundOptions = [
-  { value: "default", label: "預設" },
-  { value: "chime", label: "清脆鈴聲" },
-  { value: "bell", label: "鈴鐺" },
-  { value: "ping", label: "提示音" },
-];
+const soundOptions = computed(() => [
+  { value: "default", label: t("settings.soundDefault") },
+  { value: "chime", label: t("settings.soundCrisp") },
+  { value: "bell", label: t("settings.soundBell") },
+  { value: "ping", label: t("settings.soundChime") },
+]);
 
 // Actions
 const toggleAudio = () => {
@@ -419,15 +439,15 @@ const setRefreshInterval = (val: number) => {
 const resetToDefaults = async () => {
   const confirmed = await confirmModal({
     type: "danger",
-    title: "恢復預設值",
-    message: "確定要恢復所有設定為預設值嗎？",
-    confirmLabel: "恢復預設值",
+    title: t("settings.restoreConfirmTitle"),
+    message: t("settings.restoreConfirmMessage"),
+    confirmLabel: t("settings.restoreConfirmLabel"),
   });
   if (!confirmed) return;
 
   settingsStore.resetSettings();
   Object.assign(settings, storeSettings.value);
-  toast.success("設定已恢復為預設值");
+  toast.success(t("settings.restoredSuccess"));
 };
 </script>
 

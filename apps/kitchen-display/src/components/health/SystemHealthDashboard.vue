@@ -5,8 +5,12 @@
     <div class="mb-8">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">系統健康監控</h1>
-          <p class="mt-2 text-sm text-gray-600">監控系統運行狀態和性能指標</p>
+          <h1 class="text-3xl font-bold text-gray-900">
+            {{ t("health.title") }}
+          </h1>
+          <p class="mt-2 text-sm text-gray-600">
+            {{ t("health.description") }}
+          </p>
         </div>
 
         <div class="flex items-center space-x-3">
@@ -21,7 +25,11 @@
               ]"
             />
             <span class="text-sm text-gray-600">
-              {{ systemHealth.isMonitoring ? "監控中" : "已停止" }}
+              {{
+                systemHealth.isMonitoring
+                  ? t("health.monitoring")
+                  : t("health.stopped")
+              }}
             </span>
           </div>
 
@@ -34,7 +42,11 @@
             <CpuChipIcon
               :class="['w-4 h-4 mr-2', { 'animate-spin': runningDiagnostics }]"
             />
-            {{ runningDiagnostics ? "診斷中..." : "運行診斷" }}
+            {{
+              runningDiagnostics
+                ? t("health.diagnosing")
+                : t("health.runDiagnostics")
+            }}
           </button>
 
           <button
@@ -45,7 +57,7 @@
             <ArrowPathIcon
               :class="['w-4 h-4 mr-2', { 'animate-spin': loading }]"
             />
-            更新
+            {{ t("common.update") }}
           </button>
         </div>
       </div>
@@ -71,7 +83,9 @@
             </div>
             <div class="ml-6 flex-1">
               <div class="flex items-center">
-                <h2 class="text-2xl font-bold text-gray-900">系統健康狀態</h2>
+                <h2 class="text-2xl font-bold text-gray-900">
+                  {{ t("health.systemHealth") }}
+                </h2>
                 <span
                   :class="[
                     'ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
@@ -90,13 +104,17 @@
                   <span class="text-lg text-gray-500 ml-1">/100</span>
                 </div>
                 <div class="ml-6">
-                  <div class="text-sm text-gray-500 mb-1">運行時間</div>
+                  <div class="text-sm text-gray-500 mb-1">
+                    {{ t("health.uptime") }}
+                  </div>
                   <div class="text-lg font-semibold text-gray-900">
                     {{ formatUptime(healthReport.uptime) }}
                   </div>
                 </div>
                 <div class="ml-6">
-                  <div class="text-sm text-gray-500 mb-1">最後更新</div>
+                  <div class="text-sm text-gray-500 mb-1">
+                    {{ t("health.lastUpdate") }}
+                  </div>
                   <div class="text-lg font-semibold text-gray-900">
                     {{ formatLastUpdate(healthReport.overall.lastUpdate) }}
                   </div>
@@ -106,7 +124,7 @@
               <!-- Health Score Progress Bar -->
               <div class="mt-4">
                 <div class="flex justify-between text-sm text-gray-600 mb-1">
-                  <span>健康分數</span>
+                  <span>{{ t("health.healthScore") }}</span>
                   <span>{{ healthReport.overall.score }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -133,7 +151,9 @@
     <div v-if="activeAlerts.length > 0" class="mb-8">
       <div class="bg-white shadow-lg rounded-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-medium text-gray-900">活動警報</h3>
+          <h3 class="text-lg font-medium text-gray-900">
+            {{ t("health.activeAlerts") }}
+          </h3>
         </div>
         <div class="divide-y divide-gray-200">
           <div
@@ -165,13 +185,15 @@
                     class="ml-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
                     @click="resolveAlert(alert.id)"
                   >
-                    解決
+                    {{ t("common.resolve") }}
                   </button>
                 </div>
 
                 <!-- Recommended Actions -->
                 <div v-if="alert.actions.length > 0" class="mt-2">
-                  <p class="text-xs text-gray-500 mb-1">建議動作:</p>
+                  <p class="text-xs text-gray-500 mb-1">
+                    {{ t("health.suggestedAction") }}
+                  </p>
                   <div class="flex flex-wrap gap-1">
                     <span
                       v-for="action in alert.actions.slice(0, 3)"
@@ -193,7 +215,9 @@
     <div class="mb-8">
       <div class="bg-white shadow-lg rounded-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-medium text-gray-900">系統組件狀態</h3>
+          <h3 class="text-lg font-medium text-gray-900">
+            {{ t("health.componentStatus") }}
+          </h3>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
           <div
@@ -218,7 +242,7 @@
             <!-- Health Score -->
             <div class="mb-3">
               <div class="flex justify-between text-xs text-gray-600 mb-1">
-                <span>健康分數</span>
+                <span>{{ t("health.healthScore") }}</span>
                 <span>{{ component.healthScore }}/100</span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-1.5">
@@ -239,11 +263,16 @@
             <!-- Additional Info -->
             <div class="text-xs text-gray-500 space-y-1">
               <div v-if="component.responseTime">
-                響應時間: {{ Math.round(component.responseTime) }}ms
+                {{ t("health.responseTime") }}
+                {{ Math.round(component.responseTime) }}ms
               </div>
-              <div>最後檢查: {{ formatRelativeTime(component.lastCheck) }}</div>
+              <div>
+                {{ t("health.lastCheck") }}
+                {{ formatRelativeTime(component.lastCheck) }}
+              </div>
               <div v-if="component.dependencies.length > 0">
-                依賴: {{ component.dependencies.join(", ") }}
+                {{ t("health.dependencies") }}
+                {{ component.dependencies.join(", ") }}
               </div>
             </div>
           </div>
@@ -256,7 +285,9 @@
       <!-- Key Metrics -->
       <div class="bg-white shadow-lg rounded-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-medium text-gray-900">關鍵指標</h3>
+          <h3 class="text-lg font-medium text-gray-900">
+            {{ t("health.keyMetrics") }}
+          </h3>
         </div>
         <div class="p-6 space-y-4">
           <div
@@ -298,7 +329,9 @@
       <!-- System Statistics -->
       <div class="bg-white shadow-lg rounded-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-medium text-gray-900">系統統計</h3>
+          <h3 class="text-lg font-medium text-gray-900">
+            {{ t("health.systemStats") }}
+          </h3>
         </div>
         <div class="p-6">
           <div class="grid grid-cols-2 gap-4">
@@ -306,25 +339,33 @@
               <div class="text-2xl font-bold text-gray-900">
                 {{ systemStats.totalAlerts }}
               </div>
-              <div class="text-sm text-gray-500">總警報</div>
+              <div class="text-sm text-gray-500">
+                {{ t("health.totalAlerts") }}
+              </div>
             </div>
             <div class="text-center">
               <div class="text-2xl font-bold text-red-600">
                 {{ systemStats.criticalAlerts }}
               </div>
-              <div class="text-sm text-gray-500">嚴重警報</div>
+              <div class="text-sm text-gray-500">
+                {{ t("health.criticalAlerts") }}
+              </div>
             </div>
             <div class="text-center">
               <div class="text-2xl font-bold text-blue-600">
                 {{ systemStats.avgResponseTime }}ms
               </div>
-              <div class="text-sm text-gray-500">平均響應</div>
+              <div class="text-sm text-gray-500">
+                {{ t("health.avgResponse") }}
+              </div>
             </div>
             <div class="text-center">
               <div class="text-2xl font-bold text-yellow-600">
                 {{ systemStats.errorRate }}
               </div>
-              <div class="text-sm text-gray-500">錯誤率/小時</div>
+              <div class="text-sm text-gray-500">
+                {{ t("health.errorRatePerHour") }}
+              </div>
             </div>
           </div>
         </div>
@@ -339,7 +380,9 @@
             <InformationCircleIcon class="h-5 w-5 text-blue-400" />
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-blue-800 mb-2">系統建議</h3>
+            <h3 class="text-sm font-medium text-blue-800 mb-2">
+              {{ t("health.recommendations") }}
+            </h3>
             <div class="text-sm text-blue-700">
               <ul class="list-disc list-inside space-y-1">
                 <li
@@ -364,7 +407,9 @@
         class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-medium text-gray-900">系統診斷結果</h3>
+          <h3 class="text-lg font-medium text-gray-900">
+            {{ t("health.diagnosticResults") }}
+          </h3>
           <button
             class="text-gray-400 hover:text-gray-600"
             @click="showDiagnostics = false"
@@ -390,7 +435,7 @@
                 ]"
               />
               <span class="text-sm text-gray-600">{{
-                result ? "正常" : "失敗"
+                result ? t("health.diagPass") : t("health.diagFail")
               }}</span>
             </div>
           </div>
@@ -402,6 +447,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, h } from "vue";
+import { useI18n } from "@/i18n";
 import {
   Cpu as CpuChipIcon,
   RefreshCw as ArrowPathIcon,
@@ -418,6 +464,7 @@ import { useToast } from "vue-toastification";
 import { systemHealthService } from "@/services/systemHealthService";
 import type { SystemHealthReport } from "@/services/systemHealthService";
 
+const { t } = useI18n();
 const toast = useToast();
 
 // State
@@ -480,9 +527,9 @@ const refreshHealthData = async () => {
   loading.value = true;
   try {
     await systemHealthService.performHealthCheck();
-    toast.success("健康數據已更新");
+    toast.success(t("health.healthUpdated"));
   } catch (error) {
-    toast.error("更新健康數據失敗");
+    toast.error(t("health.healthUpdateFailed"));
     console.error("Health data refresh failed:", error);
   } finally {
     loading.value = false;
@@ -495,9 +542,9 @@ const runDiagnostics = async () => {
     const results = await systemHealthService.runDiagnostics();
     diagnosticsResults.value = results;
     showDiagnostics.value = true;
-    toast.success("系統診斷完成");
+    toast.success(t("health.diagnosticsComplete"));
   } catch (error) {
-    toast.error("系統診斷失敗");
+    toast.error(t("health.diagnosticsFailed"));
     console.error("Diagnostics failed:", error);
   } finally {
     runningDiagnostics.value = false;
@@ -506,7 +553,7 @@ const runDiagnostics = async () => {
 
 const resolveAlert = (alertId: string) => {
   systemHealthService.resolveAlert(alertId);
-  toast.success("警報已解決");
+  toast.success(t("health.alertResolved"));
 };
 
 // Utility functions
@@ -529,12 +576,12 @@ const getHealthStatusColor = (status: string, type: "bg" | "badge") => {
 };
 
 const getHealthStatusText = (status: string) => {
-  const textMap: Record<string, string> = {
-    healthy: "健康",
-    warning: "警告",
-    critical: "嚴重",
+  const keyMap: Record<string, string> = {
+    healthy: "health.statusHealthy",
+    warning: "health.statusWarning",
+    critical: "health.statusCritical",
   };
-  return textMap[status] || "未知";
+  return keyMap[status] ? t(keyMap[status]) : t("health.statusUnknown");
 };
 
 const getAlertSeverityColor = (severity: string) => {
@@ -556,12 +603,12 @@ const getComponentStatusColor = (status: string) => {
 };
 
 const getComponentStatusText = (status: string) => {
-  const textMap: Record<string, string> = {
-    online: "在線",
-    degraded: "降級",
-    offline: "離線",
+  const keyMap: Record<string, string> = {
+    online: "health.componentOnline",
+    degraded: "health.componentDegraded",
+    offline: "health.componentOffline",
   };
-  return textMap[status] || "未知";
+  return keyMap[status] ? t(keyMap[status]) : t("health.statusUnknown");
 };
 
 const getMetricStatusColor = (status: string) => {
@@ -574,12 +621,12 @@ const getMetricStatusColor = (status: string) => {
 };
 
 const getMetricStatusText = (status: string) => {
-  const textMap: Record<string, string> = {
-    healthy: "正常",
-    warning: "警告",
-    critical: "嚴重",
+  const keyMap: Record<string, string> = {
+    healthy: "health.metricNormal",
+    warning: "health.metricWarning",
+    critical: "health.metricCritical",
   };
-  return textMap[status] || "未知";
+  return keyMap[status] ? t(keyMap[status]) : t("health.statusUnknown");
 };
 
 const formatMetricValue = (value: number, unit: string) => {
@@ -641,16 +688,17 @@ const formatRelativeTime = (timestamp: number) => {
 };
 
 const getDiagnosticName = (test: string) => {
-  const nameMap: Record<string, string> = {
-    networkConnectivity: "網路連線",
-    localStorage: "本地儲存",
+  const keyMap: Record<string, string> = {
+    networkConnectivity: "health.diagNetwork",
+    localStorage: "health.diagStorage",
     webWorkers: "Web Workers",
-    audioContext: "音頻上下文",
-    performance: "性能API",
-    permissions: "權限API",
-    browserCompatibility: "瀏覽器兼容性",
+    audioContext: "health.diagAudio",
+    performance: "health.diagPerformance",
+    permissions: "health.diagPermissions",
+    browserCompatibility: "health.diagBrowser",
   };
-  return nameMap[test] || test;
+  const key = keyMap[test];
+  return key && key.startsWith("health.") ? t(key) : key || test;
 };
 
 // Auto refresh setup

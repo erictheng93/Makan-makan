@@ -7,7 +7,7 @@
         <!-- Left Section: Title + Connection Status -->
         <div class="flex items-center gap-3 min-w-0">
           <h1 class="text-2xl font-extrabold text-ios-text whitespace-nowrap">
-            廚房看板
+            {{ t("header.title") }}
           </h1>
           <!-- Connection Status -->
           <div class="flex items-center gap-1.5">
@@ -23,7 +23,9 @@
                 isConnected ? 'text-ios-green' : 'text-ios-red',
               ]"
             >
-              {{ isConnected ? "已連線" : "離線" }}
+              {{
+                isConnected ? t("header.connected") : t("header.disconnected")
+              }}
             </span>
           </div>
         </div>
@@ -40,7 +42,7 @@
               ]"
               @click="$emit('update:viewMode', 'kanban')"
             >
-              看板
+              {{ t("header.boardView") }}
             </button>
             <button
               :class="[
@@ -51,7 +53,7 @@
               ]"
               @click="$emit('update:viewMode', 'grid')"
             >
-              格狀
+              {{ t("header.gridView") }}
             </button>
           </div>
         </div>
@@ -62,7 +64,7 @@
           <button
             v-if="!isConnected"
             class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
-            title="重新連線"
+            :title="t('header.reconnect')"
             @click="$emit('reconnect')"
           >
             <RefreshCw class="w-5 h-5 text-ios-orange" />
@@ -72,7 +74,7 @@
           <button
             :disabled="isRefreshing"
             class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95 disabled:opacity-50"
-            title="刷新訂單"
+            :title="t('header.refreshOrders')"
             @click="$emit('refresh')"
           >
             <RefreshCw
@@ -86,7 +88,7 @@
           <!-- Fullscreen Toggle -->
           <button
             class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
-            title="全屏模式"
+            :title="t('header.fullscreen')"
             @click="$emit('toggle-fullscreen')"
           >
             <Minimize2 v-if="isFullscreen" class="w-5 h-5 text-ios-secondary" />
@@ -96,15 +98,57 @@
           <!-- Notification Button -->
           <button
             class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
-            title="通知"
+            :title="t('header.notifications')"
           >
             <Bell class="w-5 h-5 text-ios-secondary" />
           </button>
 
+          <!-- Language Switcher -->
+          <div class="relative">
+            <button
+              class="h-11 px-3 rounded-full bg-ios-bg flex items-center gap-1.5 transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
+              @click="showLanguageMenu = !showLanguageMenu"
+            >
+              <Globe class="w-5 h-5 text-ios-secondary" />
+              <span
+                class="text-sm font-medium text-ios-secondary hidden sm:inline"
+                >{{ localeConfig.flag }}</span
+              >
+            </button>
+            <transition name="dropdown">
+              <div
+                v-if="showLanguageMenu"
+                class="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-card-lg border border-black/5 overflow-hidden z-50 min-w-[160px]"
+              >
+                <button
+                  v-for="loc in supportedLocales"
+                  :key="loc.code"
+                  class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors duration-150 hover:bg-ios-bg"
+                  :class="{
+                    'text-ios-blue font-semibold': loc.code === locale,
+                    'text-ios-text': loc.code !== locale,
+                  }"
+                  @click="handleLocaleChange(loc.code)"
+                >
+                  <span class="text-base">{{ loc.flag }}</span>
+                  <span>{{ loc.nativeName }}</span>
+                  <span v-if="loc.code === locale" class="ml-auto text-ios-blue"
+                    >✓</span
+                  >
+                </button>
+              </div>
+            </transition>
+            <div
+              v-if="showLanguageMenu"
+              class="fixed inset-0 z-40"
+              @click="showLanguageMenu = false"
+            />
+          </div>
+
           <!-- Settings Button -->
           <button
             class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
-            title="設定"
+            :title="t('header.settings')"
             @click="$emit('open-settings')"
           >
             <Settings class="w-5 h-5 text-ios-secondary" />
@@ -113,7 +157,7 @@
           <!-- Logout Button -->
           <button
             class="w-11 h-11 rounded-full bg-ios-red/10 flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-red/20 active:scale-95"
-            title="登出"
+            :title="t('header.logout')"
             @click="handleLogoutClick"
           >
             <LogOut class="w-5 h-5 text-ios-red" />
@@ -138,21 +182,25 @@
           >
             <AlertTriangle class="w-6 h-6 text-ios-red" />
           </div>
-          <h3 class="text-lg font-semibold text-ios-text mb-2">確認登出</h3>
-          <p class="text-ios-secondary mb-6">您確定要登出廚房系統嗎？</p>
+          <h3 class="text-lg font-semibold text-ios-text mb-2">
+            {{ t("header.logoutConfirmTitle") }}
+          </h3>
+          <p class="text-ios-secondary mb-6">
+            {{ t("header.logoutConfirmMessage") }}
+          </p>
 
           <div class="flex gap-3">
             <button
               class="flex-1 py-2.5 px-4 rounded-full bg-ios-bg text-ios-text font-semibold text-sm transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
               @click="showLogoutConfirm = false"
             >
-              取消
+              {{ t("common.cancel") }}
             </button>
             <button
               class="flex-1 py-2.5 px-4 rounded-full bg-ios-red text-white font-semibold text-sm transition-all duration-200 ease-out hover:bg-ios-red/90 active:scale-95"
               @click="confirmLogout"
             >
-              登出
+              {{ t("header.logout") }}
             </button>
           </div>
         </div>
@@ -171,8 +219,13 @@ import {
   Settings,
   LogOut,
   AlertTriangle,
+  Globe,
 } from "lucide-vue-next";
 import type { KitchenStats } from "@/types";
+import { useI18n } from "@/i18n";
+import type { Locale } from "@/i18n";
+
+const { t, locale, localeConfig, switchLocale, supportedLocales } = useI18n();
 
 // Props
 interface Props {
@@ -204,12 +257,13 @@ const emit = defineEmits<{
 const isRefreshing = ref(false);
 const isFullscreen = ref(false);
 const showLogoutConfirm = ref(false);
+const showLanguageMenu = ref(false);
 
 // Computed
 const currentViewMode = computed(() => props.viewMode ?? "kanban");
 
 const formattedTime = computed(() => {
-  return props.currentTime.toLocaleTimeString("zh-TW", {
+  return props.currentTime.toLocaleTimeString(locale.value, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -218,7 +272,7 @@ const formattedTime = computed(() => {
 });
 
 const formattedDate = computed(() => {
-  return props.currentTime.toLocaleDateString("zh-TW", {
+  return props.currentTime.toLocaleDateString(locale.value, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -226,6 +280,11 @@ const formattedDate = computed(() => {
 });
 
 // Methods
+const handleLocaleChange = async (code: string) => {
+  await switchLocale(code as Locale);
+  showLanguageMenu.value = false;
+};
+
 const handleLogoutClick = () => {
   showLogoutConfirm.value = true;
 };
@@ -254,3 +313,18 @@ onUnmounted(() => {
 
 // Handle refresh state (could be managed by parent)
 </script>
+
+<style scoped>
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+.dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+</style>

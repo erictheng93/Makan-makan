@@ -37,7 +37,8 @@
                 {{ formatTime(order.createdAt) }}
                 <span class="mx-1.5">·</span>
                 <span :class="getTimeClass(order.elapsedTime)">
-                  等待 {{ formatElapsedTime(order.elapsedTime) }}
+                  {{ t("orders.waiting") }}
+                  {{ formatElapsedTime(order.elapsedTime) }}
                 </span>
               </p>
             </div>
@@ -77,13 +78,14 @@
 
                   <!-- Customization notes -->
                   <div v-if="item.notes" class="mt-1 text-ios-orange text-sm">
-                    備註: {{ item.notes }}
+                    {{ t("orders.notes") }} {{ item.notes }}
                   </div>
                   <div
                     v-if="item.customizations && item.customizations.length"
                     class="mt-1 text-ios-orange text-sm"
                   >
-                    客製: {{ item.customizations.join(", ") }}
+                    {{ t("orders.customization") }}
+                    {{ item.customizations.join(", ") }}
                   </div>
 
                   <!-- Item timestamps -->
@@ -92,10 +94,12 @@
                     class="mt-1 flex gap-3 text-xs text-ios-secondary"
                   >
                     <span v-if="item.startedAt">
-                      開始 {{ formatTime(item.startedAt) }}
+                      {{ t("orders.startTimestamp") }}
+                      {{ formatTime(item.startedAt) }}
                     </span>
                     <span v-if="item.completedAt" class="text-ios-green">
-                      完成 {{ formatTime(item.completedAt) }}
+                      {{ t("orders.completeTimestamp") }}
+                      {{ formatTime(item.completedAt) }}
                     </span>
                   </div>
                 </div>
@@ -110,14 +114,14 @@
                     class="rounded-full px-3 py-1.5 text-sm font-semibold bg-ios-blue text-white"
                     @click="updateItemStatus(item.id, 'preparing')"
                   >
-                    開始
+                    {{ t("orders.startItem") }}
                   </button>
                   <button
                     v-else-if="item.status === 'preparing'"
                     class="rounded-full px-3 py-1.5 text-sm font-semibold bg-ios-green text-white"
                     @click="updateItemStatus(item.id, 'ready')"
                   >
-                    完成
+                    {{ t("orders.completeItem") }}
                   </button>
                 </div>
               </div>
@@ -141,14 +145,14 @@
             class="w-full rounded-full py-4 font-bold text-white bg-ios-blue text-base"
             @click="markAllComplete"
           >
-            開始全部製作
+            {{ t("orders.startAll") }}
           </button>
           <button
             v-else
             class="w-full rounded-full py-4 font-bold text-white bg-ios-green text-base"
             @click="$emit('close')"
           >
-            全部已完成
+            {{ t("orders.completeAll") }}
           </button>
         </div>
       </div>
@@ -159,7 +163,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { XIcon, ZapIcon } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
 import type { KitchenOrder, ItemStatus } from "@/types";
+
+const { t } = useI18n();
 
 interface Props {
   order: KitchenOrder;
@@ -205,11 +212,11 @@ const formatTime = (dateString: string) => {
 
 const formatElapsedTime = (minutes: number) => {
   if (minutes < 60) {
-    return `${minutes}分鐘`;
+    return `${minutes}${t("time.minutes")}`;
   }
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  return `${hours}時${remainingMinutes}分`;
+  return `${hours}${t("time.hour")}${remainingMinutes}${t("time.min")}`;
 };
 
 const getTimeClass = (elapsedMinutes: number) => {
@@ -223,11 +230,11 @@ const getTimeClass = (elapsedMinutes: number) => {
 
 const getOrderTypeText = (type?: string) => {
   const texts: Record<string, string> = {
-    dine_in: "內用",
-    takeout: "外帶",
-    delivery: "外送",
+    dine_in: t("orderType.dineIn"),
+    takeout: t("orderType.takeaway"),
+    delivery: t("orderType.delivery"),
   };
-  return texts[type ?? ""] ?? "內用";
+  return texts[type ?? ""] ?? t("orderType.dineIn");
 };
 
 const getOrderTypeBadgeClass = (type?: string) => {
@@ -255,12 +262,12 @@ const getItemStatusClass = (status: ItemStatus) => {
 
 const getItemStatusText = (status: ItemStatus) => {
   const texts: Record<string, string> = {
-    pending: "待處理",
-    preparing: "製作中",
-    ready: "已完成",
-    completed: "已送達",
+    pending: t("itemStatus.pending"),
+    preparing: t("itemStatus.preparing"),
+    ready: t("itemStatus.completed"),
+    completed: t("itemStatus.served"),
   };
-  return texts[status] ?? "未知";
+  return texts[status] ?? t("itemStatus.unknown");
 };
 
 const updateItemStatus = (itemId: number, status: ItemStatus) => {
