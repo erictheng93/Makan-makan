@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import {
   CloudIcon,
@@ -6,29 +7,32 @@ import {
   RocketLaunchIcon,
   ArrowRightIcon,
 } from "@heroicons/vue/24/outline";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 const DEMO_RESTAURANT_ID = "019469a0-0099-7000-8000-000000000099";
 const CUSTOMER_APP_URL =
   import.meta.env.VITE_CUSTOMER_APP_URL || "http://localhost:3000";
 const demoUrl = `${CUSTOMER_APP_URL}/restaurant/${DEMO_RESTAURANT_ID}/shop/order-type`;
 
-const features = [
+const features = computed(() => [
   {
     icon: CloudIcon,
-    title: "獨立環境",
-    description: "完全隔離的雲端環境，數據 100% 歸您所有",
+    title: t("home.features.isolated.title"),
+    description: t("home.features.isolated.description"),
   },
   {
     icon: ShieldCheckIcon,
-    title: "安全可靠",
-    description: "基於 Cloudflare 全球邊緣網絡，企業級安全防護",
+    title: t("home.features.secure.title"),
+    description: t("home.features.secure.description"),
   },
   {
     icon: RocketLaunchIcon,
-    title: "快速部署",
-    description: "自動化部署流程，最快 24 小時內完成上線",
+    title: t("home.features.fast.title"),
+    description: t("home.features.fast.description"),
   },
-];
+]);
 </script>
 
 <template>
@@ -38,13 +42,13 @@ const features = [
       <h1
         class="text-4xl font-semibold tracking-tight text-[#1C1C1E] sm:text-5xl"
       >
-        為您的餐廳打造<br />
-        <span class="text-primary-600">專屬管理系統</span>
+        {{ t("home.hero.titleLine1") }}<br />
+        <span class="text-primary-600">{{ t("home.hero.titleLine2") }}</span>
       </h1>
       <p
         class="mx-auto mt-5 max-w-xl text-base leading-relaxed text-gray-500 sm:text-lg"
       >
-        獨立部署 · 數據安全 · 24 小時內完成上線
+        {{ t("home.hero.subtitle") }}
       </p>
 
       <div class="mt-10 flex flex-col items-center gap-4">
@@ -52,7 +56,7 @@ const features = [
           to="/apply"
           class="inline-flex items-center justify-center rounded-full bg-primary-600 px-8 py-3.5 text-base font-semibold text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-primary-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         >
-          立即申請
+          {{ t("home.hero.ctaApply") }}
           <ArrowRightIcon class="ml-2 h-4 w-4" />
         </RouterLink>
         <a
@@ -60,7 +64,7 @@ const features = [
           target="_blank"
           class="text-sm font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700"
         >
-          查看演示 →
+          {{ t("home.hero.ctaDemo") }}
         </a>
       </div>
     </section>
@@ -96,17 +100,17 @@ const features = [
     >
       <div class="text-center sm:text-left">
         <h2 class="text-lg font-semibold text-[#1C1C1E] sm:text-xl">
-          準備好開始了嗎？
+          {{ t("home.cta.title") }}
         </h2>
         <p class="mt-1 text-sm text-gray-500">
-          填寫申請表單，我們將在 24 小時內與您聯繫
+          {{ t("home.cta.subtitle") }}
         </p>
       </div>
       <RouterLink
         to="/apply"
         class="inline-flex shrink-0 items-center justify-center rounded-full bg-primary-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-primary-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
       >
-        開始申請
+        {{ t("home.cta.button") }}
         <ArrowRightIcon class="ml-2 h-4 w-4" />
       </RouterLink>
     </section>

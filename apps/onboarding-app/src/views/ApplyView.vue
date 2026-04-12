@@ -8,7 +8,9 @@ import {
   XCircleIcon,
   ArrowPathIcon,
 } from "@heroicons/vue/24/outline";
+import { useI18n } from "@/i18n";
 
+const { t } = useI18n();
 const router = useRouter();
 const toast = useToast();
 const store = useOnboardingStore();
@@ -63,30 +65,30 @@ const validate = (): boolean => {
   errors.value = {};
 
   if (!form.value.businessName.trim()) {
-    errors.value.businessName = "請輸入餐廳名稱";
+    errors.value.businessName = t("apply.validation.businessNameRequired");
   }
 
   if (!form.value.contactName.trim()) {
-    errors.value.contactName = "請輸入聯絡人姓名";
+    errors.value.contactName = t("apply.validation.contactNameRequired");
   }
 
   if (!form.value.contactEmail.trim()) {
-    errors.value.contactEmail = "請輸入 Email";
+    errors.value.contactEmail = t("apply.validation.emailRequired");
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.contactEmail)) {
-    errors.value.contactEmail = "請輸入有效的 Email";
+    errors.value.contactEmail = t("apply.validation.emailInvalid");
   }
 
   if (!form.value.contactPhone.trim()) {
-    errors.value.contactPhone = "請輸入聯絡電話";
+    errors.value.contactPhone = t("apply.validation.phoneRequired");
   }
 
   if (form.value.subdomain) {
     if (!/^[a-z0-9-]+$/.test(form.value.subdomain)) {
-      errors.value.subdomain = "只能包含小寫字母、數字和連字符";
+      errors.value.subdomain = t("apply.validation.subdomainInvalidFormat");
     } else if (form.value.subdomain.length < 3) {
-      errors.value.subdomain = "至少需要 3 個字元";
+      errors.value.subdomain = t("apply.validation.subdomainTooShort");
     } else if (store.subdomainStatus === "taken") {
-      errors.value.subdomain = "此網址已被使用";
+      errors.value.subdomain = t("apply.validation.subdomainTaken");
     }
   }
 
@@ -108,10 +110,10 @@ const handleSubmit = async () => {
   });
 
   if (success) {
-    toast.success("申請資料已提交");
+    toast.success(t("apply.toast.submitSuccess"));
     router.push("/connect");
   } else {
-    toast.error(store.apiError || "提交失敗，請稍後再試");
+    toast.error(store.apiError || t("apply.toast.submitFailureFallback"));
   }
 };
 
@@ -148,7 +150,9 @@ const selectSuggestion = (suggestion: string) => {
     </div>
 
     <div class="card">
-      <h1 class="text-2xl font-bold text-gray-900 mb-6">填寫申請資料</h1>
+      <h1 class="text-2xl font-bold text-gray-900 mb-6">
+        {{ t("apply.title") }}
+      </h1>
 
       <!-- API Error Alert -->
       <div
@@ -161,13 +165,15 @@ const selectSuggestion = (suggestion: string) => {
       <form @submit.prevent="handleSubmit" class="space-y-6">
         <!-- 餐廳名稱 -->
         <div>
-          <label class="label">餐廳名稱 *</label>
+          <label class="label"
+            >{{ t("apply.form.businessName.label") }} *</label
+          >
           <input
             v-model="form.businessName"
             type="text"
             class="input"
             :class="{ 'input-error': errors.businessName }"
-            placeholder="例如：御膳房"
+            :placeholder="t('apply.form.businessName.placeholder')"
           />
           <p v-if="errors.businessName" class="mt-1 text-sm text-red-600">
             {{ errors.businessName }}
@@ -176,13 +182,13 @@ const selectSuggestion = (suggestion: string) => {
 
         <!-- 聯絡人姓名 -->
         <div>
-          <label class="label">聯絡人姓名 *</label>
+          <label class="label">{{ t("apply.form.contactName.label") }} *</label>
           <input
             v-model="form.contactName"
             type="text"
             class="input"
             :class="{ 'input-error': errors.contactName }"
-            placeholder="您的姓名"
+            :placeholder="t('apply.form.contactName.placeholder')"
           />
           <p v-if="errors.contactName" class="mt-1 text-sm text-red-600">
             {{ errors.contactName }}
@@ -191,13 +197,15 @@ const selectSuggestion = (suggestion: string) => {
 
         <!-- Email -->
         <div>
-          <label class="label">Email *</label>
+          <label class="label"
+            >{{ t("apply.form.contactEmail.label") }} *</label
+          >
           <input
             v-model="form.contactEmail"
             type="email"
             class="input"
             :class="{ 'input-error': errors.contactEmail }"
-            placeholder="your@email.com"
+            :placeholder="t('apply.form.contactEmail.placeholder')"
           />
           <p v-if="errors.contactEmail" class="mt-1 text-sm text-red-600">
             {{ errors.contactEmail }}
@@ -206,13 +214,15 @@ const selectSuggestion = (suggestion: string) => {
 
         <!-- 電話 -->
         <div>
-          <label class="label">聯絡電話 *</label>
+          <label class="label"
+            >{{ t("apply.form.contactPhone.label") }} *</label
+          >
           <input
             v-model="form.contactPhone"
             type="tel"
             class="input"
             :class="{ 'input-error': errors.contactPhone }"
-            placeholder="02-1234-5678"
+            :placeholder="t('apply.form.contactPhone.placeholder')"
           />
           <p v-if="errors.contactPhone" class="mt-1 text-sm text-red-600">
             {{ errors.contactPhone }}
@@ -221,7 +231,7 @@ const selectSuggestion = (suggestion: string) => {
 
         <!-- 子域名 -->
         <div>
-          <label class="label">期望的網址 (選填)</label>
+          <label class="label">{{ t("apply.form.subdomain.label") }}</label>
           <div class="flex">
             <div class="relative flex-1">
               <input
@@ -234,7 +244,7 @@ const selectSuggestion = (suggestion: string) => {
                   'border-green-500 focus:border-green-500 focus:ring-green-500':
                     store.subdomainStatus === 'available',
                 }"
-                placeholder="yourrestaurant"
+                :placeholder="t('apply.form.subdomain.placeholder')"
               />
               <!-- Status indicator -->
               <div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -271,21 +281,23 @@ const selectSuggestion = (suggestion: string) => {
               v-else-if="store.subdomainStatus === 'available'"
               class="text-sm text-green-600"
             >
-              此網址可以使用
+              {{ t("apply.form.subdomain.available") }}
             </p>
             <p
               v-else-if="store.subdomainStatus === 'taken'"
               class="text-sm text-red-600"
             >
-              此網址已被使用
+              {{ t("apply.form.subdomain.taken") }}
             </p>
             <p
               v-else-if="store.subdomainStatus === 'invalid'"
               class="text-sm text-red-600"
             >
-              只能包含小寫字母、數字和連字符
+              {{ t("apply.form.subdomain.invalidFormat") }}
             </p>
-            <p v-else class="text-xs text-gray-500">留空將自動生成</p>
+            <p v-else class="text-xs text-gray-500">
+              {{ t("apply.form.subdomain.emptyHint") }}
+            </p>
           </div>
 
           <!-- Subdomain suggestions -->
@@ -296,7 +308,9 @@ const selectSuggestion = (suggestion: string) => {
             "
             class="mt-2"
           >
-            <p class="text-xs text-gray-600 mb-1">建議的替代網址：</p>
+            <p class="text-xs text-gray-600 mb-1">
+              {{ t("apply.form.subdomain.suggestionsLabel") }}
+            </p>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="suggestion in store.subdomainSuggestions"
@@ -318,7 +332,7 @@ const selectSuggestion = (suggestion: string) => {
             class="btn btn-secondary"
             @click="router.push('/')"
           >
-            返回
+            {{ t("common.back") }}
           </button>
           <button
             type="submit"
@@ -329,7 +343,11 @@ const selectSuggestion = (suggestion: string) => {
               v-if="store.isLoading"
               class="h-4 w-4 mr-2 animate-spin"
             />
-            {{ store.isLoading ? "提交中..." : "下一步" }}
+            {{
+              store.isLoading
+                ? t("apply.form.submitting")
+                : t("apply.form.next")
+            }}
           </button>
         </div>
       </form>
