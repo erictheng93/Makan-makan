@@ -4,6 +4,7 @@ import {
   type KitchenSSEService,
 } from "@/services/sseService";
 import { useToast } from "vue-toastification";
+import { t } from "@/i18n";
 import type { KitchenSSEEvent, ConnectionStatus } from "@/types";
 
 export interface UseKitchenSSEOptions {
@@ -42,7 +43,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
     switch (event.type) {
       case "NEW_ORDER":
         options.onNewOrder?.(event);
-        toast.info("收到新訂單！", {
+        toast.info(t("kitchen.newOrderReceived"), {
           position: "top-right" as any,
           timeout: 5000,
         });
@@ -54,7 +55,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
 
       case "ORDER_CANCELLED":
         options.onOrderCancelled?.(event);
-        toast.warning("訂單已取消", {
+        toast.warning(t("kitchen.orderCancelled"), {
           position: "top-right" as any,
           timeout: 3000,
         });
@@ -62,7 +63,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
 
       case "PRIORITY_UPDATE":
         options.onPriorityUpdate?.(event);
-        toast.warning("訂單優先級已更新", {
+        toast.warning(t("kitchen.priorityUpdated"), {
           position: "top-right" as any,
           timeout: 3000,
         });
@@ -83,7 +84,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
 
     switch (status) {
       case "connected":
-        toast.success("廚房系統已連線", {
+        toast.success(t("kitchen.kitchenConnected"), {
           position: "bottom-right" as any,
           timeout: 2000,
         });
@@ -94,14 +95,14 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
         break;
 
       case "disconnected":
-        toast.warning("廚房系統已離線", {
+        toast.warning(t("kitchen.kitchenOffline"), {
           position: "bottom-right" as any,
           timeout: 3000,
         });
         break;
 
       case "error":
-        toast.error("廚房系統連接異常", {
+        toast.error(t("kitchen.kitchenConnectionError"), {
           position: "bottom-right" as any,
           timeout: 5000,
         });

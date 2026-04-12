@@ -8,7 +8,9 @@
       >
         <ArrowLeft class="w-5 h-5 text-ios-text" />
       </button>
-      <h1 class="text-2xl font-extrabold text-ios-text flex-1">歷史紀錄</h1>
+      <h1 class="text-2xl font-extrabold text-ios-text flex-1">
+        {{ t("history.title") }}
+      </h1>
 
       <!-- iOS Segmented Control -->
       <div class="bg-white rounded-full p-1 inline-flex gap-0.5 shadow-card-sm">
@@ -36,21 +38,27 @@
           <span class="text-2xl font-extrabold text-ios-text">{{
             summary.total
           }}</span>
-          <span class="text-xs text-ios-secondary mt-0.5">總訂單</span>
+          <span class="text-xs text-ios-secondary mt-0.5">{{
+            t("history.totalOrders")
+          }}</span>
         </div>
         <!-- Avg Cooking Time -->
         <div class="flex flex-col items-center px-3">
           <span class="text-2xl font-extrabold text-ios-green">{{
             summary.avgCookingTime
           }}</span>
-          <span class="text-xs text-ios-secondary mt-0.5">平均製作 (min)</span>
+          <span class="text-xs text-ios-secondary mt-0.5">{{
+            t("history.avgPrepTime")
+          }}</span>
         </div>
         <!-- On-time Rate -->
         <div class="flex flex-col items-center px-3">
           <span class="text-2xl font-extrabold text-ios-blue"
             >{{ summary.onTimeRate }}%</span
           >
-          <span class="text-xs text-ios-secondary mt-0.5">準時率</span>
+          <span class="text-xs text-ios-secondary mt-0.5">{{
+            t("history.onTimeRate")
+          }}</span>
         </div>
       </div>
     </div>
@@ -109,7 +117,7 @@
               class="text-ios-tertiary"
               >·</span
             >
-            <span>{{ order.totalItems }} 項</span>
+            <span>{{ order.totalItems }} {{ t("common.items") }}</span>
             <span class="text-ios-tertiary">·</span>
             <span>{{ orderCookingTime(order) }} min</span>
           </div>
@@ -125,9 +133,11 @@
     <!-- Empty State -->
     <div v-else class="flex flex-col items-center justify-center py-16">
       <Inbox class="w-12 h-12 text-ios-tertiary" />
-      <p class="text-base font-semibold text-ios-text mt-4">尚無訂單紀錄</p>
+      <p class="text-base font-semibold text-ios-text mt-4">
+        {{ t("history.noRecords") }}
+      </p>
       <p class="text-sm text-ios-secondary mt-1">
-        選擇的時間範圍內沒有已完成的訂單
+        {{ t("history.noRecordsHint") }}
       </p>
     </div>
   </div>
@@ -137,20 +147,22 @@
 import { ref, computed, onMounted } from "vue";
 import { ArrowLeft, Inbox } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
+import { useI18n } from "@/i18n";
 import { kitchenApi } from "@/services/kitchenApi";
 import type { KitchenOrder, OrderStatus } from "@/types";
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 // ── Tab state ─────────────────────────────────────────────────────────────────
 type TabKey = "today" | "yesterday" | "week";
 
-const tabs: { key: TabKey; label: string }[] = [
-  { key: "today", label: "今天" },
-  { key: "yesterday", label: "昨天" },
-  { key: "week", label: "本週" },
-];
+const tabs = computed<{ key: TabKey; label: string }[]>(() => [
+  { key: "today", label: t("history.today") },
+  { key: "yesterday", label: t("history.yesterday") },
+  { key: "week", label: t("history.thisWeek") },
+]);
 
 const activeTab = ref<TabKey>("today");
 
@@ -277,16 +289,16 @@ function orderCookingTime(order: KitchenOrder): number {
 // ── Badge helpers ─────────────────────────────────────────────────────────────
 function statusLabel(status: OrderStatus): string {
   const map: Record<OrderStatus, string> = {
-    pending: "待確認",
-    confirmed: "已確認",
-    preparing: "製作中",
-    ready: "已完成",
-    delivered: "已送達",
-    paid: "已付款",
-    cancelled: "已取消",
-    refunded: "已退款",
+    pending: t("orderStatus.pending"),
+    confirmed: t("orderStatus.confirmed"),
+    preparing: t("orderStatus.preparing"),
+    ready: t("orderStatus.ready"),
+    delivered: t("orderStatus.served"),
+    paid: t("orderStatus.paid"),
+    cancelled: t("orderStatus.cancelled"),
+    refunded: t("orderStatus.refunded"),
   };
-  return map[status] ?? "未知";
+  return map[status] ?? t("orderStatus.unknown");
 }
 
 function statusBadgeClass(status: OrderStatus): string {
@@ -300,9 +312,9 @@ function statusBadgeClass(status: OrderStatus): string {
 
 function typeLabel(type: string): string {
   const map: Record<string, string> = {
-    dine_in: "內用",
-    takeaway: "外帶",
-    delivery: "外送",
+    dine_in: t("orderType.dineIn"),
+    takeaway: t("orderType.takeaway"),
+    delivery: t("orderType.delivery"),
   };
   return map[type] ?? type;
 }

@@ -4,7 +4,7 @@
     <div
       class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-4 tracking-wide"
     >
-      主音效控制
+      {{ t("audio.mainControl") }}
     </div>
     <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
       <!-- Master Enable Toggle -->
@@ -20,9 +20,15 @@
             <VolumeX v-else class="w-4 h-4 text-ios-secondary" />
           </div>
           <div>
-            <span class="text-[15px] font-medium text-ios-text">音效通知</span>
+            <span class="text-[15px] font-medium text-ios-text">{{
+              t("settings.audioNotifications")
+            }}</span>
             <p class="text-xs text-ios-secondary mt-0.5">
-              {{ audioEnabled ? "音頻已啟用" : "音頻已停用" }}
+              {{
+                audioEnabled
+                  ? t("audio.audioEnabled")
+                  : t("audio.audioDisabled")
+              }}
             </p>
           </div>
         </div>
@@ -41,7 +47,9 @@
       <!-- Master Volume Slider -->
       <div class="py-3.5 px-4 border-b border-ios-bg">
         <div class="flex items-center justify-between mb-2.5">
-          <span class="text-[15px] font-medium text-ios-text">主音量</span>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("audio.masterVolume")
+          }}</span>
           <span class="text-[15px] font-medium text-ios-secondary">
             {{ Math.round(masterVolume * 100) }}%
           </span>
@@ -82,8 +90,12 @@
         class="flex items-center justify-between py-3.5 px-4 border-b border-ios-bg"
       >
         <div>
-          <span class="text-[15px] font-medium text-ios-text">通知佇列</span>
-          <p class="text-xs text-ios-secondary mt-0.5">依序播放音效通知</p>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("audio.notificationQueue")
+          }}</span>
+          <p class="text-xs text-ios-secondary mt-0.5">
+            {{ t("audio.notificationQueueDesc") }}
+          </p>
         </div>
         <button
           class="w-[44px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-200 flex-shrink-0"
@@ -107,9 +119,11 @@
       <!-- Priority Override Toggle -->
       <div class="flex items-center justify-between py-3.5 px-4">
         <div>
-          <span class="text-[15px] font-medium text-ios-text">優先級覆蓋</span>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("audio.priorityOverride")
+          }}</span>
           <p class="text-xs text-ios-secondary mt-0.5">
-            高優先級音效可打斷低優先級
+            {{ t("audio.priorityOverrideDesc") }}
           </p>
         </div>
         <button
@@ -138,7 +152,7 @@
     <div
       class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
     >
-      訂單通知
+      {{ t("audio.orderNotifications") }}
     </div>
     <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
       <template v-for="soundType in orderSounds" :key="soundType">
@@ -232,7 +246,7 @@
     <div
       class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
     >
-      警告與反饋
+      {{ t("audio.warningsAndFeedback") }}
     </div>
     <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
       <template v-for="soundType in alertSounds" :key="soundType">
@@ -326,7 +340,7 @@
     <div
       class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
     >
-      環境音效
+      {{ t("audio.ambientSounds") }}
     </div>
     <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
       <template v-for="soundType in ambientSounds" :key="soundType">
@@ -420,7 +434,7 @@
     <div
       class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
     >
-      音效測試
+      {{ t("audio.soundTest") }}
     </div>
     <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
       <!-- Test All Sounds -->
@@ -433,9 +447,9 @@
           >
             <Play class="w-4 h-4 text-ios-blue" />
           </div>
-          <span class="text-[15px] font-medium text-ios-text"
-            >測試所有音效</span
-          >
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("audio.testAll")
+          }}</span>
         </div>
         <button
           :disabled="!audioEnabled || isTesting"
@@ -447,7 +461,7 @@
           "
           @click="testAllSounds"
         >
-          {{ isTesting ? "測試中..." : "播放" }}
+          {{ isTesting ? t("audio.testing") : t("audio.play") }}
         </button>
       </div>
 
@@ -459,9 +473,9 @@
           >
             <VolumeX class="w-4 h-4 text-ios-red" />
           </div>
-          <span class="text-[15px] font-medium text-ios-text"
-            >停止所有音效</span
-          >
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("audio.stopAll")
+          }}</span>
         </div>
         <button
           :disabled="!audioEnabled"
@@ -473,7 +487,7 @@
           "
           @click="stopAllSounds"
         >
-          停止
+          {{ t("common.stop") }}
         </button>
       </div>
     </div>
@@ -482,7 +496,7 @@
     <div
       class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
     >
-      進階設定
+      {{ t("audio.advanced") }}
     </div>
     <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
       <!-- Max Queue Size -->
@@ -491,10 +505,12 @@
         :class="{ 'opacity-50': !audioEnabled || !notificationQueue }"
       >
         <div>
-          <span class="text-[15px] font-medium text-ios-text"
-            >最大佇列大小</span
-          >
-          <p class="text-xs text-ios-secondary mt-0.5">通知佇列的最大容量</p>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("audio.maxQueueSize")
+          }}</span>
+          <p class="text-xs text-ios-secondary mt-0.5">
+            {{ t("audio.maxQueueSizeDesc") }}
+          </p>
         </div>
         <div class="flex items-center gap-2">
           <button
@@ -523,11 +539,11 @@
       <div class="py-3.5 px-4" :class="{ 'opacity-50': !audioEnabled }">
         <div class="flex items-center justify-between mb-2.5">
           <div>
-            <span class="text-[15px] font-medium text-ios-text"
-              >音效淡出時間</span
-            >
+            <span class="text-[15px] font-medium text-ios-text">{{
+              t("audio.fadeOutDuration")
+            }}</span>
             <p class="text-xs text-ios-secondary mt-0.5">
-              音效結束前的淡出時長
+              {{ t("audio.fadeOutDurationDesc") }}
             </p>
           </div>
           <span class="text-[15px] font-medium text-ios-secondary">
@@ -566,7 +582,7 @@
     <div
       class="text-xs font-semibold text-ios-secondary uppercase px-4 mb-1.5 mt-6 tracking-wide"
     >
-      操作
+      {{ t("audio.operations") }}
     </div>
     <div class="bg-white rounded-2xl shadow-card-sm overflow-hidden">
       <!-- Save Settings -->
@@ -580,9 +596,13 @@
           >
             <Bell class="w-4 h-4 text-ios-green" />
           </div>
-          <span class="text-[15px] font-medium text-ios-text">保存設置</span>
+          <span class="text-[15px] font-medium text-ios-text">{{
+            t("common.saveSettings")
+          }}</span>
         </div>
-        <span class="text-sm font-semibold text-ios-green">保存</span>
+        <span class="text-sm font-semibold text-ios-green">{{
+          t("audio.saveButton")
+        }}</span>
       </div>
 
       <!-- Reset to Defaults -->
@@ -596,7 +616,9 @@
           >
             <VolumeX class="w-4 h-4 text-ios-red" />
           </div>
-          <span class="text-[15px] font-medium text-ios-red">重設為預設值</span>
+          <span class="text-[15px] font-medium text-ios-red">{{
+            t("audio.resetToDefaults")
+          }}</span>
         </div>
       </div>
     </div>
@@ -610,8 +632,11 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { Volume2, VolumeX, Play, Bell } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
+import { useI18n } from "@/i18n";
 import { audioService } from "@/services/audioService";
 import type { SoundType, AudioSettings } from "@/services/audioService";
+
+const { t } = useI18n();
 
 const toast = useToast();
 
@@ -678,19 +703,19 @@ const ambientSounds: SoundType[] = ["bell", "chime"];
 
 // Labels
 const getSoundLabel = (soundType: SoundType): string => {
-  const labels: Record<string, string> = {
-    newOrder: "新訂單",
-    orderReady: "訂單準備完成",
-    orderUrgent: "緊急訂單",
-    orderComplete: "訂單完成",
-    warning: "警告",
-    success: "成功",
-    error: "錯誤",
-    notification: "通知",
-    bell: "鈴聲",
-    chime: "提示音",
+  const labelKeys: Record<string, string> = {
+    newOrder: "audio.newOrder",
+    orderReady: "audio.orderReady",
+    orderUrgent: "audio.urgentOrder",
+    orderComplete: "audio.orderComplete",
+    warning: "audio.warningSound",
+    success: "audio.successSound",
+    error: "audio.errorSound",
+    notification: "audio.notificationSound",
+    bell: "audio.bellSound",
+    chime: "audio.chimeSound",
   };
-  return labels[soundType] || soundType;
+  return labelKeys[soundType] ? t(labelKeys[soundType]) : soundType;
 };
 
 // Toggle handlers
@@ -698,10 +723,10 @@ const toggleAudio = () => {
   audioEnabled.value = !audioEnabled.value;
   if (audioEnabled.value) {
     audioService.enable();
-    toast.success("音頻通知已啟用");
+    toast.success(t("audio.audioEnabledToast"));
   } else {
     audioService.disable();
-    toast.info("音頻通知已停用");
+    toast.info(t("audio.audioDisabledToast"));
   }
 };
 
@@ -757,10 +782,10 @@ const testSound = async (soundType: SoundType) => {
   if (!audioEnabled.value) return;
   try {
     await audioService.testSound(soundType);
-    toast.success(`已播放 ${getSoundLabel(soundType)} 音效`);
+    toast.success(t("audio.playedSound", { name: getSoundLabel(soundType) }));
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    toast.error(`播放音效失敗: ${msg}`);
+    toast.error(`${t("audio.playFailed")} ${msg}`);
   }
 };
 
@@ -769,10 +794,10 @@ const testAllSounds = async () => {
   isTesting.value = true;
   try {
     await audioService.testAllSounds();
-    toast.success("所有音效測試完成");
+    toast.success(t("audio.testAllComplete"));
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    toast.error(`音效測試失敗: ${msg}`);
+    toast.error(`${t("audio.testAllFailed")} ${msg}`);
   } finally {
     isTesting.value = false;
   }
@@ -780,7 +805,7 @@ const testAllSounds = async () => {
 
 const stopAllSounds = () => {
   audioService.stopAll();
-  toast.info("已停止所有音效播放");
+  toast.info(t("audio.stoppedAll"));
 };
 
 // Reset & save
@@ -818,7 +843,7 @@ const resetToDefaults = () => {
   });
 
   audioService.updateSettings(defaults);
-  toast.success("已重設為預設音頻設置");
+  toast.success(t("audio.resetComplete"));
 };
 
 const saveSettings = () => {
@@ -831,7 +856,7 @@ const saveSettings = () => {
     sounds: { ...soundSettings },
   };
   audioService.updateSettings(settings);
-  toast.success("音頻設置已保存");
+  toast.success(t("audio.settingsSaved"));
 };
 
 // Init

@@ -11,8 +11,10 @@
             <SpeakerWaveIcon class="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-white">音效控制中心</h3>
-            <p class="text-blue-100 text-sm">互動式音效管理</p>
+            <h3 class="text-lg font-semibold text-white">
+              {{ t("audio.title") }}
+            </h3>
+            <p class="text-blue-100 text-sm">{{ t("audio.description") }}</p>
           </div>
         </div>
 
@@ -38,7 +40,9 @@
       <!-- Master Volume Control -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-3">
-          主音量 ({{ Math.round(audioService.settings.masterVolume * 100) }}%)
+          {{ t("audio.masterVolume") }} ({{
+            Math.round(audioService.settings.masterVolume * 100)
+          }}%)
         </label>
         <div class="flex items-center space-x-4">
           <SpeakerXMarkIcon class="w-5 h-5 text-gray-400" />
@@ -61,9 +65,9 @@
 
       <!-- Audio Technology Selection -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-3"
-          >音頻技術</label
-        >
+        <label class="block text-sm font-medium text-gray-700 mb-3">{{
+          t("audio.audioTechnology")
+        }}</label>
         <div class="flex items-center space-x-6">
           <label class="flex items-center">
             <input
@@ -94,12 +98,14 @@
 
       <!-- Advanced Audio Features -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-3"
-          >進階功能</label
-        >
+        <label class="block text-sm font-medium text-gray-700 mb-3">{{
+          t("audio.advancedFeatures")
+        }}</label>
         <div class="space-y-3">
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">空間音效</span>
+            <span class="text-sm text-gray-700">{{
+              t("audio.spatialAudio")
+            }}</span>
             <input
               v-model="audioService.settings.spatialAudio"
               type="checkbox"
@@ -107,7 +113,9 @@
             />
           </label>
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">自適應音量</span>
+            <span class="text-sm text-gray-700">{{
+              t("audio.adaptiveVolume")
+            }}</span>
             <input
               v-model="audioService.settings.adaptiveVolume"
               type="checkbox"
@@ -115,7 +123,9 @@
             />
           </label>
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">情境感知</span>
+            <span class="text-sm text-gray-700">{{
+              t("audio.contextAware")
+            }}</span>
             <input
               v-model="audioService.settings.contextAware"
               type="checkbox"
@@ -127,12 +137,12 @@
 
       <!-- Audio Effects -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-3"
-          >音效處理</label
-        >
+        <label class="block text-sm font-medium text-gray-700 mb-3">{{
+          t("audio.audioProcessing")
+        }}</label>
         <div class="space-y-3">
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">混響效果</span>
+            <span class="text-sm text-gray-700">{{ t("audio.reverb") }}</span>
             <input
               v-model="audioService.settings.effects.reverb"
               type="checkbox"
@@ -141,7 +151,7 @@
             />
           </label>
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">回音效果</span>
+            <span class="text-sm text-gray-700">{{ t("audio.echo") }}</span>
             <input
               v-model="audioService.settings.effects.echo"
               type="checkbox"
@@ -150,7 +160,9 @@
             />
           </label>
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">低音增強</span>
+            <span class="text-sm text-gray-700">{{
+              t("audio.bassBoost")
+            }}</span>
             <input
               v-model="audioService.settings.effects.bass"
               type="checkbox"
@@ -163,9 +175,9 @@
 
       <!-- Sound Testing -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-4"
-          >音效測試</label
-        >
+        <label class="block text-sm font-medium text-gray-700 mb-4">{{
+          t("audio.soundTest")
+        }}</label>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <button
             v-for="sound in availableSounds"
@@ -182,9 +194,9 @@
 
       <!-- Quick Actions -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-4"
-          >快速操作</label
-        >
+        <label class="block text-sm font-medium text-gray-700 mb-4">{{
+          t("audio.quickActions")
+        }}</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             :disabled="!audioService.settings.enabled"
@@ -192,7 +204,7 @@
             @click="testNewOrder"
           >
             <PlusIcon class="w-4 h-4 mr-2" />
-            新訂單
+            {{ t("audio.newOrder") }}
           </button>
 
           <button
@@ -201,7 +213,7 @@
             @click="testUrgentAlert"
           >
             <ExclamationTriangleIcon class="w-4 h-4 mr-2" />
-            緊急警報
+            {{ t("audio.urgentAlert") }}
           </button>
 
           <button
@@ -210,16 +222,16 @@
             @click="testOrderReady"
           >
             <CheckIcon class="w-4 h-4 mr-2" />
-            訂單完成
+            {{ t("audio.orderComplete") }}
           </button>
         </div>
       </div>
 
       <!-- Sound History -->
       <div v-if="audioService.soundHistory.value.length > 0">
-        <label class="block text-sm font-medium text-gray-700 mb-3"
-          >最近播放</label
-        >
+        <label class="block text-sm font-medium text-gray-700 mb-3">{{
+          t("audio.recentlyPlayed")
+        }}</label>
         <div class="max-h-32 overflow-y-auto space-y-2">
           <div
             v-for="event in audioService.soundHistory.value.slice(0, 5)"
@@ -234,20 +246,26 @@
 
       <!-- Current Status -->
       <div class="bg-gray-50 rounded-lg p-4">
-        <h4 class="text-sm font-medium text-gray-700 mb-2">系統狀態</h4>
+        <h4 class="text-sm font-medium text-gray-700 mb-2">
+          {{ t("audio.systemStatus") }}
+        </h4>
         <div class="space-y-2 text-xs">
           <div class="flex justify-between">
-            <span>音頻系統:</span>
+            <span>{{ t("audio.audioSystem") }}</span>
             <span
               :class="
                 audioService.isInitialized ? 'text-green-600' : 'text-red-600'
               "
             >
-              {{ audioService.isInitialized ? "已初始化" : "未初始化" }}
+              {{
+                audioService.isInitialized
+                  ? t("audio.initialized")
+                  : t("audio.notInitialized")
+              }}
             </span>
           </div>
           <div class="flex justify-between">
-            <span>Web Audio 支援:</span>
+            <span>{{ t("audio.webAudioSupport") }}</span>
             <span
               :class="
                 audioService.isWebAudioSupported
@@ -255,13 +273,18 @@
                   : 'text-red-600'
               "
             >
-              {{ audioService.isWebAudioSupported ? "支援" : "不支援" }}
+              {{
+                audioService.isWebAudioSupported
+                  ? t("audio.supported")
+                  : t("audio.notSupported")
+              }}
             </span>
           </div>
           <div class="flex justify-between">
-            <span>正在播放:</span>
+            <span>{{ t("audio.currentlyPlaying") }}</span>
             <span class="text-blue-600"
-              >{{ audioService.currentlyPlaying.value.length }} 個音效</span
+              >{{ audioService.currentlyPlaying.value.length }}
+              {{ t("audio.soundCount") }}</span
             >
           </div>
         </div>
@@ -269,19 +292,21 @@
 
       <!-- Keyboard Shortcuts Info -->
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <h4 class="text-sm font-medium text-blue-900 mb-2">鍵盤快捷鍵</h4>
+        <h4 class="text-sm font-medium text-blue-900 mb-2">
+          {{ t("shortcuts.title") }}
+        </h4>
         <div class="text-xs text-blue-800 space-y-1">
           <div>
             <kbd class="px-1 py-0.5 bg-white rounded text-xs">Ctrl+Shift+N</kbd>
-            測試新訂單
+            {{ t("audio.testNewOrder") }}
           </div>
           <div>
             <kbd class="px-1 py-0.5 bg-white rounded text-xs">Ctrl+Shift+U</kbd>
-            測試緊急警報
+            {{ t("audio.testUrgentAlert") }}
           </div>
           <div>
             <kbd class="px-1 py-0.5 bg-white rounded text-xs">Ctrl+Shift+R</kbd>
-            測試訂單完成
+            {{ t("audio.testOrderComplete") }}
           </div>
         </div>
       </div>
@@ -291,6 +316,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "@/i18n";
 import {
   Volume2 as SpeakerWaveIcon,
   VolumeX as SpeakerXMarkIcon,
@@ -308,35 +334,64 @@ import { useToast } from "vue-toastification";
 import { enhancedAudioService } from "@/services/enhancedAudioService";
 import type { SoundType } from "@/services/enhancedAudioService";
 
+const { t } = useI18n();
 const toast = useToast();
 const audioService = enhancedAudioService;
 
 // Available sounds for testing
 const availableSounds = computed(() => [
-  { type: "new-order" as SoundType, name: "新訂單", icon: PlusIcon },
-  { type: "order-ready" as SoundType, name: "訂單就緒", icon: CheckCircleIcon },
+  { type: "new-order" as SoundType, name: t("audio.newOrder"), icon: PlusIcon },
+  {
+    type: "order-ready" as SoundType,
+    name: t("audio.orderReady"),
+    icon: CheckCircleIcon,
+  },
   {
     type: "urgent-alert" as SoundType,
-    name: "緊急警報",
+    name: t("audio.urgentAlert"),
     icon: ExclamationTriangleIcon,
   },
-  { type: "order-complete" as SoundType, name: "訂單完成", icon: CheckIcon },
-  { type: "warning" as SoundType, name: "警告", icon: ExclamationCircleIcon },
-  { type: "success" as SoundType, name: "成功", icon: CheckCircleIcon },
-  { type: "error" as SoundType, name: "錯誤", icon: XCircleIcon },
+  {
+    type: "order-complete" as SoundType,
+    name: t("audio.orderComplete"),
+    icon: CheckIcon,
+  },
+  {
+    type: "warning" as SoundType,
+    name: t("audio.warningSound"),
+    icon: ExclamationCircleIcon,
+  },
+  {
+    type: "success" as SoundType,
+    name: t("audio.successSound"),
+    icon: CheckCircleIcon,
+  },
+  {
+    type: "error" as SoundType,
+    name: t("audio.errorSound"),
+    icon: XCircleIcon,
+  },
   {
     type: "notification" as SoundType,
-    name: "通知",
+    name: t("audio.notificationSound"),
     icon: InformationCircleIcon,
   },
-  { type: "bell" as SoundType, name: "鈴聲", icon: BellIcon },
-  { type: "chime" as SoundType, name: "提示音", icon: MusicalNoteIcon },
+  { type: "bell" as SoundType, name: t("audio.bellSound"), icon: BellIcon },
+  {
+    type: "chime" as SoundType,
+    name: t("audio.chimeSound"),
+    icon: MusicalNoteIcon,
+  },
 ]);
 
 // Methods
 const toggleAudio = () => {
   audioService.toggleEnabled();
-  toast.info(audioService.settings.enabled ? "音效已啟用" : "音效已停用");
+  toast.info(
+    audioService.settings.enabled
+      ? t("audio.soundEnabled")
+      : t("audio.soundDisabled"),
+  );
 };
 
 const setMasterVolume = (volume: string) => {
@@ -345,12 +400,14 @@ const setMasterVolume = (volume: string) => {
 
 const setAudioTechnology = (useWebAudio: boolean) => {
   audioService.settings.useWebAudio = useWebAudio;
-  toast.info(useWebAudio ? "已切換至 Web Audio API" : "已切換至 Howler.js");
+  toast.info(
+    useWebAudio ? t("audio.switchedToWebAudio") : t("audio.switchedToHowler"),
+  );
 };
 
 const toggleEffect = (effect: "reverb" | "echo" | "bass") => {
   toast.info(
-    `${effect} 效果已${audioService.settings.effects[effect] ? "啟用" : "停用"}`,
+    `${effect} ${audioService.settings.effects[effect] ? t("audio.effectEnabled") : t("audio.effectDisabled")}`,
   );
 };
 
@@ -369,7 +426,7 @@ const testNewOrder = async () => {
 };
 
 const testUrgentAlert = async () => {
-  await audioService.playUrgentAlert("測試緊急警報！");
+  await audioService.playUrgentAlert(t("audio.alertTest"));
 };
 
 const testOrderReady = async () => {
@@ -377,21 +434,21 @@ const testOrderReady = async () => {
 };
 
 const getSoundDisplayName = (type: SoundType): string => {
-  const names = {
-    "new-order": "新訂單",
-    "order-ready": "訂單就緒",
-    "urgent-alert": "緊急警報",
-    "order-complete": "訂單完成",
-    warning: "警告",
-    success: "成功",
-    error: "錯誤",
-    notification: "通知",
-    bell: "鈴聲",
-    chime: "提示音",
-    tick: "滴答",
-    whoosh: "嗖聲",
+  const nameKeys: Record<string, string> = {
+    "new-order": "audio.newOrder",
+    "order-ready": "audio.orderReady",
+    "urgent-alert": "audio.urgentAlert",
+    "order-complete": "audio.orderComplete",
+    warning: "audio.warningSound",
+    success: "audio.successSound",
+    error: "audio.errorSound",
+    notification: "audio.notificationSound",
+    bell: "audio.bellSound",
+    chime: "audio.chimeSound",
+    tick: "audio.tickSound",
+    whoosh: "audio.swooshSound",
   };
-  return names[type] || type;
+  return nameKeys[type] ? t(nameKeys[type]) : type;
 };
 
 const formatTime = (timestamp: number): string => {
@@ -407,7 +464,7 @@ const formatTime = (timestamp: number): string => {
 if (!audioService.isInitialized.value) {
   audioService.initialize().catch((error) => {
     console.error("Failed to initialize audio service:", error);
-    toast.error("音效系統初始化失敗");
+    toast.error(t("audio.initFailed"));
   });
 }
 </script>

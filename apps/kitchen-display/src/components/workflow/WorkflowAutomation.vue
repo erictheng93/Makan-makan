@@ -12,9 +12,9 @@
         </div>
         <div>
           <h3 class="text-lg font-semibold text-gray-900">
-            廚房工作流程自動化
+            {{ t("workflow.title") }}
           </h3>
-          <p class="text-sm text-gray-600">智能任務分配和流程優化</p>
+          <p class="text-sm text-gray-600">{{ t("workflow.description") }}</p>
         </div>
       </div>
 
@@ -28,7 +28,11 @@
             ]"
           />
           <span class="text-sm font-medium text-gray-700">
-            自動化{{ automationActive ? "啟用" : "停用" }}
+            {{
+              automationActive
+                ? t("workflow.automationEnabled")
+                : t("workflow.automationDisabled")
+            }}
           </span>
         </div>
 
@@ -52,13 +56,17 @@
 
     <!-- Workflow Rules Configuration -->
     <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">自動化規則配置</h4>
+      <h4 class="text-md font-semibold text-gray-900 mb-4">
+        {{ t("workflow.ruleConfig") }}
+      </h4>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Auto Assignment Rules -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
-            <h5 class="font-medium text-gray-900">智能任務分配</h5>
+            <h5 class="font-medium text-gray-900">
+              {{ t("workflow.smartAssignment") }}
+            </h5>
             <input
               v-model="rules.autoAssignment.enabled"
               type="checkbox"
@@ -68,7 +76,9 @@
 
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">基於廚師技能分配</span>
+              <span class="text-sm text-gray-600">{{
+                t("workflow.skillBasedAssignment")
+              }}</span>
               <input
                 v-model="rules.autoAssignment.skillBased"
                 type="checkbox"
@@ -77,7 +87,9 @@
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">負載平衡分配</span>
+              <span class="text-sm text-gray-600">{{
+                t("workflow.loadBalancing")
+              }}</span>
               <input
                 v-model="rules.autoAssignment.loadBalancing"
                 type="checkbox"
@@ -86,7 +98,9 @@
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">優先級優先分配</span>
+              <span class="text-sm text-gray-600">{{
+                t("workflow.priorityFirst")
+              }}</span>
               <input
                 v-model="rules.autoAssignment.priorityFirst"
                 type="checkbox"
@@ -100,7 +114,9 @@
         <!-- Auto Progression Rules -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
-            <h5 class="font-medium text-gray-900">自動狀態推進</h5>
+            <h5 class="font-medium text-gray-900">
+              {{ t("workflow.autoStatusAdvance") }}
+            </h5>
             <input
               v-model="rules.autoProgression.enabled"
               type="checkbox"
@@ -110,9 +126,9 @@
 
           <div class="space-y-3">
             <div>
-              <label class="block text-sm text-gray-600 mb-1"
-                >自動開始延遲</label
-              >
+              <label class="block text-sm text-gray-600 mb-1">{{
+                t("workflow.autoStartDelay")
+              }}</label>
               <div class="flex items-center space-x-2">
                 <input
                   v-model.number="rules.autoProgression.startDelay"
@@ -122,13 +138,15 @@
                   :disabled="!rules.autoProgression.enabled"
                   class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
-                <span class="text-sm text-gray-500">秒</span>
+                <span class="text-sm text-gray-500">{{
+                  t("common.seconds")
+                }}</span>
               </div>
             </div>
             <div>
-              <label class="block text-sm text-gray-600 mb-1"
-                >自動完成延遲</label
-              >
+              <label class="block text-sm text-gray-600 mb-1">{{
+                t("workflow.autoCompleteDelay")
+              }}</label>
               <div class="flex items-center space-x-2">
                 <input
                   v-model.number="rules.autoProgression.completeDelay"
@@ -138,7 +156,9 @@
                   :disabled="!rules.autoProgression.enabled"
                   class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
-                <span class="text-sm text-gray-500">秒</span>
+                <span class="text-sm text-gray-500">{{
+                  t("common.seconds")
+                }}</span>
               </div>
             </div>
           </div>
@@ -147,7 +167,9 @@
         <!-- Smart Scheduling -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
-            <h5 class="font-medium text-gray-900">智能排程</h5>
+            <h5 class="font-medium text-gray-900">
+              {{ t("workflow.smartScheduling") }}
+            </h5>
             <input
               v-model="rules.smartScheduling.enabled"
               type="checkbox"
@@ -157,7 +179,9 @@
 
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">依烹飪時間排序</span>
+              <span class="text-sm text-gray-600">{{
+                t("workflow.cookingTimeSort")
+              }}</span>
               <input
                 v-model="rules.smartScheduling.cookingTimeBased"
                 type="checkbox"
@@ -166,7 +190,9 @@
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">批次相似訂單</span>
+              <span class="text-sm text-gray-600">{{
+                t("workflow.batchSimilar")
+              }}</span>
               <input
                 v-model="rules.smartScheduling.batchSimilar"
                 type="checkbox"
@@ -175,7 +201,9 @@
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">配料準備時間考量</span>
+              <span class="text-sm text-gray-600">{{
+                t("workflow.prepTimeConsideration")
+              }}</span>
               <input
                 v-model="rules.smartScheduling.prepTimeConsidered"
                 type="checkbox"
@@ -189,7 +217,9 @@
         <!-- Quality Control -->
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
-            <h5 class="font-medium text-gray-900">品質控制</h5>
+            <h5 class="font-medium text-gray-900">
+              {{ t("workflow.qualityControl") }}
+            </h5>
             <input
               v-model="rules.qualityControl.enabled"
               type="checkbox"
@@ -199,7 +229,9 @@
 
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">自動品質檢查</span>
+              <span class="text-sm text-gray-600">{{
+                t("workflow.autoQualityCheck")
+              }}</span>
               <input
                 v-model="rules.qualityControl.autoCheck"
                 type="checkbox"
@@ -208,7 +240,9 @@
               />
             </div>
             <div>
-              <label class="block text-sm text-gray-600 mb-1">檢查間隔</label>
+              <label class="block text-sm text-gray-600 mb-1">{{
+                t("workflow.checkInterval")
+              }}</label>
               <div class="flex items-center space-x-2">
                 <input
                   v-model.number="rules.qualityControl.checkInterval"
@@ -221,7 +255,9 @@
                   "
                   class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
-                <span class="text-sm text-gray-500">秒</span>
+                <span class="text-sm text-gray-500">{{
+                  t("common.seconds")
+                }}</span>
               </div>
             </div>
           </div>
@@ -231,39 +267,49 @@
 
     <!-- Automation Statistics -->
     <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">自動化統計</h4>
+      <h4 class="text-md font-semibold text-gray-900 mb-4">
+        {{ t("workflow.automationStats") }}
+      </h4>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="text-center p-3 bg-green-50 rounded-lg">
           <div class="text-2xl font-bold text-green-600">
             {{ automationStats.tasksAutomated }}
           </div>
-          <div class="text-sm text-green-600">自動化任務</div>
+          <div class="text-sm text-green-600">
+            {{ t("workflow.automatedTasks") }}
+          </div>
         </div>
         <div class="text-center p-3 bg-blue-50 rounded-lg">
           <div class="text-2xl font-bold text-blue-600">
             {{ automationStats.timeSaved }}
           </div>
-          <div class="text-sm text-blue-600">節省時間</div>
+          <div class="text-sm text-blue-600">{{ t("workflow.timeSaved") }}</div>
         </div>
         <div class="text-center p-3 bg-purple-50 rounded-lg">
           <div class="text-2xl font-bold text-purple-600">
             {{ automationStats.efficiencyGain }}%
           </div>
-          <div class="text-sm text-purple-600">效率提升</div>
+          <div class="text-sm text-purple-600">
+            {{ t("workflow.efficiencyImproved") }}
+          </div>
         </div>
         <div class="text-center p-3 bg-orange-50 rounded-lg">
           <div class="text-2xl font-bold text-orange-600">
             {{ automationStats.errorReduction }}%
           </div>
-          <div class="text-sm text-orange-600">錯誤降低</div>
+          <div class="text-sm text-orange-600">
+            {{ t("workflow.errorsReduced") }}
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Active Workflows -->
     <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">活動工作流程</h4>
+      <h4 class="text-md font-semibold text-gray-900 mb-4">
+        {{ t("workflow.activeWorkflows") }}
+      </h4>
 
       <div class="space-y-3">
         <div
@@ -293,7 +339,7 @@
           </div>
           <div class="flex items-center space-x-2">
             <span class="text-sm text-gray-500"
-              >{{ workflow.progress }}% 完成</span
+              >{{ workflow.progress }}% {{ t("workflow.complete") }}</span
             >
             <button
               :class="[
@@ -304,7 +350,11 @@
               ]"
               @click="toggleWorkflow(workflow.id)"
             >
-              {{ workflow.status === "running" ? "暫停" : "開始" }}
+              {{
+                workflow.status === "running"
+                  ? t("common.pause")
+                  : t("common.start")
+              }}
             </button>
           </div>
         </div>
@@ -315,7 +365,7 @@
         class="text-center py-6 text-gray-500"
       >
         <CogIcon class="w-8 h-8 mx-auto mb-2 text-gray-300" />
-        <p>目前沒有活動的工作流程</p>
+        <p>{{ t("workflow.noActiveWorkflows") }}</p>
       </div>
     </div>
   </div>
@@ -327,14 +377,14 @@
         class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
         @click="saveWorkflowRules"
       >
-        保存規則
+        {{ t("workflow.saveRules") }}
       </button>
 
       <button
         class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
         @click="resetToDefaults"
       >
-        重設預設值
+        {{ t("workflow.resetToDefaults") }}
       </button>
     </div>
 
@@ -343,14 +393,14 @@
         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         @click="exportWorkflowConfig"
       >
-        導出配置
+        {{ t("workflow.exportConfig") }}
       </button>
 
       <button
         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
         @click="showWorkflowReport"
       >
-        查看報告
+        {{ t("workflow.viewReport") }}
       </button>
     </div>
   </div>
@@ -364,7 +414,9 @@
       class="bg-white rounded-xl p-6 max-w-2xl max-h-96 overflow-y-auto mx-4"
     >
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">工作流程報告</h3>
+        <h3 class="text-lg font-semibold text-gray-900">
+          {{ t("workflow.workflowReport") }}
+        </h3>
         <button
           class="text-gray-400 hover:text-gray-600"
           @click="showReportModal = false"
@@ -391,9 +443,15 @@
             {{ report.description }}
           </div>
           <div class="mt-2 flex space-x-4 text-sm">
-            <span class="text-green-600">成功: {{ report.success }}</span>
-            <span class="text-red-600">失敗: {{ report.failed }}</span>
-            <span class="text-blue-600">節省: {{ report.timeSaved }}</span>
+            <span class="text-green-600"
+              >{{ t("workflow.successLabel") }} {{ report.success }}</span
+            >
+            <span class="text-red-600"
+              >{{ t("workflow.failureLabel") }} {{ report.failed }}</span
+            >
+            <span class="text-blue-600"
+              >{{ t("workflow.savedLabel") }} {{ report.timeSaved }}</span
+            >
           </div>
         </div>
       </div>
@@ -405,6 +463,7 @@
 import { ref, reactive, onMounted, watch } from "vue";
 import { Settings as CogIcon, X as XMarkIcon } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
+import { useI18n } from "@/i18n";
 import type { KitchenOrder } from "@/types";
 
 // Props
@@ -455,6 +514,7 @@ interface ActiveWorkflow {
   progress: number;
 }
 
+const { t } = useI18n();
 const toast = useToast();
 
 // State
@@ -541,7 +601,11 @@ const workflowReports = ref([
 // Methods
 const toggleAutomation = () => {
   automationActive.value = !automationActive.value;
-  toast.success(`工作流程自動化已${automationActive.value ? "啟用" : "停用"}`);
+  toast.success(
+    automationActive.value
+      ? t("workflow.automationEnabledToast")
+      : t("workflow.automationDisabledToast"),
+  );
 
   if (automationActive.value) {
     startAutomationProcesses();
@@ -555,7 +619,9 @@ const toggleWorkflow = (workflowId: string) => {
   if (workflow) {
     workflow.status = workflow.status === "running" ? "paused" : "running";
     toast.info(
-      `工作流程"${workflow.name}"已${workflow.status === "running" ? "開始" : "暫停"}`,
+      workflow.status === "running"
+        ? t("workflow.workflowStarted", { name: workflow.name })
+        : t("workflow.workflowPaused", { name: workflow.name }),
     );
   }
 };
@@ -564,7 +630,7 @@ const saveWorkflowRules = () => {
   // Save rules to localStorage or API
   localStorage.setItem("kitchen-workflow-rules", JSON.stringify(rules));
   emit("workflow-updated", rules);
-  toast.success("工作流程規則已保存");
+  toast.success(t("workflow.rulesSaved"));
 };
 
 const resetToDefaults = () => {
@@ -592,7 +658,7 @@ const resetToDefaults = () => {
       checkInterval: 120,
     },
   });
-  toast.success("已重設為預設配置");
+  toast.success(t("workflow.rulesReset"));
 };
 
 const exportWorkflowConfig = () => {
@@ -611,7 +677,7 @@ const exportWorkflowConfig = () => {
   link.download = `workflow-config-${new Date().toISOString().split("T")[0]}.json`;
   link.click();
 
-  toast.success("工作流程配置已導出");
+  toast.success(t("workflow.configExported"));
 };
 
 const showWorkflowReport = () => {

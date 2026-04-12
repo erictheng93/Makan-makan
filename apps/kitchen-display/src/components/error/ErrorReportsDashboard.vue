@@ -5,8 +5,12 @@
     <div class="mb-8">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">錯誤報告儀表板</h1>
-          <p class="mt-2 text-sm text-gray-600">監控和分析系統錯誤</p>
+          <h1 class="text-3xl font-bold text-gray-900">
+            {{ t("errorReports.title") }}
+          </h1>
+          <p class="mt-2 text-sm text-gray-600">
+            {{ t("errorReports.description") }}
+          </p>
         </div>
 
         <div class="flex items-center space-x-3">
@@ -17,7 +21,9 @@
               type="checkbox"
               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <span class="ml-2 text-sm text-gray-600">自動更新</span>
+            <span class="ml-2 text-sm text-gray-600">{{
+              t("errorReports.autoUpdate")
+            }}</span>
           </label>
 
           <!-- Refresh button -->
@@ -29,7 +35,7 @@
             <ArrowPathIcon
               :class="['w-4 h-4 mr-2', { 'animate-spin': loading }]"
             />
-            更新
+            {{ t("common.update") }}
           </button>
 
           <!-- Export button -->
@@ -38,7 +44,7 @@
             @click="exportErrors"
           >
             <ArrowDownTrayIcon class="w-4 h-4 mr-2" />
-            導出報告
+            {{ t("errorReports.exportReport") }}
           </button>
         </div>
       </div>
@@ -55,7 +61,7 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">
-                  總錯誤數
+                  {{ t("errorReports.totalErrors") }}
                 </dt>
                 <dd class="text-lg font-medium text-gray-900">
                   {{ stats.totalErrors }}
@@ -75,7 +81,7 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">
-                  錯誤率/小時
+                  {{ t("errorReports.errorRate") }}
                 </dt>
                 <dd class="text-lg font-medium text-gray-900">
                   {{ stats.errorRate }}
@@ -95,7 +101,7 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">
-                  嚴重錯誤
+                  {{ t("errorReports.criticalErrors") }}
                 </dt>
                 <dd class="text-lg font-medium text-gray-900">
                   {{ stats.errorsBySeverity.critical || 0 }}
@@ -115,7 +121,7 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">
-                  已解決
+                  {{ t("errorReports.resolved") }}
                 </dt>
                 <dd class="text-lg font-medium text-gray-900">
                   {{ resolvedErrorsCount }}
@@ -131,7 +137,9 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       <!-- Error Types Chart -->
       <div class="bg-white shadow rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">錯誤類型分布</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+          {{ t("errorReports.typeDistribution") }}
+        </h3>
         <div class="space-y-3">
           <div
             v-for="errorType in insights.topErrorTypes.slice(0, 5)"
@@ -156,7 +164,9 @@
 
       <!-- Error Trends -->
       <div class="bg-white shadow rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">錯誤趨勢</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+          {{ t("errorReports.errorTrend") }}
+        </h3>
         <div class="h-32 flex items-end justify-between space-x-1">
           <div
             v-for="trend in insights.errorTrends"
@@ -169,8 +179,8 @@
           />
         </div>
         <div class="flex justify-between mt-2 text-xs text-gray-500">
-          <span>7天前</span>
-          <span>今天</span>
+          <span>{{ t("errorReports.sevenDaysAgo") }}</span>
+          <span>{{ t("errorReports.today") }}</span>
         </div>
       </div>
     </div>
@@ -183,11 +193,16 @@
             <ExclamationTriangleIcon class="h-5 w-5 text-red-400" />
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">嚴重錯誤警告</h3>
+            <h3 class="text-sm font-medium text-red-800">
+              {{ t("errorReports.criticalAlert") }}
+            </h3>
             <div class="mt-2 text-sm text-red-700">
               <p>
-                系統檢測到
-                {{ insights.criticalErrors.length }} 個嚴重錯誤需要立即處理。
+                {{
+                  t("errorReports.criticalAlertMsg", {
+                    count: insights.criticalErrors.length,
+                  })
+                }}
               </p>
             </div>
           </div>
@@ -203,7 +218,9 @@
             <InformationCircleIcon class="h-5 w-5 text-blue-400" />
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-blue-800">系統建議</h3>
+            <h3 class="text-sm font-medium text-blue-800">
+              {{ t("errorReports.systemSuggestions") }}
+            </h3>
             <div class="mt-2 text-sm text-blue-700">
               <ul class="list-disc list-inside space-y-1">
                 <li
@@ -224,7 +241,7 @@
       <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <h3 class="text-lg leading-6 font-medium text-gray-900">
-            最近錯誤報告
+            {{ t("errorReports.recentReports") }}
           </h3>
 
           <!-- Filter controls -->
@@ -233,18 +250,18 @@
               v-model="selectedSeverity"
               class="block w-32 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
-              <option value="">所有嚴重程度</option>
-              <option value="low">低</option>
-              <option value="medium">中</option>
-              <option value="high">高</option>
-              <option value="critical">嚴重</option>
+              <option value="">{{ t("errorReports.allSeverity") }}</option>
+              <option value="low">{{ t("errorReports.low") }}</option>
+              <option value="medium">{{ t("errorReports.medium") }}</option>
+              <option value="high">{{ t("errorReports.high") }}</option>
+              <option value="critical">{{ t("errorReports.critical") }}</option>
             </select>
 
             <select
               v-model="selectedType"
               class="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
-              <option value="">所有錯誤類型</option>
+              <option value="">{{ t("errorReports.allTypes") }}</option>
               <option
                 v-for="type in Object.keys(stats.errorsByType)"
                 :key="type"
@@ -290,7 +307,7 @@
                     v-if="!error.resolved"
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
                   >
-                    未解決
+                    {{ t("errorReports.unresolved") }}
                   </span>
                 </div>
 
@@ -303,10 +320,12 @@
                 >
                   <span>{{ formatDate(error.timestamp) }}</span>
                   <span v-if="error.context.component">
-                    組件: {{ error.context.component }}
+                    {{ t("errorReports.component") }}
+                    {{ error.context.component }}
                   </span>
                   <span v-if="error.context.url">
-                    頁面: {{ getPageFromUrl(error.context.url) }}
+                    {{ t("errorReports.page") }}
+                    {{ getPageFromUrl(error.context.url) }}
                   </span>
                 </div>
 
@@ -333,14 +352,14 @@
                 class="text-green-600 hover:text-green-800 text-sm font-medium"
                 @click="resolveError(error.id)"
               >
-                標記已解決
+                {{ t("errorReports.markResolved") }}
               </button>
 
               <button
                 class="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 @click="showErrorDetails(error)"
               >
-                詳情
+                {{ t("common.detail") }}
               </button>
             </div>
           </div>
@@ -353,7 +372,7 @@
         class="px-4 py-8 text-center text-gray-500"
       >
         <ExclamationTriangleIcon class="mx-auto h-12 w-12 text-gray-300 mb-4" />
-        <p>沒有找到符合條件的錯誤報告</p>
+        <p>{{ t("errorReports.noReportsFound") }}</p>
       </div>
     </div>
 
@@ -366,7 +385,9 @@
         class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-medium text-gray-900">錯誤詳情</h3>
+          <h3 class="text-lg font-medium text-gray-900">
+            {{ t("errorReports.errorDetails") }}
+          </h3>
           <button
             class="text-gray-400 hover:text-gray-600"
             @click="selectedError = null"
@@ -378,17 +399,30 @@
         <div class="space-y-4">
           <!-- Error Info -->
           <div>
-            <h4 class="text-sm font-medium text-gray-700 mb-2">錯誤信息</h4>
+            <h4 class="text-sm font-medium text-gray-700 mb-2">
+              {{ t("errorReports.errorInfo") }}
+            </h4>
             <div class="bg-gray-50 p-3 rounded text-sm">
-              <p><strong>類型:</strong> {{ selectedError.error.name }}</p>
-              <p><strong>消息:</strong> {{ selectedError.error.message }}</p>
-              <p><strong>嚴重程度:</strong> {{ selectedError.severity }}</p>
+              <p>
+                <strong>{{ t("errorReports.type") }}</strong>
+                {{ selectedError.error.name }}
+              </p>
+              <p>
+                <strong>{{ t("errorReports.message") }}</strong>
+                {{ selectedError.error.message }}
+              </p>
+              <p>
+                <strong>{{ t("errorReports.severity") }}</strong>
+                {{ selectedError.severity }}
+              </p>
             </div>
           </div>
 
           <!-- Stack Trace -->
           <div v-if="selectedError.error.stack">
-            <h4 class="text-sm font-medium text-gray-700 mb-2">堆棧跟蹤</h4>
+            <h4 class="text-sm font-medium text-gray-700 mb-2">
+              {{ t("errorReports.stackTrace") }}
+            </h4>
             <pre
               class="bg-gray-900 text-white p-3 rounded text-xs overflow-auto max-h-40"
               >{{ selectedError.error.stack }}</pre
@@ -397,7 +431,9 @@
 
           <!-- Context -->
           <div v-if="selectedError.context">
-            <h4 class="text-sm font-medium text-gray-700 mb-2">錯誤上下文</h4>
+            <h4 class="text-sm font-medium text-gray-700 mb-2">
+              {{ t("errorReports.errorContext") }}
+            </h4>
             <div class="bg-gray-50 p-3 rounded text-sm">
               <pre>{{ JSON.stringify(selectedError.context, null, 2) }}</pre>
             </div>
@@ -405,7 +441,9 @@
 
           <!-- System Info -->
           <div v-if="selectedError.systemInfo">
-            <h4 class="text-sm font-medium text-gray-700 mb-2">系統信息</h4>
+            <h4 class="text-sm font-medium text-gray-700 mb-2">
+              {{ t("errorReports.systemInfo") }}
+            </h4>
             <div class="bg-gray-50 p-3 rounded text-sm">
               <pre>{{ JSON.stringify(selectedError.systemInfo, null, 2) }}</pre>
             </div>
@@ -418,6 +456,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   AlertTriangle as ExclamationTriangleIcon,
   Clock as ClockIcon,
@@ -434,6 +473,7 @@ import {
   type ErrorReport,
 } from "@/services/errorReportingService";
 
+const { t } = useI18n();
 const toast = useToast();
 
 // State
@@ -477,7 +517,7 @@ const refreshData = async () => {
   try {
     // Simulate data refresh
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("數據已更新");
+    toast.success(t("errorReports.dataUpdated"));
   } finally {
     loading.value = false;
   }
@@ -493,12 +533,12 @@ const exportErrors = () => {
   a.click();
   URL.revokeObjectURL(url);
 
-  toast.success("錯誤報告已導出");
+  toast.success(t("errorReports.reportExported"));
 };
 
 const resolveError = (errorId: string) => {
   errorReportingService.resolveError(errorId);
-  toast.success("錯誤已標記為已解決");
+  toast.success(t("errorReports.markedResolved"));
 };
 
 const showErrorDetails = (error: ErrorReport) => {

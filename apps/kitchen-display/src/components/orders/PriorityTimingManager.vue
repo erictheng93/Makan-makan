@@ -11,15 +11,21 @@
           <ClockIcon class="w-5 h-5 text-orange-600" />
         </div>
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">優先級和時間管理</h3>
-          <p class="text-sm text-gray-600">自動調整訂單優先級和時間預估</p>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("priorityTiming.title") }}
+          </h3>
+          <p class="text-sm text-gray-600">
+            {{ t("priorityTiming.description") }}
+          </p>
         </div>
       </div>
 
       <div class="flex items-center space-x-2">
         <!-- Auto Priority Toggle -->
         <div class="flex items-center space-x-2">
-          <span class="text-sm text-gray-600">自動優先級</span>
+          <span class="text-sm text-gray-600">{{
+            t("priorityTiming.autoPriority")
+          }}</span>
           <button
             :class="[
               'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2',
@@ -43,59 +49,78 @@
       <div class="bg-red-50 rounded-lg p-4 border border-red-100">
         <div class="flex items-center space-x-2">
           <ExclamationTriangleIcon class="w-5 h-5 text-red-600" />
-          <div class="text-sm font-medium text-red-900">緊急訂單</div>
+          <div class="text-sm font-medium text-red-900">
+            {{ t("priorityTiming.urgentOrders") }}
+          </div>
         </div>
         <div class="text-2xl font-bold text-red-600 mt-1">
           {{ urgentCount }}
         </div>
-        <div class="text-xs text-red-600">超過 {{ urgentThreshold }} 分鐘</div>
+        <div class="text-xs text-red-600">
+          {{ t("priorityTiming.overThreshold", { minutes: urgentThreshold }) }}
+        </div>
       </div>
 
       <div class="bg-orange-50 rounded-lg p-4 border border-orange-100">
         <div class="flex items-center space-x-2">
           <ClockIcon class="w-5 h-5 text-orange-600" />
-          <div class="text-sm font-medium text-orange-900">重要訂單</div>
+          <div class="text-sm font-medium text-orange-900">
+            {{ t("priorityTiming.importantOrders") }}
+          </div>
         </div>
         <div class="text-2xl font-bold text-orange-600 mt-1">
           {{ highPriorityCount }}
         </div>
         <div class="text-xs text-orange-600">
-          {{ warningThreshold }}-{{ urgentThreshold }} 分鐘
+          {{
+            t("priorityTiming.betweenThreshold", {
+              min: warningThreshold,
+              max: urgentThreshold,
+            })
+          }}
         </div>
       </div>
 
       <div class="bg-green-50 rounded-lg p-4 border border-green-100">
         <div class="flex items-center space-x-2">
           <CheckCircleIcon class="w-5 h-5 text-green-600" />
-          <div class="text-sm font-medium text-green-900">準時訂單</div>
+          <div class="text-sm font-medium text-green-900">
+            {{ t("priorityTiming.onTimeOrders") }}
+          </div>
         </div>
         <div class="text-2xl font-bold text-green-600 mt-1">
           {{ normalCount }}
         </div>
         <div class="text-xs text-green-600">
-          少於 {{ warningThreshold }} 分鐘
+          {{
+            t("priorityTiming.underThreshold", { minutes: warningThreshold })
+          }}
         </div>
       </div>
 
       <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
         <div class="flex items-center space-x-2">
           <ChartBarIcon class="w-5 h-5 text-blue-600" />
-          <div class="text-sm font-medium text-blue-900">平均等待</div>
+          <div class="text-sm font-medium text-blue-900">
+            {{ t("priorityTiming.avgWaitTime") }}
+          </div>
         </div>
         <div class="text-2xl font-bold text-blue-600 mt-1">
           {{ averageWaitTime }}
         </div>
-        <div class="text-xs text-blue-600">分鐘</div>
+        <div class="text-xs text-blue-600">{{ t("common.minutes") }}</div>
       </div>
     </div>
 
     <!-- Time Thresholds Configuration -->
     <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">時間閾值設置</h4>
+      <h4 class="text-md font-semibold text-gray-900 mb-4">
+        {{ t("priorityTiming.thresholdSettings") }}
+      </h4>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            警告閾值（重要優先級）
+            {{ t("priorityTiming.warningThreshold") }}
           </label>
           <div class="flex items-center space-x-3">
             <input
@@ -114,14 +139,16 @@
                 max="30"
                 class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
-              <span class="text-sm text-gray-600">分鐘</span>
+              <span class="text-sm text-gray-600">{{
+                t("common.minutes")
+              }}</span>
             </div>
           </div>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            緊急閾值（緊急優先級）
+            {{ t("priorityTiming.urgentThreshold") }}
           </label>
           <div class="flex items-center space-x-3">
             <input
@@ -140,7 +167,9 @@
                 max="60"
                 class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
               />
-              <span class="text-sm text-gray-600">分鐘</span>
+              <span class="text-sm text-gray-600">{{
+                t("common.minutes")
+              }}</span>
             </div>
           </div>
         </div>
@@ -152,7 +181,7 @@
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           @click="saveThresholds"
         >
-          保存設置
+          {{ t("priorityTiming.saveThreshold") }}
         </button>
       </div>
     </div>
@@ -163,7 +192,9 @@
         <div class="flex items-center space-x-2 mb-3">
           <ExclamationTriangleIcon class="w-5 h-5 text-red-600" />
           <span class="font-medium text-red-900">
-            {{ overdueOrders.length }} 個訂單超時需要立即處理
+            {{
+              t("priorityTiming.overdueAlert", { count: overdueOrders.length })
+            }}
           </span>
         </div>
 
@@ -181,7 +212,11 @@
               <span
                 class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium"
               >
-                超時 {{ order.elapsedTime - urgentThreshold }} 分鐘
+                {{
+                  t("priorityTiming.overdueMinutes", {
+                    minutes: order.elapsedTime - urgentThreshold,
+                  })
+                }}
               </span>
             </div>
 
@@ -189,7 +224,7 @@
               class="text-sm px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
               @click="prioritizeOrder(order.id)"
             >
-              優先處理
+              {{ t("priorityTiming.priorityAction") }}
             </button>
           </div>
         </div>
@@ -200,7 +235,11 @@
             @click="showAllOverdue = !showAllOverdue"
           >
             {{
-              showAllOverdue ? "收起" : `查看全部 ${overdueOrders.length} 個`
+              showAllOverdue
+                ? t("common.collapse")
+                : t("priorityTiming.viewAllOverdue", {
+                    count: overdueOrders.length,
+                  })
             }}
           </button>
         </div>
@@ -209,7 +248,9 @@
 
     <!-- Estimated Completion Times -->
     <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">預估完成時間</h4>
+      <h4 class="text-md font-semibold text-gray-900 mb-4">
+        {{ t("priorityTiming.estimatedCompletion") }}
+      </h4>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
           class="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200"
@@ -217,8 +258,12 @@
           <div class="text-2xl font-bold text-yellow-600">
             {{ estimatedCompletionTimes.pending }}
           </div>
-          <div class="text-sm text-yellow-600">待處理訂單</div>
-          <div class="text-xs text-gray-600">平均完成時間</div>
+          <div class="text-sm text-yellow-600">
+            {{ t("priorityTiming.pendingOrders") }}
+          </div>
+          <div class="text-xs text-gray-600">
+            {{ t("priorityTiming.avgCompletionTime") }}
+          </div>
         </div>
 
         <div
@@ -227,8 +272,12 @@
           <div class="text-2xl font-bold text-blue-600">
             {{ estimatedCompletionTimes.preparing }}
           </div>
-          <div class="text-sm text-blue-600">製作中訂單</div>
-          <div class="text-xs text-gray-600">預計剩餘時間</div>
+          <div class="text-sm text-blue-600">
+            {{ t("priorityTiming.preparingOrders") }}
+          </div>
+          <div class="text-xs text-gray-600">
+            {{ t("priorityTiming.estimatedRemaining") }}
+          </div>
         </div>
 
         <div
@@ -237,8 +286,12 @@
           <div class="text-2xl font-bold text-green-600">
             {{ workloadCapacity }}%
           </div>
-          <div class="text-sm text-green-600">廚房負載</div>
-          <div class="text-xs text-gray-600">基於當前訂單量</div>
+          <div class="text-sm text-green-600">
+            {{ t("priorityTiming.kitchenLoad") }}
+          </div>
+          <div class="text-xs text-gray-600">
+            {{ t("priorityTiming.basedOnCurrentLoad") }}
+          </div>
         </div>
       </div>
     </div>
@@ -250,7 +303,7 @@
         @click="autoAssignPriorities"
       >
         <ExclamationTriangleIcon class="w-4 h-4" />
-        <span>自動分配優先級</span>
+        <span>{{ t("priorityTiming.autoAssignPriority") }}</span>
       </button>
 
       <button
@@ -258,7 +311,7 @@
         @click="rebalanceWorkload"
       >
         <ChartBarIcon class="w-4 h-4" />
-        <span>重新平衡工作負載</span>
+        <span>{{ t("priorityTiming.rebalanceWorkload") }}</span>
       </button>
 
       <button
@@ -266,7 +319,7 @@
         @click="generateTimingReport"
       >
         <DocumentArrowDownIcon class="w-4 h-4" />
-        <span>生成時間報告</span>
+        <span>{{ t("priorityTiming.generateTimeReport") }}</span>
       </button>
     </div>
   </div>
@@ -274,6 +327,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useI18n } from "@/i18n";
 import {
   Clock as ClockIcon,
   AlertTriangle as ExclamationTriangleIcon,
@@ -299,6 +353,7 @@ const emit = defineEmits<{
   "thresholds-updated": [warningThreshold: number, urgentThreshold: number];
 }>();
 
+const { t } = useI18n();
 const toast = useToast();
 
 // Settings Store
@@ -391,7 +446,11 @@ const workloadCapacity = computed(() => {
 // Methods
 const toggleAutoPriority = () => {
   autoPriorityEnabled.value = !autoPriorityEnabled.value;
-  toast.success(`自動優先級${autoPriorityEnabled.value ? "已啟用" : "已停用"}`);
+  toast.success(
+    autoPriorityEnabled.value
+      ? t("priorityTiming.autoPriorityEnabled")
+      : t("priorityTiming.autoPriorityDisabled"),
+  );
 
   if (autoPriorityEnabled.value) {
     autoAssignPriorities();
@@ -400,7 +459,7 @@ const toggleAutoPriority = () => {
 
 const saveThresholds = () => {
   if (urgentThresholdTemp.value <= warningThresholdTemp.value) {
-    toast.error("緊急閾值必須大於警告閾值");
+    toast.error(t("priorityTiming.urgentMustBeGreater"));
     return;
   }
 
@@ -409,12 +468,12 @@ const saveThresholds = () => {
     warningThresholdTemp.value,
     urgentThresholdTemp.value,
   );
-  toast.success("時間閾值設置已保存");
+  toast.success(t("priorityTiming.thresholdSaved"));
 };
 
 const prioritizeOrder = (orderId: number) => {
   emit("priority-updated", orderId, "urgent");
-  toast.success("訂單已設為緊急優先級");
+  toast.success(t("priorityTiming.orderSetUrgent"));
 };
 
 const autoAssignPriorities = () => {
@@ -435,12 +494,12 @@ const autoAssignPriorities = () => {
     }
   });
 
-  toast.success(`已自動調整 ${updatedCount} 個訂單的優先級`);
+  toast.success(t("priorityTiming.autoAdjusted", { count: updatedCount }));
 };
 
 const rebalanceWorkload = () => {
   // Simulate workload rebalancing logic
-  toast.success("工作負載已重新平衡，優先處理緊急訂單");
+  toast.success(t("priorityTiming.workloadRebalanced"));
 };
 
 const generateTimingReport = () => {
@@ -483,7 +542,7 @@ const generateTimingReport = () => {
   link.download = `廚房時間報告_${new Date().toISOString().split("T")[0]}.csv`;
   link.click();
 
-  toast.success("時間報告已生成並下載");
+  toast.success(t("priorityTiming.reportGenerated"));
 };
 
 // Auto-update priorities when enabled

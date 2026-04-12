@@ -7,7 +7,9 @@
       <div class="column-header flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-ios-orange" />
-          <span class="text-sm font-bold text-ios-text">待處理</span>
+          <span class="text-sm font-bold text-ios-text">{{
+            t("kanban.pendingColumn")
+          }}</span>
         </div>
         <span
           class="min-w-6 h-6 rounded-full bg-ios-orange text-white text-xs font-bold flex items-center justify-center px-1.5"
@@ -46,8 +48,10 @@
           class="empty-state text-center py-8 text-ios-label-secondary"
         >
           <Clock class="w-10 h-10 mx-auto mb-2 text-ios-orange opacity-30" />
-          <p class="text-sm">目前沒有待處理的訂單</p>
-          <p class="text-xs mt-1 opacity-60">新訂單會自動出現在這裡</p>
+          <p class="text-sm">{{ t("kanban.pendingEmpty") }}</p>
+          <p class="text-xs mt-1 opacity-60">
+            {{ t("kanban.pendingEmptyHint") }}
+          </p>
         </div>
       </div>
     </div>
@@ -59,7 +63,9 @@
       <div class="column-header flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-ios-blue" />
-          <span class="text-sm font-bold text-ios-text">製作中</span>
+          <span class="text-sm font-bold text-ios-text">{{
+            t("kanban.preparingColumn")
+          }}</span>
         </div>
         <span
           class="min-w-6 h-6 rounded-full bg-ios-blue text-white text-xs font-bold flex items-center justify-center px-1.5"
@@ -98,8 +104,10 @@
           class="empty-state text-center py-8 text-ios-label-secondary"
         >
           <Flame class="w-10 h-10 mx-auto mb-2 text-ios-blue opacity-30" />
-          <p class="text-sm">目前沒有正在製作的訂單</p>
-          <p class="text-xs mt-1 opacity-60">拖拽待處理訂單到此處開始製作</p>
+          <p class="text-sm">{{ t("kanban.preparingEmpty") }}</p>
+          <p class="text-xs mt-1 opacity-60">
+            {{ t("kanban.preparingEmptyHint") }}
+          </p>
         </div>
       </div>
     </div>
@@ -111,7 +119,9 @@
       <div class="column-header flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-ios-green" />
-          <span class="text-sm font-bold text-ios-text">準備完成</span>
+          <span class="text-sm font-bold text-ios-text">{{
+            t("kanban.readyColumn")
+          }}</span>
         </div>
         <span
           class="min-w-6 h-6 rounded-full bg-ios-green text-white text-xs font-bold flex items-center justify-center px-1.5"
@@ -152,8 +162,10 @@
           <CheckCircle
             class="w-10 h-10 mx-auto mb-2 text-ios-green opacity-30"
           />
-          <p class="text-sm">目前沒有準備完成的訂單</p>
-          <p class="text-xs mt-1 opacity-60">拖拽製作中訂單到此處標記完成</p>
+          <p class="text-sm">{{ t("kanban.readyEmpty") }}</p>
+          <p class="text-xs mt-1 opacity-60">
+            {{ t("kanban.readyEmptyHint") }}
+          </p>
         </div>
       </div>
     </div>
@@ -165,6 +177,9 @@ import { ref, onMounted, nextTick } from "vue";
 import { useSortable } from "@vueuse/integrations/useSortable";
 import { useToast } from "vue-toastification";
 import { Clock, Flame, CheckCircle } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import type { KitchenOrder } from "@/types";
 import DraggableOrderCard from "./DraggableOrderCard.vue";
@@ -272,18 +287,18 @@ const handleStatusChange = async (
 
     if (oldStatus === "pending" && newStatus === "preparing") {
       emit("batch-start-order", orderId);
-      toast.success("訂單已開始製作！");
+      toast.success(t("kanban.orderStarted"));
     } else if (oldStatus === "preparing" && newStatus === "ready") {
       emit("batch-complete-order", orderId);
-      toast.success("訂單製作完成！");
+      toast.success(t("kanban.orderCompleted"));
     } else if (oldStatus === "ready" && newStatus === "preparing") {
-      toast.info("訂單已移回製作中");
+      toast.info(t("kanban.orderMovedToPreparing"));
     } else if (oldStatus === "preparing" && newStatus === "pending") {
-      toast.info("訂單已移回待處理");
+      toast.info(t("kanban.orderMovedToPending"));
     }
   } catch (error: any) {
     console.error("Status change failed:", error);
-    toast.error("狀態更新失敗：" + error.message);
+    toast.error(t("kanban.statusUpdateFailed") + error.message);
   }
 };
 

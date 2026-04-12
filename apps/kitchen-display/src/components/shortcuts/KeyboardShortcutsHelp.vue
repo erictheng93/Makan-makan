@@ -11,7 +11,9 @@
       >
         <!-- Header -->
         <div class="flex items-center justify-between mb-4 shrink-0">
-          <h2 class="text-xl font-extrabold text-ios-text">鍵盤快捷鍵</h2>
+          <h2 class="text-xl font-extrabold text-ios-text">
+            {{ t("shortcuts.title") }}
+          </h2>
           <button
             class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center text-ios-secondary hover:text-ios-text active:scale-95 transition-all"
             @click="$emit('close')"
@@ -58,19 +60,19 @@
             class="text-center py-8 text-ios-secondary"
           >
             <KeyboardIcon class="w-12 h-12 mx-auto mb-3 text-ios-separator" />
-            <p class="text-base font-medium">找不到匹配的快捷鍵</p>
+            <p class="text-base font-medium">{{ t("shortcuts.noMatch") }}</p>
           </div>
         </div>
 
         <!-- Tips Footer -->
         <div class="mt-4 pt-4 border-t border-ios-separator shrink-0">
           <p class="text-xs text-ios-secondary text-center">
-            按
+            {{ t("shortcuts.helpTip") }}
             <kbd
               class="bg-ios-bg rounded px-1.5 py-0.5 font-mono text-xs text-ios-text"
               >?</kbd
             >
-            隨時開啟此說明視窗
+            {{ t("shortcuts.helpTipEnd") }}
           </p>
         </div>
       </div>
@@ -80,7 +82,10 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "@/i18n";
 import { XIcon, KeyboardIcon } from "lucide-vue-next";
+
+const { t } = useI18n();
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 import type {
   ShortcutGroup,

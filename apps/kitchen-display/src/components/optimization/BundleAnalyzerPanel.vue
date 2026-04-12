@@ -11,8 +11,12 @@
             <ChartBarIcon class="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-white">效能優化分析</h3>
-            <p class="text-purple-100 text-sm">代碼包大小與載入效能監控</p>
+            <h3 class="text-lg font-semibold text-white">
+              {{ t("optimization.title") }}
+            </h3>
+            <p class="text-purple-100 text-sm">
+              {{ t("optimization.description") }}
+            </p>
           </div>
         </div>
 
@@ -25,7 +29,11 @@
           <ArrowPathIcon
             :class="['w-4 h-4 mr-2', analyzing && 'animate-spin']"
           />
-          {{ analyzing ? "分析中..." : "重新分析" }}
+          {{
+            analyzing
+              ? t("optimization.analyzing")
+              : t("optimization.reanalyze")
+          }}
         </button>
       </div>
     </div>
@@ -62,7 +70,9 @@
               <div class="text-2xl font-bold text-gray-900">
                 {{ Math.round(analysis.score) }}
               </div>
-              <div class="text-sm text-gray-500">分數</div>
+              <div class="text-sm text-gray-500">
+                {{ t("optimization.score") }}
+              </div>
             </div>
           </div>
         </div>
@@ -82,7 +92,9 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">代碼包大小</p>
+              <p class="text-sm font-medium text-gray-600">
+                {{ t("optimization.bundleSize") }}
+              </p>
               <p class="text-2xl font-bold text-gray-900">
                 {{ formatBytes(analysis.metrics.bundleSize) }}
               </p>
@@ -106,7 +118,9 @@
                 }"
               />
             </div>
-            <p class="text-xs text-gray-500 mt-1">目標: &lt; 2MB</p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t("optimization.targetBundle") }}
+            </p>
           </div>
         </div>
 
@@ -114,7 +128,9 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">載入時間</p>
+              <p class="text-sm font-medium text-gray-600">
+                {{ t("optimization.loadTime") }}
+              </p>
               <p class="text-2xl font-bold text-gray-900">
                 {{ (analysis.metrics.loadTime / 1000).toFixed(1) }}s
               </p>
@@ -136,7 +152,9 @@
                 }"
               />
             </div>
-            <p class="text-xs text-gray-500 mt-1">目標: &lt; 3s</p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t("optimization.targetLoad") }}
+            </p>
           </div>
         </div>
 
@@ -144,7 +162,9 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">內存使用</p>
+              <p class="text-sm font-medium text-gray-600">
+                {{ t("optimization.memoryUsage") }}
+              </p>
               <p class="text-2xl font-bold text-gray-900">
                 {{ formatBytes(analysis.metrics.memoryUsage) }}
               </p>
@@ -169,7 +189,9 @@
                 }"
               />
             </div>
-            <p class="text-xs text-gray-500 mt-1">目標: &lt; 50MB</p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t("optimization.targetMemory") }}
+            </p>
           </div>
         </div>
 
@@ -177,7 +199,9 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">資源文件</p>
+              <p class="text-sm font-medium text-gray-600">
+                {{ t("optimization.resourceFiles") }}
+              </p>
               <p class="text-2xl font-bold text-gray-900">
                 {{ analysis.metrics.resourceCount }}
               </p>
@@ -201,7 +225,9 @@
                 }"
               />
             </div>
-            <p class="text-xs text-gray-500 mt-1">目標: &lt; 100</p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t("optimization.targetResources") }}
+            </p>
           </div>
         </div>
 
@@ -209,7 +235,9 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">渲染時間</p>
+              <p class="text-sm font-medium text-gray-600">
+                {{ t("optimization.renderTime") }}
+              </p>
               <p class="text-2xl font-bold text-gray-900">
                 {{ analysis.metrics.renderTime.toFixed(1) }}ms
               </p>
@@ -231,7 +259,9 @@
                 }"
               />
             </div>
-            <p class="text-xs text-gray-500 mt-1">目標: &lt; 16ms (60fps)</p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t("optimization.targetRender") }}
+            </p>
           </div>
         </div>
 
@@ -239,7 +269,9 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">快取效率</p>
+              <p class="text-sm font-medium text-gray-600">
+                {{ t("optimization.cacheEfficiency") }}
+              </p>
               <p class="text-2xl font-bold text-gray-900">
                 {{ cacheHitRate }}%
               </p>
@@ -258,7 +290,11 @@
               />
             </div>
             <p class="text-xs text-gray-500 mt-1">
-              快取: {{ cacheStats.componentsCached }} 組件
+              {{
+                t("optimization.cachedComponents", {
+                  count: cacheStats.componentsCached,
+                })
+              }}
             </p>
           </div>
         </div>
@@ -266,7 +302,9 @@
 
       <!-- Optimization Recommendations -->
       <div v-if="analysis.recommendations.length > 0">
-        <h4 class="text-lg font-medium text-gray-900 mb-4">優化建議</h4>
+        <h4 class="text-lg font-medium text-gray-900 mb-4">
+          {{ t("optimization.suggestions") }}
+        </h4>
         <div class="space-y-3">
           <div
             v-for="(recommendation, index) in analysis.recommendations"
@@ -285,23 +323,31 @@
 
       <!-- Chunk Information -->
       <div>
-        <h4 class="text-lg font-medium text-gray-900 mb-4">代碼分割狀態</h4>
+        <h4 class="text-lg font-medium text-gray-900 mb-4">
+          {{ t("optimization.codeSplitStatus") }}
+        </h4>
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
             <div>
-              <p class="font-medium text-gray-600">已預載入</p>
+              <p class="font-medium text-gray-600">
+                {{ t("optimization.preloaded") }}
+              </p>
               <p class="text-lg font-bold text-green-600">
                 {{ cacheStats.preloadedChunks }}
               </p>
             </div>
             <div>
-              <p class="font-medium text-gray-600">載入中</p>
+              <p class="font-medium text-gray-600">
+                {{ t("optimization.loading") }}
+              </p>
               <p class="text-lg font-bold text-blue-600">
                 {{ cacheStats.loadingChunks }}
               </p>
             </div>
             <div>
-              <p class="font-medium text-gray-600">已快取組件</p>
+              <p class="font-medium text-gray-600">
+                {{ t("optimization.cached") }}
+              </p>
               <p class="text-lg font-bold text-purple-600">
                 {{ cacheStats.componentsCached }}
               </p>
@@ -312,10 +358,14 @@
 
       <!-- Configuration Panel -->
       <div>
-        <h4 class="text-lg font-medium text-gray-900 mb-4">優化配置</h4>
+        <h4 class="text-lg font-medium text-gray-900 mb-4">
+          {{ t("optimization.optimizationConfig") }}
+        </h4>
         <div class="space-y-3">
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">啟用延遲載入</span>
+            <span class="text-sm text-gray-700">{{
+              t("optimization.enableLazyLoading")
+            }}</span>
             <input
               v-model="config.enableLazyLoading"
               type="checkbox"
@@ -324,7 +374,9 @@
             />
           </label>
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">啟用 Service Worker</span>
+            <span class="text-sm text-gray-700">{{
+              t("optimization.enableServiceWorker")
+            }}</span>
             <input
               v-model="config.enableServiceWorker"
               type="checkbox"
@@ -333,7 +385,9 @@
             />
           </label>
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">啟用圖片優化</span>
+            <span class="text-sm text-gray-700">{{
+              t("optimization.enableImageOptimization")
+            }}</span>
             <input
               v-model="config.enableImageOptimization"
               type="checkbox"
@@ -342,7 +396,9 @@
             />
           </label>
           <label class="flex items-center justify-between">
-            <span class="text-sm text-gray-700">啟用組件快取</span>
+            <span class="text-sm text-gray-700">{{
+              t("optimization.enableComponentCache")
+            }}</span>
             <input
               v-model="config.enableComponentCache"
               type="checkbox"
@@ -358,6 +414,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   BarChart2 as ChartBarIcon,
   RefreshCw as ArrowPathIcon,
@@ -371,6 +428,8 @@ import {
 } from "lucide-vue-next";
 import { performanceOptimizationService } from "@/services/performanceOptimizationService";
 import type { OptimizationConfig } from "@/services/performanceOptimizationService";
+
+const { t } = useI18n();
 
 // Reactive data
 const analyzing = ref(false);
@@ -451,11 +510,11 @@ const getScoreBadgeClass = (score: number): string => {
 };
 
 const getScoreLabel = (score: number): string => {
-  if (score >= 90) return "優秀";
-  if (score >= 80) return "良好";
-  if (score >= 60) return "普通";
-  if (score >= 40) return "需要改善";
-  return "急需優化";
+  if (score >= 90) return t("optimization.scoreExcellent");
+  if (score >= 80) return t("optimization.scoreGood");
+  if (score >= 60) return t("optimization.scoreAverage");
+  if (score >= 40) return t("optimization.scoreNeedsImprovement");
+  return t("optimization.scoreNeedsOptimization");
 };
 
 // Initialize

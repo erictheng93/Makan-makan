@@ -11,8 +11,12 @@
           <ChartBarIcon class="w-5 h-5 text-emerald-600" />
         </div>
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">系統性能監控</h3>
-          <p class="text-sm text-gray-600">即時系統性能指標和分析</p>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("performance.title") }}
+          </h3>
+          <p class="text-sm text-gray-600">
+            {{ t("performance.description") }}
+          </p>
         </div>
       </div>
 
@@ -26,7 +30,11 @@
             ]"
           />
           <span class="text-sm font-medium text-gray-700">
-            監控{{ isCollecting ? "進行中" : "已停用" }}
+            {{
+              isCollecting
+                ? t("performance.monitoringActive")
+                : t("performance.monitoringInactive")
+            }}
           </span>
         </div>
 
@@ -53,7 +61,9 @@
       <div class="bg-blue-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
           <GlobeAltIcon class="w-5 h-5 text-blue-600" />
-          <span class="text-sm font-medium text-blue-900">頁面載入</span>
+          <span class="text-sm font-medium text-blue-900">{{
+            t("performance.pageLoad")
+          }}</span>
         </div>
         <div class="text-2xl font-bold text-blue-600">
           {{ formatMetricValue(pageLoadTime.avg, "ms") }}
@@ -66,7 +76,9 @@
       <div class="bg-green-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
           <BoltIcon class="w-5 h-5 text-green-600" />
-          <span class="text-sm font-medium text-green-900">API 響應</span>
+          <span class="text-sm font-medium text-green-900">{{
+            t("performance.apiResponse")
+          }}</span>
         </div>
         <div class="text-2xl font-bold text-green-600">
           {{ formatMetricValue(apiResponseTime.avg, "ms") }}
@@ -79,7 +91,9 @@
       <div class="bg-orange-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
           <CpuChipIcon class="w-5 h-5 text-orange-600" />
-          <span class="text-sm font-medium text-orange-900">記憶體使用</span>
+          <span class="text-sm font-medium text-orange-900">{{
+            t("performance.memoryUsage")
+          }}</span>
         </div>
         <div class="text-2xl font-bold text-orange-600">
           {{ formatMetricValue(memoryUsage.avg, "%") }}
@@ -92,7 +106,9 @@
       <div class="bg-purple-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
           <FilmIcon class="w-5 h-5 text-purple-600" />
-          <span class="text-sm font-medium text-purple-900">畫面更新率</span>
+          <span class="text-sm font-medium text-purple-900">{{
+            t("performance.frameRate")
+          }}</span>
         </div>
         <div class="text-2xl font-bold text-purple-600">
           {{ formatMetricValue(frameRate.avg, "fps") }}
@@ -107,7 +123,7 @@
     <div v-if="activeAlerts.length > 0" class="mb-6">
       <h4 class="text-md font-semibold text-gray-900 mb-3 flex items-center">
         <ExclamationTriangleIcon class="w-5 h-5 mr-2 text-yellow-600" />
-        性能警告 ({{ activeAlerts.length }})
+        {{ t("performance.performanceWarnings") }} ({{ activeAlerts.length }})
       </h4>
 
       <div class="space-y-2">
@@ -135,7 +151,7 @@
             class="text-sm px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
             @click="resolveAlert(alert.id)"
           >
-            解決
+            {{ t("common.resolve") }}
           </button>
         </div>
 
@@ -145,7 +161,11 @@
             @click="showAllAlerts = !showAllAlerts"
           >
             {{
-              showAllAlerts ? "收起" : `查看全部 ${activeAlerts.length} 個警告`
+              showAllAlerts
+                ? t("common.collapse")
+                : t("performance.viewAllWarnings", {
+                    count: activeAlerts.length,
+                  })
             }}
           </button>
         </div>
@@ -154,20 +174,30 @@
 
     <!-- Performance Charts -->
     <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">性能趨勢</h4>
+      <h4 class="text-md font-semibold text-gray-900 mb-4">
+        {{ t("performance.performanceTrend") }}
+      </h4>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Response Time Trend -->
         <div class="bg-gray-50 rounded-lg p-4" data-testid="performance-chart">
           <div class="flex items-center justify-between mb-3">
-            <span class="font-medium text-gray-900">響應時間趨勢</span>
+            <span class="font-medium text-gray-900">{{
+              t("performance.responseTimeTrend")
+            }}</span>
             <select
               v-model="selectedMetric"
               class="text-sm border border-gray-300 rounded px-2 py-1"
             >
-              <option value="api-response-time">API 響應時間</option>
-              <option value="page-load-time">頁面載入時間</option>
-              <option value="sse-connection-time">SSE 連接時間</option>
+              <option value="api-response-time">
+                {{ t("performance.apiResponseTime") }}
+              </option>
+              <option value="page-load-time">
+                {{ t("performance.pageLoadTime") }}
+              </option>
+              <option value="sse-connection-time">
+                {{ t("performance.sseConnectionTime") }}
+              </option>
             </select>
           </div>
 
@@ -193,12 +223,16 @@
 
         <!-- System Resources -->
         <div class="bg-gray-50 rounded-lg p-4">
-          <span class="font-medium text-gray-900 block mb-3">系統資源使用</span>
+          <span class="font-medium text-gray-900 block mb-3">{{
+            t("performance.systemResourceUsage")
+          }}</span>
 
           <div class="space-y-3">
             <div>
               <div class="flex justify-between text-sm mb-1">
-                <span class="text-gray-600">記憶體使用率</span>
+                <span class="text-gray-600">{{
+                  t("performance.memoryUsageRate")
+                }}</span>
                 <span class="font-medium">{{
                   formatMetricValue(memoryUsage.avg, "%")
                 }}</span>
@@ -213,7 +247,9 @@
 
             <div v-if="systemInfo.connection">
               <div class="flex justify-between text-sm mb-1">
-                <span class="text-gray-600">網路延遲</span>
+                <span class="text-gray-600">{{
+                  t("performance.networkLatency")
+                }}</span>
                 <span class="font-medium"
                   >{{ systemInfo.connection.rtt }}ms</span
                 >
@@ -237,7 +273,9 @@
 
             <div>
               <div class="flex justify-between text-sm mb-1">
-                <span class="text-gray-600">畫面更新率</span>
+                <span class="text-gray-600">{{
+                  t("performance.frameRate")
+                }}</span>
                 <span class="font-medium">{{
                   formatMetricValue(frameRate.avg, "fps")
                 }}</span>
@@ -265,25 +303,33 @@
 
     <!-- System Information -->
     <div class="mb-6">
-      <h4 class="text-md font-semibold text-gray-900 mb-4">系統資訊</h4>
+      <h4 class="text-md font-semibold text-gray-900 mb-4">
+        {{ t("performance.systemInfo") }}
+      </h4>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div class="bg-gray-50 rounded-lg p-3">
-          <div class="text-sm text-gray-600">瀏覽器</div>
+          <div class="text-sm text-gray-600">
+            {{ t("performance.browser") }}
+          </div>
           <div class="font-medium text-gray-900">
             {{ getBrowserInfo() }}
           </div>
         </div>
 
         <div class="bg-gray-50 rounded-lg p-3">
-          <div class="text-sm text-gray-600">作業系統</div>
+          <div class="text-sm text-gray-600">
+            {{ t("performance.operatingSystem") }}
+          </div>
           <div class="font-medium text-gray-900">
             {{ systemInfo.platform }}
           </div>
         </div>
 
         <div class="bg-gray-50 rounded-lg p-3">
-          <div class="text-sm text-gray-600">CPU 核心數</div>
+          <div class="text-sm text-gray-600">
+            {{ t("performance.cpuCores") }}
+          </div>
           <div class="font-medium text-gray-900">
             {{ systemInfo.hardwareConcurrency }}
           </div>
@@ -291,7 +337,9 @@
       </div>
 
       <div v-if="systemInfo.memory" class="bg-gray-50 rounded-lg p-3">
-        <div class="text-sm text-gray-600">JS 堆疊大小</div>
+        <div class="text-sm text-gray-600">
+          {{ t("performance.jsHeapSize") }}
+        </div>
         <div class="font-medium text-gray-900">
           {{ formatBytes(systemInfo.memory.usedJSHeapSize) }} /
           {{ formatBytes(systemInfo.memory.jsHeapSizeLimit) }}
@@ -299,7 +347,9 @@
       </div>
 
       <div v-if="systemInfo.connection" class="bg-gray-50 rounded-lg p-3">
-        <div class="text-sm text-gray-600">網路類型</div>
+        <div class="text-sm text-gray-600">
+          {{ t("performance.networkType") }}
+        </div>
         <div class="font-medium text-gray-900">
           {{ systemInfo.connection.effectiveType.toUpperCase() }}
         </div>
@@ -307,7 +357,9 @@
     </div>
 
     <div class="bg-gray-50 rounded-lg p-3">
-      <div class="text-sm text-gray-600">運行時間</div>
+      <div class="text-sm text-gray-600">
+        {{ t("performance.uptimeLabel") }}
+      </div>
       <div class="font-medium text-gray-900">
         {{ formatUptime(uptime) }}
       </div>
@@ -321,14 +373,14 @@
         class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
         @click="generateReport"
       >
-        生成報告
+        {{ t("performance.generateReport") }}
       </button>
 
       <button
         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
         @click="clearData"
       >
-        清除數據
+        {{ t("performance.clearData") }}
       </button>
 
       <button
@@ -336,12 +388,17 @@
         data-testid="export-report"
         @click="exportData"
       >
-        導出數據
+        {{ t("performance.exportData") }}
       </button>
     </div>
 
     <div class="text-sm text-gray-500">
-      收集了 {{ totalMetrics }} 個指標，{{ activeAlerts.length }} 個待處理警告
+      {{
+        t("performance.metricsCollected", {
+          count: totalMetrics,
+          warnings: activeAlerts.length,
+        })
+      }}
     </div>
   </div>
 
@@ -360,7 +417,9 @@
         class="flex items-center justify-between p-6 border-b border-gray-200"
       >
         <div>
-          <h2 class="text-xl font-semibold text-gray-900">性能分析報告</h2>
+          <h2 class="text-xl font-semibold text-gray-900">
+            {{ t("performance.reportTitle") }}
+          </h2>
           <p class="text-sm text-gray-600">{{ formatTime(Date.now()) }} 生成</p>
         </div>
         <button
@@ -376,38 +435,50 @@
         <div v-if="performanceReport">
           <!-- Summary -->
           <div class="mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">總覽</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">
+              {{ t("performance.overview") }}
+            </h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div class="text-center p-3 bg-blue-50 rounded-lg">
                 <div class="text-xl font-bold text-blue-600">
                   {{ performanceReport.summary.totalMetrics }}
                 </div>
-                <div class="text-sm text-blue-600">收集指標</div>
+                <div class="text-sm text-blue-600">
+                  {{ t("performance.collectedMetrics") }}
+                </div>
               </div>
               <div class="text-center p-3 bg-red-50 rounded-lg">
                 <div class="text-xl font-bold text-red-600">
                   {{ performanceReport.summary.activeAlerts }}
                 </div>
-                <div class="text-sm text-red-600">活動警告</div>
+                <div class="text-sm text-red-600">
+                  {{ t("performance.activeWarnings") }}
+                </div>
               </div>
               <div class="text-center p-3 bg-green-50 rounded-lg">
                 <div class="text-xl font-bold text-green-600">
                   {{ formatUptime(performanceReport.summary.uptime) }}
                 </div>
-                <div class="text-sm text-green-600">系統運行時間</div>
+                <div class="text-sm text-green-600">
+                  {{ t("performance.systemUptime") }}
+                </div>
               </div>
               <div class="text-center p-3 bg-orange-50 rounded-lg">
                 <div class="text-xl font-bold text-orange-600">
                   {{ (performanceReport.summary.errorRate * 100).toFixed(2) }}%
                 </div>
-                <div class="text-sm text-orange-600">錯誤率</div>
+                <div class="text-sm text-orange-600">
+                  {{ t("performance.errorRate") }}
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Recommendations -->
           <div v-if="performanceReport.recommendations.length > 0" class="mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">建議</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">
+              {{ t("performance.suggestions") }}
+            </h3>
             <div class="space-y-2">
               <div
                 v-for="(
@@ -428,7 +499,9 @@
 
           <!-- Detailed Metrics -->
           <div class="mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">詳細指標</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">
+              {{ t("performance.detailedMetrics") }}
+            </h3>
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -436,27 +509,27 @@
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      指標
+                      {{ t("performance.metric") }}
                     </th>
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      平均值
+                      {{ t("performance.average") }}
                     </th>
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      P95
+                      {{ t("performance.p95") }}
                     </th>
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      最大值
+                      {{ t("performance.max") }}
                     </th>
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      樣本數
+                      {{ t("performance.samples") }}
                     </th>
                   </tr>
                 </thead>
@@ -520,6 +593,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   BarChart2 as ChartBarIcon,
   AlertTriangle as ExclamationTriangleIcon,
@@ -533,6 +607,7 @@ import {
 import { useToast } from "vue-toastification";
 import { performanceService } from "@/services/performanceService";
 
+const { t } = useI18n();
 const toast = useToast();
 
 // State
@@ -581,10 +656,10 @@ const selectedTrend = computed(() => {
 const toggleCollection = () => {
   if (isCollecting.value) {
     performanceService.stopCollection();
-    toast.info("性能監控已停用");
+    toast.info(t("performance.monitoringDisabledToast"));
   } else {
     performanceService.startCollection();
-    toast.success("性能監控已啟用");
+    toast.success(t("performance.monitoringEnabledToast"));
   }
 };
 
@@ -654,16 +729,16 @@ const getAlertClass = (severity: string): string => {
 };
 
 const getMetricDisplayName = (name: string): string => {
-  const names: Record<string, string> = {
-    "page-load-time": "頁面載入時間",
-    "api-response-time": "API 響應時間",
-    "memory-usage": "記憶體使用率",
-    "frame-rate": "畫面更新率",
-    "sse-connection-time": "SSE 連接時間",
-    "connection-rtt": "網路延遲",
-    "first-contentful-paint": "首次內容繪製",
+  const keyMap: Record<string, string> = {
+    "page-load-time": "performance.metricNames.pageLoad",
+    "api-response-time": "performance.metricNames.apiResponse",
+    "memory-usage": "performance.metricNames.memoryUsage",
+    "frame-rate": "performance.metricNames.frameRate",
+    "sse-connection-time": "performance.metricNames.sseConnection",
+    "connection-rtt": "performance.metricNames.networkLatency",
+    "first-contentful-paint": "performance.metricNames.fcp",
   };
-  return names[name] || name;
+  return keyMap[name] ? t(keyMap[name]) : name;
 };
 
 const getMetricUnit = (name: string): string => {
@@ -681,7 +756,7 @@ const getMetricUnit = (name: string): string => {
 
 const resolveAlert = (alertId: string) => {
   performanceService.resolveAlert(alertId);
-  toast.success("警告已解決");
+  toast.success(t("performance.warningResolved"));
 };
 
 const generateReport = () => {
@@ -692,7 +767,7 @@ const generateReport = () => {
 const clearData = () => {
   performanceService.metrics.value = [];
   performanceService.alerts.value = [];
-  toast.success("性能數據已清除");
+  toast.success(t("performance.dataCleared"));
 };
 
 const exportData = () => {
@@ -705,7 +780,7 @@ const exportData = () => {
   link.download = `performance-report-${new Date().toISOString().split("T")[0]}.json`;
   link.click();
 
-  toast.success("性能數據已導出");
+  toast.success(t("performance.dataExported"));
 };
 
 // Start real-time updates

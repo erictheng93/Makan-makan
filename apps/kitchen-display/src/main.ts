@@ -7,6 +7,7 @@ import App from "./App.vue";
 import routes from "./router";
 import { performanceOptimizationService } from "./services/performanceOptimizationService";
 import { useAuthStore } from "./stores/auth";
+import { initI18n } from "./i18n";
 
 // CSS imports
 import "./assets/css/main.css";
@@ -77,4 +78,13 @@ authStore.initialize().catch((err) => {
 performanceOptimizationService.setupImageOptimization();
 performanceOptimizationService.registerServiceWorker();
 
-app.mount("#app");
+// Await i18n initialization BEFORE mounting so the first paint uses the correct
+// locale (reads localStorage + browser preference). Otherwise users with a saved
+// en-US locale see a zh-TW flash before the async plugin install resolves.
+initI18n()
+  .catch((err) => {
+    console.error("[kitchen] i18n initialize failed:", err);
+  })
+  .finally(() => {
+    app.mount("#app");
+  });

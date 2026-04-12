@@ -4,16 +4,19 @@
     class="bg-ios-orange/10 rounded-2xl p-3 flex items-center gap-2"
   >
     <WifiOff class="w-5 h-5 text-ios-orange flex-shrink-0" />
-    <span class="text-sm text-ios-orange font-medium"
-      >離線模式 — 資料可能不是最新</span
-    >
+    <span class="text-sm text-ios-orange font-medium">{{
+      t("offlineStatus.offlineMessage")
+    }}</span>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from "vue";
 import { WifiOff } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
+
+const { t } = useI18n();
 import { offlineService } from "@/services/offlineService";
 
 const toast = useToast();
@@ -85,33 +88,33 @@ watch(
 const forcSync = async () => {
   try {
     await offlineService.forcSync();
-    toast.success("數據同步完成");
+    toast.success(t("offlineStatus.syncComplete"));
   } catch (error: any) {
-    toast.error("同步失敗: " + error.message);
+    toast.error(t("offlineStatus.syncFailed") + error.message);
   }
 };
 
 const validateData = () => {
   const isValid = offlineService.validateCachedData();
   if (isValid) {
-    toast.success("數據驗證通過");
+    toast.success(t("offlineStatus.validationPassed"));
   } else {
-    toast.warning("數據驗證失敗，建議執行修復");
+    toast.warning(t("offlineStatus.validationFailed"));
   }
 };
 
 const repairData = () => {
   const repaired = offlineService.repairData();
   if (repaired) {
-    toast.success("數據修復完成");
+    toast.success(t("offlineStatus.repairComplete"));
   } else {
-    toast.info("數據無需修復");
+    toast.info(t("offlineStatus.repairNotNeeded"));
   }
 };
 
 const clearOfflineData = () => {
   offlineService.clearOfflineData();
-  toast.success("離線數據已清除");
+  toast.success(t("offlineStatus.offlineDataCleared"));
 };
 
 const resolveAllConflicts = (resolution: "local" | "server" | "merge") => {
@@ -120,12 +123,14 @@ const resolveAllConflicts = (resolution: "local" | "server" | "merge") => {
   });
 
   const resolutionText = {
-    local: "保持本機版本",
-    server: "使用伺服器版本",
-    merge: "智能合併",
+    local: t("offlineStatus.keepLocal"),
+    server: t("offlineStatus.useServer"),
+    merge: t("offlineStatus.smartMerge"),
   }[resolution];
 
-  toast.success(`已使用「${resolutionText}」解決所有衝突`);
+  toast.success(
+    t("offlineStatus.conflictResolved", { strategy: resolutionText }),
+  );
 };
 
 defineExpose({

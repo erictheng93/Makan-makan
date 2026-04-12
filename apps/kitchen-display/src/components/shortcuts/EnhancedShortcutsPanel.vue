@@ -11,8 +11,12 @@
             <CommandLineIcon class="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-white">快捷鍵中心</h3>
-            <p class="text-purple-100 text-sm">增強型鍵盤操控</p>
+            <h3 class="text-lg font-semibold text-white">
+              {{ t("shortcuts.center") }}
+            </h3>
+            <p class="text-purple-100 text-sm">
+              {{ t("shortcuts.enhancedControl") }}
+            </p>
           </div>
         </div>
 
@@ -26,7 +30,7 @@
               ]"
             />
             <span class="text-sm">{{
-              shortcuts.enabled ? "已啟用" : "已停用"
+              shortcuts.enabled ? t("common.enabled") : t("common.disabled")
             }}</span>
           </div>
 
@@ -55,33 +59,43 @@
           <div class="text-2xl font-bold text-gray-900">
             {{ shortcuts.enabledShortcuts.value?.length || 0 }}
           </div>
-          <div class="text-sm text-gray-500">已啟用</div>
+          <div class="text-sm text-gray-500">{{ t("common.enabled") }}</div>
         </div>
         <div class="text-center">
           <div class="text-2xl font-bold text-gray-900">
             {{ shortcuts.stats.value?.totalExecutions || 0 }}
           </div>
-          <div class="text-sm text-gray-500">總使用次數</div>
+          <div class="text-sm text-gray-500">
+            {{ t("shortcuts.totalUsage") }}
+          </div>
         </div>
         <div class="text-center">
           <div class="text-2xl font-bold text-gray-900">
             {{ Math.round(shortcuts.stats.value?.successRate || 0) }}%
           </div>
-          <div class="text-sm text-gray-500">成功率</div>
+          <div class="text-sm text-gray-500">
+            {{ t("shortcuts.successRate") }}
+          </div>
         </div>
         <div class="text-center">
           <div class="text-2xl font-bold text-gray-900">
             {{ Math.round(shortcuts.stats.value?.averageExecutionTime || 0) }}ms
           </div>
-          <div class="text-sm text-gray-500">平均執行時間</div>
+          <div class="text-sm text-gray-500">
+            {{ t("shortcuts.avgExecutionTime") }}
+          </div>
         </div>
       </div>
 
       <!-- Visual Feedback Settings -->
       <div class="bg-gray-50 rounded-lg p-4">
-        <h4 class="text-sm font-medium text-gray-700 mb-3">視覺回饋設定</h4>
+        <h4 class="text-sm font-medium text-gray-700 mb-3">
+          {{ t("shortcuts.visualFeedback") }}
+        </h4>
         <div class="flex items-center justify-between">
-          <span class="text-sm text-gray-600">啟用視覺提示</span>
+          <span class="text-sm text-gray-600">{{
+            t("shortcuts.enableVisualHints")
+          }}</span>
           <input
             v-model="shortcuts.showVisualFeedback"
             type="checkbox"
@@ -155,13 +169,13 @@
                     v-if="shortcut.global"
                     class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full"
                   >
-                    全域
+                    {{ t("shortcuts.global") }}
                   </span>
                   <span
                     v-if="shortcut.customizable"
                     class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full"
                   >
-                    可自訂
+                    {{ t("shortcuts.customizable") }}
                   </span>
                 </div>
                 <p class="text-sm text-gray-600">
@@ -188,7 +202,7 @@
                 <button
                   :disabled="!shortcuts.enabled"
                   class="p-1 text-blue-600 hover:text-blue-700 disabled:text-gray-400"
-                  title="測試快捷鍵"
+                  :title="t('shortcuts.testShortcut')"
                   @click="testShortcut(shortcut)"
                 >
                   <PlayIcon class="w-4 h-4" />
@@ -198,7 +212,7 @@
                 <button
                   v-if="shortcut.customizable"
                   class="p-1 text-gray-600 hover:text-gray-700"
-                  title="編輯快捷鍵"
+                  :title="t('shortcuts.editShortcut')"
                   @click="editShortcut(shortcut)"
                 >
                   <PencilIcon class="w-4 h-4" />
@@ -219,7 +233,9 @@
 
       <!-- Most Used Shortcuts -->
       <div v-if="shortcuts.stats.value.mostUsed?.length > 0">
-        <h4 class="text-sm font-medium text-gray-700 mb-3">最常使用的快捷鍵</h4>
+        <h4 class="text-sm font-medium text-gray-700 mb-3">
+          {{ t("shortcuts.mostUsed") }}
+        </h4>
         <div class="space-y-2">
           <div
             v-for="usage in shortcuts.stats.value.mostUsed?.slice(0, 5) || []"
@@ -230,7 +246,9 @@
               getShortcutName(usage.shortcutId)
             }}</span>
             <div class="flex items-center space-x-2">
-              <span class="text-gray-900 font-medium">{{ usage.count }}次</span>
+              <span class="text-gray-900 font-medium"
+                >{{ usage.count }}{{ t("shortcuts.times") }}</span
+              >
               <div class="w-16 bg-gray-200 rounded-full h-1">
                 <div
                   class="bg-purple-500 h-1 rounded-full"
@@ -246,7 +264,9 @@
 
       <!-- Recent Executions -->
       <div v-if="shortcuts.stats.value.recentExecutions?.length > 0">
-        <h4 class="text-sm font-medium text-gray-700 mb-3">最近執行記錄</h4>
+        <h4 class="text-sm font-medium text-gray-700 mb-3">
+          {{ t("shortcuts.recentExecutions") }}
+        </h4>
         <div class="space-y-2 max-h-32 overflow-y-auto">
           <div
             v-for="execution in shortcuts.stats.value.recentExecutions || []"
@@ -258,7 +278,11 @@
               <span
                 :class="execution.success ? 'text-green-600' : 'text-red-600'"
               >
-                {{ execution.success ? "成功" : "失敗" }}
+                {{
+                  execution.success
+                    ? t("shortcuts.executionSuccess")
+                    : t("shortcuts.executionFailed")
+                }}
               </span>
               <span>{{ formatTime(execution.timestamp) }}</span>
             </div>
@@ -269,13 +293,15 @@
       <!-- Custom Shortcut Creation -->
       <div class="border-t border-gray-200 pt-4">
         <div class="flex items-center justify-between mb-4">
-          <h4 class="text-sm font-medium text-gray-700">自訂快捷鍵</h4>
+          <h4 class="text-sm font-medium text-gray-700">
+            {{ t("shortcuts.customShortcuts") }}
+          </h4>
           <button
             class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
             @click="startCustomShortcut"
           >
             <PlusIcon class="w-4 h-4 mr-1" />
-            新增
+            {{ t("shortcuts.addNew") }}
           </button>
         </div>
 
@@ -286,18 +312,18 @@
         >
           <div class="flex items-center">
             <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2" />
-            <span class="text-red-800 text-sm font-medium"
-              >正在錄製快捷鍵組合...</span
-            >
+            <span class="text-red-800 text-sm font-medium">{{
+              t("shortcuts.recording")
+            }}</span>
           </div>
           <div class="text-red-700 text-xs mt-1">
-            按下想要的按鍵組合，完成後點擊停止
+            {{ t("shortcuts.recordingInstruction") }}
           </div>
           <button
             class="mt-2 text-red-600 hover:text-red-700 text-xs underline"
             @click="stopRecording"
           >
-            停止錄製
+            {{ t("shortcuts.stopRecording") }}
           </button>
         </div>
       </div>
@@ -306,13 +332,13 @@
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 class="text-sm font-medium text-blue-900 mb-2 flex items-center">
           <InformationCircleIcon class="w-4 h-4 mr-2" />
-          使用提示
+          {{ t("shortcuts.tips") }}
         </h4>
         <ul class="text-sm text-blue-800 space-y-1">
-          <li>• 快捷鍵在非輸入框區域有效</li>
-          <li>• 全域快捷鍵在任何地方都能使用</li>
-          <li>• 可以通過視覺回饋查看執行結果</li>
-          <li>• 支援自訂快捷鍵和修改現有快捷鍵</li>
+          <li>• {{ t("shortcuts.tip1") }}</li>
+          <li>• {{ t("shortcuts.tip2") }}</li>
+          <li>• {{ t("shortcuts.tip3") }}</li>
+          <li>• {{ t("shortcuts.tip4") }}</li>
         </ul>
       </div>
     </div>
@@ -338,6 +364,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useI18n } from "@/i18n";
 import {
   Terminal as CommandLineIcon,
   Play as PlayIcon,
@@ -349,6 +376,7 @@ import { useToast } from "vue-toastification";
 import { useEnhancedKeyboardShortcuts } from "@/composables/useEnhancedKeyboardShortcuts";
 import type { KeyboardShortcut } from "@/composables/useEnhancedKeyboardShortcuts";
 
+const { t } = useI18n();
 const toast = useToast();
 const shortcuts = useEnhancedKeyboardShortcuts();
 
@@ -358,18 +386,22 @@ const activeCategory = ref("orders");
 // Methods
 const toggleShortcuts = () => {
   shortcuts.enabled.value = !shortcuts.enabled.value;
-  toast.info(shortcuts.enabled.value ? "快捷鍵已啟用" : "快捷鍵已停用");
+  toast.info(
+    shortcuts.enabled.value
+      ? t("shortcuts.enabledToast")
+      : t("shortcuts.disabledToast"),
+  );
 };
 
 const getCategoryName = (category: string): string => {
-  const names: Record<string, string> = {
-    orders: "訂單操作",
-    navigation: "導航功能",
-    filters: "篩選功能",
-    system: "系統功能",
-    audio: "音效控制",
+  const keyMap: Record<string, string> = {
+    orders: "shortcuts.categoryOrders",
+    navigation: "shortcuts.categoryNavigation",
+    filters: "shortcuts.categoryFilter",
+    system: "shortcuts.categorySystem",
+    audio: "shortcuts.categoryAudio",
   };
-  return names[category] || category;
+  return keyMap[category] ? t(keyMap[category]) : category;
 };
 
 const getColorClass = (color?: string): string => {
@@ -413,22 +445,24 @@ const testShortcut = async (shortcut: KeyboardShortcut) => {
       new KeyboardEvent("keydown"),
     );
     toast[success ? "success" : "error"](
-      `快捷鍵測試${success ? "成功" : "失敗"}: ${shortcut.name}`,
+      `${t("shortcuts.testShortcut")}${success ? t("shortcuts.executionSuccess") : t("shortcuts.executionFailed")}: ${shortcut.name}`,
     );
   } catch {
-    toast.error("測試快捷鍵時發生錯誤");
+    toast.error(t("shortcuts.testError"));
   }
 };
 
 const editShortcut = (shortcut: KeyboardShortcut) => {
   // This would typically open an edit modal
-  toast.info(`編輯快捷鍵: ${shortcut.name}`);
+  toast.info(`${t("shortcuts.editPrefix")} ${shortcut.name}`);
 };
 
 const updateShortcut = (shortcut: KeyboardShortcut) => {
   shortcuts.updateShortcut(shortcut.id, { enabled: shortcut.enabled });
   toast.success(
-    `快捷鍵 ${shortcut.name} 已${shortcut.enabled ? "啟用" : "停用"}`,
+    shortcut.enabled
+      ? t("shortcuts.toggleEnabled", { name: shortcut.name })
+      : t("shortcuts.toggleDisabled", { name: shortcut.name }),
   );
 };
 
@@ -454,7 +488,7 @@ const stopRecording = () => {
   const keys = shortcuts.stopRecording();
   if (keys.length > 0) {
     // This would typically open a dialog to complete the custom shortcut creation
-    toast.success(`快捷鍵組合已錄製: ${keys.join(" + ")}`);
+    toast.success(`${t("shortcuts.recorded")} ${keys.join(" + ")}`);
   }
 };
 

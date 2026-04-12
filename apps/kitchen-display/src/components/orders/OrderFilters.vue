@@ -12,7 +12,7 @@
           v-model="searchText"
           type="text"
           class="block w-full pl-9 pr-9 py-2 bg-ios-bg rounded-xl text-sm text-ios-text placeholder-ios-secondary focus:outline-none focus:ring-2 focus:ring-ios-blue/30 transition"
-          placeholder="搜索訂單編號、顧客姓名、桌號、餐點..."
+          :placeholder="t('filters.searchPlaceholder')"
           @input="updateSearch"
         />
         <div
@@ -41,7 +41,7 @@
         ]"
         @click="clearStatusFilters"
       >
-        全部 ({{ props.orders.length }})
+        {{ t("filters.all") }} ({{ props.orders.length }})
       </button>
 
       <!-- 待處理 pill (status 1 = confirmed/pending) -->
@@ -54,7 +54,7 @@
         ]"
         @click="toggleStatusFilter('confirmed')"
       >
-        待處理 ({{ pendingCount }})
+        {{ t("filters.pending") }} ({{ pendingCount }})
       </button>
 
       <!-- 製作中 pill (status 2) -->
@@ -67,7 +67,7 @@
         ]"
         @click="toggleStatusFilter('preparing')"
       >
-        製作中 ({{ preparingCount }})
+        {{ t("filters.preparing") }} ({{ preparingCount }})
       </button>
 
       <!-- 完成 pill (status 3) -->
@@ -80,7 +80,7 @@
         ]"
         @click="toggleStatusFilter('ready')"
       >
-        完成 ({{ doneCount }})
+        {{ t("filters.completed") }} ({{ doneCount }})
       </button>
 
       <!-- 緊急 pill -->
@@ -93,7 +93,7 @@
         ]"
         @click="toggleUrgentFilter"
       >
-        緊急 ({{ urgentCount }})
+        {{ t("filters.urgent") }} ({{ urgentCount }})
       </button>
 
       <!-- Divider -->
@@ -125,7 +125,7 @@
         ]"
         @click="toggleTakeawayDeliveryFilter"
       >
-        🛍️🛵 外帶/外送
+        {{ t("filters.takeawayDelivery") }}
       </button>
     </div>
 
@@ -136,12 +136,12 @@
           v-if="hasActiveFilters"
           class="px-2.5 py-0.5 bg-ios-blue/10 text-ios-blue rounded-full text-xs font-semibold"
         >
-          {{ activeFilterCount }} 個篩選
+          {{ activeFilterCount }} {{ t("filters.activeFilters") }}
         </span>
         <span v-if="hasActiveFilters" class="text-xs text-ios-secondary">
-          符合
+          {{ t("filters.matchCount") }}
           <span class="font-semibold text-ios-text">{{ filteredCount }}</span>
-          筆
+          {{ t("filters.matchUnit") }}
         </span>
       </div>
       <div class="flex items-center gap-2">
@@ -150,11 +150,15 @@
           class="text-xs text-ios-red font-semibold hover:opacity-70 transition-opacity"
           @click="clearAllFilters"
         >
-          清除所有
+          {{ t("common.clearAll") }}
         </button>
         <button
           class="p-1.5 text-ios-secondary hover:text-ios-text rounded-lg hover:bg-ios-bg transition-colors"
-          :title="showFilters ? '收起篩選' : '更多篩選'"
+          :title="
+            showFilters
+              ? t('filters.collapseFilters')
+              : t('filters.expandFilters')
+          "
           @click="showFilters = !showFilters"
         >
           <ChevronDown v-if="!showFilters" class="w-4 h-4" />
@@ -172,7 +176,7 @@
       <div>
         <label
           class="block text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
-          >訂單狀態</label
+          >{{ t("filters.orderStatus") }}</label
         >
         <div class="flex flex-wrap gap-2">
           <label
@@ -196,7 +200,7 @@
       <div>
         <label
           class="block text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
-          >優先級</label
+          >{{ t("filters.priority") }}</label
         >
         <div class="flex flex-wrap gap-2">
           <label
@@ -221,7 +225,7 @@
         <h4
           class="text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
         >
-          訂單類型
+          {{ t("filters.orderType") }}
         </h4>
         <div class="flex flex-wrap gap-2">
           <label
@@ -250,7 +254,7 @@
         <h4
           class="text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
         >
-          訂單來源
+          {{ t("filters.orderSource") }}
         </h4>
         <div class="flex flex-wrap gap-2">
           <label
@@ -279,7 +283,7 @@
         <div>
           <label
             class="block text-xs font-semibold text-ios-secondary mb-1 uppercase tracking-wide"
-            >最短等待時間</label
+            >{{ t("filters.minWaitTime") }}</label
           >
           <div class="flex items-center gap-2">
             <input
@@ -289,13 +293,15 @@
               max="120"
               class="w-20 px-2 py-1.5 bg-ios-bg border-0 rounded-xl text-sm text-ios-text focus:outline-none focus:ring-2 focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-ios-secondary">分鐘</span>
+            <span class="text-sm text-ios-secondary">{{
+              t("common.minutes")
+            }}</span>
           </div>
         </div>
         <div>
           <label
             class="block text-xs font-semibold text-ios-secondary mb-1 uppercase tracking-wide"
-            >最長等待時間</label
+            >{{ t("filters.maxWaitTime") }}</label
           >
           <div class="flex items-center gap-2">
             <input
@@ -305,7 +311,9 @@
               max="120"
               class="w-20 px-2 py-1.5 bg-ios-bg border-0 rounded-xl text-sm text-ios-text focus:outline-none focus:ring-2 focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-ios-secondary">分鐘</span>
+            <span class="text-sm text-ios-secondary">{{
+              t("common.minutes")
+            }}</span>
           </div>
         </div>
       </div>
@@ -314,7 +322,7 @@
       <div v-if="availableTables.length > 0">
         <label
           class="block text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
-          >桌號</label
+          >{{ t("filters.tableNumber") }}</label
         >
         <div class="flex flex-wrap gap-2">
           <label
@@ -341,7 +349,7 @@
       <div>
         <label
           class="block text-xs font-semibold text-ios-secondary mb-2 uppercase tracking-wide"
-          >其他篩選</label
+          >{{ t("filters.otherFilters") }}</label
         >
         <div class="space-y-2">
           <label class="flex items-center gap-2 cursor-pointer">
@@ -350,7 +358,9 @@
               type="checkbox"
               class="rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-ios-text">有訂單備註</span>
+            <span class="text-sm text-ios-text">{{
+              t("filters.hasOrderNotes")
+            }}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -358,7 +368,9 @@
               type="checkbox"
               class="rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30"
             />
-            <span class="text-sm text-ios-text">有客製化要求</span>
+            <span class="text-sm text-ios-text">{{
+              t("filters.hasCustomizationReq")
+            }}</span>
           </label>
         </div>
       </div>
@@ -379,6 +391,7 @@ import {
   MessageCircleMore,
   Settings2,
 } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { storeToRefs } from "pinia";
 import type { KitchenOrder, OrderStatus } from "@/types";
@@ -390,6 +403,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 // Store
 const orderManagementStore = useOrderManagementStore();
@@ -408,47 +423,47 @@ const maxElapsedTime = ref<number>();
 const hasNotesFilter = ref(false);
 const hasCustomizationsFilter = ref(false);
 
-const orderTypeOptions = [
+const orderTypeOptions = computed(() => [
   {
     value: "dine_in",
-    label: "內用",
+    label: t("orderType.dineIn"),
     emoji: "🪑",
     activeClass: "bg-[#E3F2FD] text-ios-blue",
   },
   {
     value: "takeaway",
-    label: "外帶",
+    label: t("orderType.takeaway"),
     emoji: "🛍️",
     activeClass: "bg-[#E8F5E9] text-ios-green",
   },
   {
     value: "delivery",
-    label: "外送",
+    label: t("orderType.delivery"),
     emoji: "🛵",
     activeClass: "bg-[#FFF3E0] text-ios-orange",
   },
-];
+]);
 
-const orderSourceOptions = [
+const orderSourceOptions = computed(() => [
   {
     value: "direct",
-    label: "自家",
+    label: t("filters.sourceSelf"),
     emoji: "\uD83C\uDFE0",
     activeClass: "bg-[#E3F2FD] text-ios-blue",
   },
   {
     value: "uber_eats",
-    label: "Uber Eats",
+    label: t("platform.uberEats"),
     emoji: "\uD83D\uDFE2",
     activeClass: "bg-[#E8F5E9] text-ios-green",
   },
   {
     value: "foodpanda",
-    label: "Foodpanda",
+    label: t("platform.foodpanda"),
     emoji: "\uD83E\uDE77",
     activeClass: "bg-[#FCE4EC] text-[#E91E8C]",
   },
-];
+]);
 
 // Computed counts for the pill row
 const pendingCount = computed(
@@ -490,21 +505,21 @@ const isTakeawayDeliveryActive = computed(
 const statusOptions = computed(() => [
   {
     value: "confirmed" as OrderStatus,
-    label: "已確認",
+    label: t("filters.confirmed"),
     count: props.orders.filter((o) => o.status === "confirmed").length,
     badgeClass:
       "px-2 py-0.5 bg-[#FFF3E0] text-ios-orange rounded-full text-xs font-medium",
   },
   {
     value: "preparing" as OrderStatus,
-    label: "製作中",
+    label: t("filters.preparing"),
     count: props.orders.filter((o) => o.status === "preparing").length,
     badgeClass:
       "px-2 py-0.5 bg-[#E3F2FD] text-ios-blue rounded-full text-xs font-medium",
   },
   {
     value: "ready" as OrderStatus,
-    label: "準備完成",
+    label: t("filters.readyStatus"),
     count: props.orders.filter((o) => o.status === "ready").length,
     badgeClass:
       "px-2 py-0.5 bg-[#E8F5E9] text-ios-green rounded-full text-xs font-medium",
@@ -514,21 +529,21 @@ const statusOptions = computed(() => [
 const priorityOptions = computed(() => [
   {
     value: "normal",
-    label: "普通",
+    label: t("filters.priorityNormal"),
     count: props.orders.filter((o) => o.priority === "normal").length,
     badgeClass:
       "px-2 py-0.5 bg-ios-bg text-ios-secondary rounded-full text-xs font-medium",
   },
   {
     value: "high",
-    label: "重要",
+    label: t("filters.priorityImportant"),
     count: props.orders.filter((o) => o.priority === "high").length,
     badgeClass:
       "px-2 py-0.5 bg-[#FFF3E0] text-ios-orange rounded-full text-xs font-medium",
   },
   {
     value: "urgent",
-    label: "緊急",
+    label: t("filters.priorityUrgent"),
     count: props.orders.filter((o) => o.priority === "urgent").length,
     badgeClass:
       "px-2 py-0.5 bg-[#FFEBEE] text-ios-red rounded-full text-xs font-medium",
@@ -560,17 +575,17 @@ const availableTables = computed(() => {
 
 const quickFilters = computed(() => ({
   overdue: {
-    label: "超時",
+    label: t("filters.overdue"),
     icon: Clock,
     active: minElapsedTime.value === 15,
   },
   withNotes: {
-    label: "有備註",
+    label: t("filters.hasNotes"),
     icon: MessageCircleMore,
     active: hasNotesFilter.value,
   },
   customized: {
-    label: "客製化",
+    label: t("filters.hasCustomization"),
     icon: Settings2,
     active: hasCustomizationsFilter.value,
   },

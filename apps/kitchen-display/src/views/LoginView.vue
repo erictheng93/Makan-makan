@@ -8,8 +8,10 @@
         >
           <ChefHat class="w-10 h-10 text-white" />
         </div>
-        <h1 class="text-2xl font-extrabold text-ios-text mb-1">廚房顯示系統</h1>
-        <p class="text-sm text-ios-secondary">Kitchen Display System</p>
+        <h1 class="text-2xl font-extrabold text-ios-text mb-1">
+          {{ t("login.title") }}
+        </h1>
+        <p class="text-sm text-ios-secondary">{{ t("login.subtitle") }}</p>
       </div>
 
       <!-- Login Form Card -->
@@ -21,7 +23,7 @@
               for="username"
               class="text-sm font-semibold text-ios-text mb-1.5 block"
             >
-              用戶名稱
+              {{ t("login.username") }}
             </label>
             <div class="relative">
               <div
@@ -35,7 +37,7 @@
                 type="text"
                 required
                 autocomplete="username"
-                placeholder="請輸入用戶名稱"
+                :placeholder="t('login.usernamePlaceholder')"
                 :disabled="isLoading"
                 class="w-full bg-ios-bg rounded-xl py-3.5 pl-10 pr-4 text-base text-ios-text placeholder-ios-tertiary outline-none focus:ring-2 focus:ring-ios-blue/30 transition-all"
               />
@@ -48,7 +50,7 @@
               for="password"
               class="text-sm font-semibold text-ios-text mb-1.5 block"
             >
-              密碼
+              {{ t("login.password") }}
             </label>
             <div class="relative">
               <div
@@ -62,7 +64,7 @@
                 :type="showPassword ? 'text' : 'password'"
                 required
                 autocomplete="current-password"
-                placeholder="請輸入密碼"
+                :placeholder="t('login.passwordPlaceholder')"
                 :disabled="isLoading"
                 class="w-full bg-ios-bg rounded-xl py-3.5 pl-10 pr-10 text-base text-ios-text placeholder-ios-tertiary outline-none focus:ring-2 focus:ring-ios-blue/30 transition-all"
               />
@@ -103,20 +105,22 @@
               v-if="isLoading"
               class="w-4.5 h-4.5 border-2 border-white border-t-transparent rounded-full animate-spin"
             />
-            <span>{{ isLoading ? "登入中..." : "登入" }}</span>
+            <span>{{
+              isLoading ? t("login.loggingIn") : t("login.loginButton")
+            }}</span>
           </button>
         </form>
 
         <!-- Footer -->
         <p class="text-xs text-ios-secondary mt-5 text-center">
-          僅限廚師角色登入
+          {{ t("login.roleNote") }}
         </p>
       </div>
 
       <!-- System Info -->
       <div class="mt-6 text-center text-xs text-ios-secondary space-y-1">
-        <p>MakanMakan 廚房顯示系統 v1.0</p>
-        <p>需要協助？請聯繫系統管理員</p>
+        <p>{{ t("login.systemInfo") }}</p>
+        <p>{{ t("login.helpNote") }}</p>
       </div>
     </div>
   </div>
@@ -136,12 +140,14 @@ import {
 } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
+import { useI18n } from "@/i18n";
 
 // Composables
 const router = useRouter();
 const toast = useToast();
 const authStore = useAuthStore();
 const settingsStore = useSettingsStore();
+const { t } = useI18n();
 
 // State
 const credentials = ref({
@@ -175,18 +181,18 @@ const handleLogin = async () => {
       password: credentials.value.password,
     });
 
-    toast.success("登入成功！");
+    toast.success(t("login.loginSuccess"));
 
     // 導向廚房界面
     const restaurantId = authStore.restaurantId;
     if (restaurantId) {
       await router.push(`/kitchen/${restaurantId}`);
     } else {
-      throw new Error("無法獲取餐廳資訊");
+      throw new Error(t("login.fetchRestaurantError"));
     }
   } catch (error: any) {
     console.error("Login failed:", error);
-    errorMessage.value = error.message || "登入失敗，請檢查用戶名稱和密碼";
+    errorMessage.value = error.message || t("login.loginError");
 
     // 清除密碼欄位
     credentials.value.password = "";

@@ -11,8 +11,12 @@
             <ChartBarIcon class="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-white">廚房統計中心</h3>
-            <p class="text-emerald-100 text-sm">實時數據分析與績效監控</p>
+            <h3 class="text-lg font-semibold text-white">
+              {{ t("interactiveStats.title") }}
+            </h3>
+            <p class="text-emerald-100 text-sm">
+              {{ t("interactiveStats.description") }}
+            </p>
           </div>
         </div>
 
@@ -24,10 +28,10 @@
             class="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-white"
             @change="updateTimeRange"
           >
-            <option value="1h">最近 1 小時</option>
-            <option value="24h">最近 24 小時</option>
-            <option value="7d">最近 7 天</option>
-            <option value="30d">最近 30 天</option>
+            <option value="1h">{{ t("interactiveStats.last1Hour") }}</option>
+            <option value="24h">{{ t("interactiveStats.last24Hours") }}</option>
+            <option value="7d">{{ t("interactiveStats.last7Days") }}</option>
+            <option value="30d">{{ t("interactiveStats.last30Days") }}</option>
           </select>
 
           <!-- Auto refresh toggle -->
@@ -36,7 +40,7 @@
               'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-emerald-600',
               statsService.autoRefresh ? 'bg-green-400' : 'bg-gray-300',
             ]"
-            title="自動更新"
+            :title="t('interactiveStats.autoUpdate')"
             @click="toggleAutoRefresh"
           >
             <span
@@ -51,7 +55,7 @@
           <button
             :disabled="statsService.isLoading.value"
             class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors disabled:opacity-50"
-            title="立即更新"
+            :title="t('interactiveStats.immediateUpdate')"
             @click="refreshStats"
           >
             <ArrowPathIcon
@@ -74,7 +78,9 @@
               <div class="text-2xl font-bold text-blue-900">
                 {{ currentStats.realTime.activeOrders }}
               </div>
-              <div class="text-sm text-blue-600">活動訂單</div>
+              <div class="text-sm text-blue-600">
+                {{ t("interactiveStats.activeOrders") }}
+              </div>
             </div>
             <div
               class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center"
@@ -95,7 +101,9 @@
               <div class="text-2xl font-bold text-green-900">
                 {{ currentStats.orders.completedOrders }}
               </div>
-              <div class="text-sm text-green-600">已完成</div>
+              <div class="text-sm text-green-600">
+                {{ t("interactiveStats.completed") }}
+              </div>
             </div>
             <div
               class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center"
@@ -116,7 +124,9 @@
               <div class="text-2xl font-bold text-orange-900">
                 {{ currentStats.orders.averageCookingTime }}分
               </div>
-              <div class="text-sm text-orange-600">平均製作時間</div>
+              <div class="text-sm text-orange-600">
+                {{ t("interactiveStats.avgPrepTime") }}
+              </div>
             </div>
             <div
               class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center"
@@ -137,7 +147,9 @@
               <div class="text-2xl font-bold text-purple-900">
                 {{ currentStats.performance.efficiency }}%
               </div>
-              <div class="text-sm text-purple-600">廚房效率</div>
+              <div class="text-sm text-purple-600">
+                {{ t("interactiveStats.kitchenEfficiency") }}
+              </div>
             </div>
             <div
               class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center"
@@ -584,7 +596,7 @@
               @click="exportStats"
             >
               <ArrowDownTrayIcon class="w-4 h-4 mr-2" />
-              導出數據
+              {{ t("interactiveStats.exportData") }}
             </button>
           </div>
         </div>
@@ -595,6 +607,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/i18n";
 import {
   BarChart2 as ChartBarIcon,
   Clock as ClockIcon,
@@ -615,6 +628,7 @@ import {
 import { useToast } from "vue-toastification";
 import { kitchenStatisticsService } from "@/services/kitchenStatisticsService";
 
+const { t } = useI18n();
 const toast = useToast();
 const statsService = kitchenStatisticsService;
 
@@ -623,12 +637,20 @@ const selectedTimeRange = ref("24h");
 const activeTab = ref("chefs");
 
 // Analysis tabs configuration
-const analysisTabs = [
-  { id: "chefs", name: "廚師表現", icon: UserGroupIcon },
-  { id: "items", name: "品項分析", icon: CubeIcon },
-  { id: "speed", name: "速度分析", icon: BoltIcon },
-  { id: "satisfaction", name: "顧客滿意度", icon: StarIcon },
-];
+const analysisTabs = computed(() => [
+  {
+    id: "chefs",
+    name: t("interactiveStats.chefPerformance"),
+    icon: UserGroupIcon,
+  },
+  { id: "items", name: t("interactiveStats.itemAnalysis"), icon: CubeIcon },
+  { id: "speed", name: t("interactiveStats.speedAnalysis"), icon: BoltIcon },
+  {
+    id: "satisfaction",
+    name: t("interactiveStats.customerSatisfaction"),
+    icon: StarIcon,
+  },
+]);
 
 // Computed properties
 const currentStats = computed(() => statsService.currentStats);
@@ -666,23 +688,25 @@ const updateTimeRange = () => {
   const range = ranges[selectedTimeRange.value as keyof typeof ranges];
   if (range) {
     statsService.setTimeRange(range);
-    toast.success(`時間範圍已更新為: ${range.label}`);
+    toast.success(`${t("interactiveStats.timeRangeUpdated")} ${range.label}`);
   }
 };
 
 const toggleAutoRefresh = () => {
   statsService.autoRefresh.value = !statsService.autoRefresh.value;
   toast.info(
-    statsService.autoRefresh.value ? "自動更新已啟用" : "自動更新已停用",
+    statsService.autoRefresh.value
+      ? t("interactiveStats.autoUpdateEnabled")
+      : t("interactiveStats.autoUpdateDisabled"),
   );
 };
 
 const refreshStats = async () => {
   try {
     await statsService.computeStatistics();
-    toast.success("統計數據已更新");
+    toast.success(t("interactiveStats.statsUpdated"));
   } catch (error) {
-    toast.error("更新統計數據失敗");
+    toast.error(t("interactiveStats.statsUpdateFailed"));
     console.error("Failed to refresh stats:", error);
   }
 };
@@ -698,9 +722,9 @@ const exportStats = () => {
     a.click();
     URL.revokeObjectURL(url);
 
-    toast.success("統計數據已導出");
+    toast.success(t("interactiveStats.statsExported"));
   } catch (error) {
-    toast.error("導出統計數據失敗");
+    toast.error(t("interactiveStats.statsExportFailed"));
     console.error("Export failed:", error);
   }
 };
@@ -727,7 +751,7 @@ onMounted(async () => {
     await statsService.computeStatistics();
   } catch (error) {
     console.error("Failed to load initial stats:", error);
-    toast.error("載入統計數據失敗");
+    toast.error(t("interactiveStats.statsLoadFailed"));
   }
 });
 

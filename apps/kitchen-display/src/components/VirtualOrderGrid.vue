@@ -44,7 +44,7 @@
         <div
           class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
         />
-        <span class="ml-3 text-gray-600">載入更多訂單...</span>
+        <span class="ml-3 text-gray-600">{{ t("orders.loadMore") }}</span>
       </div>
     </div>
   </div>
@@ -52,7 +52,10 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { useI18n } from "@/i18n";
 import type { KitchenOrder } from "@/types/index";
+
+const { t } = useI18n();
 
 interface Props {
   orders: KitchenOrder[];

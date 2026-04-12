@@ -7,7 +7,9 @@
       <div class="text-kitchen-stats text-[#E65100]">
         {{ stats.pendingCount }}
       </div>
-      <div class="text-xs font-semibold text-[#E65100]">待處理</div>
+      <div class="text-xs font-semibold text-[#E65100]">
+        {{ t("stats.pending") }}
+      </div>
     </div>
 
     <!-- Preparing -->
@@ -17,7 +19,9 @@
       <div class="text-kitchen-stats text-[#0D47A1]">
         {{ stats.preparingCount }}
       </div>
-      <div class="text-xs font-semibold text-[#0D47A1]">製作中</div>
+      <div class="text-xs font-semibold text-[#0D47A1]">
+        {{ t("stats.preparing") }}
+      </div>
     </div>
 
     <!-- Ready -->
@@ -27,7 +31,9 @@
       <div class="text-kitchen-stats text-[#1B5E20]">
         {{ stats.readyCount }}
       </div>
-      <div class="text-xs font-semibold text-[#1B5E20]">已完成</div>
+      <div class="text-xs font-semibold text-[#1B5E20]">
+        {{ t("stats.completed") }}
+      </div>
     </div>
 
     <!-- Urgent -->
@@ -37,13 +43,18 @@
       <div class="text-kitchen-stats text-[#B71C1C]">
         {{ stats.urgentOrders }}
       </div>
-      <div class="text-xs font-semibold text-[#B71C1C]">緊急訂單</div>
+      <div class="text-xs font-semibold text-[#B71C1C]">
+        {{ t("stats.urgentOrders") }}
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "@/i18n";
 import type { KitchenStats } from "@/types";
+
+const { t } = useI18n();
 
 interface Props {
   stats: KitchenStats;

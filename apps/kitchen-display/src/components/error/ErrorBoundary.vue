@@ -11,7 +11,9 @@
       <AlertTriangle class="w-12 h-12 text-ios-red mx-auto" />
 
       <!-- Title -->
-      <h2 class="text-lg font-bold text-ios-text mt-4">發生錯誤</h2>
+      <h2 class="text-lg font-bold text-ios-text mt-4">
+        {{ t("errorBoundary.title") }}
+      </h2>
 
       <!-- Message -->
       <p class="text-sm text-ios-secondary mt-2">
@@ -35,7 +37,11 @@
       >
         <span class="flex items-center justify-center gap-2">
           <RefreshCw v-if="retrying" class="w-4 h-4 animate-spin" />
-          {{ retrying ? "重試中..." : "重試" }}
+          {{
+            retrying
+              ? t("errorBoundary.retrying")
+              : t("errorBoundary.retryButton")
+          }}
         </span>
       </button>
 
@@ -46,7 +52,7 @@
           @click="reloadApplication"
         >
           <RefreshCw class="w-4 h-4" />
-          重新載入應用
+          {{ t("errorBoundary.reloadApp") }}
         </button>
 
         <button
@@ -54,13 +60,15 @@
           @click="reportError"
         >
           <Bug class="w-4 h-4" />
-          回報問題
+          {{ t("errorBoundary.reportIssue") }}
         </button>
       </div>
 
       <!-- System Status -->
       <div class="mt-6 pt-5 border-t border-gray-100 text-left">
-        <h4 class="text-sm font-semibold text-ios-text mb-3">系統狀態</h4>
+        <h4 class="text-sm font-semibold text-ios-text mb-3">
+          {{ t("errorBoundary.systemStatus") }}
+        </h4>
         <div class="grid grid-cols-2 gap-2 text-xs text-ios-secondary">
           <div class="flex items-center gap-1.5">
             <div
@@ -69,7 +77,12 @@
                 networkStatus === 'online' ? 'bg-ios-green' : 'bg-ios-red',
               ]"
             />
-            網路: {{ networkStatus === "online" ? "正常" : "離線" }}
+            {{ t("errorBoundary.network") }}
+            {{
+              networkStatus === "online"
+                ? t("errorBoundary.networkOk")
+                : t("errorBoundary.networkOffline")
+            }}
           </div>
           <div class="flex items-center gap-1.5">
             <div
@@ -78,7 +91,12 @@
                 storageAvailable ? 'bg-ios-green' : 'bg-ios-red',
               ]"
             />
-            儲存: {{ storageAvailable ? "可用" : "錯誤" }}
+            {{ t("errorBoundary.storage") }}
+            {{
+              storageAvailable
+                ? t("errorBoundary.storageOk")
+                : t("errorBoundary.storageError")
+            }}
           </div>
           <div class="flex items-center gap-1.5">
             <div
@@ -87,11 +105,16 @@
                 memoryStatus === 'normal' ? 'bg-ios-green' : 'bg-ios-orange',
               ]"
             />
-            記憶體: {{ memoryStatus === "normal" ? "正常" : "偏高" }}
+            {{ t("errorBoundary.memory") }}
+            {{
+              memoryStatus === "normal"
+                ? t("errorBoundary.memoryOk")
+                : t("errorBoundary.memoryHigh")
+            }}
           </div>
           <div class="flex items-center gap-1.5">
             <div class="w-2 h-2 rounded-full flex-shrink-0 bg-ios-blue" />
-            版本: {{ appVersion }}
+            {{ t("errorBoundary.version") }} {{ appVersion }}
           </div>
         </div>
       </div>
@@ -104,9 +127,9 @@
             type="checkbox"
             class="rounded border-gray-300 text-ios-blue focus:ring-ios-blue"
           />
-          <span class="text-sm text-ios-secondary"
-            >啟用安全模式（停用進階功能）</span
-          >
+          <span class="text-sm text-ios-secondary">{{
+            t("errorBoundary.safeModeLabel")
+          }}</span>
         </label>
       </div>
     </div>
@@ -122,12 +145,15 @@
 import { ref, computed, onMounted, onErrorCaptured } from "vue";
 import { AlertTriangle, RefreshCw, Bug } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
+import { useI18n } from "@/i18n";
 import { errorReportingService } from "@/services/errorReportingService";
+
+const { t } = useI18n();
 
 // State
 const hasError = ref(false);
 const error = ref<Error | null>(null);
-const errorMessage = ref("發生未預期的錯誤");
+const errorMessage = ref(t("errorBoundary.defaultError"));
 const errorDetails = ref("");
 const retrying = ref(false);
 const safeMode = ref(false);
@@ -175,7 +201,7 @@ onMounted(() => {
 function captureError(err: Error, context: string) {
   hasError.value = true;
   error.value = err;
-  errorMessage.value = err.message || "發生未知錯誤";
+  errorMessage.value = err.message || t("errorBoundary.unknownError");
   errorDetails.value = err.stack || "";
 
   // Report error to service
@@ -187,7 +213,7 @@ function captureError(err: Error, context: string) {
 
   // Show toast notification for non-critical errors
   if (!isCriticalError(err)) {
-    toast.error("系統發生錯誤，請重試或重新載入頁面");
+    toast.error(t("errorBoundary.errorToast"));
   }
 }
 
@@ -217,9 +243,9 @@ async function retryOperation() {
     errorMessage.value = "";
     errorDetails.value = "";
 
-    toast.success("重試成功");
+    toast.success(t("errorBoundary.retrySuccess"));
   } catch (err) {
-    toast.error("重試失敗");
+    toast.error(t("errorBoundary.retryFailed"));
     console.error("Retry failed:", err);
   } finally {
     retrying.value = false;
@@ -259,10 +285,10 @@ async function reportError() {
     };
 
     await errorReportingService.submitErrorReport(report);
-    toast.success("錯誤報告已提交");
+    toast.success(t("errorBoundary.reportSubmitted"));
   } catch (err) {
     console.error("Failed to submit error report:", err);
-    toast.error("提交錯誤報告失敗");
+    toast.error(t("errorBoundary.reportFailed"));
   }
 }
 

@@ -13,7 +13,9 @@
           >
             {{ selectedOrdersCount }}
           </span>
-          <span class="text-sm text-ios-secondary font-medium">已選擇</span>
+          <span class="text-sm text-ios-secondary font-medium">{{
+            t("batch.selected")
+          }}</span>
         </div>
 
         <!-- Right: Action Pills -->
@@ -24,7 +26,9 @@
             class="flex items-center gap-1.5 text-ios-blue"
           >
             <Loader2Icon class="w-4 h-4 animate-spin" />
-            <span class="text-xs font-medium">處理中...</span>
+            <span class="text-xs font-medium">{{
+              t("common.processing")
+            }}</span>
           </div>
 
           <!-- Start Cooking -->
@@ -34,7 +38,7 @@
             class="bg-ios-blue text-white rounded-full px-4 py-2.5 text-sm font-bold min-h-[44px] disabled:opacity-50 active:scale-95 transition-transform"
             @click="confirmBatchStart"
           >
-            全部開始製作
+            {{ t("batch.startAll") }}
           </button>
 
           <!-- Mark Ready -->
@@ -44,7 +48,7 @@
             class="bg-ios-green text-white rounded-full px-4 py-2.5 text-sm font-bold min-h-[44px] disabled:opacity-50 active:scale-95 transition-transform"
             @click="confirmBatchReady"
           >
-            全部標記完成
+            {{ t("batch.completeAll") }}
           </button>
 
           <!-- Priority Adjust -->
@@ -55,7 +59,7 @@
               @click="showPriorityMenu = !showPriorityMenu"
             >
               <AlertTriangle class="w-4 h-4" />
-              <span>調整優先級</span>
+              <span>{{ t("batch.adjustPriority") }}</span>
               <ChevronDownIcon class="w-3.5 h-3.5" />
             </button>
 
@@ -69,19 +73,19 @@
                   class="w-full text-left px-4 py-3 text-sm font-medium text-ios-red hover:bg-ios-bg transition-colors"
                   @click="setBatchPriority('urgent')"
                 >
-                  設為緊急
+                  {{ t("batch.setUrgent") }}
                 </button>
                 <button
                   class="w-full text-left px-4 py-3 text-sm font-medium text-ios-orange hover:bg-ios-bg transition-colors"
                   @click="setBatchPriority('high')"
                 >
-                  設為重要
+                  {{ t("batch.setImportant") }}
                 </button>
                 <button
                   class="w-full text-left px-4 py-3 text-sm font-medium text-ios-secondary hover:bg-ios-bg transition-colors"
                   @click="setBatchPriority('normal')"
                 >
-                  設為普通
+                  {{ t("batch.setNormal") }}
                 </button>
               </div>
             </Transition>
@@ -92,7 +96,7 @@
             class="text-ios-secondary text-sm font-medium min-h-[44px] px-2 active:opacity-60 transition-opacity"
             @click="deselectAll"
           >
-            取消選取
+            {{ t("batch.cancelSelection") }}
           </button>
         </div>
       </div>
@@ -117,7 +121,7 @@
             <AlertTriangle class="w-6 h-6 text-ios-blue" />
           </div>
           <h3 class="text-lg font-extrabold text-ios-text mb-2">
-            確認批量操作
+            {{ t("batch.confirmTitle") }}
           </h3>
           <p class="text-sm text-ios-secondary">{{ confirmationMessage }}</p>
         </div>
@@ -127,13 +131,13 @@
             class="flex-1 px-4 py-2.5 bg-ios-bg text-ios-text rounded-full text-sm font-bold min-h-[44px] active:scale-95 transition-transform"
             @click="cancelConfirmation"
           >
-            取消
+            {{ t("common.cancel") }}
           </button>
           <button
             class="flex-1 px-4 py-2.5 bg-ios-blue text-white rounded-full text-sm font-bold min-h-[44px] active:scale-95 transition-transform"
             @click="executeBatchOperation"
           >
-            確認執行
+            {{ t("batch.confirmExecute") }}
           </button>
         </div>
       </div>
@@ -145,8 +149,11 @@
 import { ref, computed } from "vue";
 import { onClickOutside } from "@vueuse/core";
 import { Loader2Icon, AlertTriangle, ChevronDownIcon } from "lucide-vue-next";
+import { useI18n } from "@/i18n";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useToast } from "vue-toastification";
+
+const { t } = useI18n();
 import { storeToRefs } from "pinia";
 import type { KitchenOrder } from "@/types";
 
@@ -198,13 +205,19 @@ const batchSummary = computed(() =>
 
 // Methods
 const confirmBatchStart = () => {
-  confirmationMessage.value = `確定要開始製作 ${selectedOrdersCount.value} 個訂單中的 ${batchSummary.value.pendingItems} 個待製作項目嗎？`;
+  confirmationMessage.value = t("batch.confirmStartMsg", {
+    orderCount: selectedOrdersCount.value,
+    itemCount: batchSummary.value.pendingItems,
+  });
   pendingOperation.value = executeBatchStart;
   showConfirmation.value = true;
 };
 
 const confirmBatchReady = () => {
-  confirmationMessage.value = `確定要標記 ${selectedOrdersCount.value} 個訂單中的 ${batchSummary.value.preparingItems} 個項目為完成嗎？`;
+  confirmationMessage.value = t("batch.confirmCompleteMsg", {
+    orderCount: selectedOrdersCount.value,
+    itemCount: batchSummary.value.preparingItems,
+  });
   pendingOperation.value = executeBatchReady;
   showConfirmation.value = true;
 };
@@ -217,10 +230,12 @@ const executeBatchStart = async () => {
     const selectedOrderIds = selectedOrders.value.map((order) => order.id);
     emit("batch-start-cooking", selectedOrderIds);
 
-    toast.success(`成功開始製作 ${batchSummary.value.pendingItems} 個項目！`);
+    toast.success(
+      t("batch.startSuccess", { count: batchSummary.value.pendingItems }),
+    );
     deselectAll();
   } catch (error: any) {
-    toast.error("批量開始製作失敗：" + error.message);
+    toast.error(t("batch.startFailed") + error.message);
   } finally {
     isProcessing.value = false;
     pendingOperation.value = null;
@@ -235,10 +250,12 @@ const executeBatchReady = async () => {
     const selectedOrderIds = selectedOrders.value.map((order) => order.id);
     emit("batch-mark-ready", selectedOrderIds);
 
-    toast.success(`成功完成 ${batchSummary.value.preparingItems} 個項目！`);
+    toast.success(
+      t("batch.completeSuccess", { count: batchSummary.value.preparingItems }),
+    );
     deselectAll();
   } catch (error: any) {
-    toast.error("批量標記完成失敗：" + error.message);
+    toast.error(t("batch.completeFailed") + error.message);
   } finally {
     isProcessing.value = false;
     pendingOperation.value = null;
@@ -253,15 +270,20 @@ const setBatchPriority = async (priority: "urgent" | "high" | "normal") => {
     const selectedOrderIds = selectedOrders.value.map((order) => order.id);
     emit("batch-priority-update", selectedOrderIds, priority);
 
-    const priorityText = { urgent: "緊急", high: "重要", normal: "普通" }[
-      priority
-    ];
+    const priorityText = {
+      urgent: t("common.urgent"),
+      high: t("common.important"),
+      normal: t("common.normal"),
+    }[priority];
     toast.success(
-      `已將 ${selectedOrderIds.length} 個訂單設為${priorityText}優先級`,
+      t("batch.priorityChanged", {
+        count: selectedOrderIds.length,
+        priority: priorityText,
+      }),
     );
     deselectAll();
   } catch (error: any) {
-    toast.error("批量調整優先級失敗：" + error.message);
+    toast.error(t("batch.priorityFailed") + error.message);
   } finally {
     isProcessing.value = false;
   }
