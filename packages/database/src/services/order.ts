@@ -334,6 +334,13 @@ export class OrderService extends BaseService {
           .where(eq(restaurants.id, data.restaurantId)),
       ]);
 
+      // Re-fetch with full relations (menuItem name/image) so callers
+      // and downstream caches get complete data. The insert().returning()
+      // above only returns columns from the order_items table itself.
+      const fullOrder = await this.getOrder(order.id);
+      if (fullOrder) return fullOrder;
+
+      // Fallback: should not happen, but safe to degrade gracefully
       return this.mapToOrder({ ...order, items });
     } catch (error) {
       this.handleError(error, "createOrder");
