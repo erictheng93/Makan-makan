@@ -154,13 +154,6 @@ interface GroupOrderClientView {
  */
 type OutboundMessage = Record<string, unknown>;
 
-const CURRENT_DO_STATE_VERSION = 2;
-
-interface PersistedSessionHeader {
-  version: number;
-  writtenAt: number;
-}
-
 interface SessionState {
   activeConnections: Map<string, ConnectionInfo>;
   orderStates: Map<string, OrderState>;
@@ -169,7 +162,6 @@ interface SessionState {
   lastActivity: number;
   hibernated: boolean;
   totalMessages: number;
-  version: number;
   errors: Array<{
     timestamp: number;
     error: string;
@@ -196,7 +188,6 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
       lastActivity: Date.now(),
       hibernated: false,
       totalMessages: 0,
-      version: CURRENT_DO_STATE_VERSION,
       errors: [],
     };
 
@@ -613,7 +604,6 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
         activeConnectionsCount: this.sessionState.activeConnections.size,
         orderStatesCount: this.sessionState.orderStates.size,
         totalMessages: this.sessionState.totalMessages,
-        version: this.sessionState.version,
       });
 
       // Clear in-memory state
@@ -633,68 +623,10 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
   }
 
   /**
-   * Migrate persisted DO state from an older version to the current one.
-   * Called lazily on wakeup when the stored version is behind CURRENT_DO_STATE_VERSION.
-   */
-  private async migrateDOState(fromVersion: number): Promise<void> {
-    if (fromVersion < 2) {
-      const legacyMap: Record<string, string> = {
-        serving: "ready",
-        completed: "delivered",
-      };
-
-      const orderStates = await this.ctx.storage.list({ prefix: "order:" });
-      let migratedCount = 0;
-      for (const [key, raw] of orderStates) {
-        const state = raw as { currentState?: string; previousState?: string };
-        let changed = false;
-        const updates: Record<string, unknown> = { ...(raw as object) };
-
-        if (state.currentState && legacyMap[state.currentState]) {
-          updates.currentState = legacyMap[state.currentState];
-          changed = true;
-        }
-        if (state.previousState && legacyMap[state.previousState]) {
-          updates.previousState = legacyMap[state.previousState];
-          changed = true;
-        }
-
-        if (changed) {
-          await this.ctx.storage.put(key, updates);
-          migratedCount++;
-        }
-      }
-
-      if (migratedCount > 0) {
-        console.log(
-          `DO state migration: coerced ${migratedCount} order states from v1 to v2`,
-        );
-      }
-
-      await this.ctx.storage.put("session_version", {
-        version: CURRENT_DO_STATE_VERSION,
-        writtenAt: Date.now(),
-      } satisfies PersistedSessionHeader);
-    }
-  }
-
-  /**
    * Load persisted state on initialization
    */
   private async loadPersistedState(): Promise<void> {
     try {
-      // Check version and run lazy migration if needed
-      const header =
-        await this.ctx.storage.get<PersistedSessionHeader>("session_version");
-      const persistedVersion = header?.version ?? 1;
-
-      if (persistedVersion < CURRENT_DO_STATE_VERSION) {
-        console.log(
-          `DO state migration: ${persistedVersion} → ${CURRENT_DO_STATE_VERSION}`,
-        );
-        await this.migrateDOState(persistedVersion);
-      }
-
       // Load order states
       const orderStates = await this.ctx.storage.list<OrderState>({
         prefix: "order:",
