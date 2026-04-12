@@ -5,6 +5,7 @@ import App from "./App.vue";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 import "./assets/css/main.css";
+import { initI18n } from "./i18n";
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -16,4 +17,11 @@ app.use(Toast, {
   timeout: 5000,
 });
 
-app.mount("#app");
+// Await i18n initialization BEFORE mounting so the first paint uses the correct locale.
+initI18n()
+  .catch((err) => {
+    console.error("[onboarding] i18n initialize failed:", err);
+  })
+  .finally(() => {
+    app.mount("#app");
+  });

@@ -1,0 +1,213 @@
+import type { Messages } from "../types";
+
+const enUS: Messages = {
+  common: {
+    back: "Back",
+    cancel: "Cancel",
+    submit: "Submit",
+    loading: "Loading...",
+    toast: {
+      copiedToClipboard: "Copied to clipboard",
+    },
+  },
+
+  app: {
+    tagline: {
+      selfHosted: "Self-Hosted",
+    },
+    footer: {
+      copyright: "© 2024 MakanMakan. All rights reserved.",
+    },
+  },
+
+  home: {
+    hero: {
+      titleLine1: "Build Your Restaurant's",
+      titleLine2: "Dedicated Management System",
+      subtitle: "Self-Hosted · Secure Data · Launch in 24 Hours",
+      ctaApply: "Apply Now",
+      ctaDemo: "View Demo →",
+    },
+    features: {
+      isolated: {
+        title: "Isolated Environment",
+        description:
+          "Fully isolated cloud environment. Your data is 100% yours.",
+      },
+      secure: {
+        title: "Secure & Reliable",
+        description:
+          "Built on Cloudflare's global edge network with enterprise-grade security.",
+      },
+      fast: {
+        title: "Fast Deployment",
+        description: "Automated deployment pipeline. Live within 24 hours.",
+      },
+    },
+    cta: {
+      title: "Ready to Get Started?",
+      subtitle:
+        "Fill out the application and we'll contact you within 24 hours.",
+      button: "Start Application",
+    },
+  },
+
+  apply: {
+    title: "Application Form",
+    form: {
+      businessName: {
+        label: "Restaurant Name",
+        placeholder: "e.g. Royal Kitchen",
+      },
+      contactName: {
+        label: "Contact Name",
+        placeholder: "Your name",
+      },
+      contactEmail: {
+        label: "Email",
+        placeholder: "your@email.com",
+      },
+      contactPhone: {
+        label: "Phone",
+        placeholder: "+1-234-567-8900",
+      },
+      subdomain: {
+        label: "Desired URL (Optional)",
+        placeholder: "yourrestaurant",
+        available: "This URL is available",
+        taken: "This URL is already taken",
+        invalidFormat: "Only lowercase letters, numbers, and hyphens allowed",
+        emptyHint: "Leave blank to auto-generate",
+        suggestionsLabel: "Suggested alternatives:",
+      },
+      submitting: "Submitting...",
+      next: "Next",
+    },
+    validation: {
+      businessNameRequired: "Please enter a restaurant name",
+      contactNameRequired: "Please enter a contact name",
+      emailRequired: "Please enter an email",
+      emailInvalid: "Please enter a valid email",
+      phoneRequired: "Please enter a phone number",
+      subdomainInvalidFormat:
+        "Only lowercase letters, numbers, and hyphens allowed",
+      subdomainTooShort: "Must be at least 3 characters",
+      subdomainTaken: "This URL is already taken",
+    },
+    toast: {
+      submitSuccess: "Application submitted",
+      submitFailureFallback: "Submission failed. Please try again later.",
+    },
+  },
+
+  connect: {
+    title: "Connect Cloudflare Account",
+    assignedSubdomainLabel: "Your dedicated URL:",
+    info: {
+      title: "Why do you need a Cloudflare account?",
+      description:
+        "MakanMakan runs on your own Cloudflare account, ensuring you have full control over your data. Resource costs are included in your subscription.",
+    },
+    steps: {
+      heading: "Steps:",
+      step1Prefix: "Go to",
+      step1Suffix: "(register first if you don't have an account)",
+      step2: 'Click the avatar in the top-right → select "My Profile"',
+      step3Prefix: "Copy your",
+      step3ClipboardText: "Account ID is in the Dashboard right sidebar",
+      step4: 'Go to "API Tokens" → click "Create Token"',
+      step5: 'Select the "Edit Cloudflare Workers" template',
+      step6: "Copy the generated API Token",
+    },
+    form: {
+      accountId: {
+        label: "Cloudflare Account ID",
+        placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      },
+      apiToken: {
+        label: "API Token",
+        placeholder: "••••••••••••••••••••••••••••••••",
+      },
+    },
+    permissions: {
+      titleSuccess: "Permission check passed",
+      titleWarning: "Permission check result",
+      pagesOptional: "Pages (Optional)",
+    },
+    verifiedMessage: "Cloudflare account connected successfully!",
+    button: {
+      verifying: "Verifying...",
+      verify: "Verify Connection",
+      completing: "Processing...",
+      complete: "Complete Application",
+    },
+    help: {
+      prompt: "Need help?",
+      linkText: "Contact us for a video walkthrough",
+    },
+    validation: {
+      accountIdRequired: "Please enter Account ID",
+      accountIdLength: "Account ID must be 32 characters",
+      apiTokenRequired: "Please enter API Token",
+      apiTokenFormat: "Invalid API Token format",
+    },
+    toast: {
+      verifySuccess: "Cloudflare account verified!",
+      verifyFailureFallback: "Verification failed. Please check your details.",
+      completeSuccess: "Application completed!",
+      completeFailureFallback:
+        "Failed to complete application. Please try again later.",
+    },
+  },
+
+  success: {
+    title: "Application Complete!",
+    subtitleLine1:
+      "Congratulations! Your MakanMakan deployment has been created.",
+    subtitleLine2: "The system is preparing your dedicated environment.",
+    summary: {
+      title: "Application Summary",
+      applicationId: "Application ID",
+      tenantId: "Tenant ID",
+      businessName: "Restaurant Name",
+      contactEmail: "Contact Email",
+      plan: "Selected Plan",
+      subdomain: "Dedicated URL",
+      cloudflare: "Cloudflare Account",
+      connected: "Connected ✓",
+    },
+    nextSteps: {
+      title: "What Happens Next?",
+      email: {
+        title: "Confirmation Email",
+        prefix: "We've sent a confirmation email to",
+        suffix: ". Please check your inbox.",
+      },
+      deploy: {
+        title: "System Deployment",
+        description:
+          "Your dedicated system is being deployed, usually within a few minutes. Login details will be sent when ready.",
+      },
+      start: {
+        title: "Get Started",
+        description:
+          "Once you receive your login details, you can immediately access the admin dashboard and start configuring your restaurant.",
+      },
+    },
+    button: {
+      goToAdmin: "Go to Admin Dashboard",
+      backHome: "Back to Home",
+    },
+    contact: {
+      prompt: "Any questions? Contact",
+    },
+  },
+
+  plans: {
+    standard: "Standard",
+    professional: "Professional",
+    enterprise: "Enterprise",
+  },
+};
+
+export default enUS;

@@ -11,7 +11,9 @@ import {
   ArrowPathIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/vue/24/outline";
+import { useI18n } from "@/i18n";
 
+const { t } = useI18n();
 const router = useRouter();
 const toast = useToast();
 const store = useOnboardingStore();
@@ -35,15 +37,15 @@ const validate = (): boolean => {
   errors.value = {};
 
   if (!form.value.accountId.trim()) {
-    errors.value.accountId = "請輸入 Account ID";
+    errors.value.accountId = t("connect.validation.accountIdRequired");
   } else if (form.value.accountId.length !== 32) {
-    errors.value.accountId = "Account ID 應為 32 位字元";
+    errors.value.accountId = t("connect.validation.accountIdLength");
   }
 
   if (!form.value.apiToken.trim()) {
-    errors.value.apiToken = "請輸入 API Token";
+    errors.value.apiToken = t("connect.validation.apiTokenRequired");
   } else if (form.value.apiToken.length < 40) {
-    errors.value.apiToken = "API Token 格式不正確";
+    errors.value.apiToken = t("connect.validation.apiTokenFormat");
   }
 
   return Object.keys(errors.value).length === 0;
@@ -60,9 +62,9 @@ const handleVerify = async () => {
   );
 
   if (success) {
-    toast.success("Cloudflare 帳號驗證成功！");
+    toast.success(t("connect.toast.verifySuccess"));
   } else {
-    toast.error(store.apiError || "驗證失敗，請檢查您的資訊");
+    toast.error(store.apiError || t("connect.toast.verifyFailureFallback"));
   }
 };
 
@@ -74,10 +76,10 @@ const handleComplete = async () => {
     const success = await store.completeApplication();
 
     if (success) {
-      toast.success("申請已完成！");
+      toast.success(t("connect.toast.completeSuccess"));
       router.push("/success");
     } else {
-      toast.error(store.apiError || "完成申請失敗，請稍後再試");
+      toast.error(store.apiError || t("connect.toast.completeFailureFallback"));
     }
   } finally {
     completing.value = false;
@@ -86,7 +88,7 @@ const handleComplete = async () => {
 
 const copyToClipboard = (text: string) => {
   navigator.clipboard.writeText(text);
-  toast.success("已複製到剪貼簿");
+  toast.success(t("common.toast.copiedToClipboard"));
 };
 
 // Helper to check if verified
@@ -130,7 +132,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
 
     <div class="card">
       <h1 class="text-2xl font-bold text-gray-900 mb-6">
-        連接 Cloudflare 帳號
+        {{ t("connect.title") }}
       </h1>
 
       <!-- Application Info -->
@@ -139,7 +141,8 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
         class="mb-6 p-4 bg-gray-50 rounded-lg"
       >
         <p class="text-sm text-gray-600">
-          您的專屬網址：<span class="font-mono font-medium text-gray-900"
+          {{ t("connect.assignedSubdomainLabel")
+          }}<span class="font-mono font-medium text-gray-900"
             >{{ store.assignedSubdomain }}.makanmakan.app</span
           >
         </p>
@@ -166,11 +169,10 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
           />
           <div class="ml-3">
             <h3 class="text-sm font-medium text-blue-800">
-              為什麼需要 Cloudflare 帳號？
+              {{ t("connect.info.title") }}
             </h3>
             <p class="mt-1 text-sm text-blue-700">
-              MakanMakan 獨立部署使用您自己的 Cloudflare 帳號來運行，
-              這確保您對所有資料擁有完整控制權。資源費用已包含在訂閱費中。
+              {{ t("connect.info.description") }}
             </p>
           </div>
         </div>
@@ -178,32 +180,34 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
 
       <!-- 步驟指引 -->
       <div class="space-y-4 mb-6">
-        <h3 class="font-medium text-gray-900">操作步驟：</h3>
+        <h3 class="font-medium text-gray-900">
+          {{ t("connect.steps.heading") }}
+        </h3>
         <ol class="list-decimal list-inside space-y-2 text-gray-600">
           <li>
-            前往
+            {{ t("connect.steps.step1Prefix") }}
             <a
               href="https://dash.cloudflare.com"
               target="_blank"
               class="text-primary-600 hover:underline"
               >Cloudflare Dashboard</a
             >
-            （如果沒有帳號，請先註冊）
+            {{ t("connect.steps.step1Suffix") }}
           </li>
-          <li>點擊右上角的頭像 → 選擇「My Profile」</li>
+          <li>{{ t("connect.steps.step2") }}</li>
           <li>
-            複製您的 <strong>Account ID</strong>
+            {{ t("connect.steps.step3Prefix") }} <strong>Account ID</strong>
             <button
               type="button"
               class="ml-2 text-gray-400 hover:text-gray-600"
-              @click="copyToClipboard('Account ID 位於 Dashboard 右側欄')"
+              @click="copyToClipboard(t('connect.steps.step3ClipboardText'))"
             >
               <ClipboardDocumentIcon class="h-4 w-4 inline" />
             </button>
           </li>
-          <li>前往「API Tokens」→ 點擊「Create Token」</li>
-          <li>選擇「Edit Cloudflare Workers」模板</li>
-          <li>複製生成的 API Token</li>
+          <li>{{ t("connect.steps.step4") }}</li>
+          <li>{{ t("connect.steps.step5") }}</li>
+          <li>{{ t("connect.steps.step6") }}</li>
         </ol>
       </div>
 
@@ -211,13 +215,13 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
       <form @submit.prevent="handleVerify" class="space-y-6">
         <!-- Account ID -->
         <div>
-          <label class="label">Cloudflare Account ID *</label>
+          <label class="label">{{ t("connect.form.accountId.label") }} *</label>
           <input
             v-model="form.accountId"
             type="text"
             class="input font-mono"
             :class="{ 'input-error': errors.accountId }"
-            placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            :placeholder="t('connect.form.accountId.placeholder')"
             :disabled="isVerified()"
           />
           <p v-if="errors.accountId" class="mt-1 text-sm text-red-600">
@@ -227,13 +231,13 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
 
         <!-- API Token -->
         <div>
-          <label class="label">API Token *</label>
+          <label class="label">{{ t("connect.form.apiToken.label") }} *</label>
           <input
             v-model="form.apiToken"
             type="password"
             class="input font-mono"
             :class="{ 'input-error': errors.apiToken }"
-            placeholder="••••••••••••••••••••••••••••••••"
+            :placeholder="t('connect.form.apiToken.placeholder')"
             :disabled="isVerified()"
           />
           <p v-if="errors.apiToken" class="mt-1 text-sm text-red-600">
@@ -255,7 +259,11 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
             class="font-medium mb-3"
             :class="isVerified() ? 'text-green-800' : 'text-yellow-800'"
           >
-            {{ isVerified() ? "權限檢查通過" : "權限檢查結果" }}
+            {{
+              isVerified()
+                ? t("connect.permissions.titleSuccess")
+                : t("connect.permissions.titleWarning")
+            }}
           </h4>
           <div class="grid grid-cols-2 gap-2 text-sm">
             <div class="flex items-center">
@@ -330,7 +338,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
                     ? 'text-green-700'
                     : 'text-red-700'
                 "
-                >Pages (選用)</span
+                >{{ t("connect.permissions.pagesOptional") }}</span
               >
             </div>
           </div>
@@ -342,7 +350,9 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
           class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg"
         >
           <CheckCircleIcon class="h-5 w-5 text-green-500" />
-          <span class="ml-2 text-green-700">Cloudflare 帳號已成功連接！</span>
+          <span class="ml-2 text-green-700">{{
+            t("connect.verifiedMessage")
+          }}</span>
         </div>
 
         <!-- 按鈕 -->
@@ -352,7 +362,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
             class="btn btn-secondary"
             @click="router.push('/apply')"
           >
-            返回
+            {{ t("common.back") }}
           </button>
           <button
             v-if="!isVerified()"
@@ -364,7 +374,11 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
               v-if="store.isVerifyingCf"
               class="h-4 w-4 mr-2 animate-spin"
             />
-            {{ store.isVerifyingCf ? "驗證中..." : "驗證連接" }}
+            {{
+              store.isVerifyingCf
+                ? t("connect.button.verifying")
+                : t("connect.button.verify")
+            }}
           </button>
           <button
             v-else
@@ -377,7 +391,11 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
               v-if="completing || store.isCompleting"
               class="h-4 w-4 mr-2 animate-spin"
             />
-            {{ completing || store.isCompleting ? "處理中..." : "完成申請" }}
+            {{
+              completing || store.isCompleting
+                ? t("connect.button.completing")
+                : t("connect.button.complete")
+            }}
           </button>
         </div>
       </form>
@@ -385,12 +403,12 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
 
     <!-- 需要協助？ -->
     <div class="mt-6 text-center text-sm text-gray-500">
-      需要協助？
+      {{ t("connect.help.prompt") }}
       <a
         href="mailto:support@makanmakan.app"
         class="text-primary-600 hover:underline"
       >
-        聯繫我們安排視訊輔導
+        {{ t("connect.help.linkText") }}
       </a>
     </div>
   </div>
