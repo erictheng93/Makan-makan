@@ -6,7 +6,9 @@ import { useToast } from "vue-toastification";
 import { RouterLink } from "vue-router";
 import { KeyIcon, PlusIcon, ArrowUpIcon } from "@heroicons/vue/24/outline";
 import type { License, LicenseTier, GenerateLicenseRequest } from "@/types";
+import { useI18n } from "@/i18n";
 
+const { t } = useI18n();
 const tenantsStore = useTenantsStore();
 const toast = useToast();
 
@@ -68,35 +70,32 @@ const stats = computed(() => ({
 // 生成授權
 const handleGenerate = async () => {
   if (!generateForm.value.tenantId) {
-    toast.warning("請選擇租戶");
+    toast.warning(t("licenses.validation.selectTenant"));
     return;
   }
 
   try {
     const license = await licensesApi.generate(generateForm.value);
     const tenant = tenantsStore.tenants.find(
-      (t) => t.id === generateForm.value.tenantId,
+      (tt) => tt.id === generateForm.value.tenantId,
     );
     licenses.value.unshift({
       ...license,
       tenantName: tenant?.businessName,
     });
-    toast.success("授權生成成功");
+    toast.success(t("licenses.toast.generateSuccess"));
     showGenerateModal.value = false;
     generateForm.value = { tenantId: "", tier: "standard", expiresAt: "" };
   } catch (e) {
-    toast.error("授權生成失敗");
+    toast.error(t("licenses.toast.generateFailed"));
   }
 };
 
 // 獲取等級標籤
 const getTierLabel = (tier: LicenseTier) => {
-  const labels: Record<LicenseTier, string> = {
-    standard: "標準版",
-    professional: "專業版",
-    enterprise: "企業版",
-  };
-  return labels[tier] || tier;
+  const key = `licenses.tier.${tier}`;
+  const label = t(key);
+  return label === key ? tier : label;
 };
 
 const getTierClass = (tier: LicenseTier) => {
@@ -114,8 +113,10 @@ const getTierClass = (tier: LicenseTier) => {
     <!-- 頁面標題 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">授權管理</h1>
-        <p class="mt-1 text-sm text-gray-500">管理租戶授權金鑰</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("licenses.title") }}
+        </h1>
+        <p class="mt-1 text-sm text-gray-500">{{ t("licenses.subtitle") }}</p>
       </div>
       <button
         type="button"
@@ -123,7 +124,7 @@ const getTierClass = (tier: LicenseTier) => {
         @click="showGenerateModal = true"
       >
         <PlusIcon class="h-5 w-5 mr-2" />
-        生成授權
+        {{ t("licenses.generate") }}
       </button>
     </div>
 
@@ -135,7 +136,9 @@ const getTierClass = (tier: LicenseTier) => {
             <KeyIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">有效授權</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("licenses.stats.active") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ stats.active }}
             </p>
@@ -144,7 +147,9 @@ const getTierClass = (tier: LicenseTier) => {
       </div>
       <div class="card">
         <div class="text-center">
-          <p class="text-sm font-medium text-gray-500">標準版</p>
+          <p class="text-sm font-medium text-gray-500">
+            {{ t("licenses.tier.standard") }}
+          </p>
           <p class="text-2xl font-semibold text-blue-600">
             {{ stats.standard }}
           </p>
@@ -152,7 +157,9 @@ const getTierClass = (tier: LicenseTier) => {
       </div>
       <div class="card">
         <div class="text-center">
-          <p class="text-sm font-medium text-gray-500">專業版</p>
+          <p class="text-sm font-medium text-gray-500">
+            {{ t("licenses.tier.professional") }}
+          </p>
           <p class="text-2xl font-semibold text-green-600">
             {{ stats.professional }}
           </p>
@@ -160,7 +167,9 @@ const getTierClass = (tier: LicenseTier) => {
       </div>
       <div class="card">
         <div class="text-center">
-          <p class="text-sm font-medium text-gray-500">企業版</p>
+          <p class="text-sm font-medium text-gray-500">
+            {{ t("licenses.tier.enterprise") }}
+          </p>
           <p class="text-2xl font-semibold text-purple-600">
             {{ stats.enterprise }}
           </p>
@@ -172,24 +181,24 @@ const getTierClass = (tier: LicenseTier) => {
     <div class="card p-0 overflow-hidden">
       <div v-if="loading" class="text-center py-12">
         <div class="loading-spinner mx-auto" />
-        <p class="mt-2 text-sm text-gray-500">載入中...</p>
+        <p class="mt-2 text-sm text-gray-500">{{ t("common.loading") }}</p>
       </div>
 
       <div v-else-if="licenses.length === 0" class="text-center py-12">
         <KeyIcon class="mx-auto h-12 w-12 text-gray-400" />
-        <p class="mt-2 text-sm text-gray-500">暫無授權記錄</p>
+        <p class="mt-2 text-sm text-gray-500">{{ t("licenses.empty") }}</p>
       </div>
 
       <table v-else class="table">
         <thead>
           <tr>
-            <th>租戶</th>
-            <th>授權金鑰</th>
-            <th>等級</th>
-            <th>狀態</th>
-            <th>有效期</th>
-            <th>建立時間</th>
-            <th class="text-right">操作</th>
+            <th>{{ t("licenses.column.tenant") }}</th>
+            <th>{{ t("licenses.column.licenseKey") }}</th>
+            <th>{{ t("licenses.column.tier") }}</th>
+            <th>{{ t("licenses.column.status") }}</th>
+            <th>{{ t("licenses.column.validity") }}</th>
+            <th>{{ t("licenses.column.createdAt") }}</th>
+            <th class="text-right">{{ t("common.actions") }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
@@ -213,14 +222,18 @@ const getTierClass = (tier: LicenseTier) => {
                 class="badge"
                 :class="license.revokedAt ? 'badge-danger' : 'badge-success'"
               >
-                {{ license.revokedAt ? "已撤銷" : "有效" }}
+                {{
+                  license.revokedAt
+                    ? t("licenses.revoked")
+                    : t("licenses.valid")
+                }}
               </span>
             </td>
             <td>
               {{
                 license.expiresAt
                   ? new Date(license.expiresAt).toLocaleDateString()
-                  : "永久"
+                  : t("licenses.permanent")
               }}
             </td>
             <td class="text-gray-500">
@@ -233,7 +246,7 @@ const getTierClass = (tier: LicenseTier) => {
                 class="text-primary-600 hover:text-primary-700 font-medium text-sm"
               >
                 <ArrowUpIcon class="h-4 w-4 inline mr-1" />
-                升級
+                {{ t("licenses.upgrade") }}
               </button>
             </td>
           </tr>
@@ -251,14 +264,18 @@ const getTierClass = (tier: LicenseTier) => {
         <div class="flex min-h-full items-center justify-center p-4">
           <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
             <div class="px-6 py-4 border-b">
-              <h3 class="text-lg font-semibold">生成授權</h3>
+              <h3 class="text-lg font-semibold">
+                {{ t("licenses.modal.title") }}
+              </h3>
             </div>
             <div class="px-6 py-4 space-y-4">
               <!-- 選擇租戶 -->
               <div>
-                <label class="label">選擇租戶</label>
+                <label class="label">
+                  {{ t("licenses.modal.selectTenant") }}
+                </label>
                 <select v-model="generateForm.tenantId" class="input">
-                  <option value="">請選擇</option>
+                  <option value="">{{ t("common.pleaseSelect") }}</option>
                   <option
                     v-for="tenant in tenantsStore.tenants"
                     :key="tenant.id"
@@ -271,23 +288,31 @@ const getTierClass = (tier: LicenseTier) => {
 
               <!-- 選擇等級 -->
               <div>
-                <label class="label">授權等級</label>
+                <label class="label">{{ t("licenses.modal.tier") }}</label>
                 <select v-model="generateForm.tier" class="input">
-                  <option value="standard">標準版 - $149/月</option>
-                  <option value="professional">專業版 - $299/月</option>
-                  <option value="enterprise">企業版 - 議價</option>
+                  <option value="standard">
+                    {{ t("licenses.modal.tierOption.standard") }}
+                  </option>
+                  <option value="professional">
+                    {{ t("licenses.modal.tierOption.professional") }}
+                  </option>
+                  <option value="enterprise">
+                    {{ t("licenses.modal.tierOption.enterprise") }}
+                  </option>
                 </select>
               </div>
 
               <!-- 有效期 -->
               <div>
-                <label class="label">有效期至 (選填)</label>
+                <label class="label">{{ t("licenses.modal.expiresAt") }}</label>
                 <input
                   v-model="generateForm.expiresAt"
                   type="date"
                   class="input"
                 />
-                <p class="mt-1 text-xs text-gray-500">留空表示永久有效</p>
+                <p class="mt-1 text-xs text-gray-500">
+                  {{ t("licenses.modal.expiresAtHint") }}
+                </p>
               </div>
             </div>
             <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
@@ -296,14 +321,14 @@ const getTierClass = (tier: LicenseTier) => {
                 class="btn btn-secondary"
                 @click="showGenerateModal = false"
               >
-                取消
+                {{ t("common.cancel") }}
               </button>
               <button
                 type="button"
                 class="btn btn-primary"
                 @click="handleGenerate"
               >
-                生成
+                {{ t("common.generate") }}
               </button>
             </div>
           </div>

@@ -20,7 +20,9 @@ import type {
   DeploymentStatus,
   HealthStatus,
 } from "@/types";
+import { useI18n } from "@/i18n";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const tenantsStore = useTenantsStore();
@@ -42,7 +44,7 @@ onMounted(async () => {
       tenantsStore.fetchTenantLicenses(tenantId.value),
     ]);
   } catch (e) {
-    toast.error("載入租戶資料失敗");
+    toast.error(t("tenantDetail.toast.loadFailed"));
     router.push("/tenants");
   }
 });
@@ -56,14 +58,9 @@ const licenses = computed(() => tenantsStore.currentLicenses);
 
 // 狀態標籤
 const getStatusLabel = (status: TenantStatus) => {
-  const labels: Record<TenantStatus, string> = {
-    pending: "待處理",
-    provisioning: "配置中",
-    active: "運行中",
-    suspended: "已暫停",
-    terminated: "已終止",
-  };
-  return labels[status] || status;
+  const key = `tenants.status.${status}`;
+  const label = t(key);
+  return label === key ? status : label;
 };
 
 const getStatusClass = (status: TenantStatus) => {
@@ -79,26 +76,24 @@ const getStatusClass = (status: TenantStatus) => {
 
 // 資源類型標籤
 const getResourceTypeLabel = (type: ResourceType) => {
-  const labels: Record<ResourceType, string> = {
-    d1: "D1 資料庫",
-    kv: "KV 儲存",
-    r2: "R2 物件儲存",
-    worker: "Worker",
-    pages: "Pages",
-  };
-  return labels[type] || type;
+  const key = `tenantDetail.resource.type.${type}`;
+  const label = t(key);
+  return label === key ? type : label;
 };
 
 // 部署狀態標籤
 const getDeploymentStatusLabel = (status: DeploymentStatus) => {
-  const labels: Record<DeploymentStatus, string> = {
-    pending: "待執行",
-    in_progress: "執行中",
-    completed: "已完成",
-    failed: "失敗",
-    rolled_back: "已回滾",
+  const map: Record<DeploymentStatus, string> = {
+    pending: "deployments.status.pending",
+    in_progress: "deployments.status.inProgress",
+    completed: "deployments.status.completed",
+    failed: "deployments.status.failed",
+    rolled_back: "deployments.status.rolledBack",
   };
-  return labels[status] || status;
+  const key = map[status];
+  if (!key) return status;
+  const label = t(key);
+  return label === key ? status : label;
 };
 
 const getDeploymentStatusClass = (status: DeploymentStatus) => {
@@ -114,13 +109,10 @@ const getDeploymentStatusClass = (status: DeploymentStatus) => {
 
 // 健康狀態標籤
 const getHealthStatusLabel = (status: HealthStatus) => {
-  const labels: Record<HealthStatus, string> = {
-    healthy: "正常",
-    degraded: "降級",
-    down: "離線",
-    unknown: "未知",
-  };
-  return labels[status] || status;
+  if (status === "unknown") return t("common.unknown");
+  const key = `health.status.${status}`;
+  const label = t(key);
+  return label === key ? status : label;
 };
 
 const getHealthStatusClass = (status: HealthStatus) => {
@@ -139,10 +131,10 @@ const handleProvision = async () => {
   provisioning.value = true;
   try {
     await tenantsStore.provisionTenant(tenantId.value);
-    toast.success("資源配置成功");
+    toast.success(t("tenantDetail.toast.provisionSuccess"));
     await tenantsStore.fetchTenant(tenantId.value);
   } catch (e) {
-    toast.error("資源配置失敗");
+    toast.error(t("tenantDetail.toast.provisionFailed"));
   } finally {
     provisioning.value = false;
   }
@@ -154,23 +146,31 @@ const handleDeploy = async () => {
   deploying.value = true;
   try {
     await tenantsStore.deployTenant(tenantId.value);
-    toast.success("部署已開始");
+    toast.success(t("tenantDetail.toast.deployStarted"));
     await tenantsStore.fetchTenant(tenantId.value);
   } catch (e) {
-    toast.error("部署失敗");
+    toast.error(t("tenantDetail.toast.deployFailed"));
   } finally {
     deploying.value = false;
   }
 };
 
 // 標籤頁
-const tabs = [
-  { id: "overview", name: "概覽", icon: ServerStackIcon },
-  { id: "resources", name: "資源", icon: CloudIcon },
-  { id: "deployments", name: "部署", icon: PlayIcon },
-  { id: "health", name: "健康", icon: HeartIcon },
-  { id: "license", name: "授權", icon: KeyIcon },
-];
+const tabs = computed(() => [
+  {
+    id: "overview",
+    name: t("tenantDetail.tabs.overview"),
+    icon: ServerStackIcon,
+  },
+  { id: "resources", name: t("tenantDetail.tabs.resources"), icon: CloudIcon },
+  {
+    id: "deployments",
+    name: t("tenantDetail.tabs.deployments"),
+    icon: PlayIcon,
+  },
+  { id: "health", name: t("tenantDetail.tabs.health"), icon: HeartIcon },
+  { id: "license", name: t("tenantDetail.tabs.license"), icon: KeyIcon },
+]);
 </script>
 
 <template>
@@ -182,13 +182,13 @@ const tabs = [
       @click="router.push('/tenants')"
     >
       <ArrowLeftIcon class="h-5 w-5 mr-2" />
-      返回租戶列表
+      {{ t("tenantDetail.backToList") }}
     </button>
 
     <!-- 載入中 -->
     <div v-if="tenantsStore.loading && !tenant" class="text-center py-12">
       <div class="loading-spinner mx-auto" />
-      <p class="mt-2 text-sm text-gray-500">載入中...</p>
+      <p class="mt-2 text-sm text-gray-500">{{ t("common.loading") }}</p>
     </div>
 
     <!-- 租戶資訊 -->
@@ -231,7 +231,11 @@ const tabs = [
               @click="handleProvision"
             >
               <CloudIcon class="h-5 w-5 mr-2" />
-              {{ provisioning ? "配置中..." : "配置資源" }}
+              {{
+                provisioning
+                  ? t("tenantDetail.provisioning")
+                  : t("tenantDetail.provisionResources")
+              }}
             </button>
             <button
               v-if="tenant.status === 'active' || resources.length > 0"
@@ -241,7 +245,11 @@ const tabs = [
               @click="handleDeploy"
             >
               <ArrowPathIcon class="h-5 w-5 mr-2" />
-              {{ deploying ? "部署中..." : "重新部署" }}
+              {{
+                deploying
+                  ? t("tenantDetail.deploying")
+                  : t("tenantDetail.redeploy")
+              }}
             </button>
           </div>
         </div>
@@ -275,28 +283,36 @@ const tabs = [
       >
         <!-- 基本資訊 -->
         <div class="card">
-          <h3 class="card-header">基本資訊</h3>
+          <h3 class="card-header">{{ t("tenantDetail.basicInfo.title") }}</h3>
           <dl class="space-y-4">
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">商家名稱</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.basicInfo.businessName") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{ tenant.businessName }}
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">聯絡 Email</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.basicInfo.contactEmail") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{ tenant.contactEmail }}
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">聯絡電話</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.basicInfo.contactPhone") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{ tenant.contactPhone || "-" }}
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">子域名</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.basicInfo.subdomain") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{
                   tenant.subdomain ? `${tenant.subdomain}.makanmakan.app` : "-"
@@ -304,13 +320,17 @@ const tabs = [
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">自訂域名</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.basicInfo.customDomain") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{ tenant.customDomain || "-" }}
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">建立時間</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.basicInfo.createdAt") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{ new Date(tenant.createdAt).toLocaleString() }}
               </dd>
@@ -320,32 +340,45 @@ const tabs = [
 
         <!-- 部署資訊 -->
         <div class="card">
-          <h3 class="card-header">部署資訊</h3>
+          <h3 class="card-header">{{ t("tenantDetail.deployInfo.title") }}</h3>
           <dl class="space-y-4">
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">當前版本</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.deployInfo.currentVersion") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{
                   tenant.deployedVersion
                     ? `v${tenant.deployedVersion}`
-                    : "未部署"
+                    : t("tenantDetail.deployInfo.notDeployed")
                 }}
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">Cloudflare 帳號</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.deployInfo.cfAccount") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
-                {{ tenant.cfAccountId ? "已連接" : "未連接" }}
+                {{
+                  tenant.cfAccountId
+                    ? t("tenantDetail.deployInfo.connected")
+                    : t("tenantDetail.deployInfo.notConnected")
+                }}
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">資源數量</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.deployInfo.resourceCount") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
-                {{ resources.length }} 個
+                {{ resources.length }}
+                {{ t("tenantDetail.deployInfo.itemSuffix") }}
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">最近部署</dt>
+              <dt class="text-sm text-gray-500">
+                {{ t("tenantDetail.deployInfo.lastDeploy") }}
+              </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{
                   deployments[0]
@@ -360,19 +393,21 @@ const tabs = [
 
       <!-- 資源標籤 -->
       <div v-else-if="activeTab === 'resources'" class="card">
-        <h3 class="card-header">Cloudflare 資源</h3>
+        <h3 class="card-header">{{ t("tenantDetail.resources.title") }}</h3>
         <div v-if="resources.length === 0" class="text-center py-8">
           <CloudIcon class="mx-auto h-12 w-12 text-gray-400" />
-          <p class="mt-2 text-sm text-gray-500">尚未配置資源</p>
+          <p class="mt-2 text-sm text-gray-500">
+            {{ t("tenantDetail.resources.empty") }}
+          </p>
         </div>
         <table v-else class="table">
           <thead>
             <tr>
-              <th>資源類型</th>
-              <th>資源名稱</th>
-              <th>資源 ID</th>
-              <th>狀態</th>
-              <th>建立時間</th>
+              <th>{{ t("tenantDetail.resources.column.type") }}</th>
+              <th>{{ t("tenantDetail.resources.column.name") }}</th>
+              <th>{{ t("tenantDetail.resources.column.id") }}</th>
+              <th>{{ t("tenantDetail.resources.column.status") }}</th>
+              <th>{{ t("tenantDetail.resources.column.createdAt") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
@@ -393,10 +428,10 @@ const tabs = [
                 >
                   {{
                     resource.status === "provisioned"
-                      ? "已配置"
+                      ? t("tenantDetail.resources.status.provisioned")
                       : resource.status === "pending"
-                        ? "待配置"
-                        : "失敗"
+                        ? t("tenantDetail.resources.status.pending")
+                        : t("tenantDetail.resources.status.failed")
                   }}
                 </span>
               </td>
@@ -408,10 +443,12 @@ const tabs = [
 
       <!-- 部署標籤 -->
       <div v-else-if="activeTab === 'deployments'" class="card">
-        <h3 class="card-header">部署歷史</h3>
+        <h3 class="card-header">{{ t("tenantDetail.deployments.title") }}</h3>
         <div v-if="deployments.length === 0" class="text-center py-8">
           <PlayIcon class="mx-auto h-12 w-12 text-gray-400" />
-          <p class="mt-2 text-sm text-gray-500">尚無部署記錄</p>
+          <p class="mt-2 text-sm text-gray-500">
+            {{ t("tenantDetail.deployments.empty") }}
+          </p>
         </div>
         <div v-else class="space-y-4">
           <div
@@ -437,10 +474,10 @@ const tabs = [
                   <p class="font-medium text-gray-900">
                     {{
                       deployment.deploymentType === "initial"
-                        ? "初始部署"
+                        ? t("tenantDetail.deployments.type.initial")
                         : deployment.deploymentType === "update"
-                          ? "版本更新"
-                          : "版本回滾"
+                          ? t("tenantDetail.deployments.type.update")
+                          : t("tenantDetail.deployments.type.rollback")
                     }}
                   </p>
                   <p class="text-sm text-gray-500">
@@ -470,10 +507,12 @@ const tabs = [
 
       <!-- 健康標籤 -->
       <div v-else-if="activeTab === 'health'" class="card">
-        <h3 class="card-header">健康狀態</h3>
+        <h3 class="card-header">{{ t("tenantDetail.health.title") }}</h3>
         <div v-if="healthChecks.length === 0" class="text-center py-8">
           <HeartIcon class="mx-auto h-12 w-12 text-gray-400" />
-          <p class="mt-2 text-sm text-gray-500">尚無健康檢查記錄</p>
+          <p class="mt-2 text-sm text-gray-500">
+            {{ t("tenantDetail.health.empty") }}
+          </p>
         </div>
         <div v-else class="space-y-4">
           <div
@@ -518,10 +557,12 @@ const tabs = [
 
       <!-- 授權標籤 -->
       <div v-else-if="activeTab === 'license'" class="card">
-        <h3 class="card-header">授權資訊</h3>
+        <h3 class="card-header">{{ t("tenantDetail.license.title") }}</h3>
         <div v-if="licenses.length === 0" class="text-center py-8">
           <KeyIcon class="mx-auto h-12 w-12 text-gray-400" />
-          <p class="mt-2 text-sm text-gray-500">尚無授權記錄</p>
+          <p class="mt-2 text-sm text-gray-500">
+            {{ t("tenantDetail.license.empty") }}
+          </p>
         </div>
         <div v-else class="space-y-4">
           <div
@@ -538,21 +579,25 @@ const tabs = [
                   <span class="badge badge-info">
                     {{
                       license.tier === "standard"
-                        ? "標準版"
+                        ? t("licenses.tier.standard")
                         : license.tier === "professional"
-                          ? "專業版"
-                          : "企業版"
+                          ? t("licenses.tier.professional")
+                          : t("licenses.tier.enterprise")
                     }}
                   </span>
                   <span v-if="license.expiresAt" class="text-sm text-gray-500">
-                    有效期至
+                    {{ t("licenses.validUntil") }}
                     {{ new Date(license.expiresAt).toLocaleDateString() }}
                   </span>
-                  <span v-else class="text-sm text-gray-500">永久有效</span>
+                  <span v-else class="text-sm text-gray-500">
+                    {{ t("licenses.permanentValid") }}
+                  </span>
                 </div>
               </div>
               <div v-if="license.revokedAt" class="text-right">
-                <span class="badge badge-danger">已撤銷</span>
+                <span class="badge badge-danger">{{
+                  t("licenses.revoked")
+                }}</span>
                 <p class="text-sm text-gray-500 mt-1">
                   {{ license.revokeReason }}
                 </p>

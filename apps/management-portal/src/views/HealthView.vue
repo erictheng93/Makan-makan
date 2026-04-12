@@ -9,10 +9,21 @@ import {
   ExclamationTriangleIcon,
   XCircleIcon,
 } from "@heroicons/vue/24/outline";
+import { useI18n } from "@/i18n";
+import type { HealthStatus } from "@/types";
 
+const { t } = useI18n();
 const healthStore = useHealthStore();
 const tenantsStore = useTenantsStore();
 const refreshing = ref(false);
+
+// 健康狀態標籤 (i18n 版本)
+const getHealthStatusLabel = (status: HealthStatus) => {
+  if (status === "unknown") return t("common.unknown");
+  const key = `health.status.${status}`;
+  const label = t(key);
+  return label === key ? status : label;
+};
 
 // 載入資料
 onMounted(async () => {
@@ -44,8 +55,10 @@ const getTenantName = (tenantId: string) => {
     <!-- 頁面標題 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">健康監控</h1>
-        <p class="mt-1 text-sm text-gray-500">監控所有租戶的運行狀態</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("health.title") }}
+        </h1>
+        <p class="mt-1 text-sm text-gray-500">{{ t("health.subtitle") }}</p>
       </div>
       <button
         type="button"
@@ -57,7 +70,7 @@ const getTenantName = (tenantId: string) => {
           class="h-5 w-5 mr-2"
           :class="{ 'animate-spin': refreshing }"
         />
-        {{ refreshing ? "刷新中..." : "刷新" }}
+        {{ refreshing ? t("health.refreshing") : t("health.refresh") }}
       </button>
     </div>
 
@@ -93,9 +106,11 @@ const getTenantName = (tenantId: string) => {
             />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">總體狀態</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("health.overall") }}
+            </p>
             <p class="text-lg font-semibold text-gray-900">
-              {{ healthStore.getStatusLabel(healthStore.overallStatus) }}
+              {{ getHealthStatusLabel(healthStore.overallStatus) }}
             </p>
           </div>
         </div>
@@ -108,7 +123,9 @@ const getTenantName = (tenantId: string) => {
             <CheckCircleIcon class="h-6 w-6 text-green-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">正常</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("health.status.healthy") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ healthStore.healthyCount }}
             </p>
@@ -123,7 +140,9 @@ const getTenantName = (tenantId: string) => {
             <ExclamationTriangleIcon class="h-6 w-6 text-yellow-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">降級</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("health.status.degraded") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ healthStore.degradedCount }}
             </p>
@@ -138,7 +157,9 @@ const getTenantName = (tenantId: string) => {
             <XCircleIcon class="h-6 w-6 text-red-600" />
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">離線</p>
+            <p class="text-sm font-medium text-gray-500">
+              {{ t("health.status.down") }}
+            </p>
             <p class="text-2xl font-semibold text-gray-900">
               {{ healthStore.downCount }}
             </p>
@@ -151,14 +172,17 @@ const getTenantName = (tenantId: string) => {
     <div class="card">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">平均回應時間</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("health.avgResponseTime") }}
+          </h3>
           <p class="text-3xl font-bold text-gray-900 mt-2">
             {{ healthStore.averageResponseTime }}
             <span class="text-lg font-normal text-gray-500">ms</span>
           </p>
         </div>
         <div v-if="healthStore.lastUpdated" class="text-sm text-gray-500">
-          最後更新：{{ healthStore.lastUpdated.toLocaleTimeString() }}
+          {{ t("health.lastUpdated")
+          }}{{ healthStore.lastUpdated.toLocaleTimeString() }}
         </div>
       </div>
     </div>
@@ -168,7 +192,9 @@ const getTenantName = (tenantId: string) => {
       v-if="healthStore.downCount > 0 || healthStore.degradedCount > 0"
       class="card"
     >
-      <h3 class="card-header text-red-600">需要注意</h3>
+      <h3 class="card-header text-red-600">
+        {{ t("health.attention.title") }}
+      </h3>
       <div class="space-y-3">
         <!-- 離線 -->
         <div
@@ -182,14 +208,16 @@ const getTenantName = (tenantId: string) => {
               <p class="font-medium text-gray-900">
                 {{ getTenantName(check.tenantId) }}
               </p>
-              <p class="text-sm text-gray-500">服務離線</p>
+              <p class="text-sm text-gray-500">
+                {{ t("health.attention.serviceDown") }}
+              </p>
             </div>
           </div>
           <RouterLink
             :to="`/tenants/${check.tenantId}`"
             class="btn btn-sm btn-secondary"
           >
-            查看詳情
+            {{ t("common.viewDetails") }}
           </RouterLink>
         </div>
 
@@ -206,7 +234,7 @@ const getTenantName = (tenantId: string) => {
                 {{ getTenantName(check.tenantId) }}
               </p>
               <p class="text-sm text-gray-500">
-                服務降級
+                {{ t("health.attention.serviceDegraded") }}
                 <span v-if="check.responseTimeMs" class="ml-2">
                   ({{ check.responseTimeMs }}ms)
                 </span>
@@ -217,7 +245,7 @@ const getTenantName = (tenantId: string) => {
             :to="`/tenants/${check.tenantId}`"
             class="btn btn-sm btn-secondary"
           >
-            查看詳情
+            {{ t("common.viewDetails") }}
           </RouterLink>
         </div>
       </div>
@@ -225,30 +253,30 @@ const getTenantName = (tenantId: string) => {
 
     <!-- 所有租戶健康狀態 -->
     <div class="card">
-      <h3 class="card-header">所有租戶</h3>
+      <h3 class="card-header">{{ t("health.all.title") }}</h3>
       <div v-if="healthStore.loading" class="text-center py-8">
         <div class="loading-spinner mx-auto" />
-        <p class="mt-2 text-sm text-gray-500">載入中...</p>
+        <p class="mt-2 text-sm text-gray-500">{{ t("common.loading") }}</p>
       </div>
 
       <div
         v-else-if="healthStore.healthChecks.length === 0"
         class="text-center py-8"
       >
-        <p class="text-sm text-gray-500">暫無健康檢查資料</p>
+        <p class="text-sm text-gray-500">{{ t("health.all.empty") }}</p>
       </div>
 
       <table v-else class="table">
         <thead>
           <tr>
-            <th>租戶</th>
-            <th>狀態</th>
-            <th>回應時間</th>
-            <th>API</th>
-            <th>資料庫</th>
-            <th>快取</th>
-            <th>儲存</th>
-            <th>檢查時間</th>
+            <th>{{ t("health.column.tenant") }}</th>
+            <th>{{ t("health.column.status") }}</th>
+            <th>{{ t("health.column.responseTime") }}</th>
+            <th>{{ t("health.column.api") }}</th>
+            <th>{{ t("health.column.database") }}</th>
+            <th>{{ t("health.column.cache") }}</th>
+            <th>{{ t("health.column.storage") }}</th>
+            <th>{{ t("health.column.checkedAt") }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
@@ -271,7 +299,7 @@ const getTenantName = (tenantId: string) => {
                   'badge-gray': check.status === 'unknown',
                 }"
               >
-                {{ healthStore.getStatusLabel(check.status) }}
+                {{ getHealthStatusLabel(check.status) }}
               </span>
             </td>
             <td>
@@ -287,7 +315,7 @@ const getTenantName = (tenantId: string) => {
                   'badge-danger': check.details.api === 'down',
                 }"
               >
-                {{ healthStore.getStatusLabel(check.details.api) }}
+                {{ getHealthStatusLabel(check.details.api) }}
               </span>
               <span v-else class="text-gray-400">-</span>
             </td>
@@ -301,7 +329,7 @@ const getTenantName = (tenantId: string) => {
                   'badge-danger': check.details.database === 'down',
                 }"
               >
-                {{ healthStore.getStatusLabel(check.details.database) }}
+                {{ getHealthStatusLabel(check.details.database) }}
               </span>
               <span v-else class="text-gray-400">-</span>
             </td>
@@ -315,7 +343,7 @@ const getTenantName = (tenantId: string) => {
                   'badge-danger': check.details.cache === 'down',
                 }"
               >
-                {{ healthStore.getStatusLabel(check.details.cache) }}
+                {{ getHealthStatusLabel(check.details.cache) }}
               </span>
               <span v-else class="text-gray-400">-</span>
             </td>
@@ -329,7 +357,7 @@ const getTenantName = (tenantId: string) => {
                   'badge-danger': check.details.storage === 'down',
                 }"
               >
-                {{ healthStore.getStatusLabel(check.details.storage) }}
+                {{ getHealthStatusLabel(check.details.storage) }}
               </span>
               <span v-else class="text-gray-400">-</span>
             </td>

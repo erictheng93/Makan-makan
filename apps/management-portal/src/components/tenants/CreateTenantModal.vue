@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { useTenantsStore } from "@/stores/tenants";
 import { XMarkIcon } from "@heroicons/vue/24/outline";
 import type { CreateTenantRequest } from "@/types";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   show: boolean;
@@ -30,23 +33,23 @@ const submitting = ref(false);
 const submitError = ref("");
 
 // 方案選項
-const planOptions = [
+const planOptions = computed(() => [
   {
     value: "standard",
-    label: "標準版 - $149/月",
-    description: "1 間餐廳，基本功能",
+    label: t("tenants.createModal.plan.standard.label"),
+    description: t("tenants.createModal.plan.standard.description"),
   },
   {
     value: "professional",
-    label: "專業版 - $299/月",
-    description: "3 間餐廳，完整功能",
+    label: t("tenants.createModal.plan.professional.label"),
+    description: t("tenants.createModal.plan.professional.description"),
   },
   {
     value: "enterprise",
-    label: "企業版 - 議價",
-    description: "無限餐廳，客製化服務",
+    label: t("tenants.createModal.plan.enterprise.label"),
+    description: t("tenants.createModal.plan.enterprise.description"),
   },
-];
+]);
 
 // 重置表單
 watch(
@@ -71,17 +74,25 @@ const validate = (): boolean => {
   errors.value = {};
 
   if (!form.value.businessName.trim()) {
-    errors.value.businessName = "請輸入商家名稱";
+    errors.value.businessName = t(
+      "tenants.createModal.validation.businessNameRequired",
+    );
   }
 
   if (!form.value.contactEmail.trim()) {
-    errors.value.contactEmail = "請輸入聯絡 Email";
+    errors.value.contactEmail = t(
+      "tenants.createModal.validation.emailRequired",
+    );
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.contactEmail)) {
-    errors.value.contactEmail = "請輸入有效的 Email";
+    errors.value.contactEmail = t(
+      "tenants.createModal.validation.emailInvalid",
+    );
   }
 
   if (form.value.subdomain && !/^[a-z0-9-]+$/.test(form.value.subdomain)) {
-    errors.value.subdomain = "子域名只能包含小寫字母、數字和連字符";
+    errors.value.subdomain = t(
+      "tenants.createModal.validation.subdomainFormat",
+    );
   }
 
   return Object.keys(errors.value).length === 0;
@@ -99,7 +110,9 @@ const handleSubmit = async () => {
   } catch (e) {
     console.error("創建租戶失敗:", e);
     submitError.value =
-      e instanceof Error ? e.message : "創建租戶失敗，請稍後再試";
+      e instanceof Error
+        ? e.message
+        : t("tenants.createModal.error.createFailed");
   } finally {
     submitting.value = false;
   }
@@ -126,7 +139,9 @@ const handleSubmit = async () => {
           <div
             class="flex items-center justify-between px-6 py-4 border-b border-gray-200"
           >
-            <h3 class="text-lg font-semibold text-gray-900">新增租戶</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("tenants.create") }}
+            </h3>
             <button
               type="button"
               class="text-gray-400 hover:text-gray-500"
@@ -140,13 +155,17 @@ const handleSubmit = async () => {
           <form @submit.prevent="handleSubmit" class="px-6 py-4 space-y-4">
             <!-- 商家名稱 -->
             <div>
-              <label class="label">商家名稱 *</label>
+              <label class="label">
+                {{ t("tenants.createModal.field.businessName") }} *
+              </label>
               <input
                 v-model="form.businessName"
                 type="text"
                 class="input"
                 :class="{ 'input-error': errors.businessName }"
-                placeholder="例如：御膳房"
+                :placeholder="
+                  t('tenants.createModal.field.businessNamePlaceholder')
+                "
               />
               <p v-if="errors.businessName" class="mt-1 text-sm text-red-600">
                 {{ errors.businessName }}
@@ -155,13 +174,17 @@ const handleSubmit = async () => {
 
             <!-- 聯絡 Email -->
             <div>
-              <label class="label">聯絡 Email *</label>
+              <label class="label">
+                {{ t("tenants.createModal.field.contactEmail") }} *
+              </label>
               <input
                 v-model="form.contactEmail"
                 type="email"
                 class="input"
                 :class="{ 'input-error': errors.contactEmail }"
-                placeholder="owner@restaurant.com"
+                :placeholder="
+                  t('tenants.createModal.field.contactEmailPlaceholder')
+                "
               />
               <p v-if="errors.contactEmail" class="mt-1 text-sm text-red-600">
                 {{ errors.contactEmail }}
@@ -170,25 +193,33 @@ const handleSubmit = async () => {
 
             <!-- 聯絡電話 -->
             <div>
-              <label class="label">聯絡電話</label>
+              <label class="label">
+                {{ t("tenants.createModal.field.contactPhone") }}
+              </label>
               <input
                 v-model="form.contactPhone"
                 type="tel"
                 class="input"
-                placeholder="02-1234-5678"
+                :placeholder="
+                  t('tenants.createModal.field.contactPhonePlaceholder')
+                "
               />
             </div>
 
             <!-- 子域名 -->
             <div>
-              <label class="label">子域名</label>
+              <label class="label">
+                {{ t("tenants.createModal.field.subdomain") }}
+              </label>
               <div class="flex items-center">
                 <input
                   v-model="form.subdomain"
                   type="text"
                   class="input rounded-r-none"
                   :class="{ 'input-error': errors.subdomain }"
-                  placeholder="yushenfang"
+                  :placeholder="
+                    t('tenants.createModal.field.subdomainPlaceholder')
+                  "
                 />
                 <span
                   class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-r-md"
@@ -199,12 +230,16 @@ const handleSubmit = async () => {
               <p v-if="errors.subdomain" class="mt-1 text-sm text-red-600">
                 {{ errors.subdomain }}
               </p>
-              <p class="mt-1 text-xs text-gray-500">留空將自動生成</p>
+              <p class="mt-1 text-xs text-gray-500">
+                {{ t("tenants.createModal.field.subdomainHint") }}
+              </p>
             </div>
 
             <!-- 方案選擇 -->
             <div>
-              <label class="label">選擇方案</label>
+              <label class="label">
+                {{ t("tenants.createModal.field.selectPlan") }}
+              </label>
               <div class="space-y-2">
                 <label
                   v-for="plan in planOptions"
@@ -253,7 +288,7 @@ const handleSubmit = async () => {
               class="btn btn-secondary"
               @click="emit('close')"
             >
-              取消
+              {{ t("common.cancel") }}
             </button>
             <button
               type="button"
@@ -262,7 +297,11 @@ const handleSubmit = async () => {
               @click="handleSubmit"
             >
               <span v-if="submitting" class="loading-spinner mr-2" />
-              {{ submitting ? "創建中..." : "創建租戶" }}
+              {{
+                submitting
+                  ? t("tenants.createModal.creating")
+                  : t("tenants.createModal.submit")
+              }}
             </button>
           </div>
         </div>

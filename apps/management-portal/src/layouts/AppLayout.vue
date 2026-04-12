@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import {
   HomeIcon,
@@ -9,18 +9,28 @@ import {
   KeyIcon,
   Bars3Icon,
   XMarkIcon,
+  LanguageIcon,
+  CheckIcon,
 } from "@heroicons/vue/24/outline";
+import { useI18n, type Locale } from "@/i18n";
 
+const { t, locale, localeConfig, switchLocale, supportedLocales } = useI18n();
 const route = useRoute();
 const sidebarOpen = ref(false);
+const showLanguageMenu = ref(false);
 
-const navigation = [
-  { name: "總覽", href: "/", icon: HomeIcon },
-  { name: "租戶管理", href: "/tenants", icon: BuildingStorefrontIcon },
-  { name: "部署管理", href: "/deployments", icon: CloudIcon },
-  { name: "健康監控", href: "/health", icon: HeartIcon },
-  { name: "授權管理", href: "/licenses", icon: KeyIcon },
-];
+const handleLocaleChange = async (code: string) => {
+  await switchLocale(code as Locale);
+  showLanguageMenu.value = false;
+};
+
+const navigation = computed(() => [
+  { name: t("nav.dashboard"), href: "/", icon: HomeIcon },
+  { name: t("nav.tenants"), href: "/tenants", icon: BuildingStorefrontIcon },
+  { name: t("nav.deployments"), href: "/deployments", icon: CloudIcon },
+  { name: t("nav.health"), href: "/health", icon: HeartIcon },
+  { name: t("nav.licenses"), href: "/licenses", icon: KeyIcon },
+]);
 
 const isCurrentRoute = (href: string) => {
   if (href === "/") {
@@ -86,7 +96,9 @@ const isCurrentRoute = (href: string) => {
         <!-- Logo -->
         <div class="flex h-16 items-center px-6 border-b border-gray-200">
           <span class="text-xl font-bold text-primary-600">MakanMakan</span>
-          <span class="ml-2 text-sm text-gray-500">管理平台</span>
+          <span class="ml-2 text-sm text-gray-500">{{
+            t("layout.managementPortal")
+          }}</span>
         </div>
 
         <!-- Navigation -->
@@ -115,9 +127,55 @@ const isCurrentRoute = (href: string) => {
           </RouterLink>
         </nav>
 
-        <!-- Version info -->
-        <div class="px-6 py-4 border-t border-gray-200">
-          <p class="text-xs text-gray-500">版本 1.0.0</p>
+        <!-- Language Switcher + Version info -->
+        <div class="px-4 py-4 border-t border-gray-200 space-y-3">
+          <div class="relative">
+            <button
+              type="button"
+              class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 transition-colors"
+              @click="showLanguageMenu = !showLanguageMenu"
+            >
+              <LanguageIcon class="h-5 w-5 text-gray-400" />
+              <span class="flex-1 text-left">{{
+                localeConfig.nativeName
+              }}</span>
+              <span class="text-base">{{ localeConfig.flag }}</span>
+            </button>
+            <transition name="dropdown">
+              <div
+                v-if="showLanguageMenu"
+                class="absolute left-0 right-0 bottom-full mb-2 bg-white rounded-md shadow-lg border border-gray-200 overflow-hidden z-50"
+              >
+                <button
+                  v-for="loc in supportedLocales"
+                  :key="loc.code"
+                  type="button"
+                  class="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50"
+                  :class="
+                    loc.code === locale
+                      ? 'text-primary-600 font-semibold bg-primary-50'
+                      : 'text-gray-700'
+                  "
+                  @click="handleLocaleChange(loc.code)"
+                >
+                  <span class="text-base">{{ loc.flag }}</span>
+                  <span class="flex-1 text-left">{{ loc.nativeName }}</span>
+                  <CheckIcon
+                    v-if="loc.code === locale"
+                    class="h-4 w-4 text-primary-600"
+                  />
+                </button>
+              </div>
+            </transition>
+            <div
+              v-if="showLanguageMenu"
+              class="fixed inset-0 z-40"
+              @click="showLanguageMenu = false"
+            />
+          </div>
+          <p class="text-xs text-gray-500 px-3">
+            {{ t("layout.version", { version: "1.0.0" }) }}
+          </p>
         </div>
       </div>
     </div>
@@ -149,3 +207,18 @@ const isCurrentRoute = (href: string) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+.dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+</style>

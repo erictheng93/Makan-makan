@@ -11,7 +11,9 @@ import {
 } from "@heroicons/vue/24/outline";
 import CreateTenantModal from "@/components/tenants/CreateTenantModal.vue";
 import type { TenantStatus } from "@/types";
+import { useI18n } from "@/i18n";
 
+const { t } = useI18n();
 const tenantsStore = useTenantsStore();
 const toast = useToast();
 
@@ -49,31 +51,26 @@ const filteredTenants = computed(() => {
 });
 
 // 狀態選項
-const statusOptions = [
-  { value: "all", label: "全部狀態" },
-  { value: "active", label: "運行中" },
-  { value: "pending", label: "待處理" },
-  { value: "provisioning", label: "配置中" },
-  { value: "suspended", label: "已暫停" },
-  { value: "terminated", label: "已終止" },
-];
+const statusOptions = computed(() => [
+  { value: "all", label: t("tenants.filter.allStatuses") },
+  { value: "active", label: t("tenants.status.active") },
+  { value: "pending", label: t("tenants.status.pending") },
+  { value: "provisioning", label: t("tenants.status.provisioning") },
+  { value: "suspended", label: t("tenants.status.suspended") },
+  { value: "terminated", label: t("tenants.status.terminated") },
+]);
 
 // 處理創建成功
 const handleCreateSuccess = () => {
   showCreateModal.value = false;
-  toast.success("租戶創建成功");
+  toast.success(t("tenants.toast.createSuccess"));
 };
 
 // 獲取狀態標籤
 const getStatusLabel = (status: TenantStatus) => {
-  const labels: Record<TenantStatus, string> = {
-    pending: "待處理",
-    provisioning: "配置中",
-    active: "運行中",
-    suspended: "已暫停",
-    terminated: "已終止",
-  };
-  return labels[status] || status;
+  const key = `tenants.status.${status}`;
+  const label = t(key);
+  return label === key ? status : label;
 };
 
 // 獲取狀態樣式
@@ -94,8 +91,10 @@ const getStatusClass = (status: TenantStatus) => {
     <!-- 頁面標題 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">租戶管理</h1>
-        <p class="mt-1 text-sm text-gray-500">管理所有獨立部署的餐廳租戶</p>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ t("tenants.title") }}
+        </h1>
+        <p class="mt-1 text-sm text-gray-500">{{ t("tenants.subtitle") }}</p>
       </div>
       <button
         type="button"
@@ -103,7 +102,7 @@ const getStatusClass = (status: TenantStatus) => {
         @click="showCreateModal = true"
       >
         <PlusIcon class="h-5 w-5 mr-2" />
-        新增租戶
+        {{ t("tenants.create") }}
       </button>
     </div>
 
@@ -119,7 +118,7 @@ const getStatusClass = (status: TenantStatus) => {
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="搜索商家名稱、Email、子域名..."
+              :placeholder="t('tenants.filter.searchPlaceholder')"
               class="input pl-10"
             />
           </div>
@@ -145,7 +144,7 @@ const getStatusClass = (status: TenantStatus) => {
     <div class="card p-0 overflow-hidden">
       <div v-if="tenantsStore.loading" class="text-center py-12">
         <div class="loading-spinner mx-auto" />
-        <p class="mt-2 text-sm text-gray-500">載入中...</p>
+        <p class="mt-2 text-sm text-gray-500">{{ t("common.loading") }}</p>
       </div>
 
       <div v-else-if="filteredTenants.length === 0" class="text-center py-12">
@@ -153,15 +152,15 @@ const getStatusClass = (status: TenantStatus) => {
         <h3 class="mt-2 text-sm font-medium text-gray-900">
           {{
             searchQuery || statusFilter !== "all"
-              ? "沒有符合條件的租戶"
-              : "暫無租戶"
+              ? t("tenants.empty.noResults")
+              : t("tenants.empty.none")
           }}
         </h3>
         <p class="mt-1 text-sm text-gray-500">
           {{
             searchQuery || statusFilter !== "all"
-              ? "嘗試調整搜索條件"
-              : "點擊新增按鈕創建第一個租戶"
+              ? t("tenants.empty.tryAdjust")
+              : t("tenants.empty.createFirst")
           }}
         </p>
       </div>
@@ -169,13 +168,13 @@ const getStatusClass = (status: TenantStatus) => {
       <table v-else class="table">
         <thead>
           <tr>
-            <th>商家名稱</th>
-            <th>聯絡 Email</th>
-            <th>子域名</th>
-            <th>狀態</th>
-            <th>部署版本</th>
-            <th>建立時間</th>
-            <th class="text-right">操作</th>
+            <th>{{ t("tenants.column.businessName") }}</th>
+            <th>{{ t("tenants.column.contactEmail") }}</th>
+            <th>{{ t("tenants.column.subdomain") }}</th>
+            <th>{{ t("tenants.column.status") }}</th>
+            <th>{{ t("tenants.column.deployedVersion") }}</th>
+            <th>{{ t("tenants.column.createdAt") }}</th>
+            <th class="text-right">{{ t("common.actions") }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
@@ -228,7 +227,7 @@ const getStatusClass = (status: TenantStatus) => {
                 :to="`/tenants/${tenant.id}`"
                 class="text-primary-600 hover:text-primary-700 font-medium"
               >
-                管理
+                {{ t("common.manage") }}
               </RouterLink>
             </td>
           </tr>

@@ -5,6 +5,7 @@ import App from "./App.vue";
 import Toast, { type PluginOptions, POSITION } from "vue-toastification";
 import "vue-toastification/dist/index.css";
 import "./assets/css/main.css";
+import { initI18n } from "./i18n";
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -34,4 +35,11 @@ app.config.errorHandler = (error, _instance, info) => {
   // 可以在這裡發送錯誤到監控系統
 };
 
-app.mount("#app");
+// Await i18n initialization BEFORE mounting so the first paint uses the correct locale.
+initI18n()
+  .catch((err) => {
+    console.error("[management-portal] i18n initialize failed:", err);
+  })
+  .finally(() => {
+    app.mount("#app");
+  });
