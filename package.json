@@ -1,6 +1,6 @@
 {
   "name": "makanmakan",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "智慧雲端點餐平台 - 基於Cloudflare生態系統",
   "private": true,
   "type": "module",

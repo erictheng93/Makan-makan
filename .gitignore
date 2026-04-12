@@ -207,3 +207,4 @@ tmpclaude-*
 
 # E2E integration test auth cache
 tests/e2e/.tmp/
+.claude/scheduled_tasks.lock
