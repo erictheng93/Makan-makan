@@ -2,9 +2,8 @@ import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { api } from "@/services/api";
+import { api, authClient } from "@/services/api";
 import { t } from "@/i18n";
-import { getRefreshDelay } from "@makanmakan/utils";
 
 // Hydrate user from localStorage for instant restore on refresh
 const hydrateUser = (): User | null => {
@@ -34,24 +33,6 @@ export const useAuthStore = defineStore("auth", () => {
   const refreshTokenRef = ref<string | null>(
     localStorage.getItem("auth_refresh_token"),
   );
-
-  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const scheduleProactiveRefresh = (accessToken: string) => {
-    if (refreshTimer) clearTimeout(refreshTimer);
-    const delay = getRefreshDelay(accessToken);
-    if (!delay || delay <= 0) return;
-    refreshTimer = setTimeout(async () => {
-      await refreshToken();
-    }, delay);
-  };
-
-  const clearRefreshTimer = () => {
-    if (refreshTimer) {
-      clearTimeout(refreshTimer);
-      refreshTimer = null;
-    }
-  };
 
   const isLoading = ref(false);
 
@@ -228,15 +209,17 @@ export const useAuthStore = defineStore("auth", () => {
         token.value = response.data.data.token;
         user.value = response.data.data.user;
 
-        localStorage.setItem("auth_token", token.value!);
-        persistUser(user.value);
+        authClient.tokens.setTokens(
+          token.value!,
+          response.data.data.refreshToken,
+        );
+        authClient.tokens.setUser(user.value);
         api.setAuthToken(token.value!);
 
         if (response.data.data.refreshToken) {
           refreshTokenRef.value = response.data.data.refreshToken;
-          localStorage.setItem("auth_refresh_token", refreshTokenRef.value!);
         }
-        scheduleProactiveRefresh(token.value!);
+        authClient.tokens.scheduleProactiveRefresh(token.value!);
 
         return { success: true };
       }
@@ -264,12 +247,9 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = null;
       token.value = null;
       clearRestaurant();
-      localStorage.removeItem("auth_token");
-      persistUser(null);
       api.setAuthToken(null);
       refreshTokenRef.value = null;
-      localStorage.removeItem("auth_refresh_token");
-      clearRefreshTimer();
+      authClient.tokens.clearAll();
     }
   };
 
@@ -283,7 +263,8 @@ export const useAuthStore = defineStore("auth", () => {
       if (response.data.success && response.data.data) {
         user.value = response.data.data;
         persistUser(user.value);
-        if (token.value) scheduleProactiveRefresh(token.value);
+        if (token.value)
+          authClient.tokens.scheduleProactiveRefresh(token.value);
         return true;
       }
     } catch (error: any) {
@@ -324,6 +305,7 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       try {
+        // Use fetch directly to avoid the axios 401 interceptor loop
         const response = await fetch("/api/v1/auth/refresh", {
           method: "POST",
           headers: {
@@ -335,12 +317,11 @@ export const useAuthStore = defineStore("auth", () => {
 
         if (data.success && data.data) {
           token.value = data.data.token;
-          localStorage.setItem("auth_token", token.value!);
+          authClient.tokens.setTokens(data.data.token, data.data.refreshToken);
           api.setAuthToken(token.value!);
 
           if (data.data.refreshToken) {
             refreshTokenRef.value = data.data.refreshToken;
-            localStorage.setItem("auth_refresh_token", refreshTokenRef.value!);
           }
 
           if (data.data.user) {
@@ -348,7 +329,7 @@ export const useAuthStore = defineStore("auth", () => {
             persistUser(user.value);
           }
 
-          scheduleProactiveRefresh(token.value!);
+          authClient.tokens.scheduleProactiveRefresh(token.value!);
           return true;
         }
       } catch {

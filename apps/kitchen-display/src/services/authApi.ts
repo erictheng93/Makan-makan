@@ -1,93 +1,17 @@
-import axios from "axios";
+import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
 import type { ApiResponse, User } from "@/types";
 
-// 創建 axios 實例
-const api = axios.create({
-  baseURL: "/api/v1",
-  timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
+// Create the shared API client with kitchen-specific config
+export const apiClient = createAuthenticatedApiClient({
+  storageKeyPrefix: "kitchen",
+  onAuthFailure: () => {
+    window.location.href = "/login";
   },
 });
 
-// 請求攔截器 - 添加認證 token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("kitchen_auth_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
-
-// 響應攔截器 - 處理錯誤和 token 過期
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  async (error) => {
-    const original = error.config;
-
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true;
-
-      const newToken = await handleTokenRefresh();
-      if (newToken) {
-        original.headers.Authorization = `Bearer ${newToken}`;
-        return api(original);
-      }
-
-      localStorage.removeItem("kitchen_auth_token");
-      localStorage.removeItem("kitchen_refresh_token");
-      localStorage.removeItem("kitchen_user");
-      window.location.href = "/login";
-    }
-
-    return Promise.reject(error);
-  },
-);
-
-let refreshPromise: Promise<string | null> | null = null;
-
-async function handleTokenRefresh(): Promise<string | null> {
-  if (refreshPromise) return refreshPromise;
-
-  refreshPromise = (async () => {
-    const rt = localStorage.getItem("kitchen_refresh_token");
-    if (!rt) return null;
-
-    try {
-      const response = await api.post("/auth/refresh", {}, {
-        headers: { "X-Refresh-Token": rt },
-        _retry: true,
-      } as any);
-
-      const newToken = response.data?.data?.token;
-      const newRefreshToken = response.data?.data?.refreshToken;
-
-      if (newToken) {
-        localStorage.setItem("kitchen_auth_token", newToken);
-        if (newRefreshToken) {
-          localStorage.setItem("kitchen_refresh_token", newRefreshToken);
-        }
-        return newToken;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  })();
-
-  try {
-    return await refreshPromise;
-  } finally {
-    refreshPromise = null;
-  }
-}
+// Re-export the axios instance for kitchenApi.ts (default import)
+const api = apiClient.instance;
+export default api;
 
 export interface LoginCredentials {
   username: string;
@@ -172,10 +96,7 @@ export const authApi = {
 
       const data = response.data?.data;
       if (data?.token) {
-        localStorage.setItem("kitchen_auth_token", data.token);
-        if (data.refreshToken) {
-          localStorage.setItem("kitchen_refresh_token", data.refreshToken);
-        }
+        apiClient.tokens.setTokens(data.token, data.refreshToken);
       }
 
       return {
@@ -240,5 +161,3 @@ export const authApi = {
     }
   },
 };
-
-export default api;

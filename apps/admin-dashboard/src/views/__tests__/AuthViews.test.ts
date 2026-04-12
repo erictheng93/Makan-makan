@@ -63,6 +63,16 @@ vi.mock("@/services/api", () => ({
     get: (...args: any[]) => mockApiGet(...args),
     setAuthToken: vi.fn(),
   },
+  authClient: {
+    tokens: {
+      setTokens: vi.fn(),
+      setUser: vi.fn(),
+      clearAll: vi.fn(),
+      scheduleProactiveRefresh: vi.fn(),
+      clearRefreshTimer: vi.fn(),
+    },
+    setAuthToken: vi.fn(),
+  },
 }));
 
 vi.mock("@makanmakan/utils", () => ({

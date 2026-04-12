@@ -17,6 +17,7 @@
   "dependencies": {
     "@headlessui/vue": "^1.7.0",
     "@tanstack/vue-query": "^5.17.0",
+    "@makanmakan/auth-client": "workspace:*",
     "@vueuse/core": "^10.7.0",
     "@vueuse/integrations": "^10.7.0",
     "axios": "^1.6.0",

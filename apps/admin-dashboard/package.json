@@ -21,6 +21,7 @@
     "@headlessui/vue": "^1.7.0",
     "@heroicons/vue": "^2.0.0",
     "@makanmakan/ai-analytics": "workspace:*",
+    "@makanmakan/auth-client": "workspace:*",
     "@makanmakan/i18n": "workspace:*",
     "@makanmakan/shared-types": "workspace:*",
     "@stripe/stripe-js": "^4.0.0",

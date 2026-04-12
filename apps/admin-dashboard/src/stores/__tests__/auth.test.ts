@@ -12,6 +12,31 @@ vi.mock("@/services/api", () => ({
     post: vi.fn(),
     setAuthToken: vi.fn(),
   },
+  authClient: {
+    tokens: {
+      setTokens: vi.fn((token: string, rt?: string) => {
+        localStorage.setItem("auth_token", token);
+        if (rt) localStorage.setItem("auth_refresh_token", rt);
+      }),
+      setUser: vi.fn((u: unknown) => {
+        if (u) localStorage.setItem("auth_user", JSON.stringify(u));
+        else localStorage.removeItem("auth_user");
+      }),
+      clearAll: vi.fn(() => {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("auth_refresh_token");
+        localStorage.removeItem("auth_user");
+      }),
+      scheduleProactiveRefresh: vi.fn(),
+      clearRefreshTimer: vi.fn(),
+      getToken: vi.fn(() => localStorage.getItem("auth_token")),
+      getUser: vi.fn(() => {
+        const raw = localStorage.getItem("auth_user");
+        return raw ? JSON.parse(raw) : null;
+      }),
+    },
+    setAuthToken: vi.fn(),
+  },
 }));
 
 vi.mock("@/i18n", () => ({
