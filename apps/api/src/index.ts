@@ -108,7 +108,13 @@ app.use("*", requestIdMiddleware); // First: Generate request ID for tracking
 app.use(
   "*",
   geoIntelligentRateLimitMiddleware({
-    skipPaths: ["/health", "/api/v1/health", "/info", "/api/v1/sse/events"],
+    skipPaths: [
+      "/health",
+      "/api/v1/health",
+      "/info",
+      "/api/v1/sse/events",
+      // Kitchen SSE — long-lived stream, rate limiting would reject reconnects
+    ],
     customLimits: {
       "/api/v1/auth/login": {
         requests: 100,
@@ -222,6 +228,9 @@ app.use(
         method === "GET" &&
         !path.includes("/auth/") &&
         !path.includes("/sse/") &&
+        // Skip SSE streaming endpoints (kitchen, monitoring, etc.) — caching
+        // middleware would read the body and collapse the stream.
+        !path.endsWith("/events") &&
         !path.includes("/payments/") &&
         c.res.status < 400
       );
@@ -415,7 +424,9 @@ apiV1.use("/restaurants/*", optionalAuth);
 // Note: /menu/* uses optionalAuth globally because GET routes are public (menu listing, featured, popular, search)
 // Write operations (POST, PUT, DELETE) have route-level authMiddleware + requireRole guards
 apiV1.use("/menu/*", optionalAuth);
-apiV1.use("/kitchen/*", authMiddleware);
+// Kitchen routes handle auth at the route level so the /events SSE endpoint
+// can use sseAuthMiddleware (token via query param — EventSource cannot send
+// Authorization headers). All /kitchen/* routes have per-route authMiddleware.
 apiV1.use("/orders/*", authMiddleware);
 apiV1.use("/pos/*", authMiddleware);
 apiV1.use("/payments/*", authMiddleware);

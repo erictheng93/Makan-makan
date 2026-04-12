@@ -318,15 +318,18 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
   };
 
   // Setup monitoring
+  let monitoringInterval: ReturnType<typeof setInterval> | null = null;
+
   onMounted(() => {
     updateRecentErrors();
+    monitoringInterval = setInterval(monitorErrorImpact, 60000);
+  });
 
-    // Monitor error impact periodically
-    const monitoringInterval = setInterval(monitorErrorImpact, 60000); // Every minute
-
-    onUnmounted(() => {
+  onUnmounted(() => {
+    if (monitoringInterval) {
       clearInterval(monitoringInterval);
-    });
+      monitoringInterval = null;
+    }
   });
 
   return {

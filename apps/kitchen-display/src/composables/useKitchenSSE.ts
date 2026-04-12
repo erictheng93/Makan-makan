@@ -33,6 +33,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
 
   // SSE 服務實例
   let sseService: KitchenSSEService | null = null;
+  let statsInterval: ReturnType<typeof setInterval> | null = null;
 
   /**
    * 處理 SSE 消息
@@ -157,19 +158,22 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
 
     sseService.connect();
 
-    // 定期更新統計資訊
-    const statsInterval = setInterval(updateConnectionStats, 5000);
-
-    // 清理函數
-    onUnmounted(() => {
+    // 定期更新統計資訊（若先前已存在則先清除，避免 reconnect 造成洩漏）
+    if (statsInterval) {
       clearInterval(statsInterval);
-    });
+    }
+    statsInterval = setInterval(updateConnectionStats, 5000);
   };
 
   /**
    * 斷開 SSE 連接
    */
   const disconnect = () => {
+    if (statsInterval) {
+      clearInterval(statsInterval);
+      statsInterval = null;
+    }
+
     if (sseService) {
       sseService.disconnect();
       sseService = null;

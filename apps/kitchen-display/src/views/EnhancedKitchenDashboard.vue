@@ -358,6 +358,7 @@ const updateCurrentTime = () => {
 
 // Auto-refresh logic
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
+let timeInterval: ReturnType<typeof setInterval> | null = null;
 
 const startAutoRefresh = () => {
   if (settingsStore.autoRefresh && refreshInterval === null) {
@@ -401,13 +402,17 @@ onMounted(async () => {
   startAutoRefresh();
 
   // Start time updates
-  const timeInterval = setInterval(updateCurrentTime, 1000);
+  timeInterval = setInterval(updateCurrentTime, 1000);
+});
 
-  // Cleanup
-  onUnmounted(() => {
-    stopAutoRefresh();
+// Cleanup — registered at setup scope (NOT inside async onMounted after await,
+// which would log "onUnmounted is called when there is no active component instance")
+onUnmounted(() => {
+  stopAutoRefresh();
+  if (timeInterval) {
     clearInterval(timeInterval);
-  });
+    timeInterval = null;
+  }
 });
 </script>
 

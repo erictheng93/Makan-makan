@@ -141,6 +141,80 @@ export const authMiddleware = async (
   }
 };
 
+// SSE 認證中間件 — 接受 Authorization header 或 ?token= query param。
+// 瀏覽器原生 EventSource 無法帶自訂 header，因此 SSE 客戶端必須走 query param。
+export const sseAuthMiddleware = async (
+  c: Context<{ Bindings: Env }>,
+  next: Next,
+) => {
+  try {
+    const authHeader = c.req.header("Authorization");
+    let token: string | undefined;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    } else {
+      token = c.req.query("token");
+    }
+
+    if (!token) {
+      throw unauthorized("Missing authentication token", "MISSING_AUTH_TOKEN");
+    }
+
+    if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
+      console.error(
+        "JWT_SECRET is not set or too short (minimum 32 characters required)",
+      );
+      throw new ApiError(
+        "SERVER_CONFIG_ERROR",
+        "Server configuration error",
+        500,
+      );
+    }
+
+    if (c.env.TOKEN_BLACKLIST) {
+      const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
+      if (blacklisted) {
+        throw unauthorized("Token has been invalidated", "TOKEN_BLACKLISTED");
+      }
+    }
+
+    const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+
+    if (!decoded || typeof decoded !== "object") {
+      throw unauthorized("Invalid token", "TOKEN_INVALID");
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (!decoded.exp || decoded.exp <= now) {
+      throw unauthorized("Token has expired", "TOKEN_EXPIRED");
+    }
+    if (!decoded.id || !decoded.username || typeof decoded.role !== "number") {
+      throw unauthorized("Invalid token claims", "TOKEN_INVALID");
+    }
+
+    c.set("user", {
+      id: decoded.id,
+      username: decoded.username,
+      role: decoded.role,
+      restaurantId: decoded.restaurantId,
+    });
+
+    await next();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      (error as { name: string }).name === "JwtTokenExpired"
+    ) {
+      throw unauthorized("Token has expired", "TOKEN_EXPIRED");
+    }
+    throw unauthorized("Authentication failed", "TOKEN_INVALID");
+  }
+};
+
 // 角色權限檢查中間件
 export const requireRole = (allowedRoles: number[]) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {

@@ -5,7 +5,7 @@
 
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { authMiddleware } from "../../../middleware/auth";
+import { authMiddleware, sseAuthMiddleware } from "../../../middleware/auth";
 // import { validateBody, validateParams } from '../../../shared/middleware/validation'
 import type { Env } from "../../../types/env";
 import { KitchenService } from "../services/KitchenService";
@@ -25,7 +25,7 @@ const app = new Hono<{ Bindings: Env }>();
  * SSE 端點 - 廚房事件流
  * GET /api/v1/kitchen/{restaurantId}/events
  */
-app.get("/:restaurantId/events", authMiddleware, async (c) => {
+app.get("/:restaurantId/events", sseAuthMiddleware, async (c) => {
   const restaurantId = c.req.param("restaurantId");
   const user = c.get("user");
   const kitchenService = new KitchenService(c.env);
@@ -53,7 +53,6 @@ app.get("/:restaurantId/events", authMiddleware, async (c) => {
   return streamSSE(c, async (stream) => {
     const connectionId = kitchenService.generateConnectionId();
 
-    // Register connection
     kitchenService.registerConnection(connectionId, {
       restaurantId,
       userId: user.id,
@@ -63,8 +62,10 @@ app.get("/:restaurantId/events", authMiddleware, async (c) => {
 
     console.log(`Kitchen SSE connection established: ${connectionId}`);
 
-    // Send initial connection confirmation
-    await stream.writeSSE({
+    // Send initial connection confirmation. Don't await — Hono's streamSSE
+    // needs the handler to yield quickly so the initial response headers
+    // and body chunk are flushed to the client.
+    stream.writeSSE({
       event: "connected",
       data: JSON.stringify({
         type: "HEARTBEAT",
@@ -76,10 +77,9 @@ app.get("/:restaurantId/events", authMiddleware, async (c) => {
       id: `heartbeat_${Date.now()}`,
     });
 
-    // Setup heartbeat interval
-    const heartbeatInterval = setInterval(async () => {
+    const heartbeatInterval = setInterval(() => {
       try {
-        await stream.writeSSE({
+        stream.writeSSE({
           event: "heartbeat",
           data: JSON.stringify({
             type: "HEARTBEAT",
@@ -91,14 +91,6 @@ app.get("/:restaurantId/events", authMiddleware, async (c) => {
           }),
           id: `heartbeat_${Date.now()}`,
         });
-
-        // Update heartbeat timestamp
-        const connection = kitchenService
-          .getConnectionStatus(restaurantId)
-          .connections.find((conn) => conn.id === connectionId);
-        if (connection) {
-          // Update lastHeartbeat in service if needed
-        }
       } catch (error) {
         console.error(
           `Heartbeat failed for connection ${connectionId}:`,
@@ -107,19 +99,16 @@ app.get("/:restaurantId/events", authMiddleware, async (c) => {
         clearInterval(heartbeatInterval);
         kitchenService.removeConnection(connectionId);
       }
-    }, 30000); // 30 second heartbeat
+    }, 30000);
 
-    // Listen for connection close
-    c.req.raw.signal?.addEventListener("abort", () => {
-      console.log(`Kitchen SSE connection closed: ${connectionId}`);
-      clearInterval(heartbeatInterval);
-      kitchenService.removeConnection(connectionId);
-    });
-
-    // Keep connection open
-    return new Promise(() => {
-      // This Promise never resolves, keeping SSE connection open
-      // Connection will be cleaned up when client disconnects or heartbeat fails
+    // Keep stream alive until client disconnects
+    await new Promise<void>((resolve) => {
+      c.req.raw.signal?.addEventListener("abort", () => {
+        console.log(`Kitchen SSE connection closed: ${connectionId}`);
+        clearInterval(heartbeatInterval);
+        kitchenService.removeConnection(connectionId);
+        resolve();
+      });
     });
   });
 });
