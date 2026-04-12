@@ -339,6 +339,8 @@ const zhTW: Messages = {
     markComplete: "標記完成",
     startPreparing: "開始製作",
     audioToggle: "音效開關",
+    audioToggleOn: "開啟音效",
+    audioToggleOff: "關閉音效",
     fullscreen: "全屏模式",
     help: "幫助",
     noMatch: "找不到匹配的快捷鍵",

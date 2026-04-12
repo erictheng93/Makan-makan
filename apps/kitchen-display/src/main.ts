@@ -70,21 +70,21 @@ app.use(router);
 // why the visual regression tests for authenticated kitchen pages always
 // captured the login page as their baseline.
 const authStore = useAuthStore();
-authStore.initialize().catch((err) => {
-  console.error("[kitchen] auth initialize failed:", err);
-});
 
 // Initialize performance optimization services
 performanceOptimizationService.setupImageOptimization();
 performanceOptimizationService.registerServiceWorker();
 
-// Await i18n initialization BEFORE mounting so the first paint uses the correct
-// locale (reads localStorage + browser preference). Otherwise users with a saved
-// en-US locale see a zh-TW flash before the async plugin install resolves.
-initI18n()
-  .catch((err) => {
+// Await both auth rehydration AND i18n initialization BEFORE mounting. Mount
+// must be gated on auth so protected-route guards see the restored session
+// (see comment above), and on i18n so the first paint uses the correct locale.
+Promise.all([
+  authStore.initialize().catch((err) => {
+    console.error("[kitchen] auth initialize failed:", err);
+  }),
+  initI18n().catch((err) => {
     console.error("[kitchen] i18n initialize failed:", err);
-  })
-  .finally(() => {
-    app.mount("#app");
-  });
+  }),
+]).finally(() => {
+  app.mount("#app");
+});

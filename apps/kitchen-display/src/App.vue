@@ -9,7 +9,9 @@
       <button
         class="audio-control"
         :title="
-          audioEnabled ? t('shortcuts.audioToggle') : t('shortcuts.audioToggle')
+          audioEnabled
+            ? t('shortcuts.audioToggleOff')
+            : t('shortcuts.audioToggleOn')
         "
         @click="toggleAudio"
       >
