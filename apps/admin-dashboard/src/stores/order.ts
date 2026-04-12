@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
-import type { Order } from "@/types";
-import { OrderStatus } from "@/types";
+import type { Order, OrderStatus } from "@/types";
 import { api } from "@/services/api";
 import { t } from "@/i18n";
 
@@ -12,24 +11,24 @@ export const useOrderStore = defineStore("order", () => {
 
   // Computed properties
   const pendingOrders = computed(() =>
-    orders.value.filter((order) => order.status === OrderStatus.PENDING),
+    orders.value.filter((order) => order.status === "pending"),
   );
 
   const confirmedOrders = computed(() =>
-    orders.value.filter((order) => order.status === OrderStatus.CONFIRMED),
+    orders.value.filter((order) => order.status === "confirmed"),
   );
 
   const preparingOrders = computed(() =>
-    orders.value.filter((order) => order.status === OrderStatus.PREPARING),
+    orders.value.filter((order) => order.status === "preparing"),
   );
 
   const readyOrders = computed(() =>
-    orders.value.filter((order) => order.status === OrderStatus.READY),
+    orders.value.filter((order) => order.status === "ready"),
   );
 
   const completedOrders = computed(() =>
     orders.value.filter((order) =>
-      [OrderStatus.COMPLETED, OrderStatus.PAID].includes(order.status),
+      (["delivered", "paid"] as OrderStatus[]).includes(order.status),
     ),
   );
 
@@ -37,12 +36,9 @@ export const useOrderStore = defineStore("order", () => {
   const activeOrdersCount = computed(
     () =>
       orders.value.filter((order) =>
-        [
-          OrderStatus.PENDING,
-          OrderStatus.CONFIRMED,
-          OrderStatus.PREPARING,
-          OrderStatus.READY,
-        ].includes(order.status),
+        (
+          ["pending", "confirmed", "preparing", "ready"] as OrderStatus[]
+        ).includes(order.status),
       ).length,
   );
 
@@ -104,7 +100,7 @@ export const useOrderStore = defineStore("order", () => {
           orders.value[orderIndex].status = status;
           orders.value[orderIndex].updatedAt = new Date().toISOString();
 
-          if (status === "completed") {
+          if (status === "delivered") {
             orders.value[orderIndex].completedAt = new Date().toISOString();
           }
         }
@@ -153,7 +149,7 @@ export const useOrderStore = defineStore("order", () => {
   const getTotalRevenue = (status?: OrderStatus) => {
     const filteredOrders = status
       ? orders.value.filter((order) => order.status === status)
-      : orders.value.filter((order) => order.status === "completed");
+      : orders.value.filter((order) => order.status === "delivered");
 
     return filteredOrders.reduce(
       (total, order) => total + order.totalAmount,
@@ -168,19 +164,19 @@ export const useOrderStore = defineStore("order", () => {
 
   // Kitchen specific actions
   const confirmOrder = (orderId: number) => {
-    return updateOrderStatus(orderId, OrderStatus.CONFIRMED);
+    return updateOrderStatus(orderId, "confirmed");
   };
 
   const startPreparing = (orderId: number) => {
-    return updateOrderStatus(orderId, OrderStatus.PREPARING);
+    return updateOrderStatus(orderId, "preparing");
   };
 
   const markReady = (orderId: number) => {
-    return updateOrderStatus(orderId, OrderStatus.READY);
+    return updateOrderStatus(orderId, "ready");
   };
 
   const completeOrder = (orderId: number) => {
-    return updateOrderStatus(orderId, OrderStatus.COMPLETED);
+    return updateOrderStatus(orderId, "delivered");
   };
 
   const cancelOrder = async (orderId: number, reason?: string) => {
@@ -192,7 +188,7 @@ export const useOrderStore = defineStore("order", () => {
       if (response.data.success) {
         const orderIndex = orders.value.findIndex((o) => o.id === orderId);
         if (orderIndex > -1) {
-          orders.value[orderIndex].status = OrderStatus.CANCELLED;
+          orders.value[orderIndex].status = "cancelled";
           orders.value[orderIndex].updatedAt = new Date().toISOString();
         }
         return true;

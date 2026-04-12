@@ -2026,7 +2026,7 @@ const enUS: Messages = {
       ready: "Ready to Pay",
       delivered: "Delivered",
       processing: "Processing",
-      completed: "Completed",
+      paid: "Paid",
       refunded: "Refunded",
     },
     shiftReport: "Shift Report",
@@ -2793,7 +2793,7 @@ const enUS: Messages = {
       orderStatusDist: "Order Status Distribution",
     },
     orderStatus: {
-      completed: "Completed",
+      delivered: "Delivered",
       preparing: "Preparing",
       pending: "Pending",
       cancelled: "Cancelled",

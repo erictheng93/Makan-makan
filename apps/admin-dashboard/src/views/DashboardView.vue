@@ -264,7 +264,7 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useOrderStore } from "@/stores/order";
-import { OrderStatus } from "@/types";
+import type { OrderStatus } from "@/types";
 import { useDashboardPolling } from "@/composables/usePolling";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -334,12 +334,7 @@ const refreshData = async () => {
   await Promise.all([
     dashboardStore.fetchDashboardStats(),
     orderStore.fetchOrders({
-      status: [
-        OrderStatus.PENDING,
-        OrderStatus.CONFIRMED,
-        OrderStatus.PREPARING,
-        OrderStatus.READY,
-      ],
+      status: ["pending", "confirmed", "preparing", "ready"] as OrderStatus[],
     }),
   ]);
 };

@@ -702,7 +702,7 @@ describe("CashierView", () => {
       await flushPromises();
 
       expect(mockApiPut).toHaveBeenCalledWith("/orders/1/status", {
-        status: "completed",
+        status: "paid",
       });
     });
 

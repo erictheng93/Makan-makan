@@ -32,7 +32,7 @@ export interface KitchenOrder {
   orderNumber: string;
   tableId: number;
   tableName: string;
-  status: number; // OrderStatus
+  status: string; // OrderStatus (canonical string union)
   items: KitchenOrderItem[];
   customerName?: string;
   notes?: string;

@@ -28,6 +28,7 @@ const orderStatusSchema = z.enum([
   "delivered",
   "paid",
   "cancelled",
+  "refunded",
 ]);
 
 const orderPaymentStatusSchema = z.enum(["pending", "paid", "failed"]);

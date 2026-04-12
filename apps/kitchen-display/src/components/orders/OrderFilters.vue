@@ -48,11 +48,11 @@
       <button
         :class="[
           'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
-          selectedStatuses.includes(1)
+          selectedStatuses.includes('confirmed')
             ? 'bg-ios-blue text-white shadow-sm'
             : 'bg-[#FFF3E0] text-ios-orange hover:opacity-80',
         ]"
-        @click="toggleStatusFilter(1)"
+        @click="toggleStatusFilter('confirmed')"
       >
         待處理 ({{ pendingCount }})
       </button>
@@ -61,11 +61,11 @@
       <button
         :class="[
           'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
-          selectedStatuses.includes(2)
+          selectedStatuses.includes('preparing')
             ? 'bg-ios-blue text-white shadow-sm'
             : 'bg-[#E3F2FD] text-ios-blue hover:opacity-80',
         ]"
-        @click="toggleStatusFilter(2)"
+        @click="toggleStatusFilter('preparing')"
       >
         製作中 ({{ preparingCount }})
       </button>
@@ -74,11 +74,11 @@
       <button
         :class="[
           'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
-          selectedStatuses.includes(3)
+          selectedStatuses.includes('ready')
             ? 'bg-ios-blue text-white shadow-sm'
             : 'bg-[#E8F5E9] text-ios-green hover:opacity-80',
         ]"
-        @click="toggleStatusFilter(3)"
+        @click="toggleStatusFilter('ready')"
       >
         完成 ({{ doneCount }})
       </button>
@@ -381,7 +381,7 @@ import {
 } from "lucide-vue-next";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { storeToRefs } from "pinia";
-import type { KitchenOrder } from "@/types";
+import type { KitchenOrder, OrderStatus } from "@/types";
 
 // Props
 interface Props {
@@ -398,7 +398,7 @@ const { hasActiveFilters } = storeToRefs(orderManagementStore);
 // Local state
 const showFilters = ref(false);
 const searchText = ref("");
-const selectedStatuses = ref<number[]>([]);
+const selectedStatuses = ref<OrderStatus[]>([]);
 const selectedPriorities = ref<string[]>([]);
 const selectedTables = ref<number[]>([]);
 const selectedOrderTypes = ref<string[]>([]);
@@ -452,13 +452,13 @@ const orderSourceOptions = [
 
 // Computed counts for the pill row
 const pendingCount = computed(
-  () => props.orders.filter((o) => o.status === 1).length,
+  () => props.orders.filter((o) => o.status === "confirmed").length,
 );
 const preparingCount = computed(
-  () => props.orders.filter((o) => o.status === 2).length,
+  () => props.orders.filter((o) => o.status === "preparing").length,
 );
 const doneCount = computed(
-  () => props.orders.filter((o) => o.status === 3).length,
+  () => props.orders.filter((o) => o.status === "ready").length,
 );
 const urgentCount = computed(
   () => props.orders.filter((o) => o.priority === "urgent").length,
@@ -489,23 +489,23 @@ const isTakeawayDeliveryActive = computed(
 
 const statusOptions = computed(() => [
   {
-    value: 1,
+    value: "confirmed" as OrderStatus,
     label: "已確認",
-    count: props.orders.filter((o) => o.status === 1).length,
+    count: props.orders.filter((o) => o.status === "confirmed").length,
     badgeClass:
       "px-2 py-0.5 bg-[#FFF3E0] text-ios-orange rounded-full text-xs font-medium",
   },
   {
-    value: 2,
+    value: "preparing" as OrderStatus,
     label: "製作中",
-    count: props.orders.filter((o) => o.status === 2).length,
+    count: props.orders.filter((o) => o.status === "preparing").length,
     badgeClass:
       "px-2 py-0.5 bg-[#E3F2FD] text-ios-blue rounded-full text-xs font-medium",
   },
   {
-    value: 3,
+    value: "ready" as OrderStatus,
     label: "準備完成",
-    count: props.orders.filter((o) => o.status === 3).length,
+    count: props.orders.filter((o) => o.status === "ready").length,
     badgeClass:
       "px-2 py-0.5 bg-[#E8F5E9] text-ios-green rounded-full text-xs font-medium",
   },
@@ -591,7 +591,7 @@ const clearStatusFilters = () => {
   selectedPriorities.value = [];
 };
 
-const toggleStatusFilter = (status: number) => {
+const toggleStatusFilter = (status: OrderStatus) => {
   if (selectedStatuses.value.includes(status)) {
     selectedStatuses.value = selectedStatuses.value.filter((s) => s !== status);
   } else {
@@ -621,10 +621,12 @@ const applyQuickFilter = (filterKey: string) => {
       }
       break;
     case "preparing":
-      if (selectedStatuses.value.includes(2)) {
-        selectedStatuses.value = selectedStatuses.value.filter((s) => s !== 2);
+      if (selectedStatuses.value.includes("preparing")) {
+        selectedStatuses.value = selectedStatuses.value.filter(
+          (s) => s !== "preparing",
+        );
       } else {
-        selectedStatuses.value = [2];
+        selectedStatuses.value = ["preparing"];
       }
       break;
     case "overdue":

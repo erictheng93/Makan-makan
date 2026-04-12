@@ -26,7 +26,9 @@ export default defineConfig({
     },
   },
   define: {
-    __APP_VERSION__: JSON.stringify("1.0.0"),
+    __APP_VERSION__: JSON.stringify(
+      process.env.APP_VERSION || `dev-${new Date().toISOString().slice(0, 10)}`,
+    ),
     __VUE_PROD_DEVTOOLS__: false,
   },
   server: {

@@ -1,0 +1,107 @@
+name: 🚀 Production Deploy
+
+# Deploys to production after the test pipeline passes on main.
+# Uses workflow_run to chain after test.yml, so all tests (unit, E2E,
+# security, visual regression) must be green before deployment starts.
+#
+# The GitHub 'production' environment should be configured with:
+# - Required reviewers (manual approval gate)
+# - Deployment branch restriction: main only
+
+on:
+  workflow_run:
+    workflows: ["🧪 MakanMakan 測試流水線"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: write
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  # Gate: only proceed if the test pipeline succeeded
+  check-tests:
+    name: ✅ 確認測試通過
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - run: echo "Tests passed — proceeding to production deploy"
+
+  deploy-production:
+    name: 🚀 部署到正式環境
+    runs-on: ubuntu-latest
+    needs: check-tests
+    environment: production
+    timeout-minutes: 20
+
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ 建置應用程式
+        run: pnpm run build
+        env:
+          NODE_ENV: production
+
+      - name: 🚀 部署到 Cloudflare (Production)
+        run: pnpm run deploy:prod
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: ⏳ 等待部署生效
+        run: sleep 15
+
+      - name: 🧪 部署後煙霧測試
+        run: |
+          # Health check — verify API is responding
+          curl --fail --retry 3 --retry-delay 5 \
+            "$PRODUCTION_URL/api/v1/health" \
+            -o /dev/null -w "API health: HTTP %{http_code} in %{time_total}s\n"
+
+          # Verify customer app is serving HTML
+          curl --fail --retry 3 --retry-delay 5 \
+            "$PRODUCTION_URL" \
+            -o /dev/null -w "Customer app: HTTP %{http_code} in %{time_total}s\n"
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+
+      - name: 📊 部署摘要
+        if: always()
+        run: |
+          echo "## 🚀 Production Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          COMMIT_SHA="${{ github.sha }}"
+          echo "**Commit**: ${COMMIT_SHA}" >> $GITHUB_STEP_SUMMARY
+          echo "**時間**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          JOB_STATUS="${{ job.status }}"
+          if [ "$JOB_STATUS" == "success" ]; then
+            echo "### ✅ 部署成功" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ 部署失敗 — 請檢查 logs" >> $GITHUB_STEP_SUMMARY
+          fi

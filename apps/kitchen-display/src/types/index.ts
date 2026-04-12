@@ -1,13 +1,7 @@
 // 廚房專用類型定義
 
-export type OrderStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-// 0: PENDING (待確認)
-// 1: CONFIRMED (已確認)
-// 2: PREPARING (製作中)
-// 3: READY (準備完成)
-// 4: DELIVERED (已送達)
-// 5: PAID (已付款)
-// 6: CANCELLED (已取消)
+import type { OrderStatus } from "@makanmakan/shared-types";
+export type { OrderStatus };
 
 export type ItemStatus = "pending" | "preparing" | "ready" | "completed";
 

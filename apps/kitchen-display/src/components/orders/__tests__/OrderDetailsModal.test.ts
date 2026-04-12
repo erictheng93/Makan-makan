@@ -29,7 +29,7 @@ function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
     orderNumber: "ORD-001",
     tableName: "T1",
     tableId: 1,
-    status: 1,
+    status: "confirmed",
     priority: "normal",
     createdAt: new Date().toISOString(),
     elapsedTime: 10,

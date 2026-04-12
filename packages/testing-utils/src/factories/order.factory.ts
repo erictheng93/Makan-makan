@@ -87,8 +87,9 @@ export const OrderStatus = {
   PREPARING: "preparing",
   READY: "ready",
   DELIVERED: "delivered",
-  COMPLETED: "completed",
+  PAID: "paid",
   CANCELLED: "cancelled",
+  REFUNDED: "refunded",
 } as const;
 
 /**
@@ -137,7 +138,7 @@ export class OrderFactory extends BaseFactory<OrderTestData> {
         OrderStatus.PREPARING,
         OrderStatus.READY,
         OrderStatus.DELIVERED,
-        OrderStatus.COMPLETED,
+        OrderStatus.PAID,
       ]);
 
     const now = currentTimestamp();
@@ -161,14 +162,13 @@ export class OrderFactory extends BaseFactory<OrderTestData> {
         email: `customer${customerId}@test.com`,
       },
       estimatedPrepTime: randomNumber(15, 45),
-      actualPrepTime:
-        status === OrderStatus.COMPLETED ? randomNumber(15, 60) : null,
+      actualPrepTime: status === OrderStatus.PAID ? randomNumber(15, 60) : null,
       confirmedAt: [
         OrderStatus.CONFIRMED,
         OrderStatus.PREPARING,
         OrderStatus.READY,
         OrderStatus.DELIVERED,
-        OrderStatus.COMPLETED,
+        OrderStatus.PAID,
       ].includes(status as any)
         ? pastTimestamp(0.02) // 30 minutes ago
         : null,
@@ -176,41 +176,41 @@ export class OrderFactory extends BaseFactory<OrderTestData> {
         OrderStatus.PREPARING,
         OrderStatus.READY,
         OrderStatus.DELIVERED,
-        OrderStatus.COMPLETED,
+        OrderStatus.PAID,
       ].includes(status as any)
         ? pastTimestamp(0.01) // 15 minutes ago
         : null,
       readyAt: [
         OrderStatus.READY,
         OrderStatus.DELIVERED,
-        OrderStatus.COMPLETED,
+        OrderStatus.PAID,
       ].includes(status as any)
         ? pastTimestamp(0.005) // 7 minutes ago
         : null,
-      deliveredAt: [OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(
+      deliveredAt: [OrderStatus.DELIVERED, OrderStatus.PAID].includes(
         status as any,
       )
         ? pastTimestamp(0.002) // 3 minutes ago
         : null,
-      paidAt: status === OrderStatus.COMPLETED ? now : null,
+      paidAt: status === OrderStatus.PAID ? now : null,
       cancelledAt: status === OrderStatus.CANCELLED ? now : null,
       paymentMethod:
-        status === OrderStatus.COMPLETED
+        status === OrderStatus.PAID
           ? randomChoice([
               PaymentMethods.CASH,
               PaymentMethods.CREDIT_CARD,
               PaymentMethods.MOBILE_PAY,
             ])
           : null,
-      paymentStatus: status === OrderStatus.COMPLETED ? "paid" : "pending",
+      paymentStatus: status === OrderStatus.PAID ? "paid" : "pending",
       paymentTransactionId:
-        status === OrderStatus.COMPLETED
+        status === OrderStatus.PAID
           ? `TXN-${randomString(16).toUpperCase()}`
           : null,
       couponCode: randomBoolean(0.2) ? `DISCOUNT${randomNumber(10, 99)}` : null,
       promotionIds: null,
       rating:
-        status === OrderStatus.COMPLETED && randomBoolean(0.5)
+        status === OrderStatus.PAID && randomBoolean(0.5)
           ? randomNumber(3, 5)
           : null,
       reviewComment: null,
@@ -264,13 +264,13 @@ export class OrderFactory extends BaseFactory<OrderTestData> {
   }
 
   /**
-   * 生成已完成訂單
+   * 生成已付款訂單
    */
-  buildCompleted(options?: FactoryOptions<OrderTestData>): OrderTestData {
+  buildPaid(options?: FactoryOptions<OrderTestData>): OrderTestData {
     return this.build({
       ...options,
       overrides: {
-        status: OrderStatus.COMPLETED,
+        status: OrderStatus.PAID,
         paymentStatus: "paid",
         paymentMethod: randomChoice([
           PaymentMethods.CASH,

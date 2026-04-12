@@ -28,15 +28,15 @@ export const useOrdersStore = defineStore("orders", () => {
 
   // Computed
   const pendingOrders = computed(
-    () => orders.value.filter((order) => order.status === 1), // CONFIRMED
+    () => orders.value.filter((order) => order.status === "confirmed"), // CONFIRMED
   );
 
   const preparingOrders = computed(
-    () => orders.value.filter((order) => order.status === 2), // PREPARING
+    () => orders.value.filter((order) => order.status === "preparing"), // PREPARING
   );
 
   const readyOrders = computed(
-    () => orders.value.filter((order) => order.status === 3), // READY
+    () => orders.value.filter((order) => order.status === "ready"), // READY
   );
 
   const urgentOrders = computed(() =>
@@ -226,11 +226,11 @@ export const useOrdersStore = defineStore("orders", () => {
         (status) => status === "ready" || status === "completed",
       )
     ) {
-      order.status = 3; // READY
+      order.status = "ready"; // READY
     } else if (itemStatuses.some((status) => status === "preparing")) {
-      order.status = 2; // PREPARING
+      order.status = "preparing"; // PREPARING
     } else {
-      order.status = 1; // CONFIRMED
+      order.status = "confirmed"; // CONFIRMED
     }
   };
 
@@ -281,7 +281,12 @@ export const useOrdersStore = defineStore("orders", () => {
    * 計算平均等待時間
    */
   const calculateAverageWaitingTime = (): number => {
-    const waitingOrders = orders.value.filter((order) => order.status <= 2);
+    const waitingOrders = orders.value.filter(
+      (order) =>
+        order.status === "pending" ||
+        order.status === "confirmed" ||
+        order.status === "preparing",
+    );
 
     if (waitingOrders.length === 0) return 0;
 
@@ -456,12 +461,12 @@ export const useOrdersStore = defineStore("orders", () => {
    */
   const updateOrderStatus = (
     orderId: number | string,
-    newStatus: number | OrderStatus,
+    newStatus: OrderStatus,
   ) => {
     const id = typeof orderId === "string" ? parseInt(orderId, 10) : orderId;
     const orderIndex = orders.value.findIndex((o) => o.id === id);
     if (orderIndex !== -1) {
-      orders.value[orderIndex].status = newStatus as OrderStatus;
+      orders.value[orderIndex].status = newStatus;
       updateStats();
     }
   };

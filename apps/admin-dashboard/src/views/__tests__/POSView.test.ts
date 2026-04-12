@@ -551,7 +551,7 @@ describe("CashierView Component", () => {
 
       expect(mockApiPut).toHaveBeenCalledWith(
         "/orders/1/status",
-        expect.objectContaining({ status: "completed" }),
+        expect.objectContaining({ status: "paid" }),
       );
     });
 

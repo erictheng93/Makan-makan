@@ -45,7 +45,7 @@ function buildMockOrders(): KitchenOrder[] {
       tableId: 1,
       customerName: "張三",
       priority: "normal",
-      status: 1, // confirmed
+      status: "confirmed", // confirmed
       createdAt: new Date().toISOString(),
       elapsedTime: 300,
       totalItems: 1,
@@ -66,7 +66,7 @@ function buildMockOrders(): KitchenOrder[] {
       tableName: "B-2",
       tableId: 2,
       priority: "urgent",
-      status: 2, // preparing
+      status: "preparing", // preparing
       createdAt: new Date().toISOString(),
       elapsedTime: 600,
       totalItems: 1,
@@ -86,7 +86,7 @@ function buildMockOrders(): KitchenOrder[] {
       tableName: "C-3",
       tableId: 3,
       priority: "high",
-      status: 3, // ready
+      status: "ready", // ready
       createdAt: new Date().toISOString(),
       elapsedTime: 120,
       totalItems: 1,

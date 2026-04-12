@@ -1,0 +1,111 @@
+name: 🌙 Nightly Integration Tests
+
+# Integration tests hit a real Wrangler dev server + seeded D1 database.
+# They run nightly (not on every PR) because they're slower, flakier,
+# and depend on real infrastructure. Manual trigger is available for
+# ad-hoc validation before releases.
+
+on:
+  schedule:
+    # 2 AM UTC+8 (Taiwan time) — 18:00 UTC daily
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  integration-tests:
+    name: 🔗 Integration Tests (real API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v5
+
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ 建置應用程式
+        run: pnpm run build
+
+      - name: 🗄️ 初始化本地 D1 資料庫
+        run: |
+          pnpm db:migrate:local
+          pnpm db:seed:mock
+
+      - name: 🚀 啟動 API dev server
+        run: |
+          cd apps/api && pnpm dev > /tmp/api-server.log 2>&1 &
+        env:
+          NODE_ENV: test
+
+      - name: 🚀 啟動 customer-app preview
+        env:
+          VITE_API_BASE_URL: /api/v1
+        run: |
+          (cd apps/customer-app && npx vite preview --port 3000 --host 0.0.0.0 > /tmp/customer-preview.log 2>&1 &)
+
+      - name: ⏳ 等待服務就緒
+        run: |
+          npx wait-on \
+            http://localhost:8787/api/v1/health \
+            http://localhost:3000 \
+            --timeout 90000
+
+      - name: 📦 安裝 Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: 🧪 執行 Integration Tests
+        run: npx playwright test --project=integration
+        env:
+          E2E_BASE_URL: http://localhost:3000
+
+      - name: 🛑 停止服務
+        if: always()
+        run: |
+          pkill -f "wrangler dev" || true
+          pkill -f "vite preview" || true
+
+      - name: 📎 上傳測試報告
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: integration-test-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: 📸 上傳失敗截圖
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: integration-test-screenshots
+          path: test-results/
+          retention-days: 7
+
+      - name: 📊 生成測試摘要
+        if: always()
+        run: |
+          echo "## 🌙 Nightly Integration Tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**分支**: main" >> $GITHUB_STEP_SUMMARY
+          echo "**時間**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "詳細報告請查看 Artifacts 區域" >> $GITHUB_STEP_SUMMARY

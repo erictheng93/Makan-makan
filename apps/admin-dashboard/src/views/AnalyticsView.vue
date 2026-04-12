@@ -564,7 +564,7 @@ const orderStatusData = computed(() => {
 
   return [
     {
-      name: t("analytics.orderStatus.completed"),
+      name: t("analytics.orderStatus.delivered"),
       count: completed,
       color: "bg-green-500",
     },

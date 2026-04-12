@@ -72,7 +72,7 @@
             <span
               class="text-base font-extrabold"
               :class="
-                order.status === 6
+                order.status === 'cancelled'
                   ? 'text-ios-secondary line-through'
                   : 'text-ios-text'
               "
@@ -91,7 +91,9 @@
               v-if="order.deliveryInfo?.type"
               class="text-xs font-semibold px-2 py-0.5 rounded-full bg-ios-bg"
               :class="
-                order.status === 6 ? 'text-ios-tertiary' : 'text-ios-secondary'
+                order.status === 'cancelled'
+                  ? 'text-ios-tertiary'
+                  : 'text-ios-secondary'
               "
             >
               {{ typeLabel(order.deliveryInfo.type) }}
@@ -239,9 +241,9 @@ const summary = computed(() => {
   const avgCookingTime =
     cookCount > 0 ? Math.round(totalCookSecs / cookCount) : 0;
 
-  // On-time rate: completed orders (status 4/5) that were finished within estimatedTime
+  // On-time rate: completed orders (delivered/paid) that were finished within estimatedTime
   const completedOrders = orders.filter(
-    (o) => o.status === 4 || o.status === 5,
+    (o) => o.status === "delivered" || o.status === "paid",
   );
   const onTimeCount = completedOrders.filter((o) => {
     if (!o.estimatedTime || !o.confirmedAt) return false;
@@ -274,23 +276,25 @@ function orderCookingTime(order: KitchenOrder): number {
 
 // ── Badge helpers ─────────────────────────────────────────────────────────────
 function statusLabel(status: OrderStatus): string {
-  const map: Record<number, string> = {
-    0: "待確認",
-    1: "已確認",
-    2: "製作中",
-    3: "已完成",
-    4: "已送達",
-    5: "已付款",
-    6: "已取消",
+  const map: Record<OrderStatus, string> = {
+    pending: "待確認",
+    confirmed: "已確認",
+    preparing: "製作中",
+    ready: "已完成",
+    delivered: "已送達",
+    paid: "已付款",
+    cancelled: "已取消",
+    refunded: "已退款",
   };
   return map[status] ?? "未知";
 }
 
 function statusBadgeClass(status: OrderStatus): string {
-  if (status === 6) return "bg-ios-bg text-ios-tertiary";
-  if (status === 3 || status === 4 || status === 5)
+  if (status === "cancelled" || status === "refunded")
+    return "bg-ios-bg text-ios-tertiary";
+  if (status === "ready" || status === "delivered" || status === "paid")
     return "bg-ios-green/10 text-ios-green";
-  if (status === 2) return "bg-ios-orange/10 text-ios-orange";
+  if (status === "preparing") return "bg-ios-orange/10 text-ios-orange";
   return "bg-ios-blue/10 text-ios-blue";
 }
 

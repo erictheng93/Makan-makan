@@ -488,7 +488,7 @@ describe("useAudioNotifications", () => {
           orderNumber: "ORD-001",
           tableId: 1,
           tableName: "T1",
-          status: 2, // Preparing
+          status: "preparing", // Preparing
           priority: "normal",
           createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(), // 35 minutes ago
           elapsedTime: 35,
@@ -512,7 +512,7 @@ describe("useAudioNotifications", () => {
           orderNumber: "ORD-001",
           tableId: 1,
           tableName: "T1",
-          status: 2,
+          status: "preparing",
           priority: "normal",
           createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
           elapsedTime: 10,
@@ -536,7 +536,7 @@ describe("useAudioNotifications", () => {
           orderNumber: "ORD-001",
           tableId: 1,
           tableName: "T1",
-          status: 2,
+          status: "preparing",
           priority: "normal",
           createdAt: new Date(Date.now() - 13 * 60 * 1000).toISOString(), // 13 minutes ago
           elapsedTime: 13,

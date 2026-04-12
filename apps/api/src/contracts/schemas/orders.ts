@@ -27,6 +27,7 @@ export const OrderStatusEnum = z.enum([
   "delivered",
   "paid",
   "cancelled",
+  "refunded",
 ]);
 
 export const PaymentStatusEnum = z.enum(["pending", "paid", "failed"]);

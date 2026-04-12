@@ -127,7 +127,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { useOrdersStore } from "@/stores/orders";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useKitchenSSE } from "@/composables/useKitchenSSE";
-import type { KitchenOrder } from "@/types";
+import type { KitchenOrder, OrderStatus } from "@/types";
 
 // Components
 import KitchenHeader from "@/components/layout/KitchenHeader.vue";
@@ -207,23 +207,23 @@ const filteredOrders = computed(() => {
 });
 
 const filteredPendingOrders = computed(() =>
-  filteredOrders.value.filter((order) => order.status === 1),
+  filteredOrders.value.filter((order) => order.status === "confirmed"),
 );
 
 const filteredPreparingOrders = computed(() =>
-  filteredOrders.value.filter((order) => order.status === 2),
+  filteredOrders.value.filter((order) => order.status === "preparing"),
 );
 
 const filteredReadyOrders = computed(() =>
-  filteredOrders.value.filter((order) => order.status === 3),
+  filteredOrders.value.filter((order) => order.status === "ready"),
 );
 
 // Helpers
 const getOrderStatusType = (
-  status: number,
+  status: OrderStatus,
 ): "pending" | "preparing" | "ready" => {
-  if (status === 2) return "preparing";
-  if (status === 3) return "ready";
+  if (status === "preparing") return "preparing";
+  if (status === "ready") return "ready";
   return "pending";
 };
 

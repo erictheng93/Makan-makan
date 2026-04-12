@@ -1154,7 +1154,7 @@ const getOrderStatusText = (status: string) => {
   const texts: Record<string, string> = {
     ready: t("cashier.orderStatus.ready"),
     delivered: t("cashier.orderStatus.delivered"),
-    completed: t("cashier.orderStatus.completed"),
+    paid: t("cashier.orderStatus.paid"),
   };
   return texts[status] || status;
 };
@@ -1164,10 +1164,10 @@ const processPayment = async () => {
 
   isProcessing.value = true;
   try {
-    // Update order status to completed/paid via API
+    // Update order status to paid via API
     const statusResponse = await api.put(
       `/orders/${selectedOrder.value.id}/status`,
-      { status: "completed" },
+      { status: "paid" },
     );
 
     if (statusResponse.data.success) {
@@ -1192,7 +1192,7 @@ const processPayment = async () => {
       );
       if (orderIndex > -1) {
         orders.value[orderIndex].paymentStatus = "paid";
-        orders.value[orderIndex].status = "completed";
+        orders.value[orderIndex].status = "paid";
         orders.value[orderIndex].paymentMethod = selectedPaymentMethod.value;
       }
 

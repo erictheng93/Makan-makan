@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useOrdersStore } from "@/stores/orders";
 import { useAudioNotifications } from "@/composables/useAudioNotifications";
-import type { KitchenSSEEvent, KitchenOrder } from "@/types";
+import type { KitchenSSEEvent, KitchenOrder, OrderStatus } from "@/types";
 import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
 // Mock services - inline definitions to avoid hoisting issues
@@ -36,7 +36,7 @@ function buildKitchenOrder(
     orderNumber: base.orderNumber ?? "ORD-001",
     tableId: base.tableId ?? 1,
     tableName: "T1",
-    status: 1,
+    status: "confirmed",
     priority: "normal" as const,
     createdAt: new Date().toISOString(),
     elapsedTime: 0,
@@ -122,14 +122,14 @@ describe("Realtime Updates Integration", () => {
         buildKitchenOrder({
           id: 1,
           orderNumber: "ORD-001",
-          status: 2,
+          status: "preparing",
           elapsedTime: 10,
         }),
       ];
 
       // Use updateOrderStatus directly since handleSSEEvent expects item-level updates
       // The store derives order status from item statuses
-      ordersStore.updateOrderStatus(1, 3);
+      ordersStore.updateOrderStatus(1, "ready");
 
       const event: KitchenSSEEvent = {
         type: "ORDER_STATUS_UPDATE",
@@ -141,7 +141,7 @@ describe("Realtime Updates Integration", () => {
       await handleSSEEvent(event);
 
       const order = ordersStore.orders.find((o) => o.id === 1);
-      expect(order?.status).toBe(3);
+      expect(order?.status).toBe("ready");
       expect(mockAudioService.playOrderReady).toHaveBeenCalled();
     });
 
@@ -209,7 +209,7 @@ describe("Realtime Updates Integration", () => {
 
       // Rapid status updates using updateOrderStatus (direct method)
       // The store's handleSSEEvent expects item-level updates to derive order status
-      const statuses = [2, 3, 4];
+      const statuses: OrderStatus[] = ["preparing", "ready", "delivered"];
 
       for (const status of statuses) {
         ordersStore.updateOrderStatus(1, status);
@@ -217,7 +217,7 @@ describe("Realtime Updates Integration", () => {
 
       // Final status should reflect last update
       const finalOrder = ordersStore.orders.find((o) => o.id === 1);
-      expect(finalOrder?.status).toBe(4);
+      expect(finalOrder?.status).toBe("delivered");
     });
   });
 
@@ -234,7 +234,7 @@ describe("Realtime Updates Integration", () => {
 
       // Update status using direct method
       // The store's handleSSEEvent expects item-level updates to derive order status
-      ordersStore.updateOrderStatus(1, 2);
+      ordersStore.updateOrderStatus(1, "preparing");
 
       expect(ordersStore.pendingOrders).toHaveLength(0);
       expect(ordersStore.preparingOrders).toHaveLength(1);

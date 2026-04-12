@@ -58,7 +58,7 @@ describe("Tables Validation Schemas", () => {
   describe("createTableSchema", () => {
     it("should accept valid input with required fields only", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T1",
         capacity: 4,
       });
@@ -67,7 +67,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should accept valid input with all fields", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T1",
         name: "Window Table",
         capacity: 6,
@@ -82,7 +82,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should apply default floor=1 when not provided", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T1",
         capacity: 4,
       });
@@ -94,7 +94,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should apply default isReservable=true when not provided", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T1",
         capacity: 4,
       });
@@ -106,7 +106,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should accept number at max length (50 chars)", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T".repeat(50),
         capacity: 2,
       });
@@ -115,7 +115,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should reject number exceeding 50 chars", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T".repeat(51),
         capacity: 2,
       });
@@ -124,7 +124,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should reject empty number string (min 1)", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "",
         capacity: 2,
       });
@@ -133,7 +133,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should reject non-positive capacity (0)", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T1",
         capacity: 0,
       });
@@ -142,7 +142,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should reject non-integer capacity", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T1",
         capacity: 2.5,
       });
@@ -159,7 +159,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should reject missing required field number", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         capacity: 4,
       });
       expect(result.success).toBe(false);
@@ -167,7 +167,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should reject missing required field capacity", () => {
       const result = createTableSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         number: "T1",
       });
       expect(result.success).toBe(false);
@@ -256,11 +256,15 @@ describe("Tables Validation Schemas", () => {
       }
     });
 
-    it("should transform restaurantId string to number", () => {
-      const result = tableFilterSchema.safeParse({ restaurantId: "42" });
+    it("should accept restaurantId as string (UUID)", () => {
+      const result = tableFilterSchema.safeParse({
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
+      });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.restaurantId).toBe(42);
+        expect(result.data.restaurantId).toBe(
+          "019469a0-0001-7000-8000-000000000001",
+        );
       }
     });
 
@@ -332,9 +336,11 @@ describe("Tables Validation Schemas", () => {
       }
     });
 
-    it("should reject non-numeric restaurantId string", () => {
-      const result = tableFilterSchema.safeParse({ restaurantId: "abc" });
-      expect(result.success).toBe(false);
+    it("should accept any non-empty restaurantId string", () => {
+      const result = tableFilterSchema.safeParse({
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
+      });
+      expect(result.success).toBe(true);
     });
 
     it("should reject non-numeric floor string", () => {
@@ -484,7 +490,7 @@ describe("Tables Validation Schemas", () => {
   describe("generateQRBulkSchema", () => {
     it("should accept valid input with required fields", () => {
       const result = generateQRBulkSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableIds: [1, 2, 3],
       });
       expect(result.success).toBe(true);
@@ -492,7 +498,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should accept valid input with options", () => {
       const result = generateQRBulkSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableIds: [1],
         options: { size: "large", format: "svg", includeTableInfo: false },
       });
@@ -501,7 +507,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should accept tableIds at minimum length (1 item)", () => {
       const result = generateQRBulkSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableIds: [5],
       });
       expect(result.success).toBe(true);
@@ -510,7 +516,7 @@ describe("Tables Validation Schemas", () => {
     it("should accept tableIds at maximum length (50 items)", () => {
       const tableIds = Array.from({ length: 50 }, (_, i) => i + 1);
       const result = generateQRBulkSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableIds,
       });
       expect(result.success).toBe(true);
@@ -518,7 +524,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should reject empty tableIds array", () => {
       const result = generateQRBulkSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableIds: [],
       });
       expect(result.success).toBe(false);
@@ -527,15 +533,14 @@ describe("Tables Validation Schemas", () => {
     it("should reject tableIds exceeding 50 items", () => {
       const tableIds = Array.from({ length: 51 }, (_, i) => i + 1);
       const result = generateQRBulkSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableIds,
       });
       expect(result.success).toBe(false);
     });
 
-    it("should reject non-positive restaurantId", () => {
+    it("should reject missing restaurantId", () => {
       const result = generateQRBulkSchema.safeParse({
-        restaurantId: 0,
         tableIds: [1],
       });
       expect(result.success).toBe(false);
@@ -543,7 +548,7 @@ describe("Tables Validation Schemas", () => {
 
     it("should reject non-integer values in tableIds", () => {
       const result = generateQRBulkSchema.safeParse({
-        restaurantId: 1,
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableIds: [1, 2.5, 3],
       });
       expect(result.success).toBe(false);
@@ -553,19 +558,21 @@ describe("Tables Validation Schemas", () => {
   // ─── availableTablesQuerySchema ───────────────────────────────────
 
   describe("availableTablesQuerySchema", () => {
-    it("should accept valid restaurantId and transform to number", () => {
+    it("should accept valid restaurantId as UUID string", () => {
       const result = availableTablesQuerySchema.safeParse({
-        restaurantId: "7",
+        restaurantId: "019469a0-0001-7000-8000-000000000007",
       });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.restaurantId).toBe(7);
+        expect(result.data.restaurantId).toBe(
+          "019469a0-0001-7000-8000-000000000007",
+        );
       }
     });
 
     it("should accept optional capacity and transform to number", () => {
       const result = availableTablesQuerySchema.safeParse({
-        restaurantId: "1",
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
         capacity: "4",
       });
       expect(result.success).toBe(true);
@@ -574,11 +581,11 @@ describe("Tables Validation Schemas", () => {
       }
     });
 
-    it("should reject non-numeric restaurantId", () => {
+    it("should accept any string restaurantId", () => {
       const result = availableTablesQuerySchema.safeParse({
-        restaurantId: "abc",
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
       });
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
 
     it("should reject missing restaurantId", () => {
@@ -590,21 +597,23 @@ describe("Tables Validation Schemas", () => {
   // ─── tableStatsQuerySchema ────────────────────────────────────────
 
   describe("tableStatsQuerySchema", () => {
-    it("should accept valid restaurantId and transform to number", () => {
+    it("should accept valid restaurantId as UUID string", () => {
       const result = tableStatsQuerySchema.safeParse({
-        restaurantId: "15",
+        restaurantId: "019469a0-0001-7000-8000-000000000015",
       });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.restaurantId).toBe(15);
+        expect(result.data.restaurantId).toBe(
+          "019469a0-0001-7000-8000-000000000015",
+        );
       }
     });
 
-    it("should reject non-numeric restaurantId", () => {
+    it("should accept any string restaurantId", () => {
       const result = tableStatsQuerySchema.safeParse({
-        restaurantId: "xyz",
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
       });
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
 
     it("should reject missing restaurantId", () => {

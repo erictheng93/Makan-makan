@@ -1897,8 +1897,9 @@ const idID: Messages = {
     },
     orderStatus: {
       ready: "Siap Bayar",
+      delivered: "Sudah Diantar",
       processing: "Memproses",
-      completed: "Selesai",
+      paid: "Sudah Dibayar",
       refunded: "Dikembalikan",
     },
     refund: "Pengembalian",
@@ -2613,7 +2614,7 @@ const idID: Messages = {
       orderStatusDist: "Distribusi Status Pesanan",
     },
     orderStatus: {
-      completed: "Selesai",
+      delivered: "Terselesaikan",
       preparing: "Sedang Disiapkan",
       pending: "Menunggu",
       cancelled: "Dibatalkan",

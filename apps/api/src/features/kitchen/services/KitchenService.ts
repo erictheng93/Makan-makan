@@ -153,22 +153,7 @@ export class KitchenService implements IKitchenService {
           orderNumber: order.orderNumber,
           tableId: order.tableId || 0, // Default to 0 if no table
           tableName: order.tableId ? `Table ${order.tableId}` : "No Table",
-          // TODO(Phase 5): Remove this string→number bridge when kitchen-display
-          // migrates to the canonical string union (Issue #9, Phase 5).
-          status:
-            order.status === "confirmed"
-              ? 1
-              : order.status === "preparing"
-                ? 2
-                : order.status === "ready"
-                  ? 3
-                  : order.status === "delivered"
-                    ? 4
-                    : order.status === "paid"
-                      ? 5
-                      : order.status === "cancelled"
-                        ? 6
-                        : 0,
+          status: order.status,
           items: (order.items || []).map((item) => {
             // item.status is already a string — pass through directly.
             const itemStatus =
@@ -198,13 +183,9 @@ export class KitchenService implements IKitchenService {
         };
       });
 
-      // Filter by the NUMERIC status that the bridge at lines 158-171 outputs.
-      // These comparisons use numbers (1, 2, 3) because the kitchen-display
-      // backward-compat bridge above maps canonical strings → legacy numbers.
-      // When the bridge is removed in Phase 5, change these to string comparisons.
-      const pending = kitchenOrders.filter((o) => o.status === 1);
-      const preparing = kitchenOrders.filter((o) => o.status === 2);
-      const ready = kitchenOrders.filter((o) => o.status === 3);
+      const pending = kitchenOrders.filter((o) => o.status === "confirmed");
+      const preparing = kitchenOrders.filter((o) => o.status === "preparing");
+      const ready = kitchenOrders.filter((o) => o.status === "ready");
 
       // Get daily stats for completedToday count
       const dailyStats = await ordersService.getDailyStats(restaurantId);

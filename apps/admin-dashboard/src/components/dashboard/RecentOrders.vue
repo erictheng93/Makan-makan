@@ -120,14 +120,7 @@ import {
   Utensils,
   Package,
 } from "lucide-vue-next";
-
-type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "preparing"
-  | "ready"
-  | "completed"
-  | "cancelled";
+import type { OrderStatus } from "@/types";
 
 interface RecentOrder {
   id: string;
@@ -160,7 +153,7 @@ defineEmits<{
 const { t } = useI18n();
 
 const getStatusColor = (status: OrderStatus) => {
-  const colorMap = {
+  const colorMap: Record<OrderStatus, { bg: string; text: string }> = {
     pending: {
       bg: "bg-yellow-500",
       text: "bg-yellow-100 text-yellow-800",
@@ -177,28 +170,38 @@ const getStatusColor = (status: OrderStatus) => {
       bg: "bg-purple-500",
       text: "bg-purple-100 text-purple-800",
     },
-    completed: {
+    delivered: {
       bg: "bg-green-500",
       text: "bg-green-100 text-green-800",
+    },
+    paid: {
+      bg: "bg-teal-500",
+      text: "bg-teal-100 text-teal-800",
     },
     cancelled: {
       bg: "bg-red-500",
       text: "bg-red-100 text-red-800",
     },
+    refunded: {
+      bg: "bg-gray-500",
+      text: "bg-gray-100 text-gray-800",
+    },
   };
-  return colorMap[status] || colorMap.pending;
+  return colorMap[status] ?? colorMap.pending;
 };
 
 const getStatusIcon = (status: OrderStatus) => {
-  const iconMap = {
+  const iconMap: Record<OrderStatus, typeof Clock> = {
     pending: Clock,
     confirmed: CheckCircle,
     preparing: Utensils,
     ready: Package,
-    completed: CheckCircle,
+    delivered: CheckCircle,
+    paid: CheckCircle,
     cancelled: XCircle,
+    refunded: XCircle,
   };
-  return iconMap[status] || Clock;
+  return iconMap[status] ?? Clock;
 };
 
 const getStatusText = (status: OrderStatus) => {

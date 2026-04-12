@@ -9,7 +9,6 @@ import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick, reactive } from "vue";
 import OrdersView from "../OrdersView.vue";
-import { OrderStatus } from "@/types";
 import type { Order } from "@/types";
 import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
@@ -19,7 +18,7 @@ function buildMockOrders(): Order[] {
   // Use orderFactory with overrides to match the component's Order type
   const order1Base = orderFactory.buildPending({ overrides: { id: 1 } });
   const order2Base = orderFactory.buildInProgress({ overrides: { id: 2 } });
-  const order3Base = orderFactory.buildCompleted({ overrides: { id: 3 } });
+  const order3Base = orderFactory.buildPaid({ overrides: { id: 3 } });
   const order4Base = orderFactory.build({
     overrides: { id: 4, status: "cancelled" },
   });
@@ -29,7 +28,7 @@ function buildMockOrders(): Order[] {
       id: order1Base.id!,
       restaurantId: "r1",
       tableId: 1,
-      status: OrderStatus.PENDING,
+      status: "pending",
       totalAmount: 500,
       createdAt: "2024-03-01T10:00:00Z",
       updatedAt: "2024-03-01T10:00:00Z",
@@ -40,7 +39,7 @@ function buildMockOrders(): Order[] {
       id: order2Base.id!,
       restaurantId: "r1",
       tableId: 2,
-      status: OrderStatus.PREPARING,
+      status: "preparing",
       totalAmount: 800,
       createdAt: "2024-03-01T11:00:00Z",
       updatedAt: "2024-03-01T11:00:00Z",
@@ -60,7 +59,7 @@ function buildMockOrders(): Order[] {
       id: order3Base.id!,
       restaurantId: "r1",
       tableId: undefined,
-      status: OrderStatus.COMPLETED,
+      status: "delivered",
       totalAmount: 300,
       createdAt: "2024-03-01T09:00:00Z",
       updatedAt: "2024-03-01T12:00:00Z",
@@ -71,7 +70,7 @@ function buildMockOrders(): Order[] {
       id: order4Base.id!,
       restaurantId: "r1",
       tableId: 3,
-      status: OrderStatus.CANCELLED,
+      status: "cancelled",
       totalAmount: 200,
       createdAt: "2024-03-01T08:00:00Z",
       updatedAt: "2024-03-01T08:30:00Z",
@@ -245,11 +244,11 @@ describe("OrdersView Component", () => {
 
     it("should show correct preparing count", () => {
       // preparing stat includes PREPARING + READY + DELIVERED
-      // Our data has 1 preparing order (id=2)
+      // Our data has 2 orders in this bucket: order2 (preparing) + order3 (delivered)
       const statsGrid = wrapper.find(".grid.grid-cols-2");
       const cards = statsGrid.findAll(":scope > div");
       const preparingCard = cards[1];
-      expect(preparingCard.text()).toContain("1");
+      expect(preparingCard.text()).toContain("2");
     });
 
     it("should show correct completed count", () => {

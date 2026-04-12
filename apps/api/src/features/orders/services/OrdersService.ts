@@ -42,7 +42,6 @@ import type {
   OrderUpdateEvent,
   BulkOrderOperation,
   BulkOrderResult,
-  OrderPermissions,
   OrderReceipt,
   PaymentIntegration,
   IOrdersService,
@@ -941,37 +940,6 @@ export class OrdersService implements IOrdersService {
     }
   }
 
-  // Permissions
-  async checkOrderPermissions(
-    userId: number,
-    userRole: UserRole,
-    _orderId?: number,
-  ): Promise<OrderPermissions> {
-    try {
-      const isAdmin = userRole === 0;
-
-      return {
-        canView: true, // All authenticated users can view orders
-        canCreate: true,
-        canUpdate: isAdmin || userRole === 1, // Admin or owner
-        canCancel: isAdmin || userRole === 1,
-        canUpdateStatus: isAdmin || [1, 2, 3, 4].includes(userRole), // All staff
-        canUpdatePayment: isAdmin || userRole === 1 || userRole === 4, // Admin, owner, cashier
-        canViewAllRestaurants: isAdmin,
-        canManageItems: isAdmin || userRole === 1,
-        canViewAnalytics: isAdmin || userRole === 1,
-        allowedStatusTransitions: this.getAllowedStatusTransitions(userRole),
-      };
-    } catch (error) {
-      this.logger.error(
-        "Failed to check order permissions",
-        error instanceof Error ? error : undefined,
-        { userId, userRole },
-      );
-      throw error;
-    }
-  }
-
   // Real-time Updates
   /**
    * 廣播新訂單事件
@@ -1242,10 +1210,6 @@ export class OrdersService implements IOrdersService {
         "FORBIDDEN",
       );
     }
-  }
-
-  private getAllowedStatusTransitions(userRole: UserRole): OrderStatus[] {
-    return (ROLE_STATUS_PERMISSIONS[userRole] ?? []) as OrderStatus[];
   }
 
   private formatCustomizations(

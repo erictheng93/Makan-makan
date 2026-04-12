@@ -18,7 +18,7 @@ function makeOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
     orderNumber: "ORD-001",
     tableId: 10,
     tableName: "Table 10",
-    status: 1,
+    status: "confirmed",
     items: [
       {
         id: 100,
@@ -209,14 +209,14 @@ describe("OfflineService - Data Persistence & Integrity", () => {
     });
 
     it("should update order status for update_status action", () => {
-      const order = makeOrder({ id: 12, status: 1 });
+      const order = makeOrder({ id: 12, status: "confirmed" });
       offlineService.cacheOrders([order]);
 
       offlineService.applyActionLocally({
         id: "a3",
         type: "update_status",
         orderId: 12,
-        payload: { status: 4 },
+        payload: { status: "delivered" },
         timestamp: Date.now(),
         synced: false,
         retryCount: 0,
@@ -225,11 +225,9 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       const cached = offlineService.getCachedOrders();
       // Note: updateOrderStatus recalculates based on items, but
       // update_status sets it explicitly first.
-      // Since all items are still "pending", updateOrderStatus sets status=1,
-      // but the payload set status=4 first. The final value depends on
-      // updateOrderStatus overriding. Let's verify the items-based recalculation.
-      // All items pending -> status = 1
-      expect(cached[0].status).toBe(1);
+      // Since all items are still "pending", updateOrderStatus overrides to "confirmed".
+      // All items pending -> status = "confirmed"
+      expect(cached[0].status).toBe("confirmed");
     });
 
     it("should update order priority for priority_change action", () => {
@@ -384,10 +382,10 @@ describe("OfflineService - Data Persistence & Integrity", () => {
   // 4. updateOrderStatus (recalculation)
   // ────────────────────────────────────────────────────────────────
   describe("updateOrderStatus (via applyActionLocally)", () => {
-    it("should set order status to 3 (Ready) when all items are ready", () => {
+    it("should set order status to 'ready' when all items are ready", () => {
       const order = makeOrder({
         id: 30,
-        status: 2,
+        status: "preparing",
         items: [
           makeItem({ id: 90, status: "preparing" }),
           makeItem({ id: 91, status: "ready" }),
@@ -408,13 +406,13 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       });
 
       const cached = offlineService.getCachedOrders();
-      expect(cached[0].status).toBe(3); // all ready
+      expect(cached[0].status).toBe("ready"); // all ready
     });
 
-    it("should set order status to 2 (Preparing) when any item is preparing", () => {
+    it("should set order status to 'preparing' when any item is preparing", () => {
       const order = makeOrder({
         id: 31,
-        status: 1,
+        status: "confirmed",
         items: [
           makeItem({ id: 92, status: "pending" }),
           makeItem({ id: 93, status: "pending" }),
@@ -435,13 +433,13 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       });
 
       const cached = offlineService.getCachedOrders();
-      expect(cached[0].status).toBe(2); // at least one preparing
+      expect(cached[0].status).toBe("preparing"); // at least one preparing
     });
 
-    it("should set order status to 1 (Confirmed) when no items are preparing or ready", () => {
+    it("should set order status to 'confirmed' when no items are preparing or ready", () => {
       const order = makeOrder({
         id: 32,
-        status: 2,
+        status: "preparing",
         items: [
           makeItem({ id: 94, status: "pending" }),
           makeItem({ id: 95, status: "pending" }),
@@ -461,7 +459,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       });
 
       const cached = offlineService.getCachedOrders();
-      expect(cached[0].status).toBe(1); // all pending -> confirmed
+      expect(cached[0].status).toBe("confirmed"); // all pending -> confirmed
     });
   });
 
@@ -471,7 +469,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
   describe("validateCachedData", () => {
     it("should return true for valid cached orders", () => {
       offlineService.cacheOrders([
-        makeOrder({ id: 40, orderNumber: "ORD-040", status: 1 }),
+        makeOrder({ id: 40, orderNumber: "ORD-040", status: "confirmed" }),
       ]);
 
       expect(offlineService.validateCachedData()).toBe(true);
@@ -498,9 +496,9 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       expect(offlineService.validateCachedData()).toBe(false);
     });
 
-    it("should return false when an order has non-number status", () => {
+    it("should return false when an order has non-string status", () => {
       const badOrder = makeOrder({ id: 43 });
-      (badOrder as any).status = "ready"; // string instead of number
+      (badOrder as any).status = 3; // number instead of string
       offlineService.cacheOrders([badOrder]);
 
       expect(offlineService.validateCachedData()).toBe(false);

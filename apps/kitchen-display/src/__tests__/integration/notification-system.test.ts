@@ -28,7 +28,7 @@ function createMockOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrder {
     orderNumber: "ORD-001",
     tableId: 1,
     tableName: "T1",
-    status: 1,
+    status: "confirmed",
     priority: "normal",
     createdAt: new Date().toISOString(),
     elapsedTime: 0,
@@ -214,7 +214,7 @@ describe("Notification System Integration", () => {
         createMockOrder({
           id: 1,
           orderNumber: "ORD-001",
-          status: 2,
+          status: "preparing",
           createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
           elapsedTime: 35,
           estimatedTime: 15,

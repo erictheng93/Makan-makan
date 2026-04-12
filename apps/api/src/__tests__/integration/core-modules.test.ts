@@ -222,7 +222,7 @@ describe("Core Modules Integration Tests", () => {
           Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          restaurantId: 1, // createTableSchema requires z.number().int().positive()
+          restaurantId: testRestaurantId,
           number: "A1",
           capacity: 4,
           isActive: true,
@@ -377,7 +377,7 @@ describe("Core Modules Integration Tests", () => {
           Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          restaurantId: 1, // createTableSchema requires z.number().int().positive()
+          restaurantId: testRestaurantId,
           number: "B2",
           capacity: 2,
           isActive: true,
@@ -813,7 +813,7 @@ describe("Core Modules Integration Tests", () => {
         Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
-        restaurantId: testUserId, // createTableSchema requires z.number().int().positive()
+        restaurantId: testRestaurantId,
         number: "T1",
         capacity: 4,
         isActive: true,

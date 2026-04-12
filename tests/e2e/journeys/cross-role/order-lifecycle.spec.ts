@@ -50,11 +50,11 @@ const KITCHEN_APP = process.env.E2E_KITCHEN_URL || "http://localhost:3002";
 // Shared state that evolves as the order moves through stages.
 // Each serial test mutates this to reflect the current order status.
 // ---------------------------------------------------------------------------
-let currentOrderStatus = 0; // 0=pending, 1=confirmed, 2=preparing, 3=ready, 4=delivered, 5=completed
+let currentOrderStatus: string = "pending"; // pending, confirmed, preparing, ready, delivered, paid
 
 /**
  * Build a mock order reflecting the current lifecycle stage.
- * Status codes: 0=pending, 1=confirmed, 2=preparing, 3=ready, 4=delivered, 5=completed
+ * Status values: "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "paid"
  */
 function orderAtCurrentStage(overrides: Record<string, any> = {}) {
   return createMockOrder({ status: currentOrderStatus, ...overrides });
@@ -276,7 +276,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     // Real-world action: the shop owner opens the admin dashboard and sees
     // a new pending order that just came in from the customer.
 
-    currentOrderStatus = 0; // pending
+    currentOrderStatus = "pending";
 
     await mockAuthAPI(page, PERSONAS.OWNER);
     await mockRestaurantAPI(page);
@@ -324,7 +324,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     // Real-world action: the chef opens the Kitchen Display System (KDS)
     // and sees the new order appear in the pending/new orders column.
 
-    currentOrderStatus = 1; // confirmed by owner
+    currentOrderStatus = "confirmed"; // confirmed by owner
 
     await mockAuthAPI(page, PERSONAS.CHEF);
     await mockRestaurantAPI(page);
@@ -385,7 +385,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     // moving it from pending to preparing. When all items are done,
     // chef clicks "Mark Ready" to signal the food is ready for pickup.
 
-    currentOrderStatus = 1;
+    currentOrderStatus = "confirmed";
 
     await preAuthKitchen(page, PERSONAS.CHEF);
     await mockAuthAPI(page, PERSONAS.CHEF);
@@ -393,7 +393,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     await mockMenuAPI(page);
 
     // Track status changes via intercepted requests
-    let capturedStatusUpdate = 0;
+    let capturedStatusUpdate = "";
 
     const kitchenOrder = orderAtCurrentStage();
     await page.route(new RegExp(`/api/v1/kitchen/.+/orders`), (route) => {
@@ -403,7 +403,9 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
           contentType: "application/json",
           body: JSON.stringify({
             success: true,
-            data: [createMockOrder({ status: capturedStatusUpdate || 1 })],
+            data: [
+              createMockOrder({ status: capturedStatusUpdate || "confirmed" }),
+            ],
           }),
         });
       } else {
@@ -417,13 +419,13 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
         route.request().method() === "PUT" ||
         route.request().method() === "PATCH"
       ) {
-        capturedStatusUpdate = 2; // preparing
+        capturedStatusUpdate = "preparing";
         route.fulfill({
           status: 200,
           contentType: "application/json",
           body: JSON.stringify({
             success: true,
-            data: { ...kitchenOrder, status: 2 },
+            data: { ...kitchenOrder, status: "preparing" },
           }),
         });
       } else {
@@ -438,7 +440,10 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
         route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ success: true, data: { status: 2 } }),
+          body: JSON.stringify({
+            success: true,
+            data: { status: "preparing" },
+          }),
         }),
     );
 
@@ -466,22 +471,22 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     );
     await expect(startBtn.first()).toBeVisible({ timeout: 5000 });
     await startBtn.first().click();
-    currentOrderStatus = 2; // preparing
+    currentOrderStatus = "preparing";
     await page.waitForTimeout(1000);
 
-    // Now update the mock to return status=3 (ready) for the next action
+    // Now update the mock to return status="ready" for the next action
     await page.route(new RegExp(`/api/v1/kitchen/.+/orders/.+`), (route) => {
       if (
         route.request().method() === "PUT" ||
         route.request().method() === "PATCH"
       ) {
-        capturedStatusUpdate = 3;
+        capturedStatusUpdate = "ready";
         route.fulfill({
           status: 200,
           contentType: "application/json",
           body: JSON.stringify({
             success: true,
-            data: { ...kitchenOrder, status: 3 },
+            data: { ...kitchenOrder, status: "ready" },
           }),
         });
       } else {
@@ -495,11 +500,11 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     );
     await expect(readyBtn.first()).toBeVisible({ timeout: 5000 });
     await readyBtn.first().click();
-    currentOrderStatus = 3; // ready
+    currentOrderStatus = "ready";
     await page.waitForTimeout(1000);
 
     // Verify status updates were triggered for both transitions
-    expect(capturedStatusUpdate).toBe(3);
+    expect(capturedStatusUpdate).toBe("ready");
   });
 
   // =========================================================================
@@ -510,7 +515,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     // Real-world action: a service crew member logs in to the admin app
     // and sees orders that are marked "ready" waiting for pickup/delivery.
 
-    currentOrderStatus = 3; // ready
+    currentOrderStatus = "ready";
 
     await mockAuthAPI(page, PERSONAS.SERVICE_CREW);
     await mockRestaurantAPI(page);
@@ -557,7 +562,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     // Real-world action: the service crew picks up the food from the kitchen
     // pass and delivers it to the customer's table, then marks it "delivered".
 
-    currentOrderStatus = 3; // ready
+    currentOrderStatus = "ready";
 
     await preAuthAdmin(page, PERSONAS.SERVICE_CREW);
     await mockAuthAPI(page, PERSONAS.SERVICE_CREW);
@@ -593,7 +598,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
         route.request().method() === "PATCH"
       ) {
         deliveryMarked = true;
-        currentOrderStatus = 4; // delivered
+        currentOrderStatus = "delivered";
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -637,7 +642,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
 
     // Verify the delivery API call was made
     expect(deliveryMarked).toBe(true);
-    expect(currentOrderStatus).toBe(4);
+    expect(currentOrderStatus).toBe("delivered");
   });
 
   // =========================================================================
@@ -648,7 +653,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     // Real-world action: the cashier opens the POS, selects the delivered
     // order, and processes payment (cash, card, etc.).
 
-    currentOrderStatus = 4; // delivered
+    currentOrderStatus = "delivered";
 
     await preAuthAdmin(page, PERSONAS.CASHIER);
     await mockAuthAPI(page, PERSONAS.CASHIER);
@@ -684,7 +689,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
       async (route) => {
         if (route.request().method() === "POST") {
           paymentProcessed = true;
-          currentOrderStatus = 5; // completed
+          currentOrderStatus = "paid";
           await route.fulfill({
             status: 200,
             contentType: "application/json",
@@ -712,7 +717,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
         route.request().method() === "PUT" ||
         route.request().method() === "PATCH"
       ) {
-        currentOrderStatus = 5;
+        currentOrderStatus = "paid";
         paymentProcessed = true;
         await route.fulfill({
           status: 200,
@@ -782,7 +787,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
 
     // Verify payment API was called
     expect(paymentProcessed).toBe(true);
-    expect(currentOrderStatus).toBe(5);
+    expect(currentOrderStatus).toBe("paid");
   });
 
   // =========================================================================
@@ -795,7 +800,7 @@ test.describe.serial("Cross-Role Order Lifecycle", () => {
     // Real-world action: the customer checks their order tracking page
     // (still open on their phone) and sees the order status as "completed".
 
-    currentOrderStatus = 5; // completed
+    currentOrderStatus = "paid";
 
     await mockRestaurantAPI(page);
     await mockMenuAPI(page);
