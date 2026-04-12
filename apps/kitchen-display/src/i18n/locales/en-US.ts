@@ -341,6 +341,8 @@ const enUS: Messages = {
     markComplete: "Mark Complete",
     startPreparing: "Start Preparing",
     audioToggle: "Toggle Audio",
+    audioToggleOn: "Enable Audio",
+    audioToggleOff: "Mute Audio",
     fullscreen: "Fullscreen",
     help: "Help",
     noMatch: "No matching shortcuts found",
