@@ -12,7 +12,9 @@ import {
   ClockIcon,
 } from "@heroicons/vue/24/outline";
 import type { DeploymentLog, DeploymentStatus } from "@/types";
+import { useI18n } from "@/i18n";
 
+const { t } = useI18n();
 const tenantsStore = useTenantsStore();
 const toast = useToast();
 
@@ -66,11 +68,11 @@ const allSelected = computed({
 // 批量部署
 const handleBatchDeploy = async () => {
   if (selectedTenants.value.length === 0) {
-    toast.warning("請選擇至少一個租戶");
+    toast.warning(t("deployments.validation.selectTenant"));
     return;
   }
   if (!targetVersion.value) {
-    toast.warning("請輸入目標版本");
+    toast.warning(t("deployments.validation.enterVersion"));
     return;
   }
 
@@ -80,14 +82,16 @@ const handleBatchDeploy = async () => {
       tenantIds: selectedTenants.value,
       version: targetVersion.value,
     });
-    toast.success(`已排入 ${result.queued} 個部署任務`);
+    toast.success(t("deployments.toast.queuedCount", { count: result.queued }));
     if (result.failed.length > 0) {
-      toast.warning(`${result.failed.length} 個租戶部署失敗`);
+      toast.warning(
+        t("deployments.toast.failedCount", { count: result.failed.length }),
+      );
     }
     selectedTenants.value = [];
     await loadRecentDeployments();
   } catch (e) {
-    toast.error("批量部署失敗");
+    toast.error(t("deployments.toast.batchFailed"));
   } finally {
     deploying.value = false;
   }
@@ -95,14 +99,17 @@ const handleBatchDeploy = async () => {
 
 // 獲取狀態標籤
 const getStatusLabel = (status: DeploymentStatus) => {
-  const labels: Record<DeploymentStatus, string> = {
-    pending: "待執行",
-    in_progress: "執行中",
-    completed: "已完成",
-    failed: "失敗",
-    rolled_back: "已回滾",
+  const map: Record<DeploymentStatus, string> = {
+    pending: "deployments.status.pending",
+    in_progress: "deployments.status.inProgress",
+    completed: "deployments.status.completed",
+    failed: "deployments.status.failed",
+    rolled_back: "deployments.status.rolledBack",
   };
-  return labels[status] || status;
+  const key = map[status];
+  if (!key) return status;
+  const label = t(key);
+  return label === key ? status : label;
 };
 
 const getStatusClass = (status: DeploymentStatus) => {
@@ -134,23 +141,27 @@ const getStatusIcon = (status: DeploymentStatus) => {
   <div class="space-y-6">
     <!-- 頁面標題 -->
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">部署管理</h1>
-      <p class="mt-1 text-sm text-gray-500">批量部署和版本更新</p>
+      <h1 class="text-2xl font-bold text-gray-900">
+        {{ t("deployments.title") }}
+      </h1>
+      <p class="mt-1 text-sm text-gray-500">{{ t("deployments.subtitle") }}</p>
     </div>
 
     <!-- 批量部署 -->
     <div class="card">
-      <h3 class="card-header">批量部署</h3>
+      <h3 class="card-header">{{ t("deployments.batch.title") }}</h3>
       <div class="space-y-4">
         <!-- 版本輸入 -->
         <div class="flex gap-4">
           <div class="flex-1">
-            <label class="label">目標版本</label>
+            <label class="label">
+              {{ t("deployments.batch.targetVersion") }}
+            </label>
             <input
               v-model="targetVersion"
               type="text"
               class="input"
-              placeholder="例如：1.2.0"
+              :placeholder="t('deployments.batch.versionPlaceholder')"
             />
           </div>
           <div class="flex items-end">
@@ -161,7 +172,13 @@ const getStatusIcon = (status: DeploymentStatus) => {
               @click="handleBatchDeploy"
             >
               <RocketLaunchIcon class="h-5 w-5 mr-2" />
-              {{ deploying ? "部署中..." : `部署 (${selectedTenants.length})` }}
+              {{
+                deploying
+                  ? t("deployments.batch.deploying")
+                  : t("deployments.batch.deployWithCount", {
+                      count: selectedTenants.length,
+                    })
+              }}
             </button>
           </div>
         </div>
@@ -169,14 +186,18 @@ const getStatusIcon = (status: DeploymentStatus) => {
         <!-- 租戶選擇 -->
         <div>
           <div class="flex items-center justify-between mb-2">
-            <label class="label mb-0">選擇租戶</label>
+            <label class="label mb-0">
+              {{ t("deployments.batch.selectTenants") }}
+            </label>
             <label class="flex items-center text-sm">
               <input
                 v-model="allSelected"
                 type="checkbox"
                 class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
-              <span class="ml-2 text-gray-600">全選</span>
+              <span class="ml-2 text-gray-600">{{
+                t("common.selectAll")
+              }}</span>
             </label>
           </div>
           <div class="border rounded-lg max-h-64 overflow-y-auto">
@@ -197,7 +218,10 @@ const getStatusIcon = (status: DeploymentStatus) => {
                   {{ tenant.businessName }}
                 </div>
                 <div class="text-sm text-gray-500">
-                  當前版本：{{ tenant.deployedVersion || "未部署" }}
+                  {{ t("deployments.batch.currentVersionLabel")
+                  }}{{
+                    tenant.deployedVersion || t("deployments.batch.notDeployed")
+                  }}
                 </div>
               </label>
             </div>
@@ -208,10 +232,12 @@ const getStatusIcon = (status: DeploymentStatus) => {
 
     <!-- 最近部署 -->
     <div class="card">
-      <h3 class="card-header">最近部署</h3>
+      <h3 class="card-header">{{ t("deployments.recent.title") }}</h3>
       <div v-if="recentDeployments.length === 0" class="text-center py-8">
         <RocketLaunchIcon class="mx-auto h-12 w-12 text-gray-400" />
-        <p class="mt-2 text-sm text-gray-500">暫無部署記錄</p>
+        <p class="mt-2 text-sm text-gray-500">
+          {{ t("deployments.recent.empty") }}
+        </p>
       </div>
       <div v-else class="space-y-4">
         <div

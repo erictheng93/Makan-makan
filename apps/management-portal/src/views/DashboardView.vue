@@ -11,7 +11,9 @@ import {
   XCircleIcon,
   ArrowTrendingUpIcon,
 } from "@heroicons/vue/24/outline";
+import { useI18n } from "@/i18n";
 
+const { t } = useI18n();
 const tenantsStore = useTenantsStore();
 const healthStore = useHealthStore();
 
@@ -26,19 +28,19 @@ onMounted(async () => {
 // 統計卡片
 const stats = computed(() => [
   {
-    name: "總租戶數",
+    name: t("dashboard.stats.totalTenants"),
     value: tenantsStore.totalTenants,
     icon: BuildingStorefrontIcon,
     color: "text-blue-600 bg-blue-100",
   },
   {
-    name: "運行中",
+    name: t("dashboard.stats.active"),
     value: tenantsStore.statusCounts.active,
     icon: CheckCircleIcon,
     color: "text-green-600 bg-green-100",
   },
   {
-    name: "待處理",
+    name: t("dashboard.stats.pending"),
     value:
       tenantsStore.statusCounts.pending +
       tenantsStore.statusCounts.provisioning,
@@ -46,7 +48,7 @@ const stats = computed(() => [
     color: "text-yellow-600 bg-yellow-100",
   },
   {
-    name: "健康異常",
+    name: t("dashboard.stats.unhealthy"),
     value: healthStore.degradedCount + healthStore.downCount,
     icon: ExclamationTriangleIcon,
     color: "text-red-600 bg-red-100",
@@ -72,8 +74,10 @@ const getTenantName = (tenantId: string) => {
   <div class="space-y-6">
     <!-- 頁面標題 -->
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">總覽</h1>
-      <p class="mt-1 text-sm text-gray-500">管理平台運行狀態概覽</p>
+      <h1 class="text-2xl font-bold text-gray-900">
+        {{ t("dashboard.title") }}
+      </h1>
+      <p class="mt-1 text-sm text-gray-500">{{ t("dashboard.subtitle") }}</p>
     </div>
 
     <!-- 統計卡片 -->
@@ -96,12 +100,14 @@ const getTenantName = (tenantId: string) => {
       <!-- 健康狀態概覽 -->
       <div class="card">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">健康狀態</h2>
+          <h2 class="text-lg font-semibold text-gray-900">
+            {{ t("dashboard.health.title") }}
+          </h2>
           <RouterLink
             to="/health"
             class="text-sm text-primary-600 hover:text-primary-700"
           >
-            查看全部
+            {{ t("common.viewAll") }}
           </RouterLink>
         </div>
 
@@ -121,7 +127,9 @@ const getTenantName = (tenantId: string) => {
                 <div class="text-3xl font-bold text-gray-900">
                   {{ healthStore.healthyCount }}
                 </div>
-                <div class="text-xs text-gray-500">正常運行</div>
+                <div class="text-xs text-gray-500">
+                  {{ t("dashboard.health.healthyRunning") }}
+                </div>
               </div>
             </div>
           </div>
@@ -136,7 +144,9 @@ const getTenantName = (tenantId: string) => {
                 {{ healthStore.healthyCount }}
               </span>
             </div>
-            <div class="text-xs text-gray-500">正常</div>
+            <div class="text-xs text-gray-500">
+              {{ t("health.status.healthy") }}
+            </div>
           </div>
           <div class="text-center">
             <div class="flex items-center justify-center">
@@ -145,7 +155,9 @@ const getTenantName = (tenantId: string) => {
                 {{ healthStore.degradedCount }}
               </span>
             </div>
-            <div class="text-xs text-gray-500">降級</div>
+            <div class="text-xs text-gray-500">
+              {{ t("health.status.degraded") }}
+            </div>
           </div>
           <div class="text-center">
             <div class="flex items-center justify-center">
@@ -154,7 +166,9 @@ const getTenantName = (tenantId: string) => {
                 {{ healthStore.downCount }}
               </span>
             </div>
-            <div class="text-xs text-gray-500">離線</div>
+            <div class="text-xs text-gray-500">
+              {{ t("health.status.down") }}
+            </div>
           </div>
         </div>
       </div>
@@ -162,7 +176,9 @@ const getTenantName = (tenantId: string) => {
       <!-- 待處理事項 -->
       <div class="card">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">待處理事項</h2>
+          <h2 class="text-lg font-semibold text-gray-900">
+            {{ t("dashboard.pending.title") }}
+          </h2>
         </div>
 
         <div
@@ -173,7 +189,9 @@ const getTenantName = (tenantId: string) => {
           class="text-center py-8"
         >
           <CheckCircleIcon class="mx-auto h-12 w-12 text-green-400" />
-          <p class="mt-2 text-sm text-gray-500">沒有待處理的事項</p>
+          <p class="mt-2 text-sm text-gray-500">
+            {{ t("dashboard.pending.empty") }}
+          </p>
         </div>
 
         <div v-else class="space-y-3">
@@ -188,13 +206,15 @@ const getTenantName = (tenantId: string) => {
               <p class="text-sm font-medium text-gray-900">
                 {{ tenant.businessName }}
               </p>
-              <p class="text-xs text-gray-500">等待配置資源</p>
+              <p class="text-xs text-gray-500">
+                {{ t("dashboard.pending.waitingProvision") }}
+              </p>
             </div>
             <RouterLink
               :to="`/tenants/${tenant.id}`"
               class="text-sm text-primary-600 hover:text-primary-700"
             >
-              處理
+              {{ t("dashboard.pending.handle") }}
             </RouterLink>
           </div>
 
@@ -221,14 +241,18 @@ const getTenantName = (tenantId: string) => {
                 {{ getTenantName(issue.tenantId) }}
               </p>
               <p class="text-xs text-gray-500">
-                {{ issue.status === "down" ? "服務離線" : "服務降級" }}
+                {{
+                  issue.status === "down"
+                    ? t("dashboard.pending.serviceDown")
+                    : t("dashboard.pending.serviceDegraded")
+                }}
               </p>
             </div>
             <RouterLink
               :to="`/tenants/${issue.tenantId}`"
               class="text-sm text-primary-600 hover:text-primary-700"
             >
-              查看
+              {{ t("common.view") }}
             </RouterLink>
           </div>
         </div>
@@ -238,18 +262,20 @@ const getTenantName = (tenantId: string) => {
     <!-- 最近活動 -->
     <div class="card">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-900">最近租戶</h2>
+        <h2 class="text-lg font-semibold text-gray-900">
+          {{ t("dashboard.recentTenants.title") }}
+        </h2>
         <RouterLink
           to="/tenants"
           class="text-sm text-primary-600 hover:text-primary-700"
         >
-          查看全部
+          {{ t("common.viewAll") }}
         </RouterLink>
       </div>
 
       <div v-if="tenantsStore.loading" class="text-center py-8">
         <div class="loading-spinner mx-auto" />
-        <p class="mt-2 text-sm text-gray-500">載入中...</p>
+        <p class="mt-2 text-sm text-gray-500">{{ t("common.loading") }}</p>
       </div>
 
       <div
@@ -257,13 +283,13 @@ const getTenantName = (tenantId: string) => {
         class="text-center py-8"
       >
         <BuildingStorefrontIcon class="mx-auto h-12 w-12 text-gray-400" />
-        <p class="mt-2 text-sm text-gray-500">暫無租戶</p>
+        <p class="mt-2 text-sm text-gray-500">{{ t("tenants.empty.none") }}</p>
         <RouterLink
           to="/tenants"
           class="mt-4 inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
         >
           <ArrowTrendingUpIcon class="mr-1 h-4 w-4" />
-          新增租戶
+          {{ t("tenants.create") }}
         </RouterLink>
       </div>
 
@@ -271,10 +297,10 @@ const getTenantName = (tenantId: string) => {
         <table class="table">
           <thead>
             <tr>
-              <th>商家名稱</th>
-              <th>狀態</th>
-              <th>版本</th>
-              <th>建立時間</th>
+              <th>{{ t("tenants.column.businessName") }}</th>
+              <th>{{ t("tenants.column.status") }}</th>
+              <th>{{ t("tenants.column.version") }}</th>
+              <th>{{ t("tenants.column.createdAt") }}</th>
               <th></th>
             </tr>
           </thead>
@@ -300,16 +326,16 @@ const getTenantName = (tenantId: string) => {
                 >
                   {{
                     tenant.status === "active"
-                      ? "運行中"
+                      ? t("tenants.status.active")
                       : tenant.status === "pending"
-                        ? "待處理"
+                        ? t("tenants.status.pending")
                         : tenant.status === "provisioning"
-                          ? "配置中"
+                          ? t("tenants.status.provisioning")
                           : tenant.status === "suspended"
-                            ? "已暫停"
+                            ? t("tenants.status.suspended")
                             : tenant.status === "terminated"
-                              ? "已終止"
-                              : "未知"
+                              ? t("tenants.status.terminated")
+                              : t("common.unknown")
                   }}
                 </span>
               </td>
@@ -320,7 +346,7 @@ const getTenantName = (tenantId: string) => {
                   :to="`/tenants/${tenant.id}`"
                   class="text-primary-600 hover:text-primary-700"
                 >
-                  查看
+                  {{ t("common.view") }}
                 </RouterLink>
               </td>
             </tr>
