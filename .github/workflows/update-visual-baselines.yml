@@ -12,16 +12,7 @@ name: 🖼️ Update Visual Baselines
 # produced screenshots byte-match what CI compares against on PR runs.
 
 on:
-  # Manual trigger once this workflow exists on the default branch.
   workflow_dispatch:
-  # Temporary push trigger so the workflow can bootstrap itself on a feature
-  # branch before it lands on main. Remove once merged to main and prefer
-  # `gh workflow run update-visual-baselines.yml --ref <branch>` from then on.
-  push:
-    branches:
-      - feat/i18n-coverage-all-apps
-    paths:
-      - .github/workflows/update-visual-baselines.yml
 
 permissions:
   contents: write
