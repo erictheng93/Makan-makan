@@ -181,6 +181,10 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     needs: [unit-tests, workers-tests]
+    # Solo-dev fast-feedback gate: only run on main/develop pushes or manual
+    # dispatch. Feature branch pushes get fast unit+workers feedback only;
+    # full E2E coverage runs automatically when merging to main/develop.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
     timeout-minutes: 35
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
@@ -257,7 +261,8 @@ jobs:
     name: 🚀 效能測試
     runs-on: ubuntu-latest
     needs: [unit-tests, workers-tests]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    # Solo-dev fast-feedback gate: main/develop pushes or manual dispatch only.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
     timeout-minutes: 30
 
     steps:
@@ -370,7 +375,8 @@ jobs:
     name: 🗄️ 資料庫性能測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    # Solo-dev fast-feedback gate: main/develop pushes or manual dispatch only.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
     timeout-minutes: 15
 
     steps:
@@ -498,7 +504,8 @@ jobs:
     name: 👁️ 視覺回歸測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    # Solo-dev fast-feedback gate: main/develop pushes or manual dispatch only.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
     timeout-minutes: 25
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
@@ -581,6 +588,8 @@ jobs:
     name: 🔐 安全性測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
+    # Solo-dev fast-feedback gate: main/develop pushes or manual dispatch only.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
     timeout-minutes: 30
 
     steps:
