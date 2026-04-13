@@ -156,14 +156,25 @@ mkdir -p /tmp/preview-logs
 (cd apps/management-portal  && npx vite preview --port 3010  --host 0.0.0.0 > /tmp/preview-logs/management.log 2>&1) &
 (cd apps/onboarding-app     && npx vite preview --port 3011  --host 0.0.0.0 > /tmp/preview-logs/onboarding.log 2>&1) &
 
-echo "[container] Waiting for servers (up to 120s)..."
-npx wait-on \
-  http://localhost:3000 \
-  http://localhost:3001 \
-  http://localhost:3002 \
-  http://localhost:3010 \
-  http://localhost:3011 \
-  --timeout 120000
+echo "[container] Waiting for servers (up to 180s)..."
+# Pure curl polling instead of `npx wait-on`: wait-on is not a repo
+# devDependency, so `npx wait-on` triggers an on-demand npm install inside
+# the container which intermittently fails with `ECOMPROMISED Lock compromised`
+# under amd64 emulation. curl is already in the Playwright image.
+for port in 3000 3001 3002 3010 3011; do
+  elapsed=0
+  until curl -sf "http://localhost:${port}" >/dev/null 2>&1; do
+    if [ "${elapsed}" -ge 180 ]; then
+      echo "[container] ERROR: server on port ${port} did not respond within 180s" >&2
+      echo "[container] --- tail of /tmp/preview-logs ---" >&2
+      tail -n 50 /tmp/preview-logs/*.log 2>/dev/null || true
+      exit 1
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+  echo "[container] ✓ port ${port} ready (${elapsed}s)"
+done
 
 echo "[container] Regenerating visual baselines (--update-snapshots)..."
 npx playwright test --config playwright.visual.config.ts --update-snapshots
