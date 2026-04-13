@@ -64,7 +64,7 @@ export function setLocaleMessages(locale: Locale, newMessages: Messages): void {
   messages.value[locale] = deepMerge(messages.value[locale], newMessages);
 }
 
-function deepMerge(target: any, source: any): any {
+function deepMerge(target: Messages, source: Messages): Messages {
   if (!source) return target;
   if (!target) return source;
 
@@ -72,7 +72,7 @@ function deepMerge(target: any, source: any): any {
 
   Object.keys(source).forEach((key) => {
     if (source[key] instanceof Object && key in target) {
-      result[key] = deepMerge(target[key], source[key]);
+      result[key] = deepMerge(target[key] as Messages, source[key] as Messages);
     } else {
       result[key] = source[key];
     }
@@ -81,11 +81,14 @@ function deepMerge(target: any, source: any): any {
   return result;
 }
 
-export function t(key: string, params?: Record<string, any>): string {
+export function t(
+  key: string,
+  params?: Record<string, string | number>,
+): string {
   const targetLocale = currentLocale.value;
   const keys = key.split(".");
 
-  let value: any = messages.value[targetLocale];
+  let value: Messages | string | undefined = messages.value[targetLocale];
 
   for (const k of keys) {
     if (value && typeof value === "object") {
