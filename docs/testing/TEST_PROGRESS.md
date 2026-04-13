@@ -1,9 +1,10 @@
 # Test Progress Tracker
 
-> 最後更新: 2026-04-03 (Manual QA complete + UX overhaul)
-> 測試總數: 308 files / 8,496 tests (all passing)
+> 最後更新: 2026-04-13 (OrderStatus 統一 + auth-client 抽離 + i18n 擴充)
+> 測試總數: 308+ files / 8,496+ tests (2026-04-03 基準，之後經歷多次遷移尚未重新統計，執行 `pnpm test` 取得最新數字)
 > Typecheck: PASS (21/21 tasks)
 > Manual QA: 6 角色 70+ 頁面實測，12 bugs fixed，118 native dialogs replaced — [完整報告](reports/manual-qa-report-2026-04-02.md)
+> 近期重大重構：Issue #9 OrderStatus string 化、`restaurantId` UUID 遷移、`@makanmakan/auth-client` 抽離
 
 ---
 
@@ -193,6 +194,38 @@
 ---
 
 ## 變更日誌
+
+### 2026-04-12 ~ 2026-04-13 (auth-client 抽離 + kitchen-display auth gating)
+
+- `refactor: extract shared auth + API client into @makanmakan/auth-client`
+  - 新增 3 個 package 測試：`create-api-client.test.ts`、`create-token-manager.test.ts`、`storage.test.ts`
+  - admin-dashboard auth store / AuthViews 測試同步遷移至共用 client
+- `fix(kitchen-display)`：掛載前等待 auth 初始化，避免啟動競態；audio toggle 測試按鍵獨立化
+- `fix(orders)`：`createOrder` 回應補上 `menuItem` relation — 對應 `tests/e2e/integration/customer-dine-in.spec.ts`
+
+### 2026-04-10 ~ 2026-04-12 (Issue #9 — OrderStatus 統一 + restaurantId UUID 遷移)
+
+- **Phase 0–5**：OrderStatus 從 numeric (0/1/2/3) 全面改為 string union (`pending | preparing | ready | delivered | paid | refunded | cancelled`)
+  - `refactor: OrderStatus unification — Phase 0-2 (#17)`：API、admin-dashboard、kitchen-display、shared-types 全部改字串
+  - `refactor(api): delete OrderPermissions dead code (Phase 0.5 Q6)`
+  - `refactor(admin-dashboard): delete 4 local OrderStatus definitions, use shared-types`
+  - `refactor(kitchen-display): full migration to string OrderStatus (Phase 5)`
+  - `refactor: add refunded to Zod schemas, OpenAPI, factory + transitions`
+  - i18n 鍵 `orderStatus.completed` 統一改名為 `delivered`，E2E spec 對應修正
+- **restaurantId 字串化**：`bb4fe558 fix(ts): update tables tests to pass string restaurantId after UUID migration`
+- **測試修復**：`81af9a6c fix: resolve 36 test failures from OrderStatus + restaurantId migration`
+  - 涵蓋 admin-dashboard (CashierView, OrdersView, POSView)、api (core-modules, state-machine, tables/validation)、kitchen-display (persistenceService)、queue-service
+
+### 2026-04-05 ~ 2026-04-10 (i18n 擴充 — 三個 app)
+
+- `feat(i18n): add i18n support to kitchen-display` — 新增 OrderCard 測試
+- `feat(i18n): add i18n support to onboarding-app`
+- `feat(i18n): add i18n support to management-portal`
+
+### 2026-04 視覺回歸
+
+- `test(visual): regenerate baselines via workflow_dispatch` — 透過 GHA `workflow_dispatch` 重新產生 Linux baseline；新增 `workflow_dispatch` 入口以解決本地 macOS 與 CI 差異
+- 影響 kitchen-display、management-portal、onboarding-app 的多個 snapshot
 
 ### 2026-04-03 (Manual QA — 6 roles, 12 bugs fixed + UX overhaul)
 

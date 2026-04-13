@@ -34,12 +34,16 @@
 
 ### 測試覆蓋率目標
 
-| 類型     | 目標覆蓋率    | 當前狀態 |
-| -------- | ------------- | -------- |
-| 單元測試 | > 80%         | ✅ 82%   |
-| 整合測試 | > 70%         | ✅ 75%   |
-| E2E 測試 | 核心流程 100% | ✅ 100%  |
-| 性能測試 | 所有 API      | ✅ 完成  |
+| 類型              | 目標覆蓋率    | 當前狀態  |
+| ----------------- | ------------- | --------- |
+| 單元測試          | > 80%         | ✅ 82%    |
+| 整合測試          | > 70%         | ✅ 75%    |
+| E2E 測試          | 核心流程 100% | ✅ 100%   |
+| 視覺回歸          | 重點頁面      | ✅ 已建立 |
+| API Contract 快照 | 所有 API 模組 | ✅ 已建立 |
+| 性能測試          | 所有 API      | ✅ 完成   |
+
+> 最新總測試數請執行 `pnpm test` 取得；`docs/testing/TEST_PROGRESS.md` 提供依 App / Package 拆分的覆蓋評估。
 
 ## 測試類型
 
@@ -72,23 +76,34 @@ pnpm test:coverage
 
 ### 2. 整合測試 (Integration Tests)
 
-測試多個組件或服務之間的互動。
+測試多個組件或服務之間的互動，使用 **in-memory SQLite** 作為 D1 替代（非 Mock），確保 schema / SQL 語法真實受測。
 
 **測試範圍**：
 
 - API 端點整合
-- 資料庫操作
+- 資料庫操作（真實 SQL，透過 `packages/testing-utils/src/mocks/mock-drizzle-db.ts`）
 - 第三方服務整合
 - WebSocket 連線
+- Kitchen Display 多訂單、通知、realtime 更新流程
 
 **執行命令**：
 
 ```bash
-# 執行整合測試
-pnpm test:integration
+# 整合測試位於各 app 的 __tests__/integration/ 目錄，統一 vitest 執行
+pnpm test
 
-# Workers 整合測試
-pnpm test:workers:integration
+# Workers 整合測試（apps/api）
+pnpm --filter @makanmakan/api test
+```
+
+### 2.5 API Contract 測試
+
+透過 Zod schema 建立 `.api-contracts-snapshot.json`，防止 API shape 意外漂移。
+
+```bash
+pnpm contract:check    # 比對 snapshot（CI 使用）
+pnpm contract:update   # 修改 API 後重新產生 snapshot
+pnpm contract:report   # 輸出模組覆蓋報告
 ```
 
 ### 3. E2E 測試 (End-to-End Tests)
@@ -149,6 +164,75 @@ pnpm test:performance:ws
 pnpm test:performance:report
 ```
 
+## 強制測試規範（見 `CLAUDE.md` → Testing Standards）
+
+所有新寫的測試必須遵守以下四條，舊測試漸進式遷移：
+
+### 1. 使用 `@makanmakan/testing-utils` 的 Factory（禁止手寫 mock 物件）
+
+```typescript
+import {
+  userFactory,
+  restaurantFactory,
+  orderFactory,
+  envFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
+
+beforeEach(() => {
+  resetAllFactories();
+});
+
+const restaurant = restaurantFactory.build();
+const owner = userFactory.buildShopOwner(restaurant.id);
+const env = envFactory.build();
+```
+
+可用 factory：`userFactory`、`restaurantFactory`、`categoryFactory`、
+`menuItemFactory`、`orderFactory`、`orderItemFactory`、`envFactory`、
+`printJobFactory`、`printerDeviceFactory`、`printRequestFactory`、
+`realtimeAuthFactory`。完整 API 見 `packages/testing-utils/src/factories/`。
+
+### 2. 驗證 mock 呼叫，不只驗證回傳值
+
+```typescript
+// ✅ 每個 vi.fn() 都要有 toHaveBeenCalledWith
+expect(mockService.createOrder).toHaveBeenCalledOnce();
+expect(mockService.createOrder).toHaveBeenCalledWith(
+  expect.objectContaining({ restaurantId: "01HZ..." }), // 結構比對
+);
+
+// ❌ 禁止精確比對 timestamp / UUID / 生成值
+expect(mockService.createOrder).toHaveBeenCalledWith({
+  createdAt: new Date("2026-04-13T10:00:00Z"),
+});
+```
+
+對非確定性欄位使用 `expect.any(String)` / `expect.any(Number)`。
+
+### 3. 禁止斷言 CSS class
+
+```typescript
+// ❌ Tailwind class 變動就會壞
+expect(wrapper.classes()).toContain("bg-green-500");
+
+// ✅ 改以行為驗證
+expect(wrapper.find('[data-status="active"]').exists()).toBe(true);
+expect(wrapper.text()).toContain("已完成");
+expect(wrapper.vm.statusClass).toBe("active");
+```
+
+可用：`data-testid`、`data-status`、`aria-*`、文字內容、Vue computed state。
+
+### 4. Pre-commit 檢查
+
+`scripts/check-factory-usage.cjs` 透過 lint-staged 在所有 `*.test.ts` 上執行，會警告：
+- 缺少 factory 使用
+- CSS class 斷言
+- 沒有驗證呼叫的 mock
+
+---
+
 ## 快速開始
 
 ### 1. 環境準備
@@ -188,16 +272,39 @@ pnpm test:e2e:ui
 
 ```
 tests/e2e/
-├── admin/                        # 管理後台測試
+├── admin/                        # Admin Dashboard E2E (15 specs / ~236 tests)
+│   ├── rbac-permissions.spec.ts        # 5 角色權限邊界
 │   ├── orders-management.spec.ts       # 訂單管理
-│   ├── menu-management.spec.ts         # 菜單管理
-│   ├── tables-users-management.spec.ts # 桌台&用戶管理
-│   └── kitchen-queue-pos.spec.ts       # 廚房&隊列&POS
-├── global-setup.ts               # 全域設置
-├── global-teardown.ts            # 全域清理
-└── support/                      # 測試輔助
-    └── test-helpers.ts
+│   ├── menu-management.spec.ts         # 菜單 CRUD
+│   ├── tables-users-management.spec.ts # 桌台 / 員工
+│   ├── kitchen-queue-pos.spec.ts       # 廚房 / 排隊 / POS
+│   ├── filter-search.spec.ts           # 篩選搜尋
+│   ├── state-transitions.spec.ts       # 訂單 / 訂位狀態流轉
+│   ├── rwd-responsive.spec.ts          # 3 breakpoints
+│   ├── error-handling.spec.ts          # 500 / 401 / 403 / 404 / 429
+│   ├── form-validation.spec.ts
+│   ├── modal-dialog-interactions.spec.ts
+│   ├── pagination-scroll.spec.ts
+│   ├── export-functionality.spec.ts
+│   ├── crud-operations.spec.ts
+│   └── sse-realtime.spec.ts            # SSE / Realtime
+├── journeys/                     # 角色任務 E2E (8+ specs / ~76 tests)
+│   ├── owner/                    # daily-operations
+│   ├── chef/                     # kitchen-shift
+│   ├── cashier/                  # pos-shift
+│   ├── service-crew/             # delivery-shift
+│   ├── customer/                 # guest-dine-in, guest-shop-takeaway
+│   └── cross-role/               # order-lifecycle, reservation-to-seated
+├── integration/                  # 完整流程整合 (customer-dine-in, delivery-zone, ...)
+├── helpers/                      # mock-api, personas, assertions, test-helpers
+├── support/                      # 共用 test-helpers
+├── specs/                        # 舊版共用 specs（漸進式遷移至上述目錄）
+├── global-setup.ts
+└── global-teardown.ts
 ```
+
+> 另有 `tests/visual/*.visual.ts`（Playwright screenshot baselines）、
+> `tests/performance/*.yml`（Artillery 6 configs）、`tests/security/`（4 files, 361 tests）。
 
 ### 核心測試場景
 
@@ -266,7 +373,20 @@ tests/e2e/
 - ✅ 處理現金支付
 - ✅ 顯示銷售摘要
 
-**總計：44 個核心 E2E 測試場景**
+**Admin E2E 總計：15 specs / ~236 tests**（以上為基本分類，完整對照請見 `docs/testing/TEST_PROGRESS.md`）
+
+### Journey E2E 角色任務
+
+| Journey Spec          | 角色             | 裝置               |
+| --------------------- | ---------------- | ------------------ |
+| order-lifecycle       | All 5 roles      | Desktop + Mobile   |
+| guest-dine-in         | Guest            | Mobile (iPhone 12) |
+| guest-shop-takeaway   | Guest (shop)     | Mobile             |
+| kitchen-shift         | Chef             | Tablet (iPad Pro)  |
+| pos-shift             | Cashier          | Desktop            |
+| daily-operations      | Owner            | Desktop            |
+| delivery-shift        | Service Crew     | Mobile (Pixel 5)   |
+| reservation-to-seated | Owner + Customer | Desktop + Mobile   |
 
 ### 執行特定測試
 
@@ -386,7 +506,7 @@ config:
                ↓
 ┌─────────────────────────────────────┐
 │   單元測試 (並行)                   │
-│   - Node.js 18, 20                  │
+│   - Node.js 20+                     │
 │   - 覆蓋率報告                      │
 └──────────────┬──────────────────────┘
                ↓
@@ -518,7 +638,7 @@ Allocation failed - JavaScript heap out of memory
 
 **原因**:
 
-- 測試套件過大 (MakanMakan 有 1,300+ 測試)
+- 測試套件規模大（MakanMakan 單元 / 整合測試 8,000+ 項）
 - Node.js 預設 heap size 不足
 - 覆蓋率分析需要額外記憶體
 
@@ -714,14 +834,23 @@ Error: connect ECONNREFUSED
 
 ---
 
-**最後更新**: 2025-11-17
+**最後更新**: 2026-04-13
 **維護者**: MakanMakan Dev Team
 
 ## 最近更新
+
+### 2026-04-13
+
+- ✅ 新增「強制測試規範」章節，對齊 `CLAUDE.md` → Testing Standards
+- ✅ 新增 `@makanmakan/testing-utils` Factory 使用示例（`userFactory.buildShopOwner` 等）
+- ✅ 補上 API Contract 測試章節（`pnpm contract:check` / `update` / `report`）
+- ✅ 更新 `tests/e2e/` 目錄結構：補上 `journeys/`、`integration/`、`helpers/`
+- ✅ 修正 Admin E2E 數字為 15 specs / ~236 tests（舊數字 44 tests 已過時）
+- ✅ 補上 Journey E2E 8 spec 角色對照表
+- ✅ 整合測試說明：明確為 in-memory SQLite（非 mock）
 
 ### 2025-11-17
 
 - ✅ 新增記憶體配置問題解決方案 (4GB heap allocation)
 - ✅ 新增 Vue 組件測試常見問題與修復 (Icon mock, Pinia store, localStorage)
 - ✅ 完成 Kitchen Display 測試修復 (64/64 測試通過)
-- ✅ 詳細文檔參考: [KITCHEN_DISPLAY_TEST_FIX_REPORT.md](../../KITCHEN_DISPLAY_TEST_FIX_REPORT.md)

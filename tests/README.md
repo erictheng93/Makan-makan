@@ -1,29 +1,43 @@
 # MakanMakan 測試套件
 
+> 測試規範以 `CLAUDE.md` → **Testing Standards (Enforced)** 為準。
+> 進度與覆蓋請看 [`docs/testing/TEST_PROGRESS.md`](../docs/testing/TEST_PROGRESS.md)。
+> 完整指南：[`docs/testing/guides/TESTING_GUIDE.md`](../docs/testing/guides/TESTING_GUIDE.md)。
+
+> **測試檔案實際分佈**：多數單元 / 整合測試位於各 app 或 package 的 `__tests__/` 與 `*.test.ts`（例如
+> `apps/api/src/features/*/__tests__/`、`apps/admin-dashboard/src/views/__tests__/`、
+> `packages/testing-utils/src/__tests__/`）。本 `tests/` 目錄主要承載**跨 app 的端對端、
+> 視覺回歸、效能與安全性測試**。
+
 ## 📁 目錄結構
 
 ```
 tests/
-├── unit/                    # 單元測試
-│   ├── components/          # Vue 組件測試
-│   ├── stores/             # Pinia store 測試
-│   ├── services/           # API 服務測試
-│   ├── utils/              # 工具函數測試
-│   └── workers/            # Cloudflare Worker 測試
-├── e2e/                    # 端到端測試
-│   ├── specs/              # 測試規格
-│   ├── support/            # 測試輔助函數
-│   ├── global-setup.ts     # 全域設置
-│   └── global-teardown.ts  # 全域清理
-├── integration/            # 整合測試
-│   ├── api/                # API 整合測試
-│   └── database/           # 資料庫測試
-├── fixtures/               # 測試資料
-│   ├── test-data.json      # 測試資料集
-│   └── images/             # 測試圖片
-├── __mocks__/              # Mock 檔案
-├── setup.ts                # 測試環境設置
-└── README.md               # 本檔案
+├── unit/                         # 跨 app 共用單元測試
+│   ├── components/
+│   ├── stores/
+│   └── utils/
+├── integration/                  # 跨 app / 服務整合測試
+│   ├── cross-service/
+│   └── e2e-scenarios/
+├── e2e/                          # Playwright 端對端測試
+│   ├── admin/                    # 15 specs - Admin Dashboard
+│   ├── journeys/                 # 角色任務流 (owner/chef/cashier/service-crew/customer/cross-role)
+│   ├── integration/              # 完整業務流程整合 spec
+│   ├── specs/                    # 舊版共用 specs（漸進遷移）
+│   ├── helpers/                  # mock-api, personas, assertions
+│   ├── support/                  # test-helpers
+│   ├── global-setup.ts
+│   └── global-teardown.ts
+├── visual/                       # 視覺回歸（Playwright screenshot baselines）
+│   └── *.visual.ts               # 各 app 一份 spec + *-snapshots/
+├── performance/                  # Artillery 負載 / 壓力 / Soak 測試
+│   └── *.yml                     # 6 configs
+├── security/                     # WAF / RBAC / 權限邊界
+├── fixtures/                     # 測試資料（test-data.json 等）
+├── helpers/                      # 共用 helper（d1-adapter.ts, test-db.ts）
+├── setup.ts                      # 全域測試環境設置
+└── README.md                     # 本檔案
 ```
 
 ## 🚀 快速開始
@@ -37,34 +51,74 @@ pnpm install
 ### 執行測試
 
 ```bash
-# 執行所有測試
+# 所有 Vitest 測試（unit + integration）
 pnpm test
 
-# 執行單元測試
-pnpm run test:unit
+# 僅單元測試
+pnpm test:unit
 
-# 執行 E2E 測試
-pnpm run test:e2e
+# E2E (Playwright)
+pnpm test:e2e
+pnpm test:e2e:ui           # UI 模式
 
-# 執行測試並產生覆蓋率報告
-pnpm run test:coverage
+# 視覺回歸
+pnpm test:visual
+pnpm test:visual:update    # 更新基線
 
-# 監控模式執行測試
-pnpm run test:watch
+# CI 套件（unit + e2e）
+pnpm test:ci
+
+# 覆蓋率
+pnpm test:coverage
+
+# API Contract 快照
+pnpm contract:check
+pnpm contract:update
 ```
 
 ### 執行特定測試
 
 ```bash
-# 執行特定檔案的測試
-npx vitest tests/unit/components/MenuItemCard.test.ts
+# 特定 Vitest 檔案
+pnpm vitest apps/admin-dashboard/src/views/__tests__/OrdersView.test.ts
 
-# 執行特定測試套件
-npx vitest --grep "購物車"
+# 以名稱篩選
+pnpm vitest --grep "購物車"
 
-# 執行特定的 E2E 測試
-npx playwright test tests/e2e/specs/ordering-flow.spec.ts
+# 特定 E2E spec
+pnpm playwright test tests/e2e/admin/orders-management.spec.ts
+
+# 特定 journey
+pnpm playwright test tests/e2e/journeys/cashier/pos-shift.spec.ts
 ```
+
+## 🏭 Factory 使用（強制）
+
+所有新測試必須透過 `@makanmakan/testing-utils` 建立資料，禁止手寫 mock 物件：
+
+```typescript
+import {
+  userFactory,
+  restaurantFactory,
+  orderFactory,
+  envFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
+
+beforeEach(() => {
+  resetAllFactories();
+});
+
+const restaurant = restaurantFactory.build();
+const owner = userFactory.buildShopOwner(restaurant.id);
+const env = envFactory.build();
+```
+
+其他規則（見 `CLAUDE.md` → Testing Standards）：
+
+1. 所有 `vi.fn()` mock 都必須用 `toHaveBeenCalledWith(expect.objectContaining(...))` 驗證
+2. 禁止斷言 CSS class（改用 `data-testid` / `data-status` / 文字 / computed state）
+3. `scripts/check-factory-usage.cjs` 會在 pre-commit 上檢查上述規則
 
 ## 🧪 測試類型說明
 
@@ -78,9 +132,9 @@ npx playwright test tests/e2e/specs/ordering-flow.spec.ts
 ### 整合測試 (Integration Tests)
 
 - **目的**: 測試模組間的互動
-- **框架**: Vitest + Miniflare
+- **框架**: Vitest + **in-memory SQLite** 作為 D1 替代（非 Mock，真實 SQL）
 - **執行速度**: 中等 (< 100ms per test)
-- **覆蓋範圍**: API 端點、資料庫操作、Worker 整合
+- **覆蓋範圍**: API 端點、資料庫操作、Worker 整合、Kitchen Display realtime 流程
 
 ### 端到端測試 (E2E Tests)
 
@@ -323,4 +377,13 @@ open coverage/index.html
 
 ---
 
-如有任何測試相關問題，請參考 [測試指南文檔](../docs/testing-guide.md) 或聯繫開發團隊。
+如有任何測試相關問題，請參考：
+
+- [`docs/testing/guides/TESTING_GUIDE.md`](../docs/testing/guides/TESTING_GUIDE.md) — 完整測試指南
+- [`docs/testing/README.md`](../docs/testing/README.md) — 測試文檔總覽
+- [`docs/testing/TEST_PROGRESS.md`](../docs/testing/TEST_PROGRESS.md) — 進度 / 覆蓋追蹤
+- `CLAUDE.md` → Testing Standards (Enforced) — 專案強制規範
+
+---
+
+**最後更新**: 2026-04-13

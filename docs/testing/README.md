@@ -59,11 +59,15 @@
 
 ### 測試類型
 
-| 類型            | 工具             | 覆蓋率目標 | 位置                     |
-| --------------- | ---------------- | ---------- | ------------------------ |
-| **Unit**        | Vitest           | 85%+       | `**/*.test.ts`           |
-| **Integration** | Vitest + Mock DB | 70%+       | `**/__tests__/*.test.ts` |
-| **E2E**         | Playwright       | 關鍵流程   | `tests/e2e/`             |
+| 類型                  | 工具                            | 覆蓋率目標    | 位置                               |
+| --------------------- | ------------------------------- | ------------- | ---------------------------------- |
+| **Unit**              | Vitest                          | 85%+          | `apps/**/*.test.ts`, `packages/**` |
+| **Integration**       | Vitest + Mock D1 (SQLite mem)   | 70%+          | `**/__tests__/integration/**`      |
+| **E2E**               | Playwright                      | 關鍵流程 100% | `tests/e2e/`（含 `journeys/`）     |
+| **Visual Regression** | Playwright Screenshots          | 重點頁面      | `tests/visual/*.visual.ts`         |
+| **Contract**          | Zod schema snapshot             | 所有 API 模組 | `apps/api/src/contracts/`          |
+| **Security**          | Vitest + Worker mock            | WAF / RBAC    | `tests/security/`                  |
+| **Performance**       | Artillery (load / soak / spike) | 所有 API      | `tests/performance/`               |
 
 ---
 
@@ -72,37 +76,68 @@
 ### 運行測試
 
 ```bash
-# 所有測試
-npm run test
+# 所有 Vitest 測試（unit + integration）
+pnpm test
 
 # 單元測試
-npm run test:unit
+pnpm test:unit
 
-# 整合測試
-npm run test:integration
+# E2E 測試（Playwright）
+pnpm test:e2e
+pnpm test:e2e:ui          # Playwright UI 模式
 
-# E2E 測試
-npm run test:e2e
+# CI 管線（unit + e2e）
+pnpm test:ci
+
+# 視覺回歸測試
+pnpm test:visual
+pnpm test:visual:update   # 更新基線快照
 
 # 覆蓋率報告
-npm run test:coverage
+pnpm test:coverage
+
+# API Contract 檢查
+pnpm contract:check
+pnpm contract:update
 ```
 
-### 使用 Factory Pattern
+### 使用 Factory Pattern（`@makanmakan/testing-utils`）
 
 ```typescript
-import { createTestRestaurant, createTestUser } from "@/test/factories";
+import {
+  userFactory,
+  restaurantFactory,
+  orderFactory,
+  envFactory,
+  resetAllFactories,
+} from "@makanmakan/testing-utils";
 
-const restaurant = await createTestRestaurant(db);
-const user = await createTestUser(db, {
-  restaurant_id: restaurant.id,
-  role: 1, // Shop Owner
+beforeEach(() => {
+  resetAllFactories();
 });
+
+const restaurant = restaurantFactory.build();
+const owner = userFactory.buildShopOwner(restaurant.id, {
+  overrides: { id: "01HZ..." }, // UUID v7 string
+});
+const env = envFactory.build();
 ```
+
+可用 factory：`userFactory`、`restaurantFactory`、`categoryFactory`、
+`menuItemFactory`、`orderFactory`、`orderItemFactory`、`envFactory`、
+`printJobFactory`、`printerDeviceFactory`、`printRequestFactory`、
+`realtimeAuthFactory`。完整 API 見 `packages/testing-utils/src/factories/`。
 
 ---
 
-## 📖 測試文檔指南
+## 📖 測試撰寫規範（強制 — 見 `CLAUDE.md` → Testing Standards）
+
+新增測試必須遵守以下四條規則，舊測試以漸進方式遷移：
+
+1. **使用 `@makanmakan/testing-utils` 的 factory** — 禁止手寫 mock 物件；`beforeEach` 呼叫 `resetAllFactories()`。
+2. **驗證 mock 呼叫，不只驗證回傳值** — 每個 `vi.fn()` 必須有 `toHaveBeenCalledWith(...)` 檢查；用 `expect.objectContaining()` 做結構比對，禁止精確比對 timestamp / UUID 等非確定性欄位。
+3. **禁止斷言 CSS class** — 改以 `data-testid`、`data-status`、`aria-*`、文字內容或 Vue computed 狀態驗證行為。
+4. **Pre-commit 檢查** — `scripts/check-factory-usage.cjs` 透過 lint-staged 在所有 `*.test.ts` 上執行，會警告缺少 factory、CSS class 斷言、以及未驗證的 mock。
 
 ### 編寫測試時
 
@@ -131,12 +166,15 @@ describe("PartnershipService", () => {
 
 ## 🔗 相關文檔
 
-- **測試計劃**: `docs/implementation/testing/`
-- **API 測試**: `docs/api/`
-- **性能測試**: `docs/performance/`
+- **測試規範總覽**：`CLAUDE.md` → Testing Standards (Enforced)
+- **測試指南**：[`guides/TESTING_GUIDE.md`](./guides/TESTING_GUIDE.md)
+- **Factory 最佳實踐**：[`factory-pattern/FACTORY_BEST_PRACTICES.md`](./factory-pattern/FACTORY_BEST_PRACTICES.md)
+- **進度追蹤**：[`TEST_PROGRESS.md`](./TEST_PROGRESS.md)
+- **API 測試**：`docs/api/`
+- **性能測試**：`docs/performance/`
 
 ---
 
-**最後更新**: 2025-11-24
+**最後更新**: 2026-04-13
 **測試覆蓋率**: 85%+ (核心模組)
-**測試框架**: Vitest, Playwright
+**測試框架**: Vitest, Playwright, Artillery
