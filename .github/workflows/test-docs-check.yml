@@ -1,15 +1,20 @@
 name: Test Documentation Check
 
+# Solo-dev mode (2026-04-13): auto PR trigger disabled to cut CI noise during
+# active development. Run manually before merging large test refactors via:
+#   gh workflow run test-docs-check.yml --ref <branch>
+# Restore the pull_request trigger below when onboarding additional contributors.
 on:
-  pull_request:
-    paths:
-      - '**/__tests__/**'
-      - '**/*.test.ts'
-      - '**/*.test.js'
-      - '**/*.spec.ts'
-      - '**/*.spec.js'
-      - 'tests/**'
-      - 'docs/testing/**'
+  workflow_dispatch:
+  # pull_request:
+  #   paths:
+  #     - '**/__tests__/**'
+  #     - '**/*.test.ts'
+  #     - '**/*.test.js'
+  #     - '**/*.spec.ts'
+  #     - '**/*.spec.js'
+  #     - 'tests/**'
+  #     - 'docs/testing/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -1,14 +1,18 @@
 name: 🌙 Nightly Integration Tests
 
 # Integration tests hit a real Wrangler dev server + seeded D1 database.
-# They run nightly (not on every PR) because they're slower, flakier,
-# and depend on real infrastructure. Manual trigger is available for
-# ad-hoc validation before releases.
+# They are slower, flakier, and depend on real infrastructure.
+#
+# Solo-dev mode (2026-04-13): nightly cron disabled to cut CI noise during
+# active development. Run manually before releases via:
+#   gh workflow run nightly-integration.yml --ref <branch>
+# Re-enable the schedule below once the project has multiple contributors
+# or moves out of dev stage.
 
 on:
-  schedule:
-    # 2 AM UTC+8 (Taiwan time) — 18:00 UTC daily
-    - cron: "0 18 * * *"
+  # schedule:
+  #   # 2 AM UTC+8 (Taiwan time) — 18:00 UTC daily
+  #   - cron: "0 18 * * *"
   workflow_dispatch:
 
 concurrency:
