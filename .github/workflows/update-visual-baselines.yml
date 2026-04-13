@@ -1,0 +1,116 @@
+name: 🖼️ Update Visual Baselines
+
+# Regenerates Playwright visual regression baselines inside the pinned
+# Playwright container and commits them back to the triggering branch.
+#
+# Use when UI changes are intentional and you need to refresh the
+# tests/visual/*-snapshots/*-linux.png files. Run via:
+#
+#   gh workflow run update-visual-baselines.yml --ref <branch>
+#
+# The job mirrors the visual-regression-tests job in test.yml so the
+# produced screenshots byte-match what CI compares against on PR runs.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    name: 📸 Regenerate baselines
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: mcr.microsoft.com/playwright:v1.57.0-noble
+      options: --ipc=host
+
+    env:
+      TARGET_REF: ${{ github.ref_name }}
+
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐚 Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.24.0 --activate
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build 5 frontend apps (scoped)
+        env:
+          VITE_API_BASE_URL: /api/v1
+        run: |
+          pnpm build \
+            --filter=makanmakan-customer-app \
+            --filter=makanmakan-admin-dashboard \
+            --filter=makanmakan-kitchen-display \
+            --filter=makanmakan-management-portal \
+            --filter=makanmakan-onboarding-app
+
+      - name: 🚀 Start preview servers
+        run: |
+          mkdir -p /tmp/preview-logs
+          (cd apps/customer-app      && npx vite preview --port 3000 --host 0.0.0.0 > /tmp/preview-logs/customer.log   2>&1 &)
+          (cd apps/admin-dashboard   && npx vite preview --port 3001 --host 0.0.0.0 > /tmp/preview-logs/admin.log      2>&1 &)
+          (cd apps/kitchen-display   && npx vite preview --port 3002 --host 0.0.0.0 > /tmp/preview-logs/kitchen.log    2>&1 &)
+          (cd apps/management-portal && npx vite preview --port 3010 --host 0.0.0.0 > /tmp/preview-logs/management.log 2>&1 &)
+          (cd apps/onboarding-app    && npx vite preview --port 3011 --host 0.0.0.0 > /tmp/preview-logs/onboarding.log 2>&1 &)
+
+      - name: ⏳ Wait for preview servers
+        run: |
+          for port in 3000 3001 3002 3010 3011; do
+            elapsed=0
+            until curl -sf "http://localhost:${port}" >/dev/null 2>&1; do
+              if [ "${elapsed}" -ge 180 ]; then
+                echo "::error::Server on port ${port} did not respond within 180s"
+                tail -n 50 /tmp/preview-logs/*.log || true
+                exit 1
+              fi
+              sleep 2
+              elapsed=$((elapsed + 2))
+            done
+            echo "port ${port} ready in ${elapsed}s"
+          done
+
+      - name: 📸 Regenerate baselines
+        run: npx playwright test --config playwright.visual.config.ts --update-snapshots
+
+      - name: 🔍 Detect baseline changes
+        id: summary
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if git diff --quiet tests/visual; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No baseline changes."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git status tests/visual
+          fi
+
+      - name: 📝 Commit and push baselines
+        if: steps.summary.outputs.changed == 'true'
+        run: |
+          git config --global user.name  "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/visual
+          git commit -m "test(visual): regenerate baselines via workflow_dispatch"
+          git push origin "HEAD:${TARGET_REF}"
+
+      - name: 📎 Upload diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-baseline-failure
+          path: |
+            test-results/
+            /tmp/preview-logs/
+          retention-days: 7
