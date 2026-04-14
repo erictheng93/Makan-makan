@@ -1,20 +1,13 @@
 /**
- * LEGACY: Unit test with mocked services, NOT a real integration test.
+ * Store test: exercises a mutable replica of the auth store plus the
+ * dashboard data flow with a mocked `@/services/api`. Verifies store
+ * state transitions, permission gates, and data loading behaviour.
  *
- * This file uses vi.mock() on service/DB boundaries. It verifies component/
- * route JS logic but does NOT verify Drizzle SQL, D1 parity, or auth middleware
- * end-to-end. A real pass here does not guarantee a real pass in production.
- *
- * For real integration testing, see:
- *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
- *   apps/api/src/__tests__/integration/*.real.integration.test.ts
- *
- * ---
- * Original: Dashboard Integration Tests / 測試 Dashboard 整合功能
- * Note on Store Testing:
- * Auth store uses readonly() wrappers and computed properties, which cannot be
- * directly modified in tests. We mock the auth store at the module level to
- * provide controllable test values.
+ * This is a store-level test, NOT an API integration test. The service
+ * boundary is intentionally mocked so the store's readonly() wrappers
+ * and computed properties can be driven through controllable values.
+ * For real integration testing, see
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";

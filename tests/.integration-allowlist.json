@@ -19,12 +19,7 @@
   "component_flows": [],
   "module_integration": [],
   "inline_legacy_annotated": [
-    "apps/admin-dashboard/src/__tests__/integration/dashboard-integration.test.ts",
-    "apps/api/src/features/orders/__tests__/realtime-integration.test.ts",
-    "apps/api/src/features/tables/__tests__/concurrency-integration.test.ts",
-    "apps/api/src/services/__tests__/broadcast-integration.test.ts",
     "apps/kitchen-display/src/__tests__/integration/offline-mode.integration.test.ts",
-    "apps/kitchen-display/src/__tests__/integration/realtime-updates.integration.test.ts",
-    "apps/realtime/src/__tests__/websocket-integration.test.ts"
+    "apps/kitchen-display/src/__tests__/integration/realtime-updates.integration.test.ts"
   ]
 }
