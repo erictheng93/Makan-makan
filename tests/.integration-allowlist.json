@@ -1,0 +1,40 @@
+{
+  "$schema": "./allowlist.schema.json",
+  "description": "Enumerates every legitimate integration-named test file. Files matching the real_auto_allowed_pattern are allowed without an explicit entry. Any *integration*.test.ts file outside this allowlist AND outside the auto-allowed pattern will fail CI. See docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md §A7 for rationale.",
+  "real_auto_allowed_pattern": "apps/*/src/__tests__/integration/*.real.integration.test.ts",
+  "legacy_mockdrizzle": [
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/auth.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/coupons.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/db-analytics-queries.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/db-migrations.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/db-seed-integrity.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/menu.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/orders.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/partnerships.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/pos.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/tables.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/waiting-list.integration.test.ts",
+    "apps/api/src/__tests__/integration-legacy-mockdrizzle/webhooks.integration.test.ts"
+  ],
+  "component_flows": [
+    "apps/admin-dashboard/src/tests/component-flows/group-orders-integration.test.ts",
+    "apps/admin-dashboard/src/tests/component-flows/pos-integration.test.ts",
+    "apps/admin-dashboard/src/tests/component-flows/queue-integration.test.ts",
+    "apps/admin-dashboard/src/tests/component-flows/realtime-group-orders.integration.test.ts",
+    "apps/kitchen-display/tests/component-flows/performance-integration.test.ts"
+  ],
+  "module_integration": [
+    "apps/admin-dashboard/src/__tests__/virtual-scroll-integration.test.ts",
+    "apps/customer-app/src/tests/i18n.integration.test.ts"
+  ],
+  "inline_legacy_annotated": [
+    "apps/admin-dashboard/src/__tests__/integration/dashboard-integration.test.ts",
+    "apps/api/src/features/customers/__tests__/integration.test.ts",
+    "apps/api/src/features/orders/__tests__/realtime-integration.test.ts",
+    "apps/api/src/features/partnerships/__tests__/integration.test.ts",
+    "apps/api/src/features/tables/__tests__/concurrency-integration.test.ts",
+    "apps/api/src/features/waiting-list/__tests__/integration.test.ts",
+    "apps/api/src/services/__tests__/broadcast-integration.test.ts",
+    "apps/realtime/src/__tests__/websocket-integration.test.ts"
+  ]
+}
