@@ -11,7 +11,7 @@ export default defineConfig({
   },
   test: {
     name: "Integration Tests",
-    include: ["src/tests/integration/**/*.test.ts"],
+    include: ["src/tests/component-flows/**/*.test.ts"],
     exclude: ["src/tests/unit/**/*", "src/tests/e2e/**/*"],
     environment: "jsdom",
     globals: true,

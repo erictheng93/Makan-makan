@@ -54,6 +54,9 @@ jobs:
       - name: 💅 Prettier 格式檢查
         run: pnpm exec prettier --check "**/*.{ts,js,vue,json,md}"
 
+      - name: 🔒 整合測試白名單檢查
+        run: node scripts/check-integration-allowlist.cjs
+
   # 單元測試
   unit-tests:
     name: 🧪 單元測試

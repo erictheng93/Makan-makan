@@ -27,6 +27,17 @@
       "cache": true,
       "outputs": ["coverage/**"]
     },
+    "test:real-integration": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "migrations_fresh/**",
+        "vitest.real-integration.config.ts",
+        "package.json"
+      ],
+      "cache": true,
+      "outputs": []
+    },
     "deploy": {
       "dependsOn": ["build", "typecheck", "lint"],
       "cache": false

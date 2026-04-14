@@ -11,6 +11,7 @@
     "deploy:prod": "wrangler deploy --env production",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
+    "test:real-integration": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run --config vitest.real-integration.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"
   },
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250826.0",
+    "@hono/node-server": "^1.19.14",
     "@makanmakan/testing-utils": "workspace:*",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",

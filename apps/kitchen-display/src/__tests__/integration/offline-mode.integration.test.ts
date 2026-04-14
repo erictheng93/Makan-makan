@@ -1,6 +1,20 @@
 /**
- * Offline Mode Integration Tests
- * 測試離線模式和數據同步
+ * LEGACY: Unit test with mocked storage, NOT a real integration test.
+ *
+ * This file mocks `localStorage` and simulates offline/online events in-
+ * memory. It does NOT actually disconnect a network client, does NOT call
+ * a real sync API after reconnect, and does NOT verify that buffered
+ * actions replay through the real request pipeline.
+ *
+ * For real integration testing, see:
+ *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
+ *   apps/api/src/__tests__/integration/*.real.integration.test.ts
+ *
+ * TODO: Rewrite as a real integration test that disconnects from a live
+ * miniflare-hosted API and verifies the sync replay via real HTTP calls.
+ *
+ * ---
+ * Original: Offline Mode Integration Tests / 測試離線模式和數據同步
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
