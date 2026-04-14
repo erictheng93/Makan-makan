@@ -6,7 +6,9 @@ export default defineConfig({
     environment: "node",
     globals: true,
     root: resolve(__dirname),
-    include: ["src/__tests__/integration/**/*.integration.test.ts"],
+    include: [
+      "src/__tests__/integration-legacy-mockdrizzle/**/*.integration.test.ts",
+    ],
     exclude: ["**/node_modules/**", "**/dist/**"],
     testTimeout: 30000,
     hookTimeout: 30000,
