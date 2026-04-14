@@ -39,6 +39,7 @@
     "test:features": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run apps/api/src/features apps/admin-dashboard/src apps/kitchen-display/src apps/customer-app/src",
     "test:workers": "cross-env NODE_OPTIONS='--max-old-space-size=4096' vitest run tests/unit/workers",
     "test:integration": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run --config apps/api/vitest.integration.config.ts",
+    "test:real-integration": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run --config apps/api/vitest.real-integration.config.ts",
     "test:workers:integration": "wrangler dev --test --local tests/integration/workers",
     "test:ci": "pnpm run test:unit && pnpm run test:e2e",
     "test:smoke:staging": "playwright test tests/e2e/smoke --config=playwright.staging.config.ts",

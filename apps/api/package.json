@@ -11,6 +11,7 @@
     "deploy:prod": "wrangler deploy --env production",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
+    "test:real-integration": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run --config vitest.real-integration.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"
   },
