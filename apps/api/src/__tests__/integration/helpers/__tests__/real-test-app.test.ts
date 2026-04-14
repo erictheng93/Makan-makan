@@ -24,10 +24,16 @@ describe("createRealIntegrationTestApp", () => {
     expect(testApp.env.DB).toBe(testApp.testDb.db);
   });
 
-  it("responds 200 on GET /health", async () => {
+  it("responds 200 on GET /info", async () => {
+    // `/info` is app-level and has no auth middleware — ideal for a boot check.
+    // Do NOT use `/health` here: production `/health` redirects to
+    // `/api/v1/monitoring/health`, which sits behind `apiV1.use("/monitoring/*", authMiddleware)`,
+    // so an unauthenticated health check would actually surface as a 401.
     testApp = await createRealIntegrationTestApp();
-    const res = await testApp.app.fetch(new Request("https://test/health"));
+    const res = await testApp.app.fetch(new Request("https://test/info"));
     expect(res.status).toBe(200);
+    const body = (await res.json()) as { name: string };
+    expect(body.name).toBe("MakanMakan API");
   });
 
   it("rejects unauthenticated requests to protected endpoints", async () => {

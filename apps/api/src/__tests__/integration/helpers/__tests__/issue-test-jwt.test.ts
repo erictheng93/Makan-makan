@@ -11,8 +11,15 @@ describe("issueTestJwt", () => {
     expect(decoded.role).toBe(5);
     expect(decoded.id).toBe(42);
     expect(decoded.sub).toBe("42");
+    expect(decoded.username).toBe("test-user-42");
     expect(decoded.restaurantId).toBe("1");
     expect(decoded.exp - decoded.iat).toBe(3600);
+  });
+
+  it("honors a custom username claim", async () => {
+    const token = await issueTestJwt(0, { userId: 1, username: "alice" });
+    const decoded = (await verify(token, TEST_SECRET, "HS256")) as any;
+    expect(decoded.username).toBe("alice");
   });
 
   it("honors custom restaurantId and expiry", async () => {

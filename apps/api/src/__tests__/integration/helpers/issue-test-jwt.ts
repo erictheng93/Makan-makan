@@ -6,6 +6,7 @@ export type UserRole = 0 | 1 | 2 | 3 | 4 | 5;
 
 export interface IssueTestJwtClaims {
   userId?: number;
+  username?: string;
   restaurantId?: string;
   expiresInSeconds?: number;
 }
@@ -16,10 +17,15 @@ export async function issueTestJwt(
   claims?: IssueTestJwtClaims,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
+  const userId = claims?.userId ?? 1;
+  // `username` is required by the production authMiddleware (apps/api/src/middleware/auth.ts),
+  // so every test token must carry it. Default to `test-user-<id>` for determinism.
+  const username = claims?.username ?? `test-user-${userId}`;
   return sign(
     {
-      sub: String(claims?.userId ?? 1),
-      id: claims?.userId ?? 1,
+      sub: String(userId),
+      id: userId,
+      username,
       role,
       restaurantId: claims?.restaurantId ?? "1",
       iat: now,
