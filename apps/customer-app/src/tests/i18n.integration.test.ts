@@ -1,3 +1,9 @@
+/**
+ * Module integration test: exercises interaction between i18n module and locale
+ * consistency checker across all supported languages. This is NOT an end-to-end
+ * API integration test — it does not hit routes or D1.
+ */
+
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   i18n,

@@ -1,3 +1,9 @@
+/**
+ * Module integration test: exercises interaction between useVirtualScroll composable
+ * and Vue reactive state without HTTP/DB. This is NOT an end-to-end API integration test —
+ * it does not hit routes or D1.
+ */
+
 import { describe, it, expect } from "vitest";
 import { ref, nextTick } from "vue";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";

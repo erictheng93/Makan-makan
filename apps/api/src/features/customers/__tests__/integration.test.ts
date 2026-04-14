@@ -1,7 +1,16 @@
 /**
- * Customers API Integration Tests
- * 測試客戶管理 API 端點的集成功能
+ * LEGACY: Unit test with mocked services, NOT a real integration test.
  *
+ * This file uses vi.mock() on service/DB boundaries. It verifies component/
+ * route JS logic but does NOT verify Drizzle SQL, D1 parity, or auth middleware
+ * end-to-end. A real pass here does not guarantee a real pass in production.
+ *
+ * For real integration testing, see:
+ *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
+ *   apps/api/src/__tests__/integration/*.real.integration.test.ts
+ *
+ * ---
+ * Original: Customers API Integration Tests / 測試客戶管理 API 端點的集成功能
  * 使用 Service Mock 方式測試業務邏輯
  */
 
