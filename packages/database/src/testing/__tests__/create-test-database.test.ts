@@ -1,9 +1,9 @@
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { createTestDatabase, type TestDatabase } from "../create-test-database";
+
 // Undo the global vi.mock("drizzle-orm/d1") from services/__tests__/setup.ts
 // so this test uses the real drizzle implementation.
 vi.unmock("drizzle-orm/d1");
-
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestDatabase, type TestDatabase } from "../create-test-database";
 
 describe("createTestDatabase", () => {
   let testDb: TestDatabase | null = null;
