@@ -1,2 +1,6 @@
-// Placeholder — will be filled in Task 5
-export {};
+export {
+  createTestDatabase,
+  type TestDatabase,
+  type TestDatabaseBindings,
+} from "./create-test-database";
+export { runMigrations, listUserTables } from "./run-migrations";
