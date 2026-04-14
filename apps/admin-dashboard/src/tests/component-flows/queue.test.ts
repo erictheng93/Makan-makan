@@ -1,3 +1,14 @@
+/**
+ * Component flow test: mounts QueueDashboardTab and exercises its
+ * interactions with a mocked `queueService`, realtime composable, and
+ * the shared API client.
+ *
+ * This is a component-level test, NOT an API integration test. Service
+ * boundaries are intentionally mocked — the goal is to verify view +
+ * store wiring, not SQL/HTTP. For real integration testing, see
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
+ */
+
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import QueueView from "@/views/seating/QueueDashboardTab.vue";

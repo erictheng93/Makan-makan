@@ -16,13 +16,7 @@
     "apps/api/src/__tests__/integration-legacy-mockdrizzle/waiting-list.integration.test.ts",
     "apps/api/src/__tests__/integration-legacy-mockdrizzle/webhooks.integration.test.ts"
   ],
-  "component_flows": [
-    "apps/admin-dashboard/src/tests/component-flows/group-orders-integration.test.ts",
-    "apps/admin-dashboard/src/tests/component-flows/pos-integration.test.ts",
-    "apps/admin-dashboard/src/tests/component-flows/queue-integration.test.ts",
-    "apps/admin-dashboard/src/tests/component-flows/realtime-group-orders.integration.test.ts",
-    "apps/kitchen-display/tests/component-flows/performance-integration.test.ts"
-  ],
+  "component_flows": [],
   "module_integration": [
     "apps/admin-dashboard/src/__tests__/virtual-scroll-integration.test.ts",
     "apps/customer-app/src/tests/i18n.integration.test.ts"
