@@ -71,8 +71,10 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
     menuItem: async (restaurantId, overrides) => {
       // menuItems.categoryId has a real FK to categories.id.
       // Seed a throwaway category for this restaurant first.
+      // categoryFactory's type expects `restaurantId: number`, but the real
+      // schema uses TEXT UUID. Cast to `any` to bypass the stale factory type.
       const catData = categoryFactory.build({
-        overrides: { restaurantId: String(restaurantId) },
+        overrides: { restaurantId: String(restaurantId) } as any,
       });
       const {
         id: _catId,
