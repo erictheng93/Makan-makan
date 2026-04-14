@@ -4,12 +4,14 @@ import {
   menuItemFactory,
   orderFactory,
   categoryFactory,
+  userFactory,
 } from "@makanmakan/testing-utils";
 import {
   restaurants,
   menuItems,
   orders,
   categories,
+  users,
 } from "@makanmakan/database";
 
 export interface SeedHelpers {
@@ -24,6 +26,9 @@ export interface SeedHelpers {
     restaurantId: string | number,
     overrides?: Record<string, unknown>,
   ): Promise<{ id: number }>;
+  user(
+    overrides?: Record<string, unknown>,
+  ): Promise<{ id: number; username: string }>;
 }
 
 /**
@@ -107,6 +112,36 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
         } as any)
         .returning();
       return { id: row.id as number };
+    },
+
+    user: async (overrides) => {
+      const data = userFactory.build({ overrides: overrides as any });
+
+      // Factory produces camelCase; strip fields not in schema and convert timestamps.
+      const {
+        id: rawId,
+        createdAt,
+        updatedAt,
+        status: _status, // not a schema column on users
+        ...rest
+      } = data as any;
+
+      const [row] = await testDb.drizzle
+        .insert(users)
+        .values({
+          ...rest,
+          // Preserve explicit id if caller asked for one (e.g. match JWT claim)
+          ...(overrides?.id !== undefined ? { id: overrides.id } : {}),
+          createdAt: toDate(createdAt),
+          updatedAt: toDate(updatedAt),
+          // Factory may emit ms for these optional timestamps too
+          lastLoginAt: rest.lastLoginAt ? toDate(rest.lastLoginAt) : null,
+          passwordChangedAt: rest.passwordChangedAt
+            ? toDate(rest.passwordChangedAt)
+            : null,
+        } as any)
+        .returning();
+      return { id: row.id as number, username: row.username as string };
     },
 
     order: async (restaurantId, overrides) => {
