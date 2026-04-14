@@ -13,7 +13,12 @@ export default defineConfig({
     teardownTimeout: 10000,
     reporters: ["verbose"],
     passWithNoTests: true,
-    maxWorkers: 4,
+    // Miniflare's workerd IPC fails with `fetch failed` at migration 0006
+    // when multiple instances boot in parallel (observed at 4 files × 1
+    // vitest worker each). Serialise files to keep each smoke's miniflare
+    // boot isolated. Tests inside the same file still share one miniflare.
+    fileParallelism: false,
+    maxWorkers: 1,
   },
   resolve: {
     alias: {

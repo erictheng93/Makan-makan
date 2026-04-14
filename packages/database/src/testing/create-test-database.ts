@@ -26,25 +26,41 @@ export interface TestDatabase {
 }
 
 export async function createTestDatabase(): Promise<TestDatabase> {
-  const mf = new Miniflare({
-    modules: true,
-    script: "export default {};",
-    d1Databases: { DB: ":memory:" },
-    kvNamespaces: ["CACHE_KV", "TOKEN_BLACKLIST", "RATE_LIMIT_KV"],
-    r2Buckets: ["IMAGES_BUCKET", "BACKUP_STORAGE"],
-  });
-
-  let bindings: TestDatabaseBindings;
-  try {
-    bindings = await mf.getBindings<TestDatabaseBindings>();
-    await runMigrations(bindings.DB);
-  } catch (err) {
-    // Ensure miniflare is released if construction fails mid-way to avoid leaking
-    // workerd subprocess handles across the error boundary.
-    await mf.dispose();
-    throw err;
+  // Miniflare's workerd IPC occasionally surfaces a `fetch failed` during
+  // migration at ~5% rate (observed in 20× flake runs on macOS). The failure
+  // poisons the miniflare instance, so retrying the same instance is useless
+  // — we must dispose and spin up a fresh one. Retry up to 2 extra times.
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const mf = new Miniflare({
+      modules: true,
+      script: "export default {};",
+      d1Databases: { DB: ":memory:" },
+      kvNamespaces: ["CACHE_KV", "TOKEN_BLACKLIST", "RATE_LIMIT_KV"],
+      r2Buckets: ["IMAGES_BUCKET", "BACKUP_STORAGE"],
+    });
+    try {
+      const bindings = await mf.getBindings<TestDatabaseBindings>();
+      await runMigrations(bindings.DB);
+      return buildTestDatabase(mf, bindings);
+    } catch (err) {
+      await mf.dispose();
+      lastErr = err;
+      const msg = (err as Error).message ?? "";
+      const isTransient = msg.includes("fetch failed");
+      if (!isTransient) throw err;
+      console.warn(
+        `[createTestDatabase] transient miniflare fetch failed (attempt ${attempt + 1}/3), retrying...`,
+      );
+    }
   }
+  throw lastErr;
+}
 
+function buildTestDatabase(
+  mf: Miniflare,
+  bindings: TestDatabaseBindings,
+): TestDatabase {
   const drizzleDb = drizzle(bindings.DB, { schema });
 
   return {
