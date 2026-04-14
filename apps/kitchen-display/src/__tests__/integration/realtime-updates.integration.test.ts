@@ -1,6 +1,20 @@
 /**
- * Realtime Updates Integration Tests
- * 測試實時更新功能的整合
+ * LEGACY: Unit test with mocked services, NOT a real integration test.
+ *
+ * This file mocks `@/services/kitchenApi` and `@/services/audioService` and
+ * drives the Pinia store directly. It does NOT open a real SSE/WebSocket
+ * connection to `ws://localhost:8787`, does NOT hit the realtime worker,
+ * and does NOT verify end-to-end delivery of kitchen events.
+ *
+ * For real integration testing, see:
+ *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
+ *   apps/api/src/__tests__/integration/*.real.integration.test.ts
+ *
+ * TODO: Rewrite as a real integration test that boots the realtime worker
+ * under miniflare and connects via a real EventSource/WebSocket client.
+ *
+ * ---
+ * Original: Realtime Updates Integration Tests / 測試實時更新功能的整合
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";

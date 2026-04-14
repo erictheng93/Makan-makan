@@ -35,6 +35,8 @@
     "apps/api/src/features/tables/__tests__/concurrency-integration.test.ts",
     "apps/api/src/features/waiting-list/__tests__/integration.test.ts",
     "apps/api/src/services/__tests__/broadcast-integration.test.ts",
+    "apps/kitchen-display/src/__tests__/integration/offline-mode.integration.test.ts",
+    "apps/kitchen-display/src/__tests__/integration/realtime-updates.integration.test.ts",
     "apps/realtime/src/__tests__/websocket-integration.test.ts"
   ]
 }
