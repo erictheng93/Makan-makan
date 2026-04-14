@@ -18,8 +18,5 @@
   ],
   "component_flows": [],
   "module_integration": [],
-  "inline_legacy_annotated": [
-    "apps/kitchen-display/src/__tests__/integration/offline-mode.integration.test.ts",
-    "apps/kitchen-display/src/__tests__/integration/realtime-updates.integration.test.ts"
-  ]
+  "inline_legacy_annotated": []
 }
