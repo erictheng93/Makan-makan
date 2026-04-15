@@ -37,6 +37,48 @@ import { ROLE_STATUS_PERMISSIONS } from "../types";
 // with the legacy numeric OrderStatus from @makanmakan/shared-types above.
 import type { OrderStatus as DbOrderStatus } from "@makanmakan/database";
 
+const ORDER_TIMESTAMP_FIELDS = [
+  "createdAt",
+  "updatedAt",
+  "confirmedAt",
+  "preparingAt",
+  "readyAt",
+  "deliveredAt",
+  "paidAt",
+  "cancelledAt",
+] as const;
+
+function toWireTimestamp(value: unknown): unknown {
+  if (value == null || typeof value === "number") {
+    return value;
+  }
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+  if (typeof value === "string") {
+    const ms = Date.parse(value);
+    return Number.isFinite(ms) ? ms : value;
+  }
+  return value;
+}
+
+function serializeOrderForWire<T>(order: T): T {
+  if (!order || typeof order !== "object") {
+    return order;
+  }
+
+  const serialized = { ...(order as Record<string, unknown>) };
+  for (const field of ORDER_TIMESTAMP_FIELDS) {
+    serialized[field] = toWireTimestamp(serialized[field]);
+  }
+
+  return serialized as T;
+}
+
+function serializeOrdersForWire<T>(orders: T[]): T[] {
+  return orders.map((order) => serializeOrderForWire(order));
+}
+
 /** Convert auth user to CallerContext for service-layer defence-in-depth */
 function toCallerContext(user: AuthUser): CallerContext {
   return {
@@ -237,7 +279,7 @@ app.post(
     return c.json(
       {
         success: true,
-        data: order,
+        data: serializeOrderForWire(order),
         guestToken: token,
       },
       201,
@@ -257,7 +299,7 @@ app.get("/guest/:id", guestTokenAuth, async (c) => {
     throw notFound("Order not found");
   }
 
-  return c.json({ success: true, data: order });
+  return c.json({ success: true, data: serializeOrderForWire(order) });
 });
 
 /**
@@ -356,7 +398,7 @@ app.post(
     return c.json(
       {
         success: true,
-        data: order,
+        data: serializeOrderForWire(order),
       },
       201,
     );
@@ -416,7 +458,7 @@ app.get(
 
     return c.json({
       success: true,
-      data: result.orders,
+      data: serializeOrdersForWire(result.orders),
       pagination: result.pagination,
     });
   },
@@ -524,7 +566,7 @@ app.get(
 
     return c.json({
       success: true,
-      data: orders,
+      data: serializeOrdersForWire(orders),
     });
   },
 );
@@ -562,7 +604,7 @@ app.get(
 
     return c.json({
       success: true,
-      data: order,
+      data: serializeOrderForWire(order),
     });
   },
 );
@@ -683,7 +725,7 @@ app.put(
 
     return c.json({
       success: true,
-      data: updatedOrder,
+      data: serializeOrderForWire(updatedOrder),
     });
   },
 );

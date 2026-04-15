@@ -105,25 +105,8 @@ describe("Orders API — real integration", () => {
     // Stable across write and read — same wire value on both hops.
     expect(fetched.createdAt).toEqual(created.createdAt);
 
-    // ── createdAt wire type — documented production observation ─────────────
-    // Drizzle's `timestamp_ms` mode returns a `Date` object from the DB. The
-    // route currently serialises this Date through `JSON.stringify`, which
-    // produces an ISO-8601 string (e.g. "2026-04-14T02:30:00.000Z") rather
-    // than a Unix-ms integer. The legacy MockDrizzle tests cannot detect this
-    // divergence because they bypass Drizzle's type transformer entirely.
-    //
-    // This smoke accepts both wire shapes (string or number) and verifies
-    // semantic freshness instead of pinning the type, so the test remains
-    // green if a future PR normalises the contract to integers. If/when that
-    // fix lands, replace the parser below with a strict `typeof === "number"`
-    // assertion to lock in the improvement.
-    // ────────────────────────────────────────────────────────────────────────
-    const createdAtMs =
-      typeof fetched.createdAt === "number"
-        ? fetched.createdAt
-        : Date.parse(fetched.createdAt);
-    expect(Number.isFinite(createdAtMs)).toBe(true);
-    expect(Math.abs(createdAtMs - Date.now())).toBeLessThan(5000);
+    expect(typeof fetched.createdAt).toBe("number");
+    expect(Math.abs(fetched.createdAt - Date.now())).toBeLessThan(5000);
 
     // Belt-and-braces: the actor was created
     expect(actor.id).toBe(1);

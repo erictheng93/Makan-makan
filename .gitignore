@@ -184,6 +184,8 @@ vitest.config.ts.timestamp-*.mjs
 # Local Claude Code settings
 .claude/settings.local.json
 .mcp.json
+mcp.json
+.gh-config/
 
 # Coverage and test output files
 coverage-*.txt
