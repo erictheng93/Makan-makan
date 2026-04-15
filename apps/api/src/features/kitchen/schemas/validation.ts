@@ -14,38 +14,6 @@ export const orderItemStatusUpdateSchema = z.object({
   notes: z.string().optional().default(""),
 });
 
-// Broadcast Test Event Schema (for development)
-export const broadcastTestEventSchema = z.object({
-  type: z
-    .enum([
-      "NEW_ORDER",
-      "ORDER_STATUS_UPDATE",
-      "ORDER_CANCELLED",
-      "PRIORITY_UPDATE",
-    ])
-    .optional(),
-  payload: z.any().optional(),
-});
-
-// SSE Event Schema
-export const kitchenSSEEventSchema = z.object({
-  id: z.string().optional(),
-  event: z.string().optional(),
-  data: z.object({
-    type: z.enum([
-      "NEW_ORDER",
-      "ORDER_STATUS_UPDATE",
-      "ORDER_CANCELLED",
-      "PRIORITY_UPDATE",
-      "HEARTBEAT",
-    ]),
-    orderId: z.number().optional(),
-    payload: z.any().optional(),
-    timestamp: z.string(),
-    restaurantId: z.number(),
-  }),
-});
-
 // Route Parameter Schemas
 export const restaurantIdSchema = z.object({
   restaurantId: z.string().transform((val) => {
@@ -123,8 +91,6 @@ export const kitchenOrdersQuerySchema = z.object({
 
 // Type exports for use in routes
 export type OrderItemStatusUpdate = z.infer<typeof orderItemStatusUpdateSchema>;
-export type BroadcastTestEvent = z.infer<typeof broadcastTestEventSchema>;
-export type KitchenSSEEvent = z.infer<typeof kitchenSSEEventSchema>;
 export type RestaurantIdParams = z.infer<typeof restaurantIdSchema>;
 export type OrderItemParams = z.infer<typeof orderItemParamsSchema>;
 export type KitchenOrdersQuery = z.infer<typeof kitchenOrdersQuerySchema>;

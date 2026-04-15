@@ -1,124 +1,36 @@
 /**
  * Kitchen Service
- * Business logic for kitchen operations and real-time events
+ * Business logic for kitchen operations.
+ *
+ * NOTE: This service previously tracked SSE connections and broadcast events
+ * via an in-memory Map. That code was dead: each request handler created a
+ * fresh KitchenService instance, so the Map was never shared across requests
+ * and cross-request broadcasts could never reach any listener. Real-time
+ * kitchen updates flow through RealtimeBroadcastService → REALTIME_SESSION
+ * Durable Object → WebSocket clients (apps/kitchen-display uses
+ * useRealtimeKitchen.ts for this). The /kitchen/:id/events SSE endpoint now
+ * just provides a "connected" status indicator and periodic heartbeats.
  */
 
 import type { Env } from "../../../types/env";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type {
   IKitchenService,
-  KitchenConnection,
-  KitchenSSEEvent,
   KitchenOrder,
   KitchenOrdersResponse,
   OrderItemStatusUpdate,
-  ConnectionStatus,
-  BroadcastTestEvent,
 } from "../types";
 import { OrdersService } from "../../orders/services/OrdersService";
-import { OrderStatus } from "@makanmakan/shared-types";
 
 export class KitchenService implements IKitchenService {
-  private connections = new Map<string, KitchenConnection>();
   private logger: ConsoleLogger;
   private env: Env;
   private ordersService: OrdersService;
-  private cleanupInterval: NodeJS.Timeout | null = null;
-  private cleanupInitialized = false;
 
   constructor(env: Env) {
     this.env = env;
     this.logger = new ConsoleLogger("KitchenService");
     this.ordersService = new OrdersService(env);
-    // Don't start cleanup interval in constructor - use lazy initialization
-  }
-
-  private initializeCleanup(): void {
-    if (!this.cleanupInitialized) {
-      this.cleanupInitialized = true;
-      // In Worker environment, use periodic cleanup strategy instead of global setInterval
-      // Cleanup logic will be triggered on each request
-    }
-  }
-
-  // Connection Management
-  registerConnection(
-    connectionId: string,
-    connection: KitchenConnection,
-  ): void {
-    // Initialize cleanup and trigger cleanup check
-    this.initializeCleanup();
-    this.cleanupExpiredConnections();
-
-    this.connections.set(connectionId, connection);
-    this.logger.info("Kitchen SSE connection registered", {
-      connectionId,
-      restaurantId: connection.restaurantId,
-      userId: connection.userId,
-    });
-  }
-
-  removeConnection(connectionId: string): void {
-    if (this.connections.delete(connectionId)) {
-      this.logger.info("Kitchen SSE connection removed", { connectionId });
-    }
-  }
-
-  broadcastToKitchen(restaurantId: string, event: KitchenSSEEvent): number {
-    let sentCount = 0;
-
-    for (const [connectionId, connection] of this.connections.entries()) {
-      if (connection.restaurantId === restaurantId && connection.controller) {
-        try {
-          const eventData = this.formatSSEEvent(event);
-          connection.controller?.writeSSE({ data: eventData });
-          sentCount++;
-        } catch (error) {
-          this.logger.error(
-            `Failed to send event to connection ${connectionId}`,
-            error instanceof Error ? error : undefined,
-          );
-          // Remove failed connection
-          this.connections.delete(connectionId);
-        }
-      }
-    }
-
-    this.logger.info(`Broadcasted event to ${sentCount} kitchen connections`, {
-      restaurantId,
-      eventType: event.data.type,
-    });
-    return sentCount;
-  }
-
-  cleanupExpiredConnections(): void {
-    const now = Date.now();
-    const timeout = 5 * 60 * 1000; // 5 minutes timeout
-
-    for (const [connectionId, connection] of this.connections.entries()) {
-      if (now - connection.lastHeartbeat > timeout) {
-        this.logger.info("Cleaning up expired connection", { connectionId });
-        this.connections.delete(connectionId);
-      }
-    }
-  }
-
-  getConnectionStatus(restaurantId: string): ConnectionStatus {
-    const restaurantConnections = Array.from(this.connections.entries())
-      .filter(([_, conn]) => conn.restaurantId === restaurantId)
-      .map(([id, conn]) => ({
-        id,
-        userId: conn.userId,
-        restaurantId: conn.restaurantId,
-        lastHeartbeat: new Date(conn.lastHeartbeat).toISOString(),
-        connected: Date.now() - conn.lastHeartbeat < 60000, // 1 minute threshold
-      }));
-
-    return {
-      totalConnections: this.connections.size,
-      restaurantConnections: restaurantConnections.length,
-      connections: restaurantConnections,
-    };
   }
 
   // Kitchen Operations
@@ -256,7 +168,6 @@ export class KitchenService implements IKitchenService {
     itemId: number;
     status: string;
     updatedAt: string;
-    broadcastSent: number;
   }> {
     try {
       this.logger.info("Updating order item status", {
@@ -273,35 +184,11 @@ export class KitchenService implements IKitchenService {
         statusUpdate.notes,
       );
 
-      const updatedAt = new Date().toISOString();
-
-      // Broadcast status update event
-      const event: KitchenSSEEvent = {
-        id: `update_${Date.now()}_${orderId}_${itemId}`,
-        event: "order-update",
-        data: {
-          type: "ORDER_STATUS_UPDATE",
-          orderId,
-          payload: {
-            itemId,
-            status: statusUpdate.status,
-            updatedBy: userId,
-            updatedAt,
-            notes: statusUpdate.notes,
-          },
-          timestamp: updatedAt,
-          restaurantId,
-        },
-      };
-
-      const sentCount = this.broadcastToKitchen(restaurantId, event);
-
       return {
         orderId,
         itemId,
         status: statusUpdate.status,
-        updatedAt,
-        broadcastSent: sentCount,
+        updatedAt: new Date().toISOString(),
       };
     } catch (error) {
       this.logger.error(
@@ -315,51 +202,6 @@ export class KitchenService implements IKitchenService {
       );
       throw error;
     }
-  }
-
-  // Development/Testing
-  broadcastTestEvent(restaurantId: string, event: BroadcastTestEvent): number {
-    const testEvent: KitchenSSEEvent = {
-      id: `test_${Date.now()}`,
-      event: "test-event",
-      data: {
-        type: event.type || "NEW_ORDER",
-        orderId: 999,
-        payload: event.payload || { message: "Test broadcast event" },
-        timestamp: new Date().toISOString(),
-        restaurantId,
-      },
-    };
-
-    const sentCount = this.broadcastToKitchen(restaurantId, testEvent);
-    this.logger.info("Test event broadcasted", {
-      restaurantId,
-      sentCount,
-      event: testEvent,
-    });
-
-    return sentCount;
-  }
-
-  // Utilities
-  generateConnectionId(): string {
-    return `kitchen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  formatSSEEvent(event: KitchenSSEEvent): string {
-    let result = "";
-
-    if (event.id) {
-      result += `id: ${event.id}\n`;
-    }
-
-    if (event.event) {
-      result += `event: ${event.event}\n`;
-    }
-
-    result += `data: ${JSON.stringify(event.data)}\n`;
-
-    return result;
   }
 
   validateChefAccess(
@@ -379,19 +221,6 @@ export class KitchenService implements IKitchenService {
       return false;
     }
 
-    // Additional restaurant validation would go here
-    // For now, assuming user.restaurantId is validated elsewhere
-
     return true;
-  }
-
-  // Cleanup method for service shutdown
-  destroy(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
-    this.connections.clear();
-    this.logger.info("Kitchen service destroyed");
   }
 }

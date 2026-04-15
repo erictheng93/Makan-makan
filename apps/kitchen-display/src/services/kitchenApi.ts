@@ -6,11 +6,6 @@ export interface UpdateItemStatusRequest {
   notes?: string;
 }
 
-export interface BroadcastTestRequest {
-  type?: string;
-  payload?: any;
-}
-
 export const kitchenApi = {
   /**
    * 獲取廚房訂單資料
@@ -114,64 +109,6 @@ export const kitchenApi = {
       return {
         success: false,
         error: "批量更新失敗",
-        timestamp: new Date().toISOString(),
-      };
-    }
-  },
-
-  /**
-   * 獲取連接狀態
-   */
-  async getConnectionStatus(
-    restaurantId: number | string,
-  ): Promise<ApiResponse> {
-    try {
-      const response = await api.get(`/kitchen/${restaurantId}/connections`);
-
-      return {
-        success: true,
-        data: response.data.data,
-        timestamp: response.data.timestamp,
-      };
-    } catch (error: any) {
-      console.error("Get connection status API error:", error);
-
-      const message =
-        error.response?.data?.message || error.message || "獲取連接狀態失敗";
-      return {
-        success: false,
-        error: message,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  },
-
-  /**
-   * 廣播測試事件 (開發用)
-   */
-  async broadcastTest(
-    restaurantId: number | string,
-    request: BroadcastTestRequest,
-  ): Promise<ApiResponse> {
-    try {
-      const response = await api.post(
-        `/kitchen/${restaurantId}/broadcast-test`,
-        request,
-      );
-
-      return {
-        success: true,
-        data: response.data,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error: any) {
-      console.error("Broadcast test API error:", error);
-
-      const message =
-        error.response?.data?.message || error.message || "廣播測試失敗";
-      return {
-        success: false,
-        error: message,
         timestamp: new Date().toISOString(),
       };
     }

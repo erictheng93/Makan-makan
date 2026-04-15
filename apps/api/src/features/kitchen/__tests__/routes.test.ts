@@ -8,13 +8,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock KitchenService
 const mockKitchenService = {
   validateChefAccess: vi.fn(),
-  generateConnectionId: vi.fn(),
-  registerConnection: vi.fn(),
-  removeConnection: vi.fn(),
   getKitchenOrders: vi.fn(),
   updateOrderItemStatus: vi.fn(),
-  broadcastTestEvent: vi.fn(),
-  getConnectionStatus: vi.fn(),
 };
 
 vi.mock("../services/KitchenService", () => ({
@@ -27,12 +22,6 @@ describe("Kitchen Routes - Unit Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockKitchenService.validateChefAccess.mockReturnValue(true);
-    mockKitchenService.generateConnectionId.mockReturnValue("kitchen_123_abc");
-    mockKitchenService.getConnectionStatus.mockReturnValue({
-      totalConnections: 1,
-      restaurantConnections: 1,
-      connections: [],
-    });
   });
 
   describe("Service Method Calls", () => {
@@ -85,7 +74,6 @@ describe("Kitchen Routes - Unit Tests", () => {
           itemId: 50,
           status: "preparing",
           updatedAt: new Date().toISOString(),
-          broadcastSent: 1,
         });
 
         const result = await mockKitchenService.updateOrderItemStatus(
@@ -99,7 +87,6 @@ describe("Kitchen Routes - Unit Tests", () => {
         expect(result.orderId).toBe(100);
         expect(result.itemId).toBe(50);
         expect(result.status).toBe("preparing");
-        expect(result.broadcastSent).toBe(1);
       });
 
       it("should handle update with all status types", async () => {
@@ -111,7 +98,6 @@ describe("Kitchen Routes - Unit Tests", () => {
             itemId: 50,
             status,
             updatedAt: new Date().toISOString(),
-            broadcastSent: 0,
           });
 
           const result = await mockKitchenService.updateOrderItemStatus(
@@ -143,68 +129,6 @@ describe("Kitchen Routes - Unit Tests", () => {
       });
     });
 
-    describe("broadcastTestEvent", () => {
-      it("should broadcast test event", async () => {
-        mockKitchenService.broadcastTestEvent.mockReturnValue(2);
-
-        const result = mockKitchenService.broadcastTestEvent(1, {
-          type: "NEW_ORDER",
-          payload: { test: true },
-        });
-
-        expect(result).toBe(2);
-      });
-
-      it("should broadcast with default type", async () => {
-        mockKitchenService.broadcastTestEvent.mockReturnValue(1);
-
-        const result = mockKitchenService.broadcastTestEvent(1, {});
-
-        expect(result).toBe(1);
-      });
-
-      it("should return 0 when no connections", async () => {
-        mockKitchenService.broadcastTestEvent.mockReturnValue(0);
-
-        const result = mockKitchenService.broadcastTestEvent(999, {});
-
-        expect(result).toBe(0);
-      });
-    });
-
-    describe("getConnectionStatus", () => {
-      it("should return connection status", async () => {
-        mockKitchenService.getConnectionStatus.mockReturnValue({
-          totalConnections: 5,
-          restaurantConnections: 3,
-          connections: [
-            { id: "conn-1", userId: 100, connected: true },
-            { id: "conn-2", userId: 101, connected: true },
-            { id: "conn-3", userId: 102, connected: false },
-          ],
-        });
-
-        const result = mockKitchenService.getConnectionStatus(1);
-
-        expect(result.totalConnections).toBe(5);
-        expect(result.restaurantConnections).toBe(3);
-        expect(result.connections).toHaveLength(3);
-      });
-
-      it("should return empty status for restaurant with no connections", async () => {
-        mockKitchenService.getConnectionStatus.mockReturnValue({
-          totalConnections: 0,
-          restaurantConnections: 0,
-          connections: [],
-        });
-
-        const result = mockKitchenService.getConnectionStatus(999);
-
-        expect(result.restaurantConnections).toBe(0);
-        expect(result.connections).toHaveLength(0);
-      });
-    });
-
     describe("validateChefAccess", () => {
       it("should allow valid chef roles", () => {
         mockKitchenService.validateChefAccess.mockReturnValue(true);
@@ -220,43 +144,6 @@ describe("Kitchen Routes - Unit Tests", () => {
 
         expect(mockKitchenService.validateChefAccess(1, 4, 1)).toBe(false); // Cashier
         expect(mockKitchenService.validateChefAccess(1, 5, 1)).toBe(false); // Customer
-      });
-    });
-  });
-
-  describe("Connection Management", () => {
-    describe("registerConnection", () => {
-      it("should register connection", () => {
-        mockKitchenService.registerConnection("conn-1", {
-          restaurantId: 1,
-          userId: 100,
-          controller: null,
-          lastHeartbeat: Date.now(),
-        });
-
-        expect(mockKitchenService.registerConnection).toHaveBeenCalled();
-      });
-    });
-
-    describe("removeConnection", () => {
-      it("should remove connection", () => {
-        mockKitchenService.removeConnection("conn-1");
-
-        expect(mockKitchenService.removeConnection).toHaveBeenCalledWith(
-          "conn-1",
-        );
-      });
-    });
-
-    describe("generateConnectionId", () => {
-      it("should generate unique connection ID", () => {
-        mockKitchenService.generateConnectionId.mockReturnValue(
-          "kitchen_123_abc",
-        );
-
-        const id = mockKitchenService.generateConnectionId();
-
-        expect(id).toMatch(/^kitchen_/);
       });
     });
   });

@@ -1,31 +1,6 @@
 /**
  * Kitchen Feature Module Types
- * Types for kitchen operations and SSE events
  */
-
-export interface KitchenSSEEvent {
-  id?: string;
-  event?: string;
-  data: {
-    type:
-      | "NEW_ORDER"
-      | "ORDER_STATUS_UPDATE"
-      | "ORDER_CANCELLED"
-      | "PRIORITY_UPDATE"
-      | "HEARTBEAT";
-    orderId?: number;
-    payload?: any;
-    timestamp: string;
-    restaurantId: string;
-  };
-}
-
-export interface KitchenConnection {
-  restaurantId: string;
-  userId: number;
-  controller?: any; // SSEStreamingApi
-  lastHeartbeat: number;
-}
 
 export interface KitchenOrder {
   id: number;
@@ -76,36 +51,8 @@ export interface OrderItemStatusUpdate {
   notes?: string;
 }
 
-export interface ConnectionStatus {
-  totalConnections: number;
-  restaurantConnections: number;
-  connections: Array<{
-    id: string;
-    userId: number;
-    restaurantId: string;
-    lastHeartbeat: string;
-    connected: boolean;
-  }>;
-}
-
-export interface BroadcastTestEvent {
-  type?:
-    | "NEW_ORDER"
-    | "ORDER_STATUS_UPDATE"
-    | "ORDER_CANCELLED"
-    | "PRIORITY_UPDATE";
-  payload?: any;
-}
-
 // Service Interface
 export interface IKitchenService {
-  // SSE Connection Management
-  registerConnection(connectionId: string, connection: KitchenConnection): void;
-  removeConnection(connectionId: string): void;
-  broadcastToKitchen(restaurantId: string, event: KitchenSSEEvent): number;
-  cleanupExpiredConnections(): void;
-  getConnectionStatus(restaurantId: string): ConnectionStatus;
-
   // Kitchen Operations
   getKitchenOrders(
     restaurantId: string,
@@ -122,15 +69,8 @@ export interface IKitchenService {
     itemId: number;
     status: string;
     updatedAt: string;
-    broadcastSent: number;
   }>;
 
-  // Development/Testing
-  broadcastTestEvent(restaurantId: string, event: BroadcastTestEvent): number;
-
-  // Utilities
-  generateConnectionId(): string;
-  formatSSEEvent(event: KitchenSSEEvent): string;
   validateChefAccess(
     userId: number,
     userRole: number,

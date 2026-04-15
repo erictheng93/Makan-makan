@@ -11,8 +11,6 @@ import { assertMatchesSchema } from "../../../contracts/helpers";
 import {
   GetKitchenOrdersResponse,
   UpdateItemStatusResponse,
-  KitchenConnectionsResponse,
-  BroadcastTestResponse,
 } from "../../../contracts/schemas/kitchen";
 
 describe("Kitchen API Response Contracts", () => {
@@ -101,85 +99,6 @@ describe("Kitchen API Response Contracts", () => {
         UpdateItemStatusResponse,
         mockResponse,
         "PATCH /kitchen/items/:id/status (no message)",
-      );
-    });
-  });
-
-  // =========================================================================
-  // Kitchen Connections
-  // =========================================================================
-  describe("Kitchen Connections Response Contract", () => {
-    it("should match KitchenConnectionsResponse schema", () => {
-      const mockResponse = {
-        success: true as const,
-        data: {
-          connections: 3,
-          clients: [
-            { id: "client-1", connectedAt: new Date().toISOString() },
-            { id: "client-2", connectedAt: new Date().toISOString() },
-            { id: "client-3", connectedAt: new Date().toISOString() },
-          ],
-        },
-      };
-
-      assertMatchesSchema(
-        KitchenConnectionsResponse,
-        mockResponse,
-        "GET /kitchen/connections",
-      );
-    });
-
-    it("should accept zero connections", () => {
-      const mockResponse = {
-        success: true as const,
-        data: {
-          connections: 0,
-          clients: [],
-        },
-      };
-
-      assertMatchesSchema(
-        KitchenConnectionsResponse,
-        mockResponse,
-        "GET /kitchen/connections (empty)",
-      );
-    });
-  });
-
-  // =========================================================================
-  // Broadcast Test
-  // =========================================================================
-  describe("Broadcast Test Response Contract", () => {
-    it("should match BroadcastTestResponse schema with all fields", () => {
-      const mockResponse = {
-        success: true as const,
-        data: {
-          message: "Test broadcast sent",
-          sentCount: 5,
-          event: "test_broadcast",
-        },
-        message: "Broadcast sent successfully",
-      };
-
-      assertMatchesSchema(
-        BroadcastTestResponse,
-        mockResponse,
-        "POST /kitchen/broadcast-test",
-      );
-    });
-
-    it("should accept response with partial data fields", () => {
-      const mockResponse = {
-        success: true as const,
-        data: {
-          sentCount: 0,
-        },
-      };
-
-      assertMatchesSchema(
-        BroadcastTestResponse,
-        mockResponse,
-        "POST /kitchen/broadcast-test (partial)",
       );
     });
   });
