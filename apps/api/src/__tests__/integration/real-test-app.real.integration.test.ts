@@ -1,11 +1,8 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
-} from "../real-test-app";
-
-// Undo the global vi.mock("drizzle-orm/d1") so this test uses the real drizzle instance.
-vi.unmock("drizzle-orm/d1");
+} from "./helpers/real-test-app";
 
 describe("createRealIntegrationTestApp", () => {
   let testApp: RealIntegrationTestApp | null = null;

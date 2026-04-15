@@ -1,20 +1,9 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
 } from "@makanmakan/database/testing";
-import { buildSeedHelpers } from "../seed-helper";
-
-// Undo the global vi.mock("drizzle-orm/d1") so this test uses the real drizzle.
-vi.unmock("drizzle-orm/d1");
+import { buildSeedHelpers } from "./helpers/seed-helper";
 
 describe("buildSeedHelpers", () => {
   let testDb: TestDatabase;
