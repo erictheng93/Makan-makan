@@ -19,7 +19,10 @@ export interface RealIntegrationTestApp {
 export async function createRealIntegrationTestApp(): Promise<RealIntegrationTestApp> {
   const testDb = await createTestDatabase();
   const env = buildTestEnv(testDb);
-  const honoApp = createApp(env);
+  const honoApp = createApp(env, {
+    disableEdgeCache: true,
+    disableObservability: true,
+  });
   const authHelper = buildAuthHelper();
 
   const testCtx = {

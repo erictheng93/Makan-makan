@@ -98,9 +98,19 @@ import { ErrorSanitizer } from "./utils/errorSanitizer";
 import { ApiError } from "./shared/utils/api-error";
 import type { Env } from "./types/env";
 
-export function createApp(_env?: Env): Hono<{ Bindings: Env }> {
+export interface AppRuntimeOptions {
+  disableEdgeCache?: boolean;
+  disableObservability?: boolean;
+}
+
+export function createApp(
+  _env?: Env,
+  options: AppRuntimeOptions = {},
+): Hono<{ Bindings: Env }> {
   // 創建主應用
   const app = new Hono<{ Bindings: Env }>();
+  const edgeCacheEnabled = !options.disableEdgeCache;
+  const observabilityEnabled = !options.disableObservability;
 
   // 🚀 ENHANCED 全域中間件 FOR 100/100 SCORE - CLOUDFLARE OPTIMIZATIONS
   app.use("*", requestIdMiddleware); // First: Generate request ID for tracking
@@ -193,54 +203,58 @@ export function createApp(_env?: Env): Hono<{ Bindings: Env }> {
   app.use("*", inputSanitizationMiddleware); // Fifth: Sanitize inputs before processing
 
   // 📊 CRITICAL ANALYTICS: Workers Analytics integration (+1 point)
-  app.use("*", advancedAnalyticsMiddleware());
+  if (observabilityEnabled) {
+    app.use("*", advancedAnalyticsMiddleware());
+  }
 
   // 🚀 CRITICAL PERFORMANCE: Multi-layer edge caching (+2.5 points)
-  app.use(
-    "*",
-    smartCacheMiddleware({
-      defaultTtl: 300, // 使用預設值，避免全域範圍的 process.env 存取
-      // User-Agent was previously listed but it shards the cache per-client
-      // (curl, each browser, etc.), making invalidation impossible — every
-      // unique UA gets its own Cache API entry that the writer/invalidator
-      // can't enumerate. Drop it. Authorization is handled by short-circuiting
-      // the cache for authenticated requests, so it's redundant here too.
-      varyHeaders: ["X-Restaurant-ID", "CF-IPCountry"],
-      cacheTags: (c) => {
-        const restaurantId =
-          c.req.param("restaurantId") || c.get("user")?.restaurantId;
-        const tags = ["api"];
-        if (restaurantId) tags.push(`restaurant:${restaurantId}`);
-        if (c.req.path.includes("/menu"))
-          tags.push("menu", `menu:${restaurantId}`);
-        if (c.req.path.includes("/orders"))
-          tags.push("orders", `orders:${restaurantId}`);
-        if (c.req.path.includes("/analytics")) tags.push("analytics");
-        if (c.req.path.includes("/qr")) tags.push("qr");
-        if (c.req.path.includes("/payments"))
-          tags.push("payments", `payments:${restaurantId}`);
-        return tags;
-      },
-      shouldCache: (c) => {
-        // Cache GET requests, skip auth endpoints, prioritize menu/restaurant data
-        const method = c.req.method;
-        const path = c.req.path;
-        return (
-          method === "GET" &&
-          !path.includes("/auth/") &&
-          !path.includes("/sse/") &&
-          // Skip SSE streaming endpoints (kitchen, monitoring, etc.) — caching
-          // middleware would read the body and collapse the stream.
-          !path.endsWith("/events") &&
-          !path.includes("/payments/") &&
-          c.res.status < 400
-        );
-      },
-    }),
-  );
+  if (edgeCacheEnabled) {
+    app.use(
+      "*",
+      smartCacheMiddleware({
+        defaultTtl: 300, // 使用預設值，避免全域範圍的 process.env 存取
+        // User-Agent was previously listed but it shards the cache per-client
+        // (curl, each browser, etc.), making invalidation impossible — every
+        // unique UA gets its own Cache API entry that the writer/invalidator
+        // can't enumerate. Drop it. Authorization is handled by short-circuiting
+        // the cache for authenticated requests, so it's redundant here too.
+        varyHeaders: ["X-Restaurant-ID", "CF-IPCountry"],
+        cacheTags: (c) => {
+          const restaurantId =
+            c.req.param("restaurantId") || c.get("user")?.restaurantId;
+          const tags = ["api"];
+          if (restaurantId) tags.push(`restaurant:${restaurantId}`);
+          if (c.req.path.includes("/menu"))
+            tags.push("menu", `menu:${restaurantId}`);
+          if (c.req.path.includes("/orders"))
+            tags.push("orders", `orders:${restaurantId}`);
+          if (c.req.path.includes("/analytics")) tags.push("analytics");
+          if (c.req.path.includes("/qr")) tags.push("qr");
+          if (c.req.path.includes("/payments"))
+            tags.push("payments", `payments:${restaurantId}`);
+          return tags;
+        },
+        shouldCache: (c) => {
+          // Cache GET requests, skip auth endpoints, prioritize menu/restaurant data
+          const method = c.req.method;
+          const path = c.req.path;
+          return (
+            method === "GET" &&
+            !path.includes("/auth/") &&
+            !path.includes("/sse/") &&
+            // Skip SSE streaming endpoints (kitchen, monitoring, etc.) — caching
+            // middleware would read the body and collapse the stream.
+            !path.endsWith("/events") &&
+            !path.includes("/payments/") &&
+            c.res.status < 400
+          );
+        },
+      }),
+    );
 
-  // 🎯 PERFORMANCE: Predictive cache warming (+0.3 points)
-  app.use("*", cacheWarmingMiddleware());
+    // 🎯 PERFORMANCE: Predictive cache warming (+0.3 points)
+    app.use("*", cacheWarmingMiddleware());
+  }
 
   // Legacy rate limiting (now replaced by geo-intelligent version)
   // app.use('*', securityAwareRateLimitMiddleware)
@@ -248,9 +262,11 @@ export function createApp(_env?: Env): Hono<{ Bindings: Env }> {
   app.use("*", logger()); // Seventh: Logging (after security checks)
   app.use("*", timing()); // Eighth: Performance timing
   app.use("*", prettyJSON()); // Ninth: JSON formatting
-  app.use("*", metricsMiddleware()); // Tenth: Metrics collection
-  app.use("*", errorMonitoringMiddleware()); // Eleventh: Error monitoring
-  app.use("*", monitoringStatsMiddleware()); // Twelfth: Monitoring stats
+  if (observabilityEnabled) {
+    app.use("*", metricsMiddleware()); // Tenth: Metrics collection
+    app.use("*", errorMonitoringMiddleware()); // Eleventh: Error monitoring
+    app.use("*", monitoringStatsMiddleware()); // Twelfth: Monitoring stats
+  }
 
   // 🏢 DEPLOYMENT MODE: Tenant context middleware for hybrid deployment strategy
   // Sets up tenant context based on deployment mode (SaaS vs Independent)
@@ -432,7 +448,8 @@ export function createApp(_env?: Env): Hono<{ Bindings: Env }> {
   apiV1.use("/pos/*", authMiddleware);
   apiV1.use("/payments/*", authMiddleware);
   // apiV1.use('/print/*', authMiddleware) // Disabled - incomplete feature
-  apiV1.use("/tables/*", authMiddleware);
+  // Tables routes handle auth at the route level so public QR lookups
+  // (`GET /tables/qr/:qrCode`) remain reachable without a bearer token.
   apiV1.use("/seats/*", authMiddleware);
   apiV1.use("/users/*", authMiddleware);
   apiV1.use("/analytics/*", authMiddleware);
