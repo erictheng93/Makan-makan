@@ -12,6 +12,7 @@ import {
   orders,
   categories,
   users,
+  coupons,
 } from "@makanmakan/database";
 
 export interface SeedHelpers {
@@ -29,6 +30,24 @@ export interface SeedHelpers {
   user(
     overrides?: Record<string, unknown>,
   ): Promise<{ id: number; username: string }>;
+  coupon(
+    restaurantId: string | number,
+    overrides?: Record<string, unknown>,
+  ): Promise<{ id: number; code: string }>;
+}
+
+/**
+ * Generate a YYYY-MM-DD string for a date `daysOffset` days from `base`.
+ * Matches the `text("valid_from" / "valid_to")` column format in the
+ * coupons schema. Use integer math, never Intl/toLocaleDateString, so
+ * the output is timezone-stable across CI runners.
+ */
+function formatYMD(base: Date, daysOffset: number): string {
+  const d = new Date(base.getTime() + daysOffset * 24 * 60 * 60 * 1000);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 /**
@@ -144,6 +163,51 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
         } as any)
         .returning();
       return { id: row.id as number, username: row.username as string };
+    },
+
+    coupon: async (restaurantId, overrides) => {
+      // No couponFactory exists in testing-utils — hand-roll defaults so
+      // this helper stays self-contained. Callers override whatever they
+      // need via the standard overrides object.
+      //
+      // `code` is the one field that MUST be unique per row (the column
+      // has a UNIQUE index). Use a random suffix so multiple rows seeded
+      // in the same test don't collide.
+      const uniqueSuffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+      const now = new Date();
+
+      const defaults = {
+        restaurantId: String(restaurantId),
+        code: `TEST-${uniqueSuffix}`,
+        name: "Test Coupon",
+        description: null,
+        discountType: "percentage" as const,
+        discountValue: 10,
+        maxDiscountAmount: null,
+        minOrderAmount: 0,
+        applicableMenuItems: null,
+        applicableCategories: null,
+        usageLimit: null,
+        usageLimitPerUser: null,
+        usedCount: 0,
+        validFrom: formatYMD(now, -1), // yesterday — active window
+        validTo: formatYMD(now, 30), // 30 days out
+        isActive: true,
+        isVisible: true,
+        createdBy: null,
+        deletedAt: null,
+      };
+
+      const merged = { ...defaults, ...(overrides as Record<string, unknown>) };
+
+      const [row] = await testDb.drizzle
+        .insert(coupons)
+        .values({
+          ...merged,
+          restaurantId: String(restaurantId),
+        } as any)
+        .returning();
+      return { id: row.id as number, code: row.code as string };
     },
 
     order: async (restaurantId, overrides) => {
