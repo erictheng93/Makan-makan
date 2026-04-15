@@ -15,7 +15,9 @@ import { buildSeedHelpers } from "./helpers/seed-helper";
 
 vi.unmock("drizzle-orm/d1");
 
-function withCsrf(headers: Record<string, string> = {}): Record<string, string> {
+function withCsrf(
+  headers: Record<string, string> = {},
+): Record<string, string> {
   const csrfToken = "b".repeat(64);
   return {
     host: "test",
