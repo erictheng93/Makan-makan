@@ -536,6 +536,19 @@
     "confirmCancelBtn": "Konfirmasi Batal",
     "keepOrder": "Pertahankan Pesanan",
     "reconnecting": "Koneksi terputus, menghubungkan kembali...",
+    "connecting": "Membangun koneksi realtime...",
+    "connectionError": "Kesalahan koneksi realtime",
+    "connectionUnknown": "Status koneksi tidak diketahui",
+    "statusDesc": {
+      "pending": "Pesanan Anda telah dikirim dan menunggu konfirmasi restoran",
+      "confirmed": "Restoran telah mengonfirmasi pesanan Anda",
+      "preparing": "Dapur sedang menyiapkan hidangan Anda",
+      "ready": "Hidangan Anda sudah siap",
+      "served": "Hidangan telah diantar ke meja Anda",
+      "paid": "Pesanan selesai dan telah dibayar",
+      "cancelled": "Pesanan ini telah dibatalkan",
+      "unknown": "Status pesanan tidak diketahui"
+    },
     "timeline": {
       "created": "Pesanan Dibuat",
       "createdDesc": "Pesanan Anda telah berhasil dikirim",

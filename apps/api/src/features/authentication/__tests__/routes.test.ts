@@ -269,7 +269,10 @@ describe("Authentication Routes", () => {
 
       expect(res.status).toBe(401);
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Invalid username or password");
+      expect(result.error).toEqual({
+        code: "INVALID_CREDENTIALS",
+        message: "Invalid username or password",
+      });
       expect(mockAuthService.login).toHaveBeenCalledOnce();
     });
 

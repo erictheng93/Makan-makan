@@ -1,5 +1,6 @@
 import {
   eq,
+  ne,
   and,
   desc,
   asc,
@@ -10,6 +11,7 @@ import {
   avg,
   sql,
   between,
+  inArray,
 } from "drizzle-orm";
 import { BaseService } from "./base";
 import {
@@ -20,6 +22,18 @@ import {
   tables,
   categories,
 } from "../schema";
+
+/**
+ * Status values that represent a "successfully completed" order for analytics.
+ * The orders.status column never contains the literal string "completed" — older
+ * queries used `eq(status, "completed")` and silently matched zero rows. Use this
+ * array with `inArray(orders.status, ...)` for revenue / fulfillment analytics.
+ */
+const FULFILLED_ORDER_STATUSES: readonly string[] = [
+  "paid",
+  "delivered",
+  "served",
+];
 
 export interface DateRange {
   dateFrom?: string;
@@ -220,7 +234,9 @@ export class AnalyticsService extends BaseService {
       const [{ completedOrders }] = await this.db
         .select({ completedOrders: count() })
         .from(orders)
-        .where(and(...conditions, eq(orders.status, "completed")));
+        .where(
+          and(...conditions, inArray(orders.status, FULFILLED_ORDER_STATUSES)),
+        );
 
       // 已取消訂單數
       const [{ cancelledOrders }] = await this.db
@@ -243,7 +259,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             ...conditions,
-            eq(orders.status, "completed"),
+            inArray(orders.status, FULFILLED_ORDER_STATUSES),
             sql`${orders.actualPrepTime} IS NOT NULL`,
           ),
         );
@@ -458,7 +474,9 @@ export class AnalyticsService extends BaseService {
         })
         .from(orders)
         .innerJoin(users, eq(orders.customerId, users.id))
-        .where(and(...conditions, eq(orders.status, "completed")))
+        .where(
+          and(...conditions, inArray(orders.status, FULFILLED_ORDER_STATUSES)),
+        )
         .groupBy(orders.customerId, users.fullName)
         .orderBy(desc(sum(orders.totalAmount)))
         .limit(limit);
@@ -613,6 +631,11 @@ export class AnalyticsService extends BaseService {
       );
       const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
 
+      // 訂單數計非取消訂單；營收計已結帳訂單 (paid / delivered / served)
+      // 先前用 eq(status, "completed") 一直過不了，因為 orders 表實際
+      // 狀態是 pending/confirmed/preparing/ready/delivered/served/paid/cancelled，
+      // 根本沒有 "completed"，所以 dashboard 永遠顯示 0。
+
       // 今日營收和訂單數
       const [todayStats] = await this.db
         .select({
@@ -624,7 +647,20 @@ export class AnalyticsService extends BaseService {
           and(
             eq(orders.restaurantId, restaurantId),
             gte(orders.createdAt, todayStart),
-            eq(orders.status, "completed"),
+            ne(orders.status, "cancelled"),
+          ),
+        );
+
+      const [todayRevenueRow] = await this.db
+        .select({
+          revenue: sum(orders.totalAmount),
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.restaurantId, restaurantId),
+            gte(orders.createdAt, todayStart),
+            inArray(orders.status, FULFILLED_ORDER_STATUSES),
           ),
         );
 
@@ -639,7 +675,20 @@ export class AnalyticsService extends BaseService {
           and(
             eq(orders.restaurantId, restaurantId),
             gte(orders.createdAt, monthStart),
-            eq(orders.status, "completed"),
+            ne(orders.status, "cancelled"),
+          ),
+        );
+
+      const [monthRevenueRow] = await this.db
+        .select({
+          revenue: sum(orders.totalAmount),
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.restaurantId, restaurantId),
+            gte(orders.createdAt, monthStart),
+            inArray(orders.status, FULFILLED_ORDER_STATUSES),
           ),
         );
 
@@ -654,14 +703,27 @@ export class AnalyticsService extends BaseService {
           and(
             eq(orders.restaurantId, restaurantId),
             between(orders.createdAt, lastMonthStart, lastMonthEnd),
-            eq(orders.status, "completed"),
+            ne(orders.status, "cancelled"),
           ),
         );
 
-      // 計算成長率
+      const [lastMonthRevenueRow] = await this.db
+        .select({
+          revenue: sum(orders.totalAmount),
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.restaurantId, restaurantId),
+            between(orders.createdAt, lastMonthStart, lastMonthEnd),
+            inArray(orders.status, FULFILLED_ORDER_STATUSES),
+          ),
+        );
+
+      // 計算成長率 — 營收成長率用已結帳的營收，訂單成長率用非取消訂單數
       const revenueGrowth = this.calculateGrowthRate(
-        Number(monthStats.revenue) || 0,
-        Number(lastMonthStats.revenue) || 0,
+        Number(monthRevenueRow?.revenue) || 0,
+        Number(lastMonthRevenueRow?.revenue) || 0,
       );
       const orderGrowth = this.calculateGrowthRate(
         monthStats.orderCount,
@@ -685,7 +747,7 @@ export class AnalyticsService extends BaseService {
         .orderBy(desc(orders.createdAt))
         .limit(10);
 
-      // 熱銷商品
+      // 熱銷商品 — 計非取消訂單即可（不限定 paid，否則剛出餐的熱賣品都會被排除）
       const topSellingItems = await this.db
         .select({
           itemId: menuItems.id,
@@ -700,7 +762,7 @@ export class AnalyticsService extends BaseService {
           and(
             eq(orders.restaurantId, restaurantId),
             gte(orders.createdAt, monthStart),
-            eq(orders.status, "completed"),
+            ne(orders.status, "cancelled"),
           ),
         )
         .groupBy(menuItems.id, menuItems.name)
@@ -723,9 +785,9 @@ export class AnalyticsService extends BaseService {
 
       return {
         summary: {
-          todayRevenue: Number(todayStats.revenue) || 0,
+          todayRevenue: Number(todayRevenueRow?.revenue) || 0,
           todayOrders: todayStats.orderCount,
-          monthRevenue: Number(monthStats.revenue) || 0,
+          monthRevenue: Number(monthRevenueRow?.revenue) || 0,
           monthOrders: monthStats.orderCount,
           growthRates: {
             revenueGrowth,
@@ -879,7 +941,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            eq(orders.status, "completed"),
+            inArray(orders.status, FULFILLED_ORDER_STATUSES),
             gte(orders.createdAt, sql`datetime('now', '-2 hours')`),
           ),
         );
@@ -1078,7 +1140,9 @@ export class AnalyticsService extends BaseService {
           ),
         })
         .from(orders)
-        .where(and(...conditions, eq(orders.status, "completed")));
+        .where(
+          and(...conditions, inArray(orders.status, FULFILLED_ORDER_STATUSES)),
+        );
 
       // 廚房效率（實際準備時間 vs 預估準備時間）
       const [{ kitchenEfficiency }] = await this.db
@@ -1094,7 +1158,9 @@ export class AnalyticsService extends BaseService {
           ),
         })
         .from(orders)
-        .where(and(...conditions, eq(orders.status, "completed")));
+        .where(
+          and(...conditions, inArray(orders.status, FULFILLED_ORDER_STATUSES)),
+        );
 
       // 桌子使用率
       const [{ tableUtilization }] = await this.db

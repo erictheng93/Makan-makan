@@ -536,6 +536,19 @@
     "confirmCancelBtn": "Confirm Cancel",
     "keepOrder": "Keep Order",
     "reconnecting": "Connection lost, reconnecting...",
+    "connecting": "Establishing realtime connection...",
+    "connectionError": "Realtime connection error",
+    "connectionUnknown": "Connection status unknown",
+    "statusDesc": {
+      "pending": "Your order has been submitted and is awaiting restaurant confirmation",
+      "confirmed": "The restaurant has confirmed your order",
+      "preparing": "The kitchen is preparing your meal",
+      "ready": "Your meal is ready",
+      "served": "The meal has been delivered to your table",
+      "paid": "Order completed and paid",
+      "cancelled": "This order has been cancelled",
+      "unknown": "Order status unknown"
+    },
     "timeline": {
       "created": "Order Created",
       "createdDesc": "Your order has been submitted successfully",

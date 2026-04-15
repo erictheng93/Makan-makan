@@ -259,10 +259,31 @@
             <div class="space-y-2">
               <div class="flex justify-between text-sm text-ios-secondary">
                 <span>{{ t("common.subtotal") }}</span>
-                <span>{{ formatPrice(order.totalAmount) }}</span>
+                <span>{{ formatPrice(order.subtotal ?? 0) }}</span>
               </div>
               <div
-                class="flex justify-between text-lg font-semibold text-ios-text"
+                v-if="(order.serviceCharge ?? 0) > 0"
+                class="flex justify-between text-sm text-ios-secondary"
+              >
+                <span>{{ t("cart.serviceCharge") }}</span>
+                <span>{{ formatPrice(order.serviceCharge ?? 0) }}</span>
+              </div>
+              <div
+                v-if="(order.taxAmount ?? 0) > 0"
+                class="flex justify-between text-sm text-ios-secondary"
+              >
+                <span>{{ t("cart.tax") }}</span>
+                <span>{{ formatPrice(order.taxAmount ?? 0) }}</span>
+              </div>
+              <div
+                v-if="(order.discountAmount ?? 0) > 0"
+                class="flex justify-between text-sm text-ios-green"
+              >
+                <span>{{ t("cart.discount") }}</span>
+                <span>-{{ formatPrice(order.discountAmount ?? 0) }}</span>
+              </div>
+              <div
+                class="flex justify-between text-lg font-semibold text-ios-text pt-2 border-t border-ios-separator"
               >
                 <span>{{ t("common.total") }}</span>
                 <span>{{ formatPrice(order.totalAmount) }}</span>
