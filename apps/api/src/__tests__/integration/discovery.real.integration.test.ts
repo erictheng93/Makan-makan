@@ -34,6 +34,9 @@ async function seedSearchIndex(
     price: number;
     menuItemId: number;
     isAvailable?: boolean;
+    district?: string;
+    supportsTakeaway?: boolean;
+    supportsDelivery?: boolean;
   }[],
 ): Promise<void> {
   // D1/miniflare can reject large multi-row inserts if the combined SQL variable
@@ -48,6 +51,9 @@ async function seedSearchIndex(
       dishNameNormalized: item.name.trim().toLowerCase().replace(/\s+/g, ""),
       isAvailable: (item.isAvailable ?? true) as unknown as boolean,
       price: item.price,
+      district: item.district,
+      supportsTakeaway: (item.supportsTakeaway ?? false) as unknown as boolean,
+      supportsDelivery: (item.supportsDelivery ?? false) as unknown as boolean,
       tags: [] as string[],
       updatedAt: new Date(),
     });
@@ -176,6 +182,135 @@ describe("Discovery API — real integration", () => {
     // the two cheapest pages should be distinct sets)
     const prices: number[] = data.results.map((r: any) => r.price);
     expect(Math.min(...prices)).toBeGreaterThan(100 + 9 * 10 - 1); // all > page-1 items
+  });
+
+  it("keeps aggregate total stable across pages for a multi-page search", async () => {
+    const restaurant = await seed.restaurant();
+
+    const menuItemIds: number[] = [];
+    for (let i = 0; i < 25; i++) {
+      const item = await seed.menuItem(String(restaurant.id), {
+        isAvailable: true,
+        name: `Curry Puff ${i}`,
+        price: 100 + i,
+      });
+      menuItemIds.push(item.id);
+    }
+
+    await seedSearchIndex(
+      testApp,
+      String(restaurant.id),
+      menuItemIds.map((id, i) => ({
+        menuItemId: id,
+        name: `Curry Puff ${i}`,
+        price: 100 + i,
+      })),
+    );
+
+    const page1Res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/search?q=Curry+Puff&page=1&limit=10",
+      ),
+    );
+    const page2Res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/search?q=Curry+Puff&page=2&limit=10",
+      ),
+    );
+    const page3Res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/search?q=Curry+Puff&page=3&limit=10",
+      ),
+    );
+
+    expect(page1Res.status).toBe(200);
+    expect(page2Res.status).toBe(200);
+    expect(page3Res.status).toBe(200);
+
+    const page1 = ((await page1Res.json()) as any).data;
+    const page2 = ((await page2Res.json()) as any).data;
+    const page3 = ((await page3Res.json()) as any).data;
+
+    expect(page1.total).toBe(25);
+    expect(page2.total).toBe(25);
+    expect(page3.total).toBe(25);
+    expect(page1.results).toHaveLength(10);
+    expect(page2.results).toHaveLength(10);
+    expect(page3.results).toHaveLength(5);
+    expect(page3.results.map((r: any) => r.dishName)).toEqual([
+      "Curry Puff 20",
+      "Curry Puff 21",
+      "Curry Puff 22",
+      "Curry Puff 23",
+      "Curry Puff 24",
+    ]);
+  });
+
+  it("returns filtered totals independent of the current page slice", async () => {
+    const restaurant = await seed.restaurant();
+
+    const specs = [
+      { name: "Mee 0", price: 100, district: "Xitun", supportsDelivery: true },
+      { name: "Mee 1", price: 110, district: "Xitun", supportsDelivery: true },
+      { name: "Mee 2", price: 120, district: "Xitun", supportsDelivery: true },
+      { name: "Mee 3", price: 130, district: "Xitun", supportsDelivery: true },
+      { name: "Mee 4", price: 140, district: "Xitun", supportsDelivery: false },
+      { name: "Mee 5", price: 150, district: "Beitun", supportsDelivery: true },
+    ];
+
+    const rows: {
+      menuItemId: number;
+      name: string;
+      price: number;
+      district: string;
+      supportsDelivery: boolean;
+    }[] = [];
+
+    for (const spec of specs) {
+      const item = await seed.menuItem(String(restaurant.id), {
+        isAvailable: true,
+        name: spec.name,
+        price: spec.price,
+      });
+
+      rows.push({
+        menuItemId: item.id,
+        name: spec.name,
+        price: spec.price,
+        district: spec.district,
+        supportsDelivery: spec.supportsDelivery,
+      });
+    }
+
+    await seedSearchIndex(
+      testApp,
+      String(restaurant.id),
+      rows.map((row) => ({
+        menuItemId: row.menuItemId,
+        name: row.name,
+        price: row.price,
+        district: row.district,
+        supportsDelivery: row.supportsDelivery,
+      })),
+    );
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/search?q=Mee&district=Xitun&delivery=true&priceMin=100&priceMax=130&page=1&limit=2",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as any).data;
+
+    expect(data.page).toBe(1);
+    expect(data.limit).toBe(2);
+    expect(data.results).toHaveLength(2);
+    expect(data.total).toBe(4);
+    expect(data.results.map((r: any) => r.dishName)).toEqual([
+      "Mee 0",
+      "Mee 1",
+    ]);
   });
 
   // -------------------------------------------------------------------------

@@ -265,6 +265,31 @@ describe("Discovery Routes", () => {
         }),
       );
     });
+
+    it("should preserve aggregate pagination metadata from the service", async () => {
+      mockSearchDishes.mockResolvedValue({
+        results: [
+          { menuItemId: 11, dishName: "Nasi Lemak 10", price: 200 },
+          { menuItemId: 12, dishName: "Nasi Lemak 11", price: 210 },
+        ],
+        total: 12,
+        page: 2,
+        limit: 10,
+      });
+
+      const res = await app.fetch(
+        new Request("http://localhost/discovery/search?q=nasi&page=2&limit=10"),
+        mockEnv,
+      );
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as any;
+      expect(json.success).toBe(true);
+      expect(json.data.total).toBe(12);
+      expect(json.data.page).toBe(2);
+      expect(json.data.limit).toBe(10);
+      expect(json.data.results).toHaveLength(2);
+    });
   });
 
   describe("GET /discovery/restaurants", () => {
