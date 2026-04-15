@@ -59,7 +59,17 @@ export async function createRealIntegrationTestApp(): Promise<RealIntegrationTes
 
 function buildTestEnv(testDb: TestDatabase): Env {
   return {
-    NODE_ENV: "test",
+    // Intentionally "development", not "test". The
+    // geoIntelligentRateLimitMiddleware skips rate limiting when
+    // NODE_ENV === "development" (see geo-rate-limiting.ts:707) — its
+    // comment explicitly names the integration test suite as the reason.
+    // Setting this to "test" trips the rate limiter and returns 429 on
+    // later tests in the same file, since miniflare's RATE_LIMIT_KV is
+    // shared across tests and isn't reset by truncateAll().
+    // The single production consumer that gates on NODE_ENV === "test"
+    // (UnifiedQueueService MockDrizzle fallback) checks MOCK_DRIZZLE_DB
+    // first, which we deliberately leave undefined below.
+    NODE_ENV: "development",
     JWT_SECRET: "test-jwt-secret-do-not-use-in-prod",
     API_VERSION: "v1",
     ENCRYPTION_KEY: "test-encryption-key-32-bytes-long!!",
