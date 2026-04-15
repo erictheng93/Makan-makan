@@ -260,8 +260,29 @@ export class ErrorHandler {
     };
   }
 
+  // 已知的背景遙測 / 健康檢查 endpoint — 即使後端回 5xx 也不該彈
+  // toast 干擾使用者，這些訊號自有專屬的 widget 顯示（例如儀表板的
+  // 「系統健康狀態」區塊已經以警告燈號呈現 /monitoring/health 的結果）。
+  private static readonly SILENT_ERROR_URL_PATTERNS: readonly string[] = [
+    "/monitoring/health",
+    "/monitoring/metrics",
+    "/analytics/performance",
+    "/system/error-report",
+  ];
+
+  private isSilentTelemetryError(error: ErrorDetails): boolean {
+    const url = (error.context?.url as string | undefined) ?? "";
+    return ErrorHandler.SILENT_ERROR_URL_PATTERNS.some((pattern) =>
+      url.includes(pattern),
+    );
+  }
+
   // 顯示用戶提示
   private showUserNotification(error: ErrorDetails) {
+    if (this.isSilentTelemetryError(error)) {
+      return;
+    }
+
     const duration = error.severity === ErrorSeverity.HIGH ? 8000 : 4000;
 
     if (error.severity === ErrorSeverity.CRITICAL) {
