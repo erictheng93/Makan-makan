@@ -8,9 +8,22 @@ export default defineConfig({
     root: resolve(__dirname),
     include: ["src/__tests__/integration/**/*.real.integration.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**"],
-    testTimeout: 30000,
-    hookTimeout: 30000,
-    teardownTimeout: 10000,
+    // Per-attempt miniflare boot + full runMigrations is ~8-12s. When the
+    // workerd IPC hits the ~5% `fetch failed` path (handled by the retry
+    // loop in `packages/database/src/testing/create-test-database.ts`),
+    // wall time becomes 2-3× that: up to ~36s in the worst case.
+    //
+    // 30s used to straddle the 2-retry cliff — `discovery.real.integration.
+    // test.ts`'s `beforeAll` hit that exact edge and flaked.
+    //
+    // 60s absorbs the full retry budget with headroom. Both timeouts are
+    // bumped because this suite has two different ownership models:
+    //   - `discovery` / `seed-helper` use `beforeAll` (hookTimeout matters)
+    //   - `start-test-api-server` / `real-test-app` create a fresh
+    //     miniflare in each `it()` (testTimeout matters)
+    testTimeout: 60000,
+    hookTimeout: 60000,
+    teardownTimeout: 15000,
     reporters: ["verbose"],
     passWithNoTests: true,
     // Miniflare's workerd IPC fails with `fetch failed` at migration 0006

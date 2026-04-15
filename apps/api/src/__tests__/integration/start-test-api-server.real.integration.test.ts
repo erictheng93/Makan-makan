@@ -1,11 +1,8 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import {
   startTestApiServer,
   type TestApiServerHandle,
-} from "../start-test-api-server";
-
-// Undo the global vi.mock("drizzle-orm/d1") so this test uses the real drizzle.
-vi.unmock("drizzle-orm/d1");
+} from "./helpers/start-test-api-server";
 
 describe("startTestApiServer", () => {
   let handle: TestApiServerHandle | null = null;

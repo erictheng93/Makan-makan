@@ -80,7 +80,11 @@ const mockEmployee: Employee = {
   createdAt: "2026-01-01T00:00:00Z",
 } as Employee;
 
-const futureDate = "2026-04-15";
+// Relative to "now" so this doesn't bitrot. Previously hardcoded as
+// "2026-04-15" which broke the instant the test clock caught up on that
+// date — the component filters upcoming shifts by `> today`, so a shift
+// on today is no longer "upcoming".
+const futureDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
 const pastDate = "2026-03-01";
 
 const mockSchedules: Partial<EmployeeSchedule>[] = [
