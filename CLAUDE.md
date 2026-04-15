@@ -55,12 +55,30 @@ pnpm dev                # Start all apps in parallel
 
 ### Environment Variables
 
+**Secrets (never commit):**
+
 ```env
 CLOUDFLARE_API_TOKEN=your_api_token
 JWT_SECRET=your_jwt_secret
 CLOUDFLARE_IMAGES_KEY=your_images_key
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ```
+
+Put these in `.env.local` or the Cloudflare secret store — never in any committed file.
+
+**Frontend dev defaults (committed):**
+
+Each Vite app ships a team-shared `.env.development` checked into the repo:
+
+- `apps/customer-app/.env.development`
+- `apps/admin-dashboard/.env.development`
+- `apps/kitchen-display/.env.development`
+
+These only contain localhost URLs (API proxy path, local WS ports) and feature flags — zero secrets. New clones run `pnpm dev` out of the box with no `cp` step.
+
+To override for your personal setup (port collision, remote API, etc.), create `.env.development.local` in the same directory — it's gitignored and takes precedence over `.env.development`. Each app has a `.env.development.example` you can copy as a starting point.
+
+**Rule:** anything matching `SECRET|TOKEN|KEY|PASSWORD` belongs in `.env.local` only. `.env.development` is for localhost URLs and flags, nothing else.
 
 ## Multi-Role Access System
 

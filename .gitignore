@@ -18,11 +18,18 @@ build/
 coverage/
 
 # Environment files
+#
+# Team-shared dev defaults (.env.development / .env.test) ARE committed —
+# they only contain localhost URLs and feature flags. Individual overrides
+# belong in .env.development.local / .env.test.local (ignored below).
+# Real secrets (JWT, tokens, keys) go in .env.local or the secret store only.
 .env
 .env.local
 .env.*.local
-.env.development
+.env.production
 .dev.vars
+!.env.development
+!.env.test
 
 # IDE files
 .vscode/
