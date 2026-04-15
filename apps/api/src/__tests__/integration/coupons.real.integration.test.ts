@@ -85,7 +85,9 @@ describe("Coupons API — real integration", () => {
   });
 
   afterAll(async () => {
-    await testApp.dispose();
+    // Guarded so a beforeAll timeout does not cascade into a
+    // second failure that obscures the original cause.
+    if (testApp) await testApp.dispose();
   });
 
   beforeEach(async () => {
