@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { KitchenService } from "../services/KitchenService";
-import type { KitchenSSEEvent, OrderItemStatusUpdate } from "../types";
+import type { OrderItemStatusUpdate } from "../types";
 import type { OrderStatus } from "@makanmakan/shared-types";
 
 // Mock OrdersService with hoisted mock for flexibility
@@ -188,31 +188,12 @@ describe("KitchenService Orders", () => {
       expect(result).toHaveProperty("itemId", 1);
       expect(result).toHaveProperty("status", "preparing");
       expect(result).toHaveProperty("updatedAt");
-      expect(result).toHaveProperty("broadcastSent");
       expect(mockUpdateItemStatus).toHaveBeenCalledOnce();
-    });
-
-    it("should broadcast status update to kitchen connections", async () => {
-      // Register a connection first
-      kitchenService.registerConnection("test-conn", {
-        restaurantId: "test-restaurant-1",
-        userId: 100,
-        lastHeartbeat: Date.now(),
-      });
-
-      const statusUpdate: OrderItemStatusUpdate = {
-        status: "ready",
-      };
-
-      const result = await kitchenService.updateOrderItemStatus(
-        "test-restaurant-1",
+      expect(mockUpdateItemStatus).toHaveBeenCalledWith(
         1,
-        1,
-        statusUpdate,
-        100,
+        "preparing",
+        "Started cooking",
       );
-
-      expect(result.broadcastSent).toBeGreaterThanOrEqual(0);
     });
 
     it("should include notes in status update", async () => {
@@ -231,129 +212,22 @@ describe("KitchenService Orders", () => {
 
       expect(result.status).toBe("preparing");
     });
-  });
 
-  describe("broadcastToKitchen", () => {
-    it("should broadcast event to all restaurant connections", () => {
-      // Register multiple connections
-      kitchenService.registerConnection("conn-1", {
-        restaurantId: "test-restaurant-1",
-        userId: 101,
-        lastHeartbeat: Date.now(),
-      });
-      kitchenService.registerConnection("conn-2", {
-        restaurantId: "test-restaurant-1",
-        userId: 102,
-        lastHeartbeat: Date.now(),
-      });
-      kitchenService.registerConnection("conn-3", {
-        restaurantId: "test-restaurant-2", // Different restaurant
-        userId: 103,
-        lastHeartbeat: Date.now(),
-      });
-
-      const event: KitchenSSEEvent = {
-        id: "test-event-1",
-        event: "new-order",
-        data: {
-          type: "NEW_ORDER",
-          orderId: 123,
-          timestamp: new Date().toISOString(),
-          restaurantId: "test-restaurant-1",
-        },
+    it("should handle update without notes", async () => {
+      const statusUpdate: OrderItemStatusUpdate = {
+        status: "ready",
       };
 
-      // Note: Without actual SSE controllers, this will return 0
-      // In real scenario, it would send to conn-1 and conn-2
-      const sentCount = kitchenService.broadcastToKitchen(
+      const result = await kitchenService.updateOrderItemStatus(
         "test-restaurant-1",
-        event,
+        1,
+        1,
+        statusUpdate,
+        100,
       );
 
-      expect(typeof sentCount).toBe("number");
-    });
-
-    it("should not broadcast to other restaurants", () => {
-      kitchenService.registerConnection("conn-1", {
-        restaurantId: "test-restaurant-2",
-        userId: 101,
-        lastHeartbeat: Date.now(),
-      });
-
-      const event: KitchenSSEEvent = {
-        data: {
-          type: "NEW_ORDER",
-          orderId: 123,
-          timestamp: new Date().toISOString(),
-          restaurantId: "test-restaurant-1",
-        },
-      };
-
-      const sentCount = kitchenService.broadcastToKitchen(
-        "test-restaurant-1",
-        event,
-      );
-
-      expect(sentCount).toBe(0);
-    });
-  });
-
-  describe("broadcastTestEvent", () => {
-    it("should broadcast test event for development", () => {
-      kitchenService.registerConnection("test-conn", {
-        restaurantId: "test-restaurant-1",
-        userId: 100,
-        lastHeartbeat: Date.now(),
-      });
-
-      const sentCount = kitchenService.broadcastTestEvent("test-restaurant-1", {
-        type: "NEW_ORDER",
-        payload: { message: "Test broadcast" },
-      });
-
-      expect(typeof sentCount).toBe("number");
-    });
-
-    it("should use default type if not provided", () => {
-      const sentCount = kitchenService.broadcastTestEvent("test-restaurant-1", {
-        payload: { test: true },
-      });
-
-      expect(typeof sentCount).toBe("number");
-    });
-  });
-
-  describe("Connection Management with Orders", () => {
-    it("should track connections per restaurant", () => {
-      kitchenService.registerConnection("conn-1", {
-        restaurantId: "test-restaurant-1",
-        userId: 101,
-        lastHeartbeat: Date.now(),
-      });
-      kitchenService.registerConnection("conn-2", {
-        restaurantId: "test-restaurant-1",
-        userId: 102,
-        lastHeartbeat: Date.now(),
-      });
-
-      const status = kitchenService.getConnectionStatus("test-restaurant-1");
-
-      expect(status.restaurantConnections).toBe(2);
-    });
-
-    it("should cleanup expired connections before fetching orders", async () => {
-      // Register an expired connection (more than 5 minutes ago - the timeout threshold)
-      kitchenService.registerConnection("expired-conn", {
-        restaurantId: "test-restaurant-1",
-        userId: 100,
-        lastHeartbeat: Date.now() - 6 * 60 * 1000, // 6 minutes ago (past 5 min timeout)
-      });
-
-      // Manually trigger cleanup (getKitchenOrders doesn't directly call cleanup)
-      kitchenService.cleanupExpiredConnections();
-
-      const status = kitchenService.getConnectionStatus("test-restaurant-1");
-      expect(status.restaurantConnections).toBe(0);
+      expect(result.status).toBe("ready");
+      expect(mockUpdateItemStatus).toHaveBeenCalledWith(1, "ready", undefined);
     });
   });
 });

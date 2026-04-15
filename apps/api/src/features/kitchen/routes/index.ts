@@ -1,36 +1,31 @@
 /**
  * Kitchen Feature Routes
- * Modular routes for kitchen operations and SSE events
  */
 
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, sseAuthMiddleware } from "../../../middleware/auth";
-// import { validateBody, validateParams } from '../../../shared/middleware/validation'
 import type { Env } from "../../../types/env";
 import { KitchenService } from "../services/KitchenService";
-// Schemas available for future validation if needed
-// import {
-//   orderItemStatusUpdateSchema,
-//   broadcastTestEventSchema,
-//   restaurantIdSchema,
-//   orderItemParamsSchema
-// } from '../schemas/validation'
 import { createSuccessResponse } from "../../../shared/utils/response";
 import { forbidden } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
 /**
- * SSE 端點 - 廚房事件流
+ * SSE 端點 - 廚房連線狀態指示
  * GET /api/v1/kitchen/{restaurantId}/events
+ *
+ * This stream only emits a "connected" welcome event and periodic heartbeats
+ * so the kitchen-display UI can show online/offline status. Actual order
+ * events flow through the realtime WebSocket (REALTIME_SESSION Durable
+ * Object), not through this stream.
  */
 app.get("/:restaurantId/events", sseAuthMiddleware, async (c) => {
   const restaurantId = c.req.param("restaurantId");
   const user = c.get("user");
   const kitchenService = new KitchenService(c.env);
 
-  // Validate chef access
   if (!kitchenService.validateChefAccess(user.id, user.role, restaurantId)) {
     throw forbidden(
       "Access denied. Chef role required.",
@@ -38,7 +33,6 @@ app.get("/:restaurantId/events", sseAuthMiddleware, async (c) => {
     );
   }
 
-  // Validate restaurant permission
   if (user.restaurantId !== restaurantId) {
     throw forbidden(
       "Access denied. Restaurant permission required.",
@@ -51,17 +45,6 @@ app.get("/:restaurantId/events", sseAuthMiddleware, async (c) => {
   );
 
   return streamSSE(c, async (stream) => {
-    const connectionId = kitchenService.generateConnectionId();
-
-    kitchenService.registerConnection(connectionId, {
-      restaurantId,
-      userId: user.id,
-      controller: stream,
-      lastHeartbeat: Date.now(),
-    });
-
-    console.log(`Kitchen SSE connection established: ${connectionId}`);
-
     // Send initial connection confirmation. Don't await — Hono's streamSSE
     // needs the handler to yield quickly so the initial response headers
     // and body chunk are flushed to the client.
@@ -69,7 +52,6 @@ app.get("/:restaurantId/events", sseAuthMiddleware, async (c) => {
       event: "connected",
       data: JSON.stringify({
         type: "HEARTBEAT",
-        connectionId,
         timestamp: new Date().toISOString(),
         restaurantId,
         message: "Kitchen display connected successfully",
@@ -85,28 +67,22 @@ app.get("/:restaurantId/events", sseAuthMiddleware, async (c) => {
             type: "HEARTBEAT",
             timestamp: new Date().toISOString(),
             restaurantId,
-            connectionCount:
-              kitchenService.getConnectionStatus(restaurantId)
-                .restaurantConnections,
           }),
           id: `heartbeat_${Date.now()}`,
         });
       } catch (error) {
-        console.error(
-          `Heartbeat failed for connection ${connectionId}:`,
-          error,
-        );
+        console.error("Kitchen SSE heartbeat failed:", error);
         clearInterval(heartbeatInterval);
-        kitchenService.removeConnection(connectionId);
       }
     }, 30000);
 
     // Keep stream alive until client disconnects
     await new Promise<void>((resolve) => {
       c.req.raw.signal?.addEventListener("abort", () => {
-        console.log(`Kitchen SSE connection closed: ${connectionId}`);
+        console.log(
+          `Kitchen SSE connection closed (restaurant ${restaurantId})`,
+        );
         clearInterval(heartbeatInterval);
-        kitchenService.removeConnection(connectionId);
         resolve();
       });
     });
@@ -122,7 +98,6 @@ app.get("/:restaurantId/orders", authMiddleware, async (c) => {
   const user = c.get("user");
   const kitchenService = new KitchenService(c.env);
 
-  // Validate permissions
   if (
     !kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
     user.restaurantId !== restaurantId
@@ -152,7 +127,6 @@ app.put(
     const user = c.get("user");
     const kitchenService = new KitchenService(c.env);
 
-    // Validate permissions
     if (
       !kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
       user.restaurantId !== restaurantId
@@ -173,64 +147,5 @@ app.put(
     );
   },
 );
-
-/**
- * 廣播測試端點 (開發用)
- * POST /api/v1/kitchen/{restaurantId}/broadcast-test
- */
-app.post("/:restaurantId/broadcast-test", authMiddleware, async (c) => {
-  // Only allow in non-production environments
-  if (c.env.NODE_ENV === "production") {
-    throw forbidden(
-      "Test endpoint not available in production",
-      "PRODUCTION_RESTRICTED",
-    );
-  }
-
-  const restaurantId = c.req.param("restaurantId");
-  const testEvent = await c.req.json();
-  const kitchenService = new KitchenService(c.env);
-
-  const sentCount = kitchenService.broadcastTestEvent(restaurantId, testEvent);
-
-  return c.json(
-    createSuccessResponse(
-      {
-        message: `Test event broadcasted to ${sentCount} connections`,
-        sentCount,
-        event: testEvent,
-      },
-      "Test broadcast sent successfully",
-    ),
-  );
-});
-
-/**
- * 獲取連接狀態
- * GET /api/v1/kitchen/{restaurantId}/connections
- */
-app.get("/:restaurantId/connections", authMiddleware, async (c) => {
-  const restaurantId = c.req.param("restaurantId");
-  const user = c.get("user");
-  const kitchenService = new KitchenService(c.env);
-
-  // Only admin and same restaurant chef can view
-  if (
-    user.role !== 0 &&
-    (!kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
-      user.restaurantId !== restaurantId)
-  ) {
-    throw forbidden("Access denied", "ACCESS_DENIED");
-  }
-
-  const connectionStatus = kitchenService.getConnectionStatus(restaurantId);
-
-  return c.json(
-    createSuccessResponse(
-      connectionStatus,
-      "Connection status retrieved successfully",
-    ),
-  );
-});
 
 export default app;

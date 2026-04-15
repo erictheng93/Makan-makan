@@ -6,8 +6,6 @@
 import { describe, it, expect } from "vitest";
 import {
   orderItemStatusUpdateSchema,
-  broadcastTestEventSchema,
-  kitchenSSEEventSchema,
   restaurantIdSchema,
   orderItemParamsSchema,
   kitchenOrdersQuerySchema,
@@ -55,122 +53,6 @@ describe("Kitchen Validation Schemas", () => {
       if (result.success) {
         expect(result.data.notes).toBe("Order completed successfully");
       }
-    });
-  });
-
-  describe("broadcastTestEventSchema", () => {
-    it("should validate valid broadcast event", () => {
-      const result = broadcastTestEventSchema.safeParse({
-        type: "NEW_ORDER",
-        payload: { orderId: 123 },
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("should accept all event types", () => {
-      const types = [
-        "NEW_ORDER",
-        "ORDER_STATUS_UPDATE",
-        "ORDER_CANCELLED",
-        "PRIORITY_UPDATE",
-      ] as const;
-      types.forEach((type) => {
-        const result = broadcastTestEventSchema.safeParse({ type });
-        expect(result.success).toBe(true);
-      });
-    });
-
-    it("should accept empty object", () => {
-      const result = broadcastTestEventSchema.safeParse({});
-      expect(result.success).toBe(true);
-    });
-
-    it("should accept any payload", () => {
-      const result = broadcastTestEventSchema.safeParse({
-        type: "ORDER_STATUS_UPDATE",
-        payload: { orderId: 1, status: "ready", items: [1, 2, 3] },
-      });
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe("kitchenSSEEventSchema", () => {
-    it("should validate valid SSE event", () => {
-      const result = kitchenSSEEventSchema.safeParse({
-        id: "event-123",
-        event: "order_update",
-        data: {
-          type: "NEW_ORDER",
-          orderId: 123,
-          timestamp: new Date().toISOString(),
-          restaurantId: 1,
-        },
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("should accept all SSE event types", () => {
-      const types = [
-        "NEW_ORDER",
-        "ORDER_STATUS_UPDATE",
-        "ORDER_CANCELLED",
-        "PRIORITY_UPDATE",
-        "HEARTBEAT",
-      ] as const;
-      types.forEach((type) => {
-        const result = kitchenSSEEventSchema.safeParse({
-          data: {
-            type,
-            timestamp: new Date().toISOString(),
-            restaurantId: 1,
-          },
-        });
-        expect(result.success).toBe(true);
-      });
-    });
-
-    it("should require timestamp in data", () => {
-      const result = kitchenSSEEventSchema.safeParse({
-        data: {
-          type: "NEW_ORDER",
-          restaurantId: 1,
-        },
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("should require restaurantId in data", () => {
-      const result = kitchenSSEEventSchema.safeParse({
-        data: {
-          type: "NEW_ORDER",
-          timestamp: new Date().toISOString(),
-        },
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("should accept optional id and event fields", () => {
-      const result = kitchenSSEEventSchema.safeParse({
-        data: {
-          type: "HEARTBEAT",
-          timestamp: new Date().toISOString(),
-          restaurantId: 1,
-        },
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("should accept optional orderId and payload", () => {
-      const result = kitchenSSEEventSchema.safeParse({
-        data: {
-          type: "ORDER_STATUS_UPDATE",
-          orderId: 456,
-          payload: { status: "ready" },
-          timestamp: new Date().toISOString(),
-          restaurantId: 1,
-        },
-      });
-      expect(result.success).toBe(true);
     });
   });
 
