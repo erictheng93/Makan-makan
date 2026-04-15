@@ -8,6 +8,31 @@ import type { Env } from "../../../types/env";
 import { buildAuthHelper, type AuthHelper } from "./issue-test-jwt";
 import { createDurableObjectStub } from "./durable-object-stub";
 
+// Workers Cache API global stub. The production middleware
+// `cacheWarmingMiddleware` (apps/api/src/middleware/edge-cache.ts)
+// fires `caches.default.delete(...)` after any successful POST/PUT/
+// DELETE/PATCH whose path matches /menu, /coupons, or /restaurants.
+// In a deployed Worker `caches` is a workerd global; in the Node-side
+// vitest runner it is undefined, and the synchronous property access
+// throws ReferenceError BEFORE the `await Promise.allSettled(...)` has
+// a chance to catch it — leaving the handler to return 500 even
+// though the D1 write already committed.
+//
+// Installing a tiny stub on globalThis makes every `caches.default.*`
+// call a no-op in tests. The real cache-invalidation logic is covered
+// by unit tests against edge-cache.ts; there is no value in exercising
+// it in the real-integration layer, and the Node test runner has no
+// Cache API to invalidate anyway.
+if (typeof (globalThis as any).caches === "undefined") {
+  (globalThis as any).caches = {
+    default: {
+      match: async () => undefined,
+      put: async () => {},
+      delete: async () => false,
+    },
+  };
+}
+
 export interface RealIntegrationTestApp {
   app: Hono<{ Bindings: Env }>;
   testDb: TestDatabase;
