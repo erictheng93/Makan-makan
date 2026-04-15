@@ -121,23 +121,7 @@ describe("Discovery API — real integration", () => {
     // At least 10 matching items are in the index, so page 1 should be full
     expect(data.results.length).toBe(10);
 
-    // -----------------------------------------------------------------------
-    // PRODUCTION BUG DOCUMENTED (do not fix here):
-    //
-    //   `total` in the response equals `results.length` (the page size, ≤ limit),
-    //   NOT the aggregate count of all matching rows. This breaks standard
-    //   pagination — a client can never know how many pages exist.
-    //
-    //   Root cause: DiscoveryService.searchDishes() line 176:
-    //     const response = { results, total: results.length, page, limit };
-    //   The service does not run a COUNT(*) query; it only fetches one page and
-    //   reports the length of that slice as the total.
-    //
-    //   Consequence: `data.total` will be 10 (page size) even though 12 rows
-    //   match. We assert the actual broken behaviour here so any future fix
-    //   will surface as a test delta rather than a silent regression.
-    // -----------------------------------------------------------------------
-    expect(data.total).toBe(data.results.length); // reflects bug: total = page-slice length, not aggregate
+    expect(data.total).toBe(12);
   });
 
   // -------------------------------------------------------------------------
@@ -178,9 +162,15 @@ describe("Discovery API — real integration", () => {
 
     const data = json.data;
     expect(data.page).toBe(2);
+    expect(data.limit).toBe(10);
+    expect(data.total).toBe(12);
 
     // With 12 items and limit=10, page 2 should yield exactly 2 results
     expect(data.results.length).toBe(2);
+    expect(data.results.map((r: any) => r.dishName)).toEqual([
+      "Nasi Lemak 10",
+      "Nasi Lemak 11",
+    ]);
 
     // Results on page 2 should not overlap with page 1 (ordered by price asc —
     // the two cheapest pages should be distinct sets)

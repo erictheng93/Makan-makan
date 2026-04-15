@@ -180,12 +180,16 @@ describe("DiscoveryService", () => {
           tags: ["牛肉", "麵"],
         },
       ]);
-      mockDrizzleDb.select.mockReturnValue(selectChain);
+      const countChain = createSelectChain([{ count: 1 }]);
+      mockDrizzleDb.select
+        .mockReturnValueOnce(selectChain)
+        .mockReturnValueOnce(countChain);
 
       const result = await service.searchDishes({ q: "牛肉麵" });
       expect(result.results).toHaveLength(1);
       expect(result.results[0].dishName).toBe("牛肉麵");
       expect(result.results[0].restaurantName).toBe("老王牛肉麵");
+      expect(result.total).toBe(1);
     });
 
     it("should cache search results in KV", async () => {
@@ -340,8 +344,9 @@ describe("DiscoveryService", () => {
       });
 
       const result = await service.searchDishes({ q: "牛肉" });
-      // Only 1 select call (prefix search), no tag query needed
-      expect(mockDrizzleDb.select).toHaveBeenCalledTimes(1);
+      // Prefix search + count query should run, but duplicate tag rows should not
+      // trigger an extra fetch.
+      expect(mockDrizzleDb.select).toHaveBeenCalledTimes(2);
       expect(result.results).toHaveLength(1);
     });
 

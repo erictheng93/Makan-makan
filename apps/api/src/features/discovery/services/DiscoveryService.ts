@@ -81,26 +81,41 @@ export class DiscoveryService {
       conditions.push(eq(dishSearchIndex.supportsDelivery, true));
     }
 
-    const queryResult = await this.db
-      .select({
-        menuItemId: dishSearchIndex.menuItemId,
-        dishName: dishSearchIndex.dishName,
-        price: dishSearchIndex.price,
-        categoryName: dishSearchIndex.categoryName,
-        restaurantId: dishSearchIndex.restaurantId,
-        restaurantName: restaurants.name,
-        district: dishSearchIndex.district,
-        businessHours: restaurants.businessHours,
-        supportsTakeaway: dishSearchIndex.supportsTakeaway,
-        supportsDelivery: dishSearchIndex.supportsDelivery,
-        tags: dishSearchIndex.tags,
-      })
-      .from(dishSearchIndex)
-      .innerJoin(restaurants, eq(dishSearchIndex.restaurantId, restaurants.id))
-      .where(and(...conditions))
-      .orderBy(asc(dishSearchIndex.price))
-      .limit(limit)
-      .offset(offset);
+    const whereClause = and(...conditions);
+    const [queryResult, countRows] = await Promise.all([
+      this.db
+        .select({
+          menuItemId: dishSearchIndex.menuItemId,
+          dishName: dishSearchIndex.dishName,
+          price: dishSearchIndex.price,
+          categoryName: dishSearchIndex.categoryName,
+          restaurantId: dishSearchIndex.restaurantId,
+          restaurantName: restaurants.name,
+          district: dishSearchIndex.district,
+          businessHours: restaurants.businessHours,
+          supportsTakeaway: dishSearchIndex.supportsTakeaway,
+          supportsDelivery: dishSearchIndex.supportsDelivery,
+          tags: dishSearchIndex.tags,
+        })
+        .from(dishSearchIndex)
+        .innerJoin(
+          restaurants,
+          eq(dishSearchIndex.restaurantId, restaurants.id),
+        )
+        .where(whereClause)
+        .orderBy(asc(dishSearchIndex.price))
+        .limit(limit)
+        .offset(offset),
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(dishSearchIndex)
+        .where(whereClause),
+    ]);
+    const rawTotal = Number(countRows[0]?.count);
+    const total =
+      Number.isFinite(rawTotal) && rawTotal >= 0
+        ? rawTotal
+        : queryResult.length;
 
     // 4. KV tag index lookup
     const tagIndex = await this.kv.get("search:tags:index");
@@ -173,10 +188,10 @@ export class DiscoveryService {
     }
 
     // 6. Cache and return
-    const response = { results, total: results.length, page, limit };
+    const response = { results, total, page, limit };
     await this.kv.put(
       cacheKey,
-      JSON.stringify({ results, total: results.length, cachedAt: Date.now() }),
+      JSON.stringify({ results, total, cachedAt: Date.now() }),
       { expirationTtl: KV_SEARCH_TTL },
     );
 
