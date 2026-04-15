@@ -99,7 +99,19 @@ class WebSocketService {
       throw error;
     }
 
-    return response.json();
+    // API wraps every success response in `{ success, data }`. Unwrap `data`
+    // here so callers can treat the return value as RealtimeAuthTokenResponse
+    // directly (previously the singleton bailed with
+    // "WebSocket URL or token missing from auth response" because it read
+    // `.token` / `.wsUrl` off the outer envelope).
+    const envelope = (await response.json()) as {
+      success?: boolean;
+      data?: RealtimeAuthTokenResponse;
+    };
+    if (!envelope?.data?.token || !envelope?.data?.wsUrl) {
+      throw new Error("Realtime auth response missing token or wsUrl");
+    }
+    return envelope.data;
   }
 
   /**
@@ -134,8 +146,10 @@ class WebSocketService {
         return;
       }
 
-      // 建立 WebSocket 連接
-      this.ws = new WebSocket(`${this.wsUrl}?token=${this.wsToken}`);
+      // 建立 WebSocket 連接 — wsUrl 已由後端 buildWebSocketUrl 附好 ?token=，
+      // 不要再 append 一次（會變成 ?token=TOKEN1?token=TOKEN2，realtime DO
+      // 解析不出合法 JWT 就 HTTP 401）。
+      this.ws = new WebSocket(this.wsUrl);
 
       this.setupWebSocketHandlers();
     } catch (error: any) {

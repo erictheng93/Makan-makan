@@ -65,13 +65,28 @@ export class RealtimeAuthService {
 
   /**
    * 生成 WebSocket 連線授權 Token
+   *
+   * `userId` and `userRole` are passed by the route layer from the
+   * authenticated request context; they are required for staff/admin/kitchen
+   * rooms so the realtime DurableObject can validate access.
    */
   async generateWebSocketToken(
-    request: RealtimeAuthTokenRequest,
+    request: RealtimeAuthTokenRequest & {
+      userId?: number;
+      userRole?: number;
+    },
   ): Promise<RealtimeAuthTokenResponse | { error: string }> {
     try {
-      const { roomType, roomId, restaurantId, tableId, seatId, sessionId } =
-        request;
+      const {
+        roomType,
+        roomId,
+        restaurantId,
+        tableId,
+        seatId,
+        sessionId,
+        userId,
+        userRole,
+      } = request;
 
       // 驗證餐廳是否存在（基本驗證）
       // 注意：這裡可以擴展更嚴格的驗證邏輯
@@ -103,11 +118,13 @@ export class RealtimeAuthService {
         case "kitchen":
         case "admin":
         case "restaurant":
-          // 這些房間需要使用者認證
-          if (!sessionId) {
-            return { error: "Session ID required for this room type" };
+          // 這些房間需要登入使用者；userId 由 route layer 從 authMiddleware
+          // 取得後傳入。沒有 userId 就拒發 token，避免 DurableObject 403。
+          if (!userId) {
+            return {
+              error: "Authenticated user required for this room type",
+            };
           }
-          // 可以在這裡驗證 sessionId 的合法性
           break;
 
         default:
@@ -126,6 +143,7 @@ export class RealtimeAuthService {
         role: this.determineRole(roomType, sessionId),
         tableId,
         seatId,
+        userId,
         exp: expiresAt,
         iat: Math.floor(now / 1000),
       };

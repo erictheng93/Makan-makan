@@ -28,6 +28,7 @@ interface ConnectionInfo {
 
 export class RealtimeSession implements DurableObject {
   private connections: Map<WebSocket, ConnectionInfo> = new Map();
+  private state: DurableObjectState;
   private env: Env;
   private roomInfo: { type: string; id: string } | null = null;
   // 事件歷史記錄（用於離線重連）
@@ -35,7 +36,13 @@ export class RealtimeSession implements DurableObject {
   private readonly MAX_EVENT_HISTORY = 100; // 最多保留 100 個事件
   private readonly MAX_EVENT_AGE_MS = 24 * 60 * 60 * 1000; // 最多保留 24 小時的事件
 
-  constructor(env: Env) {
+  // Durable Object constructors receive `(state, env)` from the runtime.
+  // Previous signature was `constructor(env: Env)` — the first positional
+  // argument was bound to the DurableObjectState instance, not Env, so every
+  // `this.env.JWT_SECRET` read returned undefined and WebSocket auth always
+  // failed with "Server configuration error". Bug predates this session.
+  constructor(state: DurableObjectState, env: Env) {
+    this.state = state;
     this.env = env;
   }
 

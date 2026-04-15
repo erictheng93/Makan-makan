@@ -10,6 +10,7 @@ import { HTTP_STATUS } from "../../../shared/constants";
 
 import { ConsoleLogger } from "../../../core/monitoring";
 import { validateBody } from "../../../middleware/validation";
+import { optionalAuth } from "../../../shared/middleware";
 import {
   ApiError,
   badRequest,
@@ -34,15 +35,22 @@ const realtimeRoutes = new Hono<{ Bindings: Env }>();
  */
 realtimeRoutes.post(
   "/auth/token",
+  optionalAuth,
   validateBody(realtimeSchemas.webSocketTokenRequest),
   async (c) => {
     const requestData = c.get("validatedBody");
+    const user = c.get("user");
 
     // 初始化認證服務
     const authService = new RealtimeAuthService(c.env);
 
-    // 生成 WebSocket token
-    const result = await authService.generateWebSocketToken(requestData);
+    // 將登入用戶資訊（若有）帶入 token payload — 後端 DurableObject
+    // 對 staff/admin 房間會檢查 userId，未帶就直接回 403。
+    const result = await authService.generateWebSocketToken({
+      ...requestData,
+      userId: user ? Number(user.id) : undefined,
+      userRole: user?.role,
+    });
 
     // 檢查是否有錯誤
     if ("error" in result) {
