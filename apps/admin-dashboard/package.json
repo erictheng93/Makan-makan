@@ -10,6 +10,7 @@
     "preview": "vite preview --host",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest",
+    "test:real-integration": "vitest --config vitest.real-integration.config.ts",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --fix",

@@ -590,6 +590,9 @@ importers:
       vue-tsc:
         specifier: ^3.0.6
         version: 3.2.2(typescript@5.9.3)
+      wrangler:
+        specifier: ^4.81.0
+        version: 4.81.0(@cloudflare/workers-types@4.20260113.0)
 
   apps/management-api:
     dependencies:

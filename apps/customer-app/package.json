@@ -12,6 +12,7 @@
     "lint": "eslint src --fix",
     "lint:fix": "eslint src --fix",
     "test:unit": "vitest",
+    "test:real-integration": "vitest --config vitest.real-integration.config.ts",
     "test:e2e": "playwright test",
     "deploy:staging": "wrangler pages deploy dist --project-name=makanmakan-customer-staging",
     "deploy:prod": "wrangler pages deploy dist --project-name=makanmakan-customer"
