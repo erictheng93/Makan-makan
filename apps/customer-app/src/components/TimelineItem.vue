@@ -109,7 +109,7 @@ const props = defineProps<{
   title: string;
   description?: string;
   status: "completed" | "current" | "pending";
-  timestamp?: string | Date | null;
+  timestamp?: string | Date | number | null;
   estimatedTime?: string;
   isLast?: boolean;
 }>();

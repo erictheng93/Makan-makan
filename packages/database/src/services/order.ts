@@ -61,6 +61,15 @@ const ORDER_SORT_COLUMNS = {
   updatedAt: orders.updatedAt,
 } as const;
 
+// Drizzle's `timestamp_ms` mode returns `Date` objects. The wire contract for
+// orders is Unix-ms integers, so convert before leaving the service boundary —
+// otherwise `JSON.stringify` silently turns Dates into ISO strings and
+// downstream arithmetic like `Date.now() - createdAt` coerces to NaN.
+function toMillis(value: Date | number | null | undefined): number | null {
+  if (value == null) return null;
+  return value instanceof Date ? value.getTime() : value;
+}
+
 export class OrderService extends BaseService {
   // 獲取餐廳最低消費設定
   async getMinimumOrderAmount(
@@ -738,12 +747,12 @@ export class OrderService extends BaseService {
       customerInfo: order.customerInfo,
       estimatedPrepTime: order.estimatedPrepTime,
       actualPrepTime: order.actualPrepTime,
-      confirmedAt: order.confirmedAt,
-      preparingAt: order.preparingAt,
-      readyAt: order.readyAt,
-      deliveredAt: order.deliveredAt,
-      paidAt: order.paidAt,
-      cancelledAt: order.cancelledAt,
+      confirmedAt: toMillis(order.confirmedAt),
+      preparingAt: toMillis(order.preparingAt),
+      readyAt: toMillis(order.readyAt),
+      deliveredAt: toMillis(order.deliveredAt),
+      paidAt: toMillis(order.paidAt),
+      cancelledAt: toMillis(order.cancelledAt),
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
       rating: order.rating,
@@ -766,8 +775,8 @@ export class OrderService extends BaseService {
       restaurant: order.restaurant,
       table: order.table,
       customer: order.customer,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
+      createdAt: toMillis(order.createdAt)!,
+      updatedAt: toMillis(order.updatedAt)!,
     } as Order;
   }
 }

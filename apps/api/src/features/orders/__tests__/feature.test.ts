@@ -75,8 +75,14 @@ const mockUser = {
 
 const mockOrder = {
   id: 1,
-  createdAt: "2024-01-01T00:00:00.000Z",
-  updatedAt: "2024-01-01T00:00:00.000Z",
+  createdAt: 1704067200000, // 2024-01-01T00:00:00.000Z as Unix ms
+  updatedAt: 1704067200000,
+  confirmedAt: null,
+  preparingAt: null,
+  readyAt: null,
+  deliveredAt: null,
+  paidAt: null,
+  cancelledAt: null,
   restaurantId: "1",
   tableId: 1,
   customerId: 1,

@@ -105,6 +105,8 @@ describe("Orders API — real integration", () => {
     // Stable across write and read — same wire value on both hops.
     expect(fetched.createdAt).toEqual(created.createdAt);
 
+    // Wire contract: createdAt is a Unix-ms integer, not an ISO string.
+    // See packages/database/src/services/order.ts `toMillis`.
     expect(typeof fetched.createdAt).toBe("number");
     expect(Math.abs(fetched.createdAt - Date.now())).toBeLessThan(5000);
 
