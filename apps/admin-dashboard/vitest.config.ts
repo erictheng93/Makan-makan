@@ -22,6 +22,14 @@ export default defineConfig({
     },
     testTimeout: 10000,
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      // Phase 2 real-integration tests boot miniflare; they run under
+      // the dedicated `vitest.real-integration.config.ts`, not the
+      // default unit-test run. Mirrors kitchen-display's vitest.config.
+      "**/*.real.integration.test.ts",
+    ],
   },
   resolve: {
     alias: {
