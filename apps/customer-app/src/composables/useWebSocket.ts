@@ -1,22 +1,27 @@
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import type { WebSocketMessage } from "@makanmakan/shared-types";
 
 interface UseWebSocketOptions {
   url?: string;
+  getUrl?: () => Promise<string>;
   protocols?: string | string[];
+  restaurantId?: string;
   reconnectAttempts?: number;
   reconnectInterval?: number;
   heartbeatInterval?: number;
-  restaurantId?: string;
   onMessage?: (data: any) => void;
   onError?: (error: Event) => void;
   onOpen?: (event: Event) => void;
   onClose?: (event: CloseEvent) => void;
+  onAuthFailure?: () => Promise<void> | void;
 }
+
+type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const {
     url = "",
+    getUrl,
     protocols,
     reconnectAttempts = 5,
     reconnectInterval = 3000,
@@ -25,28 +30,75 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     onError,
     onOpen,
     onClose,
+    onAuthFailure,
   } = options;
 
-  // State
   const ws = ref<WebSocket | null>(null);
   const isConnected = ref(false);
   const isConnecting = ref(false);
   const lastError = ref<Event | null>(null);
   const reconnectCount = ref(0);
+  const connectionStatus = ref<ConnectionStatus>("disconnected");
 
-  // Connection status computed
-  const connectionStatus = ref<
-    "connecting" | "connected" | "disconnected" | "error"
-  >("disconnected");
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  let manualDisconnect = false;
+  let attemptedUrl = "";
 
-  // Timers
-  let reconnectTimer: NodeJS.Timeout | null = null;
-  let heartbeatTimer: NodeJS.Timeout | null = null;
+  const stopHeartbeat = () => {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  };
 
-  /**
-   * 建立 WebSocket 連接
-   */
-  const connect = (wsUrl?: string) => {
+  const startHeartbeat = () => {
+    stopHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      if (ws.value?.readyState === WebSocket.OPEN) {
+        send({ type: "ping", timestamp: Date.now() });
+      }
+    }, heartbeatInterval);
+  };
+
+  const clearReconnectTimer = () => {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+  };
+
+  const resolveUrl = async (overrideUrl?: string): Promise<string> => {
+    if (overrideUrl) {
+      return overrideUrl;
+    }
+    if (getUrl) {
+      return getUrl();
+    }
+    return url;
+  };
+
+  const scheduleReconnect = (reason: "network" | "auth" = "network") => {
+    if (manualDisconnect || reconnectCount.value >= reconnectAttempts) {
+      connectionStatus.value = "error";
+      return;
+    }
+
+    clearReconnectTimer();
+    reconnectCount.value += 1;
+
+    const attempt = reconnectCount.value;
+    const delay = reconnectInterval * 2 ** (attempt - 1);
+
+    reconnectTimer = setTimeout(async () => {
+      if (reason === "auth" && onAuthFailure) {
+        await onAuthFailure();
+      }
+      void connect();
+    }, delay);
+  };
+
+  const connect = async (wsUrl?: string) => {
     if (
       ws.value?.readyState === WebSocket.CONNECTING ||
       ws.value?.readyState === WebSocket.OPEN
@@ -54,84 +106,72 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       return;
     }
 
-    const targetUrl = wsUrl || url;
-    if (!targetUrl) {
-      console.error("WebSocket URL is required");
-      return;
-    }
-
+    manualDisconnect = false;
     isConnecting.value = true;
+    connectionStatus.value = "connecting";
     lastError.value = null;
 
     try {
+      const targetUrl = await resolveUrl(wsUrl);
+      if (!targetUrl) {
+        throw new Error("WebSocket URL is required");
+      }
+
+      attemptedUrl = targetUrl;
       ws.value = new WebSocket(targetUrl, protocols);
 
       ws.value.onopen = (event) => {
         isConnected.value = true;
         isConnecting.value = false;
         reconnectCount.value = 0;
-
-        // 開始心跳檢測
+        connectionStatus.value = "connected";
         startHeartbeat();
-
         onOpen?.(event);
-        console.log("WebSocket connected");
       };
 
       ws.value.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
-
-          // 處理心跳響應
-          if (data.type === "pong") {
-            return;
-          }
-
           onMessage?.(data);
         } catch (error) {
           console.error("Failed to parse WebSocket message:", error);
         }
       };
 
+      ws.value.onerror = (event) => {
+        lastError.value = event;
+        connectionStatus.value = "error";
+        onError?.(event);
+      };
+
       ws.value.onclose = (event) => {
         isConnected.value = false;
         isConnecting.value = false;
-
-        // 停止心跳
         stopHeartbeat();
-
+        connectionStatus.value = event.wasClean ? "disconnected" : "error";
         onClose?.(event);
 
-        // 如果不是主動關閉且還有重連次數，則嘗試重連
-        if (!event.wasClean && reconnectCount.value < reconnectAttempts) {
-          scheduleReconnect();
+        if (manualDisconnect) {
+          return;
         }
 
-        console.log("WebSocket disconnected", event);
-      };
+        const authRejected =
+          attemptedUrl.includes("token=") &&
+          (event.code === 1008 || event.code === 4001 || event.code === 1006);
 
-      ws.value.onerror = (event) => {
-        lastError.value = event;
-        isConnecting.value = false;
-
-        onError?.(event);
-        console.error("WebSocket error:", event);
+        scheduleReconnect(authRejected ? "auth" : "network");
       };
     } catch (error) {
       isConnecting.value = false;
+      connectionStatus.value = "error";
       console.error("Failed to create WebSocket connection:", error);
+      scheduleReconnect("auth");
     }
   };
 
-  /**
-   * 斷開連接
-   */
   const disconnect = () => {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-
+    manualDisconnect = true;
+    clearReconnectTimer();
     stopHeartbeat();
 
     if (ws.value) {
@@ -141,15 +181,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     isConnected.value = false;
     isConnecting.value = false;
+    connectionStatus.value = "disconnected";
     reconnectCount.value = 0;
   };
 
-  /**
-   * 發送消息
-   */
+  const reconnect = async () => {
+    disconnect();
+    manualDisconnect = false;
+    await connect();
+  };
+
   const send = (data: any) => {
     if (!ws.value || ws.value.readyState !== WebSocket.OPEN) {
-      console.warn("WebSocket is not connected");
       return false;
     }
 
@@ -163,103 +206,32 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
   };
 
-  /**
-   * 發送訂閱消息
-   */
-  const subscribe = (channel: string, data?: any) => {
-    return send({
+  const subscribe = (channel: string, data?: any) =>
+    send({
       type: "subscribe",
       channel,
       data,
+      timestamp: Date.now(),
     });
-  };
 
-  /**
-   * 發送取消訂閱消息
-   */
-  const unsubscribe = (channel: string) => {
-    return send({
+  const unsubscribe = (channel: string) =>
+    send({
       type: "unsubscribe",
       channel,
+      timestamp: Date.now(),
     });
-  };
 
-  /**
-   * 安排重連
-   */
-  const scheduleReconnect = () => {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-    }
-
-    reconnectCount.value++;
-    console.log(
-      `Scheduling reconnect attempt ${reconnectCount.value}/${reconnectAttempts}`,
-    );
-
-    reconnectTimer = setTimeout(() => {
-      connect();
-    }, reconnectInterval);
-  };
-
-  /**
-   * 開始心跳檢測
-   */
-  const startHeartbeat = () => {
-    if (heartbeatTimer) {
-      clearInterval(heartbeatTimer);
-    }
-
-    heartbeatTimer = setInterval(() => {
-      if (ws.value?.readyState === WebSocket.OPEN) {
-        send({ type: "ping" });
-      }
-    }, heartbeatInterval);
-  };
-
-  /**
-   * 停止心跳檢測
-   */
-  const stopHeartbeat = () => {
-    if (heartbeatTimer) {
-      clearInterval(heartbeatTimer);
-      heartbeatTimer = null;
-    }
-  };
-
-  /**
-   * 手動重連
-   */
-  const reconnect = () => {
-    disconnect();
-    reconnectCount.value = 0;
-    connect();
-  };
-
-  // 監聽連接狀態變化
-  watch(isConnected, (connected) => {
-    if (connected) {
-      console.log("WebSocket connection established");
-    } else {
-      console.log("WebSocket connection lost");
-    }
-  });
-
-  // 組件卸載時清理
   onUnmounted(() => {
     disconnect();
   });
 
   return {
-    // State
     ws,
     isConnected,
     isConnecting,
     lastError,
     reconnectCount,
     connectionStatus,
-
-    // Methods
     connect,
     disconnect,
     reconnect,
@@ -269,47 +241,30 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   };
 }
 
-/**
- * 訂單追蹤 WebSocket Hook
- */
 export function useOrderTracking(orderId: number) {
   const orderUpdates = ref<any[]>([]);
   const currentStatus = ref<string>("");
 
-  const {
-    isConnected,
-    isConnecting,
-    connect,
-    disconnect,
-    subscribe,
-    unsubscribe,
-  } = useWebSocket({
+  const { isConnected, isConnecting, connect, disconnect } = useWebSocket({
     url: `${import.meta.env.VITE_WS_BASE_URL}/orders/${orderId}/tracking`,
     onMessage: (data: WebSocketMessage) => {
-      if (data.type === "order_update" && data.data) {
-        orderUpdates.value.push(data.data);
-        if (data.data.status !== undefined) {
-          currentStatus.value = String(data.data.status);
+      if ((data as any).type === "order_update" && (data as any).data) {
+        orderUpdates.value.push((data as any).data);
+        if ((data as any).data.status !== undefined) {
+          currentStatus.value = String((data as any).data.status);
         }
       }
-    },
-    onOpen: () => {
-      // 訂閱訂單更新
-      subscribe(`order:${orderId}`);
     },
   });
 
   onMounted(() => {
     if (orderId) {
-      connect();
+      void connect();
     }
   });
 
   onUnmounted(() => {
-    if (orderId) {
-      unsubscribe(`order:${orderId}`);
-      disconnect();
-    }
+    disconnect();
   });
 
   return {
@@ -321,40 +276,23 @@ export function useOrderTracking(orderId: number) {
   };
 }
 
-/**
- * 餐廳狀態 WebSocket Hook
- */
 export function useRestaurantStatus(restaurantId: string, tableId?: number) {
   const restaurantStatus = ref<any>({});
   const notifications = ref<any[]>([]);
 
-  const {
-    isConnected,
-    isConnecting,
-    connect,
-    disconnect,
-    subscribe,
-    unsubscribe,
-  } = useWebSocket({
+  const { isConnected, isConnecting, connect, disconnect } = useWebSocket({
     url: `${import.meta.env.VITE_WS_BASE_URL}/restaurants/${restaurantId}/status`,
     onMessage: (data: WebSocketMessage) => {
-      switch (data.type) {
+      switch ((data as any).type) {
         case "restaurant_status_update":
-          restaurantStatus.value = { ...restaurantStatus.value, ...data.data };
+          restaurantStatus.value = {
+            ...restaurantStatus.value,
+            ...(data as any).data,
+          };
           break;
         case "notification":
-          notifications.value.push(data.data);
+          notifications.value.push((data as any).data);
           break;
-        case "menu_update":
-          // 處理菜單更新
-          break;
-      }
-    },
-    onOpen: () => {
-      // 訂閱餐廳狀態
-      subscribe(`restaurant:${restaurantId}`);
-      if (tableId) {
-        subscribe(`table:${restaurantId}:${tableId}`);
       }
     },
   });
@@ -365,15 +303,11 @@ export function useRestaurantStatus(restaurantId: string, tableId?: number) {
 
   onMounted(() => {
     if (restaurantId) {
-      connect();
+      void connect();
     }
   });
 
   onUnmounted(() => {
-    unsubscribe(`restaurant:${restaurantId}`);
-    if (tableId) {
-      unsubscribe(`table:${restaurantId}:${tableId}`);
-    }
     disconnect();
   });
 
@@ -384,6 +318,7 @@ export function useRestaurantStatus(restaurantId: string, tableId?: number) {
     isConnecting,
     clearNotification,
     reconnect: () => connect(),
+    tableId,
   };
 }
 

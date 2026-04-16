@@ -25,6 +25,7 @@ export interface Env {
 
   // Environment variables
   JWT_SECRET: string;
+  REALTIME_JWT_SECRET?: string;
   ENVIRONMENT: string;
   API_VERSION: string;
 

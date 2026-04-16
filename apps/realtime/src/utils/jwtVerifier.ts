@@ -102,6 +102,20 @@ export async function verifyWebSocketToken(
       };
     }
 
+    if (payload.guestFlag) {
+      if (
+        payload.roomType !== "customer" ||
+        payload.role !== "customer" ||
+        !payload.tableId ||
+        payload.roomId !== `customer:${payload.tableId}`
+      ) {
+        return {
+          valid: false,
+          error: "Invalid guest token payload",
+        };
+      }
+    }
+
     // 檢查 token 是否過期（verify 已經會檢查，但我們再加一層保險）
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp && payload.exp < now) {
