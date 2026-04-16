@@ -1,3 +1,13 @@
+/**
+ * Component flow test: mounts GroupOrdersView and exercises its interactions
+ * with a mocked `groupOrdersService`, `useRealtimeOrders`, and auth store.
+ *
+ * This is a component-level test, NOT an API integration test. Service and
+ * realtime boundaries are intentionally mocked — the goal is to verify view
+ * + store wiring, not SQL/HTTP. For real integration testing, see
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
+ */
+
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createRouter, createWebHistory } from "vue-router";

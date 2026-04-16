@@ -1,20 +1,13 @@
 /**
- * LEGACY: Unit test with mocked services, NOT a real integration test.
+ * Store test: drives the Pinia orders store through simulated kitchen
+ * SSE events and asserts order list mutations, audio cue dispatch, and
+ * status transitions. Uses a mocked `kitchenApi` and `audioService`.
  *
- * This file mocks `@/services/kitchenApi` and `@/services/audioService` and
- * drives the Pinia store directly. It does NOT open a real SSE/WebSocket
- * connection to `ws://localhost:8787`, does NOT hit the realtime worker,
- * and does NOT verify end-to-end delivery of kitchen events.
- *
- * For real integration testing, see:
- *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
- *   apps/api/src/__tests__/integration/*.real.integration.test.ts
- *
- * TODO: Rewrite as a real integration test that boots the realtime worker
- * under miniflare and connects via a real EventSource/WebSocket client.
- *
- * ---
- * Original: Realtime Updates Integration Tests / 測試實時更新功能的整合
+ * This is a store-level test, NOT a real integration test. The SSE /
+ * WebSocket transport is intentionally mocked — the goal is to verify
+ * the client-side event handling, not the realtime worker. For real
+ * integration testing, see
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
