@@ -165,8 +165,8 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
         .values({
           ...rest,
           restaurantId: String(restaurantId),
-          tableId: null,
-          customerId: null,
+          tableId: rest.tableId ?? null,
+          customerId: rest.customerId ?? null,
           createdAt: toDate(createdAt),
           updatedAt: toDate(updatedAt),
           // Status timestamps also need Date conversion

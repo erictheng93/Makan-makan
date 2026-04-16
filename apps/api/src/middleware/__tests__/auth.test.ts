@@ -440,7 +440,7 @@ describe("Auth Middleware", () => {
 
       it("should reject token with invalid role range (too high)", async () => {
         const token = await createToken(
-          { id: 1, username: "test", role: 5 },
+          { id: 1, username: "test", role: 6 },
           mockEnv.JWT_SECRET,
         );
 
@@ -513,8 +513,8 @@ describe("Auth Middleware", () => {
         });
       });
 
-      it("should accept all valid role values (0-4)", async () => {
-        for (const role of [0, 1, 2, 3, 4]) {
+      it("should accept all valid role values (0-5)", async () => {
+        for (const role of [0, 1, 2, 3, 4, 5]) {
           const token = await createToken(
             { id: 1, username: "test", role },
             mockEnv.JWT_SECRET,

@@ -1308,11 +1308,11 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app.get("/protected", (c) => c.json({ success: true }));
     });
 
-    it("should reject token with role outside valid range (role=5)", async () => {
+    it("should reject token with role outside valid range (role=6)", async () => {
       // authMiddleware 會拒絕 role > 4
       const now = Math.floor(Date.now() / 1000);
       const token = await sign(
-        { id: 1, username: "hacker", role: 5, iat: now, exp: now + 3600 },
+        { id: 1, username: "hacker", role: 6, iat: now, exp: now + 3600 },
         mockEnv.JWT_SECRET,
       );
 

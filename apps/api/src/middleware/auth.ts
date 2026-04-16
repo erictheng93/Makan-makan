@@ -87,8 +87,9 @@ export const authMiddleware = async (
       throw unauthorized("Invalid token claims", "TOKEN_INVALID");
     }
 
-    // Validate role is within expected range (0-4)
-    if (decoded.role < 0 || decoded.role > 4) {
+    // Validate role is within expected range (0-5).
+    // Role 5 is the customer role used by /customers/* routes.
+    if (decoded.role < 0 || decoded.role > 5) {
       throw unauthorized("Invalid role in token", "TOKEN_INVALID");
     }
 
