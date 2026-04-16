@@ -536,6 +536,19 @@
     "confirmCancelBtn": "確認取消",
     "keepOrder": "保留訂單",
     "reconnecting": "連接已斷開，正在重新連接...",
+    "connecting": "即時連線建立中...",
+    "connectionError": "即時連線發生錯誤",
+    "connectionUnknown": "連線狀態未知",
+    "statusDesc": {
+      "pending": "您的訂單已送出，等待餐廳確認",
+      "confirmed": "餐廳已確認您的訂單",
+      "preparing": "廚房正在為您準備餐點",
+      "ready": "您的餐點已準備完成",
+      "served": "餐點已送到您的桌上",
+      "paid": "訂單已完成並結帳",
+      "cancelled": "此訂單已被取消",
+      "unknown": "訂單狀態未知"
+    },
     "timeline": {
       "created": "訂單已建立",
       "createdDesc": "您的訂單已成功送出",

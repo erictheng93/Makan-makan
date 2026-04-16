@@ -678,28 +678,16 @@ const { data: restaurant } = useQuery({
   staleTime: 5 * 60 * 1000,
 });
 
-// 獲取最低消費設定
-const { data: minOrderData } = useQuery({
-  queryKey: ["minimumOrder", props.restaurantId],
-  queryFn: async () => {
-    const response = await fetch(
-      `/api/v1/orders/restaurant/${props.restaurantId}/minimum-order`,
-    );
-    if (!response.ok) throw new Error("Failed to fetch minimum order");
-    const result = await response.json();
-    return result.data;
-  },
-  staleTime: 10 * 60 * 1000, // 10分鐘快取
-});
-
-// 監聽最低消費數據更新
+// 最低消費設定直接讀取 restaurant.settings，不再呼叫不存在的
+// /orders/restaurant/:id/minimum-order 端點 (該路由從未實作，且
+// /orders/* 全域套用 authMiddleware，訪客呼叫一律 401 污染 log)。
 watch(
-  minOrderData,
-  (data) => {
-    if (data) {
-      minimumOrderAmount.value = data.minOrderAmount || 0;
-      minimumOrderEnabled.value = data.enabled || false;
-    }
+  restaurant,
+  (r) => {
+    const settings = (r?.settings ?? {}) as Record<string, unknown>;
+    const amount = Number(settings.minOrderAmount);
+    minimumOrderAmount.value = Number.isFinite(amount) ? amount : 0;
+    minimumOrderEnabled.value = minimumOrderAmount.value > 0;
   },
   { immediate: true },
 );
@@ -738,16 +726,34 @@ const { mutate: createGuestOrder } = useMutation({
   },
 });
 
-// 計算費用
-const serviceChargeRate = 0.1; // 10% 服務費
-const taxRate = 0.05; // 5% 稅率
+// 計算費用 — 稅率與服務費率必須從餐廳設定讀取，與後端 OrderService.createOrder
+// 使用同一份來源 (restaurant.settings)。前端寫死任何 rate 會導致 cart 顯示
+// 與 DB 實際入帳不一致 (bug: customer 看到 76，後端存 71.5)。
+const serviceChargeRate = computed(() => {
+  const settings = (restaurant.value?.settings ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const rate = Number(settings.serviceChargeRate);
+  return Number.isFinite(rate) ? rate : 0;
+});
 
+const taxRate = computed(() => {
+  const settings = (restaurant.value?.settings ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const rate = Number(settings.taxRate);
+  return Number.isFinite(rate) ? rate : 0;
+});
+
+// 對齊後端 calculateOrderTotal: subtotal * rate，不 round，折扣在最後扣除
 const serviceCharge = computed(() => {
-  return Math.round(cartStore.subtotal * serviceChargeRate);
+  return cartStore.subtotal * serviceChargeRate.value;
 });
 
 const tax = computed(() => {
-  return Math.round((cartStore.subtotal + serviceCharge.value) * taxRate);
+  return cartStore.subtotal * taxRate.value;
 });
 
 const discount = computed(() => {

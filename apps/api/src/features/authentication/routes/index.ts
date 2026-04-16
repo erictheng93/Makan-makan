@@ -25,6 +25,7 @@ import {
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
+import { unauthorized } from "../../../shared/utils/api-error";
 
 // Import service and validation schemas
 import { AuthService as DefaultAuthService } from "../services/AuthService";
@@ -149,13 +150,11 @@ export function createAuthRoutes(
     const result = await authService.login(loginData);
 
     if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error,
-        },
-        HTTP_STATUS.UNAUTHORIZED,
-      );
+      const message = result.error || "Authentication failed";
+      const code = message.toLowerCase().includes("locked")
+        ? "ACCOUNT_LOCKED"
+        : "INVALID_CREDENTIALS";
+      throw unauthorized(message, code);
     }
 
     return c.json(

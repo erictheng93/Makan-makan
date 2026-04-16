@@ -536,6 +536,19 @@
     "confirmCancelBtn": "Xác nhận hủy",
     "keepOrder": "Giữ đơn hàng",
     "reconnecting": "Mất kết nối, đang kết nối lại...",
+    "connecting": "Đang thiết lập kết nối thời gian thực...",
+    "connectionError": "Lỗi kết nối thời gian thực",
+    "connectionUnknown": "Trạng thái kết nối không xác định",
+    "statusDesc": {
+      "pending": "Đơn hàng của bạn đã được gửi và đang chờ nhà hàng xác nhận",
+      "confirmed": "Nhà hàng đã xác nhận đơn hàng của bạn",
+      "preparing": "Bếp đang chuẩn bị món ăn của bạn",
+      "ready": "Món ăn của bạn đã sẵn sàng",
+      "served": "Món ăn đã được mang đến bàn của bạn",
+      "paid": "Đơn hàng đã hoàn tất và thanh toán",
+      "cancelled": "Đơn hàng này đã bị hủy",
+      "unknown": "Trạng thái đơn hàng không xác định"
+    },
     "timeline": {
       "created": "Đơn hàng đã tạo",
       "createdDesc": "Đơn hàng của bạn đã được gửi thành công",

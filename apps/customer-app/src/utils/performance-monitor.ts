@@ -579,11 +579,20 @@ export class PWAPerformanceMonitor {
       syncSuccessRate: report.metrics.syncSuccessRate,
     };
 
-    // 發送到後端或第三方分析服務
+    // 發送到後端或第三方分析服務。 /analytics/* 全域套用 authMiddleware，
+    // 未登入的訪客呼叫會 401 污染 log；這個遙測不是業務關鍵，未登入就跳過。
+    const authToken =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem("customer_auth_token")
+        : null;
+    if (!authToken) {
+      return;
+    }
     fetch("/api/v1/analytics/performance", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify(analyticsData),
     }).catch((error) => {

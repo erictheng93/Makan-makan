@@ -54,7 +54,11 @@ export interface CustomerProfile {
   preferences?: Record<string, unknown>;
 }
 
-export interface Order extends BaseEntity {
+// Order overrides BaseEntity's `createdAt`/`updatedAt` (declared as string there)
+// to the Unix-ms integer wire contract. See packages/database/src/services/order.ts
+// `toMillis` and apps/api/src/__tests__/integration/orders.real.integration.test.ts
+// for the enforcement point.
+export interface Order extends Omit<BaseEntity, "createdAt" | "updatedAt"> {
   restaurantId: string;
   tableId: number;
   customerId?: number;
@@ -74,12 +78,14 @@ export interface Order extends BaseEntity {
   internalNotes?: string;
   estimatedPrepTime?: number; // minutes
   actualPrepTime?: number; // minutes
-  confirmedAt?: string;
-  preparingAt?: string;
-  readyAt?: string;
-  deliveredAt?: string;
-  paidAt?: string;
-  cancelledAt?: string;
+  createdAt: number; // Unix ms
+  updatedAt: number; // Unix ms
+  confirmedAt: number | null;
+  preparingAt: number | null;
+  readyAt: number | null;
+  deliveredAt: number | null;
+  paidAt: number | null;
+  cancelledAt: number | null;
   rating?: number;
   reviewComment?: string;
   orderSource?: PlatformSource;

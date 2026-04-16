@@ -262,6 +262,20 @@ export class ErrorHandler {
 
   // 顯示用戶提示
   private showUserNotification(error: ErrorDetails) {
+    // 在登入頁或尚無 token 時抑制「權限不足」toast — 這些是預期中的
+    // 401/403 (例如初次進站觸發受保護 API 的 auto-refetch)，不應當成錯誤顯示。
+    if (error.type === ErrorType.PERMISSION) {
+      const onLoginPage =
+        typeof window !== "undefined" &&
+        window.location?.pathname?.startsWith("/login");
+      const hasToken =
+        typeof localStorage !== "undefined" &&
+        !!localStorage.getItem("auth_token");
+      if (onLoginPage || !hasToken) {
+        return;
+      }
+    }
+
     const duration = error.severity === ErrorSeverity.HIGH ? 8000 : 4000;
 
     if (error.severity === ErrorSeverity.CRITICAL) {

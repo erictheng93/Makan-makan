@@ -11,7 +11,7 @@ export interface KitchenOrder {
   items: KitchenOrderItem[];
   customerName?: string;
   notes?: string;
-  createdAt: string;
+  createdAt: number; // Unix ms — matches Order wire contract
   totalItems: number;
   priority: "normal" | "high" | "urgent";
   elapsedTime: number;
