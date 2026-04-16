@@ -1,0 +1,19 @@
+# Local Development Environment Variables for the Realtime Worker
+# Copy this file to .dev.vars and fill in the values
+# IMPORTANT: Never commit .dev.vars to version control
+
+# JWT Secret for verifying WebSocket room tokens (minimum 32 characters)
+#
+# This MUST match apps/api/.dev.vars JWT_SECRET — the API worker signs the
+# room-scoped JWT and the Realtime DurableObject verifies it. If they
+# diverge, every WebSocket upgrade fails with "Server configuration error".
+#
+# Generate a secure secret:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=your-secure-jwt-secret-min-32-chars-long-change-this-value
+
+# Optional: Dedicated secret for guest (customer) realtime tokens. If set,
+# guest tokens are signed/verified with this key instead of JWT_SECRET so
+# rotating guest credentials does not invalidate staff sessions. Must match
+# apps/api/.dev.vars REALTIME_JWT_SECRET.
+# REALTIME_JWT_SECRET=your-secure-realtime-jwt-secret-min-32-chars-long
