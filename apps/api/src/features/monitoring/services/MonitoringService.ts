@@ -532,6 +532,11 @@ export class MonitoringService {
   }
 
   private getApiHealthStatus(): ComponentHealth["status"] {
+    // 「critical」只給真正的失敗（高錯誤率），「critical → 503」由中間件
+    // 映射出 503 Service Unavailable。回應慢但仍能服務不該回 503，
+    // dev cold start / DTS rebuild / vite warmup 都會輕易跨過 1s 門檻，
+    // 過去這會讓前端在 owner-overview mount 時跳「系統錯誤: 服務器錯誤」
+    // toast 雖然 API 完全正常。slow latency 最多上升到 warning。
     if (
       this.metrics.apiMetrics.errorRate >
       PERFORMANCE_THRESHOLDS.ERROR_RATE_CRITICAL
@@ -542,11 +547,6 @@ export class MonitoringService {
       PERFORMANCE_THRESHOLDS.ERROR_RATE_WARNING
     )
       return "warning";
-    if (
-      this.metrics.apiMetrics.averageResponseTime >
-      PERFORMANCE_THRESHOLDS.API_RESPONSE_TIME_CRITICAL
-    )
-      return "critical";
     if (
       this.metrics.apiMetrics.averageResponseTime >
       PERFORMANCE_THRESHOLDS.API_RESPONSE_TIME_WARNING
