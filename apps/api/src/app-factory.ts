@@ -2,7 +2,11 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { timing } from "hono/timing";
-import { authMiddleware, optionalAuth } from "./middleware/auth";
+import {
+  authMiddleware,
+  customerAuthMiddleware,
+  optionalAuth,
+} from "./middleware/auth";
 import { corsMiddleware } from "./middleware/cors";
 import { csrfProtection, attachCSRFToken } from "./middleware/csrf";
 // import { rateLimitMiddleware } from './middleware/rateLimit'
@@ -444,7 +448,7 @@ export function createApp(
   // Kitchen routes handle auth at the route level so the /events SSE endpoint
   // can use sseAuthMiddleware (token via query param — EventSource cannot send
   // Authorization headers). All /kitchen/* routes have per-route authMiddleware.
-  apiV1.use("/orders/*", authMiddleware);
+  apiV1.use("/orders/*", customerAuthMiddleware);
   apiV1.use("/pos/*", authMiddleware);
   apiV1.use("/payments/*", authMiddleware);
   // apiV1.use('/print/*', authMiddleware) // Disabled - incomplete feature
@@ -459,7 +463,7 @@ export function createApp(
   apiV1.use("/cache/*", authMiddleware);
   apiV1.use("/monitoring/*", authMiddleware);
   apiV1.use("/backup/*", authMiddleware);
-  apiV1.use("/customers/*", authMiddleware);
+  apiV1.use("/customers/*", customerAuthMiddleware);
   apiV1.use("/leaves/*", authMiddleware);
   apiV1.use("/scheduling/*", authMiddleware);
   apiV1.use("/forecast/*", authMiddleware);
