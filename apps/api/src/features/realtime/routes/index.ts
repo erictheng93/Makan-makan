@@ -10,6 +10,7 @@ import { HTTP_STATUS } from "../../../shared/constants";
 
 import { ConsoleLogger } from "../../../core/monitoring";
 import { validateBody } from "../../../middleware/validation";
+import { rateLimitMiddleware } from "../../../middleware/rateLimiter";
 import {
   ApiError,
   badRequest,
@@ -59,6 +60,39 @@ realtimeRoutes.post(
       roomId: requestData.roomId,
       restaurantId: requestData.restaurantId,
     });
+
+    return c.json(
+      {
+        success: true,
+        data: result,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+realtimeRoutes.post(
+  "/auth/guest-token",
+  rateLimitMiddleware({
+    windowMs: 60 * 1000,
+    maxRequests: 10,
+    keyPrefix: "realtime_guest_token",
+    message: "Too many guest realtime token requests",
+  }),
+  validateBody(realtimeSchemas.guestRealtimeTokenRequest),
+  async (c) => {
+    const requestData = c.get("validatedBody");
+    const authService = new RealtimeAuthService(c.env);
+    const result = await authService.generateGuestToken(requestData);
+
+    if ("error" in result) {
+      logger.warn("Failed to generate guest realtime token", {
+        error: result.error,
+        restaurantId: requestData.restaurantId,
+        tableId: requestData.tableId,
+      });
+      throw badRequest(result.error);
+    }
 
     return c.json(
       {

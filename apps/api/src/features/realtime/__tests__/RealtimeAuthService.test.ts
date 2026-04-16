@@ -76,6 +76,8 @@ describe("RealtimeAuthService", () => {
     mockEnv = {
       NODE_ENV: "test",
       JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long-for-security",
+      REALTIME_JWT_SECRET:
+        "test-realtime-secret-key-at-least-32-chars-long-for-security",
       API_VERSION: "1.0.0",
       ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
       DB: mockDb as any,
@@ -101,11 +103,11 @@ describe("RealtimeAuthService", () => {
     it("應該在 JWT_SECRET 太短時拋出錯誤", () => {
       const invalidEnv = {
         ...mockEnv,
-        JWT_SECRET: "too-short",
+        REALTIME_JWT_SECRET: "too-short",
       };
 
       expect(() => new RealtimeAuthService(invalidEnv)).toThrow(
-        "JWT_SECRET must be set and at least 32 characters",
+        "REALTIME_JWT_SECRET must be set and at least 32 characters",
       );
     });
 
@@ -275,7 +277,7 @@ describe("RealtimeAuthService", () => {
         iat: Math.floor(Date.now() / 1000),
       };
 
-      const token = jwt.sign(payload, mockEnv.JWT_SECRET);
+      const token = jwt.sign(payload, mockEnv.REALTIME_JWT_SECRET!);
 
       const result = await service.verifyWebSocketToken(token);
 
@@ -295,7 +297,7 @@ describe("RealtimeAuthService", () => {
         iat: Math.floor(Date.now() / 1000) - 400,
       };
 
-      const token = jwt.sign(payload, mockEnv.JWT_SECRET);
+      const token = jwt.sign(payload, mockEnv.REALTIME_JWT_SECRET!);
 
       const result = await service.verifyWebSocketToken(token);
 
@@ -318,7 +320,7 @@ describe("RealtimeAuthService", () => {
         iat: Math.floor(Date.now() / 1000),
       };
 
-      const token = jwt.sign(incompletePayload, mockEnv.JWT_SECRET);
+      const token = jwt.sign(incompletePayload, mockEnv.REALTIME_JWT_SECRET!);
 
       const result = await service.verifyWebSocketToken(token);
 

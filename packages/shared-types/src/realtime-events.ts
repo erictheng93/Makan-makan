@@ -46,8 +46,10 @@ export interface RealtimeAuthPayload {
   restaurantId: string;
   /** 使用者角色 */
   role: "customer" | "staff" | "admin";
+  guestFlag?: boolean;
   /** 桌號 ID（顧客連線時使用） */
   tableId?: string;
+  orderId?: string;
   /** 座位 ID（座位級別連線時使用） */
   seatId?: string;
   /** 使用者 ID（已登入使用者） */
@@ -85,6 +87,19 @@ export interface RealtimeAuthTokenResponse {
   /** Token 過期時間（秒） */
   expiresIn: number;
   /** WebSocket 連線 URL */
+  wsUrl: string;
+}
+
+export interface GuestRealtimeTokenRequest {
+  restaurantId: string;
+  tableId: string;
+  orderId?: string;
+  qrCode: string;
+}
+
+export interface GuestRealtimeTokenResponse {
+  token: string;
+  expiresAt: string;
   wsUrl: string;
 }
 

@@ -1,5 +1,6 @@
 import { apiClient } from "./api";
 import type {
+  GuestRealtimeTokenResponse,
   Order,
   OrderItem,
   CreateOrderRequest,
@@ -49,6 +50,13 @@ export interface GuestOrderResponse {
   tokenExpiresAt: string;
 }
 
+export interface GuestRealtimeTokenRequest {
+  restaurantId: string;
+  tableId: string;
+  orderId?: string;
+  qrCode: string;
+}
+
 export const orderApi = {
   /**
    * 創建新訂單（需要登入）
@@ -90,6 +98,15 @@ export const orderApi = {
     const response = await apiClient.get<Order>(`/guest-orders/${orderId}`);
     // API wraps in { order }, unwrap it
     return (response as any).order || response;
+  },
+
+  async getGuestRealtimeToken(
+    payload: GuestRealtimeTokenRequest,
+  ): Promise<GuestRealtimeTokenResponse> {
+    return apiClient.post<GuestRealtimeTokenResponse>(
+      "/realtime/auth/guest-token",
+      payload,
+    );
   },
 
   /**
