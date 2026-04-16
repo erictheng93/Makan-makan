@@ -845,6 +845,14 @@ jobs:
             echo "- ❌ Workers 測試: 失敗" >> $GITHUB_STEP_SUMMARY
           fi
 
+          if [ "${{ needs.real-integration-tests.result }}" == "success" ]; then
+            echo "- ✅ Real integration 測試: 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.real-integration-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ Real integration 測試: 跳過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ Real integration 測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+
           if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
             echo "- ✅ E2E 測試: 通過" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ needs.e2e-tests.result }}" == "skipped" ]; then
@@ -913,6 +921,9 @@ jobs:
           if [ "${{ needs.workers-tests.result }}" != "success" ] && [ "${{ needs.workers-tests.result }}" != "skipped" ]; then
             OVERALL_STATUS="failure"
           fi
+          if [ "${{ needs.real-integration-tests.result }}" != "success" ] && [ "${{ needs.real-integration-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
           if [ "${{ needs.e2e-tests.result }}" != "success" ] && [ "${{ needs.e2e-tests.result }}" != "skipped" ]; then
             OVERALL_STATUS="failure"
           fi
@@ -937,6 +948,7 @@ jobs:
           echo "- 程式碼品質 (ESLint, TypeScript, Prettier)" >> $GITHUB_STEP_SUMMARY
           echo "- 單元測試 + 覆蓋率報告" >> $GITHUB_STEP_SUMMARY
           echo "- Cloudflare Workers 整合測試" >> $GITHUB_STEP_SUMMARY
+          echo "- Real integration 測試 (miniflare D1)" >> $GITHUB_STEP_SUMMARY
           echo "- E2E 測試 (Chromium, Firefox, WebKit)" >> $GITHUB_STEP_SUMMARY
           echo "- API/WebSocket 負載測試 (Artillery)" >> $GITHUB_STEP_SUMMARY
           echo "- 資料庫性能基準與退化檢測" >> $GITHUB_STEP_SUMMARY
@@ -951,6 +963,7 @@ jobs:
       [
         unit-tests,
         workers-tests,
+        real-integration-tests,
         e2e-tests,
         security-tests,
         visual-regression-tests,
