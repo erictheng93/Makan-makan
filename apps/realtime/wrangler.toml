@@ -18,6 +18,17 @@ bindings = [
 tag = "v1"
 new_classes = ["RealtimeSession"]
 
+# Local D1 binding — RealtimeSession DurableObject's
+# validateRestaurantAccess() needs to query users.restaurant_id to confirm
+# that staff/admin connecting to a room actually belong to the restaurant.
+# Without this binding `this.env.DB` is undefined in dev and every
+# admin/kitchen WS upgrade fails. Same shape as apps/api/wrangler.toml.
+[[d1_databases]]
+binding = "DB"
+database_name = "makanmakan-local"
+database_id = "local"
+migrations_dir = "../../packages/database/migrations_fresh"
+
 # === STAGING ENVIRONMENT ===
 [env.staging]
 name = "makanmakan-realtime-staging"

@@ -1,17 +1,15 @@
 /**
- * LEGACY: Unit test with mocked services, NOT a real integration test.
+ * Service test: wires a real `OrdersService` instance to a mocked
+ * broadcast service + mocked env, and verifies that order lifecycle
+ * transitions emit the expected realtime events.
  *
- * This file uses vi.mock() on service/DB boundaries. It verifies component/
- * route JS logic but does NOT verify Drizzle SQL, D1 parity, or auth middleware
- * end-to-end. A real pass here does not guarantee a real pass in production.
+ * This is a service-level test, NOT an API integration test. The DB
+ * and realtime boundaries are intentionally mocked so the service's
+ * event-emission logic can be asserted directly. For real integration
+ * testing, see `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
  *
- * For real integration testing, see:
- *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
- *   apps/api/src/__tests__/integration/*.real.integration.test.ts
- *
- * ---
- * Original: Orders + Realtime Integration Tests / 測試訂單服務與即時廣播的整合
- * 測試策略：直接替換內部服務實例，避免依賴 vi.mock() 的複雜行為
+ * Strategy note: internal service instances are replaced directly
+ * rather than via `vi.mock()` to avoid hoisting surprises.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";

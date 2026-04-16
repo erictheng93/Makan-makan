@@ -1,4 +1,15 @@
-// Integration tests for performance monitoring system
+/**
+ * Component flow test: mounts PerformanceDashboard and exercises its
+ * interactions with a mocked `performanceService` and a stubbed
+ * `PerformanceObserver` global.
+ *
+ * This is a component-level test, NOT a real integration test. Service
+ * and browser-API boundaries are intentionally mocked — the goal is to
+ * verify dashboard rendering and metric handling, not production
+ * performance collection. For real integration testing, see
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
+ */
+
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";

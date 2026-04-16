@@ -1,21 +1,16 @@
 /**
- * LEGACY: Unit test with mocked services, NOT a real integration test.
+ * Service test: exercises Table/Seat service-layer concurrency and
+ * cross-module orchestration with hoisted service mocks.
  *
- * This file uses vi.mock() on service/DB boundaries. It verifies component/
- * route JS logic but does NOT verify Drizzle SQL, D1 parity, or auth middleware
- * end-to-end. A real pass here does not guarantee a real pass in production.
+ *  Part A — Concurrency: verifies how the service reacts when the DB
+ *           layer returns success/failure for concurrent ops. True
+ *           DB-level concurrency belongs in a real integration test.
+ *  Part B — Cross-module: exercises table ↔ seat lifecycle orchestration
+ *           that is NOT already covered by the individual service tests.
  *
- * For real integration testing, see:
- *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
- *   apps/api/src/__tests__/integration/*.real.integration.test.ts
- *
- * ---
- * Original: Concurrency & Cross-Module Integration Tests
- * Part A — Concurrency: tests that exercise service-layer behavior
- *          when the DB layer returns success/failure for concurrent ops.
- *          (True DB-level concurrency is not testable with mocks.)
- * Part B — Cross-module: table ↔ seat lifecycle orchestration that
- *          is NOT already covered by the individual service tests.
+ * This is a service-level test, NOT a real integration test. Genuine
+ * DB concurrency coverage belongs under
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";

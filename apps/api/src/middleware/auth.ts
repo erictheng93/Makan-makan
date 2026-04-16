@@ -19,128 +19,123 @@ declare module "hono" {
   }
 }
 
-// JWT 認證中間件
-export const authMiddleware = async (
-  c: Context<{ Bindings: Env }>,
-  next: Next,
-) => {
-  try {
-    const authHeader = c.req.header("Authorization");
+// JWT 認證中間件工廠。`maxRole` 界定最大可接受的角色值：
+// staff/admin 路由使用 4，customer-facing 路由使用 5。
+function createAuthMiddleware(maxRole: number) {
+  return async (c: Context<{ Bindings: Env }>, next: Next) => {
+    try {
+      const authHeader = c.req.header("Authorization");
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw unauthorized(
-        "Missing or invalid authorization header",
-        "MISSING_AUTH_HEADER",
-      );
-    }
-
-    const token = authHeader.substring(7); // 移除 "Bearer " 前綴
-
-    // 檢查 JWT_SECRET 是否設置且符合安全要求
-    if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
-      console.error(
-        "JWT_SECRET is not set or too short (minimum 32 characters required)",
-      );
-      throw new ApiError(
-        "SERVER_CONFIG_ERROR",
-        "Server configuration error",
-        500,
-      );
-    }
-
-    // 檢查 token 是否在黑名單中 (如果 KV 可用)
-    if (c.env.TOKEN_BLACKLIST) {
-      const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
-      if (blacklisted) {
-        throw unauthorized("Token has been invalidated", "TOKEN_BLACKLISTED");
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        throw unauthorized(
+          "Missing or invalid authorization header",
+          "MISSING_AUTH_HEADER",
+        );
       }
+
+      const token = authHeader.substring(7); // 移除 "Bearer " 前綴
+
+      // 檢查 JWT_SECRET 是否設置且符合安全要求
+      if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
+        console.error(
+          "JWT_SECRET is not set or too short (minimum 32 characters required)",
+        );
+        throw new ApiError(
+          "SERVER_CONFIG_ERROR",
+          "Server configuration error",
+          500,
+        );
+      }
+
+      // 檢查 token 是否在黑名單中 (如果 KV 可用)
+      if (c.env.TOKEN_BLACKLIST) {
+        const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
+        if (blacklisted) {
+          throw unauthorized("Token has been invalidated", "TOKEN_BLACKLISTED");
+        }
+      }
+
+      const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+
+      if (!decoded || typeof decoded !== "object") {
+        throw unauthorized("Invalid token", "TOKEN_INVALID");
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+
+      if (!decoded.exp || decoded.exp <= now) {
+        throw unauthorized("Token has expired", "TOKEN_EXPIRED");
+      }
+
+      if (decoded.iat && decoded.iat > now + 60) {
+        throw unauthorized("Token issued in future", "TOKEN_FUTURE");
+      }
+
+      if (decoded.nbf && decoded.nbf > now + 60) {
+        throw unauthorized("Token not yet valid", "TOKEN_INVALID");
+      }
+
+      if (
+        !decoded.id ||
+        !decoded.username ||
+        typeof decoded.role !== "number"
+      ) {
+        throw unauthorized("Invalid token claims", "TOKEN_INVALID");
+      }
+
+      if (decoded.role < 0 || decoded.role > maxRole) {
+        throw unauthorized("Invalid role in token", "TOKEN_INVALID");
+      }
+
+      const tokenAge = now - (decoded.iat || 0);
+      const maxTokenAge = 24 * 60 * 60;
+      if (tokenAge > maxTokenAge) {
+        throw unauthorized("Token too old, please refresh", "TOKEN_EXPIRED");
+      }
+
+      const timeUntilExpiry = decoded.exp - now;
+      if (timeUntilExpiry < 3600) {
+        c.header("X-Token-Refresh-Recommended", "true");
+        c.header("X-Token-Expires-In", timeUntilExpiry.toString());
+      }
+
+      c.set("user", {
+        id: decoded.id,
+        username: decoded.username,
+        role: decoded.role,
+        restaurantId: decoded.restaurantId,
+      });
+
+      await next();
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        error.name === "JwtTokenExpired"
+      ) {
+        throw unauthorized("Token has expired", "TOKEN_EXPIRED");
+      }
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        error.name === "JwtTokenInvalid"
+      ) {
+        throw unauthorized("Invalid token format", "TOKEN_INVALID");
+      }
+      throw unauthorized("Authentication failed", "TOKEN_INVALID");
     }
+  };
+}
 
-    const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+// Staff/admin 路由的 JWT 認證中間件（只接受 role 0-4）
+export const authMiddleware = createAuthMiddleware(4);
 
-    if (!decoded || typeof decoded !== "object") {
-      throw unauthorized("Invalid token", "TOKEN_INVALID");
-    }
-
-    // Enhanced JWT validation checks
-    const now = Math.floor(Date.now() / 1000);
-
-    // Check token expiration
-    if (!decoded.exp || decoded.exp <= now) {
-      throw unauthorized("Token has expired", "TOKEN_EXPIRED");
-    }
-
-    // Check token issued at time (prevent future tokens)
-    if (decoded.iat && decoded.iat > now + 60) {
-      // Allow 60 second clock skew
-      throw unauthorized("Token issued in future", "TOKEN_FUTURE");
-    }
-
-    // Check not before claim
-    if (decoded.nbf && decoded.nbf > now + 60) {
-      // Allow 60 second clock skew
-      throw unauthorized("Token not yet valid", "TOKEN_INVALID");
-    }
-
-    // Validate required claims
-    if (!decoded.id || !decoded.username || typeof decoded.role !== "number") {
-      throw unauthorized("Invalid token claims", "TOKEN_INVALID");
-    }
-
-    // Validate role is within expected range (0-5).
-    // Role 5 is the customer role used by /customers/* routes.
-    if (decoded.role < 0 || decoded.role > 5) {
-      throw unauthorized("Invalid role in token", "TOKEN_INVALID");
-    }
-
-    // Check token age (reject tokens older than 24 hours without refresh)
-    const tokenAge = now - (decoded.iat || 0);
-    const maxTokenAge = 24 * 60 * 60; // 24 hours
-    if (tokenAge > maxTokenAge) {
-      throw unauthorized("Token too old, please refresh", "TOKEN_EXPIRED");
-    }
-
-    // Check if token is about to expire (recommend refresh within 1 hour)
-    const timeUntilExpiry = decoded.exp - now;
-    if (timeUntilExpiry < 3600) {
-      // 1 hour
-      c.header("X-Token-Refresh-Recommended", "true");
-      c.header("X-Token-Expires-In", timeUntilExpiry.toString());
-    }
-
-    // 設置用戶資訊到 context
-    c.set("user", {
-      id: decoded.id,
-      username: decoded.username,
-      role: decoded.role,
-      restaurantId: decoded.restaurantId,
-    });
-
-    await next();
-  } catch (error) {
-    // Re-throw ApiError as-is (already handled by global error handler)
-    if (error instanceof ApiError) throw error;
-
-    // Classify JWT library errors
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      error.name === "JwtTokenExpired"
-    ) {
-      throw unauthorized("Token has expired", "TOKEN_EXPIRED");
-    }
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      error.name === "JwtTokenInvalid"
-    ) {
-      throw unauthorized("Invalid token format", "TOKEN_INVALID");
-    }
-    throw unauthorized("Authentication failed", "TOKEN_INVALID");
-  }
-};
+// Customer-facing 路由的 JWT 認證中間件（接受 role 0-5，涵蓋顧客 role=5）
+export const customerAuthMiddleware = createAuthMiddleware(5);
 
 // SSE 認證中間件 — 接受 Authorization header 或 ?token= query param。
 // 瀏覽器原生 EventSource 無法帶自訂 header，因此 SSE 客戶端必須走 query param。

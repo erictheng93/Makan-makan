@@ -1,7 +1,13 @@
 /**
- * 實時群組訂單集成測試套件
+ * Component flow test: exercises the realtime group-orders flow against a
+ * fully mocked WebSocket class. Covers realtime sync, multi-user
+ * collaboration, conflict resolution, and error recovery at the composable
+ * / component layer.
  *
- * 測試群組訂單的實時同步、多用戶協作、衝突解決、錯誤恢復等核心功能
+ * This is a component-level test, NOT a real WebSocket integration test.
+ * The WebSocket boundary is intentionally mocked — the goal is to verify
+ * client-side state machines, not the realtime worker. For real integration
+ * testing, see `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
  *
  * @vitest-environment jsdom
  */

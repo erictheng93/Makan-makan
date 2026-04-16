@@ -8,6 +8,31 @@ import type { Env } from "../../../types/env";
 import { buildAuthHelper, type AuthHelper } from "./issue-test-jwt";
 import { createDurableObjectStub } from "./durable-object-stub";
 
+// Workers Cache API global stub. The production middleware
+// `cacheWarmingMiddleware` (apps/api/src/middleware/edge-cache.ts)
+// fires `caches.default.delete(...)` after any successful POST/PUT/
+// DELETE/PATCH whose path matches /menu, /coupons, or /restaurants.
+// In a deployed Worker `caches` is a workerd global; in the Node-side
+// vitest runner it is undefined, and the synchronous property access
+// throws ReferenceError BEFORE the `await Promise.allSettled(...)` has
+// a chance to catch it — leaving the handler to return 500 even
+// though the D1 write already committed.
+//
+// Installing a tiny stub on globalThis makes every `caches.default.*`
+// call a no-op in tests. The real cache-invalidation logic is covered
+// by unit tests against edge-cache.ts; there is no value in exercising
+// it in the real-integration layer, and the Node test runner has no
+// Cache API to invalidate anyway.
+if (typeof (globalThis as any).caches === "undefined") {
+  (globalThis as any).caches = {
+    default: {
+      match: async () => undefined,
+      put: async () => {},
+      delete: async () => false,
+    },
+  };
+}
+
 export interface RealIntegrationTestApp {
   app: Hono<{ Bindings: Env }>;
   testDb: TestDatabase;
@@ -59,7 +84,17 @@ export async function createRealIntegrationTestApp(): Promise<RealIntegrationTes
 
 function buildTestEnv(testDb: TestDatabase): Env {
   return {
-    NODE_ENV: "test",
+    // Intentionally "development", not "test". The
+    // geoIntelligentRateLimitMiddleware skips rate limiting when
+    // NODE_ENV === "development" (see geo-rate-limiting.ts:707) — its
+    // comment explicitly names the integration test suite as the reason.
+    // Setting this to "test" trips the rate limiter and returns 429 on
+    // later tests in the same file, since miniflare's RATE_LIMIT_KV is
+    // shared across tests and isn't reset by truncateAll().
+    // The single production consumer that gates on NODE_ENV === "test"
+    // (UnifiedQueueService MockDrizzle fallback) checks MOCK_DRIZZLE_DB
+    // first, which we deliberately leave undefined below.
+    NODE_ENV: "development",
     JWT_SECRET: "test-jwt-secret-do-not-use-in-prod",
     API_VERSION: "v1",
     ENCRYPTION_KEY: "test-encryption-key-32-bytes-long!!",

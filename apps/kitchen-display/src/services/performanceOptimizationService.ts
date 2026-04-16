@@ -52,7 +52,10 @@ class PerformanceOptimizationService {
 
   private config = ref<OptimizationConfig>({
     enableLazyLoading: true,
-    enableServiceWorker: true,
+    // Service worker only exists in production build (public/sw.js is not
+    // shipped in dev). In dev, `/sw.js` falls through to SPA index.html and
+    // the browser rejects registration with "unsupported MIME type (text/html)".
+    enableServiceWorker: !import.meta.env.DEV,
     enableResourceHints: true,
     enableImageOptimization: true,
     enableComponentCache: true,

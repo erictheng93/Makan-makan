@@ -43,17 +43,19 @@ export const formatCurrency = (
   return `${currency}${formatPrice(cents)}`;
 };
 
+// Accepts every shape dayjs accepts at runtime. `number` covers Unix-ms
+// integers from the Order wire contract; string covers ISO; Date covers
+// in-memory. null/undefined short-circuit to "".
+type DateInput = string | Date | number | null | undefined;
+
 /**
  * 格式化日期時間
- * @param date 日期字串或 Date 物件
- * @param format 格式化模式，預設為 'YYYY-MM-DD HH:mm'
- * @returns 格式化後的日期字串
  */
 export const formatDateTime = (
-  date: string | Date,
+  date: DateInput,
   format: string = "YYYY-MM-DD HH:mm",
 ): string => {
-  if (!date) return "";
+  if (date == null || date === "") return "";
 
   try {
     return dayjs(date).format(format);
@@ -65,11 +67,9 @@ export const formatDateTime = (
 
 /**
  * 格式化相對時間
- * @param date 日期字串或 Date 物件
- * @returns 相對時間字串（如：3分鐘前）
  */
-export const formatRelativeTime = (date: string | Date): string => {
-  if (!date) return "";
+export const formatRelativeTime = (date: DateInput): string => {
+  if (date == null || date === "") return "";
 
   try {
     return dayjs(date).fromNow();
@@ -81,10 +81,8 @@ export const formatRelativeTime = (date: string | Date): string => {
 
 /**
  * 格式化日期 - 僅日期部分
- * @param date 日期字串或 Date 物件
- * @returns 格式化後的日期字串
  */
-export const formatDate = (date: string | Date): string => {
+export const formatDate = (date: DateInput): string => {
   return formatDateTime(date, "YYYY-MM-DD");
 };
 

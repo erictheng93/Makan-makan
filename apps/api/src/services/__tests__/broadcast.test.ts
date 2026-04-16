@@ -1,16 +1,13 @@
 /**
- * LEGACY: Unit test with mocked services, NOT a real integration test.
+ * Protocol test: verifies that broadcast events (new order, status
+ * update, kitchen item, menu availability) serialise to the expected
+ * wire shape by posting them through a `MockDurableObjectStub`.
  *
- * This file uses vi.mock() on service/DB boundaries. It verifies component/
- * route JS logic but does NOT verify Drizzle SQL, D1 parity, or auth middleware
- * end-to-end. A real pass here does not guarantee a real pass in production.
- *
- * For real integration testing, see:
- *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
- *   apps/api/src/__tests__/integration/*.real.integration.test.ts
- *
- * ---
- * Original: Broadcast Integration Tests / 測試訊息廣播完整流程（API → Durable Object → WebSocket）
+ * This is a protocol/contract test, NOT a real integration test. The
+ * Durable Object transport is stubbed — the goal is to lock the
+ * API → DO → WebSocket payload contract, not to verify real DO
+ * persistence. For real integration testing, see
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";

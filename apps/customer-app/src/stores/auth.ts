@@ -110,7 +110,7 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: true };
       }
 
-      error.value = data.error || t("auth.loginFailed");
+      error.value = data.error?.message || t("auth.loginFailed");
       return { success: false, error: error.value };
     } catch (err: any) {
       error.value = err.message || t("messages.networkError");

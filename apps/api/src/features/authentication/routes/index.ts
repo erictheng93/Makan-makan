@@ -15,6 +15,7 @@ import { HTTP_STATUS } from "../../../shared/constants";
 import type { UserRole } from "../../../shared/constants";
 import {
   authMiddleware as defaultAuthMiddleware,
+  customerAuthMiddleware,
   blacklistToken as defaultBlacklistToken,
   requireRole as defaultRequireRole,
 } from "../../../shared/middleware";
@@ -24,6 +25,7 @@ import {
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
+import { unauthorized } from "../../../shared/utils/api-error";
 
 // Import service and validation schemas
 import { AuthService as DefaultAuthService } from "../services/AuthService";
@@ -148,13 +150,11 @@ export function createAuthRoutes(
     const result = await authService.login(loginData);
 
     if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error,
-        },
-        HTTP_STATUS.UNAUTHORIZED,
-      );
+      const message = result.error || "Authentication failed";
+      const code = message.toLowerCase().includes("locked")
+        ? "ACCOUNT_LOCKED"
+        : "INVALID_CREDENTIALS";
+      throw unauthorized(message, code);
     }
 
     return c.json(
@@ -794,5 +794,5 @@ export function createAuthRoutes(
   return authRoutes;
 }
 
-// Export default routes using real dependencies (for production use)
-export default createAuthRoutes();
+// Export default routes using customer-aware auth for customer-facing endpoints.
+export default createAuthRoutes({ authMiddleware: customerAuthMiddleware });

@@ -536,6 +536,19 @@
     "confirmCancelBtn": "确认取消",
     "keepOrder": "保留订单",
     "reconnecting": "连接已断开，正在重新连接...",
+    "connecting": "实时连接建立中...",
+    "connectionError": "实时连接出错",
+    "connectionUnknown": "连接状态未知",
+    "statusDesc": {
+      "pending": "您的订单已送出，等待餐厅确认",
+      "confirmed": "餐厅已确认您的订单",
+      "preparing": "厨房正在为您准备餐点",
+      "ready": "您的餐点已准备完成",
+      "served": "餐点已送到您的桌上",
+      "paid": "订单已完成并结账",
+      "cancelled": "此订单已被取消",
+      "unknown": "订单状态未知"
+    },
     "timeline": {
       "created": "订单已建立",
       "createdDesc": "您的订单已成功送出",

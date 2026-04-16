@@ -413,9 +413,9 @@ const getStatusText = (status: string) => {
 };
 
 // 格式化日期
-const formatDate = (dateString?: string) => {
-  if (!dateString) return "-";
-  const date = new Date(dateString);
+const formatDate = (dateInput?: string | number | null) => {
+  if (dateInput == null) return "-";
+  const date = new Date(dateInput);
   return date.toLocaleString("zh-TW", {
     year: "numeric",
     month: "2-digit",

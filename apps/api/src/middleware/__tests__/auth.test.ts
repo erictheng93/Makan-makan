@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { sign } from "hono/jwt";
 import {
   authMiddleware,
+  customerAuthMiddleware,
   requireRole,
   requireRestaurantAccess,
   blacklistToken,
@@ -513,8 +514,8 @@ describe("Auth Middleware", () => {
         });
       });
 
-      it("should accept all valid role values (0-5)", async () => {
-        for (const role of [0, 1, 2, 3, 4, 5]) {
+      it("should accept all valid staff/admin role values (0-4)", async () => {
+        for (const role of [0, 1, 2, 3, 4]) {
           const token = await createToken(
             { id: 1, username: "test", role },
             mockEnv.JWT_SECRET,
@@ -559,6 +560,50 @@ describe("Auth Middleware", () => {
         expect(res.status).toBe(401);
         expect(result.error).toBeTruthy();
       });
+    });
+  });
+
+  describe("customerAuthMiddleware", () => {
+    beforeEach(() => {
+      app.use("/customer/*", customerAuthMiddleware);
+      app.get("/customer/test", (c) => {
+        const user = c.get("user");
+        return c.json({ success: true, user });
+      });
+    });
+
+    it("should accept customer role tokens", async () => {
+      const token = await createToken(
+        { id: 1, username: "customer", role: 5 },
+        mockEnv.JWT_SECRET,
+      );
+
+      const req = new Request("http://localhost/customer/test", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const res = await app.request(req, undefined, mockEnv);
+      const result = (await res.json()) as any;
+
+      expect(res.status).toBe(200);
+      expect(result.user.role).toBe(5);
+    });
+
+    it("should accept all valid role values (0-5)", async () => {
+      for (const role of [0, 1, 2, 3, 4, 5]) {
+        const token = await createToken(
+          { id: 1, username: "test", role },
+          mockEnv.JWT_SECRET,
+        );
+
+        const req = new Request("http://localhost/customer/test", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const res = await app.request(req, undefined, mockEnv);
+        const result = (await res.json()) as any;
+
+        expect(res.status).toBe(200);
+        expect(result.user.role).toBe(role);
+      }
     });
   });
 

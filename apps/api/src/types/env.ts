@@ -21,9 +21,11 @@ export interface Env {
   // Environment variables
   NODE_ENV: string;
   JWT_SECRET: string;
+  REALTIME_JWT_SECRET?: string;
   API_VERSION: string;
   ENCRYPTION_KEY: string; // For encrypting sensitive data like API keys
   QR_SIGNING_KEY?: string; // HMAC key for signing QR code URLs (falls back to JWT_SECRET)
+  CLIENT_BASE_URL?: string;
 
   // ===== Deployment Mode Configuration =====
   /**

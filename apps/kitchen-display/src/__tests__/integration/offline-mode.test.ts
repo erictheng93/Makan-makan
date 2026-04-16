@@ -1,20 +1,13 @@
 /**
- * LEGACY: Unit test with mocked storage, NOT a real integration test.
+ * Unit test: exercises offline detection and in-memory queue/sync
+ * logic against a mocked `localStorage` and simulated offline/online
+ * events. Verifies buffering, replay ordering, and quota handling at
+ * the store/composable layer.
  *
- * This file mocks `localStorage` and simulates offline/online events in-
- * memory. It does NOT actually disconnect a network client, does NOT call
- * a real sync API after reconnect, and does NOT verify that buffered
- * actions replay through the real request pipeline.
- *
- * For real integration testing, see:
- *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
- *   apps/api/src/__tests__/integration/*.real.integration.test.ts
- *
- * TODO: Rewrite as a real integration test that disconnects from a live
- * miniflare-hosted API and verifies the sync replay via real HTTP calls.
- *
- * ---
- * Original: Offline Mode Integration Tests / 測試離線模式和數據同步
+ * This is a unit test, NOT a real integration test. The network and
+ * storage boundaries are intentionally mocked — real disconnect/replay
+ * behaviour belongs in
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";

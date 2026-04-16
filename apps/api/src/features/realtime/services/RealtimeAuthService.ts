@@ -1,21 +1,13 @@
-/**
- * Realtime Authentication Service
- * 專門用於 WebSocket 連線的認證服務
- *
- * 功能:
- * - Token 生成與驗證
- * - Token 撤銷與黑名單管理
- * - 用戶 Token 追蹤
- */
-
 import { sign, verify } from "jsonwebtoken";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, or } from "drizzle-orm";
-import { tables, seats } from "@makanmakan/database";
+import { orders, restaurants, seats, tables } from "@makanmakan/database";
+import { parseSignedQRUrl, verifyQRSignature } from "@makanmakan/utils";
 import type { Env } from "../../../shared/types";
-import type { D1Database } from "@cloudflare/workers-types";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type {
+  GuestRealtimeTokenRequest,
+  GuestRealtimeTokenResponse,
   RealtimeAuthPayload,
   RealtimeAuthTokenRequest,
   RealtimeAuthTokenResponse,
@@ -26,46 +18,38 @@ import {
   type RevokeReason,
 } from "./TokenBlacklistService";
 
-/**
- * WebSocket Token 驗證結果
- */
 export interface WebSocketTokenVerification {
   valid: boolean;
   payload?: RealtimeAuthPayload;
   error?: string;
-  revoked?: boolean; // 是否已被撤銷
+  revoked?: boolean;
 }
 
-/**
- * Realtime 認證服務
- */
 export class RealtimeAuthService {
   private db;
   private logger: ConsoleLogger;
   private env: Env;
-  private jwtSecret: string;
+  private realtimeJwtSecret: string;
   private blacklistService: TokenBlacklistService | null = null;
 
   constructor(env: Env) {
     this.env = env;
     this.db = drizzle(env.DB);
     this.logger = new ConsoleLogger("realtime-auth");
-    this.jwtSecret = env.JWT_SECRET;
+    this.realtimeJwtSecret = this.resolveRealtimeJwtSecret();
 
-    if (!this.jwtSecret || this.jwtSecret.length < 32) {
-      throw new Error("JWT_SECRET must be set and at least 32 characters");
+    if (!this.realtimeJwtSecret || this.realtimeJwtSecret.length < 32) {
+      throw new Error(
+        "REALTIME_JWT_SECRET must be set and at least 32 characters",
+      );
     }
 
-    // 初始化黑名單服務（使用 TOKEN_BLACKLIST 或 CACHE_KV）
     const kvNamespace = (env as any).TOKEN_BLACKLIST || env.CACHE_KV;
     if (kvNamespace) {
       this.blacklistService = new TokenBlacklistService(kvNamespace);
     }
   }
 
-  /**
-   * 生成 WebSocket 連線授權 Token
-   */
   async generateWebSocketToken(
     request: RealtimeAuthTokenRequest,
   ): Promise<RealtimeAuthTokenResponse | { error: string }> {
@@ -73,13 +57,8 @@ export class RealtimeAuthService {
       const { roomType, roomId, restaurantId, tableId, seatId, sessionId } =
         request;
 
-      // 驗證餐廳是否存在（基本驗證）
-      // 注意：這裡可以擴展更嚴格的驗證邏輯
-
-      // 根據房間類型進行不同的驗證
       switch (roomType) {
         case "customer":
-          // 顧客房間需要驗證桌號或座位
           if (tableId) {
             const tableExists = await this.verifyTableExists(
               tableId,
@@ -103,22 +82,17 @@ export class RealtimeAuthService {
         case "kitchen":
         case "admin":
         case "restaurant":
-          // 這些房間需要使用者認證
           if (!sessionId) {
             return { error: "Session ID required for this room type" };
           }
-          // 可以在這裡驗證 sessionId 的合法性
           break;
 
         default:
           return { error: "Invalid room type" };
       }
 
-      // 生成 JWT payload
-      const now = Date.now();
-      const expiresIn = 5 * 60; // 5 分鐘
-      const expiresAt = Math.floor(now / 1000) + expiresIn;
-
+      const issuedAt = Math.floor(Date.now() / 1000);
+      const expiresIn = 5 * 60;
       const payload: RealtimeAuthPayload = {
         roomType,
         roomId,
@@ -126,22 +100,12 @@ export class RealtimeAuthService {
         role: this.determineRole(roomType, sessionId),
         tableId,
         seatId,
-        exp: expiresAt,
-        iat: Math.floor(now / 1000),
+        exp: issuedAt + expiresIn,
+        iat: issuedAt,
       };
 
-      // 生成 JWT token (不需要 expiresIn 因為 payload 中已經有 exp)
-      const token = sign(payload, this.jwtSecret);
-
-      // 構建 WebSocket URL
+      const token = sign(payload, this.realtimeJwtSecret);
       const wsUrl = this.buildWebSocketUrl(roomType, roomId, token);
-
-      this.logger.info("WebSocket token generated", {
-        roomType,
-        roomId,
-        restaurantId,
-        expiresIn,
-      });
 
       return {
         token,
@@ -154,18 +118,57 @@ export class RealtimeAuthService {
     }
   }
 
-  /**
-   * 驗證 WebSocket Token
-   */
+  async generateGuestToken(
+    request: GuestRealtimeTokenRequest,
+  ): Promise<GuestRealtimeTokenResponse | { error: string }> {
+    try {
+      const validated = await this.validateGuestRealtimeRequest(request);
+      if ("error" in validated) {
+        return validated;
+      }
+
+      const issuedAt = Math.floor(Date.now() / 1000);
+      const expiresAt = issuedAt + 30 * 60;
+      const payload: RealtimeAuthPayload = {
+        roomType: "customer",
+        roomId: `customer:${validated.table.id}`,
+        restaurantId: validated.restaurant.id,
+        role: "customer",
+        guestFlag: true,
+        tableId: String(validated.table.id),
+        orderId: validated.orderId,
+        exp: expiresAt,
+        iat: issuedAt,
+      };
+
+      const token = sign(payload, this.realtimeJwtSecret);
+      const wsUrl = this.buildWebSocketUrl(
+        "customer",
+        String(validated.table.id),
+        token,
+      );
+
+      return {
+        token,
+        expiresAt: new Date(expiresAt * 1000).toISOString(),
+        wsUrl,
+      };
+    } catch (error) {
+      this.logger.error(
+        "Failed to generate guest realtime token",
+        error as Error,
+      );
+      return { error: "Failed to generate guest realtime token" };
+    }
+  }
+
   async verifyWebSocketToken(
     token: string,
   ): Promise<WebSocketTokenVerification> {
     try {
-      // 🔒 首先檢查 token 是否在黑名單中
       if (this.blacklistService) {
         const isRevoked = await this.blacklistService.isTokenRevoked(token);
         if (isRevoked) {
-          this.logger.warn("Token has been revoked");
           return {
             valid: false,
             error: "Token has been revoked",
@@ -174,10 +177,11 @@ export class RealtimeAuthService {
         }
       }
 
-      // 驗證 JWT token
-      const payload = verify(token, this.jwtSecret) as RealtimeAuthPayload;
+      const payload = verify(
+        token,
+        this.realtimeJwtSecret,
+      ) as RealtimeAuthPayload;
 
-      // 檢查 payload 的必要欄位
       if (!payload.roomType || !payload.roomId || !payload.restaurantId) {
         return {
           valid: false,
@@ -185,7 +189,20 @@ export class RealtimeAuthService {
         };
       }
 
-      // 檢查 token 是否過期
+      if (payload.guestFlag) {
+        if (
+          payload.roomType !== "customer" ||
+          payload.role !== "customer" ||
+          !payload.tableId ||
+          payload.roomId !== `customer:${payload.tableId}`
+        ) {
+          return {
+            valid: false,
+            error: "Invalid guest token payload",
+          };
+        }
+      }
+
       const now = Math.floor(Date.now() / 1000);
       if (payload.exp && payload.exp < now) {
         return {
@@ -193,12 +210,6 @@ export class RealtimeAuthService {
           error: "Token expired",
         };
       }
-
-      this.logger.info("WebSocket token verified", {
-        roomType: payload.roomType,
-        roomId: payload.roomId,
-        restaurantId: payload.restaurantId,
-      });
 
       return {
         valid: true,
@@ -223,9 +234,6 @@ export class RealtimeAuthService {
     }
   }
 
-  /**
-   * 撤銷 WebSocket Token
-   */
   async revokeToken(
     token: string,
     reason: RevokeReason,
@@ -239,16 +247,9 @@ export class RealtimeAuthService {
     }
 
     try {
-      const result = await this.blacklistService.revokeToken(token, reason, {
+      await this.blacklistService.revokeToken(token, reason, {
         revokedBy,
       });
-
-      this.logger.info("Token revoked successfully", {
-        tokenId: result.tokenId,
-        reason,
-        revokedBy,
-      });
-
       return { success: true };
     } catch (error) {
       this.logger.error("Failed to revoke token", error as Error);
@@ -259,9 +260,6 @@ export class RealtimeAuthService {
     }
   }
 
-  /**
-   * 撤銷用戶的所有 Token
-   */
   async revokeUserTokens(
     userId: string,
     reason: RevokeReason,
@@ -280,13 +278,6 @@ export class RealtimeAuthService {
         reason,
         revokedBy,
       );
-
-      this.logger.info("User tokens revoked", {
-        userId,
-        count: result.count,
-        reason,
-      });
-
       return { success: true, count: result.count };
     } catch (error) {
       this.logger.error("Failed to revoke user tokens", error as Error);
@@ -297,20 +288,14 @@ export class RealtimeAuthService {
     }
   }
 
-  /**
-   * 檢查 Token 是否已被撤銷
-   */
   async isTokenRevoked(token: string): Promise<boolean> {
     if (!this.blacklistService) {
-      return false; // 如果沒有黑名單服務，假設 token 未被撤銷
+      return false;
     }
 
     return this.blacklistService.isTokenRevoked(token);
   }
 
-  /**
-   * 獲取黑名單統計信息
-   */
   async getBlacklistStats(): Promise<{
     available: boolean;
     estimatedCount?: number;
@@ -327,9 +312,6 @@ export class RealtimeAuthService {
     };
   }
 
-  /**
-   * 驗證桌號是否存在
-   */
   private async verifyTableExists(
     tableId: string,
     restaurantId: string,
@@ -354,9 +336,6 @@ export class RealtimeAuthService {
     }
   }
 
-  /**
-   * 驗證座位是否存在
-   */
   private async verifySeatExists(
     seatId: string,
     restaurantId: string,
@@ -382,15 +361,10 @@ export class RealtimeAuthService {
     }
   }
 
-  /**
-   * 根據房間類型決定角色
-   */
   private determineRole(
     roomType: RoomType,
     _sessionId?: string,
   ): "customer" | "staff" | "admin" {
-    // 如果有 sessionId，可以查詢使用者角色
-    // 目前簡化處理
     if (roomType === "customer") {
       return "customer";
     }
@@ -403,9 +377,6 @@ export class RealtimeAuthService {
     return "customer";
   }
 
-  /**
-   * 構建 WebSocket URL
-   */
   private buildWebSocketUrl(
     roomType: RoomType,
     roomId: string,
@@ -414,5 +385,131 @@ export class RealtimeAuthService {
     const baseUrl =
       this.env.REALTIME_WS_URL || "wss://realtime.makanmakan.workers.dev";
     return `${baseUrl}/${roomType}/${roomId}?token=${token}`;
+  }
+
+  private resolveRealtimeJwtSecret(): string {
+    if (this.env.REALTIME_JWT_SECRET) {
+      return this.env.REALTIME_JWT_SECRET;
+    }
+
+    if (this.env.NODE_ENV === "test") {
+      return this.env.JWT_SECRET;
+    }
+
+    return "";
+  }
+
+  private async validateGuestRealtimeRequest(
+    request: GuestRealtimeTokenRequest,
+  ): Promise<
+    | {
+        restaurant: { id: string };
+        table: { id: number; restaurantId: string; number: string };
+        orderId?: string;
+      }
+    | { error: string }
+  > {
+    const qrPayload = parseSignedQRUrl(request.qrCode);
+    if (!qrPayload || qrPayload.type !== "table") {
+      return { error: "A valid signed table QR code is required" };
+    }
+
+    const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
+    const qrValid = await verifyQRSignature(
+      {
+        type: qrPayload.type,
+        restaurantId: qrPayload.restaurantId,
+        identifier: qrPayload.identifier,
+        version: qrPayload.version,
+      },
+      qrPayload.signature,
+      signingKey,
+    );
+
+    if (!qrValid) {
+      return { error: "Invalid QR signature" };
+    }
+
+    if (qrPayload.restaurantId !== request.restaurantId) {
+      return { error: "QR code does not match restaurant" };
+    }
+
+    const restaurantRows = await this.db
+      .select({
+        id: restaurants.id,
+        settings: restaurants.settings,
+        isActive: restaurants.isActive,
+        isAvailable: restaurants.isAvailable,
+      })
+      .from(restaurants)
+      .where(eq(restaurants.id, request.restaurantId))
+      .limit(1);
+    const restaurant = restaurantRows[0];
+
+    if (!restaurant || restaurant.isActive !== true) {
+      return { error: "Restaurant not found" };
+    }
+
+    const settings =
+      (restaurant.settings as Record<string, unknown> | null) ?? {};
+    if (restaurant.isAvailable !== true || settings.allowGuestOrders !== true) {
+      return { error: "Guest realtime is not enabled for this restaurant" };
+    }
+
+    const tableRows = await this.db
+      .select({
+        id: tables.id,
+        restaurantId: tables.restaurantId,
+        number: tables.number,
+        isActive: tables.isActive,
+      })
+      .from(tables)
+      .where(
+        and(
+          eq(tables.id, Number(request.tableId)),
+          eq(tables.restaurantId, request.restaurantId),
+        ),
+      )
+      .limit(1);
+    const table = tableRows[0];
+
+    if (!table || table.isActive !== true) {
+      return { error: "Table not found or inactive" };
+    }
+
+    if (table.number !== qrPayload.identifier) {
+      return { error: "QR code does not match table" };
+    }
+
+    if (request.orderId) {
+      const orderRows = await this.db
+        .select({
+          id: orders.id,
+          restaurantId: orders.restaurantId,
+          tableId: orders.tableId,
+        })
+        .from(orders)
+        .where(eq(orders.id, Number(request.orderId)))
+        .limit(1);
+      const order = orderRows[0];
+
+      if (
+        !order ||
+        order.restaurantId !== request.restaurantId ||
+        String(order.tableId) !== String(table.id)
+      ) {
+        return { error: "Order does not belong to this table" };
+      }
+    }
+
+    return {
+      restaurant: { id: restaurant.id },
+      table: {
+        id: table.id,
+        restaurantId: table.restaurantId,
+        number: table.number,
+      },
+      orderId: request.orderId,
+    };
   }
 }

@@ -1,16 +1,14 @@
 /**
- * LEGACY: Unit test with mocked services, NOT a real integration test.
+ * Protocol test: verifies the client-side WebSocket connection
+ * lifecycle and realtime event handling against an in-memory
+ * `MockWebSocket` class. Covers connect, auth, message send/receive,
+ * reconnect, and close paths.
  *
- * This file uses vi.mock() on service/DB boundaries. It verifies component/
- * route JS logic but does NOT verify Drizzle SQL, D1 parity, or auth middleware
- * end-to-end. A real pass here does not guarantee a real pass in production.
- *
- * For real integration testing, see:
- *   docs/superpowers/specs/2026-04-13-real-integration-test-foundation-design.md
- *   apps/api/src/__tests__/integration/*.real.integration.test.ts
- *
- * ---
- * Original: WebSocket Integration Tests / 測試完整的 WebSocket 連接流程
+ * This is a protocol/contract test, NOT a real integration test. The
+ * WebSocket transport is stubbed — the goal is to lock the client-side
+ * state machine, not to verify the realtime worker. For real
+ * integration testing, see
+ * `apps/api/src/__tests__/integration/*.real.integration.test.ts`.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";

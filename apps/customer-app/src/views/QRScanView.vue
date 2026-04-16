@@ -334,6 +334,10 @@ const handleQRCodeDetected = async (qrContent: string) => {
         break;
 
       case "table":
+        localStorage.setItem(
+          `makanmakan_table_qr:${qrData.restaurantId}:${qrData.tableId}`,
+          qrContent,
+        );
         // 桌台 QR - 導航到菜單頁面
         await addToRecentRestaurants({
           restaurantId: qrData.restaurantId,
@@ -350,6 +354,10 @@ const handleQRCodeDetected = async (qrContent: string) => {
         break;
 
       case "seat":
+        localStorage.setItem(
+          `makanmakan_table_qr:${qrData.restaurantId}:${qrData.tableId}`,
+          qrContent,
+        );
         // 座位 QR - 導航到菜單頁面（未來可能需要座位專用頁面）
         await addToRecentRestaurants({
           restaurantId: qrData.restaurantId,

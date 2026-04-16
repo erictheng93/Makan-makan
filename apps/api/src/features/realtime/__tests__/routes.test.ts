@@ -132,6 +132,8 @@ describe("Realtime Routes", () => {
     mockEnv = {
       NODE_ENV: "test",
       JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long-for-security",
+      REALTIME_JWT_SECRET:
+        "test-realtime-secret-key-at-least-32-chars-long-for-security",
       API_VERSION: "1.0.0",
       DB: mockDb as any,
       CACHE_KV: mockKV as any,

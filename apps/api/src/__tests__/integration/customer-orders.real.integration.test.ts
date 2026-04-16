@@ -2,10 +2,14 @@
  * Real integration smoke - Customer Orders API
  * GET /api/v1/customers/me/orders
  *
- * This suite verifies that:
- * - a customer token (role=5) can reach the endpoint
- * - results are scoped to the current customer
- * - non-customer roles are rejected by requireRole([5])
+ * This suite verifies the customer-facing orders path now works end-to-end.
+ *
+ * The endpoint `GET /api/v1/customers/me/orders` must accept customer
+ * tokens and scope results to the authenticated customer.
+ *
+ * The tests below assert the fixed behavior: customers should receive
+ * 200 and only see their own orders, while staff/owners remain blocked by
+ * `requireRole([5])`.
  */
 
 import {
@@ -54,6 +58,8 @@ describe("Customer Orders API - real integration", () => {
     expect(json.error?.code).toBeDefined();
   });
 
+  // Customer token (role=5) should now be accepted and scoped to the
+  // authenticated customer only.
   it("returns 200 for a customer token (role=5) and scopes orders to that customer", async () => {
     const restaurant = await seed.restaurant();
 
@@ -85,12 +91,13 @@ describe("Customer Orders API - real integration", () => {
     const json: any = await res.json();
     expect(json.success).toBe(true);
     expect(Array.isArray(json.data)).toBe(true);
-    expect(json.data.length).toBeGreaterThan(0);
-    expect(
-      json.data.every((order: any) => order.customerId === customer100.id),
-    ).toBe(true);
+    expect(json.data).toHaveLength(1);
+    expect(json.data[0].customerId).toBe(customer100.id);
   });
 
+  // Staff/owner token documents the route-level scope gate.
+  // A staff/owner token passes the customer-auth middleware but is
+  // rejected by the per-route `requireRole([5])` guard.
   it("returns 403 for a staff/owner token (role=1) because requireRole([5]) rejects non-customers", async () => {
     const restaurant = await seed.restaurant();
 
@@ -111,6 +118,7 @@ describe("Customer Orders API - real integration", () => {
       }),
     );
 
+    // Owner passes customer-auth middleware but fails requireRole([5]).
     expect(res.status).toBe(403);
     const json: any = await res.json();
     expect(json.success).toBe(false);
