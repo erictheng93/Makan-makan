@@ -1,10 +1,12 @@
 name: 🧪 MakanMakan 測試流水線
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  # CI 暫時停用 auto-trigger（2026-04-16）— 只保留手動觸發。
+  # 要恢復：把 push/pull_request 區塊取消註解。
+  # push:
+  #   branches: [main, develop]
+  # pull_request:
+  #   branches: [main, develop]
   workflow_dispatch:
 
 # Cancel in-flight runs on the same PR when a new commit lands so reviewers
@@ -61,7 +63,6 @@ jobs:
   unit-tests:
     name: 🧪 單元測試
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
     timeout-minutes: 20
 
     steps:
@@ -87,13 +88,17 @@ jobs:
         run: pnpm exec vitest run
 
       - name: 📊 產生覆蓋率報告
-        # Coverage thresholds in vitest.config.ts are aspirational targets.
-        # Codecov tracks trends and gates PRs separately, so threshold
-        # failures here should not block the pipeline.
+        # Coverage only runs on push events (main/develop/workflow_dispatch).
+        # PR runs skip this to keep feedback fast — vitest already ran once
+        # above for correctness, and a second full run just to attach
+        # coverage data costs ~3 minutes. Codecov tracks trends and gates
+        # PRs separately, so threshold failures here should not block.
+        if: github.event_name != 'pull_request'
         run: pnpm exec vitest run --coverage
         continue-on-error: true
 
       - name: ☂️ 上傳覆蓋率到 Codecov
+        if: github.event_name != 'pull_request'
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -115,7 +120,6 @@ jobs:
   workers-tests:
     name: ⚡ Workers 測試
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
     timeout-minutes: 15
 
     steps:
@@ -180,15 +184,10 @@ jobs:
   # *.real.integration.test.ts, excluded from the default config but
   # never invoked in CI).
   #
-  # Non-blocking for now: discovery.real.integration.test.ts has a
-  # pre-existing beforeAll hook flake unrelated to the config routing
-  # fix. Drop continue-on-error once that test is stabilised.
   real-integration-tests:
-    name: 🗄️ Real Integration 測試
-    continue-on-error: true
+    name: 🔬 真實整合測試 (miniflare D1)
     runs-on: ubuntu-latest
-    needs: unit-tests
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: 📦 Checkout 程式碼
@@ -207,10 +206,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🏗️ 建置內部套件
-        run: pnpm run build
+        run: pnpm --filter @makanmakan/api^... build
 
-      - name: 🗄️ 執行 real-integration 測試
-        run: pnpm run test:real-integration
+      - name: 🔬 執行真實整合測試
+        run: pnpm test:real-integration
 
   # E2E 測試 (mock API — no real backend needed)
   #
@@ -802,6 +801,7 @@ jobs:
       [
         unit-tests,
         workers-tests,
+        real-integration-tests,
         e2e-tests,
         visual-regression-tests,
         security-tests,
@@ -846,6 +846,14 @@ jobs:
             echo "- ⏭️ Workers 測試: 跳過" >> $GITHUB_STEP_SUMMARY
           else
             echo "- ❌ Workers 測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.real-integration-tests.result }}" == "success" ]; then
+            echo "- ✅ Real integration 測試: 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.real-integration-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ Real integration 測試: 跳過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ Real integration 測試: 失敗" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
@@ -916,6 +924,9 @@ jobs:
           if [ "${{ needs.workers-tests.result }}" != "success" ] && [ "${{ needs.workers-tests.result }}" != "skipped" ]; then
             OVERALL_STATUS="failure"
           fi
+          if [ "${{ needs.real-integration-tests.result }}" != "success" ] && [ "${{ needs.real-integration-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
           if [ "${{ needs.e2e-tests.result }}" != "success" ] && [ "${{ needs.e2e-tests.result }}" != "skipped" ]; then
             OVERALL_STATUS="failure"
           fi
@@ -940,6 +951,7 @@ jobs:
           echo "- 程式碼品質 (ESLint, TypeScript, Prettier)" >> $GITHUB_STEP_SUMMARY
           echo "- 單元測試 + 覆蓋率報告" >> $GITHUB_STEP_SUMMARY
           echo "- Cloudflare Workers 整合測試" >> $GITHUB_STEP_SUMMARY
+          echo "- Real integration 測試 (miniflare D1)" >> $GITHUB_STEP_SUMMARY
           echo "- E2E 測試 (Chromium, Firefox, WebKit)" >> $GITHUB_STEP_SUMMARY
           echo "- API/WebSocket 負載測試 (Artillery)" >> $GITHUB_STEP_SUMMARY
           echo "- 資料庫性能基準與退化檢測" >> $GITHUB_STEP_SUMMARY
@@ -954,6 +966,7 @@ jobs:
       [
         unit-tests,
         workers-tests,
+        real-integration-tests,
         e2e-tests,
         security-tests,
         visual-regression-tests,

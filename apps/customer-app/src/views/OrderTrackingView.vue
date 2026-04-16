@@ -307,7 +307,7 @@
 
     <!-- 即時連接狀態指示器 -->
     <div
-      v-if="connectionStatus !== 'connected'"
+      v-if="shouldUseGuestRealtime && connectionStatus !== 'connected'"
       class="fixed top-20 left-4 right-4 max-w-md mx-auto z-50"
     >
       <div
@@ -323,7 +323,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { useQuery, useMutation } from "@tanstack/vue-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useWebSocket } from "@/composables/useWebSocket";
 import { useI18n } from "@/composables/useI18n";
@@ -340,52 +340,119 @@ import {
   TruckIcon,
   XCircleIcon,
 } from "@heroicons/vue/24/outline";
-import type { OrderStatus, WebSocketMessage } from "@makanmakan/shared-types";
+import {
+  RealtimeEventType,
+  type OrderStatus,
+  type RealtimeEvent,
+} from "@makanmakan/shared-types";
 
-// Props
 const props = defineProps<{
   restaurantId: string;
   tableId: number;
   orderId: number;
 }>();
 
-// Composables
 const router = useRouter();
 const toast = useToast();
 const { t, tWithParams } = useI18n();
 const { formatPrice } = useCurrency();
+const queryClient = useQueryClient();
 
-// State
 const showCancelConfirmation = ref(false);
+const guestRealtimeCacheKey = `makanmakan_guest_realtime_token:${props.restaurantId}:${props.tableId}:${props.orderId}`;
+const guestQrCacheKey = `makanmakan_table_qr:${props.restaurantId}:${props.tableId}`;
+const shouldUseGuestRealtime = computed(() => {
+  const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
+  const hasGuestToken = !!localStorage.getItem("guest_auth_token");
+  return !hasCustomerToken && hasGuestToken;
+});
 
-// WebSocket message handler
-const handleWebSocketMessage = (message: WebSocketMessage) => {
-  if (message.type === "ORDER_STATUS_UPDATE") {
-    const orderMessage = message as any; // Type assertion for now
-    if (orderMessage.orderId === props.orderId) {
-      // 刷新訂單資料
-      // Note: refetch will be defined later, this is a forward reference
-      if (typeof refetch === "function") {
-        refetch();
-      }
+const readGuestRealtimeCache = () => {
+  const raw = localStorage.getItem(guestRealtimeCacheKey);
+  if (!raw) {
+    return null;
+  }
 
-      // 顯示狀態更新通知
-      toast.info(
-        tWithParams("toast.orderStatusUpdated", {
-          status: getStatusTitle(orderMessage.status),
-        }),
-      );
+  try {
+    const parsed = JSON.parse(raw) as { token: string; expiresAt: string };
+    if (new Date(parsed.expiresAt).getTime() <= Date.now()) {
+      localStorage.removeItem(guestRealtimeCacheKey);
+      return null;
     }
+    return parsed;
+  } catch {
+    localStorage.removeItem(guestRealtimeCacheKey);
+    return null;
   }
 };
 
-// WebSocket連接
+const clearGuestRealtimeCache = () => {
+  localStorage.removeItem(guestRealtimeCacheKey);
+};
+
+const getGuestRealtimeUrl = async () => {
+  const cached = readGuestRealtimeCache();
+  if (cached?.token) {
+    return `${import.meta.env.VITE_WS_BASE_URL}/customer/${props.tableId}?token=${encodeURIComponent(cached.token)}`;
+  }
+
+  const qrCode = localStorage.getItem(guestQrCacheKey);
+  if (!qrCode) {
+    throw new Error("Missing signed table QR code");
+  }
+
+  const response = await orderApi.getGuestRealtimeToken({
+    restaurantId: props.restaurantId,
+    tableId: String(props.tableId),
+    orderId: String(props.orderId),
+    qrCode,
+  });
+
+  localStorage.setItem(
+    guestRealtimeCacheKey,
+    JSON.stringify({
+      token: response.token,
+      expiresAt: response.expiresAt,
+    }),
+  );
+
+  return `${import.meta.env.VITE_WS_BASE_URL}/customer/${props.tableId}?token=${encodeURIComponent(response.token)}`;
+};
+
+const handleWebSocketMessage = (message: RealtimeEvent) => {
+  if (message.type !== RealtimeEventType.ORDER_STATUS_UPDATE) {
+    return;
+  }
+
+  if (message.data.orderId !== props.orderId) {
+    return;
+  }
+
+  queryClient.setQueryData(["order", props.orderId], (current: any) => {
+    if (!current) {
+      return current;
+    }
+
+    return {
+      ...current,
+      status: message.data.status,
+      updatedAt: new Date(message.timestamp).toISOString(),
+    };
+  });
+
+  toast.info(
+    tWithParams("toast.orderStatusUpdated", {
+      status: getStatusTitle(message.data.status as OrderStatus),
+    }),
+  );
+};
+
 const { connectionStatus, connect, disconnect } = useWebSocket({
-  restaurantId: props.restaurantId,
+  getUrl: getGuestRealtimeUrl,
   onMessage: handleWebSocketMessage,
+  onAuthFailure: clearGuestRealtimeCache,
 });
 
-// API Queries
 const {
   data: order,
   isLoading,
@@ -397,17 +464,15 @@ const {
     const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
     const hasGuestToken = !!localStorage.getItem("guest_auth_token");
 
-    // If guest, use guest tracking endpoint
     if (!hasCustomerToken && hasGuestToken) {
       return orderApi.getGuestOrder(props.orderId);
     }
     return orderApi.getOrder(props.orderId);
   },
-  refetchInterval: 30 * 1000, // 30秒輪詢
+  refetchInterval: false,
   refetchOnWindowFocus: true,
 });
 
-// 取消訂單 Mutation
 const { mutate: cancelOrder } = useMutation({
   mutationFn: () => orderApi.cancelOrder(props.orderId),
   onSuccess: () => {
@@ -419,11 +484,10 @@ const { mutate: cancelOrder } = useMutation({
   },
 });
 
-// Computed
 const canCancelOrder = computed(() => {
   return (
     order.value?.status === "pending" || order.value?.status === "confirmed"
-  ); // PENDING or CONFIRMED
+  );
 });
 
 const statusOrder = [
@@ -439,8 +503,9 @@ const estimatedTime = computed(() => {
   if (
     !order.value ||
     statusOrder.indexOf(order.value.status as (typeof statusOrder)[number]) >= 3
-  )
+  ) {
     return null;
+  }
   return order.value.estimatedPrepTime || null;
 });
 
@@ -489,7 +554,6 @@ const orderTimeline = computed(() => {
     },
   ];
 
-  // 如果訂單被取消，添加取消狀態
   if (order.value.status === "cancelled") {
     timeline.push({
       status: "cancelled",
@@ -503,7 +567,6 @@ const orderTimeline = computed(() => {
   return timeline;
 });
 
-// Status maps as computed for reactivity when language changes
 const statusTitles = computed(
   (): Record<string, string> => ({
     pending: t("orderTracking.status.pending"),
@@ -528,7 +591,6 @@ const statusDescriptions = computed(
   }),
 );
 
-// Methods
 const getStatusIcon = (status: OrderStatus) => {
   const icons: Record<string, any> = {
     pending: ClockIcon,
@@ -552,7 +614,7 @@ const getStatusColor = (status: OrderStatus) => {
     paid: { bg: "bg-ios-green/15", text: "text-ios-green" },
     cancelled: { bg: "bg-ios-red/15", text: "text-ios-red" },
   };
-  return colors[status] || colors["pending"];
+  return colors[status] || colors.pending;
 };
 
 const getStatusTitle = (status: OrderStatus) => {
@@ -592,9 +654,10 @@ const handleCancelOrder = () => {
   cancelOrder();
 };
 
-// 生命週期
 onMounted(() => {
-  connect();
+  if (shouldUseGuestRealtime.value) {
+    void connect();
+  }
 });
 
 onUnmounted(() => {

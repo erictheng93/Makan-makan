@@ -211,6 +211,14 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
     },
 
     order: async (restaurantId, overrides) => {
+      const orderOverrides = overrides as Record<string, unknown> | undefined;
+      const tableId =
+        orderOverrides?.tableId !== undefined ? orderOverrides.tableId : null;
+      const customerId =
+        orderOverrides?.customerId !== undefined
+          ? orderOverrides.customerId
+          : null;
+
       const data = orderFactory.build({
         overrides: {
           restaurantId: String(restaurantId),
@@ -229,8 +237,8 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
         .values({
           ...rest,
           restaurantId: String(restaurantId),
-          tableId: null,
-          customerId: null,
+          tableId,
+          customerId,
           createdAt: toDate(createdAt),
           updatedAt: toDate(updatedAt),
           // Status timestamps also need Date conversion

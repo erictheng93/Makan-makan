@@ -104,6 +104,7 @@ export const envFactory = {
     return {
       NODE_ENV: "development",
       JWT_SECRET: "test-jwt-secret-key-for-testing-only",
+      REALTIME_JWT_SECRET: "test-realtime-jwt-secret-key-for-testing",
       API_VERSION: "v1",
       ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
       DB: mockDB,
@@ -138,6 +139,7 @@ export const envFactory = {
     return {
       NODE_ENV: "test",
       JWT_SECRET: "test-jwt-secret-key-for-testing-only",
+      REALTIME_JWT_SECRET: "test-realtime-jwt-secret-key-for-testing",
       API_VERSION: "v1",
       ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
       DB: mockDB,
@@ -161,6 +163,7 @@ export const envFactory = {
       TOKEN_BLACKLIST: mockKV,
       RATE_LIMIT_KV: mockKV,
       JWT_SECRET: "test-jwt-secret-key-for-testing-only",
+      REALTIME_JWT_SECRET: "test-realtime-jwt-secret-key-for-testing",
       ENVIRONMENT: "test",
       API_VERSION: "v1",
       RATE_LIMIT_ENABLED: "false",

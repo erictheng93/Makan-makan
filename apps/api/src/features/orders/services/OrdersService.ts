@@ -1165,6 +1165,14 @@ export class OrdersService implements IOrdersService {
       return filters;
     }
 
+    if (role === 5) {
+      // Customers must only see their own orders.
+      return {
+        ...filters,
+        customerId: userId,
+      };
+    }
+
     // Non-admin users MUST be scoped to their restaurant
     if (restaurantId) {
       return { ...filters, restaurantId };
@@ -1178,6 +1186,7 @@ export class OrdersService implements IOrdersService {
   ): import("@makanmakan/database").OrderFilters {
     return {
       restaurantId: filters.restaurantId,
+      customerId: filters.customerId,
       status: filters.status,
       tableId: filters.tableId,
       dateRange:

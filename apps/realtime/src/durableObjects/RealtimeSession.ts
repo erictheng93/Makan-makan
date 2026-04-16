@@ -77,7 +77,9 @@ export class RealtimeSession implements DurableObject {
     }
 
     // 驗證 token（包含黑名單檢查 - 使用專用 TOKEN_BLACKLIST 命名空間）
-    const jwtSecret = this.env.JWT_SECRET;
+    const jwtSecret =
+      this.env.REALTIME_JWT_SECRET ||
+      (this.env.ENVIRONMENT === "test" ? this.env.JWT_SECRET : "");
     const verification = await verifyWebSocketToken(
       token,
       jwtSecret,
@@ -99,7 +101,10 @@ export class RealtimeSession implements DurableObject {
     // ========== ROOM ACCESS VALIDATION ==========
 
     // 1. 驗證 roomId 與 token 是否匹配
-    if (authPayload.roomId !== roomId) {
+    const expectedGuestRoomId = `customer:${roomId}`;
+    const expectedRoomId = authPayload.guestFlag ? expectedGuestRoomId : roomId;
+
+    if (authPayload.roomId !== expectedRoomId) {
       console.warn("WebSocket connection rejected: Room ID mismatch", {
         tokenRoomId: authPayload.roomId,
         requestedRoomId: roomId,
@@ -134,6 +139,14 @@ export class RealtimeSession implements DurableObject {
       return new Response(`Forbidden: ${roleRoomValidation.error}`, {
         status: 403,
       });
+    }
+
+    if (authPayload.guestFlag) {
+      if (roomType !== "customer" || authPayload.role !== "customer") {
+        return new Response("Forbidden: Guest tokens are customer-room only", {
+          status: 403,
+        });
+      }
     }
 
     // 4. 驗證餐廳訪問權限（對於staff和admin）
