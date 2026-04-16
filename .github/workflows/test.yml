@@ -185,10 +185,9 @@ jobs:
   # fix. Drop continue-on-error once that test is stabilised.
   real-integration-tests:
     name: 🗄️ Real Integration 測試
-    continue-on-error: true
     runs-on: ubuntu-latest
-    needs: unit-tests
-    timeout-minutes: 20
+    needs: lint-and-typecheck
+    timeout-minutes: 15
 
     steps:
       - name: 📦 Checkout 程式碼
@@ -207,10 +206,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🏗️ 建置內部套件
-        run: pnpm run build
+        run: pnpm --filter @makanmakan/database build
 
       - name: 🗄️ 執行 real-integration 測試
-        run: pnpm run test:real-integration
+        run: pnpm test:real-integration
 
   # E2E 測試 (mock API — no real backend needed)
   #
@@ -802,6 +801,7 @@ jobs:
       [
         unit-tests,
         workers-tests,
+        real-integration-tests,
         e2e-tests,
         visual-regression-tests,
         security-tests,
@@ -846,6 +846,14 @@ jobs:
             echo "- ⏭️ Workers 測試: 跳過" >> $GITHUB_STEP_SUMMARY
           else
             echo "- ❌ Workers 測試: 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.real-integration-tests.result }}" == "success" ]; then
+            echo "- ✅ Real integration 測試: 通過" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.real-integration-tests.result }}" == "skipped" ]; then
+            echo "- ⏭️ Real integration 測試: 跳過" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ Real integration 測試: 失敗" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
@@ -916,6 +924,9 @@ jobs:
           if [ "${{ needs.workers-tests.result }}" != "success" ] && [ "${{ needs.workers-tests.result }}" != "skipped" ]; then
             OVERALL_STATUS="failure"
           fi
+          if [ "${{ needs.real-integration-tests.result }}" != "success" ] && [ "${{ needs.real-integration-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
           if [ "${{ needs.e2e-tests.result }}" != "success" ] && [ "${{ needs.e2e-tests.result }}" != "skipped" ]; then
             OVERALL_STATUS="failure"
           fi
@@ -940,6 +951,7 @@ jobs:
           echo "- 程式碼品質 (ESLint, TypeScript, Prettier)" >> $GITHUB_STEP_SUMMARY
           echo "- 單元測試 + 覆蓋率報告" >> $GITHUB_STEP_SUMMARY
           echo "- Cloudflare Workers 整合測試" >> $GITHUB_STEP_SUMMARY
+          echo "- Real integration 皜祈岫 (miniflare D1)" >> $GITHUB_STEP_SUMMARY
           echo "- E2E 測試 (Chromium, Firefox, WebKit)" >> $GITHUB_STEP_SUMMARY
           echo "- API/WebSocket 負載測試 (Artillery)" >> $GITHUB_STEP_SUMMARY
           echo "- 資料庫性能基準與退化檢測" >> $GITHUB_STEP_SUMMARY
@@ -954,6 +966,7 @@ jobs:
       [
         unit-tests,
         workers-tests,
+        real-integration-tests,
         e2e-tests,
         security-tests,
         visual-regression-tests,
