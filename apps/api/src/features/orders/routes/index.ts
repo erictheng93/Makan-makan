@@ -4,7 +4,10 @@
  */
 
 import { Hono } from "hono";
-import { authMiddleware, requireRole } from "../../../shared/middleware";
+import {
+  customerAuthMiddleware,
+  requireRole,
+} from "../../../shared/middleware";
 import {
   validateBody,
   validateQuery,
@@ -308,7 +311,7 @@ app.get("/guest/:id", guestTokenAuth, async (c) => {
  */
 app.post(
   "/preview-coupon",
-  authMiddleware,
+  customerAuthMiddleware,
   validateBody(orderSchemas.couponPreview),
   async (c) => {
     const data: CouponPreviewInput = c.get("validatedBody");
@@ -341,7 +344,7 @@ app.post(
  */
 app.post(
   "/",
-  authMiddleware,
+  customerAuthMiddleware,
   validateBody(orderSchemas.createOrder),
   async (c) => {
     const data: CreateOrderInput = c.get("validatedBody");
@@ -411,7 +414,7 @@ app.post(
  */
 app.get(
   "/",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
   validateQuery(orderSchemas.orderFilters),
   async (c) => {
@@ -470,7 +473,7 @@ app.get(
  */
 app.get(
   "/stats",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
   validateQuery(orderSchemas.stats),
   async (c) => {
@@ -508,7 +511,7 @@ app.get(
  */
 app.get(
   "/analytics",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
   validateQuery(orderSchemas.analytics),
   async (c) => {
@@ -547,7 +550,7 @@ app.get(
  */
 app.get(
   "/active",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1, 2, 3]), // All except cashier
   async (c) => {
     const user: AuthUser = c.get("user");
@@ -577,7 +580,7 @@ app.get(
  */
 app.get(
   "/:id",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
   validateParams(orderSchemas.params),
   async (c) => {
@@ -615,7 +618,7 @@ app.get(
  */
 app.put(
   "/:id/status",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4]),
   validateParams(orderSchemas.params),
   validateBody(orderSchemas.updateOrderStatus),
@@ -736,7 +739,7 @@ app.put(
  */
 app.delete(
   "/:id",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
   validateParams(orderSchemas.params),
   async (c) => {
@@ -813,7 +816,7 @@ app.delete(
  */
 app.post(
   "/bulk",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
   validateBody(orderSchemas.bulkOperation),
   async (c) => {
@@ -841,7 +844,7 @@ app.post(
  */
 app.post(
   "/export",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
   validateBody(orderSchemas.export),
   async (c) => {
@@ -891,7 +894,7 @@ app.post(
  */
 app.get(
   "/:id/receipt",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
   validateParams(orderSchemas.params),
   async (c) => {

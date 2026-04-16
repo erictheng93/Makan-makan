@@ -4,7 +4,10 @@
  */
 
 import { Hono } from "hono";
-import { authMiddleware, requireRole } from "../../../shared/middleware";
+import {
+  customerAuthMiddleware,
+  requireRole,
+} from "../../../shared/middleware";
 import { validateQuery } from "../../../shared/middleware";
 import { OrdersService } from "../../orders/services/OrdersService";
 import { ConsoleLogger } from "../../../core/monitoring";
@@ -37,7 +40,7 @@ const myOrdersSchema = z.object({
  */
 app.get(
   "/me/orders",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([5]), // Customers only
   validateQuery(myOrdersSchema),
   async (c) => {
@@ -86,7 +89,7 @@ app.get(
  */
 app.get(
   "/me",
-  authMiddleware,
+  customerAuthMiddleware,
   requireRole([5]), // Customers only
   async (c) => {
     const user: AuthUser = c.get("user");

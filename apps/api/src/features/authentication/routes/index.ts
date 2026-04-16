@@ -15,6 +15,7 @@ import { HTTP_STATUS } from "../../../shared/constants";
 import type { UserRole } from "../../../shared/constants";
 import {
   authMiddleware as defaultAuthMiddleware,
+  customerAuthMiddleware,
   blacklistToken as defaultBlacklistToken,
   requireRole as defaultRequireRole,
 } from "../../../shared/middleware";
@@ -794,5 +795,5 @@ export function createAuthRoutes(
   return authRoutes;
 }
 
-// Export default routes using real dependencies (for production use)
-export default createAuthRoutes();
+// Export default routes using customer-aware auth for customer-facing endpoints.
+export default createAuthRoutes({ authMiddleware: customerAuthMiddleware });
