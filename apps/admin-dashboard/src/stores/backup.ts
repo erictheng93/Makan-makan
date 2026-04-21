@@ -108,7 +108,7 @@ export const useBackupStore = defineStore("backup", () => {
         `/api/v1/backup/${request.backup_id}/restore`,
         request,
       );
-      return (response.data as any).operation_id;
+      return (response.data as any).data?.restore_id;
     } catch (error) {
       console.error("Error restoring backup:", error);
       throw error;

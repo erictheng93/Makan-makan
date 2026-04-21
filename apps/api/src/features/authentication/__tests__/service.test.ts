@@ -13,7 +13,44 @@ import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 vi.mock("../../../core/database");
 vi.mock("../../../core/cache");
 vi.mock("../../../core/monitoring");
-vi.mock("@makanmakan/database");
+vi.mock("@makanmakan/database", () => {
+  const users = {
+    id: "users.id",
+    username: "users.username",
+    fullName: "users.fullName",
+    email: "users.email",
+    phone: "users.phone",
+    role: "users.role",
+    restaurantId: "users.restaurantId",
+    isActive: "users.isActive",
+    isVerified: "users.isVerified",
+    lastLoginAt: "users.lastLoginAt",
+    passwordChangedAt: "users.passwordChangedAt",
+    emailVerifiedAt: "users.emailVerifiedAt",
+    createdAt: "users.createdAt",
+    updatedAt: "users.updatedAt",
+  };
+  const sessions = {
+    id: "sessions.id",
+    userId: "sessions.userId",
+    createdAt: "sessions.createdAt",
+    deviceInfo: "sessions.deviceInfo",
+    userAgent: "sessions.userAgent",
+  };
+
+  return {
+    createDatabase: vi.fn(),
+    AuthService: vi.fn(),
+    VerificationService: vi.fn(),
+    users,
+    sessions,
+    eq: vi.fn((column, value) => ({ column, value, op: "eq" })),
+    and: vi.fn((...conditions) => ({ conditions, op: "and" })),
+    gt: vi.fn((column, value) => ({ column, value, op: "gt" })),
+    count: vi.fn(() => ({ aggregate: "count" })),
+    sql: vi.fn((strings, ...values) => ({ strings, values })),
+  };
+});
 
 // Import mocked modules
 import * as databaseModule from "../../../core/database";
@@ -31,6 +68,49 @@ const mockDbAuthService = {
   changePassword: vi.fn(),
   getUserSessions: vi.fn(),
 };
+
+const mockVerificationService = {
+  requestPasswordReset: vi.fn(),
+  resetPassword: vi.fn(),
+  sendEmailVerification: vi.fn(),
+  verifyEmail: vi.fn(),
+};
+
+let mockSelectResults: any[] = [];
+let mockUpdateResults: any[] = [];
+
+function createMockDb() {
+  const createSelectChain = () => {
+    const result = mockSelectResults.shift() ?? [];
+    const rows = Array.isArray(result) ? result : result ? [result] : [];
+    const chain: any = {
+      from: vi.fn(() => chain),
+      where: vi.fn(() => chain),
+      groupBy: vi.fn(() => Promise.resolve(rows)),
+      get: vi.fn(() =>
+        Promise.resolve(Array.isArray(result) ? rows[0] : result),
+      ),
+      then: (resolve: any, reject: any) =>
+        Promise.resolve(rows).then(resolve, reject),
+    };
+    return chain;
+  };
+
+  const createUpdateChain = () => {
+    const result = mockUpdateResults.shift() ?? [];
+    const chain: any = {
+      set: vi.fn(() => chain),
+      where: vi.fn(() => chain),
+      returning: vi.fn(() => Promise.resolve(result)),
+    };
+    return chain;
+  };
+
+  return {
+    select: vi.fn(createSelectChain),
+    update: vi.fn(createUpdateChain),
+  };
+}
 
 const mockCache = {
   get: vi.fn(),
@@ -61,9 +141,13 @@ describe("AuthService Extended Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetAllFactories();
+    mockSelectResults = [];
+    mockUpdateResults = [];
 
     // Setup mocks (use function for constructors in Vitest 4)
-    vi.mocked(databaseModule.getDatabaseConnection).mockReturnValue({} as any);
+    vi.mocked(databaseModule.getDatabaseConnection).mockReturnValue(
+      createMockDb() as any,
+    );
     vi.mocked(cacheModule.KVCacheService).mockImplementation(function () {
       return mockCache as any;
     });
@@ -77,6 +161,9 @@ describe("AuthService Extended Tests", () => {
     );
     vi.mocked(dbModule.AuthService).mockImplementation(function () {
       return mockDbAuthService as any;
+    });
+    vi.mocked(dbModule.VerificationService).mockImplementation(function () {
+      return mockVerificationService as any;
     });
 
     authService = new AuthService(mockEnv);
@@ -532,13 +619,42 @@ describe("AuthService Extended Tests", () => {
     });
 
     it("should update user profile and clear cache", async () => {
+      const updatedAt = new Date("2024-01-01T00:00:00Z");
+      mockUpdateResults = [
+        [
+          {
+            id: 1,
+            username: "testuser",
+            fullName: "Updated Name",
+            email: "test@example.com",
+            phone: null,
+            role: 2,
+            restaurantId: "restaurant-1",
+            isActive: true,
+            isVerified: true,
+            lastLoginAt: null,
+            passwordChangedAt: null,
+            emailVerifiedAt: null,
+            createdAt: updatedAt,
+            updatedAt,
+          },
+        ],
+      ];
       mockCache.delete.mockResolvedValue(undefined);
 
       const result = await authService.updateUserProfile(1, {
         fullName: "Updated Name",
       });
 
-      expect(result).toBeNull(); // Not fully implemented
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: 1,
+          username: "testuser",
+          fullName: "Updated Name",
+          email: "test@example.com",
+          restaurantId: "restaurant-1",
+        }),
+      );
       expect(mockCache.delete).toHaveBeenCalledWith("user-profile:1");
       expect(mockCache.delete).toHaveBeenCalledWith("user:1");
     });
@@ -592,13 +708,21 @@ describe("AuthService Extended Tests", () => {
       expect(result[1].lastAccessedAt).toBeUndefined();
     });
 
-    it("should terminate session (placeholder)", async () => {
+    it("should terminate session", async () => {
+      mockUpdateResults = [[{ id: "session-1" }]];
+      mockCache.set.mockResolvedValue(undefined);
+
       const result = await authService.terminateSession(1, "session-1");
 
-      expect(result).toBe(false); // Not fully implemented
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        "terminateSession not fully implemented",
-        { userId: 1, sessionId: "session-1" },
+      expect(result).toBe(true);
+      expect(mockCache.set).toHaveBeenCalledWith(
+        expect.stringMatching(/^security-event:/),
+        expect.objectContaining({
+          type: "LOGOUT",
+          userId: 1,
+          metadata: { sessionId: "session-1", terminated: true },
+        }),
+        expect.any(Number),
       );
     });
 
@@ -659,35 +783,69 @@ describe("AuthService Extended Tests", () => {
     });
   });
 
-  describe("Password Reset (Placeholders)", () => {
-    it("should return error for requestPasswordReset", async () => {
+  describe("Password Reset", () => {
+    it("should request password reset through verification service", async () => {
+      mockVerificationService.requestPasswordReset.mockResolvedValue({
+        success: true,
+      });
+
       const result = await authService.requestPasswordReset("test@example.com");
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not yet implemented");
+      expect(result.success).toBe(true);
+      expect(mockVerificationService.requestPasswordReset).toHaveBeenCalledWith(
+        {
+          identifier: "test@example.com",
+          method: "email",
+        },
+      );
     });
 
-    it("should return error for resetPassword", async () => {
+    it("should reset password through verification service", async () => {
+      mockVerificationService.resetPassword.mockResolvedValue({
+        success: true,
+      });
+
       const result = await authService.resetPassword("token", "newpassword");
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not yet implemented");
+      expect(result.success).toBe(true);
+      expect(mockVerificationService.resetPassword).toHaveBeenCalledWith({
+        token: "token",
+        newPassword: "newpassword",
+        ipAddress: "0.0.0.0",
+      });
     });
   });
 
-  describe("Email Verification (Placeholders)", () => {
-    it("should return error for requestEmailVerification", async () => {
+  describe("Email Verification", () => {
+    it("should request email verification through verification service", async () => {
+      mockSelectResults = [{ email: "test@example.com" }];
+      mockVerificationService.sendEmailVerification.mockResolvedValue({
+        success: true,
+      });
+
       const result = await authService.requestEmailVerification(1);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not yet implemented");
+      expect(result.success).toBe(true);
+      expect(
+        mockVerificationService.sendEmailVerification,
+      ).toHaveBeenCalledWith({
+        userId: 1,
+        email: "test@example.com",
+      });
     });
 
-    it("should return error for verifyEmail", async () => {
+    it("should verify email through verification service", async () => {
+      mockVerificationService.verifyEmail.mockResolvedValue({
+        success: true,
+        userId: 1,
+      });
+
       const result = await authService.verifyEmail("token");
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not yet implemented");
+      expect(result.success).toBe(true);
+      expect(mockVerificationService.verifyEmail).toHaveBeenCalledWith({
+        token: "token",
+      });
     });
   });
 
@@ -749,25 +907,43 @@ describe("AuthService Extended Tests", () => {
     });
 
     it("should return default account security", async () => {
+      const passwordChangedAt = new Date("2024-01-01T00:00:00Z");
+      mockSelectResults = [{ passwordChangedAt }];
+
       const result = await authService.checkAccountSecurity(1);
 
       expect(result).toEqual({
         failedLoginAttempts: 0,
         passwordStrength: "MEDIUM",
+        lastPasswordChangeAt: passwordChangedAt,
         suspiciousActivity: false,
       });
     });
 
-    it("should return default auth statistics", async () => {
+    it("should return auth statistics", async () => {
+      mockSelectResults = [
+        [{ total: 10 }],
+        [{ total: 8 }],
+        [{ total: 4 }],
+        [
+          { platform: "desktop", total: 3 },
+          { platform: "mobile", total: 1 },
+        ],
+        [{ total: 3 }],
+      ];
+
       const result = await authService.getAuthStatistics("30d");
 
       expect(result).toEqual({
-        totalUsers: 0,
-        activeUsers: 0,
-        dailyLogins: 0,
-        uniqueDevices: 0,
+        totalUsers: 10,
+        activeUsers: 8,
+        dailyLogins: 4,
+        uniqueDevices: 3,
         topCountries: [],
-        platformDistribution: {},
+        platformDistribution: {
+          desktop: 3,
+          mobile: 1,
+        },
         twoFactorAdoptionRate: 0,
         recentSecurityEvents: [],
       });
