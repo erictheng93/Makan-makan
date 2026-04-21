@@ -40,16 +40,21 @@ export class UnifiedQueueService implements IUnifiedQueueService {
       this.db = drizzle(env.DB, { schema });
     }
 
-    // TODO: Initialize QueueService with proper repositories when modular implementation is ready
-    // this.modularService = new QueueService(...)
-    this.useModular = useModular;
+    if (useModular) {
+      this.logger.warn(
+        "Modular queue service requested before repositories are wired; falling back to legacy implementation",
+      );
+    }
+    this.useModular = false;
   }
 
   // New modular methods
   async joinQueue(data: JoinQueueRequest): Promise<ApiResponse<QueueEntry>> {
     if (this.useModular) {
-      // TODO: Implement modular service when repositories are ready
-      throw new Error("Modular queue service not yet implemented");
+      return {
+        success: false,
+        error: "Modular queue service is disabled",
+      };
     } else {
       // Use legacy implementation
       const legacyData = await this.joinQueueLegacy({
@@ -75,8 +80,10 @@ export class UnifiedQueueService implements IUnifiedQueueService {
     _data: CallNextRequest,
   ): Promise<ApiResponse<QueueEntry>> {
     if (this.useModular) {
-      // TODO: Implement modular service when repositories are ready
-      throw new Error("Modular queue service not yet implemented");
+      return {
+        success: false,
+        error: "Modular queue service is disabled",
+      };
     } else {
       // Use legacy implementation
       const legacyQueue = await this.getQueueLegacy(restaurantId);
@@ -132,8 +139,10 @@ export class UnifiedQueueService implements IUnifiedQueueService {
     restaurantId: string,
   ): Promise<ApiResponse<QueueStatistics>> {
     if (this.useModular) {
-      // TODO: Implement modular service when repositories are ready
-      throw new Error("Modular queue service not yet implemented");
+      return {
+        success: false,
+        error: "Modular queue service is disabled",
+      };
     } else {
       // Use legacy implementation
       const legacyQueue = await this.getQueueLegacy(restaurantId);
@@ -167,8 +176,10 @@ export class UnifiedQueueService implements IUnifiedQueueService {
     operatorId: number,
   ): Promise<ApiResponse<void>> {
     if (this.useModular) {
-      // TODO: Implement modular service when repositories are ready
-      throw new Error("Modular queue service not yet implemented");
+      return {
+        success: false,
+        error: "Modular queue service is disabled",
+      };
     } else {
       // Use legacy implementation - update table status to occupied
       this.logger.info("Seating customer", {

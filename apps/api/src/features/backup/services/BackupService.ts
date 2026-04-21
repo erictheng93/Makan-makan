@@ -413,13 +413,22 @@ export class BackupService {
         );
       }
 
+      const targetTables = request.target_tables || backup.tables_included;
+      const preRestoreBackupId = request.overwrite_existing
+        ? await this.createPreRestoreSafetyBackup({
+            restaurantId: request.restaurant_id,
+            targetTables,
+            userId,
+          })
+        : undefined;
+
       await this.db.insert(restoreOperations).values({
         id: operationId,
         restaurantId: request.restaurant_id,
         backupId: request.backup_id,
         status: "pending",
         restoreType: request.restore_type,
-        targetTables: request.target_tables || backup.tables_included,
+        targetTables,
         overwriteExisting: request.overwrite_existing,
         startedAt: new Date().toISOString(),
         tablesRestored: 0,
@@ -431,6 +440,7 @@ export class BackupService {
           target_compatibility_verified: true,
           data_loss_risk_acknowledged:
             request.safety_confirmation.data_loss_risk_acknowledged,
+          pre_restore_backup_id: preRestoreBackupId,
         },
       });
 
@@ -869,6 +879,32 @@ export class BackupService {
       .update(restoreOperations)
       .set(updates)
       .where(eq(restoreOperations.id, operationId));
+  }
+
+  private async createPreRestoreSafetyBackup({
+    restaurantId,
+    targetTables,
+    userId,
+  }: {
+    restaurantId: string;
+    targetTables: string[];
+    userId: string;
+  }): Promise<string> {
+    const response = await this.createBackup(
+      {
+        restaurant_id: restaurantId,
+        name: `Pre-restore safety backup - ${new Date().toISOString()}`,
+        description:
+          "Automatically created before an overwrite restore operation.",
+        backup_type: "full",
+        include_tables: targetTables,
+        force_immediate: false,
+      },
+      userId,
+    );
+
+    await this.executeBackup(response.backup_id);
+    return response.backup_id;
   }
 
   private async restoreTableData({

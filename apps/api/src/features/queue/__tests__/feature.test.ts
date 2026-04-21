@@ -16,6 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
 import { ApiError } from "../../../shared/utils/api-error";
 import { ErrorSanitizer } from "../../../utils/errorSanitizer";
+import { UnifiedQueueService } from "../services/UnifiedQueueService";
 
 // API Response type for type assertions
 interface ApiResponse {
@@ -487,6 +488,22 @@ describe("Queue Feature Tests", () => {
       const json = (await res.json()) as ApiResponse;
       expect(json.data).toHaveProperty("version");
       expect(json.data).toHaveProperty("systems");
+    });
+  });
+
+  describe("Modular fallback", () => {
+    it("uses legacy behavior when modular mode is requested but unavailable", async () => {
+      const service = new UnifiedQueueService(mockEnv as any, true);
+
+      const result = await service.joinQueue({
+        restaurantId: "1",
+        customerName: "Test Customer",
+        customerPhone: "123456789",
+        partySize: 2,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.customerName).toBe("Test Customer");
     });
   });
 });

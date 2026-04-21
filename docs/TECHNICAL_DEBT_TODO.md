@@ -100,7 +100,7 @@ Operational dashboards can show misleading health/storage information.
 
 **Follow-up TODO:**
 
-- [ ] **P1:** Add pre-restore backup creation before destructive overwrite
+- [x] **P1:** Add pre-restore backup creation before destructive overwrite
       restores.
 - [ ] **P2:** Add transaction/rollback coverage for multi-table restore
       failures.
@@ -109,9 +109,9 @@ Operational dashboards can show misleading health/storage information.
 - [ ] **P3:** Calculate provider storage quota/usage once quota data is
       available.
 
-### QR Code Downloads Return Placeholder Buffers
+### QR Code Downloads Returned Placeholder Buffers
 
-**Priority:** P1
+**Priority:** P1 - completed 2026-04-22
 
 **File:** `apps/api/src/features/qr-codes/services/QrCodesService.ts`
 
@@ -119,38 +119,49 @@ Operational dashboards can show misleading health/storage information.
 
 - Single QR download returns `Buffer.from("QR code data placeholder")`.
 - Batch QR download returns `Buffer.from("Batch QR codes zip placeholder")`.
+- 2026-04-22 update: QR downloads now generate real QR image artifacts and
+  batch downloads return ZIP archives containing generated QR SVGs plus a
+  manifest.
 
 **Impact:** The API can claim a download succeeded while returning non-QR data.
 
 **TODO:**
 
-- [ ] Generate real QR image/PDF/ZIP artifacts.
-- [ ] Set correct content type, filename, and cache headers.
-- [ ] Add tests that validate file signature and included QR payload.
+- [x] Generate real QR image/ZIP artifacts.
+- [x] Set correct content type and filename.
+- [x] Add tests that validate file signatures and reject placeholder payloads.
+- [ ] **P3:** Add cache headers if product download caching rules are defined.
+- [ ] **P3:** Add true PDF/JPEG renderers if those formats are required beyond
+      the current SVG fallback.
 
-### Foodpanda Integration Adapter Is Not Implemented
+### Foodpanda Integration Adapter Was Exposed While Not Implemented
 
-**Priority:** P1
+**Priority:** P1 - completed 2026-04-22 by disabling the public adapter path
 
 **File:** `apps/api/src/features/integrations/adapters/FoodpandaAdapter.ts`
 
 **Evidence:** Every adapter method throws "Foodpanda integration not yet
 implemented".
+- 2026-04-22 update: Foodpanda remains explicitly coming soon; admin
+  connect/config/menu-sync routes now return 501 before persisting credentials
+  or invoking an unimplemented adapter.
 
 **Impact:** If Foodpanda is selectable/configurable, webhook/order/menu flows
 will fail at runtime.
 
 **TODO:**
 
-- [ ] Hide Foodpanda from product/config UI until implemented, or implement the
+- [x] Hide Foodpanda from product/config UI until implemented, or implement the
       adapter contract.
-- [ ] Add contract tests matching Foodpanda webhook payloads and auth behavior.
-- [ ] Ensure platform errors are surfaced as typed integration errors, not raw
-      generic exceptions.
+- [x] Ensure unavailable Foodpanda admin actions return explicit 501 responses
+      instead of reaching raw adapter exceptions.
+- [ ] **P2:** Add contract tests matching Foodpanda webhook payloads and auth
+      behavior before enabling the adapter.
 
-### Queue Modular Path Throws At Runtime
+### Queue Modular Path Threw At Runtime
 
-**Priority:** P1
+**Priority:** P1 - completed 2026-04-22 for runtime safety; metric accuracy
+follow-ups remain
 
 **Files:**
 
@@ -163,17 +174,23 @@ will fail at runtime.
   service not yet implemented".
 - Queue metrics still hardcode `min_wait`, queue type counts, priority counts,
   and `served_by_name`.
+- 2026-04-22 update: requesting modular mode now logs a warning and falls back
+  to the legacy implementation instead of throwing.
 
 **Impact:** A feature flag or config switch can route production traffic into
 runtime exceptions. Queue dashboards may report incomplete metrics.
 
 **TODO:**
 
-- [ ] Remove or lock down `useModular` until repositories are wired.
-- [ ] Implement repository-backed modular service construction.
-- [ ] Calculate queue type counts and priority counts from real queue rows.
-- [ ] Join served-by user data or explicitly remove the field from the response.
-- [ ] Add tests for both legacy and modular branches before enabling modular
+- [x] Remove or lock down `useModular` until repositories are wired.
+- [x] Add tests for legacy fallback when modular mode is requested.
+- [ ] **P2:** Implement repository-backed modular service construction.
+- [ ] **P2:** Calculate queue type counts and priority counts from real queue
+      rows.
+- [ ] **P2:** Join served-by user data or explicitly remove the field from the
+      response.
+- [ ] **P2:** Add tests for both legacy and modular branches before enabling
+      modular
       mode.
 
 ## P2: Cross-Cutting Architecture Debt

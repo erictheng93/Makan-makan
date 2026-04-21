@@ -13,6 +13,7 @@ import { requireRole } from "../../../shared/middleware";
 import { PlatformIntegrationService } from "../services/PlatformIntegrationService";
 import { PlatformOrderService } from "../services/PlatformOrderService";
 import { PlatformMenuSyncService } from "../services/PlatformMenuSyncService";
+import { isPlatformAdapterSupported } from "../adapters/PlatformAdapter";
 
 const adminRoutes = new Hono<{ Bindings: Env }>();
 
@@ -73,6 +74,13 @@ adminRoutes.post("/:restaurantId/:platform/connect", async (c) => {
   const platform = c.req.param("platform") as PlatformType;
   const body = await c.req.json<ConnectPlatformRequest>();
 
+  if (!isPlatformAdapterSupported(platform)) {
+    return c.json(
+      { error: `${platform} integration is not available yet` },
+      501,
+    );
+  }
+
   const service = new PlatformIntegrationService(c.env);
   const integration = await service.connect(restaurantId, platform, body);
 
@@ -84,6 +92,13 @@ adminRoutes.put("/:restaurantId/:platform", async (c) => {
   const restaurantId = c.req.param("restaurantId");
   const platform = c.req.param("platform") as PlatformType;
   const body = await c.req.json<UpdatePlatformConfigRequest>();
+
+  if (!isPlatformAdapterSupported(platform)) {
+    return c.json(
+      { error: `${platform} integration is not available yet` },
+      501,
+    );
+  }
 
   const service = new PlatformIntegrationService(c.env);
   const integration = await service.updateConfig(restaurantId, platform, body);
@@ -106,6 +121,13 @@ adminRoutes.delete("/:restaurantId/:platform", async (c) => {
 adminRoutes.post("/:restaurantId/:platform/menu-sync", async (c) => {
   const restaurantId = c.req.param("restaurantId");
   const platform = c.req.param("platform") as PlatformType;
+
+  if (!isPlatformAdapterSupported(platform)) {
+    return c.json(
+      { error: `${platform} integration is not available yet` },
+      501,
+    );
+  }
 
   const service = new PlatformMenuSyncService(c.env);
   await service.syncMenu(restaurantId, platform);

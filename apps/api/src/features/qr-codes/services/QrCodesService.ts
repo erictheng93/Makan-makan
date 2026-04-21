@@ -12,6 +12,8 @@ import {
 } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
 import { QRCodeService } from "@makanmakan/database";
+import * as QRCode from "qrcode";
+import { strToU8, zipSync } from "fflate";
 
 // Import types
 import type {
@@ -209,17 +211,19 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         qrCode.format || "png",
       );
 
-      // For now, return a mock result since actual file generation is not implemented
-      // In a real implementation, this would generate the actual QR code file
-      const mockData = Buffer.from("QR code data placeholder");
+      const rendered = await this.renderQRCodeArtifact(
+        qrCode.content,
+        qrCode.format || "png",
+        this.parseQRStyle(qrCode.styleJson),
+      );
 
       this.logger.info("QR code downloaded", { id });
       this.performance.recordMetric("qr-codes.download.success", 1);
 
       return {
-        data: mockData,
-        contentType: "image/png",
-        filename: `qr-code-${id}.png`,
+        data: rendered.data,
+        contentType: rendered.contentType,
+        filename: `qr-code-${id}.${rendered.extension}`,
       };
     } catch (error) {
       this.logger.error("Failed to download QR code", error as Error, { id });
@@ -248,14 +252,13 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         return null;
       }
 
-      // For now, return a mock result
-      const mockData = Buffer.from("Batch QR codes zip placeholder");
+      const archive = await this.renderBatchArchive(batchId, batch);
 
       this.logger.info("Batch QR codes downloaded", { batchId });
       this.performance.recordMetric("qr-codes.downloadBatch.success", 1);
 
       return {
-        data: mockData,
+        data: archive,
         contentType: "application/zip",
         filename: `qr-batch-${batchId}.zip`,
       };
@@ -324,6 +327,100 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         "ms",
       );
     }
+  }
+
+  private parseQRStyle(styleJson: string | null | undefined) {
+    if (!styleJson) {
+      return undefined;
+    }
+
+    try {
+      return JSON.parse(styleJson) as GenerateQRRequest["style"];
+    } catch {
+      this.logger.warn("Invalid QR style JSON ignored");
+      return undefined;
+    }
+  }
+
+  private async renderQRCodeArtifact(
+    content: string,
+    format: string,
+    style?: GenerateQRRequest["style"],
+  ): Promise<{
+    data: Buffer;
+    contentType: string;
+    extension: string;
+  }> {
+    const options = {
+      errorCorrectionLevel: style?.errorCorrection || "M",
+      margin: 2,
+      width: style?.size || 512,
+      color: {
+        dark: style?.foregroundColor || "#000000",
+        light: style?.backgroundColor || "#ffffff",
+      },
+    } as const;
+
+    if (format === "svg" || format === "pdf" || format === "jpeg") {
+      const svg = await QRCode.toString(content, {
+        ...options,
+        type: "svg",
+      });
+      return {
+        data: Buffer.from(svg, "utf8"),
+        contentType: "image/svg+xml",
+        extension: "svg",
+      };
+    }
+
+    const png = await QRCode.toBuffer(content, {
+      ...options,
+      type: "png",
+    });
+    return {
+      data: Buffer.from(png),
+      contentType: "image/png",
+      extension: "png",
+    };
+  }
+
+  private async renderBatchArchive(
+    batchId: string,
+    batch: any,
+  ): Promise<Buffer> {
+    const totalCodes = Number(batch.totalCodes ?? batch.total_codes ?? 0);
+    const restaurantId = String(
+      batch.restaurantId ?? batch.restaurant_id ?? "unknown-restaurant",
+    );
+
+    const entries: Record<string, Uint8Array> = {
+      "manifest.json": strToU8(
+        JSON.stringify(
+          {
+            batchId,
+            restaurantId,
+            totalCodes,
+            generatedAt: new Date().toISOString(),
+            format: "svg",
+          },
+          null,
+          2,
+        ),
+      ),
+    };
+
+    for (let index = 1; index <= totalCodes; index += 1) {
+      const content = `makanmakan://restaurant/${restaurantId}/qr-batch/${batchId}/code/${index}`;
+      const svg = await QRCode.toString(content, {
+        type: "svg",
+        errorCorrectionLevel: "M",
+        margin: 2,
+        width: 512,
+      });
+      entries[`qr-code-${String(index).padStart(3, "0")}.svg`] = strToU8(svg);
+    }
+
+    return Buffer.from(zipSync(entries, { level: 6 }));
   }
 
   // Template Management Methods
