@@ -1,3 +1,10 @@
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- DEV ONLY: DO NOT RUN IN PRODUCTION
+-- This migration inserts test accounts with known passwords.
+-- Running this in production is a critical security vulnerability.
+-- It is intentionally excluded from migrations_fresh/ (the prod path).
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+--
 -- Add Test Accounts Migration
 -- Created: 2025-12-04
 -- Description: Add complete test accounts for all roles (Admin, Owner, Chef, Service, Cashier)
