@@ -1,5 +1,5 @@
 /**
- * Real integration smoke — Customer Orders API
+ * Real integration smoke - Customer Orders API
  * GET /api/v1/customers/me/orders
  *
  * This suite verifies the customer-facing orders path now works end-to-end.
@@ -32,7 +32,7 @@ vi.unmock("drizzle-orm/d1");
 
 const ENDPOINT = "https://test/api/v1/customers/me/orders";
 
-describe("Customer Orders API — real integration", () => {
+describe("Customer Orders API - real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;
 
@@ -49,7 +49,6 @@ describe("Customer Orders API — real integration", () => {
     await testApp.testDb.truncateAll();
   });
 
-  // ── Test 1: No Authorization header ────────────────────────────────────────
   it("returns 401 when no Authorization header is present", async () => {
     const res = await testApp.app.fetch(new Request(ENDPOINT));
 
@@ -64,7 +63,6 @@ describe("Customer Orders API — real integration", () => {
   it("returns 200 for a customer token (role=5) and scopes orders to that customer", async () => {
     const restaurant = await seed.restaurant();
 
-    // Seed two customers each with a real user row so FK constraints are satisfied.
     const customer100 = await seed.user({
       id: 100,
       role: 5,
@@ -76,11 +74,9 @@ describe("Customer Orders API — real integration", () => {
       username: "customer-200",
     });
 
-    // Two orders — one owned by each customer.
     await seed.order(restaurant.id, { customerId: customer100.id });
     await seed.order(restaurant.id, { customerId: customer200.id });
 
-    // Issue a customer-role JWT. The authHelper accepts role=5.
     const customerToken = await testApp.authHelper.customerToken(
       customer100.id,
     );
@@ -99,16 +95,12 @@ describe("Customer Orders API — real integration", () => {
     expect(json.data[0].customerId).toBe(customer100.id);
   });
 
-  // ── Test 3: Staff token (role=1 — owner) — documents scope-mismatch gate ──
-  //
-  // A staff/owner token passes the customer-auth middleware (role ≤ 4) but is
-  // rejected by the per-route `requireRole([5])` guard. This test documents
-  // that non-customer roles are explicitly blocked even after the global auth
-  // check passes.
-  it("returns 403 for a staff/owner token (role=1) — requireRole([5]) rejects non-customers", async () => {
+  // Staff/owner token documents the route-level scope gate.
+  // A staff/owner token passes the customer-auth middleware but is
+  // rejected by the per-route `requireRole([5])` guard.
+  it("returns 403 for a staff/owner token (role=1) because requireRole([5]) rejects non-customers", async () => {
     const restaurant = await seed.restaurant();
 
-    // Seed an owner user so the FK is valid for the token's userId.
     const owner = await seed.user({
       id: 10,
       role: 1,
@@ -126,8 +118,7 @@ describe("Customer Orders API — real integration", () => {
       }),
     );
 
-    // Owner passes customer-auth middleware (role=1 ≤ 4) but fails requireRole([5]).
-    // The per-route requireRole guard returns 403 for any caller who is not role=5.
+    // Owner passes customer-auth middleware but fails requireRole([5]).
     expect(res.status).toBe(403);
     const json: any = await res.json();
     expect(json.success).toBe(false);

@@ -357,6 +357,28 @@ describe("Admin Routes — POST /:restaurantId/:platform/connect", () => {
       expect.objectContaining({ clientId: "c1", storeId: "st1" }),
     );
   });
+
+  it("returns 501 for Foodpanda connect while the adapter is disabled", async () => {
+    const req = new Request(
+      "http://localhost/integrations/rest-2/foodpanda/connect",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: "c1",
+          clientSecret: "s1",
+          storeId: "st1",
+        }),
+      },
+    );
+
+    const res = await app.fetch(req, mockEnv);
+    const json = (await res.json()) as { error: string };
+
+    expect(res.status).toBe(501);
+    expect(json.error).toBe("foodpanda integration is not available yet");
+    expect(mockIntegrationService.connect).not.toHaveBeenCalled();
+  });
 });
 
 describe("Admin Routes — PUT /:restaurantId/:platform (update config)", () => {

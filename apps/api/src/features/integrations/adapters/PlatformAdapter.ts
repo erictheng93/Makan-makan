@@ -6,7 +6,6 @@ import type {
   MenuSyncResult,
 } from "@makanmakan/shared-types";
 import { UberEatsAdapter } from "./UberEatsAdapter";
-import { FoodpandaAdapter } from "./FoodpandaAdapter";
 
 export interface PlatformAdapter {
   readonly platform: PlatformType;
@@ -33,13 +32,20 @@ export interface PlatformAdapter {
   ): Promise<MenuSyncResult>;
 }
 
-const adapters: Record<string, () => PlatformAdapter> = {
+export const SUPPORTED_PLATFORM_ADAPTERS: readonly PlatformType[] = [
+  "uber_eats",
+];
+
+const adapters: Partial<Record<PlatformType, () => PlatformAdapter>> = {
   uber_eats: () => new UberEatsAdapter(),
-  foodpanda: () => new FoodpandaAdapter(),
 };
+
+export function isPlatformAdapterSupported(platform: PlatformType): boolean {
+  return platform in adapters;
+}
 
 export function getAdapter(platform: PlatformType): PlatformAdapter {
   const factory = adapters[platform];
-  if (!factory) throw new Error(`Unsupported platform: ${platform}`);
+  if (!factory) throw new Error(`Platform adapter is not enabled: ${platform}`);
   return factory();
 }

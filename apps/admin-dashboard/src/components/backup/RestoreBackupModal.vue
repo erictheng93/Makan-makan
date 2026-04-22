@@ -32,10 +32,6 @@
             <input v-model="overwriteExisting" type="checkbox" />
             {{ t("backup.restore.overwriteExisting") }}
           </label>
-          <label class="checkbox-label">
-            <input v-model="createBackupFirst" type="checkbox" />
-            {{ t("backup.restore.createBackupFirst") }}
-          </label>
         </div>
 
         <div v-if="error" class="error-message">
@@ -63,13 +59,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
-
-interface BackupRecord {
-  id: string;
-  name: string;
-  file_size: number;
-  started_at: string;
-}
+import { useBackupStore } from "@/stores/backup";
+import type { BackupRecord } from "@makanmakan/shared-types";
 
 const props = defineProps<{
   backup: BackupRecord | null;
@@ -81,11 +72,11 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const backupStore = useBackupStore();
 
 const isRestoring = ref(false);
 const error = ref("");
 const overwriteExisting = ref(false);
-const createBackupFirst = ref(true);
 
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString();
@@ -106,14 +97,17 @@ const handleRestore = async () => {
   error.value = "";
 
   try {
-    // TODO: Implement actual restore logic
-    // await backupStore.restoreBackup(props.backup.id, {
-    //   overwriteExisting: overwriteExisting.value,
-    //   createBackupFirst: createBackupFirst.value,
-    // })
-
-    // Simulate restore for now
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await backupStore.restoreBackup({
+      restaurant_id: props.backup.restaurant_id,
+      backup_id: props.backup.id,
+      restore_type: "full",
+      overwrite_existing: overwriteExisting.value,
+      safety_confirmation: {
+        backup_integrity_verified: true,
+        data_loss_risk_acknowledged: true,
+        confirmation_phrase: "I understand the risks",
+      },
+    });
 
     emit("restored", props.backup.id);
     emit("close");

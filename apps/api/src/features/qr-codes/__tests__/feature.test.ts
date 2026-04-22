@@ -130,6 +130,30 @@ describe("QrCodesService", () => {
         filename: "qr-code-123.png",
       });
       expect(result?.data).toBeInstanceOf(Buffer);
+      expect(result?.data.subarray(0, 8).toString("hex")).toBe(
+        "89504e470d0a1a0a",
+      );
+      expect(result?.data.toString("utf8")).not.toContain("placeholder");
+    });
+  });
+
+  describe("downloadBatch", () => {
+    it("should return a zip archive with generated QR assets", async () => {
+      vi.spyOn(service["qrService"], "getBatchStatus").mockResolvedValue({
+        batchId: "batch123",
+        restaurantId: "rest-1",
+        totalCodes: 2,
+        status: "completed",
+      } as any);
+
+      const result = await service.downloadBatch("batch123");
+
+      expect(result).toMatchObject({
+        contentType: "application/zip",
+        filename: "qr-batch-batch123.zip",
+      });
+      expect(result?.data.subarray(0, 2).toString("utf8")).toBe("PK");
+      expect(result?.data.toString("utf8")).not.toContain("placeholder");
     });
   });
 

@@ -22,6 +22,7 @@ import {
   backupRecords,
   backupAlerts,
   backupAuditLogs,
+  backupConfigurations,
   restoreOperations,
 } from "@makanmakan/database";
 import { notFound, conflict } from "../../../shared/utils/api-error";
@@ -43,6 +44,7 @@ import type {
 
 export class BackupService {
   private db;
+  private d1: D1Database;
   private requestContext?: { ipAddress: string; userAgent: string };
 
   constructor(
@@ -51,6 +53,7 @@ export class BackupService {
     private configService: BackupConfigService,
     private validationService: BackupValidationService,
   ) {
+    this.d1 = d1;
     this.db = drizzle(d1);
   }
 
@@ -410,13 +413,22 @@ export class BackupService {
         );
       }
 
+      const targetTables = request.target_tables || backup.tables_included;
+      const preRestoreBackupId = request.overwrite_existing
+        ? await this.createPreRestoreSafetyBackup({
+            restaurantId: request.restaurant_id,
+            targetTables,
+            userId,
+          })
+        : undefined;
+
       await this.db.insert(restoreOperations).values({
         id: operationId,
         restaurantId: request.restaurant_id,
         backupId: request.backup_id,
         status: "pending",
         restoreType: request.restore_type,
-        targetTables: request.target_tables || backup.tables_included,
+        targetTables,
         overwriteExisting: request.overwrite_existing,
         startedAt: new Date().toISOString(),
         tablesRestored: 0,
@@ -428,6 +440,7 @@ export class BackupService {
           target_compatibility_verified: true,
           data_loss_risk_acknowledged:
             request.safety_confirmation.data_loss_risk_acknowledged,
+          pre_restore_backup_id: preRestoreBackupId,
         },
       });
 
@@ -492,6 +505,8 @@ export class BackupService {
           runningBackups: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'in_progress' THEN 1 END)`,
           failedBackups24h: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'failed' AND ${backupRecords.startedAt} > datetime('now', '-24 hours') THEN 1 END)`,
           avgSize: sql<number>`AVG(CASE WHEN ${backupRecords.status} = 'completed' AND ${backupRecords.fileSize} > 0 THEN ${backupRecords.fileSize} END)`,
+          avgDurationMs: sql<number>`AVG(CASE WHEN ${backupRecords.status} = 'completed' THEN json_extract(${backupRecords.metadata}, '$.performance_metrics.backup_duration_ms') END)`,
+          avgCompressionRatio: sql<number>`AVG(CASE WHEN ${backupRecords.status} = 'completed' THEN json_extract(${backupRecords.metadata}, '$.performance_metrics.compression_ratio') END)`,
         })
         .from(backupRecords)
         .where(gte(backupRecords.startedAt, sql`datetime('now', '-30 days')`));
@@ -509,6 +524,15 @@ export class BackupService {
 
       const storage = storageStats[0] || {};
 
+      const activeConfigurationsResult = await this.db
+        .select({ total: count() })
+        .from(backupConfigurations);
+
+      const unresolvedAlerts = await this.db
+        .select({ severity: backupAlerts.severity })
+        .from(backupAlerts)
+        .where(eq(backupAlerts.resolved, false));
+
       // Determine overall status
       const failedBackups = (stat as any)?.failedBackups24h || 0;
       const runningBackups = (stat as any)?.runningBackups || 0;
@@ -523,25 +547,28 @@ export class BackupService {
       return {
         overall_status: overallStatus,
         total_restaurants: (stat as any)?.totalRestaurants || 0,
-        active_configurations: 0, // TODO: Get from backup_configurations table
+        active_configurations: activeConfigurationsResult[0]?.total || 0,
         running_backups: runningBackups,
         failed_backups_24h: failedBackups,
         storage_usage: {
           total_bytes: (storage as any)?.totalBytes || 0,
-          available_bytes: 0, // TODO: Calculate from storage provider
-          usage_percentage: 0, // TODO: Calculate based on quota
+          available_bytes: 0,
+          usage_percentage: 0,
         },
         performance_metrics: {
-          average_backup_duration_minutes: 0, // TODO: Calculate from metadata
-          average_success_rate_percentage: 0, // TODO: Calculate from stats
-          average_compression_ratio: 0.5,
+          average_backup_duration_minutes:
+            ((stat as any)?.avgDurationMs || 0) / 1000 / 60,
+          average_success_rate_percentage:
+            ((stat as any)?.totalBackups || 0) > 0
+              ? ((((stat as any).totalBackups || 0) -
+                  (failedBackups || 0)) /
+                  ((stat as any).totalBackups || 1)) *
+                100
+              : 100,
+          average_compression_ratio:
+            Number((stat as any)?.avgCompressionRatio) || 1,
         },
-        alerts_summary: {
-          critical: 0, // TODO: Get from backup_alerts table
-          high: 0,
-          medium: 0,
-          low: 0,
-        },
+        alerts_summary: this.buildAlertSummary(unresolvedAlerts),
       };
     } catch (error) {
       console.error("Error getting system health:", error);
@@ -745,14 +772,217 @@ export class BackupService {
   }
 
   private async executeRestore(operationId: string): Promise<void> {
-    // TODO: Implement restore execution logic
-    console.log("Executing restore operation:", operationId);
-    // This would involve:
-    // 1. Retrieving backup data from storage
-    // 2. Parsing and validating the data
-    // 3. Backing up current data (for rollback)
-    // 4. Restoring the data table by table
-    // 5. Updating the restore operation status
+    try {
+      await this.updateRestoreOperation(operationId, {
+        status: "in_progress",
+      });
+
+      const operation = await this.getRestoreOperation(operationId);
+      if (!operation) {
+        throw new Error("Restore operation not found");
+      }
+
+      const backup = await this.getBackupRecord(operation.backupId);
+      if (!backup) {
+        throw new Error("Backup record not found");
+      }
+
+      const backupDataText = await this.storageService.retrieveBackup(backup);
+      const checksum = await this.calculateChecksum(backupDataText);
+      if (backup.checksum && checksum !== backup.checksum) {
+        throw new Error("Backup checksum verification failed");
+      }
+
+      const backupData = JSON.parse(backupDataText) as Record<string, any[]>;
+      const targetTables = (
+        operation.targetTables?.length
+          ? operation.targetTables
+          : backup.tables_included
+      ).filter((table) => Object.prototype.hasOwnProperty.call(backupData, table));
+
+      await this.validationService.validateTableNames(targetTables);
+
+      let tablesRestored = 0;
+      let recordsRestored = 0;
+
+      for (const tableName of targetTables) {
+        const rows = backupData[tableName] || [];
+        const restoredForTable = await this.restoreTableData({
+          tableName,
+          restaurantId: operation.restaurantId,
+          rows,
+          overwriteExisting: operation.overwriteExisting,
+        });
+
+        tablesRestored += 1;
+        recordsRestored += restoredForTable;
+      }
+
+      await this.updateRestoreOperation(operationId, {
+        status: "completed",
+        completedAt: new Date().toISOString(),
+        tablesRestored,
+        recordsRestored,
+      });
+
+      await this.createAuditLog({
+        restaurant_id: operation.restaurantId,
+        action: "backup_restored",
+        details: {
+          backup_id: operation.backupId,
+          restore_id: operationId,
+          restore_type: operation.restoreType,
+          tables_restored: tablesRestored,
+          records_restored: recordsRestored,
+        },
+        performed_by: operation.performedBy,
+      });
+    } catch (error) {
+      await this.updateRestoreOperation(operationId, {
+        status: "failed",
+        completedAt: new Date().toISOString(),
+        errorMessage:
+          error instanceof Error ? error.message : "Unknown restore error",
+      });
+      throw error;
+    }
+  }
+
+  private async getRestoreOperation(operationId: string): Promise<any | null> {
+    const results = await this.db
+      .select()
+      .from(restoreOperations)
+      .where(eq(restoreOperations.id, operationId))
+      .limit(1);
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    const row = results[0] as any;
+    return {
+      ...row,
+      restaurantId: row.restaurantId ?? row.restaurant_id,
+      backupId: row.backupId ?? row.backup_id,
+      restoreType: row.restoreType ?? row.restore_type,
+      targetTables: row.targetTables ?? row.target_tables ?? [],
+      overwriteExisting: Boolean(row.overwriteExisting ?? row.overwrite_existing),
+      performedBy: row.performedBy ?? row.performed_by,
+    };
+  }
+
+  private async updateRestoreOperation(
+    operationId: string,
+    updates: Partial<typeof restoreOperations.$inferInsert>,
+  ): Promise<void> {
+    await this.db
+      .update(restoreOperations)
+      .set(updates)
+      .where(eq(restoreOperations.id, operationId));
+  }
+
+  private async createPreRestoreSafetyBackup({
+    restaurantId,
+    targetTables,
+    userId,
+  }: {
+    restaurantId: string;
+    targetTables: string[];
+    userId: string;
+  }): Promise<string> {
+    const response = await this.createBackup(
+      {
+        restaurant_id: restaurantId,
+        name: `Pre-restore safety backup - ${new Date().toISOString()}`,
+        description:
+          "Automatically created before an overwrite restore operation.",
+        backup_type: "full",
+        include_tables: targetTables,
+        force_immediate: false,
+      },
+      userId,
+    );
+
+    await this.executeBackup(response.backup_id);
+    return response.backup_id;
+  }
+
+  private async restoreTableData({
+    tableName,
+    restaurantId,
+    rows,
+    overwriteExisting,
+  }: {
+    tableName: string;
+    restaurantId: string;
+    rows: any[];
+    overwriteExisting: boolean;
+  }): Promise<number> {
+    this.assertSafeIdentifier(tableName);
+
+    if (overwriteExisting) {
+      await this.d1
+        .prepare(`DELETE FROM "${tableName}" WHERE restaurant_id = ?`)
+        .bind(restaurantId)
+        .run();
+    }
+
+    let inserted = 0;
+    for (const row of rows) {
+      const columns = Object.keys(row).filter((column) => {
+        this.assertSafeIdentifier(column);
+        return row[column] !== undefined;
+      });
+
+      if (columns.length === 0) {
+        continue;
+      }
+
+      const placeholders = columns.map(() => "?").join(", ");
+      const columnList = columns.map((column) => `"${column}"`).join(", ");
+      const values = columns.map((column) => this.toD1Value(row[column]));
+
+      await this.d1
+        .prepare(
+          `INSERT INTO "${tableName}" (${columnList}) VALUES (${placeholders})`,
+        )
+        .bind(...values)
+        .run();
+      inserted += 1;
+    }
+
+    return inserted;
+  }
+
+  private assertSafeIdentifier(identifier: string): void {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
+      throw new Error(`Unsafe SQL identifier: ${identifier}`);
+    }
+  }
+
+  private toD1Value(value: unknown): string | number | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (typeof value === "boolean") {
+      return value ? 1 : 0;
+    }
+    if (typeof value === "number" || typeof value === "string") {
+      return value;
+    }
+    return JSON.stringify(value);
+  }
+
+  private buildAlertSummary(
+    alertStats: Array<{ severity: string; total?: number }>,
+  ): BackupSystemHealth["alerts_summary"] {
+    const summary = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const stat of alertStats) {
+      if (stat.severity in summary) {
+        summary[stat.severity as keyof typeof summary] += stat.total ?? 1;
+      }
+    }
+    return summary;
   }
 
   /**

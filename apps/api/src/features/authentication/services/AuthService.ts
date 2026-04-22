@@ -12,7 +12,17 @@ import {
 } from "../../../core/monitoring";
 import { CACHE_TTL, USER_ROLES } from "../../../shared/constants";
 import type { UserRole } from "../../../shared/constants";
-import { AuthService as DatabaseAuthService } from "@makanmakan/database";
+import {
+  AuthService as DatabaseAuthService,
+  VerificationService,
+  and,
+  count,
+  eq,
+  gt,
+  sessions,
+  sql,
+  users,
+} from "@makanmakan/database";
 
 // Import types
 import type {
@@ -33,6 +43,7 @@ import type {
 export class AuthService implements IAuthService {
   private db: ReturnType<typeof getDatabaseConnection>;
   private dbAuthService: DatabaseAuthService;
+  private verificationService: VerificationService;
   private cache: KVCacheService;
   private logger: ConsoleLogger;
   private performance: SimplePerformanceTracker;
@@ -42,6 +53,7 @@ export class AuthService implements IAuthService {
     this.env = env;
     this.db = getDatabaseConnection(env);
     this.dbAuthService = new DatabaseAuthService(env.DB, env);
+    this.verificationService = new VerificationService(env.DB, env);
     this.cache = new KVCacheService(env.CACHE_KV);
     this.logger = new ConsoleLogger("auth-service");
     this.performance = new SimplePerformanceTracker();
@@ -420,22 +432,48 @@ export class AuthService implements IAuthService {
         return cached;
       }
 
-      // Get user sessions
-      const sessions = await this.getUserSessions(userId);
+      const user = await this.db
+        .select({
+          id: users.id,
+          username: users.username,
+          fullName: users.fullName,
+          email: users.email,
+          phone: users.phone,
+          role: users.role,
+          restaurantId: users.restaurantId,
+          isActive: users.isActive,
+          isVerified: users.isVerified,
+          lastLoginAt: users.lastLoginAt,
+          passwordChangedAt: users.passwordChangedAt,
+          emailVerifiedAt: users.emailVerifiedAt,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .get();
 
-      // This would need to be implemented with proper user fetching from database
-      // For now, return a mock profile structure
+      if (!user) {
+        return null;
+      }
+
+      const userSessions = await this.getUserSessions(userId);
+
       const profile: UserProfile = {
-        id: userId,
-        username: "placeholder",
-        fullName: "Placeholder User",
-        role: USER_ROLES.CHEF,
-        isActive: true,
-        isVerified: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email || undefined,
+        phone: user.phone || undefined,
+        role: user.role as UserRole,
+        restaurantId: user.restaurantId || undefined,
+        isActive: user.isActive,
+        isVerified: user.isVerified,
+        lastLoginAt: user.lastLoginAt || undefined,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
         twoFactorEnabled: false,
-        sessions,
+        sessions: userSessions,
       };
 
       // Cache the result
@@ -466,18 +504,57 @@ export class AuthService implements IAuthService {
     const timer = this.performance.startTimer("auth.updateUserProfile");
 
     try {
-      // This would need to be implemented with proper user updating in database
-      // For now, return null to indicate not implemented
-      this.logger.warn("updateUserProfile not fully implemented", {
-        userId,
-        data,
-      });
+      const updates: Partial<typeof users.$inferInsert> = {};
+      if (data.fullName !== undefined) updates.fullName = data.fullName;
+      if (data.email !== undefined) updates.email = data.email;
+      if (data.phone !== undefined) updates.phone = data.phone;
 
-      // Clear user cache
+      if (Object.keys(updates).length === 0) {
+        return null;
+      }
+
+      const [updatedUser] = await this.db
+        .update(users)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(users.id, userId), eq(users.isActive, true)))
+        .returning({
+          id: users.id,
+          username: users.username,
+          fullName: users.fullName,
+          email: users.email,
+          phone: users.phone,
+          role: users.role,
+          restaurantId: users.restaurantId,
+          isActive: users.isActive,
+          isVerified: users.isVerified,
+          lastLoginAt: users.lastLoginAt,
+          passwordChangedAt: users.passwordChangedAt,
+          emailVerifiedAt: users.emailVerifiedAt,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        });
+
       await this.cache.delete(`user-profile:${userId}`);
       await this.cache.delete(`user:${userId}`);
 
-      return null;
+      if (!updatedUser) {
+        return null;
+      }
+
+      return {
+        ...updatedUser,
+        role: updatedUser.role as UserRole,
+        restaurantId: updatedUser.restaurantId || undefined,
+        email: updatedUser.email || undefined,
+        phone: updatedUser.phone || undefined,
+        lastLoginAt: updatedUser.lastLoginAt || undefined,
+        passwordChangedAt: updatedUser.passwordChangedAt || undefined,
+        emailVerifiedAt: updatedUser.emailVerifiedAt || undefined,
+        twoFactorEnabled: false,
+      };
     } catch (error) {
       this.logger.error("Failed to update user profile", error as Error, {
         userId,
@@ -590,13 +667,25 @@ export class AuthService implements IAuthService {
     const timer = this.performance.startTimer("auth.terminateSession");
 
     try {
-      // This would need to be implemented in the database service
-      // For now, return false to indicate not implemented
-      this.logger.warn("terminateSession not fully implemented", {
-        userId,
-        sessionId,
-      });
-      return false;
+      const result = await this.db
+        .update(sessions)
+        .set({
+          isActive: false,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
+        .returning({ id: sessions.id });
+
+      if (result.length > 0) {
+        await this.logSecurityEvent({
+          type: "LOGOUT",
+          userId,
+          metadata: { sessionId, terminated: true },
+          severity: "LOW",
+        });
+      }
+
+      return result.length > 0;
     } catch (error) {
       this.logger.error("Failed to terminate session", error as Error, {
         userId,
@@ -677,35 +766,119 @@ export class AuthService implements IAuthService {
     throw new Error("Two-factor authentication not yet implemented");
   }
 
-  // Password Reset Methods (Placeholder implementations)
+  // Password Reset Methods
   async requestPasswordReset(
     identifier: string,
   ): Promise<{ success: boolean; error?: string }> {
-    this.logger.warn("requestPasswordReset not implemented", { identifier });
-    return { success: false, error: "Password reset not yet implemented" };
+    const resetTarget = await this.resolvePasswordResetTarget(identifier);
+    if (!resetTarget) {
+      // Do not reveal account existence.
+      return { success: true };
+    }
+
+    const result = await this.verificationService.requestPasswordReset({
+      identifier: resetTarget.identifier,
+      method: resetTarget.method,
+    });
+
+    if (result.success) {
+      await this.logSecurityEvent({
+        type: "PASSWORD_RESET_REQUESTED",
+        username: identifier,
+        severity: "MEDIUM",
+      });
+    }
+
+    return { success: result.success, error: result.error };
+  }
+
+  private async resolvePasswordResetTarget(
+    identifier: string,
+  ): Promise<{ identifier: string; method: "email" | "sms" } | null> {
+    if (identifier.includes("@")) {
+      return { identifier, method: "email" };
+    }
+
+    const user = await this.db
+      .select({
+        email: users.email,
+        phone: users.phone,
+      })
+      .from(users)
+      .where(eq(users.username, identifier))
+      .get();
+
+    if (user?.email) {
+      return { identifier: user.email, method: "email" };
+    }
+
+    if (user?.phone) {
+      return { identifier: user.phone, method: "sms" };
+    }
+
+    if (/^[\d\s\-+()]+$/.test(identifier)) {
+      return { identifier, method: "sms" };
+    }
+
+    return null;
   }
 
   async resetPassword(
-    _token: string,
-    _newPassword: string,
+    token: string,
+    newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {
-    this.logger.warn("resetPassword not implemented");
-    return { success: false, error: "Password reset not yet implemented" };
+    const result = await this.verificationService.resetPassword({
+      token,
+      newPassword,
+      ipAddress: "0.0.0.0",
+    });
+
+    if (result.success) {
+      await this.logSecurityEvent({
+        type: "PASSWORD_RESET_COMPLETED",
+        severity: "MEDIUM",
+      });
+    }
+
+    return { success: result.success, error: result.error };
   }
 
-  // Email Verification Methods (Placeholder implementations)
+  // Email Verification Methods
   async requestEmailVerification(
     userId: number,
   ): Promise<{ success: boolean; error?: string }> {
-    this.logger.warn("requestEmailVerification not implemented", { userId });
-    return { success: false, error: "Email verification not yet implemented" };
+    const user = await this.db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, userId))
+      .get();
+
+    if (!user?.email) {
+      return { success: false, error: "User email not found" };
+    }
+
+    const result = await this.verificationService.sendEmailVerification({
+      userId,
+      email: user.email,
+    });
+
+    return { success: result.success, error: result.error };
   }
 
   async verifyEmail(
-    _token: string,
+    token: string,
   ): Promise<{ success: boolean; error?: string }> {
-    this.logger.warn("verifyEmail not implemented");
-    return { success: false, error: "Email verification not yet implemented" };
+    const result = await this.verificationService.verifyEmail({ token });
+
+    if (result.success) {
+      await this.logSecurityEvent({
+        type: "EMAIL_VERIFIED",
+        userId: result.userId,
+        severity: "LOW",
+      });
+    }
+
+    return { success: result.success, error: result.error };
   }
 
   // Security and Monitoring Methods
@@ -747,26 +920,80 @@ export class AuthService implements IAuthService {
   }
 
   async checkAccountSecurity(userId: number): Promise<AccountSecurity> {
-    this.logger.warn("checkAccountSecurity not implemented", { userId });
+    const user = await this.db
+      .select({
+        passwordChangedAt: users.passwordChangedAt,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .get();
+
     return {
       failedLoginAttempts: 0,
       passwordStrength: "MEDIUM",
+      lastPasswordChangeAt: user?.passwordChangedAt || undefined,
       suspiciousActivity: false,
     };
   }
 
   async getAuthStatistics(timeRange = "30d"): Promise<AuthStatistics> {
-    this.logger.warn("getAuthStatistics not implemented", { timeRange });
+    const startDate = this.getStartDateForTimeRange(timeRange);
+    const [totalUsersResult] = await this.db
+      .select({ total: count() })
+      .from(users);
+    const [activeUsersResult] = await this.db
+      .select({ total: count() })
+      .from(users)
+      .where(eq(users.isActive, true));
+    const [dailyLoginsResult] = await this.db
+      .select({ total: count() })
+      .from(sessions)
+      .where(gt(sessions.createdAt, startDate));
+    const platformStats = await this.db
+      .select({
+        platform: sql<string>`json_extract(${sessions.deviceInfo}, '$.platform')`,
+        total: count(),
+      })
+      .from(sessions)
+      .where(gt(sessions.createdAt, startDate))
+      .groupBy(sql`json_extract(${sessions.deviceInfo}, '$.platform')`);
+    const [uniqueDevicesResult] = await this.db
+      .select({
+        total: sql<number>`COUNT(DISTINCT ${sessions.userAgent})`,
+      })
+      .from(sessions)
+      .where(gt(sessions.createdAt, startDate));
+
+    const platformDistribution: Record<string, number> = {};
+    for (const row of platformStats) {
+      if (row.platform) {
+        platformDistribution[row.platform] = row.total;
+      }
+    }
+
     return {
-      totalUsers: 0,
-      activeUsers: 0,
-      dailyLogins: 0,
-      uniqueDevices: 0,
+      totalUsers: totalUsersResult?.total || 0,
+      activeUsers: activeUsersResult?.total || 0,
+      dailyLogins: dailyLoginsResult?.total || 0,
+      uniqueDevices: uniqueDevicesResult?.total || 0,
       topCountries: [],
-      platformDistribution: {},
+      platformDistribution,
       twoFactorAdoptionRate: 0,
-      recentSecurityEvents: [],
+      recentSecurityEvents: await this.getSecurityEvents(undefined, 10),
     };
+  }
+
+  private getStartDateForTimeRange(timeRange: string): Date {
+    const now = new Date();
+    const daysByRange: Record<string, number> = {
+      "24h": 1,
+      "7d": 7,
+      "30d": 30,
+      "90d": 90,
+      "1y": 365,
+    };
+    now.setDate(now.getDate() - (daysByRange[timeRange] || 30));
+    return now;
   }
 
   // Private Helper Methods
