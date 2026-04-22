@@ -168,7 +168,7 @@ describe("Auth Routes", () => {
 
       expect(response.status).toBe(401);
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Invalid username or password");
+      expect(result.error.message).toBe("Invalid username or password");
 
       expect(mockAuthServiceInstance.login).toHaveBeenCalledOnce();
       expect(mockAuthServiceInstance.login).toHaveBeenCalledWith(
@@ -197,7 +197,7 @@ describe("Auth Routes", () => {
 
       expect(response.status).toBe(401);
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Invalid username or password");
+      expect(result.error.message).toBe("Invalid username or password");
 
       expect(mockAuthServiceInstance.login).toHaveBeenCalledOnce();
       expect(mockAuthServiceInstance.login).toHaveBeenCalledWith(

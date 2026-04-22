@@ -18,11 +18,11 @@ import {
   and,
   count,
   eq,
-  gt,
   sessions,
   sql,
   users,
 } from "@makanmakan/database";
+import { gt } from "drizzle-orm";
 
 // Import types
 import type {

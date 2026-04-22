@@ -14,6 +14,7 @@ import {
   usageQuerySchema,
 } from "../schemas/validation";
 import { validateBody, validateQuery } from "../../../middleware/validation";
+import { moduleGate } from "../../../middleware/moduleGate";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
 const routes = new Hono<{
@@ -27,7 +28,7 @@ const routes = new Hono<{
  * GET /config/:restaurantId
  * Get AI configuration for a restaurant
  */
-routes.get("/config/:restaurantId", async (c) => {
+routes.get("/config/:restaurantId", moduleGate("ai_analytics"), async (c) => {
   const restaurantId = c.req.param("restaurantId");
   const user = c.get("user");
   const userRole = user.role;
@@ -67,52 +68,62 @@ routes.get("/config/:restaurantId", async (c) => {
  * POST /config
  * Configure AI provider for a restaurant
  */
-routes.post("/config", validateBody(configureAISchema), async (c) => {
-  const data = c.get("validatedBody");
-  const user = c.get("user");
-  const userRole = user.role;
+routes.post(
+  "/config",
+  moduleGate("ai_analytics"),
+  validateBody(configureAISchema),
+  async (c) => {
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const userRole = user.role;
 
-  // Check permissions
-  if (userRole !== 0 && userRole !== 1) {
-    throw forbidden("Unauthorized");
-  }
+    // Check permissions
+    if (userRole !== 0 && userRole !== 1) {
+      throw forbidden("Unauthorized");
+    }
 
-  const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
 
-  // Test the provider first
-  const testResult = await service.testProvider({
-    provider: data.provider,
-    apiKey: data.apiKey,
-    model: data.model,
-    baseUrl: data.customBaseUrl,
-  });
+    // Test the provider first
+    const testResult = await service.testProvider({
+      provider: data.provider,
+      apiKey: data.apiKey,
+      model: data.model,
+      baseUrl: data.customBaseUrl,
+    });
 
-  if (!testResult.success) {
-    throw badRequest(`Provider test failed: ${testResult.error}`);
-  }
+    if (!testResult.success) {
+      throw badRequest(`Provider test failed: ${testResult.error}`);
+    }
 
-  await service.saveConfig(data);
+    await service.saveConfig(data);
 
-  return c.json({
-    success: true,
-    message: "AI configuration saved successfully",
-    testResult: {
-      latency: testResult.latencyMs,
-      model: testResult.model,
-    },
-  });
-});
+    return c.json({
+      success: true,
+      message: "AI configuration saved successfully",
+      testResult: {
+        latency: testResult.latencyMs,
+        model: testResult.model,
+      },
+    });
+  },
+);
 
 /**
  * POST /test-provider
  * Test an AI provider configuration
  */
-routes.post("/test-provider", validateBody(testProviderSchema), async (c) => {
-  const data = c.get("validatedBody");
-  const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
-  const result = await service.testProvider(data);
-  return c.json(result);
-});
+routes.post(
+  "/test-provider",
+  moduleGate("ai_analytics"),
+  validateBody(testProviderSchema),
+  async (c) => {
+    const data = c.get("validatedBody");
+    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const result = await service.testProvider(data);
+    return c.json(result);
+  },
+);
 
 /**
  * GET /models/:provider
@@ -135,32 +146,37 @@ routes.get("/models/:provider", (c) => {
  * POST /generate
  * Generate AI analytics report
  */
-routes.post("/generate", validateBody(generateAnalyticsSchema), async (c) => {
-  const data = c.get("validatedBody");
-  const user = c.get("user");
-  const userRole = user.role;
+routes.post(
+  "/generate",
+  moduleGate("ai_analytics"),
+  validateBody(generateAnalyticsSchema),
+  async (c) => {
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const userRole = user.role;
 
-  // Check permissions
-  if (userRole !== 0 && userRole !== 1) {
-    throw forbidden("Unauthorized");
-  }
+    // Check permissions
+    if (userRole !== 0 && userRole !== 1) {
+      throw forbidden("Unauthorized");
+    }
 
-  const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
-  const report = await service.generateReport(
-    data.restaurantId,
-    data.timeRange,
-    {
-      includeForecasting: data.includeForecasting,
-      refreshCache: data.refreshCache,
-    },
-  );
+    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const report = await service.generateReport(
+      data.restaurantId,
+      data.timeRange,
+      {
+        includeForecasting: data.includeForecasting,
+        refreshCache: data.refreshCache,
+      },
+    );
 
-  return c.json({
-    success: true,
-    report,
-    cached: false,
-  });
-});
+    return c.json({
+      success: true,
+      report,
+      cached: false,
+    });
+  },
+);
 
 /**
  * GET /products/traffic-drivers/:restaurantId
@@ -168,6 +184,7 @@ routes.post("/generate", validateBody(generateAnalyticsSchema), async (c) => {
  */
 routes.get(
   "/products/traffic-drivers/:restaurantId",
+  moduleGate("ai_analytics"),
   validateQuery(productQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
@@ -199,6 +216,7 @@ routes.get(
  */
 routes.get(
   "/products/bestsellers/:restaurantId",
+  moduleGate("ai_analytics"),
   validateQuery(productQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
@@ -230,6 +248,7 @@ routes.get(
  */
 routes.get(
   "/products/profit-leaders/:restaurantId",
+  moduleGate("ai_analytics"),
   validateQuery(productQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
@@ -261,6 +280,7 @@ routes.get(
  */
 routes.get(
   "/products/analysis/:restaurantId",
+  moduleGate("ai_analytics"),
   validateQuery(productQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
@@ -288,6 +308,7 @@ routes.get(
  */
 routes.get(
   "/usage/:restaurantId",
+  moduleGate("ai_analytics"),
   validateQuery(usageQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");

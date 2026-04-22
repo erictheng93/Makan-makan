@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import { validateQuery } from "../../../middleware/validation";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import { AnalyticsService } from "../services/AnalyticsService";
 import {
   analyticsQuerySchema,
@@ -24,6 +25,8 @@ import type { IAnalyticsService, SSEAnalyticsEvent } from "../types";
 
 // Create feature router
 const routes = new Hono<{ Bindings: Env }>();
+
+routes.use("*", authMiddleware, moduleGate("analytics"));
 
 /**
  * Dashboard analytics endpoint

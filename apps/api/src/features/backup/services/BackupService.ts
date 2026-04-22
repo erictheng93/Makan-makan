@@ -788,9 +788,20 @@ export class BackupService {
       }
 
       const backupDataText = await this.storageService.retrieveBackup(backup);
-      const checksum = await this.calculateChecksum(backupDataText);
-      if (backup.checksum && checksum !== backup.checksum) {
-        throw new Error("Backup checksum verification failed");
+
+      // Verify integrity inline — calculateChecksum lives on BackupStorageService (private)
+      if (backup.checksum) {
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest(
+          "SHA-256",
+          encoder.encode(backupDataText),
+        );
+        const checksum = Array.from(new Uint8Array(hashBuffer))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        if (checksum !== backup.checksum) {
+          throw new Error("Backup checksum verification failed");
+        }
       }
 
       const backupData = JSON.parse(backupDataText) as Record<string, any[]>;
@@ -798,7 +809,7 @@ export class BackupService {
         operation.targetTables?.length
           ? operation.targetTables
           : backup.tables_included
-      ).filter((table) => Object.prototype.hasOwnProperty.call(backupData, table));
+      ).filter((table: string) => Object.prototype.hasOwnProperty.call(backupData, table));
 
       await this.validationService.validateTableNames(targetTables);
 

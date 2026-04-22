@@ -19,6 +19,7 @@ import type { Env } from "../../../shared/types";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
 import { createSuccessResponse } from "../../../shared/utils";
 import { notFound, forbidden } from "../../../shared/utils/api-error";
+import { moduleGate } from "../../../middleware/moduleGate";
 
 // Import schemas
 import { menuSchemas } from "../schemas/validation";
@@ -160,6 +161,7 @@ app.get(
 app.post(
   "/:restaurantId/items",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER, USER_ROLES.CHEF]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
@@ -185,6 +187,7 @@ app.post(
 app.put(
   "/items/:id",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER, USER_ROLES.CHEF]),
   validateParams(menuSchemas.menuItemIdParam),
   validateBody(menuSchemas.updateMenuItem),
@@ -221,6 +224,7 @@ app.put(
 app.delete(
   "/items/:id",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateParams(menuSchemas.menuItemIdParam),
   async (c) => {
@@ -257,6 +261,7 @@ app.delete(
 app.patch(
   "/:restaurantId/items/availability",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER, USER_ROLES.CHEF]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
@@ -282,6 +287,7 @@ app.patch(
 app.patch(
   "/:restaurantId/items/prices",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
@@ -304,6 +310,7 @@ app.patch(
 app.patch(
   "/:restaurantId/items/categories",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
@@ -331,6 +338,7 @@ app.patch(
 app.post(
   "/:restaurantId/categories",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
@@ -356,6 +364,7 @@ app.post(
 app.put(
   "/categories/:id",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateParams(menuSchemas.categoryIdParam),
   validateBody(menuSchemas.updateCategory),
@@ -390,6 +399,7 @@ app.put(
 app.patch(
   "/:restaurantId/categories/reorder",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
@@ -412,6 +422,7 @@ app.patch(
 app.delete(
   "/categories/:id",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateParams(menuSchemas.categoryIdParam),
   async (c) => {
@@ -450,6 +461,7 @@ app.delete(
 app.get(
   "/:restaurantId/analytics",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
@@ -468,6 +480,7 @@ app.get(
 app.get(
   "/:restaurantId/popularity",
   authMiddleware,
+  moduleGate("menu_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),

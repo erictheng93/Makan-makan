@@ -85,6 +85,11 @@ vi.mock("../../../middleware/validation", () => ({
   }),
 }));
 
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: any, next: any) => await next()),
+  invalidateSubscriptionCache: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("Analytics Feature Tests", () => {
   let app: any;
 

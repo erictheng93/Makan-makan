@@ -235,6 +235,7 @@ export interface BackupAuditLog {
     | "backup_created"
     | "backup_deleted"
     | "restore_initiated"
+    | "backup_restored"
     | "schedule_modified"
     | "configuration_updated";
   details: Record<string, any>;

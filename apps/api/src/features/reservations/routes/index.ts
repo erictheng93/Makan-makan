@@ -5,6 +5,7 @@
 
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import { ReservationService } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
@@ -140,6 +141,7 @@ app.delete("/:id/cancel", async (c) => {
 // ==========================================
 
 app.use("/*", authMiddleware);
+app.use("/*", moduleGate("reservations"));
 
 /**
  * GET /reservations

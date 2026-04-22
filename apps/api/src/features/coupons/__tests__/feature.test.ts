@@ -62,6 +62,11 @@ vi.mock("../../../middleware/validation", () => ({
   },
 }));
 
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: any, next: any) => await next()),
+  invalidateSubscriptionCache: vi.fn().mockResolvedValue(undefined),
+}));
+
 function attachOnError(honoApp: Hono): void {
   honoApp.onError((err, c) => {
     if (err instanceof ApiError) {

@@ -17,6 +17,12 @@ import {
   MockRestaurantStore,
   enhanceMockDrizzle,
 } from "../helpers/service-mocks";
+import { vi } from "vitest";
+
+vi.mock("../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: any, next: any) => await next()),
+  invalidateSubscriptionCache: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("Core Modules Integration Tests", () => {
   let app: any;

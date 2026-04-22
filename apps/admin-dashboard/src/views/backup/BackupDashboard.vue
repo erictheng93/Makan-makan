@@ -155,64 +155,7 @@ import { useI18n } from "vue-i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useBackupStore } from "@/stores/backup";
 import { useAuthStore } from "@/stores/auth";
-// TODO: Import from @makanmakan/shared-types when workspace is configured
-// import type { BackupRecord, BackupAlert as BackupAlertType } from '@makanmakan/shared-types'
-
-// Temporary type definitions
-type BackupStatus =
-  | "pending"
-  | "in_progress"
-  | "completed"
-  | "failed"
-  | "cancelled";
-type BackupType = "full" | "incremental" | "differential";
-type StorageProvider = "r2" | "kv" | "external";
-
-interface BackupRecord {
-  id: string;
-  restaurant_id: string;
-  configuration_id: string;
-  name: string;
-  backup_type: BackupType;
-  status: BackupStatus;
-  file_size: number;
-  compressed_size: number;
-  records_count: number;
-  tables_included: string[];
-  storage_provider: StorageProvider;
-  storage_path: string;
-  encryption_enabled: boolean;
-  checksum: string;
-  started_at: string;
-  completed_at?: string;
-  error_message?: string;
-  created_by: string;
-  expires_at?: string;
-  metadata: any;
-}
-
-interface BackupAlert {
-  id: string;
-  restaurant_id: string;
-  alert_type:
-    | "backup_failed"
-    | "storage_quota_exceeded"
-    | "schedule_missed"
-    | "restoration_completed"
-    | "performance_degraded";
-  severity: "low" | "medium" | "high" | "critical";
-  title: string;
-  message: string;
-  related_backup_id?: string;
-  triggered_at: string;
-  acknowledged: boolean;
-  acknowledged_by?: string;
-  acknowledged_at?: string;
-  resolved: boolean;
-  resolved_at?: string;
-}
-
-type BackupAlertType = BackupAlert;
+import type { BackupRecord, BackupAlert as BackupAlertType } from "@makanmakan/shared-types";
 
 import BackupListItem from "@/components/backup/BackupListItem.vue";
 import BackupAlert from "@/components/backup/BackupAlert.vue";

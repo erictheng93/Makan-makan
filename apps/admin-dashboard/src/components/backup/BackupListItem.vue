@@ -194,58 +194,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
-// TODO: Import from @makanmakan/shared-types when workspace is configured
-// import type { BackupRecord } from '@makanmakan/shared-types'
-
-// Temporary type definition
-type BackupStatus =
-  | "pending"
-  | "in_progress"
-  | "completed"
-  | "failed"
-  | "cancelled";
-type BackupType = "full" | "incremental" | "differential";
-type StorageProvider = "r2" | "kv" | "external";
-
-interface BackupRecord {
-  id: string;
-  restaurant_id: string;
-  configuration_id: string;
-  name: string;
-  backup_type: BackupType;
-  status: BackupStatus;
-  file_size: number;
-  compressed_size: number;
-  records_count: number;
-  tables_included: string[];
-  storage_provider: StorageProvider;
-  storage_path: string;
-  encryption_enabled: boolean;
-  checksum: string;
-  started_at: string;
-  completed_at?: string;
-  error_message?: string;
-  created_by: string;
-  expires_at?: string;
-  metadata: {
-    tables_info: Array<{
-      table_name: string;
-      record_count: number;
-      estimated_size: number;
-    }>;
-    performance_metrics: {
-      backup_duration_ms: number;
-      compression_ratio: number;
-      upload_speed_mbps: number;
-    };
-    database_snapshot: {
-      version: string;
-      schema_hash: string;
-      total_tables: number;
-      total_records: number;
-    };
-  };
-}
+import type { BackupRecord } from "@makanmakan/shared-types";
 
 // Icons (using placeholder components - replace with actual icons)
 import {

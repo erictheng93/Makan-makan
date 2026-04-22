@@ -5,6 +5,7 @@
 
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
   validateQuery,
@@ -50,6 +51,7 @@ routes.post(
   "/",
   authMiddleware,
   requireRole([0, 1]), // Admin or Shop Owner
+  moduleGate("loyalty"),
   validateBody(createPartnershipSchema),
   async (c) => {
     const data = c.get("validatedBody");
@@ -77,6 +79,7 @@ routes.get(
   "/",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateQuery(partnershipFiltersSchema as any),
   async (c) => {
     const filters = c.get("validatedQuery");
@@ -101,6 +104,7 @@ routes.get(
   "/:id",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(idParamSchema as any),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -128,6 +132,7 @@ routes.get(
   "/:id/statistics",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(idParamSchema as any),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -151,6 +156,7 @@ routes.put(
   "/:id",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(idParamSchema as any),
   validateBody(updatePartnershipSchema),
   async (c) => {
@@ -176,6 +182,7 @@ routes.delete(
   "/:id",
   authMiddleware,
   requireRole([0]), // Admin only
+  moduleGate("loyalty"),
   validateParams(idParamSchema as any),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -203,6 +210,7 @@ routes.post(
   "/plans",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateBody(createPlanSchema),
   async (c) => {
     const data = c.get("validatedBody");
@@ -305,6 +313,7 @@ routes.put(
   "/plans/:planId",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(planIdParamSchema as any),
   validateBody(updatePlanSchema),
   async (c) => {
@@ -330,6 +339,7 @@ routes.delete(
   "/plans/:planId",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(planIdParamSchema as any),
   async (c) => {
     const { planId } = c.get("validatedParams");
@@ -379,6 +389,7 @@ routes.get(
   "/members",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateQuery(memberFiltersSchema as any),
   async (c) => {
     const filters = c.get("validatedQuery");
@@ -403,6 +414,7 @@ routes.get(
   "/members/:memberId",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(memberIdParamSchema as any),
   async (c) => {
     const { memberId } = c.get("validatedParams");
@@ -430,6 +442,7 @@ routes.post(
   "/members/:memberId/approve",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(memberIdParamSchema as any),
   validateBody(approveMemberSchema),
   async (c) => {
@@ -461,6 +474,7 @@ routes.post(
   "/members/:memberId/reject",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(memberIdParamSchema as any),
   validateBody(rejectMemberSchema),
   async (c) => {
@@ -487,6 +501,7 @@ routes.put(
   "/members/:memberId",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(memberIdParamSchema as any),
   validateBody(updateMemberSchema),
   async (c) => {
@@ -516,6 +531,7 @@ routes.post(
   "/usage",
   authMiddleware,
   requireRole([0, 1, 4]), // Admin, Shop Owner, or Cashier
+  moduleGate("loyalty"),
   validateBody(logUsageSchema),
   async (c) => {
     const data = c.get("validatedBody");
@@ -544,6 +560,7 @@ routes.get(
   "/usage",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateQuery(usageLogFiltersSchema as any),
   async (c) => {
     const filters = c.get("validatedQuery");
@@ -568,6 +585,7 @@ routes.post(
   "/usage/:id/cancel",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(idParamSchema as any),
   validateBody(cancelUsageSchema),
   async (c) => {
@@ -594,6 +612,7 @@ routes.post(
   "/usage/:id/refund",
   authMiddleware,
   requireRole([0, 1]),
+  moduleGate("loyalty"),
   validateParams(idParamSchema as any),
   async (c) => {
     const { id } = c.get("validatedParams");

@@ -6,6 +6,7 @@
 
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
   validateQuery,
@@ -82,6 +83,7 @@ routes.get(
 routes.post(
   "/",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
   validateBody(createCouponSchema),
   async (c) => {
@@ -116,6 +118,7 @@ routes.post(
 routes.get(
   "/",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
   validateQuery(couponFiltersSchema as any),
   async (c) => {
@@ -153,18 +156,24 @@ routes.get(
  * 獲取優惠券彙總統計
  * GET /api/v1/coupons/stats/summary
  */
-routes.get("/stats/summary", authMiddleware, requireRole([0, 1]), async (c) => {
-  const user = c.get("user");
-  const couponsService = new CouponsService(c.env.DB as any, c.env);
+routes.get(
+  "/stats/summary",
+  authMiddleware,
+  moduleGate("coupons"),
+  requireRole([0, 1]),
+  async (c) => {
+    const user = c.get("user");
+    const couponsService = new CouponsService(c.env.DB as any, c.env);
 
-  const restaurantId = user.role === 1 ? user.restaurantId : undefined;
-  const stats = await couponsService.getCouponSummaryStats(restaurantId);
+    const restaurantId = user.role === 1 ? user.restaurantId : undefined;
+    const stats = await couponsService.getCouponSummaryStats(restaurantId);
 
-  return c.json({
-    success: true,
-    data: stats,
-  });
-});
+    return c.json({
+      success: true,
+      data: stats,
+    });
+  },
+);
 
 /**
  * 獲取單個優惠券詳情
@@ -173,6 +182,7 @@ routes.get("/stats/summary", authMiddleware, requireRole([0, 1]), async (c) => {
 routes.get(
   "/:id",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
   validateParams(idParamSchema as any),
   async (c) => {
@@ -205,6 +215,7 @@ routes.get(
 routes.put(
   "/:id",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
   validateParams(idParamSchema as any),
   validateBody(updateCouponSchema),
@@ -242,6 +253,7 @@ routes.put(
 routes.post(
   "/:id/deactivate",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
   validateParams(idParamSchema as any),
   async (c) => {
@@ -278,6 +290,7 @@ routes.post(
 routes.delete(
   "/:id",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0]), // 僅管理員
   validateParams(idParamSchema as any),
   async (c) => {
@@ -307,6 +320,7 @@ routes.delete(
 routes.get(
   "/:id/stats",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
   validateParams(idParamSchema as any),
   async (c) => {
@@ -351,6 +365,7 @@ routes.get(
 routes.post(
   "/bulk",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
   validateBody(bulkActionSchema),
   async (c) => {
@@ -403,6 +418,7 @@ routes.post(
 routes.post(
   "/use",
   authMiddleware,
+  moduleGate("coupons"),
   validateBody(useCouponSchema),
   async (c) => {
     const data = c.get("validatedBody");
@@ -424,6 +440,7 @@ routes.post(
 routes.get(
   "/analytics/trends",
   authMiddleware,
+  moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
   async (c) => {
     const user = c.get("user");

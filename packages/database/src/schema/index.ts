@@ -31,6 +31,7 @@ export * from "./discovery";
 export * from "./ai-analytics";
 export * from "./backup";
 export * from "./feedback";
+export * from "./subscriptions";
 
 // 匯出所有關聯定義
 export { restaurantRelations } from "./restaurants";
@@ -116,6 +117,7 @@ export {
   restoreOperationsRelations,
 } from "./backup";
 export { shopFeedbackRelations, feedbackResponsesRelations } from "./feedback";
+export { shopSubscriptionsRelations } from "./subscriptions";
 
 // 重新匯出類型
 export type { UserRole } from "./users";
@@ -172,6 +174,8 @@ export {
   FEEDBACK_MODULES,
 } from "./feedback";
 export { PLATFORM_TYPES, MENU_SYNC_STATUS } from "./platform-integrations";
+export { MODULES, PLAN_TIERS, PLAN_DEFAULT_MODULES } from "./subscriptions";
+export type { ModuleKey, ModuleMap, PlanTier } from "./subscriptions";
 export type { PlatformType, MenuSyncStatus } from "./platform-integrations";
 export { MENU_MAPPING_SYNC_STATUS } from "./platform-menu-mappings";
 export type { MenuMappingSyncStatus } from "./platform-menu-mappings";

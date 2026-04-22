@@ -37,6 +37,11 @@ vi.mock("@makanmakan/database", () => ({
   }),
 }));
 
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: any, next: any) => await next()),
+  invalidateSubscriptionCache: vi.fn().mockResolvedValue(undefined),
+}));
+
 const mockEnv = { DB: {}, CACHE_KV: {} };
 
 // Helper to attach the unified error handler to any test app

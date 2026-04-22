@@ -18,7 +18,15 @@
  * - GET /api/v1/orders/group/statistics - Get statistics
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  vi,
+} from "vitest";
 import {
   createTestApp,
   createTestDB,
@@ -28,6 +36,11 @@ import {
 } from "../../../__tests__/helpers/test-utils";
 import type { Hono } from "hono";
 import type { Env } from "../../../types/env";
+
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: any, next: any) => await next()),
+  invalidateSubscriptionCache: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("Group Orders E2E Tests", () => {
   let app: Hono<{ Bindings: Env }>;

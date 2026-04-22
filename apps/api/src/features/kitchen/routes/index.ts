@@ -5,6 +5,7 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, sseAuthMiddleware } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import type { Env } from "../../../types/env";
 import { KitchenService } from "../services/KitchenService";
 import { createSuccessResponse } from "../../../shared/utils/response";
@@ -21,96 +22,106 @@ const app = new Hono<{ Bindings: Env }>();
  * events flow through the realtime WebSocket (REALTIME_SESSION Durable
  * Object), not through this stream.
  */
-app.get("/:restaurantId/events", sseAuthMiddleware, async (c) => {
-  const restaurantId = c.req.param("restaurantId");
-  const user = c.get("user");
-  const kitchenService = new KitchenService(c.env);
+app.get(
+  "/:restaurantId/events",
+  sseAuthMiddleware,
+  moduleGate("kitchen_display"),
+  async (c) => {
+    const restaurantId = c.req.param("restaurantId");
+    const user = c.get("user");
+    const kitchenService = new KitchenService(c.env);
 
-  if (!kitchenService.validateChefAccess(user.id, user.role, restaurantId)) {
-    throw forbidden(
-      "Access denied. Chef role required.",
-      "CHEF_ACCESS_REQUIRED",
+    if (!kitchenService.validateChefAccess(user.id, user.role, restaurantId)) {
+      throw forbidden(
+        "Access denied. Chef role required.",
+        "CHEF_ACCESS_REQUIRED",
+      );
+    }
+
+    if (user.restaurantId !== restaurantId) {
+      throw forbidden(
+        "Access denied. Restaurant permission required.",
+        "RESTAURANT_ACCESS_DENIED",
+      );
+    }
+
+    console.log(
+      `Kitchen SSE connection requested for restaurant ${restaurantId} by user ${user.id}`,
     );
-  }
 
-  if (user.restaurantId !== restaurantId) {
-    throw forbidden(
-      "Access denied. Restaurant permission required.",
-      "RESTAURANT_ACCESS_DENIED",
-    );
-  }
+    return streamSSE(c, async (stream) => {
+      // Send initial connection confirmation. Don't await — Hono's streamSSE
+      // needs the handler to yield quickly so the initial response headers
+      // and body chunk are flushed to the client.
+      stream.writeSSE({
+        event: "connected",
+        data: JSON.stringify({
+          type: "HEARTBEAT",
+          timestamp: new Date().toISOString(),
+          restaurantId,
+          message: "Kitchen display connected successfully",
+        }),
+        id: `heartbeat_${Date.now()}`,
+      });
 
-  console.log(
-    `Kitchen SSE connection requested for restaurant ${restaurantId} by user ${user.id}`,
-  );
+      const heartbeatInterval = setInterval(() => {
+        try {
+          stream.writeSSE({
+            event: "heartbeat",
+            data: JSON.stringify({
+              type: "HEARTBEAT",
+              timestamp: new Date().toISOString(),
+              restaurantId,
+            }),
+            id: `heartbeat_${Date.now()}`,
+          });
+        } catch (error) {
+          console.error("Kitchen SSE heartbeat failed:", error);
+          clearInterval(heartbeatInterval);
+        }
+      }, 30000);
 
-  return streamSSE(c, async (stream) => {
-    // Send initial connection confirmation. Don't await — Hono's streamSSE
-    // needs the handler to yield quickly so the initial response headers
-    // and body chunk are flushed to the client.
-    stream.writeSSE({
-      event: "connected",
-      data: JSON.stringify({
-        type: "HEARTBEAT",
-        timestamp: new Date().toISOString(),
-        restaurantId,
-        message: "Kitchen display connected successfully",
-      }),
-      id: `heartbeat_${Date.now()}`,
-    });
-
-    const heartbeatInterval = setInterval(() => {
-      try {
-        stream.writeSSE({
-          event: "heartbeat",
-          data: JSON.stringify({
-            type: "HEARTBEAT",
-            timestamp: new Date().toISOString(),
-            restaurantId,
-          }),
-          id: `heartbeat_${Date.now()}`,
+      // Keep stream alive until client disconnects
+      await new Promise<void>((resolve) => {
+        c.req.raw.signal?.addEventListener("abort", () => {
+          console.log(
+            `Kitchen SSE connection closed (restaurant ${restaurantId})`,
+          );
+          clearInterval(heartbeatInterval);
+          resolve();
         });
-      } catch (error) {
-        console.error("Kitchen SSE heartbeat failed:", error);
-        clearInterval(heartbeatInterval);
-      }
-    }, 30000);
-
-    // Keep stream alive until client disconnects
-    await new Promise<void>((resolve) => {
-      c.req.raw.signal?.addEventListener("abort", () => {
-        console.log(
-          `Kitchen SSE connection closed (restaurant ${restaurantId})`,
-        );
-        clearInterval(heartbeatInterval);
-        resolve();
       });
     });
-  });
-});
+  },
+);
 
 /**
  * 獲取廚房訂單資料
  * GET /api/v1/kitchen/{restaurantId}/orders
  */
-app.get("/:restaurantId/orders", authMiddleware, async (c) => {
-  const restaurantId = c.req.param("restaurantId");
-  const user = c.get("user");
-  const kitchenService = new KitchenService(c.env);
+app.get(
+  "/:restaurantId/orders",
+  authMiddleware,
+  moduleGate("kitchen_display"),
+  async (c) => {
+    const restaurantId = c.req.param("restaurantId");
+    const user = c.get("user");
+    const kitchenService = new KitchenService(c.env);
 
-  if (
-    !kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
-    user.restaurantId !== restaurantId
-  ) {
-    throw forbidden("Access denied", "ACCESS_DENIED");
-  }
+    if (
+      !kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
+      user.restaurantId !== restaurantId
+    ) {
+      throw forbidden("Access denied", "ACCESS_DENIED");
+    }
 
-  const data = await kitchenService.getKitchenOrders(restaurantId, user.id);
+    const data = await kitchenService.getKitchenOrders(restaurantId, user.id);
 
-  return c.json(
-    createSuccessResponse(data, "Kitchen orders retrieved successfully"),
-  );
-});
+    return c.json(
+      createSuccessResponse(data, "Kitchen orders retrieved successfully"),
+    );
+  },
+);
 
 /**
  * 更新訂單項目狀態
@@ -119,6 +130,7 @@ app.get("/:restaurantId/orders", authMiddleware, async (c) => {
 app.put(
   "/:restaurantId/orders/:orderId/items/:itemId",
   authMiddleware,
+  moduleGate("kitchen_display"),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
     const orderId = parseInt(c.req.param("orderId"));

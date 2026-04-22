@@ -33,6 +33,7 @@ import {
   forbidden,
   badRequest,
 } from "../../../shared/utils/api-error";
+import { moduleGate } from "../../../middleware/moduleGate";
 import type { CallerContext } from "../types";
 import { ROLE_STATUS_PERMISSIONS } from "../types";
 // DB-schema string-union OrderStatus, used for query filter values that must
@@ -312,6 +313,7 @@ app.get("/guest/:id", guestTokenAuth, async (c) => {
 app.post(
   "/preview-coupon",
   customerAuthMiddleware,
+  moduleGate("online_ordering"),
   validateBody(orderSchemas.couponPreview),
   async (c) => {
     const data: CouponPreviewInput = c.get("validatedBody");
@@ -345,6 +347,7 @@ app.post(
 app.post(
   "/",
   customerAuthMiddleware,
+  moduleGate("online_ordering"),
   validateBody(orderSchemas.createOrder),
   async (c) => {
     const data: CreateOrderInput = c.get("validatedBody");
@@ -416,6 +419,7 @@ app.get(
   "/",
   customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
+  moduleGate("online_ordering"),
   validateQuery(orderSchemas.orderFilters),
   async (c) => {
     const query: OrderFiltersInput = c.get("validatedQuery");
@@ -475,6 +479,7 @@ app.get(
   "/stats",
   customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
+  moduleGate("analytics"),
   validateQuery(orderSchemas.stats),
   async (c) => {
     const query: StatsQueryInput = c.get("validatedQuery");
@@ -513,6 +518,7 @@ app.get(
   "/analytics",
   customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
+  moduleGate("analytics"),
   validateQuery(orderSchemas.analytics),
   async (c) => {
     const query: AnalyticsQueryInput = c.get("validatedQuery");
@@ -552,6 +558,7 @@ app.get(
   "/active",
   customerAuthMiddleware,
   requireRole([0, 1, 2, 3]), // All except cashier
+  moduleGate("online_ordering"),
   async (c) => {
     const user: AuthUser = c.get("user");
     const ordersService = new OrdersService(c.env);
@@ -582,6 +589,7 @@ app.get(
   "/:id",
   customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
+  moduleGate("online_ordering"),
   validateParams(orderSchemas.params),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -620,6 +628,7 @@ app.put(
   "/:id/status",
   customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4]),
+  moduleGate("online_ordering"),
   validateParams(orderSchemas.params),
   validateBody(orderSchemas.updateOrderStatus),
   async (c) => {
@@ -741,6 +750,7 @@ app.delete(
   "/:id",
   customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
+  moduleGate("online_ordering"),
   validateParams(orderSchemas.params),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -818,6 +828,7 @@ app.post(
   "/bulk",
   customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
+  moduleGate("online_ordering"),
   validateBody(orderSchemas.bulkOperation),
   async (c) => {
     const data: BulkOrderOperationInput = c.get("validatedBody");
@@ -846,6 +857,7 @@ app.post(
   "/export",
   customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
+  moduleGate("online_ordering"),
   validateBody(orderSchemas.export),
   async (c) => {
     const data = c.get("validatedBody");
@@ -896,6 +908,7 @@ app.get(
   "/:id/receipt",
   customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
+  moduleGate("receipt_printing"),
   validateParams(orderSchemas.params),
   async (c) => {
     const { id } = c.get("validatedParams");

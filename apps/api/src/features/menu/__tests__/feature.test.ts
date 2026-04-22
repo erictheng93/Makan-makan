@@ -108,6 +108,11 @@ vi.mock("../../../shared/middleware", () => ({
   }),
 }));
 
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: any, next: any) => await next()),
+  invalidateSubscriptionCache: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock Logger
 const mockLogger = {
   info: vi.fn(),

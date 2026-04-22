@@ -44,6 +44,11 @@ vi.mock("../services/AIAnalyticsService", () => {
   return { AIAnalyticsService: MockService };
 });
 
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: any, next: any) => await next()),
+  invalidateSubscriptionCache: vi.fn().mockResolvedValue(undefined),
+}));
+
 const mockEnv = {
   DB: {},
   CACHE_KV: {},

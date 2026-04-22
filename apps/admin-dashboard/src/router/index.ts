@@ -346,6 +346,16 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN],
         },
       },
+      // Subscription management (Admin only - platform level)
+      {
+        path: "subscriptions",
+        name: "Subscriptions",
+        component: () => import("@/views/SubscriptionsView.vue"),
+        meta: {
+          titleKey: "pages.subscriptions",
+          roles: [UserRole.ADMIN],
+        },
+      },
       // System monitoring
       {
         path: "monitoring",
@@ -446,6 +456,7 @@ router.beforeEach(async (to, _, next) => {
     "Settings",
     "AccountManagement",
     "Feedback", // Admin views all shops' feedback at platform level
+    "Subscriptions", // Admin manages all subscriptions at platform level
   ];
   if (authStore.isAdminRole && !authStore.hasRestaurantContext) {
     if (routeName && !platformRoutes.includes(routeName)) {

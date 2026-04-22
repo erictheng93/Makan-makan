@@ -431,6 +431,23 @@ class SharedDataStore {
       )
     `);
 
+    // 14. Shop Subscriptions Table
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS shop_subscriptions (
+        id TEXT PRIMARY KEY,
+        restaurant_id TEXT NOT NULL UNIQUE,
+        plan_tier TEXT NOT NULL DEFAULT 'trial',
+        module_overrides TEXT DEFAULT '{}',
+        is_active INTEGER NOT NULL DEFAULT 1,
+        trial_ends_at_ms INTEGER,
+        billing_cycle_start_at_ms INTEGER,
+        billing_cycle_end_at_ms INTEGER,
+        notes TEXT,
+        created_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+        updated_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+      )
+    `);
+
     console.log("[SharedDataStore] Tables created successfully");
   }
 
@@ -1524,6 +1541,22 @@ async function runMigrations(db: TestDB) {
 
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_group_activity_logs_group_order_id ON group_activity_logs(group_order_id)
+  `);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS shop_subscriptions (
+      id TEXT PRIMARY KEY,
+      restaurant_id TEXT NOT NULL UNIQUE,
+      plan_tier TEXT NOT NULL DEFAULT 'trial',
+      module_overrides TEXT DEFAULT '{}',
+      is_active INTEGER NOT NULL DEFAULT 1,
+      trial_ends_at_ms INTEGER,
+      billing_cycle_start_at_ms INTEGER,
+      billing_cycle_end_at_ms INTEGER,
+      notes TEXT,
+      created_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+      updated_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+    )
   `);
 }
 

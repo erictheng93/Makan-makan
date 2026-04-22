@@ -87,6 +87,11 @@ vi.mock("../services/PlatformMenuSyncService", () => ({
   }),
 }));
 
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: any, next: any) => await next()),
+  invalidateSubscriptionCache: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
 import adminRoutes from "../routes/admin";

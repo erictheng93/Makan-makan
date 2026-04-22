@@ -6,6 +6,7 @@
 
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
   validateQuery,
@@ -31,6 +32,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.get(
   "/",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -74,6 +76,7 @@ app.get(
 app.get(
   "/:id",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -146,6 +149,7 @@ const createTableHandler = async (c: any) => {
 app.post(
   "/",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(tableSchemas.create),
   createTableHandler,
@@ -158,6 +162,7 @@ app.post(
 app.put(
   "/:id",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam as any),
   validateBody(tableSchemas.update),
@@ -200,6 +205,7 @@ app.put(
 app.delete(
   "/:id",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam as any),
   async (c) => {
@@ -244,6 +250,7 @@ app.delete(
 app.post(
   "/:id/occupy",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -304,6 +311,7 @@ app.post(
 app.post(
   "/:id/release",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -353,6 +361,7 @@ app.post(
 app.post(
   "/:id/clean",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVICE]),
   validateParams(tableSchemas.idParam as any),
   validateBody(tableSchemas.clean),
@@ -399,6 +408,7 @@ app.post(
 app.post(
   "/:id/regenerate-qr",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam as any),
   validateBody(tableSchemas.regenerateQR),
@@ -448,6 +458,7 @@ app.post(
 app.post(
   "/bulk-qr",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(tableSchemas.bulkQR),
   async (c) => {
@@ -495,6 +506,7 @@ app.post(
 app.get(
   "/available",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -537,6 +549,7 @@ app.get(
 app.get(
   "/stats",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateQuery(tableSchemas.stats as any),
   async (c) => {

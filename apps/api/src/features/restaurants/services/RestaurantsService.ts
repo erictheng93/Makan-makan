@@ -8,6 +8,7 @@ import { KVCacheService, type CacheService } from "../../../core/cache";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
 import type { Env } from "../../../shared/types";
+import { SubscriptionService } from "../../subscriptions/services/SubscriptionService";
 import type {
   Restaurant,
   EnhancedRestaurantStats,
@@ -19,12 +20,14 @@ import type {
 
 export class RestaurantsService {
   private dbService: DatabaseRestaurantService;
+  private subscriptionService: SubscriptionService;
   private cache: CacheService;
   private logger: ConsoleLogger;
   private env: Env;
 
   constructor(db: Env["DB"], env: Env, kv?: Env["CACHE_KV"]) {
     this.dbService = new DatabaseRestaurantService(db, env);
+    this.subscriptionService = new SubscriptionService(db);
     this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any);
     this.logger = new ConsoleLogger("RestaurantsService");
     this.env = env;
@@ -122,6 +125,27 @@ export class RestaurantsService {
       this.logger.debug("Creating restaurant", { name: data.name });
 
       const restaurant = await this.dbService.createRestaurant(data);
+
+      // Auto-create a 30-day trial subscription for the new restaurant
+      const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      try {
+        await this.subscriptionService.create({
+          restaurantId: restaurant.id,
+          planTier: "trial",
+          trialEndsAt,
+        });
+        this.logger.info("Trial subscription created", {
+          restaurantId: restaurant.id,
+          trialEndsAt,
+        });
+      } catch (subError) {
+        // Non-fatal — log and continue. Admin can create subscription manually.
+        this.logger.error(
+          "Failed to auto-create subscription (non-fatal)",
+          subError as Error,
+          { restaurantId: restaurant.id },
+        );
+      }
 
       // Clear relevant caches
       await this.invalidateListCaches();

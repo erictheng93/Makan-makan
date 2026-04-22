@@ -98,6 +98,7 @@ import forecastFeature from "./features/forecast";
 import ingredientsFeature from "./features/ingredients";
 import discoveryFeature from "./features/discovery";
 import feedbackFeature from "./features/feedback";
+import subscriptionsFeature from "./features/subscriptions";
 import { ErrorSanitizer } from "./utils/errorSanitizer";
 import { ApiError } from "./shared/utils/api-error";
 import type { Env } from "./types/env";
@@ -520,6 +521,11 @@ export function createApp(
   apiV1.route("/discovery", discoveryFeature.routes);
   apiV1.route("/feedback", feedbackFeature.routes);
   apiV1.route("/notifications", notificationsRoutes);
+
+  // Admin-only routes — auth + role=0 enforced inside the feature module itself
+  apiV1.use("/admin/*", authMiddleware);
+  apiV1.route("/admin/subscriptions", subscriptionsFeature.routes);
+
   // 掛載 API 路由
   app.route("/api/v1", apiV1);
 

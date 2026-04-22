@@ -5,6 +5,7 @@
 
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
   validateQuery,
@@ -29,6 +30,7 @@ app.get(
   "/",
   authMiddleware,
   requireRole([0, 1]), // Admin or Owner
+  moduleGate("online_ordering"),
   async (c) => {
     const restaurantId = c.req.query("restaurantId");
     const status = c.req.query("status");
@@ -69,6 +71,7 @@ app.post(
   "/generate-code",
   authMiddleware,
   requireRole([0, 1, 2, 3, 4]),
+  moduleGate("online_ordering"),
   async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const user = c.get("user");
@@ -102,56 +105,62 @@ app.post(
  * Export group orders
  * GET /api/v1/orders/group/export
  */
-app.get("/export", authMiddleware, requireRole([0, 1]), async (c) => {
-  const restaurantId = c.req.query("restaurantId");
-  const status = c.req.query("status");
-  const user = c.get("user");
+app.get(
+  "/export",
+  authMiddleware,
+  requireRole([0, 1]),
+  moduleGate("online_ordering"),
+  async (c) => {
+    const restaurantId = c.req.query("restaurantId");
+    const status = c.req.query("status");
+    const user = c.get("user");
 
-  const targetRestaurantId = restaurantId || String(user.restaurantId);
+    const targetRestaurantId = restaurantId || String(user.restaurantId);
 
-  const groupOrderService = new GroupOrdersService(
-    c.env.DB as any,
-    c.env.CACHE_KV,
-  );
-  const orders = await groupOrderService.listGroupOrders(
-    targetRestaurantId,
-    status || undefined,
-  );
-
-  // Generate CSV
-  const headers = [
-    "ID",
-    "Share Code",
-    "Status",
-    "Host",
-    "Members",
-    "Items",
-    "Total Amount",
-    "Created At",
-  ];
-  const csvRows = [headers.join(",")];
-  for (const order of orders) {
-    csvRows.push(
-      [
-        order.id,
-        order.shareCode,
-        order.status,
-        order.hostName,
-        order.memberCount,
-        order.itemCount,
-        order.totalAmount,
-        order.createdAt,
-      ].join(","),
+    const groupOrderService = new GroupOrdersService(
+      c.env.DB as any,
+      c.env.CACHE_KV,
     );
-  }
+    const orders = await groupOrderService.listGroupOrders(
+      targetRestaurantId,
+      status || undefined,
+    );
 
-  return new Response(csvRows.join("\n"), {
-    headers: {
-      "Content-Type": "text/csv",
-      "Content-Disposition": 'attachment; filename="group-orders-export.csv"',
-    },
-  });
-});
+    // Generate CSV
+    const headers = [
+      "ID",
+      "Share Code",
+      "Status",
+      "Host",
+      "Members",
+      "Items",
+      "Total Amount",
+      "Created At",
+    ];
+    const csvRows = [headers.join(",")];
+    for (const order of orders) {
+      csvRows.push(
+        [
+          order.id,
+          order.shareCode,
+          order.status,
+          order.hostName,
+          order.memberCount,
+          order.itemCount,
+          order.totalAmount,
+          order.createdAt,
+        ].join(","),
+      );
+    }
+
+    return new Response(csvRows.join("\n"), {
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": 'attachment; filename="group-orders-export.csv"',
+      },
+    });
+  },
+);
 
 /**
  * Create group order
@@ -161,6 +170,7 @@ app.post(
   "/create",
   authMiddleware,
   requireRole([0, 1, 2, 3, 4]), // All authenticated users can create group orders
+  moduleGate("online_ordering"),
   validateBody(groupOrderSchemas.createGroupOrder),
   async (c) => {
     const data = c.get("validatedBody");
@@ -257,6 +267,7 @@ app.get(
   "/statistics",
   authMiddleware,
   requireRole([0, 1]), // Admin or Owner
+  moduleGate("online_ordering"),
   validateQuery(groupOrderSchemas.statisticsQuery),
   async (c) => {
     const { restaurantId, timeRange } = c.get("validatedQuery");
@@ -592,6 +603,7 @@ app.post(
   "/cleanup/expired",
   authMiddleware,
   requireRole([0]), // Admin only
+  moduleGate("online_ordering"),
   async (c) => {
     const groupOrderService = new GroupOrdersService(
       c.env.DB as any,

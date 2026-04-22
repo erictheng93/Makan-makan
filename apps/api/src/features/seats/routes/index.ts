@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import { SeatService, USER_ROLES } from "@makanmakan/database";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
   validateQuery,
@@ -43,6 +44,7 @@ function createSeatService(env: Env): SeatService {
 routes.get(
   "/",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -74,6 +76,7 @@ routes.get(
 routes.get(
   "/stats",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateQuery(tableIdQuerySchema as any),
   async (c) => {
@@ -134,6 +137,7 @@ routes.get(
 routes.get(
   "/:id",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -166,6 +170,7 @@ routes.get(
 routes.post(
   "/batch-create",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(batchCreateSeatsSchema),
   async (c) => {
@@ -198,6 +203,7 @@ routes.post(
 routes.post(
   "/batch-regenerate-qr",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(batchRegenerateQRSchema),
   async (c) => {
@@ -225,6 +231,7 @@ routes.post(
 routes.put(
   "/:id",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
   validateBody(updateSeatSchema),
@@ -256,6 +263,7 @@ routes.put(
 routes.delete(
   "/:id",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {
@@ -288,6 +296,7 @@ routes.delete(
 routes.delete(
   "/table/:tableId",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableIdParamSchema as any),
   async (c) => {
@@ -314,6 +323,7 @@ routes.delete(
 routes.post(
   "/:id/occupy",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -357,6 +367,7 @@ routes.post(
 routes.post(
   "/:id/release",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([
     USER_ROLES.ADMIN,
     USER_ROLES.OWNER,
@@ -394,6 +405,7 @@ routes.post(
 routes.post(
   "/:id/regenerate-qr",
   authMiddleware,
+  moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam as any),
   async (c) => {

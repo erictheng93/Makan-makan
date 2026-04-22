@@ -10,6 +10,7 @@ import type {
 } from "@makanmakan/shared-types";
 import type { Env } from "../../../types/env";
 import { requireRole } from "../../../shared/middleware";
+import { moduleGate } from "../../../middleware/moduleGate";
 import { PlatformIntegrationService } from "../services/PlatformIntegrationService";
 import { PlatformOrderService } from "../services/PlatformOrderService";
 import { PlatformMenuSyncService } from "../services/PlatformMenuSyncService";
@@ -19,6 +20,7 @@ const adminRoutes = new Hono<{ Bindings: Env }>();
 
 // All admin routes require admin (0) or shop owner (1) role
 adminRoutes.use("/*", requireRole([0, 1]));
+adminRoutes.use("/*", moduleGate("platform_integration"));
 
 // GET /:restaurantId — list all integrations
 adminRoutes.get("/:restaurantId", async (c) => {

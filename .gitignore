@@ -176,6 +176,7 @@ vitest.workspace.ts.bak
 !packages/shared/src/i18n/src/eslint-rules.js
 !apps/api/src/__tests__/sql.js.d.ts
 !apps/kitchen-display/src/types/index-signatures.d.ts
+!apps/api/src/types/modules.d.ts
 
 # Vite temporary files
 vite.config.ts.timestamp-*.mjs

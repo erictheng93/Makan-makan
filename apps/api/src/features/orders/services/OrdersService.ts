@@ -1189,7 +1189,6 @@ export class OrdersService implements IOrdersService {
       customerId: filters.customerId,
       status: filters.status,
       tableId: filters.tableId,
-      customerId: filters.customerId,
       dateRange:
         filters.dateFrom && filters.dateTo
           ? [new Date(filters.dateFrom), new Date(filters.dateTo)]
