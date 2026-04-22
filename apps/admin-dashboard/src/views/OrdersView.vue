@@ -80,7 +80,7 @@
               v-model="searchQuery"
               type="text"
               :placeholder="t('orders.searchPlaceholder')"
-              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full pl-10 pr-4 py-2 bg-white border-0 rounded-xl shadow-ios-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
             />
           </div>
 
@@ -88,7 +88,7 @@
           <div class="flex flex-wrap gap-2">
             <select
               v-model="statusFilter"
-              class="flex-1 min-w-[120px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allStatus") }}</option>
               <option value="pending">{{ t("orders.status.pending") }}</option>
@@ -113,7 +113,7 @@
 
             <select
               v-model="typeFilter"
-              class="flex-1 min-w-[120px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allTypes") }}</option>
               <option value="dine_in">{{ t("orders.type.dineIn") }}</option>
@@ -123,7 +123,7 @@
 
             <select
               v-model="sourceFilter"
-              class="flex-1 min-w-[120px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allSources") }}</option>
               <option value="direct">{{ t("orders.source.direct") }}</option>

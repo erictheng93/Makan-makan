@@ -22,7 +22,7 @@
           <option value="year">{{ t("analytics.period.year") }}</option>
         </select>
         <button
-          class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+          class="flex items-center px-4 py-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-colors disabled:opacity-50"
           :disabled="isExporting"
           @click="exportReport"
         >
@@ -230,7 +230,7 @@
                 :class="status.color"
                 class="w-16 h-16 rounded-full flex items-center justify-center mb-2"
               >
-                <span class="text-white font-bold text-lg">{{
+                <span :class="status.textColor" class="font-bold text-lg">{{
                   status.count
                 }}</span>
               </div>
@@ -566,22 +566,26 @@ const orderStatusData = computed(() => {
     {
       name: t("analytics.orderStatus.delivered"),
       count: completed,
-      color: "bg-green-500",
+      color: "bg-green-100",
+      textColor: "text-green-700",
     },
     {
       name: t("analytics.orderStatus.preparing"),
       count: inProgress,
-      color: "bg-blue-500",
+      color: "bg-blue-100",
+      textColor: "text-blue-700",
     },
     {
       name: t("analytics.orderStatus.pending"),
       count: 0,
-      color: "bg-yellow-500",
+      color: "bg-amber-100",
+      textColor: "text-amber-700",
     },
     {
       name: t("analytics.orderStatus.cancelled"),
       count: cancelled,
-      color: "bg-red-500",
+      color: "bg-red-100",
+      textColor: "text-red-700",
     },
   ];
 });
