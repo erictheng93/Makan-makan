@@ -6,6 +6,9 @@
 # Generate a secure secret: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 JWT_SECRET=your-secure-jwt-secret-min-32-chars-long-change-this-value
 
+# Comma-separated local frontend origins allowed by CSRF origin checks
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
+
 # Optional: Add other secrets needed for local development
 # ANTHROPIC_API_KEY=your-anthropic-key
 # OPENAI_API_KEY=your-openai-key

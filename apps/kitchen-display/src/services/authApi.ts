@@ -4,6 +4,7 @@ import type { ApiResponse, User } from "@/types";
 // Create the shared API client with kitchen-specific config
 export const apiClient = createAuthenticatedApiClient({
   storageKeyPrefix: "kitchen",
+  csrf: true,
   onAuthFailure: () => {
     window.location.href = "/login";
   },
