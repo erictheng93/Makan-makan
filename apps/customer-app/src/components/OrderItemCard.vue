@@ -68,7 +68,7 @@
               ]"
             >
               <div
-                v-if="item.status === 1"
+                v-if="item.status === OrderItemStatus.PREPARING"
                 class="w-2 h-2 bg-current rounded-full animate-pulse mr-1"
               />
               {{ statusText }}
@@ -91,7 +91,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
-import type { OrderItem } from "@makanmakan/shared-types";
+import { OrderItemStatus, type OrderItem } from "@makanmakan/shared-types";
 import { useI18n } from "@/composables/useI18n";
 
 // Props
@@ -135,10 +135,10 @@ const customizationText = computed(() => {
 });
 
 const statusMap = computed(() => ({
-  0: t("orderItem.statusPending"),
-  1: t("orderItem.statusPreparing"),
-  2: t("orderItem.statusReady"),
-  3: t("orderItem.statusServed"),
+  [OrderItemStatus.PENDING]: t("orderItem.statusPending"),
+  [OrderItemStatus.PREPARING]: t("orderItem.statusPreparing"),
+  [OrderItemStatus.READY]: t("orderItem.statusReady"),
+  [OrderItemStatus.DELIVERED]: t("orderItem.statusServed"),
 }));
 
 const statusText = computed(() => {
@@ -152,10 +152,10 @@ const statusClasses = computed(() => {
   if (!props.showStatus || props.item.status === undefined) return "";
 
   const classMap = {
-    0: "bg-ios-orange/15 text-ios-orange",
-    1: "bg-ios-orange/15 text-ios-orange",
-    2: "bg-ios-green/15 text-ios-green",
-    3: "bg-gray-100 text-ios-secondary",
+    [OrderItemStatus.PENDING]: "bg-ios-orange/15 text-ios-orange",
+    [OrderItemStatus.PREPARING]: "bg-ios-orange/15 text-ios-orange",
+    [OrderItemStatus.READY]: "bg-ios-green/15 text-ios-green",
+    [OrderItemStatus.DELIVERED]: "bg-gray-100 text-ios-secondary",
   };
 
   return (

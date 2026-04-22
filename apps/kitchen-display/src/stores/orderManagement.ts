@@ -408,10 +408,10 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
       setFilter("priority", ["urgent"]);
     },
     showPendingOnly: () => {
-      setFilter("status", [1]); // CONFIRMED
+      setFilter("status", ["confirmed"]);
     },
     showPreparingOnly: () => {
-      setFilter("status", [2]); // PREPARING
+      setFilter("status", ["preparing"]);
     },
     showWithNotes: () => {
       setFilter("hasNotes", true);

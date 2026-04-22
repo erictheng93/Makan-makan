@@ -58,7 +58,7 @@ function buildMenuItem(overrides: Partial<MenuItem> = {}): MenuItem {
  * - 備註
  * - 狀態標籤（可選）
  *
- * 元件使用數字狀態 (0-3) 而非字串狀態
+ * 元件使用 shared-types 的 OrderItemStatus enum
  */
 describe("OrderItemCard.vue", () => {
   let wrapper: VueWrapper<any>;
@@ -93,7 +93,7 @@ describe("OrderItemCard.vue", () => {
       ],
     },
     notes: "不要香菜",
-    status: OrderItemStatus.PENDING, // 0
+    status: OrderItemStatus.PENDING,
     createdAt: "2024-01-01T00:00:00Z",
     updatedAt: "2024-01-01T00:00:00Z",
   };
@@ -197,27 +197,27 @@ describe("OrderItemCard.vue", () => {
       expect(wrapper.text()).not.toContain("Pending");
     });
 
-    it("status=0 應該顯示待處理", () => {
+    it("PENDING 應該顯示待處理", () => {
       expect(wrapper.text()).toContain("Pending");
     });
 
-    it("status=1 應該顯示製作中", async () => {
+    it("PREPARING 應該顯示製作中", async () => {
       await wrapper.setProps({
-        item: { ...mockOrderItem, status: 1 },
+        item: { ...mockOrderItem, status: OrderItemStatus.PREPARING },
       });
       expect(wrapper.text()).toContain("Preparing");
     });
 
-    it("status=2 應該顯示準備完成", async () => {
+    it("READY 應該顯示準備完成", async () => {
       await wrapper.setProps({
-        item: { ...mockOrderItem, status: 2 },
+        item: { ...mockOrderItem, status: OrderItemStatus.READY },
       });
       expect(wrapper.text()).toContain("Ready");
     });
 
-    it("status=3 應該顯示已送達", async () => {
+    it("DELIVERED 應該顯示已送達", async () => {
       await wrapper.setProps({
-        item: { ...mockOrderItem, status: 3 },
+        item: { ...mockOrderItem, status: OrderItemStatus.DELIVERED },
       });
       expect(wrapper.text()).toContain("Served");
     });

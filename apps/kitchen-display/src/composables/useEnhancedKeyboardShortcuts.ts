@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useToast } from "vue-toastification";
 import { enhancedAudioService } from "@/services/enhancedAudioService";
 import { useOrderManagementStore } from "@/stores/orderManagement";
+import type { OrderStatus } from "@/types";
 
 export interface KeyboardShortcut {
   id: string;
@@ -559,10 +560,10 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
   };
 
   const applyFilter = async (filter: string): Promise<boolean> => {
-    const filterMap: Record<string, { status?: number[] }> = {
-      pending: { status: [1] },
-      cooking: { status: [2] },
-      ready: { status: [3] },
+    const filterMap: Record<string, { status?: OrderStatus[] }> = {
+      pending: { status: ["confirmed"] },
+      cooking: { status: ["preparing"] },
+      ready: { status: ["ready"] },
       all: {},
     };
 

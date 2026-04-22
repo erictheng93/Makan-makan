@@ -198,7 +198,7 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
       ["preparing", ["ready", "cancelled"]],
       ["ready", ["delivered", "cancelled"]],
       ["delivered", ["paid", "refunded"]],
-      ["paid", ["refunded"]],
+      ["paid", []],
       ["cancelled", []],
       ["refunded", []],
     ]);

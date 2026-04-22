@@ -278,7 +278,7 @@ describe("OrderManagement Store", () => {
     it("should clear all filters", () => {
       const store = useOrderManagementStore();
 
-      store.setFilter("status", [1]);
+      store.setFilter("status", ["confirmed"]);
       store.setFilter("priority", ["urgent"]);
       store.clearFilters();
 
@@ -290,7 +290,7 @@ describe("OrderManagement Store", () => {
 
       expect(store.hasActiveFilters).toBe(false);
 
-      store.setFilter("status", [1]);
+      store.setFilter("status", ["confirmed"]);
 
       expect(store.hasActiveFilters).toBe(true);
     });
@@ -676,7 +676,7 @@ describe("OrderManagement Store", () => {
 
       store.quickFilters.showPendingOnly();
 
-      expect(store.filters.status).toEqual([1]);
+      expect(store.filters.status).toEqual(["confirmed"]);
     });
 
     it("should apply preparing only filter", () => {
@@ -684,7 +684,7 @@ describe("OrderManagement Store", () => {
 
       store.quickFilters.showPreparingOnly();
 
-      expect(store.filters.status).toEqual([2]);
+      expect(store.filters.status).toEqual(["preparing"]);
     });
 
     it("should apply with notes filter", () => {
@@ -781,7 +781,7 @@ describe("OrderManagement Store", () => {
 
       // Set some state
       store.selectOrder(1);
-      store.setFilter("status", [1]);
+      store.setFilter("status", ["confirmed"]);
       store.setSorting("elapsedTime", "desc");
       store.setViewMode("list");
       store.toggleCompletedOrders();
