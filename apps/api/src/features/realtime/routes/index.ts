@@ -113,16 +113,28 @@ realtimeRoutes.post(
   validateBody(
     z.object({
       token: z.string().min(1, "Token is required"),
+      channel: z.string().min(1, "Channel is required").optional(),
     }),
   ),
   async (c) => {
-    const { token } = c.get("validatedBody");
+    const { token, channel } = c.get("validatedBody");
 
     const authService = new RealtimeAuthService(c.env);
     const verification = await authService.verifyWebSocketToken(token);
 
     if (!verification.valid) {
       throw unauthorized(verification.error || "Invalid token");
+    }
+
+    if (channel && verification.payload) {
+      const channelAccess = authService.verifyChannelAccess(
+        verification.payload,
+        channel,
+      );
+
+      if (!channelAccess.allowed) {
+        throw unauthorized(channelAccess.error || "Channel access denied");
+      }
     }
 
     return c.json(

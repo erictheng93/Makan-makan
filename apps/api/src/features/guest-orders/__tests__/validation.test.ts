@@ -57,6 +57,22 @@ describe("Guest Orders Validation Schemas", () => {
       expect(result.success).toBe(true);
     });
 
+    it("should accept optional clientMutationId", () => {
+      const result = createGuestOrderSchema.safeParse({
+        ...validShopOrder,
+        clientMutationId: "p1-c5-test",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("should reject clientMutationId longer than 100 characters", () => {
+      const result = createGuestOrderSchema.safeParse({
+        ...validShopOrder,
+        clientMutationId: "x".repeat(101),
+      });
+      expect(result.success).toBe(false);
+    });
+
     it("should accept items with customizations", () => {
       const result = createGuestOrderSchema.safeParse({
         ...validShopOrder,

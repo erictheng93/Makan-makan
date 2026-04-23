@@ -4,6 +4,7 @@ import { eq, and, or } from "drizzle-orm";
 import { orders, restaurants, seats, tables } from "@makanmakan/database";
 import { parseSignedQRUrl, verifyQRSignature } from "@makanmakan/utils";
 import type { Env } from "../../../shared/types";
+import type { GuestTokenData } from "../../../middleware/guestAuth";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type {
   GuestRealtimeTokenRequest,
@@ -128,25 +129,29 @@ export class RealtimeAuthService {
       }
 
       const issuedAt = Math.floor(Date.now() / 1000);
-      const expiresAt = issuedAt + 30 * 60;
+      const expiresAt = issuedAt + 15 * 60;
+      const roomId = validated.orderId
+        ? `order:${validated.orderId}`
+        : `customer:${validated.table!.id}`;
       const payload: RealtimeAuthPayload = {
         roomType: "customer",
-        roomId: `customer:${validated.table.id}`,
+        roomId,
         restaurantId: validated.restaurant.id,
         role: "customer",
         guestFlag: true,
-        tableId: String(validated.table.id),
-        orderId: validated.orderId,
         exp: expiresAt,
         iat: issuedAt,
       };
 
+      if (validated.orderId) {
+        payload.scope = "guest-realtime";
+        payload.orderId = validated.orderId;
+      } else {
+        payload.tableId = String(validated.table!.id);
+      }
+
       const token = sign(payload, this.realtimeJwtSecret);
-      const wsUrl = this.buildWebSocketUrl(
-        "customer",
-        String(validated.table.id),
-        token,
-      );
+      const wsUrl = this.buildWebSocketUrl("customer", roomId, token);
 
       return {
         token,
@@ -190,12 +195,21 @@ export class RealtimeAuthService {
       }
 
       if (payload.guestFlag) {
-        if (
-          payload.roomType !== "customer" ||
-          payload.role !== "customer" ||
-          !payload.tableId ||
-          payload.roomId !== `customer:${payload.tableId}`
-        ) {
+        const isScopedGuestRealtime =
+          payload.scope === "guest-realtime" &&
+          payload.roomType === "customer" &&
+          payload.role === "customer" &&
+          !!payload.orderId &&
+          payload.roomId === `order:${payload.orderId}`;
+
+        const isLegacyGuestRealtime =
+          !payload.scope &&
+          payload.roomType === "customer" &&
+          payload.role === "customer" &&
+          !!payload.tableId &&
+          payload.roomId === `customer:${payload.tableId}`;
+
+        if (!isScopedGuestRealtime && !isLegacyGuestRealtime) {
           return {
             valid: false,
             error: "Invalid guest token payload",
@@ -232,6 +246,26 @@ export class RealtimeAuthService {
         error: "Token verification failed",
       };
     }
+  }
+
+  verifyChannelAccess(
+    payload: RealtimeAuthPayload,
+    channel: string,
+  ): { allowed: boolean; error?: string } {
+    if (payload.scope !== "guest-realtime") {
+      return { allowed: true };
+    }
+
+    if (!payload.orderId) {
+      return { allowed: false, error: "Invalid guest token payload" };
+    }
+
+    const expectedChannel = `order:${payload.orderId}`;
+    if (channel !== expectedChannel) {
+      return { allowed: false, error: "Token is not scoped to this channel" };
+    }
+
+    return { allowed: true };
   }
 
   async revokeToken(
@@ -404,11 +438,38 @@ export class RealtimeAuthService {
   ): Promise<
     | {
         restaurant: { id: string };
-        table: { id: number; restaurantId: string; number: string };
+        table?: { id: number; restaurantId: string; number: string };
         orderId?: string;
       }
     | { error: string }
   > {
+    if (request.guestToken) {
+      const tokenData = (await this.env.CACHE_KV.get(
+        `guest_token:${request.guestToken}`,
+        "json",
+      )) as GuestTokenData | null;
+
+      if (!tokenData) {
+        return { error: "Guest token expired or invalid" };
+      }
+
+      if (
+        tokenData.orderId !== request.orderId ||
+        tokenData.restaurantId !== request.restaurantId
+      ) {
+        return { error: "Guest token does not match this order" };
+      }
+
+      return {
+        restaurant: { id: tokenData.restaurantId },
+        orderId: tokenData.orderId,
+      };
+    }
+
+    if (!request.qrCode || !request.tableId) {
+      return { error: "A guest token or signed table QR code is required" };
+    }
+
     const qrPayload = parseSignedQRUrl(request.qrCode);
     if (!qrPayload || qrPayload.type !== "table") {
       return { error: "A valid signed table QR code is required" };

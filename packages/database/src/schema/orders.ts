@@ -4,6 +4,7 @@ import {
   integer,
   real,
   index,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurants";
@@ -51,6 +52,7 @@ export const orders = sqliteTable(
 
     // 訂單基本資訊
     orderNumber: text("order_number").notNull().unique(), // 訂單編號
+    clientMutationId: text("client_mutation_id"),
     status: text("status").notNull().default(ORDER_STATUS.PENDING),
     version: integer("version").notNull().default(0),
     orderType: text("order_type")
@@ -145,6 +147,10 @@ export const orders = sqliteTable(
       table.status,
     ),
     orderNumberIdx: index("orders_order_number_idx").on(table.orderNumber),
+    clientMutationIdx: uniqueIndex("orders_client_mutation_unique").on(
+      table.restaurantId,
+      table.clientMutationId,
+    ),
     customerIdx: index("orders_customer_idx").on(
       table.customerId,
       table.createdAt,

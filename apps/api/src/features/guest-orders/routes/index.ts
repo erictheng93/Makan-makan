@@ -5,9 +5,10 @@
  */
 
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   createDatabase,
+  orders,
   restaurants,
   tables,
   seats,
@@ -83,6 +84,26 @@ app.post("/", async (c) => {
   const activeOrderKey = `guest_active:${data.restaurantId}:${guestIdentifier}`;
   const existingActiveOrder = await c.env.CACHE_KV.get(activeOrderKey);
   if (existingActiveOrder) {
+    if (data.clientMutationId) {
+      const duplicateMutation = await db
+        .select({ id: orders.id })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.restaurantId, data.restaurantId),
+            eq(orders.clientMutationId, data.clientMutationId),
+          ),
+        )
+        .get();
+
+      if (duplicateMutation) {
+        throw conflict(
+          "Client mutation has already been processed",
+          "CLIENT_MUTATION_DUPLICATE",
+        );
+      }
+    }
+
     return c.json(
       {
         success: false,
@@ -142,6 +163,7 @@ app.post("/", async (c) => {
         notes: item.notes,
       })),
       notes: data.notes,
+      clientMutationId: data.clientMutationId,
       orderType: data.orderType,
       deliveryInfo: {
         type: fulfillmentType,
@@ -158,6 +180,16 @@ app.post("/", async (c) => {
       /^Menu item \d+ is not available$/.test(error.message)
     ) {
       throw conflict(error.message, "MENU_ITEM_UNAVAILABLE");
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "CLIENT_MUTATION_DUPLICATE"
+    ) {
+      throw conflict(
+        "Client mutation has already been processed",
+        "CLIENT_MUTATION_DUPLICATE",
+      );
     }
 
     throw error;

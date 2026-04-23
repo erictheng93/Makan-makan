@@ -35,6 +35,17 @@ vi.mock("drizzle-orm", () => ({
 }));
 
 vi.mock("@makanmakan/database", () => ({
+  orders: {
+    id: "id",
+    restaurantId: "restaurantId",
+    tableId: "tableId",
+  },
+  restaurants: {
+    id: "id",
+    settings: "settings",
+    isActive: "isActive",
+    isAvailable: "isAvailable",
+  },
   tables: {
     id: "id",
     qrCode: "qrCode",
@@ -310,6 +321,166 @@ describe("Realtime Routes", () => {
         const data = (await verifyResponse.json()) as any;
         expect(data.success).toBe(false);
       }
+    });
+  });
+
+  describe("POST /realtime/auth/guest-token", () => {
+    const guestToken =
+      "gt_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+    beforeEach(() => {
+      mockKV.get.mockImplementation((key: string) => {
+        if (key === `guest_token:${guestToken}`) {
+          return Promise.resolve({
+            orderId: "123",
+            restaurantId: "rest_1",
+            guestName: "Guest",
+            phoneLastDigits: "123",
+            createdAt: Date.now(),
+          });
+        }
+
+        return Promise.resolve(null);
+      });
+    });
+
+    it("issues a scoped realtime token for a matching guest order token", async () => {
+      const response = await app.request(
+        "/realtime/auth/guest-token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guestToken,
+            orderId: "123",
+            restaurantId: "rest_1",
+          }),
+        },
+        mockEnv as Env,
+      );
+
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as any;
+      expect(data.success).toBe(true);
+      expect(data.data?.token).toBeDefined();
+      expect(data.data?.wsUrl).toContain("/customer/order:123");
+    });
+
+    it("allows the scoped guest realtime token on its own order channel", async () => {
+      const tokenResponse = await app.request(
+        "/realtime/auth/guest-token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guestToken,
+            orderId: "123",
+            restaurantId: "rest_1",
+          }),
+        },
+        mockEnv as Env,
+      );
+      const tokenData = (await tokenResponse.json()) as any;
+
+      const verifyResponse = await app.request(
+        "/realtime/auth/verify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: tokenData.data.token,
+            channel: "order:123",
+          }),
+        },
+        mockEnv as Env,
+      );
+
+      expect(verifyResponse.status).toBe(200);
+      const data = (await verifyResponse.json()) as any;
+      expect(data.data?.payload?.scope).toBe("guest-realtime");
+      expect(data.data?.payload?.orderId).toBe("123");
+    });
+
+    it("rejects the scoped guest realtime token on another order channel", async () => {
+      const tokenResponse = await app.request(
+        "/realtime/auth/guest-token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guestToken,
+            orderId: "123",
+            restaurantId: "rest_1",
+          }),
+        },
+        mockEnv as Env,
+      );
+      const tokenData = (await tokenResponse.json()) as any;
+
+      const verifyResponse = await app.request(
+        "/realtime/auth/verify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: tokenData.data.token,
+            channel: "order:456",
+          }),
+        },
+        mockEnv as Env,
+      );
+
+      expect(verifyResponse.status).toBe(401);
+    });
+
+    it("does not accept prefix-matched channel names", async () => {
+      const tokenResponse = await app.request(
+        "/realtime/auth/guest-token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guestToken,
+            orderId: "123",
+            restaurantId: "rest_1",
+          }),
+        },
+        mockEnv as Env,
+      );
+      const tokenData = (await tokenResponse.json()) as any;
+
+      const verifyResponse = await app.request(
+        "/realtime/auth/verify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: tokenData.data.token,
+            channel: "order:123a",
+          }),
+        },
+        mockEnv as Env,
+      );
+
+      expect(verifyResponse.status).toBe(401);
+    });
+
+    it("rejects a guest token that is bound to a different order", async () => {
+      const response = await app.request(
+        "/realtime/auth/guest-token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guestToken,
+            orderId: "456",
+            restaurantId: "rest_1",
+          }),
+        },
+        mockEnv as Env,
+      );
+
+      expect(response.status).toBe(400);
     });
   });
 

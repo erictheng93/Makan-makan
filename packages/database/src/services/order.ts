@@ -38,6 +38,7 @@ export interface CreateOrderData {
   }>;
   notes?: string;
   couponCode?: string;
+  clientMutationId?: string;
   orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
   deliveryInfo?: {
     type: "dine_in" | "takeaway" | "delivery";
@@ -305,6 +306,7 @@ export class OrderService extends BaseService {
           customerInfo: data.customerInfo,
           notes: data.notes,
           couponCode: data.couponCode,
+          clientMutationId: data.clientMutationId,
           orderSource: data.orderSource || "direct",
           deliveryInfo: data.deliveryInfo,
           estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData),
@@ -367,6 +369,11 @@ export class OrderService extends BaseService {
       // Fallback: should not happen, but safe to degrade gracefully
       return this.mapToOrder({ ...order, items });
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("orders.client_mutation_id")) {
+        throw new Error("CLIENT_MUTATION_DUPLICATE");
+      }
+
       this.handleError(error, "createOrder");
     }
   }

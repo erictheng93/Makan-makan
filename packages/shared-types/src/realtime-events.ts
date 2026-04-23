@@ -46,6 +46,7 @@ export interface RealtimeAuthPayload {
   restaurantId: string;
   /** 使用者角色 */
   role: "customer" | "staff" | "admin";
+  scope?: "guest-realtime";
   guestFlag?: boolean;
   /** 桌號 ID（顧客連線時使用） */
   tableId?: string;
@@ -92,9 +93,10 @@ export interface RealtimeAuthTokenResponse {
 
 export interface GuestRealtimeTokenRequest {
   restaurantId: string;
-  tableId: string;
+  guestToken?: string;
+  tableId?: string;
   orderId?: string;
-  qrCode: string;
+  qrCode?: string;
 }
 
 export interface GuestRealtimeTokenResponse {

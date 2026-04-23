@@ -19,12 +19,33 @@ export const webSocketTokenRequestSchema = z.object({
   sessionId: z.string().optional(),
 });
 
-export const guestRealtimeTokenRequestSchema = z.object({
-  restaurantId: z.string().min(1, "Restaurant ID is required"),
-  tableId: z.coerce.string().min(1, "Table ID is required"),
-  orderId: z.coerce.string().min(1).optional(),
-  qrCode: z.string().url("A signed QR URL is required"),
-});
+export const guestRealtimeTokenRequestSchema = z
+  .object({
+    restaurantId: z.string().min(1, "Restaurant ID is required"),
+    guestToken: z
+      .string()
+      .regex(/^gt_[0-9a-f]{64}$/i)
+      .optional(),
+    tableId: z.coerce.string().min(1, "Table ID is required").optional(),
+    orderId: z.coerce.string().min(1, "Order ID is required").optional(),
+    qrCode: z.string().url("A signed QR URL is required").optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.guestToken && !data.orderId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["orderId"],
+        message: "Order ID is required for guest token exchange",
+      });
+    }
+
+    if (!data.guestToken && (!data.tableId || !data.qrCode)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Either guestToken or signed table QR details are required",
+      });
+    }
+  });
 
 /**
  * 導出 schemas 集合

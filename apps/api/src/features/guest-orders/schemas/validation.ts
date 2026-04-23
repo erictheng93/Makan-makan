@@ -89,6 +89,7 @@ export const createGuestOrderSchema = z
     tableId: z.number().int().positive().optional(),
     seatId: z.number().int().positive().optional(),
     items: z.array(guestOrderItemSchema).min(1).max(20),
+    clientMutationId: z.string().max(100).optional(),
     notes: notesSchema(500).optional(),
     deliveryInfo: deliveryInfoSchema.optional(),
   })

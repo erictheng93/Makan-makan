@@ -70,6 +70,7 @@ export interface CreateOrderData {
   orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
   scheduledTime?: Date;
   couponCode?: string;
+  clientMutationId?: string;
   isGuestOrder?: boolean;
   deliveryInfo?: {
     type: "dine_in" | "takeaway" | "delivery";
