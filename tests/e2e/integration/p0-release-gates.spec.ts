@@ -372,9 +372,12 @@ test.describe("Tier 1 P0 release gates", () => {
     ).toEqual(manifest.rowCounts ?? manifest.row_counts);
   });
 
-  // TODO(wave-4): backend needs closed-shift ledger + credit-note/adjustment model
-  // before this gate can run. Unblock by adding `shifts.closed_at`, a
-  // `ledger_adjustments` table, and refund API branching on closed state.
+  // TODO(wave-4): backend K6 contract is implemented — RefundService now
+  // detects cash_shifts.status='closed' and returns ledgerMutation=false +
+  // adjustmentId without posting a cash_movement entry. The only remaining
+  // blocker is test-env seed data: register
+  // 00000000-0000-4000-8000-00000000cafe and closed shift
+  // 00000000-0000-4000-8000-00000000dead must exist before this gate runs.
   test.fixme("K6 refund after close creates an adjustment without mutating closed ledger", async () => {
     const order = await createDeliveredOrder();
     createdOrderIds.push(order.id);

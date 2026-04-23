@@ -4,9 +4,29 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
-import { refunds, orders, cashMovements } from "@makanmakan/database";
+import {
+  refunds,
+  orders,
+  cashMovements,
+  cashShifts,
+} from "@makanmakan/database";
 import type { Refund, ProcessRefundRequest } from "../types";
 import { processRefundSchema } from "../schemas";
+
+// K6 release gate: refunds issued while a shift is already closed must not
+// mutate the closed ledger totals or post a live cash movement. Instead the
+// refund row itself acts as the adjustment/credit-note and the response
+// signals `ledgerMutation: false` so the caller can verify the invariant.
+type PostCloseRefundResult = Refund & {
+  refundId: string;
+  adjustmentId: string;
+  ledgerMutation: false;
+};
+type LiveRefundResult = Refund & {
+  refundId: string;
+  ledgerMutation: true;
+};
+type RefundResult = PostCloseRefundResult | LiveRefundResult;
 
 export class RefundService {
   private db;
@@ -23,7 +43,7 @@ export class RefundService {
     registerId: string,
     processedBy: number,
     shiftId?: string,
-  ): Promise<{ success: boolean; data?: Refund; error?: string }> {
+  ): Promise<{ success: boolean; data?: RefundResult; error?: string }> {
     try {
       const validatedData = processRefundSchema.parse(data);
 
@@ -77,6 +97,19 @@ export class RefundService {
         };
       }
 
+      // K6: detect post-close adjustment by looking up the referenced shift.
+      // Only an explicitly closed shift triggers the no-ledger-mutation path;
+      // active/suspended/unknown shifts fall through to the normal refund flow.
+      let isPostClose = false;
+      if (shiftId) {
+        const [shift] = await this.db
+          .select({ status: cashShifts.status })
+          .from(cashShifts)
+          .where(eq(cashShifts.id, shiftId))
+          .limit(1);
+        isPostClose = shift?.status === "closed";
+      }
+
       const refundId = crypto.randomUUID();
       const refundNumber = `RF${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
 
@@ -97,12 +130,15 @@ export class RefundService {
         processedBy,
         customerSignature: validatedData.customerSignature || null,
         status: "processing",
-        metadata: "{}",
+        metadata: JSON.stringify(
+          isPostClose ? { postCloseAdjustment: true } : {},
+        ),
         processedAt,
       });
 
-      // 記錄現金流動（如果是現金退款）
-      if (shiftId && validatedData.refundMethod === "cash") {
+      // 記錄現金流動（如果是現金退款）— closed shifts must not mutate the live
+      // ledger. The refund row itself serves as the adjustment record.
+      if (!isPostClose && shiftId && validatedData.refundMethod === "cash") {
         await this.recordCashMovement(shiftId, registerId, {
           type: "refund",
           amount: -validatedData.refundAmount, // 負數表示流出
@@ -122,13 +158,25 @@ export class RefundService {
         .where(eq(refunds.id, refundId))
         .limit(1);
 
+      const base = {
+        ...refund,
+        itemsRefunded: JSON.parse((refund.itemsRefunded as string) || "[]"),
+        metadata: JSON.parse((refund.metadata as string) || "{}"),
+        refundId: refund.id,
+      };
+
       return {
         success: true,
-        data: {
-          ...refund,
-          itemsRefunded: JSON.parse((refund.itemsRefunded as string) || "[]"),
-          metadata: JSON.parse((refund.metadata as string) || "{}"),
-        } as any,
+        data: (isPostClose
+          ? {
+              ...base,
+              adjustmentId: refund.id,
+              ledgerMutation: false,
+            }
+          : {
+              ...base,
+              ledgerMutation: true,
+            }) as RefundResult,
       };
     } catch (error) {
       console.error("處理退款失敗:", error);

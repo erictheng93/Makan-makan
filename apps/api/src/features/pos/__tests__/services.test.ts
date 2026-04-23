@@ -1495,6 +1495,118 @@ describe("POS Services Unit Tests", () => {
 
         expect(result.success).toBe(true);
       });
+
+      // K6 release gate: refund against a closed shift must create the
+      // refund row but not mutate the closed ledger, and the response must
+      // expose an adjustmentId plus ledgerMutation=false.
+      it("closed shift: returns adjustmentId + ledgerMutation=false and skips cash movement", async () => {
+        const service = new RefundService({} as any);
+
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: 1,
+                totalAmount: 1000,
+                total_amount: "1000",
+                status: "completed",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ totalRefunded: 0 }]);
+          } else if (selectCallCount === 3) {
+            // Shift lookup — simulated CLOSED shift
+            return createChain([{ status: "closed" }]);
+          } else {
+            return createChain([
+              {
+                id: "refund-closed-001",
+                refundAmount: 1000,
+                status: "processing",
+                itemsRefunded: "[]",
+                metadata: '{"postCloseAdjustment":true}',
+              },
+            ]);
+          }
+        });
+        setupInsert();
+
+        const result = await service.processRefund(
+          {
+            originalOrderId: 1,
+            refundType: "full",
+            refundAmount: 1000,
+            refundMethod: "cash",
+            reasonCode: "after_close",
+            reasonDescription: "K6 closed-ledger drill",
+          },
+          "reg-closed",
+          1,
+          "shift-closed-001",
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.data?.ledgerMutation).toBe(false);
+        expect(result.data?.adjustmentId).toBe("refund-closed-001");
+        // Only the refund insert should fire; no cash movement.
+        expect(mockInsert).toHaveBeenCalledTimes(1);
+      });
+
+      it("active shift: returns ledgerMutation=true and records a cash movement", async () => {
+        const service = new RefundService({} as any);
+
+        let selectCallCount = 0;
+        mockSelect.mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            return createChain([
+              {
+                id: 1,
+                totalAmount: 1000,
+                total_amount: "1000",
+                status: "completed",
+              },
+            ]);
+          } else if (selectCallCount === 2) {
+            return createChain([{ totalRefunded: 0 }]);
+          } else if (selectCallCount === 3) {
+            // Shift lookup — simulated ACTIVE shift
+            return createChain([{ status: "active" }]);
+          } else {
+            return createChain([
+              {
+                id: "refund-active-001",
+                refundAmount: 1000,
+                status: "processing",
+                itemsRefunded: "[]",
+                metadata: "{}",
+              },
+            ]);
+          }
+        });
+        setupInsert();
+
+        const result = await service.processRefund(
+          {
+            originalOrderId: 1,
+            refundType: "full",
+            refundAmount: 1000,
+            refundMethod: "cash",
+            reasonCode: "customer_request",
+          },
+          "reg-active",
+          1,
+          "shift-active-001",
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.data?.ledgerMutation).toBe(true);
+        expect((result.data as any)?.adjustmentId).toBeUndefined();
+        // Refund insert + cash_movement insert.
+        expect(mockInsert).toHaveBeenCalledTimes(2);
+      });
     });
 
     describe("getRefunds", () => {
