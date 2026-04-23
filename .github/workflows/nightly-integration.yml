@@ -106,6 +106,19 @@ jobs:
           pnpm wrangler d1 execute makanmakan-local --local \
             --file=../../packages/database/migrations/dev-only/0049_p0_gate_seed.sql
 
+      # 005_backup_system.sql lives under packages/database/src/migrations/
+      # rather than migrations_fresh/, so `wrangler d1 migrations apply`
+      # does NOT pick it up. Without it, POST /api/v1/backup/create
+      # fails with "Failed query: select count(*) from backup_records"
+      # (the table simply does not exist), blocking the A6 gate. Apply
+      # the orphan SQL explicitly here until it is relocated into the
+      # standard migrations_fresh/ path.
+      - name: 🗂️ Apply orphan backup schema (005_backup_system.sql)
+        working-directory: apps/api
+        run: |
+          pnpm wrangler d1 execute makanmakan-local --local \
+            --file=../../packages/database/src/migrations/005_backup_system.sql
+
       - name: 🚀 啟動 API dev server
         run: |
           cd apps/api && pnpm dev > /tmp/api-server.log 2>&1 &
