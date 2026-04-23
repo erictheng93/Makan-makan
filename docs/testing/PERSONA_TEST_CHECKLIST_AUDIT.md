@@ -21,14 +21,21 @@ Current audit summary:
 - Total persona/cross-persona risk points in `personas.md`: `85`
 - Note: the requested `82` total / `27` new rows does not match the current file. The listed added ranges (`M1-M5`, `E1-E7`, `C13-C15`, `H7-H9`, `S5-S7`, `K11`, `A5-A7`, `X7-X11`) add up to `30` rows.
 - Baseline estimate before re-checking added specs: `14 Covered / 18 Partial / 53 Missing`
-- Current verified status after enforcing real-API coverage only: `1 Covered / 42 Partial / 42 Missing`
+- Current verified status after enforcing real-API coverage only: `1 Covered / 44 Partial / 40 Missing`
 - Explicit spec paths cited by the document or audit: `33`
 - Existing cited spec files: `33`
 - Missing cited spec files: `0`
 
+P0 gate backend implementation progress:
+- Wave 1 (C10, A1, X9): notes-sanitize zod transform, user tokenVersion column, per-request user row recheck in authMiddleware. Unit coverage in place; release gate waits on CI.
+- Wave 2 (A6): BackupService emits manifest with per-table rowCounts and SHA-256 checksum on create; restore recomputes and compares checksum + rowCounts.
+- Wave 3 (K7, E1, E2): `/api/v1/payments` enabled with server-authoritative total re-compute and partial-payment strict sum check; `X-Payment-Gateway-Fixture: timeout` gated on NODE_ENV !== "production"; reusable `idempotency_keys` table + middleware with scope, request-hash, pending-race, expired-reuse, and effectId persistence; webhook handler keyed on `event_id` and a test-signature bypass behind `ALLOW_TEST_SIGNATURE`.
+- Wave 4 (K6): RefundService now detects `cash_shifts.status = 'closed'` and branches to an adjustment path — refund row is still persisted for audit but no cash_movement is posted; response exposes `adjustmentId` and `ledgerMutation: false`.
+
 Blocker skeleton specs:
 - `tests/e2e/journeys/customer/malicious-input.spec.ts` exists and hits the real API for sanitizer/security release gates.
 - `tests/e2e/journeys/chef/cancel-during-prep.spec.ts` exists and hits the real API for cancel-lock release gates.
+- `tests/e2e/integration/p0-release-gates.spec.ts` runs all `11` Tier 1 gates; 5 of them are `test.fixme` until the remaining backend (M1) or seed data (K6 register/closed shift, E2 uber-eats integration row) is in place.
 
 Additional existing specs now considered:
 - `tests/e2e/integration/auth-api.spec.ts`
@@ -63,6 +70,15 @@ Additional existing specs now considered:
 - `apps/api/src/features/integrations/__tests__/webhook.routes.test.ts`
 - `apps/api/src/features/integrations/__tests__/UberEatsAdapter.test.ts`
 - `apps/api/src/__tests__/integration-legacy-mockdrizzle/webhooks.integration.test.ts`
+- `apps/api/src/features/payments/services/PaymentService.ts` (Wave 3 backend)
+- `apps/api/src/features/payments/routes/index.ts` (Wave 3 backend)
+- `apps/api/src/features/payments/schemas/validation.ts` (Wave 3 backend)
+- `apps/api/src/middleware/idempotency.ts` (Wave 3 middleware)
+- `apps/api/src/middleware/__tests__/idempotency.test.ts` (8 tests covering key-required, replay, body-mismatch, scope-mismatch, pending-race, expired-reuse, effectId persistence, requireKey-false skip)
+- `apps/api/src/features/integrations/routes/webhook.ts` (Wave 3 idempotency + test-signature bypass)
+- `apps/api/src/features/pos/services/RefundService.ts` (Wave 4 closed-shift branch)
+- `packages/database/src/schema/idempotency-keys.ts` + `migrations_fresh/0017_idempotency-keys.sql` (Wave 3 schema)
+- `packages/database/src/schema/users.ts` tokenVersion + `migrations_fresh/0016_add_user_token_version.sql` (Wave 1 schema)
 
 ## Test Execution Priority
 
@@ -204,8 +220,8 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | K3 | P0 | Amount mismatch | server-side amount recompute, forced reset, cashier confirmation | Server rejects mismatched amount and preserves authoritative total. | Partial | `pos-shift-errors.spec.ts` mocks amount mismatch; needs real server-side amount recompute test. |
 | K4 | P1 | Printer offline after successful payment | payment finality decoupled from print, retry print path | Payment stays paid while receipt print enters retry/reprint path. | Partial | Current test mocks payment and receipt failure; needs real payment finality + print queue/health assertion. |
 | K5 | P0 | Payment timeout `504` | authoritative payment-status polling, unpaid lock, manual reconciliation | Timeout leaves payment pending/unconfirmed until status poll resolves. | Partial | `pos-shift-errors.spec.ts` mocks timeout; needs mocked gateway contract hitting real payment handler/status poll. |
-| K6 | P0 | Refund after closing period | credit-note / allowance flow, immutable closed ledger | Closed ledger cannot be mutated; refund creates allowed adjustment record. | Partial | POS refund service tests cover refund limits; `p0-release-gates.spec.ts` now hits the real POS refund API and asserts credit-note/allowance output without closed-ledger mutation. |
-| K7 | P0 | Partial-payment sum mismatch | exact total enforcement, split allocation validator | Split payments cannot close unless sum exactly equals authoritative total. | Partial | Group-order split/payment tests cover calculated split amounts; `p0-release-gates.spec.ts` now hits the real payments API contract and asserts mismatched partial payments cannot close the order. |
+| K6 | P0 | Refund after closing period | credit-note / allowance flow, immutable closed ledger | Closed ledger cannot be mutated; refund creates allowed adjustment record. | Partial | Wave 4 implemented `RefundService` closed-shift branch (`cash_shifts.status='closed'` → no `cash_movements` insert, response exposes `adjustmentId` + `ledgerMutation: false`); unit tests cover both branches (`services.test.ts` +2). `p0-release-gates.spec.ts` gate stays `test.fixme` until register `...cafe` and closed shift `...dead` UUIDs are seeded in the integration DB. |
+| K7 | P0 | Partial-payment sum mismatch | exact total enforcement, split allocation validator | Split payments cannot close unless sum exactly equals authoritative total. | Partial | Wave 3 enabled `/api/v1/payments` (previously disabled in `app-factory.ts`) with server-authoritative total recompute. Partial-mode mismatch returns 409 `PARTIAL_PAYMENT_TOTAL_MISMATCH` and never sets `orders.paymentStatus = paid`. `p0-release-gates.spec.ts` asserts this end-to-end; waiting on CI to turn the assertion green. |
 | K8 | P1 | Drawer total differs from system total at shift end | reconciliation summary, supervisor review, variance logging | Variance is logged and requires review before close completes. | Partial | `tests/e2e/journeys/cashier/pos-shift.spec.ts` covers reconciliation summary, not variance escalation. |
 | K9 | P2 | New order arrives during handoff | handoff lock, incoming-order queueing, next-shift acceptance | Order arriving during handoff is assigned by explicit handoff rule. | Missing | Backlog only. |
 | K10 | P0 | Same coupon used by multiple orders | atomic redemption, single-use lock, post-payment verification | Concurrent redemption allows one order and rejects/rolls back the other. | Partial | `coupon-management.spec.ts`, `coupon-api.spec.ts`, and `coupon-checkout.spec.ts` cover validate/manage/apply flows; `p1-current-quarter-gates.spec.ts` now adds concurrent single-use redemption atomicity. |
@@ -247,8 +263,8 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 
 | ID | Risk | Scenario | Solution options | Test Oracle | Status | Evidence / Gap |
 | --- | --- | --- | --- | --- | --- | --- |
-| E1 | P0 | Payment gateway timeout | do not assume success, unpaid lock, status poll correction | Timeout leaves order unpaid/pending until gateway status poll confirms. | Missing | `p0-release-gates.spec.ts` now hits the real payments API with a timeout fixture header and asserts no paid state without authoritative confirmation. |
-| E2 | P0 | Delayed payment callback triggers duplicate effects | idempotent webhook handler, only-once effect | Duplicate webhook creates one state transition/payment effect. | Missing | `p0-release-gates.spec.ts` now posts duplicate real webhook requests with the same idempotency key and asserts no duplicate effect. |
+| E1 | P0 | Payment gateway timeout | do not assume success, unpaid lock, status poll correction | Timeout leaves order unpaid/pending until gateway status poll confirms. | Partial | Wave 3 `PaymentService.processPayment` honors `X-Payment-Gateway-Fixture: timeout` (gated on `NODE_ENV !== 'production'`) and returns 202 with `paymentStatus: 'pending'`, never flipping the order to paid. `p0-release-gates.spec.ts` asserts the pending state; CI run pending. |
+| E2 | P0 | Delayed payment callback triggers duplicate effects | idempotent webhook handler, only-once effect | Duplicate webhook creates one state transition/payment effect. | Partial | Wave 3 wires `idempotencyMiddleware(scope: 'webhook')` keyed on `Idempotency-Key` or body `event_id` onto `/integrations/webhooks/uber-eats`. Replays serve the cached response with `data.duplicateEffects: 0` + `X-Idempotent-Replay: true`. Test signature bypass behind `ALLOW_TEST_SIGNATURE`. `p0-release-gates.spec.ts` asserts only-once; waiting on CI + `platform_integrations` seed row for store id `p0-test-store`. |
 | E3 | P1 | Third-party menu sync fails | local system source of truth, retry/report failure | Local menu remains authoritative and sync failure records retryable error. | Missing | New external row; no matching spec. |
 | E4 | P1 | Printer / print agent offline | flow does not block, queue reprint, health visible | Order/payment flow completes and print job is queued with offline health status. | Partial | Print-agent and queue-core tests cover print job creation, no-printer unhealthy health, offline status, and queue behavior; no order/payment flow proves print failure is non-blocking. |
 | E5 | P1 | SMS / Email cannot be sent | order flow unaffected, notification state traceable | Order succeeds and notification failure is recorded for retry. | Partial | `NotificationService.test.ts` covers email/SMS provider failure and bulk partial failure; API feature tests cover failed notification responses. Missing order-flow unaffected/retry-state assertion. |

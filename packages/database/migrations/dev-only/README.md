@@ -14,6 +14,7 @@ Running them in production creates critical security vulnerabilities.
 | `0022_payment_system_seed_data.sql.skip` | Same file, disabled | — |
 | `0039_fix_test_user_passwords.sql` | Resets test user passwords to known values | Known passwords in prod |
 | `0048_add_test_accounts.sql` | Creates 8 test accounts (admin/admin123, etc.) | **Admin account with public password** |
+| `0049_p0_gate_seed.sql` | Seeds the fixed UUIDs + Uber Eats integration that Tier 1 P0 release gates hardcode (K6, E2). | Synthetic closed shift + known webhook secret in prod |
 
 ## How to use (local dev only)
 

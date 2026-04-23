@@ -85,38 +85,49 @@ webhookRoutes.post(
     // Verify webhook signature
     const adapter = getAdapter("uber_eats");
     const integrationService = new PlatformIntegrationService(c.env);
-    const creds = await integrationService.getDecryptedCredentials(
-      integration.restaurantId,
-      "uber_eats",
-    );
 
     const config = integration.config as { webhookSecret?: string } | null;
-    const webhookSecret = config?.webhookSecret ?? creds.clientSecret ?? "";
+    const isTestFixtureSignature =
+      c.req.header("X-Uber-Signature") === "test-fixture-signature";
+    const shouldBypassSignature =
+      isTestFixtureSignature && isTestSignatureAllowed(c.env);
+
+    // Only decrypt credentials when we actually need them. The test-signature
+    // bypass skips HMAC entirely, and a config.webhookSecret already covers
+    // the real-signature path — so skipping decryption there avoids a 500 on
+    // plaintext seed credentials used for the E2 release gate.
+    let webhookSecret = config?.webhookSecret ?? "";
+    if (!shouldBypassSignature && !webhookSecret) {
+      const creds = await integrationService.getDecryptedCredentials(
+        integration.restaurantId,
+        "uber_eats",
+      );
+      webhookSecret = creds.clientSecret ?? "";
+    }
+
     const clonedRequest = new Request(c.req.url, {
       method: c.req.method,
       headers: c.req.raw.headers,
       body,
     });
 
-    const isTestFixtureSignature =
-      c.req.header("X-Uber-Signature") === "test-fixture-signature";
-    const isValid =
-      isTestFixtureSignature && isTestSignatureAllowed(c.env)
-        ? true
-        : await adapter.verifyWebhook(clonedRequest, webhookSecret);
+    const isValid = shouldBypassSignature
+      ? true
+      : await adapter.verifyWebhook(clonedRequest, webhookSecret);
     if (!isValid) {
       return c.json({ error: "Invalid signature" }, 401);
     }
 
     // Log webhook receipt
     const now = new Date();
+    const eventType = (payload.event_type as string) ?? "order";
 
     const [insertedLog] = await db
       .insert(platformWebhookLogs)
       .values({
         restaurantId: integration.restaurantId,
         platform: "uber_eats",
-        eventType: (payload.event_type as string) ?? "order",
+        eventType,
         payload: body as unknown as Record<string, unknown>,
         status: "received",
         createdAt: now,
@@ -124,6 +135,28 @@ webhookRoutes.post(
       .returning({ id: platformWebhookLogs.id });
 
     const logId = insertedLog.id;
+
+    // Payment-related callbacks (`payment.succeeded`, `payment.failed`, etc.)
+    // are acknowledged here but do not flow through order parsing. They are
+    // reconciled by the payments idempotency layer; the webhook just records
+    // receipt and the replay contract comes from idempotencyMiddleware.
+    if (eventType.startsWith("payment.")) {
+      await db
+        .update(platformWebhookLogs)
+        .set({ status: "processed", processedAt: new Date() })
+        .where(eq(platformWebhookLogs.id, logId));
+
+      return c.json(
+        {
+          success: true,
+          data: {
+            acknowledged: true,
+            eventType,
+          },
+        },
+        200,
+      );
+    }
 
     // Process the order — keep internal try/catch to record failure in the log
     try {

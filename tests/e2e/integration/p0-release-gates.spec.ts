@@ -372,12 +372,11 @@ test.describe("Tier 1 P0 release gates", () => {
     ).toEqual(manifest.rowCounts ?? manifest.row_counts);
   });
 
-  // TODO(wave-4): backend K6 contract is implemented — RefundService now
-  // detects cash_shifts.status='closed' and returns ledgerMutation=false +
-  // adjustmentId without posting a cash_movement entry. The only remaining
-  // blocker is test-env seed data: register
-  // 00000000-0000-4000-8000-00000000cafe and closed shift
-  // 00000000-0000-4000-8000-00000000dead must exist before this gate runs.
+  // TODO(wave-4): backend K6 contract is implemented (RefundService detects
+  // cash_shifts.status='closed' and returns ledgerMutation=false +
+  // adjustmentId). Seed is in
+  // packages/database/migrations/dev-only/0049_p0_gate_seed.sql — the gate
+  // unblocks once CI applies that migration before running e2e integration.
   test.fixme("K6 refund after close creates an adjustment without mutating closed ledger", async () => {
     const order = await createDeliveredOrder();
     createdOrderIds.push(order.id);
@@ -508,9 +507,10 @@ test.describe("Tier 1 P0 release gates", () => {
     );
   });
 
-  // TODO(wave-3): webhook handler needs an idempotency table keyed on event_id
-  // or Idempotency-Key so duplicate callbacks produce `duplicateEffects: 0`.
-  // Test also needs a test-signature bypass behind a wrangler env flag.
+  // TODO(wave-3): idempotency middleware + test-signature bypass are now in
+  // place, and the uber_eats integration seed lives in
+  // packages/database/migrations/dev-only/0049_p0_gate_seed.sql. Unblocks
+  // once CI applies that migration and sets ALLOW_TEST_SIGNATURE=true.
   test.fixme("E2 duplicate payment webhook has only-once effect", async () => {
     const eventId = `p0-e2-${Date.now()}`;
     const body = JSON.stringify({
