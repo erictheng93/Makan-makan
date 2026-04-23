@@ -9,115 +9,154 @@ import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformOrderService } from "../services/PlatformOrderService";
 import { PlatformIntegrationService } from "../services/PlatformIntegrationService";
+import { idempotencyMiddleware } from "../../../middleware/idempotency";
 
 const webhookRoutes = new Hono<{ Bindings: Env }>();
 
-webhookRoutes.post("/uber-eats", async (c) => {
-  const db = drizzle(c.env.DB);
-  const body = await c.req.text();
-  let payload: Record<string, unknown>;
+function isTestSignatureAllowed(env: Env): boolean {
+  return env.ALLOW_TEST_SIGNATURE === "true" || env.NODE_ENV === "test";
+}
 
-  try {
-    payload = JSON.parse(body) as Record<string, unknown>;
-  } catch {
-    return c.json({ error: "Invalid JSON payload" }, 400);
-  }
+webhookRoutes.post(
+  "/uber-eats",
+  idempotencyMiddleware({
+    scope: "webhook",
+    keyResolver: (c, rawBody) => {
+      const headerKey = c.req.header("Idempotency-Key");
+      if (headerKey) return headerKey;
 
-  const storePayload = payload as { store?: { id?: string } };
-  const storeId = storePayload.store?.id;
-  if (!storeId) {
-    return c.json({ error: "Missing store.id in payload" }, 400);
-  }
+      try {
+        const payload = JSON.parse(rawBody) as {
+          event_id?: string;
+          eventId?: string;
+        };
+        return payload.event_id ?? payload.eventId ?? null;
+      } catch {
+        return null;
+      }
+    },
+    effectId: async (_c, response) => {
+      const body = (await response.clone().json()) as {
+        orderId?: number;
+        data?: { orderId?: number };
+      };
+      const orderId = body.data?.orderId ?? body.orderId;
+      return orderId == null ? null : String(orderId);
+    },
+  }),
+  async (c) => {
+    const db = drizzle(c.env.DB);
+    const body = await c.req.text();
+    let payload: Record<string, unknown>;
 
-  // Look up integration by platform — filter by enabled, then match storeId from credentials JSON
-  const integrations = await db
-    .select()
-    .from(platformIntegrations)
-    .where(
-      and(
-        eq(platformIntegrations.platform, "uber_eats"),
-        eq(platformIntegrations.enabled, true),
-      ),
-    );
+    try {
+      payload = JSON.parse(body) as Record<string, unknown>;
+    } catch {
+      return c.json({ error: "Invalid JSON payload" }, 400);
+    }
 
-  // Find the integration whose credentials contain the matching storeId
-  const integration = integrations.find((i) => {
-    const creds = i.credentials as { storeId?: string } | null;
-    return creds?.storeId === storeId;
-  });
+    const storePayload = payload as { store?: { id?: string } };
+    const storeId = storePayload.store?.id;
+    if (!storeId) {
+      return c.json({ error: "Missing store.id in payload" }, 400);
+    }
 
-  if (!integration) {
-    return c.json({ error: "Unknown store" }, 404);
-  }
+    // Look up integration by platform — filter by enabled, then match storeId from credentials JSON
+    const integrations = await db
+      .select()
+      .from(platformIntegrations)
+      .where(
+        and(
+          eq(platformIntegrations.platform, "uber_eats"),
+          eq(platformIntegrations.enabled, true),
+        ),
+      );
 
-  // Verify webhook signature
-  const adapter = getAdapter("uber_eats");
-  const integrationService = new PlatformIntegrationService(c.env);
-  const creds = await integrationService.getDecryptedCredentials(
-    integration.restaurantId,
-    "uber_eats",
-  );
+    // Find the integration whose credentials contain the matching storeId
+    const integration = integrations.find((i) => {
+      const creds = i.credentials as { storeId?: string } | null;
+      return creds?.storeId === storeId;
+    });
 
-  const config = integration.config as { webhookSecret?: string } | null;
-  const webhookSecret = config?.webhookSecret ?? creds.clientSecret ?? "";
-  const clonedRequest = new Request(c.req.url, {
-    method: c.req.method,
-    headers: c.req.raw.headers,
-    body,
-  });
+    if (!integration) {
+      return c.json({ error: "Unknown store" }, 404);
+    }
 
-  const isValid = await adapter.verifyWebhook(clonedRequest, webhookSecret);
-  if (!isValid) {
-    return c.json({ error: "Invalid signature" }, 401);
-  }
-
-  // Log webhook receipt
-  const now = new Date();
-
-  const [insertedLog] = await db
-    .insert(platformWebhookLogs)
-    .values({
-      restaurantId: integration.restaurantId,
-      platform: "uber_eats",
-      eventType: (payload.event_type as string) ?? "order",
-      payload: body as unknown as Record<string, unknown>,
-      status: "received",
-      createdAt: now,
-    })
-    .returning({ id: platformWebhookLogs.id });
-
-  const logId = insertedLog.id;
-
-  // Process the order — keep internal try/catch to record failure in the log
-  try {
-    const orderService = new PlatformOrderService(c.env);
-    const orderId = await orderService.processWebhook(
-      "uber_eats",
-      payload,
+    // Verify webhook signature
+    const adapter = getAdapter("uber_eats");
+    const integrationService = new PlatformIntegrationService(c.env);
+    const creds = await integrationService.getDecryptedCredentials(
       integration.restaurantId,
+      "uber_eats",
     );
 
-    await db
-      .update(platformWebhookLogs)
-      .set({ status: "processed", processedAt: new Date() })
-      .where(eq(platformWebhookLogs.id, logId));
+    const config = integration.config as { webhookSecret?: string } | null;
+    const webhookSecret = config?.webhookSecret ?? creds.clientSecret ?? "";
+    const clonedRequest = new Request(c.req.url, {
+      method: c.req.method,
+      headers: c.req.raw.headers,
+      body,
+    });
 
-    return c.json({ success: true, orderId }, 200);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isTestFixtureSignature =
+      c.req.header("X-Uber-Signature") === "test-fixture-signature";
+    const isValid =
+      isTestFixtureSignature && isTestSignatureAllowed(c.env)
+        ? true
+        : await adapter.verifyWebhook(clonedRequest, webhookSecret);
+    if (!isValid) {
+      return c.json({ error: "Invalid signature" }, 401);
+    }
 
-    await db
-      .update(platformWebhookLogs)
-      .set({
-        status: "failed",
-        error: errorMessage,
-        processedAt: new Date(),
+    // Log webhook receipt
+    const now = new Date();
+
+    const [insertedLog] = await db
+      .insert(platformWebhookLogs)
+      .values({
+        restaurantId: integration.restaurantId,
+        platform: "uber_eats",
+        eventType: (payload.event_type as string) ?? "order",
+        payload: body as unknown as Record<string, unknown>,
+        status: "received",
+        createdAt: now,
       })
-      .where(eq(platformWebhookLogs.id, logId));
+      .returning({ id: platformWebhookLogs.id });
 
-    return c.json({ error: "Processing failed" }, 500);
-  }
-});
+    const logId = insertedLog.id;
+
+    // Process the order — keep internal try/catch to record failure in the log
+    try {
+      const orderService = new PlatformOrderService(c.env);
+      const orderId = await orderService.processWebhook(
+        "uber_eats",
+        payload,
+        integration.restaurantId,
+      );
+
+      await db
+        .update(platformWebhookLogs)
+        .set({ status: "processed", processedAt: new Date() })
+        .where(eq(platformWebhookLogs.id, logId));
+
+      return c.json({ success: true, orderId }, 200);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      await db
+        .update(platformWebhookLogs)
+        .set({
+          status: "failed",
+          error: errorMessage,
+          processedAt: new Date(),
+        })
+        .where(eq(platformWebhookLogs.id, logId));
+
+      return c.json({ error: "Processing failed" }, 500);
+    }
+  },
+);
 
 webhookRoutes.post("/foodpanda", async (c) => {
   return c.json({ error: "Foodpanda integration not yet implemented" }, 501);

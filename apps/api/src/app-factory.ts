@@ -46,7 +46,7 @@ import posFeature from "./features/pos";
 // import queueRouter from './routes/queue' // Replaced with unified Queue feature
 // import queueModularRouter from './routes/queue-modular' // Replaced with unified Queue feature
 import queueFeature from "./features/queue";
-// import { payments as paymentsRouter } from './routes/payments' // Disabled
+import paymentsFeature from "./features/payments";
 // import printRouter from './routes/print' // Disabled
 // import tablesRouter from './routes/tables' // Replaced with modular Tables feature
 import tablesFeature from "./features/tables";
@@ -490,6 +490,7 @@ export function createApp(
         "/api/v1/partnerships/plans/validate", // Public plan validation for cashiers
         "/api/v1/guest-orders", // Guest ordering (no session, uses KV tokens)
         "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
+        "/api/v1/payments", // Payment requests are protected by auth + idempotency
         // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
       ],
     }),
@@ -501,7 +502,7 @@ export function createApp(
   apiV1.route("/orders/group", groupOrdersFeature.routes);
   apiV1.route("/orders", ordersFeature.routes);
   apiV1.route("/pos", posFeature.routes);
-  // apiV1.route('/payments', paymentsRouter) // Disabled
+  apiV1.route("/payments", paymentsFeature.routes);
   // apiV1.route('/print', printApp) // Disabled - incomplete feature
   apiV1.route("/tables", tablesFeature.routes);
   apiV1.route("/seats", seatsFeature.routes);

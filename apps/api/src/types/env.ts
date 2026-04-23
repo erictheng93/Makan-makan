@@ -109,6 +109,7 @@ export interface Env {
   DEV_CORS_ORIGINS?: string; // Additional dev origins (comma-separated)
 
   // Test-only variables
+  ALLOW_TEST_SIGNATURE?: string;
   MOCK_DRIZZLE_DB?: any; // Mock Drizzle database for testing
   MONITORING_WEBHOOK_URL?: string;
   ALERT_EMAIL_FROM?: string;

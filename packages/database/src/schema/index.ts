@@ -32,6 +32,7 @@ export * from "./ai-analytics";
 export * from "./backup";
 export * from "./feedback";
 export * from "./subscriptions";
+export * from "./idempotency-keys";
 
 // 匯出所有關聯定義
 export { restaurantRelations } from "./restaurants";
@@ -176,6 +177,8 @@ export {
 export { PLATFORM_TYPES, MENU_SYNC_STATUS } from "./platform-integrations";
 export { MODULES, PLAN_TIERS, PLAN_DEFAULT_MODULES } from "./subscriptions";
 export type { ModuleKey, ModuleMap, PlanTier } from "./subscriptions";
+export { IDEMPOTENCY_SCOPES } from "./idempotency-keys";
+export type { IdempotencyScope } from "./idempotency-keys";
 export type { PlatformType, MenuSyncStatus } from "./platform-integrations";
 export { MENU_MAPPING_SYNC_STATUS } from "./platform-menu-mappings";
 export type { MenuMappingSyncStatus } from "./platform-menu-mappings";

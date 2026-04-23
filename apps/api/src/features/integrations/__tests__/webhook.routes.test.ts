@@ -68,8 +68,19 @@ vi.mock("../services/PlatformOrderService", () => ({
 
 import webhookRoutes from "../routes/webhook";
 
+// Idempotency middleware touches the real D1 binding via prepare().bind().
+// These tests do not exercise idempotency behavior — they only need the
+// middleware to fall through without caching. A no-op prepare() stub lets
+// every request appear as a first-time call.
 const mockEnv = {
-  DB: {},
+  DB: {
+    prepare: vi.fn(() => ({
+      bind: vi.fn(() => ({
+        first: vi.fn(async () => null),
+        run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+      })),
+    })),
+  },
   CACHE_KV: {},
   JWT_SECRET: "test-jwt-secret-key-for-testing-only",
   ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
@@ -134,6 +145,7 @@ describe("Webhook Routes — POST /uber-eats", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Idempotency-Key": `test-webhook-${Math.random().toString(36).slice(2)}`,
         "X-Uber-Signature": "valid-sig",
       },
       body,
@@ -150,7 +162,10 @@ describe("Webhook Routes — POST /uber-eats", () => {
   it("returns 400 when body is invalid JSON", async () => {
     const req = new Request("http://localhost/webhooks/uber-eats", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": `test-webhook-${Math.random().toString(36).slice(2)}`,
+      },
       body: "not-valid-json{{{",
     });
 
@@ -166,7 +181,10 @@ describe("Webhook Routes — POST /uber-eats", () => {
 
     const req = new Request("http://localhost/webhooks/uber-eats", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": `test-webhook-${Math.random().toString(36).slice(2)}`,
+      },
       body,
     });
 
@@ -188,7 +206,10 @@ describe("Webhook Routes — POST /uber-eats", () => {
 
     const req = new Request("http://localhost/webhooks/uber-eats", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": `test-webhook-${Math.random().toString(36).slice(2)}`,
+      },
       body,
     });
 
@@ -211,6 +232,7 @@ describe("Webhook Routes — POST /uber-eats", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Idempotency-Key": `test-webhook-${Math.random().toString(36).slice(2)}`,
         "X-Uber-Signature": "bad-sig",
       },
       body,
@@ -235,6 +257,7 @@ describe("Webhook Routes — POST /uber-eats", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Idempotency-Key": `test-webhook-${Math.random().toString(36).slice(2)}`,
         "X-Uber-Signature": "valid-sig",
       },
       body,
@@ -257,6 +280,7 @@ describe("Webhook Routes — POST /uber-eats", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Idempotency-Key": `test-webhook-${Math.random().toString(36).slice(2)}`,
         "X-Uber-Signature": "sig",
       },
       body,
@@ -281,7 +305,10 @@ describe("Webhook Routes — POST /foodpanda", () => {
   it("returns 501 for unimplemented Foodpanda integration", async () => {
     const req = new Request("http://localhost/webhooks/foodpanda", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": `test-webhook-${Math.random().toString(36).slice(2)}`,
+      },
       body: JSON.stringify({ test: true }),
     });
 
