@@ -527,7 +527,11 @@ export const ROLE_STATUS_PERMISSIONS: Record<number, readonly string[]> = {
   1: ["confirmed", "cancelled"], // Owner
   2: ["preparing", "ready"], // Chef
   3: ["delivered"], // Service Crew
-  4: ["confirmed"], // Cashier
+  // Cashier: `confirmed` for taking new orders; `paid` for closing orders
+  // at the counter. Without `paid` the K6 release gate cannot drive an
+  // order through the closed-ledger refund flow, and real cashier UX
+  // cannot mark orders paid via PUT /orders/:id/status.
+  4: ["confirmed", "paid"], // Cashier
 } as const;
 
 // Configuration

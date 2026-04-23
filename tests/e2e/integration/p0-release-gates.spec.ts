@@ -307,23 +307,12 @@ test.describe("Tier 1 P0 release gates", () => {
     expect([401, 403], JSON.stringify(data)).toContain(res.status);
   });
 
-  // TODO(backup): A6 is test.fixme'd until the backup subsystem's
-  // schema lands in the canonical migrations path. Currently blocked
-  // on three layered issues outside P0-CI scope:
-  //   (1) `packages/database/src/migrations/005_backup_system.sql` is
-  //       orphaned under src/migrations/ so `wrangler d1 migrations
-  //       apply` skips it — backup_records is never created in CI D1.
-  //   (2) Even when applied manually the SQL errors with
-  //       "no such column: created_at" — 005 references a
-  //       pre-rename column name (the rest of the schema has moved
-  //       to `*_ms` timestamp columns).
-  //   (3) The gate body passes `include_tables: ["menus", ...]`
-  //       but the schema has `menu_items`, not `menus`, so even a
-  //       clean schema would 400 on validation.
-  // Unblock by (a) moving 005 into migrations_fresh/ with column
-  // names fixed against the live schema, then (b) updating the gate's
-  // include_tables list. Wave 2 A6 backend unit tests already pass.
-  test.fixme("A6 backup restore drill verifies checksum and manifest row counts", async () => {
+  // Wave 2 A6: BackupService create/restore with manifest + checksum.
+  // Blocker cleared — the repaired backup schema now lives in
+  // migrations_fresh/0021_backup_system.sql (005 had a bogus index on
+  // non-existent backup_records.created_at). include_tables /
+  // target_tables use real table names (menu_items, not menus).
+  test("A6 backup restore drill verifies checksum and manifest row counts", async () => {
     const adminAuth = await loginAs(USERS.ADMIN);
     const backupName = `p0-restore-drill-${Date.now()}`;
 
@@ -334,7 +323,7 @@ test.describe("Tier 1 P0 release gates", () => {
         restaurant_id: RESTAURANT_ID,
         name: backupName,
         backup_type: "full",
-        include_tables: ["restaurants", "menus", "orders"],
+        include_tables: ["restaurants", "menu_items", "orders"],
         force_immediate: true,
       }),
     });
@@ -365,7 +354,7 @@ test.describe("Tier 1 P0 release gates", () => {
           restaurant_id: RESTAURANT_ID,
           backup_id: backupId,
           restore_type: "selective",
-          target_tables: ["restaurants", "menus"],
+          target_tables: ["restaurants", "menu_items"],
           overwrite_existing: false,
           safety_confirmation: {
             backup_integrity_verified: true,
@@ -388,19 +377,13 @@ test.describe("Tier 1 P0 release gates", () => {
     ).toEqual(manifest.rowCounts ?? manifest.row_counts);
   });
 
-  // TODO(order-state-machine): K6 is test.fixme'd until the order
-  // status machine allows cashier role (4) to transition delivered →
-  // paid directly. CI sees:
-  //   updateOrderStatus(<id>, paid, cashierAuth) →
-  //     403 "Insufficient permissions for this status change"
-  // The RefundService branch (Wave 4 — closed shift produces
-  // adjustmentId + ledgerMutation=false) is unchanged and correct; the
-  // blocker is purely the helper's inability to drive the order into
-  // a refundable state in the current permission model. Either the
-  // test should pay via POST /api/v1/payments instead of PUT
-  // /orders/:id/status, or the status-machine permission row for
-  // delivered → paid under role 4 needs to be restored.
-  test.fixme("K6 refund after close creates an adjustment without mutating closed ledger", async () => {
+  // Wave 4 K6: RefundService closed-shift branch produces
+  // adjustmentId + ledgerMutation=false. Unblocked by extending
+  // ROLE_STATUS_PERMISSIONS[4] to include "paid" so the helper's
+  // PUT /orders/:id/status path can drive an order into the
+  // refundable state (cashier role now has both "confirmed" and
+  // "paid", matching real counter workflow).
+  test("K6 refund after close creates an adjustment without mutating closed ledger", async () => {
     const order = await createDeliveredOrder();
     createdOrderIds.push(order.id);
 

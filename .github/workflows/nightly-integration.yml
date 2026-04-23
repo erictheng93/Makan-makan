@@ -112,14 +112,13 @@ jobs:
           pnpm wrangler d1 execute makanmakan-local --local \
             --file=../../packages/database/migrations/dev-only/0049_p0_gate_seed.sql
 
-      # NOTE: packages/database/src/migrations/005_backup_system.sql is
-      # intentionally NOT applied. The SQL itself references pre-rename
-      # column names (e.g. `created_at` where the current schema uses
-      # `created_at_ms`) so it errors out with SQLITE_ERROR during
-      # application. Fixing 005 and relocating it into migrations_fresh/
-      # is tracked as follow-up; the A6 gate is `test.fixme` in the
-      # meantime so this CI pipeline does not drag on a known-broken
-      # migration file.
+      # NOTE: the orphan packages/database/src/migrations/005_backup_system.sql
+      # is superseded by migrations_fresh/0021_backup_system.sql (applied
+      # automatically by the step above) and migrations/0058_backup_system.sql
+      # on the legacy track. 005 itself is still in the tree but never
+      # executed by any migration runner, so its bogus index on
+      # backup_records.created_at (a column that does not exist) no longer
+      # blocks the A6 gate.
 
       - name: 🚀 啟動 API dev server
         run: |
