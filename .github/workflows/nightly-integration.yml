@@ -18,6 +18,12 @@ on:
   # schedule:
   #   # 2 AM UTC+8 (Taiwan time) — 18:00 UTC daily
   #   - cron: "0 18 * * *"
+  # Auto-trigger on every PR targeting main so Tier 1 P0 + Tier 2 P1
+  # gates become a required-to-pass invariant. The run is narrow
+  # (P0 + P1 gate specs only) and averages ~3 min on top of pnpm
+  # install, so this is tolerable per PR.
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
