@@ -36,6 +36,29 @@ export const orderItems = sqliteTable(
       description?: string;
       imageUrl?: string;
       category?: string;
+      price?: number;
+      unitPrice?: number;
+      customizations?: {
+        size?: {
+          id: string;
+          name: string;
+          priceAdjustment?: number;
+        };
+        options?: Array<{
+          id: string;
+          optionName: string;
+          choiceId: string;
+          choiceName: string;
+          priceAdjustment?: number;
+        }>;
+        addOns?: Array<{
+          id: string;
+          name: string;
+          quantity: number;
+          unitPrice: number;
+          totalPrice: number;
+        }>;
+      };
     }>(),
 
     // 客製化選項

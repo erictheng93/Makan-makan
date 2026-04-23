@@ -11,6 +11,38 @@ const nonNegativeInteger = z.number().int().min(0);
 const nonEmptyString = z.string().min(1).trim();
 const optionalUrl = z.string().url().nullish();
 const priceSchema = z.number().positive();
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_DATA_URL_CHARS = Math.ceil(MAX_IMAGE_BYTES / 0.75) + 128;
+const ALLOWED_IMAGE_MIME = /^image\/(jpeg|jpg|png|webp|gif)$/i;
+
+const imageUrlSchema = z
+  .string()
+  .max(MAX_IMAGE_DATA_URL_CHARS)
+  .refine(
+    (value) => {
+      if (/^https?:\/\//i.test(value) || value.startsWith("/")) {
+        return true;
+      }
+
+      const dataUrlMatch = value.match(/^data:([^;]+);base64,(.+)$/);
+      if (!dataUrlMatch) {
+        return false;
+      }
+
+      const [, mime, base64] = dataUrlMatch;
+      if (!ALLOWED_IMAGE_MIME.test(mime)) {
+        return false;
+      }
+
+      const approxBytes = Math.floor(base64.length * 0.75);
+      return approxBytes <= MAX_IMAGE_BYTES;
+    },
+    {
+      message:
+        "imageUrl must be a URL or a <=10MB image data URL (jpeg/png/webp/gif)",
+    },
+  )
+  .nullish();
 
 // Menu Item Option Schemas
 const menuItemSizeSchema = z.object({
@@ -94,7 +126,7 @@ export const createMenuItemSchema = z.object({
   ingredients: z.string().max(200).optional(),
   price: priceSchema,
   originalPrice: priceSchema.optional(),
-  imageUrl: optionalUrl,
+  imageUrl: imageUrlSchema,
   imageVariants: imageVariantsSchema.optional(),
   spiceLevel: z.number().int().min(0).max(5).optional().default(0),
   preparationTime: positiveInteger.optional().default(15),
@@ -120,7 +152,7 @@ export const createCategorySchema = z.object({
   name: nonEmptyString.max(50),
   description: z.string().max(200).optional(),
   sortOrder: nonNegativeInteger.optional().default(0),
-  imageUrl: optionalUrl,
+  imageUrl: imageUrlSchema,
 });
 
 export const updateCategorySchema = createCategorySchema.partial().extend({

@@ -43,10 +43,24 @@ export const OrderItemSchema = z.object({
   orderId: z.union([z.number(), z.string()]),
   menuItemId: z.union([z.number(), z.string()]),
   name: z.string().optional(),
+  description: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
   quantity: z.number().int().positive(),
   unitPrice: z.number(),
   totalPrice: z.number(),
   customizations: z.unknown().optional().nullable(),
+  itemSnapshot: z
+    .object({
+      name: z.string(),
+      description: z.string().optional(),
+      imageUrl: z.string().optional(),
+      category: z.string().optional(),
+      price: z.number().optional(),
+      unitPrice: z.number().optional(),
+      customizations: z.unknown().optional(),
+    })
+    .optional()
+    .nullable(),
   notes: z.string().optional().nullable(),
   status: z.string().optional(),
   ...TimestampFields,

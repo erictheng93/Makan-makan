@@ -228,7 +228,10 @@ export class OrderService extends BaseService {
             name: menuItem.name,
             description: menuItem.description || undefined,
             imageUrl: menuItem.imageUrl || undefined,
-            category: "category", // 需要從關聯獲取
+            category: String(menuItem.categoryId),
+            price: menuItem.price,
+            unitPrice,
+            customizations: item.customizations,
           },
         });
       }
@@ -759,6 +762,38 @@ export class OrderService extends BaseService {
 
   // 資料轉換
   private mapToOrder(order: any): Order {
+    const mapOrderItem = (item: any) => {
+      const snapshot = item.itemSnapshot;
+      const snapshotMenuItem = snapshot
+        ? {
+            ...(item.menuItem || {}),
+            name: snapshot.name,
+            description: snapshot.description,
+            imageUrl: snapshot.imageUrl,
+            price: snapshot.price ?? item.unitPrice,
+          }
+        : item.menuItem;
+
+      return {
+        id: item.id,
+        orderId: item.orderId,
+        menuItemId: item.menuItemId,
+        name: snapshot?.name ?? item.menuItem?.name,
+        description: snapshot?.description ?? item.menuItem?.description,
+        imageUrl: snapshot?.imageUrl ?? item.menuItem?.imageUrl,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        customizations: item.customizations,
+        itemSnapshot: snapshot,
+        notes: item.notes,
+        status: item.status,
+        menuItem: snapshotMenuItem,
+        createdAt: toMillis(item.createdAt),
+        updatedAt: toMillis(item.updatedAt),
+      };
+    };
+
     return {
       id: order.id,
       restaurantId: order.restaurantId,
@@ -789,18 +824,7 @@ export class OrderService extends BaseService {
       notes: order.notes,
       internalNotes: order.internalNotes,
       deliveryInfo: order.deliveryInfo,
-      items:
-        order.items?.map((item: any) => ({
-          id: item.id,
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice,
-          customizations: item.customizations,
-          notes: item.notes,
-          status: item.status,
-          menuItem: item.menuItem,
-        })) || [],
+      items: order.items?.map(mapOrderItem) || [],
       restaurant: order.restaurant,
       table: order.table,
       customer: order.customer,

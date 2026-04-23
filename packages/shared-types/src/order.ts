@@ -135,9 +135,20 @@ export interface OrderItem extends BaseEntity {
   unitPrice: number; // in cents, price at time of order
   totalPrice: number; // in cents
   customizations?: SelectedCustomizations;
+  itemSnapshot?: OrderItemSnapshot;
   notes?: string;
   status: OrderItemStatus;
   menuItem?: MenuItem; // populated when needed
+}
+
+export interface OrderItemSnapshot {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  category?: string;
+  price?: number;
+  unitPrice?: number;
+  customizations?: SelectedCustomizations;
 }
 
 export enum OrderItemStatus {

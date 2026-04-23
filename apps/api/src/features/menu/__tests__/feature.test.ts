@@ -613,6 +613,35 @@ describe("Menu Feature Module", () => {
       }
     });
 
+    test("should validate menu item image URLs and image data URLs", async () => {
+      const { menuSchemas } = await import("../schemas/validation");
+      const baseData = {
+        categoryId: 1,
+        name: "Test Item",
+        price: 15.99,
+      };
+      const oneKbImageDataUrl = `data:image/png;base64,${"a".repeat(1368)}`;
+      const textDataUrl = `data:text/plain;base64,${"a".repeat(1368)}`;
+
+      expect(
+        menuSchemas.createMenuItem.safeParse({
+          ...baseData,
+          imageUrl: "https://example.com/image.jpg",
+        }).success,
+      ).toBe(true);
+      expect(
+        menuSchemas.createMenuItem.safeParse({
+          ...baseData,
+          imageUrl: oneKbImageDataUrl,
+        }).success,
+      ).toBe(true);
+      expect(
+        menuSchemas.updateMenuItem.safeParse({
+          imageUrl: textDataUrl,
+        }).success,
+      ).toBe(false);
+    });
+
     test("should validate search filters", async () => {
       const { menuSchemas } = await import("../schemas/validation");
 
