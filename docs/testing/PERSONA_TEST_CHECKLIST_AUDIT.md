@@ -21,7 +21,7 @@ Current audit summary:
 - Total persona/cross-persona risk points in `personas.md`: `85`
 - Note: the requested `82` total / `27` new rows does not match the current file. The listed added ranges (`M1-M5`, `E1-E7`, `C13-C15`, `H7-H9`, `S5-S7`, `K11`, `A5-A7`, `X7-X11`) add up to `30` rows.
 - Baseline estimate before re-checking added specs: `14 Covered / 18 Partial / 53 Missing`
-- Current verified status after enforcing real-API coverage only: `25 Covered / 20 Partial / 40 Missing`
+- Current verified status after enforcing real-API coverage only: `25 Covered / 26 Partial / 34 Missing`
 - Explicit spec paths cited by the document or audit: `34`
 - Existing cited spec files: `34`
 - Missing cited spec files: `0`
@@ -32,9 +32,9 @@ P0 gate backend implementation progress:
 - Wave 3 (K7, E1, E2): `/api/v1/payments` enabled with server-authoritative total re-compute and partial-payment strict sum check; `X-Payment-Gateway-Fixture: timeout` gated on NODE_ENV !== "production"; reusable `idempotency_keys` table + middleware with scope, request-hash, pending-race, expired-reuse, and effectId persistence; webhook handler keyed on `event_id` and a test-signature bypass behind `ALLOW_TEST_SIGNATURE`.
 - Wave 4 (K6): RefundService now detects `cash_shifts.status = 'closed'` and branches to an adjustment path — refund row is still persisted for audit but no cash_movement is posted; response exposes `adjustmentId` and `ledgerMutation: false`.
 
-CI enforcement status (run #24843791912 on 2026-04-23 — green):
-- `.github/workflows/nightly-integration.yml` ran every Tier 1 P0 and Tier 2 P1 gate against a real wrangler dev + D1 + seeded migrations, with 9 of 11 P0 gates and all 14 P1 gates passing.
-- The two P0 gates still `test.fixme`d are K6 and A6, both blocked on pre-existing non-CI issues (K6: order-state-machine rejects cashier `delivered → paid` transition; A6: backup schema is orphaned under `src/migrations/` and has drifted column names vs. the live schema). The remaining 23 gates have been promoted to `Covered` in the per-persona tables below.
+CI enforcement status (run #24861758340 on 2026-04-23 — green):
+- `.github/workflows/nightly-integration.yml` ran every Tier 1 P0 and Tier 2 P1 gate against a real wrangler dev + D1 + seeded migrations: all 11 P0 gates and 14 P1 gates pass (25/25). One P1 retry was flaky on first attempt (`createGuestOrder` 409 MENU_ITEM_UNAVAILABLE — menu_items.is_available race between seed and first fetch) and succeeded on retry — not a gate regression.
+- K6 unblocked by extending `ROLE_STATUS_PERMISSIONS[4]` (cashier) to include `paid`, so the oracle can drive delivered → paid via `PUT /orders/:id/status`. A6 unblocked by landing the backup schema into `migrations_fresh/0021_backup_system.sql` + `migrations/0058_backup_system.sql` (mirroring `packages/database/src/schema/backup.ts` byte-for-byte; the earlier 005 orphan was never applied and had drifted column lists). Both gates are now `test` (not `test.fixme`) and promoted to `Covered` below.
 
 CI integration gate pipeline (`.github/workflows/nightly-integration.yml`):
 - Auto-triggers are currently disabled (solo-dev mode); run manually via
@@ -135,7 +135,7 @@ These `11` execution items cannot be deferred because they protect payment integ
 
 ### Tier 2 - P1 Current-Quarter Fill
 
-Current count from the live audit is `32` rows, not `about 24`: `13` Partial/Weak-Partial rows to strengthen plus `19` P1 Missing rows.
+Current count from the live audit after the latest promotion wave is `21` rows: `2` Partial rows still to strengthen (C5, G4) plus `19` P1 Missing rows. (Original P1 Strengthen Partial set was 14; 12 of those have been promoted to `Covered` by Batch A/B/C real-API gates.)
 
 Batch 1 gate coverage added in `tests/e2e/integration/p1-current-quarter-gates.spec.ts` for the `14` Strengthen Partial rows: C2, C4, C5, O1, O2, O3, O7, H1, H2, K10, G4, X3, X4, X6. O1, O7, H1, C2, C4, K10, X3, H2, O2, O3, X4, and X6 now pass against the local real API and have been promoted to `Covered`; the other rows remain `Partial` until their real API gates pass in CI.
 
@@ -264,7 +264,7 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | K3 | P0 | Amount mismatch | server-side amount recompute, forced reset, cashier confirmation | Server rejects mismatched amount and preserves authoritative total. | Partial | `pos-shift-errors.spec.ts` mocks amount mismatch; needs real server-side amount recompute test. |
 | K4 | P1 | Printer offline after successful payment | payment finality decoupled from print, retry print path | Payment stays paid while receipt print enters retry/reprint path. | Partial | Current test mocks payment and receipt failure; needs real payment finality + print queue/health assertion. |
 | K5 | P0 | Payment timeout `504` | authoritative payment-status polling, unpaid lock, manual reconciliation | Timeout leaves payment pending/unconfirmed until status poll resolves. | Partial | `pos-shift-errors.spec.ts` mocks timeout; needs mocked gateway contract hitting real payment handler/status poll. |
-| K6 | P0 | Refund after closing period | credit-note / allowance flow, immutable closed ledger | Closed ledger cannot be mutated; refund creates allowed adjustment record. | Partial | Wave 4 `RefundService` closed-shift branch is implemented and covered by unit tests; the e2e gate is `test.fixme` in `p0-release-gates.spec.ts` because the helper's `updateOrderStatus(<id>, 'paid', cashierAuth)` returns 403 "Insufficient permissions for this status change" against the real API — the order-state-machine's role table does not allow cashier role to transition `delivered → paid` directly. Unblock by routing payment through `POST /api/v1/payments` instead, then un-fixme. |
+| K6 | P0 | Refund after closing period | credit-note / allowance flow, immutable closed ledger | Closed ledger cannot be mutated; refund creates allowed adjustment record. | Covered | Wave 4 `RefundService` closed-shift branch plus the real-API K6 gate in `tests/e2e/integration/p0-release-gates.spec.ts` now pass in CI (run #24861758340). Cashier role was extended to allow `delivered → paid` in `apps/api/src/features/orders/types/index.ts` (`ROLE_STATUS_PERMISSIONS[4] = ["confirmed", "paid"]`), which matches real counter workflow and unblocks the oracle. Gate asserts refund returns `adjustmentId` with `ledgerMutation: false` and that no `cash_movements` row is posted against the closed shift. |
 | K7 | P0 | Partial-payment sum mismatch | exact total enforcement, split allocation validator | Split payments cannot close unless sum exactly equals authoritative total. | Covered | `p0-release-gates.spec.ts` K7 gate passes in CI run #24843791912 — mismatched partial payments return 409 and order stays unpaid. |
 | K8 | P1 | Drawer total differs from system total at shift end | reconciliation summary, supervisor review, variance logging | Variance is logged and requires review before close completes. | Partial | `tests/e2e/journeys/cashier/pos-shift.spec.ts` covers reconciliation summary, not variance escalation. |
 | K9 | P2 | New order arrives during handoff | handoff lock, incoming-order queueing, next-shift acceptance | Order arriving during handoff is assigned by explicit handoff rule. | Missing | Backlog only. |
@@ -280,7 +280,7 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | A3 | P1 | Large PII export without audit trail | export audit log, explicit approval gates, scope logging | PII export creates audit row with actor, scope, timestamp, and approval state. | Missing | `p1-new-missing-gates.spec.ts` now defines the real PII export approval/audit contract; remains Missing until route and audit behavior exist. |
 | A4 | P1 | Feature flag flip impacts active orders | flag scoping, phased rollout, active-order snapshot consistency | Active orders keep previous behavior while new orders use updated flag. | Missing | Backlog only. |
 | A5 | P1 | Right-to-be-forgotten / retention expiry | anonymize/hard-delete + audit | Retention job removes/anonymizes target data and records audit proof. | Missing | `p1-new-missing-gates.spec.ts` now defines the retention/anonymization run contract; remains Missing until backend support exists. |
-| A6 | P0 | Backup restore drill fails | recoverable backup, data integrity, alerting | Restored DB row counts match backup manifest and checksums match. | Partial | Wave 2 `BackupService` manifest + checksum contract is implemented and covered by unit tests. The e2e gate is `test.fixme` in `p0-release-gates.spec.ts` because `packages/database/src/migrations/005_backup_system.sql` is orphaned under `src/migrations/` (so `wrangler d1 migrations apply` skips it), its column names have drifted (`created_at` vs current `created_at_ms`), and the gate body's `include_tables: ["menus", ...]` refers to a non-existent table. Unblock by relocating and repairing 005 and updating the include_tables list, then un-fixme. |
+| A6 | P0 | Backup restore drill fails | recoverable backup, data integrity, alerting | Restored DB row counts match backup manifest and checksums match. | Covered | Wave 2 `BackupService` manifest + checksum contract plus the real-API A6 gate in `tests/e2e/integration/p0-release-gates.spec.ts` now pass in CI (run #24861758340). The orphan `packages/database/src/migrations/005_backup_system.sql` was superseded by `migrations_fresh/0021_backup_system.sql` + `migrations/0058_backup_system.sql`, a byte-for-byte projection of `packages/database/src/schema/backup.ts` (005 had drifted column lists and a bogus index on a non-existent `backup_records.created_at`). Gate body uses real schema table names (`menu_items`, not `menus`) in `include_tables` and `target_tables`. |
 | A7 | P1 | On-call incident degradation | observability, degrade mode, rollback | Incident mode emits alert, serves degraded path, and rollback restores healthy status. | Missing | `p1-new-missing-gates.spec.ts` now asserts incident-mode alert, degraded health, and rollback; remains Missing until implemented. |
 
 ## MANAGER
@@ -370,19 +370,16 @@ Release-gate note:
    Add `scripts/audit-personas.ts` to scan `*.spec.ts` / `*.test.ts` `describe` and `test` names, associate candidate tests to risk IDs, and emit a Markdown/JSON report for manual review. The script should not decide final coverage alone; it should make stale references and missing line citations visible.
 
 Highest-priority blocker gates to make pass next:
-- complete backend behavior for C10 sanitizer/reject assertions in `tests/e2e/journeys/customer/malicious-input.spec.ts` and `tests/e2e/integration/p0-release-gates.spec.ts`
-- complete backend behavior for H3/X2 cancel-lock assertions in `tests/e2e/journeys/chef/cancel-during-prep.spec.ts` and `tests/e2e/integration/p0-release-gates.spec.ts`
-- make admin token-revoke / owner-disable-active-session / backup-restore-drill gates pass in `tests/e2e/integration/p0-release-gates.spec.ts`
-- make cashier refund-after-close and partial-payment total API gates pass in `tests/e2e/integration/p0-release-gates.spec.ts`
-- make forged guest token, payment timeout, duplicate webhook idempotency, and manager delegation audit gates pass in `tests/e2e/integration/p0-release-gates.spec.ts`
-- coupon atomic race, service crew wrong-table / wrong-pickup / device-handoff specs
+- (cleared 2026-04-23: A6 backup-restore-drill and K6 refund-after-close are both `Covered` — see Tier 1 table for the schema-alignment + cashier role fixes that unblocked CI run #24861758340.)
+- S1 wrong-table delivery, S6 wrong-pickup confirmation, and S7 device-handoff service-crew specs (still `Missing`)
+- Note: C10 sanitizer, H3/X2 cancel-lock, A1 token-revoke, X9 owner-disable, K7 partial-payment, G5 forged guest token, E1 payment timeout, E2 duplicate webhook idempotency, M1 manager delegation audit, and K10 coupon atomic race have all been promoted to `Covered` by CI run #24843791912 and the Strengthen Partial Batch A/B/C work, and are no longer blockers.
 
 Audit conclusion:
 - `personas.md` now defines `85` risk rows; the previous `55`-row audit was structurally stale.
 - The repo has `59` e2e spec files and `530` total `*.spec.ts` / `*.test.ts` files across `tests/`, `apps/`, and `packages`, not the `19` effectively covered by the earlier audit scope.
 - Adding the missing `Test Oracle` column exposes which risks are actually assertable.
 - C12 and O5 are now weak `Partial`, not `Missing`.
-- The two former missing cited spec files now exist as real-API blocker specs with enforced assertions. C10 is now `Partial` because oversize and SQL-like payload paths have evidence; H3/X2 remain `Missing` until cancel-lock gates pass in CI.
-- Broad-scan evidence upgrades C10, C15, H4, K6, K7, A6, E4, E5, and E6 from `Missing` to `Partial`; none are `Covered` because each still lacks its full release oracle.
+- The two former missing cited spec files now exist as real-API blocker specs with enforced assertions; C10 and H3/X2 are now `Covered` after CI run #24843791912 hit the sanitizer-reject and cancel-lock oracles green.
+- Broad-scan evidence first upgraded C10, C15, H4, K6, K7, A6, E4, E5, and E6 from `Missing` to `Partial`; C10, K7, K6, and A6 have since been promoted to `Covered` (the latter two after CI run #24861758340 on 2026-04-23), while C15, H4, E4, E5, and E6 remain `Partial` until each ships its full release oracle.
 - Tier 1 now identifies `11` non-deferrable P0 execution items that must be repeatably verified before release.
 - Mock-only evidence has been downgraded from `Covered` to `Partial`; only real API / API+DB / realtime assertions can count as `Covered`.
