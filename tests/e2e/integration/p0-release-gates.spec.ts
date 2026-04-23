@@ -506,6 +506,17 @@ test.describe("Tier 1 P0 release gates", () => {
     createdOrderIds.push(order.id);
 
     const cashierAuth = await loginAs(USERS.CASHIER);
+
+    // Fetch the authoritative server total (includes service charge /
+    // tax) — hardcoding `amount: 20` made PaymentService reject with
+    // 409 PAYMENT_AMOUNT_MISMATCH before ever reaching the fixture
+    // branch. The gate semantics are about gateway-timeout handling,
+    // not amount validation, so drive the request with the real total.
+    const authoritative = await getOrder(order.id, cashierAuth);
+    const authoritativeTotal = Number(
+      (authoritative.data as Record<string, unknown>).totalAmount,
+    );
+
     const res = await fetch(`${API_URL}/api/v1/payments`, {
       method: "POST",
       headers: {
@@ -516,7 +527,7 @@ test.describe("Tier 1 P0 release gates", () => {
       body: JSON.stringify({
         orderId: order.id,
         method: "card",
-        amount: 20,
+        amount: authoritativeTotal,
         gateway: "test",
       }),
     });
