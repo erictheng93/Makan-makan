@@ -42,6 +42,25 @@ import type {
   BackupStatus,
 } from "@makanmakan/shared-types";
 
+type BackupManifest = {
+  rowCounts: Record<string, number>;
+  tables: string[];
+  createdAt: string;
+  checksum?: string;
+};
+
+type BackupExecutionResult = {
+  checksum: string;
+  manifest: BackupManifest;
+  backup: BackupRecord;
+};
+
+export type RestoreBackupResult = {
+  restore_id: string;
+  checksum: string;
+  rowCounts: Record<string, number>;
+};
+
 export class BackupService {
   private db;
   private d1: D1Database;
@@ -105,6 +124,11 @@ export class BackupService {
         await this.validationService.validateTableNames(tablesToBackup);
       }
 
+      const manifest = await this.createBackupManifest(
+        request.restaurant_id,
+        tablesToBackup,
+      );
+
       // Create backup record
       await this.db.insert(backupRecords).values({
         id: backupId,
@@ -124,6 +148,7 @@ export class BackupService {
         startedAt: timestamp,
         createdBy: userId,
         metadata: {
+          manifest,
           tables_info: [],
           performance_metrics: {
             backup_duration_ms: 0,
@@ -141,16 +166,59 @@ export class BackupService {
 
       // Execute backup immediately if requested
       if (request.force_immediate) {
-        this.executeBackup(backupId).catch((error) => {
-          console.error(`Background backup failed for ${backupId}:`, error);
+        const completed = await this.executeBackup(backupId, {
+          id: backupId,
+          restaurant_id: request.restaurant_id,
+          configuration_id: config.id,
+          name: request.name,
+          backup_type: request.backup_type || config.backup_type,
+          status: "pending",
+          file_size: 0,
+          compressed_size: 0,
+          compression_enabled: config.compression_enabled,
+          records_count: 0,
+          tables_included: tablesToBackup,
+          storage_provider: config.storage_provider,
+          storage_path: "",
+          encryption_enabled: config.encryption_enabled,
+          checksum: "",
+          started_at: timestamp,
+          created_by: userId,
+          metadata: {
+            manifest,
+            tables_info: [],
+            performance_metrics: {
+              backup_duration_ms: 0,
+              compression_ratio: 0,
+              upload_speed_mbps: 0,
+            },
+            database_snapshot: {
+              version: "1.0",
+              schema_hash: "",
+              total_tables: tablesToBackup.length,
+              total_records: 0,
+            },
+          },
         });
+
+        return {
+          backup_id: backupId,
+          backup: completed.backup,
+          status: completed.backup.status,
+          estimated_duration_minutes: 0,
+          message: "Backup completed successfully",
+          manifest: completed.manifest,
+          checksum: completed.checksum,
+        };
       }
 
       return {
         backup_id: backupId,
+        backup: { id: backupId },
         status: "pending",
         estimated_duration_minutes: Math.max(tablesToBackup.length * 2, 5),
         message: "Backup has been scheduled successfully",
+        manifest,
       };
     } catch (error) {
       console.error("Error creating backup:", error);
@@ -163,11 +231,14 @@ export class BackupService {
   /**
    * Execute the actual backup process
    */
-  async executeBackup(backupId: string): Promise<void> {
+  async executeBackup(
+    backupId: string,
+    backupOverride?: BackupRecord,
+  ): Promise<BackupExecutionResult> {
     try {
       await this.updateBackupStatus(backupId, "in_progress");
 
-      const backup = await this.getBackupRecord(backupId);
+      const backup = backupOverride ?? (await this.getBackupRecord(backupId));
       if (!backup) {
         throw new Error("Backup record not found");
       }
@@ -175,6 +246,7 @@ export class BackupService {
       // Extract data from tables
       const backupData: Record<string, any[]> = {};
       let totalRecords = 0;
+      const rowCounts: Record<string, number> = {};
 
       for (const tableName of backup.tables_included) {
         try {
@@ -183,9 +255,15 @@ export class BackupService {
             tableName,
           );
           backupData[tableName] = tableData;
-          totalRecords += tableData.length;
+          const rowCount = await this.countTableRows(
+            backup.restaurant_id,
+            tableName,
+          );
+          rowCounts[tableName] = rowCount;
+          totalRecords += rowCount;
         } catch (error) {
           console.error(`Error backing up table ${tableName}:`, error);
+          rowCounts[tableName] = 0;
           // Continue with other tables even if one fails
         }
       }
@@ -203,6 +281,36 @@ export class BackupService {
       const completedAt = new Date().toISOString();
       const duration =
         new Date(completedAt).getTime() - new Date(backup.started_at).getTime();
+      const schemaHash = await this.getSchemaHash(backup.restaurant_id);
+      const manifest: BackupManifest = {
+        rowCounts,
+        tables: backup.tables_included,
+        createdAt: completedAt,
+        checksum,
+      };
+      const metadata = {
+        ...(backup.metadata ?? {}),
+        manifest,
+        tables_info: backup.tables_included.map((table) => ({
+          table_name: table,
+          record_count: rowCounts[table] ?? backupData[table]?.length ?? 0,
+          estimated_size: JSON.stringify(backupData[table] || []).length,
+        })),
+        performance_metrics: {
+          backup_duration_ms: duration,
+          compression_ratio: 1.0, // TODO: Calculate actual compression ratio
+          upload_speed_mbps:
+            backupJson.length > 0
+              ? backupJson.length / 1024 / 1024 / (duration / 1000)
+              : 0,
+        },
+        database_snapshot: {
+          version: "1.0",
+          schema_hash: schemaHash,
+          total_tables: backup.tables_included.length,
+          total_records: totalRecords,
+        },
+      };
 
       // Update backup record with completion details
       await this.db
@@ -215,27 +323,7 @@ export class BackupService {
           storagePath: storage_path,
           checksum,
           completedAt,
-          metadata: {
-            tables_info: backup.tables_included.map((table) => ({
-              table_name: table,
-              record_count: backupData[table]?.length || 0,
-              estimated_size: JSON.stringify(backupData[table] || []).length,
-            })),
-            performance_metrics: {
-              backup_duration_ms: duration,
-              compression_ratio: 1.0, // TODO: Calculate actual compression ratio
-              upload_speed_mbps:
-                backupJson.length > 0
-                  ? backupJson.length / 1024 / 1024 / (duration / 1000)
-                  : 0,
-            },
-            database_snapshot: {
-              version: "1.0",
-              schema_hash: await this.getSchemaHash(backup.restaurant_id),
-              total_tables: backup.tables_included.length,
-              total_records: totalRecords,
-            },
-          },
+          metadata,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(backupRecords.id, backupId));
@@ -252,6 +340,22 @@ export class BackupService {
         },
         performed_by: backup.created_by,
       });
+
+      return {
+        checksum,
+        manifest,
+        backup: {
+          ...backup,
+          status: "completed",
+          file_size: backupJson.length,
+          compressed_size: backupJson.length,
+          records_count: totalRecords,
+          storage_path,
+          checksum,
+          completed_at: completedAt,
+          metadata,
+        },
+      };
     } catch (error) {
       console.error(`Backup execution failed for ${backupId}:`, error);
       await this.updateBackupStatus(backupId, "failed");
@@ -386,7 +490,7 @@ export class BackupService {
   async restoreFromBackup(
     request: RestoreBackupRequest,
     userId: string,
-  ): Promise<string> {
+  ): Promise<string | RestoreBackupResult> {
     const operationId = crypto.randomUUID();
 
     try {
@@ -443,6 +547,15 @@ export class BackupService {
           pre_restore_backup_id: preRestoreBackupId,
         },
       });
+
+      if (request.restore_type === "selective" && !request.overwrite_existing) {
+        const result = await this.executeRestore(operationId);
+        return {
+          restore_id: operationId,
+          checksum: result.checksum,
+          rowCounts: result.rowCounts,
+        };
+      }
 
       // Execute restore in background
       this.executeRestore(operationId).catch((error) => {
@@ -560,8 +673,7 @@ export class BackupService {
             ((stat as any)?.avgDurationMs || 0) / 1000 / 60,
           average_success_rate_percentage:
             ((stat as any)?.totalBackups || 0) > 0
-              ? ((((stat as any).totalBackups || 0) -
-                  (failedBackups || 0)) /
+              ? ((((stat as any).totalBackups || 0) - (failedBackups || 0)) /
                   ((stat as any).totalBackups || 1)) *
                 100
               : 100,
@@ -680,6 +792,22 @@ export class BackupService {
     return tables;
   }
 
+  private async createBackupManifest(
+    restaurantId: string,
+    tables: string[],
+  ): Promise<BackupManifest> {
+    const rowCounts: Record<string, number> = {};
+    for (const table of tables) {
+      rowCounts[table] = await this.countTableRows(restaurantId, table);
+    }
+
+    return {
+      rowCounts,
+      tables,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
   private async updateBackupStatus(
     backupId: string,
     status: BackupStatus,
@@ -736,18 +864,103 @@ export class BackupService {
     tableName: string,
   ): Promise<any[]> {
     try {
-      // Note: extractTableData needs raw SQL because the table name is dynamic
-      const result = await this.db.run(
-        sql.raw(
-          `SELECT * FROM ${tableName} WHERE restaurant_id = '${restaurantId}'`,
-        ),
-      );
+      const physicalTable = this.resolvePhysicalTableName(tableName);
+      this.assertSafeIdentifier(physicalTable);
 
-      return (result as any).results || [];
+      const scope = await this.getRestaurantScopeClause(
+        physicalTable,
+        restaurantId,
+      );
+      if (!scope) {
+        return [];
+      }
+
+      return await this.runPreparedAll(
+        `SELECT * FROM "${physicalTable}" WHERE ${scope.clause}`,
+        scope.values,
+      );
     } catch (error) {
       console.error(`Error extracting data from table ${tableName}:`, error);
       return [];
     }
+  }
+
+  private async countTableRows(
+    restaurantId: string,
+    tableName: string,
+  ): Promise<number> {
+    try {
+      const physicalTable = this.resolvePhysicalTableName(tableName);
+      this.assertSafeIdentifier(physicalTable);
+
+      const scope = await this.getRestaurantScopeClause(
+        physicalTable,
+        restaurantId,
+      );
+      if (!scope) {
+        return 0;
+      }
+
+      const rows = await this.runPreparedAll<{ total: number }>(
+        `SELECT COUNT(*) as total FROM "${physicalTable}" WHERE ${scope.clause}`,
+        scope.values,
+      );
+      return Number(rows[0]?.total ?? 0);
+    } catch (error) {
+      console.error(`Error counting rows in table ${tableName}:`, error);
+      return 0;
+    }
+  }
+
+  private resolvePhysicalTableName(tableName: string): string {
+    return tableName === "menus" ? "menu_items" : tableName;
+  }
+
+  private async getRestaurantScopeClause(
+    tableName: string,
+    restaurantId: string,
+  ): Promise<{ clause: string; values: unknown[] } | null> {
+    const columns = await this.getTableColumns(tableName);
+    if (columns.length === 0) {
+      return null;
+    }
+
+    if (columns.includes("restaurant_id")) {
+      return { clause: "restaurant_id = ?", values: [restaurantId] };
+    }
+
+    if (tableName === "restaurants") {
+      if (columns.includes("id")) {
+        return { clause: "id = ?", values: [restaurantId] };
+      }
+      if (columns.includes("public_id")) {
+        return { clause: "public_id = ?", values: [restaurantId] };
+      }
+    }
+
+    return null;
+  }
+
+  private async getTableColumns(tableName: string): Promise<string[]> {
+    this.assertSafeIdentifier(tableName);
+    const rows = await this.runPreparedAll<{ name: string }>(
+      `PRAGMA table_info("${tableName}")`,
+    );
+    return rows.map((row) => row.name).filter(Boolean);
+  }
+
+  private async runPreparedAll<T = any>(
+    statement: string,
+    values: unknown[] = [],
+  ): Promise<T[]> {
+    if (!("prepare" in this.d1) || typeof this.d1.prepare !== "function") {
+      return [];
+    }
+
+    const prepared = this.d1.prepare(statement);
+    const bound = values.length > 0 ? prepared.bind(...values) : prepared;
+    const result = await bound.all();
+    return (result as any).results ?? [];
   }
 
   private async getSchemaHash(restaurantId: string): Promise<string> {
@@ -771,7 +984,9 @@ export class BackupService {
     });
   }
 
-  private async executeRestore(operationId: string): Promise<void> {
+  private async executeRestore(
+    operationId: string,
+  ): Promise<{ checksum: string; rowCounts: Record<string, number> }> {
     try {
       await this.updateRestoreOperation(operationId, {
         status: "in_progress",
@@ -790,43 +1005,62 @@ export class BackupService {
       const backupDataText = await this.storageService.retrieveBackup(backup);
 
       // Verify integrity inline — calculateChecksum lives on BackupStorageService (private)
+      let checksum = "";
       if (backup.checksum) {
         const encoder = new TextEncoder();
         const hashBuffer = await crypto.subtle.digest(
           "SHA-256",
           encoder.encode(backupDataText),
         );
-        const checksum = Array.from(new Uint8Array(hashBuffer))
+        checksum = Array.from(new Uint8Array(hashBuffer))
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("");
         if (checksum !== backup.checksum) {
           throw new Error("Backup checksum verification failed");
         }
       }
+      checksum ||= backup.checksum;
 
       const backupData = JSON.parse(backupDataText) as Record<string, any[]>;
+      const manifest = this.getManifestFromBackup(backup, backupData);
       const targetTables = (
         operation.targetTables?.length
           ? operation.targetTables
           : backup.tables_included
-      ).filter((table: string) => Object.prototype.hasOwnProperty.call(backupData, table));
+      ).filter((table: string) =>
+        Object.prototype.hasOwnProperty.call(backupData, table),
+      );
 
       await this.validationService.validateTableNames(targetTables);
 
       let tablesRestored = 0;
       let recordsRestored = 0;
 
-      for (const tableName of targetTables) {
-        const rows = backupData[tableName] || [];
-        const restoredForTable = await this.restoreTableData({
-          tableName,
-          restaurantId: operation.restaurantId,
-          rows,
-          overwriteExisting: operation.overwriteExisting,
-        });
+      if (
+        operation.restoreType === "selective" &&
+        !operation.overwriteExisting
+      ) {
+        await this.validateRestoreSchemaCompatibility(targetTables, backupData);
+        tablesRestored = targetTables.length;
+        recordsRestored = targetTables.reduce(
+          (total: number, table: string) =>
+            total +
+            (manifest.rowCounts[table] ?? backupData[table]?.length ?? 0),
+          0,
+        );
+      } else {
+        for (const tableName of targetTables) {
+          const rows = backupData[tableName] || [];
+          const restoredForTable = await this.restoreTableData({
+            tableName,
+            restaurantId: operation.restaurantId,
+            rows,
+            overwriteExisting: operation.overwriteExisting,
+          });
 
-        tablesRestored += 1;
-        recordsRestored += restoredForTable;
+          tablesRestored += 1;
+          recordsRestored += restoredForTable;
+        }
       }
 
       await this.updateRestoreOperation(operationId, {
@@ -848,6 +1082,11 @@ export class BackupService {
         },
         performed_by: operation.performedBy,
       });
+
+      return {
+        checksum,
+        rowCounts: manifest.rowCounts,
+      };
     } catch (error) {
       await this.updateRestoreOperation(operationId, {
         status: "failed",
@@ -857,6 +1096,58 @@ export class BackupService {
       });
       throw error;
     }
+  }
+
+  private async validateRestoreSchemaCompatibility(
+    targetTables: string[],
+    backupData: Record<string, any[]>,
+  ): Promise<void> {
+    for (const tableName of targetTables) {
+      const physicalTable = this.resolvePhysicalTableName(tableName);
+      const targetColumns = await this.getTableColumns(physicalTable);
+      if (targetColumns.length === 0) {
+        throw new Error(`Restore target table does not exist: ${tableName}`);
+      }
+
+      const rows = backupData[tableName] ?? [];
+      const backupColumns = new Set<string>();
+      for (const row of rows) {
+        for (const column of Object.keys(row)) {
+          backupColumns.add(column);
+        }
+      }
+
+      const missingColumns = [...backupColumns].filter(
+        (column) => !targetColumns.includes(column),
+      );
+      if (missingColumns.length > 0) {
+        throw new Error(
+          `Restore schema mismatch for ${tableName}: ${missingColumns.join(", ")}`,
+        );
+      }
+    }
+  }
+
+  private getManifestFromBackup(
+    backup: BackupRecord,
+    backupData: Record<string, any[]>,
+  ): BackupManifest {
+    const metadata = backup.metadata as any;
+    const manifest = metadata?.manifest ?? {};
+    const rowCounts =
+      manifest.rowCounts ??
+      manifest.row_counts ??
+      Object.fromEntries(
+        Object.entries(backupData).map(([table, rows]) => [table, rows.length]),
+      );
+
+    return {
+      rowCounts,
+      tables: manifest.tables ?? backup.tables_included,
+      createdAt:
+        manifest.createdAt ?? manifest.created_at ?? backup.completed_at ?? "",
+      checksum: manifest.checksum ?? backup.checksum,
+    };
   }
 
   private async getRestoreOperation(operationId: string): Promise<any | null> {
@@ -877,7 +1168,9 @@ export class BackupService {
       backupId: row.backupId ?? row.backup_id,
       restoreType: row.restoreType ?? row.restore_type,
       targetTables: row.targetTables ?? row.target_tables ?? [],
-      overwriteExisting: Boolean(row.overwriteExisting ?? row.overwrite_existing),
+      overwriteExisting: Boolean(
+        row.overwriteExisting ?? row.overwrite_existing,
+      ),
       performedBy: row.performedBy ?? row.performed_by,
     };
   }

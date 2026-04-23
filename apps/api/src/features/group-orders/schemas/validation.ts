@@ -5,6 +5,20 @@
 
 import { z } from "zod";
 
+// Reusable sanitizing schema for free-text user input.
+// Strips HTML tags, inline event handlers, and `javascript:` protocol
+// before persistence (C10 release gate).
+const notesSchema = (maxLength: number) =>
+  z
+    .string()
+    .max(maxLength)
+    .transform((value) =>
+      value
+        .replace(/<\/?[^>]+>/g, "")
+        .replace(/on\w+\s*=/gi, "")
+        .replace(/javascript:/gi, ""),
+    );
+
 // Core validation schemas
 export const createGroupOrderSchema = z.object({
   restaurantId: z
@@ -18,7 +32,7 @@ export const createGroupOrderSchema = z.object({
   tableNumber: z.string().optional(),
   hostName: z.string().max(50).optional(),
   expectedMembers: z.number().int().min(2).max(20).optional(),
-  notes: z.string().max(500).optional(),
+  notes: notesSchema(500).optional(),
   expirationHours: z
     .number()
     .min(1, "Expiration hours must be at least 1 hour")
@@ -72,10 +86,7 @@ export const addCartItemSchema = z.object({
     .min(1, "Quantity must be at least 1")
     .max(99, "Quantity cannot exceed 99"),
   customizations: z.record(z.any()).optional(),
-  specialInstructions: z
-    .string()
-    .max(200, "Special instructions cannot exceed 200 characters")
-    .optional(),
+  specialInstructions: notesSchema(200).optional(),
 });
 
 export const updateCartItemSchema = z
@@ -87,10 +98,7 @@ export const updateCartItemSchema = z
       .max(99, "Quantity cannot exceed 99")
       .optional(),
     customizations: z.record(z.any()).optional(),
-    specialInstructions: z
-      .string()
-      .max(200, "Special instructions cannot exceed 200 characters")
-      .optional(),
+    specialInstructions: notesSchema(200).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",

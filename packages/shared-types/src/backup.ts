@@ -164,9 +164,17 @@ export interface CreateBackupRequest {
 
 export interface CreateBackupResponse {
   backup_id: string;
+  backup?: Partial<BackupRecord>;
   status: BackupStatus;
   estimated_duration_minutes: number;
   message: string;
+  manifest?: {
+    rowCounts: Record<string, number>;
+    tables: string[];
+    createdAt: string;
+    checksum?: string;
+  };
+  checksum?: string;
 }
 
 export interface ListBackupsQuery {

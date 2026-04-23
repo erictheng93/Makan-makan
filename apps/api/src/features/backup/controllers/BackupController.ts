@@ -232,18 +232,27 @@ export class BackupController {
       // Ensure backup_id matches URL parameter
       request.backup_id = backupId;
 
-      const restoreId = await this.backupService.restoreFromBackup(
+      const restoreResult = await this.backupService.restoreFromBackup(
         request,
         user.id.toString(),
       );
+      const restoreData =
+        typeof restoreResult === "string"
+          ? {
+              restore_id: restoreResult,
+              message: "Restore operation initiated successfully",
+            }
+          : {
+              restore_id: restoreResult.restore_id,
+              checksum: restoreResult.checksum,
+              rowCounts: restoreResult.rowCounts,
+              message: "Restore operation verified successfully",
+            };
 
       return c.json(
         {
           success: true,
-          data: {
-            restore_id: restoreId,
-            message: "Restore operation initiated successfully",
-          },
+          data: restoreData,
         },
         201,
       );

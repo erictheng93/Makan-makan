@@ -10,6 +10,16 @@ const idSchema = z.number().int().positive();
 const optionalIdSchema = z.number().int().positive().optional();
 const phoneSchema = z.string().max(20).optional();
 const emailSchema = z.string().email().optional();
+const notesSchema = (maxLength: number) =>
+  z
+    .string()
+    .max(maxLength)
+    .transform((value) =>
+      value
+        .replace(/<\/?[^>]+>/g, "")
+        .replace(/on\w+\s*=/gi, "")
+        .replace(/javascript:/gi, ""),
+    );
 // const urlSchema = z.string().url().optional() // Available for future use
 const positiveNumberSchema = z.number().positive();
 // const nonNegativeNumberSchema = z.number().min(0) // Available for future use
@@ -105,7 +115,7 @@ const selectedCustomizationsSchema = z
     size: customizationOptionSchema.optional(),
     options: z.array(customizationGroupSchema).optional(),
     addOns: z.array(addOnSchema).optional(),
-    specialInstructions: z.string().max(200).optional(),
+    specialInstructions: notesSchema(200).optional(),
   })
   .optional();
 
@@ -115,7 +125,7 @@ const createOrderItemSchema = z.object({
   quantity: z.number().int().positive().max(99),
   price: positiveNumberSchema.optional(),
   customizations: selectedCustomizationsSchema,
-  notes: z.string().max(200).optional(),
+  notes: notesSchema(200).optional(),
 });
 
 // Main order creation schema
@@ -127,7 +137,7 @@ export const createOrderSchema = z.object({
   customerEmail: emailSchema,
   customerInfo: customerInfoSchema,
   items: z.array(createOrderItemSchema).min(1).max(50),
-  notes: z.string().max(500).optional(),
+  notes: notesSchema(500).optional(),
   orderType: orderTypeSchema.default("shop"),
   deliveryInfo: deliveryInfoSchema.optional(),
   scheduledTime: dateStringSchema,
@@ -137,7 +147,7 @@ export const createOrderSchema = z.object({
 // Order update schemas
 export const updateOrderStatusSchema = z.object({
   status: orderStatusSchema,
-  notes: z.string().max(500).optional(),
+  notes: notesSchema(500).optional(),
   estimatedReadyTime: dateStringSchema,
   actualPrepTime: z.number().int().min(0).max(999).optional(), // in minutes
 });
@@ -146,7 +156,7 @@ export const updateOrderSchema = z.object({
   status: orderStatusSchema.optional(),
   paymentStatus: orderPaymentStatusSchema.optional(),
   paymentMethod: orderPaymentMethodSchema.optional(),
-  notes: z.string().max(500).optional(),
+  notes: notesSchema(500).optional(),
   internalNotes: z.string().max(500).optional(),
   estimatedPrepTime: z.number().int().min(0).max(999).optional(), // in minutes
   actualPrepTime: z.number().int().min(0).max(999).optional(),
@@ -271,7 +281,7 @@ export const bulkOrderOperationSchema = z.object({
       status: orderStatusSchema.optional(),
       reason: z.string().max(200).optional(),
       format: z.enum(["csv", "excel", "pdf"]).optional(),
-      notes: z.string().max(500).optional(),
+      notes: notesSchema(500).optional(),
     })
     .optional(),
   batchId: z.string().uuid().optional(),
@@ -348,7 +358,7 @@ export const updateOrderItemSchema = z.object({
   status: orderItemStatusSchema.optional(),
   quantity: z.number().int().positive().max(99).optional(),
   customizations: selectedCustomizationsSchema,
-  notes: z.string().max(200).optional(),
+  notes: notesSchema(200).optional(),
   price: positiveNumberSchema.optional(),
 });
 
@@ -410,11 +420,11 @@ export const modifyOrderSchema = z.object({
         itemId: idSchema,
         quantity: z.number().int().positive().max(99).optional(),
         customizations: selectedCustomizationsSchema,
-        notes: z.string().max(200).optional(),
+        notes: notesSchema(200).optional(),
       }),
     )
     .optional(),
-  notes: z.string().max(500).optional(),
+  notes: notesSchema(500).optional(),
   reason: z.string().max(200),
 });
 

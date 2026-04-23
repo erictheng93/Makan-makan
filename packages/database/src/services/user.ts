@@ -1,4 +1,4 @@
-import { eq, ne, and, desc, asc, like, or, count, gte } from "drizzle-orm";
+import { eq, ne, and, desc, asc, like, or, count, gte, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { users, USER_ROLES, type UserRole } from "../schema";
 import * as bcrypt from "bcryptjs";
@@ -247,10 +247,14 @@ export class UserService extends BaseService {
         }
       }
 
+      const shouldBumpTokenVersion = data.isActive === false;
       const [updatedUser] = await this.db
         .update(users)
         .set({
           ...data,
+          ...(shouldBumpTokenVersion
+            ? { tokenVersion: sql`${users.tokenVersion} + 1` }
+            : {}),
           updatedAt: new Date(),
         })
         .where(eq(users.id, id))
@@ -284,6 +288,7 @@ export class UserService extends BaseService {
         .update(users)
         .set({
           isActive: false,
+          tokenVersion: sql`${users.tokenVersion} + 1`,
           updatedAt: new Date(),
         })
         .where(eq(users.id, id))
@@ -519,6 +524,7 @@ export class UserService extends BaseService {
         .update(users)
         .set({
           role,
+          tokenVersion: sql`${users.tokenVersion} + 1`,
           updatedAt: new Date(),
         })
         .where(eq(users.id, id))
@@ -566,6 +572,7 @@ export class UserService extends BaseService {
         .set({
           passwordHash,
           passwordChangedAt: new Date(),
+          tokenVersion: sql`${users.tokenVersion} + 1`,
           updatedAt: new Date(),
         })
         .where(eq(users.id, id))

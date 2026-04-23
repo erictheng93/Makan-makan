@@ -461,9 +461,10 @@ describe("BackupService", () => {
 
       const result = await service.createBackup(request, "user-1");
 
-      expect(result.status).toBe("pending");
+      expect(result.status).toBe("completed");
       expect(result.backup_id).toBeDefined();
-      // Note: The actual backup execution happens asynchronously
+      expect(result.checksum).toBeTruthy();
+      expect(result.manifest?.rowCounts).toBeDefined();
     });
   });
 
@@ -895,8 +896,9 @@ describe("BackupService", () => {
         force_immediate: true,
       };
 
-      await service.createBackup(request, "user-1");
-      // The backup creation should succeed, but execution would fail asynchronously
+      await expect(service.createBackup(request, "user-1")).rejects.toThrow(
+        "Storage failed",
+      );
     });
 
     it("should handle database errors", async () => {

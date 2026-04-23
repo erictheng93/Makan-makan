@@ -3,7 +3,7 @@
  * Handles password reset, email verification, and phone verification
  */
 
-import { eq, and, lt, isNull } from "drizzle-orm";
+import { eq, and, lt, isNull, sql } from "drizzle-orm";
 import { BaseService, type CloudflareEnv } from "./base";
 import type { D1Database } from "@cloudflare/workers-types";
 import {
@@ -307,6 +307,7 @@ export class VerificationService extends BaseService {
           .set({
             passwordHash,
             passwordChangedAt: new Date(),
+            tokenVersion: sql`${users.tokenVersion} + 1`,
           })
           .where(eq(users.id, verification.userId!))
           .run();

@@ -13,6 +13,15 @@ export interface AuthUser {
   phone?: string;
 }
 
+interface TokenUserRecord {
+  id: number;
+  username: string;
+  role: number;
+  restaurantId?: string;
+  isActive: boolean;
+  tokenVersion: number;
+}
+
 declare module "hono" {
   interface ContextVariableMap {
     user: AuthUser;
@@ -93,6 +102,27 @@ function createAuthMiddleware(maxRole: number) {
         throw unauthorized("Token too old, please refresh", "TOKEN_EXPIRED");
       }
 
+      const userRecord = await loadTokenUser(c, decoded.id);
+      if (!userRecord) {
+        if (c.env.NODE_ENV === "production") {
+          throw unauthorized("User not found or inactive", "USER_INACTIVE");
+        }
+      } else {
+        const tokenVersion = typeof decoded.tv === "number" ? decoded.tv : 1;
+        if (!userRecord.isActive) {
+          throw unauthorized("User not found or inactive", "USER_INACTIVE");
+        }
+        if (tokenVersion !== userRecord.tokenVersion) {
+          throw unauthorized("Token has been invalidated", "TOKEN_INVALIDATED");
+        }
+        if (
+          userRecord.username !== decoded.username ||
+          userRecord.role !== decoded.role
+        ) {
+          throw unauthorized("Invalid token claims", "TOKEN_INVALID");
+        }
+      }
+
       const timeUntilExpiry = decoded.exp - now;
       if (timeUntilExpiry < 3600) {
         c.header("X-Token-Refresh-Recommended", "true");
@@ -103,7 +133,7 @@ function createAuthMiddleware(maxRole: number) {
         id: decoded.id,
         username: decoded.username,
         role: decoded.role,
-        restaurantId: decoded.restaurantId,
+        restaurantId: userRecord?.restaurantId ?? decoded.restaurantId,
       });
 
       await next();
@@ -189,11 +219,32 @@ export const sseAuthMiddleware = async (
       throw unauthorized("Invalid token claims", "TOKEN_INVALID");
     }
 
+    const userRecord = await loadTokenUser(c, decoded.id);
+    if (!userRecord) {
+      if (c.env.NODE_ENV === "production") {
+        throw unauthorized("User not found or inactive", "USER_INACTIVE");
+      }
+    } else {
+      const tokenVersion = typeof decoded.tv === "number" ? decoded.tv : 1;
+      if (!userRecord.isActive) {
+        throw unauthorized("User not found or inactive", "USER_INACTIVE");
+      }
+      if (tokenVersion !== userRecord.tokenVersion) {
+        throw unauthorized("Token has been invalidated", "TOKEN_INVALIDATED");
+      }
+      if (
+        userRecord.username !== decoded.username ||
+        userRecord.role !== decoded.role
+      ) {
+        throw unauthorized("Invalid token claims", "TOKEN_INVALID");
+      }
+    }
+
     c.set("user", {
       id: decoded.id,
       username: decoded.username,
       role: decoded.role,
-      restaurantId: decoded.restaurantId,
+      restaurantId: userRecord?.restaurantId ?? decoded.restaurantId,
     });
 
     await next();
@@ -210,6 +261,52 @@ export const sseAuthMiddleware = async (
     throw unauthorized("Authentication failed", "TOKEN_INVALID");
   }
 };
+
+async function loadTokenUser(
+  c: Context<{ Bindings: Env }>,
+  userId: number,
+): Promise<TokenUserRecord | null> {
+  let row: {
+    id: number;
+    username: string;
+    role: number;
+    restaurant_id: string | null;
+    is_active: number | boolean;
+    token_version: number | null;
+  } | null;
+
+  try {
+    row = await c.env.DB.prepare(
+      `SELECT id, username, role, restaurant_id, is_active, token_version
+         FROM users
+        WHERE id = ?
+        LIMIT 1`,
+    )
+      .bind(userId)
+      .first<{
+        id: number;
+        username: string;
+        role: number;
+        restaurant_id: string | null;
+        is_active: number | boolean;
+        token_version: number | null;
+      }>();
+  } catch (error) {
+    if (c.env.NODE_ENV !== "production") return null;
+    throw error;
+  }
+
+  if (!row) return null;
+
+  return {
+    id: Number(row.id),
+    username: String(row.username),
+    role: Number(row.role),
+    restaurantId: row.restaurant_id ?? undefined,
+    isActive: row.is_active === true || Number(row.is_active) === 1,
+    tokenVersion: Number(row.token_version ?? 1),
+  };
+}
 
 // 角色權限檢查中間件
 export const requireRole = (allowedRoles: number[]) => {

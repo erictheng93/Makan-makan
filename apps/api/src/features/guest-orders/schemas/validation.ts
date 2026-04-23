@@ -6,6 +6,17 @@
 import { z } from "zod";
 
 // Reusable schemas
+const notesSchema = (maxLength: number) =>
+  z
+    .string()
+    .max(maxLength)
+    .transform((value) =>
+      value
+        .replace(/<\/?[^>]+>/g, "")
+        .replace(/on\w+\s*=/gi, "")
+        .replace(/javascript:/gi, ""),
+    );
+
 const selectedCustomizationsSchema = z
   .object({
     size: z
@@ -37,7 +48,7 @@ const selectedCustomizationsSchema = z
         }),
       )
       .optional(),
-    specialInstructions: z.string().max(200).optional(),
+    specialInstructions: notesSchema(200).optional(),
   })
   .optional();
 
@@ -63,7 +74,7 @@ const guestOrderItemSchema = z.object({
   menuItemId: z.number().int().positive(),
   quantity: z.number().int().positive().max(99),
   customizations: selectedCustomizationsSchema,
-  notes: z.string().max(200).optional(),
+  notes: notesSchema(200).optional(),
 });
 
 export const createGuestOrderSchema = z
@@ -78,7 +89,7 @@ export const createGuestOrderSchema = z
     tableId: z.number().int().positive().optional(),
     seatId: z.number().int().positive().optional(),
     items: z.array(guestOrderItemSchema).min(1).max(20),
-    notes: z.string().max(500).optional(),
+    notes: notesSchema(500).optional(),
     deliveryInfo: deliveryInfoSchema.optional(),
   })
   .refine(

@@ -69,6 +69,7 @@ export const users = sqliteTable("users", {
   passwordChangedAt: integer("password_changed_at_ms", {
     mode: "timestamp_ms",
   }),
+  tokenVersion: integer("token_version").notNull().default(1),
 
   // 驗證時間戳
   emailVerifiedAt: integer("email_verified_at_ms", { mode: "timestamp_ms" }),

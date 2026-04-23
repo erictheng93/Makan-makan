@@ -327,6 +327,7 @@ export class BackupValidationService {
   async validateTableNames(tables: string[]): Promise<void> {
     const validTables = [
       "orders",
+      "menus",
       "order_items",
       "menu_items",
       "categories",

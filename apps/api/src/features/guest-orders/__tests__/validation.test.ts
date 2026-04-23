@@ -243,6 +243,35 @@ describe("Guest Orders Validation Schemas", () => {
       expect(result.success).toBe(false);
     });
 
+    it("should sanitize executable markup from notes", () => {
+      const payload = `<script>alert(1)</script><img src=x onerror=alert(1)>`;
+      const result = createGuestOrderSchema.safeParse({
+        ...validShopOrder,
+        notes: payload,
+        items: [{ menuItemId: 1, quantity: 1, notes: payload }],
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.notes).not.toContain("<script");
+      expect(result.data.notes).not.toContain("onerror=");
+      expect(result.data.notes).not.toBe(payload);
+      expect(result.data.items[0].notes).not.toContain("<script");
+      expect(result.data.items[0].notes).not.toContain("onerror=");
+    });
+
+    it("should preserve SQL-like notes as text", () => {
+      const payload = "'); DROP TABLE orders; --";
+      const result = createGuestOrderSchema.safeParse({
+        ...validShopOrder,
+        notes: payload,
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.notes).toBe(payload);
+    });
+
     // ─── Missing Required Fields ───
 
     it("should reject missing restaurantId", () => {

@@ -1,4 +1,4 @@
-import { eq, and, desc, lt, gt } from "drizzle-orm";
+import { eq, and, desc, lt, gt, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { users, sessions } from "../schema";
 import * as bcrypt from "bcryptjs";
@@ -52,6 +52,7 @@ export interface AuthResult {
     role: number;
     restaurantId: string | null;
     isActive: boolean;
+    tokenVersion?: number;
   };
   tokens?: {
     accessToken: string;
@@ -94,6 +95,7 @@ export class AuthService extends BaseService {
           role: users.role,
           restaurantId: users.restaurantId,
           isActive: users.isActive,
+          tokenVersion: users.tokenVersion,
         })
         .from(users)
         .where(and(eq(users.username, data.username), eq(users.isActive, true)))
@@ -154,6 +156,7 @@ export class AuthService extends BaseService {
           username: user.username,
           role: user.role,
           restaurantId: user.restaurantId,
+          tv: user.tokenVersion,
         },
         jwtSecret,
         { expiresIn: "24h" },
@@ -206,6 +209,7 @@ export class AuthService extends BaseService {
           role: user.role,
           restaurantId: user.restaurantId,
           isActive: user.isActive,
+          tokenVersion: user.tokenVersion,
         },
         tokens: {
           accessToken,
@@ -346,6 +350,7 @@ export class AuthService extends BaseService {
           role: users.role,
           restaurantId: users.restaurantId,
           isActive: users.isActive,
+          tokenVersion: users.tokenVersion,
         })
         .from(users)
         .where(and(eq(users.id, decoded.userId), eq(users.isActive, true)))
@@ -366,6 +371,7 @@ export class AuthService extends BaseService {
           username: user.username,
           role: user.role,
           restaurantId: user.restaurantId,
+          tv: user.tokenVersion,
         },
         jwtSecret,
         { expiresIn: "24h" },
@@ -496,6 +502,7 @@ export class AuthService extends BaseService {
           role: users.role,
           restaurantId: users.restaurantId,
           isActive: users.isActive,
+          tokenVersion: users.tokenVersion,
         })
         .from(users)
         .where(and(eq(users.id, decoded.id), eq(users.isActive, true)))
@@ -503,6 +510,11 @@ export class AuthService extends BaseService {
 
       if (!user) {
         return { valid: false, error: "User not found or inactive" };
+      }
+
+      const tokenVersion = typeof decoded.tv === "number" ? decoded.tv : 1;
+      if (tokenVersion !== user.tokenVersion) {
+        return { valid: false, error: "Token invalidated" };
       }
 
       // 更新最後訪問時間
@@ -604,6 +616,7 @@ export class AuthService extends BaseService {
         .set({
           passwordHash: newPasswordHash,
           passwordChangedAt: new Date(),
+          tokenVersion: sql`${users.tokenVersion} + 1`,
           updatedAt: new Date(),
         })
         .where(eq(users.id, userId));
