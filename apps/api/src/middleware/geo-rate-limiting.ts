@@ -700,11 +700,15 @@ export function geoIntelligentRateLimitMiddleware(
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const path = c.req.path;
 
-    // Skip rate limiting entirely in local development. The integration test
-    // suite makes hundreds of requests in <1min from the same loopback IP,
-    // which trips the geo-rate-limiter and blocks the whole IP for minutes.
+    // Skip rate limiting entirely in local development and CI integration
+    // runs. The integration test suite makes hundreds of requests in <1min
+    // from the same loopback IP, which trips the geo-rate-limiter and
+    // blocks the whole IP for minutes. Both NODE_ENV=development (local
+    // dev via `pnpm dev`) and NODE_ENV=test (the value CI sets in the
+    // generated `.dev.vars` for nightly-integration.yml) need to bypass.
     // Production is unaffected — staging/production set NODE_ENV explicitly.
-    if ((c.env.NODE_ENV as string) === "development") {
+    const nodeEnv = c.env.NODE_ENV as string;
+    if (nodeEnv === "development" || nodeEnv === "test") {
       await next();
       return;
     }
