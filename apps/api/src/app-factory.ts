@@ -47,6 +47,7 @@ import posFeature from "./features/pos";
 // import queueModularRouter from './routes/queue-modular' // Replaced with unified Queue feature
 import queueFeature from "./features/queue";
 import paymentsFeature from "./features/payments";
+import managerFeature from "./features/manager";
 // import printRouter from './routes/print' // Disabled
 // import tablesRouter from './routes/tables' // Replaced with modular Tables feature
 import tablesFeature from "./features/tables";
@@ -503,6 +504,11 @@ export function createApp(
   apiV1.route("/orders", ordersFeature.routes);
   apiV1.route("/pos", posFeature.routes);
   apiV1.route("/payments", paymentsFeature.routes);
+  // Manager feature mounts on two independent paths — /manager hosts the
+  // delegation-aware action endpoint and /audit-logs is the admin-only read
+  // path for audit rows produced by that action.
+  apiV1.route("/manager", managerFeature.actionsRoutes);
+  apiV1.route("/audit-logs", managerFeature.auditLogsRoutes);
   // apiV1.route('/print', printApp) // Disabled - incomplete feature
   apiV1.route("/tables", tablesFeature.routes);
   apiV1.route("/seats", seatsFeature.routes);

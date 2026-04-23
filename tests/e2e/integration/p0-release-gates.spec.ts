@@ -586,11 +586,11 @@ test.describe("Tier 1 P0 release gates", () => {
     expect(created).toBe(false);
   });
 
-  // TODO(wave-5): /api/v1/manager/actions and /api/v1/audit-logs do not exist
-  // yet; manager persona is not in RBAC. Unblock by shipping the delegation
-  // endpoint, an audit_logs schema with actor_id + on_behalf_of_user_id, and
-  // the admin-facing audit query route.
-  test.fixme("M1 manager proxy action records actor separately from on-behalf-of owner", async () => {
+  // Wave 5: /api/v1/manager/actions and /api/v1/audit-logs are implemented
+  // (see apps/api/src/features/manager). audit_logs table gained an
+  // on_behalf_of_user_id column via migration 0018_audit_logs.sql. The gate
+  // now only needs CI to apply the fresh migrations before running.
+  test("M1 manager proxy action records actor separately from on-behalf-of owner", async () => {
     const adminAuth = await loginAs(USERS.ADMIN);
     const manager = await createStaffUser(adminAuth, 1, "p0_manager_m1");
     const owner = await createStaffUser(adminAuth, 1, "p0_owner_m1");
