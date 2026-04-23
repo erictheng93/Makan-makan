@@ -465,9 +465,18 @@ describe("BackupValidationService", () => {
       expect(service.isValidUUID("")).toBe(false);
       expect(service.isValidUUID("not-a-uuid")).toBe(false);
       expect(service.isValidUUID("123")).toBe(false);
-      expect(service.isValidUUID("550e8400-e29b-61d4-a716-446655440000")).toBe(
+      // Version nibble 9 is not a known UUID spec version; accepted
+      // range is v1-v8 (the project uses v7 via packages/utils/src/uuid.ts).
+      expect(service.isValidUUID("550e8400-e29b-91d4-a716-446655440000")).toBe(
         false,
-      ); // version 6 not in 1-5
+      );
+    });
+
+    it("should accept UUID v7 (project's ID strategy)", () => {
+      // RESTAURANT_ID in tests/e2e/integration/helpers.ts has this shape.
+      expect(
+        service.isValidUUID("019469a0-0001-7000-8000-000000000001"),
+      ).toBe(true);
     });
   });
 

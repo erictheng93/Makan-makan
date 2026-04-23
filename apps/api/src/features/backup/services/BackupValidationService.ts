@@ -197,8 +197,13 @@ export class BackupValidationService {
    * Validate UUID format
    */
   isValidUUID(str: string): boolean {
+    // Accepts UUID v1–v8. The project-wide ID strategy is UUID v7
+    // (see CLAUDE.md + packages/utils/src/uuid.ts), so the historical
+    // `[1-5]` version-nibble check rejected every real restaurant ID
+    // like `019469a0-0001-7000-8000-000000000001` and blocked the A6
+    // backup release gate with "Valid restaurant ID is required".
     const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(str);
   }
 
