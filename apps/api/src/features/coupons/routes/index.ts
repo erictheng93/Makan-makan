@@ -28,6 +28,7 @@ import {
   notFound,
   forbidden,
   badRequest,
+  conflict,
 } from "../../../shared/utils/api-error";
 
 const routes = new Hono<{ Bindings: Env }>();
@@ -424,7 +425,21 @@ routes.post(
     const data = c.get("validatedBody");
     const couponsService = new CouponsService(c.env.DB as any, c.env);
 
-    const usageRecord = await couponsService.useCoupon(data);
+    let usageRecord;
+    try {
+      usageRecord = await couponsService.useCoupon(data);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Coupon usage limit reached")
+      ) {
+        throw conflict(
+          "Coupon usage limit reached",
+          "COUPON_USAGE_LIMIT_REACHED",
+        );
+      }
+      throw error;
+    }
 
     return c.json({
       success: true,

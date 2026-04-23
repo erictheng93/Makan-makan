@@ -72,6 +72,7 @@ export interface Order extends Omit<BaseEntity, "createdAt" | "updatedAt"> {
   discountAmount?: number; // in cents
   totalAmount: number; // in cents
   status: OrderStatus;
+  version?: number;
   paymentStatus: OrderPaymentStatus;
   paymentMethod?: OrderPaymentMethod;
   notes?: string;

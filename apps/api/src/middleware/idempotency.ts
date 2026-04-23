@@ -111,6 +111,22 @@ function jsonError(message: string, code: string, status: number): ApiError {
   return new ApiError(code, message, status);
 }
 
+async function readBodyForIdempotency(
+  c: Context<{ Bindings: Env }>,
+): Promise<string> {
+  try {
+    return await c.req.raw.clone().text();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("ReadableStream") && !message.includes("locked")) {
+      throw error;
+    }
+
+    const parsed = await c.req.json();
+    return JSON.stringify(parsed);
+  }
+}
+
 export function idempotencyMiddleware(
   options: IdempotencyOptions,
 ): MiddlewareHandler<{ Bindings: Env }> {
@@ -118,7 +134,7 @@ export function idempotencyMiddleware(
   const requireKey = options.requireKey ?? true;
 
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
-    const rawBody = await c.req.raw.clone().text();
+    const rawBody = await readBodyForIdempotency(c);
     const resolvedKey =
       (await options.keyResolver?.(c, rawBody)) ??
       c.req.header("Idempotency-Key") ??

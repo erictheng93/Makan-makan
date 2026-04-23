@@ -29,6 +29,10 @@
 -- DELETE FROM users WHERE id > 2;
 -- DELETE FROM restaurants;
 
+-- Keep seed re-runnable when restaurants are inserted with OR REPLACE.
+DELETE FROM shop_subscriptions
+WHERE id IN ('sub-grandma', 'sub-sakura', 'sub-siam', 'sub-demo');
+
 -- ============================================================================
 -- 1. 餐廳 (Restaurants)
 -- ============================================================================
@@ -142,6 +146,24 @@ INSERT OR REPLACE INTO users (
 -- 3. 分類 (Categories)
 -- ============================================================================
 -- restaurant_id: TEXT，引用 restaurants.id (UUID v7)
+
+-- Shop subscriptions required by moduleGate for owner/staff API access.
+INSERT OR REPLACE INTO shop_subscriptions (
+  id, restaurant_id, plan_tier, module_overrides, is_active, trial_ends_at_ms,
+  billing_cycle_start_at_ms, billing_cycle_end_at_ms, notes, created_at_ms, updated_at_ms
+) VALUES
+('sub-grandma', '019469a0-0001-7000-8000-000000000001', 'trial', '{}', 1,
+  (unixepoch('now', '+30 days') * 1000), (unixepoch('now') * 1000),
+  (unixepoch('now', '+30 days') * 1000), 'Seed subscription for E2E gates',
+  (unixepoch('now') * 1000), (unixepoch('now') * 1000)),
+('sub-sakura', '019469a0-0002-7000-8000-000000000002', 'trial', '{}', 1,
+  (unixepoch('now', '+30 days') * 1000), (unixepoch('now') * 1000),
+  (unixepoch('now', '+30 days') * 1000), 'Seed subscription for E2E gates',
+  (unixepoch('now') * 1000), (unixepoch('now') * 1000)),
+('sub-siam', '019469a0-0003-7000-8000-000000000003', 'trial', '{}', 1,
+  (unixepoch('now', '+30 days') * 1000), (unixepoch('now') * 1000),
+  (unixepoch('now', '+30 days') * 1000), 'Seed subscription for E2E gates',
+  (unixepoch('now') * 1000), (unixepoch('now') * 1000));
 
 INSERT OR REPLACE INTO categories (
   id, restaurant_id, name, description, sort_order, is_active, item_count,

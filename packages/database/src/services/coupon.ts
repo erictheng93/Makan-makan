@@ -201,6 +201,21 @@ export class CouponService extends BaseService {
    * 記錄優惠券使用
    */
   async useCoupon(data: UseCouponData) {
+    const claim = await this.d1
+      .prepare(
+        `UPDATE coupons
+            SET used_count = coalesce(used_count, 0) + 1,
+                updated_at_ms = unixepoch('now') * 1000
+          WHERE id = ?
+            AND (usage_limit IS NULL OR coalesce(used_count, 0) < usage_limit)`,
+      )
+      .bind(data.couponId)
+      .run();
+
+    if ((claim.meta?.changes ?? 0) === 0) {
+      throw new Error("Coupon usage limit reached");
+    }
+
     const usageRecord = await this.db
       .insert(couponUsage)
       .values({
@@ -213,15 +228,6 @@ export class CouponService extends BaseService {
         status: "active",
       })
       .returning();
-
-    // 更新優惠券使用次數
-    await this.db
-      .update(coupons)
-      .set({
-        usedCount: sql`${coupons.usedCount} + 1`,
-        updatedAt: new Date(),
-      })
-      .where(eq(coupons.id, data.couponId));
 
     return usageRecord[0];
   }

@@ -376,7 +376,20 @@ export class OrdersService implements IOrdersService {
     status: string,
     notes?: string,
   ): Promise<void> {
-    await this.baseOrderService.updateOrderItemStatus(itemId, status, notes);
+    try {
+      await this.baseOrderService.updateOrderItemStatus(itemId, status, notes);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Order item status conflict")
+      ) {
+        throw conflict(
+          "Order item was already updated. Reload before retrying.",
+          "ORDER_ITEM_STATUS_CONFLICT",
+        );
+      }
+      throw error;
+    }
   }
 
   // Status Management
@@ -402,10 +415,25 @@ export class OrdersService implements IOrdersService {
       this.validateStatusTransition(order.status, statusData.status, userRole);
 
       // Update using base service
-      const updatedOrder = await this.baseOrderService.updateOrderStatus(id, {
-        status: statusData.status,
-        notes: statusData.notes,
-      });
+      let updatedOrder;
+      try {
+        updatedOrder = await this.baseOrderService.updateOrderStatus(id, {
+          status: statusData.status,
+          notes: statusData.notes,
+          expectedVersion: order.version,
+        });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.includes("Order version conflict")
+        ) {
+          throw conflict(
+            "Order was updated by another actor. Reload before retrying.",
+            "ORDER_VERSION_CONFLICT",
+          );
+        }
+        throw error;
+      }
 
       if (!updatedOrder) {
         throw new Error("Failed to update order status");

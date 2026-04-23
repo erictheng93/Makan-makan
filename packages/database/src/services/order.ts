@@ -1,4 +1,15 @@
-import { eq, and, asc, desc, count, sql, gte, lte, inArray } from "drizzle-orm";
+import {
+  eq,
+  ne,
+  and,
+  asc,
+  desc,
+  count,
+  sql,
+  gte,
+  lte,
+  inArray,
+} from "drizzle-orm";
 import { BaseService } from "./base";
 import {
   orders,
@@ -40,6 +51,7 @@ export interface CreateOrderData {
 export interface UpdateOrderStatusData {
   status: string;
   notes?: string;
+  expectedVersion?: number;
 }
 
 export interface OrderFilters {
@@ -531,6 +543,7 @@ export class OrderService extends BaseService {
       const statusField = `${data.status}At`;
       const updateData: Record<string, unknown> = {
         status: data.status,
+        version: sql`${orders.version} + 1`,
         updatedAt: new Date(),
       };
 
@@ -556,10 +569,17 @@ export class OrderService extends BaseService {
       const [order] = await this.db
         .update(orders)
         .set(updateData)
-        .where(eq(orders.id, id))
+        .where(
+          data.expectedVersion == null
+            ? eq(orders.id, id)
+            : and(eq(orders.id, id), eq(orders.version, data.expectedVersion)),
+        )
         .returning();
 
       if (!order) {
+        if (data.expectedVersion != null) {
+          throw new Error("Order version conflict");
+        }
         throw new Error("Order not found");
       }
 
@@ -669,7 +689,9 @@ export class OrderService extends BaseService {
     }
   }
 
-  // 更新訂單項目狀態
+  // 更新訂單項目狀態 — Drizzle-based CAS: matches row only when the
+  // current status differs from the target, preventing two chefs from
+  // completing the same item in parallel (H2 release gate).
   async updateOrderItemStatus(
     itemId: number,
     status: string,
@@ -693,10 +715,16 @@ export class OrderService extends BaseService {
       if (status === "cancelled") {
         updateData.cancelledAt = now;
       }
-      await this.db
+
+      const updated = await this.db
         .update(orderItems)
         .set(updateData)
-        .where(eq(orderItems.id, itemId));
+        .where(and(eq(orderItems.id, itemId), ne(orderItems.status, status)))
+        .returning({ id: orderItems.id });
+
+      if (updated.length === 0) {
+        throw new Error("Order item status conflict");
+      }
     } catch (error) {
       this.handleError(error, "updateOrderItemStatus");
     }
@@ -738,6 +766,7 @@ export class OrderService extends BaseService {
       customerId: order.customerId,
       orderNumber: order.orderNumber,
       status: order.status,
+      version: order.version,
       orderSource: order.orderSource,
       subtotal: order.subtotal,
       taxAmount: order.taxAmount,

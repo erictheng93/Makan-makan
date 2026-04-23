@@ -27,6 +27,7 @@ import {
   notFound,
   forbidden,
   badRequest,
+  conflict,
 } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -123,32 +124,44 @@ app.post("/", async (c) => {
     (data.orderType === "shop" ? "takeaway" : "dine_in");
 
   const ordersService = new OrdersService(c.env);
-  const order = await ordersService.createOrder({
-    restaurantId: data.restaurantId,
-    // Only pass tableId for table/seat orders — shop orders don't need a table
-    tableId: data.orderType === "shop" ? undefined : data.tableId,
-    customerInfo: {
-      name: data.guestName,
-      // phoneLastDigits is only 3 digits (for order dedup), not a real phone number.
-      // Don't pass it as phone — it would fail the 7-20 digit validation in OrdersService.
-    },
-    items: data.items.map((item) => ({
-      menuItemId: item.menuItemId,
-      quantity: item.quantity,
-      customizations: item.customizations,
-      notes: item.notes,
-    })),
-    notes: data.notes,
-    orderType: data.orderType,
-    deliveryInfo: {
-      type: fulfillmentType,
-      address: data.deliveryInfo?.address,
-      phone: data.deliveryInfo?.phone,
-      instructions: data.deliveryInfo?.instructions,
-      deliveryFee: data.deliveryInfo?.deliveryFee,
-    },
-    isGuestOrder: true,
-  });
+  let order;
+  try {
+    order = await ordersService.createOrder({
+      restaurantId: data.restaurantId,
+      // Only pass tableId for table/seat orders — shop orders don't need a table
+      tableId: data.orderType === "shop" ? undefined : data.tableId,
+      customerInfo: {
+        name: data.guestName,
+        // phoneLastDigits is only 3 digits (for order dedup), not a real phone number.
+        // Don't pass it as phone — it would fail the 7-20 digit validation in OrdersService.
+      },
+      items: data.items.map((item) => ({
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        customizations: item.customizations,
+        notes: item.notes,
+      })),
+      notes: data.notes,
+      orderType: data.orderType,
+      deliveryInfo: {
+        type: fulfillmentType,
+        address: data.deliveryInfo?.address,
+        phone: data.deliveryInfo?.phone,
+        instructions: data.deliveryInfo?.instructions,
+        deliveryFee: data.deliveryInfo?.deliveryFee,
+      },
+      isGuestOrder: true,
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /^Menu item \d+ is not available$/.test(error.message)
+    ) {
+      throw conflict(error.message, "MENU_ITEM_UNAVAILABLE");
+    }
+
+    throw error;
+  }
 
   // 5. Generate guest token and store in KV
   const guestToken = generateGuestToken();

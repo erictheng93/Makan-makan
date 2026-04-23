@@ -71,6 +71,7 @@ async function setMenuAvailability(
 async function createConfirmedOrder(menuItemId = MENU.HONG_CHA): Promise<{
   id: number;
   guestToken: string;
+  totalAmount: number;
 }> {
   const created = await createGuestOrder(RESTAURANT_ID, [
     { menuItemId, quantity: 1 },
@@ -81,6 +82,7 @@ async function createConfirmedOrder(menuItemId = MENU.HONG_CHA): Promise<{
   return {
     id: created.data.order.id,
     guestToken: created.data.guestToken,
+    totalAmount: Number(created.data.order.totalAmount),
   };
 }
 
@@ -219,7 +221,7 @@ test.describe("Tier 2 P1 current-quarter gates - batch 1", () => {
     const body = JSON.stringify({
       orderId: order.id,
       method: "card",
-      amount: 20,
+      amount: order.totalAmount,
     });
 
     const first = await fetch(`${API_URL}/api/v1/payments`, {

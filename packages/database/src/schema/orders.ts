@@ -52,6 +52,7 @@ export const orders = sqliteTable(
     // 訂單基本資訊
     orderNumber: text("order_number").notNull().unique(), // 訂單編號
     status: text("status").notNull().default(ORDER_STATUS.PENDING),
+    version: integer("version").notNull().default(0),
     orderType: text("order_type")
       .$type<"shop" | "table" | "seat">()
       .default("table"), // 訂單來源類型

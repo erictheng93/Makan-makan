@@ -10,7 +10,9 @@ compatibility_flags = ["nodejs_compat"]
 [dev]
 port = 8789
 local_protocol = "http"
-inspector_port = 9231
+# inspector_port intentionally omitted: pinning it in wrangler.toml triggers
+# "*** std::terminate() called" in workerd on Windows (wrangler 4.84.1).
+# Let wrangler auto-allocate instead.
 
 # Default variables for development
 [vars]

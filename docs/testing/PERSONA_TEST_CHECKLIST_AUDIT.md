@@ -3,9 +3,9 @@
 Source of truth audited against:
 - `docs/testing/personas.md`
 - `tests/e2e/helpers/personas.ts`
-- `tests/e2e/**/*.spec.ts` (`58` spec files)
+- `tests/e2e/**/*.spec.ts` (`59` spec files)
 - repo-wide `*.spec.ts` / `*.test.ts` broad scan across `tests/`, `apps/`,
-  and `packages/` (`527` files)
+  and `packages/` (`530` files)
 - selected app/package unit and integration tests where they materially clarify
   API/business behavior
 
@@ -21,9 +21,9 @@ Current audit summary:
 - Total persona/cross-persona risk points in `personas.md`: `85`
 - Note: the requested `82` total / `27` new rows does not match the current file. The listed added ranges (`M1-M5`, `E1-E7`, `C13-C15`, `H7-H9`, `S5-S7`, `K11`, `A5-A7`, `X7-X11`) add up to `30` rows.
 - Baseline estimate before re-checking added specs: `14 Covered / 18 Partial / 53 Missing`
-- Current verified status after enforcing real-API coverage only: `1 Covered / 44 Partial / 40 Missing`
-- Explicit spec paths cited by the document or audit: `33`
-- Existing cited spec files: `33`
+- Current verified status after enforcing real-API coverage only: `10 Covered / 35 Partial / 40 Missing`
+- Explicit spec paths cited by the document or audit: `34`
+- Existing cited spec files: `34`
 - Missing cited spec files: `0`
 
 P0 gate backend implementation progress:
@@ -51,6 +51,7 @@ Additional existing specs now considered:
 - `tests/e2e/integration/kitchen-display.real.spec.ts`
 - `tests/e2e/integration/p0-release-gates.spec.ts`
 - `tests/e2e/integration/p1-current-quarter-gates.spec.ts`
+- `tests/e2e/integration/p1-new-missing-gates.spec.ts`
 - `apps/api/src/features/guest-orders/__tests__/validation.test.ts`
 - `apps/api/src/features/backup/controllers/__tests__/BackupController.test.ts`
 - `apps/api/src/features/backup/services/__tests__/BackupValidationService.test.ts`
@@ -108,9 +109,26 @@ These `11` execution items cannot be deferred because they protect payment integ
 
 ### Tier 2 - P1 Current-Quarter Fill
 
-Current count from the live audit is `36` rows, not `about 24`: `17` Partial/Weak-Partial rows to strengthen plus `19` P1 Missing rows.
+Current count from the live audit is `35` rows, not `about 24`: `16` Partial/Weak-Partial rows to strengthen plus `19` P1 Missing rows.
 
-Batch 1 gate coverage added in `tests/e2e/integration/p1-current-quarter-gates.spec.ts` for the `14` Strengthen Partial rows: C2, C4, C5, O1, O2, O3, O7, H1, H2, K10, G4, X3, X4, X6. These remain `Partial` in the audit until the real API gates pass in CI.
+Batch 1 gate coverage added in `tests/e2e/integration/p1-current-quarter-gates.spec.ts` for the `14` Strengthen Partial rows: C2, C4, C5, O1, O2, O3, O7, H1, H2, K10, G4, X3, X4, X6. O1, O7, H1, C4, K10, X3, H2, X4, and X6 now pass against the local real API and have been promoted to `Covered`; the other rows remain `Partial` until their real API gates pass in CI.
+
+Batch 2 gate skeletons exist in `tests/e2e/integration/p1-new-missing-gates.spec.ts` for the `19` New P1 Missing rows: C13, C14, H7, H8, H9, S1, S2, S5, K11, A3, A5, A7, E3, M2, M3, M4, X7, X8, X11. The suite is intentionally `test.describe.fixme` and blocked until Tier 2 Batch A/B/C are green, so these rows remain `Missing` and do not affect current audit promotion counts.
+
+Execution order for the `14` Strengthen Partial gates should follow unlock difficulty multiplied by business risk:
+
+| Batch | IDs | Release action |
+| --- | --- | --- |
+| A - same-day validation | O1, O7, H1, X4 | Run first; backend likely already has most route scoping / kitchen visibility / delist-trigger behavior. Promote any passing real API gates to `Covered`. |
+| B - Wave 3/4 leverage | C4, X3, K10 | Re-run after payment/idempotency and refund work; C4/X3 may pass from the payments work, K10 still needs atomic coupon usage enforcement. |
+| C - medium backend investment | O2, O3, H2, X6, C2 | Add snapshot/image-boundary/CAS/delisted-code backend behavior, then re-run these gates. H2 and X6 should share one optimistic-lock implementation. |
+| D - new infrastructure | C5, G4 | Requires client mutation id / server lock and guest realtime auth scope infrastructure before these can turn green. |
+
+Latest local Batch A result: after loading local JWT secrets and seeding `shop_subscriptions`, O1, O7, H1, and X4 now pass against the real local API. X4 was fixed by mapping unavailable menu-item checkout failures from generic `500 GENERIC_ERROR` to client-actionable `409 MENU_ITEM_UNAVAILABLE`; `rtk pnpm exec playwright test tests/e2e/integration/p1-current-quarter-gates.spec.ts --project=integration --grep "X4 checkout"` passed `1/1`.
+
+Latest local Batch B result: `rtk pnpm exec playwright test tests/e2e/integration/p1-current-quarter-gates.spec.ts --project=integration --grep "C4 payment retry|K10 single-use|X3 delivery and payment"` passed `3/3`. C4 required using the order's authoritative total in the gate. K10 required atomic coupon usage claiming via `UPDATE coupons SET used_count = used_count + 1 WHERE id = ? AND (usage_limit IS NULL OR used_count < usage_limit)`, with exhausted claims mapped to `409 COUPON_USAGE_LIMIT_REACHED`. X3 passed after the idempotency/coupon fixes.
+
+Latest Batch C CAS result: `rtk pnpm exec playwright test tests/e2e/integration/p1-current-quarter-gates.spec.ts --project=integration --grep "H2 two chefs|X6 concurrent employee"` passed `2/2` after adding `orders.version` and compare-and-swap status updates. Kitchen item status updates now also return conflict on duplicate target status, which gives H2 one success and one `409`.
 
 | Group | IDs | Execution target |
 | --- | --- | --- |
@@ -159,7 +177,7 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | C1 | P1 | QR token expired after scan | QR expiry validation, friendly error page, retry / home CTA | Expired QR route shows recovery UI and does not create an order/session. | Partial | `qr-expiry.spec.ts` is mock-only (`page.route`); needs real QR expiry API/path to be Covered. |
 | C2 | P0 | Item delisted after it was added to cart | checkout revalidation, delisted-item removal, user-visible recovery CTA | Checkout returns `409`/blocked state and cart shows removable stale item. | Partial | `stock-validation.spec.ts` covers out-of-stock/409; `tests/e2e/integration/p1-current-quarter-gates.spec.ts` now adds the real-API delisted-item checkout block + active-order snapshot oracle. |
 | C3 | P0 | Stock becomes zero during submit | server-side stock check, `409`, keep cart intact | Submit receives `409`; cart item remains visible with quantity preserved. | Partial | `stock-validation.spec.ts` mocks `409`; needs real order API stock revalidation and DB/inventory assertion. |
-| C4 | P0 | Payment interrupted by network failure | idempotency key, payment-status reconciliation, safe retry | Retry resolves to one payment row/charge and exposes authoritative payment status. | Partial | `error-recovery.spec.ts` covers order submission failure; `p1-current-quarter-gates.spec.ts` now asserts retrying the same real payment idempotency key has one payment effect. |
+| C4 | P0 | Payment interrupted by network failure | idempotency key, payment-status reconciliation, safe retry | Retry resolves to one payment row/charge and exposes authoritative payment status. | Covered | `error-recovery.spec.ts` covers order submission failure; `p1-current-quarter-gates.spec.ts` retrying the same real payment idempotency key now passes with one payment effect. |
 | C5 | P1 | Same customer uses two devices concurrently | device isolation, cart merge policy, backend idempotency / conflict policy | Two concurrent submits produce one accepted order or an explicit conflict with no lost cart state. | Partial | `concurrent-operations.spec.ts` covers other 409 races; `p1-current-quarter-gates.spec.ts` now adds the real dual-device guest submit oracle. |
 | C6 | P1 | Delivery address outside supported zone | zone validation before checkout, inline error, blocked submit | Unsupported address keeps submit disabled or returns validation error before payment. | Partial | `delivery-zone.spec.ts` mocks address validation; needs real API zone validation before Covered. |
 | C7 | P1 | Cancel after order submit | status gate by lifecycle state, cancel only pre-ready | Cancellable states return success; non-cancellable states reject and preserve order status. | Partial | `order-cancellation.spec.ts` is mostly mock-only; `order-lifecycle.spec.ts` covers owner cancel via real API, not customer lifecycle gate. |
@@ -168,46 +186,46 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | C10 | P0 | Malicious note input, SQL/XSS payloads | server-side sanitization, payload limit, frontend escaping | Stored/displayed note is escaped, over-limit payload is rejected, and DB query is not altered. | Partial | `tests/e2e/integration/p0-release-gates.spec.ts` and `tests/e2e/journeys/customer/malicious-input.spec.ts` hit the real API for oversize, SQL-like, and XSS persisted-note oracles; `apps/api/src/features/guest-orders/__tests__/validation.test.ts:238` rejects notes over 500 chars. |
 | C11 | P2 | Multiple diners use same table QR | table-scoped ordering, independent customer identity, merged table view | Two guests on same table create distinct identities while table view merges orders correctly. | Missing | Backlog only. |
 | C12 | P3 | Locale/timezone changes affect order flow | locale-safe formatting, timezone-stable timestamps, currency assertions | Switching locale changes UI strings while order timestamps/totals remain stable. | Partial | Weak Partial: `tests/e2e/journeys/customer/edge-cases.spec.ts:482` switches UI language only; timezone arithmetic is not asserted. |
-| C13 | P1 | Offline cart additions then reconnect submit | idempotency + revalidation, no duplicate order | Reconnect submit creates one order and reruns stock/menu validation. | Missing | New blueprint row; no matching spec. |
-| C14 | P1 | Combo required choices / add-on dependency invalid | schema validation, checkout block | Invalid combo/add-on payload is rejected before order creation. | Missing | New blueprint row; no matching spec. |
+| C13 | P1 | Offline cart additions then reconnect submit | idempotency + revalidation, no duplicate order | Reconnect submit creates one order and reruns stock/menu validation. | Missing | `p1-new-missing-gates.spec.ts` now defines the real offline-replay idempotency + revalidation oracle; remains Missing until it passes against backend. |
+| C14 | P1 | Combo required choices / add-on dependency invalid | schema validation, checkout block | Invalid combo/add-on payload is rejected before order creation. | Missing | `p1-new-missing-gates.spec.ts` now posts invalid combo/add-on dependencies to the real guest-order API; remains Missing until backend validation passes. |
 | C15 | P2 | Notification / receipt delivery failure | main flow decoupled, retry, no sensitive leakage | Order remains successful; notification status records failure/retry without leaking PII. | Partial | `NotificationService.test.ts` covers email/SMS provider failure surfaces and `notifications/feature.test.ts` covers failed send responses; no order/receipt main-flow decoupling oracle. |
 
 ## OWNER
 
 | ID | Risk | Scenario | Solution options | Test Oracle | Status | Evidence / Gap |
 | --- | --- | --- | --- | --- | --- | --- |
-| O1 | P0 | Switch restaurant but old resource URL remains accessible | strict `restaurantId` authorization, route-level ownership checks | Direct request to old restaurant resource after switch returns `403` or empty scoped data. | Partial | `restaurant-switching.spec.ts` verifies switching/persistence/API calls; `p1-current-quarter-gates.spec.ts` now probes direct old/other-store resource URLs with a real owner token. |
+| O1 | P0 | Switch restaurant but old resource URL remains accessible | strict `restaurantId` authorization, route-level ownership checks | Direct request to old restaurant resource after switch returns `403` or empty scoped data. | Covered | `restaurant-switching.spec.ts` verifies switching/persistence/API calls; `p1-current-quarter-gates.spec.ts` direct old/other-store resource URL probe passes against the real local API. |
 | O2 | P1 | Deactivate item while active orders exist | new-order block, active-order snapshot preservation | Existing order keeps item snapshot; new checkout for inactive item is blocked. | Partial | `menu-management.spec.ts` covers availability toggles; `p1-current-quarter-gates.spec.ts` now adds active-order snapshot preservation plus new-order block assertions. |
 | O3 | P1 | Upload invalid or oversize image | MIME/size validation, pre-upload rejection, R2-safe failure handling | Non-image/oversize upload is rejected and no media row/object is created. | Partial | `menu-management.spec.ts` covers upload failure; `p1-current-quarter-gates.spec.ts` now asserts non-image and oversize payload boundaries before persistence. |
 | O4 | P1 | Batch repricing partially fails | transaction rollback, preview/diff, per-row validation before commit | A mixed-validity batch leaves all item prices unchanged and reports row errors. | Missing | Backlog only. |
 | O5 | P1 | Disable employee with active orders | reassignment flow, soft disable, ownership transfer | Deactivate request records inactive user and preserves or reassigns active work. | Partial | Weak Partial: `tests/e2e/integration/admin-operations-api.spec.ts:225` deactivates a user but does not seed active orders. |
 | O6 | P2 | Large report range harms system | pagination, enforced max range, async export | Oversized report range is rejected/async and does not run an unbounded synchronous query. | Missing | Backlog only. |
-| O7 | P0 | Cross-store RBAC access | ownership guard, row scoping, API `403` assertions | User from restaurant A cannot read/write restaurant B resources. | Partial | `rbac-permissions.spec.ts`, `kitchen-api.spec.ts` cross-restaurant chef `403`, and `orders/tenant-isolation.test.ts` support this; `p1-current-quarter-gates.spec.ts` adds owner-A vs owner-B real API read/write denial probes. |
+| O7 | P0 | Cross-store RBAC access | ownership guard, row scoping, API `403` assertions | User from restaurant A cannot read/write restaurant B resources. | Covered | `rbac-permissions.spec.ts`, `kitchen-api.spec.ts` cross-restaurant chef `403`, and `orders/tenant-isolation.test.ts` support this; `p1-current-quarter-gates.spec.ts` owner-A vs owner-B real API read/write denial probes pass locally. |
 | O8 | P1 | Change tax rate during business hours | versioned tax snapshot on order creation, old/new order separation | Pre-change order keeps old tax; post-change order uses new tax. | Missing | Backlog only. |
 
 ## CHEF
 
 | ID | Risk | Scenario | Solution options | Test Oracle | Status | Evidence / Gap |
 | --- | --- | --- | --- | --- | --- | --- |
-| H1 | P0 | WS disconnect then replay missed orders | reconnection, replay buffer, heartbeat health checks | Order created during disconnect appears in kitchen queue within SLA after reconnect. | Partial | `sse-realtime.spec.ts` and real kitchen specs cover reconnect/visibility; `p1-current-quarter-gates.spec.ts` now adds a real kitchen backlog replay visibility oracle after order creation. |
-| H2 | P1 | Two chefs complete same order simultaneously | compare-and-swap status change, optimistic-lock conflict UI | Concurrent completion yields one success and one `409`/reload prompt. | Partial | `concurrent-operations.spec.ts` covers conflict races; `p1-current-quarter-gates.spec.ts` now asserts chef-vs-chef concurrent item completion returns one success and one conflict. |
+| H1 | P0 | WS disconnect then replay missed orders | reconnection, replay buffer, heartbeat health checks | Order created during disconnect appears in kitchen queue within SLA after reconnect. | Covered | `sse-realtime.spec.ts` and real kitchen specs cover reconnect/visibility; `p1-current-quarter-gates.spec.ts` real kitchen backlog replay visibility oracle passes locally after adding subscription seed fixture. |
+| H2 | P1 | Two chefs complete same order simultaneously | compare-and-swap status change, optimistic-lock conflict UI | Concurrent completion yields one success and one `409`/reload prompt. | Covered | `concurrent-operations.spec.ts` covers conflict races; `p1-current-quarter-gates.spec.ts` chef-vs-chef concurrent item completion now passes with one success and one conflict. |
 | H3 | P0 | Customer cancels while chef is preparing | cancel lock rules, compensation flow, kitchen alert | Cancel during `preparing` is rejected or creates explicit kitchen conflict/compensation state. | Missing | Real API release-gate assertions now exist in `tests/e2e/integration/p0-release-gates.spec.ts` and `tests/e2e/journeys/chef/cancel-during-prep.spec.ts`; remains Missing until the gate passes in CI. |
 | H4 | P1 | Printer offline fallback in kitchen flow | deferred print queue, retry/reprint, visible printer health | Kitchen order remains actionable and print job enters retry queue with visible offline state. | Partial | Print stack tests cover unavailable printers, offline health, queue limits, and retry plumbing (`PrinterService.test.ts`, `PrinterHealthMonitor.test.ts`, `PrintJobManager.test.ts`); no kitchen-flow fallback E2E. |
 | H5 | P2 | Append order must insert into kitchen queue in real time | append-event routing, visual append marker, no loss of context | Appended item appears in kitchen queue with append marker and original table context. | Partial | `append-order.spec.ts` proves customer-side append only. |
 | H6 | P2 | Shift handoff of unfinished orders | assignee transfer, queue persistence, shift ownership rules | Unfinished orders remain visible after shift switch with correct assignee/ownership. | Partial | `tests/e2e/journeys/chef/kitchen-shift.spec.ts` covers normal shift flow, not handoff semantics. |
-| H7 | P1 | Combo split into kitchen stations | consistent split rules, single serving point | Combo order creates deterministic station tickets and one serving aggregation point. | Missing | New blueprint row; no matching spec. |
-| H8 | P1 | Ingredient shortage requires substitution while preparing | substitution flow, customer notification, amount recalculation | Substitution records choice, notifies customer, and recalculates/refunds amount if needed. | Missing | New blueprint row; no matching spec. |
-| H9 | P1 | Menu edited while order is preparing | order-time snapshot | Preparing order displays original item data despite later menu edits. | Missing | New blueprint row; no matching spec. |
+| H7 | P1 | Combo split into kitchen stations | consistent split rules, single serving point | Combo order creates deterministic station tickets and one serving aggregation point. | Missing | `p1-new-missing-gates.spec.ts` now requires real kitchen station-ticket output for combo orders; remains Missing until backend support exists. |
+| H8 | P1 | Ingredient shortage requires substitution while preparing | substitution flow, customer notification, amount recalculation | Substitution records choice, notifies customer, and recalculates/refunds amount if needed. | Missing | `p1-new-missing-gates.spec.ts` now defines the real substitution API + notification/recalculation oracle; remains Missing until implemented. |
+| H9 | P1 | Menu edited while order is preparing | order-time snapshot | Preparing order displays original item data despite later menu edits. | Missing | `p1-new-missing-gates.spec.ts` now asserts preparing-order snapshot stability after owner menu edit; remains Missing until passing CI. |
 
 ## SERVICE_CREW
 
 | ID | Risk | Scenario | Solution options | Test Oracle | Status | Evidence / Gap |
 | --- | --- | --- | --- | --- | --- | --- |
-| S1 | P1 | Wrong table marked delivered | table confirmation, delivery confirmation modal, reversible correction flow | Delivery requires table/order confirmation and supports correction/audit if wrong. | Missing | Backlog only. |
-| S2 | P1 | Address changes during delivery | address versioning, dispatch re-confirmation, route refresh | Address update increments version and active route shows the latest confirmed version. | Missing | Backlog only. |
+| S1 | P1 | Wrong table marked delivered | table confirmation, delivery confirmation modal, reversible correction flow | Delivery requires table/order confirmation and supports correction/audit if wrong. | Missing | `p1-new-missing-gates.spec.ts` now asserts wrong-table delivery returns conflict plus correction audit; remains Missing until route/behavior exists. |
+| S2 | P1 | Address changes during delivery | address versioning, dispatch re-confirmation, route refresh | Address update increments version and active route shows the latest confirmed version. | Missing | `p1-new-missing-gates.spec.ts` now asserts guest address versioning and service-route refresh; remains Missing until implemented. |
 | S3 | P1 | Delivery status update fails | retry queue, offline recovery, conflict-safe UI state | Failed status update leaves visible retry state and does not falsely mark delivered. | Partial | `tests/e2e/journeys/service-crew/delivery-shift.spec.ts` covers network error, not explicit WS state sync path. |
 | S4 | P2 | Duplicate delivered action | idempotent status endpoint, disabled button after success | Second delivered action returns idempotent success or conflict without duplicate audit/event. | Missing | Backlog only. |
-| S5 | P1 | One crew member receives conflicting multi-order assignments | explicit priority/order sorting | Conflicting assignments render deterministic priority and cannot overwrite each other. | Missing | New blueprint row; no matching spec. |
+| S5 | P1 | One crew member receives conflicting multi-order assignments | explicit priority/order sorting | Conflicting assignments render deterministic priority and cannot overwrite each other. | Missing | `p1-new-missing-gates.spec.ts` now defines the real bulk-assignment deterministic-priority oracle; remains Missing until backend support exists. |
 | S6 | P2 | Wrong pickup order | scan/order-number confirmation | Pickup is blocked when scanned ticket/order number does not match assignment. | Missing | New blueprint row; no matching spec. |
 | S7 | P2 | Device dies or changes mid-task | task takeover, state persistence | Replacement device can resume assigned task without losing current delivery state. | Missing | New blueprint row; no matching spec. |
 
@@ -224,8 +242,8 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | K7 | P0 | Partial-payment sum mismatch | exact total enforcement, split allocation validator | Split payments cannot close unless sum exactly equals authoritative total. | Partial | Wave 3 enabled `/api/v1/payments` (previously disabled in `app-factory.ts`) with server-authoritative total recompute. Partial-mode mismatch returns 409 `PARTIAL_PAYMENT_TOTAL_MISMATCH` and never sets `orders.paymentStatus = paid`. `p0-release-gates.spec.ts` asserts this end-to-end; waiting on CI to turn the assertion green. |
 | K8 | P1 | Drawer total differs from system total at shift end | reconciliation summary, supervisor review, variance logging | Variance is logged and requires review before close completes. | Partial | `tests/e2e/journeys/cashier/pos-shift.spec.ts` covers reconciliation summary, not variance escalation. |
 | K9 | P2 | New order arrives during handoff | handoff lock, incoming-order queueing, next-shift acceptance | Order arriving during handoff is assigned by explicit handoff rule. | Missing | Backlog only. |
-| K10 | P0 | Same coupon used by multiple orders | atomic redemption, single-use lock, post-payment verification | Concurrent redemption allows one order and rejects/rolls back the other. | Partial | `coupon-management.spec.ts`, `coupon-api.spec.ts`, and `coupon-checkout.spec.ts` cover validate/manage/apply flows; `p1-current-quarter-gates.spec.ts` now adds concurrent single-use redemption atomicity. |
-| K11 | P1 | Same IP brute-forces card payments | rate limit, risk transaction blocking | Burst payment attempts from same IP are throttled and risk event is logged. | Missing | New blueprint row; no matching spec. |
+| K10 | P0 | Same coupon used by multiple orders | atomic redemption, single-use lock, post-payment verification | Concurrent redemption allows one order and rejects/rolls back the other. | Covered | `coupon-management.spec.ts`, `coupon-api.spec.ts`, and `coupon-checkout.spec.ts` cover validate/manage/apply flows; `p1-current-quarter-gates.spec.ts` concurrent single-use redemption atomicity now passes after atomic usage claiming. |
+| K11 | P1 | Same IP brute-forces card payments | rate limit, risk transaction blocking | Burst payment attempts from same IP are throttled and risk event is logged. | Missing | `p1-new-missing-gates.spec.ts` now drives repeated real payment attempts from one IP and checks throttle + risk event; remains Missing until backend proves it. |
 
 ## ADMIN
 
@@ -233,20 +251,20 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | --- | --- | --- | --- | --- | --- | --- |
 | A1 | P0 | Demoted admin still has valid token | token revocation, session invalidation, permission recheck on each request | Old token after demotion fails privileged request immediately. | Missing | `auth-api.spec.ts` covers base auth matrix; `p0-release-gates.spec.ts` now asserts active owner/admin-style token rejection after disable/downgrade. Remains Missing until CI proves immediate invalidation. |
 | A2 | P0 | Store deletion without anonymization/backup | anonymization workflow, recoverable backup, audit log | Delete flow creates backup/audit and removes or anonymizes PII as policy requires. | Missing | Backlog only. |
-| A3 | P1 | Large PII export without audit trail | export audit log, explicit approval gates, scope logging | PII export creates audit row with actor, scope, timestamp, and approval state. | Missing | Backlog only. |
+| A3 | P1 | Large PII export without audit trail | export audit log, explicit approval gates, scope logging | PII export creates audit row with actor, scope, timestamp, and approval state. | Missing | `p1-new-missing-gates.spec.ts` now defines the real PII export approval/audit contract; remains Missing until route and audit behavior exist. |
 | A4 | P1 | Feature flag flip impacts active orders | flag scoping, phased rollout, active-order snapshot consistency | Active orders keep previous behavior while new orders use updated flag. | Missing | Backlog only. |
-| A5 | P1 | Right-to-be-forgotten / retention expiry | anonymize/hard-delete + audit | Retention job removes/anonymizes target data and records audit proof. | Missing | New blueprint row; no matching spec. |
+| A5 | P1 | Right-to-be-forgotten / retention expiry | anonymize/hard-delete + audit | Retention job removes/anonymizes target data and records audit proof. | Missing | `p1-new-missing-gates.spec.ts` now defines the retention/anonymization run contract; remains Missing until backend support exists. |
 | A6 | P0 | Backup restore drill fails | recoverable backup, data integrity, alerting | Restored DB row counts match backup manifest and checksums match. | Partial | Backup unit tests cover restore safety/checksum; `p0-release-gates.spec.ts` now requires real backup create/restore output to include checksum and manifest row-count equality. |
-| A7 | P1 | On-call incident degradation | observability, degrade mode, rollback | Incident mode emits alert, serves degraded path, and rollback restores healthy status. | Missing | New blueprint row; no matching spec. |
+| A7 | P1 | On-call incident degradation | observability, degrade mode, rollback | Incident mode emits alert, serves degraded path, and rollback restores healthy status. | Missing | `p1-new-missing-gates.spec.ts` now asserts incident-mode alert, degraded health, and rollback; remains Missing until implemented. |
 
 ## MANAGER
 
 | ID | Risk | Scenario | Solution options | Test Oracle | Status | Evidence / Gap |
 | --- | --- | --- | --- | --- | --- | --- |
 | M1 | P0 | Proxy action recorded as Owner | audit log separates actor / on-behalf-of | Audit row contains manager actor and delegated owner/store context separately. | Missing | `p0-release-gates.spec.ts` now defines the real API contract for manager proxy action plus audit-log actor/on-behalf-of separation; remains Missing until manager delegation APIs exist and pass. |
-| M2 | P1 | Delegation remains after authorization expires | scope/time expiry | Request after delegation expiry returns `403` and creates denied audit row. | Missing | New persona; no matching spec. |
-| M3 | P1 | Delegated manager crosses store boundary | assigned stores only, other stores `403` | Manager can mutate assigned store only; unassigned store returns `403`. | Missing | New persona; no matching spec. |
-| M4 | P1 | Manager approves cash variance | variance, signer, timestamp in audit | Cash variance approval records amount, signer, timestamp, and target shift. | Missing | New persona; no matching spec. |
+| M2 | P1 | Delegation remains after authorization expires | scope/time expiry | Request after delegation expiry returns `403` and creates denied audit row. | Missing | `p1-new-missing-gates.spec.ts` now asserts expired delegation denial plus denied audit row; remains Missing until manager delegation expiry exists. |
+| M3 | P1 | Delegated manager crosses store boundary | assigned stores only, other stores `403` | Manager can mutate assigned store only; unassigned store returns `403`. | Missing | `p1-new-missing-gates.spec.ts` now asserts assigned-store allow and unassigned-store denial; remains Missing until manager store-scope enforcement exists. |
+| M4 | P1 | Manager approves cash variance | variance, signer, timestamp in audit | Cash variance approval records amount, signer, timestamp, and target shift. | Missing | `p1-new-missing-gates.spec.ts` now defines the cash-variance approval audit contract; remains Missing until route and audit behavior exist. |
 | M5 | P2 | Multiple managers on duty | parallel permissions, actor traceability | Concurrent manager actions remain attributable to individual actors. | Missing | New persona; no matching spec. |
 
 ## GUEST
@@ -265,7 +283,7 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | --- | --- | --- | --- | --- | --- | --- |
 | E1 | P0 | Payment gateway timeout | do not assume success, unpaid lock, status poll correction | Timeout leaves order unpaid/pending until gateway status poll confirms. | Partial | Wave 3 `PaymentService.processPayment` honors `X-Payment-Gateway-Fixture: timeout` (gated on `NODE_ENV !== 'production'`) and returns 202 with `paymentStatus: 'pending'`, never flipping the order to paid. `p0-release-gates.spec.ts` asserts the pending state; CI run pending. |
 | E2 | P0 | Delayed payment callback triggers duplicate effects | idempotent webhook handler, only-once effect | Duplicate webhook creates one state transition/payment effect. | Partial | Wave 3 wires `idempotencyMiddleware(scope: 'webhook')` keyed on `Idempotency-Key` or body `event_id` onto `/integrations/webhooks/uber-eats`. Replays serve the cached response with `data.duplicateEffects: 0` + `X-Idempotent-Replay: true`. Test signature bypass behind `ALLOW_TEST_SIGNATURE`. `p0-release-gates.spec.ts` asserts only-once; waiting on CI + `platform_integrations` seed row for store id `p0-test-store`. |
-| E3 | P1 | Third-party menu sync fails | local system source of truth, retry/report failure | Local menu remains authoritative and sync failure records retryable error. | Missing | New external row; no matching spec. |
+| E3 | P1 | Third-party menu sync fails | local system source of truth, retry/report failure | Local menu remains authoritative and sync failure records retryable error. | Missing | `p1-new-missing-gates.spec.ts` now asserts failed platform menu sync preserves local menu and records retryable failure; remains Missing until implemented. |
 | E4 | P1 | Printer / print agent offline | flow does not block, queue reprint, health visible | Order/payment flow completes and print job is queued with offline health status. | Partial | Print-agent and queue-core tests cover print job creation, no-printer unhealthy health, offline status, and queue behavior; no order/payment flow proves print failure is non-blocking. |
 | E5 | P1 | SMS / Email cannot be sent | order flow unaffected, notification state traceable | Order succeeds and notification failure is recorded for retry. | Partial | `NotificationService.test.ts` covers email/SMS provider failure and bulk partial failure; API feature tests cover failed notification responses. Missing order-flow unaffected/retry-state assertion. |
 | E6 | P2 | Webhook signature verification fails | reject and alert, isolate other channels | Bad signature returns rejection, logs alert, and does not mutate domain state. | Partial | `webhook.routes.test.ts` rejects invalid HMAC with `401`, `UberEatsAdapter.test.ts` verifies real HMAC behavior, and legacy integration hits the webhook route; mutation isolation/alert oracle is incomplete. |
@@ -277,15 +295,15 @@ Current count is `18` rows if C12 gets an interim P2 locale/timestamp hardening 
 | --- | --- | --- | --- | --- | --- | --- |
 | X1 | P0 | Customer places order and chef receives it in real time | event propagation SLA, realtime queue integrity | `POST /orders` success is followed by kitchen queue/event visibility within SLA. | Covered | Real API support exists in `tests/e2e/integration/order-lifecycle.spec.ts`, `admin-order-management.real.spec.ts`, `kitchen-display.real.spec.ts`, and cross-service API/realtime tests; keep release-gate candidate. |
 | X2 | P0 | Customer cancels while chef has started prep | cancellation lock, prep-state conflict handling | Cancel during prep is rejected or produces explicit conflict state visible to both roles. | Missing | Real API release-gate assertions now exist in `p0-release-gates.spec.ts` and `tests/e2e/journeys/chef/cancel-during-prep.spec.ts`; shared H3/X2 gate must pass before release. |
-| X3 | P1 | Service delivers while customer/cashier payment is in flight | payment-delivery ordering rules, idempotent transitions | Concurrent delivery/payment resolves to valid final state with no impossible transition. | Partial | `concurrent-operations.spec.ts` covers duplicate payment; `p1-current-quarter-gates.spec.ts` now races real delivery status change against payment capture. |
-| X4 | P1 | Owner disables item while customer is checking out | inventory/version revalidation on checkout | Checkout after disable is rejected while cart displays recovery action. | Partial | `stock-validation.spec.ts` covers checkout validation; `p1-current-quarter-gates.spec.ts` now adds the owner-action-triggered checkout rejection oracle. |
+| X3 | P1 | Service delivers while customer/cashier payment is in flight | payment-delivery ordering rules, idempotent transitions | Concurrent delivery/payment resolves to valid final state with no impossible transition. | Covered | `concurrent-operations.spec.ts` covers duplicate payment; `p1-current-quarter-gates.spec.ts` real delivery status change versus payment capture race passes locally. |
+| X4 | P1 | Owner disables item while customer is checking out | inventory/version revalidation on checkout | Checkout after disable is rejected while cart displays recovery action. | Covered | `stock-validation.spec.ts` covers checkout validation; `p1-current-quarter-gates.spec.ts` owner-action-triggered checkout rejection oracle passes locally after guest checkout maps unavailable menu items to `409 MENU_ITEM_UNAVAILABLE`. |
 | X5 | P2 | Reservation to seated to ordering | reservation state machine, table occupancy sync | Reservation, table, and order states progress consistently across roles. | Partial | `reservation-to-seated.spec.ts` mocks reservation/table APIs; needs real reservation/table/order API state machine. |
-| X6 | P1 | Two employees update same order status | optimistic lock, conflict messaging, reload rules | Concurrent status updates produce one success and one conflict/reload path. | Partial | `concurrent-operations.spec.ts` covers claim conflicts; `p1-current-quarter-gates.spec.ts` now asserts two authenticated employee status updates produce one success and one conflict. |
-| X7 | P1 | Payment channel disconnects while customer pays | fallback channel, retry, state sync | Payment disconnect leaves one authoritative payment state and retry/fallback path. | Missing | New cross-persona row; no matching spec. |
-| X8 | P1 | Platform syncs menu while owner delists item | local source of truth, external channel update | Local delist wins and external channel eventually reflects unavailable item. | Missing | New cross-persona row; no matching spec. |
+| X6 | P1 | Two employees update same order status | optimistic lock, conflict messaging, reload rules | Concurrent status updates produce one success and one conflict/reload path. | Covered | `concurrent-operations.spec.ts` covers claim conflicts; `p1-current-quarter-gates.spec.ts` two authenticated employee status updates now pass with one success and one conflict after `orders.version` CAS. |
+| X7 | P1 | Payment channel disconnects while customer pays | fallback channel, retry, state sync | Payment disconnect leaves one authoritative payment state and retry/fallback path. | Missing | `p1-new-missing-gates.spec.ts` now drives a real payment disconnect fixture and asserts retryable non-paid state; remains Missing until backend passes. |
+| X8 | P1 | Platform syncs menu while owner delists item | local source of truth, external channel update | Local delist wins and external channel eventually reflects unavailable item. | Missing | `p1-new-missing-gates.spec.ts` now asserts owner local delist wins over external sync; remains Missing until platform sync conflict policy exists. |
 | X9 | P0 | Admin disables Owner while Owner is operating | immediate session invalidation, write rejection | Owner's next write after disable returns unauthorized/forbidden and no mutation occurs. | Missing | `p0-release-gates.spec.ts` now creates/logs in an owner, disables the owner, then asserts the next table write is rejected and absent. |
 | X10 | P2 | App version upgraded during service | smooth upgrade, persistent connections, old-client fallback | Active users keep working or receive controlled fallback during deploy. | Missing | New cross-persona row; no matching spec. |
-| X11 | P1 | Manager delegation crosses cashier shift close | delegation survives/ends by explicit policy, audit trace | Shift close records cashier and manager delegation context correctly. | Missing | New cross-persona row; no matching spec. |
+| X11 | P1 | Manager delegation crosses cashier shift close | delegation survives/ends by explicit policy, audit trace | Shift close records cashier and manager delegation context correctly. | Missing | `p1-new-missing-gates.spec.ts` now defines manager-delegated cashier shift-close audit contract; remains Missing until POS/manager integration exists. |
 
 ## Executable Test Checklist By Persona
 
@@ -335,7 +353,7 @@ Highest-priority blocker gates to make pass next:
 
 Audit conclusion:
 - `personas.md` now defines `85` risk rows; the previous `55`-row audit was structurally stale.
-- The repo has `58` e2e spec files and `527` total `*.spec.ts` / `*.test.ts` files across `tests/`, `apps/`, and `packages`, not the `19` effectively covered by the earlier audit scope.
+- The repo has `59` e2e spec files and `530` total `*.spec.ts` / `*.test.ts` files across `tests/`, `apps/`, and `packages`, not the `19` effectively covered by the earlier audit scope.
 - Adding the missing `Test Oracle` column exposes which risks are actually assertable.
 - C12 and O5 are now weak `Partial`, not `Missing`.
 - The two former missing cited spec files now exist as real-API blocker specs with enforced assertions. C10 is now `Partial` because oversize and SQL-like payload paths have evidence; H3/X2 remain `Missing` until cancel-lock gates pass in CI.

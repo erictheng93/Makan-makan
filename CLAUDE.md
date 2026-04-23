@@ -19,6 +19,26 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 - **Print**: Local Node.js agent (Express + WebSocket)
 - **Security**: Cloudflare WAF + Zero Trust
 
+## Applications Overview
+
+`pnpm dev` starts every app in this monorepo in parallel via turbo. The full map:
+
+| App | Type | Local port(s) | Notes |
+| --- | --- | --- | --- |
+| `apps/api` | Cloudflare Worker (wrangler) | 8787 | Main public/admin REST API (Hono) |
+| `apps/management-api` | Cloudflare Worker (wrangler) | 8789 | Central management API (multi-tenant control plane) |
+| `apps/realtime` | Cloudflare Worker + Durable Object | 8788 | WebSocket realtime sessions |
+| `apps/image-processor` | Cloudflare Worker (wrangler) | 8790 | Cloudflare Images transforms |
+| `apps/backup-scheduler` | Cloudflare Worker (cron) | — | Scheduled backup trigger |
+| `apps/customer-app` | Vite (Vue) | 3000 | Customer-facing ordering UI |
+| `apps/admin-dashboard` | Vite (Vue) | 3001 | Restaurant admin/staff UI |
+| `apps/kitchen-display` | Vite (Vue) | 3002 | Kitchen display system |
+| `apps/management-portal` | Vite (Vue) | 3010 | Platform management portal |
+| `apps/onboarding-app` | Vite (Vue) | 3011 | Tenant onboarding flow |
+| `apps/print-agent` | Local Node.js (tsx) | 3003 (HTTP), 3004 (WS) | ESC/POS print daemon |
+
+`pnpm dev:api`, `pnpm dev:customer`, `pnpm dev:admin`, `pnpm dev:kitchen` are the most common per-app filters; see `package.json` for the full `dev:*` script list.
+
 ## Database (Cloudflare D1)
 
 ### Schema & Migrations
@@ -68,15 +88,20 @@ Put these in `.env.local` or the Cloudflare secret store — never in any commit
 
 **Frontend dev defaults (committed):**
 
-Each Vite app ships a team-shared `.env.development` checked into the repo:
+There are **5 Vite apps** in `apps/`. Three of them ship a team-shared `.env.development` checked into the repo so that `pnpm dev` works out of the box with no `cp` step:
 
-- `apps/customer-app/.env.development`
-- `apps/admin-dashboard/.env.development`
-- `apps/kitchen-display/.env.development`
+- `apps/customer-app/.env.development` (port 3000)
+- `apps/admin-dashboard/.env.development` (port 3001)
+- `apps/kitchen-display/.env.development` (port 3002)
 
-These only contain localhost URLs (API proxy path, local WS ports) and feature flags — zero secrets. New clones run `pnpm dev` out of the box with no `cp` step.
+The remaining two Vite apps do **not** currently ship a `.env.development` — they either rely on Vite defaults or read from `.env.development.local` only:
 
-To override for your personal setup (port collision, remote API, etc.), create `.env.development.local` in the same directory — it's gitignored and takes precedence over `.env.development`. Each app has a `.env.development.example` you can copy as a starting point.
+- `apps/management-portal` (port 3010)
+- `apps/onboarding-app` (port 3011)
+
+These committed `.env.development` files only contain localhost URLs (API proxy path, local WS ports) and feature flags — zero secrets.
+
+To override for your personal setup (port collision, remote API, etc.), create `.env.development.local` in the same directory — it's gitignored and takes precedence over `.env.development`. Each app with a committed `.env.development` also has a `.env.development.example` you can copy as a starting point.
 
 **Rule:** anything matching `SECRET|TOKEN|KEY|PASSWORD` belongs in `.env.local` only. `.env.development` is for localhost URLs and flags, nothing else.
 
@@ -327,11 +352,16 @@ Use `data-testid`, `data-status`, `aria-*` attributes, text content, or Vue comp
 2. **KV Cache Misses**: Verify namespace configuration
 3. **Image Upload Failures**: Check R2 bucket permissions
 4. **WebSocket Disconnections**: Monitor Durable Objects health
+5. **Windows: `pnpm dev` fails with `*** std::terminate() called with no exception` followed by `MiniflareCoreError [ERR_RUNTIME_FAILURE]`**: This is a wrangler 4.84.x regression on Windows triggered by **any** `inspector_port = N` line inside the `[dev]` block of a `wrangler.toml`. It reproduces on every port value (9229/9230/9500, etc.), on both Node 22 and Node 24, and on every installed workerd binary — port availability is not the factor; the toml field itself crashes the InspectorProxyWorker. **All 4 Workers apps in this repo already have `inspector_port` commented out** in their `wrangler.toml` with an inline note — do not reintroduce it. If you need a pinned DevTools port, pass it via CLI flag (`wrangler dev --inspector-port N`) instead, which does not crash. Debug hint: first line to run if you see `std::terminate` in a future wrangler bump is `grep -rn "^inspector_port" apps/`.
 
 ### Debug Tools
 
 - Worker logs: `pnpm wrangler tail`
-- Health endpoint: `/api/v1/health`
+- **Public liveness probe**: `GET /info` on the API (returns 200, no auth required) — use this for smoke tests, load balancer health checks, or quick "is it up?" curls.
+- **Authenticated health endpoints** (require bearer token):
+  - `/api/v1/monitoring/health` — aggregated monitoring view (this is also where `/health` redirects to)
+  - `/api/v1/system/health`, `/api/v1/system/health/ready`, `/api/v1/system/health/live` — kubernetes-style probes under the System feature
+- Note: there is **no** unauthenticated `/api/v1/health` route anymore (the old router was replaced by the System/Monitoring features; a stale reference in `app-factory.ts` CSRF exclusion list remains as dead config).
 - Error tracking: Automatic Slack notifications
 
 ## Documentation

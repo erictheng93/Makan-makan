@@ -130,6 +130,10 @@ class SharedDataStore {
         total_spent INTEGER NOT NULL DEFAULT 0,
         last_login_at INTEGER,
         password_changed_at INTEGER,
+        -- Wave 1: JWT invalidation. Bumped on deactivate / role change /
+        -- password change so old tokens fail authMiddleware's per-request
+        -- version check.
+        token_version INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
@@ -307,6 +311,10 @@ class SharedDataStore {
         cancellation_reason TEXT,
         refund_amount REAL,
         delivery_info TEXT,
+        -- Batch C: optimistic-lock column. Every status update bumps this
+        -- and compare-and-swap WHERE version = expected enforces H2 / X6 /
+        -- X11 concurrent-actor conflict semantics.
+        version INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
@@ -340,6 +348,8 @@ class SharedDataStore {
       CREATE TABLE IF NOT EXISTS audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
+        -- Wave 5 (M1): manager delegation actor/on-behalf-of split.
+        on_behalf_of_user_id INTEGER,
         restaurant_id TEXT,
         action TEXT NOT NULL,
         resource TEXT NOT NULL,
