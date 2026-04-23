@@ -72,6 +72,7 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 
 補充：
 - `GUEST` 不在 RBAC 角色內，但在掃碼 / guest token / 匿名下單中是第一級利益者
+- `MANAGER` 尚未獨立於 RBAC（共用 Role 1 權限、標記為 `1*`），是組織層 persona；實務上由 Owner 指派值班主管代管單日營運。藍圖先行建模，RBAC 擴充前由 audit 以 scope 判定
 
 ---
 
@@ -81,6 +82,7 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 | --- | --- | --- | --- | --- | --- |
 | `ADMIN` | 系統管理員 | 0 | admin-dashboard | 跨店維運、平台治理、審計 | PII、跨店存取、敏感操作 |
 | `OWNER` | 店主 | 1 | admin-dashboard | 管店、管菜單、管營運、管員工 | 多店隔離、報表可信度 |
+| `MANAGER` | 值班主管 | 1* | admin-dashboard / POS | 單日 / 單店營運協調與異常處理 | 權限代理、交接、客訴處置 |
 | `CHEF` | 廚師 | 2 | kitchen-display | 接單、製作、完成出餐 | 漏單、錯狀態、競態更新 |
 | `SERVICE_CREW` | 送餐員 / 送菜員 | 3 | kitchen-display / POS | 取餐、送餐、標記送達 | 錯送、重複送達、狀態回報 |
 | `CASHIER` | 收銀員 | 4 | admin-dashboard / POS | 安全收款、退款、交班 | 金流、對帳、重複扣款 |
@@ -109,6 +111,7 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 14. 報表、匯出與稽核 Reporting / Audit
 15. 系統設定與 Feature Flags Settings / Config
 16. 異常、恢復與安全 Error Recovery / Abuse / Security
+17. 周邊系統與非功能 External Integrations / Hardware / Notifications / Compliance / Accessibility
 
 ---
 
@@ -123,6 +126,8 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 - 失敗條件：API 500、409、401、403、504、離線、重連
 - 競態條件：雙人 / 雙裝置 / 雙角色同時操作
 - 審計條件：狀態是否可回溯、是否有 audit trail
+- 可觀察性 Test Oracle：測試如何分辨「失敗 vs 慢」、「漏 vs 延遲」。每個 risk 必須指向可被斷言的 server state / event log / UI 狀態
+- 非功能邊界 Non-functional：P99 < 300ms、WS < 50ms、a11y 最小對比度、i18n locale 清單（對齊 `CLAUDE.md` 效能目標）
 
 ---
 
@@ -315,6 +320,74 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 - realtime update + refresh fallback
 - timeline UI 使用單一 status source
 
+#### H. Offline / Network-degraded Mode
+
+可做的事：
+- 離線瀏覽已快取菜單
+- 離線加入購物車（本地 queue）
+- 連線恢復後補送單
+
+應測的行為：
+- 離線時加入購物車不丟資料
+- 恢復連線後 server 二次驗證（庫存、價格、稅、配送費）
+- 離線 checkout 必須阻擋或顯示「待連線後送出」狀態
+
+高風險：
+- 離線 queue 造成重複送單
+- 回線後價格不一致但送單成功
+- UI 顯示「已送出」但 server 未收
+
+解法方向：
+- idempotency key + 離線標記
+- 恢復連線後以 server 為真實來源 recompute
+- 明確 UI 狀態：送出中 / 成功 / 待重送
+
+#### I. Menu Variants / Combo / Add-on
+
+可做的事：
+- 選規格（size / sweetness / ice）
+- 選套餐拼盤與必選項
+- 選加料（付費 / 免費）
+- 指定備註
+
+應測的行為：
+- 必選項未選時 checkout 阻擋
+- variants 價差正確累加
+- combo 拆單規則一致（顧客單 vs 廚房單）
+- 超出允許組合數回錯誤
+
+高風險：
+- 必選項未選卻送單成功
+- combo 金額與加料相衝
+- 規格描述顯示與 kitchen ticket 不一致
+
+解法方向：
+- 選項關係由 server schema 定義
+- checkout 二次驗證 variants 完整性
+- kitchen ticket 與顧客單共用單一 render
+
+#### J. Notifications / Receipts
+
+可做的事：
+- 訂單確認 email / SMS
+- 推播狀態變化
+- 重發收據
+
+應測的行為：
+- 通知失敗不影響主流程
+- 通知可重送
+- 內容與 server truth 一致
+
+高風險：
+- 通知成功但 UI 看似失敗
+- 送達他人（錯誤 email / 電話）
+- 通知內含敏感資訊外洩（完整卡號、地址）
+
+解法方向：
+- 通知與訂單 commit 解耦
+- 通知內容以白名單欄位組裝
+- 通知重送記錄 + audit
+
 ### 6.3 CUSTOMER 高風險測試清單
 
 | ID | Risk | Scenario | 預期行為 |
@@ -331,6 +404,9 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 | C10 | 🔴 P0 | 惡意輸入 / XSS / SQL | sanitize + escape + limit |
 | C11 | 🟡 P2 | 多人共用同桌 QR | 歸屬正確 |
 | C12 | ⚪ P3 | 語系 / 時區切換 | 顯示與計算正確 |
+| C13 | 🟠 P1 | 離線加入購物車後回線送單 | idempotency + 二次驗證，無重複單 |
+| C14 | 🟠 P1 | 套餐必選 / 加料相依性錯誤 | schema 驗證並阻擋 checkout |
+| C15 | 🟡 P2 | 通知 / 收據寄送失敗 | 不影響主流程、可重送、無敏資外洩 |
 
 ---
 
@@ -506,6 +582,18 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 - 離線 fallback
 - 重印
 
+#### E. Kitchen Operations Edge Cases
+
+- 套餐拆單（combo split）進廚房
+- 缺料 / 替代（substitution）
+- 製作中店家修改菜單
+- 高峰期批次出餐
+
+高風險：
+- combo 拆單錯位導致漏品
+- 替代未通知客戶造成客訴
+- 菜單修改影響進行中訂單快照
+
 ### 8.3 CHEF 高風險測試清單
 
 | ID | Risk | Scenario | 預期行為 |
@@ -516,6 +604,9 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 | H4 | 🟠 P1 | 列印機離線 | 主流程不中斷，可補印 |
 | H5 | 🟡 P2 | append order 插入廚房流 | 清楚標記 append |
 | H6 | 🟡 P2 | 交接班未完成訂單 | 所有權與可見性一致 |
+| H7 | 🟠 P1 | 套餐拆單進廚房 | 拆分規則一致，單一出餐點 |
+| H8 | 🟠 P1 | 製作中缺料需替代 | 替代流程、客戶通知、金額重算 |
+| H9 | 🟠 P1 | 店家在準備中修改菜單 | 舊單以下單當下快照為準 |
 
 ---
 
@@ -548,6 +639,18 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 - 客戶改地址
 - 重複送達
 
+#### D. Routing / Multi-order Handling
+
+- 一人多單派工優先權
+- 取餐 QR / 序號匹配
+- 裝置離線 / 換裝置交接
+- 高峰時段大批 ready 訂單
+
+高風險：
+- 多單排序錯誤導致冷掉
+- 拿錯單
+- 裝置掛掉後任務消失
+
 ### 9.3 SERVICE_CREW 高風險測試清單
 
 | ID | Risk | Scenario | 預期行為 |
@@ -556,6 +659,9 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 | S2 | 🟠 P1 | 外送中改地址 | 版本切換正確 |
 | S3 | 🟠 P1 | 狀態更新失敗 | 顯示失敗且可重試 |
 | S4 | 🟡 P2 | 重複點 delivered | endpoint idempotent |
+| S5 | 🟠 P1 | 一人多單派工衝突 | 優先權 / 排序明確 |
+| S6 | 🟡 P2 | 取餐拿錯單 | 掃碼 / 編號確認阻擋 |
+| S7 | 🟡 P2 | 裝置斷電或換裝置 | 任務可接手、狀態不遺失 |
 
 ---
 
@@ -617,6 +723,7 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 | K8 | 🟠 P1 | 現金抽屜與系統不符 | 記錄差異並要求覆核 |
 | K9 | 🟡 P2 | 交班中有新訂單 | handoff 規則清楚 |
 | K10 | 🔴 P0 | 優惠券同時被多張單使用 | atomic redemption |
+| K11 | 🟠 P1 | 同 IP 短時間暴力刷卡 | rate limit、風險交易攔截 |
 
 ---
 
@@ -653,6 +760,19 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 - 撤銷 token
 - 驗證敏感操作二次確認
 
+#### E. Compliance / Data Lifecycle / SRE
+
+- 資料保留期限與被遺忘權請求
+- 備份 / 還原演練
+- On-call 事故處理與降級
+- 合規稽核（GDPR、個資法、PCI 範圍）
+
+高風險：
+- 刪除後備份仍可找回 PII
+- 還原演練失敗但告警未觸發
+- 事故降級流程缺失
+- audit log 本身可被竄改
+
 ### 11.3 ADMIN 高風險測試清單
 
 | ID | Risk | Scenario | 預期行為 |
@@ -661,6 +781,49 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 | A2 | 🔴 P0 | 刪店未匿名化 / 無備份 | 保持合規與可追溯 |
 | A3 | 🟠 P1 | PII 匯出無 audit log | 完整審計 |
 | A4 | 🟠 P1 | feature flag 影響 active orders | 舊流程不中斷 |
+| A5 | 🟠 P1 | 被遺忘權請求 / 資料保留到期 | 匿名化 / 硬刪 + audit |
+| A6 | 🔴 P0 | 備份還原演練失敗 | 可還原、資料完整、告警觸發 |
+| A7 | 🟠 P1 | On-call 事故降級 | observability、可降級、可回滾 |
+
+---
+
+## 11.5 MANAGER（值班主管）— Role 1*（Owner 代理，藍圖提案）
+
+### 11.5.1 Persona 定義
+
+- 身份：被 Owner 指派代行單日 / 單店營運的主管，實質是 Owner 的值班代理
+- 心智模型：短期、scope-bounded 的 Owner，不是另一個 Owner
+- 核心目標：班次交接順暢、異常處理即時、權限範圍清楚、操作軌跡可追溯
+- 現況：尚未在 RBAC 獨立角色；藍圖先行建模，實作補齊前以「Owner + scope + actor 欄位」代理
+
+### 11.5.2 MANAGER × 模組
+
+- Restaurant Context：只操作被指派的單店，不能跨店
+- Order Lifecycle：force-cancel、人工改單、折讓授權（皆須二次確認）
+- Cashier Shift：代開 / 代結班、覆核差異
+- Reporting：即時看當日 KPI，但不可匯出 PII
+- Audit：所有代理操作都必須以 `on-behalf-of` 形式入庫
+
+高風險：
+- 代理權限被濫用（任意改單、折讓、退款）
+- 代理授權期結束後權限未自動回收
+- 操作軌跡 attribution 錯誤（記成 Owner 而非代理者）
+- 同時多位代理在班導致並行操作衝突
+
+解法方向：
+- audit log 分離 `actor_user_id`（實際操作者）與 `on_behalf_of_user_id`（Owner）
+- 授權時效 / scope 採 JWT claim + server 驗證雙檢查
+- 敏感操作（退款 / 折讓 / 刪單）強制二次確認 + 主管簽核
+
+### 11.5.3 MANAGER 高風險測試清單
+
+| ID | Risk | Scenario | 預期行為 |
+| --- | --- | --- | --- |
+| M1 | 🔴 P0 | 代理身份操作卻記為 Owner | audit log 分離 actor / on-behalf-of |
+| M2 | 🟠 P1 | 代理授權期結束後仍能操作 | 時效 / scope 到期即失效 |
+| M3 | 🟠 P1 | 跨店操作越權 | 僅限被指派店家，其餘 `403` |
+| M4 | 🟠 P1 | 代理覆核現金差異 | 差異、簽核人、時間皆入 audit |
+| M5 | 🟡 P2 | 多位代理同時在班 | 權限並行、操作可追溯到個別代理 |
 
 ---
 
@@ -710,6 +873,42 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 
 ---
 
+## 12.5 External Integrations / Hardware / Notifications（第三方系統與硬體）
+
+### 12.5.1 定位
+
+非 RBAC persona，但是系統的**外部依賴實體**。它們會單點失效、延遲、回應錯誤格式、被 DDoS，必須建模為測試裡的可控失敗點。
+
+涵蓋：
+- 金流通道（信用卡、LINE Pay、Apple Pay、街口、超商代收）
+- 第三方平台（Foodpanda / Uber Eats / 自建外送）
+- 列印硬體（廚房印表機、櫃台出餐機、本地 Node.js print agent）
+- 通知通道（SMS、Email、Web Push、Webhook）
+- 外部 POS / ERP / 會計同步
+
+### 12.5.2 失敗模式建模
+
+每個依賴都應明確定義：
+- **失敗模式**：timeout、4xx、5xx、錯誤格式、部分回應、簽章不符
+- **重試策略**：最大次數、exponential backoff、jitter
+- **狀態校正**：對端為真 vs 本端為真、reconciliation job
+- **斷路器**：circuit breaker 閾值、半開恢復策略
+- **降級 UX**：顯示、可重試、可切換通道、manual override
+
+### 12.5.3 External 高風險測試清單
+
+| ID | Risk | Scenario | 預期行為 |
+| --- | --- | --- | --- |
+| E1 | 🔴 P0 | 金流通道 timeout | 不假成功、保留 unpaid 鎖、可由 status poll 校正 |
+| E2 | 🔴 P0 | 金流回呼延遲導致雙觸發 | idempotent webhook handler、only-once effect |
+| E3 | 🟠 P1 | 第三方平台菜單同步失敗 | 本系統為源真相、sync 失敗回報並重試 |
+| E4 | 🟠 P1 | 列印機 / print agent 離線 | 主流程不卡死、queue 重印、印表機健康可見 |
+| E5 | 🟠 P1 | SMS / Email 送不出 | 訂單主流程不受影響、通知狀態可追 |
+| E6 | 🟡 P2 | Webhook 簽章驗證失敗 | 拒收並告警、不影響其他通道 |
+| E7 | 🟡 P2 | 外部 POS / 會計同步落後 | 以本系統為真、落後可對帳補回 |
+
+---
+
 ## 13. 跨 Persona 互動矩陣
 
 | ID | 情境 | 涉及角色 | 風險 | 預期行為 |
@@ -720,6 +919,11 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 | X4 | 店主下架商品時顧客正在 checkout | OWNER + CUSTOMER | 🟠 P1 | checkout 重新驗證 |
 | X5 | 預約 → 入座 → 點餐 | CUSTOMER + SERVICE / OWNER | 🟡 P2 | reservation / table / order 一致 |
 | X6 | 兩位員工同時更新同一訂單 | CHEF + SERVICE / CHEF + CHEF | 🟠 P1 | 一方成功，一方 conflict |
+| X7 | 金流通道斷線時顧客正在付款 | CUSTOMER + External | 🟠 P1 | fallback 通道、重試、狀態同步 |
+| X8 | 平台同步菜單時店家剛下架 | OWNER + External | 🟠 P1 | 源真相為本系統、外部通道更新 |
+| X9 | Admin 停用 Owner 時該 Owner 正操作 | ADMIN + OWNER | 🔴 P0 | session 即時失效、寫操作被拒 |
+| X10 | 營業中升級應用版本 | ADMIN + 全體 | 🟡 P2 | 平滑升級、連線不中斷、舊客戶端降級 |
+| X11 | Manager 代理期間跨越班次結帳 | MANAGER + CASHIER | 🟠 P1 | 代理權不隨班次結束、audit 軌跡完整 |
 
 ---
 
@@ -734,6 +938,14 @@ ADMIN (0) · OWNER (1) · CHEF (2) · SERVICE_CREW (3) · CASHIER (4) · CUSTOME
 | 惡意輸入 / token 偽造 | API + security |
 | transaction / rollback / race | integration |
 | 報表 / 大資料量 / 查詢負載 | integration + perf |
+| 離線 / 降級模式 | integration + targeted E2E |
+| 通知通道 | contract test + integration |
+| 可存取性 a11y | static audit（axe / lighthouse）+ targeted E2E |
+| i18n / 時區 / locale | snapshot + targeted E2E |
+| 合規 / 資料保留 / PII | integration + 人工 drill |
+| 硬體 / 列印 agent | local agent test + integration |
+| 第三方依賴失效 | contract test + circuit-breaker integration |
+| 效能預算 P99 / WS | perf harness（對齊 CLAUDE.md 目標） |
 
 ---
 
@@ -751,16 +963,25 @@ Backlog 應描述為「待補風險」，而不是「目前沒有風險」。
 - Cashier：關帳後退款
 - Cashier：部分付款總額驗證
 - Admin：降權後 token 撤銷
+- Admin：備份還原演練（A6）
 - Guest：token 偽造
+- External：金流通道 timeout / webhook 雙觸發（E1、E2）
+- Cross：Admin 停用 Owner 即時失效（X9）
+- Manager：代理身份 audit 分離（M1）
 
 ### P1
 
 - Owner：批次改價 transaction
 - Owner：停用員工時有進行中工作
 - Owner：營業中改稅率
-- Service：送錯桌 / 改地址
-- Chef：列印機 fallback
-- Admin：PII 匯出 audit
+- Service：送錯桌 / 改地址、多單派工、裝置交接（S1、S2、S5、S7）
+- Chef：列印機 fallback、套餐拆單、缺料替代、菜單變更（H4、H7–H9）
+- Admin：PII 匯出 audit、被遺忘權、On-call 降級（A3、A5、A7）
+- Customer：離線送單、套餐必選驗證（C13、C14）
+- Cashier：刷卡暴力攔截（K11）
+- External：第三方平台同步、印表機、通知（E3–E5）
+- Manager：代理期結束回收、跨店越權、覆核差異（M2–M4）
+- Cross：金流斷線、平台同步、Manager 跨班（X7、X8、X11）
 
 ---
 
@@ -770,3 +991,4 @@ Backlog 應描述為「待補風險」，而不是「目前沒有風險」。
 | --- | --- | --- |
 | 2026-04-16 | @claude | 初版骨架，6 Persona + Guest |
 | 2026-04-16 | Codex | 擴充為「功能模組 × Persona」版本 |
+| 2026-04-23 | Claude | 新增 MANAGER persona（Section 11.5）、External Integrations 模組（Section 12.5）、Module 17；CUSTOMER 補 H/I/J 子模組與 C13–C15；CHEF 補 E 子模組與 H7–H9；SERVICE 補 D 子模組與 S5–S7；CASHIER 補 K11；ADMIN 補 E 子模組與 A5–A7；cross-persona 補 X7–X11；非功能測試對照補 7 列；Section 5 加入 Test Oracle 與效能預算對齊 |
