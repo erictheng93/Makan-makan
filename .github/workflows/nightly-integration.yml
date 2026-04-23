@@ -147,12 +147,23 @@ jobs:
       #     400 before restore even runs).
       # When those are addressed, expand this list (or drop back to
       # `--project=integration` with no explicit spec args).
+      # --workers=1 overrides playwright.config.ts's CI default of 2.
+      # Tier 1 / Tier 2 gates share state through the real D1 database
+      # (cash_shifts, coupons.used_count, idempotency_keys, order
+      # active-dedup KV). With 2 workers CI saw cross-file contention:
+      # repeated `cancelOrder(NN) cleanup warning: 500 "Order cannot
+      # be cancelled"` in cleanup, plus sporadic C5 / C10 failures
+      # where one worker's order state leaked into the other's
+      # assertions. Forcing serial avoids this without changing the
+      # project's `fullyParallel: false`, which only serialises within
+      # a single spec file.
       - name: 🧪 執行 Integration Tests (P0 + P1 gates)
         run: |
           npx playwright test \
             tests/e2e/integration/p0-release-gates.spec.ts \
             tests/e2e/integration/p1-current-quarter-gates.spec.ts \
-            --project=integration
+            --project=integration \
+            --workers=1
         env:
           E2E_BASE_URL: http://localhost:3000
 
