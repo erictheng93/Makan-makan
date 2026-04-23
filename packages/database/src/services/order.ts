@@ -370,7 +370,14 @@ export class OrderService extends BaseService {
       return this.mapToOrder({ ...order, items });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (message.includes("orders.client_mutation_id")) {
+      // Different SQLite / D1 surfaces quote the UNIQUE violation column
+      // differently:
+      //   - local miniflare:    "UNIQUE constraint failed: orders.restaurant_id, orders.client_mutation_id"
+      //   - CI wrangler dev D1: "Failed query: insert into \"orders\" (..., \"client_mutation_id\", ...)"
+      // Match on the column name alone so both formats map to the
+      // same CLIENT_MUTATION_DUPLICATE path that the route translates
+      // to 409.
+      if (message.includes("client_mutation_id")) {
         throw new Error("CLIENT_MUTATION_DUPLICATE");
       }
 
