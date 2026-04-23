@@ -11,7 +11,11 @@ export const paymentRequestSchema = z
   .object({
     orderId: z.number().int().positive(),
     paymentMode: z.enum(["full", "partial"]).optional().default("full"),
-    expectedTotal: moneySchema,
+    // Optional client-side sanity check. Server recomputes the authoritative
+    // total regardless; when provided, mismatch is rejected with
+    // PAYMENT_TOTAL_MISMATCH. When omitted (e.g. E1 gateway-timeout path),
+    // the server total is still the source of truth.
+    expectedTotal: moneySchema.optional(),
     payments: z.array(partialPaymentSchema).min(1).max(20).optional(),
     closeOrder: z.boolean().optional(),
     method: z.string().min(1).max(50).optional(),

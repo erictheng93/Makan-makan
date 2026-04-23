@@ -70,12 +70,14 @@ export class PaymentService {
     }
 
     const serverTotal = Number(existing.totalAmount);
-    assertSameAmount(
-      input.expectedTotal,
-      serverTotal,
-      "PAYMENT_TOTAL_MISMATCH",
-      "Expected total does not match authoritative order total",
-    );
+    if (input.expectedTotal !== undefined) {
+      assertSameAmount(
+        input.expectedTotal,
+        serverTotal,
+        "PAYMENT_TOTAL_MISMATCH",
+        "Expected total does not match authoritative order total",
+      );
+    }
 
     if (input.paymentMode === "partial") {
       const paidTotal = (input.payments ?? []).reduce(

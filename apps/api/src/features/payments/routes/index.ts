@@ -27,9 +27,15 @@ app.post(
     const input: PaymentRequestInput = c.get("validatedBody");
     const user: AuthUser | undefined = c.get("user");
     const service = new PaymentService(c.env);
+    // Gateway fixture headers bypass real gateway calls and are only honored
+    // outside production. In prod, any forged header is ignored so callers
+    // cannot fake a timeout/pending payment state.
+    const fixtureAllowed = c.env.NODE_ENV !== "production";
     const result = await service.processPayment(input, {
       user,
-      gatewayFixture: c.req.header("X-Payment-Gateway-Fixture"),
+      gatewayFixture: fixtureAllowed
+        ? (c.req.header("X-Payment-Gateway-Fixture") ?? null)
+        : null,
     });
 
     return c.json(

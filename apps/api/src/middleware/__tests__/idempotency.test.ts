@@ -1,7 +1,13 @@
+import { createHash } from "node:crypto";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 import { idempotencyMiddleware } from "../idempotency";
 import { ApiError } from "../../shared/utils/api-error";
+
+// Matches the SHA-256 body-hash the middleware computes via WebCrypto.
+function sha256Hex(input: string): string {
+  return createHash("sha256").update(input).digest("hex");
+}
 
 interface IdempotencyRow {
   key: string;
@@ -191,5 +197,181 @@ describe("idempotencyMiddleware", () => {
     expect(res.status).toBe(422);
     expect(body.error.code).toBe("IDEMPOTENCY_BODY_MISMATCH");
     expect(fixture.effects).toBe(1);
+  });
+
+  it("returns 422 when the same key is reused under a different scope", async () => {
+    const db = createIdempotencyDb();
+    // Pre-seed a completed entry under a different scope.
+    db.rows.set("shared-key", {
+      key: "shared-key",
+      scope: "webhook",
+      request_hash: "unused",
+      response_status: 200,
+      response_body: JSON.stringify({ ok: true }),
+      effect_id: null,
+      created_at: Date.now(),
+      expires_at: Date.now() + 60_000,
+    });
+    const fixture = createApp(db);
+
+    const res = await fixture.app.request(
+      new Request("http://localhost/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "shared-key",
+        },
+        body: JSON.stringify({ amount: 100 }),
+      }),
+      undefined,
+      fixture.env,
+    );
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(422);
+    expect(body.error.code).toBe("IDEMPOTENCY_SCOPE_MISMATCH");
+    expect(fixture.effects).toBe(0);
+  });
+
+  it("returns 409 when the matching key is still in-flight", async () => {
+    const db = createIdempotencyDb();
+    // Pre-seed a reserved-but-unresolved entry (response_status null = pending).
+    db.rows.set("pending-key", {
+      key: "pending-key",
+      scope: "payment",
+      request_hash: sha256Hex(JSON.stringify({ amount: 100 })),
+      response_status: null,
+      response_body: null,
+      effect_id: null,
+      created_at: Date.now(),
+      expires_at: Date.now() + 60_000,
+    });
+    const fixture = createApp(db);
+
+    const res = await fixture.app.request(
+      new Request("http://localhost/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "pending-key",
+        },
+        body: JSON.stringify({ amount: 100 }),
+      }),
+      undefined,
+      fixture.env,
+    );
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(409);
+    expect(body.error.code).toBe("IDEMPOTENCY_IN_PROGRESS");
+    expect(fixture.effects).toBe(0);
+  });
+
+  it("allows reuse once the previous entry has expired", async () => {
+    const db = createIdempotencyDb();
+    db.rows.set("stale-key", {
+      key: "stale-key",
+      scope: "payment",
+      request_hash: "any",
+      response_status: 200,
+      response_body: JSON.stringify({
+        success: true,
+        data: { paymentId: "x" },
+      }),
+      effect_id: "x",
+      created_at: Date.now() - 120_000,
+      expires_at: Date.now() - 60_000, // expired 1 minute ago
+    });
+    const fixture = createApp(db);
+
+    const res = await fixture.app.request(
+      new Request("http://localhost/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "stale-key",
+        },
+        body: JSON.stringify({ amount: 100 }),
+      }),
+      undefined,
+      fixture.env,
+    );
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data.paymentId).toBe("pay_1");
+    expect(fixture.effects).toBe(1);
+    // Original stale entry should have been removed; a new one reserved.
+    const replacement = db.rows.get("stale-key");
+    expect(replacement?.effect_id).toBe("pay_1");
+  });
+
+  it("persists the effectId returned by the callback and replays it on the second call", async () => {
+    const fixture = createApp();
+    const headers = {
+      "Content-Type": "application/json",
+      "Idempotency-Key": "effect-key",
+    };
+
+    const first = await fixture.app.request(
+      new Request("http://localhost/payments", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ amount: 50 }),
+      }),
+      undefined,
+      fixture.env,
+    );
+    expect(first.status).toBe(200);
+
+    // effectId callback pulls data.paymentId → the mock handler returns pay_1.
+    const second = await fixture.app.request(
+      new Request("http://localhost/payments", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ amount: 50 }),
+      }),
+      undefined,
+      fixture.env,
+    );
+    const body = (await second.json()) as any;
+
+    expect(second.status).toBe(200);
+    expect(body.data.paymentId).toBe("pay_1");
+    expect(second.headers.get("X-Idempotent-Replay")).toBe("true");
+    expect(fixture.effects).toBe(1);
+  });
+
+  it("skips idempotency when the key is optional and absent", async () => {
+    const db = createIdempotencyDb();
+    const app = new Hono<{
+      Bindings: { DB: ReturnType<typeof createIdempotencyDb> };
+    }>();
+    let called = 0;
+    app.post(
+      "/webhook",
+      idempotencyMiddleware({
+        scope: "webhook",
+        requireKey: false,
+      }),
+      async (c) => {
+        called += 1;
+        return c.json({ success: true, data: { received: true } });
+      },
+    );
+
+    const env = { DB: db } as any;
+    const res = await app.request(
+      new Request("http://localhost/webhook", {
+        method: "POST",
+        body: JSON.stringify({ payload: "no-key" }),
+      }),
+      undefined,
+      env,
+    );
+
+    expect(res.status).toBe(200);
+    expect(called).toBe(1);
+    expect(db.rows.size).toBe(0);
   });
 });
