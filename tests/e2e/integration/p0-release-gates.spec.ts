@@ -372,12 +372,11 @@ test.describe("Tier 1 P0 release gates", () => {
     ).toEqual(manifest.rowCounts ?? manifest.row_counts);
   });
 
-  // TODO(wave-4): backend K6 contract is implemented (RefundService detects
-  // cash_shifts.status='closed' and returns ledgerMutation=false +
-  // adjustmentId). Seed is in
-  // packages/database/migrations/dev-only/0049_p0_gate_seed.sql — the gate
-  // unblocks once CI applies that migration before running e2e integration.
-  test.fixme("K6 refund after close creates an adjustment without mutating closed ledger", async () => {
+  // Wave 4 K6: RefundService detects cash_shifts.status='closed' and
+  // returns ledgerMutation=false + adjustmentId. Seed lives in
+  // packages/database/migrations/dev-only/0049_p0_gate_seed.sql which CI
+  // applies in .github/workflows/nightly-integration.yml before the run.
+  test("K6 refund after close creates an adjustment without mutating closed ledger", async () => {
     const order = await createDeliveredOrder();
     createdOrderIds.push(order.id);
 
@@ -415,10 +414,10 @@ test.describe("Tier 1 P0 release gates", () => {
     ).toBeTruthy();
   });
 
-  // TODO(wave-3): /api/v1/payments is disabled in app-factory and there is no
-  // partial-payment allocator. Unblock by enabling the route, adding
-  // Idempotency-Key middleware, and enforcing server-side exact-total.
-  test.fixme("K7 mismatched partial payments cannot close an order", async () => {
+  // Wave 3 K7: /api/v1/payments is enabled with server-authoritative total
+  // recompute. Partial-mode mismatch returns 409 PARTIAL_PAYMENT_TOTAL_MISMATCH
+  // and never flips orders.paymentStatus to paid.
+  test("K7 mismatched partial payments cannot close an order", async () => {
     const order = await createDeliveredOrder();
     createdOrderIds.push(order.id);
 
@@ -475,10 +474,10 @@ test.describe("Tier 1 P0 release gates", () => {
     expect(JSON.stringify(data)).not.toContain(String(second.data.order.id));
   });
 
-  // TODO(wave-3): payment handler must accept X-Payment-Gateway-Fixture=timeout
-  // and keep payment/order unpaid-pending until an authoritative status poll
-  // confirms. Depends on enabling /api/v1/payments (same work as K7).
-  test.fixme("E1 gateway timeout leaves payment pending until authoritative confirmation", async () => {
+  // Wave 3 E1: PaymentService honors X-Payment-Gateway-Fixture=timeout
+  // (gated on NODE_ENV !== "production"; CI sets NODE_ENV=test in
+  // apps/api/.dev.vars) and returns 202 with paymentStatus=pending.
+  test("E1 gateway timeout leaves payment pending until authoritative confirmation", async () => {
     const order = await createDeliveredOrder();
     createdOrderIds.push(order.id);
 
@@ -507,11 +506,10 @@ test.describe("Tier 1 P0 release gates", () => {
     );
   });
 
-  // TODO(wave-3): idempotency middleware + test-signature bypass are now in
-  // place, and the uber_eats integration seed lives in
-  // packages/database/migrations/dev-only/0049_p0_gate_seed.sql. Unblocks
-  // once CI applies that migration and sets ALLOW_TEST_SIGNATURE=true.
-  test.fixme("E2 duplicate payment webhook has only-once effect", async () => {
+  // Wave 3 E2: idempotencyMiddleware(scope:'webhook') keyed on event_id
+  // replays the cached response with data.duplicateEffects=0. Seed +
+  // ALLOW_TEST_SIGNATURE=true are provisioned by the CI workflow.
+  test("E2 duplicate payment webhook has only-once effect", async () => {
     const eventId = `p0-e2-${Date.now()}`;
     const body = JSON.stringify({
       event_id: eventId,

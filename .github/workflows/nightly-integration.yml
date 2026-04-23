@@ -3,6 +3,11 @@ name: 🌙 Nightly Integration Tests
 # Integration tests hit a real Wrangler dev server + seeded D1 database.
 # They are slower, flakier, and depend on real infrastructure.
 #
+# Scope: runs every spec under tests/e2e/integration/, which includes:
+#   - p0-release-gates.spec.ts (Tier 1 P0 blockers)
+#   - p1-current-quarter-gates.spec.ts (Tier 2 P1 Strengthen Partial)
+#   - real API integration smokes (admin-order-management.real, kitchen-display.real, customer-dine-in, etc.)
+#
 # Solo-dev mode (2026-04-13): nightly cron disabled to cut CI noise during
 # active development. Run manually before releases via:
 #   gh workflow run nightly-integration.yml --ref <branch>
@@ -50,16 +55,61 @@ jobs:
       - name: 🏗️ 建置應用程式
         run: pnpm run build
 
-      - name: 🗄️ 初始化本地 D1 資料庫
+      # .dev.vars is gitignored; create a CI-only copy with:
+      #   - JWT_SECRET >=32 chars so authMiddleware doesn't 500 on SERVER_CONFIG_ERROR
+      #   - CORS_ORIGIN list matching the localhost preview ports
+      #   - ALLOW_TEST_SIGNATURE=true so the E2 webhook gate can use the
+      #     literal "test-fixture-signature" HMAC bypass (see
+      #     apps/api/src/features/integrations/routes/webhook.ts isTestSignatureAllowed).
+      #   - NODE_ENV=test so X-Payment-Gateway-Fixture is honored by the
+      #     payments route (see apps/api/src/features/payments/routes/index.ts
+      #     fixtureAllowed check).
+      - name: 🔐 寫入 CI dev.vars
         run: |
-          pnpm db:migrate:local
-          pnpm db:seed:mock
+          cat > apps/api/.dev.vars <<'EOF'
+          JWT_SECRET=ci-integration-gate-jwt-secret-minimum-32-chars-long
+          CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
+          ALLOW_TEST_SIGNATURE=true
+          NODE_ENV=test
+          EOF
+
+      # Local D1 persistence path difference:
+      #   - `pnpm db:migrate:local` / `pnpm db:seed:mock` write to
+      #     ./.wrangler/shared-state via --persist-to.
+      #   - `cd apps/api && pnpm dev` (wrangler dev with no --persist-to)
+      #     reads from apps/api/.wrangler/state by default.
+      # To avoid seeding the wrong DB, run every migration and seed step with
+      # working-directory: apps/api so wrangler resolves the same default
+      # state path that `pnpm dev` will later read from.
+      - name: 🗄️ 初始化本地 D1 (migrations_fresh)
+        working-directory: apps/api
+        run: pnpm wrangler d1 migrations apply makanmakan-local --local
+
+      - name: 🌱 Seed mock data (seed-mock-data.sql)
+        working-directory: apps/api
+        run: |
+          pnpm wrangler d1 execute makanmakan-local --local \
+            --file=../../scripts/seed-mock-data.sql
+
+      # Dev-only migrations carry known-password test accounts and the
+      # P0 gate fixtures (K6 register + closed shift, E2 uber_eats
+      # integration). They are intentionally outside migrations_fresh/ so
+      # they never reach production. Apply them explicitly here.
+      - name: 🔑 Apply dev-only test accounts (0048)
+        working-directory: apps/api
+        run: |
+          pnpm wrangler d1 execute makanmakan-local --local \
+            --file=../../packages/database/migrations/dev-only/0048_add_test_accounts.sql
+
+      - name: 🎯 Apply dev-only P0 gate seed (0049)
+        working-directory: apps/api
+        run: |
+          pnpm wrangler d1 execute makanmakan-local --local \
+            --file=../../packages/database/migrations/dev-only/0049_p0_gate_seed.sql
 
       - name: 🚀 啟動 API dev server
         run: |
           cd apps/api && pnpm dev > /tmp/api-server.log 2>&1 &
-        env:
-          NODE_ENV: test
 
       - name: 🚀 啟動 customer-app preview
         env:
@@ -67,10 +117,16 @@ jobs:
         run: |
           (cd apps/customer-app && npx vite preview --port 3000 --host 0.0.0.0 > /tmp/customer-preview.log 2>&1 &)
 
+      # Wait for the two services we actually depend on.
+      #   - /info is the app-level public endpoint that returns 200 JSON
+      #     (see apps/api/src/app-factory.ts). /api/v1/health does NOT
+      #     exist — it used to be the wait-on target and the 90s timeout
+      #     masked that wrangler dev was already up but the probe was
+      #     wrong. Switching to /info makes readiness detection honest.
       - name: ⏳ 等待服務就緒
         run: |
           npx wait-on \
-            http://localhost:8787/api/v1/health \
+            http://localhost:8787/info \
             http://localhost:3000 \
             --timeout 90000
 
@@ -87,6 +143,14 @@ jobs:
         run: |
           pkill -f "wrangler dev" || true
           pkill -f "vite preview" || true
+
+      - name: 📎 上傳 API 日誌
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: integration-api-logs
+          path: /tmp/api-server.log
+          retention-days: 7
 
       - name: 📎 上傳測試報告
         uses: actions/upload-artifact@v7
@@ -109,7 +173,12 @@ jobs:
         run: |
           echo "## 🌙 Nightly Integration Tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**分支**: main" >> $GITHUB_STEP_SUMMARY
+          echo "**分支**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "**時間**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- tests/e2e/integration/p0-release-gates.spec.ts (Tier 1 P0)" >> $GITHUB_STEP_SUMMARY
+          echo "- tests/e2e/integration/p1-current-quarter-gates.spec.ts (Tier 2 P1)" >> $GITHUB_STEP_SUMMARY
+          echo "- real API integration smokes" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "詳細報告請查看 Artifacts 區域" >> $GITHUB_STEP_SUMMARY

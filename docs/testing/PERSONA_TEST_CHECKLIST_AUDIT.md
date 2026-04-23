@@ -32,6 +32,28 @@ P0 gate backend implementation progress:
 - Wave 3 (K7, E1, E2): `/api/v1/payments` enabled with server-authoritative total re-compute and partial-payment strict sum check; `X-Payment-Gateway-Fixture: timeout` gated on NODE_ENV !== "production"; reusable `idempotency_keys` table + middleware with scope, request-hash, pending-race, expired-reuse, and effectId persistence; webhook handler keyed on `event_id` and a test-signature bypass behind `ALLOW_TEST_SIGNATURE`.
 - Wave 4 (K6): RefundService now detects `cash_shifts.status = 'closed'` and branches to an adjustment path — refund row is still persisted for audit but no cash_movement is posted; response exposes `adjustmentId` and `ledgerMutation: false`.
 
+CI integration gate pipeline (`.github/workflows/nightly-integration.yml`):
+- Auto-triggers are currently disabled (solo-dev mode); run manually via
+  `gh workflow run nightly-integration.yml --ref <branch>` before release.
+- Provisions CI-only `apps/api/.dev.vars` with JWT_SECRET (>= 32 chars),
+  `ALLOW_TEST_SIGNATURE=true` (unblocks E2 webhook bypass), and
+  `NODE_ENV=test` (unblocks E1 gateway-fixture header).
+- Applies migrations + seed from `apps/api/` working directory so wrangler's
+  default local D1 state path (`apps/api/.wrangler/state`) matches what
+  `pnpm dev` later reads, not the root `./.wrangler/shared-state` that the
+  repo-level `db:migrate:local` / `db:seed:mock` scripts write to.
+- Applies `migrations/dev-only/0048_add_test_accounts.sql` and
+  `0049_p0_gate_seed.sql` (register + closed shift + uber_eats integration
+  row) before the run.
+- Waits for `http://localhost:8787/info` (the public health surface;
+  `/api/v1/health` does not exist and previously masked probe failures).
+- Runs `npx playwright test --project=integration`, which executes every
+  spec under `tests/e2e/integration/` — P0 release gates, P1 current-quarter
+  gates, and real-API integration smokes.
+- The K6, K7, E1, E2, and M1 gates that were previously `test.fixme` are now
+  plain `test`; they will run and their status will flip to `Covered` in
+  this audit only after a successful CI run has been recorded.
+
 Blocker skeleton specs:
 - `tests/e2e/journeys/customer/malicious-input.spec.ts` exists and hits the real API for sanitizer/security release gates.
 - `tests/e2e/journeys/chef/cancel-during-prep.spec.ts` exists and hits the real API for cancel-lock release gates.
