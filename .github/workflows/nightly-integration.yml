@@ -91,16 +91,15 @@ jobs:
           pnpm wrangler d1 execute makanmakan-local --local \
             --file=../../scripts/seed-mock-data.sql
 
-      # Dev-only migrations carry known-password test accounts and the
-      # P0 gate fixtures (K6 register + closed shift, E2 uber_eats
-      # integration). They are intentionally outside migrations_fresh/ so
-      # they never reach production. Apply them explicitly here.
-      - name: 🔑 Apply dev-only test accounts (0048)
-        working-directory: apps/api
-        run: |
-          pnpm wrangler d1 execute makanmakan-local --local \
-            --file=../../packages/database/migrations/dev-only/0048_add_test_accounts.sql
-
+      # 0048_add_test_accounts.sql is intentionally NOT applied:
+      #   - it references outdated column names (created_at vs the
+      #     current created_at_ms / updated_at_ms), and
+      #   - none of its accounts (owner1, chef1, service1, cashier1 …)
+      #     are referenced by any P0 or P1 gate in tests/e2e/integration;
+      #     the gates authenticate as the admin / grandmaShop / grandma_*
+      #     users seeded by scripts/seed-mock-data.sql.
+      # If that changes in future, fix the migration's column names and
+      # restaurant_id UUID binding before re-enabling here.
       - name: 🎯 Apply dev-only P0 gate seed (0049)
         working-directory: apps/api
         run: |
