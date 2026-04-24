@@ -426,7 +426,7 @@ export class RealtimeAuthService {
       return this.env.REALTIME_JWT_SECRET;
     }
 
-    if (this.env.NODE_ENV === "test") {
+    if (this.env.NODE_ENV === "test" || this.env.NODE_ENV === "development") {
       return this.env.JWT_SECRET;
     }
 

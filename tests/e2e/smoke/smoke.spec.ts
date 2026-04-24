@@ -34,13 +34,18 @@ import { test, expect } from "@playwright/test";
 const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 const CUSTOMER_URL = process.env.SMOKE_CUSTOMER_URL || "http://localhost:3000";
 
-const AUTH_USERNAME = process.env.SMOKE_AUTH_USERNAME;
-const AUTH_PASSWORD = process.env.SMOKE_AUTH_PASSWORD;
+function optionalEnv(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  if (!value || value === "undefined" || value === "null") return undefined;
+  return value;
+}
 
-const RESTAURANT_ID = process.env.SMOKE_RESTAURANT_ID;
-const MENU_ITEM_ID = process.env.SMOKE_MENU_ITEM_ID
-  ? Number(process.env.SMOKE_MENU_ITEM_ID)
-  : undefined;
+const AUTH_USERNAME = optionalEnv("SMOKE_AUTH_USERNAME");
+const AUTH_PASSWORD = optionalEnv("SMOKE_AUTH_PASSWORD");
+
+const RESTAURANT_ID = optionalEnv("SMOKE_RESTAURANT_ID");
+const menuItemIdValue = optionalEnv("SMOKE_MENU_ITEM_ID");
+const MENU_ITEM_ID = menuItemIdValue ? Number(menuItemIdValue) : undefined;
 
 // ─── Layer 1: unauthenticated liveness ──────────────────────────────────────
 
@@ -53,7 +58,9 @@ test.describe("Smoke: Layer 1 (unauthenticated liveness)", () => {
     // a deployment mode marker so a stale build / wrong env can't pass.
     expect(body).toEqual(
       expect.objectContaining({
-        success: expect.anything(),
+        deployment: expect.objectContaining({
+          mode: expect.any(String),
+        }),
       }),
     );
   });

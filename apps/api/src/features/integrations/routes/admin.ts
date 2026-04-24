@@ -9,7 +9,7 @@ import type {
   PlatformOrdersFilter,
 } from "@makanmakan/shared-types";
 import type { Env } from "../../../types/env";
-import { requireRole } from "../../../shared/middleware";
+import { authMiddleware, requireRole } from "../../../shared/middleware";
 import { moduleGate } from "../../../middleware/moduleGate";
 import { PlatformIntegrationService } from "../services/PlatformIntegrationService";
 import { PlatformOrderService } from "../services/PlatformOrderService";
@@ -19,6 +19,7 @@ import { isPlatformAdapterSupported } from "../adapters/PlatformAdapter";
 const adminRoutes = new Hono<{ Bindings: Env }>();
 
 // All admin routes require admin (0) or shop owner (1) role
+adminRoutes.use("/*", authMiddleware);
 adminRoutes.use("/*", requireRole([0, 1]));
 adminRoutes.use("/*", moduleGate("platform_integration"));
 

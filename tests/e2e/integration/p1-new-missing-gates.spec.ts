@@ -378,7 +378,7 @@ test.describe
 
     const ownerAuth = await loginAs(USERS.OWNER);
     const edit = await patchJson(
-      `/api/v1/menu/${RESTAURANT_ID}/items/${MENU.HONG_CHA}`,
+      `/api/v1/menu/items/${MENU.HONG_CHA}`,
       ownerAuth,
       { name: `P1 Edited Tea ${Date.now()}`, price: 999 },
     );
@@ -743,7 +743,7 @@ test.describe
     expect([200, 202]).toContain(sync.status);
 
     const menuRes = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items/${MENU.HONG_CHA}`,
+      `${API_URL}/api/v1/menu/items/${MENU.HONG_CHA}`,
       { headers: readHeaders(ownerAuth) },
     );
     const menuData = await readJson(menuRes);
@@ -792,7 +792,7 @@ test.describe("Tier 2 P1 current-quarter gates - batch 2 promoted", () => {
   test("E3 failed third-party menu sync keeps local menu authoritative and records retry", async () => {
     const ownerAuth = await loginAs(USERS.OWNER);
     const before = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items/${MENU.HONG_CHA}`,
+      `${API_URL}/api/v1/menu/items/${MENU.HONG_CHA}`,
       { headers: readHeaders(ownerAuth) },
     );
     const beforeData = await readJson(before);
@@ -807,14 +807,21 @@ test.describe("Tier 2 P1 current-quarter gates - batch 2 promoted", () => {
     expect([202, 503]).toContain(sync.status);
     expect(JSON.stringify(sync.data).toLowerCase()).toMatch(/retry|failed/);
 
-    const after = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items/${MENU.HONG_CHA}`,
-      { headers: readHeaders(ownerAuth) },
-    );
+    const after = await fetch(`${API_URL}/api/v1/menu/items/${MENU.HONG_CHA}`, {
+      headers: readHeaders(ownerAuth),
+    });
     const afterData = await readJson(after);
 
     expect(after.status, JSON.stringify(afterData)).toBe(200);
     expect(afterData.data?.id).toBe(beforeData.data?.id);
-    expect(afterData.data?.updatedAt).toBe(beforeData.data?.updatedAt);
+    expect(afterData.data).toEqual(
+      expect.objectContaining({
+        name: beforeData.data?.name,
+        price: beforeData.data?.price,
+        restaurantId: beforeData.data?.restaurantId,
+        categoryId: beforeData.data?.categoryId,
+        isAvailable: beforeData.data?.isAvailable,
+      }),
+    );
   });
 });

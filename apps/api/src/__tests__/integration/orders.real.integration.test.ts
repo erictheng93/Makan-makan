@@ -39,7 +39,12 @@ describe("Orders API — real integration", () => {
     // The `orders.customer_id` FK references `users.id`. Drizzle's D1 driver
     // enables `PRAGMA foreign_keys = ON`, so the user must exist before the
     // route's insert runs. Seed a user with id=1 to match the admin token.
-    const actor = await seed.user({ id: 1, role: 0, username: "test-admin" });
+    const actor = await seed.user({
+      id: 1,
+      role: 0,
+      username: "test-admin",
+      restaurantId: String(restaurant.id),
+    });
 
     // Explicit `isAvailable: true` defeats the 5% flake from the factory
     // (menuItemFactory uses randomBoolean(0.95)). OrderService rejects items

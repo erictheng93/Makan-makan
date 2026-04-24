@@ -24,14 +24,23 @@ import { defineConfig, devices } from "@playwright/test";
 // STAGING_URL is the legacy single-URL secret; if STAGING_API_URL /
 // STAGING_CUSTOMER_URL aren't set explicitly, fall back to it for both so
 // older CI configs still produce Layer 1 liveness coverage.
-process.env.SMOKE_API_URL ??=
-  process.env.STAGING_API_URL ?? process.env.STAGING_URL;
-process.env.SMOKE_CUSTOMER_URL ??=
-  process.env.STAGING_CUSTOMER_URL ?? process.env.STAGING_URL;
-process.env.SMOKE_AUTH_USERNAME ??= process.env.STAGING_AUTH_USERNAME;
-process.env.SMOKE_AUTH_PASSWORD ??= process.env.STAGING_AUTH_PASSWORD;
-process.env.SMOKE_RESTAURANT_ID ??= process.env.STAGING_RESTAURANT_ID;
-process.env.SMOKE_MENU_ITEM_ID ??= process.env.STAGING_MENU_ITEM_ID;
+function setSmokeEnv(name: string, value: string | undefined): void {
+  if (process.env[name] || !value) return;
+  process.env[name] = value;
+}
+
+setSmokeEnv(
+  "SMOKE_API_URL",
+  process.env.STAGING_API_URL ?? process.env.STAGING_URL,
+);
+setSmokeEnv(
+  "SMOKE_CUSTOMER_URL",
+  process.env.STAGING_CUSTOMER_URL ?? process.env.STAGING_URL,
+);
+setSmokeEnv("SMOKE_AUTH_USERNAME", process.env.STAGING_AUTH_USERNAME);
+setSmokeEnv("SMOKE_AUTH_PASSWORD", process.env.STAGING_AUTH_PASSWORD);
+setSmokeEnv("SMOKE_RESTAURANT_ID", process.env.STAGING_RESTAURANT_ID);
+setSmokeEnv("SMOKE_MENU_ITEM_ID", process.env.STAGING_MENU_ITEM_ID);
 
 export default defineConfig({
   testDir: "./tests/e2e/smoke",

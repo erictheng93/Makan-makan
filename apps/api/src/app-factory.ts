@@ -490,6 +490,7 @@ export function createApp(
         "/api/v1/partnerships/members/verify", // Public member verification application
         "/api/v1/partnerships/plans/validate", // Public plan validation for cashiers
         "/api/v1/guest-orders", // Guest ordering (no session, uses KV tokens)
+        "/api/v1/realtime/auth", // Public WebSocket token exchange; uses scoped tokens instead of session cookies
         "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
         "/api/v1/payments", // Payment requests are protected by auth + idempotency
         // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens

@@ -164,6 +164,13 @@ test.describe("Tier 2 P1 current-quarter gates - batch 1", () => {
   let createdOrderIds: number[] = [];
   let createdCouponIds: number[] = [];
 
+  test.beforeEach(async () => {
+    const ownerAuth = await loginAs(USERS.OWNER);
+    await setMenuAvailability(ownerAuth, MENU.HONG_CHA, true);
+    await setMenuAvailability(ownerAuth, MENU.DONG_GUA_CHA, true);
+    await setMenuAvailability(ownerAuth, MENU.GONG_WAN_TANG, true);
+  });
+
   test.afterEach(async () => {
     for (const orderId of createdOrderIds.reverse()) {
       await cleanupOrder(orderId);
@@ -193,20 +200,31 @@ test.describe("Tier 2 P1 current-quarter gates - batch 1", () => {
 
     await setMenuAvailability(ownerAuth, MENU.HONG_CHA, false);
 
-    const res = await fetch(`${API_URL}/api/v1/guest-orders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        restaurantId: RESTAURANT_ID,
-        orderType: "shop",
-        guestName: "P1 C2",
-        phoneLastDigits: uniquePhone(),
-        items: [{ menuItemId: MENU.HONG_CHA, quantity: 1 }],
-      }),
-    });
-    const data = await readJson(res);
+    let res: Response | undefined;
+    let data: Record<string, any> = {};
+    for (let attempt = 0; attempt < 5; attempt++) {
+      res = await fetch(`${API_URL}/api/v1/guest-orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          restaurantId: RESTAURANT_ID,
+          orderType: "shop",
+          guestName: "P1 C2",
+          phoneLastDigits: uniquePhone(),
+          items: [{ menuItemId: MENU.HONG_CHA, quantity: 1 }],
+        }),
+      });
+      data = await readJson(res);
 
-    expect([400, 409, 422], JSON.stringify(data)).toContain(res.status);
+      const activeOrderCollision =
+        res.status === 429 &&
+        typeof data.error === "string" &&
+        data.error.includes("active order");
+      if (!activeOrderCollision) break;
+    }
+
+    expect(res, JSON.stringify(data)).toBeDefined();
+    expect([400, 409, 422], JSON.stringify(data)).toContain(res!.status);
 
     const original = await getOrder(activeOrder.id, ownerAuth);
     expect(JSON.stringify(original.data)).toContain(String(MENU.HONG_CHA));

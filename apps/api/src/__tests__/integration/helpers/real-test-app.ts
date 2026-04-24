@@ -48,7 +48,7 @@ export async function createRealIntegrationTestApp(): Promise<RealIntegrationTes
     disableEdgeCache: true,
     disableObservability: true,
   });
-  const authHelper = buildAuthHelper();
+  const authHelper = buildAuthHelper(env.DB);
 
   const testCtx = {
     waitUntil: () => {},
