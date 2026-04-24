@@ -98,28 +98,32 @@ test.describe("Multi-restaurant admin switching", () => {
       .isVisible({ timeout: 10000 })
       .catch(() => false);
 
-    if (selectorVisible) {
-      // Click it to open if it's a button/combobox
-      const tagName = await selector
-        .first()
-        .evaluate((el) => el.tagName.toLowerCase())
-        .catch(() => "div");
-      if (tagName !== "select") {
-        await selector.first().click();
-        await page.waitForTimeout(500);
-      }
+    // Hard-assert switcher visibility instead of skipping silently. The audit
+    // (PERSONA_TEST_CHECKLIST_AUDIT.md rows O1, O7) treats OWNER multi-store
+    // switching as P0; a missing switcher must be a red signal, not a green
+    // skip. See PRODUCTION_READINESS_REPORT.md SR-3.
+    expect(
+      selectorVisible,
+      "OWNER multi-store switcher not visible (SR-3 — admin dashboard P0 UI missing)",
+    ).toBe(true);
 
-      // Verify both restaurant names appear
-      await expect(page.locator("text=E2E 測試餐廳").first()).toBeVisible({
-        timeout: 5000,
-      });
-      await expect(page.locator("text=第二家測試餐廳").first()).toBeVisible({
-        timeout: 5000,
-      });
-    } else {
-      // Restaurant switcher may not be implemented — skip gracefully
-      test.skip();
+    // Click it to open if it's a button/combobox
+    const tagName = await selector
+      .first()
+      .evaluate((el) => el.tagName.toLowerCase())
+      .catch(() => "div");
+    if (tagName !== "select") {
+      await selector.first().click();
+      await page.waitForTimeout(500);
     }
+
+    // Verify both restaurant names appear
+    await expect(page.locator("text=E2E 測試餐廳").first()).toBeVisible({
+      timeout: 5000,
+    });
+    await expect(page.locator("text=第二家測試餐廳").first()).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test("should switch to second restaurant", async ({ page }) => {
@@ -135,10 +139,11 @@ test.describe("Multi-restaurant admin switching", () => {
       .isVisible({ timeout: 10000 })
       .catch(() => false);
 
-    if (!selectorVisible) {
-      test.skip();
-      return;
-    }
+    // SR-3: hard fail when OWNER multi-store switcher is missing.
+    expect(
+      selectorVisible,
+      "OWNER multi-store switcher not visible (SR-3 — admin dashboard P0 UI missing)",
+    ).toBe(true);
 
     const tagName = await selector
       .first()
@@ -152,14 +157,13 @@ test.describe("Multi-restaurant admin switching", () => {
       await page.waitForTimeout(500);
 
       const restaurant2Option = page.locator("text=第二家測試餐廳").first();
-      if (
-        await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)
-      ) {
-        await restaurant2Option.click();
-      } else {
-        test.skip();
-        return;
-      }
+      // SR-3: dropdown must list every authorized restaurant; missing entries
+      // fail the OWNER multi-store invariant.
+      await expect(
+        restaurant2Option,
+        "second restaurant option missing from dropdown (SR-3 — switcher list incomplete)",
+      ).toBeVisible({ timeout: 3000 });
+      await restaurant2Option.click();
     }
 
     await page.waitForLoadState("networkidle");
@@ -200,10 +204,11 @@ test.describe("Multi-restaurant admin switching", () => {
       .isVisible({ timeout: 10000 })
       .catch(() => false);
 
-    if (!selectorVisible) {
-      test.skip();
-      return;
-    }
+    // SR-3: hard fail when OWNER multi-store switcher is missing.
+    expect(
+      selectorVisible,
+      "OWNER multi-store switcher not visible (SR-3 — admin dashboard P0 UI missing)",
+    ).toBe(true);
 
     const tagName = await selector
       .first()
@@ -216,14 +221,13 @@ test.describe("Multi-restaurant admin switching", () => {
       await selector.first().click();
       await page.waitForTimeout(500);
       const restaurant2Option = page.locator("text=第二家測試餐廳").first();
-      if (
-        await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)
-      ) {
-        await restaurant2Option.click();
-      } else {
-        test.skip();
-        return;
-      }
+      // SR-3: dropdown must list every authorized restaurant; missing entries
+      // fail the OWNER multi-store invariant.
+      await expect(
+        restaurant2Option,
+        "second restaurant option missing from dropdown (SR-3 — switcher list incomplete)",
+      ).toBeVisible({ timeout: 3000 });
+      await restaurant2Option.click();
     }
 
     await page.waitForLoadState("networkidle");
@@ -250,10 +254,11 @@ test.describe("Multi-restaurant admin switching", () => {
       .isVisible({ timeout: 10000 })
       .catch(() => false);
 
-    if (!selectorVisible) {
-      test.skip();
-      return;
-    }
+    // SR-3: hard fail when OWNER multi-store switcher is missing.
+    expect(
+      selectorVisible,
+      "OWNER multi-store switcher not visible (SR-3 — admin dashboard P0 UI missing)",
+    ).toBe(true);
 
     // Switch to restaurant 2
     const tagName = await selector
@@ -267,14 +272,13 @@ test.describe("Multi-restaurant admin switching", () => {
       await selector.first().click();
       await page.waitForTimeout(500);
       const restaurant2Option = page.locator("text=第二家測試餐廳").first();
-      if (
-        await restaurant2Option.isVisible({ timeout: 3000 }).catch(() => false)
-      ) {
-        await restaurant2Option.click();
-      } else {
-        test.skip();
-        return;
-      }
+      // SR-3: dropdown must list every authorized restaurant; missing entries
+      // fail the OWNER multi-store invariant.
+      await expect(
+        restaurant2Option,
+        "second restaurant option missing from dropdown (SR-3 — switcher list incomplete)",
+      ).toBeVisible({ timeout: 3000 });
+      await restaurant2Option.click();
     }
 
     await page.waitForLoadState("networkidle");
