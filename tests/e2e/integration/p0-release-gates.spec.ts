@@ -6,6 +6,7 @@
  * keep the release gate visible.
  */
 
+import { randomInt } from "node:crypto";
 import { test, expect } from "@playwright/test";
 import {
   RESTAURANT_ID,
@@ -90,9 +91,7 @@ async function createStaffUser(
   role: number,
   usernamePrefix: string,
 ): Promise<CreatedUser> {
-  const username = `${usernamePrefix}_${Date.now()}_${Math.floor(
-    Math.random() * 10000,
-  )}`;
+  const username = `${usernamePrefix}_${Date.now()}_${randomInt(10000)}`;
   const res = await fetch(`${API_URL}/api/v1/users`, {
     method: "POST",
     headers: mutateHeaders(adminAuth),

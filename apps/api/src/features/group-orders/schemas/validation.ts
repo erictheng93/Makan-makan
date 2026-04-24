@@ -5,19 +5,26 @@
 
 import { z } from "zod";
 
-// Reusable sanitizing schema for free-text user input.
-// Strips HTML tags, inline event handlers, and `javascript:` protocol
-// before persistence (C10 release gate).
+// Reusable sanitizing schema for free-text user input (C10 release gate).
+// Strips HTML tags, inline event handlers, and dangerous URL schemes
+// (javascript:, data:, vbscript:). Applied to a fixed point so nested
+// patterns like "<scri<script>pt>" or "ononclick=" can't reconstitute
+// themselves after a single pass.
+const sanitizeFreeText = (input: string): string => {
+  let prev: string;
+  let curr = input;
+  do {
+    prev = curr;
+    curr = curr
+      .replace(/<\/?[^>]+>/g, "")
+      .replace(/on\w+\s*=/gi, "")
+      .replace(/(?:javascript|data|vbscript):/gi, "");
+  } while (curr !== prev);
+  return curr;
+};
+
 const notesSchema = (maxLength: number) =>
-  z
-    .string()
-    .max(maxLength)
-    .transform((value) =>
-      value
-        .replace(/<\/?[^>]+>/g, "")
-        .replace(/on\w+\s*=/gi, "")
-        .replace(/javascript:/gi, ""),
-    );
+  z.string().max(maxLength).transform(sanitizeFreeText);
 
 // Core validation schemas
 export const createGroupOrderSchema = z.object({

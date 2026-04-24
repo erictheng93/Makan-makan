@@ -10,16 +10,25 @@ const idSchema = z.number().int().positive();
 const optionalIdSchema = z.number().int().positive().optional();
 const phoneSchema = z.string().max(20).optional();
 const emailSchema = z.string().email().optional();
+// Sanitize free-text user input: strip HTML tags, inline event handlers,
+// and dangerous URL schemes. Run to fixed point so nested/overlapping
+// patterns (e.g. "<scri<script>pt>", "ononclick=") can't reconstitute
+// themselves after a single pass.
+const sanitizeFreeText = (input: string): string => {
+  let prev: string;
+  let curr = input;
+  do {
+    prev = curr;
+    curr = curr
+      .replace(/<\/?[^>]+>/g, "")
+      .replace(/on\w+\s*=/gi, "")
+      .replace(/(?:javascript|data|vbscript):/gi, "");
+  } while (curr !== prev);
+  return curr;
+};
+
 const notesSchema = (maxLength: number) =>
-  z
-    .string()
-    .max(maxLength)
-    .transform((value) =>
-      value
-        .replace(/<\/?[^>]+>/g, "")
-        .replace(/on\w+\s*=/gi, "")
-        .replace(/javascript:/gi, ""),
-    );
+  z.string().max(maxLength).transform(sanitizeFreeText);
 // const urlSchema = z.string().url().optional() // Available for future use
 const positiveNumberSchema = z.number().positive();
 // const nonNegativeNumberSchema = z.number().min(0) // Available for future use
