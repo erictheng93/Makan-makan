@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
+import { ROLE_STATUS_PERMISSIONS } from "../types";
 import type { OrderStatus } from "@makanmakan/shared-types";
 import type { UserRole } from "../../../shared/constants";
 import { resetAllFactories } from "@makanmakan/testing-utils";
@@ -132,22 +133,12 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   cancelled: [],
 };
 
-// Role permissions (source of truth from OrdersService)
-const ROLE_PERMISSIONS: Record<number, string[]> = {
-  0: [
-    "pending",
-    "confirmed",
-    "preparing",
-    "ready",
-    "delivered",
-    "paid",
-    "cancelled",
-  ], // Admin
-  1: ["confirmed", "cancelled"], // Owner
-  2: ["preparing", "ready"], // Chef
-  3: ["delivered"], // Service
-  4: ["confirmed"], // Cashier
-};
+// Role permissions — re-export the shared constant so this suite never drifts
+// from the source of truth in ../types (ROLE_STATUS_PERMISSIONS).
+const ROLE_PERMISSIONS = ROLE_STATUS_PERMISSIONS as Record<
+  number,
+  readonly string[]
+>;
 
 // Numeric status map (source of truth from OrdersService)
 const STATUS_MAP: Record<number, string> = {

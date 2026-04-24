@@ -75,6 +75,12 @@ export interface BackupRecord {
       total_tables: number;
       total_records: number;
     };
+    manifest?: {
+      rowCounts: Record<string, number>;
+      tables: string[];
+      createdAt: string;
+      checksum?: string;
+    };
   };
 }
 

@@ -133,7 +133,7 @@ describe("auth store", () => {
         json: () =>
           Promise.resolve({
             success: false,
-            error: "Invalid credentials",
+            error: { message: "Invalid credentials" },
           }),
       });
 
@@ -416,7 +416,11 @@ describe("auth store", () => {
   describe("clearError", () => {
     it("should clear the error state", async () => {
       mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: false, error: "Some error" }),
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: { message: "Some error" },
+          }),
       });
 
       const store = useAuthStore();

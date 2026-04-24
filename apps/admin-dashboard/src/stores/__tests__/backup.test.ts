@@ -115,7 +115,7 @@ describe("Backup Store", () => {
   describe("restoreBackup", () => {
     it("should POST restore request and return operation_id", async () => {
       vi.mocked(apiClient.post).mockResolvedValue({
-        data: { operation_id: "op-123" },
+        data: { success: true, data: { restore_id: "op-123" } },
       });
 
       const store = useBackupStore();

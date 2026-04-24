@@ -4,7 +4,8 @@ import { i18n } from "@/i18n";
 import { getRefreshDelay } from "@makanmakan/utils";
 
 // Helper to avoid vue-i18n's deep type instantiation on t()
-const t = (key: string): string => t(key) as string;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const t = (key: string): string => (i18n as any).global.t(key);
 
 // 定義客戶用戶類型
 export interface CustomerUser {

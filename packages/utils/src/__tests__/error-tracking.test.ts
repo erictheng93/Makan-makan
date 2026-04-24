@@ -803,9 +803,14 @@ describe("Error ID Generation", () => {
   });
 
   it("should generate consistent IDs for identical errors", () => {
-    // Arrange
-    const error1 = new Error("Same error");
-    const error2 = new Error("Same error");
+    // Arrange: construct both errors at the same source location so their
+    // stack traces match. Inlining `new Error(...)` on adjacent lines gives
+    // distinct stack frames, which the ID hash incorporates — CI (Linux)
+    // hid this because the short runner path let the 100-char slice drop
+    // the line number, but Windows paths preserve it and surface the drift.
+    const makeError = () => new Error("Same error");
+    const error1 = makeError();
+    const error2 = makeError();
 
     // Act
     const id1 = tracker.captureError(error1);

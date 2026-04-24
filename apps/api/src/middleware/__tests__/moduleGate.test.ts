@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import { ApiError } from "../../shared/utils/api-error";
 import { moduleGate, invalidateSubscriptionCache } from "../moduleGate";
+import type { AuthUser } from "../auth";
 
 // ---------------------------------------------------------------------------
 // Mock drizzle-orm/d1 so we can control DB query results per test.
@@ -84,7 +85,7 @@ const makeSub = (
  * before calling `app.request()` to control what Drizzle returns.
  */
 function buildApp(options: {
-  user?: Record<string, any> | null;
+  user?: AuthUser | null;
   cachedSub?: ReturnType<typeof makeSub> | null;
   dbRow?: Partial<{
     isActive: boolean;
@@ -95,7 +96,12 @@ function buildApp(options: {
   module?: string;
 }) {
   const {
-    user = { id: 1, role: 1, restaurantId: "rest-1" },
+    user = {
+      id: 1,
+      username: "test-user",
+      role: 1,
+      restaurantId: "rest-1",
+    },
     cachedSub = null,
     dbRow = null,
     module = "kitchen_display",
@@ -140,7 +146,7 @@ describe("moduleGate", () => {
   describe("Admin bypass", () => {
     it("passes through for role 0 without checking subscription", async () => {
       const { app, mockKV } = buildApp({
-        user: { id: 1, role: 0, restaurantId: "rest-1" },
+        user: { id: 1, username: "admin", role: 0, restaurantId: "rest-1" },
       });
 
       const res = await app.request("http://localhost/test");
@@ -154,7 +160,9 @@ describe("moduleGate", () => {
 
   describe("Missing context", () => {
     it("returns 403 NO_RESTAURANT when restaurantId is absent", async () => {
-      const { app } = buildApp({ user: { id: 1, role: 1 } }); // no restaurantId
+      const { app } = buildApp({
+        user: { id: 1, username: "test-user", role: 1 },
+      }); // no restaurantId
 
       const res = await app.request("http://localhost/test");
       const body = (await res.json()) as any;

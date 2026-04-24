@@ -31,7 +31,9 @@ export class SubscriptionService {
     this.db = drizzle(d1);
   }
 
-  async getByRestaurantId(restaurantId: string) {
+  async getByRestaurantId(
+    restaurantId: string,
+  ): Promise<typeof shopSubscriptions.$inferSelect | null> {
     const [row] = await this.db
       .select()
       .from(shopSubscriptions)
