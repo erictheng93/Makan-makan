@@ -603,34 +603,7 @@ test.describe
     expect(rollback.data.data?.mode).toBe("healthy");
   });
 
-  test("E3 failed third-party menu sync keeps local menu authoritative and records retry", async () => {
-    const ownerAuth = await loginAs(USERS.OWNER);
-    const before = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items/${MENU.HONG_CHA}`,
-      { headers: readHeaders(ownerAuth) },
-    );
-    const beforeData = await readJson(before);
-
-    const sync = await postJson(
-      `/api/v1/integrations/${RESTAURANT_ID}/uber_eats/menu-sync`,
-      ownerAuth,
-      { fixture: "upstream_timeout" },
-      { "X-Integration-Fixture": "upstream_timeout" },
-    );
-
-    expect([202, 503]).toContain(sync.status);
-    expect(JSON.stringify(sync.data).toLowerCase()).toMatch(/retry|failed/);
-
-    const after = await fetch(
-      `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items/${MENU.HONG_CHA}`,
-      { headers: readHeaders(ownerAuth) },
-    );
-    const afterData = await readJson(after);
-
-    expect(after.status, JSON.stringify(afterData)).toBe(200);
-    expect(afterData.data?.id).toBe(beforeData.data?.id);
-    expect(afterData.data?.updatedAt).toBe(beforeData.data?.updatedAt);
-  });
+  // E3 promoted to non-fixme block at end of file (see "P1 promoted: E3").
 
   test("M2 expired delegation denies action and writes denied audit", async () => {
     const adminAuth = await loginAs(USERS.ADMIN);
@@ -803,5 +776,46 @@ test.describe
     expect(close.data.data?.auditId).toBeTruthy();
     expect(close.data.data?.cashierUsername).toBe(USERS.CASHIER);
     expect(close.data.data?.managerActorId).toBe(manager.id);
+  });
+});
+
+// ─── P1 promoted: E3 ────────────────────────────────────────────────────────
+//
+// E3 has been moved out of the fixme'd batch-2 describe because its backend
+// is now wired. The route `POST /api/v1/integrations/:restaurantId/:platform/
+// menu-sync` accepts `X-Integration-Fixture: upstream_timeout` (gated on
+// NODE_ENV !== "production") and returns 503 with a willRetry flag without
+// mutating the local menu — matching the audit E3 oracle. The test is
+// read-only (no order / user / menu mutation from the test harness itself),
+// so it does not need the afterEach teardown from the batch-2 block.
+
+test.describe("Tier 2 P1 current-quarter gates - batch 2 promoted", () => {
+  test("E3 failed third-party menu sync keeps local menu authoritative and records retry", async () => {
+    const ownerAuth = await loginAs(USERS.OWNER);
+    const before = await fetch(
+      `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items/${MENU.HONG_CHA}`,
+      { headers: readHeaders(ownerAuth) },
+    );
+    const beforeData = await readJson(before);
+
+    const sync = await postJson(
+      `/api/v1/integrations/${RESTAURANT_ID}/uber_eats/menu-sync`,
+      ownerAuth,
+      { fixture: "upstream_timeout" },
+      { "X-Integration-Fixture": "upstream_timeout" },
+    );
+
+    expect([202, 503]).toContain(sync.status);
+    expect(JSON.stringify(sync.data).toLowerCase()).toMatch(/retry|failed/);
+
+    const after = await fetch(
+      `${API_URL}/api/v1/menu/${RESTAURANT_ID}/items/${MENU.HONG_CHA}`,
+      { headers: readHeaders(ownerAuth) },
+    );
+    const afterData = await readJson(after);
+
+    expect(after.status, JSON.stringify(afterData)).toBe(200);
+    expect(afterData.data?.id).toBe(beforeData.data?.id);
+    expect(afterData.data?.updatedAt).toBe(beforeData.data?.updatedAt);
   });
 });
