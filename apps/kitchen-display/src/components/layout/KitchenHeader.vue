@@ -262,23 +262,6 @@ const showLanguageMenu = ref(false);
 // Computed
 const currentViewMode = computed(() => props.viewMode ?? "kanban");
 
-const formattedTime = computed(() => {
-  return props.currentTime.toLocaleTimeString(locale.value, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-});
-
-const formattedDate = computed(() => {
-  return props.currentTime.toLocaleDateString(locale.value, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-});
-
 // Methods
 const handleLocaleChange = async (code: string) => {
   await switchLocale(code as Locale);

@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from "vue";
+import { computed, watch, onMounted, onUnmounted } from "vue";
 import { WifiOff } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";

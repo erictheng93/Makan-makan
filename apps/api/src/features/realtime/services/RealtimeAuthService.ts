@@ -45,7 +45,7 @@ export class RealtimeAuthService {
       );
     }
 
-    const kvNamespace = (env as any).TOKEN_BLACKLIST || env.CACHE_KV;
+    const kvNamespace = env.TOKEN_BLACKLIST || env.CACHE_KV;
     if (kvNamespace) {
       this.blacklistService = new TokenBlacklistService(kvNamespace);
     }

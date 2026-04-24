@@ -62,7 +62,7 @@ import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
 
 const { t } = useI18n();
-const { formatPrice: formatCurrencyPrice, currencySymbol } = useCurrency();
+const { currencySymbol } = useCurrency();
 
 const props = defineProps<{
   coupons: any[];

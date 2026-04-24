@@ -296,7 +296,6 @@ const {
   showCustomerNames,
   keyboardShortcuts,
   urgentThreshold,
-  warningThreshold,
 } = storeToRefs(settingsStore);
 
 // Derived state

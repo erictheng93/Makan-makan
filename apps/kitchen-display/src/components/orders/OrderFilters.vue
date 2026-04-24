@@ -386,8 +386,6 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  AlertTriangle,
-  Flame,
   MessageCircleMore,
   Settings2,
 } from "lucide-vue-next";

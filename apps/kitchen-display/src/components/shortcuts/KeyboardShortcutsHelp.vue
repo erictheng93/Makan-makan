@@ -87,10 +87,7 @@ import { XIcon, KeyboardIcon } from "lucide-vue-next";
 
 const { t } = useI18n();
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
-import type {
-  ShortcutGroup,
-  KeyboardShortcut,
-} from "@/composables/useKeyboardShortcuts";
+import type { ShortcutGroup } from "@/composables/useKeyboardShortcuts";
 
 // Props
 interface Props {
