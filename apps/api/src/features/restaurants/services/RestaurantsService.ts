@@ -18,6 +18,46 @@ import type {
   RestaurantEvent,
 } from "../types";
 
+interface RestaurantListResult {
+  restaurants: Restaurant[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+type ShopQrSettings = Record<string, unknown>;
+
+interface ShopQrCodeInfo {
+  qrCode: string | null;
+  qrCodeImageUrl: string | null;
+  enabled: boolean;
+  version: number;
+  settings: ShopQrSettings;
+}
+
+interface ShopQrVerificationResult {
+  valid: boolean;
+  restaurantId?: string;
+  restaurant?: Restaurant;
+}
+
+class NoopCacheService implements CacheService {
+  async get<T>(): Promise<T | null> {
+    return null;
+  }
+
+  async set<T>(_key: string, _value: T, _ttl?: number): Promise<void> {}
+
+  async delete(): Promise<boolean> {
+    return true;
+  }
+
+  async clear(): Promise<void> {}
+}
+
 export class RestaurantsService {
   private dbService: DatabaseRestaurantService;
   private subscriptionService: SubscriptionService;
@@ -28,7 +68,7 @@ export class RestaurantsService {
   constructor(db: Env["DB"], env: Env, kv?: Env["CACHE_KV"]) {
     this.dbService = new DatabaseRestaurantService(db, env);
     this.subscriptionService = new SubscriptionService(db);
-    this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any);
+    this.cache = kv ? new KVCacheService(kv) : new NoopCacheService();
     this.logger = new ConsoleLogger("RestaurantsService");
     this.env = env;
   }
@@ -36,7 +76,9 @@ export class RestaurantsService {
   /**
    * Get restaurants with filtering and pagination
    */
-  async getRestaurants(filters: RestaurantFilters) {
+  async getRestaurants(
+    filters: RestaurantFilters,
+  ): Promise<RestaurantListResult> {
     try {
       this.logger.debug("Getting restaurants with filters", { filters });
 
@@ -368,7 +410,7 @@ export class RestaurantsService {
    */
   private generateCacheKey(
     prefix: string,
-    params: Record<string, any>,
+    params: Record<string, unknown>,
   ): string {
     const sortedKeys = Object.keys(params).sort();
     const keyParts = sortedKeys.map((key) => `${key}:${params[key]}`).join(":");
@@ -476,25 +518,13 @@ export class RestaurantsService {
   /**
    * Get shop QR code information
    */
-  async getShopQrCodeInfo(id: string): Promise<{
-    qrCode: string | null;
-    qrCodeImageUrl: string | null;
-    enabled: boolean;
-    version: number;
-    settings: any;
-  }> {
+  async getShopQrCodeInfo(id: string): Promise<ShopQrCodeInfo> {
     try {
       this.logger.debug("Getting shop QR code info", { id });
 
       // Try cache first
       const cacheKey = `restaurant:${id}:shop-qr`;
-      const cached = await this.cache.get<{
-        qrCode: string | null;
-        qrCodeImageUrl: string | null;
-        enabled: boolean;
-        version: number;
-        settings: any;
-      }>(cacheKey);
+      const cached = await this.cache.get<ShopQrCodeInfo>(cacheKey);
       if (cached) {
         this.logger.debug("Returning cached shop QR info");
         return cached;
@@ -545,7 +575,7 @@ export class RestaurantsService {
   async updateShopMode(
     id: string,
     enabled: boolean,
-    settings?: any,
+    settings?: ShopQrSettings,
   ): Promise<void> {
     try {
       this.logger.debug("Updating shop mode", { id, enabled, settings });
@@ -570,11 +600,7 @@ export class RestaurantsService {
   /**
    * Verify shop QR code and get restaurant information
    */
-  async verifyShopQrCode(qrCode: string): Promise<{
-    valid: boolean;
-    restaurantId?: string;
-    restaurant?: any;
-  }> {
+  async verifyShopQrCode(qrCode: string): Promise<ShopQrVerificationResult> {
     try {
       this.logger.debug("Verifying shop QR code", { qrCode });
 
@@ -589,7 +615,7 @@ export class RestaurantsService {
       return {
         valid: result.valid,
         restaurantId: result.restaurantId,
-        restaurant: result.restaurant,
+        restaurant: result.restaurant as Restaurant | undefined,
       };
     } catch (error) {
       this.logger.error("Failed to verify shop QR code", error as Error, {

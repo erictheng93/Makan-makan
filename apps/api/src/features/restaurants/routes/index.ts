@@ -51,8 +51,8 @@ app.get("/", optionalAuth, validateQuery(restaurantSchemas.list), async (c) => {
   return c.json(
     {
       success: true,
-      data: (result as any)?.restaurants || [],
-      pagination: (result as any)?.pagination || {
+      data: result.restaurants,
+      pagination: result.pagination || {
         page: 1,
         limit: 10,
         total: 0,
