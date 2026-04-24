@@ -2,14 +2,14 @@ name: Factory Usage Check
 
 # 觸發條件：PR 提交時檢查測試文件
 on:
-  # CI 暫時停用 auto-trigger（2026-04-16）— 只保留手動觸發。
-  # 要恢復：把 pull_request 區塊取消註解。
-  # pull_request:
-  #   paths:
-  #     - '**/__tests__/**'
-  #     - '**/*.test.ts'
-  #     - '**/*.spec.ts'
-  #     - 'packages/testing-utils/**'
+  # Auto-trigger restored 2026-04-24. Historical PR runs averaged ~30s,
+  # so the cost is negligible and catches factory-usage drift on the spot.
+  pull_request:
+    paths:
+      - '**/__tests__/**'
+      - '**/*.test.ts'
+      - '**/*.spec.ts'
+      - 'packages/testing-utils/**'
 
   # 允許手動觸發
   workflow_dispatch:

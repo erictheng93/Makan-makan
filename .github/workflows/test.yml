@@ -1,12 +1,15 @@
 name: 🧪 MakanMakan 測試流水線
 
 on:
-  # CI 暫時停用 auto-trigger（2026-04-16）— 只保留手動觸發。
-  # 要恢復：把 push/pull_request 區塊取消註解。
-  # push:
-  #   branches: [main, develop]
-  # pull_request:
-  #   branches: [main, develop]
+  # Auto-trigger restored 2026-04-24 after the perf wins from commit 83b7b6c1
+  # were validated in nightly-integration runs. Heavy jobs (e2e, perf, security,
+  # visual regression) remain gated to push-on-main/develop or workflow_dispatch
+  # via per-job `if:` guards, so PR feedback stays fast (~lint+typecheck+unit+
+  # workers+real-integration only).
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
   workflow_dispatch:
 
 # Cancel in-flight runs on the same PR when a new commit lands so reviewers
@@ -1004,4 +1007,17 @@ jobs:
       - name: 🧪 部署後煙霧測試
         run: pnpm run test:smoke:staging
         env:
+          # STAGING_API_URL + STAGING_CUSTOMER_URL drive Layer 1 (liveness).
+          # STAGING_AUTH_USERNAME + STAGING_AUTH_PASSWORD enable Layer 2.
+          # STAGING_RESTAURANT_ID + STAGING_MENU_ITEM_ID enable Layer 3.
+          # Layers without their secrets get test.skip()'d, so missing
+          # secrets degrade coverage rather than fail the smoke gate.
+          # Keep STAGING_URL for backwards compatibility — config falls back
+          # to it for both API and customer when the dedicated vars are unset.
           STAGING_URL: ${{ secrets.STAGING_URL }}
+          STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
+          STAGING_CUSTOMER_URL: ${{ secrets.STAGING_CUSTOMER_URL }}
+          STAGING_AUTH_USERNAME: ${{ secrets.STAGING_AUTH_USERNAME }}
+          STAGING_AUTH_PASSWORD: ${{ secrets.STAGING_AUTH_PASSWORD }}
+          STAGING_RESTAURANT_ID: ${{ secrets.STAGING_RESTAURANT_ID }}
+          STAGING_MENU_ITEM_ID: ${{ secrets.STAGING_MENU_ITEM_ID }}
