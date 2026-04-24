@@ -36,36 +36,36 @@ export default defineConfig({
     // Desktop browsers — customer & journey tests only
     {
       name: "chromium",
-      testIgnore: ["**/admin/**", "**/integration/**"],
+      testIgnore: ["**/admin/**", "**/integration/**", "**/smoke/**"],
       use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "firefox",
-      testIgnore: ["**/admin/**", "**/integration/**"],
+      testIgnore: ["**/admin/**", "**/integration/**", "**/smoke/**"],
       use: { ...devices["Desktop Firefox"] },
     },
     {
       name: "webkit",
-      testIgnore: ["**/admin/**", "**/integration/**"],
+      testIgnore: ["**/admin/**", "**/integration/**", "**/smoke/**"],
       use: { ...devices["Desktop Safari"] },
     },
 
     // Mobile devices — customer & journey tests only
     {
       name: "Mobile Chrome",
-      testIgnore: ["**/admin/**", "**/integration/**"],
+      testIgnore: ["**/admin/**", "**/integration/**", "**/smoke/**"],
       use: { ...devices["Pixel 5"] },
     },
     {
       name: "Mobile Safari",
-      testIgnore: ["**/admin/**", "**/integration/**"],
+      testIgnore: ["**/admin/**", "**/integration/**", "**/smoke/**"],
       use: { ...devices["iPhone 12"] },
     },
 
     // Tablet — customer & journey tests only
     {
       name: "Tablet",
-      testIgnore: ["**/admin/**", "**/integration/**"],
+      testIgnore: ["**/admin/**", "**/integration/**", "**/smoke/**"],
       use: { ...devices["iPad Pro"] },
     },
 
@@ -88,6 +88,20 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         baseURL: "http://localhost:3000",
+      },
+    },
+
+    // Smoke tests — minimal canary against any deployed env (local / staging /
+    // production). Reads SMOKE_* env vars; falls back to localhost so the
+    // suite is runnable against `pnpm dev` with no extra setup. The
+    // `playwright.staging.config.ts` overrides this for the deploy gate.
+    {
+      name: "smoke",
+      testDir: "./tests/e2e/smoke",
+      fullyParallel: false,
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.SMOKE_CUSTOMER_URL ?? "http://localhost:3000",
       },
     },
   ],
