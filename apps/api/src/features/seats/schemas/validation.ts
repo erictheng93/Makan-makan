@@ -80,3 +80,7 @@ export type BatchCreateSeatsInput = z.infer<typeof batchCreateSeatsSchema>;
 export type UpdateSeatInput = z.infer<typeof updateSeatSchema>;
 export type OccupySeatInput = z.infer<typeof occupySeatSchema>;
 export type SeatFilterInput = z.infer<typeof seatFilterSchema>;
+export type TableIdParamInput = z.infer<typeof tableIdParamSchema>;
+export type QrCodeParamInput = z.infer<typeof qrCodeParamSchema>;
+export type TableIdQueryInput = z.infer<typeof tableIdQuerySchema>;
+export type BatchRegenerateQRInput = z.infer<typeof batchRegenerateQRSchema>;

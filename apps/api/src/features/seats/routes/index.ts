@@ -24,13 +24,21 @@ import {
   qrCodeParamSchema,
   tableIdQuerySchema,
   batchRegenerateQRSchema,
+  type BatchCreateSeatsInput,
+  type BatchRegenerateQRInput,
+  type OccupySeatInput,
+  type QrCodeParamInput,
+  type SeatFilterInput,
+  type TableIdParamInput,
+  type TableIdQueryInput,
+  type UpdateSeatInput,
 } from "../schemas/validation";
 
 const routes = new Hono<{ Bindings: Env }>();
 
 /** Create SeatService from Hono context */
 function createSeatService(env: Env): SeatService {
-  return new SeatService(env.DB as any, env);
+  return new SeatService(env.DB, env);
 }
 
 /**
@@ -48,9 +56,9 @@ routes.get(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateQuery(seatFilterSchema as any),
+  validateQuery(seatFilterSchema),
   async (c) => {
-    const filters = c.get("validatedQuery");
+    const filters = c.get("validatedQuery") as SeatFilterInput;
     const seatService = createSeatService(c.env);
 
     const { tableId, ...otherFilters } = filters;
@@ -74,9 +82,9 @@ routes.get(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateQuery(tableIdQuerySchema as any),
+  validateQuery(tableIdQuerySchema),
   async (c) => {
-    const { tableId } = c.get("validatedQuery");
+    const { tableId } = c.get("validatedQuery") as TableIdQueryInput;
     const seatService = createSeatService(c.env);
 
     const stats = await seatService.getSeatStats(tableId);
@@ -92,39 +100,35 @@ routes.get(
  * GET /qr/:qrCode
  * Get seat information by QR code (public endpoint)
  */
-routes.get(
-  "/qr/:qrCode",
-  validateParams(qrCodeParamSchema as any),
-  async (c) => {
-    const { qrCode } = c.get("validatedParams");
-    const seatService = createSeatService(c.env);
+routes.get("/qr/:qrCode", validateParams(qrCodeParamSchema), async (c) => {
+  const { qrCode } = c.get("validatedParams") as QrCodeParamInput;
+  const seatService = createSeatService(c.env);
 
-    const seat = await seatService.getSeatByQRCode(decodeURIComponent(qrCode));
+  const seat = await seatService.getSeatByQRCode(decodeURIComponent(qrCode));
 
-    if (!seat) {
-      throw notFound("Invalid QR code or seat not found");
-    }
+  if (!seat) {
+    throw notFound("Invalid QR code or seat not found");
+  }
 
-    // Only return public information
-    const publicSeatInfo = {
-      id: seat.id,
-      tableId: seat.tableId,
-      tableNumber: seat.tableNumber,
-      restaurantId: seat.restaurantId,
-      restaurantName: seat.restaurantName,
-      seatNumber: seat.seatNumber,
-      seatName: seat.seatName,
-      isActive: seat.isActive,
-      isOccupied: seat.isOccupied,
-      capacity: seat.capacity,
-    };
+  // Only return public information
+  const publicSeatInfo = {
+    id: seat.id,
+    tableId: seat.tableId,
+    tableNumber: seat.tableNumber,
+    restaurantId: seat.restaurantId,
+    restaurantName: seat.restaurantName,
+    seatNumber: seat.seatNumber,
+    seatName: seat.seatName,
+    isActive: seat.isActive,
+    isOccupied: seat.isOccupied,
+    capacity: seat.capacity,
+  };
 
-    return c.json({
-      success: true,
-      data: publicSeatInfo,
-    });
-  },
-);
+  return c.json({
+    success: true,
+    data: publicSeatInfo,
+  });
+});
 
 /**
  * GET /:id
@@ -141,7 +145,7 @@ routes.get(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const seatService = createSeatService(c.env);
@@ -170,7 +174,7 @@ routes.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(batchCreateSeatsSchema),
   async (c) => {
-    const data = c.get("validatedBody");
+    const data = c.get("validatedBody") as BatchCreateSeatsInput;
     const seatService = createSeatService(c.env);
 
     const { tableId, seatCount, numberingStyle, customNumbers, prefix } = data;
@@ -203,7 +207,7 @@ routes.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(batchRegenerateQRSchema),
   async (c) => {
-    const { tableId } = c.get("validatedBody");
+    const { tableId } = c.get("validatedBody") as BatchRegenerateQRInput;
     const seatService = createSeatService(c.env);
 
     const result = await seatService.batchGenerateSeatQRCodes(tableId);
@@ -229,11 +233,11 @@ routes.put(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   validateBody(updateSeatSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
-    const data = c.get("validatedBody");
+    const data = c.get("validatedBody") as UpdateSeatInput;
     const seatService = createSeatService(c.env);
 
     const existingSeat = await seatService.getSeatById(id);
@@ -261,7 +265,7 @@ routes.delete(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const seatService = createSeatService(c.env);
@@ -294,9 +298,9 @@ routes.delete(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(tableIdParamSchema as any),
+  validateParams(tableIdParamSchema),
   async (c) => {
-    const { tableId } = c.get("validatedParams");
+    const { tableId } = c.get("validatedParams") as TableIdParamInput;
     const seatService = createSeatService(c.env);
 
     const success = await seatService.deleteSeatsForTable(tableId);
@@ -326,11 +330,11 @@ routes.post(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   validateBody(occupySeatSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
-    const { orderId, occupiedBy } = c.get("validatedBody");
+    const { orderId, occupiedBy } = c.get("validatedBody") as OccupySeatInput;
     const seatService = createSeatService(c.env);
 
     const seat = await seatService.getSeatById(id);
@@ -370,7 +374,7 @@ routes.post(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const seatService = createSeatService(c.env);
@@ -403,7 +407,7 @@ routes.post(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const seatService = createSeatService(c.env);
