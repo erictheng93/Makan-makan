@@ -1,8 +1,14 @@
 import type {
   Env,
+  CloudflareImageDetails,
+  CloudflareImageList,
   CloudflareImagesResponse,
   ImageTransformation,
 } from "../types/env";
+
+type CloudflareAPIResult<TResult> =
+  | { success: true; result: TResult }
+  | { success: false; error: string };
 
 /**
  * Cloudflare Images API integration utility class
@@ -31,7 +37,7 @@ export class CloudflareImagesAPI {
       requireSignedURLs?: boolean;
       metadata?: Record<string, string>;
     },
-  ): Promise<{ success: boolean; result?: any; error?: string }> {
+  ): Promise<CloudflareAPIResult<CloudflareImageDetails>> {
     try {
       const formData = new FormData();
 
@@ -72,9 +78,10 @@ export class CloudflareImagesAPI {
         body: formData,
       });
 
-      const result: CloudflareImagesResponse = await response.json();
+      const result: CloudflareImagesResponse<CloudflareImageDetails> =
+        await response.json();
 
-      if (!result.success) {
+      if (!result.success || !result.result) {
         console.error("Cloudflare Images API error:", result.errors);
         return {
           success: false,
@@ -100,16 +107,17 @@ export class CloudflareImagesAPI {
    */
   async getImageDetails(
     imageId: string,
-  ): Promise<{ success: boolean; result?: any; error?: string }> {
+  ): Promise<CloudflareAPIResult<CloudflareImageDetails>> {
     try {
       const response = await fetch(`${this.baseURL}/${imageId}`, {
         method: "GET",
         headers: this.headers,
       });
 
-      const result: CloudflareImagesResponse = await response.json();
+      const result: CloudflareImagesResponse<CloudflareImageDetails> =
+        await response.json();
 
-      if (!result.success) {
+      if (!result.success || !result.result) {
         return {
           success: false,
           error: result.errors?.[0]?.message || "Failed to get image details",
@@ -135,7 +143,7 @@ export class CloudflareImagesAPI {
   async listImages(options?: {
     page?: number;
     perPage?: number;
-  }): Promise<{ success: boolean; result?: any; error?: string }> {
+  }): Promise<CloudflareAPIResult<CloudflareImageList>> {
     try {
       const params = new URLSearchParams();
       if (options?.page) params.append("page", String(options.page));
@@ -148,9 +156,10 @@ export class CloudflareImagesAPI {
         headers: this.headers,
       });
 
-      const result: CloudflareImagesResponse = await response.json();
+      const result: CloudflareImagesResponse<CloudflareImageList> =
+        await response.json();
 
-      if (!result.success) {
+      if (!result.success || !result.result) {
         return {
           success: false,
           error: result.errors?.[0]?.message || "Failed to list images",
@@ -207,7 +216,7 @@ export class CloudflareImagesAPI {
   async updateImageMetadata(
     imageId: string,
     metadata: Record<string, string>,
-  ): Promise<{ success: boolean; result?: any; error?: string }> {
+  ): Promise<CloudflareAPIResult<CloudflareImageDetails>> {
     try {
       const formData = new FormData();
 
@@ -223,9 +232,10 @@ export class CloudflareImagesAPI {
         body: formData,
       });
 
-      const result: CloudflareImagesResponse = await response.json();
+      const result: CloudflareImagesResponse<CloudflareImageDetails> =
+        await response.json();
 
-      if (!result.success) {
+      if (!result.success || !result.result) {
         return {
           success: false,
           error: result.errors?.[0]?.message || "Failed to update metadata",
@@ -355,7 +365,7 @@ export class CloudflareImagesAPI {
     height?: number;
     format?: string;
     size: number;
-    exif?: Record<string, any>;
+    exif?: Record<string, unknown>;
   }> {
     return {
       size: file.size,

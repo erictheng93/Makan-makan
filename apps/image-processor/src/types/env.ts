@@ -47,7 +47,7 @@ export interface ImageUploadRequest {
   file: File;
   filename: string;
   variants?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   restaurantId?: number;
   category?: string;
 }
@@ -98,23 +98,30 @@ export interface ImageMetadata {
   tags?: string[];
   altText?: string;
   caption?: string;
-  exifData?: Record<string, any>;
+  exifData?: Record<string, unknown>;
 }
 
-export interface CloudflareImagesResponse {
+export interface CloudflareImageDetails {
+  id: string;
+  filename?: string;
+  uploaded?: string;
+  requireSignedURLs?: boolean;
+  variants?: string[];
+}
+
+export interface CloudflareImageList {
+  images: CloudflareImageDetails[];
+  continuation_token?: string;
+}
+
+export interface CloudflareImagesResponse<TResult = CloudflareImageDetails> {
   success: boolean;
   errors: Array<{
     code: number;
     message: string;
   }>;
   messages: string[];
-  result?: {
-    id: string;
-    filename: string;
-    uploaded: string;
-    requireSignedURLs: boolean;
-    variants: string[];
-  };
+  result?: TResult;
 }
 
 export interface ImageProcessingJob {

@@ -11,6 +11,41 @@ import {
   type D1Database,
 } from "@makanmakan/database";
 
+type DatabaseImageListRow = {
+  id: string;
+  filename: string;
+  originalFilename?: string;
+  original_filename?: string;
+  mimeType?: string;
+  mime_type?: string;
+  size: number;
+  width?: number | null;
+  height?: number | null;
+  variants?: string | ImageMetadata["variants"] | null;
+  uploadedAt?: Date | string | number;
+  uploaded_at?: string;
+  uploadedBy?: number | null;
+  uploaded_by?: number | null;
+  restaurantId?: string | number | null;
+  restaurant_id?: string | number | null;
+  category?: string;
+  tags?: string | string[] | null;
+  altText?: string | null;
+  alt_text?: string | null;
+  caption?: string | null;
+};
+
+type CategoryStatsRow = {
+  category: string | null;
+  count: number;
+};
+
+type JobStatsRow = {
+  status: string;
+  count: number;
+  avg_duration: number | null;
+};
+
 /**
  * Image service for database operations and metadata management
  */
@@ -22,7 +57,7 @@ export class ImageService {
   constructor(env: Env) {
     this.db = env.DB;
     this.cache = env.IMAGE_CACHE;
-    this.dbImageService = new DatabaseImageService(env.DB, env as any);
+    this.dbImageService = new DatabaseImageService(env.DB, env);
   }
 
   /**
@@ -323,25 +358,36 @@ export class ImageService {
       });
       const images = { results: imageResults };
 
-      const imageList: ImageMetadata[] = (images.results || []).map(
-        (row: any) => ({
-          id: row.id,
-          filename: row.filename,
-          originalFilename: row.original_filename,
-          mimeType: row.mime_type,
-          size: row.size,
-          width: row.width,
-          height: row.height,
-          variants: JSON.parse(row.variants),
-          uploadedAt: row.uploaded_at,
-          uploadedBy: row.uploaded_by,
-          restaurantId: row.restaurant_id,
-          category: row.category,
-          tags: row.tags ? JSON.parse(row.tags) : undefined,
-          altText: row.alt_text,
-          caption: row.caption,
-        }),
-      );
+      const imageList: ImageMetadata[] = (
+        images.results as DatabaseImageListRow[]
+      ).map((row) => ({
+        id: row.id,
+        filename: row.filename,
+        originalFilename: row.originalFilename ?? row.original_filename ?? "",
+        mimeType: row.mimeType ?? row.mime_type ?? "",
+        size: row.size,
+        width: row.width ?? undefined,
+        height: row.height ?? undefined,
+        variants:
+          typeof row.variants === "string"
+            ? JSON.parse(row.variants)
+            : (row.variants ?? {}),
+        uploadedAt:
+          row.uploadedAt instanceof Date
+            ? row.uploadedAt.toISOString()
+            : String(row.uploadedAt ?? row.uploaded_at ?? ""),
+        uploadedBy: row.uploadedBy ?? row.uploaded_by ?? undefined,
+        restaurantId:
+          row.restaurantId !== undefined && row.restaurantId !== null
+            ? Number(row.restaurantId)
+            : row.restaurant_id !== undefined && row.restaurant_id !== null
+              ? Number(row.restaurant_id)
+              : undefined,
+        category: row.category,
+        tags: typeof row.tags === "string" ? JSON.parse(row.tags) : row.tags,
+        altText: row.altText ?? row.alt_text ?? undefined,
+        caption: row.caption ?? undefined,
+      }));
 
       return {
         success: true,
@@ -569,10 +615,12 @@ export class ImageService {
         totalSize: (basicStats?.total_storage as number) || 0,
         avgProcessingTime: 0, // Will be calculated from job stats
         mostUsedVariants: [], // Would need variant usage tracking
-        uploadsByCategory: (categoryStats || []).map((row: any) => ({
-          category: row.category || "uncategorized",
-          count: row.count,
-        })),
+        uploadsByCategory: ((categoryStats || []) as CategoryStatsRow[]).map(
+          (row) => ({
+            category: row.category || "uncategorized",
+            count: row.count,
+          }),
+        ),
         errorRate: 0, // Calculate from job stats
         storageUsage: {
           original: (basicStats?.total_storage as number) || 0,
@@ -584,11 +632,13 @@ export class ImageService {
       // Calculate processing metrics from job stats
       const jobResults = jobStats || [];
       const completedJobs = jobResults.find(
-        (row: any) => row.status === "completed",
+        (row: JobStatsRow) => row.status === "completed",
       );
-      const failedJobs = jobResults.find((row: any) => row.status === "failed");
-      const totalJobs = jobResults.reduce(
-        (sum: number, row: any) => sum + row.count,
+      const failedJobs = (jobResults as JobStatsRow[]).find(
+        (row) => row.status === "failed",
+      );
+      const totalJobs = (jobResults as JobStatsRow[]).reduce(
+        (sum, row) => sum + row.count,
         0,
       );
 
