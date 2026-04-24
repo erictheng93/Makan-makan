@@ -73,6 +73,40 @@ async function addItemAndGoToCart(page: import("@playwright/test").Page) {
   await page.waitForLoadState("networkidle");
 }
 
+/**
+ * Expand the coupon panel in CartView.vue. The coupon code input
+ * (`#coupon-code`) lives inside `<div v-if="showAvailableCoupons">`, which
+ * is collapsed by default and toggled by the "查看可用優惠券" /
+ * `cart.viewAvailable` button (apps/customer-app/src/views/CartView.vue).
+ * Without this step, every coupon spec used to silently `test.skip()`
+ * because the input wasn't yet rendered. SR-4 in
+ * PRODUCTION_READINESS_REPORT.md tracks the unconditional removal of those
+ * skips; this helper makes the input reliably reachable.
+ */
+async function openCouponPanel(page: import("@playwright/test").Page) {
+  const toggleBtn = page.locator(
+    'button:has-text("cart.viewAvailable"), button:has-text("查看可用"), button:has-text("View Available")',
+  );
+  if (
+    await toggleBtn
+      .first()
+      .isVisible({ timeout: 2000 })
+      .catch(() => false)
+  ) {
+    await toggleBtn.first().click();
+    await page.waitForTimeout(300);
+  }
+}
+
+const COUPON_INPUT_SELECTOR =
+  '#coupon-code, [data-testid="coupon-input"], input[placeholder*="優惠"], input[placeholder*="coupon"], input[name*="coupon"]';
+
+const APPLY_BTN_SELECTOR =
+  'button:has-text("cart.applyCoupon"), button:has-text("套用"), button:has-text("Apply"), [data-testid="apply-coupon-btn"]';
+
+const REMOVE_BTN_SELECTOR =
+  'button:has-text("cart.removeCoupon"), button:has-text("移除"), button:has-text("Remove"), [data-testid="remove-coupon"]';
+
 // ---------------------------------------------------------------------------
 // 1. Valid coupon applies discount
 // ---------------------------------------------------------------------------
@@ -113,24 +147,16 @@ test.describe("Coupon: valid code applies discount", () => {
     await addItemAndGoToCart(page);
 
     // Locate the coupon input
-    const couponInput = page.locator(
-      'input[placeholder*="優惠"], input[placeholder*="coupon"], input[placeholder*="折扣"], input[name*="coupon"], [data-testid="coupon-input"]',
-    );
-
-    const inputVisible = await couponInput
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (!inputVisible) {
-      test.skip(true, "Coupon input not present in cart");
-      return;
-    }
+    await openCouponPanel(page);
+    const couponInput = page.locator(COUPON_INPUT_SELECTOR);
+    await expect(
+      couponInput.first(),
+      "coupon input #coupon-code not visible after opening panel (SR-4 — UI selector drift or coupon section missing)",
+    ).toBeVisible({ timeout: 5000 });
 
     await couponInput.first().fill("SAVE10");
 
-    const applyBtn = page.locator(
-      'button:has-text("套用"), button:has-text("Apply"), button:has-text("使用"), [data-testid="apply-coupon-btn"]',
-    );
+    const applyBtn = page.locator(APPLY_BTN_SELECTOR);
     await applyBtn.first().click();
 
     // Verify discount shown
@@ -185,24 +211,16 @@ test.describe("Coupon: invalid code shows error", () => {
   test("should show error when invalid coupon entered", async ({ page }) => {
     await addItemAndGoToCart(page);
 
-    const couponInput = page.locator(
-      'input[placeholder*="優惠"], input[placeholder*="coupon"], input[placeholder*="折扣"], input[name*="coupon"], [data-testid="coupon-input"]',
-    );
-
-    const inputVisible = await couponInput
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (!inputVisible) {
-      test.skip(true, "Coupon input not present in cart");
-      return;
-    }
+    await openCouponPanel(page);
+    const couponInput = page.locator(COUPON_INPUT_SELECTOR);
+    await expect(
+      couponInput.first(),
+      "coupon input #coupon-code not visible after opening panel (SR-4 — UI selector drift or coupon section missing)",
+    ).toBeVisible({ timeout: 5000 });
 
     await couponInput.first().fill("BADCODE");
 
-    const applyBtn = page.locator(
-      'button:has-text("套用"), button:has-text("Apply"), button:has-text("使用"), [data-testid="apply-coupon-btn"]',
-    );
+    const applyBtn = page.locator(APPLY_BTN_SELECTOR);
     await applyBtn.first().click();
 
     // Verify error message visible
@@ -254,24 +272,16 @@ test.describe("Coupon: applied in order payload", () => {
   }) => {
     await addItemAndGoToCart(page);
 
-    const couponInput = page.locator(
-      'input[placeholder*="優惠"], input[placeholder*="coupon"], input[placeholder*="折扣"], input[name*="coupon"], [data-testid="coupon-input"]',
-    );
-
-    const inputVisible = await couponInput
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (!inputVisible) {
-      test.skip(true, "Coupon input not present in cart");
-      return;
-    }
+    await openCouponPanel(page);
+    const couponInput = page.locator(COUPON_INPUT_SELECTOR);
+    await expect(
+      couponInput.first(),
+      "coupon input #coupon-code not visible after opening panel (SR-4 — UI selector drift or coupon section missing)",
+    ).toBeVisible({ timeout: 5000 });
 
     await couponInput.first().fill("SAVE10");
 
-    const applyBtn = page.locator(
-      'button:has-text("套用"), button:has-text("Apply"), button:has-text("使用"), [data-testid="apply-coupon-btn"]',
-    );
+    const applyBtn = page.locator(APPLY_BTN_SELECTOR);
     await applyBtn.first().click();
 
     // Wait for the discount to be reflected
@@ -373,63 +383,38 @@ test.describe("Coupon: can remove applied coupon", () => {
   test("should remove discount when coupon is cleared", async ({ page }) => {
     await addItemAndGoToCart(page);
 
-    const couponInput = page.locator(
-      'input[placeholder*="優惠"], input[placeholder*="coupon"], input[placeholder*="折扣"], input[name*="coupon"], [data-testid="coupon-input"]',
-    );
-
-    const inputVisible = await couponInput
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (!inputVisible) {
-      test.skip(true, "Coupon input not present in cart");
-      return;
-    }
+    await openCouponPanel(page);
+    const couponInput = page.locator(COUPON_INPUT_SELECTOR);
+    await expect(
+      couponInput.first(),
+      "coupon input #coupon-code not visible after opening panel (SR-4 — UI selector drift or coupon section missing)",
+    ).toBeVisible({ timeout: 5000 });
 
     // Apply coupon first
     await couponInput.first().fill("SAVE10");
-    const applyBtn = page.locator(
-      'button:has-text("套用"), button:has-text("Apply"), button:has-text("使用"), [data-testid="apply-coupon-btn"]',
-    );
+    const applyBtn = page.locator(APPLY_BTN_SELECTOR);
     await applyBtn.first().click();
 
-    // Wait for discount to appear
+    // Wait for discount to appear — mock returns a valid SAVE10 coupon, so
+    // the UI MUST render the discount. SR-4: removed the silent skip; if the
+    // discount UI doesn't surface, the apply flow is broken and the test
+    // should fail loudly.
     const discountLine = page
-      .locator("text=/折扣|10%|Discount/i")
+      .locator("text=/折扣|10%|Discount|cart.saving/i")
       .or(page.locator('[data-testid="discount-amount"]'));
-    const discountVisible = await discountLine
-      .first()
-      .isVisible()
-      .catch(() => false);
+    await expect(
+      discountLine.first(),
+      "discount UI not visible after applying valid mocked coupon (SR-4)",
+    ).toBeVisible({ timeout: 5000 });
 
-    if (!discountVisible) {
-      // Coupon feature not fully implemented — skip gracefully
-      test.skip(true, "Coupon discount UI not visible after apply");
-      return;
-    }
-
-    // Look for a remove/clear button
-    const removeBtn = page
-      .locator('button:has-text("移除")')
-      .or(page.locator('button:has-text("Remove")'))
-      .or(page.locator('button:has-text("清除")'))
-      .or(page.locator('[data-testid="remove-coupon"]'))
-      .or(page.locator('[data-testid="clear-coupon"]'))
-      .or(
-        page.locator(
-          'button[aria-label*="remove"], button[aria-label*="clear"]',
-        ),
-      );
-
-    const removeBtnVisible = await removeBtn
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (!removeBtnVisible) {
-      // Remove button not present — acceptable if coupon can be cleared by clearing input
-      test.skip(true, "Remove coupon button not present");
-      return;
-    }
+    // Remove button (cart.removeCoupon at CartView.vue:462) must be present
+    // once a coupon is selected — otherwise the user has no way to undo.
+    // SR-4: removed the silent skip on the remove button.
+    const removeBtn = page.locator(REMOVE_BTN_SELECTOR);
+    await expect(
+      removeBtn.first(),
+      "remove-coupon button not visible after coupon applied (SR-4)",
+    ).toBeVisible({ timeout: 5000 });
 
     await removeBtn.first().click();
 
