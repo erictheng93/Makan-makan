@@ -46,7 +46,6 @@ export default {
         ).all<{ id: string }>();
 
         const tomorrow = new Date(Date.now() + 86400000);
-        const dayAfter = new Date(Date.now() + 2 * 86400000);
         const day3 = new Date(Date.now() + 3 * 86400000);
         const formatDate = (d: Date) => d.toISOString().split("T")[0];
 

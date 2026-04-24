@@ -83,7 +83,7 @@ routes.post(
       }
 
       return c.json(result, result.success ? 200 : 500);
-    } catch (error) {
+    } catch {
       return c.json(
         {
           success: false,
@@ -134,7 +134,7 @@ routes.get("/reset-password/verify", async (c) => {
     });
 
     return c.json(result, result.valid ? 200 : 400);
-  } catch (error) {
+  } catch {
     return c.json(
       {
         valid: false,
@@ -176,7 +176,7 @@ routes.post("/reset-password", async (c) => {
     });
 
     return c.json(result, result.success ? 200 : 400);
-  } catch (error) {
+  } catch {
     return c.json(
       {
         success: false,
@@ -237,7 +237,7 @@ routes.post(
       });
 
       return c.json(result, result.success ? 200 : 500);
-    } catch (error) {
+    } catch {
       return c.json(
         {
           success: false,
@@ -288,7 +288,7 @@ routes.get("/verify-email", async (c) => {
     });
 
     return c.json(result, result.success ? 200 : 400);
-  } catch (error) {
+  } catch {
     return c.json(
       {
         success: false,
@@ -349,7 +349,7 @@ routes.post(
       });
 
       return c.json(result, result.success ? 200 : 500);
-    } catch (error) {
+    } catch {
       return c.json(
         {
           success: false,
@@ -405,7 +405,7 @@ routes.post("/verify-phone", async (c) => {
     });
 
     return c.json(result, result.success ? 200 : 400);
-  } catch (error) {
+  } catch {
     return c.json(
       {
         success: false,

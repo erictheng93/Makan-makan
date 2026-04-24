@@ -9,7 +9,6 @@ import { z } from "zod";
 import {
   successEnvelope,
   successWithMessage,
-  messageOnlyResponse,
   PaginationSchema,
   TimestampFields,
 } from "../helpers";

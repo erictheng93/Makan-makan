@@ -15,7 +15,7 @@ export interface HealthStatus {
       status: "pass" | "fail" | "warn";
       message?: string;
       responseTime?: number;
-      details?: any;
+      details?: unknown;
     };
   };
 }
@@ -254,7 +254,7 @@ export class SystemHealthMonitor {
   private async checkFeatureModules(): Promise<{
     status: "pass" | "fail";
     message?: string;
-    details?: any;
+    details?: unknown;
   }> {
     try {
       const featureStatus = {

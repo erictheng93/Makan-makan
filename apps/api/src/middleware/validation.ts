@@ -1,7 +1,7 @@
 import { Context, Next } from "hono";
 import { z } from "zod";
 import type { Env } from "../types/env";
-import { ApiError, badRequest } from "../shared/utils/api-error";
+import { badRequest } from "../shared/utils/api-error";
 
 // Format Zod errors into details array for ApiError
 const formatZodDetails = (error: z.ZodError) =>
@@ -36,7 +36,9 @@ export const validateBody = (schema: z.ZodSchema) => {
 };
 
 // 查詢參數驗證中間件
-export const validateQuery = <T = any>(schema: z.ZodType<T, any, any>) => {
+export const validateQuery = <T = unknown>(
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     try {
       const query = c.req.query();
@@ -59,7 +61,9 @@ export const validateQuery = <T = any>(schema: z.ZodType<T, any, any>) => {
 };
 
 // 路徑參數驗證中間件
-export const validateParams = <T = any>(schema: z.ZodType<T, any, any>) => {
+export const validateParams = <T = unknown>(
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     try {
       const params = c.req.param();

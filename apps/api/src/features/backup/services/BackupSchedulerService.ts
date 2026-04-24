@@ -8,7 +8,7 @@ import type {
   AnalyticsEngineDataset,
 } from "@cloudflare/workers-types";
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, sql, lte, isNotNull } from "drizzle-orm";
+import { eq, and, sql, isNotNull } from "drizzle-orm";
 import { backupConfigurations, backupSchedules } from "@makanmakan/database";
 import { BackupService } from "./BackupService";
 import { BackupConfigService } from "./BackupConfigService";

@@ -14,11 +14,7 @@ import {
   commonSchemas,
 } from "../../../middleware/validation";
 import type { Env } from "../../../types/env";
-import {
-  notFound,
-  forbidden,
-  badRequest,
-} from "../../../shared/utils/api-error";
+import { notFound, badRequest } from "../../../shared/utils/api-error";
 import {
   batchCreateSeatsSchema,
   updateSeatSchema,

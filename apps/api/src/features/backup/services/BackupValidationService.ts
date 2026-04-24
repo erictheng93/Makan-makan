@@ -6,7 +6,7 @@
 import { Context } from "hono";
 import type { D1Database } from "@cloudflare/workers-types";
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, sql, count, sum, inArray } from "drizzle-orm";
+import { eq, and, sql, count, inArray } from "drizzle-orm";
 import { backupRecords } from "@makanmakan/database";
 import type {
   CreateBackupRequest,

@@ -7,7 +7,6 @@
 
 import { z } from "zod";
 import { successEnvelope } from "../helpers";
-import { RestaurantSchema } from "./restaurants";
 import { MenuItemSchema } from "./menu";
 
 // ---------------------------------------------------------------------------

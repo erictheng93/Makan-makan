@@ -566,7 +566,7 @@ export class OrdersService implements IOrdersService {
   async getOrderAnalytics(
     filters: OrderQueryFilters,
     _userId?: number,
-    caller?: CallerContext,
+    _caller?: CallerContext,
   ): Promise<OrderAnalytics> {
     try {
       const cacheKey = `analytics:${JSON.stringify(filters)}`;

@@ -2369,7 +2369,6 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
                     // (e.g., SQLite returns integer 1 but service queries with string "1")
                     records = allRecords.filter((record: any) => {
                       // Try camelCase first, then snake_case
-                      // eslint-disable-next-line eqeqeq
                       return (
                         record[columnName!] == filterValue ||
                         record[snakeCaseColName] == filterValue

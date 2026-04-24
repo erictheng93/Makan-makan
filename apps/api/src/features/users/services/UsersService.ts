@@ -202,7 +202,7 @@ export class UsersService {
     userId: number,
     isActive: boolean,
   ): Promise<string> {
-    const targetUser = await this.requireManagedUser(currentUser, userId);
+    const _targetUser = await this.requireManagedUser(currentUser, userId);
 
     if (currentUser.id === userId && !isActive) {
       throw badRequest("Cannot deactivate your own account");

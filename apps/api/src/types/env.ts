@@ -110,7 +110,7 @@ export interface Env {
 
   // Test-only variables
   ALLOW_TEST_SIGNATURE?: string;
-  MOCK_DRIZZLE_DB?: any; // Mock Drizzle database for testing
+  MOCK_DRIZZLE_DB?: unknown; // Mock Drizzle database for testing
   MONITORING_WEBHOOK_URL?: string;
   ALERT_EMAIL_FROM?: string;
   ALERT_EMAIL_TO?: string;

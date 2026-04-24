@@ -15,8 +15,6 @@ import {
   asc,
   gte,
   lte,
-  sum,
-  avg,
 } from "drizzle-orm";
 import {
   backupRecords,
@@ -31,7 +29,6 @@ import { BackupConfigService } from "./BackupConfigService";
 import { BackupValidationService } from "./BackupValidationService";
 import type {
   BackupRecord,
-  RestoreOperation,
   CreateBackupRequest,
   CreateBackupResponse,
   ListBackupsQuery,

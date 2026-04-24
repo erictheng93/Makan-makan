@@ -35,7 +35,9 @@ export class UnifiedQueueService implements IUnifiedQueueService {
 
     // Use mock Drizzle instance in test environment, similar to BaseService
     if (env.MOCK_DRIZZLE_DB && env.NODE_ENV === "test") {
-      this.db = env.MOCK_DRIZZLE_DB;
+      this.db = env.MOCK_DRIZZLE_DB as ReturnType<
+        typeof drizzle<typeof schema>
+      >;
     } else {
       this.db = drizzle(env.DB, { schema });
     }

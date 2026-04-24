@@ -11,9 +11,9 @@ import { getCurrentTimestamp } from "@makanmakan/database";
  * See `apps/api/src/features/pos/services/` for migration examples.
  */
 export abstract class BaseService {
-  protected d1: any;
+  protected d1: D1Database;
 
-  constructor(db: any) {
+  constructor(db: D1Database) {
     this.d1 = db;
   }
 
@@ -31,10 +31,10 @@ export abstract class BaseService {
    */
   protected buildPaginationQuery(
     baseQuery: string,
-    params: any[],
+    params: unknown[],
     page: number = 1,
     limit: number = 20,
-  ): { query: string; params: any[] } {
+  ): { query: string; params: unknown[] } {
     const offset = (page - 1) * limit;
     return {
       query: `${baseQuery} LIMIT ? OFFSET ?`,
@@ -49,9 +49,9 @@ export abstract class BaseService {
     dateField: string,
     startDate?: string,
     endDate?: string,
-  ): { filter: string; params: any[] } {
+  ): { filter: string; params: unknown[] } {
     const filters: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (startDate) {
       filters.push(`DATE(${dateField}) >= ?`);
@@ -94,7 +94,10 @@ export abstract class BaseService {
   /**
    * 解析JSON字段
    */
-  protected parseJsonField(jsonString: string, defaultValue: any = {}): any {
+  protected parseJsonField(
+    jsonString: string,
+    defaultValue: unknown = {},
+  ): unknown {
     try {
       return JSON.parse(jsonString || "{}");
     } catch {
@@ -105,8 +108,11 @@ export abstract class BaseService {
   /**
    * 格式化數字
    */
-  protected formatNumber(value: any, defaultValue: number = 0): number {
-    const num = parseFloat(value);
+  protected formatNumber(
+    value: string | number,
+    defaultValue: number = 0,
+  ): number {
+    const num = typeof value === "number" ? value : parseFloat(value);
     return isNaN(num) ? defaultValue : num;
   }
 
@@ -119,8 +125,8 @@ export abstract class BaseService {
     entityId: string;
     userId: number;
     description?: string;
-    oldData?: any;
-    newData?: any;
+    oldData?: unknown;
+    newData?: unknown;
   }): Promise<void> {
     try {
       const auditId = this.generateId();

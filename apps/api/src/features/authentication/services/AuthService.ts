@@ -10,7 +10,7 @@ import {
   ConsoleLogger,
   SimplePerformanceTracker,
 } from "../../../core/monitoring";
-import { CACHE_TTL, USER_ROLES } from "../../../shared/constants";
+import { CACHE_TTL } from "../../../shared/constants";
 import type { UserRole } from "../../../shared/constants";
 import {
   AuthService as DatabaseAuthService,
