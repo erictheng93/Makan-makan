@@ -14,6 +14,9 @@ import { ConsoleLogger } from "../../../core/monitoring";
 import type { Env } from "../../../shared/types";
 import type { AuthUser } from "../../../middleware/auth";
 import { z } from "zod";
+import type { UserRole } from "../../../shared/constants";
+import type { OrderQueryFilters } from "../../orders/types";
+import type { OrderStatus as DbOrderStatus } from "@makanmakan/database";
 
 // Create router
 const app = new Hono<{ Bindings: Env }>();
@@ -33,6 +36,11 @@ const myOrdersSchema = z.object({
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
 });
+type MyOrdersQuery = z.infer<typeof myOrdersSchema>;
+
+function toOrderStatuses(status: MyOrdersQuery["status"]): DbOrderStatus[] {
+  return (typeof status === "string" ? [status] : status) as DbOrderStatus[];
+}
 
 /**
  * Get current customer's orders
@@ -51,14 +59,14 @@ app.get(
     logger.debug("Getting customer orders", { customerId: user.id, query });
 
     // Build filters - always filter by current customer
-    const filters: any = {
+    const filters: OrderQueryFilters = {
       customerId: user.id,
       page: query.page || 1,
       limit: query.limit || 20,
     };
 
     if (query.status) {
-      filters.status = query.status;
+      filters.status = toOrderStatuses(query.status);
     }
 
     if (query.dateFrom) {
@@ -72,7 +80,7 @@ app.get(
     const result = await ordersService.getOrders(
       filters,
       user.id,
-      user.role as any,
+      user.role as UserRole,
     );
 
     return c.json({

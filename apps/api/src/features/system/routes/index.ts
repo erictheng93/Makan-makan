@@ -82,6 +82,15 @@ interface SystemMetrics {
   };
 }
 
+interface EndpointHealth {
+  name: string;
+  path: string;
+  status: "healthy" | "degraded" | "unhealthy";
+  responseTime: number;
+  statusCode?: number;
+  error?: string;
+}
+
 // 模擬系統指標（在實際環境中會從實際系統獲取）
 function getSystemMetrics(): SystemMetrics {
   return {
@@ -358,7 +367,7 @@ routes.get(
       { name: "orders", path: "/api/v1/orders?limit=1" },
     ];
 
-    const endpointHealth = [];
+    const endpointHealth: EndpointHealth[] = [];
     for (const endpoint of endpointTests) {
       const testStart = Date.now();
       try {
@@ -602,7 +611,7 @@ routes.get("/health/live", (c) => {
 function generateRecommendations(
   healthScore: number,
   metrics: SystemMetrics,
-  endpointHealth: any[],
+  endpointHealth: EndpointHealth[],
 ): string[] {
   const recommendations: string[] = [];
 

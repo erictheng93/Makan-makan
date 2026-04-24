@@ -5,6 +5,7 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { VerificationService } from "@makanmakan/database";
 import {
   rateLimitMiddleware,
@@ -28,7 +29,7 @@ const routes = new Hono<{ Bindings: Env }>();
 // Helper Functions
 // ========================================
 
-function getClientInfo(c: any) {
+function getClientInfo(c: Context<{ Bindings: Env }>) {
   return {
     ipAddress:
       c.req.header("cf-connecting-ip") ||
