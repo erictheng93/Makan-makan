@@ -46,6 +46,11 @@ type JobStatsRow = {
   avg_duration: number | null;
 };
 
+const parseProcessingJobId = (jobId: string): number | null => {
+  const id = Number(jobId);
+  return Number.isInteger(id) && id > 0 ? id : null;
+};
+
 /**
  * Image service for database operations and metadata management
  */
@@ -414,19 +419,7 @@ export class ImageService {
     variants: string[],
   ): Promise<{ success: boolean; jobId?: string; error?: string }> {
     try {
-      const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      const job: ImageProcessingJob = {
-        id: jobId,
-        imageId,
-        status: "pending",
-        transformations,
-        variants,
-        createdAt: new Date().toISOString(),
-      };
-
-      // Use database service to create processing job
-      await this.dbImageService.createProcessingJob({
+      const dbJob = await this.dbImageService.createProcessingJob({
         imageId,
         jobType: "transformation",
         inputParams: {
@@ -434,6 +427,19 @@ export class ImageService {
           variants,
         },
       });
+      const jobId = String(dbJob.id);
+
+      const job: ImageProcessingJob = {
+        id: jobId,
+        imageId,
+        status: "pending",
+        transformations,
+        variants,
+        createdAt:
+          dbJob.createdAt instanceof Date
+            ? dbJob.createdAt.toISOString()
+            : new Date().toISOString(),
+      };
 
       // Cache job for quick access
       await this.cache.put(`job:${jobId}`, JSON.stringify(job), {
@@ -464,8 +470,16 @@ export class ImageService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // FINAL NATIVE SQL ELIMINATED! 🎉 Using Drizzle ORM via DatabaseImageService
+      const dbJobId = parseProcessingJobId(jobId);
+      if (dbJobId === null) {
+        return {
+          success: false,
+          error: "Invalid job ID",
+        };
+      }
+
       await this.dbImageService.updateProcessingJobStatus(
-        jobId as any,
+        dbJobId,
         status,
         progress !== undefined ? { progress } : undefined,
         error,
@@ -513,7 +527,15 @@ export class ImageService {
 
       // Fetch from database
       // Use database service to get processing job
-      const result = await this.dbImageService.getProcessingJob(jobId as any);
+      const dbJobId = parseProcessingJobId(jobId);
+      if (dbJobId === null) {
+        return {
+          success: false,
+          error: "Invalid job ID",
+        };
+      }
+
+      const result = await this.dbImageService.getProcessingJob(dbJobId);
 
       if (!result) {
         return {

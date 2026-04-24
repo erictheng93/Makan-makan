@@ -12,7 +12,7 @@ const mockDbService = {
   deleteImage: vi.fn(async () => ({})),
   getImagesCount: vi.fn(async () => 0),
   getImages: vi.fn(async () => []),
-  createProcessingJob: vi.fn(async () => ({ id: "job-123" })),
+  createProcessingJob: vi.fn(async () => ({ id: 123, createdAt: new Date() })),
   updateProcessingJobStatus: vi.fn(async () => ({})),
   getProcessingJob: vi.fn(async () => null),
   getImageAnalyticsSummary: vi.fn(async () => ({
@@ -66,6 +66,10 @@ describe("ImageService", () => {
 
     // Reset default implementations
     mockDbService.createImage.mockResolvedValue({ id: "generated-uuid-v7" });
+    mockDbService.createProcessingJob.mockResolvedValue({
+      id: 123,
+      createdAt: new Date(),
+    });
     mockDbService.getImage.mockResolvedValue(null);
     mockDbService.getImagesCount.mockResolvedValue(0);
     mockDbService.getImages.mockResolvedValue([]);
@@ -336,7 +340,7 @@ describe("ImageService", () => {
 
       expect(result.success).toBe(true);
       expect(result.jobId).toBeDefined();
-      expect(result.jobId).toMatch(/^job_/);
+      expect(result.jobId).toBe("123");
 
       // Should be cached
       const cached = await env.IMAGE_CACHE.get(`job:${result.jobId}`);
@@ -363,45 +367,45 @@ describe("ImageService", () => {
   describe("updateJobStatus", () => {
     it("should update job status and cache", async () => {
       const jobData = {
-        id: "job-1",
+        id: "1",
         imageId: "img-123",
         status: "pending",
         createdAt: new Date().toISOString(),
       };
-      await env.IMAGE_CACHE.put("job:job-1", JSON.stringify(jobData));
+      await env.IMAGE_CACHE.put("job:1", JSON.stringify(jobData));
 
-      const result = await service.updateJobStatus("job-1", "processing", 50);
+      const result = await service.updateJobStatus("1", "processing", 50);
 
       expect(result.success).toBe(true);
 
-      const cached = JSON.parse((await env.IMAGE_CACHE.get("job:job-1"))!);
+      const cached = JSON.parse((await env.IMAGE_CACHE.get("job:1"))!);
       expect(cached.status).toBe("processing");
       expect(cached.progress).toBe(50);
     });
 
     it("should set completedAt when status is completed", async () => {
-      const jobData = { id: "job-1", status: "processing" };
-      await env.IMAGE_CACHE.put("job:job-1", JSON.stringify(jobData));
+      const jobData = { id: "1", status: "processing" };
+      await env.IMAGE_CACHE.put("job:1", JSON.stringify(jobData));
 
-      await service.updateJobStatus("job-1", "completed", 100);
+      await service.updateJobStatus("1", "completed", 100);
 
-      const cached = JSON.parse((await env.IMAGE_CACHE.get("job:job-1"))!);
+      const cached = JSON.parse((await env.IMAGE_CACHE.get("job:1"))!);
       expect(cached.status).toBe("completed");
       expect(cached.completedAt).toBeDefined();
     });
 
     it("should store error message on failure status", async () => {
-      const jobData = { id: "job-1", status: "processing" };
-      await env.IMAGE_CACHE.put("job:job-1", JSON.stringify(jobData));
+      const jobData = { id: "1", status: "processing" };
+      await env.IMAGE_CACHE.put("job:1", JSON.stringify(jobData));
 
       await service.updateJobStatus(
-        "job-1",
+        "1",
         "failed",
         undefined,
         "Processing timed out",
       );
 
-      const cached = JSON.parse((await env.IMAGE_CACHE.get("job:job-1"))!);
+      const cached = JSON.parse((await env.IMAGE_CACHE.get("job:1"))!);
       expect(cached.status).toBe("failed");
       expect(cached.error).toBe("Processing timed out");
     });
@@ -412,14 +416,14 @@ describe("ImageService", () => {
   describe("getJobStatus", () => {
     it("should return cached job when available", async () => {
       const jobData = {
-        id: "job-1",
+        id: "1",
         imageId: "img-123",
         status: "completed",
         progress: 100,
       };
-      await env.IMAGE_CACHE.put("job:job-1", JSON.stringify(jobData));
+      await env.IMAGE_CACHE.put("job:1", JSON.stringify(jobData));
 
-      const result = await service.getJobStatus("job-1");
+      const result = await service.getJobStatus("1");
 
       expect(result.success).toBe(true);
       expect(result.job?.status).toBe("completed");
@@ -441,7 +445,7 @@ describe("ImageService", () => {
         outputData: JSON.stringify({ progress: 50 }),
       });
 
-      const result = await service.getJobStatus("job-2");
+      const result = await service.getJobStatus("2");
 
       expect(result.success).toBe(true);
       expect(result.job?.status).toBe("processing");
@@ -449,7 +453,7 @@ describe("ImageService", () => {
     });
 
     it("should return error for non-existent job", async () => {
-      const result = await service.getJobStatus("nonexistent");
+      const result = await service.getJobStatus("999");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Job not found");
