@@ -9,10 +9,20 @@ name: 🚀 Production Deploy
 # - Deployment branch restriction: main only
 
 on:
-  workflow_run:
-    workflows: ["🧪 MakanMakan 測試流水線"]
-    types: [completed]
-    branches: [main]
+  # Auto-deploy chain via workflow_run is temporarily DISABLED while:
+  #   - HB-2 (smoke endpoint /api/v1/health → /info) is unfixed
+  #   - HB-3 (tests/e2e/smoke/ suite missing) is unfixed
+  #   - GitHub `production` environment with required-reviewer gate is not yet
+  #     configured (`gh api repos/.../environments` returns total_count: 0)
+  # Without the smoke fix the deploy step succeeds but post-deploy verification
+  # would silently fail; without the environment gate there is no human approval
+  # before live traffic is affected. Re-enable by uncommenting the workflow_run
+  # block below once HB-2 + HB-3 land and the production environment exists with
+  # required reviewers + branch restriction `main` only.
+  # workflow_run:
+  #   workflows: ["🧪 MakanMakan 測試流水線"]
+  #   types: [completed]
+  #   branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -78,10 +88,13 @@ jobs:
 
       - name: 🧪 部署後煙霧測試
         run: |
-          # Health check — verify API is responding
+          # Public liveness probe — /info is the only unauthenticated 200 route
+          # (CLAUDE.md "Debug Tools"). /api/v1/health does NOT exist; the older
+          # /health route 302-redirects to /api/v1/monitoring/health which is
+          # auth-gated, so it cannot be used for an unauthenticated curl probe.
           curl --fail --retry 3 --retry-delay 5 \
-            "$PRODUCTION_URL/api/v1/health" \
-            -o /dev/null -w "API health: HTTP %{http_code} in %{time_total}s\n"
+            "$PRODUCTION_URL/info" \
+            -o /dev/null -w "API liveness (/info): HTTP %{http_code} in %{time_total}s\n"
 
           # Verify customer app is serving HTML
           curl --fail --retry 3 --retry-delay 5 \
