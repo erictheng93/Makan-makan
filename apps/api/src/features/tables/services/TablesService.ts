@@ -5,6 +5,7 @@
  */
 
 import { TableService } from "@makanmakan/database";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { Env } from "../../../types/env";
 import type {
   Table,
@@ -25,7 +26,7 @@ export class TablesService {
 
   constructor(env: Env) {
     this.env = env;
-    this.tableService = new TableService(env.DB as any, env);
+    this.tableService = new TableService(env.DB as unknown as D1Database, env);
   }
 
   /**
@@ -170,7 +171,7 @@ export class TablesService {
    */
   async regenerateQRCode(
     id: number,
-    customData?: any,
+    customData?: unknown,
   ): Promise<QRRegenerateResult> {
     try {
       const result = await this.tableService.regenerateQRCode(id, customData);

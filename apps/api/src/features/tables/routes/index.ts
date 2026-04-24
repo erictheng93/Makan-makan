@@ -5,6 +5,7 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
 import {
@@ -22,8 +23,21 @@ import {
 
 import { TablesService } from "../services/TablesService";
 import { tableSchemas } from "../schemas/validation";
+import type {
+  AvailableTablesInput,
+  BulkQRInput,
+  CreateTableInput,
+  IdParamInput,
+  QRCodeParamInput,
+  RegenerateQRInput,
+  TableFilterInput,
+  TableStatsInput,
+  UpdateTableInput,
+} from "../schemas/validation";
+import type { TableFilters } from "../types";
 
 const app = new Hono<{ Bindings: Env }>();
+type TablesContext = Context<{ Bindings: Env }>;
 
 /**
  * Get restaurant tables
@@ -40,9 +54,9 @@ app.get(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateQuery(tableSchemas.filters as any),
+  validateQuery(tableSchemas.filters),
   async (c) => {
-    const filters = c.get("validatedQuery");
+    const filters = c.get("validatedQuery") as TableFilterInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -56,10 +70,11 @@ app.get(
       throw badRequest("Restaurant ID is required");
     }
 
-    const result = await tablesService.getRestaurantTables(restaurantId, {
-      ...filters,
-      restaurantId: undefined, // Remove from filters since it's used as parameter
-    });
+    const { restaurantId: _restaurantId, ...tableFilters } = filters;
+    const result = await tablesService.getRestaurantTables(
+      restaurantId,
+      tableFilters as Omit<TableFilters, "restaurantId">,
+    );
 
     return c.json({
       success: true,
@@ -84,9 +99,9 @@ app.get(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateParams(tableSchemas.idParam as any),
+  validateParams(tableSchemas.idParam),
   async (c) => {
-    const { id } = c.get("validatedParams") as { id: number };
+    const { id } = c.get("validatedParams") as IdParamInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -115,8 +130,8 @@ app.get(
 );
 
 // Handler function for creating tables
-const createTableHandler = async (c: any) => {
-  const data = c.get("validatedBody") as any;
+const createTableHandler = async (c: TablesContext) => {
+  const data = c.get("validatedBody") as CreateTableInput;
   const currentUser = c.get("user");
   const tablesService = new TablesService(c.env);
 
@@ -164,11 +179,11 @@ app.put(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(tableSchemas.idParam as any),
+  validateParams(tableSchemas.idParam),
   validateBody(tableSchemas.update),
   async (c) => {
-    const { id } = c.get("validatedParams") as { id: number };
-    const data = c.get("validatedBody") as any;
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const data = c.get("validatedBody") as UpdateTableInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -207,9 +222,9 @@ app.delete(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(tableSchemas.idParam as any),
+  validateParams(tableSchemas.idParam),
   async (c) => {
-    const { id } = c.get("validatedParams") as { id: number };
+    const { id } = c.get("validatedParams") as IdParamInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -257,10 +272,10 @@ app.post(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateParams(tableSchemas.idParam as any),
+  validateParams(tableSchemas.idParam),
   validateBody(tableSchemas.occupy),
   async (c) => {
-    const { id } = c.get("validatedParams") as { id: number };
+    const { id } = c.get("validatedParams") as IdParamInput;
     const { orderId, occupiedBy, estimatedMinutes } = c.get("validatedBody");
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
@@ -318,9 +333,9 @@ app.post(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateParams(tableSchemas.idParam as any),
+  validateParams(tableSchemas.idParam),
   async (c) => {
-    const { id } = c.get("validatedParams") as { id: number };
+    const { id } = c.get("validatedParams") as IdParamInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -363,10 +378,10 @@ app.post(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVICE]),
-  validateParams(tableSchemas.idParam as any),
+  validateParams(tableSchemas.idParam),
   validateBody(tableSchemas.clean),
   async (c) => {
-    const { id } = c.get("validatedParams") as { id: number };
+    const { id } = c.get("validatedParams") as IdParamInput;
     const { notes } = c.get("validatedBody");
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
@@ -410,11 +425,11 @@ app.post(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(tableSchemas.idParam as any),
+  validateParams(tableSchemas.idParam),
   validateBody(tableSchemas.regenerateQR),
   async (c) => {
-    const { id } = c.get("validatedParams") as { id: number };
-    const { customData } = c.get("validatedBody");
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const { customData } = c.get("validatedBody") as RegenerateQRInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -466,7 +481,7 @@ app.post(
       restaurantId,
       tableIds,
       options = {},
-    } = c.get("validatedBody") as any;
+    } = c.get("validatedBody") as BulkQRInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -513,9 +528,11 @@ app.get(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateQuery(tableSchemas.availableTables as any),
+  validateQuery(tableSchemas.availableTables),
   async (c) => {
-    const { restaurantId, capacity } = c.get("validatedQuery") as any;
+    const { restaurantId, capacity } = c.get(
+      "validatedQuery",
+    ) as AvailableTablesInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -551,9 +568,9 @@ app.get(
   authMiddleware,
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateQuery(tableSchemas.stats as any),
+  validateQuery(tableSchemas.stats),
   async (c) => {
-    const { restaurantId } = c.get("validatedQuery") as any;
+    const { restaurantId } = c.get("validatedQuery") as TableStatsInput;
     const currentUser = c.get("user");
     const tablesService = new TablesService(c.env);
 
@@ -581,29 +598,25 @@ app.get(
  * Get table information by QR code
  * GET /tables/qr/:qrCode
  */
-app.get(
-  "/qr/:qrCode",
-  validateParams(tableSchemas.qrCodeParam as any),
-  async (c) => {
-    const { qrCode } = c.get("validatedParams") as any;
-    const tablesService = new TablesService(c.env);
+app.get("/qr/:qrCode", validateParams(tableSchemas.qrCodeParam), async (c) => {
+  const { qrCode } = c.get("validatedParams") as QRCodeParamInput;
+  const tablesService = new TablesService(c.env);
 
-    const table = await tablesService.getTableByQRCode(
-      decodeURIComponent(qrCode),
-    );
+  const table = await tablesService.getTableByQRCode(
+    decodeURIComponent(qrCode),
+  );
 
-    if (!table) {
-      throw notFound("Invalid QR code or table not found");
-    }
+  if (!table) {
+    throw notFound("Invalid QR code or table not found");
+  }
 
-    // Return only public information
-    const publicTableInfo = tablesService.getPublicTableInfo(table);
+  // Return only public information
+  const publicTableInfo = tablesService.getPublicTableInfo(table);
 
-    return c.json({
-      success: true,
-      data: publicTableInfo,
-    });
-  },
-);
+  return c.json({
+    success: true,
+    data: publicTableInfo,
+  });
+});
 
 export default app;
