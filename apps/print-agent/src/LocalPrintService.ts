@@ -4,11 +4,32 @@
  */
 
 import express from "express";
+import type { IncomingMessage } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import cors from "cors";
 import { PrintAgentService } from "./services/PrintAgentService";
 import { PrinterDriverFactory } from "@makanmakan/queue-core/print";
 import type { PrintRequest, PrinterEvent } from "@makanmakan/shared-types";
+
+type WebSocketClientInfo = {
+  origin: string;
+  secure: boolean;
+  req: IncomingMessage;
+};
+
+type WebSocketMessage =
+  | { type: "ping" }
+  | { type: "subscribe" }
+  | { type: string };
+
+const isWebSocketMessage = (value: unknown): value is WebSocketMessage => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    typeof (value as { type: unknown }).type === "string"
+  );
+};
 
 export interface LocalPrintServiceConfig {
   // 網路設定
@@ -476,7 +497,7 @@ export class LocalPrintService {
   private setupWebSocket(): void {
     this.wsServer = new WebSocketServer({
       port: this.config.wsPort,
-      verifyClient: (info: { origin: string; secure: boolean; req: any }) => {
+      verifyClient: (info: WebSocketClientInfo) => {
         // 驗證 WebSocket 連線
         return this.verifyWebSocketClient(info);
       },
@@ -523,17 +544,23 @@ export class LocalPrintService {
     });
   }
 
-  private verifyWebSocketClient(_info: {
-    origin: string;
-    secure: boolean;
-    req: any;
-  }): boolean {
+  private verifyWebSocketClient(_info: WebSocketClientInfo): boolean {
     // 實作 WebSocket 客戶端驗證邏輯
     // 可以檢查 API key、來源等
     return true;
   }
 
-  private handleWebSocketMessage(ws: WebSocket, message: any): void {
+  private handleWebSocketMessage(ws: WebSocket, message: unknown): void {
+    if (!isWebSocketMessage(message)) {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          error: "Invalid message format",
+        }),
+      );
+      return;
+    }
+
     switch (message.type) {
       case "ping":
         ws.send(
@@ -560,7 +587,7 @@ export class LocalPrintService {
 
   private setupEventHandlers(): void {
     // 監聽打印機事件
-    this.printAgentService.on("device_connected", (data: any) => {
+    this.printAgentService.on("device_connected", (data: unknown) => {
       this.broadcastEvent({
         type: "device_connected",
         timestamp: new Date(),
@@ -568,7 +595,7 @@ export class LocalPrintService {
       });
     });
 
-    this.printAgentService.on("device_disconnected", (data: any) => {
+    this.printAgentService.on("device_disconnected", (data: unknown) => {
       this.broadcastEvent({
         type: "device_disconnected",
         timestamp: new Date(),
@@ -576,7 +603,7 @@ export class LocalPrintService {
       });
     });
 
-    this.printAgentService.on("job_completed", (data: any) => {
+    this.printAgentService.on("job_completed", (data: unknown) => {
       this.broadcastEvent({
         type: "job_completed",
         timestamp: new Date(),
@@ -584,7 +611,7 @@ export class LocalPrintService {
       });
     });
 
-    this.printAgentService.on("job_failed", (data: any) => {
+    this.printAgentService.on("job_failed", (data: unknown) => {
       this.broadcastEvent({
         type: "job_failed",
         timestamp: new Date(),
@@ -722,7 +749,7 @@ export class LocalPrintService {
   }
 
   private errorHandler(
-    error: any,
+    error: unknown,
     req: express.Request,
     res: express.Response,
     _next: express.NextFunction,

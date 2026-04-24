@@ -16,6 +16,8 @@ import type {
 } from "@makanmakan/shared-types";
 import { LocalPrintServiceConfig } from "../LocalPrintService";
 
+type PrintAgentEventListener = (data?: unknown) => void;
+
 /** Sanitize user-provided values for safe logging (strip newlines and control chars) */
 function sanitizeForLog(value: string): string {
   // eslint-disable-next-line no-control-regex
@@ -277,34 +279,34 @@ export class PrintAgentService {
 
   private setupEventHandlers(): void {
     // Printer service events
-    this.printerService.on("device_registered", (data: any) => {
+    this.printerService.on("device_registered", (data: unknown) => {
       this.emit("device_connected", data);
     });
 
-    this.printerService.on("device_unregistered", (data: any) => {
+    this.printerService.on("device_unregistered", (data: unknown) => {
       this.emit("device_disconnected", data);
     });
 
-    this.printerService.on("job_completed", (data: any) => {
+    this.printerService.on("job_completed", (data: unknown) => {
       this.emit("job_completed", data);
     });
 
-    this.printerService.on("job_failed", (data: any) => {
+    this.printerService.on("job_failed", (data: unknown) => {
       this.emit("job_failed", data);
     });
   }
 
   // Event emitter methods (simple implementation)
-  private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
+  private listeners: Map<string, PrintAgentEventListener[]> = new Map();
 
-  on(event: string, listener: (...args: any[]) => void): void {
+  on(event: string, listener: PrintAgentEventListener): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
     this.listeners.get(event)!.push(listener);
   }
 
-  emit(event: string, data?: any): void {
+  emit(event: string, data?: unknown): void {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       eventListeners.forEach((listener) => {
