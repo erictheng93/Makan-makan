@@ -9,8 +9,8 @@ export interface ErrorReportItem {
   severity: "low" | "medium" | "high" | "critical";
   code?: string | number;
   message: string;
-  originalError?: any;
-  context?: Record<string, any>;
+  originalError?: unknown;
+  context?: Record<string, unknown>;
   timestamp: string;
   userAgent?: string;
   url?: string;
@@ -102,6 +102,11 @@ export interface CriticalErrorNotification {
   }>;
 }
 
+export interface SystemNotificationUser {
+  id: number | string;
+  restaurantId?: number | string | null;
+}
+
 // Service interfaces
 export interface ISystemService {
   createErrorReport(
@@ -115,7 +120,7 @@ export interface ISystemService {
   cleanupOldErrorReports(daysOld?: number): Promise<CleanupResponse>;
   sendCriticalErrorNotification(
     errors: ErrorReportItem[],
-    user: any,
+    user: SystemNotificationUser,
     slackWebhookUrl?: string,
   ): Promise<void>;
 }

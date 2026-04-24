@@ -14,7 +14,7 @@ import type {
 // 優惠券驗證結果接口
 export interface CouponValidationResult {
   valid: boolean;
-  coupon?: any;
+  coupon?: unknown;
   error?: string;
   discountAmount?: number;
   finalAmount?: number;
@@ -83,7 +83,7 @@ export interface CouponDistributionData {
   couponId: number;
   distributionType: DistributionType;
   targetType?: TargetType;
-  targetCriteria?: any;
+  targetCriteria?: unknown;
   totalDistributed?: number;
   expiresAt?: string;
   notes?: string;
@@ -95,14 +95,14 @@ export interface CouponTemplateData {
   restaurantId?: string;
   name: string;
   description?: string;
-  templateData: any;
+  templateData: unknown;
   isSystemTemplate?: boolean;
   createdBy?: number;
 }
 
 // 分頁響應
 export interface PaginatedCouponsResponse {
-  coupons: any[];
+  coupons: unknown[];
   total: number;
   page: number;
   limit: number;
@@ -110,7 +110,7 @@ export interface PaginatedCouponsResponse {
 }
 
 // API 響應基礎接口
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

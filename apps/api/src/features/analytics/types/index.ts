@@ -43,8 +43,8 @@ export interface DashboardResponse {
   success: boolean;
   data: {
     summary: DashboardSummary;
-    recentOrders: any[];
-    topSellingItems: any[];
+    recentOrders: unknown[];
+    topSellingItems: unknown[];
     tableStatus: {
       occupied: number;
       available: number;

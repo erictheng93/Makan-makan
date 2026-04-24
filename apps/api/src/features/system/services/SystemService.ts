@@ -13,6 +13,7 @@ import { KVCacheService, type CacheService } from "../../../core/cache";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
 import type { Env } from "../../../shared/types";
+import type { KVNamespace } from "@cloudflare/workers-types";
 import type {
   ErrorReportRequest,
   ErrorReportResponse,
@@ -23,6 +24,7 @@ import type {
   CriticalErrorNotification,
   ISystemService,
   SystemEvent,
+  SystemNotificationUser,
 } from "../types";
 
 export class SystemService implements ISystemService {
@@ -33,7 +35,9 @@ export class SystemService implements ISystemService {
 
   constructor(db: Env["DB"], env: Env, kv?: Env["CACHE_KV"]) {
     this.errorReportingService = new ErrorReportingService(db, env);
-    this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any);
+    this.cache = kv
+      ? new KVCacheService(kv)
+      : new KVCacheService({} as KVNamespace);
     this.logger = new ConsoleLogger("SystemService");
     this.env = env;
   }
@@ -347,7 +351,7 @@ export class SystemService implements ISystemService {
    */
   async sendCriticalErrorNotification(
     errors: ErrorReportItem[],
-    user: any,
+    user: SystemNotificationUser,
     slackWebhookUrl?: string,
   ): Promise<void> {
     try {
