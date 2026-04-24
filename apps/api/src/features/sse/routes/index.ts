@@ -14,8 +14,18 @@ import type { Env } from "../../../types/env";
 
 const app = new Hono<{ Bindings: Env }>();
 
+type SseJwtPayload = {
+  id: number;
+  username: string;
+  role: number;
+  restaurantId?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+};
+
 // Create controller instance for each request
-function createController(c: any) {
+function createController(c: Context<{ Bindings: Env }>) {
   return new SSEController(c.env);
 }
 
@@ -54,7 +64,11 @@ const sseAuthMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) => {
     }
   }
 
-  const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+  const decoded = (await verify(
+    token,
+    c.env.JWT_SECRET,
+    "HS256",
+  )) as SseJwtPayload;
 
   const user: AuthUser = {
     id: decoded.id,

@@ -57,7 +57,7 @@ export class SSEController {
         userId: user.id,
         role: user.role,
         lastHeartbeat: Date.now(),
-        controller: stream as any, // Type compatibility
+        controller: stream as unknown as ReadableStreamDefaultController,
       };
 
       // Register connection

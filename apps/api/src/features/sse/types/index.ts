@@ -15,13 +15,13 @@ export interface SSEConnection {
 export interface SSEEvent {
   id: string;
   event: string;
-  data: any;
+  data: unknown;
   retry?: number;
 }
 
 export interface BroadcastEvent {
   type: string;
-  data: any;
+  data: unknown;
   restaurantId?: string;
   targetRoles?: number[];
 }
