@@ -165,7 +165,8 @@ app.get("/", requireRole([0, 1, 4]), async (c) => {
     confirmationCode: c.req.query("code"),
     page: parseInt(c.req.query("page") || "1"),
     limit: parseInt(c.req.query("limit") || "20"),
-    sortBy: (c.req.query("sortBy") as any) || "created_at",
+    sortBy: (c.req.query("sortBy") ||
+      "created_at") as ReservationFilters["sortBy"],
     sortOrder: (c.req.query("sortOrder") as "asc" | "desc") || "desc",
   };
 
