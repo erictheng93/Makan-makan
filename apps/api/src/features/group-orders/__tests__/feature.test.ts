@@ -116,6 +116,33 @@ describe("Group Orders Feature", () => {
     groupOrderService = new GroupOrdersService(mockD1, mockKV, "info");
   });
 
+  describe("Validation", () => {
+    it("should sanitize executable markup from free-text fields", () => {
+      const payload = `<scri<script>pt>alert(1)</script><img src=x ononerror=alert(1)>`;
+      const createResult = groupOrderSchemas.createGroupOrder.safeParse({
+        restaurantId: "1",
+        hostName: "Host",
+        notes: payload,
+      });
+      const addItemResult = groupOrderSchemas.addCartItem.safeParse({
+        memberId: "123e4567-e89b-12d3-a456-426614174000",
+        menuItemId: 1,
+        quantity: 1,
+        specialInstructions: payload,
+      });
+
+      expect(createResult.success).toBe(true);
+      expect(addItemResult.success).toBe(true);
+      if (!createResult.success || !addItemResult.success) return;
+      expect(createResult.data.notes).not.toContain("<");
+      expect(createResult.data.notes).not.toContain(">");
+      expect(createResult.data.notes).not.toContain("=");
+      expect(addItemResult.data.specialInstructions).not.toContain("<");
+      expect(addItemResult.data.specialInstructions).not.toContain(">");
+      expect(addItemResult.data.specialInstructions).not.toContain("=");
+    });
+  });
+
   describe("Group Order Creation", () => {
     it("should create a group order successfully", async () => {
       // Mock: insert succeeds, select returns host member

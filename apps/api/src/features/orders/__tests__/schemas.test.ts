@@ -213,7 +213,7 @@ describe("Orders Validation Schemas", () => {
     });
 
     it("should sanitize executable markup from notes", () => {
-      const payload = `<script>alert(1)</script><img src=x onerror=alert(1)>`;
+      const payload = `<scri<script>pt>alert(1)</script><img src=x ononerror=alert(1)>`;
       const result = updateOrderStatusSchema.safeParse({
         status: "confirmed",
         notes: payload,
@@ -221,6 +221,9 @@ describe("Orders Validation Schemas", () => {
 
       expect(result.success).toBe(true);
       if (!result.success) return;
+      expect(result.data.notes).not.toContain("<");
+      expect(result.data.notes).not.toContain(">");
+      expect(result.data.notes).not.toContain("=");
       expect(result.data.notes).not.toContain("<script");
       expect(result.data.notes).not.toContain("onerror=");
       expect(result.data.notes).not.toBe(payload);

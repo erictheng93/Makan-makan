@@ -6,21 +6,10 @@
 import { z } from "zod";
 
 // Reusable sanitizing schema for free-text user input (C10 release gate).
-// Strips HTML tags, inline event handlers, and dangerous URL schemes
-// (javascript:, data:, vbscript:). Applied to a fixed point so nested
-// patterns like "<scri<script>pt>" or "ononclick=" can't reconstitute
-// themselves after a single pass.
+// Removes HTML metacharacters instead of trying to strip whole tags/attributes,
+// which can be bypassed by overlapping fragments.
 const sanitizeFreeText = (input: string): string => {
-  let prev: string;
-  let curr = input;
-  do {
-    prev = curr;
-    curr = curr
-      .replace(/<\/?[^>]+>/g, "")
-      .replace(/on\w+\s*=/gi, "")
-      .replace(/(?:javascript|data|vbscript):/gi, "");
-  } while (curr !== prev);
-  return curr;
+  return input.replace(/[<>"`=]/g, "");
 };
 
 const notesSchema = (maxLength: number) =>
