@@ -143,6 +143,26 @@ jobs:
             http://localhost:3000 \
             --timeout 90000
 
+      # Warm-up the menu_items query path against the seeded test restaurant.
+      # Audit run #24861758340 saw a transient `createGuestOrder` 409
+      # MENU_ITEM_UNAVAILABLE on first attempt that succeeded on retry —
+      # symptomatic of a cold prepared-statement / D1 query compile on the
+      # first menu_items read. Hitting the public menu endpoint once before
+      # tests start forces that compilation and validates seeded availability,
+      # so the Tier 2 P1 gates don't waste their first attempt as a warm-up.
+      # If the menu endpoint is missing or returns an empty list, fail loud
+      # here rather than letting a downstream gate misattribute the failure.
+      - name: 🔥 Warm-up menu_items query path
+        run: |
+          set -e
+          BODY=$(curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            "http://localhost:8787/api/v1/menu/019469a0-0001-7000-8000-000000000001")
+          echo "$BODY" | head -c 500
+          echo ""
+          # Sanity check: response must contain at least one menu item id.
+          # node -e is more portable than jq across Ubuntu runner images.
+          node -e "const r=JSON.parse(process.argv[1]); if(!r.success) {console.error('warm-up: success=false'); process.exit(1)}; const items = (r.data?.items ?? r.data?.menu?.items ?? r.data?.categories?.flatMap(c=>c.items ?? []) ?? []); if(!items.length) {console.error('warm-up: zero menu items returned — seed not visible'); process.exit(1)}; console.log('warm-up ok: '+items.length+' items')" "$BODY"
+
       - name: 📦 安裝 Playwright Chromium
         run: npx playwright install chromium --with-deps
 
@@ -172,10 +192,15 @@ jobs:
       # project's `fullyParallel: false`, which only serialises within
       # a single spec file.
       - name: 🧪 執行 Integration Tests (P0 + P1 gates)
+        # p1-new-missing-gates.spec.ts contains a `test.describe.fixme(...)`
+        # block (18 unimplemented Batch-2 gates) plus a non-fixme block with
+        # the promoted E3 gate. Playwright auto-skips the fixme tests, so
+        # adding this file only adds the promoted gate(s) to the run.
         run: |
           npx playwright test \
             tests/e2e/integration/p0-release-gates.spec.ts \
             tests/e2e/integration/p1-current-quarter-gates.spec.ts \
+            tests/e2e/integration/p1-new-missing-gates.spec.ts \
             --project=integration \
             --workers=1
         env:
