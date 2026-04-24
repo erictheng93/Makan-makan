@@ -227,6 +227,17 @@ export const imageSchemas = {
   }),
 };
 
+export type ImageUploadQuery = z.infer<typeof imageSchemas.uploadParams>;
+export type ImageListQuery = z.infer<typeof imageSchemas.listQuery>;
+export type ImageIdParams = z.infer<typeof imageSchemas.imageIdParam>;
+export type ImageVariantQuery = z.infer<typeof imageSchemas.variantParams>;
+export type ImageUpdateBody = z.infer<typeof imageSchemas.updateBody>;
+export type ImageProcessBody = z.infer<typeof imageSchemas.processParams>;
+export type ImageBulkOperationBody = z.infer<
+  typeof imageSchemas.bulkOperationBody
+>;
+export type ImageAnalyticsQuery = z.infer<typeof imageSchemas.analyticsQuery>;
+
 // 文件類型驗證中間件
 export const validateFileType = (allowedMimeTypes: string[]) => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
@@ -412,9 +423,9 @@ export const securityScan = async (
 // 擴展 Context 類型以包含驗證後的資料
 declare module "hono" {
   interface ContextVariableMap {
-    validatedBody: any;
-    validatedQuery: any;
-    validatedParams: any;
+    validatedBody: unknown;
+    validatedQuery: unknown;
+    validatedParams: unknown;
     formData: FormData;
     file: File;
   }

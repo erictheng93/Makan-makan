@@ -3,7 +3,11 @@ import { z } from "zod";
 import { ImageService } from "../services/image-service";
 import { ImageService as DatabaseImageService } from "@makanmakan/database";
 import { authMiddleware, requireRole } from "../middleware/auth";
-import { validateQuery, imageSchemas } from "../middleware/validation";
+import {
+  validateQuery,
+  imageSchemas,
+  type ImageAnalyticsQuery,
+} from "../middleware/validation";
 import type { Env } from "../types/env";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -20,12 +24,21 @@ app.get(
   async (c) => {
     try {
       const user = c.get("user");
-      const query = c.get("validatedQuery");
+      const query = c.get("validatedQuery") as ImageAnalyticsQuery;
       const imageService = new ImageService(c.env);
 
       // Apply access control
       const options = { ...query };
       if (user.role !== 0) {
+        if (user.restaurantId === undefined) {
+          return c.json(
+            {
+              success: false,
+              error: "Restaurant access required",
+            },
+            403,
+          );
+        }
         options.restaurantId = user.restaurantId;
       }
 
@@ -70,13 +83,25 @@ app.get(
   async (c) => {
     try {
       const user = c.get("user");
-      const query = c.get("validatedQuery");
+      const query = c.get("validatedQuery") as ImageAnalyticsQuery;
       const dbImageService = new DatabaseImageService(c.env.DB, c.env);
 
       // Apply access control
-      const options = { ...query };
+      const options = {
+        ...query,
+        restaurantId: query.restaurantId?.toString(),
+      };
       if (user.role !== 0) {
-        options.restaurantId = user.restaurantId;
+        if (user.restaurantId === undefined) {
+          return c.json(
+            {
+              success: false,
+              error: "Restaurant access required",
+            },
+            403,
+          );
+        }
+        options.restaurantId = user.restaurantId.toString();
       }
 
       const data = await dbImageService.getStorageAnalytics(options);
@@ -110,13 +135,25 @@ app.get(
   async (c) => {
     try {
       const user = c.get("user");
-      const query = c.get("validatedQuery");
+      const query = c.get("validatedQuery") as ImageAnalyticsQuery;
       const dbImageService = new DatabaseImageService(c.env.DB, c.env);
 
       // Apply access control
-      const options = { ...query };
+      const options = {
+        ...query,
+        restaurantId: query.restaurantId?.toString(),
+      };
       if (user.role !== 0) {
-        options.restaurantId = user.restaurantId;
+        if (user.restaurantId === undefined) {
+          return c.json(
+            {
+              success: false,
+              error: "Restaurant access required",
+            },
+            403,
+          );
+        }
+        options.restaurantId = user.restaurantId.toString();
       }
 
       const data = await dbImageService.getUsageAnalytics(options);
@@ -150,13 +187,25 @@ app.get(
   async (c) => {
     try {
       const user = c.get("user");
-      const query = c.get("validatedQuery");
+      const query = c.get("validatedQuery") as ImageAnalyticsQuery;
       const dbImageService = new DatabaseImageService(c.env.DB, c.env);
 
       // Apply access control
-      const options = { ...query };
+      const options = {
+        ...query,
+        restaurantId: query.restaurantId?.toString(),
+      };
       if (user.role !== 0) {
-        options.restaurantId = user.restaurantId;
+        if (user.restaurantId === undefined) {
+          return c.json(
+            {
+              success: false,
+              error: "Restaurant access required",
+            },
+            403,
+          );
+        }
+        options.restaurantId = user.restaurantId.toString();
       }
 
       const data = await dbImageService.getPerformanceAnalytics(options);
@@ -196,7 +245,12 @@ app.get(
   ),
   async (c) => {
     try {
-      const { type, format } = c.get("validatedQuery");
+      const { type, format } = c.get(
+        "validatedQuery",
+      ) as ImageAnalyticsQuery & {
+        type: "summary" | "storage" | "usage" | "performance";
+        format: "json" | "csv";
+      };
 
       // For now, return a JSON response with export information
       // In a real implementation, you would generate the actual file

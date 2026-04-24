@@ -18,6 +18,13 @@ import {
   validateFileType,
   securityScan,
   imageSchemas,
+  type ImageBulkOperationBody,
+  type ImageIdParams,
+  type ImageListQuery,
+  type ImageProcessBody,
+  type ImageUpdateBody,
+  type ImageUploadQuery,
+  type ImageVariantQuery,
 } from "../middleware/validation";
 import type { Env, ImageMetadata, ImageTransformation } from "../types/env";
 
@@ -39,7 +46,7 @@ app.post(
     try {
       const user = c.get("user");
       const file = c.get("file") as File;
-      const query = c.get("validatedQuery");
+      const query = c.get("validatedQuery") as ImageUploadQuery;
 
       if (!file) {
         return c.json(
@@ -170,7 +177,7 @@ app.get(
   checkImageAccess,
   async (c) => {
     try {
-      const { imageId } = c.get("validatedParams");
+      const { imageId } = c.get("validatedParams") as ImageIdParams;
       const imageService = new ImageService(c.env);
 
       const result = await imageService.getImageMetadata(imageId);
@@ -220,8 +227,8 @@ app.put(
   checkImageAccess,
   async (c) => {
     try {
-      const { imageId } = c.get("validatedParams");
-      const updates = c.get("validatedBody");
+      const { imageId } = c.get("validatedParams") as ImageIdParams;
+      const updates = c.get("validatedBody") as ImageUpdateBody;
       const imageService = new ImageService(c.env);
 
       const result = await imageService.updateImageMetadata(imageId, updates);
@@ -265,7 +272,7 @@ app.delete(
   checkImageAccess,
   async (c) => {
     try {
-      const { imageId } = c.get("validatedParams");
+      const { imageId } = c.get("validatedParams") as ImageIdParams;
       const cloudflareImages = new CloudflareImagesAPI(c.env);
       const imageService = new ImageService(c.env);
 
@@ -318,20 +325,20 @@ app.get(
   async (c) => {
     try {
       const user = c.get("user");
-      const query = c.get("validatedQuery");
+      const query = c.get("validatedQuery") as ImageListQuery;
       const imageService = new ImageService(c.env);
 
       // Apply access control
-      const options = { ...query };
+      const options: Parameters<ImageService["listImages"]>[0] = {
+        ...query,
+        tags: query.tags
+          ? query.tags.split(",").map((tag: string) => tag.trim())
+          : undefined,
+      };
 
       // Non-admins can only see their restaurant's images
       if (user.role !== 0) {
         options.restaurantId = user.restaurantId;
-      }
-
-      // Parse tags if provided
-      if (query.tags) {
-        options.tags = query.tags.split(",").map((tag: string) => tag.trim());
       }
 
       const result = await imageService.listImages(options);
@@ -385,9 +392,10 @@ app.get(
   checkImageAccess,
   async (c) => {
     try {
-      const { imageId } = c.get("validatedParams");
-      const { variant, width, height, fit, format, quality } =
-        c.get("validatedQuery");
+      const { imageId } = c.get("validatedParams") as ImageIdParams;
+      const { variant, width, height, fit, format, quality } = c.get(
+        "validatedQuery",
+      ) as ImageVariantQuery;
       const cloudflareImages = new CloudflareImagesAPI(c.env);
       const imageService = new ImageService(c.env);
 
@@ -481,13 +489,13 @@ app.post(
   checkImageAccess,
   async (c) => {
     try {
-      const { imageId } = c.get("validatedParams");
+      const { imageId } = c.get("validatedParams") as ImageIdParams;
       const {
         transformations = [],
         variants = [],
         format,
         quality,
-      } = c.get("validatedBody");
+      } = c.get("validatedBody") as ImageProcessBody;
       const _cloudflareImages = new CloudflareImagesAPI(c.env);
       const imageService = new ImageService(c.env);
 
@@ -557,7 +565,7 @@ app.get(
   validateParams(z.object({ jobId: z.string() })),
   async (c) => {
     try {
-      const { jobId } = c.get("validatedParams");
+      const { jobId } = c.get("validatedParams") as { jobId: string };
       const imageService = new ImageService(c.env);
 
       const result = await imageService.getJobStatus(jobId);
@@ -601,7 +609,9 @@ app.post(
   async (c) => {
     try {
       const user = c.get("user");
-      const { imageIds, operation, data } = c.get("validatedBody");
+      const { imageIds, operation, data } = c.get(
+        "validatedBody",
+      ) as ImageBulkOperationBody;
       const imageService = new ImageService(c.env);
       const cloudflareImages = new CloudflareImagesAPI(c.env);
 
