@@ -533,7 +533,15 @@ export const validateOrderTiming = (
   return scheduled >= minTime;
 };
 
-export const validateOrderAmount = (items: any[], minAmount: number = 0) => {
+type PricedOrderItem = {
+  price: number;
+  quantity: number;
+};
+
+export const validateOrderAmount = (
+  items: PricedOrderItem[],
+  minAmount: number = 0,
+) => {
   const total = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,

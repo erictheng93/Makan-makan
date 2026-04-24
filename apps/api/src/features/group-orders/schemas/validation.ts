@@ -269,8 +269,19 @@ export const statisticsQuerySchema = z
   );
 
 // Complex validation helpers
+type GroupOrderPermissionMap = Partial<
+  Record<
+    | "canInviteMembers"
+    | "canModifyOthersCart"
+    | "canFinalizeOrder"
+    | "canSplitBill"
+    | "canProcessPayment",
+    boolean
+  >
+>;
+
 export const validateGroupOrderPermissions = (
-  permissions: any,
+  permissions: GroupOrderPermissionMap | undefined,
   userRole: number,
 ) => {
   // Owner (1) and Admin (0) have all permissions
