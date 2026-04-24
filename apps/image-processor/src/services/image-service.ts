@@ -159,7 +159,7 @@ export class ImageService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const updateFields: string[] = [];
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (updates.altText !== undefined) {
         updateFields.push("alt_text = ?");
@@ -272,7 +272,7 @@ export class ImageService {
       } = options;
 
       const whereConditions: string[] = [];
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (restaurantId !== undefined) {
         whereConditions.push("restaurant_id = ?");
@@ -530,7 +530,7 @@ export class ImageService {
       const { restaurantId, dateFrom, dateTo } = options;
 
       const whereConditions: string[] = [];
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (restaurantId !== undefined) {
         whereConditions.push("restaurant_id = ?");

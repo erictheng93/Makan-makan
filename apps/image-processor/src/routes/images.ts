@@ -19,7 +19,7 @@ import {
   securityScan,
   imageSchemas,
 } from "../middleware/validation";
-import type { Env, ImageMetadata } from "../types/env";
+import type { Env, ImageMetadata, ImageTransformation } from "../types/env";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -746,7 +746,7 @@ async function processImageAsync(
   env: Env,
   jobId: string,
   imageId: string,
-  transformations: any[],
+  transformations: ImageTransformation[],
   _variants: string[],
   _format?: string,
   _quality?: number,

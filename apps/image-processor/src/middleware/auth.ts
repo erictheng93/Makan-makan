@@ -10,6 +10,40 @@ export interface AuthUser {
   restaurantId?: number;
 }
 
+type JwtAuthPayload = {
+  id: number;
+  username: string;
+  role: number;
+  restaurantId?: number;
+  exp?: number;
+  iat?: number;
+  nbf?: number;
+};
+
+const toJwtAuthPayload = (
+  payload: Record<string, unknown>,
+): JwtAuthPayload | null => {
+  if (
+    typeof payload.id !== "number" ||
+    typeof payload.username !== "string" ||
+    typeof payload.role !== "number" ||
+    (payload.restaurantId !== undefined &&
+      typeof payload.restaurantId !== "number")
+  ) {
+    return null;
+  }
+
+  return {
+    id: payload.id,
+    username: payload.username,
+    role: payload.role,
+    restaurantId: payload.restaurantId,
+    exp: typeof payload.exp === "number" ? payload.exp : undefined,
+    iat: typeof payload.iat === "number" ? payload.iat : undefined,
+    nbf: typeof payload.nbf === "number" ? payload.nbf : undefined,
+  };
+};
+
 declare module "hono" {
   interface ContextVariableMap {
     user: AuthUser;
@@ -58,7 +92,7 @@ export const authMiddleware = async (
       }
     }
 
-    const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+    const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
 
     if (!decoded || typeof decoded !== "object") {
       return c.json(
@@ -69,39 +103,47 @@ export const authMiddleware = async (
         401,
       );
     }
+    const decodedPayload = decoded as Record<string, unknown>;
+    const exp =
+      typeof decodedPayload.exp === "number" ? decodedPayload.exp : undefined;
+    const iat =
+      typeof decodedPayload.iat === "number" ? decodedPayload.iat : undefined;
+    const nbf =
+      typeof decodedPayload.nbf === "number" ? decodedPayload.nbf : undefined;
 
     // Enhanced JWT validation checks
     const now = Math.floor(Date.now() / 1000);
 
     // Check token expiration
-    if (!decoded.exp || decoded.exp <= now) {
+    if (!exp || exp <= now) {
       return c.json({ success: false, error: "Token has expired" }, 401);
     }
 
     // Check token issued at time (prevent future tokens)
-    if (decoded.iat && decoded.iat > now + 60) {
+    if (iat && iat > now + 60) {
       // Allow 60 second clock skew
       return c.json({ success: false, error: "Token issued in future" }, 401);
     }
 
     // Check not before claim
-    if (decoded.nbf && decoded.nbf > now + 60) {
+    if (nbf && nbf > now + 60) {
       // Allow 60 second clock skew
       return c.json({ success: false, error: "Token not yet valid" }, 401);
     }
 
     // Validate required claims
-    if (!decoded.id || !decoded.username || typeof decoded.role !== "number") {
+    const authPayload = toJwtAuthPayload(decodedPayload);
+    if (!authPayload) {
       return c.json({ success: false, error: "Invalid token claims" }, 401);
     }
 
     // Validate role is within expected range (0-4)
-    if (decoded.role < 0 || decoded.role > 4) {
+    if (authPayload.role < 0 || authPayload.role > 4) {
       return c.json({ success: false, error: "Invalid role in token" }, 401);
     }
 
     // Check token age (reject tokens older than 24 hours without refresh)
-    const tokenAge = now - (decoded.iat || 0);
+    const tokenAge = now - (iat || 0);
     const maxTokenAge = 24 * 60 * 60; // 24 hours
     if (tokenAge > maxTokenAge) {
       return c.json(
@@ -111,7 +153,7 @@ export const authMiddleware = async (
     }
 
     // Check if token is about to expire (recommend refresh within 1 hour)
-    const timeUntilExpiry = decoded.exp - now;
+    const timeUntilExpiry = exp - now;
     if (timeUntilExpiry < 3600) {
       // 1 hour
       c.header("X-Token-Refresh-Recommended", "true");
@@ -120,10 +162,10 @@ export const authMiddleware = async (
 
     // 設置用戶資訊到 context
     c.set("user", {
-      id: decoded.id,
-      username: decoded.username,
-      role: decoded.role,
-      restaurantId: decoded.restaurantId,
+      id: authPayload.id,
+      username: authPayload.username,
+      role: authPayload.role,
+      restaurantId: authPayload.restaurantId,
     });
 
     await next();
@@ -177,14 +219,21 @@ export const optionalAuth = async (
         }
       }
 
-      const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+      const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
 
       if (decoded && typeof decoded === "object") {
+        const authPayload = toJwtAuthPayload(
+          decoded as Record<string, unknown>,
+        );
+        if (!authPayload) {
+          await next();
+          return;
+        }
         c.set("user", {
-          id: decoded.id,
-          username: decoded.username,
-          role: decoded.role,
-          restaurantId: decoded.restaurantId,
+          id: authPayload.id,
+          username: authPayload.username,
+          role: authPayload.role,
+          restaurantId: authPayload.restaurantId,
         });
       }
     }

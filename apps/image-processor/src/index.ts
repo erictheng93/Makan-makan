@@ -15,6 +15,26 @@ import {
   imageProcessingJobs,
 } from "@makanmakan/database";
 
+type SlackTextObject = {
+  type: "mrkdwn";
+  text: string;
+};
+
+type SlackSectionBlock =
+  | {
+      type: "section";
+      text: SlackTextObject;
+    }
+  | {
+      type: "section";
+      fields: SlackTextObject[];
+    };
+
+type SlackMessage = {
+  text: string;
+  blocks: SlackSectionBlock[];
+};
+
 // 創建主應用
 const app = new Hono<{ Bindings: Env }>();
 
@@ -454,10 +474,10 @@ async function sendDailyStats(env: Env) {
 async function sendErrorNotification(
   webhookUrl: string,
   error: Error,
-  _context: any,
+  _context: unknown,
 ) {
   try {
-    const message = {
+    const message: SlackMessage = {
       text: "🚨 MakanMakan Image Service Error",
       blocks: [
         {
@@ -487,7 +507,7 @@ async function sendErrorNotification(
 }
 
 // 通用 Slack 消息發送函數
-async function sendSlackMessage(webhookUrl: string, message: any) {
+async function sendSlackMessage(webhookUrl: string, message: SlackMessage) {
   try {
     await fetch(webhookUrl, {
       method: "POST",

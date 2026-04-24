@@ -35,6 +35,19 @@ export interface CloudflareImagesConfig {
   deliveryUrl: string;
 }
 
+type CloudflareImageResult = {
+  id: string;
+  filename: string;
+  uploaded: string;
+  requireSignedURLs: boolean;
+  variants: string[];
+  meta?: Record<string, string>;
+};
+
+type CloudflareImagesResponse = {
+  result: CloudflareImageResult;
+};
+
 export class ImageCompressionService {
   private config: CloudflareImagesConfig;
 
@@ -137,7 +150,7 @@ export class ImageCompressionService {
       throw new Error(`Failed to upload image: ${response.statusText}`);
     }
 
-    const result = (await response.json()) as any;
+    const result = (await response.json()) as CloudflareImagesResponse;
     return result.result;
   }
 
@@ -326,7 +339,7 @@ export class ImageCompressionService {
       throw new Error(`Failed to fetch image metadata: ${response.statusText}`);
     }
 
-    const result = (await response.json()) as any;
+    const result = (await response.json()) as CloudflareImagesResponse;
     return result.result;
   }
 
