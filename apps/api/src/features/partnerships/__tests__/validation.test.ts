@@ -552,7 +552,7 @@ describe("Usage Log Validation Schemas", () => {
       partnershipId: "550e8400-e29b-41d4-a716-446655440000",
       planId: "550e8400-e29b-41d4-a716-446655440001",
       memberId: "550e8400-e29b-41d4-a716-446655440002",
-      orderId: "550e8400-e29b-41d4-a716-446655440003",
+      orderId: 12345,
       restaurantId: "rest-001",
       discountType: "percentage",
       discountValue: 15,
@@ -572,7 +572,7 @@ describe("Usage Log Validation Schemas", () => {
         orderItems: [{ id: "item-1", quantity: 2 }],
         channel: "dine_in" as const,
         verificationMethod: "qr_code",
-        verifiedByUserId: "550e8400-e29b-41d4-a716-446655440004",
+        verifiedByUserId: 42,
         metadata: { custom: "data" },
       };
       const result = logUsageSchema.safeParse(withOptional);

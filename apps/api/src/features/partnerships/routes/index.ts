@@ -560,14 +560,10 @@ routes.post(
     const user = c.get("user");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-    // Schema drift: logUsageSchema declares orderId as a UUID string, but the
-    // partnership_usage_logs.order_id column references orders.id which is an
-    // integer auto-increment PK. Removing the cast here would require fixing
-    // the Zod schema (and any downstream consumers). Tracked separately.
     const usageLog = await service.logUsage({
       ...data,
       verifiedByUserId: user.id,
-    } as unknown as Parameters<typeof service.logUsage>[0]);
+    });
 
     return c.json({
       success: true,

@@ -284,7 +284,9 @@ export const logUsageSchema = z.object({
   partnershipId: z.string().uuid(),
   planId: z.string().uuid(),
   memberId: z.string().uuid(),
-  orderId: z.string().uuid(),
+  // orders.id is integer auto-increment in DB (not the same as the
+  // partnership/plan/member text-UUID PKs). users.id is also integer.
+  orderId: z.number().int().positive(),
   restaurantId: z.string().min(1),
 
   // 折扣資訊
@@ -300,7 +302,7 @@ export const logUsageSchema = z.object({
   // 使用資訊
   channel: z.enum(["dine_in", "takeaway", "delivery", "online"]).optional(),
   verificationMethod: z.string().optional(),
-  verifiedByUserId: z.string().uuid().optional(),
+  verifiedByUserId: z.number().int().positive().optional(),
 
   // 額外資訊
   metadata: z.record(z.any()).optional(),
