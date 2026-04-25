@@ -26,7 +26,7 @@ export interface CreateUserData {
   address?: string;
   dateOfBirth?: string;
   profileImageUrl?: string;
-  preferences?: any;
+  preferences?: unknown;
 }
 
 /**
@@ -39,7 +39,7 @@ export interface UpdateUserData {
   address?: string;
   dateOfBirth?: string;
   profileImageUrl?: string;
-  preferences?: any;
+  preferences?: unknown;
   isActive?: boolean;
   isVerified?: boolean;
 }
@@ -107,7 +107,7 @@ export interface FormattedUser {
   profileImageUrl?: string;
   isActive: boolean;
   isVerified: boolean;
-  preferences?: any;
+  preferences?: unknown;
   totalOrders?: number;
   totalSpent?: number;
   lastLoginAt?: string;

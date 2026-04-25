@@ -15,17 +15,44 @@ import {
   type UserStats,
 } from "../types";
 
+interface CurrentUser {
+  id: number;
+  role: number;
+  restaurantId?: string | number | null;
+}
+
+interface UserRecord {
+  id: number;
+  username: string;
+  role: number;
+  restaurantId?: string;
+  email?: string;
+  fullName: string;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+  profileImageUrl?: string;
+  isActive: boolean;
+  isVerified: boolean;
+  preferences?: unknown;
+  totalOrders?: number;
+  totalSpent?: number;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class UsersService {
   private userService: UserService;
   private authService: AuthService;
 
   constructor(private env: Env) {
-    this.userService = new UserService(env.DB as any, env);
-    this.authService = new AuthService(env.DB as any, env);
+    this.userService = new UserService(env.DB, env);
+    this.authService = new AuthService(env.DB, env);
   }
 
   canManageUser(
-    currentUser: any,
+    currentUser: CurrentUser,
     targetRole: number,
     targetRestaurantId?: string,
   ): boolean {
@@ -40,7 +67,7 @@ export class UsersService {
     return false;
   }
 
-  canViewUser(currentUser: any, targetUser: any): boolean {
+  canViewUser(currentUser: CurrentUser, targetUser: UserRecord): boolean {
     return (
       currentUser.role === USER_ROLES.ADMIN ||
       currentUser.id === targetUser.id ||
@@ -49,7 +76,7 @@ export class UsersService {
     );
   }
 
-  canUpdateUser(currentUser: any, targetUser: any): boolean {
+  canUpdateUser(currentUser: CurrentUser, targetUser: UserRecord): boolean {
     return (
       currentUser.role === USER_ROLES.ADMIN ||
       currentUser.id === targetUser.id ||
@@ -62,7 +89,7 @@ export class UsersService {
     );
   }
 
-  formatUser(user: any): FormattedUser {
+  formatUser(user: UserRecord): FormattedUser {
     return {
       id: user.id,
       username: user.username,
@@ -87,14 +114,17 @@ export class UsersService {
   }
 
   /** Fetch user or throw 404. Shared by multiple methods. */
-  private async requireUser(userId: number) {
+  private async requireUser(userId: number): Promise<UserRecord> {
     const user = await this.userService.getUserById(userId);
     if (!user) throw notFound("User not found");
-    return user;
+    return user as UserRecord;
   }
 
   /** Fetch user + verify caller can manage them, or throw. */
-  private async requireManagedUser(currentUser: any, userId: number) {
+  private async requireManagedUser(
+    currentUser: CurrentUser,
+    userId: number,
+  ): Promise<UserRecord> {
     const target = await this.requireUser(userId);
     if (!this.canManageUser(currentUser, target.role, target.restaurantId)) {
       throw forbidden("Insufficient permissions");
@@ -102,9 +132,12 @@ export class UsersService {
     return target;
   }
 
-  async getUsers(currentUser: any, filters: UserFilters) {
+  async getUsers(currentUser: CurrentUser, filters: UserFilters) {
     if (currentUser.role === USER_ROLES.OWNER) {
-      filters.restaurantId = currentUser.restaurantId;
+      filters.restaurantId =
+        currentUser.restaurantId !== undefined
+          ? String(currentUser.restaurantId)
+          : undefined;
     }
 
     const dbFilters = {
@@ -122,12 +155,15 @@ export class UsersService {
           );
 
     return {
-      data: result.users.map((user: any) => this.formatUser(user)),
+      data: result.users.map((user: UserRecord) => this.formatUser(user)),
       pagination: result.pagination,
     };
   }
 
-  async getUserById(currentUser: any, userId: number): Promise<FormattedUser> {
+  async getUserById(
+    currentUser: CurrentUser,
+    userId: number,
+  ): Promise<FormattedUser> {
     const targetUser = await this.requireUser(userId);
 
     if (!this.canViewUser(currentUser, targetUser)) {
@@ -138,7 +174,7 @@ export class UsersService {
   }
 
   async createUser(
-    currentUser: any,
+    currentUser: CurrentUser,
     userData: CreateUserData,
   ): Promise<FormattedUser> {
     const effectiveRestaurantId =
@@ -162,7 +198,7 @@ export class UsersService {
   }
 
   async updateUser(
-    currentUser: any,
+    currentUser: CurrentUser,
     userId: number,
     updateData: UpdateUserData,
   ): Promise<FormattedUser> {
@@ -177,7 +213,7 @@ export class UsersService {
   }
 
   async changePassword(
-    currentUser: any,
+    currentUser: CurrentUser,
     userId: number,
     currentPassword: string,
     newPassword: string,
@@ -198,7 +234,7 @@ export class UsersService {
   }
 
   async updateUserStatus(
-    currentUser: any,
+    currentUser: CurrentUser,
     userId: number,
     isActive: boolean,
   ): Promise<string> {
@@ -212,7 +248,7 @@ export class UsersService {
     return `User ${isActive ? "activated" : "deactivated"} successfully`;
   }
 
-  async verifyUser(currentUser: any, userId: number): Promise<void> {
+  async verifyUser(currentUser: CurrentUser, userId: number): Promise<void> {
     await this.requireManagedUser(currentUser, userId);
 
     const success = await this.userService.verifyUser(userId);
@@ -222,7 +258,7 @@ export class UsersService {
   }
 
   async resetPassword(
-    currentUser: any,
+    currentUser: CurrentUser,
     userId: number,
     newPassword: string,
   ): Promise<void> {
@@ -235,12 +271,15 @@ export class UsersService {
   }
 
   async getUserStats(
-    currentUser: any,
+    currentUser: CurrentUser,
     restaurantId?: string,
   ): Promise<UserStats> {
     let targetRestaurantId: string | undefined;
     if (currentUser.role === USER_ROLES.OWNER) {
-      targetRestaurantId = currentUser.restaurantId;
+      targetRestaurantId =
+        currentUser.restaurantId !== undefined
+          ? String(currentUser.restaurantId)
+          : undefined;
     } else if (restaurantId) {
       targetRestaurantId = restaurantId;
     }
@@ -271,14 +310,17 @@ export class UsersService {
   }
 
   async searchUsers(
-    currentUser: any,
+    currentUser: CurrentUser,
     query: string,
     restaurantId?: string,
     limit?: number,
   ) {
     let targetRestaurantId: string | undefined;
     if (currentUser.role === USER_ROLES.OWNER) {
-      targetRestaurantId = currentUser.restaurantId;
+      targetRestaurantId =
+        currentUser.restaurantId !== undefined
+          ? String(currentUser.restaurantId)
+          : undefined;
     } else if (restaurantId) {
       targetRestaurantId = restaurantId;
     }
@@ -289,6 +331,6 @@ export class UsersService {
       limit,
     );
 
-    return results.map((user: any) => this.formatUser(user));
+    return results.map((user: UserRecord) => this.formatUser(user));
   }
 }
