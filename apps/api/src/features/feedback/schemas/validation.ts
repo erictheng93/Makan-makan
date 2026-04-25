@@ -74,3 +74,14 @@ export const updateResponseSchema = z.object({
     .min(1, "Message cannot be empty")
     .max(2000, "Message must be at most 2000 characters"),
 });
+
+export type CreateFeedbackInput = z.infer<typeof createFeedbackSchema>;
+export type UpdateFeedbackInput = z.infer<typeof updateFeedbackSchema>;
+export type UpdateFeedbackStatusInput = z.infer<
+  typeof updateFeedbackStatusSchema
+>;
+export type AddResponseInput = z.infer<typeof addResponseSchema>;
+export type FeedbackFiltersInput = z.infer<typeof feedbackFiltersSchema>;
+export type FeedbackIdParamInput = z.infer<typeof feedbackIdParamSchema>;
+export type ResponseIdParamInput = z.infer<typeof responseIdParamSchema>;
+export type UpdateResponseInput = z.infer<typeof updateResponseSchema>;

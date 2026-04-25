@@ -5,7 +5,7 @@ import {
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
-import { FeedbackService } from "@makanmakan/database";
+import { FeedbackService, type FeedbackFilters } from "@makanmakan/database";
 import {
   createFeedbackSchema,
   updateFeedbackSchema,
@@ -15,11 +15,23 @@ import {
   feedbackIdParamSchema,
   responseIdParamSchema,
   updateResponseSchema,
+  type AddResponseInput,
+  type CreateFeedbackInput,
+  type FeedbackFiltersInput,
+  type FeedbackIdParamInput,
+  type ResponseIdParamInput,
+  type UpdateFeedbackInput,
+  type UpdateFeedbackStatusInput,
+  type UpdateResponseInput,
 } from "../schemas/validation";
 import type { Env } from "../../../types/env";
 import { notFound, forbidden } from "../../../shared/utils/api-error";
 
 const routes = new Hono<{ Bindings: Env }>();
+
+function createFeedbackService(env: Env): FeedbackService {
+  return new FeedbackService(env.DB, env);
+}
 
 /** Owner (role=1) can only access their own feedback. Returns the feedback record. */
 async function assertOwnerAccess(
@@ -42,8 +54,8 @@ routes.post(
   validateBody(createFeedbackSchema),
   async (c) => {
     const user = c.get("user");
-    const data = c.get("validatedBody");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const data = c.get("validatedBody") as CreateFeedbackInput;
+    const service = createFeedbackService(c.env);
 
     if (!user.restaurantId) {
       return c.json(
@@ -59,7 +71,7 @@ routes.post(
     }
 
     const feedback = await service.createFeedback({
-      restaurantId: user.restaurantId,
+      restaurantId: String(user.restaurantId),
       userId: user.id,
       category: data.category,
       priority: data.priority,
@@ -75,7 +87,7 @@ routes.post(
 
 // Must be registered before /:id to avoid route conflict
 routes.get("/stats", authMiddleware, requireRole([0]), async (c) => {
-  const service = new FeedbackService(c.env.DB as any, c.env as any);
+  const service = createFeedbackService(c.env);
   const stats = await service.getFeedbackStats();
   return c.json({ success: true, data: stats });
 });
@@ -87,10 +99,10 @@ routes.get(
   validateQuery(feedbackFiltersSchema),
   async (c) => {
     const user = c.get("user");
-    const query = c.get("validatedQuery");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const query = c.get("validatedQuery") as FeedbackFiltersInput;
+    const service = createFeedbackService(c.env);
 
-    const filters: any = {
+    const filters: FeedbackFilters = {
       category: query.category,
       status: query.status,
       priority: query.priority,
@@ -124,16 +136,14 @@ routes.get(
   validateParams(feedbackIdParamSchema),
   async (c) => {
     const user = c.get("user");
-    const { id } = c.get("validatedParams");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams") as FeedbackIdParamInput;
+    const service = createFeedbackService(c.env);
 
     const feedback = await assertOwnerAccess(service, id, user);
 
     // Filter out internal responses for non-admins
     if (user.role !== 0) {
-      feedback.responses = feedback.responses?.filter(
-        (r: any) => !r.isInternal,
-      );
+      feedback.responses = feedback.responses?.filter((r) => !r.isInternal);
     }
 
     return c.json({ success: true, data: feedback });
@@ -148,9 +158,9 @@ routes.put(
   validateBody(updateFeedbackStatusSchema),
   async (c) => {
     const user = c.get("user");
-    const { id } = c.get("validatedParams");
-    const { status } = c.get("validatedBody");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams") as FeedbackIdParamInput;
+    const { status } = c.get("validatedBody") as UpdateFeedbackStatusInput;
+    const service = createFeedbackService(c.env);
 
     const feedback = await service.updateFeedbackStatus(
       id,
@@ -174,9 +184,9 @@ routes.patch(
   validateBody(updateFeedbackSchema),
   async (c) => {
     const user = c.get("user");
-    const { id } = c.get("validatedParams");
-    const data = c.get("validatedBody");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams") as FeedbackIdParamInput;
+    const data = c.get("validatedBody") as UpdateFeedbackInput;
+    const service = createFeedbackService(c.env);
 
     if (user.role === 1) {
       await assertOwnerAccess(service, id, user);
@@ -207,8 +217,8 @@ routes.delete(
   validateParams(feedbackIdParamSchema),
   async (c) => {
     const user = c.get("user");
-    const { id } = c.get("validatedParams");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams") as FeedbackIdParamInput;
+    const service = createFeedbackService(c.env);
 
     if (user.role === 1) {
       await assertOwnerAccess(service, id, user);
@@ -235,9 +245,9 @@ routes.post(
   validateBody(addResponseSchema),
   async (c) => {
     const user = c.get("user");
-    const { id } = c.get("validatedParams");
-    const { message, isInternal } = c.get("validatedBody");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const { id } = c.get("validatedParams") as FeedbackIdParamInput;
+    const { message, isInternal } = c.get("validatedBody") as AddResponseInput;
+    const service = createFeedbackService(c.env);
 
     await assertOwnerAccess(service, id, user);
 
@@ -258,9 +268,9 @@ routes.put(
   validateBody(updateResponseSchema),
   async (c) => {
     const user = c.get("user");
-    const { id, responseId } = c.get("validatedParams");
-    const { message } = c.get("validatedBody");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const { id, responseId } = c.get("validatedParams") as ResponseIdParamInput;
+    const { message } = c.get("validatedBody") as UpdateResponseInput;
+    const service = createFeedbackService(c.env);
 
     if (user.role === 1) {
       await assertOwnerAccess(service, id, user);
@@ -287,8 +297,8 @@ routes.delete(
   validateParams(responseIdParamSchema),
   async (c) => {
     const user = c.get("user");
-    const { id, responseId } = c.get("validatedParams");
-    const service = new FeedbackService(c.env.DB as any, c.env as any);
+    const { id, responseId } = c.get("validatedParams") as ResponseIdParamInput;
+    const service = createFeedbackService(c.env);
 
     if (user.role === 1) {
       await assertOwnerAccess(service, id, user);
