@@ -56,7 +56,7 @@ const menuItemSizeSchema = z.object({
 const menuItemCustomizationChoiceSchema = z.object({
   id: z.string(),
   name: nonEmptyString.max(100),
-  priceAdjustment: z.number().optional(),
+  priceAdjustment: z.number().default(0),
   isDefault: z.boolean().optional(),
 });
 

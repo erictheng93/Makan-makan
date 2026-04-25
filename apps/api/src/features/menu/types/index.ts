@@ -91,17 +91,72 @@ export interface MenuStructure extends SharedMenuStructure {
   menuItems: MenuItem[];
 }
 
+/**
+ * Loose image variants input — Zod schema permits each variant URL to be
+ * `null` (explicit clear) or `undefined` (omitted). Stored as JSON in DB.
+ */
+export interface ImageVariantsInput {
+  thumbnail?: string | null;
+  small?: string | null;
+  medium?: string | null;
+  large?: string | null;
+  original?: string | null;
+}
+
+/**
+ * Loose options shape used by route handlers — Zod-validated input fields are
+ * optional and may be omitted. Stored as JSON in DB, so structural drift between
+ * this and the canonical `MenuItemOptions` is safe.
+ */
+export interface MenuItemOptionsInput {
+  sizes?: Array<{
+    id: string;
+    name: string;
+    priceAdjustment: number;
+    description?: string;
+    isDefault?: boolean;
+  }>;
+  customizations?: Array<{
+    id: string;
+    name: string;
+    type: "single" | "multiple";
+    required: boolean;
+    maxSelections?: number;
+    choices: Array<{
+      id: string;
+      name: string;
+      priceAdjustment: number;
+      isDefault?: boolean;
+    }>;
+  }>;
+  addOns?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    description?: string;
+    maxQuantity?: number;
+    category?: string;
+  }>;
+}
+
 // Data Transfer Objects (extending shared types)
-export interface CreateMenuItemData extends SharedCreateMenuItemRequest {
+export interface CreateMenuItemData extends Omit<
+  SharedCreateMenuItemRequest,
+  "options"
+> {
   originalPrice?: number;
-  imageUrl?: string;
-  imageVariants?: ImageVariants;
+  imageUrl?: string | null;
+  imageVariants?: ImageVariantsInput;
   availableHours?: AvailableHours;
   tags?: string[];
   keywords?: string;
+  options?: MenuItemOptionsInput;
 }
 
-export interface UpdateMenuItemData extends SharedUpdateMenuItemRequest {
+export interface UpdateMenuItemData extends Omit<
+  SharedUpdateMenuItemRequest,
+  "options"
+> {
   originalPrice?: number;
   costPrice?: number;
   sortOrder?: number;
@@ -113,10 +168,11 @@ export interface UpdateMenuItemData extends SharedUpdateMenuItemRequest {
   viewCount?: number;
   tags?: string[];
   keywords?: string;
+  options?: MenuItemOptionsInput;
 }
 
 export interface CreateCategoryData extends SharedCreateCategoryRequest {
-  imageUrl?: string;
+  imageUrl?: string | null;
 }
 
 export interface UpdateCategoryData extends SharedUpdateCategoryRequest {

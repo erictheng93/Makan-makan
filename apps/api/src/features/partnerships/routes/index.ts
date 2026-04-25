@@ -58,10 +58,13 @@ routes.post(
     const user = c.get("user");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
 
+    const { contractStartDate, contractEndDate, ...rest } = data;
     const partnership = await service.createPartnership({
-      ...data,
+      ...rest,
       createdBy: user.id,
-    } as unknown as Parameters<typeof service.createPartnership>[0]);
+      contractStartDate: new Date(contractStartDate),
+      contractEndDate: new Date(contractEndDate),
+    });
 
     return c.json({
       success: true,
@@ -164,10 +167,16 @@ routes.put(
     const data = c.get("validatedBody");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-    const partnership = await service.updatePartnership(
-      id,
-      data as Parameters<typeof service.updatePartnership>[1],
-    );
+    const { contractStartDate, contractEndDate, ...rest } = data;
+    const partnership = await service.updatePartnership(id, {
+      ...rest,
+      ...(contractStartDate !== undefined && {
+        contractStartDate: new Date(contractStartDate),
+      }),
+      ...(contractEndDate !== undefined && {
+        contractEndDate: new Date(contractEndDate),
+      }),
+    });
 
     return c.json({
       success: true,
@@ -220,10 +229,13 @@ routes.post(
     const user = c.get("user");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
 
+    const { validFrom, validTo, ...rest } = data;
     const plan = await service.createPlan({
-      ...data,
+      ...rest,
       createdBy: user.id,
-    } as unknown as Parameters<typeof service.createPlan>[0]);
+      validFrom: new Date(validFrom),
+      validTo: new Date(validTo),
+    });
 
     return c.json({
       success: true,
@@ -324,10 +336,12 @@ routes.put(
     const data = c.get("validatedBody");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-    const plan = await service.updatePlan(
-      planId,
-      data as Parameters<typeof service.updatePlan>[1],
-    );
+    const { validFrom, validTo, ...rest } = data;
+    const plan = await service.updatePlan(planId, {
+      ...rest,
+      ...(validFrom !== undefined && { validFrom: new Date(validFrom) }),
+      ...(validTo !== undefined && { validTo: new Date(validTo) }),
+    });
 
     return c.json({
       success: true,
@@ -546,6 +560,10 @@ routes.post(
     const user = c.get("user");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
 
+    // Schema drift: logUsageSchema declares orderId as a UUID string, but the
+    // partnership_usage_logs.order_id column references orders.id which is an
+    // integer auto-increment PK. Removing the cast here would require fixing
+    // the Zod schema (and any downstream consumers). Tracked separately.
     const usageLog = await service.logUsage({
       ...data,
       verifiedByUserId: user.id,

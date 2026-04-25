@@ -609,10 +609,12 @@ app.post(
     const data = c.get("validatedBody");
     const service = createService(c.env);
 
+    const { expiresAt, ...rest } = data;
     const request = await service.createSwapRequest({
-      ...data,
+      ...rest,
       restaurantId,
-    } as Parameters<typeof service.createSwapRequest>[0]);
+      expiresAt: expiresAt == null ? null : new Date(expiresAt),
+    });
 
     return c.json(
       createSuccessResponse(request, "Swap request created successfully"),

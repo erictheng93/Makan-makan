@@ -89,10 +89,8 @@ app.post(
     const type = await service.createLeaveType({
       ...data,
       restaurantId,
-      // createdBy is intentionally added at the route layer for audit trail; the
-      // DB-package CreateLeaveTypeData type omits it, so widen via cast.
       createdBy: user.id,
-    } as unknown as Parameters<typeof service.createLeaveType>[0]);
+    });
 
     return c.json(
       createSuccessResponse(type, "Leave type created successfully"),
@@ -360,7 +358,7 @@ app.post(
       employeeId,
       restaurantId,
       totalDays,
-    } as Parameters<typeof service.createLeaveRequest>[0]);
+    });
 
     return c.json(
       createSuccessResponse(request, "Leave request created successfully"),

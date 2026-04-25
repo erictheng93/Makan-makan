@@ -11,24 +11,24 @@ export interface CreateMenuItemData {
   restaurantId: string;
   categoryId: number;
   name: string;
-  description?: string;
-  ingredients?: string;
+  description?: string | null;
+  ingredients?: string | null;
   price: number;
-  originalPrice?: number;
-  imageUrl?: string;
+  originalPrice?: number | null;
+  imageUrl?: string | null;
   imageVariants?: any;
   isAvailable?: boolean;
   isFeatured?: boolean;
   isPopular?: boolean;
   spiceLevel?: number;
   preparationTime?: number;
-  calories?: number;
+  calories?: number | null;
   dietaryInfo?: any;
   allergens?: string[];
   options?: any;
   availableHours?: any;
   tags?: string[];
-  keywords?: string;
+  keywords?: string | null;
 }
 
 export interface UpdateMenuItemData extends Partial<CreateMenuItemData> {
@@ -434,9 +434,9 @@ export class MenuService extends BaseService {
   async createCategory(data: {
     restaurantId: string;
     name: string;
-    description?: string;
+    description?: string | null;
     sortOrder?: number;
-    imageUrl?: string;
+    imageUrl?: string | null;
   }) {
     try {
       const [category] = await this.db

@@ -136,10 +136,34 @@ export interface LeaveBalanceWithType extends LeaveBalance {
   };
 }
 
-export type CreateLeaveTypeData = Omit<
+type CreateLeaveTypeBase = Omit<
   LeaveType,
-  "id" | "createdAt" | "updatedAt" | "createdBy" | "updatedBy"
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "createdBy"
+  | "updatedBy"
+  | "isSystemDefined"
 >;
+
+/**
+ * Nullable columns: route layer passes Zod-inferred values that may be
+ * `undefined` (skipped) in addition to `null`/value. The DB driver treats
+ * `undefined` and `null` interchangeably for nullable columns.
+ */
+type NullableKeys = {
+  [K in keyof CreateLeaveTypeBase]: null extends CreateLeaveTypeBase[K]
+    ? K
+    : never;
+}[keyof CreateLeaveTypeBase];
+
+export type CreateLeaveTypeData = Omit<CreateLeaveTypeBase, NullableKeys> & {
+  [K in NullableKeys]?: CreateLeaveTypeBase[K];
+} & {
+  createdBy?: number | null;
+  updatedBy?: number | null;
+  isSystemDefined?: boolean;
+};
 
 export type UpdateLeaveTypeData = Partial<
   Omit<LeaveType, "id" | "createdAt" | "updatedAt">
@@ -164,7 +188,12 @@ export type CreateLeaveRequestData = Omit<
   | "createdAt"
   | "updatedAt"
   | "submittedAt"
->;
+  | "attachmentUrl"
+  | "emergencyContact"
+> & {
+  attachmentUrl?: string | null;
+  emergencyContact?: string | null;
+};
 
 export interface LeaveRequestFilters {
   employeeId?: number;
