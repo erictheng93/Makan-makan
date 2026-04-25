@@ -129,3 +129,12 @@ export const validationMessages = {
   positiveNumber: "必須是正數",
   invalidCode: "優惠券代碼只能包含字母和數字",
 } as const;
+
+export type ValidateCouponInput = z.infer<typeof validateCouponSchema>;
+export type CreateCouponInput = z.infer<typeof createCouponSchema>;
+export type UpdateCouponInput = z.infer<typeof updateCouponSchema>;
+export type CouponFiltersInput = z.infer<typeof couponFiltersSchema>;
+export type IdParamInput = z.infer<typeof idParamSchema>;
+export type RestaurantIdParamInput = z.infer<typeof restaurantIdParamSchema>;
+export type BulkActionInput = z.infer<typeof bulkActionSchema>;
+export type UseCouponInput = z.infer<typeof useCouponSchema>;

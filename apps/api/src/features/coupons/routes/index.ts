@@ -22,6 +22,14 @@ import {
   restaurantIdParamSchema,
   bulkActionSchema,
   useCouponSchema,
+  type BulkActionInput,
+  type CouponFiltersInput,
+  type CreateCouponInput,
+  type IdParamInput,
+  type RestaurantIdParamInput,
+  type UpdateCouponInput,
+  type UseCouponInput,
+  type ValidateCouponInput,
 } from "../schemas/validation";
 import type { Env } from "../../../types/env";
 import {
@@ -30,8 +38,26 @@ import {
   badRequest,
   conflict,
 } from "../../../shared/utils/api-error";
+import type { CouponFilters, CreateCouponData } from "../types";
 
 const routes = new Hono<{ Bindings: Env }>();
+
+function createCouponsService(env: Env): CouponsService {
+  return new CouponsService(env.DB, env);
+}
+
+function userRestaurantId(user: { restaurantId?: string | number }): string {
+  return String(user.restaurantId);
+}
+
+function toCouponFilters(input: CouponFiltersInput): CouponFilters {
+  const { page: _page, limit: _limit, ...filters } = input;
+  return filters;
+}
+
+function toCreateCouponData(input: CreateCouponInput): CreateCouponData {
+  return { ...input };
+}
 
 /**
  * 驗證優惠券代碼
@@ -39,8 +65,8 @@ const routes = new Hono<{ Bindings: Env }>();
  * 公開端點，用於前端驗證優惠券
  */
 routes.post("/validate", validateBody(validateCouponSchema), async (c) => {
-  const data = c.get("validatedBody");
-  const couponsService = new CouponsService(c.env.DB as any, c.env);
+  const data = c.get("validatedBody") as ValidateCouponInput;
+  const couponsService = createCouponsService(c.env);
 
   const result = await couponsService.validateCouponWithBusinessRules(
     data.code,
@@ -62,10 +88,10 @@ routes.post("/validate", validateBody(validateCouponSchema), async (c) => {
  */
 routes.get(
   "/available/:restaurantId",
-  validateParams(restaurantIdParamSchema as any),
+  validateParams(restaurantIdParamSchema),
   async (c) => {
-    const { restaurantId } = c.get("validatedParams");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const { restaurantId } = c.get("validatedParams") as RestaurantIdParamInput;
+    const couponsService = createCouponsService(c.env);
 
     const availableCoupons =
       await couponsService.getAvailableCoupons(restaurantId);
@@ -88,13 +114,15 @@ routes.post(
   requireRole([0, 1]), // 管理員和店主
   validateBody(createCouponSchema),
   async (c) => {
-    const data = c.get("validatedBody");
+    const data = toCreateCouponData(
+      c.get("validatedBody") as CreateCouponInput,
+    );
     const user = c.get("user");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
     // 權限檢查：店主只能為自己的餐廳創建優惠券
     if (user.role === 1) {
-      data.restaurantId = user.restaurantId;
+      data.restaurantId = userRestaurantId(user);
     }
 
     // 設置創建者
@@ -121,17 +149,17 @@ routes.get(
   authMiddleware,
   moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
-  validateQuery(couponFiltersSchema as any),
+  validateQuery(couponFiltersSchema),
   async (c) => {
-    const query = c.get("validatedQuery");
+    const query = c.get("validatedQuery") as CouponFiltersInput;
     const user = c.get("user");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
-    const filters: any = { ...query };
+    const filters: CouponFilters = toCouponFilters(query);
 
     // 權限過濾：店主只能查看自己餐廳的優惠券
     if (user.role === 1) {
-      filters.restaurantId = user.restaurantId;
+      filters.restaurantId = userRestaurantId(user);
     }
 
     const result = await couponsService.getCouponsWithEnhancedFilters(
@@ -164,9 +192,9 @@ routes.get(
   requireRole([0, 1]),
   async (c) => {
     const user = c.get("user");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
-    const restaurantId = user.role === 1 ? user.restaurantId : undefined;
+    const restaurantId = user.role === 1 ? userRestaurantId(user) : undefined;
     const stats = await couponsService.getCouponSummaryStats(restaurantId);
 
     return c.json({
@@ -185,11 +213,11 @@ routes.get(
   authMiddleware,
   moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
+    const { id } = c.get("validatedParams") as IdParamInput;
     const user = c.get("user");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
     const coupon = await couponsService.getCoupon(id);
 
@@ -198,7 +226,10 @@ routes.get(
     }
 
     // 權限檢查：店主只能查看自己餐廳的優惠券
-    if (user.role === 1 && coupon.restaurantId !== user.restaurantId) {
+    if (
+      user.role === 1 &&
+      String(coupon.restaurantId) !== userRestaurantId(user)
+    ) {
       throw forbidden("Access denied");
     }
 
@@ -218,13 +249,13 @@ routes.put(
   authMiddleware,
   moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   validateBody(updateCouponSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const data = c.get("validatedBody");
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const data = c.get("validatedBody") as UpdateCouponInput;
     const user = c.get("user");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
     // 獲取現有優惠券
     const existingCoupon = await couponsService.getCoupon(id);
@@ -234,7 +265,10 @@ routes.put(
     }
 
     // 權限檢查：店主只能更新自己餐廳的優惠券
-    if (user.role === 1 && existingCoupon.restaurantId !== user.restaurantId) {
+    if (
+      user.role === 1 &&
+      String(existingCoupon.restaurantId) !== userRestaurantId(user)
+    ) {
       throw forbidden("Access denied");
     }
 
@@ -256,11 +290,11 @@ routes.post(
   authMiddleware,
   moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
+    const { id } = c.get("validatedParams") as IdParamInput;
     const user = c.get("user");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
     // 獲取現有優惠券
     const existingCoupon = await couponsService.getCoupon(id);
@@ -270,7 +304,10 @@ routes.post(
     }
 
     // 權限檢查：店主只能停用自己餐廳的優惠券
-    if (user.role === 1 && existingCoupon.restaurantId !== user.restaurantId) {
+    if (
+      user.role === 1 &&
+      String(existingCoupon.restaurantId) !== userRestaurantId(user)
+    ) {
       throw forbidden("Access denied");
     }
 
@@ -293,10 +330,10 @@ routes.delete(
   authMiddleware,
   moduleGate("coupons"),
   requireRole([0]), // 僅管理員
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const couponsService = createCouponsService(c.env);
 
     // 檢查優惠券是否存在
     const existingCoupon = await couponsService.getCoupon(id);
@@ -323,11 +360,11 @@ routes.get(
   authMiddleware,
   moduleGate("coupons"),
   requireRole([0, 1]), // 管理員和店主
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
+    const { id } = c.get("validatedParams") as IdParamInput;
     const user = c.get("user");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
     // 獲取優惠券資訊
     const coupon = await couponsService.getCoupon(id);
@@ -337,7 +374,10 @@ routes.get(
     }
 
     // 權限檢查：店主只能查看自己餐廳的優惠券統計
-    if (user.role === 1 && coupon.restaurantId !== user.restaurantId) {
+    if (
+      user.role === 1 &&
+      String(coupon.restaurantId) !== userRestaurantId(user)
+    ) {
       throw forbidden("Access denied");
     }
 
@@ -370,16 +410,16 @@ routes.post(
   requireRole([0, 1]), // 管理員和店主
   validateBody(bulkActionSchema),
   async (c) => {
-    const { couponIds, action } = c.get("validatedBody");
+    const { couponIds, action } = c.get("validatedBody") as BulkActionInput;
     const user = c.get("user");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
     // 權限檢查：店主只能操作自己餐廳的優惠券
     if (user.role === 1) {
       // Check if all coupons belong to the user's restaurant
       for (const id of couponIds) {
         const coupon = await couponsService.getCoupon(id);
-        if (!coupon || coupon.restaurantId !== user.restaurantId) {
+        if (!coupon || String(coupon.restaurantId) !== userRestaurantId(user)) {
           throw forbidden("Access denied for one or more coupons");
         }
       }
@@ -422,8 +462,8 @@ routes.post(
   moduleGate("coupons"),
   validateBody(useCouponSchema),
   async (c) => {
-    const data = c.get("validatedBody");
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const data = c.get("validatedBody") as UseCouponInput;
+    const couponsService = createCouponsService(c.env);
 
     let usageRecord;
     try {
@@ -460,11 +500,11 @@ routes.get(
   async (c) => {
     const user = c.get("user");
     const { restaurantId, startDate, endDate } = c.req.query();
-    const couponsService = new CouponsService(c.env.DB as any, c.env);
+    const couponsService = createCouponsService(c.env);
 
     // 權限檢查：店主只能查看自己餐廳的數據
     const queryRestaurantId =
-      user.role === 1 ? user.restaurantId?.toString() : restaurantId;
+      user.role === 1 ? userRestaurantId(user) : restaurantId;
 
     const trends = await couponsService.getCouponUsageTrends(
       queryRestaurantId,
