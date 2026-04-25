@@ -81,8 +81,8 @@ export const validateQuery = (schema: z.ZodSchema) => {
 // Extended context types for TypeScript
 declare module "hono" {
   interface ContextVariableMap {
-    validatedBody: any;
-    validatedParams: any;
-    validatedQuery: any;
+    validatedBody: unknown;
+    validatedParams: unknown;
+    validatedQuery: unknown;
   }
 }

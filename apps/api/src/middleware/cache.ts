@@ -4,6 +4,7 @@
  */
 
 import { Context, Next } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import {
   createCacheService,
   CACHE_STRATEGIES,
@@ -27,6 +28,12 @@ interface CachedResponse {
   status: number;
   headers: Record<string, string>;
   timestamp: number;
+}
+
+function toContentfulStatusCode(status: number): ContentfulStatusCode {
+  return status >= 200 && status < 300 && status !== 204 && status !== 205
+    ? (status as ContentfulStatusCode)
+    : 200;
 }
 
 /**
@@ -60,7 +67,7 @@ export function cacheMiddleware(options: CacheMiddlewareOptions = {}) {
         c.header("X-Cache", "HIT");
         c.header("X-Cache-Timestamp", cached.timestamp.toString());
 
-        return c.json(cached.data, cached.status as any);
+        return c.json(cached.data, toContentfulStatusCode(cached.status));
       }
     } catch (error) {
       console.error("Cache middleware get error:", error);
