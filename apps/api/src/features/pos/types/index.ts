@@ -9,9 +9,9 @@ export interface CashRegister {
   restaurantId: string;
   isActive: boolean;
   currentShiftId?: string;
-  hardwareConfig: Record<string, any>;
-  peripherals: Record<string, any>;
-  settings: Record<string, any>;
+  hardwareConfig: Record<string, unknown>;
+  peripherals: Record<string, unknown>;
+  settings: Record<string, unknown>;
   lastMaintenanceAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -64,7 +64,7 @@ export interface CashMovement {
   approvedBy?: number;
   approvalStatus: "pending" | "approved" | "rejected";
   receiptNumber?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: Date;
 }
 
@@ -100,14 +100,14 @@ export interface Refund {
   refundMethod: string;
   reasonCode: string;
   reasonDescription?: string;
-  itemsRefunded: any[];
+  itemsRefunded: unknown[];
   processedBy: number;
   approvedBy?: number;
   customerSignature?: string;
   status: "pending" | "processing" | "completed" | "failed" | "cancelled";
   processedAt?: Date;
   completedAt?: Date;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 // Request/Response 類型
@@ -115,9 +115,9 @@ export interface CreateRegisterRequest {
   name: string;
   location?: string;
   restaurantId: string;
-  hardwareConfig?: Record<string, any>;
-  peripherals?: Record<string, any>;
-  settings?: Record<string, any>;
+  hardwareConfig?: Record<string, unknown>;
+  peripherals?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
 }
 
 export interface StartShiftRequest {
@@ -155,6 +155,6 @@ export interface ProcessRefundRequest {
   refundMethod: string;
   reasonCode: string;
   reasonDescription?: string;
-  itemsRefunded?: any[];
+  itemsRefunded?: unknown[];
   customerSignature?: string;
 }
