@@ -12,7 +12,7 @@ export interface ProcessPaymentOptions {
 }
 
 export interface ProcessPaymentResult {
-  status: number;
+  status: 200 | 202;
   data: {
     paymentId: string;
     orderId: number;

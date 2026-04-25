@@ -43,7 +43,7 @@ app.post(
         success: true,
         data: result.data,
       },
-      result.status as any,
+      result.status,
     );
   },
 );
