@@ -47,10 +47,7 @@ app.get(
       throw forbidden("Access denied: can only view own restaurant orders");
     }
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const orders = await groupOrderService.listGroupOrders(
       targetRestaurantId,
       status || undefined,
@@ -77,10 +74,7 @@ app.post(
     const user = c.get("user");
     const restaurantId = body.restaurantId || String(user.restaurantId);
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.createGroupOrder(
       { restaurantId },
       user.id,
@@ -117,10 +111,7 @@ app.get(
 
     const targetRestaurantId = restaurantId || String(user.restaurantId);
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const orders = await groupOrderService.listGroupOrders(
       targetRestaurantId,
       status || undefined,
@@ -176,10 +167,7 @@ app.post(
     const data = c.get("validatedBody");
     const user = c.get("user");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.createGroupOrder(data, user.id);
 
     if (!result.success) {
@@ -224,10 +212,7 @@ app.post(
     const { shareCode } = c.get("validatedParams");
     const memberData = c.get("validatedBody");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.joinGroup(shareCode, memberData);
 
     if (!result.success) {
@@ -282,10 +267,7 @@ app.get(
       throw forbidden("Access denied: can only view own restaurant statistics");
     }
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const statistics = await groupOrderService.getStatistics(
       restaurantId,
       timeRange,
@@ -308,10 +290,7 @@ app.get(
   async (c) => {
     const { groupOrderId } = c.get("validatedParams");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const groupOrder = await groupOrderService.getGroupOrder(groupOrderId);
 
     if (!groupOrder) {
@@ -337,10 +316,7 @@ app.post(
     const { groupOrderId } = c.get("validatedParams");
     const itemData = c.get("validatedBody");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.addCartItem(groupOrderId, itemData);
 
     if (!result.success) {
@@ -386,10 +362,7 @@ app.put(
     const { groupOrderId, itemId } = c.get("validatedParams");
     const updateData = c.get("validatedBody");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.updateCartItem(
       groupOrderId,
       itemId,
@@ -439,10 +412,7 @@ app.delete(
     const { groupOrderId, itemId } = c.get("validatedParams");
     const { memberId } = c.get("validatedBody");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.removeCartItem(
       groupOrderId,
       itemId,
@@ -490,10 +460,7 @@ app.post(
     const { groupOrderId } = c.get("validatedParams");
     const splitData = c.get("validatedBody");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.splitBill(groupOrderId, splitData);
 
     if (!result.success) {
@@ -521,10 +488,7 @@ app.post(
     const { groupOrderId, memberId } = c.get("validatedParams");
     const paymentData = c.get("validatedBody");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.processPayment(
       groupOrderId,
       memberId,
@@ -554,10 +518,7 @@ app.post(
   async (c) => {
     const { groupOrderId, memberId } = c.get("validatedParams");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.leaveGroup(groupOrderId, memberId);
 
     if (!result.success) {
@@ -582,10 +543,7 @@ app.get(
   async (c) => {
     const { groupOrderId } = c.get("validatedParams");
 
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const activities = await groupOrderService.getActivities(groupOrderId);
 
     return c.json({
@@ -605,10 +563,7 @@ app.post(
   requireRole([0]), // Admin only
   moduleGate("online_ordering"),
   async (c) => {
-    const groupOrderService = new GroupOrdersService(
-      c.env.DB as any,
-      c.env.CACHE_KV,
-    );
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.cleanupExpiredGroups();
 
     return c.json({
