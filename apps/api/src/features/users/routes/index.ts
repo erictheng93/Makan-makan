@@ -18,9 +18,35 @@ import {
   resetPasswordSchema,
   userStatsSchema,
   userSearchSchema,
+  type CreateUserInput,
+  type ResetPasswordInput,
+  type UpdatePasswordInput,
+  type UpdateUserInput,
+  type UserFilterInput,
+  type UserSearchInput,
+  type UserStatsInput,
+  type UserStatusInput,
 } from "../schemas/validation";
+import type { CreateUserData, UserFilters } from "../types";
 
 const app = new Hono<{ Bindings: Env }>();
+type IdParamInput = { id: number };
+
+function toUserFilters(input: UserFilterInput): UserFilters {
+  return {
+    ...input,
+    restaurantId:
+      input.restaurantId === undefined ? undefined : String(input.restaurantId),
+  };
+}
+
+function toCreateUserData(input: CreateUserInput): CreateUserData {
+  return {
+    ...input,
+    restaurantId:
+      input.restaurantId === undefined ? undefined : String(input.restaurantId),
+  };
+}
 
 /**
  * GET /api/v1/users
@@ -29,13 +55,16 @@ app.get(
   "/",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateQuery(userFilterSchema as any),
+  validateQuery(userFilterSchema),
   async (c) => {
-    const query = c.get("validatedQuery");
+    const query = c.get("validatedQuery") as UserFilterInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const result = await usersService.getUsers(currentUser, query);
+    const result = await usersService.getUsers(
+      currentUser,
+      toUserFilters(query),
+    );
 
     return c.json({ success: true, ...result });
   },
@@ -48,13 +77,16 @@ app.get(
   "/stats",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateQuery(userStatsSchema as any),
+  validateQuery(userStatsSchema),
   async (c) => {
-    const { restaurantId } = c.get("validatedQuery");
+    const { restaurantId } = c.get("validatedQuery") as UserStatsInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const stats = await usersService.getUserStats(currentUser, restaurantId);
+    const stats = await usersService.getUserStats(
+      currentUser,
+      restaurantId === undefined ? undefined : String(restaurantId),
+    );
 
     return c.json({ success: true, data: stats });
   },
@@ -67,16 +99,18 @@ app.get(
   "/search",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateQuery(userSearchSchema as any),
+  validateQuery(userSearchSchema),
   async (c) => {
-    const { query, restaurantId, limit } = c.get("validatedQuery");
+    const { query, restaurantId, limit } = c.get(
+      "validatedQuery",
+    ) as UserSearchInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
     const results = await usersService.searchUsers(
       currentUser,
       query,
-      restaurantId,
+      restaurantId === undefined ? undefined : String(restaurantId),
       limit,
     );
 
@@ -90,13 +124,13 @@ app.get(
 app.get(
   "/:id",
   authMiddleware,
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   async (c) => {
-    const { id } = c.get("validatedParams");
+    const { id } = c.get("validatedParams") as IdParamInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const user = await usersService.getUserById(currentUser, parseInt(id));
+    const user = await usersService.getUserById(currentUser, id);
 
     return c.json({ success: true, data: user });
   },
@@ -115,7 +149,10 @@ app.post(
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const user = await usersService.createUser(currentUser, data);
+    const user = await usersService.createUser(
+      currentUser,
+      toCreateUserData(data as CreateUserInput),
+    );
 
     return c.json({ success: true, data: user }, 201);
   },
@@ -127,15 +164,15 @@ app.post(
 app.put(
   "/:id",
   authMiddleware,
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   validateBody(updateUserSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const data = c.get("validatedBody");
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const data = c.get("validatedBody") as UpdateUserInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    const user = await usersService.updateUser(currentUser, parseInt(id), data);
+    const user = await usersService.updateUser(currentUser, id, data);
 
     return c.json({ success: true, data: user });
   },
@@ -147,17 +184,19 @@ app.put(
 app.post(
   "/:id/password",
   authMiddleware,
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   validateBody(updatePasswordSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const { currentPassword, newPassword } = c.get("validatedBody");
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const { currentPassword, newPassword } = c.get(
+      "validatedBody",
+    ) as UpdatePasswordInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
     await usersService.changePassword(
       currentUser,
-      parseInt(id),
+      id,
       currentPassword,
       newPassword,
     );
@@ -173,17 +212,17 @@ app.patch(
   "/:id/status",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   validateBody(userStatusSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const { isActive } = c.get("validatedBody");
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const { isActive } = c.get("validatedBody") as UserStatusInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
     const message = await usersService.updateUserStatus(
       currentUser,
-      parseInt(id),
+      id,
       isActive,
     );
 
@@ -198,13 +237,13 @@ app.patch(
   "/:id/verify",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   async (c) => {
-    const { id } = c.get("validatedParams");
+    const { id } = c.get("validatedParams") as IdParamInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    await usersService.verifyUser(currentUser, parseInt(id));
+    await usersService.verifyUser(currentUser, id);
 
     return c.json({ success: true, message: "User verified successfully" });
   },
@@ -217,15 +256,15 @@ app.post(
   "/:id/reset-password",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam as any),
+  validateParams(commonSchemas.idParam),
   validateBody(resetPasswordSchema),
   async (c) => {
-    const { id } = c.get("validatedParams");
-    const { newPassword } = c.get("validatedBody");
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const { newPassword } = c.get("validatedBody") as ResetPasswordInput;
     const currentUser = c.get("user");
     const usersService = new UsersService(c.env);
 
-    await usersService.resetPassword(currentUser, parseInt(id), newPassword);
+    await usersService.resetPassword(currentUser, id, newPassword);
 
     return c.json({ success: true, message: "Password reset successfully" });
   },

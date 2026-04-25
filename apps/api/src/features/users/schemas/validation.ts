@@ -119,3 +119,12 @@ export const userSearchSchema = z.object({
   restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default("10"),
 });
+
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
+export type UserFilterInput = z.infer<typeof userFilterSchema>;
+export type UserStatusInput = z.infer<typeof userStatusSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type UserStatsInput = z.infer<typeof userStatsSchema>;
+export type UserSearchInput = z.infer<typeof userSearchSchema>;
