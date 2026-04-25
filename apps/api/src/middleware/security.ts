@@ -126,7 +126,7 @@ export const inputSanitizationMiddleware = async (
 /**
  * Recursively sanitize object properties to prevent XSS
  */
-function sanitizeObject(obj: any): any {
+function sanitizeObject(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -136,7 +136,7 @@ function sanitizeObject(obj: any): any {
   }
 
   if (typeof obj === "object") {
-    const sanitized: any = {};
+    const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       sanitized[key] = sanitizeObject(value);
     }

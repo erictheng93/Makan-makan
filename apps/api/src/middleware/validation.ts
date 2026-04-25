@@ -114,8 +114,8 @@ export const commonSchemas = {
 // 擴展 Context 類型以包含驗證後的資料
 declare module "hono" {
   interface ContextVariableMap {
-    validatedBody: any;
-    validatedQuery: any;
-    validatedParams: any;
+    validatedBody: unknown;
+    validatedQuery: unknown;
+    validatedParams: unknown;
   }
 }

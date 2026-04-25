@@ -7,7 +7,7 @@ export interface AuthUser {
   id: number;
   username: string;
   role: number;
-  restaurantId?: string;
+  restaurantId?: string | number;
   fullName?: string;
   email?: string;
   phone?: string;
@@ -22,10 +22,39 @@ interface TokenUserRecord {
   tokenVersion: number;
 }
 
+interface AuthTokenPayload {
+  id: number;
+  username: string;
+  role: number;
+  exp: number;
+  iat?: number;
+  nbf?: number;
+  tv?: number;
+  restaurantId?: string | number;
+}
+
 declare module "hono" {
   interface ContextVariableMap {
     user: AuthUser;
   }
+}
+
+function isAuthTokenPayload(decoded: unknown): decoded is AuthTokenPayload {
+  if (!decoded || typeof decoded !== "object") return false;
+
+  const payload = decoded as Record<string, unknown>;
+  return (
+    typeof payload.id === "number" &&
+    typeof payload.username === "string" &&
+    typeof payload.role === "number" &&
+    typeof payload.exp === "number" &&
+    (payload.iat === undefined || typeof payload.iat === "number") &&
+    (payload.nbf === undefined || typeof payload.nbf === "number") &&
+    (payload.tv === undefined || typeof payload.tv === "number") &&
+    (payload.restaurantId === undefined ||
+      typeof payload.restaurantId === "string" ||
+      typeof payload.restaurantId === "number")
+  );
 }
 
 // JWT 認證中間件工廠。`maxRole` 界定最大可接受的角色值：
@@ -64,15 +93,15 @@ function createAuthMiddleware(maxRole: number) {
         }
       }
 
-      const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+      const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
 
-      if (!decoded || typeof decoded !== "object") {
-        throw unauthorized("Invalid token", "TOKEN_INVALID");
+      if (!isAuthTokenPayload(decoded)) {
+        throw unauthorized("Invalid token claims", "TOKEN_INVALID");
       }
 
       const now = Math.floor(Date.now() / 1000);
 
-      if (!decoded.exp || decoded.exp <= now) {
+      if (decoded.exp <= now) {
         throw unauthorized("Token has expired", "TOKEN_EXPIRED");
       }
 
@@ -82,14 +111,6 @@ function createAuthMiddleware(maxRole: number) {
 
       if (decoded.nbf && decoded.nbf > now + 60) {
         throw unauthorized("Token not yet valid", "TOKEN_INVALID");
-      }
-
-      if (
-        !decoded.id ||
-        !decoded.username ||
-        typeof decoded.role !== "number"
-      ) {
-        throw unauthorized("Invalid token claims", "TOKEN_INVALID");
       }
 
       if (decoded.role < 0 || decoded.role > maxRole) {
@@ -205,18 +226,15 @@ export const sseAuthMiddleware = async (
       }
     }
 
-    const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+    const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
 
-    if (!decoded || typeof decoded !== "object") {
-      throw unauthorized("Invalid token", "TOKEN_INVALID");
+    if (!isAuthTokenPayload(decoded)) {
+      throw unauthorized("Invalid token claims", "TOKEN_INVALID");
     }
 
     const now = Math.floor(Date.now() / 1000);
-    if (!decoded.exp || decoded.exp <= now) {
+    if (decoded.exp <= now) {
       throw unauthorized("Token has expired", "TOKEN_EXPIRED");
-    }
-    if (!decoded.id || !decoded.username || typeof decoded.role !== "number") {
-      throw unauthorized("Invalid token claims", "TOKEN_INVALID");
     }
 
     const userRecord = await loadTokenUser(c, decoded.id);
@@ -344,7 +362,7 @@ export const requireRestaurantAccess = (
     }
 
     // 檢查是否有餐廳存取權限
-    if (!user.restaurantId || user.restaurantId !== restaurantId) {
+    if (!user.restaurantId || String(user.restaurantId) !== restaurantId) {
       throw forbidden("Access denied to this restaurant", "FORBIDDEN");
     }
 
@@ -395,9 +413,9 @@ export const optionalAuth = async (
         }
       }
 
-      const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+      const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
 
-      if (decoded && typeof decoded === "object") {
+      if (isAuthTokenPayload(decoded)) {
         c.set("user", {
           id: decoded.id,
           username: decoded.username,
