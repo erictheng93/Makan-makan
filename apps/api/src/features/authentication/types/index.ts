@@ -238,7 +238,7 @@ export interface SecurityEvent {
   ipAddress?: string;
   userAgent?: string;
   location?: LocationInfo;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   timestamp: Date;
 }
@@ -404,7 +404,7 @@ export interface AuthConfig {
 export interface AuthError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export const AUTH_ERROR_CODES = {

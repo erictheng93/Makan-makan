@@ -45,7 +45,10 @@ function isAuthTokenPayload(decoded: unknown): decoded is AuthTokenPayload {
   const payload = decoded as Record<string, unknown>;
   return (
     typeof payload.id === "number" &&
+    Number.isInteger(payload.id) &&
+    payload.id > 0 &&
     typeof payload.username === "string" &&
+    payload.username.length > 0 &&
     typeof payload.role === "number" &&
     typeof payload.exp === "number" &&
     (payload.iat === undefined || typeof payload.iat === "number") &&

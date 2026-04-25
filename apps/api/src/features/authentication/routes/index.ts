@@ -35,6 +35,7 @@ import type {
   RegisterData,
   DeviceInfo,
   LocationInfo,
+  IAuthService,
 } from "../types";
 
 // Create feature logger
@@ -57,28 +58,7 @@ export type BlacklistTokenFn = (
 /**
  * Service factory type for dependency injection
  */
-export type AuthServiceFactory = (env: Env) => {
-  login: (data: LoginData) => Promise<any>;
-  register: (data: RegisterData, createdBy?: number) => Promise<any>;
-  refreshToken: (token: string) => Promise<any>;
-  logout: (userId: number, token?: string) => Promise<boolean>;
-  validateToken: (token: string) => Promise<any>;
-  changePassword: (
-    userId: number,
-    currentPassword: string,
-    newPassword: string,
-  ) => Promise<any>;
-  getUserSessions: (userId: number) => Promise<any[]>;
-  terminateSession: (userId: number, sessionId: string) => Promise<boolean>;
-  terminateAllSessions: (userId: number) => Promise<boolean>;
-  getUserProfile: (userId: number) => Promise<any>;
-  updateUserProfile: (userId: number, data: any) => Promise<any>;
-  requestPasswordReset: (identifier: string) => Promise<any>;
-  resetPassword: (token: string, newPassword: string) => Promise<any>;
-  verifyEmail: (token: string) => Promise<any>;
-  getAuthStatistics: (timeRange?: string) => Promise<any>;
-  getSecurityEvents: (userId?: number, limit?: number) => Promise<any[]>;
-};
+export type AuthServiceFactory = (env: Env) => IAuthService;
 
 /**
  * Dependencies that can be injected for testing
@@ -91,7 +71,7 @@ export interface AuthRouteDependencies {
 }
 
 // Helper function to extract device and location info from request
-function extractRequestInfo(c: any): {
+function extractRequestInfo(c: Context<{ Bindings: Env }>): {
   deviceInfo: DeviceInfo;
   location: LocationInfo;
 } {
