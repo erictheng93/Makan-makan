@@ -6,9 +6,49 @@ import {
 } from "@makanmakan/shared-types";
 import { getCurrentTimestamp } from "@makanmakan/database";
 
-interface DatabaseConnection {
-  prepare(sql: string): any;
-  exec(sql: string): any;
+export type SqlValue = string | number | boolean | Date | null | undefined;
+
+export interface PreparedStatement {
+  get<T = unknown>(...params: SqlValue[]): T | undefined;
+  all<T = unknown>(...params: SqlValue[]): T[];
+  run(...params: SqlValue[]): unknown;
+}
+
+export interface DatabaseConnection {
+  prepare(sql: string): PreparedStatement;
+  exec(sql: string): unknown;
+}
+
+interface PaymentProviderRow {
+  id: number;
+  name: string;
+  display_name: string;
+  is_active: number | boolean;
+  supported_countries: string;
+  supported_methods: string;
+  test_mode: number | boolean;
+  webhook_endpoint?: string;
+}
+
+interface ProviderConfigRow {
+  config_data: string;
+  config_hash: string;
+}
+
+interface ProviderIdRow {
+  id: number;
+}
+
+interface CountryPaymentConfigRow {
+  country_code: CountryCode;
+  currency_code: CountryPaymentConfig["currency"];
+  supported_methods: string;
+  primary_provider: string;
+  fallback_providers?: string | null;
+  minimum_amount: number;
+  maximum_amount: number;
+  tax_rate: number;
+  processing_fee_rate: number;
 }
 
 /**
@@ -171,7 +211,7 @@ export class PaymentConfigManager {
       WHERE name = ? AND is_active = 1
     `);
 
-    const row = stmt.get(name);
+    const row = stmt.get<PaymentProviderRow>(name);
     if (!row) return null;
 
     return {
@@ -193,8 +233,8 @@ export class PaymentConfigManager {
       ORDER BY name
     `);
 
-    const rows = stmt.all();
-    return rows.map((row: any) => ({
+    const rows = stmt.all<PaymentProviderRow>();
+    return rows.map((row) => ({
       name: row.name,
       displayName: row.display_name,
       isActive: Boolean(row.is_active),
@@ -230,7 +270,7 @@ export class PaymentConfigManager {
     config: Partial<PaymentProviderConfig>,
   ): Promise<void> {
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: SqlValue[] = [];
 
     if (config.displayName !== undefined) {
       updates.push("display_name = ?");
@@ -279,7 +319,7 @@ export class PaymentConfigManager {
   async getProviderConfig(
     providerId: string,
     countryCode: CountryCode,
-  ): Promise<Record<string, any> | null> {
+  ): Promise<Record<string, unknown> | null> {
     const stmt = this.db.prepare(`
       SELECT ppc.config_data, ppc.config_hash
       FROM payment_provider_configs ppc
@@ -287,7 +327,7 @@ export class PaymentConfigManager {
       WHERE pp.name = ? AND ppc.country_code = ?
     `);
 
-    const row = stmt.get(providerId, countryCode);
+    const row = stmt.get<ProviderConfigRow>(providerId, countryCode);
     if (!row) return null;
 
     try {
@@ -314,7 +354,7 @@ export class PaymentConfigManager {
   async setProviderConfig(
     providerId: string,
     countryCode: CountryCode,
-    config: Record<string, any>,
+    config: Record<string, unknown>,
     isPrimary: boolean = false,
     isTestMode: boolean = true,
   ): Promise<void> {
@@ -332,7 +372,7 @@ export class PaymentConfigManager {
     const providerStmt = this.db.prepare(`
       SELECT id FROM payment_providers WHERE name = ?
     `);
-    const provider = providerStmt.get(providerId);
+    const provider = providerStmt.get<ProviderIdRow>(providerId);
     if (!provider) {
       throw new Error(`Provider not found: ${providerId}`);
     }
@@ -373,7 +413,7 @@ export class PaymentConfigManager {
       WHERE country_code = ?
     `);
 
-    const row = stmt.get(countryCode);
+    const row = stmt.get<CountryPaymentConfigRow>(countryCode);
     if (!row) return null;
 
     return {
@@ -397,7 +437,7 @@ export class PaymentConfigManager {
       ORDER BY country_code
     `);
 
-    const rows = stmt.all();
+    const rows = stmt.all<CountryPaymentConfigRow>();
     const configs = new Map<CountryCode, CountryPaymentConfig>();
 
     for (const row of rows) {
@@ -469,7 +509,7 @@ export class PaymentConfigManager {
       WHERE pp.is_active = 1 
       AND json_extract(pp.supported_countries, '$') LIKE ?
     `;
-    const params: any[] = [`%"${countryCode}"%`];
+    const params: SqlValue[] = [`%"${countryCode}"%`];
 
     if (paymentMethod) {
       sql += ` AND json_extract(pp.supported_methods, '$') LIKE ?`;
@@ -477,9 +517,9 @@ export class PaymentConfigManager {
     }
 
     const stmt = this.db.prepare(sql);
-    const rows = stmt.all(...params);
+    const rows = stmt.all<PaymentProviderRow>(...params);
 
-    return rows.map((row: any) => ({
+    return rows.map((row) => ({
       name: row.name,
       displayName: row.display_name,
       isActive: Boolean(row.is_active),

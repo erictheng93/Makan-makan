@@ -1,5 +1,13 @@
-import { PaymentOrchestrator } from "./PaymentOrchestrator";
-import { PaymentConfigManager } from "./PaymentConfigManager";
+import {
+  PaymentOrchestrator,
+  type PaymentOrchestratorConfig,
+  type WebhookPayloadInput,
+} from "./PaymentOrchestrator";
+import {
+  PaymentConfigManager,
+  type DatabaseConnection,
+  type SqlValue,
+} from "./PaymentConfigManager";
 import { getCurrentTimestamp } from "@makanmakan/database";
 import { notFound, conflict } from "../shared/utils/api-error";
 // import { StripeProvider } from './providers/StripeProvider' // Temporarily disabled
@@ -21,14 +29,48 @@ import {
 } from "@makanmakan/shared-types";
 
 interface PaymentServiceConfig {
-  database: any;
-  orchestratorConfig?: any;
+  database: DatabaseConnection;
+  orchestratorConfig?: Partial<PaymentOrchestratorConfig>;
 }
+
+interface PaymentTransactionRow {
+  transaction_id: string;
+  provider_name: string;
+  provider_transaction_id?: string | null;
+  amount: number;
+  status: PaymentStatus;
+}
+
+interface CreateRefundTransactionInput {
+  refundId: string;
+  paymentTransactionId: string;
+  amount: number;
+  reason?: string;
+  status: string;
+}
+
+interface RefundTransactionUpdate {
+  status?: string;
+  providerRefundId?: string;
+  error?: RefundResult["error"];
+}
+
+interface PaymentStatisticsRow {
+  country_code: string;
+  provider_name: string;
+  payment_method: string;
+  total_transactions: number;
+  successful_transactions: number;
+  failed_transactions: number;
+  total_amount: number;
+}
+
+type WebhookEventPayload = Record<string, unknown> & { type?: string };
 
 export class PaymentService {
   private orchestrator: PaymentOrchestrator;
   private configManager: PaymentConfigManager;
-  private db: any;
+  private db: DatabaseConnection;
 
   constructor(config: PaymentServiceConfig) {
     this.db = config.database;
@@ -539,7 +581,7 @@ export class PaymentService {
 
   async handleWebhook(
     providerId: string,
-    payload: any,
+    payload: WebhookPayloadInput,
     signature?: string,
   ): Promise<WebhookResult> {
     try {
@@ -584,7 +626,7 @@ export class PaymentService {
     amount: number;
     currency: string;
     country: string;
-    customerInfo?: any;
+    customerInfo?: PaymentRequest["customerInfo"];
     status: string;
   }): Promise<void> {
     const now = getCurrentTimestamp();
@@ -618,12 +660,12 @@ export class PaymentService {
       status?: string;
       providerId?: string;
       providerTransactionId?: string;
-      metadata?: any;
-      error?: any;
+      metadata?: PaymentResult["metadata"];
+      error?: PaymentResult["error"];
     },
   ): Promise<void> {
     const setParts: string[] = [];
-    const values: any[] = [];
+    const values: SqlValue[] = [];
     const now = getCurrentTimestamp();
 
     if (updates.status) {
@@ -689,14 +731,18 @@ export class PaymentService {
     stmt.run(updates.status, now, providerTransactionId, providerId);
   }
 
-  private async getPaymentTransaction(transactionId: string): Promise<any> {
+  private async getPaymentTransaction(
+    transactionId: string,
+  ): Promise<PaymentTransactionRow | undefined> {
     const stmt = this.db.prepare(`
       SELECT * FROM payment_transactions WHERE transaction_id = ?
     `);
-    return stmt.get(transactionId);
+    return stmt.get<PaymentTransactionRow>(transactionId);
   }
 
-  private async createRefundTransaction(data: any): Promise<void> {
+  private async createRefundTransaction(
+    data: CreateRefundTransactionInput,
+  ): Promise<void> {
     const now = getCurrentTimestamp();
     const stmt = this.db.prepare(`
       INSERT INTO refund_transactions (
@@ -716,7 +762,7 @@ export class PaymentService {
 
   private async updateRefundTransaction(
     refundId: string,
-    updates: any,
+    updates: RefundTransactionUpdate,
   ): Promise<void> {
     const now = getCurrentTimestamp();
     const stmt = this.db.prepare(`
@@ -737,9 +783,13 @@ export class PaymentService {
 
   private async logWebhookEvent(
     providerId: string,
-    payload: any,
+    payload: WebhookPayloadInput,
     signature?: string,
   ): Promise<void> {
+    const eventPayload =
+      typeof payload === "object" && payload !== null
+        ? (payload as WebhookEventPayload)
+        : undefined;
     const now = getCurrentTimestamp();
     const stmt = this.db.prepare(`
       INSERT INTO webhook_events (
@@ -749,7 +799,7 @@ export class PaymentService {
 
     stmt.run(
       providerId,
-      payload.type || "unknown",
+      eventPayload?.type || "unknown",
       JSON.stringify(payload),
       signature,
       now,
@@ -780,7 +830,7 @@ export class PaymentService {
     startDate: Date,
     endDate: Date,
     countryCode?: CountryCode,
-  ): Promise<any> {
+  ): Promise<PaymentStatisticsRow[]> {
     let sql = `
       SELECT 
         country_code,
@@ -794,7 +844,7 @@ export class PaymentService {
       WHERE created_at BETWEEN ? AND ?
     `;
 
-    const params: any[] = [startDate, endDate];
+    const params: SqlValue[] = [startDate, endDate];
 
     if (countryCode) {
       sql += " AND country_code = ?";
@@ -804,7 +854,7 @@ export class PaymentService {
     sql += " GROUP BY country_code, provider_name, payment_method";
 
     const stmt = this.db.prepare(sql);
-    return stmt.all(...params);
+    return stmt.all<PaymentStatisticsRow>(...params);
   }
 
   getConfigManager(): PaymentConfigManager {

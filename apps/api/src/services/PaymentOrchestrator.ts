@@ -11,11 +11,15 @@ import {
   CountryPaymentConfig,
 } from "@makanmakan/shared-types";
 
-interface PaymentOrchestratorConfig {
+export interface PaymentOrchestratorConfig {
   defaultTimeout: number;
   maxRetries: number;
   fallbackEnabled: boolean;
 }
+
+export type WebhookPayloadInput = Parameters<
+  PaymentProvider["handleWebhook"]
+>[0];
 
 export class PaymentOrchestrator {
   private providers = new Map<string, PaymentProvider>();
@@ -229,7 +233,7 @@ export class PaymentOrchestrator {
 
   async handleWebhook(
     providerId: string,
-    payload: any,
+    payload: WebhookPayloadInput,
     signature?: string,
   ): Promise<WebhookResult> {
     const provider = this.providers.get(providerId);
