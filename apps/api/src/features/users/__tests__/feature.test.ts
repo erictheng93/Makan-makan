@@ -157,7 +157,11 @@ describe("Users Feature Module", () => {
           },
         });
 
-        const formatted = usersService.formatUser(rawUser);
+        // Factory uses number FK + ms timestamps (matches DB integer schema);
+        // formatUser's UserRecord uses string forms (FormattedUser API shape).
+        const formatted = usersService.formatUser(
+          rawUser as unknown as Parameters<typeof usersService.formatUser>[0],
+        );
 
         // Factory 生成的數據已包含所有必要字段
         expect(formatted).toHaveProperty("id", rawUser.id);

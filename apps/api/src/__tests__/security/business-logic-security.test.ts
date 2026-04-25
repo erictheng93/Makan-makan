@@ -166,6 +166,13 @@ function createMockAuthService() {
     verifyEmail: vi.fn(),
     getAuthStatistics: vi.fn(),
     getSecurityEvents: vi.fn(),
+    setupTwoFactor: vi.fn(),
+    verifyTwoFactor: vi.fn(),
+    disableTwoFactor: vi.fn(),
+    generateBackupCodes: vi.fn(),
+    requestEmailVerification: vi.fn(),
+    logSecurityEvent: vi.fn(),
+    checkAccountSecurity: vi.fn(),
   };
 }
 

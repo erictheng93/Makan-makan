@@ -15,7 +15,7 @@ import {
  * 用戶測試數據
  */
 export interface UserTestData {
-  id?: number;
+  id: number;
   username: string;
   email: string;
   phone: string;

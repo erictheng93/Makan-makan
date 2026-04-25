@@ -479,8 +479,8 @@ export class PaymentService {
 
       // 否則從提供商查詢最新狀態
       const status = await this.orchestrator.getPaymentStatus(
-        transaction.providerTransactionId || transaction.transactionId,
-        transaction.providerId,
+        transaction.provider_transaction_id || transaction.transaction_id,
+        transaction.provider_name,
       );
 
       // 如果狀態有變化，更新資料庫
@@ -530,7 +530,7 @@ export class PaymentService {
       // 執行退款
       const refundRequest: RefundRequest = {
         transactionId:
-          transaction.providerTransactionId || transaction.transactionId,
+          transaction.provider_transaction_id || transaction.transaction_id,
         amount: request.amount,
         reason: request.reason,
         metadata: request.metadata,
@@ -538,7 +538,7 @@ export class PaymentService {
 
       const result = await this.orchestrator.refundPayment(
         refundRequest,
-        transaction.providerId,
+        transaction.provider_name,
       );
 
       // 更新退款記錄

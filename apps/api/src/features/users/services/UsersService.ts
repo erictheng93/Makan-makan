@@ -67,7 +67,10 @@ export class UsersService {
     return false;
   }
 
-  canViewUser(currentUser: CurrentUser, targetUser: UserRecord): boolean {
+  canViewUser(
+    currentUser: CurrentUser,
+    targetUser: { id: number; restaurantId?: string | number | null },
+  ): boolean {
     return (
       currentUser.role === USER_ROLES.ADMIN ||
       currentUser.id === targetUser.id ||
@@ -76,7 +79,14 @@ export class UsersService {
     );
   }
 
-  canUpdateUser(currentUser: CurrentUser, targetUser: UserRecord): boolean {
+  canUpdateUser(
+    currentUser: CurrentUser,
+    targetUser: {
+      id: number;
+      role: number;
+      restaurantId?: string | number | null;
+    },
+  ): boolean {
     return (
       currentUser.role === USER_ROLES.ADMIN ||
       currentUser.id === targetUser.id ||

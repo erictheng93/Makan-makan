@@ -204,7 +204,7 @@ describe("UsersService", () => {
     });
 
     it("regular user cannot view other users", () => {
-      const targetUser = { id: 200, restaurantId: 1 };
+      const targetUser = { id: 200, restaurantId: "1" };
       expect(usersService.canViewUser(mockChefUser, targetUser)).toBe(false);
     });
   });
