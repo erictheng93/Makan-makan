@@ -37,7 +37,15 @@ import type {
 import type { TableFilters } from "../types";
 
 const app = new Hono<{ Bindings: Env }>();
-type TablesContext = Context<{ Bindings: Env }>;
+type TablesContext = Context<{
+  Bindings: Env;
+  Variables: {
+    validatedBody?: unknown;
+    validatedQuery?: unknown;
+    validatedParams?: unknown;
+    user: import("../../../middleware/auth").AuthUser;
+  };
+}>;
 
 /**
  * Get restaurant tables

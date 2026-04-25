@@ -7,7 +7,7 @@ import { z } from "zod";
 
 // Base analytics query schema
 export const analyticsQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: z.string().regex(/^\d+$/).optional(),
   dateFrom: z.string().datetime().optional(),
   dateTo: z.string().datetime().optional(),
   groupBy: z.enum(["day", "week", "month", "year"]).default("day"),
@@ -16,7 +16,7 @@ export const analyticsQuerySchema = z.object({
 
 // Dashboard query schema
 export const dashboardQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: z.string().regex(/^\d+$/).optional(),
   period: z.enum(["today", "week", "month", "year"]).default("today"),
 });
 
@@ -45,7 +45,7 @@ export const exportQuerySchema = analyticsQuerySchema.extend({
 
 // Real-time dashboard query schema
 export const realtimeDashboardQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: z.string().regex(/^\d+$/).optional(),
 });
 
 // Detailed performance query schema
@@ -62,12 +62,12 @@ export const detailedPerformanceQuerySchema = analyticsQuerySchema.extend({
 
 // Owner dashboard query schema
 export const ownerDashboardQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: z.string().regex(/^\d+$/).optional(),
 });
 
 // Financial report query schema
 export const financialReportQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: z.string().regex(/^\d+$/).optional(),
   period: z.enum(["daily", "weekly", "monthly", "yearly"]).default("monthly"),
   year: z
     .string()

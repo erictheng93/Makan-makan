@@ -174,7 +174,7 @@ app.post(
     const item = await service.createMenuItem({
       ...data,
       restaurantId,
-    });
+    } as Parameters<typeof service.createMenuItem>[0]);
 
     return c.json(
       createSuccessResponse(item, "Menu item created successfully"),
@@ -211,7 +211,11 @@ app.put(
       throw forbidden("Access denied");
     }
 
-    const item = await service.updateMenuItem(id, data, existingItem);
+    const item = await service.updateMenuItem(
+      id,
+      data as Parameters<typeof service.updateMenuItem>[1],
+      existingItem,
+    );
 
     return c.json(
       createSuccessResponse(item, "Menu item updated successfully"),
@@ -351,7 +355,7 @@ app.post(
     const category = await service.createCategory({
       ...data,
       restaurantId,
-    });
+    } as Parameters<typeof service.createCategory>[0]);
 
     return c.json(
       createSuccessResponse(category, "Category created successfully"),

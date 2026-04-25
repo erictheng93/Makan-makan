@@ -49,7 +49,11 @@ routes.get(
 
     // For owners, only show their restaurant data
     const targetRestaurantId =
-      user.role === 1 ? user.restaurantId : restaurantId;
+      user.role === 1
+        ? user.restaurantId == null
+          ? undefined
+          : String(user.restaurantId)
+        : restaurantId;
 
     const dashboardData = await analyticsService.getDashboardData(
       targetRestaurantId,
@@ -86,7 +90,12 @@ routes.get(
     // For owners, only show their restaurant data
     const filters = {
       ...query,
-      restaurantId: user.role === 1 ? user.restaurantId : query.restaurantId,
+      restaurantId:
+        user.role === 1
+          ? user.restaurantId == null
+            ? undefined
+            : String(user.restaurantId)
+          : query.restaurantId,
     };
 
     const revenueData = await analyticsService.getRevenueAnalytics(filters);
@@ -120,7 +129,12 @@ routes.get(
     // For owners, only show their restaurant data
     const filters = {
       ...query,
-      restaurantId: user.role === 1 ? user.restaurantId : query.restaurantId,
+      restaurantId:
+        user.role === 1
+          ? user.restaurantId == null
+            ? undefined
+            : String(user.restaurantId)
+          : query.restaurantId,
     };
 
     const productData = await analyticsService.getProductAnalytics(filters);
@@ -154,7 +168,12 @@ routes.get(
     // For owners, only show their restaurant data
     const filters = {
       ...query,
-      restaurantId: user.role === 1 ? user.restaurantId : query.restaurantId,
+      restaurantId:
+        user.role === 1
+          ? user.restaurantId == null
+            ? undefined
+            : String(user.restaurantId)
+          : query.restaurantId,
     };
 
     const customerData = await analyticsService.getCustomerAnalytics(filters);
@@ -188,7 +207,12 @@ routes.get(
     // For non-admin users, only show their restaurant data
     const filters = {
       ...query,
-      restaurantId: user.role >= 1 ? user.restaurantId : query.restaurantId,
+      restaurantId:
+        user.role >= 1
+          ? user.restaurantId == null
+            ? undefined
+            : String(user.restaurantId)
+          : query.restaurantId,
     };
 
     const performanceData =
@@ -223,7 +247,12 @@ routes.get(
     // For owners, only allow their restaurant data
     const exportRequest = {
       ...query,
-      restaurantId: user.role === 1 ? user.restaurantId : query.restaurantId,
+      restaurantId:
+        user.role === 1
+          ? user.restaurantId == null
+            ? undefined
+            : String(user.restaurantId)
+          : query.restaurantId,
     };
 
     const exportResult = await analyticsService.generateExport(exportRequest);
@@ -253,7 +282,11 @@ routes.get(
 
     // For non-admin users, only show their restaurant data
     const targetRestaurantId =
-      user.role >= 1 ? user.restaurantId : restaurantId;
+      user.role >= 1
+        ? user.restaurantId == null
+          ? undefined
+          : String(user.restaurantId)
+        : restaurantId;
 
     const realtimeData =
       await analyticsService.getRealtimeData(targetRestaurantId);
@@ -288,7 +321,12 @@ routes.get(
     // For non-admin users, only show their restaurant data
     const filters = {
       ...query,
-      restaurantId: user.role >= 1 ? user.restaurantId : query.restaurantId,
+      restaurantId:
+        user.role >= 1
+          ? user.restaurantId == null
+            ? undefined
+            : String(user.restaurantId)
+          : query.restaurantId,
     };
 
     const detailedPerformanceData =
@@ -323,7 +361,11 @@ routes.get(
 
     // For owners, only show their restaurant data
     const targetRestaurantId =
-      user.role === 1 ? user.restaurantId : restaurantId;
+      user.role === 1
+        ? user.restaurantId == null
+          ? undefined
+          : String(user.restaurantId)
+        : restaurantId;
 
     const ownerDashboardData =
       await analyticsService.getDashboardData(targetRestaurantId);
@@ -358,7 +400,12 @@ routes.get(
     // For owners, only show their restaurant data
     const filters = {
       ...query,
-      restaurantId: user.role === 1 ? user.restaurantId : query.restaurantId,
+      restaurantId:
+        user.role === 1
+          ? user.restaurantId == null
+            ? undefined
+            : String(user.restaurantId)
+          : query.restaurantId,
     };
 
     const financialReportData =

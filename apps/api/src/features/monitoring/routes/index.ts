@@ -195,7 +195,10 @@ app.put(
     const updates = c.get("validatedBody");
     const monitoringService = createMonitoringService(c.env.CACHE_KV);
 
-    const success = await monitoringService.updateAlertRule(ruleId, updates);
+    const success = await monitoringService.updateAlertRule(
+      ruleId,
+      updates as Parameters<typeof monitoringService.updateAlertRule>[1],
+    );
 
     if (!success) {
       return c.json({ success: false, error: "Alert rule not found" }, 404);

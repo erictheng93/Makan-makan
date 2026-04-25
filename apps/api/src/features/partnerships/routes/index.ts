@@ -61,7 +61,7 @@ routes.post(
     const partnership = await service.createPartnership({
       ...data,
       createdBy: user.id,
-    });
+    } as unknown as Parameters<typeof service.createPartnership>[0]);
 
     return c.json({
       success: true,
@@ -164,7 +164,10 @@ routes.put(
     const data = c.get("validatedBody");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-    const partnership = await service.updatePartnership(id, data);
+    const partnership = await service.updatePartnership(
+      id,
+      data as Parameters<typeof service.updatePartnership>[1],
+    );
 
     return c.json({
       success: true,
@@ -220,7 +223,7 @@ routes.post(
     const plan = await service.createPlan({
       ...data,
       createdBy: user.id,
-    });
+    } as unknown as Parameters<typeof service.createPlan>[0]);
 
     return c.json({
       success: true,
@@ -321,7 +324,10 @@ routes.put(
     const data = c.get("validatedBody");
     const service = new PartnershipService(c.env.DB as any, c.env as any);
 
-    const plan = await service.updatePlan(planId, data);
+    const plan = await service.updatePlan(
+      planId,
+      data as Parameters<typeof service.updatePlan>[1],
+    );
 
     return c.json({
       success: true,
@@ -454,7 +460,9 @@ routes.post(
     const member = await service.approveMember(
       memberId,
       user.id,
-      data.verificationExpiry,
+      data.verificationExpiry == null
+        ? undefined
+        : new Date(data.verificationExpiry),
     );
 
     return c.json({
@@ -541,7 +549,7 @@ routes.post(
     const usageLog = await service.logUsage({
       ...data,
       verifiedByUserId: user.id,
-    });
+    } as unknown as Parameters<typeof service.logUsage>[0]);
 
     return c.json({
       success: true,

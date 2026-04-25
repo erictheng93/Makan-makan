@@ -612,7 +612,7 @@ app.post(
     const request = await service.createSwapRequest({
       ...data,
       restaurantId,
-    });
+    } as Parameters<typeof service.createSwapRequest>[0]);
 
     return c.json(
       createSuccessResponse(request, "Swap request created successfully"),

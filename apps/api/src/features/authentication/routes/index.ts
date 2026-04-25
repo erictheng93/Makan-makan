@@ -70,8 +70,12 @@ export interface AuthRouteDependencies {
   AuthService?: AuthServiceFactory;
 }
 
-// Helper function to extract device and location info from request
-function extractRequestInfo(c: Context<{ Bindings: Env }>): {
+// Helper function to extract device and location info from request.
+// Generic over Variables so callers from chains with validatedBody/Query/etc.
+// can pass their typed Context without widening to `any`.
+function extractRequestInfo<V extends Record<string, unknown>>(
+  c: Context<{ Bindings: Env; Variables: V }>,
+): {
   deviceInfo: DeviceInfo;
   location: LocationInfo;
 } {

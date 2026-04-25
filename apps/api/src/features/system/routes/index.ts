@@ -39,7 +39,7 @@ routes.post(
     );
 
     const result = await systemService.createErrorReport(
-      { errors },
+      { errors } as Parameters<typeof systemService.createErrorReport>[0],
       user.id,
       user.restaurantId == null ? null : String(user.restaurantId),
       userAgent,
@@ -232,7 +232,11 @@ routes.get(
 
     // For owners, only show their restaurant data
     const restaurantId =
-      user.role === 1 ? user.restaurantId : query.restaurantId;
+      user.role === 1
+        ? user.restaurantId == null
+          ? undefined
+          : String(user.restaurantId)
+        : query.restaurantId;
 
     const result = await systemService.getErrorStats(restaurantId);
 

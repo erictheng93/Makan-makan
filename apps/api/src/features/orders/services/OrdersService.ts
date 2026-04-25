@@ -153,7 +153,9 @@ export class OrdersService implements IOrdersService {
         items: data.items.map((item) => ({
           menuItemId: item.menuItemId, // Keep as number
           quantity: item.quantity,
-          customizations: item.customizations,
+          customizations: item.customizations as
+            | SelectedCustomizations
+            | undefined,
           notes: item.notes,
         })),
         notes: data.notes,

@@ -608,11 +608,7 @@ app.get(
 
     logger.debug("Getting order details", { orderId: id, userId: user.id });
 
-    const order = await ordersService.getOrder(
-      parseInt(id),
-      true,
-      toCallerContext(user),
-    );
+    const order = await ordersService.getOrder(id, true, toCallerContext(user));
 
     if (!order) {
       throw notFound("Order not found");
@@ -654,7 +650,7 @@ app.put(
     });
 
     // Get existing order for permission checks
-    const existingOrder = await ordersService.getOrder(parseInt(id));
+    const existingOrder = await ordersService.getOrder(id);
     if (!existingOrder) {
       throw notFound("Order not found");
     }
@@ -670,7 +666,7 @@ app.put(
     }
 
     const updatedOrder = await ordersService.updateOrderStatus(
-      parseInt(id),
+      id,
       {
         status: stringToOrderStatus(data.status),
         notes: data.notes,
@@ -715,7 +711,7 @@ app.put(
     c.executionCtx?.waitUntil(
       broadcastOrderUpdate(
         c.env,
-        parseInt(id),
+        id,
         updatedOrder,
         existingOrder.restaurantId,
         targetRoles,
@@ -730,10 +726,7 @@ app.put(
             const { PlatformOrderService } =
               await import("../../integrations/services/PlatformOrderService");
             const platformService = new PlatformOrderService(c.env);
-            await platformService.syncStatusToPlatform(
-              parseInt(id),
-              data.status,
-            );
+            await platformService.syncStatusToPlatform(id, data.status);
           } catch (err) {
             logger.error(
               "Failed to sync status to platform",
@@ -770,7 +763,7 @@ app.delete(
     logger.info("Cancelling order", { orderId: id, userId: user.id });
 
     // Get order for permission check
-    const order = await ordersService.getOrder(parseInt(id));
+    const order = await ordersService.getOrder(id);
     if (!order) {
       throw notFound("Order not found");
     }
@@ -781,7 +774,7 @@ app.delete(
     }
 
     const cancelledOrder = await ordersService.cancelOrder(
-      parseInt(id),
+      id,
       "Cancelled by user",
       user.id,
       toCallerContext(user),
@@ -816,7 +809,7 @@ app.delete(
     c.executionCtx?.waitUntil(
       broadcastOrderUpdate(
         c.env,
-        parseInt(id),
+        id,
         cancelledOrder,
         order.restaurantId,
         [0, 1, 2, 3], // All relevant staff
@@ -876,13 +869,25 @@ app.post(
 
     logger.info("Exporting orders", { format: data.format, userId: user.id });
 
-    // Apply role-based filtering
-    const filters = data.filters || {};
+    // Apply role-based filtering — exportOrdersSchema spreads orderFilterSchema flat,
+    // so filter fields live alongside `format`/`includeItems`/etc on `data`.
+    const {
+      format,
+      includeItems,
+      includeCustomerInfo,
+      columns,
+      ...filterFields
+    } = data;
+    void includeItems;
+    void includeCustomerInfo;
+    void columns;
+    const filters: Record<string, unknown> = { ...filterFields };
     if (user.role === 1) {
-      filters.restaurantId = user.restaurantId;
+      filters.restaurantId =
+        user.restaurantId == null ? undefined : String(user.restaurantId);
     }
 
-    const exportData = await ordersService.exportOrders(filters, data.format);
+    const exportData = await ordersService.exportOrders(filters, format);
 
     // Set appropriate headers
     const filename = `orders-${new Date().toISOString().split("T")[0]}.${data.format}`;
@@ -931,7 +936,7 @@ app.get(
     });
 
     // Get order first to check permissions
-    const order = await ordersService.getOrder(parseInt(id));
+    const order = await ordersService.getOrder(id);
     if (!order) {
       throw notFound("Order not found");
     }
@@ -947,7 +952,7 @@ app.get(
       throw forbidden("Access denied");
     }
 
-    const receipt = await ordersService.generateReceipt(parseInt(id));
+    const receipt = await ordersService.generateReceipt(id);
 
     return c.json({
       success: true,

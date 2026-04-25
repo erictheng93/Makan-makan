@@ -89,8 +89,10 @@ app.post(
     const type = await service.createLeaveType({
       ...data,
       restaurantId,
+      // createdBy is intentionally added at the route layer for audit trail; the
+      // DB-package CreateLeaveTypeData type omits it, so widen via cast.
       createdBy: user.id,
-    });
+    } as unknown as Parameters<typeof service.createLeaveType>[0]);
 
     return c.json(
       createSuccessResponse(type, "Leave type created successfully"),
@@ -335,9 +337,14 @@ app.post(
       data.endPeriod,
     );
 
+    if (data.employeeId == null) {
+      throw badRequest("employeeId is required");
+    }
+    const employeeId = data.employeeId;
+
     // Check if employee has sufficient balance
     const balance = await service.getLeaveBalance(
-      data.employeeId,
+      employeeId,
       data.leaveTypeId,
       new Date().getFullYear(),
     );
@@ -350,9 +357,10 @@ app.post(
 
     const request = await service.createLeaveRequest({
       ...data,
+      employeeId,
       restaurantId,
       totalDays,
-    });
+    } as Parameters<typeof service.createLeaveRequest>[0]);
 
     return c.json(
       createSuccessResponse(request, "Leave request created successfully"),
