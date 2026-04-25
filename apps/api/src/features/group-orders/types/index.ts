@@ -43,7 +43,7 @@ export interface GroupOrderCartItem extends BaseEntity {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  customizations: Record<string, any>;
+  customizations: Record<string, unknown>;
   specialInstructions?: string;
 }
 
@@ -101,13 +101,13 @@ export interface AddCartItemRequest {
   memberId: string;
   menuItemId: number;
   quantity: number;
-  customizations?: Record<string, any>;
+  customizations?: Record<string, unknown>;
   specialInstructions?: string;
 }
 
 export interface UpdateCartItemRequest {
   quantity?: number;
-  customizations?: Record<string, any>;
+  customizations?: Record<string, unknown>;
   specialInstructions?: string;
 }
 
@@ -118,7 +118,7 @@ export interface SplitBillRequest {
   customSplits?: Array<{
     memberId: string;
     amount: number;
-    items: any[];
+    items: unknown[];
   }>;
   customAmounts?: Array<{
     memberId: string;
@@ -130,7 +130,7 @@ export interface ProcessPaymentRequest {
   paymentMethod: string;
   amount?: number; // Optional - will use amount from split_bills if not provided
   transactionId?: string;
-  paymentDetails?: Record<string, any>; // Additional payment details (card info, etc.)
+  paymentDetails?: Record<string, unknown>; // Additional payment details (card info, etc.)
 }
 
 // Response Types
@@ -156,7 +156,7 @@ export interface GroupOrderActivity extends BaseEntity {
   memberName?: string;
   type: ActivityType;
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -223,12 +223,12 @@ export interface IGroupOrderService {
   splitBill(
     groupOrderId: string,
     splitData: SplitBillRequest,
-  ): Promise<{ success: boolean; data?: any; error?: string }>;
+  ): Promise<{ success: boolean; data?: unknown; error?: string }>;
   processPayment(
     groupOrderId: string,
     memberId: string,
     paymentData: ProcessPaymentRequest,
-  ): Promise<{ success: boolean; data?: any; error?: string }>;
+  ): Promise<{ success: boolean; data?: unknown; error?: string }>;
 
   // Group management
   leaveGroup(
@@ -251,7 +251,7 @@ export interface IGroupOrderService {
 export interface GroupOrderError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export const GROUP_ORDER_ERROR_CODES = {
@@ -290,7 +290,10 @@ export type GroupOrderEvent =
         action: "added" | "updated" | "removed";
       };
     }
-  | { type: "BILL_SPLIT"; payload: { groupOrderId: string; splitData: any } }
+  | {
+      type: "BILL_SPLIT";
+      payload: { groupOrderId: string; splitData: unknown };
+    }
   | {
       type: "PAYMENT_MADE";
       payload: { groupOrderId: string; memberId: string; amount: number };
