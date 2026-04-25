@@ -100,7 +100,7 @@ export class BackupController {
     try {
       const backupId = c.req.param("id");
 
-      if (!this.validationService.isValidUUID(backupId)) {
+      if (!backupId || !this.validationService.isValidUUID(backupId)) {
         return c.json(
           {
             success: false,
@@ -150,7 +150,7 @@ export class BackupController {
     try {
       const backupId = c.req.param("id");
 
-      if (!this.validationService.isValidUUID(backupId)) {
+      if (!backupId || !this.validationService.isValidUUID(backupId)) {
         return c.json(
           {
             success: false,
@@ -210,7 +210,7 @@ export class BackupController {
       const request = (await c.req.json()) as RestoreBackupRequest;
       const user = c.get("user");
 
-      if (!this.validationService.isValidUUID(backupId)) {
+      if (!backupId || !this.validationService.isValidUUID(backupId)) {
         return c.json(
           {
             success: false,
@@ -276,7 +276,7 @@ export class BackupController {
       const backupId = c.req.param("id");
       const user = c.get("user");
 
-      if (!this.validationService.isValidUUID(backupId)) {
+      if (!backupId || !this.validationService.isValidUUID(backupId)) {
         return c.json(
           {
             success: false,
@@ -328,7 +328,7 @@ export class BackupController {
     try {
       const restaurantId = c.req.param("restaurant_id");
 
-      if (!this.validationService.isValidUUID(restaurantId)) {
+      if (!restaurantId || !this.validationService.isValidUUID(restaurantId)) {
         return c.json(
           {
             success: false,
@@ -448,7 +448,7 @@ export class BackupController {
       const restaurantId = c.req.param("restaurant_id");
       const period = c.req.query("period") || "week";
 
-      if (!this.validationService.isValidUUID(restaurantId)) {
+      if (!restaurantId || !this.validationService.isValidUUID(restaurantId)) {
         return c.json(
           {
             success: false,
@@ -491,7 +491,7 @@ export class BackupController {
       const restaurantId = c.req.param("restaurant_id");
       const unresolved_only = c.req.query("unresolved_only") === "true";
 
-      if (!this.validationService.isValidUUID(restaurantId)) {
+      if (!restaurantId || !this.validationService.isValidUUID(restaurantId)) {
         return c.json(
           {
             success: false,

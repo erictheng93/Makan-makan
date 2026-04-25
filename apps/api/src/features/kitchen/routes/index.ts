@@ -9,7 +9,7 @@ import { moduleGate } from "../../../middleware/moduleGate";
 import type { Env } from "../../../types/env";
 import { KitchenService } from "../services/KitchenService";
 import { createSuccessResponse } from "../../../shared/utils/response";
-import { forbidden } from "../../../shared/utils/api-error";
+import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -28,6 +28,8 @@ app.get(
   moduleGate("kitchen_display"),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
     const user = c.get("user");
     const kitchenService = new KitchenService(c.env);
 
@@ -105,6 +107,8 @@ app.get(
   moduleGate("kitchen_display"),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
     const user = c.get("user");
     const kitchenService = new KitchenService(c.env);
 
@@ -133,8 +137,16 @@ app.put(
   moduleGate("kitchen_display"),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
-    const orderId = parseInt(c.req.param("orderId"));
-    const itemId = parseInt(c.req.param("itemId"));
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
+    const orderIdParam = c.req.param("orderId");
+    if (!orderIdParam)
+      throw badRequest("Missing orderId parameter", "MISSING_PARAM");
+    const itemIdParam = c.req.param("itemId");
+    if (!itemIdParam)
+      throw badRequest("Missing itemId parameter", "MISSING_PARAM");
+    const orderId = parseInt(orderIdParam);
+    const itemId = parseInt(itemIdParam);
     const statusUpdate = await c.req.json();
     const user = c.get("user");
     const kitchenService = new KitchenService(c.env);

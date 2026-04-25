@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@makanmakan/utils": "workspace:*",
-    "axios": "^1.6.0"
+    "axios": "^1.15.2"
   },
   "devDependencies": {
     "typescript": "^5.3.0",

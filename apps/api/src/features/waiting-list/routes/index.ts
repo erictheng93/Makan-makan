@@ -73,6 +73,7 @@ app.post("/", async (c) => {
  */
 app.get("/:id", async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new WaitingListService(c.env.DB, c.env);
 
   const entry = await service.getWaitingListEntryById(id);
@@ -129,6 +130,7 @@ app.get("/estimate-wait/:restaurantId", async (c) => {
  */
 app.delete("/:id", async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const { customerPhone } = await c.req.json();
 
   if (!customerPhone) {
@@ -158,6 +160,7 @@ app.delete("/:id", async (c) => {
  */
 app.post("/:id/confirm", async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new WaitingListService(c.env.DB, c.env);
 
   const confirmed = await service.confirmWaiting(id);
@@ -213,6 +216,7 @@ app.get("/", requireRole([0, 1, 3, 4]), async (c) => {
  */
 app.post("/:id/call", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const body = await c.req.json<CallWaitingRequest>();
   const service = new WaitingListService(c.env.DB, c.env);
 
@@ -238,6 +242,7 @@ app.post("/:id/call", requireRole([0, 1, 3, 4]), async (c) => {
  */
 app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new WaitingListService(c.env.DB, c.env);
   const user = c.get("user");
   await requireEntryAccess(service, id, user);
@@ -257,6 +262,7 @@ app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
  */
 app.post("/:id/expire", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new WaitingListService(c.env.DB, c.env);
   const user = c.get("user");
   await requireEntryAccess(service, id, user);
@@ -276,6 +282,8 @@ app.post("/:id/expire", requireRole([0, 1, 3, 4]), async (c) => {
  */
 app.get("/stats/:restaurantId", requireRole([0, 1]), async (c) => {
   const restaurantId = c.req.param("restaurantId");
+  if (!restaurantId)
+    throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
   const date = c.req.query("date"); // YYYY-MM-DD
   const service = new WaitingListService(c.env.DB, c.env);
 

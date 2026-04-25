@@ -104,6 +104,8 @@ app.get("/:restaurantId/status", async (c) => {
  */
 app.post("/:restaurantId/call-next", authMiddleware, async (c) => {
   const restaurantId = c.req.param("restaurantId");
+  if (!restaurantId)
+    throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
   const user = c.get("user");
 
   // Check restaurant permission
@@ -234,6 +236,8 @@ app.get("/restaurant/:restaurantId", async (c) => {
  */
 app.post("/:restaurantId/migrate", authMiddleware, async (c) => {
   const restaurantId = c.req.param("restaurantId");
+  if (!restaurantId)
+    throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
   const user = c.get("user");
 
   // Only admins can migrate

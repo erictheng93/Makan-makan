@@ -35,7 +35,7 @@
     "@makanmakan/utils": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "bcryptjs": "^2.4.3",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.2",
     "jsonwebtoken": "^9.0.2",
     "uuid": "^11.0.0",
     "zod": "^3.22.0"

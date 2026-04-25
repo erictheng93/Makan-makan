@@ -28,7 +28,7 @@
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.4.1",
     "fflate": "^0.8.2",
-    "hono": "^4.9.6",
+    "hono": "^4.12.15",
     "jsonwebtoken": "^9.0.2",
     "qrcode": "^1.5.4",
     "zod": "^3.25.76"
@@ -41,7 +41,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/qrcode": "^1.5.6",
     "@vitest/coverage-v8": "^3.2.4",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.2",
     "sql.js": "^1.13.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",

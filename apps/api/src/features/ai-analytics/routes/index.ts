@@ -30,6 +30,8 @@ const routes = new Hono<{
  */
 routes.get("/config/:restaurantId", moduleGate("ai_analytics"), async (c) => {
   const restaurantId = c.req.param("restaurantId");
+  if (!restaurantId)
+    throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
   const user = c.get("user");
   const userRole = user.role;
 
@@ -188,6 +190,8 @@ routes.get(
   validateQuery(productQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
     const { timeRange, limit } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
@@ -220,6 +224,8 @@ routes.get(
   validateQuery(productQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
     const { timeRange, limit } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
@@ -252,6 +258,8 @@ routes.get(
   validateQuery(productQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
     const { timeRange, limit } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
@@ -284,6 +292,8 @@ routes.get(
   validateQuery(productQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
     const { timeRange } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
@@ -312,6 +322,8 @@ routes.get(
   validateQuery(usageQuerySchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
     const { startDate, endDate } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);

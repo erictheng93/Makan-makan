@@ -28,10 +28,10 @@
     "@stripe/stripe-js": "^4.0.0",
     "@tailwindcss/forms": "^0.5.0",
     "@vueuse/core": "^10.7.0",
-    "axios": "^1.6.0",
+    "axios": "^1.15.2",
     "chart.js": "^4.5.0",
     "date-fns": "^3.0.0",
-    "jspdf": "^3.0.3",
+    "jspdf": "^4.2.1",
     "lodash-es": "^4.17.0",
     "lucide-vue-next": "^0.344.0",
     "papaparse": "^5.5.3",
@@ -43,7 +43,7 @@
     "vue-i18n": "^9.14.5",
     "vue-router": "^4.2.0",
     "vue-toastification": "^2.0.0-rc.5",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@makanmakan/testing-utils": "workspace:*",

@@ -113,6 +113,7 @@ app.get("/availability", async (c) => {
  */
 app.delete("/:id/cancel", async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const { confirmationCode, reason } = await c.req.json();
 
   if (!confirmationCode) {
@@ -190,6 +191,7 @@ app.get("/", requireRole([0, 1, 4]), async (c) => {
  */
 app.get("/:id", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
   const reservation = await service.getReservationById(id);
@@ -219,6 +221,7 @@ app.get("/:id", requireRole([0, 1, 3, 4]), async (c) => {
  */
 app.put("/:id", requireRole([0, 1, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const body = await c.req.json<UpdateReservationRequest>();
   const service = new ReservationService(c.env.DB, c.env);
 
@@ -251,6 +254,7 @@ app.put("/:id", requireRole([0, 1, 4]), async (c) => {
  */
 app.post("/:id/confirm", requireRole([0, 1, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
   const confirmed = await service.confirmReservation(id);
@@ -268,6 +272,7 @@ app.post("/:id/confirm", requireRole([0, 1, 4]), async (c) => {
  */
 app.post("/:id/arrive", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
   const arrived = await service.markArrived(id);
@@ -285,6 +290,7 @@ app.post("/:id/arrive", requireRole([0, 1, 3, 4]), async (c) => {
  */
 app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
   const seated = await service.markSeated(id);
@@ -302,6 +308,7 @@ app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
  */
 app.post("/:id/complete", requireRole([0, 1, 3, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
   const completed = await service.completeReservation(id);
@@ -319,6 +326,7 @@ app.post("/:id/complete", requireRole([0, 1, 3, 4]), async (c) => {
  */
 app.post("/:id/no-show", requireRole([0, 1, 4]), async (c) => {
   const id = c.req.param("id");
+  if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
   const noShow = await service.markNoShow(id);
@@ -336,6 +344,8 @@ app.post("/:id/no-show", requireRole([0, 1, 4]), async (c) => {
  */
 app.get("/stats/:restaurantId", requireRole([0, 1]), async (c) => {
   const restaurantId = c.req.param("restaurantId");
+  if (!restaurantId)
+    throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
   const date = c.req.query("date"); // YYYY-MM-DD
   const service = new ReservationService(c.env.DB, c.env);
 

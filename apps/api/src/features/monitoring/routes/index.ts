@@ -21,6 +21,7 @@ import {
 } from "../schemas/validation";
 import type { Env } from "../../../types/env";
 import type { MonitoringOverview, PerformanceReport } from "../types";
+import { badRequest } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -190,6 +191,7 @@ app.put(
   validateBody(updateAlertRuleSchema),
   async (c) => {
     const ruleId = c.req.param("id");
+    if (!ruleId) throw badRequest("Missing id parameter", "MISSING_PARAM");
     const updates = c.get("validatedBody");
     const monitoringService = createMonitoringService(c.env.CACHE_KV);
 
@@ -216,6 +218,7 @@ app.delete(
   requireRole([0, 1]),
   async (c) => {
     const ruleId = c.req.param("id");
+    if (!ruleId) throw badRequest("Missing id parameter", "MISSING_PARAM");
     const monitoringService = createMonitoringService(c.env.CACHE_KV);
 
     const success = await monitoringService.deleteAlertRule(ruleId);
