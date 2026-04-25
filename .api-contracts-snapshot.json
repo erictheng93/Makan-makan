@@ -108,9 +108,7 @@
   },
   "kitchen": {
     "GetKitchenOrdersResponse": ["data", "message", "success"],
-    "UpdateItemStatusResponse": ["data", "message", "success"],
-    "KitchenConnectionsResponse": ["data", "message", "success"],
-    "BroadcastTestResponse": ["data", "message", "success"]
+    "UpdateItemStatusResponse": ["data", "message", "success"]
   },
   "leaves": {
     "ListLeaveTypesResponse": ["data", "success"],
@@ -144,7 +142,10 @@
   "orders": {
     "OrderItemSchema": [
       "customizations",
+      "description",
       "id",
+      "imageUrl",
+      "itemSnapshot",
       "menuItemId",
       "name",
       "notes",
