@@ -40,6 +40,15 @@ import type {
   IAuthService,
 } from "../types";
 
+interface DatabaseSessionSummary {
+  id: number;
+  deviceInfo?: string | null;
+  location?: string | null;
+  lastAccessedAt?: string | number | Date | null;
+  expiresAt: string | number | Date;
+  createdAt: string | number | Date;
+}
+
 export class AuthService implements IAuthService {
   private db: ReturnType<typeof getDatabaseConnection>;
   private dbAuthService: DatabaseAuthService;
@@ -632,7 +641,7 @@ export class AuthService implements IAuthService {
 
       // Transform to match our interface
       const sessionSummaries: SessionSummary[] = sessions.map(
-        (session: any) => ({
+        (session: DatabaseSessionSummary) => ({
           id: session.id,
           deviceInfo: session.deviceInfo,
           location: session.location,
