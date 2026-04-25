@@ -29,6 +29,13 @@ import type {
   IQRTemplateService,
 } from "../types";
 
+interface QRBatchStatus {
+  totalCodes?: number | null;
+  total_codes?: number | null;
+  restaurantId?: string | number | null;
+  restaurant_id?: string | number | null;
+}
+
 export class QrCodesService implements IQRCodeService, IQRTemplateService {
   private db: ReturnType<typeof getDatabaseConnection>;
   private qrService: QRCodeService;
@@ -386,7 +393,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
 
   private async renderBatchArchive(
     batchId: string,
-    batch: any,
+    batch: QRBatchStatus,
   ): Promise<Buffer> {
     const totalCodes = Number(batch.totalCodes ?? batch.total_codes ?? 0);
     const restaurantId = String(
