@@ -349,10 +349,12 @@ export class BackupSchedulerService {
         ORDER BY bs.next_run_at ASC
       `);
 
-      return ((results as any).results || []).map((row: any) => ({
+      const rows =
+        (results as { results?: Record<string, unknown>[] }).results || [];
+      return rows.map((row) => ({
         configuration: this.parseConfiguration(row),
-        scheduled_time: row.next_run_at,
-        restaurant_name: row.restaurant_name,
+        scheduled_time: row.next_run_at as string,
+        restaurant_name: row.restaurant_name as string,
       }));
     } catch (error) {
       console.error("Error fetching upcoming backups:", error);
@@ -510,7 +512,9 @@ export class BackupSchedulerService {
     `);
   }
 
-  private parseConfiguration(row: any): BackupConfiguration {
+  private parseConfiguration(
+    row: Record<string, unknown>,
+  ): BackupConfiguration {
     return {
       ...row,
       restaurant_id: row.restaurantId ?? row.restaurant_id,
@@ -536,6 +540,6 @@ export class BackupSchedulerService {
       created_by: row.createdBy ?? row.created_by,
       created_at: row.createdAt ?? row.created_at,
       updated_at: row.updatedAt ?? row.updated_at,
-    };
+    } as BackupConfiguration;
   }
 }

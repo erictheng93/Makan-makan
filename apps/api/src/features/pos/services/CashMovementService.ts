@@ -3,7 +3,7 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, type SQL } from "drizzle-orm";
 import { cashMovements, cashShifts } from "@makanmakan/database";
 import type {
   CashMovement as _CashMovement,
@@ -76,7 +76,17 @@ export class CashMovementService {
       page?: number;
       limit?: number;
     },
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: {
+      movements: (typeof cashMovements.$inferSelect & {
+        denominationBreakdown: unknown;
+        metadata: unknown;
+      })[];
+      pagination: { page: number; limit: number; hasMore: boolean };
+    };
+    error?: string;
+  }> {
     try {
       const { type, page = 1, limit = 20 } = options || {};
       const offset = (page - 1) * limit;
@@ -97,13 +107,15 @@ export class CashMovementService {
       return {
         success: true,
         data: {
-          movements: movements.map((movement: any) => ({
-            ...movement,
-            denominationBreakdown: JSON.parse(
-              (movement.denominationBreakdown as string) || "{}",
-            ),
-            metadata: JSON.parse((movement.metadata as string) || "{}"),
-          })),
+          movements: movements.map(
+            (movement: typeof cashMovements.$inferSelect) => ({
+              ...movement,
+              denominationBreakdown: JSON.parse(
+                (movement.denominationBreakdown as string) || "{}",
+              ),
+              metadata: JSON.parse((movement.metadata as string) || "{}"),
+            }),
+          ),
           pagination: {
             page,
             limit,
@@ -126,15 +138,22 @@ export class CashMovementService {
   async getCashCount(
     registerId: string,
     date?: string,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: (typeof cashMovements.$inferSelect & {
+      denominationBreakdown: unknown;
+      metadata: unknown;
+    })[];
+    error?: string;
+  }> {
     try {
-      const conditions = [
+      const conditions: SQL[] = [
         eq(cashMovements.registerId, registerId),
         eq(cashMovements.type, "count"),
       ];
 
       if (date) {
-        conditions.push(sql`DATE(${cashMovements.createdAt}) = ${date}` as any);
+        conditions.push(sql`DATE(${cashMovements.createdAt}) = ${date}`);
       }
 
       const counts = await this.db
@@ -145,7 +164,7 @@ export class CashMovementService {
 
       return {
         success: true,
-        data: counts.map((count: any) => ({
+        data: counts.map((count: typeof cashMovements.$inferSelect) => ({
           ...count,
           denominationBreakdown: JSON.parse(
             (count.denominationBreakdown as string) || "{}",

@@ -67,6 +67,25 @@ export class KVCacheService implements CacheService {
   }
 }
 
+/**
+ * No-op cache service used when no KV namespace is available.
+ * Returns null/false but keeps the consumer code path simple.
+ */
+export class NoopCacheService implements CacheService {
+  async get<T>(_key: string): Promise<T | null> {
+    return null;
+  }
+  async set<T>(_key: string, _value: T, _ttl?: number): Promise<void> {
+    return;
+  }
+  async delete(_key: string): Promise<boolean> {
+    return false;
+  }
+  async clear(_pattern?: string): Promise<void> {
+    return;
+  }
+}
+
 // Cache key generators
 export const cacheKeys = {
   user: (id: number) => `user:${id}`,

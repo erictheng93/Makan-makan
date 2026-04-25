@@ -3,7 +3,7 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, type SQL } from "drizzle-orm";
 import {
   cashShifts,
   cashRegisters,
@@ -26,9 +26,11 @@ export class ReportService {
   /**
    * 生成班次報表
    */
-  async generateShiftReport(
-    shiftId: string,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  async generateShiftReport(shiftId: string): Promise<{
+    success: boolean;
+    data?: Record<string, unknown>;
+    error?: string;
+  }> {
     try {
       // 獲取班次基本資訊
       const [shift] = await this.db
@@ -87,8 +89,8 @@ export class ReportService {
           ...shift,
           duration: shift.endedAt
             ? Math.floor(
-                (new Date(shift.endedAt as any).getTime() -
-                  new Date(shift.startedAt as any).getTime()) /
+                (new Date(shift.endedAt).getTime() -
+                  new Date(shift.startedAt).getTime()) /
                   60000,
               )
             : null,
@@ -115,13 +117,15 @@ export class ReportService {
           cardOrders: orderStats?.cardOrders || 0,
           digitalOrders: orderStats?.digitalOrders || 0,
         },
-        movements: movements.map((movement: any) => ({
-          ...movement,
-          denominationBreakdown: JSON.parse(
-            (movement.denominationBreakdown as string) || "{}",
-          ),
-          metadata: JSON.parse((movement.metadata as string) || "{}"),
-        })),
+        movements: movements.map(
+          (movement: typeof cashMovements.$inferSelect) => ({
+            ...movement,
+            denominationBreakdown: JSON.parse(
+              (movement.denominationBreakdown as string) || "{}",
+            ),
+            metadata: JSON.parse((movement.metadata as string) || "{}"),
+          }),
+        ),
         receipts: receiptStats || {
           totalReceipts: 0,
           printedReceipts: 0,
@@ -163,9 +167,13 @@ export class ReportService {
   async getShiftStats(
     restaurantId: string,
     dateRange?: { from: Date; to: Date },
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: Record<string, unknown>;
+    error?: string;
+  }> {
     try {
-      const conditions: any[] = [eq(cashRegisters.restaurantId, restaurantId)];
+      const conditions: SQL[] = [eq(cashRegisters.restaurantId, restaurantId)];
 
       if (dateRange) {
         conditions.push(
@@ -211,7 +219,11 @@ export class ReportService {
   async getDailyReport(
     restaurantId: string,
     date: string,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: Record<string, unknown>;
+    error?: string;
+  }> {
     try {
       // 獲取當日班次
       const shifts = await this.db
@@ -324,10 +336,14 @@ export class ReportService {
   async getRegisterUsageStats(
     restaurantId: string,
     period: "day" | "week" | "month" = "day",
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: Record<string, unknown>;
+    error?: string;
+  }> {
     try {
-      let dateFilter: any;
-      let groupByExpr: any;
+      let dateFilter: SQL;
+      let groupByExpr: SQL;
 
       switch (period) {
         case "day":

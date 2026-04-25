@@ -215,7 +215,7 @@ API 使用標準 HTTP 狀態碼：
         bearerAuth: [],
       },
     ],
-  } as any);
+  } as Parameters<typeof app.doc>[1]);
 
   return app;
 };

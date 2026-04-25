@@ -4,7 +4,11 @@
  */
 
 import { AnalyticsService as DatabaseAnalyticsService } from "@makanmakan/database";
-import { KVCacheService, type CacheService } from "../../../core/cache";
+import {
+  KVCacheService,
+  NoopCacheService,
+  type CacheService,
+} from "../../../core/cache";
 import { notFound } from "../../../shared/utils/api-error";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
@@ -45,7 +49,7 @@ export class AnalyticsService implements IAnalyticsService {
 
   constructor(db: Env["DB"], env: Env, kv?: Env["CACHE_KV"]) {
     this.databaseService = new DatabaseAnalyticsService(db, env);
-    this.cache = kv ? new KVCacheService(kv) : new KVCacheService({} as any);
+    this.cache = kv ? new KVCacheService(kv) : new NoopCacheService();
     this.logger = new ConsoleLogger("AnalyticsService");
     this.env = env;
   }
@@ -70,7 +74,7 @@ export class AnalyticsService implements IAnalyticsService {
 
       // Get data from database service
       const dashboardData = await this.databaseService.getDashboardData(
-        restaurantId ? String(restaurantId) : (undefined as any),
+        restaurantId ? String(restaurantId) : "",
       );
 
       if (!dashboardData) {
@@ -300,7 +304,7 @@ export class AnalyticsService implements IAnalyticsService {
       // Get fresh data directly from database service (no caching for real-time)
       // Use databaseService.getDashboardData() to get full DashboardData including tableStatus
       const fullDashboardData = await this.databaseService.getDashboardData(
-        restaurantId ? String(restaurantId) : (undefined as any),
+        restaurantId ? String(restaurantId) : "",
       );
       const dashboardSummary = fullDashboardData.summary;
 

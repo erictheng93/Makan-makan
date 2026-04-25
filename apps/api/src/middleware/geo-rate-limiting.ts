@@ -20,6 +20,16 @@ interface AnalyticsEngine {
  * - Cost-optimized using Cloudflare's edge data
  */
 
+interface BlockData {
+  reason: string;
+  blockedAt: number;
+  blockedUntil: number;
+  escalationLevel: number;
+  threatScore: number;
+  country: string;
+  asn: string;
+}
+
 interface RateLimitConfig {
   requests: number;
   windowSeconds: number;
@@ -306,7 +316,11 @@ export class GeoIntelligentRateLimiter {
       }
 
       const now = Date.now();
-      const blockInfo = blockData as any;
+      const blockInfo = blockData as {
+        blockedUntil?: number;
+        reason?: string;
+        escalationLevel?: number;
+      };
 
       if (blockInfo.blockedUntil && now < blockInfo.blockedUntil) {
         return {
@@ -609,7 +623,7 @@ export class GeoIntelligentRateLimiter {
    */
   private recordSecurityBlock(
     identifier: string,
-    blockData: any,
+    blockData: BlockData,
     threatIntel: ThreatIntelligence,
   ): void {
     if (this.analyticsEngine) {
@@ -644,7 +658,7 @@ export class GeoIntelligentRateLimiter {
    */
   private async triggerSecurityAlert(
     identifier: string,
-    blockData: any,
+    blockData: BlockData,
     threatIntel: ThreatIntelligence,
   ): Promise<void> {
     try {
@@ -768,9 +782,11 @@ export function geoIntelligentRateLimitMiddleware(
 
     if (!result.allowed) {
       // Extract threat intelligence for blocking decision
-      const threatIntel = (rateLimiter as any).extractThreatIntelligence(
-        c.req.raw,
-      );
+      const threatIntel = (
+        rateLimiter as unknown as {
+          extractThreatIntelligence: (req: Request) => ThreatIntelligence;
+        }
+      ).extractThreatIntelligence(c.req.raw);
 
       // Block high-threat sources
       if (

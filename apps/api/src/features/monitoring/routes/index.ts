@@ -38,7 +38,7 @@ app.get("/health", async (c) => {
     statusCode = 200; // Warning state is still serviceable
   }
 
-  return c.json(healthStatus, statusCode as any);
+  return c.json(healthStatus, statusCode as 200 | 503);
 });
 
 // Get system metrics (admin + owner)
@@ -437,7 +437,18 @@ app.get(
 );
 
 // Helper function to generate recommendations
-function generateRecommendations(metrics: any): string[] {
+interface MetricsSummary {
+  apiMetrics: { averageResponseTime: number; errorRate: number };
+  databaseMetrics: {
+    averageQueryTime: number;
+    slowQueryCount: number;
+    queryCount: number;
+  };
+  cacheMetrics: { hitRate: number; totalSize: number };
+  errorMetrics: { criticalErrors: number };
+}
+
+function generateRecommendations(metrics: MetricsSummary): string[] {
   const recommendations: string[] = [];
 
   if (metrics.apiMetrics.averageResponseTime > 1000) {

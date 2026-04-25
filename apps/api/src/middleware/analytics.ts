@@ -444,7 +444,10 @@ export class AdvancedAnalyticsService {
     return "critical";
   }
 
-  private determineAlertingLevel(metrics: any): string {
+  private determineAlertingLevel(metrics: {
+    error_rate: number;
+    response_time: number;
+  }): string {
     if (metrics.error_rate > 0.05 || metrics.response_time > 5000)
       return "critical";
     if (metrics.error_rate > 0.02 || metrics.response_time > 2000)
@@ -452,7 +455,12 @@ export class AdvancedAnalyticsService {
     return "normal";
   }
 
-  private shouldAlert(metrics: any): boolean {
+  private shouldAlert(metrics: {
+    error_rate: number;
+    response_time: number;
+    cpu_time: number;
+    memory_used: number;
+  }): boolean {
     return (
       metrics.error_rate > 0.05 ||
       metrics.response_time > 5000 ||
@@ -463,7 +471,12 @@ export class AdvancedAnalyticsService {
 
   private async triggerPerformanceAlert(
     endpoint: string,
-    metrics: any,
+    metrics: {
+      response_time: number;
+      error_rate: number;
+      cpu_time: number;
+      memory_used: number;
+    },
   ): Promise<void> {
     try {
       // Send to alerting system (Slack, PagerDuty, etc.)
@@ -510,7 +523,12 @@ export class AdvancedAnalyticsService {
 
   private async triggerSecurityAlert(
     event: string,
-    details: any,
+    details: {
+      ip_address: string;
+      country: string;
+      threat_score: number;
+      action_taken: string;
+    },
   ): Promise<void> {
     try {
       if (this.env.SLACK_WEBHOOK_URL) {
@@ -629,7 +647,7 @@ export function advancedAnalyticsMiddleware() {
     const analyticsEngine = c.env.ANALYTICS_ENGINE || new MockAnalyticsEngine();
     // Create a mock execution context if not available (for testing)
     const executionCtx = c.executionCtx || {
-      waitUntil: (p: Promise<any>) => p,
+      waitUntil: (p: Promise<unknown>) => p,
     };
     const analytics = new AdvancedAnalyticsService(
       analyticsEngine,
@@ -638,7 +656,12 @@ export function advancedAnalyticsMiddleware() {
     );
 
     // Store analytics service in context
-    (c as any).set("analytics", analytics);
+    (
+      c as unknown as Context<{
+        Bindings: Env;
+        Variables: { analytics: AdvancedAnalyticsService };
+      }>
+    ).set("analytics", analytics);
 
     // Extract request metadata
     const metadata = {

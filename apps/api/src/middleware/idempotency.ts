@@ -1,4 +1,5 @@
 import type { Context, MiddlewareHandler, Next } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { Env } from "../types/env";
 import { ApiError } from "../shared/utils/api-error";
 
@@ -178,7 +179,7 @@ export function idempotencyMiddleware(
 
       if (existing.response_status != null) {
         return c.body(addDuplicateEffectsMarker(existing.response_body), {
-          status: existing.response_status as any,
+          status: existing.response_status as ContentfulStatusCode,
           headers: {
             "Content-Type": "application/json",
             "X-Idempotent-Replay": "true",
@@ -219,7 +220,7 @@ export function idempotencyMiddleware(
       }
       if (racedRecord?.response_status != null) {
         return c.body(addDuplicateEffectsMarker(racedRecord.response_body), {
-          status: racedRecord.response_status as any,
+          status: racedRecord.response_status as ContentfulStatusCode,
           headers: {
             "Content-Type": "application/json",
             "X-Idempotent-Replay": "true",

@@ -210,8 +210,13 @@ export function healthCheckMiddleware(
       }
 
       // 將健康狀態附加到上下文
-      (c as any).set("healthStatus", healthStatus);
-      c.status(httpStatus as any);
+      (
+        c as unknown as Context<{
+          Bindings: Env;
+          Variables: { healthStatus: unknown };
+        }>
+      ).set("healthStatus", healthStatus);
+      c.status(httpStatus as 200 | 503);
 
       await next();
     } catch (error) {
@@ -293,8 +298,20 @@ export function cacheMonitoringMiddleware(
     let cacheHits = 0;
     let cacheMisses = 0;
 
-    (c.env.CACHE_KV as any).get = async (key: string, options?: any) => {
-      const result = await originalGet(key, options);
+    const kvOverride = c.env.CACHE_KV as unknown as {
+      get: (key: string, options?: unknown) => Promise<unknown>;
+      put: (
+        key: string,
+        value: string | ArrayBuffer | ArrayBufferView | ReadableStream,
+        options?: unknown,
+      ) => Promise<unknown>;
+      delete: (key: string) => Promise<unknown>;
+    };
+
+    kvOverride.get = async (key: string, options?: unknown) => {
+      const result = await (
+        originalGet as (k: string, o?: unknown) => Promise<unknown>
+      )(key, options);
       if (result !== null) {
         cacheHits++;
       } else {
@@ -303,16 +320,22 @@ export function cacheMonitoringMiddleware(
       return result;
     };
 
-    (c.env.CACHE_KV as any).put = async (
+    kvOverride.put = async (
       key: string,
       value: string | ArrayBuffer | ArrayBufferView | ReadableStream,
-      options?: any,
+      options?: unknown,
     ) => {
-      const result = await originalPut(key, value, options);
+      const result = await (
+        originalPut as (
+          k: string,
+          v: string | ArrayBuffer | ArrayBufferView | ReadableStream,
+          o?: unknown,
+        ) => Promise<unknown>
+      )(key, value, options);
       return result;
     };
 
-    (c.env.CACHE_KV as any).delete = async (key: string) => {
+    kvOverride.delete = async (key: string) => {
       const result = await originalDelete(key);
       return result;
     };

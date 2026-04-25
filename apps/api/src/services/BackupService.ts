@@ -107,7 +107,7 @@ export class BackupService {
       }
 
       // Extract data from tables
-      const backupData: Record<string, any[]> = {};
+      const backupData: Record<string, Record<string, unknown>[]> = {};
       let totalRecords = 0;
 
       for (const tableName of backup.tables_included) {
@@ -203,7 +203,7 @@ export class BackupService {
 
     try {
       let sql = `SELECT * FROM backups WHERE restaurant_id = ?`;
-      const params: any[] = [restaurant_id];
+      const params: (string | number)[] = [restaurant_id];
 
       if (status) {
         sql += ` AND status = ?`;
@@ -245,7 +245,7 @@ export class BackupService {
 
       return {
         backups: result.results as unknown as BackupRecord[],
-        total: (countResult as any)?.total || 0,
+        total: (countResult as { total?: number } | null)?.total || 0,
       };
     } catch (error) {
       console.error("Error listing backups:", error);
@@ -340,7 +340,10 @@ export class BackupService {
   }
 
   async createOrUpdateConfiguration(
-    configInput: any,
+    configInput: Omit<
+      BackupConfiguration,
+      "id" | "created_by" | "created_at" | "updated_at" | "storage_provider"
+    >,
     userId: string,
   ): Promise<BackupConfiguration> {
     const config: BackupConfiguration = {
@@ -397,7 +400,7 @@ export class BackupService {
   async getRestaurantMetrics(
     restaurantId: string,
     timeframe?: string,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     console.log(
       "Getting metrics for restaurant:",
       restaurantId,
@@ -409,7 +412,7 @@ export class BackupService {
 
   async getRestaurantAlerts(
     restaurantId: string,
-    filters?: any,
+    filters?: Record<string, unknown>,
   ): Promise<BackupAlert[]> {
     console.log(
       "Getting alerts for restaurant:",
@@ -422,7 +425,7 @@ export class BackupService {
 
   async createAlertPublicPublic(
     alert: Partial<BackupAlert>,
-    context?: any,
+    context?: Record<string, unknown>,
   ): Promise<void> {
     console.log("Creating alert:", alert, "context:", context);
   }
@@ -501,11 +504,11 @@ export class BackupService {
   private async extractTableData(
     restaurantId: string,
     tableName: string,
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     const result = await this.db
       .prepare(`SELECT * FROM ${tableName} WHERE restaurant_id = ?`)
       .bind(restaurantId)
-      .all();
+      .all<Record<string, unknown>>();
 
     return result.results || [];
   }

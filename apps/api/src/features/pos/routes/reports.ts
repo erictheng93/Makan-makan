@@ -43,7 +43,7 @@ app.get(
       throw badRequest("需要指定餐廳ID");
     }
 
-    const reportService = new ReportService(c.env.DB as any);
+    const reportService = new ReportService(c.env.DB);
     const result = await reportService.getDailyReport(finalRestaurantId!, date);
 
     if (!result.success) {
@@ -88,7 +88,7 @@ app.get(
       throw badRequest("需要指定餐廳ID");
     }
 
-    const reportService = new ReportService(c.env.DB as any);
+    const reportService = new ReportService(c.env.DB);
     const result = await reportService.getRegisterUsageStats(
       finalRestaurantId!,
       period,
@@ -148,8 +148,12 @@ app.get(
       throw badRequest("需要指定餐廳ID");
     }
 
-    const reportService = new ReportService(c.env.DB as any);
-    let result: any;
+    const reportService = new ReportService(c.env.DB);
+    let result: {
+      success: boolean;
+      data?: Record<string, unknown>;
+      error?: string;
+    };
 
     switch (type) {
       case "daily":
@@ -222,9 +226,13 @@ app.get(
 /**
  * 簡化的CSV轉換函數
  */
-function convertToCSV(data: any, type: string): string {
+function convertToCSV(
+  data: Record<string, unknown> | undefined,
+  type: string,
+): string {
   // 這是一個簡化的實現，實際應用中需要更完整的CSV轉換邏輯
-  if (type === "daily") {
+  if (type === "daily" && data) {
+    const summary = (data.summary as Record<string, unknown>) || {};
     const headers = [
       "日期",
       "總訂單",
@@ -237,13 +245,13 @@ function convertToCSV(data: any, type: string): string {
     ];
     const row = [
       data.date,
-      data.summary.totalOrders,
-      data.summary.totalSales,
-      data.summary.totalTax,
-      data.summary.totalDiscounts,
-      data.summary.totalRefunds,
-      data.summary.totalRefundAmount,
-      data.summary.netSales,
+      summary.totalOrders,
+      summary.totalSales,
+      summary.totalTax,
+      summary.totalDiscounts,
+      summary.totalRefunds,
+      summary.totalRefundAmount,
+      summary.netSales,
     ];
     return [headers.join(","), row.join(",")].join("\n");
   }

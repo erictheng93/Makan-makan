@@ -283,7 +283,17 @@ export const menuExportQuerySchema = z.object({
 });
 
 // Complex validation functions
-export const validateMenuItemAvailability = (item: any) => {
+interface AvailabilityShape {
+  isAvailable?: boolean;
+  inventoryCount?: number;
+  availableHours?: {
+    start?: string;
+    end?: string;
+    days?: number[];
+  };
+}
+
+export const validateMenuItemAvailability = (item: AvailabilityShape) => {
   if (!item.isAvailable && item.inventoryCount === 0) {
     return false;
   }
@@ -328,7 +338,29 @@ export const validatePriceConsistency = (
   return true;
 };
 
-export const validateCustomizationOptions = (options: any) => {
+interface CustomizationChoice {
+  isDefault?: boolean;
+}
+
+interface CustomizationGroup {
+  name: string;
+  required?: boolean;
+  type?: string;
+  choices: CustomizationChoice[];
+}
+
+interface SizeOption {
+  isDefault?: boolean;
+}
+
+interface CustomizationOptions {
+  customizations?: CustomizationGroup[];
+  sizes?: SizeOption[];
+}
+
+export const validateCustomizationOptions = (
+  options: CustomizationOptions | null | undefined,
+) => {
   if (!options) return true;
 
   // Validate that at least one default option is selected for required customizations
@@ -336,7 +368,7 @@ export const validateCustomizationOptions = (options: any) => {
     for (const customization of options.customizations) {
       if (customization.required && customization.type === "single") {
         const hasDefault = customization.choices.some(
-          (choice: any) => choice.isDefault,
+          (choice) => choice.isDefault,
         );
         if (!hasDefault) {
           throw new Error(
@@ -349,7 +381,7 @@ export const validateCustomizationOptions = (options: any) => {
 
   // Validate size options
   if (options.sizes && options.sizes.length > 1) {
-    const defaultSizes = options.sizes.filter((size: any) => size.isDefault);
+    const defaultSizes = options.sizes.filter((size) => size.isDefault);
     if (defaultSizes.length !== 1) {
       throw new Error(
         "Exactly one size must be marked as default when multiple sizes are available",

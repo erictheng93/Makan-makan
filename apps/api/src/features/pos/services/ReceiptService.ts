@@ -3,8 +3,12 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, type SQL } from "drizzle-orm";
 import { receipts, orders, orderItems } from "@makanmakan/database";
+
+type OrderRow = typeof orders.$inferSelect;
+type ReceiptRow = typeof receipts.$inferSelect;
+type OrderItemRow = typeof orderItems.$inferSelect;
 import type { Receipt, PrintReceiptRequest } from "../types";
 import { printReceiptSchema } from "../schemas";
 
@@ -45,7 +49,7 @@ export class ReceiptService {
 
       // 生成收據內容
       const receiptContent = await this.generateReceiptContent(
-        order as any,
+        order,
         validatedData.templateName,
       );
 
@@ -79,7 +83,7 @@ export class ReceiptService {
         data: {
           ...receipt,
           content: JSON.parse((receipt.content as string) || "{}"),
-        } as any,
+        } as unknown as Receipt,
       };
     } catch (error) {
       console.error("打印收據失敗:", error);
@@ -149,7 +153,14 @@ export class ReceiptService {
       page?: number;
       limit?: number;
     },
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: {
+      receipts: Receipt[];
+      pagination: { page: number; limit: number; hasMore: boolean };
+    };
+    error?: string;
+  }> {
     try {
       const {
         startDate,
@@ -160,16 +171,14 @@ export class ReceiptService {
       } = options || {};
       const offset = (page - 1) * limit;
 
-      const conditions: any[] = [eq(receipts.registerId, registerId)];
+      const conditions: SQL[] = [eq(receipts.registerId, registerId)];
 
       if (startDate) {
-        conditions.push(
-          sql`DATE(${receipts.createdAt}) >= ${startDate}` as any,
-        );
+        conditions.push(sql`DATE(${receipts.createdAt}) >= ${startDate}`);
       }
 
       if (endDate) {
-        conditions.push(sql`DATE(${receipts.createdAt}) <= ${endDate}` as any);
+        conditions.push(sql`DATE(${receipts.createdAt}) <= ${endDate}`);
       }
 
       if (receiptType) {
@@ -187,10 +196,13 @@ export class ReceiptService {
       return {
         success: true,
         data: {
-          receipts: receiptList.map((receipt: any) => ({
-            ...receipt,
-            content: JSON.parse((receipt.content as string) || "{}"),
-          })),
+          receipts: receiptList.map(
+            (receipt: ReceiptRow) =>
+              ({
+                ...receipt,
+                content: JSON.parse((receipt.content as string) || "{}"),
+              }) as unknown as Receipt,
+          ),
           pagination: {
             page,
             limit,
@@ -212,7 +224,7 @@ export class ReceiptService {
    */
   async getReceiptDetail(
     receiptId: string,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{ success: boolean; data?: Receipt; error?: string }> {
     try {
       const [receipt] = await this.db
         .select()
@@ -232,7 +244,7 @@ export class ReceiptService {
         data: {
           ...receipt,
           content: JSON.parse((receipt.content as string) || "{}"),
-        },
+        } as unknown as Receipt,
       };
     } catch (error) {
       console.error("獲取收據詳情失敗:", error);
@@ -247,35 +259,41 @@ export class ReceiptService {
    * 生成收據內容
    */
   private async generateReceiptContent(
-    order: any,
+    order: OrderRow,
     templateName: string,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     // 獲取訂單項目
     const items = await this.db
       .select()
       .from(orderItems)
       .where(eq(orderItems.orderId, order.id));
 
+    // Some legacy records carry snake_case column duplicates — index loosely.
+    const o = order as OrderRow & Record<string, unknown>;
+
     return {
       template: templateName,
-      orderNumber: order.order_number || order.orderNumber,
-      customerName: order.customer_name || order.customerName,
-      tableNumber: order.table_number || order.tableNumber,
-      items: items.map((item: any) => ({
-        name: item.item_name || item.itemName || item.name,
-        quantity: item.quantity,
-        price: item.unitPrice || item.price,
-        subtotal: item.totalPrice || item.subtotal,
-        customizations:
-          typeof item.customizations === "string"
-            ? JSON.parse(item.customizations || "[]")
-            : item.customizations || [],
-      })),
-      subtotal: order.subtotal,
-      taxAmount: order.tax_amount || order.taxAmount,
-      discountAmount: order.discount_amount || order.discountAmount,
-      totalAmount: order.total_amount || order.totalAmount,
-      paymentMethod: order.payment_method || order.paymentMethod,
+      orderNumber: o.order_number || o.orderNumber,
+      customerName: o.customer_name || o.customerName,
+      tableNumber: o.table_number || o.tableNumber,
+      items: items.map((item: OrderItemRow) => {
+        const it = item as OrderItemRow & Record<string, unknown>;
+        return {
+          name: it.item_name || it.itemName || it.name,
+          quantity: it.quantity,
+          price: it.unitPrice || it.price,
+          subtotal: it.totalPrice || it.subtotal,
+          customizations:
+            typeof it.customizations === "string"
+              ? JSON.parse(it.customizations || "[]")
+              : it.customizations || [],
+        };
+      }),
+      subtotal: o.subtotal,
+      taxAmount: o.tax_amount || o.taxAmount,
+      discountAmount: o.discount_amount || o.discountAmount,
+      totalAmount: o.total_amount || o.totalAmount,
+      paymentMethod: o.payment_method || o.paymentMethod,
       timestamp: new Date().toISOString(),
       footer: "謝謝光臨 MakanMakan",
     };

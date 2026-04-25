@@ -55,7 +55,7 @@ export class RegisterService {
           ),
           peripherals: JSON.parse((register.peripherals as string) || "{}"),
           settings: JSON.parse((register.settings as string) || "{}"),
-        } as any,
+        } as unknown as CashRegister,
       };
     } catch (error) {
       console.error("創建收銀機失敗:", error);
@@ -79,12 +79,16 @@ export class RegisterService {
         .where(eq(cashRegisters.restaurantId, restaurantId))
         .orderBy(cashRegisters.name);
 
-      const registers = results.map((register: any) => ({
-        ...register,
-        hardwareConfig: JSON.parse((register.hardwareConfig as string) || "{}"),
-        peripherals: JSON.parse((register.peripherals as string) || "{}"),
-        settings: JSON.parse((register.settings as string) || "{}"),
-      })) as CashRegister[];
+      const registers = results.map(
+        (register: typeof cashRegisters.$inferSelect) => ({
+          ...register,
+          hardwareConfig: JSON.parse(
+            (register.hardwareConfig as string) || "{}",
+          ),
+          peripherals: JSON.parse((register.peripherals as string) || "{}"),
+          settings: JSON.parse((register.settings as string) || "{}"),
+        }),
+      ) as CashRegister[];
 
       return {
         success: true,
@@ -102,9 +106,11 @@ export class RegisterService {
   /**
    * 獲取收銀機狀態
    */
-  async getRegisterStatus(
-    registerId: string,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  async getRegisterStatus(registerId: string): Promise<{
+    success: boolean;
+    data?: CashRegister & { isShiftActive: boolean };
+    error?: string;
+  }> {
     try {
       const [status] = await this.db
         .select()
@@ -127,7 +133,7 @@ export class RegisterService {
           peripherals: JSON.parse((status.peripherals as string) || "{}"),
           settings: JSON.parse((status.settings as string) || "{}"),
           isShiftActive: !!status.currentShiftId,
-        },
+        } as unknown as CashRegister & { isShiftActive: boolean },
       };
     } catch (error) {
       console.error("獲取收銀機狀態失敗:", error);
@@ -146,7 +152,7 @@ export class RegisterService {
     data: Partial<CreateRegisterRequest>,
   ): Promise<{ success: boolean; data?: CashRegister; error?: string }> {
     try {
-      const updateData: Record<string, any> = {};
+      const updateData: Partial<typeof cashRegisters.$inferInsert> = {};
 
       if (data.name) {
         updateData.name = data.name;
@@ -199,7 +205,7 @@ export class RegisterService {
             (updatedRegister.peripherals as string) || "{}",
           ),
           settings: JSON.parse((updatedRegister.settings as string) || "{}"),
-        } as any,
+        } as unknown as CashRegister,
       };
     } catch (error) {
       console.error("更新收銀機失敗:", error);

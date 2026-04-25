@@ -36,7 +36,7 @@ app.post(
       throw badRequest("需要指定收銀機ID");
     }
 
-    const refundService = new RefundService(c.env.DB as any);
+    const refundService = new RefundService(c.env.DB);
     const result = await refundService.processRefund(
       data,
       registerId,
@@ -96,7 +96,7 @@ app.get(
     const { startDate, endDate, status, orderId, page, limit } =
       c.get("validatedQuery");
 
-    const refundService = new RefundService(c.env.DB as any);
+    const refundService = new RefundService(c.env.DB);
     const result = await refundService.getRefunds(registerId, {
       startDate,
       endDate,
@@ -133,7 +133,7 @@ app.get(
   async (c) => {
     const { refundId } = c.get("validatedParams");
 
-    const refundService = new RefundService(c.env.DB as any);
+    const refundService = new RefundService(c.env.DB);
     const result = await refundService.getRefundDetail(refundId);
 
     if (!result.success) {
@@ -167,7 +167,7 @@ app.post(
     const { refundId } = c.get("validatedParams");
     const user = c.get("user");
 
-    const refundService = new RefundService(c.env.DB as any);
+    const refundService = new RefundService(c.env.DB);
     const result = await refundService.approveRefund(refundId, user.id);
 
     if (!result.success) {
@@ -204,7 +204,7 @@ app.post(
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
 
-    const refundService = new RefundService(c.env.DB as any);
+    const refundService = new RefundService(c.env.DB);
     const result = await refundService.rejectRefund(refundId, user.id, reason);
 
     if (!result.success) {
@@ -241,7 +241,7 @@ app.post(
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
 
-    const refundService = new RefundService(c.env.DB as any);
+    const refundService = new RefundService(c.env.DB);
     const result = await refundService.cancelRefund(refundId, user.id, reason);
 
     if (!result.success) {

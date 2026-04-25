@@ -68,7 +68,12 @@ export class RealtimeBroadcastService {
         },
       );
 
-      const result = (await response.json()) as any;
+      const result = (await response.json()) as {
+        success: boolean;
+        error?: string;
+        eventId?: string;
+        recipientCount?: number;
+      };
 
       if (!result.success) {
         this.logger.error(

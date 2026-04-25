@@ -67,7 +67,7 @@ export class BackupController {
    */
   async listBackups(c: Context): Promise<Response> {
     try {
-      const query = c.req.query() as any as ListBackupsQuery;
+      const query = c.req.query() as unknown as ListBackupsQuery;
 
       // Verify restaurant access
       await this.validationService.verifyRestaurantAccess(
@@ -463,7 +463,7 @@ export class BackupController {
 
       const metrics = await this.backupService.getRestaurantMetrics(
         restaurantId,
-        period as any,
+        period,
       );
 
       return c.json({

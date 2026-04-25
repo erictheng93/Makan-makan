@@ -17,6 +17,15 @@ export interface GroupOrderSettings {
   expirationMinutes?: number;
   allowSplitBill?: boolean;
   defaultSplitType?: "equal" | "proportional" | "individual" | "custom";
+  permissions?: {
+    canInviteMembers?: boolean;
+    canModifyOthersCart?: boolean;
+    canFinalizeOrder?: boolean;
+    canSplitBill?: boolean;
+    canProcessPayment?: boolean;
+  };
+  notes?: string | null;
+  tableNumber?: string | null;
 }
 
 /**

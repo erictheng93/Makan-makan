@@ -41,7 +41,7 @@ app.post(
       throw forbidden("只能為自己開班");
     }
 
-    const shiftService = new ShiftService(c.env.DB as any);
+    const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.startShift(data);
 
     if (!result.success) {
@@ -70,7 +70,7 @@ app.post(
     const data = c.get("validatedBody");
     const user = c.get("user");
 
-    const shiftService = new ShiftService(c.env.DB as any);
+    const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.endShift(shiftId, data, user.id);
 
     if (!result.success) {
@@ -102,7 +102,7 @@ app.post(
     const { shiftId } = c.get("validatedParams");
     const { reason } = c.get("validatedBody");
 
-    const shiftService = new ShiftService(c.env.DB as any);
+    const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.suspendShift(shiftId, reason);
 
     if (!result.success) {
@@ -128,7 +128,7 @@ app.post(
   async (c) => {
     const { shiftId } = c.get("validatedParams");
 
-    const shiftService = new ShiftService(c.env.DB as any);
+    const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.resumeShift(shiftId);
 
     if (!result.success) {
@@ -158,7 +158,7 @@ app.get(
   async (c) => {
     const { registerId } = c.get("validatedParams");
 
-    const shiftService = new ShiftService(c.env.DB as any);
+    const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.getCurrentShift(registerId);
 
     if (!result.success) {
@@ -184,7 +184,7 @@ app.get(
   async (c) => {
     const { shiftId } = c.get("validatedParams");
 
-    const reportService = new ReportService(c.env.DB as any);
+    const reportService = new ReportService(c.env.DB);
     const result = await reportService.generateShiftReport(shiftId);
 
     if (!result.success) {
@@ -236,7 +236,7 @@ app.get(
           }
         : undefined;
 
-    const reportService = new ReportService(c.env.DB as any);
+    const reportService = new ReportService(c.env.DB);
     const result = await reportService.getShiftStats(restaurantId, dateRange);
 
     if (!result.success) {

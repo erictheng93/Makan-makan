@@ -49,11 +49,25 @@ import type {
   SelectedCustomizations,
 } from "../types";
 
+// Minimal KV surface used by this service. Both the real KVNamespace and the
+// vitest fakes used in tests are compatible with this — see notes on cacheKV.
+interface KVLike {
+  get(key: string, type?: "json"): Promise<unknown>;
+  put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ): Promise<unknown>;
+  delete(key: string): Promise<unknown>;
+}
+
 export class OrdersService implements IOrdersService {
   private baseOrderService: BaseOrderService;
   private couponService: CouponService;
   private realtimeBroadcastService: RealtimeBroadcastService;
-  private cacheKV: any; // KVNamespace — kept as any because test mocks don't implement full interface
+  // Loose KV interface — accepts both the real KVNamespace and vitest fakes.
+  // Only the methods we actually call are typed.
+  private cacheKV: KVLike;
   private logger: ConsoleLogger;
   private env: Env;
 

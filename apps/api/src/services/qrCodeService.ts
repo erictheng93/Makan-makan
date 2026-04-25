@@ -103,7 +103,7 @@ export class QRCodeService {
 
   constructor(env: Env) {
     this.env = env;
-    this.dbService = new DatabaseQRCodeService(env.DB as any, env);
+    this.dbService = new DatabaseQRCodeService(env.DB, env);
   }
 
   // 預設樣式模板
@@ -235,7 +235,7 @@ export class QRCodeService {
       id: string;
       url: string;
       downloadUrl: string;
-      metadata: any;
+      metadata: Record<string, unknown>;
     };
     error?: string;
   }> {
@@ -314,7 +314,7 @@ export class QRCodeService {
         downloadUrl: string;
       }>;
       bulkDownloadUrl?: string;
-      metadata: any;
+      metadata: Record<string, unknown>;
     };
     error?: string;
   }> {
@@ -425,16 +425,25 @@ export class QRCodeService {
 
       // 合併預設模板和自訂模板
       if (customTemplatesDb.length) {
-        const custom = customTemplatesDb.map((template: any) => ({
-          id: template.id.toString(),
-          name: template.name,
-          description: template.description || "",
-          category: "custom" as const, // 資料庫模板沒有category欄位，設為custom
-          style: JSON.parse(template.styleJson),
-          previewUrl: undefined,
-          createdAt: template.createdAt,
-          updatedAt: template.updatedAt,
-        }));
+        const custom = customTemplatesDb.map(
+          (template: {
+            id: number | string;
+            name: string;
+            description?: string | null;
+            styleJson: string;
+            createdAt: Date | string;
+            updatedAt: Date | string;
+          }) => ({
+            id: template.id.toString(),
+            name: template.name,
+            description: template.description || "",
+            category: "custom" as const, // 資料庫模板沒有category欄位，設為custom
+            style: JSON.parse(template.styleJson),
+            previewUrl: undefined,
+            createdAt: String(template.createdAt),
+            updatedAt: String(template.updatedAt),
+          }),
+        );
 
         templates.push(...custom);
       }

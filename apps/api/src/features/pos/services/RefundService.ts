@@ -3,7 +3,7 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, type SQL } from "drizzle-orm";
 import {
   refunds,
   orders,
@@ -62,12 +62,9 @@ export class RefundService {
       }
 
       // 檢查退款金額是否合理
+      const orderRecord = originalOrder as Record<string, unknown>;
       const orderTotalAmount = parseFloat(
-        String(
-          (originalOrder as any).total_amount ??
-            (originalOrder as any).totalAmount ??
-            0,
-        ),
+        String(orderRecord.total_amount ?? orderRecord.totalAmount ?? 0),
       );
       if (validatedData.refundAmount > orderTotalAmount) {
         return {
@@ -200,7 +197,17 @@ export class RefundService {
       page?: number;
       limit?: number;
     },
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: {
+      refunds: (typeof refunds.$inferSelect & {
+        itemsRefunded: unknown;
+        metadata: unknown;
+      })[];
+      pagination: { page: number; limit: number; hasMore: boolean };
+    };
+    error?: string;
+  }> {
     try {
       const {
         startDate,
@@ -212,16 +219,14 @@ export class RefundService {
       } = options || {};
       const offset = (page - 1) * limit;
 
-      const conditions: any[] = [eq(refunds.registerId, registerId)];
+      const conditions: SQL[] = [eq(refunds.registerId, registerId)];
 
       if (startDate) {
-        conditions.push(
-          sql`DATE(${refunds.processedAt}) >= ${startDate}` as any,
-        );
+        conditions.push(sql`DATE(${refunds.processedAt}) >= ${startDate}`);
       }
 
       if (endDate) {
-        conditions.push(sql`DATE(${refunds.processedAt}) <= ${endDate}` as any);
+        conditions.push(sql`DATE(${refunds.processedAt}) <= ${endDate}`);
       }
 
       if (status) {
@@ -243,7 +248,7 @@ export class RefundService {
       return {
         success: true,
         data: {
-          refunds: refundList.map((refund: any) => ({
+          refunds: refundList.map((refund: typeof refunds.$inferSelect) => ({
             ...refund,
             itemsRefunded: JSON.parse((refund.itemsRefunded as string) || "[]"),
             metadata: JSON.parse((refund.metadata as string) || "{}"),
@@ -267,9 +272,14 @@ export class RefundService {
   /**
    * 獲取退款詳情
    */
-  async getRefundDetail(
-    refundId: string,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  async getRefundDetail(refundId: string): Promise<{
+    success: boolean;
+    data?: typeof refunds.$inferSelect & {
+      itemsRefunded: unknown;
+      metadata: unknown;
+    };
+    error?: string;
+  }> {
     try {
       const [refund] = await this.db
         .select()

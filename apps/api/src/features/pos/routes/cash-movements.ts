@@ -36,7 +36,7 @@ app.post(
     const data = c.get("validatedBody");
     const user = c.get("user");
 
-    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.processCashMovement(
       shiftId,
       data,
@@ -68,7 +68,7 @@ app.get(
     const { shiftId } = c.get("validatedParams");
     const { type, page, limit } = c.get("validatedQuery");
 
-    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.getCashMovements(shiftId, {
       type,
       page,
@@ -111,7 +111,7 @@ app.get(
     const { registerId } = c.get("validatedParams");
     const { date } = c.get("validatedQuery");
 
-    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.getCashCount(registerId, date);
 
     if (!result.success) {
@@ -142,7 +142,7 @@ app.post(
     const { movementId } = c.get("validatedParams");
     const user = c.get("user");
 
-    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.approveCashMovement(
       movementId,
       user.id,
@@ -182,7 +182,7 @@ app.post(
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
 
-    const cashMovementService = new CashMovementService(c.env.DB as any);
+    const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.rejectCashMovement(
       movementId,
       user.id,

@@ -268,7 +268,7 @@ export interface MenuOperation {
   type: "create" | "update" | "delete" | "bulk_update";
   entityType: "menu_item" | "category";
   entityId?: number;
-  data?: any;
+  data?: Record<string, unknown>;
   userId: number;
   timestamp: Date;
 }
@@ -364,7 +364,7 @@ export interface MenuError extends Error {
     | "INVALID_RESTAURANT"
     | "DUPLICATE_NAME"
     | "INVENTORY_INSUFFICIENT";
-  details?: any;
+  details?: unknown;
 }
 
 // Import/Export types

@@ -368,7 +368,9 @@ export class BackupConfigService {
   /**
    * Parse a single configuration from database result
    */
-  private parseConfiguration(row: any): BackupConfiguration {
+  private parseConfiguration(
+    row: Record<string, unknown>,
+  ): BackupConfiguration {
     return {
       ...row,
       restaurant_id: row.restaurantId ?? row.restaurant_id,
@@ -394,6 +396,6 @@ export class BackupConfigService {
       created_by: row.createdBy ?? row.created_by,
       created_at: row.createdAt ?? row.created_at,
       updated_at: row.updatedAt ?? row.updated_at,
-    };
+    } as BackupConfiguration;
   }
 }

@@ -324,8 +324,11 @@ export class IngredientForecastService {
         restaurantId,
         forecastDate: date,
         forecastType: "ingredient_level",
-        data: result.ingredients as any,
-        metadata: result.metadata as any,
+        data: result.ingredients as unknown as Record<
+          string,
+          { predicted: number; confidence: number; trend: string }
+        >,
+        metadata: { ...result.metadata, weights: {} },
         generatedBy: result.generatedBy,
         expiresAt: new Date(Date.now() + KV_TTL_SECONDS * 1000),
         createdAt: new Date(),
@@ -337,8 +340,11 @@ export class IngredientForecastService {
           forecastCache.forecastType,
         ],
         set: {
-          data: result.ingredients as any,
-          metadata: result.metadata as any,
+          data: result.ingredients as unknown as Record<
+            string,
+            { predicted: number; confidence: number; trend: string }
+          >,
+          metadata: { ...result.metadata, weights: {} },
           generatedBy: result.generatedBy,
           expiresAt: new Date(Date.now() + KV_TTL_SECONDS * 1000),
           createdAt: new Date(),

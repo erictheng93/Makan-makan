@@ -52,6 +52,16 @@ type BackupExecutionResult = {
   backup: BackupRecord;
 };
 
+type RestoreOperationView = {
+  restaurantId: string;
+  backupId: string;
+  restoreType: string;
+  targetTables: string[];
+  overwriteExisting: boolean;
+  performedBy: string;
+  [key: string]: unknown;
+};
+
 export type RestoreBackupResult = {
   restore_id: string;
   checksum: string;
@@ -241,7 +251,7 @@ export class BackupService {
       }
 
       // Extract data from tables
-      const backupData: Record<string, any[]> = {};
+      const backupData: Record<string, Record<string, unknown>[]> = {};
       let totalRecords = 0;
       const rowCounts: Record<string, number> = {};
 
@@ -418,12 +428,14 @@ export class BackupService {
         "file_size",
         "name",
       ] as const;
-      const sortColumn = validSortColumns.includes(sort_by as any)
+      const sortColumn = (
+        validSortColumns as readonly string[]
+      ).includes(sort_by)
         ? sort_by
         : "started_at";
 
       // Map sort column to drizzle column
-      const sortColumnMap: Record<string, any> = {
+      const sortColumnMap = {
         started_at: backupRecords.startedAt,
         completed_at: backupRecords.completedAt,
         file_size: backupRecords.fileSize,
@@ -431,7 +443,8 @@ export class BackupService {
       };
 
       const orderByColumn =
-        sortColumnMap[sortColumn] || backupRecords.startedAt;
+        sortColumnMap[sortColumn as keyof typeof sortColumnMap] ||
+        backupRecords.startedAt;
       const orderFn = sort_order.toUpperCase() === "ASC" ? asc : desc;
 
       const offset = (page - 1) * limit;
@@ -451,7 +464,7 @@ export class BackupService {
         .where(whereClause);
 
       return {
-        backups: this.parseBackupRecords(results as any[]),
+        backups: this.parseBackupRecords(results),
         total: countResult[0]?.total || 0,
       };
     } catch (error) {
@@ -644,8 +657,8 @@ export class BackupService {
         .where(eq(backupAlerts.resolved, false));
 
       // Determine overall status
-      const failedBackups = (stat as any)?.failedBackups24h || 0;
-      const runningBackups = (stat as any)?.runningBackups || 0;
+      const failedBackups = stat?.failedBackups24h || 0;
+      const runningBackups = stat?.runningBackups || 0;
 
       let overallStatus: "healthy" | "warning" | "critical" = "healthy";
       if (failedBackups > 10) {
@@ -654,28 +667,30 @@ export class BackupService {
         overallStatus = "warning";
       }
 
+      const totalBackupsCount = stat?.totalBackups || 0;
+
       return {
         overall_status: overallStatus,
-        total_restaurants: (stat as any)?.totalRestaurants || 0,
+        total_restaurants: stat?.totalRestaurants || 0,
         active_configurations: activeConfigurationsResult[0]?.total || 0,
         running_backups: runningBackups,
         failed_backups_24h: failedBackups,
         storage_usage: {
-          total_bytes: (storage as any)?.totalBytes || 0,
+          total_bytes: storage?.totalBytes || 0,
           available_bytes: 0,
           usage_percentage: 0,
         },
         performance_metrics: {
           average_backup_duration_minutes:
-            ((stat as any)?.avgDurationMs || 0) / 1000 / 60,
+            (stat?.avgDurationMs || 0) / 1000 / 60,
           average_success_rate_percentage:
-            ((stat as any)?.totalBackups || 0) > 0
-              ? ((((stat as any).totalBackups || 0) - (failedBackups || 0)) /
-                  ((stat as any).totalBackups || 1)) *
+            totalBackupsCount > 0
+              ? ((totalBackupsCount - (failedBackups || 0)) /
+                  (totalBackupsCount || 1)) *
                 100
               : 100,
           average_compression_ratio:
-            Number((stat as any)?.avgCompressionRatio) || 1,
+            Number(stat?.avgCompressionRatio) || 1,
         },
         alerts_summary: this.buildAlertSummary(unresolvedAlerts),
       };
@@ -691,7 +706,13 @@ export class BackupService {
   async getRestaurantMetrics(
     restaurantId: string,
     timeframe: string = "week",
-  ): Promise<any> {
+  ): Promise<{
+    total_backups: number;
+    successful_backups: number;
+    failed_backups: number;
+    avg_backup_size: number;
+    total_storage_used: number;
+  }> {
     try {
       let dateFilter = "datetime('now', '-7 days')";
 
@@ -758,7 +779,7 @@ export class BackupService {
         .where(and(...conditions))
         .orderBy(desc(backupAlerts.triggeredAt));
 
-      return this.parseBackupAlerts(results as any[]) || [];
+      return this.parseBackupAlerts(results) || [];
     } catch (error) {
       console.error("Error getting restaurant alerts:", error);
       throw new Error("Failed to get restaurant alerts");
@@ -826,40 +847,41 @@ export class BackupService {
 
     if (results.length === 0) return null;
 
-    return this.parseBackupRecord(results[0] as any);
+    return this.parseBackupRecord(results[0] as Record<string, unknown>);
   }
 
-  private parseBackupRecord(record: any): BackupRecord {
+  private parseBackupRecord(record: Record<string, unknown>): BackupRecord {
+    const r = record as Record<string, unknown>;
     return {
-      ...record,
-      restaurant_id: record.restaurantId ?? record.restaurant_id,
-      configuration_id: record.configurationId ?? record.configuration_id,
-      backup_type: record.backupType ?? record.backup_type,
-      file_size: record.fileSize ?? record.file_size,
-      compressed_size: record.compressedSize ?? record.compressed_size,
-      records_count: record.recordsCount ?? record.records_count,
-      tables_included: record.tablesIncluded ?? record.tables_included ?? [],
-      storage_provider: record.storageProvider ?? record.storage_provider,
-      storage_path: record.storagePath ?? record.storage_path,
-      encryption_enabled: Boolean(
-        record.encryptionEnabled ?? record.encryption_enabled,
-      ),
-      started_at: record.startedAt ?? record.started_at,
-      completed_at: record.completedAt ?? record.completed_at,
-      error_message: record.errorMessage ?? record.error_message,
-      created_by: record.createdBy ?? record.created_by,
-      metadata: record.metadata ?? {},
-    };
+      ...r,
+      restaurant_id: r.restaurantId ?? r.restaurant_id,
+      configuration_id: r.configurationId ?? r.configuration_id,
+      backup_type: r.backupType ?? r.backup_type,
+      file_size: r.fileSize ?? r.file_size,
+      compressed_size: r.compressedSize ?? r.compressed_size,
+      records_count: r.recordsCount ?? r.records_count,
+      tables_included: r.tablesIncluded ?? r.tables_included ?? [],
+      storage_provider: r.storageProvider ?? r.storage_provider,
+      storage_path: r.storagePath ?? r.storage_path,
+      encryption_enabled: Boolean(r.encryptionEnabled ?? r.encryption_enabled),
+      started_at: r.startedAt ?? r.started_at,
+      completed_at: r.completedAt ?? r.completed_at,
+      error_message: r.errorMessage ?? r.error_message,
+      created_by: r.createdBy ?? r.created_by,
+      metadata: r.metadata ?? {},
+    } as BackupRecord;
   }
 
-  private parseBackupRecords(records: any[]): BackupRecord[] {
+  private parseBackupRecords(
+    records: Record<string, unknown>[],
+  ): BackupRecord[] {
     return records.map((record) => this.parseBackupRecord(record));
   }
 
   private async extractTableData(
     restaurantId: string,
     tableName: string,
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     try {
       const physicalTable = this.resolvePhysicalTableName(tableName);
       this.assertSafeIdentifier(physicalTable);
@@ -946,7 +968,7 @@ export class BackupService {
     return rows.map((row) => row.name).filter(Boolean);
   }
 
-  private async runPreparedAll<T = any>(
+  private async runPreparedAll<T = Record<string, unknown>>(
     statement: string,
     values: unknown[] = [],
   ): Promise<T[]> {
@@ -956,8 +978,8 @@ export class BackupService {
 
     const prepared = this.d1.prepare(statement);
     const bound = values.length > 0 ? prepared.bind(...values) : prepared;
-    const result = await bound.all();
-    return (result as any).results ?? [];
+    const result = await bound.all<T>();
+    return result.results ?? [];
   }
 
   private async getSchemaHash(restaurantId: string): Promise<string> {
@@ -1018,7 +1040,10 @@ export class BackupService {
       }
       checksum ||= backup.checksum;
 
-      const backupData = JSON.parse(backupDataText) as Record<string, any[]>;
+      const backupData = JSON.parse(backupDataText) as Record<
+        string,
+        Record<string, unknown>[]
+      >;
       const manifest = this.getManifestFromBackup(backup, backupData);
       const targetTables = (
         operation.targetTables?.length
@@ -1097,7 +1122,7 @@ export class BackupService {
 
   private async validateRestoreSchemaCompatibility(
     targetTables: string[],
-    backupData: Record<string, any[]>,
+    backupData: Record<string, Record<string, unknown>[]>,
   ): Promise<void> {
     for (const tableName of targetTables) {
       const physicalTable = this.resolvePhysicalTableName(tableName);
@@ -1127,10 +1152,20 @@ export class BackupService {
 
   private getManifestFromBackup(
     backup: BackupRecord,
-    backupData: Record<string, any[]>,
+    backupData: Record<string, Record<string, unknown>[]>,
   ): BackupManifest {
-    const metadata = backup.metadata as any;
-    const manifest = metadata?.manifest ?? {};
+    type ManifestShape = {
+      rowCounts?: Record<string, number>;
+      row_counts?: Record<string, number>;
+      tables?: string[];
+      createdAt?: string;
+      created_at?: string;
+      checksum?: string;
+    };
+    const metadata = backup.metadata as
+      | { manifest?: ManifestShape }
+      | undefined;
+    const manifest: ManifestShape = metadata?.manifest ?? {};
     const rowCounts =
       manifest.rowCounts ??
       manifest.row_counts ??
@@ -1147,7 +1182,9 @@ export class BackupService {
     };
   }
 
-  private async getRestoreOperation(operationId: string): Promise<any | null> {
+  private async getRestoreOperation(
+    operationId: string,
+  ): Promise<RestoreOperationView | null> {
     const results = await this.db
       .select()
       .from(restoreOperations)
@@ -1158,17 +1195,17 @@ export class BackupService {
       return null;
     }
 
-    const row = results[0] as any;
+    const row = results[0] as Record<string, unknown>;
     return {
       ...row,
-      restaurantId: row.restaurantId ?? row.restaurant_id,
-      backupId: row.backupId ?? row.backup_id,
-      restoreType: row.restoreType ?? row.restore_type,
-      targetTables: row.targetTables ?? row.target_tables ?? [],
+      restaurantId: (row.restaurantId ?? row.restaurant_id) as string,
+      backupId: (row.backupId ?? row.backup_id) as string,
+      restoreType: (row.restoreType ?? row.restore_type) as string,
+      targetTables: (row.targetTables ?? row.target_tables ?? []) as string[],
       overwriteExisting: Boolean(
         row.overwriteExisting ?? row.overwrite_existing,
       ),
-      performedBy: row.performedBy ?? row.performed_by,
+      performedBy: (row.performedBy ?? row.performed_by) as string,
     };
   }
 
@@ -1216,7 +1253,7 @@ export class BackupService {
   }: {
     tableName: string;
     restaurantId: string;
-    rows: any[];
+    rows: Record<string, unknown>[];
     overwriteExisting: boolean;
   }): Promise<number> {
     this.assertSafeIdentifier(tableName);
@@ -1289,11 +1326,16 @@ export class BackupService {
   /**
    * Parse backup alerts from database results
    */
-  private parseBackupAlerts(results: any[]): BackupAlert[] {
-    return results.map((result) => ({
-      ...result,
-      acknowledged: Boolean(result.acknowledged),
-      resolved: Boolean(result.resolved),
-    }));
+  private parseBackupAlerts(
+    results: Record<string, unknown>[],
+  ): BackupAlert[] {
+    return results.map(
+      (result) =>
+        ({
+          ...result,
+          acknowledged: Boolean(result.acknowledged),
+          resolved: Boolean(result.resolved),
+        }) as BackupAlert,
+    );
   }
 }

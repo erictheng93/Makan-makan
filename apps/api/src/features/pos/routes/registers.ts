@@ -42,7 +42,7 @@ app.post(
       throw forbidden("只能為自己的餐廳創建收銀機");
     }
 
-    const registerService = new RegisterService(c.env.DB as any);
+    const registerService = new RegisterService(c.env.DB);
     const result = await registerService.createRegister(data, user.id);
 
     if (!result.success) {
@@ -78,7 +78,7 @@ app.get("/", authMiddleware, validateQuery(registerQuerySchema), async (c) => {
     throw badRequest("需要指定餐廳ID");
   }
 
-  const registerService = new RegisterService(c.env.DB as any);
+  const registerService = new RegisterService(c.env.DB);
   const result = await registerService.getRegisters(restaurantId!);
 
   if (!result.success) {
@@ -103,7 +103,7 @@ app.get(
   async (c) => {
     const { registerId } = c.get("validatedParams");
 
-    const registerService = new RegisterService(c.env.DB as any);
+    const registerService = new RegisterService(c.env.DB);
     const result = await registerService.getRegisterStatus(registerId);
 
     if (!result.success) {
@@ -134,7 +134,7 @@ app.put(
     const { registerId } = c.get("validatedParams");
     const data = c.get("validatedBody");
 
-    const registerService = new RegisterService(c.env.DB as any);
+    const registerService = new RegisterService(c.env.DB);
     const result = await registerService.updateRegister(registerId, data);
 
     if (!result.success) {
@@ -160,7 +160,7 @@ app.post(
   async (c) => {
     const { registerId } = c.get("validatedParams");
 
-    const registerService = new RegisterService(c.env.DB as any);
+    const registerService = new RegisterService(c.env.DB);
     const result = await registerService.toggleRegisterStatus(registerId, true);
 
     if (!result.success) {
@@ -186,7 +186,7 @@ app.post(
   async (c) => {
     const { registerId } = c.get("validatedParams");
 
-    const registerService = new RegisterService(c.env.DB as any);
+    const registerService = new RegisterService(c.env.DB);
     const result = await registerService.toggleRegisterStatus(
       registerId,
       false,
@@ -215,7 +215,7 @@ app.delete(
   async (c) => {
     const { registerId } = c.get("validatedParams");
 
-    const registerService = new RegisterService(c.env.DB as any);
+    const registerService = new RegisterService(c.env.DB);
     const result = await registerService.deleteRegister(registerId);
 
     if (!result.success) {

@@ -35,7 +35,7 @@ app.post(
       throw badRequest("需要指定收銀機ID");
     }
 
-    const receiptService = new ReceiptService(c.env.DB as any);
+    const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.printReceipt(data, registerId, shiftId);
 
     if (!result.success) {
@@ -61,7 +61,7 @@ app.post(
   async (c) => {
     const { receiptId } = c.get("validatedParams");
 
-    const receiptService = new ReceiptService(c.env.DB as any);
+    const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.reprintReceipt(receiptId);
 
     if (!result.success) {
@@ -90,7 +90,7 @@ app.post(
   async (c) => {
     const { receiptId } = c.get("validatedParams");
 
-    const receiptService = new ReceiptService(c.env.DB as any);
+    const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.cancelPrint(receiptId);
 
     if (!result.success) {
@@ -142,7 +142,7 @@ app.get(
     const { startDate, endDate, receiptType, page, limit } =
       c.get("validatedQuery");
 
-    const receiptService = new ReceiptService(c.env.DB as any);
+    const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.getReceipts(registerId, {
       startDate,
       endDate,
@@ -174,7 +174,7 @@ app.get(
   async (c) => {
     const { receiptId } = c.get("validatedParams");
 
-    const receiptService = new ReceiptService(c.env.DB as any);
+    const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.getReceiptDetail(receiptId);
 
     if (!result.success) {

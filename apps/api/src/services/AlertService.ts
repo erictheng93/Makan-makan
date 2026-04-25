@@ -12,7 +12,7 @@ export interface Alert {
   title: string;
   message: string;
   severity: AlertSeverity;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp?: Date;
 }
 
@@ -246,7 +246,7 @@ export class AlertService {
   async suspiciousActivity(
     activity: string,
     userId?: number,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     await this.sendAlert({
       title: "Suspicious Activity Detected",

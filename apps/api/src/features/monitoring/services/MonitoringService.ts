@@ -484,8 +484,8 @@ export class MonitoringService {
       alerts.unshift(alert);
       // Keep last 50 alerts, max 24h retention
       const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-      const filtered = alerts
-        .filter((a: any) => a.timestamp > cutoff)
+      const filtered = (alerts as { timestamp: number }[])
+        .filter((a) => a.timestamp > cutoff)
         .slice(0, 50);
       await this.kv.put(this.RECENT_ALERTS_KEY, JSON.stringify(filtered), {
         expirationTtl: 86400,
@@ -495,13 +495,18 @@ export class MonitoringService {
     }
   }
 
-  async getRecentAlerts(sinceTimestamp?: number): Promise<any[]> {
+  async getRecentAlerts(
+    sinceTimestamp?: number,
+  ): Promise<Record<string, unknown>[]> {
     try {
       const saved = await this.kv.get(this.RECENT_ALERTS_KEY);
       if (!saved) return [];
-      const alerts = JSON.parse(saved);
+      const alerts = JSON.parse(saved) as ({ timestamp: number } & Record<
+        string,
+        unknown
+      >)[];
       if (sinceTimestamp) {
-        return alerts.filter((a: any) => a.timestamp > sinceTimestamp);
+        return alerts.filter((a) => a.timestamp > sinceTimestamp);
       }
       return alerts;
     } catch (error) {
@@ -829,10 +834,10 @@ export class MonitoringService {
   private getMetricValue(metric: string): number {
     // 根據指標路徑獲取值
     const parts = metric.split(".");
-    let value: any = this.metrics;
+    let value: unknown = this.metrics;
 
     for (const part of parts) {
-      value = value?.[part];
+      value = (value as Record<string, unknown> | undefined)?.[part];
     }
 
     return typeof value === "number" ? value : 0;

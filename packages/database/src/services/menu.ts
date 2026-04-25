@@ -37,6 +37,7 @@ export interface UpdateMenuItemData extends Partial<CreateMenuItemData> {
   isPopular?: boolean;
   sortOrder?: number;
   inventoryCount?: number;
+  rating?: number;
 }
 
 export interface MenuFilters {

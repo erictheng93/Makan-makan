@@ -609,8 +609,11 @@ export class ForecastService implements IForecastService {
         restaurantId,
         forecastDate: forecast.date,
         forecastType: forecast.type,
-        data: dataJson as any,
-        metadata: forecast.metadata as any,
+        data: dataJson as unknown as Record<
+          string,
+          { predicted: number; confidence: number; trend: string }
+        >,
+        metadata: forecast.metadata,
         generatedBy: forecast.generatedBy,
         expiresAt: new Date(Date.now() + KV_TTL_SECONDS * 1000),
         createdAt: new Date(),
@@ -622,8 +625,11 @@ export class ForecastService implements IForecastService {
           forecastCache.forecastType,
         ],
         set: {
-          data: dataJson as any,
-          metadata: forecast.metadata as any,
+          data: dataJson as unknown as Record<
+            string,
+            { predicted: number; confidence: number; trend: string }
+          >,
+          metadata: forecast.metadata,
           generatedBy: forecast.generatedBy,
           expiresAt: new Date(Date.now() + KV_TTL_SECONDS * 1000),
           createdAt: new Date(),

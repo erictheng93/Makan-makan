@@ -85,7 +85,7 @@ export class ShiftService {
 
       return {
         success: true,
-        data: shift as any,
+        data: shift as unknown as CashShift,
       };
     } catch (error) {
       console.error("開班失敗:", error);
@@ -103,7 +103,11 @@ export class ShiftService {
     shiftId: string,
     data: EndShiftRequest,
     operatorId: number,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: { shift: CashShift };
+    error?: string;
+  }> {
     try {
       const validatedData = endShiftSchema.parse(data);
 
@@ -167,7 +171,7 @@ export class ShiftService {
             expectedAmount,
             differenceAmount,
             status: "closed",
-          },
+          } as unknown as CashShift,
         },
       };
     } catch (error) {
@@ -199,7 +203,7 @@ export class ShiftService {
 
       return {
         success: true,
-        data: (shift as any) || null,
+        data: (shift as unknown as CashShift) || undefined,
       };
     } catch (error) {
       console.error("獲取當前班次失敗:", error);

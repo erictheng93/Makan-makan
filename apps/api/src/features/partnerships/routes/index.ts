@@ -56,7 +56,7 @@ routes.post(
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const { contractStartDate, contractEndDate, ...rest } = data;
     const partnership = await service.createPartnership({
@@ -83,10 +83,10 @@ routes.get(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateQuery(partnershipFiltersSchema as any),
+  validateQuery(partnershipFiltersSchema),
   async (c) => {
     const filters = c.get("validatedQuery");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const { page, limit, ...restFilters } = filters;
     const result = await service.listPartnerships(restFilters, page, limit);
@@ -108,10 +108,10 @@ routes.get(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const partnership = await service.getPartnership(id);
 
@@ -136,10 +136,10 @@ routes.get(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const stats = await service.getPartnershipStatistics(id);
 
@@ -160,12 +160,12 @@ routes.put(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   validateBody(updatePartnershipSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const data = c.get("validatedBody");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const { contractStartDate, contractEndDate, ...rest } = data;
     const partnership = await service.updatePartnership(id, {
@@ -195,10 +195,10 @@ routes.delete(
   authMiddleware,
   requireRole([0]), // Admin only
   moduleGate("loyalty"),
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     await service.deletePartnership(id);
 
@@ -227,7 +227,7 @@ routes.post(
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const { validFrom, validTo, ...rest } = data;
     const plan = await service.createPlan({
@@ -251,10 +251,10 @@ routes.post(
 routes.get(
   "/plans",
   authMiddleware,
-  validateQuery(planFiltersSchema as any),
+  validateQuery(planFiltersSchema),
   async (c) => {
     const filters = c.get("validatedQuery");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const { page, limit, ...restFilters } = filters;
     const result = await service.listPlans(restFilters, page, limit);
@@ -273,10 +273,10 @@ routes.get(
 routes.get(
   "/plans/:planId",
   authMiddleware,
-  validateParams(planIdParamSchema as any),
+  validateParams(planIdParamSchema),
   async (c) => {
     const { planId } = c.get("validatedParams");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const plan = await service.getPlan(planId);
 
@@ -302,7 +302,7 @@ routes.post(
   validateBody(validatePlanSchema),
   async (c) => {
     const data = c.get("validatedBody");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const result = await service.validatePlan(
       data.planId,
@@ -329,12 +329,12 @@ routes.put(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(planIdParamSchema as any),
+  validateParams(planIdParamSchema),
   validateBody(updatePlanSchema),
   async (c) => {
     const { planId } = c.get("validatedParams");
     const data = c.get("validatedBody");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const { validFrom, validTo, ...rest } = data;
     const plan = await service.updatePlan(planId, {
@@ -360,10 +360,10 @@ routes.delete(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(planIdParamSchema as any),
+  validateParams(planIdParamSchema),
   async (c) => {
     const { planId } = c.get("validatedParams");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     await service.deletePlan(planId);
 
@@ -388,7 +388,7 @@ routes.post(
   validateBody(memberVerificationSchema),
   async (c) => {
     const data = c.get("validatedBody");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const member = await service.submitMemberVerification(data);
 
@@ -410,10 +410,10 @@ routes.get(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateQuery(memberFiltersSchema as any),
+  validateQuery(memberFiltersSchema),
   async (c) => {
     const filters = c.get("validatedQuery");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const { page, limit, ...restFilters } = filters;
     const result = await service.listMembers(restFilters, page, limit);
@@ -435,10 +435,10 @@ routes.get(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(memberIdParamSchema as any),
+  validateParams(memberIdParamSchema),
   async (c) => {
     const { memberId } = c.get("validatedParams");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const member = await service.getMember(memberId);
 
@@ -463,13 +463,13 @@ routes.post(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(memberIdParamSchema as any),
+  validateParams(memberIdParamSchema),
   validateBody(approveMemberSchema),
   async (c) => {
     const { memberId } = c.get("validatedParams");
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const member = await service.approveMember(
       memberId,
@@ -497,12 +497,12 @@ routes.post(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(memberIdParamSchema as any),
+  validateParams(memberIdParamSchema),
   validateBody(rejectMemberSchema),
   async (c) => {
     const { memberId } = c.get("validatedParams");
     const data = c.get("validatedBody");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const member = await service.rejectMember(memberId, data.rejectionReason);
 
@@ -524,12 +524,12 @@ routes.put(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(memberIdParamSchema as any),
+  validateParams(memberIdParamSchema),
   validateBody(updateMemberSchema),
   async (c) => {
     const { memberId } = c.get("validatedParams");
     const data = c.get("validatedBody");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const member = await service.updateMember(memberId, data);
 
@@ -558,7 +558,7 @@ routes.post(
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const usageLog = await service.logUsage({
       ...data,
@@ -583,13 +583,21 @@ routes.get(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateQuery(usageLogFiltersSchema as any),
+  validateQuery(usageLogFiltersSchema),
   async (c) => {
     const filters = c.get("validatedQuery");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
-    const { page, limit, ...restFilters } = filters;
-    const result = await service.listUsageLogs(restFilters, page, limit);
+    const { page, limit, startDate, endDate, ...restFilters } = filters;
+    const result = await service.listUsageLogs(
+      {
+        ...restFilters,
+        ...(startDate !== undefined && { startDate: new Date(startDate) }),
+        ...(endDate !== undefined && { endDate: new Date(endDate) }),
+      },
+      page,
+      limit,
+    );
 
     return c.json({
       success: true,
@@ -608,12 +616,12 @@ routes.post(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   validateBody(cancelUsageSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
     const data = c.get("validatedBody");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const usageLog = await service.cancelUsageLog(id, data.reason);
 
@@ -635,10 +643,10 @@ routes.post(
   authMiddleware,
   requireRole([0, 1]),
   moduleGate("loyalty"),
-  validateParams(idParamSchema as any),
+  validateParams(idParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new PartnershipService(c.env.DB as any, c.env as any);
+    const service = new PartnershipService(c.env.DB, c.env);
 
     const usageLog = await service.refundUsageLog(id);
 

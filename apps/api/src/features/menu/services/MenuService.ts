@@ -532,7 +532,7 @@ export class MenuService implements IMenuService {
   async updateItemRating(menuItemId: number, rating: number): Promise<void> {
     try {
       this.logger.debug("Updating item rating", { menuItemId, rating });
-      await this.dbService.updateMenuItem(menuItemId, { rating } as any);
+      await this.dbService.updateMenuItem(menuItemId, { rating });
     } catch (error) {
       this.logger.error(
         "Failed to update item rating",
@@ -629,7 +629,8 @@ export class MenuService implements IMenuService {
       );
   }
 
-  private transformMenuItem(item: any): MenuItem {
+  private transformMenuItem(raw: object): MenuItem {
+    const item = raw as Record<string, unknown>;
     return {
       id: item.id,
       name: item.name,
@@ -661,10 +662,11 @@ export class MenuService implements IMenuService {
       availableHours: item.availableHours,
       tags: item.tags,
       keywords: item.keywords,
-    };
+    } as unknown as MenuItem;
   }
 
-  private transformCategory(category: any): Category {
+  private transformCategory(raw: object): Category {
+    const category = raw as Record<string, unknown>;
     return {
       id: category.id,
       name: category.name,
@@ -678,15 +680,18 @@ export class MenuService implements IMenuService {
       isActive: category.isActive,
       isVisible: category.isVisible,
       itemCount: category.itemCount,
-    };
+    } as unknown as Category;
   }
 
-  private transformMenuStructure(menu: any): MenuStructure {
+  private transformMenuStructure(menu: {
+    categories?: object[];
+    menuItems?: object[];
+  }): MenuStructure {
     return {
       categories:
-        menu.categories?.map((cat: any) => this.transformCategory(cat)) || [],
+        menu.categories?.map((cat) => this.transformCategory(cat)) || [],
       menuItems:
-        menu.menuItems?.map((item: any) => this.transformMenuItem(item)) || [],
+        menu.menuItems?.map((item) => this.transformMenuItem(item)) || [],
     };
   }
 }

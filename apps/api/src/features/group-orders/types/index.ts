@@ -76,6 +76,10 @@ export interface CreateGroupOrderRequest {
   tableId?: number;
   expirationHours?: number;
   maxMembers?: number;
+  expectedMembers?: number;
+  hostName?: string;
+  notes?: string;
+  tableNumber?: string;
   permissions?: Partial<GroupOrderPermissions>;
 }
 

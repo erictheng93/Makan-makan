@@ -17,6 +17,12 @@ import {
   groupActivityLogs,
 } from "@makanmakan/database";
 import { menuItems } from "@makanmakan/database";
+import type {
+  CartItemCustomizations,
+  GroupActivityMetadata,
+  GroupOrderSettings,
+  SplitBillItem,
+} from "@makanmakan/shared-types";
 
 // Mock shared utilities - will be replaced with actual implementations
 class ConsoleLogger {
@@ -24,10 +30,10 @@ class ConsoleLogger {
     private context: string,
     private level: string = "info",
   ) {}
-  info(message: string, data?: any) {
+  info(message: string, data?: unknown) {
     console.log(`[${this.context}] ${message}`, data);
   }
-  error(message: string, error: any) {
+  error(message: string, error: unknown) {
     console.error(`[${this.context}] ${message}`, error);
   }
 }
@@ -37,7 +43,7 @@ class KVCacheService {
   async get(key: string) {
     return this.kv ? await this.kv.get(key, "json") : null;
   }
-  async set(key: string, value: any, ttl?: number) {
+  async set(key: string, value: unknown, ttl?: number) {
     if (this.kv)
       await this.kv.put(
         key,
@@ -55,7 +61,7 @@ class PerformanceMonitor {
   startTimer(name: string) {
     return { name, start: Date.now() };
   }
-  endTimer(timer: any) {
+  endTimer(timer: { name: string; start: number }) {
     console.log(
       `[${this.context}] ${timer.name} took ${Date.now() - timer.start}ms`,
     );
@@ -64,7 +70,7 @@ class PerformanceMonitor {
 
 class ErrorTracker {
   constructor(private context: string) {}
-  logError(operation: string, error: Error, data?: any) {
+  logError(operation: string, error: Error, data?: unknown) {
     console.error(`[${this.context}] Error in ${operation}:`, error, data);
   }
 }
@@ -89,6 +95,34 @@ import type {
   ActivityType,
 } from "../types";
 
+interface SplitBillData {
+  memberId: string;
+  subtotal: number;
+  serviceCharge: number;
+  taxAmount: number;
+  totalAmount: number;
+  items: SplitBillItem[];
+}
+
+interface GroupOrderListItem {
+  id: string;
+  shareCode: string;
+  masterOrderId: string | null;
+  tableNumber: string | null;
+  status: string;
+  hostName: string;
+  memberCount: number;
+  totalAmount: number;
+  subtotal: number;
+  serviceCharge: number;
+  taxAmount: number;
+  itemCount: number;
+  members: GroupOrderMember[];
+  createdAt: string | null;
+  completedAt: string | null;
+  expiresAt: string | null;
+}
+
 export class GroupOrdersService implements IGroupOrderService {
   private db;
   private cache: KVCacheService;
@@ -111,7 +145,10 @@ export class GroupOrdersService implements IGroupOrderService {
   /**
    * List group orders for a restaurant
    */
-  async listGroupOrders(restaurantId: string, status?: string): Promise<any[]> {
+  async listGroupOrders(
+    restaurantId: string,
+    status?: string,
+  ): Promise<GroupOrderListItem[]> {
     try {
       const conditions = [eq(groupOrders.restaurantId, restaurantId)];
       if (status) {
@@ -157,7 +194,7 @@ export class GroupOrdersService implements IGroupOrderService {
       return rows.map((row) => {
         const memberRows = membersByOrder.get(row.id) || [];
         const cartItemRows = cartItemsByOrder.get(row.id) || [];
-        const settings = row.settings as any;
+        const settings = row.settings;
         return {
           id: row.id,
           shareCode: row.shareCode,
@@ -223,8 +260,7 @@ export class GroupOrdersService implements IGroupOrderService {
         ...data.permissions,
       };
 
-      const effectiveMaxMembers =
-        data.maxMembers || (data as any).expectedMembers || 8;
+      const effectiveMaxMembers = data.maxMembers || data.expectedMembers || 8;
 
       const now = new Date();
 
@@ -240,9 +276,9 @@ export class GroupOrdersService implements IGroupOrderService {
         settings: {
           maxMembers: effectiveMaxMembers,
           permissions: defaultPermissions,
-          notes: (data as any).notes || null,
-          tableNumber: (data as any).tableNumber || null,
-        } as any,
+          notes: data.notes || null,
+          tableNumber: data.tableNumber || null,
+        },
         totalAmount: 0,
         createdAt: now,
         updatedAt: now,
@@ -255,7 +291,7 @@ export class GroupOrdersService implements IGroupOrderService {
         id: hostMemberId,
         groupOrderId: groupOrderId,
         sessionId,
-        name: (data as any).hostName || "Host",
+        name: data.hostName || "Host",
         role: "creator",
         joinedAt: now,
         lastActiveAt: now,
@@ -345,7 +381,7 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Parse settings to get maxMembers
-      const settings = (groupOrder.settings || {}) as any;
+      const settings = groupOrder.settings || {};
       const maxMembers = settings.maxMembers || 8;
 
       // Check if group is full
@@ -586,7 +622,8 @@ export class GroupOrdersService implements IGroupOrderService {
         quantity: itemData.quantity,
         unitPrice,
         totalPrice,
-        customizations: (itemData.customizations || {}) as any,
+        customizations: (itemData.customizations ||
+          {}) as CartItemCustomizations,
         specialInstructions: itemData.specialInstructions || null,
         status: "active",
         addedAt: now,
@@ -692,7 +729,7 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Build update object dynamically
-      const updateObj: Record<string, any> = {
+      const updateObj: Partial<typeof groupCartItems.$inferInsert> = {
         updatedAt: new Date(),
       };
 
@@ -832,7 +869,11 @@ export class GroupOrdersService implements IGroupOrderService {
   async splitBill(
     groupOrderId: string,
     splitData: SplitBillRequest,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: SplitBillData[];
+    error?: string;
+  }> {
     const timer = this.performance.startTimer("splitBill");
 
     try {
@@ -895,14 +936,7 @@ export class GroupOrdersService implements IGroupOrderService {
       const serviceChargeRate = splitData.serviceChargeRate || 0;
       const taxRate = splitData.taxRate || 0;
 
-      const splitBillsData: Array<{
-        memberId: string;
-        subtotal: number;
-        serviceCharge: number;
-        taxAmount: number;
-        totalAmount: number;
-        items: any[];
-      }> = [];
+      const splitBillsData: SplitBillData[] = [];
 
       // Calculate splits based on splitType
       if (
@@ -929,10 +963,12 @@ export class GroupOrdersService implements IGroupOrderService {
             taxAmount,
             totalAmount,
             items: memberItems.map((item) => ({
-              itemId: item.id,
+              cartItemId: item.id,
               menuItemId: item.menuItemId,
+              name: "",
               quantity: item.quantity,
-              price: item.totalPrice,
+              unitPrice: item.unitPrice,
+              totalPrice: item.totalPrice,
             })),
           });
         }
@@ -1008,7 +1044,7 @@ export class GroupOrdersService implements IGroupOrderService {
           taxAmount: bill.taxAmount,
           serviceCharge: bill.serviceCharge,
           totalAmount: bill.totalAmount,
-          items: bill.items as any,
+          items: bill.items,
           paymentStatus: "pending",
           createdAt: now,
           updatedAt: now,
@@ -1102,7 +1138,18 @@ export class GroupOrdersService implements IGroupOrderService {
     groupOrderId: string,
     memberId: string,
     paymentData: ProcessPaymentRequest,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: {
+      memberId: string;
+      amount: number;
+      paymentMethod: string;
+      transactionId: string;
+      paidAt: Date;
+      groupOrderStatus: string;
+    };
+    error?: string;
+  }> {
     const timer = this.performance.startTimer("processPayment");
 
     try {
@@ -1574,7 +1621,7 @@ export class GroupOrdersService implements IGroupOrderService {
     memberId: string | null,
     type: ActivityType,
     description: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ) {
     const activityId = randomUUID();
     await this.db.insert(groupActivityLogs).values({
@@ -1583,14 +1630,14 @@ export class GroupOrdersService implements IGroupOrderService {
       memberId,
       action: type,
       description,
-      metadata: (metadata || {}) as any,
+      metadata: (metadata || {}) as GroupActivityMetadata,
       createdAt: new Date(),
     });
   }
 
-  private formatGroupOrder(data: any): GroupOrder {
+  private formatGroupOrder(data: typeof groupOrders.$inferSelect): GroupOrder {
     // Drizzle returns camelCase properties and handles JSON/timestamp_ms automatically
-    const settings = (data.settings || {}) as any;
+    const settings = (data.settings || {}) as GroupOrderSettings;
     // expiresAt is a Date object from Drizzle timestamp_ms mode
     const expiresAt =
       data.expiresAt instanceof Date
@@ -1633,10 +1680,12 @@ export class GroupOrdersService implements IGroupOrderService {
       paidAt: completedAt,
       createdAt,
       updatedAt,
-    };
+    } as unknown as GroupOrder;
   }
 
-  private formatMember(data: any): GroupOrderMember {
+  private formatMember(
+    data: typeof groupMembers.$inferSelect,
+  ): GroupOrderMember {
     const joinedAt =
       data.joinedAt instanceof Date
         ? data.joinedAt
@@ -1667,10 +1716,12 @@ export class GroupOrdersService implements IGroupOrderService {
       paymentStatus: "pending" as PaymentStatus,
       createdAt: joinedAt,
       updatedAt: lastActiveAt,
-    };
+    } as unknown as GroupOrderMember;
   }
 
-  private formatCartItem(data: any): GroupOrderCartItem {
+  private formatCartItem(
+    data: typeof groupCartItems.$inferSelect,
+  ): GroupOrderCartItem {
     // Drizzle handles JSON columns automatically (no JSON.parse needed)
     const customizations = data.customizations || {};
     const addedAt =
@@ -1695,10 +1746,12 @@ export class GroupOrdersService implements IGroupOrderService {
       specialInstructions: data.specialInstructions,
       createdAt: addedAt,
       updatedAt,
-    };
+    } as unknown as GroupOrderCartItem;
   }
 
-  private formatActivity(data: any): GroupOrderActivity {
+  private formatActivity(
+    data: typeof groupActivityLogs.$inferSelect,
+  ): GroupOrderActivity {
     // Drizzle handles JSON columns automatically (no JSON.parse needed)
     const metadata = data.metadata || {};
     const createdAt =
@@ -1718,6 +1771,6 @@ export class GroupOrdersService implements IGroupOrderService {
       timestamp: createdAt,
       createdAt,
       updatedAt: createdAt,
-    };
+    } as unknown as GroupOrderActivity;
   }
 }

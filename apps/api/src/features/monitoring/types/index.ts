@@ -112,7 +112,7 @@ export interface ErrorReportRequest {
   type: string;
   message: string;
   severity: "info" | "warning" | "critical" | "fatal";
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Metrics query types

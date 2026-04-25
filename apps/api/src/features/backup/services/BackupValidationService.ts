@@ -186,7 +186,10 @@ export class BackupValidationService {
       WHERE user_id = ${user.id} AND restaurant_id = ${restaurantId}
     `);
 
-    if (!result || (result as any).results?.length === 0) {
+    if (
+      !result ||
+      (result as { results?: unknown[] }).results?.length === 0
+    ) {
       throw new Error(
         "Access denied: You do not have permission to access this restaurant",
       );
