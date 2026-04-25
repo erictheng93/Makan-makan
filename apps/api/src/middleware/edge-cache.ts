@@ -20,12 +20,39 @@ export interface CacheOptions {
 
 export interface CacheMetadata {
   key: string;
-  value: any;
+  value: unknown;
   cached_at: number;
   expires_at: number;
   tags: string[];
   hit_count: number;
   last_accessed: number;
+}
+
+interface CacheHealthMetrics {
+  hit_rate: number;
+  miss_rate: number;
+  popular_keys: Array<{ key: string; hits: number }>;
+  cache_size_estimate: number;
+}
+
+interface CachedResponseEnvelope {
+  cached_at?: number;
+  value?: unknown;
+}
+
+interface CacheableApiResponse {
+  success: boolean;
+  data?: unknown;
+  [key: string]: unknown;
+}
+
+function isCacheableApiResponse(data: unknown): data is CacheableApiResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    (data as { success?: unknown }).success === true &&
+    "data" in data
+  );
 }
 
 export class EdgeCacheManager {
@@ -51,7 +78,7 @@ export class EdgeCacheManager {
         cacheResponse &&
         !cacheResponse.headers.get("cf-cache-status")?.includes("MISS")
       ) {
-        const data = await cacheResponse.json();
+        const data = (await cacheResponse.json()) as CachedResponseEnvelope;
 
         // Update hit count asynchronously
         this.context.waitUntil(this.incrementHitCount(key));
@@ -59,12 +86,13 @@ export class EdgeCacheManager {
         // Proactive revalidation for high-priority content
         if (
           options.priority === "high" &&
-          this.shouldRevalidate((data as any).cached_at)
+          data.cached_at !== undefined &&
+          this.shouldRevalidate(data.cached_at)
         ) {
           this.context.waitUntil(this.revalidateInBackground(key, options));
         }
 
-        return (data as any).value as T;
+        return data.value as T;
       }
 
       // LAYER 2: KV Store (Global distributed cache)
@@ -226,9 +254,12 @@ export class EdgeCacheManager {
     cache_size_estimate: number;
   }> {
     try {
-      const metrics = await this.kv.get<any>("cache:health:metrics", {
-        type: "json",
-      });
+      const metrics = await this.kv.get<CacheHealthMetrics>(
+        "cache:health:metrics",
+        {
+          type: "json",
+        },
+      );
       return (
         metrics || {
           hit_rate: 0,
@@ -342,13 +373,13 @@ export class EdgeCacheManager {
     }
   }
 
-  private async triggerPreloadJob(
+  async triggerPreloadJob(
     key: string,
     options: Partial<CacheOptions>,
   ): Promise<void> {
     try {
       // Queue preload job for background processing
-      await (this.env as any).PRELOAD_QUEUE?.send({
+      await this.env.PRELOAD_QUEUE?.send({
         key,
         options,
         triggered_at: Date.now(),
@@ -365,7 +396,7 @@ export class EdgeCacheManager {
   ): Promise<void> {
     try {
       // Queue revalidation job
-      await (this.env as any).REVALIDATION_QUEUE?.send({
+      await this.env.REVALIDATION_QUEUE?.send({
         key,
         options,
         revalidate_at: Date.now(),
@@ -378,11 +409,11 @@ export class EdgeCacheManager {
   private async recordCacheMetric(
     event: string,
     key: string,
-    _additional?: Record<string, any>,
+    _additional?: Record<string, unknown>,
   ): Promise<void> {
     try {
-      if ((this.env as any).ANALYTICS_ENGINE) {
-        await (this.env as any).ANALYTICS_ENGINE.writeDataPoint({
+      if (this.env.ANALYTICS_ENGINE) {
+        await this.env.ANALYTICS_ENGINE.writeDataPoint({
           blobs: [event, key],
           doubles: [Date.now()],
           indexes: [1], // Count
@@ -503,7 +534,7 @@ export function smartCacheMiddleware(
       try {
         const responseData = await c.res.clone().json();
 
-        if ((responseData as any).success && (responseData as any).data) {
+        if (isCacheableApiResponse(responseData)) {
           const tags = options.cacheTags ? options.cacheTags(c) : [];
           const ttl = options.defaultTtl || 300;
           const vary = options.varyHeaders
@@ -542,14 +573,11 @@ export function cacheWarmingMiddleware() {
     // Warm related endpoints
     if (path.includes("/menu/") && restaurantId) {
       c.executionCtx.waitUntil(
-        (cacheManager as any).triggerPreloadJob(
-          `menu:${restaurantId}:popular`,
-          {
-            ttl: 600,
-            tags: [`restaurant:${restaurantId}`, "menu", "popular"],
-            priority: "high",
-          },
-        ),
+        cacheManager.triggerPreloadJob(`menu:${restaurantId}:popular`, {
+          ttl: 600,
+          tags: [`restaurant:${restaurantId}`, "menu", "popular"],
+          priority: "high",
+        }),
       );
     }
 
