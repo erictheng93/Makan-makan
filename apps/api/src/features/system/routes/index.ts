@@ -41,7 +41,7 @@ routes.post(
     const result = await systemService.createErrorReport(
       { errors },
       user.id,
-      user.restaurantId || null,
+      user.restaurantId == null ? null : String(user.restaurantId),
       userAgent,
     );
 

@@ -112,7 +112,7 @@ export const inputSanitizationMiddleware = async (
       if (body && typeof body === "object") {
         const sanitizedBody = sanitizeObject(body);
         // Replace the request with sanitized data
-        c.req.json = async () => sanitizedBody;
+        c.req.json = (async <T>() => sanitizedBody as T) as typeof c.req.json;
       }
     } catch {
       // If JSON parsing fails, let the validation middleware handle it

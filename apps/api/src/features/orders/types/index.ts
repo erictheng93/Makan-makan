@@ -284,7 +284,12 @@ export interface OrderNotification {
 export interface BulkOrderOperation {
   action: "update_status" | "cancel" | "export" | "archive";
   orderIds: number[];
-  data?: unknown;
+  data?: {
+    status?: OrderStatus;
+    reason?: string;
+    format?: "csv" | "excel" | "pdf";
+    notes?: string;
+  };
   batchId?: string;
 }
 

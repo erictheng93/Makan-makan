@@ -123,7 +123,8 @@ export function moduleGate(module: ModuleKey) {
       return;
     }
 
-    const restaurantId = user?.restaurantId;
+    const restaurantId =
+      user?.restaurantId == null ? undefined : String(user.restaurantId);
 
     if (!restaurantId) {
       throw forbidden(

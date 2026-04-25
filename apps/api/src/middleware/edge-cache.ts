@@ -416,7 +416,7 @@ export class EdgeCacheManager {
         await this.env.ANALYTICS_ENGINE.writeDataPoint({
           blobs: [event, key],
           doubles: [Date.now()],
-          indexes: [1], // Count
+          indexes: ["1"], // Count
         });
       }
     } catch (error) {

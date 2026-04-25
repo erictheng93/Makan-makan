@@ -83,13 +83,16 @@ export class RestaurantsService {
       this.logger.debug("Getting restaurants with filters", { filters });
 
       // Generate cache key based on filters
-      const cacheKey = this.generateCacheKey("restaurants:list", filters);
+      const cacheKey = this.generateCacheKey(
+        "restaurants:list",
+        filters as Record<string, unknown>,
+      );
 
       // Try to get from cache first
       const cached = await this.cache.get(cacheKey);
       if (cached) {
         this.logger.debug("Returning cached restaurants");
-        return cached;
+        return cached as RestaurantListResult;
       }
 
       // Get from database

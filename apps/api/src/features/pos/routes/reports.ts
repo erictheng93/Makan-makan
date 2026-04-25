@@ -38,7 +38,7 @@ app.get(
         throw forbidden("只能查看自己餐廳的報表");
       }
     } else if (user.restaurantId) {
-      finalRestaurantId = user.restaurantId;
+      finalRestaurantId = String(user.restaurantId);
     } else {
       throw badRequest("需要指定餐廳ID");
     }
@@ -83,7 +83,7 @@ app.get(
         throw forbidden("只能查看自己餐廳的統計");
       }
     } else if (user.restaurantId) {
-      finalRestaurantId = user.restaurantId;
+      finalRestaurantId = String(user.restaurantId);
     } else {
       throw badRequest("需要指定餐廳ID");
     }
@@ -143,7 +143,7 @@ app.get(
         throw forbidden("只能匯出自己餐廳的報表");
       }
     } else if (user.restaurantId) {
-      finalRestaurantId = user.restaurantId;
+      finalRestaurantId = String(user.restaurantId);
     } else {
       throw badRequest("需要指定餐廳ID");
     }

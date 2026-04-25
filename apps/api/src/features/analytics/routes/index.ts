@@ -435,7 +435,9 @@ routes.get(
           try {
             // Get target restaurant ID based on user role
             const targetRestaurantId =
-              user.role >= 1 ? user.restaurantId : undefined;
+              user.role >= 1 && user.restaurantId != null
+                ? String(user.restaurantId)
+                : undefined;
 
             // Get real-time analytics data
             const realtimeData =

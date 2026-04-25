@@ -94,7 +94,9 @@ export class UsersService {
         this.canManageUser(
           currentUser,
           targetUser.role,
-          targetUser.restaurantId,
+          targetUser.restaurantId == null
+            ? undefined
+            : String(targetUser.restaurantId),
         ))
     );
   }
@@ -190,7 +192,9 @@ export class UsersService {
     const effectiveRestaurantId =
       userData.restaurantId != null
         ? String(userData.restaurantId)
-        : currentUser.restaurantId;
+        : currentUser.restaurantId == null
+          ? undefined
+          : String(currentUser.restaurantId);
 
     if (
       !this.canManageUser(currentUser, userData.role, effectiveRestaurantId)

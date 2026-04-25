@@ -34,7 +34,9 @@ export class SSEController {
   async connect(c: Context) {
     const user = c.get("user");
     const queryRestaurantId = c.req.query("restaurant_id") || "";
-    const restaurantId = queryRestaurantId || user.restaurantId;
+    const restaurantId =
+      queryRestaurantId ||
+      (user.restaurantId == null ? "" : String(user.restaurantId));
 
     // Verify restaurant permissions
     if (user.role !== 0 && user.restaurantId !== restaurantId) {

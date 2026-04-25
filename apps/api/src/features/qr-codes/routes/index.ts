@@ -51,7 +51,11 @@ app.post(
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
-    const qrCode = await service.generateQR(data, user?.id, user?.restaurantId);
+    const qrCode = await service.generateQR(
+      data,
+      user?.id,
+      user?.restaurantId == null ? undefined : String(user.restaurantId),
+    );
 
     return c.json(
       createSuccessResponse(qrCode, "QR code generated successfully"),
@@ -74,7 +78,7 @@ app.post(
     const batch = await service.generateBulkQR(
       data,
       user?.id,
-      user?.restaurantId,
+      user?.restaurantId == null ? undefined : String(user.restaurantId),
     );
 
     return c.json(

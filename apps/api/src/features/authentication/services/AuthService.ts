@@ -33,6 +33,8 @@ import type {
   TokenValidation,
   UserProfile,
   SessionSummary,
+  DeviceInfo,
+  LocationInfo,
   TwoFactorBackupCodes,
   SecurityEvent,
   AccountSecurity,
@@ -640,11 +642,22 @@ export class AuthService implements IAuthService {
       const sessions = await this.dbAuthService.getUserSessions(userId);
 
       // Transform to match our interface
+      const parseJsonField = <T>(
+        value: string | null | undefined,
+      ): T | undefined => {
+        if (!value) return undefined;
+        try {
+          return JSON.parse(value) as T;
+        } catch {
+          return undefined;
+        }
+      };
+
       const sessionSummaries: SessionSummary[] = sessions.map(
         (session: DatabaseSessionSummary) => ({
-          id: session.id,
-          deviceInfo: session.deviceInfo,
-          location: session.location,
+          id: String(session.id),
+          deviceInfo: parseJsonField<DeviceInfo>(session.deviceInfo),
+          location: parseJsonField<LocationInfo>(session.location),
           lastAccessedAt: session.lastAccessedAt
             ? new Date(session.lastAccessedAt)
             : undefined,

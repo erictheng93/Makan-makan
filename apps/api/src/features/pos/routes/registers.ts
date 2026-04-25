@@ -73,7 +73,7 @@ app.get("/", authMiddleware, validateQuery(registerQuerySchema), async (c) => {
       throw forbidden("只能查看自己餐廳的收銀機");
     }
   } else if (user.restaurantId) {
-    restaurantId = user.restaurantId;
+    restaurantId = String(user.restaurantId);
   } else {
     throw badRequest("需要指定餐廳ID");
   }

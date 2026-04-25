@@ -88,7 +88,8 @@ function toCallerContext(user: AuthUser): CallerContext {
   return {
     userId: user.id,
     userRole: user.role,
-    userRestaurantId: user.restaurantId,
+    userRestaurantId:
+      user.restaurantId == null ? undefined : String(user.restaurantId),
   };
 }
 
@@ -452,7 +453,8 @@ app.get(
       filters.customerId = user.id;
     } else if (user.role !== 0) {
       // Non-admin staff only sees their restaurant's orders
-      filters.restaurantId = user.restaurantId;
+      filters.restaurantId =
+        user.restaurantId == null ? undefined : String(user.restaurantId);
     } else if (query.restaurantId) {
       // Admin can filter by restaurant
       filters.restaurantId = query.restaurantId;
@@ -494,7 +496,8 @@ app.get(
     let restaurantId: string | undefined;
     if (user.role === 1) {
       // Owner only sees their restaurant
-      restaurantId = user.restaurantId;
+      restaurantId =
+        user.restaurantId == null ? undefined : String(user.restaurantId);
     } else if (query.restaurantId) {
       restaurantId = query.restaurantId;
     }
@@ -536,7 +539,8 @@ app.get(
       dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
     };
     if (user.role === 1) {
-      filters.restaurantId = user.restaurantId;
+      filters.restaurantId =
+        user.restaurantId == null ? undefined : String(user.restaurantId);
     }
 
     const analytics = await ordersService.getOrderAnalytics(
@@ -566,7 +570,11 @@ app.get(
     const ordersService = new OrdersService(c.env);
 
     const restaurantId =
-      user.role === 0 ? c.req.query("restaurantId") || "" : user.restaurantId;
+      user.role === 0
+        ? c.req.query("restaurantId") || ""
+        : user.restaurantId == null
+          ? ""
+          : String(user.restaurantId);
 
     if (!restaurantId) {
       throw badRequest("Restaurant ID is required");

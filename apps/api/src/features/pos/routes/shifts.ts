@@ -219,8 +219,12 @@ app.get(
         throw forbidden("只能查看自己餐廳的統計");
       }
     } else if (user.restaurantId) {
-      restaurantId = user.restaurantId;
+      restaurantId = String(user.restaurantId);
     } else {
+      throw badRequest("需要指定餐廳ID");
+    }
+
+    if (!restaurantId) {
       throw badRequest("需要指定餐廳ID");
     }
 
