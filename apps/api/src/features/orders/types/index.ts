@@ -86,7 +86,7 @@ export interface OrderItemData {
   menuItemId: number;
   quantity: number;
   price?: number;
-  customizations?: any;
+  customizations?: unknown;
   notes?: string;
 }
 
@@ -275,7 +275,7 @@ export interface OrderNotification {
   message: string;
   priority: "low" | "normal" | "high" | "urgent";
   targetRoles: UserRole[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   expiresAt?: Date;
 }
@@ -284,7 +284,7 @@ export interface OrderNotification {
 export interface BulkOrderOperation {
   action: "update_status" | "cancel" | "export" | "archive";
   orderIds: number[];
-  data?: any;
+  data?: unknown;
   batchId?: string;
 }
 
@@ -300,7 +300,7 @@ export interface BulkOrderResult {
   results: Array<{
     orderId: number;
     success: boolean;
-    data?: any;
+    data?: unknown;
     error?: string;
   }>;
 }
@@ -313,11 +313,11 @@ export interface OrderStatusTransition {
   conditions?: Array<{
     field: string;
     operator: "equals" | "not_equals" | "greater_than" | "less_than";
-    value: any;
+    value: unknown;
   }>;
   sideEffects?: Array<{
     type: "notification" | "audit_log" | "webhook" | "email";
-    config: Record<string, any>;
+    config: Record<string, unknown>;
   }>;
 }
 
@@ -327,7 +327,7 @@ export interface PaymentIntegration {
   transactionId?: string;
   paymentIntentId?: string;
   chargeId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface OrderReceipt {
@@ -467,7 +467,7 @@ export interface IOrdersService {
 export interface OrderError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export const ORDER_ERROR_CODES = {

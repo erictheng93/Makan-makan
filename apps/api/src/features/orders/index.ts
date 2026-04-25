@@ -24,6 +24,28 @@ import type {
 const FEATURE_NAME = "orders";
 const FEATURE_VERSION = "1.0.0";
 
+interface OrdersFeatureMetrics {
+  performance: {
+    averageResponseTime: number;
+    p95ResponseTime: number;
+    p99ResponseTime: number;
+    requestsPerSecond: number;
+    errorRate: number;
+  };
+  usage: {
+    totalOrders: number;
+    ordersToday: number;
+    activeOrders: number;
+    popularOrderTypes: string[];
+    topRestaurants: string[];
+  };
+  errors: {
+    totalErrors: number;
+    errorsByType: Record<string, number>;
+    recentErrors: string[];
+  };
+}
+
 /**
  * Orders Feature Module Class
  * Implements comprehensive order management functionality
@@ -215,11 +237,7 @@ class OrdersModule implements FeatureModule {
   /**
    * Get feature statistics and metrics
    */
-  async getFeatureMetrics(env: Env): Promise<{
-    performance: any;
-    usage: any;
-    errors: any;
-  }> {
+  async getFeatureMetrics(env: Env): Promise<OrdersFeatureMetrics> {
     try {
       const _service = this.getService(env);
 
