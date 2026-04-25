@@ -14,6 +14,33 @@ import type {
   CouponStats,
 } from "../types";
 
+interface AvailableCoupon {
+  id: number;
+  discountType: string;
+  discountValue: number;
+  maxDiscountAmount?: number | null;
+  minOrderAmount?: number | null;
+}
+
+interface CouponUsageByDay {
+  date: string;
+  usageCount: number;
+  totalDiscount: number;
+}
+
+interface CouponTopUser {
+  userId: number;
+  username?: string | null;
+  usageCount: number;
+  totalDiscount: number;
+}
+
+interface CouponUsageTrendPoint {
+  period: string;
+  totalUsage: number;
+  totalSavings: number;
+}
+
 export class CouponsService extends BaseCouponService {
   /**
    * Enhanced coupon validation with business rules
@@ -71,7 +98,7 @@ export class CouponsService extends BaseCouponService {
   /**
    * Create coupon with duplicate check and validation
    */
-  async createCouponWithValidation(data: CreateCouponData): Promise<any> {
+  async createCouponWithValidation(data: CreateCouponData): Promise<unknown> {
     // Validate date range
     const validFrom = new Date(data.validFrom);
     const validTo = new Date(data.validTo);
@@ -93,8 +120,8 @@ export class CouponsService extends BaseCouponService {
    */
   async getComprehensiveCouponStats(couponId: number): Promise<
     CouponStats & {
-      usageByDay: any[];
-      topUsers: any[];
+      usageByDay: CouponUsageByDay[];
+      topUsers: CouponTopUser[];
       averageOrderValue: number;
     }
   > {
@@ -177,11 +204,11 @@ export class CouponsService extends BaseCouponService {
     restaurantId: string,
     userId: number,
     orderAmount?: number,
-  ): Promise<any[]> {
-    const availableCoupons = await this.getAvailableCoupons(
+  ): Promise<AvailableCoupon[]> {
+    const availableCoupons = (await this.getAvailableCoupons(
       restaurantId,
       userId,
-    );
+    )) as AvailableCoupon[];
 
     if (!orderAmount) {
       return availableCoupons;
@@ -198,7 +225,7 @@ export class CouponsService extends BaseCouponService {
    * Calculate potential savings for multiple coupons
    */
   async calculatePotentialSavings(
-    coupons: any[],
+    coupons: AvailableCoupon[],
     orderAmount: number,
   ): Promise<Array<{ couponId: number; saving: number }>> {
     const savings = [];
@@ -234,7 +261,7 @@ export class CouponsService extends BaseCouponService {
     activeCoupons: number;
     totalUsage: number;
     totalSavings: number;
-    usageByPeriod: any[];
+    usageByPeriod: CouponUsageTrendPoint[];
   }> {
     // This would require more complex database queries
     // For now, return mock data structure
