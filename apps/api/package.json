@@ -5,8 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "wrangler dev",
-    "build": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy",
+    "build": "wrangler deploy --dry-run --env=\"\"",
+    "build:staging": "wrangler deploy --dry-run --env staging",
+    "build:prod": "wrangler deploy --dry-run --env production",
+    "deploy": "wrangler deploy --env=\"\"",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production",
     "test": "vitest",
