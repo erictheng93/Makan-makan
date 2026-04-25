@@ -17,6 +17,17 @@ import { notFound } from "../../../shared/utils/api-error";
 
 // Import schemas
 import { qrCodeSchemas } from "../schemas/validation";
+import type {
+  BulkQRInput,
+  CreateTemplateInput,
+  GenerateQRInput,
+  ListTemplatesInput,
+  QRCodeBatchParamInput,
+  QRCodeIdParamInput,
+  QRStatsInput,
+  ShopQrCodeParamInput,
+  UpdateTemplateInput,
+} from "../schemas/validation";
 
 // Import services
 import { QrCodesService } from "../services/QrCodesService";
@@ -36,7 +47,7 @@ app.post(
   ]),
   validateBody(qrCodeSchemas.generate),
   async (c) => {
-    const data = c.get("validatedBody") as any;
+    const data = c.get("validatedBody") as GenerateQRInput;
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
@@ -56,7 +67,7 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(qrCodeSchemas.bulk),
   async (c) => {
-    const data = c.get("validatedBody") as any;
+    const data = c.get("validatedBody") as BulkQRInput;
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
@@ -79,7 +90,7 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    const { id } = c.get("validatedParams") as any;
+    const { id } = c.get("validatedParams") as QRCodeIdParamInput;
     const service = new QrCodesService(c.env);
 
     const result = await service.downloadQR(id);
@@ -103,7 +114,7 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.batchParams),
   async (c) => {
-    const { batchId } = c.get("validatedParams") as any;
+    const { batchId } = c.get("validatedParams") as QRCodeBatchParamInput;
     const service = new QrCodesService(c.env);
 
     const result = await service.downloadBatch(batchId);
@@ -128,12 +139,17 @@ app.get(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateQuery(qrCodeSchemas.stats),
   async (c) => {
-    const query = c.get("validatedQuery") as any;
+    const query = c.get("validatedQuery") as QRStatsInput;
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
     // Use restaurant ID from query or user context
-    const restaurantId = query.restaurantId || user?.restaurantId;
+    const restaurantId =
+      query.restaurantId !== undefined
+        ? String(query.restaurantId)
+        : user?.restaurantId !== undefined
+          ? String(user.restaurantId)
+          : undefined;
 
     const stats = await service.getStatistics(restaurantId);
 
@@ -149,7 +165,7 @@ app.get(
   authMiddleware,
   validateQuery(qrCodeSchemas.listTemplates),
   async (c) => {
-    const query = c.get("validatedQuery") as any;
+    const query = c.get("validatedQuery") as ListTemplatesInput;
     const service = new QrCodesService(c.env);
 
     const templates = await service.listTemplates(query.category);
@@ -164,7 +180,7 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    const { id } = c.get("validatedParams") as any;
+    const { id } = c.get("validatedParams") as QRCodeIdParamInput;
     const service = new QrCodesService(c.env);
 
     const template = await service.getTemplate(id);
@@ -184,7 +200,7 @@ app.post(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateBody(qrCodeSchemas.createTemplate),
   async (c) => {
-    const data = c.get("validatedBody") as any;
+    const data = c.get("validatedBody") as CreateTemplateInput;
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
@@ -209,8 +225,8 @@ app.put(
   validateParams(qrCodeSchemas.params),
   validateBody(qrCodeSchemas.updateTemplate),
   async (c) => {
-    const { id } = c.get("validatedParams") as any;
-    const data = c.get("validatedBody") as any;
+    const { id } = c.get("validatedParams") as QRCodeIdParamInput;
+    const data = c.get("validatedBody") as UpdateTemplateInput;
     const service = new QrCodesService(c.env);
 
     const template = await service.updateTemplate(id, data);
@@ -233,7 +249,7 @@ app.delete(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    const { id } = c.get("validatedParams") as any;
+    const { id } = c.get("validatedParams") as QRCodeIdParamInput;
     const service = new QrCodesService(c.env);
 
     const deleted = await service.deleteTemplate(id);
@@ -260,7 +276,7 @@ app.get(
   "/verify/shop/:qrCode",
   validateParams(qrCodeSchemas.shopQrCode),
   async (c) => {
-    const { qrCode } = c.get("validatedParams") as any;
+    const { qrCode } = c.get("validatedParams") as ShopQrCodeParamInput;
 
     // Import RestaurantsService dynamically to avoid circular dependencies
     const { RestaurantsService } =

@@ -215,3 +215,13 @@ export const qrCodeSchemas = {
   // Style schema (for reuse)
   style: qrStyleSchema,
 } as const;
+
+export type QRCodeIdParamInput = z.infer<typeof idParam>;
+export type QRCodeBatchParamInput = z.infer<typeof batchIdParam>;
+export type ShopQrCodeParamInput = z.infer<typeof shopQrCodeParam>;
+export type GenerateQRInput = z.infer<typeof generateQRSchema>;
+export type BulkQRInput = z.infer<typeof bulkQRSchema>;
+export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
+export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>;
+export type ListTemplatesInput = z.infer<typeof listTemplatesQuery>;
+export type QRStatsInput = z.infer<typeof statsQuery>;
