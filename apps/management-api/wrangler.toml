@@ -61,6 +61,7 @@ LOG_LEVEL = "info"
 binding = "MANAGEMENT_DB"
 database_name = "makanmasak-management-staging"
 database_id = "ad9fc277-ec03-4092-af74-88571f2767a0"
+migrations_dir = "migrations"
 
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
@@ -88,6 +89,7 @@ LOG_LEVEL = "warn"
 binding = "MANAGEMENT_DB"
 database_name = "makanmasak-management-prod"
 database_id = "REPLACE_ME__PRODUCTION__MGMT_DB"
+migrations_dir = "migrations"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"

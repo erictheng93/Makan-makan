@@ -141,6 +141,7 @@ TWILIO_PHONE_NUMBER = "+1234567890"
 binding = "DB"
 database_name = "makanmasak-staging"
 database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
+migrations_dir = "../../packages/database/migrations_fresh"
 
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
@@ -187,6 +188,7 @@ TWILIO_PHONE_NUMBER = "+1234567890"
 binding = "DB"
 database_name = "makanmasak-prod"
 database_id = "REPLACE_ME__PRODUCTION__API_DB"
+migrations_dir = "../../packages/database/migrations_fresh"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
