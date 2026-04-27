@@ -1079,12 +1079,36 @@ export class AnalyticsService extends BaseService {
         0,
       );
 
+      // Period-over-period growth: build a same-length prior window
+      // immediately preceding the current one and compare revenue.
+      let growthRate = 0;
+      if (filters.dateFrom && filters.dateTo) {
+        const fromMs = new Date(filters.dateFrom).getTime();
+        const toMs = new Date(filters.dateTo).getTime();
+        const span = toMs - fromMs;
+        if (span > 0) {
+          const priorRevenue = await this.getRevenueAnalytics({
+            ...filters,
+            dateFrom: new Date(fromMs - span).toISOString(),
+            dateTo: new Date(fromMs).toISOString(),
+          });
+          const priorTotal = priorRevenue.reduce(
+            (sum, item) => sum + item.revenue,
+            0,
+          );
+          growthRate =
+            priorTotal > 0
+              ? ((totalRevenue - priorTotal) / priorTotal) * 100
+              : 0;
+        }
+      }
+
       return {
         summary: {
           totalRevenue,
           totalOrders,
           averageOrderValue: totalRevenue / (totalOrders || 1),
-          growthRate: 0, // TODO: Calculate period-over-period growth
+          growthRate,
         },
         revenueBreakdown: {
           byDay: revenueData,

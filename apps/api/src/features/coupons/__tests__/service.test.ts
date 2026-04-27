@@ -18,7 +18,7 @@ import {
 // Mock the database module FIRST before importing anything else
 vi.mock("@makanmakan/database", () => {
   // Create a base class that CouponsService can extend
-  // Real CouponService extends BaseService which requires (d1, env, mockDb?)
+  // Real CouponService extends BaseCouponService which requires (d1, env, mockDb?)
   class MockCouponService {
     protected db: any;
     protected env: any;

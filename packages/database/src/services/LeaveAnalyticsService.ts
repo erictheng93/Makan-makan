@@ -218,7 +218,17 @@ export class LeaveAnalyticsService {
           COUNT(lr.id) as total_requests,
           SUM(CASE WHEN lr.status = 'approved' THEN lr.total_days ELSE 0 END) as total_days_used,
           SUM(lb.remaining_days) as remaining_days,
-          MAX(lr.end_date) as last_leave_date
+          MAX(lr.end_date) as last_leave_date,
+          (
+            SELECT lt.name
+            FROM leave_requests lr2
+            JOIN leave_types lt ON lt.id = lr2.leave_type_id
+            WHERE lr2.employee_id = u.id
+              AND strftime('%Y', lr2.start_date) = ?
+            GROUP BY lr2.leave_type_id
+            ORDER BY COUNT(*) DESC
+            LIMIT 1
+          ) as most_used_leave_type
         FROM users u
         LEFT JOIN leave_requests lr ON u.id = lr.employee_id
           AND strftime('%Y', lr.start_date) = ?
@@ -230,7 +240,7 @@ export class LeaveAnalyticsService {
         LIMIT ?
       `,
       )
-      .bind(String(year), year, restaurantId, limit)
+      .bind(String(year), String(year), year, restaurantId, limit)
       .all<any>();
 
     return (results.results || []).map((row) => ({
@@ -241,7 +251,7 @@ export class LeaveAnalyticsService {
       totalRequests: row.total_requests || 0,
       totalDaysUsed: row.total_days_used || 0,
       remainingDays: row.remaining_days || 0,
-      mostUsedLeaveType: "N/A", // TODO: Add subquery
+      mostUsedLeaveType: row.most_used_leave_type || "N/A",
       lastLeaveDate: row.last_leave_date,
     }));
   }
@@ -390,13 +400,56 @@ export class LeaveAnalyticsService {
       .bind(restaurantId, String(year))
       .first<any>();
 
+    // Top 5 days with highest leave demand
+    const topDaysResult = await this.db
+      .prepare(
+        `
+        SELECT
+          start_date as date,
+          COUNT(*) as request_count,
+          COUNT(DISTINCT employee_id) as employees_on_leave
+        FROM leave_requests
+        WHERE restaurant_id = ?
+          AND strftime('%Y', start_date) = ?
+          AND status = 'approved'
+        GROUP BY start_date
+        ORDER BY request_count DESC
+        LIMIT 5
+      `,
+      )
+      .bind(restaurantId, String(year))
+      .all<any>();
+
+    const highestDemandDays = (topDaysResult.results || []).map((row) => ({
+      date: row.date,
+      requestCount: row.request_count || 0,
+      employeesOnLeave: row.employees_on_leave || 0,
+    }));
+
+    // Year totals → average per day. Use leap-year aware day count.
+    const totalsResult = await this.db
+      .prepare(
+        `
+        SELECT COUNT(*) as total
+        FROM leave_requests
+        WHERE restaurant_id = ? AND strftime('%Y', start_date) = ?
+      `,
+      )
+      .bind(restaurantId, String(year))
+      .first<any>();
+
+    const yearDays =
+      (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
+    const totalForYear = totalsResult?.total || 0;
+    const averageRequestsPerDay = totalForYear / yearDays;
+
     return {
       month: monthResult?.month || "N/A",
       weekOfYear: weekResult?.week || "N/A",
       dayOfWeek: dayResult?.day_of_week || "N/A",
       totalRequests: monthResult?.count || 0,
-      averageRequestsPerDay: 0, // TODO: Calculate
-      highestDemandDays: [], // TODO: Get top 5 days
+      averageRequestsPerDay,
+      highestDemandDays,
     };
   }
 
@@ -436,13 +489,42 @@ export class LeaveAnalyticsService {
       };
     }
 
+    // Median: pull all balances sorted, pick middle value(s).
+    const balances = await this.db
+      .prepare(
+        `
+        SELECT lb.remaining_days
+        FROM employee_leave_balances lb
+        JOIN users u ON lb.employee_id = u.id
+        WHERE u.restaurant_id = ? AND lb.year = ?
+        ORDER BY lb.remaining_days
+      `,
+      )
+      .bind(restaurantId, year)
+      .all<any>();
+
+    const sorted = (balances.results || []).map(
+      (r) => Number(r.remaining_days) || 0,
+    );
+    let medianBalance = 0;
+    if (sorted.length > 0) {
+      const mid = Math.floor(sorted.length / 2);
+      medianBalance =
+        sorted.length % 2 === 0
+          ? (sorted[mid - 1] + sorted[mid]) / 2
+          : sorted[mid];
+    }
+
+    // expiringDays: leave_balances schema in this codebase has no
+    // expires_at column; surfacing it requires an "expiry_date" / policy
+    // model that does not yet exist. Returning 0 until that lands.
     return {
       averageBalance: result.avg_balance || 0,
-      medianBalance: 0, // TODO: Calculate median
+      medianBalance,
       employeesWithLowBalance: result.low_balance_count || 0,
       employeesWithZeroBalance: result.zero_balance_count || 0,
       totalUnusedDays: result.total_unused || 0,
-      expiringDays: 0, // TODO: Calculate expiring
+      expiringDays: 0,
       carryoverDays: result.total_carryover || 0,
     };
   }

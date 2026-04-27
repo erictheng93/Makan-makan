@@ -278,6 +278,22 @@ export class BackupService {
       // Serialize backup data
       const backupJson = JSON.stringify(backupData, null, 2);
 
+      // Compute gzip-compressed size when compression is enabled so we can
+      // report compressedSize / compression_ratio honestly. The storage
+      // service still receives the raw payload — gzip here is purely for
+      // metrics and does not duplicate any storage-side compression.
+      let compressedSize = backupJson.length;
+      let compressionRatio = 1.0;
+      if (backup.compression_enabled) {
+        const stream = new Blob([backupJson])
+          .stream()
+          .pipeThrough(new CompressionStream("gzip"));
+        const compressedBuffer = await new Response(stream).arrayBuffer();
+        compressedSize = compressedBuffer.byteLength;
+        compressionRatio =
+          compressedSize > 0 ? backupJson.length / compressedSize : 1.0;
+      }
+
       // Store backup using storage service
       const { storage_path, checksum } = await this.storageService.storeBackup(
         backup,
@@ -305,7 +321,7 @@ export class BackupService {
         })),
         performance_metrics: {
           backup_duration_ms: duration,
-          compression_ratio: 1.0, // TODO: Calculate actual compression ratio
+          compression_ratio: compressionRatio,
           upload_speed_mbps:
             backupJson.length > 0
               ? backupJson.length / 1024 / 1024 / (duration / 1000)
@@ -325,7 +341,7 @@ export class BackupService {
         .set({
           status: "completed",
           fileSize: backupJson.length,
-          compressedSize: backupJson.length, // TODO: Implement actual compression
+          compressedSize,
           recordsCount: totalRecords,
           storagePath: storage_path,
           checksum,

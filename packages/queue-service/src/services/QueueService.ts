@@ -179,17 +179,37 @@ export class QueueService implements IQueueService {
       const realtimeMetrics =
         await this.metricsService.getRealtimeMetrics(restaurantId);
 
+      const waiting = await this.queueRepository.findByRestaurant(
+        restaurantId,
+        { status: [QueueStatus.WAITING] },
+      );
+
+      let minWait = 0;
+      let onlineCount = 0;
+      let walkinCount = 0;
+      let priorityCount = 0;
+      if (waiting.length > 0) {
+        minWait = waiting[0].estimatedWaitMinutes;
+        for (const q of waiting) {
+          if (q.estimatedWaitMinutes < minWait)
+            minWait = q.estimatedWaitMinutes;
+          if (q.queueType === QueueType.ONLINE) onlineCount++;
+          else if (q.queueType === QueueType.WALKIN) walkinCount++;
+          if (q.priority > 0) priorityCount++;
+        }
+      }
+
       return {
         success: true,
         data: {
           queue: {
             total_waiting: realtimeMetrics.currentWaiting,
             avg_estimated_wait: realtimeMetrics.averageWaitTime,
-            min_wait: 0, // TODO: Calculate from current queue
+            min_wait: minWait,
             max_wait: realtimeMetrics.longestWaitTime,
-            online_count: 0, // TODO: Count by type
-            walkin_count: 0, // TODO: Count by type
-            priority_count: 0, // TODO: Count priority customers
+            online_count: onlineCount,
+            walkin_count: walkinCount,
+            priority_count: priorityCount,
           },
           activity: {
             seated_today: stats.seatedCustomers,
@@ -523,7 +543,9 @@ export class QueueService implements IQueueService {
             seated_at: queue.seatedAt?.toISOString(),
             cancelled_at: queue.cancelledAt?.toISOString(),
             actual_wait_minutes: queue.actualWaitMinutes,
-            served_by_name: undefined, // TODO: Join with users table
+            // served_by_name requires cross-package user lookup; consumers
+            // should resolve via servedBy id from richer detail endpoints.
+            served_by_name: undefined,
             table_preferences: queue.tablePreferences,
             notification_methods: queue.notificationMethods,
             metadata: queue.metadata,
