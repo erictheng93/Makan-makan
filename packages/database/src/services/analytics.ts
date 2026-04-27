@@ -880,10 +880,20 @@ export class AnalyticsService extends BaseService {
         dateFrom,
         dateTo,
       });
+      const revenueData = await this.getRevenueAnalytics({
+        ...filters,
+        restaurantId,
+        groupBy: filters.groupBy ?? "day",
+      });
 
       return {
         ...performanceData,
-        trends: [], // TODO: Implement trends calculation
+        trends: revenueData.map((item) => ({
+          date: item.date,
+          revenue: item.revenue,
+          orderCount: item.orderCount,
+          averageOrderValue: item.averageOrderValue,
+        })),
       };
     } catch (error) {
       this.handleError(error, "getPerformanceAnalytics");
@@ -952,7 +962,37 @@ export class AnalyticsService extends BaseService {
         averageWaitTime: Number(averageWaitTime) || 0,
         occupiedTables: dashboardData.tableStatus.occupied,
         todayRevenue: dashboardData.summary.todayRevenue,
-        alerts: [], // TODO: Implement alerts system
+        alerts: [
+          ...(Number(averageWaitTime) > 30
+            ? [
+                {
+                  type: "performance",
+                  severity: "warning",
+                  message: "Average wait time is above 30 minutes",
+                },
+              ]
+            : []),
+          ...(kitchenQueue > 10
+            ? [
+                {
+                  type: "operations",
+                  severity: "warning",
+                  message: "Kitchen queue has more than 10 active orders",
+                },
+              ]
+            : []),
+          ...(dashboardData.tableStatus.total > 0 &&
+          dashboardData.tableStatus.occupied / dashboardData.tableStatus.total >
+            0.9
+            ? [
+                {
+                  type: "capacity",
+                  severity: "info",
+                  message: "Table occupancy is above 90%",
+                },
+              ]
+            : []),
+        ],
       };
     } catch (error) {
       this.handleError(error, "getRealtimeDashboard");
@@ -1041,7 +1081,7 @@ export class AnalyticsService extends BaseService {
           availableTables: dashboardData.tableStatus.available,
         },
         staffPerformance: {
-          // TODO: Implement staff performance metrics when staff tracking is added
+          // Staff-level tracking is not present in the current schema.
           averageServiceTime: 0,
           staffEfficiency: 0,
         },
@@ -1078,6 +1118,7 @@ export class AnalyticsService extends BaseService {
         (sum, item) => sum + item.orderCount,
         0,
       );
+      const projections = this.buildRevenueProjections(revenueData);
 
       // Period-over-period growth: build a same-length prior window
       // immediately preceding the current one and compare revenue.
@@ -1116,20 +1157,59 @@ export class AnalyticsService extends BaseService {
           topItems: menuAnalytics.popularItems.slice(0, 10),
         },
         expenseAnalysis: {
-          // TODO: Implement expense tracking when expense management is added
+          // Expense data is not modeled yet; keep this section explicit.
           totalExpenses: 0,
           expenseCategories: [],
         },
         profitability: {
-          grossProfit: totalRevenue, // TODO: Subtract costs when available
-          netProfit: totalRevenue, // TODO: Subtract expenses when available
-          profitMargin: 0, // TODO: Calculate when costs are available
+          // TODO: Compute once cost/expense tracking is modeled. Leave at 0
+          // rather than echoing revenue, which would imply a 100% margin.
+          grossProfit: 0,
+          netProfit: 0,
+          profitMargin: 0,
         },
-        projections: [], // TODO: Implement revenue projections based on trends
+        projections,
       };
     } catch (error) {
       this.handleError(error, "getFinancialReport");
     }
+  }
+
+  private buildRevenueProjections(
+    revenueData: RevenueData[],
+  ): Array<{ date: string; projectedRevenue: number; basis: string }> {
+    if (revenueData.length === 0) return [];
+
+    const ordered = [...revenueData].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+    const recent = ordered.slice(-7);
+    const averageRevenue =
+      recent.reduce((sum, item) => sum + item.revenue, 0) / recent.length;
+    const lastDate = this.parseAnalyticsDate(ordered[ordered.length - 1].date);
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(lastDate);
+      date.setDate(date.getDate() + index + 1);
+
+      return {
+        date: date.toISOString().slice(0, 10),
+        projectedRevenue: Math.round(averageRevenue * 100) / 100,
+        basis: `${recent.length}-period moving average`,
+      };
+    });
+  }
+
+  private parseAnalyticsDate(value: string): Date {
+    const normalized = /^\d{4}-W\d{2}$/.test(value)
+      ? `${value.slice(0, 4)}-01-01`
+      : /^\d{4}$/.test(value)
+        ? `${value}-01-01`
+        : /^\d{4}-\d{2}$/.test(value)
+          ? `${value}-01`
+          : value;
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   }
 
   // 取得效能報告
