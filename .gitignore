@@ -218,3 +218,9 @@ tmpclaude-*
 # E2E integration test auth cache
 tests/e2e/.tmp/
 .claude/scheduled_tasks.lock
+
+# Staging/prod secret bundles (script-managed, never commit)
+.staging.secrets.env
+.prod.secrets.env
+.staging.secrets.generated.json
+.prod.secrets.generated.json
