@@ -229,9 +229,9 @@ dataset = "makanmasak-metrics-prod"
 # Daily at 2:00 AM UTC: Clean expired verification tokens
 # Weekly on Sunday at 3:00 AM UTC: Clean old password change logs
 crons = [
-  "0 2 * * *",   # Daily token cleanup
-  "0 3 * * 0",   # Weekly log cleanup
-  "30 2 * * *"   # Daily forecast warmup
+  "0 2 * * *",     # Daily token cleanup
+  "0 3 * * SUN",   # Weekly log cleanup (CF rejects DOW=0; use SUN or 7)
+  "30 2 * * *"     # Daily forecast warmup
 ]
 
 # ========================================

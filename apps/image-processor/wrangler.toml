@@ -41,8 +41,7 @@ bucket_name = "makanmasak-images-staging"
 
 [[env.staging.kv_namespaces]]
 binding = "IMAGE_CACHE"
-# Provision with: wrangler kv:namespace create "IMAGE_CACHE" --env staging
-id = "STAGING_KV_ID_TO_BE_REPLACED"
+id = "78814688103144d69fc1528771153c1b"
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -63,8 +62,7 @@ bucket_name = "makanmasak-images-prod"
 
 [[env.production.kv_namespaces]]
 binding = "IMAGE_CACHE"
-# Provision with: wrangler kv:namespace create "IMAGE_CACHE" --env production
-id = "PRODUCTION_KV_ID_TO_BE_REPLACED"
+id = "REPLACE_ME__PRODUCTION__IMAGE_CACHE_KV"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -72,11 +70,10 @@ database_name = "makanmasak-prod"
 # Provision with: wrangler d1 create makanmasak-prod
 database_id = "REPLACE_ME__PRODUCTION__API_DB"
 
-# Development environment
+# Development environment (local-only — id is unused with `wrangler dev --local`)
 [[kv_namespaces]]
 binding = "IMAGE_CACHE"
-# Provision with: wrangler kv:namespace create "IMAGE_CACHE" --preview
-id = "DEV_KV_ID_TO_BE_REPLACED"
+id = "local"
 
 [[r2_buckets]]
 binding = "IMAGES_BUCKET"

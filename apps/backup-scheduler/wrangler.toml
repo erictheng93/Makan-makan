@@ -12,7 +12,7 @@ crons = [
   "*/5 * * * *",    # Every 5 minutes - Health checks and monitoring
   "0 */6 * * *",    # Every 6 hours - Process scheduled backups
   "0 2 * * *",      # Daily at 2 AM - Cleanup and maintenance
-  "0 0 * * 0"       # Weekly on Sunday - Generate reports and alerts
+  "0 0 * * SUN"     # Weekly on Sunday - Generate reports and alerts
 ]
 
 # Default variables for development
