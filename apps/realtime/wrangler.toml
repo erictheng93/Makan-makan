@@ -1,4 +1,4 @@
-name = "makanmakan-realtime"
+name = "makanmasak-realtime"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
@@ -33,57 +33,57 @@ migrations_dir = "../../packages/database/migrations_fresh"
 
 # === STAGING ENVIRONMENT ===
 [env.staging]
-name = "makanmakan-realtime-staging"
+name = "makanmasak-realtime-staging"
 
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-staging"
+database_name = "makanmasak-staging"
 # TODO: Replace with actual D1 database ID from Cloudflare dashboard
-# Run: wrangler d1 create makanmakan-staging
-database_id = "STAGING_DB_ID_TO_BE_REPLACED"
+# Run: wrangler d1 create makanmasak-staging
+database_id = "REPLACE_ME__STAGING__API_DB"
 
 # Cache KV - aligned with API naming convention
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
 # Use same KV namespace as API for data consistency
-id = "makanmakan-cache-staging"
+id = "REPLACE_ME__STAGING__CACHE_KV"
 
 # Token Blacklist KV - dedicated security namespace
 [[env.staging.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "makanmakan-token-blacklist-staging"
+id = "REPLACE_ME__STAGING__TOKEN_BLACKLIST_KV"
 
 # Rate Limit KV - for WebSocket connection rate limiting
 [[env.staging.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "makanmakan-ratelimit-staging"
+id = "REPLACE_ME__STAGING__RATELIMIT_KV"
 
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
-name = "makanmakan-realtime-prod"
+name = "makanmasak-realtime-prod"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-prod"
+database_name = "makanmasak-prod"
 # TODO: Replace with actual D1 database ID from Cloudflare dashboard
-# Run: wrangler d1 create makanmakan-prod
-database_id = "PRODUCTION_DB_ID_TO_BE_REPLACED"
+# Run: wrangler d1 create makanmasak-prod
+database_id = "REPLACE_ME__PRODUCTION__API_DB"
 
 # Cache KV - aligned with API naming convention
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
 # Use same KV namespace as API for data consistency
-id = "makanmakan-cache-prod"
+id = "REPLACE_ME__PRODUCTION__CACHE_KV"
 
 # Token Blacklist KV - dedicated security namespace
 [[env.production.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "makanmakan-token-blacklist-prod"
+id = "REPLACE_ME__PRODUCTION__TOKEN_BLACKLIST_KV"
 
 # Rate Limit KV - for WebSocket connection rate limiting
 [[env.production.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "makanmakan-ratelimit-prod"
+id = "REPLACE_ME__PRODUCTION__RATELIMIT_KV"
 
 # Smart placement for production
 [env.production.placement]

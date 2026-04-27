@@ -1,7 +1,7 @@
 # MakanMakan API - Cloudflare Workers Configuration
 # Updated to use latest wrangler 4.35.0
 
-name = "makanmakan-api"
+name = "makanmasak-api"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
@@ -32,7 +32,7 @@ DEPLOYMENT_MODE = "saas"
 # TENANT_ID = "S-YYYYMMDD-NNN"           # Unique tenant identifier
 # TENANT_NAME = "餐廳名稱"                # Display name
 # LICENSE_KEY = "MKM-PRO-XXXXXX-XXXX"    # License key
-# CENTRAL_API_URL = "https://manage.makanmakan.app"
+# CENTRAL_API_URL = "https://manage.makanmasak.com"
 # PLATFORM_VERSION = "1.0.0"
 
 # JWT_SECRET - SECURITY: Use `wrangler secret put JWT_SECRET` instead of hardcoding
@@ -41,7 +41,7 @@ DEPLOYMENT_MODE = "saas"
 # Notification Provider Configuration
 # SECURITY: API keys should be set via `wrangler secret put` command
 # Email provider (Resend)
-NOTIFICATION_FROM_EMAIL = "notifications@makanmakan.com"
+NOTIFICATION_FROM_EMAIL = "notifications@makanmasak.com"
 # RESEND_API_KEY - Set via: wrangler secret put RESEND_API_KEY
 # SMS provider (Twilio)
 # TWILIO_ACCOUNT_SID - Set via: wrangler secret put TWILIO_ACCOUNT_SID
@@ -58,28 +58,28 @@ migrations_dir = "../../packages/database/migrations_fresh"
 # KV namespaces for caching and rate limiting
 [[kv_namespaces]]
 binding = "CACHE_KV"
-id = "makanmakan-cache-dev"
-preview_id = "makanmakan-cache-preview"
+id = "makanmasak-cache-dev"
+preview_id = "makanmasak-cache-preview"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "makanmakan-ratelimit-dev"
-preview_id = "makanmakan-ratelimit-preview"
+id = "makanmasak-ratelimit-dev"
+preview_id = "makanmasak-ratelimit-preview"
 
 [[kv_namespaces]]
 binding = "BACKUP_KV"
-id = "makanmakan-backup-dev"
-preview_id = "makanmakan-backup-preview"
+id = "makanmasak-backup-dev"
+preview_id = "makanmasak-backup-preview"
 
 # R2 bucket for backup storage
 [[r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-dev"
-preview_bucket_name = "makanmakan-backups-preview"
+bucket_name = "makanmasak-backups-dev"
+preview_bucket_name = "makanmasak-backups-preview"
 
 # === DEVELOPMENT ENVIRONMENT ===
 [env.development]
-name = "makanmakan-api-dev"
+name = "makanmasak-api-dev"
 [env.development.vars]
 NODE_ENV = "development"
 API_VERSION = "v1"
@@ -93,7 +93,7 @@ DEPLOYMENT_MODE = "saas"
 PLATFORM_VERSION = "1.0.0"
 REALTIME_WS_URL = "ws://localhost:8788"
 # Notification configuration
-NOTIFICATION_FROM_EMAIL = "dev-notifications@makanmakan.com"
+NOTIFICATION_FROM_EMAIL = "dev-notifications@makanmasak.com"
 TWILIO_PHONE_NUMBER = "+1234567890"
 
 [[env.development.d1_databases]]
@@ -103,111 +103,111 @@ database_id = "local"
 
 [[env.development.kv_namespaces]]
 binding = "CACHE_KV"
-id = "makanmakan-cache-dev"
+id = "makanmasak-cache-dev"
 
 [[env.development.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "makanmakan-ratelimit-dev"
+id = "makanmasak-ratelimit-dev"
 
 [[env.development.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "makanmakan-backup-dev"
+id = "makanmasak-backup-dev"
 
 [[env.development.r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-dev"
+bucket_name = "makanmasak-backups-dev"
 
 # === STAGING ENVIRONMENT ===
 [env.staging]
-name = "makanmakan-api-staging"
+name = "makanmasak-api-staging"
 [env.staging.vars]
 NODE_ENV = "staging"
 API_VERSION = "v1"
-API_BASE_URL = "https://api-staging.makanmakan.com"
-CORS_ORIGIN = "https://staging.makanmakan.com"
+API_BASE_URL = "https://api-staging.makanmasak.com"
+CORS_ORIGIN = "https://staging.makanmasak.com"
 LOG_LEVEL = "info"
 MAX_REQUEST_SIZE = "10MB"
 CACHE_TTL = "300"
 RATE_LIMIT_REQUESTS = "500"
 DEPLOYMENT_MODE = "saas"
 PLATFORM_VERSION = "1.0.0"
-CENTRAL_API_URL = "https://manage.makanmakan.app"
-REALTIME_WS_URL = "wss://realtime-staging.makanmakan.workers.dev"
+CENTRAL_API_URL = "https://manage.makanmasak.com"
+REALTIME_WS_URL = "wss://realtime-staging.makanmasak.com"
 # Notification configuration
-NOTIFICATION_FROM_EMAIL = "staging-notifications@makanmakan.com"
+NOTIFICATION_FROM_EMAIL = "staging-notifications@makanmasak.com"
 TWILIO_PHONE_NUMBER = "+1234567890"
 
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-staging"
-database_id = "staging-db-id"
+database_name = "makanmasak-staging"
+database_id = "REPLACE_ME__STAGING__API_DB"
 
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
-id = "makanmakan-cache-staging"
+id = "REPLACE_ME__STAGING__CACHE_KV"
 
 [[env.staging.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "makanmakan-ratelimit-staging"
+id = "REPLACE_ME__STAGING__RATELIMIT_KV"
 
 [[env.staging.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "makanmakan-backup-staging"
+id = "REPLACE_ME__STAGING__BACKUP_KV"
 
 # Token Blacklist KV for WebSocket authentication security
 [[env.staging.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "makanmakan-token-blacklist-staging"
+id = "REPLACE_ME__STAGING__TOKEN_BLACKLIST_KV"
 
 [[env.staging.r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-staging"
+bucket_name = "makanmasak-backups-staging"
 
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
-name = "makanmakan-api-prod"
+name = "makanmasak-api-prod"
 [env.production.vars]
 NODE_ENV = "production"
 API_VERSION = "v1"
-API_BASE_URL = "https://api.makanmakan.com"
-CORS_ORIGIN = "https://makanmakan.com"
+API_BASE_URL = "https://api.makanmasak.com"
+CORS_ORIGIN = "https://makanmasak.com"
 LOG_LEVEL = "warn"
 MAX_REQUEST_SIZE = "5MB"
 CACHE_TTL = "600"
 RATE_LIMIT_REQUESTS = "100"
 DEPLOYMENT_MODE = "saas"
 PLATFORM_VERSION = "1.0.0"
-CENTRAL_API_URL = "https://manage.makanmakan.app"
-REALTIME_WS_URL = "wss://realtime.makanmakan.workers.dev"
+CENTRAL_API_URL = "https://manage.makanmasak.com"
+REALTIME_WS_URL = "wss://realtime.makanmasak.com"
 # Notification configuration
-NOTIFICATION_FROM_EMAIL = "notifications@makanmakan.com"
+NOTIFICATION_FROM_EMAIL = "notifications@makanmasak.com"
 TWILIO_PHONE_NUMBER = "+1234567890"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-prod"
-database_id = "production-db-id"
+database_name = "makanmasak-prod"
+database_id = "REPLACE_ME__PRODUCTION__API_DB"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
-id = "makanmakan-cache-prod"
+id = "REPLACE_ME__PRODUCTION__CACHE_KV"
 
 [[env.production.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "makanmakan-ratelimit-prod"
+id = "REPLACE_ME__PRODUCTION__RATELIMIT_KV"
 
 [[env.production.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "makanmakan-backup-prod"
+id = "REPLACE_ME__PRODUCTION__BACKUP_KV"
 
 # Token Blacklist KV for WebSocket authentication security
 [[env.production.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "makanmakan-token-blacklist-prod"
+id = "REPLACE_ME__PRODUCTION__TOKEN_BLACKLIST_KV"
 
 [[env.production.r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-prod"
+bucket_name = "makanmasak-backups-prod"
 
 # Smart placement for production
 [env.production.placement]
@@ -218,7 +218,7 @@ hints = ["asia-southeast1"]
 # Analytics for production
 [[env.production.analytics_engine_datasets]]
 binding = "ANALYTICS"
-dataset = "makanmakan-metrics-prod"
+dataset = "makanmasak-metrics-prod"
 
 # ========================================
 # Cron Triggers (Scheduled Tasks)
@@ -239,12 +239,12 @@ crons = [
 # Replace placeholders with actual values.
 #
 # [env.independent-template]
-# name = "makanmakan-api-{TENANT_CODE}"
+# name = "makanmasak-api-{TENANT_CODE}"
 # [env.independent-template.vars]
 # NODE_ENV = "production"
 # API_VERSION = "v1"
-# API_BASE_URL = "https://api.{SUBDOMAIN}.makanmakan.app"
-# CORS_ORIGIN = "https://{SUBDOMAIN}.makanmakan.app"
+# API_BASE_URL = "https://api.{SUBDOMAIN}.makanmasak.com"
+# CORS_ORIGIN = "https://{SUBDOMAIN}.makanmasak.com"
 # LOG_LEVEL = "warn"
 # MAX_REQUEST_SIZE = "5MB"
 # CACHE_TTL = "600"
@@ -253,30 +253,30 @@ crons = [
 # TENANT_ID = "{TENANT_ID}"              # e.g., S-20241201-001
 # TENANT_NAME = "{TENANT_NAME}"          # e.g., 御膳房
 # LICENSE_KEY = "{LICENSE_KEY}"          # e.g., MKM-PRO-YSF001-A7B2
-# CENTRAL_API_URL = "https://manage.makanmakan.app"
+# CENTRAL_API_URL = "https://manage.makanmasak.com"
 # PLATFORM_VERSION = "1.0.0"
-# NOTIFICATION_FROM_EMAIL = "notifications@{SUBDOMAIN}.makanmakan.app"
+# NOTIFICATION_FROM_EMAIL = "notifications@{SUBDOMAIN}.makanmasak.com"
 #
 # # D1 Database - Create per tenant
 # [[env.independent-template.d1_databases]]
 # binding = "DB"
-# database_name = "makanmakan-{TENANT_CODE}"
+# database_name = "makanmasak-{TENANT_CODE}"
 # database_id = "{D1_DATABASE_ID}"
 #
 # # KV Namespaces - Create per tenant
 # [[env.independent-template.kv_namespaces]]
 # binding = "CACHE_KV"
-# id = "makanmakan-cache-{TENANT_CODE}"
+# id = "makanmasak-cache-{TENANT_CODE}"
 #
 # [[env.independent-template.kv_namespaces]]
 # binding = "RATE_LIMIT_KV"
-# id = "makanmakan-ratelimit-{TENANT_CODE}"
+# id = "makanmasak-ratelimit-{TENANT_CODE}"
 #
 # [[env.independent-template.kv_namespaces]]
 # binding = "TOKEN_BLACKLIST"
-# id = "makanmakan-token-blacklist-{TENANT_CODE}"
+# id = "makanmasak-token-blacklist-{TENANT_CODE}"
 #
 # # R2 Bucket - Create per tenant
 # [[env.independent-template.r2_buckets]]
 # binding = "BACKUP_STORAGE"
-# bucket_name = "makanmakan-backups-{TENANT_CODE}"
+# bucket_name = "makanmasak-backups-{TENANT_CODE}"

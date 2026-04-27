@@ -1,5 +1,5 @@
 {
-  "name": "makanmakan-admin-dashboard",
+  "name": "makanmasak-admin-dashboard",
   "version": "1.0.0",
   "description": "MakanMakan 管理後台",
   "type": "module",
@@ -15,8 +15,8 @@
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --fix",
     "lint:fix": "eslint src --fix",
-    "deploy:staging": "wrangler pages deploy dist --project-name=makanmakan-admin-staging",
-    "deploy:prod": "wrangler pages deploy dist --project-name=makanmakan-admin"
+    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-admin-staging",
+    "deploy:prod": "wrangler pages deploy dist --project-name=makanmasak-admin"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.0",

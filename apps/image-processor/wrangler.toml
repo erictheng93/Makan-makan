@@ -1,4 +1,4 @@
-name = "makanmakan-image-processor"
+name = "makanmasak-image-processor"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
@@ -29,7 +29,7 @@ MAX_UPLOADS_PER_MINUTE = "20"
 MAX_TRANSFORMS_PER_MINUTE = "100"
 
 [env.staging]
-name = "makanmakan-image-processor-staging"
+name = "makanmasak-image-processor-staging"
 
 [env.staging.vars]
 NODE_ENV = "staging"
@@ -37,7 +37,7 @@ API_VERSION = "v1"
 
 [[env.staging.r2_buckets]]
 binding = "IMAGES_BUCKET"
-bucket_name = "makanmakan-images-staging"
+bucket_name = "makanmasak-images-staging"
 
 [[env.staging.kv_namespaces]]
 binding = "IMAGE_CACHE"
@@ -46,12 +46,12 @@ id = "STAGING_KV_ID_TO_BE_REPLACED"
 
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-staging"
-# Provision with: wrangler d1 create makanmakan-staging
-database_id = "STAGING_DB_ID_TO_BE_REPLACED"
+database_name = "makanmasak-staging"
+# Provision with: wrangler d1 create makanmasak-staging
+database_id = "REPLACE_ME__STAGING__API_DB"
 
 [env.production]
-name = "makanmakan-image-processor-prod"
+name = "makanmasak-image-processor-prod"
 
 [env.production.vars]
 NODE_ENV = "production"
@@ -59,7 +59,7 @@ API_VERSION = "v1"
 
 [[env.production.r2_buckets]]
 binding = "IMAGES_BUCKET"
-bucket_name = "makanmakan-images-prod"
+bucket_name = "makanmasak-images-prod"
 
 [[env.production.kv_namespaces]]
 binding = "IMAGE_CACHE"
@@ -68,9 +68,9 @@ id = "PRODUCTION_KV_ID_TO_BE_REPLACED"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-prod"
-# Provision with: wrangler d1 create makanmakan-prod
-database_id = "PRODUCTION_DB_ID_TO_BE_REPLACED"
+database_name = "makanmasak-prod"
+# Provision with: wrangler d1 create makanmasak-prod
+database_id = "REPLACE_ME__PRODUCTION__API_DB"
 
 # Development environment
 [[kv_namespaces]]
@@ -80,10 +80,10 @@ id = "DEV_KV_ID_TO_BE_REPLACED"
 
 [[r2_buckets]]
 binding = "IMAGES_BUCKET"
-bucket_name = "makanmakan-images-dev"
+bucket_name = "makanmasak-images-dev"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "makanmakan-local"
 # Provision with: wrangler d1 create makanmakan-local --local
-database_id = "LOCAL_DB_ID_TO_BE_REPLACED"
+database_id = "local"

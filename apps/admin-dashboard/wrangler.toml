@@ -1,4 +1,4 @@
-name = "makanmakan-admin"
+name = "makanmasak-admin"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -9,21 +9,21 @@ VITE_WS_BASE_URL = "ws://localhost:8787"
 VITE_NODE_ENV = "development"
 
 [env.production]
-name = "makanmakan-admin-prod"
+name = "makanmasak-admin-prod"
 pages_build_output_dir = "dist"
 pages_build_command = "npm run build"
 vars = { 
-  VITE_API_BASE_URL = "https://api.makanmakan.app/api/v1",
-  VITE_WS_BASE_URL = "wss://api.makanmakan.app",
+  VITE_API_BASE_URL = "https://api.makanmasak.com/api/v1",
+  VITE_WS_BASE_URL = "wss://api.makanmasak.com",
   VITE_NODE_ENV = "production"
 }
 
 [env.staging]
-name = "makanmakan-admin-staging"
+name = "makanmasak-admin-staging"
 pages_build_output_dir = "dist"
 pages_build_command = "npm run build"
 vars = { 
-  VITE_API_BASE_URL = "https://api-staging.makanmakan.app/api/v1",
-  VITE_WS_BASE_URL = "wss://api-staging.makanmakan.app",
+  VITE_API_BASE_URL = "https://api-staging.makanmasak.com/api/v1",
+  VITE_WS_BASE_URL = "wss://api-staging.makanmasak.com",
   VITE_NODE_ENV = "staging"
 }

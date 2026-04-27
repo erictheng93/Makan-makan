@@ -1,4 +1,4 @@
-name = "makanmakan-kitchen"
+name = "makanmasak-kitchen"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -8,19 +8,19 @@ VITE_API_BASE_URL = "http://localhost:8787/api/v1"
 VITE_NODE_ENV = "development"
 
 [env.production]
-name = "makanmakan-kitchen-prod"
+name = "makanmasak-kitchen-prod"
 pages_build_output_dir = "dist"
 pages_build_command = "npm run build"
 vars = { 
-  VITE_API_BASE_URL = "https://api.makanmakan.app/api/v1",
+  VITE_API_BASE_URL = "https://api.makanmasak.com/api/v1",
   VITE_NODE_ENV = "production"
 }
 
 [env.staging]
-name = "makanmakan-kitchen-staging"
+name = "makanmasak-kitchen-staging"
 pages_build_output_dir = "dist"
 pages_build_command = "npm run build"
 vars = { 
-  VITE_API_BASE_URL = "https://api-staging.makanmakan.app/api/v1",
+  VITE_API_BASE_URL = "https://api-staging.makanmasak.com/api/v1",
   VITE_NODE_ENV = "staging"
 }

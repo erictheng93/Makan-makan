@@ -1,5 +1,5 @@
 {
-  "name": "makanmakan-onboarding-app",
+  "name": "makanmasak-onboarding-app",
   "version": "1.0.0",
   "description": "MakanMakan 獨立部署申請入口 - 新客戶開通流程",
   "type": "module",
@@ -12,8 +12,8 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --fix",
-    "deploy:staging": "wrangler pages deploy dist --project-name=makanmakan-onboarding-staging",
-    "deploy:prod": "wrangler pages deploy dist --project-name=makanmakan-onboarding"
+    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-onboarding-staging",
+    "deploy:prod": "wrangler pages deploy dist --project-name=makanmasak-onboarding"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.0",

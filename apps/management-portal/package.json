@@ -1,5 +1,5 @@
 {
-  "name": "makanmakan-management-portal",
+  "name": "makanmasak-management-portal",
   "version": "1.0.0",
   "description": "MakanMakan 多租戶管理後台 - 管理獨立部署租戶",
   "type": "module",
@@ -12,8 +12,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --fix",
-    "deploy:staging": "wrangler pages deploy dist --project-name=makanmakan-management-staging",
-    "deploy:prod": "wrangler pages deploy dist --project-name=makanmakan-management"
+    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-management-staging",
+    "deploy:prod": "wrangler pages deploy dist --project-name=makanmasak-management"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.0",

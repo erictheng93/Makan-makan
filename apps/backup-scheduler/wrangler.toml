@@ -1,7 +1,7 @@
 # MakanMakan Backup Scheduler - Cloudflare Workers Configuration
 # Automated backup scheduling and system monitoring
 
-name = "makanmakan-backup-scheduler"
+name = "makanmasak-backup-scheduler"
 main = "../../apps/api/src/workers/backup-scheduler.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
@@ -29,21 +29,21 @@ database_id = "local"
 # KV namespace for backup metadata
 [[kv_namespaces]]
 binding = "BACKUP_KV"
-id = "makanmakan-backup-dev"
+id = "makanmasak-backup-dev"
 
 # R2 bucket for backup storage
 [[r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-dev"
+bucket_name = "makanmasak-backups-dev"
 
 # Analytics for monitoring
 [[analytics_engine_datasets]]
 binding = "ANALYTICS"
-dataset = "makanmakan-backup-metrics-dev"
+dataset = "makanmasak-backup-metrics-dev"
 
 # === DEVELOPMENT ENVIRONMENT ===
 [env.development]
-name = "makanmakan-backup-scheduler-dev"
+name = "makanmasak-backup-scheduler-dev"
 [env.development.vars]
 NODE_ENV = "development"
 LOG_LEVEL = "debug"
@@ -55,63 +55,63 @@ database_id = "local"
 
 [[env.development.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "makanmakan-backup-dev"
+id = "makanmasak-backup-dev"
 
 [[env.development.r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-dev"
+bucket_name = "makanmasak-backups-dev"
 
 [[env.development.analytics_engine_datasets]]
 binding = "ANALYTICS"
-dataset = "makanmakan-backup-metrics-dev"
+dataset = "makanmasak-backup-metrics-dev"
 
 # === STAGING ENVIRONMENT ===
 [env.staging]
-name = "makanmakan-backup-scheduler-staging"
+name = "makanmasak-backup-scheduler-staging"
 [env.staging.vars]
 NODE_ENV = "staging"
 LOG_LEVEL = "info"
 
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-staging"
-database_id = "staging-db-id"
+database_name = "makanmasak-staging"
+database_id = "REPLACE_ME__STAGING__API_DB"
 
 [[env.staging.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "makanmakan-backup-staging"
+id = "REPLACE_ME__STAGING__BACKUP_KV"
 
 [[env.staging.r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-staging"
+bucket_name = "makanmasak-backups-staging"
 
 [[env.staging.analytics_engine_datasets]]
 binding = "ANALYTICS"
-dataset = "makanmakan-backup-metrics-staging"
+dataset = "makanmasak-backup-metrics-staging"
 
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
-name = "makanmakan-backup-scheduler-prod"
+name = "makanmasak-backup-scheduler-prod"
 [env.production.vars]
 NODE_ENV = "production"
 LOG_LEVEL = "warn"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-prod"
-database_id = "production-db-id"
+database_name = "makanmasak-prod"
+database_id = "REPLACE_ME__PRODUCTION__API_DB"
 
 [[env.production.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "makanmakan-backup-prod"
+id = "REPLACE_ME__PRODUCTION__BACKUP_KV"
 
 [[env.production.r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-prod"
+bucket_name = "makanmasak-backups-prod"
 
 [[env.production.analytics_engine_datasets]]
 binding = "ANALYTICS"
-dataset = "makanmakan-backup-metrics-prod"
+dataset = "makanmasak-backup-metrics-prod"
 
 # Smart placement for production
 [env.production.placement]

@@ -1,24 +1,24 @@
 # Management Portal - Cloudflare Pages Configuration
 # 管理後台 Vue.js 應用
 
-name = "makanmakan-management-portal"
+name = "makanmasak-management-portal"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
 # 環境變數
 [vars]
-VITE_MANAGEMENT_API_URL = "https://manage-api.makanmakan.app/api/v1"
+VITE_MANAGEMENT_API_URL = "https://manage-api.makanmasak.com/api/v1"
 
 # Staging 環境
 [env.staging]
-name = "makanmakan-management-staging"
+name = "makanmasak-management-staging"
 
 [env.staging.vars]
-VITE_MANAGEMENT_API_URL = "https://manage-api-staging.makanmakan.app/api/v1"
+VITE_MANAGEMENT_API_URL = "https://manage-api-staging.makanmasak.com/api/v1"
 
 # Production 環境
 [env.production]
-name = "makanmakan-management"
+name = "makanmasak-management"
 
 [env.production.vars]
-VITE_MANAGEMENT_API_URL = "https://manage-api.makanmakan.app/api/v1"
+VITE_MANAGEMENT_API_URL = "https://manage-api.makanmasak.com/api/v1"

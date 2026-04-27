@@ -1,5 +1,5 @@
 {
-  "name": "makanmakan-customer-app",
+  "name": "makanmasak-customer-app",
   "version": "1.0.0",
   "description": "MakanMakan 消費者點餐應用",
   "type": "module",
@@ -14,8 +14,8 @@
     "test:unit": "vitest",
     "test:real-integration": "vitest --config vitest.real-integration.config.ts",
     "test:e2e": "playwright test",
-    "deploy:staging": "wrangler pages deploy dist --project-name=makanmakan-customer-staging",
-    "deploy:prod": "wrangler pages deploy dist --project-name=makanmakan-customer"
+    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-customer-staging",
+    "deploy:prod": "wrangler pages deploy dist --project-name=makanmasak-customer"
   },
   "dependencies": {
     "@chenfengyuan/vue-qrcode": "^2.0.0",
