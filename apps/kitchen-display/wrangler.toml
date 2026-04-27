@@ -1,26 +1,26 @@
 name = "makanmasak-kitchen"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
 
 # Environment variables for kitchen display
 [vars]
 VITE_API_BASE_URL = "http://localhost:8787/api/v1"
+VITE_REALTIME_WS_URL = "ws://localhost:8787"
 VITE_NODE_ENV = "development"
 
 [env.production]
-name = "makanmasak-kitchen-prod"
-pages_build_output_dir = "dist"
-pages_build_command = "npm run build"
-vars = { 
-  VITE_API_BASE_URL = "https://api.makanmasak.com/api/v1",
-  VITE_NODE_ENV = "production"
-}
+name = "makanmasak-kitchen"
 
-[env.staging]
+[env.production.vars]
+VITE_API_BASE_URL = "https://api.makanmasak.com/api/v1"
+VITE_REALTIME_WS_URL = "wss://realtime.makanmasak.com"
+VITE_NODE_ENV = "production"
+
+[env.preview]
 name = "makanmasak-kitchen-staging"
-pages_build_output_dir = "dist"
-pages_build_command = "npm run build"
-vars = { 
-  VITE_API_BASE_URL = "https://api-staging.makanmasak.com/api/v1",
-  VITE_NODE_ENV = "staging"
-}
+
+[env.preview.vars]
+VITE_API_BASE_URL = "https://makanmasak-api-staging.omfg.workers.dev/api/v1"
+VITE_REALTIME_WS_URL = "wss://makanmasak-realtime-staging.omfg.workers.dev"
+VITE_NODE_ENV = "staging"

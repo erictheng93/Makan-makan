@@ -14,7 +14,7 @@
     "test:unit": "vitest",
     "test:real-integration": "vitest --config vitest.real-integration.config.ts",
     "test:e2e": "playwright test",
-    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-customer-staging",
+    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-customer-staging --branch=staging --commit-dirty=true",
     "deploy:prod": "wrangler pages deploy dist --project-name=makanmasak-customer"
   },
   "dependencies": {

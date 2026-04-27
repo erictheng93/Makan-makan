@@ -9,12 +9,12 @@ pages_build_output_dir = "dist"
 [vars]
 VITE_MANAGEMENT_API_URL = "https://manage-api.makanmasak.com/api/v1"
 
-# Staging 環境
-[env.staging]
+# Preview/Staging 環境
+[env.preview]
 name = "makanmasak-management-staging"
 
-[env.staging.vars]
-VITE_MANAGEMENT_API_URL = "https://manage-api-staging.makanmasak.com/api/v1"
+[env.preview.vars]
+VITE_MANAGEMENT_API_URL = "https://makanmasak-management-api-staging.omfg.workers.dev/api/v1"
 
 # Production 環境
 [env.production]

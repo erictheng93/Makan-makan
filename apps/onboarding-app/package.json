@@ -12,7 +12,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --fix",
-    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-onboarding-staging",
+    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-onboarding-staging --branch=staging --commit-dirty=true",
     "deploy:prod": "wrangler pages deploy dist --project-name=makanmasak-onboarding"
   },
   "dependencies": {

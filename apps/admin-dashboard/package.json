@@ -15,7 +15,7 @@
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --fix",
     "lint:fix": "eslint src --fix",
-    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-admin-staging",
+    "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-admin-staging --branch=staging --commit-dirty=true",
     "deploy:prod": "wrangler pages deploy dist --project-name=makanmasak-admin"
   },
   "dependencies": {
