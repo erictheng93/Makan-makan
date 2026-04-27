@@ -5,6 +5,8 @@ browse/dist/
 design/dist/
 bin/gstack-global-discover
 .gstack/
+.gbrain/
+.hermes/
 .claude/skills/
 .agents/
 .factory/

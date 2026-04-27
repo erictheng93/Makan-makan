@@ -455,16 +455,17 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
 
   // Shortcut actions implementation
   const completeSelectedOrder = async (): Promise<boolean> => {
-    // TODO: Implement focusedOrder property in store
-    const selectedOrders = Array.from(orderStore.selectedOrders);
-    if (selectedOrders.length === 0) {
+    const selectedOrderIds = Array.from(orderStore.selectedOrders);
+    if (selectedOrderIds.length === 0) {
       toast.warning("請先選擇一個訂單");
       return false;
     }
 
     try {
-      // TODO: Implement completeOrder method in store
-      toast.success(`已完成 ${selectedOrders.length} 個訂單`);
+      await Promise.all(
+        selectedOrderIds.map((orderId) => orderStore.completeOrder(orderId)),
+      );
+      toast.success(`已完成 ${selectedOrderIds.length} 個訂單`);
       return true;
     } catch {
       toast.error("完成訂單失敗");
@@ -473,16 +474,17 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
   };
 
   const startCookingSelected = async (): Promise<boolean> => {
-    // TODO: Implement focusedOrder property in store
-    const selectedOrders = Array.from(orderStore.selectedOrders);
-    if (selectedOrders.length === 0) {
+    const selectedOrderIds = Array.from(orderStore.selectedOrders);
+    if (selectedOrderIds.length === 0) {
       toast.warning("請先選擇一個訂單");
       return false;
     }
 
     try {
-      // TODO: Implement startCooking method in store
-      toast.success(`開始製作 ${selectedOrders.length} 個訂單`);
+      await Promise.all(
+        selectedOrderIds.map((orderId) => orderStore.startCooking(orderId)),
+      );
+      toast.success(`開始製作 ${selectedOrderIds.length} 個訂單`);
       return true;
     } catch {
       toast.error("開始製作失敗");

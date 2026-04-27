@@ -1,8 +1,12 @@
 // Comprehensive system health monitoring and diagnostics service
 import { ref } from "vue";
-import { performanceService } from "./performanceService";
+import {
+  performanceService,
+  type PerformanceMetric,
+} from "./performanceService";
 import { errorReportingService } from "./errorReportingService";
 import { offlineService } from "./offlineService";
+import { enhancedAudioService } from "./enhancedAudioService";
 
 export interface SystemHealthMetric {
   id: string;
@@ -337,14 +341,16 @@ class SystemHealthService {
 
     // Response time
     const responseTimeMetrics = performanceService.metrics.value.filter(
-      (m: any) =>
-        m.name.includes("response_time") || m.name.includes("api_call"), // TODO: Add proper type for performance metrics
+      (m: PerformanceMetric) =>
+        m.name.includes("response_time") || m.name.includes("api_call"),
     );
 
     if (responseTimeMetrics.length > 0) {
       const avgResponseTime =
-        responseTimeMetrics.reduce((sum: number, m: any) => sum + m.value, 0) /
-        responseTimeMetrics.length; // TODO: Add proper type for performance metrics
+        responseTimeMetrics.reduce(
+          (sum: number, metric: PerformanceMetric) => sum + metric.value,
+          0,
+        ) / responseTimeMetrics.length;
 
       newMetrics.push({
         id: "response_time",
@@ -455,8 +461,16 @@ class SystemHealthService {
       try {
         switch (component.id) {
           case "audio-service":
-            status = "online"; // TODO: Use public method to check audio service status
-            healthScore = 100; // TODO: Use public method to get audio service health score
+            status = enhancedAudioService.settings.enabled
+              ? enhancedAudioService.isWebAudioSupported.value
+                ? "online"
+                : "degraded"
+              : "offline";
+            healthScore = enhancedAudioService.settings.enabled
+              ? enhancedAudioService.isWebAudioSupported.value
+                ? 100
+                : 70
+              : 0;
             break;
 
           case "offline-service":
