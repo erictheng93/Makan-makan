@@ -188,7 +188,7 @@ export class ShiftService {
    */
   async getCurrentShift(
     registerId: string,
-  ): Promise<{ success: boolean; data?: CashShift; error?: string }> {
+  ): Promise<{ success: boolean; data?: CashShift | null; error?: string }> {
     try {
       const [shift] = await this.db
         .select()
@@ -203,7 +203,7 @@ export class ShiftService {
 
       return {
         success: true,
-        data: (shift as unknown as CashShift) || undefined,
+        data: shift ? (shift as unknown as CashShift) : null,
       };
     } catch (error) {
       console.error("獲取當前班次失敗:", error);

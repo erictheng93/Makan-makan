@@ -262,8 +262,8 @@ jobs:
           VITE_API_BASE_URL: /api/v1
         run: |
           pnpm build \
-            --filter=makanmakan-customer-app \
-            --filter=makanmakan-admin-dashboard
+            --filter=makanmasak-customer-app \
+            --filter=makanmasak-admin-dashboard
 
       - name: 🚀 啟動 preview servers
         run: |
@@ -600,11 +600,11 @@ jobs:
           VITE_API_BASE_URL: /api/v1
         run: |
           pnpm build \
-            --filter=makanmakan-customer-app \
-            --filter=makanmakan-admin-dashboard \
-            --filter=makanmakan-kitchen-display \
-            --filter=makanmakan-management-portal \
-            --filter=makanmakan-onboarding-app
+            --filter=makanmasak-customer-app \
+            --filter=makanmasak-admin-dashboard \
+            --filter=makanmasak-kitchen-display \
+            --filter=makanmasak-management-portal \
+            --filter=makanmasak-onboarding-app
 
       - name: 🚀 啟動 Preview Servers
         # Each preview runs in a subshell so `cd` does not leak between lines.

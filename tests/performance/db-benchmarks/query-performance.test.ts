@@ -314,9 +314,9 @@ describe("Database Query Performance Benchmarks", () => {
           mi.name,
           COUNT(oi.id) as order_count,
           SUM(oi.quantity) as total_quantity
-        FROM order_items oi
-        JOIN menu_items mi ON oi.menu_item_id = mi.id
-        JOIN orders o ON oi.order_id = o.id
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.id
+        JOIN menu_items mi ON mi.id = oi.menu_item_id
         WHERE o.restaurant_id = ?
           AND o.created_at_ms >= (unixepoch('now', '-7 days') * 1000)
         GROUP BY mi.id, mi.name

@@ -179,10 +179,10 @@ export class QueueService implements IQueueService {
       const realtimeMetrics =
         await this.metricsService.getRealtimeMetrics(restaurantId);
 
-      const waiting = await this.queueRepository.findByRestaurant(
-        restaurantId,
-        { status: [QueueStatus.WAITING] },
-      );
+      const waiting =
+        (await this.queueRepository.findByRestaurant(restaurantId, {
+          status: [QueueStatus.WAITING],
+        })) ?? [];
 
       let minWait = 0;
       let onlineCount = 0;

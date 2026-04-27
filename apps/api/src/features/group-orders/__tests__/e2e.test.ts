@@ -63,13 +63,13 @@ describe("Group Orders E2E Tests", () => {
 
     // Generate test tokens
     adminToken = generateTestToken({
-      id: 1,
+      id: 9001,
       username: "admin",
       role: 0,
-      restaurantId: null,
+      restaurantId: "admin",
     });
     ownerToken = generateTestToken({
-      id: 2,
+      id: 9002,
       username: "owner",
       role: 1,
       restaurantId: testRestaurantId,
@@ -127,6 +127,39 @@ describe("Group Orders E2E Tests", () => {
       "Result:",
       restaurantResult,
     );
+
+    await db
+      .prepare(
+        `
+      INSERT INTO users (
+        id, username, email, password_hash, role, restaurant_id, is_active,
+        token_version, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      )
+      .bind(
+        9001,
+        "admin",
+        "admin@example.test",
+        "test-password-hash",
+        0,
+        null,
+        1,
+        1,
+        now,
+        now,
+        9002,
+        "owner",
+        "owner@example.test",
+        "test-password-hash",
+        1,
+        testRestaurantId,
+        1,
+        1,
+        now,
+        now,
+      )
+      .run();
 
     // Create test table
     const tableResult = await db
