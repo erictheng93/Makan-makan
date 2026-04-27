@@ -40,23 +40,23 @@ binding = "DB"
 database_name = "makanmasak-staging"
 # TODO: Replace with actual D1 database ID from Cloudflare dashboard
 # Run: wrangler d1 create makanmasak-staging
-database_id = "REPLACE_ME__STAGING__API_DB"
+database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
 
 # Cache KV - aligned with API naming convention
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
 # Use same KV namespace as API for data consistency
-id = "REPLACE_ME__STAGING__CACHE_KV"
+id = "47ef05ba21c84fa98399b1bdfcc30812"
 
 # Token Blacklist KV - dedicated security namespace
 [[env.staging.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "REPLACE_ME__STAGING__TOKEN_BLACKLIST_KV"
+id = "d2c8169991254846a0db4154d1595747"
 
 # Rate Limit KV - for WebSocket connection rate limiting
 [[env.staging.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "REPLACE_ME__STAGING__RATELIMIT_KV"
+id = "ece9224665004216babdeda97371fd6c"
 
 # === PRODUCTION ENVIRONMENT ===
 [env.production]

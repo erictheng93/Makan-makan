@@ -48,7 +48,7 @@ id = "STAGING_KV_ID_TO_BE_REPLACED"
 binding = "DB"
 database_name = "makanmasak-staging"
 # Provision with: wrangler d1 create makanmasak-staging
-database_id = "REPLACE_ME__STAGING__API_DB"
+database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
 
 [env.production]
 name = "makanmasak-image-processor-prod"

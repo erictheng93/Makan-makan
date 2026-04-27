@@ -60,15 +60,15 @@ LOG_LEVEL = "info"
 [[env.staging.d1_databases]]
 binding = "MANAGEMENT_DB"
 database_name = "makanmasak-management-staging"
-database_id = "REPLACE_ME__STAGING__MGMT_DB"
+database_id = "ad9fc277-ec03-4092-af74-88571f2767a0"
 
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
-id = "REPLACE_ME__STAGING__MGMT_CACHE_KV"
+id = "9d6145956f874d56b700488562466af0"
 
 [[env.staging.kv_namespaces]]
 binding = "DEPLOYMENT_STATUS_KV"
-id = "REPLACE_ME__STAGING__MGMT_DEPLOY_STATUS_KV"
+id = "9ba6e6d8a66f440fbe0aaadc54b53017"
 
 [[env.staging.r2_buckets]]
 binding = "BUNDLE_STORAGE"

@@ -140,24 +140,24 @@ TWILIO_PHONE_NUMBER = "+1234567890"
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "makanmasak-staging"
-database_id = "REPLACE_ME__STAGING__API_DB"
+database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
 
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
-id = "REPLACE_ME__STAGING__CACHE_KV"
+id = "47ef05ba21c84fa98399b1bdfcc30812"
 
 [[env.staging.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "REPLACE_ME__STAGING__RATELIMIT_KV"
+id = "ece9224665004216babdeda97371fd6c"
 
 [[env.staging.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "REPLACE_ME__STAGING__BACKUP_KV"
+id = "32892feb841d4716ae80d5b6dc46800c"
 
 # Token Blacklist KV for WebSocket authentication security
 [[env.staging.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "REPLACE_ME__STAGING__TOKEN_BLACKLIST_KV"
+id = "d2c8169991254846a0db4154d1595747"
 
 [[env.staging.r2_buckets]]
 binding = "BACKUP_STORAGE"
