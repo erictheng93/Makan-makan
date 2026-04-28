@@ -337,6 +337,7 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
+import { api } from "@/services/api";
 import {
   Eye,
   EyeOff,
@@ -350,6 +351,18 @@ import {
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+
+type ResetTokenVerificationResponse = {
+  valid: boolean;
+  email?: string;
+  error?: string;
+};
+
+type ResetPasswordResponse = {
+  success: boolean;
+  message?: string;
+  error?: string;
+};
 
 const verifying = ref(true);
 const tokenError = ref("");
@@ -415,10 +428,14 @@ const passwordStrengthTextColor = computed(() => {
 
 const verifyToken = async () => {
   try {
-    const response = await fetch(
-      `/api/v1/auth/reset-password/verify?token=${token.value}`,
+    const response = await api.get<ResetTokenVerificationResponse>(
+      "/auth/reset-password/verify",
+      {
+        params: { token: token.value },
+        validateStatus: () => true,
+      },
     );
-    const data = await response.json();
+    const data = response.data as unknown as ResetTokenVerificationResponse;
 
     if (data.valid) {
       maskedEmail.value = data.email || "";
@@ -470,19 +487,18 @@ const handleSubmit = async () => {
   isLoading.value = true;
 
   try {
-    const response = await fetch("/api/v1/auth/reset-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const response = await api.post<ResetPasswordResponse>(
+      "/auth/reset-password",
+      {
         token: token.value,
         newPassword: form.newPassword,
         confirmPassword: form.confirmPassword,
-      }),
-    });
-
-    const data = await response.json();
+      },
+      {
+        validateStatus: () => true,
+      },
+    );
+    const data = response.data as unknown as ResetPasswordResponse;
 
     if (data.success) {
       success.value = true;

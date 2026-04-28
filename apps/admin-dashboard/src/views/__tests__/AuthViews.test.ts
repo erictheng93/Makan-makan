@@ -79,10 +79,6 @@ vi.mock("@makanmakan/utils", () => ({
   getRefreshDelay: () => null,
 }));
 
-// Mock global fetch for ForgotPassword and ResetPassword views
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
-
 // Import components after mocks
 import LoginView from "../LoginView.vue";
 import ForgotPasswordView from "../ForgotPasswordView.vue";
@@ -320,7 +316,6 @@ describe("ForgotPasswordView", () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     resetAllFactories();
-    mockFetch.mockReset();
   });
 
   it("should render forgot password form", () => {
@@ -344,8 +339,8 @@ describe("ForgotPasswordView", () => {
   });
 
   it("should call forgot password API on submit", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, message: "Email sent" }),
+    mockApiPost.mockResolvedValueOnce({
+      data: { success: true, message: "Email sent" },
     });
 
     const wrapper = mountForgot();
@@ -353,17 +348,16 @@ describe("ForgotPasswordView", () => {
     await wrapper.find("form").trigger("submit");
     await flushPromises();
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/v1/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: "test@example.com", method: "email" }),
-    });
+    expect(mockApiPost).toHaveBeenCalledWith(
+      "/auth/forgot-password",
+      { identifier: "test@example.com", method: "email" },
+      expect.objectContaining({ validateStatus: expect.any(Function) }),
+    );
   });
 
   it("should show success message after successful submit", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () =>
-        Promise.resolve({ success: true, message: "Reset email sent" }),
+    mockApiPost.mockResolvedValueOnce({
+      data: { success: true, message: "Reset email sent" },
     });
 
     const wrapper = mountForgot();
@@ -376,8 +370,8 @@ describe("ForgotPasswordView", () => {
   });
 
   it("should show error on API failure", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: false, error: "User not found" }),
+    mockApiPost.mockResolvedValueOnce({
+      data: { success: false, error: "User not found" },
     });
 
     const wrapper = mountForgot();
@@ -395,7 +389,7 @@ describe("ForgotPasswordView", () => {
     await nextTick();
 
     expect(wrapper.text()).toContain("auth.invalidEmail");
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockApiPost).not.toHaveBeenCalled();
   });
 
   it('should show "auth.backToLogin" link', () => {
@@ -404,13 +398,10 @@ describe("ForgotPasswordView", () => {
   });
 
   it("should disable button during loading", async () => {
-    let resolveJson: Function;
-    mockFetch.mockReturnValueOnce(
-      Promise.resolve({
-        json: () =>
-          new Promise((resolve) => {
-            resolveJson = resolve;
-          }),
+    let resolveResponse: Function;
+    mockApiPost.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveResponse = resolve;
       }),
     );
 
@@ -422,7 +413,7 @@ describe("ForgotPasswordView", () => {
     const btn = wrapper.find('button[type="submit"]');
     expect(btn.attributes("disabled")).toBeDefined();
 
-    resolveJson!({ success: true, message: "ok" });
+    resolveResponse!({ data: { success: true, message: "ok" } });
     await flushPromises();
   });
 
@@ -433,11 +424,11 @@ describe("ForgotPasswordView", () => {
     await nextTick();
 
     expect(wrapper.text()).toContain("auth.emailRequired");
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockApiPost).not.toHaveBeenCalled();
   });
 
-  it("should show network error on fetch exception", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+  it("should show network error on API exception", async () => {
+    mockApiPost.mockRejectedValueOnce(new Error("Network error"));
 
     const wrapper = mountForgot();
     await wrapper.find("#email").setValue("test@example.com");
@@ -471,14 +462,13 @@ describe("ResetPasswordView", () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     resetAllFactories();
-    mockFetch.mockReset();
     // Reset route query to default
     Object.assign(mockRouteQuery, { token: "test-token-123" });
   });
 
   it("should render reset password form after token verification", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "t***@example.com" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "t***@example.com" },
     });
 
     const wrapper = mountReset();
@@ -489,8 +479,8 @@ describe("ResetPasswordView", () => {
   });
 
   it("should show new password and confirm password inputs", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "t***@example.com" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "t***@example.com" },
     });
 
     const wrapper = mountReset();
@@ -501,8 +491,8 @@ describe("ResetPasswordView", () => {
   });
 
   it("should validate password match", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "" },
     });
 
     const wrapper = mountReset();
@@ -517,8 +507,8 @@ describe("ResetPasswordView", () => {
   });
 
   it("should show password strength indicator when typing", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "" },
     });
 
     const wrapper = mountReset();
@@ -533,16 +523,16 @@ describe("ResetPasswordView", () => {
 
   it("should call reset API with token on valid submit", async () => {
     // Token verification
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "" },
     });
 
     const wrapper = mountReset();
     await flushPromises();
 
     // Reset API call
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, message: "Password reset" }),
+    mockApiPost.mockResolvedValueOnce({
+      data: { success: true, message: "Password reset" },
     });
 
     await wrapper.find("#new-password").setValue("NewPass1!");
@@ -550,30 +540,29 @@ describe("ResetPasswordView", () => {
     await wrapper.find("form").trigger("submit");
     await flushPromises();
 
-    // Second fetch call is the reset
-    expect(mockFetch).toHaveBeenCalledWith("/api/v1/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    expect(mockApiPost).toHaveBeenCalledWith(
+      "/auth/reset-password",
+      {
         token: "test-token-123",
         newPassword: "NewPass1!",
         confirmPassword: "NewPass1!",
-      }),
-    });
+      },
+      expect.objectContaining({ validateStatus: expect.any(Function) }),
+    );
   });
 
   it("should show success state and schedule redirect on successful reset", async () => {
     vi.useFakeTimers();
 
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "" },
     });
 
     const wrapper = mountReset();
     await flushPromises();
 
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, message: "Done" }),
+    mockApiPost.mockResolvedValueOnce({
+      data: { success: true, message: "Done" },
     });
 
     await wrapper.find("#new-password").setValue("NewPass1!");
@@ -591,8 +580,8 @@ describe("ResetPasswordView", () => {
   });
 
   it("should show error on invalid token", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: false, error: "Token expired" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: false, error: "Token expired" },
     });
 
     const wrapper = mountReset();
@@ -603,20 +592,17 @@ describe("ResetPasswordView", () => {
   });
 
   it("should disable submit button during loading", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "" },
     });
 
     const wrapper = mountReset();
     await flushPromises();
 
-    let resolveJson: Function;
-    mockFetch.mockReturnValueOnce(
-      Promise.resolve({
-        json: () =>
-          new Promise((resolve) => {
-            resolveJson = resolve;
-          }),
+    let resolveResponse: Function;
+    mockApiPost.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveResponse = resolve;
       }),
     );
 
@@ -628,13 +614,13 @@ describe("ResetPasswordView", () => {
     const btn = wrapper.find('button[type="submit"]');
     expect(btn.attributes("disabled")).toBeDefined();
 
-    resolveJson!({ success: true, message: "ok" });
+    resolveResponse!({ data: { success: true, message: "ok" } });
     await flushPromises();
   });
 
   it("should show/hide password toggle for new password", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "" },
     });
 
     const wrapper = mountReset();
@@ -652,8 +638,8 @@ describe("ResetPasswordView", () => {
   });
 
   it("should validate minimum password length", async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ valid: true, email: "" }),
+    mockApiGet.mockResolvedValueOnce({
+      data: { valid: true, email: "" },
     });
 
     const wrapper = mountReset();
@@ -665,8 +651,7 @@ describe("ResetPasswordView", () => {
     await nextTick();
 
     expect(wrapper.text()).toContain("auth.passwordMin6");
-    // Should not call the reset API
-    expect(mockFetch).toHaveBeenCalledTimes(1); // Only the token verify call
+    expect(mockApiPost).not.toHaveBeenCalled();
   });
 
   it("should show error when no token in URL", async () => {

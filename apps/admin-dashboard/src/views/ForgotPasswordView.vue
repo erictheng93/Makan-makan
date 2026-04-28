@@ -140,8 +140,15 @@
 import { ref, reactive } from "vue";
 import { useI18n } from "@/i18n";
 import { CheckCircle, AlertCircle, Info } from "lucide-vue-next";
+import { api } from "@/services/api";
 
 const { t } = useI18n();
+
+type ForgotPasswordResponse = {
+  success: boolean;
+  message?: string;
+  error?: string;
+};
 
 const isLoading = ref(false);
 const success = ref(false);
@@ -181,18 +188,17 @@ const handleSubmit = async () => {
   isLoading.value = true;
 
   try {
-    const response = await fetch("/api/v1/auth/forgot-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const response = await api.post<ForgotPasswordResponse>(
+      "/auth/forgot-password",
+      {
         identifier: form.email,
         method: "email",
-      }),
-    });
-
-    const data = await response.json();
+      },
+      {
+        validateStatus: () => true,
+      },
+    );
+    const data = response.data as unknown as ForgotPasswordResponse;
 
     if (data.success) {
       success.value = true;

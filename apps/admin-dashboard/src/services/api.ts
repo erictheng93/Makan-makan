@@ -50,7 +50,7 @@ class ApiServiceCompat {
   async post<T>(
     url: string,
     data?: any,
-    config?: { headers?: Record<string, string> },
+    config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     return authClient.instance.post(url, data, config);
   }
