@@ -39,7 +39,7 @@ export const useBackupStore = defineStore("backup", () => {
     request: CreateBackupRequest,
   ): Promise<CreateBackupResponse> => {
     try {
-      const response = await apiClient.post("/api/v1/backup/create", request);
+      const response = await apiClient.post("/backup/create", request);
       return (response.data as any).data as CreateBackupResponse;
     } catch (error) {
       console.error("Error creating backup:", error);
@@ -49,7 +49,7 @@ export const useBackupStore = defineStore("backup", () => {
 
   const listBackups = async (query: ListBackupsQuery) => {
     try {
-      const response = await apiClient.get("/api/v1/backup/list", {
+      const response = await apiClient.get("/backup/list", {
         params: query,
       });
       return (response.data as any).data || [];
@@ -61,7 +61,7 @@ export const useBackupStore = defineStore("backup", () => {
 
   const getBackup = async (backupId: string): Promise<BackupRecord> => {
     try {
-      const response = await apiClient.get(`/api/v1/backup/${backupId}`);
+      const response = await apiClient.get(`/backup/${backupId}`);
       return (response.data as any).data as BackupRecord;
     } catch (error) {
       console.error("Error getting backup:", error);
@@ -71,12 +71,9 @@ export const useBackupStore = defineStore("backup", () => {
 
   const downloadBackup = async (backupId: string): Promise<void> => {
     try {
-      const response = await apiClient.get(
-        `/api/v1/backup/${backupId}/download`,
-        {
-          responseType: "blob",
-        },
-      );
+      const response = await apiClient.get(`/backup/${backupId}/download`, {
+        responseType: "blob",
+      });
 
       // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data as any]));
@@ -105,7 +102,7 @@ export const useBackupStore = defineStore("backup", () => {
   ): Promise<string> => {
     try {
       const response = await apiClient.post(
-        `/api/v1/backup/${request.backup_id}/restore`,
+        `/backup/${request.backup_id}/restore`,
         request,
       );
       return (response.data as any).data?.restore_id;
@@ -117,7 +114,7 @@ export const useBackupStore = defineStore("backup", () => {
 
   const deleteBackup = async (backupId: string): Promise<void> => {
     try {
-      await apiClient.delete(`/api/v1/backup/${backupId}`);
+      await apiClient.delete(`/backup/${backupId}`);
     } catch (error) {
       console.error("Error deleting backup:", error);
       throw error;
@@ -130,7 +127,7 @@ export const useBackupStore = defineStore("backup", () => {
   ): Promise<BackupConfiguration[]> => {
     try {
       const response = await apiClient.get(
-        `/api/v1/backup/configurations/${restaurantId}`,
+        `/backup/configurations/${restaurantId}`,
       );
       configurations.value = (response.data as any).data;
       return (response.data as any).data;
@@ -144,10 +141,7 @@ export const useBackupStore = defineStore("backup", () => {
     config: Partial<BackupConfiguration>,
   ): Promise<BackupConfiguration> => {
     try {
-      const response = await apiClient.post(
-        "/api/v1/backup/configurations",
-        config,
-      );
+      const response = await apiClient.post("/backup/configurations", config);
 
       // Update local configurations array
       const index = configurations.value.findIndex(
@@ -170,7 +164,7 @@ export const useBackupStore = defineStore("backup", () => {
   // System Monitoring
   const getSystemHealth = async (): Promise<BackupSystemHealth> => {
     try {
-      const response = await apiClient.get("/api/v1/backup/system/health");
+      const response = await apiClient.get("/backup/system/health");
       systemHealth.value = (response.data as any).data;
       return (response.data as any).data;
     } catch (error) {
@@ -185,7 +179,7 @@ export const useBackupStore = defineStore("backup", () => {
   ) => {
     try {
       const response = await apiClient.get(
-        `/api/v1/backup/restaurants/${restaurantId}/metrics`,
+        `/backup/restaurants/${restaurantId}/metrics`,
         {
           params: { period },
         },
@@ -202,12 +196,9 @@ export const useBackupStore = defineStore("backup", () => {
     unresolved_only: boolean = false,
   ): Promise<BackupAlert[]> => {
     try {
-      const response = await apiClient.get(
-        `/api/v1/backup/alerts/${restaurantId}`,
-        {
-          params: { unresolved_only },
-        },
-      );
+      const response = await apiClient.get(`/backup/alerts/${restaurantId}`, {
+        params: { unresolved_only },
+      });
       alerts.value = (response.data as any).data;
       return (response.data as any).data;
     } catch (error) {
@@ -219,7 +210,7 @@ export const useBackupStore = defineStore("backup", () => {
   // Alert Management
   const acknowledgeAlert = async (alertId: string): Promise<void> => {
     try {
-      await apiClient.patch(`/api/v1/backup/alerts/${alertId}/acknowledge`);
+      await apiClient.patch(`/backup/alerts/${alertId}/acknowledge`);
 
       // Update local alerts array
       const alert = alerts.value.find((a: BackupAlert) => a.id === alertId);
@@ -235,7 +226,7 @@ export const useBackupStore = defineStore("backup", () => {
 
   const resolveAlert = async (alertId: string): Promise<void> => {
     try {
-      await apiClient.patch(`/api/v1/backup/alerts/${alertId}/resolve`);
+      await apiClient.patch(`/backup/alerts/${alertId}/resolve`);
 
       // Update local alerts array
       const alert = alerts.value.find((a: BackupAlert) => a.id === alertId);

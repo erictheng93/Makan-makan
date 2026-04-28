@@ -30,7 +30,7 @@ describe("posService", () => {
 
       const result = await posService.getRegisters();
 
-      expect(apiClient.get).toHaveBeenCalledWith("/api/v1/pos/registers");
+      expect(apiClient.get).toHaveBeenCalledWith("/pos/registers");
       expect(result).toEqual(registers);
     });
 
@@ -48,10 +48,7 @@ describe("posService", () => {
       };
       const result = await posService.createRegister(data);
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/registers",
-        data,
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/registers", data);
       expect(result).toEqual(register);
     });
 
@@ -65,7 +62,7 @@ describe("posService", () => {
         name: "Updated",
       });
 
-      expect(apiClient.put).toHaveBeenCalledWith("/api/v1/pos/registers/r1", {
+      expect(apiClient.put).toHaveBeenCalledWith("/pos/registers/r1", {
         name: "Updated",
       });
       expect(result).toEqual(updated);
@@ -76,9 +73,7 @@ describe("posService", () => {
 
       await posService.activateRegister("r1");
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/registers/r1/activate",
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/registers/r1/activate");
     });
 
     it("should deactivate a register", async () => {
@@ -87,7 +82,7 @@ describe("posService", () => {
       await posService.deactivateRegister("r1");
 
       expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/registers/r1/deactivate",
+        "/pos/registers/r1/deactivate",
       );
     });
   });
@@ -102,10 +97,7 @@ describe("posService", () => {
       const data = { registerId: "r1", startingCash: 500, operatorId: 1 };
       const result = await posService.startShift(data);
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/shifts/start",
-        data,
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/shifts/start", data);
       expect(result).toEqual(shift);
     });
 
@@ -117,7 +109,7 @@ describe("posService", () => {
 
       const result = await posService.endShift("s1", { endingCash: 1500 });
 
-      expect(apiClient.post).toHaveBeenCalledWith("/api/v1/pos/shifts/s1/end", {
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/shifts/s1/end", {
         endingCash: 1500,
       });
       expect(result).toEqual(shift);
@@ -132,7 +124,7 @@ describe("posService", () => {
       const result = await posService.getCurrentShift("r1");
 
       expect(apiClient.get).toHaveBeenCalledWith(
-        "/api/v1/pos/registers/r1/current-shift",
+        "/pos/registers/r1/current-shift",
       );
       expect(result).toEqual(shift);
     });
@@ -153,9 +145,7 @@ describe("posService", () => {
 
       const result = await posService.getShiftReport("s1");
 
-      expect(apiClient.get).toHaveBeenCalledWith(
-        "/api/v1/pos/shifts/s1/report",
-      );
+      expect(apiClient.get).toHaveBeenCalledWith("/pos/shifts/s1/report");
       expect(result).toEqual(report);
     });
   });
@@ -176,10 +166,7 @@ describe("posService", () => {
       };
       const result = await posService.createCashMovement(data);
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/cash-movements",
-        data,
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/cash-movements", data);
       expect(result).toEqual(movement);
     });
 
@@ -194,7 +181,7 @@ describe("posService", () => {
       });
 
       expect(apiClient.get).toHaveBeenCalledWith(
-        "/api/v1/pos/registers/r1/cash-movements",
+        "/pos/registers/r1/cash-movements",
         { params: { type: "cash_in" } },
       );
       expect(result).toEqual(movements);
@@ -217,10 +204,7 @@ describe("posService", () => {
       };
       const result = await posService.printReceipt(data);
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/receipts/print",
-        data,
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/receipts/print", data);
       expect(result).toEqual(receipt);
     });
 
@@ -232,10 +216,9 @@ describe("posService", () => {
 
       const result = await posService.getReceipts("r1");
 
-      expect(apiClient.get).toHaveBeenCalledWith(
-        "/api/v1/pos/registers/r1/receipts",
-        { params: undefined },
-      );
+      expect(apiClient.get).toHaveBeenCalledWith("/pos/registers/r1/receipts", {
+        params: undefined,
+      });
       expect(result).toEqual(receipts);
     });
   });
@@ -256,10 +239,7 @@ describe("posService", () => {
       };
       const result = await posService.processRefund(data);
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/refunds/create",
-        data,
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/refunds/create", data);
       expect(result).toEqual(refund);
     });
   });
@@ -273,7 +253,7 @@ describe("posService", () => {
 
       const result = await posService.getPromotions();
 
-      expect(apiClient.get).toHaveBeenCalledWith("/api/v1/pos/promotions");
+      expect(apiClient.get).toHaveBeenCalledWith("/pos/promotions");
       expect(result).toEqual(promos);
     });
 
@@ -294,10 +274,7 @@ describe("posService", () => {
       };
       const result = await posService.createPromotion(data);
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/promotions",
-        data,
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/promotions", data);
       expect(result).toEqual(promo);
     });
 
@@ -306,9 +283,7 @@ describe("posService", () => {
 
       await posService.deletePromotion("p1");
 
-      expect(apiClient.delete).toHaveBeenCalledWith(
-        "/api/v1/pos/promotions/p1",
-      );
+      expect(apiClient.delete).toHaveBeenCalledWith("/pos/promotions/p1");
     });
   });
 
@@ -322,7 +297,7 @@ describe("posService", () => {
       const result = await posService.getDailyStats("r1", "2026-04-03");
 
       expect(apiClient.get).toHaveBeenCalledWith(
-        "/api/v1/pos/registers/r1/stats/daily",
+        "/pos/registers/r1/stats/daily",
         { params: { date: "2026-04-03" } },
       );
       expect(result).toEqual(stats);
@@ -345,10 +320,7 @@ describe("posService", () => {
       };
       const result = await posService.processQuickPayment(data);
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/pos/quick-payment",
-        data,
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/pos/quick-payment", data);
       expect(result).toEqual(payment);
     });
   });

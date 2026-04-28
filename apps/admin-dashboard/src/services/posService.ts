@@ -61,14 +61,14 @@ export interface Promotion {
 export const posService = {
   // 現金櫃
   async getRegisters(): Promise<CashRegister[]> {
-    const response = await apiClient.get("/api/v1/pos/registers");
+    const response = await apiClient.get("/pos/registers");
     return (response.data as any).data || response.data;
   },
 
   async createRegister(
     data: Omit<CashRegister, "id" | "createdAt" | "updatedAt">,
   ): Promise<CashRegister> {
-    const response = await apiClient.post("/api/v1/pos/registers", data);
+    const response = await apiClient.post("/pos/registers", data);
     return (response.data as any).data || response.data;
   },
 
@@ -76,16 +76,16 @@ export const posService = {
     id: string,
     data: Partial<CashRegister>,
   ): Promise<CashRegister> {
-    const response = await apiClient.put(`/api/v1/pos/registers/${id}`, data);
+    const response = await apiClient.put(`/pos/registers/${id}`, data);
     return (response.data as any).data || response.data;
   },
 
   async activateRegister(id: string): Promise<void> {
-    await apiClient.post(`/api/v1/pos/registers/${id}/activate`);
+    await apiClient.post(`/pos/registers/${id}/activate`);
   },
 
   async deactivateRegister(id: string): Promise<void> {
-    await apiClient.post(`/api/v1/pos/registers/${id}/deactivate`);
+    await apiClient.post(`/pos/registers/${id}/deactivate`);
   },
 
   // 班次管理
@@ -94,7 +94,7 @@ export const posService = {
     startingCash: number;
     operatorId: number;
   }): Promise<CashShift> {
-    const response = await apiClient.post("/api/v1/pos/shifts/start", data);
+    const response = await apiClient.post("/pos/shifts/start", data);
     return (response.data as any).data || response.data;
   },
 
@@ -105,17 +105,14 @@ export const posService = {
       notes?: string;
     },
   ): Promise<CashShift> {
-    const response = await apiClient.post(
-      `/api/v1/pos/shifts/${shiftId}/end`,
-      data,
-    );
+    const response = await apiClient.post(`/pos/shifts/${shiftId}/end`, data);
     return (response.data as any).data || response.data;
   },
 
   async getCurrentShift(registerId: string): Promise<CashShift | null> {
     try {
       const response = await apiClient.get(
-        `/api/v1/pos/registers/${registerId}/current-shift`,
+        `/pos/registers/${registerId}/current-shift`,
       );
       return (response.data as any).data || response.data;
     } catch {
@@ -131,7 +128,7 @@ export const posService = {
     description: string;
     operatorId: number;
   }): Promise<CashMovement> {
-    const response = await apiClient.post("/api/v1/pos/cash-movements", data);
+    const response = await apiClient.post("/pos/cash-movements", data);
     return (response.data as any).data || response.data;
   },
 
@@ -144,7 +141,7 @@ export const posService = {
     },
   ): Promise<CashMovement[]> {
     const response = await apiClient.get(
-      `/api/v1/pos/registers/${registerId}/cash-movements`,
+      `/pos/registers/${registerId}/cash-movements`,
       { params },
     );
     return (response.data as any).data || response.data;
@@ -158,7 +155,7 @@ export const posService = {
     totalAmount: number;
     paymentMethod: string;
   }): Promise<Receipt> {
-    const response = await apiClient.post("/api/v1/pos/receipts/print", data);
+    const response = await apiClient.post("/pos/receipts/print", data);
     return (response.data as any).data || response.data;
   },
 
@@ -170,7 +167,7 @@ export const posService = {
     },
   ): Promise<Receipt[]> {
     const response = await apiClient.get(
-      `/api/v1/pos/registers/${registerId}/receipts`,
+      `/pos/registers/${registerId}/receipts`,
       { params },
     );
     return (response.data as any).data || response.data;
@@ -185,18 +182,18 @@ export const posService = {
     operatorId: number;
     notes?: string;
   }): Promise<any> {
-    const response = await apiClient.post("/api/v1/pos/refunds/create", data);
+    const response = await apiClient.post("/pos/refunds/create", data);
     return (response.data as any).data || response.data;
   },
 
   // 促銷管理
   async getPromotions(): Promise<Promotion[]> {
-    const response = await apiClient.get("/api/v1/pos/promotions");
+    const response = await apiClient.get("/pos/promotions");
     return (response.data as any).data || response.data;
   },
 
   async createPromotion(data: Omit<Promotion, "id">): Promise<Promotion> {
-    const response = await apiClient.post("/api/v1/pos/promotions", data);
+    const response = await apiClient.post("/pos/promotions", data);
     return (response.data as any).data || response.data;
   },
 
@@ -204,12 +201,12 @@ export const posService = {
     id: string,
     data: Partial<Promotion>,
   ): Promise<Promotion> {
-    const response = await apiClient.put(`/api/v1/pos/promotions/${id}`, data);
+    const response = await apiClient.put(`/pos/promotions/${id}`, data);
     return (response.data as any).data || response.data;
   },
 
   async deletePromotion(id: string): Promise<void> {
-    await apiClient.delete(`/api/v1/pos/promotions/${id}`);
+    await apiClient.delete(`/pos/promotions/${id}`);
   },
 
   // 統計和報表
@@ -224,7 +221,7 @@ export const posService = {
     avgOrderValue: number;
   }> {
     const response = await apiClient.get(
-      `/api/v1/pos/registers/${registerId}/stats/daily`,
+      `/pos/registers/${registerId}/stats/daily`,
       {
         params: { date },
       },
@@ -240,9 +237,7 @@ export const posService = {
     cashMovements: CashMovement[];
     receipts: Receipt[];
   }> {
-    const response = await apiClient.get(
-      `/api/v1/pos/shifts/${shiftId}/report`,
-    );
+    const response = await apiClient.get(`/pos/shifts/${shiftId}/report`);
     return (response.data as any).data || response.data;
   },
 
@@ -254,7 +249,7 @@ export const posService = {
     paymentMethod: string;
     operatorId: number;
   }): Promise<any> {
-    const response = await apiClient.post("/api/v1/pos/quick-payment", data);
+    const response = await apiClient.post("/pos/quick-payment", data);
     return (response.data as any).data || response.data;
   },
 };

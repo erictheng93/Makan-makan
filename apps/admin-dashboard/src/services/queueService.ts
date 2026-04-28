@@ -91,12 +91,9 @@ export const queueService = {
       limit?: number;
     },
   ): Promise<QueueItem[]> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/current`,
-      {
-        params,
-      },
-    );
+    const response = await apiClient.get(`/queue/${restaurantId}/current`, {
+      params,
+    });
     return (response.data as any)?.data?.queue || [];
   },
 
@@ -105,9 +102,7 @@ export const queueService = {
     activity: any;
     settings: QueueSettings;
   }> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/status`,
-    );
+    const response = await apiClient.get(`/queue/${restaurantId}/status`);
     const data = (response.data as any)?.data;
     return {
       queue: data?.queue || {},
@@ -141,7 +136,7 @@ export const queueService = {
       estimatedWaitMinutes: number;
       currentPosition: number;
       checkInCode: string;
-    }>("/api/v1/queue/join", data);
+    }>("/queue/join", data);
     return response.data;
   },
 
@@ -155,7 +150,7 @@ export const queueService = {
       canCancel: boolean;
     }>
   > {
-    const response = await apiClient.get(`/api/v1/queue/${queueId}/position`);
+    const response = await apiClient.get(`/queue/${queueId}/position`);
     return response.data as any;
   },
 
@@ -167,10 +162,7 @@ export const queueService = {
       checkInCode?: string;
     },
   ): Promise<ApiResponse<{}>> {
-    const response = await apiClient.post(
-      `/api/v1/queue/${queueId}/cancel`,
-      data,
-    );
+    const response = await apiClient.post(`/queue/${queueId}/cancel`, data);
     return response.data as any;
   },
 
@@ -186,7 +178,7 @@ export const queueService = {
     data?: QueueItem;
     error?: string;
   }> {
-    const response = await apiClient.post("/api/v1/queue/call-next", {
+    const response = await apiClient.post("/queue/call-next", {
       restaurantId,
       ...data,
     });
@@ -200,18 +192,13 @@ export const queueService = {
       tableId: number;
     },
   ): Promise<ApiResponse<{}>> {
-    const response = await apiClient.post(
-      `/api/v1/queue/${queueId}/seat`,
-      data,
-    );
+    const response = await apiClient.post(`/queue/${queueId}/seat`, data);
     return response.data as any;
   },
 
   // 設定管理 - 使用新 API
   async getSettings(restaurantId: string): Promise<ApiResponse<QueueSettings>> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/settings`,
-    );
+    const response = await apiClient.get(`/queue/${restaurantId}/settings`);
     return response.data as any;
   },
 
@@ -220,7 +207,7 @@ export const queueService = {
     data: Partial<QueueSettings>,
   ): Promise<ApiResponse<{}>> {
     const response = await apiClient.put(
-      `/api/v1/queue/${restaurantId}/settings`,
+      `/queue/${restaurantId}/settings`,
       data,
     );
     return response.data as any;
@@ -231,12 +218,9 @@ export const queueService = {
     restaurantId: string,
     date?: string,
   ): Promise<QueueStats> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/stats`,
-      {
-        params: { dateFrom: date, dateTo: date },
-      },
-    );
+    const response = await apiClient.get(`/queue/${restaurantId}/stats`, {
+      params: { dateFrom: date, dateTo: date },
+    });
     return (response.data as any).data || response.data;
   },
 
@@ -259,9 +243,7 @@ export const queueService = {
     };
     settings: QueueSettings;
   }> {
-    const response = await apiClient.get(
-      `/api/v1/queue/${restaurantId}/status`,
-    );
+    const response = await apiClient.get(`/queue/${restaurantId}/status`);
     const data = (response.data as any)?.data;
     return {
       queue: data?.queue || {
@@ -355,7 +337,7 @@ export const queueService = {
       lastUpdated: string;
     }>
   > {
-    const response = await apiClient.get("/api/v1/queue/performance");
+    const response = await apiClient.get("/queue/performance");
     return response.data as any;
   },
 
@@ -365,9 +347,7 @@ export const queueService = {
       timestamp: string;
     }>
   > {
-    const response = await apiClient.post(
-      `/api/v1/queue/${restaurantId}/optimize`,
-    );
+    const response = await apiClient.post(`/queue/${restaurantId}/optimize`);
     return response.data as any;
   },
 };

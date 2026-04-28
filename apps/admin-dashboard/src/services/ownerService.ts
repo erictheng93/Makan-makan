@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/types";
+import { api } from "./api";
 
 interface OwnerDashboardData {
   today_overview: {
@@ -74,27 +75,30 @@ interface StaffActivity {
 }
 
 class OwnerService {
-  private baseURL = "/api/v1";
+  private buildParams(
+    params: Record<string, string | undefined>,
+  ): Record<string, string> | undefined {
+    const entries = Object.entries(params).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    );
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+  }
+
+  private unwrap<T>(result: ApiResponse<T>, fallbackMessage: string): T {
+    if (!result.success) {
+      throw new Error(result.error?.message || fallbackMessage);
+    }
+
+    return result.data!;
+  }
 
   async getDashboardData(restaurantId?: string): Promise<OwnerDashboardData> {
     try {
-      const params = new URLSearchParams();
-      if (restaurantId) {
-        params.append("restaurantId", restaurantId.toString());
-      }
-
-      const response = await fetch(
-        `${this.baseURL}/analytics/owner-dashboard?${params}`,
+      const response = await api.get<OwnerDashboardData>(
+        "/analytics/owner-dashboard",
+        this.buildParams({ restaurantId }),
       );
-      const result: ApiResponse<OwnerDashboardData> = await response.json();
-
-      if (!result.success) {
-        throw new Error(
-          result.error?.message || "Failed to fetch dashboard data",
-        );
-      }
-
-      return result.data!;
+      return this.unwrap(response.data, "Failed to fetch dashboard data");
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       throw error;
@@ -110,32 +114,16 @@ class OwnerService {
     } = {},
   ): Promise<FinancialReportData> {
     try {
-      const params = new URLSearchParams();
-      if (options.restaurantId) {
-        params.append("restaurantId", options.restaurantId.toString());
-      }
-      if (options.period) {
-        params.append("period", options.period);
-      }
-      if (options.year) {
-        params.append("year", options.year);
-      }
-      if (options.month) {
-        params.append("month", options.month);
-      }
-
-      const response = await fetch(
-        `${this.baseURL}/analytics/financial-report?${params}`,
+      const response = await api.get<FinancialReportData>(
+        "/analytics/financial-report",
+        this.buildParams({
+          restaurantId: options.restaurantId,
+          period: options.period,
+          year: options.year,
+          month: options.month,
+        }),
       );
-      const result: ApiResponse<FinancialReportData> = await response.json();
-
-      if (!result.success) {
-        throw new Error(
-          result.error?.message || "Failed to fetch financial report",
-        );
-      }
-
-      return result.data!;
+      return this.unwrap(response.data, "Failed to fetch financial report");
     } catch (error) {
       console.error("Error fetching financial report:", error);
       throw error;
@@ -144,23 +132,15 @@ class OwnerService {
 
   async getRealtimeOrders(restaurantId?: string): Promise<RealtimeOrder[]> {
     try {
-      const params = new URLSearchParams();
-      if (restaurantId) {
-        params.append("restaurantId", restaurantId.toString());
-      }
-
-      const response = await fetch(
-        `${this.baseURL}/analytics/realtime-dashboard?${params}`,
+      const response = await api.get<any>(
+        "/analytics/realtime-dashboard",
+        this.buildParams({ restaurantId }),
       );
-      const result: ApiResponse<any> = await response.json();
-
-      if (!result.success) {
-        throw new Error(
-          result.error?.message || "Failed to fetch realtime orders",
-        );
-      }
-
-      return result.data?.active_orders || [];
+      const data = this.unwrap(
+        response.data,
+        "Failed to fetch realtime orders",
+      );
+      return data?.active_orders || [];
     } catch (error) {
       console.error("Error fetching realtime orders:", error);
       throw error;
@@ -169,14 +149,11 @@ class OwnerService {
 
   async getStaffActivity(restaurantId?: string): Promise<StaffActivity[]> {
     try {
-      const params = new URLSearchParams();
-      if (restaurantId) {
-        params.append("restaurantId", restaurantId.toString());
-      }
-      params.append("limit", "10");
-
-      const response = await fetch(`${this.baseURL}/users?${params}`);
-      const result: ApiResponse<any[]> = await response.json();
+      const response = await api.get<any[]>(
+        "/users",
+        this.buildParams({ restaurantId, limit: "10" }),
+      );
+      const result = response.data;
 
       if (!result.success || !result.data) {
         return [];
@@ -210,20 +187,7 @@ class OwnerService {
 
   async resolveEmergencyAlert(alertId: number): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.baseURL}/alerts/${alertId}/resolve`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to resolve alert");
-      }
-
+      await api.post(`/alerts/${alertId}/resolve`);
       console.log("Emergency alert resolved:", alertId);
     } catch (error) {
       console.error("Error resolving emergency alert:", error);
@@ -233,20 +197,7 @@ class OwnerService {
 
   async escalateEmergencyAlert(alertId: number): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.baseURL}/alerts/${alertId}/escalate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to escalate alert");
-      }
-
+      await api.post(`/alerts/${alertId}/escalate`);
       console.log("Emergency alert escalated:", alertId);
     } catch (error) {
       console.error("Error escalating emergency alert:", error);

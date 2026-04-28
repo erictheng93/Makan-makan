@@ -35,7 +35,7 @@ describe("Backup Store", () => {
   });
 
   describe("createBackup", () => {
-    it("should call POST /api/v1/backup/create and return data", async () => {
+    it("should call POST /backup/create and return data", async () => {
       const mockResponse = {
         data: { data: { id: "backup-1", status: "pending" } },
       };
@@ -51,10 +51,7 @@ describe("Backup Store", () => {
       const result = await store.createBackup(request);
 
       expect(apiClient.post).toHaveBeenCalledOnce();
-      expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/backup/create",
-        request,
-      );
+      expect(apiClient.post).toHaveBeenCalledWith("/backup/create", request);
       expect(result).toEqual({ id: "backup-1", status: "pending" });
     });
 
@@ -79,7 +76,7 @@ describe("Backup Store", () => {
       const query = { restaurant_id: "r1", limit: 10 };
       const result = await store.listBackups(query);
 
-      expect(apiClient.get).toHaveBeenCalledWith("/api/v1/backup/list", {
+      expect(apiClient.get).toHaveBeenCalledWith("/backup/list", {
         params: query,
       });
       expect(result).toEqual(backups);
@@ -96,7 +93,7 @@ describe("Backup Store", () => {
       const store = useBackupStore();
       const result = await store.getBackup("b1");
 
-      expect(apiClient.get).toHaveBeenCalledWith("/api/v1/backup/b1");
+      expect(apiClient.get).toHaveBeenCalledWith("/backup/b1");
       expect(result).toEqual(backup);
     });
   });
@@ -108,7 +105,7 @@ describe("Backup Store", () => {
       const store = useBackupStore();
       await store.deleteBackup("b1");
 
-      expect(apiClient.delete).toHaveBeenCalledWith("/api/v1/backup/b1");
+      expect(apiClient.delete).toHaveBeenCalledWith("/backup/b1");
     });
   });
 
@@ -125,7 +122,7 @@ describe("Backup Store", () => {
       });
 
       expect(apiClient.post).toHaveBeenCalledWith(
-        "/api/v1/backup/b1/restore",
+        "/backup/b1/restore",
         expect.objectContaining({ backup_id: "b1" }),
       );
       expect(result).toBe("op-123");
@@ -142,9 +139,7 @@ describe("Backup Store", () => {
       const store = useBackupStore();
       const result = await store.getBackupConfigurations("r1");
 
-      expect(apiClient.get).toHaveBeenCalledWith(
-        "/api/v1/backup/configurations/r1",
-      );
+      expect(apiClient.get).toHaveBeenCalledWith("/backup/configurations/r1");
       expect(result).toEqual(configs);
       expect(store.configurations).toEqual(configs);
     });
@@ -160,9 +155,7 @@ describe("Backup Store", () => {
       const store = useBackupStore();
       const result = await store.getSystemHealth();
 
-      expect(apiClient.get).toHaveBeenCalledWith(
-        "/api/v1/backup/system/health",
-      );
+      expect(apiClient.get).toHaveBeenCalledWith("/backup/system/health");
       expect(result).toEqual(health);
       expect(store.systemHealth).toEqual(health);
     });
@@ -183,7 +176,7 @@ describe("Backup Store", () => {
       await store.acknowledgeAlert("a1");
 
       expect(apiClient.patch).toHaveBeenCalledWith(
-        "/api/v1/backup/alerts/a1/acknowledge",
+        "/backup/alerts/a1/acknowledge",
       );
       expect(store.alerts[0].acknowledged).toBe(true);
       expect(store.alerts[0].acknowledged_at).toEqual(expect.any(String));
@@ -203,9 +196,7 @@ describe("Backup Store", () => {
 
       await store.resolveAlert("a2");
 
-      expect(apiClient.patch).toHaveBeenCalledWith(
-        "/api/v1/backup/alerts/a2/resolve",
-      );
+      expect(apiClient.patch).toHaveBeenCalledWith("/backup/alerts/a2/resolve");
       expect(store.alerts[0].resolved).toBe(true);
     });
   });
@@ -223,7 +214,7 @@ describe("Backup Store", () => {
       expect(store.isLoading).toBe(false);
       expect(store.backups).toEqual(backups);
       expect(apiClient.get).toHaveBeenCalledWith(
-        "/api/v1/backup/list",
+        "/backup/list",
         expect.objectContaining({
           params: expect.objectContaining({
             restaurant_id: "r1",

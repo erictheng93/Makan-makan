@@ -1,4 +1,4 @@
-import type { AxiosResponse } from "axios";
+import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
 import type { ApiResponse } from "@/types";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
@@ -42,9 +42,9 @@ class ApiServiceCompat {
 
   async get<T>(
     url: string,
-    params?: any,
+    paramsOrConfig?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
-    return authClient.instance.get(url, { params });
+    return authClient.instance.get(url, this.toGetConfig(paramsOrConfig));
   }
 
   async post<T>(
@@ -82,6 +82,33 @@ class ApiServiceCompat {
         "Content-Type": "multipart/form-data",
       },
     });
+  }
+
+  private toGetConfig(paramsOrConfig?: any): AxiosRequestConfig | undefined {
+    if (!paramsOrConfig) {
+      return undefined;
+    }
+
+    if (this.isAxiosConfig(paramsOrConfig)) {
+      return paramsOrConfig;
+    }
+
+    return { params: paramsOrConfig };
+  }
+
+  private isAxiosConfig(value: any): value is AxiosRequestConfig {
+    if (typeof value !== "object" || value === null) {
+      return false;
+    }
+
+    return [
+      "params",
+      "headers",
+      "responseType",
+      "signal",
+      "timeout",
+      "withCredentials",
+    ].some((key) => Object.prototype.hasOwnProperty.call(value, key));
   }
 }
 

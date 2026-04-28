@@ -76,6 +76,20 @@ describe("ApiService", () => {
       expect(result).toEqual(response);
     });
 
+    it("should pass axios get config through unchanged", async () => {
+      const response = { data: { success: true } };
+      mockInstance.get.mockResolvedValue(response);
+
+      const config = {
+        params: { id: 1 },
+        headers: { "X-Custom": "yes" },
+      };
+      const result = await api.get("/test", config);
+
+      expect(mockInstance.get).toHaveBeenCalledWith("/test", config);
+      expect(result).toEqual(response);
+    });
+
     it("should call post with url and data", async () => {
       const response = { data: { success: true } };
       mockInstance.post.mockResolvedValue(response);
