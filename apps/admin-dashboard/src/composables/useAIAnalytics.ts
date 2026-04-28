@@ -12,7 +12,7 @@ import type {
   ConfigureAIRequest,
   TestAIProviderRequest,
 } from "@makanmakan/ai-analytics";
-import { apiPath } from "@/services/api-url";
+import { api } from "@/services/api";
 
 interface UseAIAnalyticsReturn {
   // State
@@ -69,44 +69,36 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  // Helper function for API calls
-  async function fetchAPI<T>(
+  async function requestAI<T>(
+    method: "GET" | "POST",
     endpoint: string,
-    options: RequestInit = {},
+    options: {
+      data?: unknown;
+      params?: Record<string, string | number | undefined>;
+    } = {},
   ): Promise<T | null> {
     loading.value = true;
     error.value = null;
 
     try {
-      const token = localStorage.getItem("auth_token");
-      const csrfToken = document.cookie.match(/csrf_token=([^;]+)/)?.[1];
-      const method = (options.method || "GET").toUpperCase();
-      const needsCsrf = ["POST", "PUT", "DELETE", "PATCH"].includes(method);
+      const url = `/ai-analytics${endpoint}`;
+      const response =
+        method === "GET"
+          ? await api.get<T>(
+              url,
+              options.params
+                ? { params: cleanParams(options.params) }
+                : undefined,
+            )
+          : await api.post<T>(url, options.data);
 
-      const response = await fetch(apiPath(`/ai-analytics${endpoint}`), {
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(needsCsrf && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
-          ...options.headers,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error?.message ||
-            errorData.message ||
-            `HTTP ${response.status}: ${response.statusText}`,
-        );
-      }
-
-      const data = await response.json();
-      return data;
+      return response.data as T;
     } catch (err) {
+      const responseData = (err as any)?.response?.data;
       const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
+        responseData?.error?.message ||
+        responseData?.message ||
+        (err instanceof Error ? err.message : "Unknown error occurred");
       error.value = errorMessage;
       console.error("AI Analytics API Error:", {
         endpoint,
@@ -119,41 +111,45 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     }
   }
 
+  function cleanParams(
+    params: Record<string, string | number | undefined>,
+  ): Record<string, string | number> {
+    return Object.fromEntries(
+      Object.entries(params).filter(
+        (entry): entry is [string, string | number] => entry[1] !== undefined,
+      ),
+    );
+  }
+
   // AI Configuration APIs
   const getConfig = async (restaurantId: string) => {
-    const data = await fetchAPI(`/config/${restaurantId}`, {
-      method: "GET",
-    });
+    const data = await requestAI("GET", `/config/${restaurantId}`);
     return data;
   };
 
   const saveConfig = async (configData: ConfigureAIRequest) => {
-    const data = await fetchAPI<{ success: boolean; message?: string }>(
+    const data = await requestAI<{ success: boolean; message?: string }>(
+      "POST",
       "/config",
-      {
-        method: "POST",
-        body: JSON.stringify(configData),
-      },
+      { data: configData },
     );
     return data || { success: false, message: "Failed to save configuration" };
   };
 
   const testProvider = async (testData: TestAIProviderRequest) => {
-    const data = await fetchAPI<{
+    const data = await requestAI<{
       success: boolean;
       latency?: number;
       error?: string;
-    }>("/test-provider", {
-      method: "POST",
-      body: JSON.stringify(testData),
-    });
+    }>("POST", "/test-provider", { data: testData });
     return data || { success: false, error: "Test failed" };
   };
 
   const getAvailableModels = async (provider: LLMProvider) => {
-    const data = await fetchAPI<{ models: string[] }>(`/models/${provider}`, {
-      method: "GET",
-    });
+    const data = await requestAI<{ models: string[] }>(
+      "GET",
+      `/models/${provider}`,
+    );
     return data?.models || [];
   };
 
@@ -163,16 +159,15 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     timeRange: TimeRangeParams,
     options: { includeForecasting?: boolean; refreshCache?: boolean } = {},
   ): Promise<AIAnalyticsReport | null> => {
-    const data = await fetchAPI<{
+    const data = await requestAI<{
       success: boolean;
       report?: AIAnalyticsReport;
-    }>("/generate", {
-      method: "POST",
-      body: JSON.stringify({
+    }>("POST", "/generate", {
+      data: {
         restaurantId,
         timeRange,
         ...options,
-      }),
+      },
     });
     return data?.report || null;
   };
@@ -183,13 +178,12 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     timeRange: string = "30d",
     limit: number = 10,
   ): Promise<ProductAnalysis[]> => {
-    const data = await fetchAPI<{
+    const data = await requestAI<{
       success: boolean;
       products?: ProductAnalysis[];
-    }>(
-      `/products/traffic-drivers/${restaurantId}?timeRange=${timeRange}&limit=${limit}`,
-      { method: "GET" },
-    );
+    }>("GET", `/products/traffic-drivers/${restaurantId}`, {
+      params: { timeRange, limit },
+    });
     return data?.products || [];
   };
 
@@ -198,13 +192,12 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     timeRange: string = "30d",
     limit: number = 10,
   ): Promise<ProductAnalysis[]> => {
-    const data = await fetchAPI<{
+    const data = await requestAI<{
       success: boolean;
       products?: ProductAnalysis[];
-    }>(
-      `/products/bestsellers/${restaurantId}?timeRange=${timeRange}&limit=${limit}`,
-      { method: "GET" },
-    );
+    }>("GET", `/products/bestsellers/${restaurantId}`, {
+      params: { timeRange, limit },
+    });
     return data?.products || [];
   };
 
@@ -213,13 +206,12 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     timeRange: string = "30d",
     limit: number = 10,
   ): Promise<ProductAnalysis[]> => {
-    const data = await fetchAPI<{
+    const data = await requestAI<{
       success: boolean;
       products?: ProductAnalysis[];
-    }>(
-      `/products/profit-leaders/${restaurantId}?timeRange=${timeRange}&limit=${limit}`,
-      { method: "GET" },
-    );
+    }>("GET", `/products/profit-leaders/${restaurantId}`, {
+      params: { timeRange, limit },
+    });
     return data?.products || [];
   };
 
@@ -227,11 +219,11 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     restaurantId: string,
     timeRange: string = "30d",
   ): Promise<ProductAnalysis[]> => {
-    const data = await fetchAPI<{
+    const data = await requestAI<{
       success: boolean;
       products?: ProductAnalysis[];
-    }>(`/products/analysis/${restaurantId}?timeRange=${timeRange}`, {
-      method: "GET",
+    }>("GET", `/products/analysis/${restaurantId}`, {
+      params: { timeRange },
     });
     return data?.products || [];
   };
@@ -242,15 +234,11 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     startDate?: string,
     endDate?: string,
   ): Promise<any[]> => {
-    let url = `/usage/${restaurantId}`;
-    const params = new URLSearchParams();
-    if (startDate) params.append("startDate", startDate);
-    if (endDate) params.append("endDate", endDate);
-    if (params.toString()) url += `?${params.toString()}`;
-
-    const data = await fetchAPI<{ success: boolean; usage?: any[] }>(url, {
-      method: "GET",
-    });
+    const data = await requestAI<{ success: boolean; usage?: any[] }>(
+      "GET",
+      `/usage/${restaurantId}`,
+      { params: { startDate, endDate } },
+    );
     return data?.usage || [];
   };
 
