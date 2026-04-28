@@ -4,6 +4,7 @@ import { useNotificationStore } from "@/stores/notification";
 import { useOrderStore } from "@/stores/order";
 import type { SSEEvent } from "@/types";
 import { isTokenExpired } from "@makanmakan/utils";
+import { apiPath } from "@/services/api-url";
 
 const eventSource = ref<EventSource | null>(null);
 const isConnected = ref(false);
@@ -45,7 +46,7 @@ export function useSSE() {
         if (!token) return;
       }
 
-      const url = `/api/v1/sse/events?restaurant_id=${authStore.restaurantId}&token=${encodeURIComponent(token)}`;
+      const url = `${apiPath("/sse/events")}?restaurant_id=${authStore.restaurantId}&token=${encodeURIComponent(token)}`;
       eventSource.value = new EventSource(url);
 
       eventSource.value.onopen = () => {

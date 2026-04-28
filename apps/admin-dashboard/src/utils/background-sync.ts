@@ -9,6 +9,7 @@ import {
   type OfflineMenuUpdate,
   type OfflineUserAction,
 } from "./offline-storage";
+import { apiPath } from "@/services/api-url";
 
 export interface AdminSyncEvent {
   id: string;
@@ -128,19 +129,22 @@ class AdminBackgroundSyncService {
     try {
       console.log(`[Admin Background Sync] Syncing order update ${update.id}`);
 
-      const response = await fetch(`/api/v1/orders/${update.order_id}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
+      const response = await fetch(
+        apiPath(`/orders/${update.order_id}/status`),
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.getAuthToken()}`,
+          },
+          body: JSON.stringify({
+            status: update.status,
+            notes: update.notes,
+            updated_by: update.updated_by,
+            timestamp: update.timestamp,
+          }),
         },
-        body: JSON.stringify({
-          status: update.status,
-          notes: update.notes,
-          updated_by: update.updated_by,
-          timestamp: update.timestamp,
-        }),
-      });
+      );
 
       if (response.ok) {
         console.log(
@@ -206,14 +210,18 @@ class AdminBackgroundSyncService {
     try {
       console.log(`[Admin Background Sync] Syncing menu update ${update.id}`);
 
-      let endpoint = `/api/v1/menu/${update.restaurant_id}/items`;
+      let endpoint = apiPath(`/menu/${update.restaurant_id}/items`);
       let method = "POST";
 
       if (update.action === "update" && update.menu_item_id) {
-        endpoint = `/api/v1/menu/${update.restaurant_id}/items/${update.menu_item_id}`;
+        endpoint = apiPath(
+          `/menu/${update.restaurant_id}/items/${update.menu_item_id}`,
+        );
         method = "PUT";
       } else if (update.action === "delete" && update.menu_item_id) {
-        endpoint = `/api/v1/menu/${update.restaurant_id}/items/${update.menu_item_id}`;
+        endpoint = apiPath(
+          `/menu/${update.restaurant_id}/items/${update.menu_item_id}`,
+        );
         method = "DELETE";
       }
 
@@ -289,7 +297,7 @@ class AdminBackgroundSyncService {
 
   private async syncSingleUserAction(action: OfflineUserAction): Promise<void> {
     try {
-      const response = await fetch("/api/v1/audit/actions", {
+      const response = await fetch(apiPath("/audit/actions"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -363,7 +371,7 @@ class AdminBackgroundSyncService {
     restaurantId: string,
   ): Promise<void> {
     try {
-      const response = await fetch(`/api/v1/analytics/${restaurantId}/sync`, {
+      const response = await fetch(apiPath(`/analytics/${restaurantId}/sync`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -411,7 +419,7 @@ class AdminBackgroundSyncService {
 
   private async syncBackupData(data: any): Promise<void> {
     try {
-      const response = await fetch("/api/v1/backup/upload", {
+      const response = await fetch(apiPath("/backup/upload"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -454,7 +462,7 @@ class AdminBackgroundSyncService {
 
   private async syncSettings(settings: any): Promise<void> {
     try {
-      const response = await fetch("/api/v1/admin/settings/sync", {
+      const response = await fetch(apiPath("/admin/settings/sync"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

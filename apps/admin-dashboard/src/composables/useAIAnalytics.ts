@@ -12,8 +12,7 @@ import type {
   ConfigureAIRequest,
   TestAIProviderRequest,
 } from "@makanmakan/ai-analytics";
-
-const API_BASE = "/api/v1/ai-analytics";
+import { apiPath } from "@/services/api-url";
 
 interface UseAIAnalyticsReturn {
   // State
@@ -84,7 +83,7 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
       const method = (options.method || "GET").toUpperCase();
       const needsCsrf = ["POST", "PUT", "DELETE", "PATCH"].includes(method);
 
-      const response = await fetch(`${API_BASE}${endpoint}`, {
+      const response = await fetch(apiPath(`/ai-analytics${endpoint}`), {
         ...options,
         headers: {
           "Content-Type": "application/json",

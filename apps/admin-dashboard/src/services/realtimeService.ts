@@ -1,5 +1,6 @@
 // Real-time service using Server-Sent Events (SSE) and WebSocket fallback
 import { ref } from "vue";
+import { apiPath } from "./api-url";
 
 export interface SSEMessage {
   id: string;
@@ -352,7 +353,7 @@ class RealtimeService {
   // 發送 ping 測試連接
   async ping(): Promise<boolean> {
     try {
-      const response = await fetch("/api/v1/sse/ping", {
+      const response = await fetch(apiPath("/sse/ping"), {
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
@@ -367,7 +368,7 @@ class RealtimeService {
   // 獲取伺服器時間（用於同步）
   async getServerTime(): Promise<Date> {
     try {
-      const response = await fetch("/api/v1/sse/time");
+      const response = await fetch(apiPath("/sse/time"));
       const data = await response.json();
       return new Date(data.timestamp);
     } catch {
@@ -385,7 +386,7 @@ class RealtimeService {
     },
   ): Promise<boolean> {
     try {
-      const response = await fetch("/api/v1/sse/broadcast/group", {
+      const response = await fetch(apiPath("/sse/broadcast/group"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -415,7 +416,7 @@ class RealtimeService {
     },
   ): Promise<boolean> {
     try {
-      const response = await fetch("/api/v1/sse/notify/group", {
+      const response = await fetch(apiPath("/sse/notify/group"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -445,11 +446,14 @@ class RealtimeService {
     lastActivity: number;
   }> {
     try {
-      const response = await fetch(`/api/v1/sse/group/${groupOrderId}/health`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      const response = await fetch(
+        apiPath(`/sse/group/${groupOrderId}/health`),
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
         },
-      });
+      );
 
       if (response.ok) {
         return await response.json();
@@ -484,7 +488,7 @@ class RealtimeService {
       }
 
       const response = await fetch(
-        `/api/v1/sse/group/${groupOrderId}/sync?${params}`,
+        apiPath(`/sse/group/${groupOrderId}/sync?${params}`),
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,

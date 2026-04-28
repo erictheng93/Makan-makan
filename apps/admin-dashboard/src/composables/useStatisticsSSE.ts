@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { statisticsService } from "@/services/statisticsService";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
+import { apiUrl } from "@/services/api-url";
 
 export interface StatisticsSSEEvent {
   type:
@@ -24,7 +25,7 @@ const getDefaultSseUrl = (): string => {
     );
     return "";
   }
-  return `${baseUrl.replace("/api/v1", "")}/api/v1/analytics/sse`;
+  return apiUrl("/analytics/sse", baseUrl);
 };
 
 export function useStatisticsSSE(

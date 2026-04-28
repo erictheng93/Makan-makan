@@ -4,6 +4,7 @@
 
 import { ref, onMounted, onErrorCaptured } from "vue";
 import { getErrorTracker, type TrackedError } from "@makanmakan/utils";
+import { apiPath } from "@/services/api-url";
 
 export function useErrorTracking() {
   const tracker = getErrorTracker({
@@ -15,7 +16,7 @@ export function useErrorTracking() {
       // Send to backend
       if (import.meta.env.PROD) {
         try {
-          await fetch("/api/v1/system/errors", {
+          await fetch(apiPath("/system/errors"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(error),

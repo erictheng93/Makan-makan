@@ -3,6 +3,8 @@
  * Handles push notification registration, management, and admin-specific notifications
  */
 
+import { apiPath } from "@/services/api-url";
+
 export interface NotificationSubscription {
   endpoint: string;
   keys: {
@@ -128,7 +130,7 @@ class AdminPushNotificationService {
     subscription: NotificationSubscription,
   ): Promise<void> {
     try {
-      const response = await fetch("/api/v1/push/subscribe", {
+      const response = await fetch(apiPath("/push/subscribe"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -525,7 +527,7 @@ class AdminPushNotificationService {
     };
   }): Promise<void> {
     try {
-      await fetch("/api/v1/admin/notification-settings", {
+      await fetch(apiPath("/admin/notification-settings"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

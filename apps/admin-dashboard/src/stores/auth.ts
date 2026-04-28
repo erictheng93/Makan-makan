@@ -3,6 +3,7 @@ import { ref, computed, readonly } from "vue";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { api, authClient } from "@/services/api";
+import { apiPath } from "@/services/api-url";
 import { t } from "@/i18n";
 
 // Hydrate user from localStorage for instant restore on refresh
@@ -306,7 +307,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       try {
         // Use fetch directly to avoid the axios 401 interceptor loop
-        const response = await fetch("/api/v1/auth/refresh", {
+        const response = await fetch(apiPath("/auth/refresh"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

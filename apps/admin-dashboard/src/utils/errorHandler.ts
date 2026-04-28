@@ -1,4 +1,5 @@
 import { useToast } from "vue-toastification";
+import { apiPath } from "@/services/api-url";
 
 const toast = useToast();
 
@@ -91,7 +92,7 @@ class OfflineManager {
 
 // 錯誤上報服務
 class ErrorReportingService {
-  private readonly REPORT_ENDPOINT = "/api/v1/system/error-report";
+  private readonly REPORT_ENDPOINT = apiPath("/system/error-report");
   private readonly MAX_RETRIES = 3;
   private readonly MAX_QUEUE_SIZE = 50;
   private reportQueue: ErrorDetails[] = [];
