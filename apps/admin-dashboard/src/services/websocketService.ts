@@ -9,6 +9,8 @@ import {
   type RealtimeEvent,
   type RealtimeAuthTokenResponse,
 } from "@makanmakan/shared-types";
+import { api } from "@/services/api";
+import { sanitizeForLog } from "@/utils/sanitize";
 
 export type ConnectionStatus =
   | "disconnected"
@@ -42,8 +44,6 @@ const DEFAULT_CONFIG: Required<WebSocketConfig> = {
   heartbeatTimeout: 10000,
 };
 
-import { sanitizeForLog } from "@/utils/sanitize";
-
 class WebSocketService {
   private ws: WebSocket | null = null;
   private connectionStatus = ref<ConnectionStatus>("disconnected");
@@ -76,26 +76,27 @@ class WebSocketService {
       throw new Error("No authentication token found");
     }
 
-    const baseUrl = import.meta.env.VITE_API_URL || "/api";
-    const response = await fetch(`${baseUrl}/v1/realtime/auth/token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
+    const response = await api.post<{
+      success?: boolean;
+      data?: RealtimeAuthTokenResponse;
+    }>(
+      "/realtime/auth/token",
+      {
         roomType: "admin",
         roomId: restaurantId,
         restaurantId,
         sessionId: token,
-      }),
-    });
+      },
+      {
+        validateStatus: () => true,
+      },
+    );
 
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       const error = new Error(
         `Failed to get WebSocket token: ${response.statusText}`,
       );
-      (error as any).status = response.status;
+      (error as Error & { status?: number }).status = response.status;
       throw error;
     }
 
@@ -104,7 +105,7 @@ class WebSocketService {
     // directly (previously the singleton bailed with
     // "WebSocket URL or token missing from auth response" because it read
     // `.token` / `.wsUrl` off the outer envelope).
-    const envelope = (await response.json()) as {
+    const envelope = response.data as unknown as {
       success?: boolean;
       data?: RealtimeAuthTokenResponse;
     };
