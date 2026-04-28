@@ -10,6 +10,7 @@ import {
   type OfflineUserAction,
 } from "./offline-storage";
 import { apiPath } from "@/services/api-url";
+import { buildMenuUpdateSyncRequest } from "./background-sync-requests";
 
 export interface AdminSyncEvent {
   id: string;
@@ -210,29 +211,15 @@ class AdminBackgroundSyncService {
     try {
       console.log(`[Admin Background Sync] Syncing menu update ${update.id}`);
 
-      let endpoint = apiPath(`/menu/${update.restaurant_id}/items`);
-      let method = "POST";
+      const request = buildMenuUpdateSyncRequest(update);
 
-      if (update.action === "update" && update.menu_item_id) {
-        endpoint = apiPath(
-          `/menu/${update.restaurant_id}/items/${update.menu_item_id}`,
-        );
-        method = "PUT";
-      } else if (update.action === "delete" && update.menu_item_id) {
-        endpoint = apiPath(
-          `/menu/${update.restaurant_id}/items/${update.menu_item_id}`,
-        );
-        method = "DELETE";
-      }
-
-      const response = await fetch(endpoint, {
-        method,
+      const response = await fetch(request.endpoint, {
+        method: request.method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.getAuthToken()}`,
         },
-        body:
-          update.action !== "delete" ? JSON.stringify(update.data) : undefined,
+        body: request.body ? JSON.stringify(request.body) : undefined,
       });
 
       if (response.ok) {
