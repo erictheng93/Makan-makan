@@ -165,6 +165,138 @@ export class SSEController {
   }
 
   /**
+   * Lightweight compatibility ping used by admin realtime clients.
+   * GET /api/v1/sse/ping
+   */
+  ping(c: Context) {
+    return c.json({
+      success: true,
+      status: "ok",
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Server time endpoint used for client clock alignment.
+   * GET /api/v1/sse/time
+   */
+  getServerTime(c: Context) {
+    return c.json({
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Generic group broadcast compatibility endpoint.
+   * POST /api/v1/sse/broadcast/group
+   */
+  async broadcastToGroup(c: Context) {
+    try {
+      const { groupOrderId, event } = await c.req.json();
+      const user = c.get("user");
+
+      await this.sseService.broadcast({
+        type: event?.type || "group-event",
+        data: {
+          groupOrderId,
+          ...(isRecord(event?.data) ? event.data : { value: event?.data }),
+          ...(event?.excludeSessionId
+            ? { excludeSessionId: event.excludeSessionId }
+            : {}),
+          timestamp: new Date().toISOString(),
+        },
+        restaurantId:
+          user.restaurantId == null ? undefined : String(user.restaurantId),
+      });
+
+      return c.json({
+        success: true,
+        groupOrderId,
+        eventType: event?.type || "group-event",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Failed to broadcast group event:", error);
+      return c.json(
+        createErrorResponse("Failed to broadcast group event"),
+        500,
+      );
+    }
+  }
+
+  /**
+   * Group notification compatibility endpoint.
+   * POST /api/v1/sse/notify/group
+   */
+  async notifyGroup(c: Context) {
+    try {
+      const { groupOrderId, notification } = await c.req.json();
+      const user = c.get("user");
+
+      await this.sseService.broadcast({
+        type: "group-notification",
+        data: {
+          groupOrderId,
+          notification,
+          timestamp: new Date().toISOString(),
+        },
+        restaurantId:
+          user.restaurantId == null ? undefined : String(user.restaurantId),
+      });
+
+      return c.json({
+        success: true,
+        groupOrderId,
+        notificationId: notification?.id,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Failed to send group notification:", error);
+      return c.json(
+        createErrorResponse("Failed to send group notification"),
+        500,
+      );
+    }
+  }
+
+  /**
+   * Group connection health compatibility endpoint.
+   * GET /api/v1/sse/group/:groupOrderId/health
+   */
+  getGroupHealth(c: Context) {
+    const groupOrderId = c.req.param("groupOrderId");
+    const status = this.sseService.getConnectionStatus();
+    const activeMembers = Object.values(status.connectionsByRole).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+
+    return c.json({
+      connected: activeMembers > 0,
+      memberCount: activeMembers,
+      activeMembers,
+      lastActivity: Date.now(),
+      groupOrderId,
+    });
+  }
+
+  /**
+   * Group state sync compatibility endpoint.
+   * GET /api/v1/sse/group/:groupOrderId/sync
+   */
+  syncGroupState(c: Context) {
+    const groupOrderId = c.req.param("groupOrderId");
+    const lastSync = c.req.query("lastSync");
+
+    return c.json({
+      groupOrderId,
+      lastSync: lastSync ? Number(lastSync) : null,
+      version: Date.now(),
+      state: null,
+    });
+  }
+
+  /**
    * Broadcast order update
    * POST /api/v1/sse/broadcast/order-update
    */
@@ -443,4 +575,8 @@ export class SSEController {
       return c.json(createErrorResponse("Failed to send test broadcast"), 500);
     }
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

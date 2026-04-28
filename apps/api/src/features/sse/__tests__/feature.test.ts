@@ -156,6 +156,118 @@ describe("SSE Feature Tests", () => {
   });
 
   // ========================================
+  // Compatibility Helper Endpoint Tests (6 tests)
+  // ========================================
+
+  describe("Compatibility helper endpoints", () => {
+    it("應該支援 ping endpoint", async () => {
+      const res = await makeRequest("/sse/ping");
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as ApiResponse & {
+        status: string;
+        timestamp: string;
+      };
+      expect(json.success).toBe(true);
+      expect(json.status).toBe("ok");
+      expect(json.timestamp).toBeDefined();
+    });
+
+    it("應該支援 server time endpoint", async () => {
+      const res = await makeRequest("/sse/time");
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { timestamp: string };
+      expect(json.timestamp).toBeDefined();
+    });
+
+    it("應該支援 generic group broadcast endpoint", async () => {
+      mockSSEService.broadcast.mockResolvedValue(undefined);
+
+      const res = await makeRequest("/sse/broadcast/group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupOrderId: "group-1",
+          event: {
+            type: "group_order_broadcast",
+            data: { operationId: "op-1" },
+          },
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockSSEService.broadcast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "group_order_broadcast",
+          restaurantId: "1",
+          data: expect.objectContaining({
+            groupOrderId: "group-1",
+            operationId: "op-1",
+          }),
+        }),
+      );
+    });
+
+    it("應該支援 group notification endpoint", async () => {
+      mockSSEService.broadcast.mockResolvedValue(undefined);
+
+      const res = await makeRequest("/sse/notify/group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupOrderId: "group-1",
+          notification: { id: "n1", title: "Ready" },
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockSSEService.broadcast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "group-notification",
+          restaurantId: "1",
+          data: expect.objectContaining({
+            groupOrderId: "group-1",
+            notification: { id: "n1", title: "Ready" },
+          }),
+        }),
+      );
+    });
+
+    it("應該支援 group health endpoint", async () => {
+      const res = await makeRequest("/sse/group/group-1/health");
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        connected: boolean;
+        memberCount: number;
+        activeMembers: number;
+        groupOrderId: string;
+      };
+      expect(json.connected).toBe(true);
+      expect(json.memberCount).toBe(5);
+      expect(json.activeMembers).toBe(5);
+      expect(json.groupOrderId).toBe("group-1");
+    });
+
+    it("應該支援 group state sync endpoint", async () => {
+      const res = await makeRequest("/sse/group/group-1/sync?lastSync=123");
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        groupOrderId: string;
+        lastSync: number;
+        version: number;
+        state: unknown;
+      };
+      expect(json.groupOrderId).toBe("group-1");
+      expect(json.lastSync).toBe(123);
+      expect(json.version).toEqual(expect.any(Number));
+      expect(json.state).toBeNull();
+    });
+  });
+
+  // ========================================
   // Order Update Broadcast Tests (3 tests)
   // ========================================
 

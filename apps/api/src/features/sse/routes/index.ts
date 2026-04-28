@@ -112,6 +112,24 @@ app.get("/connections", authMiddleware, async (c) => {
 });
 
 /**
+ * Lightweight compatibility ping
+ * GET /api/v1/sse/ping
+ */
+app.get("/ping", authMiddleware, (c) => {
+  const controller = createController(c);
+  return controller.ping(c);
+});
+
+/**
+ * Server time for client clock alignment
+ * GET /api/v1/sse/time
+ */
+app.get("/time", authMiddleware, (c) => {
+  const controller = createController(c);
+  return controller.getServerTime(c);
+});
+
+/**
  * Broadcast order update event
  * POST /api/v1/sse/broadcast/order-update
  */
@@ -136,6 +154,42 @@ app.post("/broadcast/menu-update", authMiddleware, async (c) => {
 app.post("/broadcast/system-notification", authMiddleware, async (c) => {
   const controller = createController(c);
   return await controller.broadcastSystemNotification(c);
+});
+
+/**
+ * Generic group broadcast compatibility endpoint
+ * POST /api/v1/sse/broadcast/group
+ */
+app.post("/broadcast/group", authMiddleware, async (c) => {
+  const controller = createController(c);
+  return await controller.broadcastToGroup(c);
+});
+
+/**
+ * Group notification compatibility endpoint
+ * POST /api/v1/sse/notify/group
+ */
+app.post("/notify/group", authMiddleware, async (c) => {
+  const controller = createController(c);
+  return await controller.notifyGroup(c);
+});
+
+/**
+ * Group connection health compatibility endpoint
+ * GET /api/v1/sse/group/:groupOrderId/health
+ */
+app.get("/group/:groupOrderId/health", authMiddleware, (c) => {
+  const controller = createController(c);
+  return controller.getGroupHealth(c);
+});
+
+/**
+ * Group state sync compatibility endpoint
+ * GET /api/v1/sse/group/:groupOrderId/sync
+ */
+app.get("/group/:groupOrderId/sync", authMiddleware, (c) => {
+  const controller = createController(c);
+  return controller.syncGroupState(c);
 });
 
 /**
