@@ -3,15 +3,78 @@
  */
 
 import { Hono } from "hono";
+import { z } from "zod";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, sseAuthMiddleware } from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { validateBody } from "../../../middleware/validation";
 import type { Env } from "../../../types/env";
 import { KitchenService } from "../services/KitchenService";
 import { createSuccessResponse } from "../../../shared/utils/response";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
+const notificationSettingsSchema = z.object({}).passthrough();
+
+function createNotificationSettingsKey(user: {
+  id: number;
+  restaurantId?: string | number;
+}): string {
+  const restaurantId =
+    user.restaurantId !== undefined ? String(user.restaurantId).trim() : "";
+  const scope = restaurantId ? encodeURIComponent(restaurantId) : "global";
+  return `kitchen:notification-settings:${scope}:${user.id}`;
+}
+
+/**
+ * GET /api/v1/kitchen/notification-settings
+ */
+app.get("/notification-settings", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const stored = await c.env.CACHE_KV.get(
+    createNotificationSettingsKey(user),
+    "json",
+  );
+
+  return c.json({
+    success: true,
+    data: (stored as any)?.settings ?? {},
+  });
+});
+
+/**
+ * PUT /api/v1/kitchen/notification-settings
+ */
+app.put(
+  "/notification-settings",
+  authMiddleware,
+  validateBody(notificationSettingsSchema),
+  async (c) => {
+    const user = c.get("user");
+    const settings = c.get("validatedBody");
+    const now = new Date().toISOString();
+    const record = {
+      userId: user.id,
+      restaurantId:
+        user.restaurantId !== undefined ? String(user.restaurantId) : null,
+      settings,
+      updatedAt: now,
+    };
+
+    await c.env.CACHE_KV.put(
+      createNotificationSettingsKey(user),
+      JSON.stringify(record),
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        settings,
+        updatedAt: now,
+      },
+    });
+  },
+);
 
 /**
  * SSE 端點 - 廚房連線狀態指示

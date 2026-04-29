@@ -20,6 +20,7 @@ function createMockKV() {
   return {
     get: vi.fn().mockResolvedValue(null),
     put: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -125,5 +126,29 @@ describe("Push Routes", () => {
     expect(response.status).toBe(400);
     expect(json.error.code).toBe("VALIDATION_ERROR");
     expect(kv.put).not.toHaveBeenCalled();
+  });
+
+  it("removes an authenticated push subscription by endpoint", async () => {
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/push/unsubscribe",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: validBody.subscription.endpoint,
+          restaurant_id: "rest-1",
+        }),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(json.data.unsubscribed).toBe(true);
+    expect(kv.delete).toHaveBeenCalledOnce();
+    expect(kv.delete.mock.calls[0][0]).toMatch(/^push:subscription:rest-1:7:/);
   });
 });

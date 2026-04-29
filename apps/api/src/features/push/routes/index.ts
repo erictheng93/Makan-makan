@@ -24,6 +24,14 @@ const subscribeSchema = z
   })
   .passthrough();
 
+const unsubscribeSchema = z
+  .object({
+    endpoint: z.string().url().max(4096).optional(),
+    subscriptionId: z.string().min(1).max(256).optional(),
+    restaurant_id: z.union([z.string(), z.number()]).optional(),
+  })
+  .passthrough();
+
 type PushSubscriptionRecord = {
   id: string;
   userId: number;
@@ -94,6 +102,48 @@ routes.post(
         subscribed: true,
         restaurantId,
         updatedAt: now,
+      },
+    });
+  },
+);
+
+routes.post(
+  "/unsubscribe",
+  authMiddleware,
+  validateBody(unsubscribeSchema),
+  async (c) => {
+    const body = c.get("validatedBody");
+    const user = c.get("user");
+    const restaurantId =
+      body.restaurant_id !== undefined
+        ? String(body.restaurant_id)
+        : user.restaurantId !== undefined
+          ? String(user.restaurantId)
+          : null;
+    const subscriptionId = body.subscriptionId
+      ? String(body.subscriptionId)
+      : body.endpoint
+        ? await createSubscriptionId(body.endpoint)
+        : null;
+
+    if (subscriptionId) {
+      const key = [
+        "push",
+        "subscription",
+        keySegment(restaurantId, "global"),
+        String(user.id),
+        subscriptionId,
+      ].join(":");
+      await c.env.CACHE_KV.delete(key);
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        unsubscribed: subscriptionId !== null,
+        subscriptionId,
+        restaurantId,
+        updatedAt: new Date().toISOString(),
       },
     });
   },

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import {
   validateBody,
@@ -31,6 +32,7 @@ import type { CreateUserData, UserFilters } from "../types";
 
 const app = new Hono<{ Bindings: Env }>();
 type IdParamInput = { id: number };
+const notificationSettingsSchema = z.object({}).passthrough();
 
 function toUserFilters(input: UserFilterInput): UserFilters {
   return {
@@ -46,6 +48,10 @@ function toCreateUserData(input: CreateUserInput): CreateUserData {
     restaurantId:
       input.restaurantId === undefined ? undefined : String(input.restaurantId),
   };
+}
+
+function createNotificationSettingsKey(userId: number): string {
+  return `customer:notification-settings:${userId}`;
 }
 
 /**
@@ -115,6 +121,54 @@ app.get(
     );
 
     return c.json({ success: true, data: results });
+  },
+);
+
+/**
+ * GET /api/v1/users/notification-settings
+ */
+app.get("/notification-settings", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const stored = await c.env.CACHE_KV.get(
+    createNotificationSettingsKey(user.id),
+    "json",
+  );
+
+  return c.json({
+    success: true,
+    data: (stored as any)?.settings ?? {},
+  });
+});
+
+/**
+ * PUT /api/v1/users/notification-settings
+ */
+app.put(
+  "/notification-settings",
+  authMiddleware,
+  validateBody(notificationSettingsSchema),
+  async (c) => {
+    const user = c.get("user");
+    const settings = c.get("validatedBody");
+    const now = new Date().toISOString();
+    const record = {
+      userId: user.id,
+      settings,
+      updatedAt: now,
+    };
+
+    await c.env.CACHE_KV.put(
+      createNotificationSettingsKey(user.id),
+      JSON.stringify(record),
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        settings,
+        updatedAt: now,
+      },
+    });
   },
 );
 
