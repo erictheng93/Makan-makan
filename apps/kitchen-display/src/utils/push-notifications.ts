@@ -3,6 +3,8 @@
  * Handles push notification registration, management, and kitchen-specific notifications
  */
 
+import { apiClient } from "@/services/authApi";
+
 export interface NotificationSubscription {
   endpoint: string;
   keys: {
@@ -144,26 +146,14 @@ class KitchenPushNotificationService {
     subscription: NotificationSubscription,
   ): Promise<void> {
     try {
-      const response = await fetch("/api/v1/push/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({
-          subscription,
-          user_type: "kitchen",
-          role: "chef",
-          restaurant_id: this.getRestaurantId(),
-          device_info: this.getDeviceInfo(),
-        }),
+      const restaurantId = this.getRestaurantId();
+      await apiClient.post("/push/subscribe", {
+        subscription,
+        user_type: "kitchen",
+        role: "chef",
+        ...(restaurantId ? { restaurant_id: restaurantId } : {}),
+        device_info: this.getDeviceInfo(),
       });
-
-      if (!response.ok) {
-        throw new Error(
-          "Failed to register kitchen push subscription on server",
-        );
-      }
 
       console.log("Kitchen push subscription registered on server");
     } catch (error) {
@@ -517,10 +507,6 @@ class KitchenPushNotificationService {
     return window.btoa(binary);
   }
 
-  private getAuthToken(): string {
-    return localStorage.getItem("auth_token") || "";
-  }
-
   private getRestaurantId(): string {
     return localStorage.getItem("restaurant_id") || "";
   }
@@ -565,14 +551,7 @@ class KitchenPushNotificationService {
     displayDuration: number;
   }): Promise<void> {
     try {
-      await fetch("/api/v1/kitchen/notification-settings", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify(settings),
-      });
+      await apiClient.put("/kitchen/notification-settings", settings);
 
       // Store locally for offline access
       localStorage.setItem(
