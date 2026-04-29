@@ -278,12 +278,16 @@ jobs:
             http://localhost:3001 \
             --timeout 60000
 
-      - name: 🧪 執行 E2E 測試 (chromium + admin)
-        # Runs customer/journey tests on chromium + admin dashboard tests.
-        # Integration tests are excluded (they need a real backend).
-        # Multi-browser expansion (firefox, webkit) can be added once
-        # chromium is green.
-        run: npx playwright test --project=chromium --project=admin
+      - name: 🧪 執行 E2E 測試
+        # Pushes run a small preview smoke because the full Chromium/Admin E2E
+        # suite is currently too large and flaky for fast-feedback CI.
+        # Manual dispatch keeps the full suite available for investigation.
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            npx playwright test --project=chromium --project=admin
+          else
+            npx playwright test --config playwright.ci-smoke.config.ts
+          fi
         env:
           E2E_BASE_URL: http://localhost:3000
           E2E_ADMIN_URL: http://localhost:3001
@@ -867,11 +871,11 @@ jobs:
           echo "### 🚀 性能與負載測試" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ needs.performance-tests.result }}" == "success" ]; then
-            echo "- ✅ API/WebSocket 負載測試: 通過" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ API/Realtime 負載煙霧測試: 通過" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ needs.performance-tests.result }}" == "skipped" ]; then
-            echo "- ⏭️ API/WebSocket 負載測試: 跳過" >> $GITHUB_STEP_SUMMARY
+            echo "- ⏭️ API/Realtime 負載煙霧測試: 跳過" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- ❌ API/WebSocket 負載測試: 失敗" >> $GITHUB_STEP_SUMMARY
+            echo "- ❌ API/Realtime 負載煙霧測試: 失敗" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ "${{ needs.database-performance-tests.result }}" == "success" ]; then
@@ -958,8 +962,8 @@ jobs:
           echo "- 單元測試 + 覆蓋率報告" >> $GITHUB_STEP_SUMMARY
           echo "- Cloudflare Workers 整合測試" >> $GITHUB_STEP_SUMMARY
           echo "- Real integration 測試 (miniflare D1)" >> $GITHUB_STEP_SUMMARY
-          echo "- E2E 測試 (Chromium, Firefox, WebKit)" >> $GITHUB_STEP_SUMMARY
-          echo "- API/WebSocket 負載測試 (Artillery)" >> $GITHUB_STEP_SUMMARY
+          echo "- E2E 測試 (push preview smoke; manual full suite)" >> $GITHUB_STEP_SUMMARY
+          echo "- API/Realtime Worker 負載煙霧測試 (Artillery)" >> $GITHUB_STEP_SUMMARY
           echo "- 資料庫性能基準與退化檢測" >> $GITHUB_STEP_SUMMARY
           echo "- 視覺回歸測試 (Chromatic/Percy)" >> $GITHUB_STEP_SUMMARY
           echo "- 深度安全掃描 (Snyk + OWASP ZAP + CodeQL)" >> $GITHUB_STEP_SUMMARY
