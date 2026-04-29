@@ -3,6 +3,7 @@
  * Handles offline data synchronization when network connectivity is restored
  */
 
+import { apiClient } from "@/services/api";
 import { offlineStorage, type OfflineOrder } from "./offline-storage";
 
 export interface SyncEvent {
@@ -93,37 +94,26 @@ class CustomerBackgroundSyncService {
     try {
       console.log(`[Background Sync] Syncing order ${order.id}`);
 
-      const response = await fetch("/api/v1/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({
-          restaurant_id: order.restaurant_id,
-          table_id: order.table_id,
-          items: order.items,
-          customer_info: order.customer_info,
-          total_amount: order.total_amount,
-          offline_order_id: order.id,
-          created_at: order.created_at,
-        }),
+      const result = await apiClient.post<any>("/orders", {
+        restaurant_id: order.restaurant_id,
+        table_id: order.table_id,
+        items: order.items,
+        customer_info: order.customer_info,
+        total_amount: order.total_amount,
+        offline_order_id: order.id,
+        created_at: order.created_at,
       });
+      const onlineOrderId = String(result?.order_id ?? result?.id ?? order.id);
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log(
-          `[Background Sync] Order ${order.id} synced successfully as ${result.order_id}`,
-        );
+      console.log(
+        `[Background Sync] Order ${order.id} synced successfully as ${onlineOrderId}`,
+      );
 
-        // Mark as synced and optionally delete
-        await offlineStorage.markOrderAsSynced(order.id);
+      // Mark as synced and optionally delete
+      await offlineStorage.markOrderAsSynced(order.id);
 
-        // Notify user of successful sync
-        this.notifyOrderSynced(order.id, result.order_id);
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // Notify user of successful sync
+      this.notifyOrderSynced(order.id, onlineOrderId);
     } catch (error) {
       console.error(
         `[Background Sync] Failed to sync order ${order.id}:`,
@@ -177,21 +167,10 @@ class CustomerBackgroundSyncService {
         return;
       }
 
-      const response = await fetch("/api/v1/users/favorites/sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({ favorites }),
-      });
+      await apiClient.post("/users/favorites/sync", { favorites });
 
-      if (response.ok) {
-        console.log("[Background Sync] Favorites synced successfully");
-        this.removeSyncEvent("favorite_sync");
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      console.log("[Background Sync] Favorites synced successfully");
+      this.removeSyncEvent("favorite_sync");
     } catch (error) {
       console.error("[Background Sync] Failed to sync favorites:", error);
       this.queueFavoriteSync();
@@ -222,21 +201,10 @@ class CustomerBackgroundSyncService {
         theme: await offlineStorage.getSetting("theme"),
       };
 
-      const response = await fetch("/api/v1/users/settings/sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({ settings }),
-      });
+      await apiClient.post("/users/settings/sync", { settings });
 
-      if (response.ok) {
-        console.log("[Background Sync] Settings synced successfully");
-        this.removeSyncEvent("settings_sync");
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      console.log("[Background Sync] Settings synced successfully");
+      this.removeSyncEvent("settings_sync");
     } catch (error) {
       console.error("[Background Sync] Failed to sync settings:", error);
       this.queueSettingsSync();
@@ -286,20 +254,11 @@ class CustomerBackgroundSyncService {
 
   private async syncFeedback(feedback: any): Promise<void> {
     try {
-      const response = await fetch("/api/v1/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify(feedback),
+      await apiClient.post("/feedback/batch-sync", {
+        feedback: [feedback],
       });
 
-      if (response.ok) {
-        console.log("[Background Sync] Feedback synced successfully");
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      console.log("[Background Sync] Feedback synced successfully");
     } catch (error) {
       console.error("[Background Sync] Failed to sync feedback:", error);
       throw error;
@@ -465,10 +424,6 @@ class CustomerBackgroundSyncService {
       (e) => e.type === "order_submission" && e.data.id === orderId,
     );
     return existing ? existing.retryCount : 0;
-  }
-
-  private getAuthToken(): string {
-    return localStorage.getItem("auth_token") || "";
   }
 
   private notifyOrderSynced(
