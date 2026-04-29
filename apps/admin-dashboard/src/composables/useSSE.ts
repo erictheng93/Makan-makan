@@ -12,6 +12,18 @@ const reconnectAttempts = ref(0);
 const maxReconnectAttempts = 5;
 const reconnectDelay = ref(1000); // Start with 1 second
 
+export function buildSSEUrl(
+  restaurantId: string | number,
+  token: string,
+): string {
+  const searchParams = new URLSearchParams({
+    restaurant_id: String(restaurantId),
+    token,
+  });
+
+  return `${apiPath("/sse/events")}?${searchParams.toString()}`;
+}
+
 export function useSSE() {
   const authStore = useAuthStore();
   const notificationStore = useNotificationStore();
@@ -46,7 +58,7 @@ export function useSSE() {
         if (!token) return;
       }
 
-      const url = `${apiPath("/sse/events")}?restaurant_id=${authStore.restaurantId}&token=${encodeURIComponent(token)}`;
+      const url = buildSSEUrl(authStore.restaurantId, token);
       eventSource.value = new EventSource(url);
 
       eventSource.value.onopen = () => {
