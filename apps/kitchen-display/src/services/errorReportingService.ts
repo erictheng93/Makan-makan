@@ -1,5 +1,6 @@
 // Comprehensive error reporting and handling service
 import { ref } from "vue";
+import { apiClient } from "./authApi";
 import { performanceService } from "./performanceService";
 
 export interface ErrorReport {
@@ -38,7 +39,7 @@ export interface ErrorStats {
 
 class ErrorReportingService {
   private readonly MAX_STORED_ERRORS = 100;
-  private readonly ERROR_REPORT_ENDPOINT = "/api/errors";
+  private readonly ERROR_REPORT_ENDPOINT = "/system/errors";
 
   // Reactive state
   public errorReports = ref<ErrorReport[]>([]);
@@ -108,15 +109,8 @@ class ErrorReportingService {
 
   public async submitErrorReport(customReport: any): Promise<boolean> {
     try {
-      const response = await fetch(this.ERROR_REPORT_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(customReport),
-      });
-
-      return response.ok;
+      await apiClient.post(this.ERROR_REPORT_ENDPOINT, customReport);
+      return true;
     } catch (error) {
       console.error("Failed to submit error report:", error);
       return false;
@@ -351,17 +345,7 @@ class ErrorReportingService {
 
   private async sendErrorReport(report: ErrorReport): Promise<void> {
     try {
-      const response = await fetch(this.ERROR_REPORT_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(report),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      await apiClient.post(this.ERROR_REPORT_ENDPOINT, report);
     } catch (error) {
       console.error("Failed to send error report:", error);
     }
@@ -369,17 +353,7 @@ class ErrorReportingService {
 
   private async sendBatchReports(reports: ErrorReport[]): Promise<void> {
     try {
-      const response = await fetch(`${this.ERROR_REPORT_ENDPOINT}/batch`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ errors: reports }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      await apiClient.post(this.ERROR_REPORT_ENDPOINT, { errors: reports });
     } catch (error) {
       console.error("Failed to send batch reports:", error);
       throw error;
