@@ -35,7 +35,12 @@ vi.mock("../../../middleware/moduleGate", () => ({
 }));
 
 vi.mock("../services/KitchenService", () => ({
-  KitchenService: vi.fn(() => mockKitchenService),
+  // Must be a function declaration (not an arrow) so production code can
+  // invoke it with `new KitchenService(env)` — vitest 4.x rejects arrow
+  // functions used as constructors.
+  KitchenService: vi.fn(function (this: any) {
+    Object.assign(this, mockKitchenService);
+  }),
 }));
 
 import kitchenRoutes from "../routes";
