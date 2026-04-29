@@ -6,6 +6,16 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
+const { mockApiPost } = vi.hoisted(() => ({
+  mockApiPost: vi.fn(),
+}));
+
+vi.mock("@/services/authApi", () => ({
+  apiClient: {
+    post: mockApiPost,
+  },
+}));
+
 // ─── Helpers ──────────────────────────────────────────────────────
 // We must reset the singleton module between tests so each suite
 // gets a clean OfflineService instance with fresh reactive state.
@@ -67,13 +77,8 @@ describe("OfflineService - Sync Logic", () => {
     vi.mocked(localStorage.setItem).mockClear();
     vi.mocked(localStorage.removeItem).mockClear();
 
-    // Mock fetch globally
-    global.fetch = vi.fn().mockResolvedValue({
-      json: vi.fn().mockResolvedValue({ success: true }),
-    });
-
-    // Mock import.meta.env
-    vi.stubEnv("VITE_API_BASE_URL", "http://localhost:8787/api/v1");
+    mockApiPost.mockReset();
+    mockApiPost.mockResolvedValue({ data: { success: true } });
 
     // Re-import module to get a fresh singleton each time
     vi.resetModules();
@@ -161,7 +166,7 @@ describe("OfflineService - Sync Logic", () => {
     it("should do nothing when pendingActions is empty", async () => {
       await offlineService.syncPendingActions();
       expect(offlineService.syncInProgress.value).toBe(false);
-      expect(fetch).not.toHaveBeenCalled();
+      expect(mockApiPost).not.toHaveBeenCalled();
     });
 
     it("should do nothing when offline (canSync = false)", async () => {
@@ -206,9 +211,9 @@ describe("OfflineService - Sync Logic", () => {
       offlineService.syncInProgress.value = false;
 
       let capturedSyncInProgress: boolean | undefined;
-      vi.mocked(fetch).mockImplementation(async () => {
+      mockApiPost.mockImplementation(async () => {
         capturedSyncInProgress = offlineService.syncInProgress.value;
-        return { json: async () => ({ success: true }) } as Response;
+        return { data: { success: true } };
       });
 
       offlineService.pendingActions.value.push({
@@ -229,9 +234,7 @@ describe("OfflineService - Sync Logic", () => {
 
     it("should remove synced actions after successful sync", async () => {
       offlineService.isOnline.value = true;
-      vi.mocked(fetch).mockResolvedValue({
-        json: vi.fn().mockResolvedValue({ success: true }),
-      } as any);
+      mockApiPost.mockResolvedValue({ data: { success: true } });
 
       offlineService.pendingActions.value.push(
         {
@@ -263,9 +266,7 @@ describe("OfflineService - Sync Logic", () => {
 
     it("should update lastSyncTime after successful sync", async () => {
       offlineService.isOnline.value = true;
-      vi.mocked(fetch).mockResolvedValue({
-        json: vi.fn().mockResolvedValue({ success: true }),
-      } as any);
+      mockApiPost.mockResolvedValue({ data: { success: true } });
 
       const before = Date.now();
       offlineService.pendingActions.value.push({
@@ -307,14 +308,12 @@ describe("OfflineService - Sync Logic", () => {
         },
       );
 
-      vi.mocked(fetch).mockResolvedValue({
-        json: vi.fn().mockResolvedValue({ success: true }),
-      } as any);
+      mockApiPost.mockResolvedValue({ data: { success: true } });
 
       await offlineService.syncPendingActions();
 
-      // fetch called once for the unsynced action only
-      expect(fetch).toHaveBeenCalledTimes(1);
+      // API client called once for the unsynced action only
+      expect(mockApiPost).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -322,20 +321,20 @@ describe("OfflineService - Sync Logic", () => {
   // 3. syncSingleAction - retry & error handling
   // ────────────────────────────────────────────────────────────────
   // NOTE: sendActionToServer has a catch block that returns { success: true }
-  // when fetch() throws (simulation fallback). To test actual failure/retry
-  // behavior, we must have fetch() resolve with a JSON body where
+  // when the API client throws (simulation fallback). To test actual
+  // failure/retry behavior, we must have the API client resolve with data where
   // success=false and no conflict, which causes syncSingleAction to throw.
   describe("syncSingleAction (via syncPendingActions)", () => {
     it("should increment retryCount on server-side failure", async () => {
       offlineService.isOnline.value = true;
 
-      // Return a resolved response whose JSON indicates failure
-      vi.mocked(fetch).mockResolvedValue({
-        json: vi.fn().mockResolvedValue({
+      // Return a resolved response whose data indicates failure
+      mockApiPost.mockResolvedValue({
+        data: {
           success: false,
           error: "Server error",
-        }),
-      } as any);
+        },
+      });
 
       const action = {
         id: "action_fail",
@@ -358,12 +357,12 @@ describe("OfflineService - Sync Logic", () => {
     it("should keep failed actions in pendingActions for retry", async () => {
       offlineService.isOnline.value = true;
 
-      vi.mocked(fetch).mockResolvedValue({
-        json: vi.fn().mockResolvedValue({
+      mockApiPost.mockResolvedValue({
+        data: {
           success: false,
           error: "Temporary failure",
-        }),
-      } as any);
+        },
+      });
 
       const action = {
         id: "action_retry",
@@ -387,12 +386,12 @@ describe("OfflineService - Sync Logic", () => {
     it("should stop retrying after MAX_RETRY_ATTEMPTS (5)", async () => {
       offlineService.isOnline.value = true;
 
-      vi.mocked(fetch).mockResolvedValue({
-        json: vi.fn().mockResolvedValue({
+      mockApiPost.mockResolvedValue({
+        data: {
           success: false,
           error: "Persistent failure",
-        }),
-      } as any);
+        },
+      });
 
       const action = {
         id: "action_max_retry",
@@ -419,15 +418,15 @@ describe("OfflineService - Sync Logic", () => {
       );
     });
 
-    it("should treat fetch rejection as success due to sendActionToServer fallback", async () => {
-      // When fetch() throws, sendActionToServer catches it and returns { success: true }
-      // This is the current simulation behavior in the codebase
+    it("should treat API client rejection as success due to sendActionToServer fallback", async () => {
+      // When the API client throws, sendActionToServer catches it and returns
+      // { success: true }. This is the current simulation behavior.
       offlineService.isOnline.value = true;
 
-      vi.mocked(fetch).mockRejectedValue(new Error("Network error"));
+      mockApiPost.mockRejectedValue(new Error("Network error"));
 
       offlineService.pendingActions.value.push({
-        id: "action_fetch_fail",
+        id: "action_transport_fail",
         type: "update_status",
         orderId: 10,
         payload: { status: 2 },
@@ -439,22 +438,22 @@ describe("OfflineService - Sync Logic", () => {
       await offlineService.syncPendingActions();
 
       // The action should be marked as synced because sendActionToServer
-      // caught the fetch error and returned { success: true }
+      // caught the transport error and returned { success: true }
       expect(offlineService.pendingActions.value).toHaveLength(0);
     });
 
     it("should handle conflict response from server", async () => {
       offlineService.isOnline.value = true;
 
-      vi.mocked(fetch).mockResolvedValue({
-        json: vi.fn().mockResolvedValue({
+      mockApiPost.mockResolvedValue({
+        data: {
           success: false,
           conflict: {
             type: "status_conflict",
             serverData: { status: 3 },
           },
-        }),
-      } as any);
+        },
+      });
 
       offlineService.pendingActions.value.push({
         id: "action_conflict",
@@ -745,9 +744,10 @@ describe("OfflineService - Sync Logic", () => {
 
       await offlineService.syncPendingActions();
 
-      expect(fetch).toHaveBeenCalledWith(
+      expect(mockApiPost).toHaveBeenCalledWith(
         expect.stringContaining("/kitchen/55/items/12/start"),
-        expect.objectContaining({ method: "POST" }),
+        expect.any(Object),
+        expect.objectContaining({ validateStatus: expect.any(Function) }),
       );
     });
 
@@ -766,9 +766,10 @@ describe("OfflineService - Sync Logic", () => {
 
       await offlineService.syncPendingActions();
 
-      expect(fetch).toHaveBeenCalledWith(
+      expect(mockApiPost).toHaveBeenCalledWith(
         expect.stringContaining("/kitchen/88/batch"),
-        expect.objectContaining({ method: "POST" }),
+        expect.any(Object),
+        expect.objectContaining({ validateStatus: expect.any(Function) }),
       );
     });
   });

@@ -7,6 +7,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { KitchenOrder, KitchenOrderItem } from "@/types";
 
+const { mockApiPost } = vi.hoisted(() => ({
+  mockApiPost: vi.fn(),
+}));
+
+vi.mock("@/services/authApi", () => ({
+  apiClient: {
+    post: mockApiPost,
+  },
+}));
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
 let offlineService: (typeof import("@/services/offlineService"))["offlineService"];
@@ -72,11 +82,8 @@ describe("OfflineService - Data Persistence & Integrity", () => {
     vi.mocked(localStorage.setItem).mockClear();
     vi.mocked(localStorage.removeItem).mockClear();
 
-    global.fetch = vi.fn().mockResolvedValue({
-      json: vi.fn().mockResolvedValue({ success: true }),
-    });
-
-    vi.stubEnv("VITE_API_BASE_URL", "http://localhost:8787/api/v1");
+    mockApiPost.mockReset();
+    mockApiPost.mockResolvedValue({ data: { success: true } });
 
     // Fresh singleton
     vi.resetModules();

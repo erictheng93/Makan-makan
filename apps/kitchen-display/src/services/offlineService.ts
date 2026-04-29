@@ -1,4 +1,5 @@
 import { ref, computed } from "vue";
+import { apiClient } from "./authApi";
 import type { KitchenOrder } from "@/types";
 
 // Offline storage types
@@ -336,23 +337,17 @@ class OfflineService {
   }
 
   private async sendActionToServer(action: OfflineAction): Promise<any> {
-    // This would make actual API calls in a real implementation
-    // For now, we'll simulate the API response
-
     const endpoint = this.getActionEndpoint(action);
     const payload = this.formatActionPayload(action);
 
     try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Add authentication headers
-        },
-        body: JSON.stringify(payload),
+      const response = await apiClient.post(endpoint, payload, {
+        validateStatus: () => true,
       });
 
-      return await response.json();
+      return typeof response.data === "object" && response.data !== null
+        ? response.data
+        : { success: true };
     } catch {
       // Simulate network error handling
       console.log(`Simulating API call for action ${action.type}`);
@@ -363,19 +358,17 @@ class OfflineService {
   }
 
   private getActionEndpoint(action: OfflineAction): string {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-
     switch (action.type) {
       case "start_cooking":
-        return `${baseUrl}/kitchen/${action.orderId}/items/${action.itemId}/start`;
+        return `/kitchen/${action.orderId}/items/${action.itemId}/start`;
       case "mark_ready":
-        return `${baseUrl}/kitchen/${action.orderId}/items/${action.itemId}/ready`;
+        return `/kitchen/${action.orderId}/items/${action.itemId}/ready`;
       case "update_status":
-        return `${baseUrl}/kitchen/${action.orderId}/status`;
+        return `/kitchen/${action.orderId}/status`;
       case "priority_change":
-        return `${baseUrl}/kitchen/${action.orderId}/priority`;
+        return `/kitchen/${action.orderId}/priority`;
       case "batch_operation":
-        return `${baseUrl}/kitchen/${action.orderId}/batch`;
+        return `/kitchen/${action.orderId}/batch`;
       default:
         throw new Error(`Unknown action type: ${action.type}`);
     }
