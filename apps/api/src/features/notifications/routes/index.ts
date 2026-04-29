@@ -4,6 +4,7 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { authMiddleware, requireRole } from "../../../shared/middleware";
 import { validateBody } from "../../../shared/middleware";
 import type { Env } from "../../../shared/types";
@@ -287,6 +288,12 @@ app.post(
   validateBody(sendNotificationSchema),
   async (c) => {
     const notificationData = c.get("validatedBody");
+    const recipientGuard = await validateNotificationRecipientScope(
+      c,
+      notificationData,
+    );
+    if (recipientGuard) return recipientGuard;
+
     const service = new NotificationService(c.env.DB, c.env);
 
     // Send the notification
@@ -312,5 +319,61 @@ app.post(
     }
   },
 );
+
+async function validateNotificationRecipientScope(
+  c: Context<{ Bindings: Env }>,
+  notificationData: z.infer<typeof sendNotificationSchema>,
+): Promise<Response | null> {
+  const user = c.get("user");
+  if (user.role === USER_ROLES.ADMIN) return null;
+
+  const recipient = (await c.env.DB.prepare(
+    `SELECT restaurant_id, email FROM users WHERE id = ?`,
+  )
+    .bind(notificationData.recipientId)
+    .first()) as {
+    restaurant_id?: string | number | null;
+    email?: string | null;
+  } | null;
+
+  if (!recipient) {
+    return c.json(
+      { success: false, error: "Notification recipient not found" },
+      HTTP_STATUS.NOT_FOUND,
+    );
+  }
+
+  const userRestaurantId =
+    user.restaurantId === undefined || user.restaurantId === null
+      ? null
+      : String(user.restaurantId);
+  const recipientRestaurantId =
+    recipient.restaurant_id === undefined || recipient.restaurant_id === null
+      ? null
+      : String(recipient.restaurant_id);
+
+  if (!userRestaurantId || recipientRestaurantId !== userRestaurantId) {
+    return c.json(
+      {
+        success: false,
+        error: "Cannot send notifications to another restaurant",
+      },
+      HTTP_STATUS.FORBIDDEN,
+    );
+  }
+
+  if (
+    recipient.email &&
+    recipient.email.toLowerCase() !==
+      notificationData.recipientEmail.toLowerCase()
+  ) {
+    return c.json(
+      { success: false, error: "Recipient email does not match user" },
+      HTTP_STATUS.BAD_REQUEST,
+    );
+  }
+
+  return null;
+}
 
 export default app;

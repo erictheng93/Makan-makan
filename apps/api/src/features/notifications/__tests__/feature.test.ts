@@ -18,6 +18,10 @@ const mockNotificationService = {
   sendNotification: vi.fn(),
 };
 
+const mockAuthUser = vi.hoisted(() => ({
+  value: { id: 1, role: 0, restaurantId: 1 },
+}));
+
 vi.mock("@makanmakan/database", () => ({
   NotificationService: vi.fn(function () {
     return mockNotificationService;
@@ -27,7 +31,7 @@ vi.mock("@makanmakan/database", () => ({
 // Mock middleware
 vi.mock("../../../shared/middleware", () => ({
   authMiddleware: vi.fn((c, next) => {
-    c.set("user", { id: 1, role: 0, restaurantId: 1 });
+    c.set("user", mockAuthUser.value);
     return next();
   }),
   requireRole: vi.fn(() => (c: any, next: any) => next()),
@@ -47,6 +51,7 @@ describe("Notifications Feature Tests", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockAuthUser.value = { id: 1, role: 0, restaurantId: 1 };
 
     const { default: notificationsRoutes } = await import("../routes/index");
     app = new Hono();
@@ -366,6 +371,70 @@ describe("Notifications Feature Tests", () => {
       const res = await app.fetch(req, { DB: {} });
 
       expect(res.status).toBe(500);
+    });
+
+    it("應該拒絕店主發送通知給其他餐廳使用者", async () => {
+      mockAuthUser.value = { id: 2, role: 1, restaurantId: "rest-1" };
+      const first = vi.fn().mockResolvedValue({
+        restaurant_id: "rest-2",
+        email: "employee@example.com",
+      });
+      const bind = vi.fn(() => ({ first }));
+      const prepare = vi.fn(() => ({ bind }));
+
+      const req = new Request("http://localhost/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientId: 9,
+          recipientEmail: "employee@example.com",
+          category: "leave_request_approved",
+          type: "email",
+          data: {},
+          priority: "normal",
+        }),
+      });
+
+      const res = await app.fetch(req, { DB: { prepare } });
+      const data = await res.json();
+
+      expect(res.status).toBe(403);
+      expect(data.success).toBe(false);
+      expect(prepare).toHaveBeenCalledWith(
+        "SELECT restaurant_id, email FROM users WHERE id = ?",
+      );
+      expect(bind).toHaveBeenCalledWith(9);
+      expect(mockNotificationService.sendNotification).not.toHaveBeenCalled();
+    });
+
+    it("應該拒絕收件 email 與使用者資料不一致的通知", async () => {
+      mockAuthUser.value = { id: 2, role: 1, restaurantId: "rest-1" };
+      const first = vi.fn().mockResolvedValue({
+        restaurant_id: "rest-1",
+        email: "employee@example.com",
+      });
+      const bind = vi.fn(() => ({ first }));
+      const prepare = vi.fn(() => ({ bind }));
+
+      const req = new Request("http://localhost/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientId: 9,
+          recipientEmail: "attacker@example.com",
+          category: "leave_request_approved",
+          type: "email",
+          data: {},
+          priority: "normal",
+        }),
+      });
+
+      const res = await app.fetch(req, { DB: { prepare } });
+      const data = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(mockNotificationService.sendNotification).not.toHaveBeenCalled();
     });
   });
 
