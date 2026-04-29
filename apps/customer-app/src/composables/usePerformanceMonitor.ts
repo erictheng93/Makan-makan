@@ -10,6 +10,7 @@ import {
   type PerformanceReport,
   type WebVitals,
 } from "@makanmakan/utils";
+import { apiClient } from "@/services/api";
 
 export function usePerformanceMonitor() {
   const monitor = getPerformanceMonitor({
@@ -34,11 +35,7 @@ export function usePerformanceMonitor() {
       // Send to backend when online
       if (import.meta.env.PROD) {
         try {
-          await fetch("/api/v1/system/performance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(report),
-          });
+          await sendPerformanceReport(report);
         } catch (e) {
           console.error("[PerformanceMonitor] Failed to send report:", e);
           await queueReportForLater(report);
@@ -123,11 +120,7 @@ export function usePerformanceMonitor() {
 
         for (const report of reportsToSend) {
           try {
-            await fetch("/api/v1/system/performance", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(report),
-            });
+            await sendPerformanceReport(report);
 
             // Remove from queue after successful send
             const deleteTx = db.transaction("reports", "readwrite");
@@ -148,6 +141,12 @@ export function usePerformanceMonitor() {
         e,
       );
     }
+  }
+
+  async function sendPerformanceReport(
+    report: PerformanceReport,
+  ): Promise<void> {
+    await apiClient.post("/system/performance", report);
   }
 
   /**

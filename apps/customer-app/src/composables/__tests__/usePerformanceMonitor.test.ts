@@ -18,6 +18,12 @@ vi.mock("@makanmakan/utils", () => ({
   getPerformanceMonitor: vi.fn(() => mockMonitor),
 }));
 
+vi.mock("@/services/api", () => ({
+  apiClient: {
+    post: vi.fn(),
+  },
+}));
+
 // Mock Vue lifecycle hooks
 vi.mock("vue", async () => {
   const actual = await vi.importActual("vue");

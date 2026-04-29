@@ -6,6 +6,7 @@
 
 import { ref, onMounted, onErrorCaptured, onBeforeUnmount } from "vue";
 import { getErrorTracker, type TrackedError } from "@makanmakan/utils";
+import { apiClient } from "@/services/api";
 
 export function useErrorTracking() {
   const tracker = getErrorTracker({
@@ -23,11 +24,7 @@ export function useErrorTracking() {
       // Send to backend when online
       if (import.meta.env.PROD) {
         try {
-          await fetch("/api/v1/system/errors", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(error),
-          });
+          await sendTrackedError(error);
         } catch (e) {
           console.error("[ErrorTracking] Failed to send error:", e);
           await queueErrorForLater(error);
@@ -87,11 +84,7 @@ export function useErrorTracking() {
         // Send all queued errors
         for (const error of allErrors) {
           try {
-            await fetch("/api/v1/system/errors", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(error),
-            });
+            await sendTrackedError(error);
 
             // Remove from queue after successful send
             const deleteTx = db.transaction("errors", "readwrite");
@@ -106,6 +99,10 @@ export function useErrorTracking() {
     } catch (e) {
       console.error("[ErrorTracking] Failed to process queued errors:", e);
     }
+  }
+
+  async function sendTrackedError(error: TrackedError): Promise<void> {
+    await apiClient.post("/system/errors", error);
   }
 
   /**
