@@ -38,6 +38,18 @@ vi.mock("@makanmakan/database", () => {
   };
 });
 
+// Mock auth middleware so the per-route customerAuthMiddleware lets the
+// test's own user-injection middleware run. Without this the real JWT
+// validator rejects "Bearer test-token" as "Invalid token format".
+vi.mock("../middleware/auth", () => ({
+  customerAuthMiddleware: vi.fn(async (_c: any, next: any) => {
+    await next();
+  }),
+  authMiddleware: vi.fn(async (_c: any, next: any) => {
+    await next();
+  }),
+}));
+
 // Mock AlertService
 vi.mock("../services/AlertService", () => {
   return {
