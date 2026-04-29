@@ -11,6 +11,7 @@ import {
   rateLimitMiddleware,
   RateLimitPresets,
 } from "../../../middleware/rateLimiter";
+import { customerAuthMiddleware } from "../../../middleware/auth";
 import { AlertService } from "../../../services/AlertService";
 import type { Env } from "../../../types/env";
 import {
@@ -198,6 +199,7 @@ routes.post("/reset-password", async (c) => {
  */
 routes.post(
   "/verify-email/send",
+  customerAuthMiddleware,
   rateLimitMiddleware(RateLimitPresets.emailVerification),
   async (c) => {
     // Get user from auth middleware (assumed to be set)
@@ -310,6 +312,7 @@ routes.get("/verify-email", async (c) => {
  */
 routes.post(
   "/verify-phone/send",
+  customerAuthMiddleware,
   rateLimitMiddleware(RateLimitPresets.smsOTP),
   async (c) => {
     // Get user from auth middleware
@@ -366,7 +369,7 @@ routes.post(
  * POST /verify-phone
  * Verify phone using OTP
  */
-routes.post("/verify-phone", async (c) => {
+routes.post("/verify-phone", customerAuthMiddleware, async (c) => {
   // Get user from auth middleware
   const user = c.get("user");
 

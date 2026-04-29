@@ -36,6 +36,23 @@ vi.mock("../../../middleware/rateLimiter", () => ({
   },
 }));
 
+vi.mock("../../../middleware/auth", () => ({
+  customerAuthMiddleware: vi.fn(async (c: any, next: any) => {
+    if (c.get("user")) {
+      await next();
+      return;
+    }
+
+    return c.json(
+      {
+        success: false,
+        error: "請先登入",
+      },
+      401,
+    );
+  }),
+}));
+
 // Shared mock instances — reassigned fresh in beforeEach
 let mockServiceInstance: {
   requestPasswordReset: ReturnType<typeof vi.fn>;
