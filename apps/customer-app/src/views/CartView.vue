@@ -626,6 +626,7 @@ import CartItemCard from "@/components/CartItemCard.vue";
 import ConfirmationModal from "@/components/ConfirmationModal.vue";
 import CouponRecommendation from "@/components/CouponRecommendation.vue";
 import { orderApi } from "@/services/orderApi";
+import { apiClient } from "@/services/api";
 import type { CreateGuestOrderRequest } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
 import { useCurrency } from "@/composables/useCurrency";
@@ -880,28 +881,20 @@ const validateCoupon = async () => {
     // Sanitize input: trim whitespace and convert to uppercase
     const sanitizedCode = couponCode.value.trim().toUpperCase();
 
-    const response = await fetch("/api/v1/coupons/validate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        code: sanitizedCode,
-        restaurantId: props.restaurantId.toString(),
-        orderAmount: cartStore.subtotal,
-        menuItems: cartStore.items.map((item) => ({
-          menuItemId: item.menuItem.id,
-          quantity: item.quantity,
-        })),
-      }),
+    const result = await apiClient.post<any>("/coupons/validate", {
+      code: sanitizedCode,
+      restaurantId: props.restaurantId.toString(),
+      orderAmount: cartStore.subtotal,
+      menuItems: cartStore.items.map((item) => ({
+        menuItemId: item.menuItem.id,
+        quantity: item.quantity,
+      })),
     });
 
-    const result = await response.json();
-
-    if (result.success && result.data.valid) {
+    if (result.valid) {
       // 驗證成功
-      appliedCoupon.value = result.data.coupon;
-      couponDiscountAmount.value = result.data.discountAmount || 0;
+      appliedCoupon.value = result.coupon;
+      couponDiscountAmount.value = result.discountAmount || 0;
       couponValidationMessage.value = tWithParams("toast.couponApplied", {
         amount: formatPrice(couponDiscountAmount.value),
       });
@@ -910,8 +903,7 @@ const validateCoupon = async () => {
       // 驗證失敗
       appliedCoupon.value = null;
       couponDiscountAmount.value = 0;
-      couponValidationMessage.value =
-        result.data?.error || t("toast.couponFailed");
+      couponValidationMessage.value = result.error || t("toast.couponFailed");
       couponValidationError.value = true;
     }
   } catch (error) {
@@ -947,17 +939,9 @@ const loadAvailableCoupons = async () => {
 
   isLoadingCoupons.value = true;
   try {
-    const response = await fetch(
-      `/api/v1/coupons/available/${props.restaurantId}`,
+    availableCoupons.value = await apiClient.get<any[]>(
+      `/coupons/available/${props.restaurantId}`,
     );
-    const result = await response.json();
-
-    if (result.success) {
-      availableCoupons.value = result.data || [];
-    } else {
-      console.error("Failed to load available coupons:", result.error);
-      availableCoupons.value = [];
-    }
   } catch (error) {
     console.error("Error loading available coupons:", error);
     availableCoupons.value = [];

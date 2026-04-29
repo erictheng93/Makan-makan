@@ -6,8 +6,20 @@ import { ref } from "vue";
 import CartView from "../views/CartView.vue";
 import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
+const { mockApiClientPost, mockApiClientGet } = vi.hoisted(() => ({
+  mockApiClientPost: vi.fn(),
+  mockApiClientGet: vi.fn(),
+}));
+
 // Mock fetch
 global.fetch = vi.fn();
+
+vi.mock("@/services/api", () => ({
+  apiClient: {
+    post: mockApiClientPost,
+    get: mockApiClientGet,
+  },
+}));
 
 // Mock router
 const mockRouter = {
@@ -129,6 +141,8 @@ describe("Coupon Functionality in CartView", () => {
     resetAllFactories();
     vi.clearAllMocks();
     global.fetch = vi.fn();
+    mockApiClientPost.mockReset();
+    mockApiClientGet.mockReset();
 
     wrapper = mount(CartView, {
       props: {
@@ -202,9 +216,7 @@ describe("Coupon Functionality in CartView", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        json: vi.fn().mockResolvedValue(mockResponse),
-      });
+      mockApiClientPost.mockResolvedValue(mockResponse.data);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("TESTCODE");
@@ -216,22 +228,16 @@ describe("Coupon Functionality in CartView", () => {
       );
       await applyButton?.trigger("click");
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/v1/coupons/validate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code: "TESTCODE",
-          restaurantId: "1",
-          orderAmount: 100,
-          menuItems: [
-            {
-              menuItemId: 1,
-              quantity: 2,
-            },
-          ],
-        }),
+      expect(mockApiClientPost).toHaveBeenCalledWith("/coupons/validate", {
+        code: "TESTCODE",
+        restaurantId: "1",
+        orderAmount: 100,
+        menuItems: [
+          {
+            menuItemId: 1,
+            quantity: 2,
+          },
+        ],
       });
     });
 
@@ -246,9 +252,7 @@ describe("Coupon Functionality in CartView", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        json: vi.fn().mockResolvedValue(mockResponse),
-      });
+      mockApiClientPost.mockResolvedValue(mockResponse.data);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("TESTCODE");
@@ -281,9 +285,7 @@ describe("Coupon Functionality in CartView", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        json: vi.fn().mockResolvedValue(mockResponse),
-      });
+      mockApiClientPost.mockResolvedValue(mockResponse.data);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("INVALID");
@@ -318,9 +320,7 @@ describe("Coupon Functionality in CartView", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        json: vi.fn().mockResolvedValue(mockResponse),
-      });
+      mockApiClientPost.mockResolvedValue(mockResponse.data);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("DISCOUNT15");
@@ -353,9 +353,7 @@ describe("Coupon Functionality in CartView", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        json: vi.fn().mockResolvedValue(mockResponse),
-      });
+      mockApiClientPost.mockResolvedValue(mockResponse.data);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("SAVE20");
@@ -389,9 +387,7 @@ describe("Coupon Functionality in CartView", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        json: vi.fn().mockResolvedValue(mockResponse),
-      });
+      mockApiClientPost.mockResolvedValue(mockResponse.data);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("TESTCODE");
@@ -436,9 +432,7 @@ describe("Coupon Functionality in CartView", () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        json: vi.fn().mockResolvedValue(mockValidationResponse),
-      });
+      mockApiClientPost.mockResolvedValue(mockValidationResponse.data);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("ORDERTEST");
@@ -474,7 +468,7 @@ describe("Coupon Functionality in CartView", () => {
         resolvePromise = resolve;
       });
 
-      global.fetch = vi.fn().mockReturnValue(mockPromise);
+      mockApiClientPost.mockReturnValue(mockPromise);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("LOADING");
@@ -490,13 +484,7 @@ describe("Coupon Functionality in CartView", () => {
       expect(wrapper.vm.isValidatingCoupon).toBe(true);
 
       // Resolve the promise
-      resolvePromise({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { valid: false, error: "Test error" },
-          }),
-      });
+      resolvePromise({ valid: false, error: "Test error" });
 
       // Wait for the async operation to complete
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -510,7 +498,7 @@ describe("Coupon Functionality in CartView", () => {
         resolvePromise = resolve;
       });
 
-      global.fetch = vi.fn().mockReturnValue(mockPromise);
+      mockApiClientPost.mockReturnValue(mockPromise);
 
       const couponInput = wrapper.find("#coupon-code");
       await couponInput.setValue("LOADING");
@@ -525,13 +513,7 @@ describe("Coupon Functionality in CartView", () => {
       await wrapper.vm.$nextTick();
       expect(applyButton?.element.disabled).toBe(true);
 
-      resolvePromise({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { valid: false, error: "Test error" },
-          }),
-      });
+      resolvePromise({ valid: false, error: "Test error" });
 
       // Wait for the async operation to complete
       await new Promise((resolve) => setTimeout(resolve, 0));
