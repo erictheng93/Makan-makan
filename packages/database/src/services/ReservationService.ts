@@ -144,13 +144,13 @@ export class ReservationService extends BaseService {
             'number', t.number,
             'capacity', t.capacity,
             'location', t.location
-          ) as table,
+          ) as "table",
           json_object(
             'id', u.id,
             'fullName', u.full_name,
             'email', u.email,
             'phone', u.phone
-          ) as customer
+          ) as "customer"
         FROM reservations r
         LEFT JOIN tables t ON r.table_id = t.id
         LEFT JOIN users u ON r.customer_id = u.id
@@ -180,7 +180,7 @@ export class ReservationService extends BaseService {
             'id', t.id,
             'number', t.number,
             'capacity', t.capacity
-          ) as table
+          ) as "table"
         FROM reservations r
         LEFT JOIN tables t ON r.table_id = t.id
         WHERE r.confirmation_code = ${confirmationCode}
