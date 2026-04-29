@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { resetAllFactories } from "@makanmakan/testing-utils";
+import { useAuthStore } from "@/stores/auth";
 
 // ── Mocks (before component import) ──────────────────────────────────────────
 
@@ -27,6 +28,7 @@ vi.mock("@heroicons/vue/24/outline", () => {
 
 // Mock i18n
 vi.mock("@/i18n", () => ({
+  t: (key: string) => key,
   useI18n: () => ({
     t: (key: string, params?: Record<string, unknown>) => {
       if (params) return `${key}`;
@@ -168,6 +170,14 @@ async function mountAndWait() {
   return wrapper;
 }
 
+function setAuthRestaurantId(id: string | null) {
+  const authStore = useAuthStore();
+  Object.defineProperty(authStore, "restaurantId", {
+    value: id,
+    configurable: true,
+  });
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("AnalyticsView Component", () => {
@@ -235,6 +245,26 @@ describe("AnalyticsView Component", () => {
       expect(mockApiGet).toHaveBeenCalledWith(
         expect.stringContaining("/analytics/realtime-dashboard"),
       );
+    });
+
+    it("should scope analytics endpoints to the selected restaurant", async () => {
+      setupSuccessfulApiMocks();
+      setAuthRestaurantId("rest-1");
+
+      await mountAndWait();
+
+      const calledUrls = mockApiGet.mock.calls.map(([url]) => String(url));
+      for (const endpoint of [
+        "/analytics/dashboard",
+        "/analytics/performance",
+        "/analytics/products",
+        "/analytics/revenue",
+        "/analytics/realtime-dashboard",
+      ]) {
+        expect(calledUrls.find((url) => url.includes(endpoint))).toContain(
+          "restaurantId=rest-1",
+        );
+      }
     });
 
     it("should display loading state while fetching", async () => {

@@ -423,6 +423,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 import {
   CurrencyDollarIcon,
   ShoppingBagIcon,
@@ -437,6 +438,7 @@ import {
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const authStore = useAuthStore();
 
 // State
 const selectedPeriod = ref("today");
@@ -538,6 +540,22 @@ function getDashboardPeriod(): string {
     year: "year",
   };
   return map[selectedPeriod.value] || "today";
+}
+
+function buildAnalyticsUrl(
+  endpoint: string,
+  params: Record<string, string | number | boolean> = {},
+): string {
+  const searchParams = new URLSearchParams(
+    Object.entries(params).map(([key, value]) => [key, String(value)]),
+  );
+
+  if (authStore.restaurantId) {
+    searchParams.set("restaurantId", String(authStore.restaurantId));
+  }
+
+  const query = searchParams.toString();
+  return query ? `/analytics/${endpoint}?${query}` : `/analytics/${endpoint}`;
 }
 
 // Computed: metrics for summary cards
@@ -693,17 +711,30 @@ async function fetchAllData() {
   try {
     const [dashboardRes, perfRes, productsRes, revenueRes, realtimeRes] =
       await Promise.allSettled([
-        api.get(`/analytics/dashboard?period=${dashboardPeriod}`),
+        api.get(buildAnalyticsUrl("dashboard", { period: dashboardPeriod })),
         api.get(
-          `/analytics/performance?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}&groupBy=day`,
+          buildAnalyticsUrl("performance", {
+            dateFrom,
+            dateTo,
+            groupBy: "day",
+          }),
         ),
         api.get(
-          `/analytics/products?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}&limit=5`,
+          buildAnalyticsUrl("products", {
+            dateFrom,
+            dateTo,
+            limit: 5,
+          }),
         ),
         api.get(
-          `/analytics/revenue?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}&groupBy=day&includeComparison=true`,
+          buildAnalyticsUrl("revenue", {
+            dateFrom,
+            dateTo,
+            groupBy: "day",
+            includeComparison: true,
+          }),
         ),
-        api.get("/analytics/realtime-dashboard"),
+        api.get(buildAnalyticsUrl("realtime-dashboard")),
       ]);
 
     if (

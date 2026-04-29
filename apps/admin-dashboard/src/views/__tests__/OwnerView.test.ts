@@ -33,6 +33,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
 import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { useAuthStore } from "@/stores/auth";
 
 // ──── Mocks ────
 
@@ -94,6 +95,7 @@ vi.mock("@/services/ownerService", () => ({
 }));
 
 vi.mock("@/i18n", () => ({
+  t: (key: string) => key,
   useI18n: () => ({
     t: (key: string, params?: Record<string, any>) => {
       if (params) return `${key}:${JSON.stringify(params)}`;
@@ -225,6 +227,14 @@ function createWrapper() {
         "router-link": { template: "<a><slot /></a>" },
       },
     },
+  });
+}
+
+function setAuthRestaurantId(id: string | null) {
+  const authStore = useAuthStore();
+  Object.defineProperty(authStore, "restaurantId", {
+    value: id,
+    configurable: true,
   });
 }
 
@@ -987,6 +997,21 @@ describe("OwnerView", () => {
       expect(mockApiGet).toHaveBeenCalledWith(
         expect.stringContaining("/users/stats"),
       );
+    });
+
+    it("should scope dashboard analytics and active orders to the selected restaurant", async () => {
+      setAuthRestaurantId("rest-1");
+
+      createWrapper();
+      await flushPromises();
+
+      const calledUrls = mockApiGet.mock.calls.map(([url]) => String(url));
+      expect(
+        calledUrls.find((url) => url.includes("/analytics/dashboard")),
+      ).toContain("restaurantId=rest-1");
+      expect(
+        calledUrls.find((url) => url.includes("/orders/active")),
+      ).toContain("restaurantId=rest-1");
     });
   });
 

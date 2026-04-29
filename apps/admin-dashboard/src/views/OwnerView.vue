@@ -410,6 +410,7 @@ import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useCurrency } from "@/composables/useCurrency";
 import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 import { ownerService } from "@/services/ownerService";
 import {
   CurrencyDollarIcon,
@@ -430,6 +431,7 @@ const { t } = useI18n();
 const toast = useToast();
 const { formatPrice } = useCurrency();
 const router = useRouter();
+const authStore = useAuthStore();
 
 // --- State ---
 const isLoading = ref(false);
@@ -696,6 +698,22 @@ const getStatusText = (status: string) => {
   return statusMap[status] || status;
 };
 
+function buildScopedUrl(
+  path: string,
+  params: Record<string, string | number | boolean> = {},
+): string {
+  const searchParams = new URLSearchParams(
+    Object.entries(params).map(([key, value]) => [key, String(value)]),
+  );
+
+  if (authStore.restaurantId) {
+    searchParams.set("restaurantId", String(authStore.restaurantId));
+  }
+
+  const query = searchParams.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 // --- Fetch all data with graceful degradation ---
 async function fetchAllData() {
   isLoading.value = true;
@@ -704,8 +722,8 @@ async function fetchAllData() {
   try {
     const [dashboardRes, activeOrdersRes, userStatsRes, usersRes, healthRes] =
       await Promise.allSettled([
-        api.get("/analytics/dashboard?period=today"),
-        api.get("/orders/active"),
+        api.get(buildScopedUrl("/analytics/dashboard", { period: "today" })),
+        api.get(buildScopedUrl("/orders/active")),
         api.get("/users/stats"),
         api.get("/users?limit=10"),
         api.get("/monitoring/health"),
