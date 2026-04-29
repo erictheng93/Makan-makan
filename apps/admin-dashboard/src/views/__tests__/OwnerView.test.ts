@@ -1012,6 +1012,12 @@ describe("OwnerView", () => {
       expect(
         calledUrls.find((url) => url.includes("/orders/active")),
       ).toContain("restaurantId=rest-1");
+      expect(calledUrls.find((url) => url.includes("/users/stats"))).toContain(
+        "restaurantId=rest-1",
+      );
+      expect(calledUrls.find((url) => url.includes("/users?"))).toContain(
+        "restaurantId=rest-1",
+      );
     });
   });
 

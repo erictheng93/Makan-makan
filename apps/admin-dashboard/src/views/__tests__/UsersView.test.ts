@@ -7,9 +7,11 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { ref, computed } from "vue";
 import { setActivePinia, createPinia } from "pinia";
 import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { useAuthStore } from "@/stores/auth";
 
 // Mock i18n
 vi.mock("@/i18n", () => ({
+  t: (key: string) => key,
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
@@ -41,6 +43,17 @@ vi.mock("@/services/api", () => ({
     post: vi.fn(),
     put: vi.fn(),
     patch: vi.fn(),
+  },
+  authClient: {
+    instance: {
+      post: vi.fn(),
+    },
+    tokens: {
+      clearAll: vi.fn(),
+      scheduleProactiveRefresh: vi.fn(),
+      setTokens: vi.fn(),
+      setUser: vi.fn(),
+    },
   },
 }));
 
@@ -146,6 +159,14 @@ async function mountView() {
   const wrapper = mount(UsersView);
   await flushPromises();
   return wrapper;
+}
+
+function setAuthRestaurantId(id: string | null) {
+  const authStore = useAuthStore();
+  Object.defineProperty(authStore, "restaurantId", {
+    value: id,
+    configurable: true,
+  });
 }
 
 describe("UsersView Component", () => {
@@ -661,6 +682,14 @@ describe("UsersView Component", () => {
 
       expect(api.get).toHaveBeenCalledOnce();
       expect(api.get).toHaveBeenCalledWith("/users");
+    });
+
+    it("should scope user list to the selected restaurant", async () => {
+      setAuthRestaurantId("rest-1");
+
+      await mountView();
+
+      expect(api.get).toHaveBeenCalledWith("/users?restaurantId=rest-1");
     });
 
     it("should handle fetch error gracefully", async () => {

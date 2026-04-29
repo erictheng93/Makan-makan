@@ -466,6 +466,7 @@ import { useToast } from "vue-toastification";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useAuthStore } from "@/stores/auth";
 
 import {
   PlusIcon,
@@ -486,6 +487,7 @@ const CalculatorIcon = CurrencyDollarIcon; // Calculator icon placeholder
 const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
+const authStore = useAuthStore();
 
 // Type definitions
 interface User {
@@ -516,10 +518,20 @@ const isLoading = ref(false);
 // 用戶數據（從 API 獲取）
 const users = ref<User[]>([]);
 
+const buildUsersUrl = () => {
+  if (!authStore.restaurantId) return "/users";
+
+  const params = new URLSearchParams({
+    restaurantId: String(authStore.restaurantId),
+  });
+
+  return `/users?${params.toString()}`;
+};
+
 const fetchUsers = async () => {
   isLoading.value = true;
   try {
-    const response = await api.get("/users");
+    const response = await api.get(buildUsersUrl());
     const payload = response.data?.success ? response.data.data : response.data;
     users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
       id: u.id,

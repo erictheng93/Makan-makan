@@ -21,6 +21,16 @@ const clockedInLoading = ref(false);
 const leaveLoading = ref(false);
 const error = ref<string | null>(null);
 
+function buildUsersUrl(restaurantId: string | number | null | undefined) {
+  if (!restaurantId) return "/users";
+
+  const params = new URLSearchParams({
+    restaurantId: String(restaurantId),
+  });
+
+  return `/users?${params.toString()}`;
+}
+
 export function useEmployeeList() {
   const authStore = useAuthStore();
 
@@ -85,7 +95,7 @@ export function useEmployeeList() {
       isLoading.value = true;
       error.value = null;
       try {
-        const response = await api.get("/users");
+        const response = await api.get(buildUsersUrl(authStore.restaurantId));
         const payload = response.data?.success
           ? response.data.data
           : response.data;

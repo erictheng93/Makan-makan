@@ -4,6 +4,8 @@ import { z } from "zod";
 const PASSWORD_STRENGTH_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
 
+const restaurantIdQuerySchema = z.string().trim().min(1).optional();
+
 // Strong password schema - requires 8+ characters with uppercase, lowercase, number, and special character
 const strongPasswordSchema = z
   .string()
@@ -68,7 +70,7 @@ export const updatePasswordSchema = z
  * User filter validation schema
  */
 export const userFilterSchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: restaurantIdQuerySchema,
   role: z.string().regex(/^\d+$/).transform(Number).optional(),
   isActive: z
     .string()
@@ -108,7 +110,7 @@ export const resetPasswordSchema = z
  * User statistics query validation schema
  */
 export const userStatsSchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: restaurantIdQuerySchema,
 });
 
 /**
@@ -116,7 +118,7 @@ export const userStatsSchema = z.object({
  */
 export const userSearchSchema = z.object({
   query: z.string().min(1),
-  restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  restaurantId: restaurantIdQuerySchema,
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default("10"),
 });
 

@@ -724,8 +724,8 @@ async function fetchAllData() {
       await Promise.allSettled([
         api.get(buildScopedUrl("/analytics/dashboard", { period: "today" })),
         api.get(buildScopedUrl("/orders/active")),
-        api.get("/users/stats"),
-        api.get("/users?limit=10"),
+        api.get(buildScopedUrl("/users/stats")),
+        api.get(buildScopedUrl("/users", { limit: 10 })),
         api.get("/monitoring/health"),
       ]);
 
