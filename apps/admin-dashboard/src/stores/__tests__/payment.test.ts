@@ -249,10 +249,24 @@ describe("Payment Store", () => {
   });
 
   describe("cancelPayment", () => {
-    it("should reset current payment to idle", () => {
+    it("should reset current payment to idle", async () => {
+      const request = {
+        orderId: "o1",
+        restaurantId: "r1",
+        amount: 100,
+        currency: "MYR" as const,
+        country: "MY" as const,
+        method: "credit_card" as const,
+      };
+      mockApiClient.post.mockResolvedValue({
+        data: {
+          success: true,
+          data: { transactionId: "tx-1", status: "completed" },
+        },
+      });
       const store = usePaymentStore();
-      store.state.currentPayment.step = "processing";
-      store.state.currentPayment.transactionId = "tx-1";
+
+      await store.createPayment(request);
 
       store.cancelPayment();
 
@@ -270,20 +284,34 @@ describe("Payment Store", () => {
     });
 
     it("should return null if canRetry is false", async () => {
-      const store = usePaymentStore();
-      store.state.currentPayment.request = {
+      const request = {
         orderId: "o1",
         restaurantId: "r1",
         amount: 100,
-        currency: "MYR",
-        country: "MY",
-        method: "credit_card",
-      } as any;
-      store.state.currentPayment.status = "completed"; // not failed
-      store.state.settings.autoRetry = true;
+        currency: "MYR" as const,
+        country: "MY" as const,
+        method: "credit_card" as const,
+      };
+      mockApiClient.get.mockResolvedValue({
+        data: {
+          success: true,
+          data: { supportedMethods: ["credit_card"] },
+        },
+      });
+      mockApiClient.post.mockResolvedValue({
+        data: {
+          success: true,
+          data: { transactionId: "tx-1", status: "completed" },
+        },
+      });
+      const store = usePaymentStore();
+
+      await store.initializePayment(request);
+      await store.createPayment(request);
 
       const result = await store.retryPayment();
       expect(result).toBeNull();
+      expect(mockApiClient.post).toHaveBeenCalledOnce();
     });
   });
 
