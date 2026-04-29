@@ -235,7 +235,9 @@ class ApiClient {
   async request<T = any>(config: AxiosRequestConfig): Promise<T> {
     try {
       const response = await this.instance.request<ApiResponse<T>>(config);
-      return response.data.data as T;
+      return "data" in response.data
+        ? (response.data.data as T)
+        : (response.data as unknown as T);
     } catch (error) {
       if (error instanceof ApiException) {
         throw error;
