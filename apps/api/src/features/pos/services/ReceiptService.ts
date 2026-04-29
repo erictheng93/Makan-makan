@@ -268,32 +268,33 @@ export class ReceiptService {
       .from(orderItems)
       .where(eq(orderItems.orderId, order.id));
 
-    // Some legacy records carry snake_case column duplicates — index loosely.
-    const o = order as OrderRow & Record<string, unknown>;
+    // Drizzle returns camelCase keys based on the schema definition; the
+    // snake_case fallback chain that used to live here was dead code.
+    // Customer/table display names live outside the orders row — they're
+    // pulled from the customerInfo JSON snapshot and (TODO) a tables join.
+    const customerSnapshot = order.customerInfo ?? null;
 
     return {
       template: templateName,
-      orderNumber: o.order_number || o.orderNumber,
-      customerName: o.customer_name || o.customerName,
-      tableNumber: o.table_number || o.tableNumber,
-      items: items.map((item: OrderItemRow) => {
-        const it = item as OrderItemRow & Record<string, unknown>;
-        return {
-          name: it.item_name || it.itemName || it.name,
-          quantity: it.quantity,
-          price: it.unitPrice || it.price,
-          subtotal: it.totalPrice || it.subtotal,
-          customizations:
-            typeof it.customizations === "string"
-              ? JSON.parse(it.customizations || "[]")
-              : it.customizations || [],
-        };
-      }),
-      subtotal: o.subtotal,
-      taxAmount: o.tax_amount || o.taxAmount,
-      discountAmount: o.discount_amount || o.discountAmount,
-      totalAmount: o.total_amount || o.totalAmount,
-      paymentMethod: o.payment_method || o.paymentMethod,
+      orderNumber: order.orderNumber,
+      customerName: customerSnapshot?.name ?? null,
+      // TODO: join `tables` to surface the table number — currently absent.
+      tableNumber: null as string | null,
+      items: items.map((item: OrderItemRow) => ({
+        name: item.itemSnapshot?.name ?? null,
+        quantity: item.quantity,
+        price: item.unitPrice,
+        subtotal: item.totalPrice,
+        customizations:
+          typeof item.customizations === "string"
+            ? JSON.parse(item.customizations || "[]")
+            : (item.customizations ?? []),
+      })),
+      subtotal: order.subtotal,
+      taxAmount: order.taxAmount,
+      discountAmount: order.discountAmount,
+      totalAmount: order.totalAmount,
+      paymentMethod: order.paymentMethod,
       timestamp: new Date().toISOString(),
       footer: "謝謝光臨 MakanMakan",
     };
