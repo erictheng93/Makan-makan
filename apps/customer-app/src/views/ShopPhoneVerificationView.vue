@@ -251,8 +251,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
 import { useI18n } from "@/composables/useI18n";
+import { apiClient } from "@/services/api";
 import type { Restaurant } from "@makanmakan/shared-types";
 
 const props = defineProps<{
@@ -272,6 +272,16 @@ const isValidInput = computed(() => {
   return /^\d{3}$/.test(phoneLastDigits.value);
 });
 
+interface ShopQrVerificationResponse {
+  valid: boolean;
+  restaurant?: Restaurant;
+}
+
+interface GuestTokenResponse {
+  success?: boolean;
+  token?: string;
+}
+
 const validateInput = () => {
   // Only allow numbers
   phoneLastDigits.value = phoneLastDigits.value.replace(/\D/g, "").slice(0, 3);
@@ -285,21 +295,20 @@ const loadRestaurant = async () => {
 
     // Verify shop QR code if provided
     if (props.shopQrCode) {
-      const verifyResponse = await axios.get(
-        `/api/v1/qr-codes/verify/shop/${props.shopQrCode}`,
+      const verifyResponse = await apiClient.get<ShopQrVerificationResponse>(
+        `/qr-codes/verify/shop/${props.shopQrCode}`,
       );
 
-      if (!verifyResponse.data.valid) {
+      if (!verifyResponse.valid) {
         throw new Error(t("toast.invalidQRCode"));
       }
 
-      restaurant.value = verifyResponse.data.restaurant;
+      restaurant.value = verifyResponse.restaurant ?? null;
     } else {
       // Load restaurant info
-      const response = await axios.get(
-        `/api/v1/restaurants/${props.restaurantId}`,
+      restaurant.value = await apiClient.get<Restaurant>(
+        `/restaurants/${props.restaurantId}`,
       );
-      restaurant.value = response.data?.data || response.data;
     }
 
     // Check if shop mode is enabled
@@ -308,10 +317,7 @@ const loadRestaurant = async () => {
     }
   } catch (error: any) {
     console.error("Failed to load restaurant:", error);
-    errorMessage.value =
-      error.response?.data?.message ||
-      error.message ||
-      t("toast.restaurantLoadFailed");
+    errorMessage.value = error.message || t("toast.restaurantLoadFailed");
 
     // Redirect to error page after 3 seconds
     setTimeout(() => {
@@ -347,12 +353,15 @@ const handleVerify = async () => {
 
     // Get guest token for later order submission
     try {
-      const guestTokenResponse = await axios.post(`/api/v1/auth/guest-token`, {
-        restaurantId: props.restaurantId,
-        phoneLastDigits: phoneLastDigits.value,
-      });
-      if (guestTokenResponse.data.success && guestTokenResponse.data.token) {
-        localStorage.setItem("guest_auth_token", guestTokenResponse.data.token);
+      const guestTokenResponse = await apiClient.post<GuestTokenResponse>(
+        "/auth/guest-token",
+        {
+          restaurantId: props.restaurantId,
+          phoneLastDigits: phoneLastDigits.value,
+        },
+      );
+      if (guestTokenResponse.success && guestTokenResponse.token) {
+        localStorage.setItem("guest_auth_token", guestTokenResponse.token);
       }
     } catch (err) {
       console.warn("Failed to get guest token:", err);
