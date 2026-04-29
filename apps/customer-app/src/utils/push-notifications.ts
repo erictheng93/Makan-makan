@@ -3,6 +3,8 @@
  * Handles push notification registration, management, and customer-specific notifications
  */
 
+import { apiClient } from "@/services/api";
+
 export interface NotificationSubscription {
   endpoint: string;
   keys: {
@@ -149,22 +151,11 @@ class CustomerPushNotificationService {
     subscription: NotificationSubscription,
   ): Promise<void> {
     try {
-      const response = await fetch("/api/v1/push/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({
-          subscription,
-          user_type: "customer",
-          device_info: this.getDeviceInfo(),
-        }),
+      await apiClient.post("/push/subscribe", {
+        subscription,
+        user_type: "customer",
+        device_info: this.getDeviceInfo(),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to register push subscription on server");
-      }
 
       console.log("Push subscription registered on server");
     } catch (error) {
@@ -175,15 +166,8 @@ class CustomerPushNotificationService {
 
   async removeSubscriptionFromServer(): Promise<void> {
     try {
-      await fetch("/api/v1/push/unsubscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({
-          endpoint: this.subscription?.endpoint,
-        }),
+      await apiClient.post("/push/unsubscribe", {
+        endpoint: this.subscription?.endpoint,
       });
 
       console.log("Push subscription removed from server");
@@ -360,11 +344,6 @@ class CustomerPushNotificationService {
     return window.btoa(binary);
   }
 
-  private getAuthToken(): string {
-    // Get auth token from localStorage or store
-    return localStorage.getItem("auth_token") || "";
-  }
-
   private getDeviceInfo(): Record<string, any> {
     return {
       user_agent: navigator.userAgent,
@@ -398,14 +377,7 @@ class CustomerPushNotificationService {
     vibration: boolean;
   }): Promise<void> {
     try {
-      await fetch("/api/v1/users/notification-settings", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify(settings),
-      });
+      await apiClient.put("/users/notification-settings", settings);
 
       // Store locally for offline access
       localStorage.setItem("notification_settings", JSON.stringify(settings));
