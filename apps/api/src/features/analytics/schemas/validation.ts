@@ -5,23 +5,48 @@
 
 import { z } from "zod";
 
-// Base analytics query schema
-export const analyticsQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).optional(),
+const restaurantIdSchema = z.string().trim().min(1).max(128).optional();
+
+function normalizeRestaurantIdAlias(input: unknown): unknown {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return input;
+  }
+
+  const query = input as Record<string, unknown>;
+  return {
+    ...query,
+    restaurantId: query.restaurantId ?? query.restaurant_id,
+  };
+}
+
+function queryWithRestaurantId<T extends z.ZodRawShape>(shape: T) {
+  return z.preprocess(
+    normalizeRestaurantIdAlias,
+    z.object({
+      restaurantId: restaurantIdSchema,
+      ...shape,
+    }),
+  );
+}
+
+const analyticsQueryShape = {
   dateFrom: z.string().datetime().optional(),
   dateTo: z.string().datetime().optional(),
   groupBy: z.enum(["day", "week", "month", "year"]).default("day"),
   limit: z.string().regex(/^\d+$/).transform(Number).default("30"),
-});
+};
+
+// Base analytics query schema
+export const analyticsQuerySchema = queryWithRestaurantId(analyticsQueryShape);
 
 // Dashboard query schema
-export const dashboardQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).optional(),
+export const dashboardQuerySchema = queryWithRestaurantId({
   period: z.enum(["today", "week", "month", "year"]).default("today"),
 });
 
 // Revenue analytics query schema
-export const revenueQuerySchema = analyticsQuerySchema.extend({
+export const revenueQuerySchema = queryWithRestaurantId({
+  ...analyticsQueryShape,
   includeComparison: z
     .string()
     .transform((val) => val === "true")
@@ -29,14 +54,16 @@ export const revenueQuerySchema = analyticsQuerySchema.extend({
 });
 
 // Performance analytics query schema
-export const performanceQuerySchema = analyticsQuerySchema.extend({
+export const performanceQuerySchema = queryWithRestaurantId({
+  ...analyticsQueryShape,
   metric: z
     .enum(["orders", "revenue", "avg_order_value", "customer_count"])
     .default("orders"),
 });
 
 // Export query schema
-export const exportQuerySchema = analyticsQuerySchema.extend({
+export const exportQuerySchema = queryWithRestaurantId({
+  ...analyticsQueryShape,
   type: z
     .enum(["dashboard", "revenue", "products", "customers", "performance"])
     .default("dashboard"),
@@ -44,12 +71,11 @@ export const exportQuerySchema = analyticsQuerySchema.extend({
 });
 
 // Real-time dashboard query schema
-export const realtimeDashboardQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).optional(),
-});
+export const realtimeDashboardQuerySchema = queryWithRestaurantId({});
 
 // Detailed performance query schema
-export const detailedPerformanceQuerySchema = analyticsQuerySchema.extend({
+export const detailedPerformanceQuerySchema = queryWithRestaurantId({
+  ...analyticsQueryShape,
   includeStaffMetrics: z
     .string()
     .transform((val) => val === "true")
@@ -61,13 +87,10 @@ export const detailedPerformanceQuerySchema = analyticsQuerySchema.extend({
 });
 
 // Owner dashboard query schema
-export const ownerDashboardQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).optional(),
-});
+export const ownerDashboardQuerySchema = queryWithRestaurantId({});
 
 // Financial report query schema
-export const financialReportQuerySchema = z.object({
-  restaurantId: z.string().regex(/^\d+$/).optional(),
+export const financialReportQuerySchema = queryWithRestaurantId({
   period: z.enum(["daily", "weekly", "monthly", "yearly"]).default("monthly"),
   year: z
     .string()
