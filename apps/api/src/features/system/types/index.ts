@@ -15,7 +15,7 @@ export interface ErrorReportItem {
   userAgent?: string;
   url?: string;
   userId?: number | string;
-  restaurantId?: string | null;
+  restaurantId?: number | string | null;
 }
 
 export interface ErrorReportRequest {

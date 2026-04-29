@@ -17,7 +17,12 @@ function createMockEnv() {
 function buildApp() {
   const app = new Hono<any>();
   app.use("*", async (c, next) => {
-    c.set("user", { id: 7, role: 1, restaurantId: "rest-1" });
+    c.set("user", {
+      id: 7,
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    });
     await next();
   });
   app.route("/backup", BackupRoutes);

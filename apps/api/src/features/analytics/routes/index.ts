@@ -100,6 +100,18 @@ routes.post(
   requireRole([0, 1]),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "MISSING_PARAM",
+            message: "Missing restaurantId parameter",
+          },
+        },
+        400,
+      );
+    }
     const user = c.get("user");
 
     if (
