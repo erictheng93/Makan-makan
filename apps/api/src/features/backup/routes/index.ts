@@ -166,6 +166,20 @@ export function createBackupRoutes(): Hono<Context> {
         : user?.restaurantId !== undefined
           ? String(user.restaurantId)
           : "global";
+
+    if (!canWriteRestaurantScope(user, restaurantId)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "BACKUP_UPLOAD_FORBIDDEN",
+            message: "Cannot upload backups for another restaurant",
+          },
+        },
+        403,
+      );
+    }
+
     const backupId = body.backup_id ?? createBackupUploadId();
     const now = new Date().toISOString();
     const storageKey = [
@@ -319,4 +333,17 @@ export const BackupRoutes = createBackupRoutes();
 function createBackupUploadId(): string {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `offline-${Date.now()}`;
+}
+
+function canWriteRestaurantScope(
+  user:
+    | { role?: number; restaurantId?: string | number | null }
+    | undefined,
+  restaurantId: string,
+): boolean {
+  if (user?.role === 0 || restaurantId === "global") return true;
+  if (user?.restaurantId === undefined || user.restaurantId === null) {
+    return false;
+  }
+  return String(user.restaurantId) === restaurantId;
 }

@@ -119,6 +119,20 @@ routes.post(
         : user.restaurantId !== undefined
           ? String(user.restaurantId)
           : null;
+
+    if (!canWriteRestaurantScope(user, restaurantId)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "SETTINGS_SYNC_FORBIDDEN",
+            message: "Cannot sync settings for another restaurant",
+          },
+        },
+        403,
+      );
+    }
+
     const scope = restaurantId ? encodeURIComponent(restaurantId) : "global";
     const record = {
       userId: user.id,
@@ -163,6 +177,17 @@ function createSettingsKey(user: {
 function createSyncId(settings: SettingsSyncInput): string {
   if (settings.sync_id) return encodeURIComponent(settings.sync_id);
   return `${Date.now()}`;
+}
+
+function canWriteRestaurantScope(
+  user: { role?: number; restaurantId?: string | number | null },
+  restaurantId: string | null,
+): boolean {
+  if (user.role === 0 || restaurantId === null) return true;
+  if (user.restaurantId === undefined || user.restaurantId === null) {
+    return false;
+  }
+  return String(user.restaurantId) === restaurantId;
 }
 
 export default routes;

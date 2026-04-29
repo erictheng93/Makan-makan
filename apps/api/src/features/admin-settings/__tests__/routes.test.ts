@@ -203,4 +203,27 @@ describe("Admin Settings Routes", () => {
       { expirationTtl: 2592000 },
     );
   });
+
+  it("rejects owner settings syncs for another restaurant", async () => {
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/admin/settings/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sync_id: "sync-2",
+          restaurant_id: "rest-2",
+          settings: { locale: "zh-TW" },
+        }),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(403);
+    expect(json.error.code).toBe("SETTINGS_SYNC_FORBIDDEN");
+    expect(kv.put).not.toHaveBeenCalled();
+  });
 });

@@ -184,13 +184,12 @@ class AdminOfflineStorageManager {
   }
 
   async getUnsyncedOrderUpdates(): Promise<OfflineOrderUpdate[]> {
-    const store = this.getStore("offlineOrderUpdates");
-    const index = store.index("synced");
-    return new Promise((resolve, reject) => {
-      const request = index.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    const updates = await this.getAllFromIndex<OfflineOrderUpdate>(
+      "offlineOrderUpdates",
+      "synced",
+      false,
+    );
+    return updates.filter((update) => update.synced === false);
   }
 
   async markOrderUpdateAsSynced(updateId: string): Promise<void> {
@@ -250,13 +249,12 @@ class AdminOfflineStorageManager {
   }
 
   async getUnsyncedMenuUpdates(): Promise<OfflineMenuUpdate[]> {
-    const store = this.getStore("offlineMenuUpdates");
-    const index = store.index("synced");
-    return new Promise((resolve, reject) => {
-      const request = index.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    const updates = await this.getAllFromIndex<OfflineMenuUpdate>(
+      "offlineMenuUpdates",
+      "synced",
+      false,
+    );
+    return updates.filter((update) => update.synced === false);
   }
 
   async markMenuUpdateAsSynced(updateId: string): Promise<void> {
@@ -310,12 +308,30 @@ class AdminOfflineStorageManager {
   }
 
   async getUnsyncedUserActions(): Promise<OfflineUserAction[]> {
-    const store = this.getStore("offlineUserActions");
-    const index = store.index("synced");
+    const actions = await this.getAllFromIndex<OfflineUserAction>(
+      "offlineUserActions",
+      "synced",
+      false,
+    );
+    return actions.filter((action) => action.synced === false);
+  }
+
+  async markUserActionAsSynced(actionId: string): Promise<void> {
+    const store = this.getStore("offlineUserActions", "readwrite");
     return new Promise((resolve, reject) => {
-      const request = index.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      const getRequest = store.get(actionId);
+      getRequest.onsuccess = () => {
+        const action = getRequest.result;
+        if (action) {
+          action.synced = true;
+          const updateRequest = store.put(action);
+          updateRequest.onsuccess = () => resolve();
+          updateRequest.onerror = () => reject(updateRequest.error);
+        } else {
+          resolve();
+        }
+      };
+      getRequest.onerror = () => reject(getRequest.error);
     });
   }
 
@@ -450,6 +466,21 @@ class AdminOfflineStorageManager {
     return new Promise((resolve, reject) => {
       const request = store.count();
       request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async getAllFromIndex<T>(
+    storeName: string,
+    indexName: string,
+    query?: IDBValidKey | IDBKeyRange,
+  ): Promise<T[]> {
+    const store = this.getStore(storeName);
+    const index = store.index(indexName);
+    return new Promise((resolve, reject) => {
+      const request =
+        query === undefined ? index.getAll() : index.getAll(query);
+      request.onsuccess = () => resolve(request.result as T[]);
       request.onerror = () => reject(request.error);
     });
   }

@@ -132,6 +132,28 @@ describe("Push Routes", () => {
     expect(kv.put).not.toHaveBeenCalled();
   });
 
+  it("rejects owner subscriptions for another restaurant", async () => {
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/push/subscribe",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validBody,
+          restaurant_id: "rest-2",
+        }),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(403);
+    expect(json.error.code).toBe("PUSH_SUBSCRIPTION_FORBIDDEN");
+    expect(kv.put).not.toHaveBeenCalled();
+  });
+
   it("removes an authenticated push subscription by endpoint", async () => {
     const { app, kv } = buildApp();
 
@@ -154,6 +176,28 @@ describe("Push Routes", () => {
     expect(json.data.unsubscribed).toBe(true);
     expect(kv.delete).toHaveBeenCalledOnce();
     expect(kv.delete.mock.calls[0][0]).toMatch(/^push:subscription:rest-1:7:/);
+  });
+
+  it("rejects owner unsubscriptions for another restaurant", async () => {
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/push/unsubscribe",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: validBody.subscription.endpoint,
+          restaurant_id: "rest-2",
+        }),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(403);
+    expect(json.error.code).toBe("PUSH_SUBSCRIPTION_FORBIDDEN");
+    expect(kv.delete).not.toHaveBeenCalled();
   });
 
   it("falls back to deterministic subscription IDs when Web Crypto is unavailable", async () => {

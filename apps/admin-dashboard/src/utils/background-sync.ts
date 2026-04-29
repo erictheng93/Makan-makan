@@ -273,7 +273,7 @@ class AdminBackgroundSyncService {
       console.log(
         `[Admin Background Sync] User action ${action.id} synced successfully`,
       );
-      // Mark as synced in offline storage
+      await adminOfflineStorage.markUserActionAsSynced(action.id);
     } catch (error) {
       console.error(
         `[Admin Background Sync] Failed to sync user action ${action.id}:`,
@@ -553,13 +553,36 @@ class AdminBackgroundSyncService {
 
   // Utility methods
   private addOrUpdateSyncEvent(event: AdminSyncEvent): void {
-    // Remove any existing event with the same type and data ID
+    const eventDataId = this.getSyncEventDataId(event);
+
+    // Remove any existing event with the same stable data ID. Events without
+    // one are all kept, otherwise offline backup/settings payloads can be lost.
     this.syncQueue = this.syncQueue.filter(
-      (e) => !(e.type === event.type && e.data.id === event.data.id),
+      (e) =>
+        !(
+          e.type === event.type &&
+          eventDataId !== null &&
+          this.getSyncEventDataId(e) === eventDataId
+        ),
     );
 
     this.syncQueue.push(event);
     this.saveSyncQueue();
+  }
+
+  private getSyncEventDataId(event: AdminSyncEvent): string | null {
+    if (
+      event.data === null ||
+      typeof event.data !== "object" ||
+      Array.isArray(event.data)
+    ) {
+      return null;
+    }
+
+    const data = event.data as Record<string, unknown>;
+    const rawId =
+      data.id ?? data.backup_id ?? data.sync_id ?? data.restaurant_id;
+    return rawId === undefined || rawId === null ? null : String(rawId);
   }
 
   private removeSyncEvent(eventId: string): void {

@@ -74,4 +74,29 @@ describe("Backup Upload Compatibility Route", () => {
       { expirationTtl: 7776000 },
     );
   });
+
+  it("rejects owner backup uploads for another restaurant", async () => {
+    const app = buildApp();
+    const env = createMockEnv();
+
+    const response = await app.request(
+      "/backup/upload",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          backup_id: "backup-2",
+          restaurant_id: "rest-2",
+          snapshot: { orders: [] },
+        }),
+      },
+      env,
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(403);
+    expect(json.error.code).toBe("BACKUP_UPLOAD_FORBIDDEN");
+    expect(env.BACKUP_STORAGE.put).not.toHaveBeenCalled();
+    expect(env.BACKUP_KV.put).not.toHaveBeenCalled();
+  });
 });

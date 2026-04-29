@@ -34,6 +34,20 @@ routes.post(
         : user.restaurantId !== undefined
           ? String(user.restaurantId)
           : null;
+
+    if (!canWriteRestaurantScope(user, restaurantId)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "AUDIT_ACTION_FORBIDDEN",
+            message: "Cannot sync audit actions for another restaurant",
+          },
+        },
+        403,
+      );
+    }
+
     const createdAt = toTimestampMs(body.timestamp);
     const description = resourceId
       ? `Offline ${action} on ${resource}#${resourceId}`
@@ -118,6 +132,17 @@ function toTimestampMs(timestamp: string | undefined): number {
 
   const parsed = Date.parse(timestamp);
   return Number.isNaN(parsed) ? Date.now() : parsed;
+}
+
+function canWriteRestaurantScope(
+  user: { role?: number; restaurantId?: string | number | null },
+  restaurantId: string | null,
+): boolean {
+  if (user.role === 0 || restaurantId === null) return true;
+  if (user.restaurantId === undefined || user.restaurantId === null) {
+    return false;
+  }
+  return String(user.restaurantId) === restaurantId;
 }
 
 export default routes;

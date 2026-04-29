@@ -124,4 +124,26 @@ describe("Audit Compatibility Routes", () => {
     expect(json.error.code).toBe("VALIDATION_ERROR");
     expect(db.prepare).not.toHaveBeenCalled();
   });
+
+  it("rejects owner audit syncs for another restaurant", async () => {
+    const { app, db } = buildApp();
+
+    const response = await app.request(
+      "/audit/actions",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action_type: "settings_update",
+          restaurant_id: "rest-2",
+        }),
+      },
+      { DB: { prepare: db.prepare } },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(403);
+    expect(json.error.code).toBe("AUDIT_ACTION_FORBIDDEN");
+    expect(db.prepare).not.toHaveBeenCalled();
+  });
 });

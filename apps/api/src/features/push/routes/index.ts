@@ -61,6 +61,20 @@ routes.post(
         : user.restaurantId !== undefined
           ? String(user.restaurantId)
           : null;
+
+    if (!canWriteRestaurantScope(user, restaurantId)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "PUSH_SUBSCRIPTION_FORBIDDEN",
+            message: "Cannot manage push subscriptions for another restaurant",
+          },
+        },
+        403,
+      );
+    }
+
     const subscriptionId = await createSubscriptionId(
       body.subscription.endpoint,
     );
@@ -120,6 +134,20 @@ routes.post(
         : user.restaurantId !== undefined
           ? String(user.restaurantId)
           : null;
+
+    if (!canWriteRestaurantScope(user, restaurantId)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "PUSH_SUBSCRIPTION_FORBIDDEN",
+            message: "Cannot manage push subscriptions for another restaurant",
+          },
+        },
+        403,
+      );
+    }
+
     const subscriptionId = body.subscriptionId
       ? String(body.subscriptionId)
       : body.endpoint
@@ -178,6 +206,17 @@ function keySegment(
 ): string {
   const rawValue = value?.trim();
   return rawValue ? encodeURIComponent(rawValue) : fallback;
+}
+
+function canWriteRestaurantScope(
+  user: { role?: number; restaurantId?: string | number | null },
+  restaurantId: string | null,
+): boolean {
+  if (user.role === 0 || restaurantId === null) return true;
+  if (user.restaurantId === undefined || user.restaurantId === null) {
+    return false;
+  }
+  return String(user.restaurantId) === restaurantId;
 }
 
 export default routes;
