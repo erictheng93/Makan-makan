@@ -336,6 +336,7 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
+import { apiClient } from "@/services/api";
 
 const _router = useRouter();
 const route = useRoute();
@@ -361,6 +362,17 @@ const isLoading = ref(false);
 const verifying = ref(true);
 const showNewPassword = ref(false);
 const showConfirmPassword = ref(false);
+
+interface ResetTokenVerificationResponse {
+  valid?: boolean;
+  email?: string;
+  error?: string;
+}
+
+interface ResetPasswordResponse {
+  success?: boolean;
+  message?: string;
+}
 
 // 密碼強度計算
 const passwordStrength = computed(() => {
@@ -432,10 +444,10 @@ const validateForm = () => {
 
 const verifyToken = async () => {
   try {
-    const response = await fetch(
-      `/api/v1/auth/reset-password/verify?token=${token.value}`,
+    const data = await apiClient.get<ResetTokenVerificationResponse>(
+      "/auth/reset-password/verify",
+      { token: token.value },
     );
-    const data = await response.json();
 
     if (data.valid) {
       maskedEmail.value = data.email || "";
@@ -444,7 +456,8 @@ const verifyToken = async () => {
     }
   } catch (err) {
     console.error("Verify token error:", err);
-    tokenError.value = t("auth.tokenVerifyError");
+    tokenError.value =
+      err instanceof Error ? err.message : t("auth.tokenVerifyError");
   } finally {
     verifying.value = false;
   }
@@ -460,29 +473,25 @@ const handleSubmit = async () => {
   isLoading.value = true;
 
   try {
-    const response = await fetch("/api/v1/auth/reset-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const data = await apiClient.post<ResetPasswordResponse>(
+      "/auth/reset-password",
+      {
         token: token.value,
         newPassword: form.newPassword,
         confirmPassword: form.confirmPassword,
-      }),
-    });
-
-    const data = await response.json();
+      },
+    );
 
     if (data.success) {
       success.value = true;
       successMessage.value = data.message || t("auth.resetPasswordMessage");
     } else {
-      error.value = data.error || t("auth.resetPasswordFailed");
+      error.value = t("auth.resetPasswordFailed");
     }
   } catch (err) {
     console.error("Reset password error:", err);
-    error.value = t("messages.networkError");
+    error.value =
+      err instanceof Error ? err.message : t("messages.networkError");
   } finally {
     isLoading.value = false;
   }

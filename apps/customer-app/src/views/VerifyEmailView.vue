@@ -173,6 +173,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "@/composables/useI18n";
 import { useToast } from "vue-toastification";
+import { apiClient } from "@/services/api";
 
 const router = useRouter();
 const route = useRoute();
@@ -186,10 +187,17 @@ const successMessage = ref("");
 const errorMessage = ref("");
 const resending = ref(false);
 
+interface VerificationResponse {
+  success?: boolean;
+  message?: string;
+}
+
 const verifyEmail = async (token: string) => {
   try {
-    const response = await fetch(`/api/v1/auth/verify-email?token=${token}`);
-    const data = await response.json();
+    const data = await apiClient.get<VerificationResponse>(
+      "/auth/verify-email",
+      { token },
+    );
 
     if (data.success) {
       success.value = true;
@@ -200,11 +208,12 @@ const verifyEmail = async (token: string) => {
         await authStore.fetchUserProfile();
       }
     } else {
-      errorMessage.value = data.error || t("auth.verifyError");
+      errorMessage.value = t("auth.verifyError");
     }
   } catch (err) {
     console.error("Verify email error:", err);
-    errorMessage.value = t("auth.verifyError");
+    errorMessage.value =
+      err instanceof Error ? err.message : t("auth.verifyError");
   } finally {
     verifying.value = false;
   }
@@ -219,27 +228,23 @@ const resendVerification = async () => {
   resending.value = true;
 
   try {
-    const response = await fetch("/api/v1/auth/verify-email/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authStore.token}`,
-      },
-      body: JSON.stringify({
+    const data = await apiClient.post<VerificationResponse>(
+      "/auth/verify-email/send",
+      {
         email: authStore.user.email,
-      }),
-    });
-
-    const data = await response.json();
+      },
+    );
 
     if (data.success) {
       toast.success(t("auth.resendVerificationSuccess"));
     } else {
-      toast.error(data.error || t("auth.resendFailed"));
+      toast.error(t("auth.resendFailed"));
     }
   } catch (err) {
     console.error("Resend verification error:", err);
-    toast.error(t("messages.networkError"));
+    toast.error(
+      err instanceof Error ? err.message : t("messages.networkError"),
+    );
   } finally {
     resending.value = false;
   }

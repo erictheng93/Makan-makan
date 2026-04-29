@@ -169,6 +169,7 @@
 import { ref, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
+import { apiClient } from "@/services/api";
 
 const _router = useRouter();
 const { t } = useI18n();
@@ -185,6 +186,11 @@ const error = ref("");
 const success = ref(false);
 const successMessage = ref("");
 const isLoading = ref(false);
+
+interface PasswordResetResponse {
+  success?: boolean;
+  message?: string;
+}
 
 const validateForm = () => {
   errors.email = "";
@@ -213,28 +219,23 @@ const handleSubmit = async () => {
   isLoading.value = true;
 
   try {
-    const response = await fetch("/api/v1/auth/forgot-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const data = await apiClient.post<PasswordResetResponse>(
+      "/auth/forgot-password",
+      {
+        email: form.email,
       },
-      body: JSON.stringify({
-        identifier: form.email,
-        method: "email",
-      }),
-    });
-
-    const data = await response.json();
+    );
 
     if (data.success) {
       success.value = true;
       successMessage.value = data.message || t("auth.resetLinkSent");
     } else {
-      error.value = data.error || t("auth.resetLinkFailed");
+      error.value = t("auth.resetLinkFailed");
     }
   } catch (err) {
     console.error("Forgot password error:", err);
-    error.value = t("messages.networkError");
+    error.value =
+      err instanceof Error ? err.message : t("messages.networkError");
   } finally {
     isLoading.value = false;
   }
