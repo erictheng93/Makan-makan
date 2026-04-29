@@ -5,8 +5,19 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 
+const { mockApiClient } = vi.hoisted(() => ({
+  mockApiClient: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+}));
+
 vi.mock("@/i18n", () => ({
   t: (key: string) => key,
+}));
+
+vi.mock("@/services/api", () => ({
+  apiClient: mockApiClient,
 }));
 
 import { usePaymentStore } from "../payment";
@@ -15,7 +26,6 @@ describe("Payment Store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
-    vi.mocked(global.fetch).mockReset();
   });
 
   describe("Initial State", () => {
@@ -52,14 +62,12 @@ describe("Payment Store", () => {
 
   describe("initializePayment", () => {
     it("should set step to method and clear errors", async () => {
-      // Mock loadPaymentMethods fetch
-      vi.mocked(global.fetch).mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { supportedMethods: ["credit_card"] },
-          }),
-      } as Response);
+      mockApiClient.get.mockResolvedValue({
+        data: {
+          success: true,
+          data: { supportedMethods: ["credit_card"] },
+        },
+      });
 
       const store = usePaymentStore();
       const request = {
@@ -89,17 +97,16 @@ describe("Payment Store", () => {
     };
 
     it("should create payment successfully", async () => {
-      vi.mocked(global.fetch).mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              transactionId: "tx-1",
-              status: "completed",
-              clientSecret: "cs-1",
-            },
-          }),
-      } as Response);
+      mockApiClient.post.mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            transactionId: "tx-1",
+            status: "completed",
+            clientSecret: "cs-1",
+          },
+        },
+      });
 
       const store = usePaymentStore();
       const result = await store.createPayment(validRequest);
@@ -109,23 +116,19 @@ describe("Payment Store", () => {
       expect(result.status).toBe("completed");
       expect(store.currentStep).toBe("completed");
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/payments/create",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify(validRequest),
-        }),
+      expect(mockApiClient.post).toHaveBeenCalledWith(
+        "/payments/create",
+        validRequest,
       );
     });
 
     it("should handle failed payment from API", async () => {
-      vi.mocked(global.fetch).mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            success: false,
-            error: { message: "Insufficient funds" },
-          }),
-      } as Response);
+      mockApiClient.post.mockResolvedValue({
+        data: {
+          success: false,
+          error: { message: "Insufficient funds" },
+        },
+      });
 
       const store = usePaymentStore();
       const result = await store.createPayment(validRequest);
@@ -144,8 +147,8 @@ describe("Payment Store", () => {
 
       expect(result.success).toBe(false);
       expect(store.currentStep).toBe("failed");
-      // fetch should not be called for invalid requests
-      expect(global.fetch).not.toHaveBeenCalled();
+      // API should not be called for invalid requests
+      expect(mockApiClient.post).not.toHaveBeenCalled();
     });
 
     it("should fail validation for negative amount", async () => {
@@ -160,7 +163,7 @@ describe("Payment Store", () => {
 
     it("should set loading state during creation", async () => {
       let resolvePromise: (v: any) => void;
-      vi.mocked(global.fetch).mockReturnValue(
+      mockApiClient.post.mockReturnValue(
         new Promise((r) => {
           resolvePromise = r;
         }),
@@ -172,11 +175,10 @@ describe("Payment Store", () => {
       expect(store.state.loading.creating).toBe(true);
 
       resolvePromise!({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { transactionId: "tx-1", status: "completed" },
-          }),
+        data: {
+          success: true,
+          data: { transactionId: "tx-1", status: "completed" },
+        },
       });
 
       await promise;
@@ -186,24 +188,23 @@ describe("Payment Store", () => {
 
   describe("checkPaymentStatus", () => {
     it("should fetch and return status", async () => {
-      vi.mocked(global.fetch).mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { status: "completed" },
-          }),
-      } as Response);
+      mockApiClient.get.mockResolvedValue({
+        data: {
+          success: true,
+          data: { status: "completed" },
+        },
+      });
 
       const store = usePaymentStore();
 
       const status = await store.checkPaymentStatus("tx-1");
 
       expect(status).toBe("completed");
-      expect(global.fetch).toHaveBeenCalledWith("/api/payments/status/tx-1");
+      expect(mockApiClient.get).toHaveBeenCalledWith("/payments/status/tx-1");
     });
 
     it("should return pending on error", async () => {
-      vi.mocked(global.fetch).mockRejectedValue(new Error("Network error"));
+      mockApiClient.get.mockRejectedValue(new Error("Network error"));
 
       const store = usePaymentStore();
       const status = await store.checkPaymentStatus("tx-1");
@@ -214,39 +215,31 @@ describe("Payment Store", () => {
 
   describe("refundPayment", () => {
     it("should call refund endpoint", async () => {
-      vi.mocked(global.fetch).mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { refundId: "rf-1" },
-          }),
-      } as Response);
+      mockApiClient.post.mockResolvedValue({
+        data: {
+          success: true,
+          data: { refundId: "rf-1" },
+        },
+      });
 
       const store = usePaymentStore();
       const result = await store.refundPayment("tx-1", 50, "Customer request");
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/payments/refund",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            transactionId: "tx-1",
-            amount: 50,
-            reason: "Customer request",
-          }),
-        }),
-      );
+      expect(mockApiClient.post).toHaveBeenCalledWith("/payments/refund", {
+        transactionId: "tx-1",
+        amount: 50,
+        reason: "Customer request",
+      });
       expect(result).toEqual({ refundId: "rf-1" });
     });
 
     it("should throw on refund failure", async () => {
-      vi.mocked(global.fetch).mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            success: false,
-            error: { message: "Refund not allowed" },
-          }),
-      } as Response);
+      mockApiClient.post.mockResolvedValue({
+        data: {
+          success: false,
+          error: { message: "Refund not allowed" },
+        },
+      });
 
       const store = usePaymentStore();
       await expect(store.refundPayment("tx-1")).rejects.toThrow(

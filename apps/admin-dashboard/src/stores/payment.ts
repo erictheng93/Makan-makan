@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import { t } from "@/i18n";
+import { apiClient } from "@/services/api";
 import type {
   PaymentRequest,
   PaymentResult,
@@ -161,16 +162,8 @@ export const usePaymentStore = defineStore("payment", () => {
         throw new Error("Payment request validation failed");
       }
 
-      // 調用 API 創建支付
-      const response = await fetch("/api/payments/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      });
-
-      const data = await response.json();
+      const response = await apiClient.post("/payments/create", request);
+      const data = response.data;
 
       if (!data.success) {
         throw new Error(data.error?.message || "Payment creation failed");
@@ -242,8 +235,8 @@ export const usePaymentStore = defineStore("payment", () => {
     try {
       state.value.loading.status = true;
 
-      const response = await fetch(`/api/payments/status/${transactionId}`);
-      const data = await response.json();
+      const response = await apiClient.get(`/payments/status/${transactionId}`);
+      const data = response.data;
 
       if (!data.success) {
         throw new Error("Failed to get payment status");
@@ -280,19 +273,12 @@ export const usePaymentStore = defineStore("payment", () => {
     reason?: string,
   ) => {
     try {
-      const response = await fetch("/api/payments/refund", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          transactionId,
-          amount,
-          reason,
-        }),
+      const response = await apiClient.post("/payments/refund", {
+        transactionId,
+        amount,
+        reason,
       });
-
-      const data = await response.json();
+      const data = response.data;
 
       if (!data.success) {
         throw new Error(data.error?.message || "Refund failed");
@@ -314,8 +300,8 @@ export const usePaymentStore = defineStore("payment", () => {
     try {
       state.value.loading.methods = true;
 
-      const response = await fetch(`/api/payments/methods/${country}`);
-      const data = await response.json();
+      const response = await apiClient.get(`/payments/methods/${country}`);
+      const data = response.data;
 
       if (data.success) {
         state.value.availableMethods[country] = data.data.supportedMethods;
