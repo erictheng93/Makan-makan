@@ -411,7 +411,10 @@ app.post(
     });
 
     // Security: Verify restaurant access if user has restaurant constraints
-    if (user.restaurantId && user.restaurantId !== data.restaurantId) {
+    if (
+      user.restaurantId != null &&
+      String(user.restaurantId) !== data.restaurantId
+    ) {
       throw forbidden("Access denied to this restaurant");
     }
 

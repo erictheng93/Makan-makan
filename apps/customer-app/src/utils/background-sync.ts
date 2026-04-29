@@ -94,16 +94,28 @@ class CustomerBackgroundSyncService {
     try {
       console.log(`[Background Sync] Syncing order ${order.id}`);
 
-      const result = await apiClient.post<any>("/orders", {
-        restaurant_id: order.restaurant_id,
-        table_id: order.table_id,
-        items: order.items,
-        customer_info: order.customer_info,
-        total_amount: order.total_amount,
-        offline_order_id: order.id,
-        created_at: order.created_at,
+      const result = await apiClient.post<{
+        id?: string | number;
+        orderId?: string | number;
+        order_id?: string | number;
+      }>("/orders", {
+        restaurantId: order.restaurant_id,
+        tableId: order.table_id,
+        customerName: order.customer_info.name,
+        customerPhone: order.customer_info.phone,
+        customerEmail: order.customer_info.email,
+        customerInfo: order.customer_info,
+        items: order.items.map((item) => ({
+          menuItemId: item.menu_item_id,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          notes: item.special_instructions,
+        })),
+        notes: `Offline order ${order.id}`,
       });
-      const onlineOrderId = String(result?.order_id ?? result?.id ?? order.id);
+      const onlineOrderId = String(
+        result?.orderId ?? result?.order_id ?? result?.id ?? order.id,
+      );
 
       console.log(
         `[Background Sync] Order ${order.id} synced successfully as ${onlineOrderId}`,
