@@ -65,6 +65,19 @@ async function updateLegacyItemStatus(
   const restaurantId =
     user.restaurantId !== undefined ? String(user.restaurantId) : "";
 
+  // Surface usage of the deprecated path so we can confirm queues have drained
+  // before removing it. Keep the canonical route in the message so anyone
+  // grepping logs lands on the migration target.
+  console.warn("[deprecated-route] kitchen legacy item status hit", {
+    path: c.req.path,
+    canonical:
+      "PUT /api/v1/kitchen/:restaurantId/orders/:orderId/items/:itemId",
+    status,
+    userId: user?.id,
+    restaurantId,
+    removeAfter: "2026-07-01",
+  });
+
   if (!restaurantId) {
     throw forbidden(
       "Access denied. Restaurant permission required.",
@@ -148,8 +161,15 @@ app.put(
 );
 
 /**
- * Legacy offline-sync compatibility endpoint.
- * POST /api/v1/kitchen/{orderId}/items/{itemId}/start
+ * @deprecated Compatibility shim for offline queues that captured the pre-2026-04
+ * URL shape before the canonical PUT route landed. Drains pending writes from
+ * kitchen-display devices that were offline across the migration.
+ *
+ * Canonical route: PUT /api/v1/kitchen/:restaurantId/orders/:orderId/items/:itemId
+ * Remove after: 2026-07-01 (verify no [deprecated-route] warnings in the
+ *   preceding 14 days before deletion).
+ *
+ * POST /api/v1/kitchen/:orderId/items/:itemId/start
  */
 app.post(
   "/:orderId/items/:itemId/start",
@@ -159,8 +179,9 @@ app.post(
 );
 
 /**
- * Legacy offline-sync compatibility endpoint.
- * POST /api/v1/kitchen/{orderId}/items/{itemId}/ready
+ * @deprecated See sibling /start route above. Same removal plan.
+ *
+ * POST /api/v1/kitchen/:orderId/items/:itemId/ready
  */
 app.post(
   "/:orderId/items/:itemId/ready",
