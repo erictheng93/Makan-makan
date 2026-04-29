@@ -85,14 +85,37 @@ export function usePolling<T>(
   };
 }
 
+function buildRestaurantScopedUrl(
+  path: string,
+  restaurantId: string | number | null | undefined,
+  params: Record<string, string | number | boolean> = {},
+): string | null {
+  if (!restaurantId) {
+    return null;
+  }
+
+  const searchParams = new URLSearchParams(
+    Object.entries({
+      ...params,
+      restaurantId,
+    }).map(([key, value]) => [key, String(value)]),
+  );
+
+  return `${path}?${searchParams.toString()}`;
+}
+
 // Specific polling composables for common use cases
 export function useOrderPolling(interval: number = 10000) {
   const authStore = useAuthStore();
 
   return usePolling(async () => {
-    const response = await api.get(
-      `/orders?restaurant_id=${authStore.restaurantId}&status=pending,confirmed,preparing`,
-    );
+    const path = buildRestaurantScopedUrl("/orders", authStore.restaurantId, {
+      status: "pending,confirmed,preparing",
+    });
+
+    if (!path) return [];
+
+    const response = await api.get(path);
     return response.data.data;
   }, interval);
 }
@@ -101,9 +124,14 @@ export function useDashboardPolling(interval: number = 30000) {
   const authStore = useAuthStore();
 
   return usePolling(async () => {
-    const response = await api.get(
-      `/analytics/dashboard?restaurant_id=${authStore.restaurantId}`,
+    const path = buildRestaurantScopedUrl(
+      "/analytics/dashboard",
+      authStore.restaurantId,
     );
+
+    if (!path) return null;
+
+    const response = await api.get(path);
     return response.data.data;
   }, interval);
 }
