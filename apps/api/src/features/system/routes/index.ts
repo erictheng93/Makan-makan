@@ -18,6 +18,101 @@ import type { ISystemService } from "../types";
 
 // Create feature router
 const routes = new Hono<{ Bindings: Env }>();
+const systemTelemetrySchema = z.object({}).passthrough();
+
+function createTelemetryId(payload: Record<string, unknown>): string {
+  for (const key of ["report_id", "reportId", "sync_id", "syncId", "id"]) {
+    const value = payload[key];
+    if (typeof value === "string" && value.trim()) {
+      return encodeURIComponent(value);
+    }
+  }
+  return `${Date.now()}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function getOptionalPrimitive(value: unknown): string | number | undefined {
+  return typeof value === "string" || typeof value === "number"
+    ? value
+    : undefined;
+}
+
+function toSystemErrorType(value: unknown) {
+  switch (value) {
+    case "network":
+    case "validation":
+      return value;
+    case "api":
+    case "sse":
+    case "permission":
+      return value;
+    case "authentication":
+      return "permission";
+    default:
+      return "unknown";
+  }
+}
+
+function toSystemErrorSeverity(value: unknown) {
+  switch (value) {
+    case "low":
+    case "medium":
+    case "high":
+    case "critical":
+      return value;
+    default:
+      return "low";
+  }
+}
+
+function toIsoTimestamp(value: unknown): string {
+  const date =
+    typeof value === "number" || typeof value === "string"
+      ? new Date(value)
+      : new Date();
+
+  return Number.isNaN(date.getTime())
+    ? new Date().toISOString()
+    : date.toISOString();
+}
+
+function normalizeLegacyError(
+  raw: unknown,
+  fallbackUserAgent?: string,
+): z.infer<typeof errorReportSchema>["errors"][number] {
+  const input = isRecord(raw) ? raw : {};
+  const context = isRecord(input.context) ? input.context : {};
+  const contextUser = isRecord(context.user) ? context.user : {};
+  const contextExtra = isRecord(context.extra) ? context.extra : {};
+
+  return {
+    type: toSystemErrorType(input.category ?? input.type),
+    severity: toSystemErrorSeverity(input.severity),
+    code: getOptionalPrimitive(input.code),
+    message:
+      getString(input.message) ??
+      getString(input.name) ??
+      "Unknown client error",
+    originalError: input,
+    context,
+    timestamp: toIsoTimestamp(input.timestamp),
+    userAgent: getString(input.userAgent) ?? fallbackUserAgent,
+    url: getString(input.url) ?? getString(context.url) ?? "",
+    userId:
+      getOptionalPrimitive(input.userId) ??
+      getOptionalPrimitive(contextUser.id),
+    restaurantId:
+      getOptionalPrimitive(input.restaurantId) ??
+      getOptionalPrimitive(contextExtra.restaurantId),
+  };
+}
 
 /**
  * Error reporting endpoint
@@ -46,6 +141,90 @@ routes.post(
     );
 
     return c.json(result);
+  },
+);
+
+/**
+ * Legacy client error reporting compatibility endpoint
+ * POST /api/v1/system/errors
+ */
+routes.post(
+  "/errors",
+  authMiddleware,
+  validateBody(systemTelemetrySchema),
+  async (c) => {
+    const payload = c.get("validatedBody") as Record<string, unknown>;
+    const user = c.get("user");
+    const userAgent = c.req.header("User-Agent");
+    const rawErrors = Array.isArray(payload.errors)
+      ? payload.errors
+      : [payload];
+    const errors = rawErrors.map((error) =>
+      normalizeLegacyError(error, userAgent),
+    );
+
+    const systemService: ISystemService = new SystemService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+
+    const result = await systemService.createErrorReport(
+      { errors },
+      user.id,
+      user.restaurantId == null ? null : String(user.restaurantId),
+      userAgent,
+    );
+
+    return c.json(result);
+  },
+);
+
+/**
+ * Client performance telemetry compatibility endpoint
+ * POST /api/v1/system/performance
+ */
+routes.post(
+  "/performance",
+  authMiddleware,
+  validateBody(systemTelemetrySchema),
+  async (c) => {
+    const payload = c.get("validatedBody") as Record<string, unknown>;
+    const user = c.get("user");
+    const now = new Date().toISOString();
+    const reportId = createTelemetryId(payload);
+    const restaurantId =
+      user.restaurantId == null ? "global" : String(user.restaurantId);
+    const scope = encodeURIComponent(restaurantId);
+    const record = {
+      userId: user.id,
+      restaurantId:
+        user.restaurantId == null ? null : String(user.restaurantId),
+      payload,
+      userAgent: c.req.header("User-Agent") ?? null,
+      receivedAt: now,
+    };
+
+    await c.env.CACHE_KV.put(
+      `system:performance:${scope}:${user.id}:${reportId}`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+    await c.env.CACHE_KV.put(
+      `system:performance:${scope}:${user.id}:latest`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        reportId,
+        stored: true,
+        restaurantId: record.restaurantId,
+        receivedAt: now,
+      },
+    });
   },
 );
 
