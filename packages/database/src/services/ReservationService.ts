@@ -1,7 +1,8 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, type SQL } from "drizzle-orm";
 import { BaseService } from "./base";
 import { reservations } from "../schema/reservations";
 import type { NewReservation } from "../schema/reservations";
+import { tables } from "../schema/tables";
 import type {
   Reservation,
   ReservationStatus,
@@ -204,109 +205,90 @@ export class ReservationService extends BaseService {
     filters: ReservationFilters,
   ): Promise<{ data: ReservationResponse[]; total: number }> {
     try {
-      let whereClause = "1=1";
-      const params: any[] = [];
+      const conditions: SQL[] = [];
 
-      // 建構 WHERE 條件
-      if (filters.restaurantId) {
-        whereClause += " AND r.restaurant_id = ?";
-        params.push(filters.restaurantId);
-      }
-
-      if (filters.customerId) {
-        whereClause += " AND r.customer_id = ?";
-        params.push(filters.customerId);
-      }
-
-      if (filters.customerPhone) {
-        whereClause += " AND r.customer_phone = ?";
-        params.push(filters.customerPhone);
-      }
-
+      if (filters.restaurantId)
+        conditions.push(
+          sql`${reservations.restaurantId} = ${filters.restaurantId}`,
+        );
+      if (filters.customerId)
+        conditions.push(
+          sql`${reservations.customerId} = ${filters.customerId}`,
+        );
+      if (filters.customerPhone)
+        conditions.push(
+          sql`${reservations.customerPhone} = ${filters.customerPhone}`,
+        );
       if (filters.status) {
         if (Array.isArray(filters.status)) {
-          whereClause += ` AND r.status IN (${filters.status.map(() => "?").join(",")})`;
-          params.push(...filters.status);
+          const list = sql.join(
+            filters.status.map((s) => sql`${s}`),
+            sql`, `,
+          );
+          conditions.push(sql`${reservations.status} IN (${list})`);
         } else {
-          whereClause += " AND r.status = ?";
-          params.push(filters.status);
+          conditions.push(sql`${reservations.status} = ${filters.status}`);
         }
       }
+      if (filters.reservationDate)
+        conditions.push(
+          sql`${reservations.reservationDate} = ${filters.reservationDate}`,
+        );
+      if (filters.startDate && filters.endDate)
+        conditions.push(
+          sql`${reservations.reservationDate} BETWEEN ${filters.startDate} AND ${filters.endDate}`,
+        );
+      if (filters.tableId)
+        conditions.push(sql`${reservations.tableId} = ${filters.tableId}`);
+      if (filters.confirmationCode)
+        conditions.push(
+          sql`${reservations.confirmationCode} = ${filters.confirmationCode}`,
+        );
 
-      if (filters.reservationDate) {
-        whereClause += " AND r.reservation_date = ?";
-        params.push(filters.reservationDate);
-      }
+      const whereExpr =
+        conditions.length > 0 ? sql.join(conditions, sql` AND `) : sql`1 = 1`;
 
-      if (filters.startDate && filters.endDate) {
-        whereClause += " AND r.reservation_date BETWEEN ? AND ?";
-        params.push(filters.startDate, filters.endDate);
-      }
+      // Allowlist: maps the public sortBy keys (and the historical snake_case
+      // default that older callers pass) to schema columns. Anything outside
+      // this map silently falls back to created_at — never interpolated.
+      const sortColMap = {
+        createdAt: reservations.createdAt,
+        created_at: reservations.createdAt,
+        reservationDate: reservations.reservationDate,
+        reservation_date: reservations.reservationDate,
+        reservationTime: reservations.reservationTime,
+        reservation_time: reservations.reservationTime,
+      } as const;
+      const sortKey = (filters.sortBy ??
+        "createdAt") as keyof typeof sortColMap;
+      const sortCol = sortColMap[sortKey] ?? reservations.createdAt;
+      const sortDir = filters.sortOrder === "asc" ? sql`ASC` : sql`DESC`;
 
-      if (filters.tableId) {
-        whereClause += " AND r.table_id = ?";
-        params.push(filters.tableId);
-      }
-
-      if (filters.confirmationCode) {
-        whereClause += " AND r.confirmation_code = ?";
-        params.push(filters.confirmationCode);
-      }
-
-      // 排序
-      const sortBy = filters.sortBy || "created_at";
-      const sortOrder = filters.sortOrder || "desc";
-      const orderClause = `ORDER BY r.${sortBy} ${sortOrder.toUpperCase()}`;
-
-      // 分頁
       const page = filters.page || 1;
       const limit = filters.limit || 20;
       const offset = (page - 1) * limit;
 
-      // 替換參數占位符為實際值（安全轉義）
-      const replaceParams = (sqlStr: string, paramArray: any[]): string => {
-        let paramIndex = 0;
-        return sqlStr.replace(/\?/g, () => {
-          const param = paramArray[paramIndex++];
-          if (param === null || param === undefined) return "NULL";
-          if (typeof param === "number") return String(param);
-          if (typeof param === "string")
-            return `'${param.replace(/'/g, "''")}'`;
-          return `'${String(param).replace(/'/g, "''")}'`;
-        });
-      };
+      const countRow = await this.db.get<{ total: number }>(sql`
+        SELECT COUNT(*) as total FROM ${reservations} WHERE ${whereExpr}
+      `);
+      const total = countRow?.total ?? 0;
 
-      // 查詢總數 (use raw D1 for complex dynamic SQL)
-      const countSql = replaceParams(
-        `SELECT COUNT(*) as total FROM reservations r WHERE ${whereClause}`,
-        params,
-      );
-      const countResult = await this.d1
-        .prepare(countSql)
-        .first<{ total: number }>();
+      const rows = (await this.db.all(sql`
+        SELECT
+          ${reservations}.*,
+          json_object(
+            'id', ${tables}.id,
+            'number', ${tables}.number,
+            'capacity', ${tables}.capacity
+          ) as "table"
+        FROM ${reservations}
+        LEFT JOIN ${tables} ON ${reservations.tableId} = ${tables.id}
+        WHERE ${whereExpr}
+        ORDER BY ${sortCol} ${sortDir}
+        LIMIT ${limit} OFFSET ${offset}
+      `)) as any[];
 
-      const total = countResult?.total || 0;
-
-      // 查詢資料
-      const dataSql = replaceParams(
-        `SELECT
-            r.*,
-            json_object(
-              'id', t.id,
-              'number', t.number,
-              'capacity', t.capacity
-            ) as "table"
-          FROM reservations r
-          LEFT JOIN tables t ON r.table_id = t.id
-          WHERE ${whereClause}
-          ${orderClause}
-          LIMIT ? OFFSET ?`,
-        [...params, limit, offset],
-      );
-      const dataResult = await this.d1.prepare(dataSql).all();
-      const results = (dataResult.results || []) as any[];
-
-      const data = results.map((r) => this.formatReservationResponse(r));
+      const data = rows.map((r) => this.formatReservationResponse(r));
 
       return { data, total };
     } catch (error) {
@@ -799,53 +781,34 @@ export class ReservationService extends BaseService {
     date?: string,
   ): Promise<ReservationStats> {
     try {
-      let whereClause = "restaurant_id = ?";
-      const params = [restaurantId];
+      const conditions: SQL[] = [
+        sql`${reservations.restaurantId} = ${restaurantId}`,
+      ];
+      if (date) conditions.push(sql`${reservations.reservationDate} = ${date}`);
+      const whereExpr = sql.join(conditions, sql` AND `);
 
-      if (date) {
-        whereClause += " AND reservation_date = ?";
-        params.push(date);
-      }
-
-      // 替換參數占位符
-      const replaceParams = (sqlStr: string, paramArray: any[]): string => {
-        let paramIndex = 0;
-        return sqlStr.replace(/\?/g, () => {
-          const param = paramArray[paramIndex++];
-          if (param === null || param === undefined) return "NULL";
-          if (typeof param === "number") return String(param);
-          if (typeof param === "string")
-            return `'${param.replace(/'/g, "''")}'`;
-          return `'${String(param).replace(/'/g, "''")}'`;
-        });
-      };
-
-      const statsSql = replaceParams(
-        `SELECT
-            COUNT(*) as total_reservations,
-            SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count,
-            SUM(CASE WHEN status = 'no_show' THEN 1 ELSE 0 END) as no_show_count,
-            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
-            SUM(party_size) as total_guests,
-            ROUND(CAST(SUM(CASE WHEN status = 'no_show' THEN 1 ELSE 0 END) AS REAL) / NULLIF(COUNT(*), 0) * 100, 2) as no_show_rate,
-            ROUND(CAST(SUM(party_size) AS REAL) / NULLIF(COUNT(*), 0), 2) as avg_party_size
-          FROM reservations
-          WHERE ${whereClause}`,
-        params,
-      );
-      const result = (await this.d1.prepare(statsSql).first()) as
-        | {
-            total_reservations: number;
-            confirmed_count: number;
-            completed_count: number;
-            no_show_count: number;
-            cancelled_count: number;
-            total_guests: number;
-            no_show_rate: number;
-            avg_party_size: number;
-          }
-        | undefined;
+      const result = await this.db.get<{
+        total_reservations: number;
+        confirmed_count: number;
+        completed_count: number;
+        no_show_count: number;
+        cancelled_count: number;
+        total_guests: number;
+        no_show_rate: number;
+        avg_party_size: number;
+      }>(sql`
+        SELECT
+          COUNT(*) as total_reservations,
+          SUM(CASE WHEN ${reservations.status} = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
+          SUM(CASE WHEN ${reservations.status} = 'completed' THEN 1 ELSE 0 END) as completed_count,
+          SUM(CASE WHEN ${reservations.status} = 'no_show' THEN 1 ELSE 0 END) as no_show_count,
+          SUM(CASE WHEN ${reservations.status} = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
+          SUM(${reservations.partySize}) as total_guests,
+          ROUND(CAST(SUM(CASE WHEN ${reservations.status} = 'no_show' THEN 1 ELSE 0 END) AS REAL) / NULLIF(COUNT(*), 0) * 100, 2) as no_show_rate,
+          ROUND(CAST(SUM(${reservations.partySize}) AS REAL) / NULLIF(COUNT(*), 0), 2) as avg_party_size
+        FROM ${reservations}
+        WHERE ${whereExpr}
+      `);
 
       return {
         restaurantId,

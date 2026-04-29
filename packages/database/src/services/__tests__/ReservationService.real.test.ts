@@ -9,6 +9,8 @@
  *
  * Covers:
  *   - updateReservation (Drizzle update builder)
+ *   - listReservations (Drizzle sql template + schema column refs)
+ *   - getReservationStats (Drizzle sql template + schema column refs)
  */
 
 import {
@@ -32,6 +34,7 @@ import type { CloudflareEnv } from "../base";
 vi.unmock("drizzle-orm/d1");
 
 const RESTAURANT_ID = "rest-real-1";
+const OTHER_RESTAURANT_ID = "rest-real-2";
 
 async function seedRestaurant(testDb: TestDatabase, id: string): Promise<void> {
   await testDb.db
@@ -184,5 +187,181 @@ describe("ReservationService.updateReservation — real D1", () => {
     await expect(
       service.updateReservation("does-not-exist", { partySize: 4 }),
     ).rejects.toThrow("訂位不存在");
+  });
+});
+
+describe("ReservationService.listReservations — real D1", () => {
+  it("filters by restaurantId and returns matching rows + total", async () => {
+    await seedRestaurant(testDb, OTHER_RESTAURANT_ID);
+    await seedReservation(testDb, "rsv-list-1", { partySize: 2 });
+    await seedReservation(testDb, "rsv-list-2", { partySize: 3 });
+    await seedReservation(testDb, "rsv-other", {
+      restaurantId: OTHER_RESTAURANT_ID,
+      partySize: 4,
+    });
+
+    const result = await service.listReservations({
+      restaurantId: RESTAURANT_ID,
+    });
+
+    expect(result.total).toBe(2);
+    expect(result.data.map((r) => r.id).sort()).toEqual([
+      "rsv-list-1",
+      "rsv-list-2",
+    ]);
+  });
+
+  it("supports IN-list status filter", async () => {
+    await seedReservation(testDb, "rsv-pending", { status: "pending" });
+    await seedReservation(testDb, "rsv-confirmed", { status: "confirmed" });
+    await seedReservation(testDb, "rsv-cancelled", { status: "cancelled" });
+
+    const result = await service.listReservations({
+      restaurantId: RESTAURANT_ID,
+      status: ["pending", "confirmed"],
+    });
+
+    expect(result.total).toBe(2);
+    expect(new Set(result.data.map((r) => r.status))).toEqual(
+      new Set(["pending", "confirmed"]),
+    );
+  });
+
+  it("supports date range filter and pagination", async () => {
+    await seedReservation(testDb, "rsv-d1", { reservationDate: "2026-05-01" });
+    await seedReservation(testDb, "rsv-d2", { reservationDate: "2026-05-02" });
+    await seedReservation(testDb, "rsv-d3", { reservationDate: "2026-05-10" });
+
+    const result = await service.listReservations({
+      restaurantId: RESTAURANT_ID,
+      startDate: "2026-05-01",
+      endDate: "2026-05-05",
+      page: 1,
+      limit: 10,
+    });
+
+    expect(result.total).toBe(2);
+    expect(result.data.map((r) => r.id).sort()).toEqual(["rsv-d1", "rsv-d2"]);
+  });
+
+  it("stores SQL-injection probes verbatim in customerPhone filter", async () => {
+    // Seed one reservation with the legitimate phone we'll search for and
+    // one row with a benign phone to make sure the filter actually runs.
+    await seedReservation(testDb, "rsv-good", { customerPhone: "0911000000" });
+
+    const malicious = `' OR 1=1; DROP TABLE reservations; --`;
+    const result = await service.listReservations({
+      restaurantId: RESTAURANT_ID,
+      customerPhone: malicious,
+    });
+
+    // Filter should match nothing, NOT bypass via OR-injection.
+    expect(result.total).toBe(0);
+    expect(result.data).toEqual([]);
+
+    // Table must still exist after the malicious filter.
+    const tableExists = await testDb.db
+      .prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='reservations'`,
+      )
+      .first();
+    expect(tableExists).toBeTruthy();
+  });
+
+  it("falls back to created_at when sortBy is unknown (allowlist defends identifier)", async () => {
+    // Different created_at timestamps so DESC ordering is observable.
+    await seedReservation(testDb, "rsv-old", { createdAt: 1000 });
+    await seedReservation(testDb, "rsv-new", { createdAt: 2000 });
+
+    const result = await service.listReservations({
+      restaurantId: RESTAURANT_ID,
+      // Bogus sort key that would have been interpolated literally by the
+      // old `r.${sortBy}` code, breaking the query (or worse, opening
+      // identifier injection). The allowlist drops it back to createdAt.
+      sortBy: "evil; DROP TABLE reservations; --" as any,
+    });
+
+    expect(result.total).toBe(2);
+    expect(result.data.map((r) => r.id)).toEqual(["rsv-new", "rsv-old"]);
+
+    const tableExists = await testDb.db
+      .prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='reservations'`,
+      )
+      .first();
+    expect(tableExists).toBeTruthy();
+  });
+});
+
+describe("ReservationService.getReservationStats — real D1", () => {
+  it("aggregates per-status counts and party_size sum", async () => {
+    await seedReservation(testDb, "rsv-stats-1", {
+      status: "confirmed",
+      partySize: 2,
+    });
+    await seedReservation(testDb, "rsv-stats-2", {
+      status: "completed",
+      partySize: 4,
+    });
+    await seedReservation(testDb, "rsv-stats-3", {
+      status: "no_show",
+      partySize: 3,
+    });
+    await seedReservation(testDb, "rsv-stats-4", {
+      status: "cancelled",
+      partySize: 1,
+    });
+
+    const stats = await service.getReservationStats(RESTAURANT_ID);
+
+    expect(stats.totalReservations).toBe(4);
+    expect(stats.confirmedCount).toBe(1);
+    expect(stats.completedCount).toBe(1);
+    expect(stats.noShowCount).toBe(1);
+    expect(stats.cancelledCount).toBe(1);
+    expect(stats.totalGuests).toBe(10);
+    expect(stats.noShowRate).toBe(25);
+    expect(stats.averagePartySize).toBe(2.5);
+  });
+
+  it("date filter only counts that day", async () => {
+    await seedReservation(testDb, "rsv-day1", {
+      reservationDate: "2026-05-01",
+      partySize: 2,
+    });
+    await seedReservation(testDb, "rsv-day2-a", {
+      reservationDate: "2026-05-02",
+      partySize: 3,
+    });
+    await seedReservation(testDb, "rsv-day2-b", {
+      reservationDate: "2026-05-02",
+      partySize: 5,
+    });
+
+    const stats = await service.getReservationStats(
+      RESTAURANT_ID,
+      "2026-05-02",
+    );
+
+    expect(stats.totalReservations).toBe(2);
+    expect(stats.totalGuests).toBe(8);
+  });
+
+  it("treats restaurantId as a parameter, not concatenated SQL", async () => {
+    await seedReservation(testDb, "rsv-real-stats", { partySize: 2 });
+
+    const malicious = `' OR 1=1; DROP TABLE reservations; --`;
+    const stats = await service.getReservationStats(malicious);
+
+    // No restaurant matches the malicious string → 0 rows aggregated.
+    expect(stats.totalReservations).toBe(0);
+    expect(stats.totalGuests).toBe(0);
+
+    const tableExists = await testDb.db
+      .prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='reservations'`,
+      )
+      .first();
+    expect(tableExists).toBeTruthy();
   });
 });
