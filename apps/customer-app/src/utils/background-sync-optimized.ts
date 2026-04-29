@@ -3,6 +3,8 @@
  * 實現智慧批次同步和優先級管理
  */
 
+import { apiClient } from "@/services/api";
+
 export interface SyncItem {
   id: string;
   type: string;
@@ -225,18 +227,7 @@ export class OptimizedBackgroundSync {
   private async syncOrders(items: SyncItem[]): Promise<void> {
     const orderData = items.map((item) => item.data);
 
-    const response = await fetch("/api/v1/orders/batch-sync", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getAuthToken()}`,
-      },
-      body: JSON.stringify({ orders: orderData }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Orders sync failed: ${response.status}`);
-    }
+    await apiClient.post("/orders/batch-sync", { orders: orderData });
 
     console.log(`📦 Synced ${items.length} orders`);
   }
@@ -247,18 +238,9 @@ export class OptimizedBackgroundSync {
   private async syncPreferences(items: SyncItem[]): Promise<void> {
     const preferencesData = items.map((item) => item.data);
 
-    const response = await fetch("/api/v1/users/preferences/batch-sync", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getAuthToken()}`,
-      },
-      body: JSON.stringify({ preferences: preferencesData }),
+    await apiClient.post("/users/preferences/batch-sync", {
+      preferences: preferencesData,
     });
-
-    if (!response.ok) {
-      throw new Error(`Preferences sync failed: ${response.status}`);
-    }
 
     console.log(`⚙️ Synced ${items.length} preferences`);
   }
@@ -269,18 +251,7 @@ export class OptimizedBackgroundSync {
   private async syncFeedback(items: SyncItem[]): Promise<void> {
     const feedbackData = items.map((item) => item.data);
 
-    const response = await fetch("/api/v1/feedback/batch-sync", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getAuthToken()}`,
-      },
-      body: JSON.stringify({ feedback: feedbackData }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Feedback sync failed: ${response.status}`);
-    }
+    await apiClient.post("/feedback/batch-sync", { feedback: feedbackData });
 
     console.log(`💬 Synced ${items.length} feedback items`);
   }
@@ -291,18 +262,7 @@ export class OptimizedBackgroundSync {
   private async syncAnalytics(items: SyncItem[]): Promise<void> {
     const analyticsData = items.map((item) => item.data);
 
-    const response = await fetch("/api/v1/analytics/batch-sync", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getAuthToken()}`,
-      },
-      body: JSON.stringify({ events: analyticsData }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Analytics sync failed: ${response.status}`);
-    }
+    await apiClient.post("/analytics/batch-sync", { events: analyticsData });
 
     console.log(`📊 Synced ${items.length} analytics events`);
   }
@@ -313,18 +273,7 @@ export class OptimizedBackgroundSync {
   private async syncGeneric(type: string, items: SyncItem[]): Promise<void> {
     const data = items.map((item) => item.data);
 
-    const response = await fetch(`/api/v1/${type}/batch-sync`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getAuthToken()}`,
-      },
-      body: JSON.stringify({ data }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`${type} sync failed: ${response.status}`);
-    }
+    await apiClient.post(`/${type}/batch-sync`, { data });
 
     console.log(`🔄 Synced ${items.length} ${type} items`);
   }
@@ -397,13 +346,6 @@ export class OptimizedBackgroundSync {
 
     // 計算節省的網路請求數 (批次處理節省)
     this.performanceMetrics.networkRequestsSaved += Math.max(0, itemCount - 1);
-  }
-
-  /**
-   * 獲取認證令牌
-   */
-  private getAuthToken(): string {
-    return localStorage.getItem("auth_token") || "";
   }
 
   /**
