@@ -1,5 +1,6 @@
 // Comprehensive system health monitoring and diagnostics service
 import { ref } from "vue";
+import { apiClient } from "./authApi";
 import {
   performanceService,
   type PerformanceMetric,
@@ -806,11 +807,13 @@ class SystemHealthService {
   // Diagnostic test methods
   private async testNetworkConnectivity(): Promise<boolean> {
     try {
-      const response = await fetch("/api/health", {
-        method: "HEAD",
-        cache: "no-cache",
+      const response = await apiClient.instance.get("/system/health", {
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+        validateStatus: () => true,
       });
-      return response.ok;
+      return response.status >= 200 && response.status < 300;
     } catch {
       return navigator.onLine;
     }
