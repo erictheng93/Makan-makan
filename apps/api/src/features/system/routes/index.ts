@@ -83,7 +83,16 @@ function toIsoTimestamp(value: unknown): string {
     : date.toISOString();
 }
 
-function normalizeLegacyError(
+/**
+ * Map a loosely-shaped client error payload onto the strict
+ * ErrorReportItem shape stored by SystemService. Field names that
+ * differ between in-browser trackers and the server schema (category vs
+ * type, name fallback for message, numeric timestamp) are reconciled
+ * here so the loose POST /system/errors endpoint can keep accepting
+ * whatever shape the customer-app / kitchen-display trackers happen
+ * to emit.
+ */
+function normalizeClientError(
   raw: unknown,
   fallbackUserAgent?: string,
 ): z.infer<typeof errorReportSchema>["errors"][number] {
@@ -115,8 +124,12 @@ function normalizeLegacyError(
 }
 
 /**
- * Error reporting endpoint
  * POST /api/v1/system/error-report
+ *
+ * Strict error-reporting endpoint. Body must satisfy errorReportSchema
+ * (`{ errors: ErrorReportItem[] }`). Use this from server-side or
+ * structured callers that already produce the canonical shape; for
+ * loose client-tracker payloads see POST /api/v1/system/errors.
  */
 routes.post(
   "/error-report",
@@ -145,8 +158,17 @@ routes.post(
 );
 
 /**
- * Legacy client error reporting compatibility endpoint
  * POST /api/v1/system/errors
+ *
+ * Loose error-reporting endpoint for browser-side trackers. Accepts
+ * either a single error object or `{ errors: [...] }`, in whatever
+ * field shape the client tracker emits (category/type, numeric or
+ * ISO timestamp, name-as-message fallback). Each entry is funnelled
+ * through normalizeClientError to land in the strict ErrorReportItem
+ * shape the server stores.
+ *
+ * For server-shaped reports that already conform to errorReportSchema,
+ * use POST /api/v1/system/error-report instead.
  */
 routes.post(
   "/errors",
@@ -160,7 +182,7 @@ routes.post(
       ? payload.errors
       : [payload];
     const errors = rawErrors.map((error) =>
-      normalizeLegacyError(error, userAgent),
+      normalizeClientError(error, userAgent),
     );
 
     const systemService: ISystemService = new SystemService(

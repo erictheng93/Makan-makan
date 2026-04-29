@@ -42,7 +42,7 @@ function buildApp(kv = createMockKV()) {
   return { app, kv };
 }
 
-describe("System Compatibility Routes", () => {
+describe("System loose client telemetry routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreateErrorReport.mockResolvedValue({
@@ -98,7 +98,7 @@ describe("System Compatibility Routes", () => {
     );
   });
 
-  it("normalizes legacy tracked errors into system error reports", async () => {
+  it("normalizes loose client tracker errors into system error reports", async () => {
     const { app, kv } = buildApp();
 
     const response = await app.request(
