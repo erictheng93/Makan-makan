@@ -661,7 +661,7 @@ import { Settings, Bell } from "lucide-vue-next";
 import { queueService, type QueueItem } from "@/services/queueService";
 import { useRealtimeQueue } from "@/composables/useRealtimeQueue";
 import { useAuthStore } from "@/stores/auth";
-import { api } from "@/services/api";
+import { api, unwrapApiData } from "@/services/api";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 
@@ -936,7 +936,7 @@ const fetchTables = async () => {
     const response = await api.get("/tables", {
       restaurantId: authStore.user.restaurantId,
     });
-    const data = (response.data as any)?.data;
+    const data = unwrapApiData<unknown[]>(response);
     if (Array.isArray(data)) {
       tables.value = data.map((t: any) => ({
         id: String(t.id),

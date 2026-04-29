@@ -23,6 +23,12 @@ export interface Notification {
   };
 }
 
+type AudioContextConstructor = typeof AudioContext;
+
+interface WindowWithWebkitAudioContext extends Window {
+  webkitAudioContext?: AudioContextConstructor;
+}
+
 export const useNotificationStore = defineStore("notification", () => {
   const notifications = ref<Notification[]>([]);
   const soundEnabled = ref(true);
@@ -93,9 +99,12 @@ export const useNotificationStore = defineStore("notification", () => {
 
   const playNotificationSound = (type: Notification["type"]) => {
     try {
-      const audioContext = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )();
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as WindowWithWebkitAudioContext).webkitAudioContext;
+      if (!AudioContextCtor) return;
+
+      const audioContext = new AudioContextCtor();
 
       // Different frequencies for different notification types
       const frequencies: Record<string, number> = {

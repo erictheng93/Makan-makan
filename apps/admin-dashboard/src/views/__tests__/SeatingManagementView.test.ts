@@ -115,9 +115,23 @@ const mockApi = vi.hoisted(() => ({
   put: vi.fn().mockResolvedValue({ data: { success: true } }),
   delete: vi.fn().mockResolvedValue({ data: { success: true } }),
 }));
-vi.mock("@/services/api", () => ({
-  api: mockApi,
-}));
+vi.mock("@/services/api", () => {
+  const unwrapApiPayload = (payload: unknown) =>
+    typeof payload === "object" && payload !== null && "data" in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+
+  return {
+    api: mockApi,
+    unwrapApiPayload,
+    unwrapApiData: (response: { data: unknown }) =>
+      unwrapApiPayload(response.data),
+    unwrapApiList: (payload: unknown) => {
+      const data = unwrapApiPayload(payload);
+      return Array.isArray(data) ? data : [];
+    },
+  };
+});
 
 // Mock ReservationService
 const mockReservationService = vi.hoisted(() => ({

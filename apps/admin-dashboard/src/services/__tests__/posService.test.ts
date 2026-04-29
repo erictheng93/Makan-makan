@@ -11,6 +11,12 @@ vi.mock("@/services/api", () => ({
     put: vi.fn(),
     delete: vi.fn(),
   },
+  unwrapApiData: vi.fn((response: { data: unknown }) => {
+    const payload = response.data;
+    return typeof payload === "object" && payload !== null && "data" in payload
+      ? payload.data
+      : payload;
+  }),
 }));
 
 import { apiClient } from "@/services/api";

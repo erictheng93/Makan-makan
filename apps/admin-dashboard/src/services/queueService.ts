@@ -1,4 +1,4 @@
-import { apiClient } from "./api";
+import { apiClient, unwrapApiData } from "./api";
 import type { ApiResponse } from "@/types";
 
 // 新模組化類型定義 - 對應 @makanmakan/queue-core 類型
@@ -81,10 +81,6 @@ export interface QueueStats {
   }>;
 }
 
-function unwrapApiData<T = any>(response: any): T {
-  return (response.data as any)?.data ?? response.data;
-}
-
 function toNullableIsoString(value: string | number | null | undefined) {
   if (value == null) return null;
   if (typeof value === "number") return new Date(value).toISOString();
@@ -159,7 +155,7 @@ export const queueService = {
     const response = await apiClient.get(`/queue/${restaurantId}/current`, {
       params,
     });
-    const data = unwrapApiData(response);
+    const data = unwrapApiData<{ queue?: unknown[] }>(response);
     return (data?.queue || []).map(mapQueueItem);
   },
 
@@ -212,7 +208,14 @@ export const queueService = {
     }>
   > {
     const response = await apiClient.get(`/queue/${queueId}/position`);
-    return response.data as any;
+    return response.data as ApiResponse<{
+      queueId: string;
+      queueNumber: number;
+      currentPosition: number;
+      estimatedWaitMinutes: number;
+      status: string;
+      canCancel: boolean;
+    }>;
   },
 
   // 取消候位 - 新模組化實現
@@ -224,7 +227,7 @@ export const queueService = {
     },
   ): Promise<ApiResponse<{}>> {
     const response = await apiClient.post(`/queue/${queueId}/cancel`, data);
-    return response.data as any;
+    return response.data as ApiResponse<{}>;
   },
 
   // 叫號管理 - 使用新 API
@@ -243,9 +246,15 @@ export const queueService = {
       `/queue/${restaurantId}/call-next`,
       data,
     );
-    const payload = response.data as any;
+    const payload = response.data as ApiResponse<unknown>;
+    const error =
+      typeof payload.error === "string"
+        ? payload.error
+        : payload.error?.message;
+
     return {
-      ...payload,
+      success: payload.success,
+      error,
       data: payload.data ? mapQueueItem(payload.data) : undefined,
     };
   },
@@ -258,13 +267,13 @@ export const queueService = {
     },
   ): Promise<ApiResponse<{}>> {
     const response = await apiClient.post(`/queue/${queueId}/seat`, data);
-    return response.data as any;
+    return response.data as ApiResponse<{}>;
   },
 
   // 設定管理 - 使用新 API
   async getSettings(restaurantId: string): Promise<ApiResponse<QueueSettings>> {
     const response = await apiClient.get(`/queue/${restaurantId}/settings`);
-    return response.data as any;
+    return response.data as ApiResponse<QueueSettings>;
   },
 
   async updateSettings(
@@ -275,7 +284,7 @@ export const queueService = {
       `/queue/${restaurantId}/settings`,
       data,
     );
-    return response.data as any;
+    return response.data as ApiResponse<{}>;
   },
 
   // 統計和分析 - 暫時保留舊 API 直到新統計端點實現
@@ -286,7 +295,7 @@ export const queueService = {
     const response = await apiClient.get(`/queue/${restaurantId}/stats`, {
       params: { dateFrom: date, dateTo: date },
     });
-    return (response.data as any).data || response.data;
+    return unwrapApiData<QueueStats>(response);
   },
 
   // 即時狀態 - 使用新 API
@@ -403,7 +412,16 @@ export const queueService = {
     }>
   > {
     const response = await apiClient.get("/queue/performance");
-    return response.data as any;
+    return response.data as ApiResponse<{
+      cacheStats: {
+        totalEntries: number;
+        validEntries: number;
+        expiredEntries: number;
+        hitRate: number;
+        memoryUsage: number;
+      };
+      lastUpdated: string;
+    }>;
   },
 
   async optimizeQueue(restaurantId: string): Promise<
@@ -413,7 +431,10 @@ export const queueService = {
     }>
   > {
     const response = await apiClient.post(`/queue/${restaurantId}/optimize`);
-    return response.data as any;
+    return response.data as ApiResponse<{
+      message: string;
+      timestamp: string;
+    }>;
   },
 };
 

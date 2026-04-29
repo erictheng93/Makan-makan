@@ -77,7 +77,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
-import { api } from "@/services/api";
+import { api, unwrapApiList } from "@/services/api";
 import { Store, ChevronDown } from "lucide-vue-next";
 
 interface RestaurantItem {
@@ -116,10 +116,7 @@ const fetchRestaurants = async () => {
     if (response.data.success && response.data.data) {
       // Handle both direct array and nested {success, data: [...]} response formats
       const payload = response.data.data;
-      const list = Array.isArray(payload)
-        ? payload
-        : ((payload as any)?.data ?? []);
-      restaurants.value = Array.isArray(list) ? list : [];
+      restaurants.value = unwrapApiList<RestaurantItem>(payload);
     }
   } catch (error) {
     console.error("Failed to fetch restaurants:", error);

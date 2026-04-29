@@ -5,7 +5,7 @@
  */
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/i18n";
-import { api } from "@/services/api";
+import { api, unwrapApiPayload } from "@/services/api";
 import type { RealtimeOverview, RoomType } from "@/types/realtime";
 
 // Props
@@ -87,10 +87,7 @@ async function fetchOverview() {
     if (response.data.success && response.data.data) {
       // Defensive: handle double-wrapped cache responses
       const payload = response.data.data;
-      overview.value =
-        payload && typeof payload === "object" && !("success" in payload)
-          ? payload
-          : ((payload as any)?.data ?? payload);
+      overview.value = unwrapApiPayload<RealtimeOverview>(payload);
       lastRefresh.value = new Date();
       emit("refresh");
     } else {

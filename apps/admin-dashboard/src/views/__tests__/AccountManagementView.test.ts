@@ -60,12 +60,26 @@ vi.mock("vue-toastification", () => ({
 const mockApiGet = vi.fn();
 const mockApiPost = vi.fn();
 
-vi.mock("@/services/api", () => ({
-  api: {
-    get: (...args: any[]) => mockApiGet(...args),
-    post: (...args: any[]) => mockApiPost(...args),
-  },
-}));
+vi.mock("@/services/api", () => {
+  const unwrapApiPayload = (payload: unknown) =>
+    typeof payload === "object" && payload !== null && "data" in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+
+  return {
+    api: {
+      get: (...args: any[]) => mockApiGet(...args),
+      post: (...args: any[]) => mockApiPost(...args),
+    },
+    unwrapApiPayload,
+    unwrapApiData: (response: { data: unknown }) =>
+      unwrapApiPayload(response.data),
+    unwrapApiList: (payload: unknown) => {
+      const data = unwrapApiPayload(payload);
+      return Array.isArray(data) ? data : [];
+    },
+  };
+});
 
 // ──── Component import ────
 import AccountManagementView from "../AccountManagementView.vue";

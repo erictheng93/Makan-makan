@@ -24,7 +24,7 @@ export type {
   StorageProvider,
 } from "@makanmakan/shared-types";
 // Import the actual API client
-import { apiClient } from "@/services/api";
+import { apiClient, unwrapApiData } from "@/services/api";
 
 export const useBackupStore = defineStore("backup", () => {
   // State
@@ -40,7 +40,7 @@ export const useBackupStore = defineStore("backup", () => {
   ): Promise<CreateBackupResponse> => {
     try {
       const response = await apiClient.post("/backup/create", request);
-      return (response.data as any).data as CreateBackupResponse;
+      return unwrapApiData<CreateBackupResponse>(response);
     } catch (error) {
       console.error("Error creating backup:", error);
       throw error;
@@ -52,7 +52,7 @@ export const useBackupStore = defineStore("backup", () => {
       const response = await apiClient.get("/backup/list", {
         params: query,
       });
-      return (response.data as any).data || [];
+      return unwrapApiData<BackupRecord[]>(response) ?? [];
     } catch (error) {
       console.error("Error listing backups:", error);
       throw error;
@@ -62,7 +62,7 @@ export const useBackupStore = defineStore("backup", () => {
   const getBackup = async (backupId: string): Promise<BackupRecord> => {
     try {
       const response = await apiClient.get(`/backup/${backupId}`);
-      return (response.data as any).data as BackupRecord;
+      return unwrapApiData<BackupRecord>(response);
     } catch (error) {
       console.error("Error getting backup:", error);
       throw error;
@@ -71,12 +71,15 @@ export const useBackupStore = defineStore("backup", () => {
 
   const downloadBackup = async (backupId: string): Promise<void> => {
     try {
-      const response = await apiClient.get(`/backup/${backupId}/download`, {
-        responseType: "blob",
-      });
+      const response = await apiClient.instance.get<BlobPart>(
+        `/backup/${backupId}/download`,
+        {
+          responseType: "blob",
+        },
+      );
 
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data as any]));
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
 
@@ -105,7 +108,11 @@ export const useBackupStore = defineStore("backup", () => {
         `/backup/${request.backup_id}/restore`,
         request,
       );
-      return (response.data as any).data?.restore_id;
+      const restore = unwrapApiData<{ restore_id?: string }>(response);
+      if (!restore.restore_id) {
+        throw new Error("Restore response missing restore_id");
+      }
+      return restore.restore_id;
     } catch (error) {
       console.error("Error restoring backup:", error);
       throw error;
@@ -129,8 +136,9 @@ export const useBackupStore = defineStore("backup", () => {
       const response = await apiClient.get(
         `/backup/configurations/${restaurantId}`,
       );
-      configurations.value = (response.data as any).data;
-      return (response.data as any).data;
+      const data = unwrapApiData<BackupConfiguration[]>(response);
+      configurations.value = data;
+      return data;
     } catch (error) {
       console.error("Error getting backup configurations:", error);
       throw error;
@@ -147,7 +155,7 @@ export const useBackupStore = defineStore("backup", () => {
       const index = configurations.value.findIndex(
         (c: BackupConfiguration) => c.id === config.id,
       );
-      const configData = (response.data as any).data;
+      const configData = unwrapApiData<BackupConfiguration>(response);
       if (index >= 0) {
         configurations.value[index] = configData;
       } else {
@@ -165,8 +173,9 @@ export const useBackupStore = defineStore("backup", () => {
   const getSystemHealth = async (): Promise<BackupSystemHealth> => {
     try {
       const response = await apiClient.get("/backup/system/health");
-      systemHealth.value = (response.data as any).data;
-      return (response.data as any).data;
+      const data = unwrapApiData<BackupSystemHealth>(response);
+      systemHealth.value = data;
+      return data;
     } catch (error) {
       console.error("Error getting system health:", error);
       throw error;
@@ -184,7 +193,7 @@ export const useBackupStore = defineStore("backup", () => {
           params: { period },
         },
       );
-      return (response.data as any).data;
+      return unwrapApiData<Record<string, unknown>>(response);
     } catch (error) {
       console.error("Error getting restaurant metrics:", error);
       throw error;
@@ -199,8 +208,9 @@ export const useBackupStore = defineStore("backup", () => {
       const response = await apiClient.get(`/backup/alerts/${restaurantId}`, {
         params: { unresolved_only },
       });
-      alerts.value = (response.data as any).data;
-      return (response.data as any).data;
+      const data = unwrapApiData<BackupAlert[]>(response);
+      alerts.value = data;
+      return data;
     } catch (error) {
       console.error("Error getting restaurant alerts:", error);
       throw error;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
@@ -24,7 +24,17 @@ const authStore = useAuthStore();
 const { getTrafficDrivers, getBestsellers, getProfitLeaders } =
   useAIAnalytics();
 
-const activeTab = ref<"traffic" | "bestsellers" | "profit">("traffic");
+type ProductAnalyticsTabId = "traffic" | "bestsellers" | "profit";
+
+interface ProductAnalyticsTab {
+  id: ProductAnalyticsTabId;
+  label: string;
+  icon: Component;
+  description: string;
+  color: "indigo" | "orange" | "green";
+}
+
+const activeTab = ref<ProductAnalyticsTabId>("traffic");
 const selectedTimeRange = ref("30d");
 const isRefreshing = ref(false);
 const errorMessage = ref<string | null>(null);
@@ -44,7 +54,7 @@ const timeRangeOptions = computed(() => [
 ]);
 
 // Tab configurations
-const tabs = computed(() => [
+const tabs = computed<ProductAnalyticsTab[]>(() => [
   {
     id: "traffic",
     label: t("productAnalytics.trafficDrivers"),
@@ -230,7 +240,7 @@ const getTrendColor = (trend: number) => {
                   '-600'
                 : 'hover:bg-gray-50'
             "
-            @click="activeTab = tab.id as any"
+            @click="activeTab = tab.id"
           >
             <component
               :is="tab.icon"

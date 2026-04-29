@@ -686,10 +686,19 @@ import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { ReservationService } from "@/services/reservationService";
-import type {
-  Reservation,
-  CreateReservationRequest,
+import {
+  ReservationStatus,
+  type Reservation,
+  type CreateReservationRequest,
 } from "@makanmakan/shared-types";
+
+type ReservationFilterStatus = "" | ReservationStatus;
+
+interface ReservationFiltersState {
+  date: string;
+  status: ReservationFilterStatus;
+  phone: string;
+}
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -705,7 +714,7 @@ const reservations = ref<Reservation[]>([]);
 const selectedReservation = ref<Reservation | null>(null);
 
 // Filters
-const filters = reactive({
+const filters = reactive<ReservationFiltersState>({
   date: "",
   status: "",
   phone: "",
@@ -743,7 +752,7 @@ async function loadReservations() {
     const response = await ReservationService.listReservations({
       restaurantId: restaurantId.value,
       reservationDate: filters.date || undefined,
-      status: (filters.status as any) || undefined,
+      status: filters.status || undefined,
       customerPhone: filters.phone || undefined,
       page: pagination.page,
       limit: pagination.limit,

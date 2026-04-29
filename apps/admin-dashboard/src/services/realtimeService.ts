@@ -1,6 +1,6 @@
 // Real-time service using Server-Sent Events (SSE) and WebSocket fallback
 import { ref } from "vue";
-import { apiClient } from "./api";
+import { apiClient, unwrapApiData } from "./api";
 
 export interface SSEMessage {
   id: string;
@@ -364,8 +364,12 @@ class RealtimeService {
   async getServerTime(): Promise<Date> {
     try {
       const response = await apiClient.get("/sse/time");
-      const data = response.data as any;
-      return new Date(data.timestamp);
+      const data = unwrapApiData<{ timestamp?: string | number | Date }>(
+        response,
+      );
+      const serverTime =
+        data.timestamp === undefined ? new Date() : new Date(data.timestamp);
+      return Number.isNaN(serverTime.getTime()) ? new Date() : serverTime;
     } catch {
       return new Date(); // 退回到客戶端時間
     }
@@ -428,7 +432,12 @@ class RealtimeService {
   }> {
     try {
       const response = await apiClient.get(`/sse/group/${groupOrderId}/health`);
-      return response.data as any;
+      return unwrapApiData<{
+        connected: boolean;
+        memberCount: number;
+        activeMembers: number;
+        lastActivity: number;
+      }>(response);
     } catch (error) {
       console.error("Failed to check group connection health:", error);
       return {

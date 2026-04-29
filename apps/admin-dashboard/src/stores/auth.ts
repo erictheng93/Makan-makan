@@ -1,9 +1,12 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
+import type { AxiosRequestConfig } from "axios";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { api, authClient } from "@/services/api";
 import { t } from "@/i18n";
+
+type RetryableAxiosRequestConfig = AxiosRequestConfig & { _retry?: boolean };
 
 // Hydrate user from localStorage for instant restore on refresh
 const hydrateUser = (): User | null => {
@@ -307,12 +310,17 @@ export const useAuthStore = defineStore("auth", () => {
       try {
         // Use the shared axios instance but skip the 401 refresh interceptor
         // for the refresh call itself.
-        const response = await authClient.instance.post("/auth/refresh", {}, {
+        const refreshConfig: RetryableAxiosRequestConfig = {
           headers: {
             "X-Refresh-Token": rt,
           },
           _retry: true,
-        } as any);
+        };
+        const response = await authClient.instance.post(
+          "/auth/refresh",
+          {},
+          refreshConfig,
+        );
         const data = response.data;
 
         if (data.success && data.data) {

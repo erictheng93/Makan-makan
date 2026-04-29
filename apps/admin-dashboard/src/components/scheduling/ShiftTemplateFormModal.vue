@@ -483,7 +483,7 @@ const resetForm = () => {
     form.value = {
       name: props.template.name,
       description: props.template.description || "",
-      shiftType: props.template.shiftType as any,
+      shiftType: props.template.shiftType,
       startTime: props.template.startTime,
       endTime: props.template.endTime,
       isSplitShift: props.template.isSplitShift,

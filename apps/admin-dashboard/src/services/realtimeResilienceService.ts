@@ -78,6 +78,17 @@ export interface RecoveryStrategy {
   maxAttempts: number;
 }
 
+interface NetworkInformationLike extends EventTarget {
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
+  saveData?: boolean;
+}
+
+interface NavigatorWithConnection extends Navigator {
+  connection?: NetworkInformationLike;
+}
+
 class RealtimeResilienceService {
   // 狀態管理
   private connectionState = ref<ConnectionState>({
@@ -150,9 +161,8 @@ class RealtimeResilienceService {
    */
   private setupNetworkMonitoring(): void {
     // 監控網絡質量
-    if ("connection" in navigator) {
-      const connection = (navigator as any).connection;
-
+    const connection = (navigator as NavigatorWithConnection).connection;
+    if (connection) {
       const updateNetworkInfo = () => {
         this.networkHealth.value = {
           isOnline: navigator.onLine,
@@ -253,7 +263,8 @@ class RealtimeResilienceService {
     // 更新狀態
     if (realtimeStatus.value !== state.status) {
       const previousStatus = state.status;
-      state.status = realtimeStatus.value as any;
+      state.status =
+        realtimeStatus.value === "error" ? "failed" : realtimeStatus.value;
 
       // 處理狀態變化
       this.handleConnectionStateChange(previousStatus, state.status);

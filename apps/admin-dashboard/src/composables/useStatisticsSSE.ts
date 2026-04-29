@@ -191,11 +191,14 @@ export function useStatisticsSSE(
     }
   };
 
-  const handleSSEEvent = (event: MessageEvent, eventType: string) => {
+  const handleSSEEvent = (
+    event: MessageEvent,
+    eventType: StatisticsSSEEvent["type"],
+  ) => {
     try {
       const data = event.data ? JSON.parse(event.data) : null;
       const message: StatisticsSSEEvent = {
-        type: eventType as any,
+        type: eventType,
         data,
         timestamp: new Date().toISOString(),
         id: event.lastEventId,

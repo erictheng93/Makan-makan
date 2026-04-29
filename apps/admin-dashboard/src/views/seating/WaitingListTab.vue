@@ -783,12 +783,27 @@ import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { WaitingListService } from "@/services/waitingListService";
 import { format } from "date-fns";
-import type {
-  WaitingListEntry,
-  JoinWaitingListRequest,
-  QueueStatus,
-  WaitTimeEstimateResult,
+import {
+  WaitingStatus,
+  type WaitingListEntry,
+  type JoinWaitingListRequest,
+  type QueueStatus,
+  type WaitTimeEstimateResult,
 } from "@makanmakan/shared-types";
+
+type WaitingFilterStatus = "" | WaitingStatus;
+
+interface WaitingFiltersState {
+  status: WaitingFilterStatus;
+  phone: string;
+}
+
+interface WaitingListResponseWithPagination {
+  data?: WaitingListEntry[];
+  pagination?: {
+    total?: number;
+  };
+}
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -810,7 +825,7 @@ const estimatedWait = ref<WaitTimeEstimateResult | null>(null);
 const availableTables = ref<any[]>([]);
 
 // Filters
-const filters = reactive({
+const filters = reactive<WaitingFiltersState>({
   status: "",
   phone: "",
 });
@@ -845,18 +860,18 @@ const restaurantId = computed(() => authStore.restaurantId || "");
 async function loadWaitingList() {
   loading.value = true;
   try {
-    const response = await WaitingListService.listWaitingList({
-      restaurantId: restaurantId.value,
-      status: (filters.status as any) || undefined,
-      customerPhone: filters.phone || undefined,
-      page: pagination.page,
-      limit: pagination.limit,
-    });
+    const response: WaitingListResponseWithPagination =
+      await WaitingListService.listWaitingList({
+        restaurantId: restaurantId.value,
+        status: filters.status || undefined,
+        customerPhone: filters.phone || undefined,
+        page: pagination.page,
+        limit: pagination.limit,
+      });
 
     // API returns { success, data: [...], pagination: {...} }
     waitingList.value = response.data ?? [];
-    const pag = (response as any).pagination;
-    pagination.total = pag?.total ?? waitingList.value.length;
+    pagination.total = response.pagination?.total ?? waitingList.value.length;
   } catch (error) {
     console.error("Load waiting list error:", error);
     toast.error(t("waitingList.loadError"));

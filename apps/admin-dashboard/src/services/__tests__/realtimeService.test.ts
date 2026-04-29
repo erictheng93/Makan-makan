@@ -13,6 +13,12 @@ const { mockApiClient } = vi.hoisted(() => ({
 
 vi.mock("../api", () => ({
   apiClient: mockApiClient,
+  unwrapApiData: vi.fn((response: { data: unknown }) => {
+    const payload = response.data;
+    return typeof payload === "object" && payload !== null && "data" in payload
+      ? payload.data
+      : payload;
+  }),
 }));
 
 // We test the class + useRealtime composable + REALTIME_EVENTS constants

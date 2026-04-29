@@ -9,7 +9,7 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-vue-next";
-import { api } from "@/services/api";
+import { api, unwrapApiList } from "@/services/api";
 import type { Restaurant, PlatformUser } from "@/types";
 import { UserRole } from "@/types";
 
@@ -144,11 +144,7 @@ async function fetchRestaurants() {
     const response = await api.get<Restaurant[]>("/restaurants");
     if (response.data?.success && response.data.data) {
       const payload = response.data.data;
-      restaurants.value = Array.isArray(payload)
-        ? payload
-        : Array.isArray((payload as any)?.data)
-          ? (payload as any).data
-          : [];
+      restaurants.value = unwrapApiList<Restaurant>(payload);
     }
   } catch (e) {
     console.error("Failed to fetch restaurants:", e);
@@ -163,11 +159,7 @@ async function fetchOwners() {
     });
     if (response.data?.success && response.data.data) {
       const payload = response.data.data;
-      owners.value = Array.isArray(payload)
-        ? payload
-        : Array.isArray((payload as any)?.data)
-          ? (payload as any).data
-          : [];
+      owners.value = unwrapApiList<PlatformUser>(payload);
     }
   } catch (e) {
     console.error("Failed to fetch owners:", e);
@@ -184,11 +176,7 @@ async function fetchAdmins() {
     });
     if (response.data?.success && response.data.data) {
       const payload = response.data.data;
-      admins.value = Array.isArray(payload)
-        ? payload
-        : Array.isArray((payload as any)?.data)
-          ? (payload as any).data
-          : [];
+      admins.value = unwrapApiList<PlatformUser>(payload);
     }
   } catch (e) {
     console.error("Failed to fetch admins:", e);

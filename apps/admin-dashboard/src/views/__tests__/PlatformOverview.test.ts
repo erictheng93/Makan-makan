@@ -43,11 +43,25 @@ vi.mock("@/i18n", () => ({
 
 const mockApiGet = vi.fn();
 
-vi.mock("@/services/api", () => ({
-  api: {
-    get: (...args: any[]) => mockApiGet(...args),
-  },
-}));
+vi.mock("@/services/api", () => {
+  const unwrapApiPayload = (payload: unknown) =>
+    typeof payload === "object" && payload !== null && "data" in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+
+  return {
+    api: {
+      get: (...args: any[]) => mockApiGet(...args),
+    },
+    unwrapApiPayload,
+    unwrapApiData: (response: { data: unknown }) =>
+      unwrapApiPayload(response.data),
+    unwrapApiList: (payload: unknown) => {
+      const data = unwrapApiPayload(payload);
+      return Array.isArray(data) ? data : [];
+    },
+  };
+});
 
 const mockSelectRestaurant = vi.fn();
 vi.mock("@/stores/auth", () => ({

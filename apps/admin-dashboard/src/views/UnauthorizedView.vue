@@ -52,14 +52,9 @@
                 getRoleText(currentUser.role)
               }}</span>
             </div>
-            <div
-              v-if="(currentUser as any).restaurantName"
-              class="flex justify-between"
-            >
+            <div v-if="currentRestaurantName" class="flex justify-between">
               <span>{{ t("unauthorized.restaurantLabel") }}</span>
-              <span class="font-medium">{{
-                (currentUser as any).restaurantName
-              }}</span>
+              <span class="font-medium">{{ currentRestaurantName }}</span>
             </div>
           </div>
         </div>
@@ -145,6 +140,15 @@ const authStore = useAuthStore();
 
 // 計算屬性
 const currentUser = computed(() => authStore.user);
+const currentRestaurantName = computed(() => {
+  const user = currentUser.value;
+  if (!user || !("restaurantName" in user)) return undefined;
+
+  const restaurantName = (user as { restaurantName?: unknown }).restaurantName;
+  return typeof restaurantName === "string" && restaurantName.length > 0
+    ? restaurantName
+    : undefined;
+});
 
 const availablePermissions = computed(() => {
   const role = currentUser.value?.role;

@@ -248,6 +248,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useBackupStore } from "@/stores/backup";
 import { api } from "@/services/api";
+import type { BackupRecord } from "@makanmakan/shared-types";
 
 // Temporary type definitions
 interface BackupSystemHealth {
@@ -450,7 +451,7 @@ const loadPerformanceData = async () => {
             sort_by: "created_at",
             sort_order: "asc",
           })
-          .catch(() => [] as any[]),
+          .catch((): BackupRecord[] => []),
       ),
     );
     const allBackups = results.flat();

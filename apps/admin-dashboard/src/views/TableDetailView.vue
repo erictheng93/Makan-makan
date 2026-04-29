@@ -217,7 +217,7 @@ import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useRouter, useRoute } from "vue-router";
-import { api } from "@/services/api";
+import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import { ArrowLeftIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatManagement from "../components/tables/SeatManagement.vue";
@@ -287,7 +287,7 @@ const loadSeats = async () => {
       tableId: table.value.id,
     });
     if (response.data.success && response.data.data) {
-      seats.value = response.data.data as any[];
+      seats.value = unwrapApiList(response.data.data);
     }
   } catch (error) {
     console.error("Failed to load seats:", error);
@@ -404,9 +404,26 @@ const loadTableData = async () => {
   try {
     const response = await api.get(`/tables/${tableId}`);
     if (response.data.success && response.data.data) {
-      const data = response.data.data as any;
+      const data = unwrapApiPayload<{
+        id: number | string;
+        number?: string;
+        tableNumber?: string;
+        name?: string;
+        tableName?: string;
+        capacity?: number;
+        location?: string;
+        isActive?: boolean;
+        qrMode?: "table" | "seat";
+        qrCode?: string;
+        status?: string;
+        createdAt?: string;
+        updatedAt?: string;
+      }>(response.data.data);
       table.value = {
-        id: data.id,
+        id:
+          typeof data.id === "number"
+            ? data.id
+            : Number.parseInt(String(data.id), 10) || 0,
         tableNumber: data.number || data.tableNumber || "",
         tableName: data.name || data.tableName || "",
         capacity: data.capacity ?? 0,

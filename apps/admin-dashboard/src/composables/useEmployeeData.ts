@@ -1,5 +1,5 @@
 import { ref, watch } from "vue";
-import { api } from "@/services/api";
+import { api, unwrapApiList } from "@/services/api";
 import { schedulingService } from "@/services/schedulingService";
 import { useAuthStore } from "@/stores/auth";
 import type { Employee, LeaveBalance, LeaveRequest } from "@/types/employee";
@@ -64,7 +64,7 @@ export function useEmployeeData(employeeId: () => number | undefined) {
         endDate: endDate.toISOString().split("T")[0],
         limit: 50,
       });
-      schedules.value = result.data || (result as any);
+      schedules.value = unwrapApiList<EmployeeSchedule>(result);
     } catch (e) {
       console.error("Failed to fetch schedules:", e);
     } finally {

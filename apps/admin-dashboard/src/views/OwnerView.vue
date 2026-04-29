@@ -409,7 +409,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useCurrency } from "@/composables/useCurrency";
-import { api } from "@/services/api";
+import { api, unwrapApiList } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { ownerService } from "@/services/ownerService";
 import {
@@ -781,9 +781,8 @@ async function fetchAllData() {
       const usersPayload = usersRes.value.data.data as
         | typeof staffListData.value
         | { data: typeof staffListData.value };
-      staffListData.value = Array.isArray(usersPayload)
-        ? usersPayload
-        : ((usersPayload as any)?.data ?? []);
+      staffListData.value =
+        unwrapApiList<(typeof staffListData.value)[number]>(usersPayload);
     }
 
     // Health check

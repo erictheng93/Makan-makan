@@ -66,6 +66,15 @@ interface EmployeeHours {
   hours: number;
 }
 
+interface AttendanceReportItem {
+  employeeId?: string | number;
+  id?: string | number;
+  employeeName?: string;
+  name?: string;
+  totalHours?: number;
+  hours?: number;
+}
+
 interface Props {
   data?: EmployeeHours[];
   autoFetch?: boolean;
@@ -98,6 +107,10 @@ const averageHours = computed(() => {
 const employeeCount = computed(() => {
   return workHoursData.value.length;
 });
+
+const isAttendanceReportItem = (
+  value: unknown,
+): value is AttendanceReportItem => typeof value === "object" && value !== null;
 
 // 圖表數據
 const chartData = computed(() => {
@@ -151,13 +164,16 @@ const fetchData = async () => {
       endDate,
     );
 
-    const data = (report as any)?.data;
+    const data: unknown = report.data;
     if (Array.isArray(data)) {
-      workHoursData.value = data.map((item: any) => ({
-        employeeId: String(item.employeeId || item.id),
-        employeeName: item.employeeName || item.name || `#${item.employeeId}`,
-        hours: item.totalHours || item.hours || 0,
-      }));
+      workHoursData.value = data.filter(isAttendanceReportItem).map((item) => {
+        const employeeId = item.employeeId ?? item.id ?? "";
+        return {
+          employeeId: String(employeeId),
+          employeeName: item.employeeName || item.name || `#${employeeId}`,
+          hours: item.totalHours || item.hours || 0,
+        };
+      });
     } else {
       workHoursData.value = [];
     }

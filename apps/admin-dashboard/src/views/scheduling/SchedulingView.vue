@@ -289,6 +289,7 @@ import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
+import { unwrapApiList } from "@/services/api";
 import { schedulingService } from "@/services/schedulingService";
 import type {
   EmployeeSchedule,
@@ -427,9 +428,7 @@ const fetchSchedules = async () => {
       limit: 100,
     });
 
-    schedules.value = Array.isArray(response)
-      ? response
-      : ((response as any)?.data ?? []);
+    schedules.value = unwrapApiList<EmployeeSchedule>(response);
   } catch (err) {
     console.error("Failed to fetch schedules:", err);
     error.value =
@@ -462,9 +461,7 @@ const fetchConflicts = async () => {
       status: "unresolved",
       limit: 50,
     });
-    conflicts.value = Array.isArray(response)
-      ? response
-      : ((response as any)?.data ?? []);
+    conflicts.value = unwrapApiList<SchedulingConflict>(response);
   } catch (err) {
     console.error("Failed to fetch conflicts:", err);
     conflicts.value = [];
@@ -481,9 +478,7 @@ const fetchSwapRequests = async () => {
       status: "pending",
       limit: 50,
     });
-    swapRequests.value = Array.isArray(response)
-      ? response
-      : ((response as any)?.data ?? []);
+    swapRequests.value = unwrapApiList<SwapRequest>(response);
   } catch (err) {
     console.error("Failed to fetch swap requests:", err);
     swapRequests.value = [];

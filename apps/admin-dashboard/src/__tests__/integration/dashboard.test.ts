@@ -22,14 +22,28 @@ import {
 } from "@makanmakan/testing-utils";
 
 // Mock API
-vi.mock("@/services/api", () => ({
-  api: {
-    get: vi.fn(),
-    post: vi.fn(),
-    patch: vi.fn(),
-    put: vi.fn(),
-  },
-}));
+vi.mock("@/services/api", () => {
+  const unwrapApiPayload = (payload: unknown) =>
+    typeof payload === "object" && payload !== null && "data" in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+
+  return {
+    api: {
+      get: vi.fn(),
+      post: vi.fn(),
+      patch: vi.fn(),
+      put: vi.fn(),
+    },
+    unwrapApiPayload,
+    unwrapApiData: (response: { data: unknown }) =>
+      unwrapApiPayload(response.data),
+    unwrapApiList: (payload: unknown) => {
+      const data = unwrapApiPayload(payload);
+      return Array.isArray(data) ? data : [];
+    },
+  };
+});
 
 // Create a testable auth store with mutable state
 const createMockAuthStore = () => {

@@ -630,7 +630,7 @@ import {
 } from "@heroicons/vue/24/outline";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
-import { api } from "@/services/api";
+import { api, unwrapApiData } from "@/services/api";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -763,7 +763,7 @@ const refreshOrders = async () => {
       status: "ready,delivering",
       restaurantId: authStore.restaurantId,
     });
-    const data = (response.data as any)?.data;
+    const data = unwrapApiData<unknown[]>(response);
     if (Array.isArray(data)) {
       orders.value = data.map((o: any) => ({
         id: o.id,
@@ -790,7 +790,7 @@ const refreshOrders = async () => {
       restaurantId: authStore.restaurantId,
       dateFrom: todayStart.toISOString(),
     });
-    const deliveredData = (deliveredResponse.data as any)?.data;
+    const deliveredData = unwrapApiData<unknown[]>(deliveredResponse);
     if (Array.isArray(deliveredData)) {
       todayDelivered.value = deliveredData.length;
       todayDeliveryRecords.value = deliveredData.map((o: any) => {

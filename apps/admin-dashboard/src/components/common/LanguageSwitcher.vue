@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useI18n } from "@/i18n";
+import type { Locale } from "@/i18n";
 
 const { locale, switchLocale, supportedLocales } = useI18n();
 
@@ -53,9 +54,9 @@ const closeDropdown = () => {
   isOpen.value = false;
 };
 
-const selectLocale = async (localeCode: string) => {
+const selectLocale = async (localeCode: Locale) => {
   try {
-    await switchLocale(localeCode as any);
+    await switchLocale(localeCode);
     closeDropdown();
   } catch (error) {
     console.error("Failed to switch locale:", error);

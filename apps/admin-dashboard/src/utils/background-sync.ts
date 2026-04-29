@@ -480,13 +480,18 @@ class AdminBackgroundSyncService {
   }
 
   private async registerBackgroundSync(tag: string): Promise<void> {
-    if (
+    const supportsBackgroundSync =
       "serviceWorker" in navigator &&
-      "sync" in (window as any).ServiceWorkerRegistration.prototype
-    ) {
+      "ServiceWorkerRegistration" in window &&
+      "sync" in ServiceWorkerRegistration.prototype;
+
+    if (supportsBackgroundSync) {
       try {
-        const registration = await navigator.serviceWorker.ready;
-        await (registration as any).sync.register(tag);
+        const registration = (await navigator.serviceWorker
+          .ready) as ServiceWorkerRegistration & {
+          sync?: { register: (syncTag: string) => Promise<void> };
+        };
+        await registration.sync?.register(tag);
         console.log(
           `[Admin Background Sync] Registered background sync: ${tag}`,
         );

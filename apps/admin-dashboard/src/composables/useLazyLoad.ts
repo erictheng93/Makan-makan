@@ -1,4 +1,4 @@
-import { ref, onMounted, onBeforeUnmount, Ref } from "vue";
+import { ref, onMounted, onBeforeUnmount, type Ref } from "vue";
 
 interface LazyLoadOptions {
   rootMargin?: string;
@@ -261,7 +261,7 @@ export function useBatchLazyLoad<T>(
   batchSize: number = 10,
   delay: number = 100,
 ) {
-  const loadedItems = ref<T[]>([]);
+  const loadedItems = ref<T[]>([]) as Ref<T[]>;
   const currentBatch = ref(0);
   const isLoading = ref(false);
 
@@ -277,7 +277,7 @@ export function useBatchLazyLoad<T>(
 
     setTimeout(() => {
       const batch = items.value.slice(startIndex, endIndex);
-      loadedItems.value = loadedItems.value.concat(batch as any);
+      loadedItems.value = loadedItems.value.concat(batch);
       currentBatch.value++;
       isLoading.value = false;
     }, delay);

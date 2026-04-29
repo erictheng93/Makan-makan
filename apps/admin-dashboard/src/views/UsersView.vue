@@ -675,10 +675,10 @@ const editUser = (user: User) => {
   userForm.value = {
     username: user.username,
     password: "", // Don't populate existing password
-    fullName: (user as any).fullName || "",
+    fullName: user.fullName || "",
     email: user.email,
     role: user.role,
-    status: (user as any).status || "active",
+    status: user.status || "active",
   };
   showUserModal.value = true;
 };

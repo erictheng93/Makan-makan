@@ -4,6 +4,7 @@
  */
 
 import { ref, type Ref } from "vue";
+import { isAxiosError } from "axios";
 import type {
   LLMProvider,
   AIAnalyticsReport,
@@ -13,6 +14,32 @@ import type {
   TestAIProviderRequest,
 } from "@makanmakan/ai-analytics";
 import { api } from "@/services/api";
+
+interface AIAnalyticsErrorResponse {
+  error?: {
+    message?: string;
+  };
+  message?: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getAIAnalyticsErrorResponse(
+  err: unknown,
+): AIAnalyticsErrorResponse | undefined {
+  if (isAxiosError<AIAnalyticsErrorResponse>(err)) {
+    return err.response?.data;
+  }
+
+  if (!isRecord(err) || !isRecord(err.response)) {
+    return undefined;
+  }
+
+  const { data } = err.response;
+  return isRecord(data) ? data : undefined;
+}
 
 interface UseAIAnalyticsReturn {
   // State
@@ -94,7 +121,7 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
 
       return response.data as T;
     } catch (err) {
-      const responseData = (err as any)?.response?.data;
+      const responseData = getAIAnalyticsErrorResponse(err);
       const errorMessage =
         responseData?.error?.message ||
         responseData?.message ||

@@ -359,7 +359,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
-import { api } from "@/services/api";
+import { api, unwrapApiList } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import {
   Plus,
@@ -616,7 +616,7 @@ const fetchTables = async () => {
   try {
     const response = await api.get("/tables", { restaurantId });
     if (response.data.success && response.data.data) {
-      tables.value = (response.data.data as any[]).map(mapTable);
+      tables.value = unwrapApiList(response.data.data).map(mapTable);
     }
   } catch (error) {
     console.error("Failed to fetch tables:", error);

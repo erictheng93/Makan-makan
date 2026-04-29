@@ -1,7 +1,32 @@
-import type { AxiosRequestConfig, AxiosResponse } from "axios";
+import {
+  isAxiosError,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from "axios";
 import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
 import type { ApiResponse } from "@/types";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export function unwrapApiPayload<T>(payload: unknown): T {
+  if (isRecord(payload) && "data" in payload) {
+    return payload.data as T;
+  }
+
+  return payload as T;
+}
+
+export function unwrapApiData<T>(response: { data: unknown }): T {
+  return unwrapApiPayload<T>(response.data);
+}
+
+export function unwrapApiList<T>(payload: unknown): T[] {
+  const data = unwrapApiPayload<unknown>(payload);
+  return Array.isArray(data) ? (data as T[]) : [];
+}
 
 const authClient = createAuthenticatedApiClient({
   storageKeyPrefix: "auth",
@@ -19,13 +44,16 @@ const authClient = createAuthenticatedApiClient({
     localStorage.removeItem("auth_user");
   },
   errorHandler: (error: unknown) => {
-    const axiosError = error as any;
-    return KitchenErrorHandler.handleAPIError(axiosError, {
-      url: axiosError.config?.url,
-      method: axiosError.config?.method,
-      status: axiosError.response?.status,
-      data: axiosError.response?.data,
-    });
+    const context = isAxiosError(error)
+      ? {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          data: error.response?.data,
+        }
+      : undefined;
+
+    return KitchenErrorHandler.handleAPIError(error, context);
   },
 });
 

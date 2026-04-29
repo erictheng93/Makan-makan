@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import type { Order, OrderStatus } from "@/types";
-import { api } from "@/services/api";
+import { api, unwrapApiList } from "@/services/api";
 import { t } from "@/i18n";
 
 export const useOrderStore = defineStore("order", () => {
@@ -76,11 +76,7 @@ export const useOrderStore = defineStore("order", () => {
         // Defensive: handle double-wrapped cache responses where
         // response.data.data may be {success, data: Order[], ...} instead of Order[]
         const payload = response.data.data;
-        orders.value = Array.isArray(payload)
-          ? payload
-          : Array.isArray((payload as any)?.data)
-            ? (payload as any).data
-            : [];
+        orders.value = unwrapApiList<Order>(payload);
       }
     } catch (err: any) {
       error.value =

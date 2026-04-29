@@ -911,7 +911,7 @@ import MinusIcon from "@heroicons/vue/24/solid/MinusIcon";
 import AdjustmentsHorizontalIcon from "@heroicons/vue/24/solid/AdjustmentsHorizontalIcon";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
-import { api } from "@/services/api";
+import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
@@ -957,6 +957,12 @@ interface CashShift {
   totalRevenue: number;
   processedOrders: number;
   status: "active" | "ended";
+}
+
+interface DailyStatsPayload {
+  totalSales?: number;
+  totalOrders?: number;
+  avgOrderValue?: number;
 }
 
 interface Transaction {
@@ -1187,9 +1193,11 @@ const confirmStartShift = async () => {
       operatorId: authStore.user?.id ?? 0,
     });
     if (response.data.success && response.data.data) {
-      const shiftData = response.data.data as any;
+      const shiftData = unwrapApiPayload<Partial<CashShift>>(
+        response.data.data,
+      );
       currentShift.value = {
-        id: shiftData.id,
+        id: shiftData.id || "",
         name: shiftData.name || t("pos.defaults.morningShift"),
         startTime: shiftData.startTime || new Date().toISOString(),
         registerId: currentRegister.value.id,
@@ -1459,7 +1467,7 @@ const loadRegisters = async () => {
     }
     const response = await api.get("/pos/registers", params);
     if (response.data.success && response.data.data) {
-      registers.value = response.data.data as CashRegister[];
+      registers.value = unwrapApiList<CashRegister>(response.data.data);
     }
   } catch (error) {
     console.error("Failed to load registers:", error);
@@ -1472,9 +1480,11 @@ const loadCurrentShift = async (registerId: string) => {
   try {
     const response = await api.get(`/pos/shifts/current/${registerId}`);
     if (response.data.success && response.data.data) {
-      const shiftData = response.data.data as any;
+      const shiftData = unwrapApiPayload<
+        Partial<CashShift> & { totalSales?: number }
+      >(response.data.data);
       currentShift.value = {
-        id: shiftData.id,
+        id: shiftData.id || "",
         name: shiftData.name || "",
         startTime: shiftData.startTime || "",
         endTime: shiftData.endTime,
@@ -1483,7 +1493,7 @@ const loadCurrentShift = async (registerId: string) => {
         startingCash: shiftData.startingCash || 0,
         totalRevenue: shiftData.totalSales || 0,
         processedOrders: shiftData.processedOrders || 0,
-        status: shiftData.status || "active",
+        status: shiftData.status === "ended" ? "ended" : "active",
       };
     } else {
       currentShift.value = null;
@@ -1503,7 +1513,7 @@ const loadDailyStats = async () => {
       { date: today },
     );
     if (response.data.success && response.data.data) {
-      const stats = response.data.data as any;
+      const stats = unwrapApiPayload<DailyStatsPayload>(response.data.data);
       todayStats.value = {
         revenue: stats.totalSales ?? 0,
         orders: stats.totalOrders ?? 0,

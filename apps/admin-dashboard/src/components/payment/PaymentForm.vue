@@ -187,6 +187,7 @@ import type {
   PaymentRequest,
   PaymentMethod,
   CountryCode,
+  CurrencyCode,
 } from "@makanmakan/shared-types";
 
 // 組件引入
@@ -203,7 +204,7 @@ interface Props {
   orderId: string;
   restaurantId: string;
   country: CountryCode;
-  currency: "TWD" | "MYR" | "VND";
+  currency: CurrencyCode;
   amount: number;
   autoStart?: boolean;
 }
@@ -409,8 +410,8 @@ const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
-const formatAmount = (amount: number, currency: string): string => {
-  return paymentStore.formatAmount(amount, currency as any);
+const formatAmount = (amount: number, currency: CurrencyCode): string => {
+  return paymentStore.formatAmount(amount, currency);
 };
 
 // 載入可用的支付方式

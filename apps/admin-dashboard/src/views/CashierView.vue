@@ -855,7 +855,7 @@ import {
 } from "@heroicons/vue/24/solid";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
-import { api } from "@/services/api";
+import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
@@ -892,6 +892,48 @@ interface CashierOrder {
   paymentMethod?: string;
   couponCode?: string; // 優惠券代碼
   items: OrderItem[];
+}
+
+interface RegisterPayload {
+  id: string;
+  status?: string;
+}
+
+interface ShiftPayload {
+  id?: string;
+  name?: string;
+  startTime?: string;
+  endTime?: string;
+  operatorName?: string;
+}
+
+interface DailyReportPayload {
+  summary?: {
+    totalSales?: number;
+  };
+  totalSales?: number;
+}
+
+interface ShiftReportPayload {
+  shift?: {
+    name?: string;
+    startTime?: string;
+    endTime?: string;
+  };
+  sales?: {
+    cash?: number;
+    card?: number;
+    digital?: number;
+    total?: number;
+  };
+  cashTotal?: number;
+  cardTotal?: number;
+  digitalTotal?: number;
+  totalRevenue?: number;
+  totalOrders?: number;
+  avgOrderValue?: number;
+  refundCount?: number;
+  systemCashAmount?: number;
 }
 
 // 響應式數據
@@ -1029,11 +1071,7 @@ const loadOrders = async () => {
     });
     if (response.data.success && response.data.data) {
       const payload = response.data.data;
-      const rawOrders = Array.isArray(payload)
-        ? payload
-        : Array.isArray((payload as any)?.data)
-          ? (payload as any).data
-          : [];
+      const rawOrders = unwrapApiList(payload);
       // Map API orders to CashierOrder shape, filtering unpaid
       orders.value = rawOrders
         .filter((o: any) => o.paymentStatus === "unpaid" || !o.paymentStatus)
@@ -1076,15 +1114,15 @@ const loadCurrentShift = async () => {
       restaurantId: authStore.restaurantId,
     });
     if (regResponse.data.success && regResponse.data.data) {
-      const registers = regResponse.data.data as any[];
-      const activeRegister = registers.find((r: any) => r.status === "active");
+      const registers = unwrapApiList<RegisterPayload>(regResponse.data.data);
+      const activeRegister = registers.find((r) => r.status === "active");
       if (activeRegister) {
         currentShift.value.registerId = activeRegister.id;
         const shiftResponse = await api.get(
           `/pos/shifts/current/${activeRegister.id}`,
         );
         if (shiftResponse.data.success && shiftResponse.data.data) {
-          const shift = shiftResponse.data.data as any;
+          const shift = unwrapApiPayload<ShiftPayload>(shiftResponse.data.data);
           currentShift.value = {
             id: shift.id || "",
             name: shift.name || "",
@@ -1111,7 +1149,7 @@ const loadTodayRevenue = async () => {
       restaurantId: authStore.restaurantId,
     });
     if (response.data.success && response.data.data) {
-      const report = response.data.data as any;
+      const report = unwrapApiPayload<DailyReportPayload>(response.data.data);
       todayRevenue.value = report.summary?.totalSales ?? report.totalSales ?? 0;
     }
   } catch {
@@ -1292,7 +1330,7 @@ const openShiftReport = async () => {
       `/pos/shifts/${currentShift.value.id}/report`,
     );
     if (response.data.success && response.data.data) {
-      const report = response.data.data as any;
+      const report = unwrapApiPayload<ShiftReportPayload>(response.data.data);
       const shift = report.shift || {};
       shiftReport.value = {
         name: shift.name || currentShift.value.name,

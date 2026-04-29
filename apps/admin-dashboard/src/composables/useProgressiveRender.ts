@@ -1,4 +1,4 @@
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, type Ref } from "vue";
 
 interface ProgressiveRenderOptions {
   batchSize?: number;
@@ -20,7 +20,7 @@ export function useProgressiveRender<T>(
     onBatchRendered,
   } = options;
 
-  const renderedItems = ref<T[]>([]);
+  const renderedItems = ref<T[]>([]) as Ref<T[]>;
   const isRendering = ref(false);
   const progress = ref(0);
   const currentIndex = ref(0);
@@ -57,7 +57,7 @@ export function useProgressiveRender<T>(
     const batch = items.slice(currentIndex.value, endIndex);
 
     // 添加到已渲染列表
-    renderedItems.value = renderedItems.value.concat(batch as any);
+    renderedItems.value = renderedItems.value.concat(batch);
 
     // 更新進度
     currentIndex.value = endIndex;
@@ -134,7 +134,7 @@ export function useProgressiveRender<T>(
  * 簡化版本：立即渲染指定數量，剩餘延遲渲染
  */
 export function useChunkedRender<T>(items: T[], initialCount: number = 20) {
-  const displayedItems = ref<T[]>([]);
+  const displayedItems = ref<T[]>([]) as Ref<T[]>;
   const isComplete = ref(false);
 
   onMounted(() => {
@@ -161,14 +161,15 @@ export function useChunkedRender<T>(items: T[], initialCount: number = 20) {
 /**
  * requestIdleCallback polyfill
  */
-const requestIdleCallback =
-  (window as any).requestIdleCallback ||
-  function (cb: Function) {
-    const start = Date.now();
-    return setTimeout(() => {
-      cb({
-        didTimeout: false,
-        timeRemaining: () => Math.max(0, 50 - (Date.now() - start)),
-      });
-    }, 1);
-  };
+const requestIdleCallback: typeof window.requestIdleCallback =
+  typeof window.requestIdleCallback === "function"
+    ? window.requestIdleCallback.bind(window)
+    : function (cb: IdleRequestCallback) {
+        const start = Date.now();
+        return window.setTimeout(() => {
+          cb({
+            didTimeout: false,
+            timeRemaining: () => Math.max(0, 50 - (Date.now() - start)),
+          });
+        }, 1);
+      };

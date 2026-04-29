@@ -1,4 +1,4 @@
-import { apiClient } from "./api";
+import { apiClient, unwrapApiData } from "./api";
 
 // 型別定義
 export interface CashRegister {
@@ -62,14 +62,14 @@ export const posService = {
   // 現金櫃
   async getRegisters(): Promise<CashRegister[]> {
     const response = await apiClient.get("/pos/registers");
-    return (response.data as any).data || response.data;
+    return unwrapApiData<CashRegister[]>(response);
   },
 
   async createRegister(
     data: Omit<CashRegister, "id" | "createdAt" | "updatedAt">,
   ): Promise<CashRegister> {
     const response = await apiClient.post("/pos/registers", data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<CashRegister>(response);
   },
 
   async updateRegister(
@@ -77,7 +77,7 @@ export const posService = {
     data: Partial<CashRegister>,
   ): Promise<CashRegister> {
     const response = await apiClient.put(`/pos/registers/${id}`, data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<CashRegister>(response);
   },
 
   async activateRegister(id: string): Promise<void> {
@@ -95,7 +95,7 @@ export const posService = {
     operatorId: number;
   }): Promise<CashShift> {
     const response = await apiClient.post("/pos/shifts/start", data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<CashShift>(response);
   },
 
   async endShift(
@@ -106,7 +106,7 @@ export const posService = {
     },
   ): Promise<CashShift> {
     const response = await apiClient.post(`/pos/shifts/${shiftId}/end`, data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<CashShift>(response);
   },
 
   async getCurrentShift(registerId: string): Promise<CashShift | null> {
@@ -114,7 +114,7 @@ export const posService = {
       const response = await apiClient.get(
         `/pos/registers/${registerId}/current-shift`,
       );
-      return (response.data as any).data || response.data;
+      return unwrapApiData<CashShift | null>(response);
     } catch {
       return null;
     }
@@ -129,7 +129,7 @@ export const posService = {
     operatorId: number;
   }): Promise<CashMovement> {
     const response = await apiClient.post("/pos/cash-movements", data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<CashMovement>(response);
   },
 
   async getCashMovements(
@@ -144,7 +144,7 @@ export const posService = {
       `/pos/registers/${registerId}/cash-movements`,
       { params },
     );
-    return (response.data as any).data || response.data;
+    return unwrapApiData<CashMovement[]>(response);
   },
 
   // 收據管理
@@ -156,7 +156,7 @@ export const posService = {
     paymentMethod: string;
   }): Promise<Receipt> {
     const response = await apiClient.post("/pos/receipts/print", data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<Receipt>(response);
   },
 
   async getReceipts(
@@ -170,7 +170,7 @@ export const posService = {
       `/pos/registers/${registerId}/receipts`,
       { params },
     );
-    return (response.data as any).data || response.data;
+    return unwrapApiData<Receipt[]>(response);
   },
 
   // 退款處理
@@ -183,18 +183,18 @@ export const posService = {
     notes?: string;
   }): Promise<any> {
     const response = await apiClient.post("/pos/refunds/create", data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<any>(response);
   },
 
   // 促銷管理
   async getPromotions(): Promise<Promotion[]> {
     const response = await apiClient.get("/pos/promotions");
-    return (response.data as any).data || response.data;
+    return unwrapApiData<Promotion[]>(response);
   },
 
   async createPromotion(data: Omit<Promotion, "id">): Promise<Promotion> {
     const response = await apiClient.post("/pos/promotions", data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<Promotion>(response);
   },
 
   async updatePromotion(
@@ -202,7 +202,7 @@ export const posService = {
     data: Partial<Promotion>,
   ): Promise<Promotion> {
     const response = await apiClient.put(`/pos/promotions/${id}`, data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<Promotion>(response);
   },
 
   async deletePromotion(id: string): Promise<void> {
@@ -226,7 +226,13 @@ export const posService = {
         params: { date },
       },
     );
-    return (response.data as any).data || response.data;
+    return unwrapApiData<{
+      totalSales: number;
+      totalOrders: number;
+      totalRefunds: number;
+      cashBalance: number;
+      avgOrderValue: number;
+    }>(response);
   },
 
   async getShiftReport(shiftId: string): Promise<{
@@ -238,7 +244,14 @@ export const posService = {
     receipts: Receipt[];
   }> {
     const response = await apiClient.get(`/pos/shifts/${shiftId}/report`);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<{
+      shift: CashShift;
+      sales: number;
+      orders: number;
+      refunds: number;
+      cashMovements: CashMovement[];
+      receipts: Receipt[];
+    }>(response);
   },
 
   // 快速收銀
@@ -250,7 +263,7 @@ export const posService = {
     operatorId: number;
   }): Promise<any> {
     const response = await apiClient.post("/pos/quick-payment", data);
-    return (response.data as any).data || response.data;
+    return unwrapApiData<any>(response);
   },
 };
 

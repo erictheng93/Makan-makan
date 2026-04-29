@@ -384,7 +384,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
-import { apiClient } from "@/services/api";
+import { apiClient, unwrapApiPayload } from "@/services/api";
 
 const { t } = useI18n();
 
@@ -442,10 +442,15 @@ async function loadIntegration() {
     if (response.data?.data) {
       // Defensive: handle double-wrapped cache responses
       const raw = response.data.data;
-      const data =
-        raw && typeof raw === "object" && !("success" in raw)
-          ? raw
-          : ((raw as any)?.data ?? raw);
+      const data = unwrapApiPayload<{
+        enabled: boolean;
+        config: {
+          autoAcceptOrders?: boolean;
+          menuSyncEnabled?: boolean;
+        } | null;
+        lastMenuSyncAt: string | null;
+        menuSyncStatus: string | null;
+      }>(raw);
       uberEats.enabled = data.enabled;
       uberEats.config = data.config;
       uberEats.lastMenuSyncAt = data.lastMenuSyncAt;
