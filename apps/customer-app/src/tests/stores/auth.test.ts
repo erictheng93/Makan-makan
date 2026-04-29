@@ -2,6 +2,11 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useAuthStore } from "@/stores/auth";
 
+const { mockApiClientPost, mockApiClientGet } = vi.hoisted(() => ({
+  mockApiClientPost: vi.fn(),
+  mockApiClientGet: vi.fn(),
+}));
+
 // Mock i18n
 vi.mock("@/i18n", () => ({
   i18n: {
@@ -16,15 +21,20 @@ vi.mock("@makanmakan/utils", () => ({
   getRefreshDelay: vi.fn(() => 300000), // 5 minutes
 }));
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+vi.mock("@/services/api", () => ({
+  apiClient: {
+    post: mockApiClientPost,
+    get: mockApiClientGet,
+  },
+}));
 
 describe("auth store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     vi.useFakeTimers();
+    mockApiClientPost.mockReset();
+    mockApiClientGet.mockReset();
     (window.localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(
       null,
     );
@@ -68,21 +78,15 @@ describe("auth store", () => {
 
   describe("login", () => {
     it("should set user and token on successful login", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "new-token",
-              refreshToken: "new-refresh",
-              user: {
-                id: 1,
-                username: "testuser",
-                fullName: "Test User",
-                role: 5,
-              },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "new-token",
+        refreshToken: "new-refresh",
+        user: {
+          id: 1,
+          username: "testuser",
+          fullName: "Test User",
+          role: 5,
+        },
       });
 
       const store = useAuthStore();
@@ -105,37 +109,24 @@ describe("auth store", () => {
     });
 
     it("should verify fetch was called with correct params", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "t",
-              refreshToken: "r",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "t",
+        refreshToken: "r",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
 
       const store = useAuthStore();
       await store.login("myuser", "mypass");
 
-      expect(mockFetch).toHaveBeenCalledOnce();
-      expect(mockFetch).toHaveBeenCalledWith("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "myuser", password: "mypass" }),
+      expect(mockApiClientPost).toHaveBeenCalledOnce();
+      expect(mockApiClientPost).toHaveBeenCalledWith("/auth/login", {
+        username: "myuser",
+        password: "mypass",
       });
     });
 
     it("should set error on failed login", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: false,
-            error: { message: "Invalid credentials" },
-          }),
-      });
+      mockApiClientPost.mockRejectedValueOnce(new Error("Invalid credentials"));
 
       const store = useAuthStore();
       const result = await store.login("bad", "creds");
@@ -146,7 +137,7 @@ describe("auth store", () => {
     });
 
     it("should handle network error during login", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("Network error"));
+      mockApiClientPost.mockRejectedValueOnce(new Error("Network error"));
 
       const store = useAuthStore();
       const result = await store.login("user", "pass");
@@ -160,16 +151,14 @@ describe("auth store", () => {
       const pending = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockFetch.mockReturnValueOnce(pending);
+      mockApiClientPost.mockReturnValueOnce(pending);
 
       const store = useAuthStore();
       const loginPromise = store.login("user", "pass");
 
       expect(store.isLoading).toBe(true);
 
-      resolvePromise!({
-        json: () => Promise.resolve({ success: false, error: "fail" }),
-      });
+      resolvePromise!({});
       await loginPromise;
 
       expect(store.isLoading).toBe(false);
@@ -182,23 +171,17 @@ describe("auth store", () => {
 
   describe("register", () => {
     it("should register and auto-login on success", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              tokens: {
-                accessToken: "reg-token",
-                refreshToken: "reg-refresh",
-              },
-              user: {
-                id: 2,
-                username: "newuser",
-                fullName: "New User",
-                role: 5,
-              },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        tokens: {
+          accessToken: "reg-token",
+          refreshToken: "reg-refresh",
+        },
+        user: {
+          id: 2,
+          username: "newuser",
+          fullName: "New User",
+          role: 5,
+        },
       });
 
       const store = useAuthStore();
@@ -211,23 +194,14 @@ describe("auth store", () => {
       expect(result.success).toBe(true);
       expect(store.token).toBe("reg-token");
       expect(store.isAuthenticated).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/v1/auth/register",
-        expect.objectContaining({
-          method: "POST",
-          body: expect.stringContaining('"role":5'),
-        }),
+      expect(mockApiClientPost).toHaveBeenCalledWith(
+        "/auth/register",
+        expect.objectContaining({ role: 5 }),
       );
     });
 
     it("should set error on failed registration", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: false,
-            error: "Username taken",
-          }),
-      });
+      mockApiClientPost.mockRejectedValueOnce(new Error("Username taken"));
 
       const store = useAuthStore();
       const result = await store.register({
@@ -248,22 +222,16 @@ describe("auth store", () => {
   describe("logout", () => {
     it("should clear all auth state and localStorage", async () => {
       // Set up authenticated state first
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "t",
-              refreshToken: "r",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "t",
+        refreshToken: "r",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
       const store = useAuthStore();
       await store.login("u", "p");
 
       // Now logout
-      mockFetch.mockResolvedValueOnce({}); // logout endpoint
+      mockApiClientPost.mockResolvedValueOnce({}); // logout endpoint
       await store.logout();
 
       expect(store.user).toBeNull();
@@ -278,17 +246,11 @@ describe("auth store", () => {
     });
 
     it("should still clear state even if logout request fails", async () => {
-      mockFetch
+      mockApiClientPost
         .mockResolvedValueOnce({
-          json: () =>
-            Promise.resolve({
-              success: true,
-              data: {
-                token: "t",
-                refreshToken: "r",
-                user: { id: 1, username: "u", fullName: "U", role: 5 },
-              },
-            }),
+          token: "t",
+          refreshToken: "r",
+          user: { id: 1, username: "u", fullName: "U", role: 5 },
         })
         .mockRejectedValueOnce(new Error("Network fail"));
 
@@ -308,39 +270,30 @@ describe("auth store", () => {
   describe("refresh", () => {
     it("should update tokens on successful refresh", async () => {
       // First login
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "old-token",
-              refreshToken: "old-refresh",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "old-token",
+        refreshToken: "old-refresh",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
       const store = useAuthStore();
       await store.login("u", "p");
 
       // Then refresh
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "new-token",
-              refreshToken: "new-refresh",
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "new-token",
+        refreshToken: "new-refresh",
       });
       const result = await store.refresh();
 
       expect(result).toBe(true);
       expect(store.token).toBe("new-token");
-      expect(mockFetch).toHaveBeenLastCalledWith("/api/v1/auth/refresh", {
-        method: "POST",
-        headers: { "X-Refresh-Token": "old-refresh" },
-      });
+      expect(mockApiClientPost).toHaveBeenLastCalledWith(
+        "/auth/refresh",
+        undefined,
+        {
+          headers: { "X-Refresh-Token": "old-refresh" },
+        },
+      );
     });
 
     it("should return false when no refresh token exists", async () => {
@@ -350,21 +303,15 @@ describe("auth store", () => {
     });
 
     it("should return false on refresh failure without logging out", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "t",
-              refreshToken: "r",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "t",
+        refreshToken: "r",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
       const store = useAuthStore();
       await store.login("u", "p");
 
-      mockFetch.mockRejectedValueOnce(new Error("fail"));
+      mockApiClientPost.mockRejectedValueOnce(new Error("fail"));
       const result = await store.refresh();
 
       expect(result).toBe(false);
@@ -393,12 +340,11 @@ describe("auth store", () => {
       });
       setActivePinia(createPinia());
 
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { id: 1, username: "u", fullName: "U", role: 5 },
-          }),
+      mockApiClientGet.mockResolvedValueOnce({
+        id: 1,
+        username: "u",
+        fullName: "U",
+        role: 5,
       });
 
       const store = useAuthStore();
@@ -415,13 +361,7 @@ describe("auth store", () => {
 
   describe("clearError", () => {
     it("should clear the error state", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: false,
-            error: { message: "Some error" },
-          }),
-      });
+      mockApiClientPost.mockRejectedValueOnce(new Error("Some error"));
 
       const store = useAuthStore();
       await store.login("u", "p");
@@ -438,16 +378,10 @@ describe("auth store", () => {
 
   describe("scheduleProactiveRefresh / token auto-refresh", () => {
     it("should schedule a refresh timer after successful login", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "access-token",
-              refreshToken: "refresh-token",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "access-token",
+        refreshToken: "refresh-token",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
 
       const store = useAuthStore();
@@ -457,54 +391,42 @@ describe("auth store", () => {
       // A timer should have been scheduled — verify by fast-forwarding
       // We cannot easily inspect the internal timer, but we can verify
       // that refresh is called when time advances
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { token: "refreshed-token", refreshToken: "new-refresh" },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "refreshed-token",
+        refreshToken: "new-refresh",
       });
 
       // Advance fake timers by 300000ms (the mocked delay)
       await vi.advanceTimersByTimeAsync(300000);
 
       // The refresh endpoint should have been called
-      expect(mockFetch).toHaveBeenCalledTimes(2); // login + refresh
-      expect(mockFetch).toHaveBeenLastCalledWith(
-        "/api/v1/auth/refresh",
-        expect.objectContaining({
-          method: "POST",
+      expect(mockApiClientPost).toHaveBeenCalledTimes(2); // login + refresh
+      expect(mockApiClientPost).toHaveBeenLastCalledWith(
+        "/auth/refresh",
+        undefined,
+        {
           headers: expect.objectContaining({
             "X-Refresh-Token": "refresh-token",
           }),
-        }),
+        },
       );
     });
 
     it("should update token in store after successful refresh", async () => {
       // Login first
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "old-token",
-              refreshToken: "old-refresh",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "old-token",
+        refreshToken: "old-refresh",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
       const store = useAuthStore();
       await store.login("u", "pass");
       expect(store.token).toBe("old-token");
 
       // Mock refresh success
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { token: "new-token", refreshToken: "new-refresh" },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "new-token",
+        refreshToken: "new-refresh",
       });
 
       // Trigger scheduled refresh
@@ -520,25 +442,17 @@ describe("auth store", () => {
 
     it("should not logout when refresh fails (graceful degrade)", async () => {
       // Login first
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "token",
-              refreshToken: "refresh",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "token",
+        refreshToken: "refresh",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
       const store = useAuthStore();
       await store.login("u", "pass");
       expect(store.isAuthenticated).toBe(true);
 
       // Refresh fails
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: false, error: "Token invalid" }),
-      });
+      mockApiClientPost.mockRejectedValueOnce(new Error("Token invalid"));
 
       // Trigger refresh timer
       await vi.advanceTimersByTimeAsync(300000);
@@ -554,33 +468,25 @@ describe("auth store", () => {
 
     it("should clear refresh timer on logout", async () => {
       // Login
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "t",
-              refreshToken: "r",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "t",
+        refreshToken: "r",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
       const store = useAuthStore();
       await store.login("u", "pass");
 
       // Mock logout endpoint
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true }),
-      });
+      mockApiClientPost.mockResolvedValueOnce({});
 
       await store.logout();
 
       // Advance timers — refresh should NOT be called after logout
-      mockFetch.mockClear();
+      mockApiClientPost.mockClear();
       await vi.advanceTimersByTimeAsync(300000);
 
       // No refresh call after logout
-      const refreshCalls = mockFetch.mock.calls.filter((call) =>
+      const refreshCalls = mockApiClientPost.mock.calls.filter((call) =>
         (call[0] as string).includes("refresh"),
       );
       expect(refreshCalls.length).toBe(0);
@@ -588,39 +494,27 @@ describe("auth store", () => {
 
     it("should reschedule refresh after a successful refresh", async () => {
       // Login
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "t1",
-              refreshToken: "r1",
-              user: { id: 1, username: "u", fullName: "U", role: 5 },
-            },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "t1",
+        refreshToken: "r1",
+        user: { id: 1, username: "u", fullName: "U", role: 5 },
       });
       const store = useAuthStore();
       await store.login("u", "pass");
 
       // First refresh succeeds
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { token: "t2", refreshToken: "r2" },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "t2",
+        refreshToken: "r2",
       });
 
       await vi.advanceTimersByTimeAsync(300000);
       expect(store.token).toBe("t2");
 
       // Second refresh should also be scheduled — advance again
-      mockFetch.mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { token: "t3", refreshToken: "r3" },
-          }),
+      mockApiClientPost.mockResolvedValueOnce({
+        token: "t3",
+        refreshToken: "r3",
       });
 
       await vi.advanceTimersByTimeAsync(300000);

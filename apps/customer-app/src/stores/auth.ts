@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import { i18n } from "@/i18n";
 import { getRefreshDelay } from "@makanmakan/utils";
+import { apiClient } from "@/services/api";
 
 // Helper to avoid vue-i18n's deep type instantiation on t()
 const t = (key: string): string => (i18n as any).global.t(key);
@@ -14,6 +15,20 @@ export interface CustomerUser {
   email?: string;
   phone?: string;
   role: number; // 5 for customer
+}
+
+interface LoginResponse {
+  token?: string;
+  refreshToken?: string;
+  user?: CustomerUser;
+}
+
+interface RegisterResponse {
+  tokens?: {
+    accessToken?: string;
+    refreshToken?: string;
+  };
+  user?: CustomerUser;
 }
 
 // Hydrate user from localStorage for instant restore on page refresh.
@@ -82,21 +97,16 @@ export const useAuthStore = defineStore("auth", () => {
     error.value = null;
 
     try {
-      const response = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
+      const data = await apiClient.post<LoginResponse>("/auth/login", {
+        username,
+        password,
       });
 
-      const data = await response.json();
-
-      if (data.success && data.data) {
+      if (data.token && data.user) {
         // 保存 token 和用戶信息
-        token.value = data.data.token;
-        refreshToken.value = data.data.refreshToken;
-        user.value = data.data.user;
+        token.value = data.token;
+        refreshToken.value = data.refreshToken ?? null;
+        user.value = data.user;
 
         // 存儲到 localStorage
         localStorage.setItem("customer_auth_token", token.value!);
@@ -110,7 +120,7 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: true };
       }
 
-      error.value = data.error?.message || t("auth.loginFailed");
+      error.value = t("auth.loginFailed");
       return { success: false, error: error.value };
     } catch (err: any) {
       error.value = err.message || t("messages.networkError");
@@ -132,24 +142,16 @@ export const useAuthStore = defineStore("auth", () => {
     error.value = null;
 
     try {
-      const response = await fetch("/api/v1/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...data,
-          role: 5, // Customer role
-        }),
+      const result = await apiClient.post<RegisterResponse>("/auth/register", {
+        ...data,
+        role: 5, // Customer role
       });
 
-      const result = await response.json();
-
-      if (result.success && result.data) {
+      if (result.tokens?.accessToken && result.user) {
         // 註冊成功後自動登入
-        token.value = result.data.tokens.accessToken;
-        refreshToken.value = result.data.tokens.refreshToken;
-        user.value = result.data.user;
+        token.value = result.tokens.accessToken;
+        refreshToken.value = result.tokens.refreshToken ?? null;
+        user.value = result.user;
 
         localStorage.setItem("customer_auth_token", token.value!);
         if (refreshToken.value) {
@@ -162,7 +164,7 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: true };
       }
 
-      error.value = result.error || t("auth.registerFailed");
+      error.value = t("auth.registerFailed");
       return { success: false, error: error.value };
     } catch (err: any) {
       error.value = err.message || t("messages.networkError");
@@ -176,13 +178,7 @@ export const useAuthStore = defineStore("auth", () => {
   const logout = async () => {
     try {
       if (token.value) {
-        await fetch("/api/v1/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token.value}`,
-            "Content-Type": "application/json",
-          },
-        });
+        await apiClient.post("/auth/logout");
       }
     } catch (err) {
       console.warn("Logout request failed:", err);
@@ -205,18 +201,19 @@ export const useAuthStore = defineStore("auth", () => {
     if (!refreshToken.value) return false;
 
     try {
-      const response = await fetch("/api/v1/auth/refresh", {
-        method: "POST",
-        headers: {
-          "X-Refresh-Token": refreshToken.value,
+      const data = await apiClient.post<LoginResponse>(
+        "/auth/refresh",
+        undefined,
+        {
+          headers: {
+            "X-Refresh-Token": refreshToken.value,
+          },
         },
-      });
+      );
 
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        token.value = data.data.token;
-        refreshToken.value = data.data.refreshToken;
+      if (data.token) {
+        token.value = data.token;
+        refreshToken.value = data.refreshToken ?? null;
 
         localStorage.setItem("customer_auth_token", token.value!);
         if (refreshToken.value) {
@@ -239,16 +236,10 @@ export const useAuthStore = defineStore("auth", () => {
     if (!token.value) return false;
 
     try {
-      const response = await fetch("/api/v1/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token.value}`,
-        },
-      });
+      const data = await apiClient.get<CustomerUser>("/auth/me");
 
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        user.value = data.data;
+      if (data) {
+        user.value = data;
         persistUser(user.value);
         if (token.value) scheduleProactiveRefresh(token.value);
         return true;
@@ -272,17 +263,11 @@ export const useAuthStore = defineStore("auth", () => {
     if (!token.value) return null;
 
     try {
-      const response = await fetch("/api/v1/customers/me", {
-        headers: {
-          Authorization: `Bearer ${token.value}`,
-        },
-      });
+      const data = await apiClient.get<CustomerUser>("/customers/me");
 
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        user.value = data.data;
-        return data.data;
+      if (data) {
+        user.value = data;
+        return data;
       }
     } catch (err) {
       console.error("Failed to fetch user profile:", err);
