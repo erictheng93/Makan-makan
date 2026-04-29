@@ -1,8 +1,8 @@
 /**
- * POS (Point of Sale) Service - Drizzle ORM Version
+ * POS (Point of Sale) Service
  *
- * 完全使用 Drizzle ORM 重写的 POS 服务
- * 原版本已备份为 POSService.ts.legacy
+ * Drizzle ORM-backed implementation of cash register, shift, refund,
+ * receipt, and shift-report management for restaurant POS terminals.
  */
 
 import { z } from "zod";
