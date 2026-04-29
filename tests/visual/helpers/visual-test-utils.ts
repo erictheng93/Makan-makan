@@ -489,6 +489,11 @@ export async function mockAllAPIs(page: Page): Promise<void> {
     isOpen: true,
     currency: "TWD",
     imageUrl: "",
+    settings: {
+      currency: "TWD",
+      serviceChargeRate: 0.1,
+      taxRate: 0.055,
+    },
   };
 
   const mockCategories = [

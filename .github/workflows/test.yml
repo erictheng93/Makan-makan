@@ -343,9 +343,9 @@ jobs:
           # which runs `cd` inside the backgrounded subshell and never updates
           # the parent shell's cwd. Without parens, line 3 below tries to `cd
           # ../realtime` from workspace root and errors out with ENOENT.
-          (cd apps/api && pnpm dev) &
+          (cd apps/api && pnpm exec wrangler dev --inspector-port 9230) &
           echo $! > api-server.pid
-          (cd apps/realtime && pnpm dev) &
+          (cd apps/realtime && pnpm exec wrangler dev --inspector-port 9231) &
           echo $! > realtime-server.pid
         env:
           NODE_ENV: test
@@ -932,6 +932,15 @@ jobs:
             OVERALL_STATUS="failure"
           fi
           if [ "${{ needs.e2e-tests.result }}" != "success" ] && [ "${{ needs.e2e-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
+          if [ "${{ needs.performance-tests.result }}" != "success" ] && [ "${{ needs.performance-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
+          if [ "${{ needs.database-performance-tests.result }}" != "success" ] && [ "${{ needs.database-performance-tests.result }}" != "skipped" ]; then
+            OVERALL_STATUS="failure"
+          fi
+          if [ "${{ needs.visual-regression-tests.result }}" != "success" ] && [ "${{ needs.visual-regression-tests.result }}" != "skipped" ]; then
             OVERALL_STATUS="failure"
           fi
           if [ "${{ needs.security-tests.result }}" != "success" ] && [ "${{ needs.security-tests.result }}" != "skipped" ]; then
