@@ -11,7 +11,11 @@ import {
 } from "./offline-storage";
 import { apiClient } from "@/services/api";
 import {
+  buildAnalyticsSyncRequest,
+  buildAuditActionSyncRequest,
+  buildBackupSyncRequest,
   buildMenuUpdateSyncRequest,
+  buildSettingsSyncRequest,
   type MenuSyncRequest,
 } from "./background-sync-requests";
 
@@ -261,14 +265,8 @@ class AdminBackgroundSyncService {
 
   private async syncSingleUserAction(action: OfflineUserAction): Promise<void> {
     try {
-      await apiClient.post("/audit/actions", {
-        action_type: action.action_type,
-        target_id: action.target_id,
-        data: action.data,
-        user_id: action.user_id,
-        restaurant_id: action.restaurant_id,
-        timestamp: action.timestamp,
-      });
+      const request = buildAuditActionSyncRequest(action);
+      await apiClient.post(request.path, request.body);
 
       console.log(
         `[Admin Background Sync] User action ${action.id} synced successfully`,
@@ -324,7 +322,8 @@ class AdminBackgroundSyncService {
     restaurantId: string,
   ): Promise<void> {
     try {
-      await apiClient.post(`/analytics/${restaurantId}/sync`, data);
+      const request = buildAnalyticsSyncRequest(data, restaurantId);
+      await apiClient.post(request.path, request.body);
       console.log("[Admin Background Sync] Analytics data synced successfully");
     } catch (error) {
       console.error(
@@ -358,7 +357,8 @@ class AdminBackgroundSyncService {
 
   private async syncBackupData(data: any): Promise<void> {
     try {
-      await apiClient.post("/backup/upload", data);
+      const request = buildBackupSyncRequest(data);
+      await apiClient.post(request.path, request.body);
       console.log("[Admin Background Sync] Backup data synced successfully");
       this.notifyAdminSync("backup_sync", data.backup_id);
     } catch (error) {
@@ -389,7 +389,8 @@ class AdminBackgroundSyncService {
 
   private async syncSettings(settings: any): Promise<void> {
     try {
-      await apiClient.post("/admin/settings/sync", settings);
+      const request = buildSettingsSyncRequest(settings);
+      await apiClient.post(request.path, request.body);
       console.log("[Admin Background Sync] Settings synced successfully");
     } catch (error) {
       console.error("[Admin Background Sync] Failed to sync settings:", error);
