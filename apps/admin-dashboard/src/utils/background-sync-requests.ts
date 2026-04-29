@@ -24,7 +24,7 @@ function scopedPayload<T extends Record<string, any>>(
   restaurantId?: string | number | null,
 ): T {
   const normalizedRestaurantId = normalizeRestaurantId(restaurantId);
-  const nextPayload = { ...payload };
+  const nextPayload: Record<string, any> = { ...payload };
 
   if (normalizedRestaurantId) {
     nextPayload.restaurant_id = normalizedRestaurantId;
@@ -32,7 +32,7 @@ function scopedPayload<T extends Record<string, any>>(
     delete nextPayload.restaurant_id;
   }
 
-  return nextPayload;
+  return nextPayload as T;
 }
 
 export function buildMenuUpdateSyncRequest(

@@ -61,6 +61,14 @@ const sendNotificationSchema = z.object({
   recipientPhone: z.string().optional(),
 });
 
+type SendNotificationContext = Context<
+  { Bindings: Env } & {
+    Variables: {
+      validatedBody: z.infer<typeof sendNotificationSchema>;
+    };
+  }
+>;
+
 // ========================================
 // POST /test - Send test notification
 // ========================================
@@ -321,7 +329,7 @@ app.post(
 );
 
 async function validateNotificationRecipientScope(
-  c: Context<{ Bindings: Env }>,
+  c: SendNotificationContext,
   notificationData: z.infer<typeof sendNotificationSchema>,
 ): Promise<Response | null> {
   const user = c.get("user");

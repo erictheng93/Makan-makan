@@ -248,6 +248,8 @@ export interface BackupAuditLog {
   action:
     | "backup_created"
     | "backup_deleted"
+    | "backup_alert_acknowledged"
+    | "backup_alert_resolved"
     | "restore_initiated"
     | "backup_restored"
     | "schedule_modified"

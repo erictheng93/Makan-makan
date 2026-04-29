@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import {
@@ -34,6 +35,10 @@ const app = new Hono<{ Bindings: Env }>();
 type IdParamInput = { id: number };
 const notificationSettingsSchema = z.object({}).passthrough();
 const userSyncSchema = z.object({}).passthrough();
+type NotificationSettings = Record<string, unknown>;
+interface NotificationSettingsRecord {
+  settings?: NotificationSettings;
+}
 
 function toUserFilters(input: UserFilterInput): UserFilters {
   return {
@@ -70,8 +75,8 @@ function createUserSyncId(payload: Record<string, unknown>): string {
   return `${Date.now()}`;
 }
 
-async function storeUserSyncPayload(
-  c: any,
+async function storeUserSyncPayload<E extends { Bindings: Env }>(
+  c: Context<E>,
   syncType: string,
   payload: Record<string, unknown>,
 ) {
@@ -181,14 +186,14 @@ app.get(
  */
 app.get("/notification-settings", authMiddleware, async (c) => {
   const user = c.get("user");
-  const stored = await c.env.CACHE_KV.get(
+  const stored = (await c.env.CACHE_KV.get(
     createNotificationSettingsKey(user.id),
     "json",
-  );
+  )) as NotificationSettingsRecord | null;
 
   return c.json({
     success: true,
-    data: (stored as any)?.settings ?? {},
+    data: stored?.settings ?? {},
   });
 });
 

@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
+const { mockApiPost } = vi.hoisted(() => ({
+  mockApiPost: vi.fn(),
+}));
+
+vi.mock("@/services/authApi", () => ({
+  apiClient: {
+    post: mockApiPost,
+  },
+}));
+
 // Mock performanceService before importing the module under test
 vi.mock("../performanceService", () => ({
   performanceService: {
@@ -61,11 +71,8 @@ describe("ErrorReportingService", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    // Mock fetch
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({}),
-    });
+    mockApiPost.mockReset();
+    mockApiPost.mockResolvedValue({ data: {} });
 
     // Mock __APP_VERSION__
     (globalThis as any).__APP_VERSION__ = "1.0.0-test";
@@ -320,11 +327,10 @@ describe("ErrorReportingService", () => {
 
       // sendErrorReport calls fetch
       await vi.advanceTimersByTimeAsync(0);
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/errors",
+      expect(mockApiPost).toHaveBeenCalledWith(
+        "/system/errors",
         expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          error: expect.objectContaining({ message: "immediate test" }),
         }),
       );
     });
@@ -334,7 +340,7 @@ describe("ErrorReportingService", () => {
       service.reportError(new Error("batch test"));
 
       // The error should be stored but not immediately sent via direct fetch
-      // (batch sends through /api/errors/batch endpoint)
+      // (batch sends through the shared API client when flushed)
       expect(service.errorReports.value).toHaveLength(1);
     });
 
@@ -343,11 +349,10 @@ describe("ErrorReportingService", () => {
       service.reportError(new Error("offline test"));
 
       await vi.advanceTimersByTimeAsync(0);
-      // In offline mode, no fetch calls to /api/errors should occur
+      // In offline mode, no API call should occur
       // (unless it is also a critical error which always sends)
-      const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
-      const directCalls = fetchCalls.filter(
-        (call: any[]) => call[0] === "/api/errors",
+      const directCalls = mockApiPost.mock.calls.filter(
+        (call: any[]) => call[0] === "/system/errors",
       );
       // Offline mode: no direct sends for low-severity errors
       expect(directCalls.length).toBe(0);
@@ -362,9 +367,11 @@ describe("ErrorReportingService", () => {
 
       await vi.advanceTimersByTimeAsync(0);
       // handleCriticalError sends via sendErrorReport
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/errors",
-        expect.objectContaining({ method: "POST" }),
+      expect(mockApiPost).toHaveBeenCalledWith(
+        "/system/errors",
+        expect.objectContaining({
+          error: expect.objectContaining({ name: "SecurityError" }),
+        }),
       );
     });
 
@@ -744,31 +751,19 @@ describe("ErrorReportingService", () => {
       const result = await service.submitErrorReport(customReport);
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/errors",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(customReport),
-        }),
-      );
+      expect(mockApiPost).toHaveBeenCalledWith("/system/errors", customReport);
     });
 
     it("should return false on network failure", async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-        new Error("Network error"),
-      );
+      mockApiPost.mockRejectedValueOnce(new Error("Network error"));
 
       const result = await service.submitErrorReport({ data: "test" });
 
       expect(result).toBe(false);
     });
 
-    it("should return false when response is not ok", async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      });
+    it("should return false when the API client rejects", async () => {
+      mockApiPost.mockRejectedValueOnce({ response: { status: 500 } });
 
       const result = await service.submitErrorReport({ data: "test" });
 
@@ -787,12 +782,16 @@ describe("ErrorReportingService", () => {
         service.reportError(new Error(`batch err ${i}`));
       }
 
-      // processBatch sends to /api/errors/batch
+      // processBatch sends batched reports through the shared API client
       await vi.advanceTimersByTimeAsync(0);
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/errors/batch",
+      expect(mockApiPost).toHaveBeenCalledWith(
+        "/system/errors",
         expect.objectContaining({
-          method: "POST",
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              error: expect.objectContaining({ message: "batch err 0" }),
+            }),
+          ]),
         }),
       );
     });
@@ -806,33 +805,31 @@ describe("ErrorReportingService", () => {
       }
 
       // Initially no batch send (batch size not reached)
-      const fetchCallsBefore = (
-        global.fetch as ReturnType<typeof vi.fn>
-      ).mock.calls.filter((c: any[]) => c[0] === "/api/errors/batch").length;
+      const batchCallsBefore = mockApiPost.mock.calls.filter((c: any[]) =>
+        Array.isArray(c[1]?.errors),
+      ).length;
 
       // Advance timer by 30 seconds
       await vi.advanceTimersByTimeAsync(30000);
 
-      const fetchCallsAfter = (
-        global.fetch as ReturnType<typeof vi.fn>
-      ).mock.calls.filter((c: any[]) => c[0] === "/api/errors/batch").length;
+      const batchCallsAfter = mockApiPost.mock.calls.filter((c: any[]) =>
+        Array.isArray(c[1]?.errors),
+      ).length;
 
-      expect(fetchCallsAfter).toBeGreaterThan(fetchCallsBefore);
+      expect(batchCallsAfter).toBeGreaterThan(batchCallsBefore);
     });
 
     it("should not send batch when queue is empty on timer", async () => {
       service.reportingMode.value = "batch";
 
-      const fetchCallsBefore = (global.fetch as ReturnType<typeof vi.fn>).mock
-        .calls.length;
+      const callsBefore = mockApiPost.mock.calls.length;
 
       // Advance timer without adding any errors
       await vi.advanceTimersByTimeAsync(30000);
 
-      const fetchCallsAfter = (global.fetch as ReturnType<typeof vi.fn>).mock
-        .calls.length;
+      const callsAfter = mockApiPost.mock.calls.length;
 
-      expect(fetchCallsAfter).toBe(fetchCallsBefore);
+      expect(callsAfter).toBe(callsBefore);
     });
   });
 
@@ -857,9 +854,15 @@ describe("ErrorReportingService", () => {
 
       // processBatch should have been triggered for remaining items
       await vi.advanceTimersByTimeAsync(0);
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/errors/batch",
-        expect.objectContaining({ method: "POST" }),
+      expect(mockApiPost).toHaveBeenCalledWith(
+        "/system/errors",
+        expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              error: expect.objectContaining({ message: "cleanup err 0" }),
+            }),
+          ]),
+        }),
       );
     });
   });

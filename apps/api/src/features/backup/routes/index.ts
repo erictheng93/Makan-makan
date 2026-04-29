@@ -349,7 +349,12 @@ export function createBackupRoutes(): Hono<Context> {
 export const BackupRoutes = createBackupRoutes();
 
 function createBackupUploadId(): string {
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
   return `offline-${Date.now()}`;
 }
 

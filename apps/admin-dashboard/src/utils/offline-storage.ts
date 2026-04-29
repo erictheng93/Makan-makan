@@ -184,10 +184,8 @@ class AdminOfflineStorageManager {
   }
 
   async getUnsyncedOrderUpdates(): Promise<OfflineOrderUpdate[]> {
-    const updates = await this.getAllFromIndex<OfflineOrderUpdate>(
+    const updates = await this.getAllFromStore<OfflineOrderUpdate>(
       "offlineOrderUpdates",
-      "synced",
-      false,
     );
     return updates.filter((update) => update.synced === false);
   }
@@ -249,11 +247,8 @@ class AdminOfflineStorageManager {
   }
 
   async getUnsyncedMenuUpdates(): Promise<OfflineMenuUpdate[]> {
-    const updates = await this.getAllFromIndex<OfflineMenuUpdate>(
-      "offlineMenuUpdates",
-      "synced",
-      false,
-    );
+    const updates =
+      await this.getAllFromStore<OfflineMenuUpdate>("offlineMenuUpdates");
     return updates.filter((update) => update.synced === false);
   }
 
@@ -308,11 +303,8 @@ class AdminOfflineStorageManager {
   }
 
   async getUnsyncedUserActions(): Promise<OfflineUserAction[]> {
-    const actions = await this.getAllFromIndex<OfflineUserAction>(
-      "offlineUserActions",
-      "synced",
-      false,
-    );
+    const actions =
+      await this.getAllFromStore<OfflineUserAction>("offlineUserActions");
     return actions.filter((action) => action.synced === false);
   }
 
@@ -470,16 +462,10 @@ class AdminOfflineStorageManager {
     });
   }
 
-  private async getAllFromIndex<T>(
-    storeName: string,
-    indexName: string,
-    query?: IDBValidKey | IDBKeyRange,
-  ): Promise<T[]> {
+  private async getAllFromStore<T>(storeName: string): Promise<T[]> {
     const store = this.getStore(storeName);
-    const index = store.index(indexName);
     return new Promise((resolve, reject) => {
-      const request =
-        query === undefined ? index.getAll() : index.getAll(query);
+      const request = store.getAll();
       request.onsuccess = () => resolve(request.result as T[]);
       request.onerror = () => reject(request.error);
     });

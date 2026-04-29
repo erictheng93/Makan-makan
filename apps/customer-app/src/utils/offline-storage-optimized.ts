@@ -737,10 +737,8 @@ class OptimizedOfflineStorageManager {
 
   async getUnsyncedOrders(): Promise<OfflineOrder[]> {
     const store = this.getStore("optimizedOrders");
-    const index = store.index("synced_timestamp");
     return new Promise((resolve, reject) => {
-      const range = IDBKeyRange.bound([false, ""], [false, "\uffff"]);
-      const request = index.getAll(range);
+      const request = store.getAll();
       request.onsuccess = () => {
         const results = request.result.map((item) =>
           this.decompressIfNeeded(item),

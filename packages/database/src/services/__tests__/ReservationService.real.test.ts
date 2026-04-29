@@ -26,6 +26,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "../../testing/create-test-database";
+import { ReservationStatus } from "@makanmakan/shared-types";
 import { ReservationService } from "../ReservationService";
 import type { CloudflareEnv } from "../base";
 
@@ -218,7 +219,7 @@ describe("ReservationService.listReservations — real D1", () => {
 
     const result = await service.listReservations({
       restaurantId: RESTAURANT_ID,
-      status: ["pending", "confirmed"],
+      status: [ReservationStatus.PENDING, ReservationStatus.CONFIRMED],
     });
 
     expect(result.total).toBe(2);

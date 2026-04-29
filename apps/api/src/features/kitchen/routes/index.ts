@@ -3,6 +3,7 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, sseAuthMiddleware } from "../../../middleware/auth";
@@ -16,6 +17,10 @@ import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 const notificationSettingsSchema = z.object({}).passthrough();
+type NotificationSettings = Record<string, unknown>;
+interface NotificationSettingsRecord {
+  settings?: NotificationSettings;
+}
 
 function createNotificationSettingsKey(user: {
   id: number;
@@ -55,8 +60,8 @@ function extractLegacyNotes(payload: unknown): string | undefined {
   return undefined;
 }
 
-async function updateLegacyItemStatus(
-  c: any,
+async function updateLegacyItemStatus<E extends { Bindings: Env }>(
+  c: Context<E>,
   status: OrderItemStatusUpdate["status"],
 ) {
   const orderId = parseRouteNumber(c.req.param("orderId"), "orderId");
@@ -115,14 +120,14 @@ async function updateLegacyItemStatus(
  */
 app.get("/notification-settings", authMiddleware, async (c) => {
   const user = c.get("user");
-  const stored = await c.env.CACHE_KV.get(
+  const stored = (await c.env.CACHE_KV.get(
     createNotificationSettingsKey(user),
     "json",
-  );
+  )) as NotificationSettingsRecord | null;
 
   return c.json({
     success: true,
-    data: (stored as any)?.settings ?? {},
+    data: stored?.settings ?? {},
   });
 });
 
