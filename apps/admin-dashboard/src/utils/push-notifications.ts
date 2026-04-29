@@ -3,7 +3,7 @@
  * Handles push notification registration, management, and admin-specific notifications
  */
 
-import { apiPath } from "@/services/api-url";
+import { apiClient } from "@/services/api";
 
 export interface NotificationSubscription {
   endpoint: string;
@@ -130,24 +130,13 @@ class AdminPushNotificationService {
     subscription: NotificationSubscription,
   ): Promise<void> {
     try {
-      const response = await fetch(apiPath("/push/subscribe"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({
-          subscription,
-          user_type: "admin",
-          role: this.getUserRole(),
-          restaurant_id: this.getRestaurantId(),
-          device_info: this.getDeviceInfo(),
-        }),
+      await apiClient.post("/push/subscribe", {
+        subscription,
+        user_type: "admin",
+        role: this.getUserRole(),
+        restaurant_id: this.getRestaurantId(),
+        device_info: this.getDeviceInfo(),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to register admin push subscription on server");
-      }
 
       console.log("Admin push subscription registered on server");
     } catch (error) {
@@ -473,10 +462,6 @@ class AdminPushNotificationService {
     return window.btoa(binary);
   }
 
-  private getAuthToken(): string {
-    return localStorage.getItem("auth_token") || "";
-  }
-
   private getUserRole(): string {
     return localStorage.getItem("user_role") || "admin";
   }
@@ -527,14 +512,7 @@ class AdminPushNotificationService {
     };
   }): Promise<void> {
     try {
-      await fetch(apiPath("/admin/notification-settings"), {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify(settings),
-      });
+      await apiClient.put("/admin/notification-settings", settings);
 
       // Store locally for offline access
       localStorage.setItem(
