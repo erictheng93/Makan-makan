@@ -74,9 +74,9 @@ const customUser = userFactory.build({
 
 ```typescript
 UserRoles.ADMIN; // 0 - 系統管理員
-UserRoles.SHOP_OWNER; // 1 - 店主
+UserRoles.OWNER; // 1 - 店主
 UserRoles.CHEF; // 2 - 廚師
-UserRoles.SERVICE_CREW; // 3 - 服務員
+UserRoles.SERVICE; // 3 - 服務員
 UserRoles.CASHIER; // 4 - 收銀員
 UserRoles.CUSTOMER; // 5 - 顧客
 ```

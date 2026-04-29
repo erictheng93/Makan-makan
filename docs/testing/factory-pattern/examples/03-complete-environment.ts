@@ -26,7 +26,7 @@ describe("範例 3: 完整測試環境", () => {
 
     // 驗證團隊
     expect(testData.team.owner).toBeDefined();
-    expect(testData.team.owner.role).toBe(UserRoles.SHOP_OWNER);
+    expect(testData.team.owner.role).toBe(UserRoles.OWNER);
     expect(testData.team.chefs).toHaveLength(2);
     expect(testData.team.serviceCrews).toHaveLength(3);
     expect(testData.team.cashiers).toHaveLength(2);
@@ -84,7 +84,7 @@ describe("範例 3: 完整測試環境", () => {
 
     // 4. 服務員送餐
     const serviceCrew = testData.team.serviceCrews[0];
-    expect(serviceCrew.role).toBe(UserRoles.SERVICE_CREW);
+    expect(serviceCrew.role).toBe(UserRoles.SERVICE);
 
     // 5. 收銀員結帳
     const cashier = testData.team.cashiers[0];

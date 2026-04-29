@@ -507,7 +507,7 @@ import { userFactory } from '@makanmakan/testing-utils'
 
 const team = userFactory.buildRestaurantTeam(1)
 
-console.log(team.owner.role) // UserRoles.SHOP_OWNER
+console.log(team.owner.role) // UserRoles.OWNER
 console.log(team.chefs.length) // 2
 \`\`\`
 

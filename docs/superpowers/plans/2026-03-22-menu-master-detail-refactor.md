@@ -206,7 +206,7 @@ In `apps/api/src/features/menu/routes/index.ts`, add this route **before** the `
 app.patch(
   "/:restaurantId/categories/reorder",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateBody(menuSchemas.categoryReorder),
