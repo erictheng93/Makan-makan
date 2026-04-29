@@ -27,7 +27,15 @@ const notificationSettingsSchema = z
   })
   .passthrough();
 
+const settingsSyncSchema = z
+  .object({
+    sync_id: z.string().min(1).max(200).optional(),
+    restaurant_id: z.union([z.string(), z.number()]).optional(),
+  })
+  .passthrough();
+
 type NotificationSettings = z.infer<typeof notificationSettingsSchema>;
+type SettingsSyncInput = z.infer<typeof settingsSyncSchema>;
 
 type NotificationSettingsRecord = {
   userId: number;
@@ -96,6 +104,52 @@ routes.put(
   },
 );
 
+routes.post(
+  "/settings/sync",
+  authMiddleware,
+  validateBody(settingsSyncSchema),
+  async (c) => {
+    const user = c.get("user");
+    const settings = c.get("validatedBody");
+    const now = new Date().toISOString();
+    const syncId = createSyncId(settings);
+    const restaurantId =
+      settings.restaurant_id !== undefined
+        ? String(settings.restaurant_id)
+        : user.restaurantId !== undefined
+          ? String(user.restaurantId)
+          : null;
+    const scope = restaurantId ? encodeURIComponent(restaurantId) : "global";
+    const record = {
+      userId: user.id,
+      restaurantId,
+      settings,
+      syncedAt: now,
+    };
+
+    await c.env.CACHE_KV.put(
+      `admin:settings-sync:${scope}:${user.id}:${syncId}`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+    await c.env.CACHE_KV.put(
+      `admin:settings-sync:${scope}:${user.id}:latest`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        syncId,
+        synced: true,
+        restaurantId,
+        syncedAt: now,
+      },
+    });
+  },
+);
+
 function createSettingsKey(user: {
   id: number;
   restaurantId?: string | number;
@@ -104,6 +158,11 @@ function createSettingsKey(user: {
     user.restaurantId !== undefined ? String(user.restaurantId).trim() : "";
   const scope = restaurantId ? encodeURIComponent(restaurantId) : "global";
   return `admin:notification-settings:${scope}:${user.id}`;
+}
+
+function createSyncId(settings: SettingsSyncInput): string {
+  if (settings.sync_id) return encodeURIComponent(settings.sync_id);
+  return `${Date.now()}`;
 }
 
 export default routes;

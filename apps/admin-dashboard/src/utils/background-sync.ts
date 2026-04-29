@@ -9,6 +9,7 @@ import {
   type OfflineMenuUpdate,
   type OfflineUserAction,
 } from "./offline-storage";
+import { apiClient } from "@/services/api";
 import { apiPath } from "@/services/api-url";
 import { buildMenuUpdateSyncRequest } from "./background-sync-requests";
 
@@ -284,30 +285,19 @@ class AdminBackgroundSyncService {
 
   private async syncSingleUserAction(action: OfflineUserAction): Promise<void> {
     try {
-      const response = await fetch(apiPath("/audit/actions"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({
-          action_type: action.action_type,
-          target_id: action.target_id,
-          data: action.data,
-          user_id: action.user_id,
-          restaurant_id: action.restaurant_id,
-          timestamp: action.timestamp,
-        }),
+      await apiClient.post("/audit/actions", {
+        action_type: action.action_type,
+        target_id: action.target_id,
+        data: action.data,
+        user_id: action.user_id,
+        restaurant_id: action.restaurant_id,
+        timestamp: action.timestamp,
       });
 
-      if (response.ok) {
-        console.log(
-          `[Admin Background Sync] User action ${action.id} synced successfully`,
-        );
-        // Mark as synced in offline storage
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      console.log(
+        `[Admin Background Sync] User action ${action.id} synced successfully`,
+      );
+      // Mark as synced in offline storage
     } catch (error) {
       console.error(
         `[Admin Background Sync] Failed to sync user action ${action.id}:`,
@@ -358,22 +348,8 @@ class AdminBackgroundSyncService {
     restaurantId: string,
   ): Promise<void> {
     try {
-      const response = await fetch(apiPath(`/analytics/${restaurantId}/sync`), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        console.log(
-          "[Admin Background Sync] Analytics data synced successfully",
-        );
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      await apiClient.post(`/analytics/${restaurantId}/sync`, data);
+      console.log("[Admin Background Sync] Analytics data synced successfully");
     } catch (error) {
       console.error(
         "[Admin Background Sync] Failed to sync analytics data:",
@@ -406,21 +382,9 @@ class AdminBackgroundSyncService {
 
   private async syncBackupData(data: any): Promise<void> {
     try {
-      const response = await fetch(apiPath("/backup/upload"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        console.log("[Admin Background Sync] Backup data synced successfully");
-        this.notifyAdminSync("backup_sync", data.backup_id);
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      await apiClient.post("/backup/upload", data);
+      console.log("[Admin Background Sync] Backup data synced successfully");
+      this.notifyAdminSync("backup_sync", data.backup_id);
     } catch (error) {
       console.error(
         "[Admin Background Sync] Failed to sync backup data:",
@@ -449,20 +413,8 @@ class AdminBackgroundSyncService {
 
   private async syncSettings(settings: any): Promise<void> {
     try {
-      const response = await fetch(apiPath("/admin/settings/sync"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify(settings),
-      });
-
-      if (response.ok) {
-        console.log("[Admin Background Sync] Settings synced successfully");
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      await apiClient.post("/admin/settings/sync", settings);
+      console.log("[Admin Background Sync] Settings synced successfully");
     } catch (error) {
       console.error("[Admin Background Sync] Failed to sync settings:", error);
       throw error;

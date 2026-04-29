@@ -28,6 +28,85 @@ const routes = new Hono<{ Bindings: Env }>();
 
 routes.use("*", authMiddleware, moduleGate("analytics"));
 
+routes.post(
+  "/:restaurantId/sync",
+  authMiddleware,
+  requireRole([0, 1]),
+  async (c) => {
+    const restaurantId = c.req.param("restaurantId");
+    const user = c.get("user");
+
+    if (
+      user.role !== 0 &&
+      (user.restaurantId === undefined ||
+        String(user.restaurantId) !== restaurantId)
+    ) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "ANALYTICS_SYNC_FORBIDDEN",
+            message: "Cannot sync analytics for another restaurant",
+          },
+        },
+        403,
+      );
+    }
+
+    let payload: unknown;
+    try {
+      payload = await c.req.json();
+    } catch {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "INVALID_JSON",
+            message: "Invalid JSON body",
+          },
+        },
+        400,
+      );
+    }
+
+    const now = new Date().toISOString();
+    const syncId = createAnalyticsSyncId(payload);
+    const key = `analytics:sync:${encodeURIComponent(restaurantId)}:${syncId}`;
+    const record = {
+      restaurantId,
+      userId: user.id,
+      payload,
+      syncedAt: now,
+    };
+
+    await c.env.CACHE_KV.put(key, JSON.stringify(record), {
+      expirationTtl: 60 * 60 * 24 * 30,
+    });
+    await c.env.CACHE_KV.put(
+      `analytics:sync:${encodeURIComponent(restaurantId)}:latest`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+
+    const analyticsService = new AnalyticsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+    await analyticsService.clearCache(restaurantId);
+
+    return c.json({
+      success: true,
+      data: {
+        syncId,
+        synced: true,
+        restaurantId,
+        syncedAt: now,
+      },
+    });
+  },
+);
+
 /**
  * Dashboard analytics endpoint
  * GET /api/v1/analytics/dashboard
@@ -545,5 +624,19 @@ routes.get(
     });
   },
 );
+
+function createAnalyticsSyncId(payload: unknown): string {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "sync_id" in payload &&
+    typeof (payload as { sync_id?: unknown }).sync_id === "string" &&
+    (payload as { sync_id: string }).sync_id.trim()
+  ) {
+    return encodeURIComponent((payload as { sync_id: string }).sync_id);
+  }
+
+  return `${Date.now()}`;
+}
 
 export default routes;

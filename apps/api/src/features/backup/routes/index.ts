@@ -47,6 +47,13 @@ const createBackupSchema = z.object({
   force_immediate: z.boolean().default(false),
 });
 
+const uploadBackupSchema = z
+  .object({
+    backup_id: z.string().min(1).max(200).optional(),
+    restaurant_id: z.union([z.string(), z.number()]).optional(),
+  })
+  .passthrough();
+
 const listBackupsSchema = z.object({
   restaurant_id: z.string().uuid("Invalid restaurant ID"),
   status: z
@@ -142,6 +149,63 @@ export function createBackupRoutes(): Hono<Context> {
   backup.post("/create", validateBody(createBackupSchema), async (c) => {
     const controller = c.get("backupController");
     return await controller.createBackup(c);
+  });
+
+  /**
+   * POST /api/v1/backup/upload
+   * Persist an offline backup payload produced by the admin background sync.
+   */
+  backup.post("/upload", validateBody(uploadBackupSchema), async (c) => {
+    const body = c.get("validatedBody");
+    const user = c.get("user") as
+      | { id?: string | number; restaurantId?: string | number }
+      | undefined;
+    const restaurantId =
+      body.restaurant_id !== undefined
+        ? String(body.restaurant_id)
+        : user?.restaurantId !== undefined
+          ? String(user.restaurantId)
+          : "global";
+    const backupId = body.backup_id ?? createBackupUploadId();
+    const now = new Date().toISOString();
+    const storageKey = [
+      "offline-uploads",
+      encodeURIComponent(restaurantId),
+      `${encodeURIComponent(backupId)}.json`,
+    ].join("/");
+    const record = {
+      backupId,
+      restaurantId,
+      userId: user?.id ?? null,
+      payload: body,
+      uploadedAt: now,
+    };
+
+    await c.env.BACKUP_STORAGE.put(storageKey, JSON.stringify(record), {
+      httpMetadata: { contentType: "application/json" },
+    });
+    await c.env.BACKUP_KV.put(
+      `backup:offline-upload:${encodeURIComponent(backupId)}`,
+      JSON.stringify({
+        backupId,
+        restaurantId,
+        storageKey,
+        uploadedAt: now,
+        userId: user?.id ?? null,
+      }),
+      { expirationTtl: 60 * 60 * 24 * 90 },
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        backup_id: backupId,
+        uploaded: true,
+        restaurant_id: restaurantId,
+        storage_key: storageKey,
+        uploaded_at: now,
+      },
+    });
   });
 
   /**
@@ -251,3 +315,8 @@ export function createBackupRoutes(): Hono<Context> {
 
 // Export the configured routes
 export const BackupRoutes = createBackupRoutes();
+
+function createBackupUploadId(): string {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `offline-${Date.now()}`;
+}

@@ -94,6 +94,7 @@ import realtimeRoutes from "./features/realtime/routes";
 import notificationsRoutes from "./features/notifications/routes";
 import pushRoutes from "./features/push/routes";
 import adminSettingsRoutes from "./features/admin-settings/routes";
+import auditRoutes from "./features/audit/routes";
 // Verification system (password reset, email/phone verification)
 // import verificationRoutes from './routes/verification' // Replaced with modular Verification feature
 import verificationFeature from "./features/verification";
@@ -431,6 +432,7 @@ export function createApp(
         realtime: "/api/v1/realtime",
         notifications: "/api/v1/notifications",
         push: "/api/v1/push",
+        audit: "/api/v1/audit",
         partnerships: "/api/v1/partnerships",
         guestOrders: "/api/v1/guest-orders",
         integrations: "/api/v1/integrations",
@@ -551,6 +553,7 @@ export function createApp(
   apiV1.route("/feedback", feedbackFeature.routes);
   apiV1.route("/notifications", notificationsRoutes);
   apiV1.route("/push", pushRoutes);
+  apiV1.route("/audit", auditRoutes);
 
   // Admin-only routes — auth + role=0 enforced inside the feature module itself
   apiV1.use("/admin/*", authMiddleware);

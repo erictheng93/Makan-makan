@@ -164,4 +164,43 @@ describe("Admin Settings Routes", () => {
     expect(json.error.code).toBe("VALIDATION_ERROR");
     expect(kv.put).not.toHaveBeenCalled();
   });
+
+  it("stores background-synced admin settings snapshots", async () => {
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/admin/settings/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sync_id: "sync-1",
+          restaurant_id: "rest-1",
+          settings: { locale: "zh-TW", receiptFooter: "Thank you" },
+        }),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(200);
+    expect(json).toMatchObject({
+      success: true,
+      data: {
+        syncId: "sync-1",
+        synced: true,
+        restaurantId: "rest-1",
+      },
+    });
+    expect(kv.put).toHaveBeenCalledWith(
+      "admin:settings-sync:rest-1:7:sync-1",
+      expect.stringContaining('"restaurantId":"rest-1"'),
+      { expirationTtl: 2592000 },
+    );
+    expect(kv.put).toHaveBeenCalledWith(
+      "admin:settings-sync:rest-1:7:latest",
+      expect.stringContaining('"restaurantId":"rest-1"'),
+      { expirationTtl: 2592000 },
+    );
+  });
 });
