@@ -8,7 +8,7 @@ import {
   type PerformanceReport,
   type WebVitals,
 } from "@makanmakan/utils";
-import { apiPath } from "@/services/api-url";
+import { apiClient } from "@/services/api";
 
 export function usePerformanceMonitor() {
   const monitor = getPerformanceMonitor({
@@ -21,11 +21,7 @@ export function usePerformanceMonitor() {
       // Send to backend
       if (import.meta.env.PROD) {
         try {
-          await fetch(apiPath("/system/performance"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(report),
-          });
+          await apiClient.post("/system/performance", report);
         } catch (e) {
           console.error("[PerformanceMonitor] Failed to send report:", e);
         }

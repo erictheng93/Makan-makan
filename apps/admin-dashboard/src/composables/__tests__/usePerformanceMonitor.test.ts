@@ -41,8 +41,18 @@ const mockMonitor = vi.hoisted(() => ({
   clear: vi.fn(),
 }));
 
+const { mockApiClient } = vi.hoisted(() => ({
+  mockApiClient: {
+    post: vi.fn(),
+  },
+}));
+
 vi.mock("@makanmakan/utils", () => ({
   getPerformanceMonitor: vi.fn().mockReturnValue(mockMonitor),
+}));
+
+vi.mock("@/services/api", () => ({
+  apiClient: mockApiClient,
 }));
 
 // Mock Vue lifecycle hooks
@@ -54,9 +64,6 @@ vi.mock("vue", async () => {
     onBeforeUnmount: vi.fn(),
   };
 });
-
-// Mock fetch
-global.fetch = vi.fn().mockResolvedValue({ ok: true }) as typeof fetch;
 
 // Variable to hold the imported module
 let usePerformanceMonitor: typeof import("../usePerformanceMonitor").usePerformanceMonitor;
