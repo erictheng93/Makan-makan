@@ -13,6 +13,9 @@ vi.mock("@/services/api", () => ({
     setAuthToken: vi.fn(),
   },
   authClient: {
+    instance: {
+      post: vi.fn(),
+    },
     tokens: {
       setTokens: vi.fn((token: string, rt?: string) => {
         localStorage.setItem("auth_token", token);
@@ -47,7 +50,7 @@ vi.mock("@makanmakan/utils", () => ({
   getRefreshDelay: vi.fn(() => null),
 }));
 
-import { api } from "@/services/api";
+import { api, authClient } from "@/services/api";
 import { useAuthStore } from "../auth";
 
 describe("Auth Store", () => {
@@ -56,7 +59,6 @@ describe("Auth Store", () => {
     vi.clearAllMocks();
     localStorage.clear();
     sessionStorage.clear();
-    vi.mocked(global.fetch).mockReset();
   });
 
   describe("Initial State", () => {
@@ -435,17 +437,16 @@ describe("Auth Store", () => {
       localStorage.setItem("auth_refresh_token", "rt-1");
       setActivePinia(createPinia());
 
-      vi.mocked(global.fetch).mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              token: "new-token",
-              refreshToken: "new-rt",
-              user: { id: 1, username: "admin" },
-            },
-          }),
-      } as Response);
+      vi.mocked(authClient.instance.post).mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            token: "new-token",
+            refreshToken: "new-rt",
+            user: { id: 1, username: "admin" },
+          },
+        },
+      } as any);
 
       const store = useAuthStore();
       const result = await store.refreshToken();
@@ -454,13 +455,14 @@ describe("Auth Store", () => {
       expect(store.token).toBe("new-token");
       expect(localStorage.getItem("auth_token")).toBe("new-token");
       expect(localStorage.getItem("auth_refresh_token")).toBe("new-rt");
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/v1/auth/refresh",
+      expect(authClient.instance.post).toHaveBeenCalledWith(
+        "/auth/refresh",
+        {},
         expect.objectContaining({
-          method: "POST",
           headers: expect.objectContaining({
             "X-Refresh-Token": "rt-1",
           }),
+          _retry: true,
         }),
       );
     });
