@@ -28,6 +28,13 @@ interface JoinPayload {
   special_requests?: string;
 }
 
+function canAccessRestaurant(
+  user: { role: number; restaurantId?: string | number },
+  restaurantId: string,
+): boolean {
+  return user.role === 0 || String(user.restaurantId ?? "") === restaurantId;
+}
+
 /**
  * Broadcast a queue update event over the SSE channel. Failures are logged
  * but never break the originating mutation — clients reconcile on reload.
@@ -117,7 +124,7 @@ app.get("/:restaurantId/current", authMiddleware, async (c) => {
   if (!restaurantId) throw badRequest("Invalid restaurant ID");
   const user = c.get("user");
 
-  if (user.role !== 0 && user.restaurantId !== restaurantId) {
+  if (!canAccessRestaurant(user, restaurantId)) {
     throw forbidden("Access denied");
   }
 
@@ -182,7 +189,7 @@ app.post("/:restaurantId/call-next", authMiddleware, async (c) => {
     throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
   const user = c.get("user");
 
-  if (user.role !== 0 && user.restaurantId !== restaurantId) {
+  if (!canAccessRestaurant(user, restaurantId)) {
     throw forbidden("Access denied");
   }
 

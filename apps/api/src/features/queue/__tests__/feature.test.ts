@@ -281,6 +281,22 @@ describe("Queue routes (real WaitingListService delegation)", () => {
       expect(res.status).toBe(403);
       expect(mockService.listWaitingList).not.toHaveBeenCalled();
     });
+
+    it("allows restaurant access when token restaurantId is numeric", async () => {
+      mockUserRole = 1;
+      mockUserRestaurantId = 1;
+      mockService.listWaitingList.mockResolvedValue({
+        data: [sampleEntry],
+        total: 1,
+      });
+
+      const res = await request("/queue/1/current", {
+        headers: { Authorization: "Bearer test" },
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockService.listWaitingList).toHaveBeenCalledOnce();
+    });
   });
 
   describe("GET /:queueId/position", () => {
@@ -394,6 +410,32 @@ describe("Queue routes (real WaitingListService delegation)", () => {
       });
 
       expect(res.status).toBe(403);
+    });
+
+    it("allows staff calling when token restaurantId is numeric", async () => {
+      mockUserRole = 1;
+      mockUserRestaurantId = 1;
+      mockService.batchCallNext.mockResolvedValue([
+        { id: "entry-uuid-1", success: true, tableId: 5, message: "已叫號" },
+      ]);
+      mockService.getWaitingListEntryById.mockResolvedValue({
+        ...sampleEntry,
+        status: "called",
+        tableId: 5,
+        calledAt: 1700000100000,
+      });
+
+      const res = await request("/queue/1/call-next", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer test",
+        },
+        body: JSON.stringify({}),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockService.batchCallNext).toHaveBeenCalledWith("1", 1);
     });
   });
 

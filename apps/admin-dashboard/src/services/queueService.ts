@@ -81,6 +81,71 @@ export interface QueueStats {
   }>;
 }
 
+function unwrapApiData<T = any>(response: any): T {
+  return (response.data as any)?.data ?? response.data;
+}
+
+function toNullableIsoString(value: string | number | null | undefined) {
+  if (value == null) return null;
+  if (typeof value === "number") return new Date(value).toISOString();
+  return value;
+}
+
+function mapQueueItem(entry: any): QueueItem {
+  return {
+    id: entry.id ?? entry.queueId,
+    queueNumber: entry.queueNumber ?? 0,
+    restaurantId: entry.restaurantId ?? "",
+    customerName: entry.customerName ?? null,
+    customerPhone: entry.customerPhone,
+    customerEmail: entry.customerEmail,
+    partySize: entry.partySize ?? 1,
+    tablePreferences: entry.tablePreferences ?? [],
+    specialRequests: entry.specialRequests ?? entry.notes ?? null,
+    priority: entry.priority ?? 0,
+    queueType: entry.queueType ?? "walkin",
+    status: entry.status ?? "waiting",
+    joinedAt:
+      toNullableIsoString(entry.joinedAt ?? entry.createdAt) ??
+      new Date(0).toISOString(),
+    calledAt: toNullableIsoString(entry.calledAt),
+    notifiedAt: toNullableIsoString(entry.notifiedAt) ?? undefined,
+    seatedAt: toNullableIsoString(entry.seatedAt),
+    estimatedWaitMinutes: entry.estimatedWaitMinutes ?? 0,
+    actualWaitMinutes: entry.actualWaitMinutes ?? null,
+    assignedTableId: entry.assignedTableId ?? entry.tableId ?? null,
+    servedBy: entry.servedBy,
+    notes: entry.notes ?? null,
+    notificationMethods: entry.notificationMethods,
+    checkInCode: entry.checkInCode,
+    metadata: entry.metadata,
+  };
+}
+
+function normalizeQueueStatus(data: any): {
+  queue: any;
+  activity: any;
+  settings: QueueSettings;
+} {
+  return {
+    queue: {
+      total_waiting: data?.queue?.total_waiting ?? data?.totalWaiting ?? 0,
+      avg_estimated_wait:
+        data?.queue?.avg_estimated_wait ?? data?.averageWaitMinutes ?? 0,
+      min_wait: data?.queue?.min_wait ?? 0,
+      max_wait: data?.queue?.max_wait ?? 0,
+      online_count: data?.queue?.online_count ?? 0,
+      walkin_count: data?.queue?.walkin_count ?? 0,
+      priority_count: data?.queue?.priority_count ?? 0,
+      available_tables:
+        data?.queue?.available_tables ?? data?.availableTables ?? 0,
+      by_table_type: data?.queue?.by_table_type ?? data?.byTableType ?? [],
+    },
+    activity: data?.activity || {},
+    settings: data?.settings || ({} as QueueSettings),
+  };
+}
+
 // 新模組化候位管理服務
 export const queueService = {
   // 排隊管理 - 使用新 API
@@ -94,7 +159,8 @@ export const queueService = {
     const response = await apiClient.get(`/queue/${restaurantId}/current`, {
       params,
     });
-    return (response.data as any)?.data?.queue || [];
+    const data = unwrapApiData(response);
+    return (data?.queue || []).map(mapQueueItem);
   },
 
   async getQueueStatus(restaurantId: string): Promise<{
@@ -103,12 +169,7 @@ export const queueService = {
     settings: QueueSettings;
   }> {
     const response = await apiClient.get(`/queue/${restaurantId}/status`);
-    const data = (response.data as any)?.data;
-    return {
-      queue: data?.queue || {},
-      activity: data?.activity || {},
-      settings: data?.settings || ({} as QueueSettings),
-    };
+    return normalizeQueueStatus(unwrapApiData(response));
   },
 
   async joinQueue(data: {
@@ -178,11 +239,15 @@ export const queueService = {
     data?: QueueItem;
     error?: string;
   }> {
-    const response = await apiClient.post("/queue/call-next", {
-      restaurantId,
-      ...data,
-    });
-    return response.data as any;
+    const response = await apiClient.post(
+      `/queue/${restaurantId}/call-next`,
+      data,
+    );
+    const payload = response.data as any;
+    return {
+      ...payload,
+      data: payload.data ? mapQueueItem(payload.data) : undefined,
+    };
   },
 
   // 客戶入座 - 新模組化實現
@@ -244,9 +309,9 @@ export const queueService = {
     settings: QueueSettings;
   }> {
     const response = await apiClient.get(`/queue/${restaurantId}/status`);
-    const data = (response.data as any)?.data;
+    const data = normalizeQueueStatus(unwrapApiData(response));
     return {
-      queue: data?.queue || {
+      queue: data.queue || {
         total_waiting: 0,
         avg_estimated_wait: 0,
         min_wait: 0,
@@ -255,13 +320,13 @@ export const queueService = {
         walkin_count: 0,
         priority_count: 0,
       },
-      activity: data?.activity || {
+      activity: data.activity || {
         seated_today: 0,
         cancelled_today: 0,
         no_show_today: 0,
         avg_actual_wait: 0,
       },
-      settings: data?.settings || ({} as QueueSettings),
+      settings: data.settings || ({} as QueueSettings),
     };
   },
 
