@@ -3,6 +3,8 @@
  * 提供實時性能追蹤和自動優化建議
  */
 
+import { apiClient } from "@/services/api";
+
 export interface PerformanceMetrics {
   // Service Worker 性能
   cacheHitRate: number;
@@ -588,16 +590,18 @@ export class PWAPerformanceMonitor {
     if (!authToken) {
       return;
     }
-    fetch("/api/v1/analytics/performance", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(analyticsData),
-    }).catch((error) => {
-      console.warn("Failed to send performance analytics:", error);
-    });
+    void apiClient
+      .post("/analytics/batch-sync", {
+        events: [
+          {
+            type: "performance",
+            ...analyticsData,
+          },
+        ],
+      })
+      .catch((error) => {
+        console.warn("Failed to send performance analytics:", error);
+      });
   }
 
   /**
