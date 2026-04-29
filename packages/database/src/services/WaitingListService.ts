@@ -1,5 +1,7 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { BaseService } from "./base";
+import { tables as restaurantTables } from "../schema/tables";
+import { waitingList } from "../schema/waiting-list";
 import type {
   WaitingListEntry,
   WaitingStatus,
@@ -33,21 +35,6 @@ export class WaitingListService extends BaseService {
   constructor(d1: any, env: any) {
     super(d1, env);
     this.reservationService = new ReservationService(d1, env);
-  }
-
-  /**
-   * Replace `?` placeholders with escaped values for raw D1 queries.
-   * Prefer Drizzle query builder or `d1.prepare().bind()` for new code.
-   */
-  private replaceParams(sqlStr: string, params: unknown[]): string {
-    let paramIndex = 0;
-    return sqlStr.replace(/\?/g, () => {
-      const param = params[paramIndex++];
-      if (param === null || param === undefined) return "NULL";
-      if (typeof param === "number") return String(param);
-      if (typeof param === "string") return `'${param.replace(/'/g, "''")}'`;
-      return `'${String(param).replace(/'/g, "''")}'`;
-    });
   }
 
   /**
@@ -239,82 +226,79 @@ export class WaitingListService extends BaseService {
     filters: WaitingListFilters,
   ): Promise<{ data: WaitingListResponse[]; total: number }> {
     try {
-      let whereClause = "1=1";
-      const params: any[] = [];
+      const conditions: SQL[] = [];
 
       if (filters.restaurantId) {
-        whereClause += " AND w.restaurant_id = ?";
-        params.push(filters.restaurantId);
+        conditions.push(
+          sql`${waitingList.restaurantId} = ${filters.restaurantId}`,
+        );
       }
 
       if (filters.status) {
         if (Array.isArray(filters.status)) {
-          whereClause += ` AND w.status IN (${filters.status.map(() => "?").join(",")})`;
-          params.push(...filters.status);
+          const statusList = sql.join(
+            filters.status.map((status) => sql`${status}`),
+            sql`, `,
+          );
+          conditions.push(sql`${waitingList.status} IN (${statusList})`);
         } else {
-          whereClause += " AND w.status = ?";
-          params.push(filters.status);
+          conditions.push(sql`${waitingList.status} = ${filters.status}`);
         }
       }
 
       if (filters.customerPhone) {
-        whereClause += " AND w.customer_phone = ?";
-        params.push(filters.customerPhone);
+        conditions.push(
+          sql`${waitingList.customerPhone} = ${filters.customerPhone}`,
+        );
       }
 
       if (filters.date) {
-        whereClause +=
-          " AND DATE(w.created_at / 1000, 'unixepoch', 'localtime') = ?";
-        params.push(filters.date);
+        conditions.push(
+          sql`DATE(${waitingList.createdAt} / 1000, 'unixepoch', 'localtime') = ${filters.date}`,
+        );
       } else {
         // 默認只顯示今天的
-        whereClause +=
-          " AND DATE(w.created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')";
+        conditions.push(
+          sql`DATE(${waitingList.createdAt} / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')`,
+        );
       }
-
-      // 排序：waiting 和 called 優先，按號碼排序
-      const orderClause = `
-        ORDER BY
-          CASE w.status
-            WHEN 'waiting' THEN 1
-            WHEN 'called' THEN 2
-            ELSE 3
-          END,
-          w.queue_number ASC
-      `;
 
       // 分頁
       const page = filters.page || 1;
       const limit = filters.limit || 50;
       const offset = (page - 1) * limit;
+      const whereExpr =
+        conditions.length > 0 ? sql.join(conditions, sql` AND `) : sql`1 = 1`;
 
-      const countSql = this.replaceParams(
-        `SELECT COUNT(*) as total FROM waiting_list w WHERE ${whereClause}`,
-        params,
-      );
-      const countResult = await this.d1
-        .prepare(countSql)
-        .first<{ total: number }>();
+      const countResult = await this.db.get<{ total: number }>(sql`
+        SELECT COUNT(*) as total
+        FROM ${waitingList}
+        WHERE ${whereExpr}
+      `);
 
       const total = countResult?.total || 0;
 
-      const dataSql = this.replaceParams(
-        `SELECT
-            w.*,
-            json_object(
-              'id', t.id,
-              'number', t.number,
-              'capacity', t.capacity
-            ) as "table"
-          FROM waiting_list w
-          LEFT JOIN tables t ON w.table_id = t.id
-          WHERE ${whereClause}
-          ${orderClause}
-          LIMIT ? OFFSET ?`,
-        [...params, limit, offset],
-      );
-      const dataResult = await this.d1.prepare(dataSql).all();
-      const results = (dataResult.results || []) as any[];
+      const results = (await this.db.all(sql`
+        SELECT
+          ${waitingList}.*,
+          json_object(
+            'id', ${restaurantTables.id},
+            'number', ${restaurantTables.number},
+            'capacity', ${restaurantTables.capacity}
+          ) as "table"
+        FROM ${waitingList}
+        LEFT JOIN ${restaurantTables}
+          ON ${waitingList.tableId} = ${restaurantTables.id}
+        WHERE ${whereExpr}
+        ORDER BY
+          CASE ${waitingList.status}
+            WHEN 'waiting' THEN 1
+            WHEN 'called' THEN 2
+            ELSE 3
+          END,
+          ${waitingList.queueNumber} ASC
+        LIMIT ${limit} OFFSET ${offset}
+      `)) as any[];
 
       const data = await Promise.all(
         results.map(async (r) => {
@@ -883,35 +867,37 @@ export class WaitingListService extends BaseService {
     date?: string,
   ): Promise<WaitingStats> {
     try {
-      let whereClause = "restaurant_id = ?";
-      const params = [restaurantId];
+      const conditions: SQL[] = [
+        sql`${waitingList.restaurantId} = ${restaurantId}`,
+      ];
 
       if (date) {
-        whereClause +=
-          " AND DATE(created_at / 1000, 'unixepoch', 'localtime') = ?";
-        params.push(date);
+        conditions.push(
+          sql`DATE(${waitingList.createdAt} / 1000, 'unixepoch', 'localtime') = ${date}`,
+        );
       } else {
-        whereClause +=
-          " AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')";
+        conditions.push(
+          sql`DATE(${waitingList.createdAt} / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')`,
+        );
       }
 
-      const statsSql = this.replaceParams(
-        `SELECT
-            COUNT(*) as total_waiting,
-            SUM(CASE WHEN status = 'seated' THEN 1 ELSE 0 END) as seated_count,
-            SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) as expired_count,
-            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
-            AVG(CASE
-              WHEN seated_at IS NOT NULL AND created_at IS NOT NULL
-              THEN (seated_at - created_at) / 60000.0
-              ELSE NULL
-            END) as avg_wait_minutes,
-            ROUND(CAST(SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) AS REAL) / NULLIF(COUNT(*), 0) * 100, 2) as expire_rate
-          FROM waiting_list
-          WHERE ${whereClause}`,
-        params,
-      );
-      const result = (await this.d1.prepare(statsSql).first()) as any;
+      const whereExpr = sql.join(conditions, sql` AND `);
+      const result = (await this.db.get(sql`
+        SELECT
+          COUNT(*) as total_waiting,
+          SUM(CASE WHEN ${waitingList.status} = 'seated' THEN 1 ELSE 0 END) as seated_count,
+          SUM(CASE WHEN ${waitingList.status} = 'expired' THEN 1 ELSE 0 END) as expired_count,
+          SUM(CASE WHEN ${waitingList.status} = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
+          AVG(CASE
+            WHEN ${waitingList.seatedAt} IS NOT NULL
+              AND ${waitingList.createdAt} IS NOT NULL
+            THEN (${waitingList.seatedAt} - ${waitingList.createdAt}) / 60000.0
+            ELSE NULL
+          END) as avg_wait_minutes,
+          ROUND(CAST(SUM(CASE WHEN ${waitingList.status} = 'expired' THEN 1 ELSE 0 END) AS REAL) / NULLIF(COUNT(*), 0) * 100, 2) as expire_rate
+        FROM ${waitingList}
+        WHERE ${whereExpr}
+      `)) as any;
 
       return {
         restaurantId,

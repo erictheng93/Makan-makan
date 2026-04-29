@@ -10,6 +10,11 @@ import type { ManagementEnv } from "../types";
 
 const monitoring = new Hono<{ Bindings: ManagementEnv }>();
 
+function parsePositiveInteger(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 /**
  * 獲取系統總覽統計
  * GET /monitoring/overview
@@ -127,6 +132,8 @@ monitoring.get(
   async (c) => {
     const { hours, tenantId } = c.req.valid("query");
     const db = c.env.MANAGEMENT_DB;
+    const lookbackHours = parsePositiveInteger(hours, 24);
+    const params: (string | number)[] = [`-${lookbackHours} hours`];
 
     let query = `
       SELECT
@@ -135,11 +142,12 @@ monitoring.get(
         COUNT(*) as count,
         AVG(response_time_ms) as avg_response_time
       FROM health_checks
-      WHERE checked_at > datetime('now', '-${parseInt(hours)} hours')
+      WHERE checked_at > datetime('now', ?)
     `;
 
     if (tenantId) {
-      query += ` AND tenant_id = '${tenantId}'`;
+      query += ` AND tenant_id = ?`;
+      params.push(tenantId);
     }
 
     query += `
@@ -147,7 +155,10 @@ monitoring.get(
       ORDER BY hour ASC
     `;
 
-    const results = await db.prepare(query).all();
+    const results = await db
+      .prepare(query)
+      .bind(...params)
+      .all();
 
     // 組織成時間線格式
     const timeline: Record<
@@ -186,7 +197,7 @@ monitoring.get(
           hour,
           ...data,
         })),
-        hours: parseInt(hours),
+        hours: lookbackHours,
       },
     });
   },
@@ -283,6 +294,8 @@ monitoring.get(
   async (c) => {
     const { status, severity, limit } = c.req.valid("query");
     const db = c.env.MANAGEMENT_DB;
+    const limitValue = parsePositiveInteger(limit, 50);
+    const params: (string | number)[] = [];
 
     // 從健康檢查生成告警
     let query = `
@@ -318,10 +331,14 @@ monitoring.get(
 
     query += `
       ORDER BY h.checked_at DESC
-      LIMIT ${parseInt(limit)}
+      LIMIT ?
     `;
+    params.push(limitValue);
 
-    const results = await db.prepare(query).all();
+    const results = await db
+      .prepare(query)
+      .bind(...params)
+      .all();
 
     return c.json({
       success: true,

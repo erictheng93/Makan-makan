@@ -23,6 +23,26 @@ import type {
   KVNamespace,
 } from "@cloudflare/workers-types";
 
+const BACKUP_SORT_COLUMNS = {
+  created_at: "created_at",
+  file_size: "file_size",
+  duration: "started_at",
+} as const;
+
+const BACKUP_TABLE_NAMES = new Set([
+  "orders",
+  "order_items",
+  "menu_items",
+  "categories",
+  "tables",
+  "users",
+  "restaurants",
+  "audit_logs",
+  "sessions",
+  "qr_codes",
+  "images",
+]);
+
 export class BackupService {
   constructor(
     private db: D1Database,
@@ -225,7 +245,12 @@ export class BackupService {
         params.push(date_to);
       }
 
-      sql += ` ORDER BY ${sort_by} ${sort_order.toUpperCase()}`;
+      const sortColumn =
+        BACKUP_SORT_COLUMNS[sort_by as keyof typeof BACKUP_SORT_COLUMNS] ??
+        BACKUP_SORT_COLUMNS.created_at;
+      const sortDirection = sort_order === "asc" ? "ASC" : "DESC";
+
+      sql += ` ORDER BY ${sortColumn} ${sortDirection}`;
       sql += ` LIMIT ? OFFSET ?`;
 
       const offset = (page - 1) * limit;
@@ -469,6 +494,15 @@ export class BackupService {
     ];
     let tables = includeTables || defaultTables;
 
+    const invalidTables = tables.filter(
+      (table) => !BACKUP_TABLE_NAMES.has(table),
+    );
+    if (invalidTables.length > 0) {
+      throw new Error(
+        `Invalid backup table names: ${invalidTables.join(", ")}`,
+      );
+    }
+
     if (excludeTables) {
       tables = tables.filter((table) => !excludeTables.includes(table));
     }
@@ -505,12 +539,20 @@ export class BackupService {
     restaurantId: string,
     tableName: string,
   ): Promise<Record<string, unknown>[]> {
+    this.assertSafeBackupTableName(tableName);
+
     const result = await this.db
-      .prepare(`SELECT * FROM ${tableName} WHERE restaurant_id = ?`)
+      .prepare(`SELECT * FROM "${tableName}" WHERE restaurant_id = ?`)
       .bind(restaurantId)
       .all<Record<string, unknown>>();
 
     return result.results || [];
+  }
+
+  private assertSafeBackupTableName(tableName: string): void {
+    if (!BACKUP_TABLE_NAMES.has(tableName)) {
+      throw new Error(`Invalid backup table name: ${tableName}`);
+    }
   }
 
   private generateStoragePath(restaurantId: string, backupId: string): string {

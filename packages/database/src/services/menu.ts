@@ -76,6 +76,18 @@ const menuItemSelectColumns = {
   updatedAt: menuItems.updatedAt,
 } as const;
 
+const DIETARY_PREFERENCE_KEYS = [
+  "vegetarian",
+  "vegan",
+  "halal",
+  "glutenFree",
+  "dairyFree",
+  "nutFree",
+  "seafoodFree",
+  "organic",
+  "localSource",
+] as const;
+
 export class MenuService extends BaseService {
   // 獲取完整菜單結構
   async getMenu(
@@ -244,11 +256,17 @@ export class MenuService extends BaseService {
 
       // 飲食偏好篩選
       if (filters.dietaryPreferences?.length) {
-        const dietaryConditions = filters.dietaryPreferences.map(
-          (pref) =>
-            sql`json_extract(${menuItems.dietaryInfo}, ${sql.raw(`'$.${pref}'`)}) = true`,
-        );
-        conditions.push(sql`(${sql.join(dietaryConditions, sql` OR `)})`);
+        const dietaryConditions = filters.dietaryPreferences
+          .filter((pref) =>
+            (DIETARY_PREFERENCE_KEYS as readonly string[]).includes(pref),
+          )
+          .map(
+            (pref) =>
+              sql`json_extract(${menuItems.dietaryInfo}, ${`$.${pref}`}) = true`,
+          );
+        if (dietaryConditions.length > 0) {
+          conditions.push(sql`(${sql.join(dietaryConditions, sql` OR `)})`);
+        }
       }
 
       // 查詢結果

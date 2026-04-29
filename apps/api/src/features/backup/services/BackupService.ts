@@ -736,19 +736,14 @@ export class BackupService {
     total_storage_used: number;
   }> {
     try {
-      let dateFilter = "datetime('now', '-7 days')";
-
-      switch (timeframe) {
-        case "hour":
-          dateFilter = "datetime('now', '-1 hour')";
-          break;
-        case "day":
-          dateFilter = "datetime('now', '-1 day')";
-          break;
-        case "month":
-          dateFilter = "datetime('now', '-30 days')";
-          break;
-      }
+      const timeframeMs =
+        {
+          hour: 60 * 60 * 1000,
+          day: 24 * 60 * 60 * 1000,
+          week: 7 * 24 * 60 * 60 * 1000,
+          month: 30 * 24 * 60 * 60 * 1000,
+        }[timeframe] ?? 7 * 24 * 60 * 60 * 1000;
+      const startedAfter = new Date(Date.now() - timeframeMs).toISOString();
 
       const metrics = await this.db
         .select({
@@ -762,7 +757,7 @@ export class BackupService {
         .where(
           and(
             eq(backupRecords.restaurantId, restaurantId),
-            gte(backupRecords.startedAt, sql.raw(dateFilter)),
+            gte(backupRecords.startedAt, startedAfter),
           ),
         );
 
