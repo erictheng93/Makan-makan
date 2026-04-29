@@ -33,6 +33,7 @@ import type { CreateUserData, UserFilters } from "../types";
 const app = new Hono<{ Bindings: Env }>();
 type IdParamInput = { id: number };
 const notificationSettingsSchema = z.object({}).passthrough();
+const userSyncSchema = z.object({}).passthrough();
 
 function toUserFilters(input: UserFilterInput): UserFilters {
   return {
@@ -52,6 +53,57 @@ function toCreateUserData(input: CreateUserInput): CreateUserData {
 
 function createNotificationSettingsKey(userId: number): string {
   return `customer:notification-settings:${userId}`;
+}
+
+function createUserSyncKey(
+  userId: number,
+  syncType: string,
+  syncId: string,
+): string {
+  return `customer:${syncType}:${userId}:${syncId}`;
+}
+
+function createUserSyncId(payload: Record<string, unknown>): string {
+  if (typeof payload.sync_id === "string" && payload.sync_id.trim()) {
+    return encodeURIComponent(payload.sync_id);
+  }
+  return `${Date.now()}`;
+}
+
+async function storeUserSyncPayload(
+  c: any,
+  syncType: string,
+  payload: Record<string, unknown>,
+) {
+  const user = c.get("user");
+  const now = new Date().toISOString();
+  const syncId = createUserSyncId(payload);
+  const record = {
+    userId: user.id,
+    payload,
+    syncedAt: now,
+  };
+
+  await c.env.CACHE_KV.put(
+    createUserSyncKey(user.id, syncType, syncId),
+    JSON.stringify(record),
+    { expirationTtl: 60 * 60 * 24 * 30 },
+  );
+  await c.env.CACHE_KV.put(
+    createUserSyncKey(user.id, syncType, "latest"),
+    JSON.stringify(record),
+    { expirationTtl: 60 * 60 * 24 * 30 },
+  );
+
+  return c.json({
+    success: true,
+    data: {
+      syncId,
+      synced: true,
+      syncType,
+      syncedAt: now,
+    },
+  });
 }
 
 /**
@@ -169,6 +221,46 @@ app.put(
         updatedAt: now,
       },
     });
+  },
+);
+
+/**
+ * POST /api/v1/users/favorites/sync
+ */
+app.post(
+  "/favorites/sync",
+  authMiddleware,
+  validateBody(userSyncSchema),
+  async (c) => {
+    return storeUserSyncPayload(c, "favorites-sync", c.get("validatedBody"));
+  },
+);
+
+/**
+ * POST /api/v1/users/settings/sync
+ */
+app.post(
+  "/settings/sync",
+  authMiddleware,
+  validateBody(userSyncSchema),
+  async (c) => {
+    return storeUserSyncPayload(c, "settings-sync", c.get("validatedBody"));
+  },
+);
+
+/**
+ * POST /api/v1/users/preferences/batch-sync
+ */
+app.post(
+  "/preferences/batch-sync",
+  authMiddleware,
+  validateBody(userSyncSchema),
+  async (c) => {
+    return storeUserSyncPayload(
+      c,
+      "preferences-batch-sync",
+      c.get("validatedBody"),
+    );
   },
 );
 

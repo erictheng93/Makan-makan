@@ -87,6 +87,43 @@ describe("Analytics Sync Compatibility Route", () => {
     expect(mockClearCache).toHaveBeenCalledWith("rest-1");
   });
 
+  it("stores customer batch analytics sync payloads", async () => {
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/analytics/batch-sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sync_id: "analytics-batch-1",
+          events: [{ type: "page_view", path: "/menu" }],
+        }),
+      },
+      { DB: {}, CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(200);
+    expect(json.data).toMatchObject({
+      syncId: "analytics-batch-1",
+      synced: true,
+      itemCount: 1,
+      restaurantId: "rest-1",
+    });
+    expect(kv.put).toHaveBeenCalledWith(
+      "analytics:batch-sync:rest-1:7:analytics-batch-1",
+      expect.stringContaining('"page_view"'),
+      { expirationTtl: 2592000 },
+    );
+    expect(kv.put).toHaveBeenCalledWith(
+      "analytics:batch-sync:rest-1:7:latest",
+      expect.stringContaining('"page_view"'),
+      { expirationTtl: 2592000 },
+    );
+    expect(mockClearCache).toHaveBeenCalledWith("rest-1");
+  });
+
   it("rejects owner syncs for another restaurant", async () => {
     const { app, kv } = buildApp();
 

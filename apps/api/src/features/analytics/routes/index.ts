@@ -28,6 +28,72 @@ const routes = new Hono<{ Bindings: Env }>();
 
 routes.use("*", authMiddleware, moduleGate("analytics"));
 
+routes.post("/batch-sync", async (c) => {
+  const user = c.get("user");
+
+  let payload: unknown;
+  try {
+    payload = await c.req.json();
+  } catch {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: "INVALID_JSON",
+          message: "Invalid JSON body",
+        },
+      },
+      400,
+    );
+  }
+
+  const restaurantId =
+    user.restaurantId == null ? "global" : String(user.restaurantId);
+  const now = new Date().toISOString();
+  const syncId = createAnalyticsSyncId(payload);
+  const key = `analytics:batch-sync:${encodeURIComponent(restaurantId)}:${user.id}:${syncId}`;
+  const record = {
+    restaurantId: user.restaurantId == null ? null : String(user.restaurantId),
+    userId: user.id,
+    payload,
+    syncedAt: now,
+  };
+
+  await c.env.CACHE_KV.put(key, JSON.stringify(record), {
+    expirationTtl: 60 * 60 * 24 * 30,
+  });
+  await c.env.CACHE_KV.put(
+    `analytics:batch-sync:${encodeURIComponent(restaurantId)}:${user.id}:latest`,
+    JSON.stringify(record),
+    { expirationTtl: 60 * 60 * 24 * 30 },
+  );
+
+  if (record.restaurantId) {
+    const analyticsService = new AnalyticsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+    await analyticsService.clearCache(record.restaurantId);
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      syncId,
+      synced: true,
+      itemCount:
+        payload &&
+        typeof payload === "object" &&
+        Array.isArray((payload as { events?: unknown }).events)
+          ? (payload as { events: unknown[] }).events.length
+          : 0,
+      restaurantId: record.restaurantId,
+      syncedAt: now,
+    },
+  });
+});
+
 routes.post(
   "/:restaurantId/sync",
   authMiddleware,

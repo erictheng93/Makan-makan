@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import {
   validateBody,
@@ -28,9 +29,17 @@ import type { Env } from "../../../types/env";
 import { notFound, forbidden } from "../../../shared/utils/api-error";
 
 const routes = new Hono<{ Bindings: Env }>();
+const feedbackBatchSyncSchema = z.object({}).passthrough();
 
 function createFeedbackService(env: Env): FeedbackService {
   return new FeedbackService(env.DB, env);
+}
+
+function createFeedbackBatchSyncId(payload: Record<string, unknown>): string {
+  if (typeof payload.sync_id === "string" && payload.sync_id.trim()) {
+    return encodeURIComponent(payload.sync_id);
+  }
+  return `${Date.now()}`;
 }
 
 /** Owner (role=1) can only access their own feedback. Returns the feedback record. */
@@ -82,6 +91,52 @@ routes.post(
     });
 
     return c.json({ success: true, data: feedback }, 201);
+  },
+);
+
+routes.post(
+  "/batch-sync",
+  authMiddleware,
+  validateBody(feedbackBatchSyncSchema),
+  async (c) => {
+    const user = c.get("user");
+    const payload = c.get("validatedBody") as Record<string, unknown>;
+    const now = new Date().toISOString();
+    const syncId = createFeedbackBatchSyncId(payload);
+    const restaurantId =
+      user.restaurantId == null ? "global" : String(user.restaurantId);
+    const scope = encodeURIComponent(restaurantId);
+    const record = {
+      userId: user.id,
+      restaurantId:
+        user.restaurantId == null ? null : String(user.restaurantId),
+      payload,
+      syncedAt: now,
+    };
+
+    await c.env.CACHE_KV.put(
+      `feedback:batch-sync:${scope}:${user.id}:${syncId}`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+    await c.env.CACHE_KV.put(
+      `feedback:batch-sync:${scope}:${user.id}:latest`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        syncId,
+        synced: true,
+        itemCount: Array.isArray(payload.feedback)
+          ? payload.feedback.length
+          : 0,
+        restaurantId: record.restaurantId,
+        syncedAt: now,
+      },
+    });
   },
 );
 

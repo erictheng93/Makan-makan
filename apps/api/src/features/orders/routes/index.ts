@@ -4,6 +4,7 @@
  */
 
 import { Hono } from "hono";
+import { z } from "zod";
 import {
   customerAuthMiddleware,
   requireRole,
@@ -165,6 +166,14 @@ import {
 // Create router
 const app = new Hono<{ Bindings: Env }>();
 const logger = new ConsoleLogger("OrdersRoutes");
+const orderBatchSyncSchema = z.object({}).passthrough();
+
+function createBatchSyncId(payload: Record<string, unknown>): string {
+  if (typeof payload.sync_id === "string" && payload.sync_id.trim()) {
+    return encodeURIComponent(payload.sync_id);
+  }
+  return `${Date.now()}`;
+}
 
 // Helper function for broadcasting order updates
 async function broadcastOrderUpdate(
@@ -339,6 +348,54 @@ app.post(
     return c.json({
       success: true,
       data: result,
+    });
+  },
+);
+
+/**
+ * Batch order sync compatibility endpoint
+ * POST /api/v1/orders/batch-sync
+ */
+app.post(
+  "/batch-sync",
+  customerAuthMiddleware,
+  validateBody(orderBatchSyncSchema),
+  async (c) => {
+    const user: AuthUser = c.get("user");
+    const payload = c.get("validatedBody") as Record<string, unknown>;
+    const now = new Date().toISOString();
+    const syncId = createBatchSyncId(payload);
+    const restaurantId =
+      user.restaurantId == null ? "global" : String(user.restaurantId);
+    const scope = encodeURIComponent(restaurantId);
+    const record = {
+      userId: user.id,
+      restaurantId:
+        user.restaurantId == null ? null : String(user.restaurantId),
+      payload,
+      syncedAt: now,
+    };
+
+    await c.env.CACHE_KV.put(
+      `orders:batch-sync:${scope}:${user.id}:${syncId}`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+    await c.env.CACHE_KV.put(
+      `orders:batch-sync:${scope}:${user.id}:latest`,
+      JSON.stringify(record),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        syncId,
+        synced: true,
+        itemCount: Array.isArray(payload.orders) ? payload.orders.length : 0,
+        restaurantId: record.restaurantId,
+        syncedAt: now,
+      },
     });
   },
 );

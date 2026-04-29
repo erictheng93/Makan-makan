@@ -112,4 +112,92 @@ describe("User Notification Settings Routes", () => {
       "json",
     );
   });
+
+  it("stores favorite sync payloads for customer background sync", async () => {
+    const { app, kv } = buildApp();
+    const payload = {
+      sync_id: "favorites-1",
+      favorites: [{ restaurantId: "rest-1" }],
+    };
+
+    const response = await app.request(
+      "/users/favorites/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(200);
+    expect(json.data).toMatchObject({
+      syncId: "favorites-1",
+      synced: true,
+      syncType: "favorites-sync",
+    });
+    expect(kv.put).toHaveBeenCalledWith(
+      "customer:favorites-sync:9:favorites-1",
+      expect.stringContaining('"favorites"'),
+      { expirationTtl: 2592000 },
+    );
+    expect(kv.put).toHaveBeenCalledWith(
+      "customer:favorites-sync:9:latest",
+      expect.stringContaining('"favorites"'),
+      { expirationTtl: 2592000 },
+    );
+  });
+
+  it("stores settings sync payloads for customer background sync", async () => {
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/users/settings/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sync_id: "settings-1",
+          settings: { theme: "dark" },
+        }),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(200);
+    expect(json.data.syncType).toBe("settings-sync");
+    expect(kv.put).toHaveBeenCalledWith(
+      "customer:settings-sync:9:settings-1",
+      expect.stringContaining('"theme":"dark"'),
+      { expirationTtl: 2592000 },
+    );
+  });
+
+  it("stores preference batch sync payloads", async () => {
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/users/preferences/batch-sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sync_id: "prefs-1",
+          preferences: [{ locale: "zh-TW" }],
+        }),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(200);
+    expect(json.data.syncType).toBe("preferences-batch-sync");
+    expect(kv.put).toHaveBeenCalledWith(
+      "customer:preferences-batch-sync:9:prefs-1",
+      expect.stringContaining('"preferences"'),
+      { expirationTtl: 2592000 },
+    );
+  });
 });
