@@ -112,10 +112,14 @@ class ApiClient {
 
         // 檢查業務邏輯錯誤
         if (!response.data.success && response.data.error) {
+          const apiError = this.normalizeApiError(
+            response.data.error,
+            response.status,
+          );
           throw new ApiException(
-            response.data.error.code as ApiErrorCode,
-            response.data.error.message,
-            response.data.error.details,
+            apiError.code,
+            apiError.message,
+            apiError.details,
             response.status,
           );
         }
@@ -148,19 +152,56 @@ class ApiClient {
         }
 
         // 處理其他HTTP錯誤
-        const apiError = data?.error || {
-          code: "INTERNAL_SERVER_ERROR",
-          message: this.getErrorMessage(status),
-        };
+        const apiError = this.normalizeApiError(data?.error, status);
 
         throw new ApiException(
-          apiError.code as ApiErrorCode,
+          apiError.code,
           apiError.message,
           apiError.details,
           status,
         );
       },
     );
+  }
+
+  private normalizeApiError(
+    error: unknown,
+    status: number,
+  ): { code: ApiErrorCode; message: string; details?: any } {
+    if (typeof error === "string" && error.trim()) {
+      return {
+        code: "INVALID_REQUEST" as ApiErrorCode,
+        message: error,
+      };
+    }
+
+    if (error && typeof error === "object") {
+      const apiError = error as {
+        code?: unknown;
+        message?: unknown;
+        error?: unknown;
+        details?: any;
+      };
+
+      return {
+        code:
+          typeof apiError.code === "string"
+            ? (apiError.code as ApiErrorCode)
+            : ("INTERNAL_SERVER_ERROR" as ApiErrorCode),
+        message:
+          typeof apiError.message === "string"
+            ? apiError.message
+            : typeof apiError.error === "string"
+              ? apiError.error
+              : this.getErrorMessage(status),
+        details: apiError.details,
+      };
+    }
+
+    return {
+      code: "INTERNAL_SERVER_ERROR" as ApiErrorCode,
+      message: this.getErrorMessage(status),
+    };
   }
 
   private async handleAuthError() {
