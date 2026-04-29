@@ -1,385 +1,258 @@
 /**
- * Unified Queue Service
- * Integrates legacy and modular queue systems
+ * UnifiedQueueService — adapter that exposes the queue feature's API to
+ * the production-ready WaitingListService. The legacy in-memory mock
+ * implementation that previously lived here returned hardcoded fixtures
+ * and never persisted to D1; it has been replaced wholesale.
  */
 
+import { WaitingListService } from "@makanmakan/database";
+import {
+  WaitingStatus,
+  type WaitingListResponse,
+  type QueueStatus as WaitingQueueStatus,
+} from "@makanmakan/shared-types";
 import type { Env } from "../../../types/env";
 import { ConsoleLogger } from "../../../core/monitoring";
-// import { QueueService } from '@makanmakan/queue-service'
-import { QueueStatus, QueueType } from "@makanmakan/queue-core";
-import type {
-  QueueEntry,
-  JoinQueueRequest,
-  CallNextRequest,
-  QueueStatistics,
-  ApiResponse,
-  LegacyQueueEntry,
-  LegacyQueueSettings,
-  UnifiedQueueService as IUnifiedQueueService,
-} from "../types";
-import { drizzle } from "drizzle-orm/d1";
-import { eq } from "drizzle-orm";
-import { restaurants } from "@makanmakan/database";
-import * as schema from "@makanmakan/database";
+import type { CallNextRequest, JoinQueueRequest, ApiResponse } from "../types";
 
-export class UnifiedQueueService implements IUnifiedQueueService {
+export interface UnifiedJoinResult {
+  queueId: string;
+  queueNumber: number;
+  queueDisplay: string;
+  status: string;
+  estimatedWaitMinutes: number;
+  currentPosition: number;
+  customerName: string;
+  partySize: number;
+  joinedAt: number;
+}
+
+export interface UnifiedCallNextResult {
+  queueId: string;
+  queueNumber: number;
+  queueDisplay: string;
+  customerName: string;
+  customerPhone: string;
+  tableId: number | null;
+  status: string;
+  calledAt: number | null;
+}
+
+export class UnifiedQueueService {
   private logger: ConsoleLogger;
-  private env: Env;
-  private db: ReturnType<typeof drizzle<typeof schema>>;
-  // private modularService: QueueService
-  private useModular: boolean;
+  private service: WaitingListService;
 
-  constructor(env: Env, useModular: boolean = false) {
-    this.env = env;
+  constructor(env: Env) {
     this.logger = new ConsoleLogger("UnifiedQueueService");
-
-    if (env.MOCK_DRIZZLE_DB && env.NODE_ENV === "test") {
-      this.db = env.MOCK_DRIZZLE_DB as ReturnType<
-        typeof drizzle<typeof schema>
-      >;
-    } else {
-      this.db = drizzle(env.DB, { schema });
-    }
-
-    if (useModular) {
-      this.logger.warn(
-        "Modular queue service requested before repositories are wired; falling back to legacy implementation",
-      );
-    }
-    this.useModular = false;
+    this.service = new WaitingListService(env.DB, env);
   }
 
-  // New modular methods
-  async joinQueue(data: JoinQueueRequest): Promise<ApiResponse<QueueEntry>> {
-    if (this.useModular) {
+  async joinQueue(
+    data: JoinQueueRequest,
+  ): Promise<ApiResponse<UnifiedJoinResult>> {
+    if (!data.customerPhone) {
       return {
         success: false,
-        error: "Modular queue service is disabled",
-      };
-    } else {
-      // Use legacy implementation
-      const legacyData = await this.joinQueueLegacy({
-        restaurant_id: data.restaurantId,
-        customer_name: data.customerName,
-        customer_phone: data.customerPhone,
-        party_size: data.partySize,
-        special_requests: data.specialRequests,
-        status: "waiting",
-        priority: 0,
-      });
-
-      const modularEntry = this.migrateQueueEntry(legacyData);
-      return {
-        success: true,
-        data: modularEntry,
+        error: "Customer phone is required",
       };
     }
-  }
 
-  async callNext(
-    restaurantId: string,
-    _data: CallNextRequest,
-  ): Promise<ApiResponse<QueueEntry>> {
-    if (this.useModular) {
-      return {
-        success: false,
-        error: "Modular queue service is disabled",
-      };
-    } else {
-      // Use legacy implementation
-      const legacyQueue = await this.getQueueLegacy(restaurantId);
-
-      // Find the next waiting customer (highest priority, then oldest)
-      const waitingCustomers = legacyQueue
-        .filter((entry) => entry.status === "waiting")
-        .sort((a, b) => {
-          // Sort by priority (higher first), then by created_at (older first)
-          if (b.priority !== a.priority) {
-            return b.priority - a.priority;
-          }
-          return (
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-        });
-
-      if (waitingCustomers.length === 0) {
-        return {
-          success: false,
-          error: "No customers waiting in queue",
-        };
-      }
-
-      // Get the next customer
-      const nextCustomer = waitingCustomers[0];
-
-      // Update status to 'called'
-      const updatedLegacyEntry: LegacyQueueEntry = {
-        ...nextCustomer,
-        status: "called",
-        called_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      // Convert to modular format
-      const modularEntry = this.migrateQueueEntry(updatedLegacyEntry);
-
-      this.logger.info("Called next customer", {
-        restaurantId,
-        queueId: modularEntry.id,
-        customerName: modularEntry.customerName,
+    try {
+      const entry = await this.service.joinWaitingList({
+        restaurantId: data.restaurantId,
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        partySize: data.partySize,
+        notes: data.specialRequests,
       });
 
       return {
         success: true,
-        data: modularEntry,
+        data: this.toJoinResult(entry),
+      };
+    } catch (error) {
+      this.logger.warn("joinQueue failed", {
+        restaurantId: data.restaurantId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to join queue",
       };
     }
   }
 
   async getQueueStatus(
     restaurantId: string,
-  ): Promise<ApiResponse<QueueStatistics>> {
-    if (this.useModular) {
+  ): Promise<ApiResponse<WaitingQueueStatus>> {
+    try {
+      const status = await this.service.getQueueStatus(restaurantId);
+      return { success: true, data: status };
+    } catch (error) {
+      this.logger.warn("getQueueStatus failed", {
+        restaurantId,
+        message: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
-        error: "Modular queue service is disabled",
-      };
-    } else {
-      // Use legacy implementation
-      const legacyQueue = await this.getQueueLegacy(restaurantId);
-
-      const statistics: QueueStatistics = {
-        totalCustomers: legacyQueue.length,
-        seatedCustomers: legacyQueue.filter(
-          (entry) => entry.status === "seated",
-        ).length,
-        cancelledCustomers: legacyQueue.filter(
-          (entry) => entry.status === "cancelled",
-        ).length,
-        noShowCustomers: legacyQueue.filter(
-          (entry) => entry.status === "no_show",
-        ).length,
-        avgActualWait: this.calculateAverageWaitTime(legacyQueue),
-        avgEstimatedWait: 30, // Default estimation
-        maxQueueNumber: Math.max(...legacyQueue.map((e) => e.queue_number), 0),
-      };
-
-      return {
-        success: true,
-        data: statistics,
+        error:
+          error instanceof Error ? error.message : "Failed to get queue status",
       };
     }
   }
 
-  async seatCustomer(
-    queueId: number,
-    tableId: number,
-    operatorId: number,
-  ): Promise<ApiResponse<void>> {
-    if (this.useModular) {
+  async getCurrentQueue(
+    restaurantId: string,
+    limit?: number,
+  ): Promise<ApiResponse<WaitingListResponse[]>> {
+    try {
+      const result = await this.service.listWaitingList({
+        restaurantId,
+        status: WaitingStatus.WAITING,
+        limit: limit ?? 50,
+      });
+      return { success: true, data: result.data };
+    } catch (error) {
+      this.logger.warn("getCurrentQueue failed", {
+        restaurantId,
+        message: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
-        error: "Modular queue service is disabled",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get current queue",
       };
-    } else {
-      // Use legacy implementation - update table status to occupied
-      this.logger.info("Seating customer", {
-        queueId,
-        tableId,
-        operatorId,
-      });
+    }
+  }
 
-      // Update table to mark as occupied
-      try {
-        await this.db
-          .update(schema.tables)
-          .set({
-            isOccupied: true,
-            updatedAt: new Date(),
-          })
-          .where(eq(schema.tables.id, tableId))
-          .run();
+  async getQueueEntry(
+    queueId: string,
+  ): Promise<ApiResponse<WaitingListResponse>> {
+    try {
+      const entry = await this.service.getWaitingListEntryById(queueId);
+      if (!entry) {
+        return { success: false, error: "Queue entry not found" };
+      }
+      return { success: true, data: entry };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to get queue entry",
+      };
+    }
+  }
 
-        return {
-          success: true,
-        };
-      } catch (error) {
-        this.logger.error(
-          "Failed to update table status",
-          error instanceof Error ? error : undefined,
-          { tableId },
-        );
+  async callNext(
+    restaurantId: string,
+    data: CallNextRequest,
+  ): Promise<ApiResponse<UnifiedCallNextResult>> {
+    try {
+      // Specific queue + table → call that exact entry.
+      if (data.specificQueueId && data.tableId) {
+        const called = await this.service.callWaiting(data.specificQueueId, {
+          tableId: data.tableId,
+        });
+        return { success: true, data: this.toCallResult(called) };
+      }
+
+      // Otherwise auto-pick the next waiting entry and assign a table.
+      const results = await this.service.batchCallNext(restaurantId, 1);
+      const first = results[0];
+
+      if (!first) {
+        return { success: false, error: "No customers waiting in queue" };
+      }
+      if (!first.success) {
+        return { success: false, error: first.message };
+      }
+
+      const entry = await this.service.getWaitingListEntryById(first.id);
+      if (!entry) {
         return {
           success: false,
-          error: "Failed to update table status",
+          error: "Failed to load queue entry after calling",
         };
       }
-    }
-  }
 
-  // Legacy compatibility methods
-  async joinQueueLegacy(
-    data: Partial<LegacyQueueEntry>,
-  ): Promise<LegacyQueueEntry> {
-    // Validate restaurant exists and is active
-    const restaurant = await this.db.query.restaurants.findFirst({
-      where: eq(restaurants.id, data.restaurant_id!),
-    });
-
-    if (!restaurant) {
-      throw new Error("Restaurant not found");
-    }
-
-    if (!restaurant.isActive) {
-      throw new Error("Restaurant not available");
-    }
-
-    // Legacy database operations would go here
-    // For now, return mock data
-    const mockEntry: LegacyQueueEntry = {
-      id: Date.now(),
-      restaurant_id: data.restaurant_id!,
-      customer_name: data.customer_name!,
-      customer_phone: data.customer_phone,
-      party_size: data.party_size || 1,
-      estimated_wait_minutes: 30,
-      status: "waiting",
-      queue_number: 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      priority: data.priority || 0,
-      special_requests: data.special_requests,
-    };
-
-    this.logger.info("Legacy queue entry created", {
-      id: mockEntry.id,
-      restaurantId: mockEntry.restaurant_id,
-    });
-
-    return mockEntry;
-  }
-
-  async getQueueLegacy(restaurantId: string): Promise<LegacyQueueEntry[]> {
-    // Legacy database query would go here
-    this.logger.info("Getting legacy queue", { restaurantId });
-    // For testing purposes, return a mock entry if a joinQueue was performed
-    // In a real scenario, this would query the legacy database
-    const mockEntry: LegacyQueueEntry = {
-      id: 1, // Mock ID
-      restaurant_id: restaurantId,
-      customer_name: "Mock Customer",
-      customer_phone: "123-456-7890",
-      party_size: 2,
-      estimated_wait_minutes: 15,
-      status: "waiting",
-      queue_number: 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      priority: 0,
-      special_requests: "None",
-    };
-    return [mockEntry]; // Return a single mock entry
-  }
-  async updateQueueSettingsLegacy(
-    restaurantId: string,
-    settings: Partial<LegacyQueueSettings>,
-  ): Promise<LegacyQueueSettings> {
-    // Legacy settings update would go here
-    const mockSettings: LegacyQueueSettings = {
-      id: 1,
-      restaurant_id: restaurantId,
-      average_wait_time: settings.average_wait_time || 30,
-      max_party_size: settings.max_party_size || 8,
-      enable_sms_notifications: settings.enable_sms_notifications || false,
-      enable_queue_notifications: settings.enable_queue_notifications || true,
-      auto_call_interval: settings.auto_call_interval || 5,
-      max_queue_size: settings.max_queue_size || 50,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    this.logger.info("Legacy queue settings updated", { restaurantId });
-    return mockSettings;
-  }
-
-  // Migration methods
-  migrateQueueEntry(legacy: LegacyQueueEntry): QueueEntry {
-    return {
-      id: legacy.id.toString(),
-      restaurantId: parseInt(legacy.restaurant_id, 10) || 0,
-      queueNumber: legacy.queue_number,
-      customerName: legacy.customer_name,
-      customerPhone: legacy.customer_phone,
-      customerEmail: undefined,
-      partySize: legacy.party_size,
-      specialRequests: legacy.special_requests,
-      priority: legacy.priority,
-      queueType: QueueType.WALKIN, // Default type
-      estimatedWaitMinutes: legacy.estimated_wait_minutes,
-      actualWaitMinutes: undefined,
-      tablePreferences: [],
-      status: this.mapLegacyStatus(legacy.status),
-      notificationMethods: [],
-      notificationSent: false,
-      notificationCount: 0,
-      joinedAt: new Date(legacy.created_at),
-      calledAt: legacy.called_at ? new Date(legacy.called_at) : undefined,
-      seatedAt: legacy.seated_at ? new Date(legacy.seated_at) : undefined,
-      metadata: {},
-    };
-  }
-
-  async migrateLegacyToModular(restaurantId: string): Promise<void> {
-    this.logger.info("Starting legacy to modular migration", { restaurantId });
-
-    const legacyEntries = await this.getQueueLegacy(restaurantId);
-
-    for (const legacyEntry of legacyEntries) {
-      const modularEntry = this.migrateQueueEntry(legacyEntry);
-      // Save modular entry to new system
-      this.logger.debug("Migrated queue entry", {
-        legacyId: legacyEntry.id,
-        modularId: modularEntry.id,
+      return { success: true, data: this.toCallResult(entry) };
+    } catch (error) {
+      this.logger.warn("callNext failed", {
+        restaurantId,
+        message: error instanceof Error ? error.message : String(error),
       });
-    }
-
-    this.logger.info("Legacy to modular migration completed", {
-      restaurantId,
-      entriesMigrated: legacyEntries.length,
-    });
-  }
-
-  // Helper methods
-  private mapLegacyStatus(legacyStatus: string): QueueStatus {
-    switch (legacyStatus) {
-      case "waiting":
-        return QueueStatus.WAITING;
-      case "called":
-        return QueueStatus.CALLED;
-      case "seated":
-        return QueueStatus.SEATED;
-      case "cancelled":
-        return QueueStatus.CANCELLED;
-      case "no_show":
-        return QueueStatus.NO_SHOW;
-      default:
-        return QueueStatus.WAITING;
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to call next customer",
+      };
     }
   }
 
-  private calculateAverageWaitTime(entries: LegacyQueueEntry[]): number {
-    const seatedEntries = entries.filter(
-      (entry) => entry.seated_at && entry.created_at,
-    );
+  async seatCustomer(queueId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.service.markSeated(queueId);
+      return { success: true };
+    } catch (error) {
+      this.logger.warn("seatCustomer failed", {
+        queueId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to seat customer",
+      };
+    }
+  }
 
-    if (seatedEntries.length === 0) return 30; // Default
+  async cancelQueue(queueId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.service.cancelWaiting(queueId);
+      return { success: true };
+    } catch (error) {
+      this.logger.warn("cancelQueue failed", {
+        queueId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to cancel queue",
+      };
+    }
+  }
 
-    const totalWaitTime = seatedEntries.reduce((sum, entry) => {
-      const createdTime = new Date(entry.created_at).getTime();
-      const seatedTime = new Date(entry.seated_at!).getTime();
-      return sum + (seatedTime - createdTime);
-    }, 0);
+  // ── Response shape helpers ──────────────────────────────────────────
 
-    return Math.round(totalWaitTime / seatedEntries.length / 1000 / 60); // Convert to minutes
+  private toJoinResult(entry: WaitingListResponse): UnifiedJoinResult {
+    return {
+      queueId: entry.id,
+      queueNumber: entry.queueNumber,
+      queueDisplay: entry.queueDisplay,
+      status: entry.status,
+      estimatedWaitMinutes: entry.estimatedWaitMinutes ?? 0,
+      currentPosition: entry.partiesAhead + 1,
+      customerName: entry.customerName,
+      partySize: entry.partySize,
+      joinedAt: entry.createdAt,
+    };
+  }
+
+  private toCallResult(entry: WaitingListResponse): UnifiedCallNextResult {
+    return {
+      queueId: entry.id,
+      queueNumber: entry.queueNumber,
+      queueDisplay: entry.queueDisplay,
+      customerName: entry.customerName,
+      customerPhone: entry.customerPhone,
+      tableId: entry.tableId ?? null,
+      status: entry.status,
+      calledAt: entry.calledAt ?? null,
+    };
   }
 }

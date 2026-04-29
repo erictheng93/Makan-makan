@@ -1,6 +1,8 @@
 /**
  * Queue Feature Module
- * Unified queue management system integrating legacy and modular approaches
+ *
+ * Public queue/waitlist HTTP surface. Routes delegate to the production
+ * WaitingListService via UnifiedQueueService.
  */
 
 import { queueRoutes } from "./routes";
