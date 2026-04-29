@@ -150,8 +150,8 @@ routes.post(
 );
 
 async function createSubscriptionId(endpoint: string): Promise<string> {
-  if (crypto?.subtle) {
-    const buffer = await crypto.subtle.digest(
+  if (globalThis.crypto?.subtle) {
+    const buffer = await globalThis.crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(endpoint),
     );

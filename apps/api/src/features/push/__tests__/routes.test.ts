@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
 import { ApiError } from "../../../shared/utils/api-error";
 
@@ -67,6 +67,10 @@ const validBody = {
 describe("Push Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("stores an authenticated push subscription in KV", async () => {
@@ -150,5 +154,26 @@ describe("Push Routes", () => {
     expect(json.data.unsubscribed).toBe(true);
     expect(kv.delete).toHaveBeenCalledOnce();
     expect(kv.delete.mock.calls[0][0]).toMatch(/^push:subscription:rest-1:7:/);
+  });
+
+  it("falls back to deterministic subscription IDs when Web Crypto is unavailable", async () => {
+    vi.stubGlobal("crypto", undefined);
+    const { app, kv } = buildApp();
+
+    const response = await app.request(
+      "/push/subscribe",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validBody),
+      },
+      { CACHE_KV: kv },
+    );
+    const json = (await response.json()) as any;
+
+    expect(response.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(kv.put).toHaveBeenCalledOnce();
+    expect(kv.put.mock.calls[0][0]).toBe("push:subscription:rest-1:7:37e8179b");
   });
 });
