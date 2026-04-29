@@ -1,6 +1,5 @@
 // Comprehensive system health monitoring and diagnostics service
 import { ref } from "vue";
-import { apiClient } from "./authApi";
 import {
   performanceService,
   type PerformanceMetric,
@@ -806,14 +805,18 @@ class SystemHealthService {
 
   // Diagnostic test methods
   private async testNetworkConnectivity(): Promise<boolean> {
+    // Use the public /info liveness probe instead of /system/health: it is
+    // root-mounted (outside /api/v1), unauthenticated, and avoids the DB ping
+    // that /system/health performs on every call. Raw fetch bypasses the
+    // apiClient auth interceptors so a stale token cannot trigger a refresh
+    // loop or login redirect from a connectivity probe.
     try {
-      const response = await apiClient.instance.get("/system/health", {
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-        validateStatus: () => true,
+      const response = await fetch("/info", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "omit",
       });
-      return response.status >= 200 && response.status < 300;
+      return response.ok;
     } catch {
       return navigator.onLine;
     }
