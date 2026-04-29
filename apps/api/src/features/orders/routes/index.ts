@@ -37,10 +37,6 @@ import {
 import { moduleGate } from "../../../middleware/moduleGate";
 import type { CallerContext } from "../types";
 import { ROLE_STATUS_PERMISSIONS } from "../types";
-// DB-schema string-union OrderStatus, used for query filter values that must
-// match the orders.status TEXT column at runtime. Aliased to avoid clashing
-// with the legacy numeric OrderStatus from @makanmakan/shared-types above.
-import type { OrderStatus as DbOrderStatus } from "@makanmakan/database";
 
 const ORDER_TIMESTAMP_FIELDS = [
   "createdAt",
@@ -94,27 +90,22 @@ function toCallerContext(user: AuthUser): CallerContext {
   };
 }
 
-// Helper function to convert string status to canonical OrderStatus.
-// With the string-union rewrite (Issue #9), this is mostly a no-op identity
-// function. The only non-trivial mapping is 'completed' → 'delivered' for
-// legacy clients that still send the old realtime naming.
+// Map a wire status string onto the canonical OrderStatus union. The
+// only non-identity hop is `completed` → `delivered`, kept so realtime
+// clients that still emit the older event vocabulary keep working.
 function stringToOrderStatus(status: string): OrderStatus {
   if (status === "completed") return "delivered";
   return (status as OrderStatus) || "pending";
 }
 
-// Helper function to normalise the status query parameter into a string array.
-// The DB stores orders.status as text (see packages/database/src/schema/orders.ts),
-// so the filter must remain as strings — converting to the legacy numeric
-// OrderStatus enum produced silent zero-result queries because the SQL inArray
-// compared a TEXT column against integer values. Validation (orderStatusSchema
-// in schemas/validation.ts) has already ensured each entry is a valid status.
+// Normalise the status query parameter into an OrderStatus array.
+// Each entry has already been validated by orderStatusSchema upstream,
+// so this is a structural-only conversion (string | string[] → array).
 function convertStatusArray(
   status: string | string[] | undefined,
-): DbOrderStatus[] | undefined {
+): OrderStatus[] | undefined {
   if (!status) return undefined;
-  // safe: validated by orderStatusSchema upstream before reaching this route
-  return (typeof status === "string" ? [status] : status) as DbOrderStatus[];
+  return (typeof status === "string" ? [status] : status) as OrderStatus[];
 }
 
 // Helper function to convert payment status
