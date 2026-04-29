@@ -42,12 +42,12 @@ export function mountWithRouter<T>(
 
       // 合併 plugins
       plugins: [
-        ...(mountOptions.global?.plugins || []),
+        ...((mountOptions.global?.plugins as any[]) || []),
         createTestingPinia({
           createSpy: vi.fn,
           ...piniaOptions,
-        }),
-        router, // 添加 router 作為插件
+        }) as any,
+        router as any, // 添加 router 作為插件
       ],
 
       // 合併 mocks

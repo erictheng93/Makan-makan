@@ -103,7 +103,7 @@ Object.defineProperty(window, "prompt", {
 });
 
 // Mock localStorage
-const localStorageMock = {
+const localStorageMock: Record<string, any> = {
   getItem: vi.fn().mockReturnValue("mock_token"),
   setItem: vi.fn(),
   removeItem: vi.fn(),

@@ -16,7 +16,7 @@ import { setupAllBrowserAPIs } from "./browser-api-mocks";
  * 創建完整的 Vue Router Mock
  * 包含所有常用 API 和正確的 resolve 實現
  */
-const mockRouter = {
+const mockRouter: Record<string, any> = {
   // 導航方法
   push: vi.fn((_to) => Promise.resolve()),
   replace: vi.fn((_to) => Promise.resolve()),
@@ -108,7 +108,7 @@ const mockRouter = {
  * Mock Auth Store
  * 使用 ref() 確保響應式，避免 "readonly" 錯誤
  */
-export const mockAuthStore = {
+export const mockAuthStore: Record<string, any> = {
   user: ref(null),
   isAuthenticated: ref(false),
   token: ref(null),
@@ -127,7 +127,7 @@ export const mockAuthStore = {
 /**
  * Mock Notification Store
  */
-export const mockNotificationStore = {
+export const mockNotificationStore: Record<string, any> = {
   notifications: ref([]),
   addNotification: vi.fn(),
   removeNotification: vi.fn(),
@@ -137,7 +137,7 @@ export const mockNotificationStore = {
 /**
  * Mock Order Store
  */
-export const mockOrderStore = {
+export const mockOrderStore: Record<string, any> = {
   orders: ref([]),
   currentOrder: ref(null),
   updateOrder: vi.fn(),
@@ -441,7 +441,7 @@ config.global = {
   },
 
   // Plugins - 包含 mock router
-  plugins: [mockRouter],
+  plugins: [mockRouter as any],
 };
 
 // ============================================================
