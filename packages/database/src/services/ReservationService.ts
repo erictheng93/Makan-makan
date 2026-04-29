@@ -1,5 +1,7 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { BaseService } from "./base";
+import { reservations } from "../schema/reservations";
+import type { NewReservation } from "../schema/reservations";
 import type {
   Reservation,
   ReservationStatus,
@@ -326,90 +328,30 @@ export class ReservationService extends BaseService {
         throw new Error("訂位不存在");
       }
 
-      // 建構更新語句
-      const updates: string[] = [];
-      const params: any[] = [];
-
-      if (data.customerName) {
-        updates.push("customer_name = ?");
-        params.push(data.customerName);
-      }
-
-      if (data.customerPhone) {
-        updates.push("customer_phone = ?");
-        params.push(data.customerPhone);
-      }
-
-      if (data.customerEmail !== undefined) {
-        updates.push("customer_email = ?");
-        params.push(data.customerEmail);
-      }
-
-      if (data.partySize) {
-        updates.push("party_size = ?");
-        params.push(data.partySize);
-      }
-
-      if (data.reservationDate) {
-        updates.push("reservation_date = ?");
-        params.push(data.reservationDate);
-      }
-
-      if (data.reservationTime) {
-        updates.push("reservation_time = ?");
-        params.push(data.reservationTime);
-      }
-
-      if (data.durationMinutes) {
-        updates.push("duration_minutes = ?");
-        params.push(data.durationMinutes);
-      }
-
-      if (data.tableId !== undefined) {
-        updates.push("table_id = ?");
-        params.push(data.tableId);
-      }
-
-      if (data.specialRequests !== undefined) {
-        updates.push("special_requests = ?");
-        params.push(data.specialRequests);
-      }
-
-      if (data.notes !== undefined) {
-        updates.push("notes = ?");
-        params.push(data.notes);
-      }
-
-      updates.push("updated_at = ?");
-      params.push(Date.now());
-
-      params.push(id);
-
-      // 手動替換參數占位符
-      const replaceParams = (sqlStr: string, paramArray: any[]): string => {
-        let paramIndex = 0;
-        return sqlStr.replace(/\?/g, () => {
-          const param = paramArray[paramIndex++];
-          if (param === null || param === undefined) return "NULL";
-          if (typeof param === "number") return String(param);
-          if (typeof param === "string")
-            return `'${param.replace(/'/g, "''")}'`;
-          return `'${String(param).replace(/'/g, "''")}'`;
-        });
+      const updateSet: Partial<NewReservation> = {
+        updatedAt: Date.now(),
       };
 
-      await this.db.run(
-        sql.raw(
-          replaceParams(
-            `
-          UPDATE reservations
-          SET ${updates.join(", ")}
-          WHERE id = ?
-        `,
-            params,
-          ),
-        ),
-      );
+      if (data.customerName) updateSet.customerName = data.customerName;
+      if (data.customerPhone) updateSet.customerPhone = data.customerPhone;
+      if (data.customerEmail !== undefined)
+        updateSet.customerEmail = data.customerEmail;
+      if (data.partySize) updateSet.partySize = data.partySize;
+      if (data.reservationDate)
+        updateSet.reservationDate = data.reservationDate;
+      if (data.reservationTime)
+        updateSet.reservationTime = data.reservationTime;
+      if (data.durationMinutes)
+        updateSet.durationMinutes = data.durationMinutes;
+      if (data.tableId !== undefined) updateSet.tableId = data.tableId;
+      if (data.specialRequests !== undefined)
+        updateSet.specialRequests = data.specialRequests;
+      if (data.notes !== undefined) updateSet.notes = data.notes;
+
+      await this.db
+        .update(reservations)
+        .set(updateSet)
+        .where(eq(reservations.id, id));
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
