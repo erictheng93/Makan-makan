@@ -40,7 +40,7 @@ const mockDashboardStats: DashboardStats = {
 // Helper: 設置 authStore 的 restaurantId (因為是 computed 屬性)
 function setAuthRestaurantId(
   authStore: ReturnType<typeof useAuthStore>,
-  id: number | null,
+  id: number | string | null,
 ) {
   Object.defineProperty(authStore, "restaurantId", {
     value: id,
@@ -289,7 +289,36 @@ describe("Dashboard Store", () => {
 
       expect(result).toEqual(mockData);
       expect(api.get).toHaveBeenCalledWith(
-        expect.stringContaining("period=daily"),
+        expect.stringContaining("groupBy=day"),
+      );
+    });
+
+    it("should map API revenue points to chart data", async () => {
+      const store = useDashboardStore();
+      const authStore = useAuthStore();
+      setAuthRestaurantId(authStore, "rest-1");
+
+      vi.mocked(api.get).mockResolvedValue({
+        data: {
+          success: true,
+          data: [
+            { date: "2025-11-01", revenue: 1000, orderCount: 10 },
+            { date: "2025-11-02", revenue: 1500, orderCount: 15 },
+          ],
+        },
+      });
+
+      const result = await store.fetchRevenueAnalytics("daily");
+
+      expect(result).toEqual([
+        { label: "2025-11-01", value: 1000 },
+        { label: "2025-11-02", value: 1500 },
+      ]);
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("restaurantId=rest-1"),
+      );
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("groupBy=day"),
       );
     });
 
@@ -326,17 +355,17 @@ describe("Dashboard Store", () => {
 
       await store.fetchRevenueAnalytics("daily");
       expect(api.get).toHaveBeenCalledWith(
-        expect.stringContaining("period=daily"),
+        expect.stringContaining("groupBy=day"),
       );
 
       await store.fetchRevenueAnalytics("weekly");
       expect(api.get).toHaveBeenCalledWith(
-        expect.stringContaining("period=weekly"),
+        expect.stringContaining("groupBy=week"),
       );
 
       await store.fetchRevenueAnalytics("monthly");
       expect(api.get).toHaveBeenCalledWith(
-        expect.stringContaining("period=monthly"),
+        expect.stringContaining("groupBy=month"),
       );
     });
   });
@@ -348,8 +377,8 @@ describe("Dashboard Store", () => {
       setAuthRestaurantId(authStore, 1);
 
       const mockData = [
-        { label: "Day 1", value: 30 },
-        { label: "Day 2", value: 45 },
+        { date: "Day 1", revenue: 1000, orderCount: 30 },
+        { date: "Day 2", revenue: 1500, orderCount: 45 },
       ];
 
       vi.mocked(api.get).mockResolvedValue({
@@ -358,7 +387,16 @@ describe("Dashboard Store", () => {
 
       const result = await store.fetchOrderAnalytics("daily");
 
-      expect(result).toEqual(mockData);
+      expect(result).toEqual([
+        { label: "Day 1", value: 30 },
+        { label: "Day 2", value: 45 },
+      ]);
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("/analytics/revenue"),
+      );
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("groupBy=day"),
+      );
     });
 
     it("should return empty array when restaurant ID is missing", async () => {
@@ -381,6 +419,60 @@ describe("Dashboard Store", () => {
       const result = await store.fetchOrderAnalytics("weekly");
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("fetchTopMenuItems", () => {
+    it("should fetch top menu items from product analytics", async () => {
+      const store = useDashboardStore();
+      const authStore = useAuthStore();
+      setAuthRestaurantId(authStore, "rest-1");
+
+      vi.mocked(api.get).mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            popularItems: [
+              { itemName: "招牌炒飯", quantity: 12, revenue: 2400 },
+              { itemName: "麻婆豆腐", quantity: 8, revenue: 1600 },
+            ],
+          },
+        },
+      });
+
+      const result = await store.fetchTopMenuItems(1, "today");
+
+      expect(result).toEqual([{ name: "招牌炒飯", count: 12, revenue: 2400 }]);
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("/analytics/products"),
+      );
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("restaurantId=rest-1"),
+      );
+      expect(api.get).toHaveBeenCalledWith(expect.stringContaining("limit=1"));
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("groupBy=day"),
+      );
+    });
+
+    it("should map top menu item periods to analytics groupBy values", async () => {
+      const store = useDashboardStore();
+      const authStore = useAuthStore();
+      setAuthRestaurantId(authStore, 1);
+
+      vi.mocked(api.get).mockResolvedValue({
+        data: { success: true, data: { popularItems: [] } },
+      });
+
+      await store.fetchTopMenuItems(10, "week");
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("groupBy=week"),
+      );
+
+      await store.fetchTopMenuItems(10, "month");
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining("groupBy=month"),
+      );
     });
   });
 

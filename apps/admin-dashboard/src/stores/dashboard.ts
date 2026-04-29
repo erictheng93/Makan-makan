@@ -5,6 +5,67 @@ import { api } from "@/services/api";
 import { useAuthStore } from "./auth";
 import { t } from "@/i18n";
 
+type AnalyticsPeriod = "daily" | "weekly" | "monthly";
+type TopMenuItemsPeriod = "today" | "week" | "month";
+type AnalyticsGroupBy = "day" | "week" | "month";
+type RevenueAnalyticsPoint = {
+  label?: string;
+  date?: string;
+  week?: string;
+  month?: string;
+  year?: string;
+  value?: number;
+  revenue?: number;
+  orderCount?: number;
+  orders?: number;
+};
+type ProductAnalyticsPoint = {
+  name?: string;
+  itemName?: string;
+  count?: number;
+  quantity?: number;
+  orders?: number;
+  revenue?: number;
+};
+type ProductAnalyticsPayload =
+  | { popularItems?: ProductAnalyticsPoint[] }
+  | ProductAnalyticsPoint[];
+
+const periodGroupBy: Record<AnalyticsPeriod, AnalyticsGroupBy> = {
+  daily: "day",
+  weekly: "week",
+  monthly: "month",
+};
+
+const topMenuItemsGroupBy: Record<TopMenuItemsPeriod, AnalyticsGroupBy> = {
+  today: "day",
+  week: "week",
+  month: "month",
+};
+
+const buildAnalyticsUrl = (
+  endpoint: "dashboard" | "revenue" | "products",
+  params: Record<string, string | number>,
+) => {
+  const searchParams = new URLSearchParams(
+    Object.entries(params).map(([key, value]) => [key, String(value)]),
+  );
+
+  return `/analytics/${endpoint}?${searchParams.toString()}`;
+};
+
+const getChartLabel = (point: RevenueAnalyticsPoint) =>
+  point.label ?? point.date ?? point.week ?? point.month ?? point.year ?? "";
+
+const mapRevenuePoints = (
+  points: RevenueAnalyticsPoint[],
+  valueSelector: (point: RevenueAnalyticsPoint) => number | undefined,
+) =>
+  points.map((point) => ({
+    label: getChartLabel(point),
+    value: point.value ?? valueSelector(point) ?? 0,
+  })) as ChartData[];
+
 export const useDashboardStore = defineStore("dashboard", () => {
   const stats = ref<DashboardStats | null>(null);
   const isLoading = ref(false);
@@ -36,17 +97,13 @@ export const useDashboardStore = defineStore("dashboard", () => {
     error.value = null;
 
     try {
-      const params = new URLSearchParams({
-        restaurant_id: authStore.restaurantId.toString(),
-      });
-
-      if (dateRange) {
-        params.append("from", dateRange.from);
-        params.append("to", dateRange.to);
-      }
+      const params = {
+        restaurantId: authStore.restaurantId.toString(),
+        ...(dateRange && { from: dateRange.from, to: dateRange.to }),
+      };
 
       const response = await api.get<DashboardStats>(
-        `/analytics/dashboard?${params.toString()}`,
+        buildAnalyticsUrl("dashboard", params),
       );
 
       if (response.data.success && response.data.data) {
@@ -66,18 +123,20 @@ export const useDashboardStore = defineStore("dashboard", () => {
     }
   };
 
-  const fetchRevenueAnalytics = async (
-    period: "daily" | "weekly" | "monthly",
-  ) => {
+  const fetchRevenueAnalytics = async (period: AnalyticsPeriod) => {
     if (!authStore.restaurantId) return [];
 
     try {
       const response = await api.get(
-        `/analytics/revenue?restaurant_id=${authStore.restaurantId}&period=${period}`,
+        buildAnalyticsUrl("revenue", {
+          restaurantId: authStore.restaurantId,
+          groupBy: periodGroupBy[period],
+        }),
       );
 
       if (response.data.success) {
-        return response.data.data as ChartData[];
+        const data = response.data.data as RevenueAnalyticsPoint[];
+        return mapRevenuePoints(data, (point) => point.revenue);
       }
       return [];
     } catch (err) {
@@ -86,18 +145,23 @@ export const useDashboardStore = defineStore("dashboard", () => {
     }
   };
 
-  const fetchOrderAnalytics = async (
-    period: "daily" | "weekly" | "monthly",
-  ) => {
+  const fetchOrderAnalytics = async (period: AnalyticsPeriod) => {
     if (!authStore.restaurantId) return [];
 
     try {
       const response = await api.get(
-        `/analytics/orders?restaurant_id=${authStore.restaurantId}&period=${period}`,
+        buildAnalyticsUrl("revenue", {
+          restaurantId: authStore.restaurantId,
+          groupBy: periodGroupBy[period],
+        }),
       );
 
       if (response.data.success) {
-        return response.data.data as ChartData[];
+        const data = response.data.data as RevenueAnalyticsPoint[];
+        return mapRevenuePoints(
+          data,
+          (point) => point.orderCount ?? point.orders,
+        );
       }
       return [];
     } catch (err) {
@@ -108,17 +172,27 @@ export const useDashboardStore = defineStore("dashboard", () => {
 
   const fetchTopMenuItems = async (
     limit: number = 10,
-    period: "today" | "week" | "month" = "today",
+    period: TopMenuItemsPeriod = "today",
   ) => {
     if (!authStore.restaurantId) return [];
 
     try {
       const response = await api.get(
-        `/analytics/top-menu-items?restaurant_id=${authStore.restaurantId}&limit=${limit}&period=${period}`,
+        buildAnalyticsUrl("products", {
+          restaurantId: authStore.restaurantId,
+          limit,
+          groupBy: topMenuItemsGroupBy[period],
+        }),
       );
 
       if (response.data.success) {
-        return response.data.data;
+        const data = response.data.data as ProductAnalyticsPayload;
+        const popularItems = Array.isArray(data) ? data : data.popularItems;
+        return (popularItems ?? []).slice(0, limit).map((item) => ({
+          name: item.name ?? item.itemName,
+          count: item.count ?? item.quantity ?? item.orders ?? 0,
+          revenue: item.revenue ?? 0,
+        }));
       }
       return [];
     } catch (err) {
