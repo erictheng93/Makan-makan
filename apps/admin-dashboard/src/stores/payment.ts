@@ -162,17 +162,24 @@ export const usePaymentStore = defineStore("payment", () => {
         throw new Error("Payment request validation failed");
       }
 
-      const response = await apiClient.post("/payments/create", request);
+      const response = await apiClient.post<{
+        transactionId: string;
+        status: PaymentStatus;
+        clientSecret?: string;
+        redirectUrl?: string;
+        qrCodeData?: string;
+        metadata?: Record<string, unknown>;
+      }>("/payments/create", request);
       const data = response.data;
 
-      if (!data.success) {
+      if (!data.success || !data.data) {
         throw new Error(data.error?.message || "Payment creation failed");
       }
 
       const result: PaymentResult = {
         success: data.success,
         transactionId: data.data.transactionId,
-        status: data.data.status as PaymentStatus,
+        status: data.data.status,
         clientSecret: data.data.clientSecret,
         redirectUrl: data.data.redirectUrl,
         qrCodeData: data.data.qrCodeData,
@@ -235,14 +242,16 @@ export const usePaymentStore = defineStore("payment", () => {
     try {
       state.value.loading.status = true;
 
-      const response = await apiClient.get(`/payments/status/${transactionId}`);
+      const response = await apiClient.get<{ status: PaymentStatus }>(
+        `/payments/status/${transactionId}`,
+      );
       const data = response.data;
 
-      if (!data.success) {
+      if (!data.success || !data.data) {
         throw new Error("Failed to get payment status");
       }
 
-      const status = data.data.status as PaymentStatus;
+      const status = data.data.status;
 
       // 更新當前支付狀態
       if (state.value.currentPayment.transactionId === transactionId) {
@@ -300,10 +309,13 @@ export const usePaymentStore = defineStore("payment", () => {
     try {
       state.value.loading.methods = true;
 
-      const response = await apiClient.get(`/payments/methods/${country}`);
+      const response = await apiClient.get<{
+        country: string;
+        supportedMethods: PaymentMethod[];
+      }>(`/payments/methods/${country}`);
       const data = response.data;
 
-      if (data.success) {
+      if (data.success && data.data) {
         state.value.availableMethods[country] = data.data.supportedMethods;
       }
     } catch (error) {
