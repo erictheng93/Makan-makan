@@ -4,6 +4,17 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+const { mockApiClient } = vi.hoisted(() => ({
+  mockApiClient: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+}));
+
+vi.mock("../api", () => ({
+  apiClient: mockApiClient,
+}));
+
 // We test the class + useRealtime composable + REALTIME_EVENTS constants
 // The singleton uses EventSource which is mocked globally in setup.ts
 
@@ -107,20 +118,17 @@ describe("RealtimeService", () => {
 
   describe("ping", () => {
     it("should return true on successful ping", async () => {
-      vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
+      mockApiClient.get.mockResolvedValue({ data: { success: true } });
 
       const service = RealtimeServiceClass;
       const result = await service.ping();
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/v1/sse/ping",
-        expect.objectContaining({ method: "GET" }),
-      );
+      expect(mockApiClient.get).toHaveBeenCalledWith("/sse/ping");
     });
 
     it("should return false on failed ping", async () => {
-      vi.mocked(global.fetch).mockRejectedValue(new Error("Network error"));
+      mockApiClient.get.mockRejectedValue(new Error("Network error"));
 
       const service = RealtimeServiceClass;
       const result = await service.ping();
@@ -129,28 +137,42 @@ describe("RealtimeService", () => {
     });
   });
 
-  describe("broadcastToGroup", () => {
-    it("should POST broadcast event", async () => {
-      vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
+  describe("getServerTime", () => {
+    it("should parse server timestamp from the shared API client", async () => {
+      mockApiClient.get.mockResolvedValue({
+        data: { timestamp: "2026-01-01T00:00:00.000Z" },
+      });
 
       const service = RealtimeServiceClass;
-      const result = await service.broadcastToGroup("g1", {
+      const result = await service.getServerTime();
+
+      expect(mockApiClient.get).toHaveBeenCalledWith("/sse/time");
+      expect(result.toISOString()).toBe("2026-01-01T00:00:00.000Z");
+    });
+  });
+
+  describe("broadcastToGroup", () => {
+    it("should POST broadcast event", async () => {
+      mockApiClient.post.mockResolvedValue({ data: { success: true } });
+
+      const service = RealtimeServiceClass;
+      const event = {
         type: "cart_update",
         data: { item: "pizza" },
+      };
+      const result = await service.broadcastToGroup("g1", {
+        ...event,
       });
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/v1/sse/broadcast/group",
-        expect.objectContaining({
-          method: "POST",
-          body: expect.stringContaining("g1"),
-        }),
-      );
+      expect(mockApiClient.post).toHaveBeenCalledWith("/sse/broadcast/group", {
+        groupOrderId: "g1",
+        event,
+      });
     });
 
     it("should return false on error", async () => {
-      vi.mocked(global.fetch).mockRejectedValue(new Error("fail"));
+      mockApiClient.post.mockRejectedValue(new Error("fail"));
 
       const service = RealtimeServiceClass;
       const result = await service.broadcastToGroup("g1", {
@@ -162,6 +184,36 @@ describe("RealtimeService", () => {
     });
   });
 
+  describe("sendGroupNotification", () => {
+    it("should POST group notifications through the shared API client", async () => {
+      mockApiClient.post.mockResolvedValue({ data: { success: true } });
+
+      const service = RealtimeServiceClass;
+      const result = await service.sendGroupNotification("g1", {
+        type: "reminder",
+        title: "Payment reminder",
+        message: "Please complete payment",
+        priority: "normal",
+      });
+
+      expect(result).toBe(true);
+      expect(mockApiClient.post).toHaveBeenCalledWith(
+        "/sse/notify/group",
+        expect.objectContaining({
+          groupOrderId: "g1",
+          notification: expect.objectContaining({
+            type: "reminder",
+            title: "Payment reminder",
+            message: "Please complete payment",
+            priority: "normal",
+            id: expect.any(String),
+            timestamp: expect.any(Number),
+          }),
+        }),
+      );
+    });
+  });
+
   describe("checkGroupConnectionHealth", () => {
     it("should return health data on success", async () => {
       const healthData = {
@@ -170,25 +222,43 @@ describe("RealtimeService", () => {
         activeMembers: 3,
         lastActivity: Date.now(),
       };
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(healthData),
-      } as Response);
+      mockApiClient.get.mockResolvedValue({ data: healthData });
 
       const service = RealtimeServiceClass;
       const result = await service.checkGroupConnectionHealth("g1");
 
       expect(result).toEqual(healthData);
+      expect(mockApiClient.get).toHaveBeenCalledWith("/sse/group/g1/health");
     });
 
     it("should return defaults on error", async () => {
-      vi.mocked(global.fetch).mockRejectedValue(new Error("fail"));
+      mockApiClient.get.mockRejectedValue(new Error("fail"));
 
       const service = RealtimeServiceClass;
       const result = await service.checkGroupConnectionHealth("g1");
 
       expect(result.connected).toBe(false);
       expect(result.memberCount).toBe(0);
+    });
+  });
+
+  describe("syncGroupState", () => {
+    it("should GET group state sync with the last sync query", async () => {
+      const syncData = {
+        groupOrderId: "g1",
+        lastSync: 123,
+        version: 456,
+        state: null,
+      };
+      mockApiClient.get.mockResolvedValue({ data: syncData });
+
+      const service = RealtimeServiceClass;
+      const result = await service.syncGroupState("g1", 123);
+
+      expect(result).toEqual(syncData);
+      expect(mockApiClient.get).toHaveBeenCalledWith(
+        "/sse/group/g1/sync?lastSync=123",
+      );
     });
   });
 });

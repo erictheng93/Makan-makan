@@ -1,6 +1,6 @@
 // Real-time service using Server-Sent Events (SSE) and WebSocket fallback
 import { ref } from "vue";
-import { apiPath } from "./api-url";
+import { apiClient } from "./api";
 
 export interface SSEMessage {
   id: string;
@@ -353,13 +353,8 @@ class RealtimeService {
   // 發送 ping 測試連接
   async ping(): Promise<boolean> {
     try {
-      const response = await fetch(apiPath("/sse/ping"), {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-      });
-      return response.ok;
+      await apiClient.get("/sse/ping");
+      return true;
     } catch {
       return false;
     }
@@ -368,8 +363,8 @@ class RealtimeService {
   // 獲取伺服器時間（用於同步）
   async getServerTime(): Promise<Date> {
     try {
-      const response = await fetch(apiPath("/sse/time"));
-      const data = await response.json();
+      const response = await apiClient.get("/sse/time");
+      const data = response.data as any;
       return new Date(data.timestamp);
     } catch {
       return new Date(); // 退回到客戶端時間
@@ -386,18 +381,11 @@ class RealtimeService {
     },
   ): Promise<boolean> {
     try {
-      const response = await fetch(apiPath("/sse/broadcast/group"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-        body: JSON.stringify({
-          groupOrderId,
-          event,
-        }),
+      await apiClient.post("/sse/broadcast/group", {
+        groupOrderId,
+        event,
       });
-      return response.ok;
+      return true;
     } catch (error) {
       console.error("Failed to broadcast to group:", error);
       return false;
@@ -416,22 +404,15 @@ class RealtimeService {
     },
   ): Promise<boolean> {
     try {
-      const response = await fetch(apiPath("/sse/notify/group"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      await apiClient.post("/sse/notify/group", {
+        groupOrderId,
+        notification: {
+          ...notification,
+          timestamp: Date.now(),
+          id: crypto.randomUUID(),
         },
-        body: JSON.stringify({
-          groupOrderId,
-          notification: {
-            ...notification,
-            timestamp: Date.now(),
-            id: crypto.randomUUID(),
-          },
-        }),
       });
-      return response.ok;
+      return true;
     } catch (error) {
       console.error("Failed to send group notification:", error);
       return false;
@@ -446,25 +427,8 @@ class RealtimeService {
     lastActivity: number;
   }> {
     try {
-      const response = await fetch(
-        apiPath(`/sse/group/${groupOrderId}/health`),
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        return await response.json();
-      }
-
-      return {
-        connected: false,
-        memberCount: 0,
-        activeMembers: 0,
-        lastActivity: 0,
-      };
+      const response = await apiClient.get(`/sse/group/${groupOrderId}/health`);
+      return response.data as any;
     } catch (error) {
       console.error("Failed to check group connection health:", error);
       return {
@@ -487,20 +451,11 @@ class RealtimeService {
         params.append("lastSync", lastSyncTime.toString());
       }
 
-      const response = await fetch(
-        apiPath(`/sse/group/${groupOrderId}/sync?${params}`),
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-          },
-        },
+      const query = params.toString();
+      const response = await apiClient.get(
+        `/sse/group/${groupOrderId}/sync${query ? `?${query}` : ""}`,
       );
-
-      if (response.ok) {
-        return await response.json();
-      }
-
-      return null;
+      return response.data;
     } catch (error) {
       console.error("Failed to sync group state:", error);
       return null;
