@@ -39,7 +39,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.get(
   "/:restaurantId/types",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(leaveSchemas.restaurantIdParam),
   async (c) => {
@@ -56,7 +56,7 @@ app.get(
 app.get(
   "/types/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(leaveSchemas.leaveTypeIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -76,7 +76,7 @@ app.get(
 app.post(
   "/:restaurantId/types",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(leaveSchemas.restaurantIdParam),
   validateBody(leaveSchemas.createLeaveType),
@@ -103,7 +103,7 @@ app.post(
 app.put(
   "/types/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(leaveSchemas.leaveTypeIdParam),
   validateBody(leaveSchemas.updateLeaveType),
   async (c) => {
@@ -128,7 +128,7 @@ app.put(
 app.delete(
   "/types/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(leaveSchemas.leaveTypeIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -162,7 +162,7 @@ app.get(
     const service = new LeaveService(c.env.DB, c.env);
 
     // Check access: employees can only view their own balances
-    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER) {
       if (query.employeeId !== user.id) {
         throw forbidden("Access denied");
       }
@@ -182,7 +182,7 @@ app.get(
 app.post(
   "/balances/adjust",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(leaveSchemas.adjustLeaveBalance),
   async (c) => {
     const data = c.get("validatedBody");
@@ -201,7 +201,7 @@ app.post(
 app.get(
   "/:restaurantId/balances",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(leaveSchemas.restaurantIdParam),
   async (c) => {
@@ -224,7 +224,7 @@ app.get(
 app.post(
   "/:restaurantId/balances/accrue",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(leaveSchemas.restaurantIdParam),
   validateBody(leaveSchemas.accrueLeaveBalances),
@@ -265,7 +265,7 @@ app.get(
     const filters = {
       ...query,
       employeeId:
-        user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER
+        user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER
           ? user.id
           : query.employeeId,
     };
@@ -305,7 +305,7 @@ app.get(
     }
 
     // Check access
-    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER) {
       if (request.employeeId !== user.id) {
         throw forbidden("Access denied");
       }
@@ -371,7 +371,7 @@ app.post(
 app.post(
   "/requests/:id/approve",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(leaveSchemas.leaveRequestIdParam),
   validateBody(leaveSchemas.approveLeaveRequest),
   async (c) => {
@@ -392,7 +392,7 @@ app.post(
 app.post(
   "/requests/:id/reject",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(leaveSchemas.leaveRequestIdParam),
   validateBody(leaveSchemas.rejectLeaveRequest),
   async (c) => {
@@ -427,7 +427,7 @@ app.post(
       throw notFound("Leave request not found");
     }
 
-    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.SHOP_OWNER) {
+    if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER) {
       if (request.employeeId !== user.id) {
         throw forbidden("Access denied");
       }

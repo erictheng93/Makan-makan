@@ -45,7 +45,7 @@ app.get(
     const includeAll =
       c.req.query("includeAll") === "true" &&
       user &&
-      (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.SHOP_OWNER);
+      (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.OWNER);
 
     const menu = await service.getMenu(restaurantId, {
       includeUnavailable: !!includeAll,
@@ -162,7 +162,7 @@ app.post(
   "/:restaurantId/items",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER, USER_ROLES.CHEF]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.CHEF]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateBody(menuSchemas.createMenuItem),
@@ -188,7 +188,7 @@ app.put(
   "/items/:id",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER, USER_ROLES.CHEF]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.CHEF]),
   validateParams(menuSchemas.menuItemIdParam),
   validateBody(menuSchemas.updateMenuItem),
   async (c) => {
@@ -225,7 +225,7 @@ app.delete(
   "/items/:id",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(menuSchemas.menuItemIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -262,7 +262,7 @@ app.patch(
   "/:restaurantId/items/availability",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER, USER_ROLES.CHEF]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.CHEF]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateBody(menuSchemas.bulkAvailabilityUpdate),
@@ -288,7 +288,7 @@ app.patch(
   "/:restaurantId/items/prices",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateBody(menuSchemas.bulkPriceUpdate),
@@ -311,7 +311,7 @@ app.patch(
   "/:restaurantId/items/categories",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateBody(menuSchemas.bulkCategoryMove),
@@ -339,7 +339,7 @@ app.post(
   "/:restaurantId/categories",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateBody(menuSchemas.createCategory),
@@ -365,7 +365,7 @@ app.put(
   "/categories/:id",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(menuSchemas.categoryIdParam),
   validateBody(menuSchemas.updateCategory),
   async (c) => {
@@ -400,7 +400,7 @@ app.patch(
   "/:restaurantId/categories/reorder",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateBody(menuSchemas.categoryReorder),
@@ -423,7 +423,7 @@ app.delete(
   "/categories/:id",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(menuSchemas.categoryIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -462,7 +462,7 @@ app.get(
   "/:restaurantId/analytics",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateQuery(menuSchemas.analyticsQuery),
@@ -481,7 +481,7 @@ app.get(
   "/:restaurantId/popularity",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   async (c) => {

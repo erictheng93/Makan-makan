@@ -247,7 +247,7 @@ const _mockUser = {
   username: "testuser",
   fullName: "Test User",
   restaurantId: mockRestaurantId as string,
-  role: 1, // SHOP_OWNER
+  role: 1, // OWNER
   email: "test@example.com",
   isActive: true,
   isVerified: true,

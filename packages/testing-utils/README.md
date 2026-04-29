@@ -76,9 +76,9 @@ const team = userFactory.buildRestaurantTeam(restaurantId);
 
 ```typescript
 UserRoles.ADMIN; // 0 - 系統管理員
-UserRoles.SHOP_OWNER; // 1 - 店主
+UserRoles.OWNER; // 1 - 店主
 UserRoles.CHEF; // 2 - 廚師
-UserRoles.SERVICE_CREW; // 3 - 服務員
+UserRoles.SERVICE; // 3 - 服務員
 UserRoles.CASHIER; // 4 - 收銀員
 UserRoles.CUSTOMER; // 5 - 顧客
 ```
@@ -389,7 +389,7 @@ beforeEach(() => {
 const user = userFactory.build({ overrides: { role: 1 } });
 
 // ✅ 好: 使用常量
-const user = userFactory.build({ overrides: { role: UserRoles.SHOP_OWNER } });
+const user = userFactory.build({ overrides: { role: UserRoles.OWNER } });
 ```
 
 ### 3. 利用關聯關係

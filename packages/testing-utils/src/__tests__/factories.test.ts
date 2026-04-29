@@ -44,7 +44,7 @@ describe("User Factory", () => {
   it("應該生成店主", () => {
     const owner = userFactory.buildShopOwner(5);
 
-    expect(owner.role).toBe(UserRoles.SHOP_OWNER);
+    expect(owner.role).toBe(UserRoles.OWNER);
     expect(owner.restaurantId).toBe(5);
   });
 
@@ -59,7 +59,7 @@ describe("User Factory", () => {
   it("應該生成完整的餐廳團隊", () => {
     const team = userFactory.buildRestaurantTeam(1);
 
-    expect(team.owner.role).toBe(UserRoles.SHOP_OWNER);
+    expect(team.owner.role).toBe(UserRoles.OWNER);
     expect(team.chefs).toHaveLength(2);
     expect(team.serviceCrews).toHaveLength(3);
     expect(team.cashiers).toHaveLength(2);

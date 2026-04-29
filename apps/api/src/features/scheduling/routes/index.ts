@@ -34,7 +34,7 @@ function createService(env: Env): SchedulingService {
 
 /** Check if user is admin or shop owner */
 function isManager(role: number): boolean {
-  return role === USER_ROLES.ADMIN || role === USER_ROLES.SHOP_OWNER;
+  return role === USER_ROLES.ADMIN || role === USER_ROLES.OWNER;
 }
 
 // ========================================
@@ -45,7 +45,7 @@ function isManager(role: number): boolean {
 app.get(
   "/:restaurantId/templates",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   async (c) => {
@@ -62,7 +62,7 @@ app.get(
 app.get(
   "/templates/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.shiftTemplateIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -82,7 +82,7 @@ app.get(
 app.post(
   "/:restaurantId/templates",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateBody(schedulingSchemas.createShiftTemplate),
@@ -109,7 +109,7 @@ app.post(
 app.put(
   "/templates/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.shiftTemplateIdParam),
   validateBody(schedulingSchemas.updateShiftTemplate),
   async (c) => {
@@ -134,7 +134,7 @@ app.put(
 app.delete(
   "/templates/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.shiftTemplateIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -226,7 +226,7 @@ app.get(
 app.post(
   "/:restaurantId/schedules",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateBody(schedulingSchemas.createEmployeeSchedule),
@@ -253,7 +253,7 @@ app.post(
 app.post(
   "/:restaurantId/schedules/bulk",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateBody(schedulingSchemas.bulkCreateSchedules),
@@ -283,7 +283,7 @@ app.post(
 app.put(
   "/schedules/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.scheduleIdParam),
   validateBody(schedulingSchemas.updateEmployeeSchedule),
   async (c) => {
@@ -308,7 +308,7 @@ app.put(
 app.delete(
   "/schedules/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.scheduleIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -405,7 +405,7 @@ app.post(
 app.get(
   "/:restaurantId/clocked-in",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   async (c) => {
@@ -428,7 +428,7 @@ app.get(
 app.get(
   "/:restaurantId/attendance-report",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateQuery(schedulingSchemas.attendanceReportQuery),
@@ -454,7 +454,7 @@ app.get(
 app.get(
   "/:restaurantId/attendance-report/export",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateQuery(schedulingSchemas.attendanceReportQuery),
@@ -529,7 +529,7 @@ app.get(
 app.post(
   "/schedules/:id/admin-clock-in",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.scheduleIdParam),
   validateBody(schedulingSchemas.adminClock),
   async (c) => {
@@ -563,7 +563,7 @@ app.post(
 app.post(
   "/schedules/:id/admin-clock-out",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.scheduleIdParam),
   validateBody(schedulingSchemas.adminClock),
   async (c) => {
@@ -695,7 +695,7 @@ app.post(
 app.post(
   "/swap-requests/:id/approve",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.swapRequestIdParam),
   validateBody(schedulingSchemas.approveSwapRequest),
   async (c) => {
@@ -716,7 +716,7 @@ app.post(
 app.post(
   "/swap-requests/:id/reject",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.swapRequestIdParam),
   validateBody(schedulingSchemas.rejectSwapRequest),
   async (c) => {
@@ -761,7 +761,7 @@ app.post(
 app.get(
   "/:restaurantId/available-employees",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateQuery(schedulingSchemas.availableEmployeesQuery),
@@ -794,7 +794,7 @@ app.get(
 app.get(
   "/:restaurantId/conflicts",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateQuery(schedulingSchemas.conflictFilters),
@@ -828,7 +828,7 @@ app.get(
 app.get(
   "/conflicts/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.conflictIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
@@ -848,7 +848,7 @@ app.get(
 app.post(
   "/conflicts/:id/resolve",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.conflictIdParam),
   validateBody(schedulingSchemas.resolveConflict),
   async (c) => {
@@ -873,7 +873,7 @@ app.post(
 app.get(
   "/:restaurantId/stats/daily",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateQuery(schedulingSchemas.statsQuery),
@@ -895,7 +895,7 @@ app.get(
 app.get(
   "/:restaurantId/stats/weekly",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(schedulingSchemas.restaurantIdParam),
   validateQuery(schedulingSchemas.weeklySummaryQuery),

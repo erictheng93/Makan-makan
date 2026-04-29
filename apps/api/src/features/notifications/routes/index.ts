@@ -66,7 +66,7 @@ const sendNotificationSchema = z.object({
 app.post(
   "/test",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(testNotificationSchema),
   async (c) => {
     const data = c.get("validatedBody");
@@ -104,7 +104,7 @@ app.post(
 app.get(
   "/templates",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   async (c) => {
     // NotificationService instance available for future use
     // const _service = new NotificationService(c.env.DB, c.env)
@@ -283,7 +283,7 @@ app.get(
 app.post(
   "/send",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(sendNotificationSchema),
   async (c) => {
     const notificationData = c.get("validatedBody");

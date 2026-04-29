@@ -40,9 +40,9 @@ app.post(
   authMiddleware,
   requireRole([
     USER_ROLES.ADMIN,
-    USER_ROLES.SHOP_OWNER,
+    USER_ROLES.OWNER,
     USER_ROLES.CHEF,
-    USER_ROLES.SERVICE_CREW,
+    USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
   validateBody(qrCodeSchemas.generate),
@@ -68,7 +68,7 @@ app.post(
 app.post(
   "/bulk",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(qrCodeSchemas.bulk),
   async (c) => {
     const data = c.get("validatedBody") as BulkQRInput;
@@ -140,7 +140,7 @@ app.get(
 app.get(
   "/stats",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateQuery(qrCodeSchemas.stats),
   async (c) => {
     const query = c.get("validatedQuery") as QRStatsInput;
@@ -201,7 +201,7 @@ app.get(
 app.post(
   "/templates",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateBody(qrCodeSchemas.createTemplate),
   async (c) => {
     const data = c.get("validatedBody") as CreateTemplateInput;
@@ -225,7 +225,7 @@ app.post(
 app.put(
   "/templates/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(qrCodeSchemas.params),
   validateBody(qrCodeSchemas.updateTemplate),
   async (c) => {
@@ -250,7 +250,7 @@ app.put(
 app.delete(
   "/templates/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(qrCodeSchemas.params),
   async (c) => {
     const { id } = c.get("validatedParams") as QRCodeIdParamInput;

@@ -38,9 +38,9 @@ export interface UserTestData {
  */
 export const UserRoles = {
   ADMIN: 0,
-  SHOP_OWNER: 1,
+  OWNER: 1,
   CHEF: 2,
-  SERVICE_CREW: 3,
+  SERVICE: 3,
   CASHIER: 4,
   CUSTOMER: 5,
 } as const;
@@ -109,7 +109,7 @@ export class UserFactory extends BaseFactory<UserTestData> {
     return this.build({
       ...options,
       overrides: {
-        role: UserRoles.SHOP_OWNER,
+        role: UserRoles.OWNER,
         restaurantId,
         fullName: `店主 ${restaurantId}`,
         ...options?.overrides,
@@ -145,7 +145,7 @@ export class UserFactory extends BaseFactory<UserTestData> {
     return this.build({
       ...options,
       overrides: {
-        role: UserRoles.SERVICE_CREW,
+        role: UserRoles.SERVICE,
         restaurantId,
         fullName: `服務員 ${this.getNextSequence()}`,
         ...options?.overrides,
@@ -200,7 +200,7 @@ export class UserFactory extends BaseFactory<UserTestData> {
         overrides: { role: UserRoles.CHEF, restaurantId },
       }),
       serviceCrews: this.buildList(3, {
-        overrides: { role: UserRoles.SERVICE_CREW, restaurantId },
+        overrides: { role: UserRoles.SERVICE, restaurantId },
       }),
       cashiers: this.buildList(2, {
         overrides: { role: UserRoles.CASHIER, restaurantId },

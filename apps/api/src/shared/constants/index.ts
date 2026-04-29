@@ -16,15 +16,12 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
-// User Roles - matches @makanmakan/shared-types UserRole enum
-// Includes both shared-types naming (OWNER, SERVICE) and legacy naming (SHOP_OWNER, SERVICE_CREW)
+// User Roles — mirrors the canonical @makanmakan/shared-types UserRole enum.
 export const USER_ROLES = {
   ADMIN: 0,
   OWNER: 1,
-  SHOP_OWNER: 1, // Alias for OWNER (legacy naming)
   CHEF: 2,
   SERVICE: 3,
-  SERVICE_CREW: 3, // Alias for SERVICE (legacy naming)
   CASHIER: 4,
   CUSTOMER: 5,
 } as const;

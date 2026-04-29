@@ -198,7 +198,7 @@ app.get("/:id", validateParams(commonSchemas.idParam), async (c) => {
 app.put(
   "/:id",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam),
   validateBody(restaurantSchemas.update),
   async (c) => {
@@ -217,7 +217,7 @@ app.put(
     );
 
     // Shop owners can only update their own restaurant
-    if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
       throw forbidden("Access denied");
     }
 
@@ -281,7 +281,7 @@ app.delete(
 app.get(
   "/:id/stats",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam),
   async (c) => {
     logger.debug("Getting restaurant stats", {
@@ -297,7 +297,7 @@ app.get(
     );
 
     // Shop owners can only view their own restaurant stats
-    if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
       throw forbidden("Access denied");
     }
 
@@ -323,7 +323,7 @@ app.get(
 app.post(
   "/:id/qr/shop/generate",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam),
   async (c) => {
     logger.debug("Generating shop QR code", {
@@ -339,7 +339,7 @@ app.post(
     );
 
     // Shop owners can only manage their own restaurant
-    if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
       throw forbidden("Access denied");
     }
 
@@ -363,7 +363,7 @@ app.post(
 app.post(
   "/:id/qr/shop/regenerate",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam),
   async (c) => {
     logger.debug("Regenerating shop QR code", {
@@ -379,7 +379,7 @@ app.post(
     );
 
     // Shop owners can only manage their own restaurant
-    if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
       throw forbidden("Access denied");
     }
 
@@ -403,7 +403,7 @@ app.post(
 app.get(
   "/:id/qr/shop",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam),
   async (c) => {
     logger.debug("Getting shop QR code info", {
@@ -419,7 +419,7 @@ app.get(
     );
 
     // Shop owners can only view their own restaurant QR
-    if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
       throw forbidden("Access denied");
     }
 
@@ -443,7 +443,7 @@ app.get(
 app.post(
   "/:id/qr/shop/upload-image",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam),
   validateBody(restaurantSchemas.uploadQrImage),
   async (c) => {
@@ -462,7 +462,7 @@ app.post(
     );
 
     // Shop owners can only manage their own restaurant
-    if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
       throw forbidden("Access denied");
     }
 
@@ -486,7 +486,7 @@ app.post(
 app.put(
   "/:id/shop-mode",
   authMiddleware,
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.SHOP_OWNER]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(commonSchemas.idParam),
   validateBody(restaurantSchemas.updateShopMode),
   async (c) => {
@@ -505,7 +505,7 @@ app.put(
     );
 
     // Shop owners can only manage their own restaurant
-    if (user.role === USER_ROLES.SHOP_OWNER && user.restaurantId !== id) {
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
       throw forbidden("Access denied");
     }
 
