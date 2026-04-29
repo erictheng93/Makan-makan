@@ -163,6 +163,12 @@ export class BackupConfigService {
       if (!existing) {
         throw new Error("Configuration not found");
       }
+      if (
+        updates.restaurant_id !== undefined &&
+        updates.restaurant_id !== existing.restaurant_id
+      ) {
+        throw new Error("Configuration not found");
+      }
 
       const updated: BackupConfiguration = {
         ...existing,

@@ -451,6 +451,41 @@ describe("BackupService", () => {
       expect(result.backup_id).toBeDefined();
     });
 
+    it("should reject custom configuration from another restaurant", async () => {
+      const customConfig: BackupConfiguration = {
+        id: "foreign-config",
+        restaurant_id: "rest-2",
+        name: "Foreign Config",
+        backup_type: "incremental",
+        schedule_enabled: false,
+        retention_days: 7,
+        include_tables: ["orders"],
+        exclude_tables: [],
+        compression_enabled: true,
+        encryption_enabled: false,
+        storage_provider: "r2",
+        max_parallel_backups: 1,
+        notifications_enabled: false,
+        notification_channels: [],
+        created_by: "user-2",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      mockConfig.setConfig("foreign-config", customConfig);
+
+      const request: CreateBackupRequest = {
+        restaurant_id: "rest-1",
+        name: "Cross Tenant Backup",
+        backup_type: "incremental",
+        configuration_id: "foreign-config",
+      };
+
+      await expect(service.createBackup(request, "user-1")).rejects.toThrow(
+        "Backup configuration not found",
+      );
+    });
+
     it("should execute backup immediately when force_immediate is true", async () => {
       const request: CreateBackupRequest = {
         restaurant_id: "rest-1",

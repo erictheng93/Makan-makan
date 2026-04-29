@@ -118,6 +118,12 @@ export class BackupService {
           "BACKUP_CONFIG_NOT_FOUND",
         );
       }
+      if (config.restaurant_id !== request.restaurant_id) {
+        throw notFound(
+          "Backup configuration not found",
+          "BACKUP_CONFIG_NOT_FOUND",
+        );
+      }
 
       // Determine tables to backup
       const tablesToBackup = await this.getRestaurantTables(

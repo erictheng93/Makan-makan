@@ -354,6 +354,22 @@ describe("BackupConfigService", () => {
         service.updateConfiguration("missing-id", { name: "New" }),
       ).rejects.toThrow();
     });
+
+    it("should reject updates when the payload restaurant does not match", async () => {
+      mockSelectChain.then = (resolve: any) =>
+        Promise.resolve([buildDbRow({ restaurantId: VALID_UUID })]).then(
+          resolve,
+        );
+
+      await expect(
+        service.updateConfiguration(VALID_UUID, {
+          restaurant_id: "550e8400-e29b-41d4-a716-446655440099",
+          name: "Cross Tenant Update",
+        }),
+      ).rejects.toThrow("Failed to update backup configuration");
+
+      expect(mockDrizzleDb.update).not.toHaveBeenCalled();
+    });
   });
 
   // ========================================
@@ -388,6 +404,26 @@ describe("BackupConfigService", () => {
 
       expect(result).toEqual(expect.objectContaining({ name: "Updated" }));
       expect(mockDrizzleDb.update).toHaveBeenCalledOnce();
+    });
+
+    it("should not update a config owned by another restaurant", async () => {
+      mockSelectChain.then = (resolve: any) =>
+        Promise.resolve([buildDbRow({ restaurantId: VALID_UUID })]).then(
+          resolve,
+        );
+
+      await expect(
+        service.createOrUpdateConfiguration(
+          {
+            id: VALID_UUID,
+            restaurant_id: "550e8400-e29b-41d4-a716-446655440099",
+            name: "Cross Tenant Update",
+          },
+          "user-1",
+        ),
+      ).rejects.toThrow("Failed to save backup configuration");
+
+      expect(mockDrizzleDb.update).not.toHaveBeenCalled();
     });
 
     it("should default compression_enabled to true", async () => {
