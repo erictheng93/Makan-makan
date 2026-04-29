@@ -10,6 +10,7 @@ import { moduleGate } from "../../../middleware/moduleGate";
 import { validateBody } from "../../../middleware/validation";
 import type { Env } from "../../../types/env";
 import { KitchenService } from "../services/KitchenService";
+import type { OrderItemStatusUpdate } from "../types";
 import { createSuccessResponse } from "../../../shared/utils/response";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
@@ -24,6 +25,76 @@ function createNotificationSettingsKey(user: {
     user.restaurantId !== undefined ? String(user.restaurantId).trim() : "";
   const scope = restaurantId ? encodeURIComponent(restaurantId) : "global";
   return `kitchen:notification-settings:${scope}:${user.id}`;
+}
+
+function parseRouteNumber(value: string | undefined, name: string): number {
+  if (!value) {
+    throw badRequest(`Missing ${name} parameter`, "MISSING_PARAM");
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) {
+    throw badRequest(`Invalid ${name} parameter`, "INVALID_PARAM");
+  }
+
+  return parsed;
+}
+
+function extractLegacyNotes(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+
+  const record = payload as Record<string, unknown>;
+  if (typeof record.notes === "string") return record.notes;
+
+  const data = record.data;
+  if (data && typeof data === "object") {
+    const dataRecord = data as Record<string, unknown>;
+    if (typeof dataRecord.notes === "string") return dataRecord.notes;
+  }
+
+  return undefined;
+}
+
+async function updateLegacyItemStatus(
+  c: any,
+  status: OrderItemStatusUpdate["status"],
+) {
+  const orderId = parseRouteNumber(c.req.param("orderId"), "orderId");
+  const itemId = parseRouteNumber(c.req.param("itemId"), "itemId");
+  const user = c.get("user");
+  const restaurantId =
+    user.restaurantId !== undefined ? String(user.restaurantId) : "";
+
+  if (!restaurantId) {
+    throw forbidden(
+      "Access denied. Restaurant permission required.",
+      "RESTAURANT_ACCESS_DENIED",
+    );
+  }
+
+  const kitchenService = new KitchenService(c.env);
+  if (!kitchenService.validateChefAccess(user.id, user.role, restaurantId)) {
+    throw forbidden(
+      "Access denied. Chef role required.",
+      "CHEF_ACCESS_REQUIRED",
+    );
+  }
+
+  const payload = await c.req.json().catch(() => ({}));
+  const result = await kitchenService.updateOrderItemStatus(
+    restaurantId,
+    orderId,
+    itemId,
+    {
+      status,
+      notes: extractLegacyNotes(payload),
+    },
+    user.id,
+  );
+
+  return c.json(
+    createSuccessResponse(result, "Order item status updated successfully"),
+  );
 }
 
 /**
@@ -74,6 +145,28 @@ app.put(
       },
     });
   },
+);
+
+/**
+ * Legacy offline-sync compatibility endpoint.
+ * POST /api/v1/kitchen/{orderId}/items/{itemId}/start
+ */
+app.post(
+  "/:orderId/items/:itemId/start",
+  authMiddleware,
+  moduleGate("kitchen_display"),
+  async (c) => updateLegacyItemStatus(c, "preparing"),
+);
+
+/**
+ * Legacy offline-sync compatibility endpoint.
+ * POST /api/v1/kitchen/{orderId}/items/{itemId}/ready
+ */
+app.post(
+  "/:orderId/items/:itemId/ready",
+  authMiddleware,
+  moduleGate("kitchen_display"),
+  async (c) => updateLegacyItemStatus(c, "ready"),
 );
 
 /**
