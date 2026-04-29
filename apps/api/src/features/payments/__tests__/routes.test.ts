@@ -14,6 +14,20 @@ vi.mock("../services/PaymentService", () => ({
 
 import paymentRoutes from "../routes";
 
+/**
+ * Idempotency middleware reads + writes idempotency_keys via the bound DB.
+ * Tests that don't drive that table directly receive a no-op stub so the
+ * middleware sees "no existing key" and proceeds, lets the response write
+ * back, and never crashes on `db.prepare(...).bind(...).first()`.
+ */
+function noopIdempotencyDb() {
+  const first = vi.fn().mockResolvedValue(null);
+  const run = vi.fn().mockResolvedValue({ meta: { changes: 1 } });
+  const all = vi.fn().mockResolvedValue({ results: [] });
+  const bind = vi.fn(() => ({ first, run, all }));
+  return { prepare: vi.fn(() => ({ bind, first, run, all })) };
+}
+
 function buildApp(env: Record<string, unknown> = {}) {
   const app = new Hono<any>();
 
@@ -44,15 +58,23 @@ function buildApp(env: Record<string, unknown> = {}) {
   });
 
   app.route("/payments", paymentRoutes);
-  return { app, env: { NODE_ENV: "test", DB: {}, ...env } };
+  return {
+    app,
+    env: { NODE_ENV: "test", DB: noopIdempotencyDb(), ...env },
+  };
 }
 
-describe("Payments Legacy Compatibility Routes", () => {
+const idempotencyHeaders = (key: string) => ({
+  "Content-Type": "application/json",
+  "Idempotency-Key": key,
+});
+
+describe("Payments Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("maps legacy create requests to the canonical payment service", async () => {
+  it("maps create requests to the underlying payment service", async () => {
     mockProcessPayment.mockResolvedValue({
       status: 200,
       data: {
@@ -69,7 +91,7 @@ describe("Payments Legacy Compatibility Routes", () => {
       "/payments/create",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: idempotencyHeaders("test-key-numeric-id"),
         body: JSON.stringify({
           orderId: "42",
           restaurantId: "rest-1",
@@ -114,7 +136,7 @@ describe("Payments Legacy Compatibility Routes", () => {
     );
   });
 
-  it("resolves legacy string order ids before creating payments", async () => {
+  it("resolves string order ids (order_number / client_mutation_id) before creating payments", async () => {
     mockProcessPayment.mockResolvedValue({
       status: 200,
       data: {
@@ -125,16 +147,32 @@ describe("Payments Legacy Compatibility Routes", () => {
         authorizedTotal: 100,
       },
     });
-    const first = vi.fn().mockResolvedValue({ id: 42 });
-    const bind = vi.fn(() => ({ first }));
-    const prepare = vi.fn(() => ({ bind }));
+    // Build a DB stub that:
+    //   - returns null for idempotency key lookups (so the middleware
+    //     thinks the request is new) and accepts writes;
+    //   - returns { id: 42 } for the orders lookup the route performs
+    //     while resolving the string order id.
+    const idempotencyFirst = vi.fn().mockResolvedValue(null);
+    const orderFirst = vi.fn().mockResolvedValue({ id: 42 });
+    const ordersBind = vi.fn(() => ({ first: orderFirst }));
+    const idempotencyBind = vi.fn(() => ({
+      first: idempotencyFirst,
+      run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+      all: vi.fn().mockResolvedValue({ results: [] }),
+    }));
+    const prepare = vi.fn((sqlText: string) => {
+      if (sqlText.includes("orders")) {
+        return { bind: ordersBind };
+      }
+      return { bind: idempotencyBind };
+    });
     const { app, env } = buildApp({ DB: { prepare } });
 
     const response = await app.request(
       "/payments/create",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: idempotencyHeaders("test-key-string-id"),
         body: JSON.stringify({
           orderId: "order-public-id",
           restaurantId: "rest-1",
@@ -150,7 +188,7 @@ describe("Payments Legacy Compatibility Routes", () => {
 
     expect(response.status).toBe(200);
     expect(json.data.transactionId).toBe("pay_42_1");
-    expect(bind).toHaveBeenCalledWith(
+    expect(ordersBind).toHaveBeenCalledWith(
       "rest-1",
       "order-public-id",
       "order-public-id",
@@ -183,7 +221,7 @@ describe("Payments Legacy Compatibility Routes", () => {
     expect(bind).toHaveBeenCalledWith("pay_42_1");
   });
 
-  it("updates the order refund state for legacy refund requests", async () => {
+  it("updates the order refund state for refund requests", async () => {
     const first = vi.fn().mockResolvedValue({
       id: 42,
       total_amount: 100,

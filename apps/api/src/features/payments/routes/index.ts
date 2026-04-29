@@ -6,14 +6,10 @@ import { validateBody } from "../../../shared/middleware";
 import { idempotencyMiddleware } from "../../../middleware/idempotency";
 import { PaymentService } from "../services/PaymentService";
 import { ApiError } from "../../../shared/utils/api-error";
-import {
-  paymentSchemas,
-  type PaymentRequestInput,
-} from "../schemas/validation";
 
 const app = new Hono<{ Bindings: Env }>();
 
-const legacyPaymentRequestSchema = z
+const paymentRequestSchema = z
   .object({
     orderId: z.union([z.string().min(1), z.number().int().positive()]),
     restaurantId: z.string().min(1),
@@ -34,7 +30,7 @@ const legacyPaymentRequestSchema = z
   })
   .passthrough();
 
-const legacyRefundSchema = z.object({
+const refundSchema = z.object({
   transactionId: z.string().min(1),
   amount: z.number().finite().positive().optional(),
   reason: z.string().max(500).optional(),
@@ -46,91 +42,81 @@ const paymentMethodsByCountry: Record<string, string[]> = {
   VN: ["credit_card", "debit_card", "momo", "zalo_pay", "viet_qr", "vnpay"],
 };
 
+/**
+ * POST /api/v1/payments/create
+ *
+ * Process a payment. The idempotencyMiddleware is wired so that any
+ * client sending an `Idempotency-Key` header gets safe retry behaviour
+ * (a duplicate request replays the original response instead of
+ * double-charging). The header is currently optional because the
+ * admin-dashboard frontend doesn't send it yet — flip requireKey to
+ * true once the apiClient is updated to always include one.
+ */
 app.post(
-  "/",
+  "/create",
   idempotencyMiddleware({
     scope: "payment",
+    requireKey: false,
     effectId: async (_c, response) => {
       const body = (await response.clone().json()) as {
-        data?: { paymentId?: string };
+        data?: { transactionId?: string };
       };
-      return body.data?.paymentId ?? null;
+      return body.data?.transactionId ?? null;
     },
   }),
-  validateBody(paymentSchemas.processPayment),
+  validateBody(paymentRequestSchema),
   async (c) => {
-    const input: PaymentRequestInput = c.get("validatedBody");
-    const user: AuthUser | undefined = c.get("user");
+    const input = c.get("validatedBody");
+    const orderId = await resolveOrderId(
+      c.env.DB,
+      input.orderId,
+      input.restaurantId,
+    );
     const service = new PaymentService(c.env);
+    const user: AuthUser | undefined = c.get("user");
     // Gateway fixture headers bypass real gateway calls and are only honored
     // outside production. In prod, any forged header is ignored so callers
     // cannot fake a timeout/pending payment state.
     const fixtureAllowed = c.env.NODE_ENV !== "production";
-    const result = await service.processPayment(input, {
-      user,
-      gatewayFixture: fixtureAllowed
-        ? (c.req.header("X-Payment-Gateway-Fixture") ?? null)
-        : null,
-    });
+    const result = await service.processPayment(
+      {
+        orderId,
+        paymentMode: "full",
+        amount: input.amount,
+        expectedTotal: input.amount,
+        closeOrder: true,
+        method: input.method,
+        gateway: input.method,
+      },
+      {
+        user,
+        gatewayFixture: fixtureAllowed
+          ? (c.req.header("X-Payment-Gateway-Fixture") ?? null)
+          : null,
+      },
+    );
 
     return c.json(
       {
         success: true,
-        data: result.data,
+        data: {
+          transactionId: result.data.paymentId,
+          status: toExternalPaymentStatus(result.data.paymentStatus),
+          metadata: {
+            orderId: result.data.orderId,
+            orderStatus: result.data.orderStatus,
+            paymentStatus: result.data.paymentStatus,
+            authorizedTotal: result.data.authorizedTotal,
+            country: input.country,
+            currency: input.currency,
+            method: input.method,
+          },
+        },
       },
       result.status,
     );
   },
 );
-
-app.post("/create", validateBody(legacyPaymentRequestSchema), async (c) => {
-  const input = c.get("validatedBody");
-  const orderId = await resolveLegacyOrderId(
-    c.env.DB,
-    input.orderId,
-    input.restaurantId,
-  );
-  const service = new PaymentService(c.env);
-  const user: AuthUser | undefined = c.get("user");
-  const fixtureAllowed = c.env.NODE_ENV !== "production";
-  const result = await service.processPayment(
-    {
-      orderId,
-      paymentMode: "full",
-      amount: input.amount,
-      expectedTotal: input.amount,
-      closeOrder: true,
-      method: input.method,
-      gateway: input.method,
-    },
-    {
-      user,
-      gatewayFixture: fixtureAllowed
-        ? (c.req.header("X-Payment-Gateway-Fixture") ?? null)
-        : null,
-    },
-  );
-
-  return c.json(
-    {
-      success: true,
-      data: {
-        transactionId: result.data.paymentId,
-        status: toLegacyPaymentStatus(result.data.paymentStatus),
-        metadata: {
-          orderId: result.data.orderId,
-          orderStatus: result.data.orderStatus,
-          paymentStatus: result.data.paymentStatus,
-          authorizedTotal: result.data.authorizedTotal,
-          country: input.country,
-          currency: input.currency,
-          method: input.method,
-        },
-      },
-    },
-    result.status,
-  );
-});
 
 app.get("/status/:transactionId", async (c) => {
   const transactionId = c.req.param("transactionId");
@@ -153,12 +139,12 @@ app.get("/status/:transactionId", async (c) => {
       transactionId,
       orderId: row.id,
       paymentStatus: row.payment_status,
-      status: toLegacyPaymentStatus(row.payment_status),
+      status: toExternalPaymentStatus(row.payment_status),
     },
   });
 });
 
-app.post("/refund", validateBody(legacyRefundSchema), async (c) => {
+app.post("/refund", validateBody(refundSchema), async (c) => {
   const input = c.get("validatedBody");
   const row = await c.env.DB.prepare(
     `SELECT id, total_amount, refund_amount
@@ -234,7 +220,12 @@ app.get("/methods/:country", async (c) => {
   });
 });
 
-async function resolveLegacyOrderId(
+/**
+ * Resolve the canonical numeric `orders.id` from any of the identifiers
+ * the frontend may pass: a numeric id, a string-encoded numeric id,
+ * the human-readable `order_number`, or a `client_mutation_id`.
+ */
+async function resolveOrderId(
   db: Env["DB"],
   orderId: string | number,
   restaurantId: string,
@@ -242,7 +233,7 @@ async function resolveLegacyOrderId(
   const numericOrderId = toNumericOrderId(orderId);
   if (numericOrderId !== null) return numericOrderId;
 
-  const legacyOrderId = String(orderId).trim();
+  const lookupKey = String(orderId).trim();
   const row = await db
     .prepare(
       `SELECT id
@@ -251,7 +242,7 @@ async function resolveLegacyOrderId(
           AND (order_number = ? OR client_mutation_id = ?)
         LIMIT 1`,
     )
-    .bind(restaurantId, legacyOrderId, legacyOrderId)
+    .bind(restaurantId, lookupKey, lookupKey)
     .first<{ id: number }>();
 
   if (!row) {
@@ -279,7 +270,7 @@ function toNumericOrderId(orderId: string | number): number | null {
   return numericOrderId;
 }
 
-function toLegacyPaymentStatus(status: string | null | undefined): string {
+function toExternalPaymentStatus(status: string | null | undefined): string {
   switch (status) {
     case "paid":
     case "completed":
