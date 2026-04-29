@@ -188,6 +188,28 @@ describe("WaitingListService", () => {
         service.callWaiting(entryId, { tableId: 1 }),
       ).rejects.toThrow("桌位容量不足");
     });
+
+    it("應該拒絕使用其他餐廳的桌位叫號", async () => {
+      const entryId = "wait-001";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "waiting",
+        party_size: 4,
+        restaurant_id: "R-001",
+      });
+
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        restaurant_id: "R-999",
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 6,
+      });
+
+      await expect(
+        service.callWaiting(entryId, { tableId: 1 }),
+      ).rejects.toThrow("桌位不可用");
+    });
   });
 
   describe("confirmWaiting - 確認候位", () => {
@@ -1413,7 +1435,16 @@ function createMockDB() {
       queryStr.includes("id =")
     ) {
       const tableId = values[0];
+      const restaurantId = values[1];
       const table = mockData.tables.get(tableId);
+      if (
+        table &&
+        queryStr.includes("restaurant_id") &&
+        table.restaurant_id &&
+        table.restaurant_id !== restaurantId
+      ) {
+        return [];
+      }
       if (table && queryStr.includes("is_occupied = 0")) {
         if (!table.is_occupied) {
           return [table];

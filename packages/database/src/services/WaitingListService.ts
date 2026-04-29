@@ -357,6 +357,7 @@ export class WaitingListService extends BaseService {
       const table = (await this.db.get(sql`
         SELECT * FROM tables
         WHERE id = ${request.tableId}
+          AND restaurant_id = ${entry.restaurantId}
           AND is_occupied = 0
       `)) as any;
 

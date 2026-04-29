@@ -25,6 +25,7 @@ const mockService = {
   getWaitingListEntryById: vi.fn(),
   listWaitingList: vi.fn(),
   callWaiting: vi.fn(),
+  findAvailableTable: vi.fn(),
   batchCallNext: vi.fn(),
   markSeated: vi.fn(),
   cancelWaiting: vi.fn(),
@@ -356,6 +357,7 @@ describe("Queue routes (real WaitingListService delegation)", () => {
     });
 
     it("calls a specific entry when specificQueueId + tableId are provided", async () => {
+      mockService.getWaitingListEntryById.mockResolvedValue(sampleEntry);
       mockService.callWaiting.mockResolvedValue({
         ...sampleEntry,
         status: "called",
@@ -378,6 +380,62 @@ describe("Queue routes (real WaitingListService delegation)", () => {
       expect(mockService.callWaiting).toHaveBeenCalledWith("entry-uuid-1", {
         tableId: 7,
       });
+      expect(mockService.batchCallNext).not.toHaveBeenCalled();
+    });
+
+    it("auto-assigns a table when a specific entry is called without tableId", async () => {
+      mockService.getWaitingListEntryById.mockResolvedValue(sampleEntry);
+      mockService.findAvailableTable.mockResolvedValue({
+        tableId: 7,
+        tableNumber: "T7",
+        confidence: 1,
+        reason: "best fit",
+      });
+      mockService.callWaiting.mockResolvedValue({
+        ...sampleEntry,
+        status: "called",
+        tableId: 7,
+      });
+
+      const res = await request("/queue/1/call-next", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer test",
+        },
+        body: JSON.stringify({
+          specificQueueId: "entry-uuid-1",
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockService.findAvailableTable).toHaveBeenCalledWith("1", 4);
+      expect(mockService.callWaiting).toHaveBeenCalledWith("entry-uuid-1", {
+        tableId: 7,
+      });
+      expect(mockService.batchCallNext).not.toHaveBeenCalled();
+    });
+
+    it("rejects specific entries from another restaurant", async () => {
+      mockService.getWaitingListEntryById.mockResolvedValue({
+        ...sampleEntry,
+        restaurantId: "9",
+      });
+
+      const res = await request("/queue/1/call-next", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer test",
+        },
+        body: JSON.stringify({
+          specificQueueId: "entry-uuid-1",
+          tableId: 7,
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      expect(mockService.callWaiting).not.toHaveBeenCalled();
       expect(mockService.batchCallNext).not.toHaveBeenCalled();
     });
 

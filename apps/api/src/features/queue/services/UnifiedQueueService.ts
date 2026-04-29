@@ -150,10 +150,31 @@ export class UnifiedQueueService {
     data: CallNextRequest,
   ): Promise<ApiResponse<UnifiedCallNextResult>> {
     try {
-      // Specific queue + table → call that exact entry.
-      if (data.specificQueueId && data.tableId) {
+      if (data.specificQueueId) {
+        const entry = await this.service.getWaitingListEntryById(
+          data.specificQueueId,
+        );
+        if (!entry) {
+          return { success: false, error: "Queue entry not found" };
+        }
+        if (String(entry.restaurantId) !== String(restaurantId)) {
+          return {
+            success: false,
+            error: "Queue entry does not belong to this restaurant",
+          };
+        }
+
+        const tableId =
+          data.tableId ??
+          (await this.service.findAvailableTable(restaurantId, entry.partySize))
+            ?.tableId;
+
+        if (!tableId) {
+          return { success: false, error: "No available table for party size" };
+        }
+
         const called = await this.service.callWaiting(data.specificQueueId, {
-          tableId: data.tableId,
+          tableId,
         });
         return { success: true, data: this.toCallResult(called) };
       }

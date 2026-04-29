@@ -1030,7 +1030,7 @@ const callCustomer = async (queueItem: QueueItem) => {
     } else {
       toast.error(result.error || t("queue.alerts.callFailed"));
     }
-  } catch (_error) {
+  } catch (error) {
     toast.error(t("queue.alerts.callRetry"));
     console.error("Failed to call customer:", error);
   }
@@ -1095,7 +1095,7 @@ const submitAddToQueue = async () => {
     } else {
       toast.error(result.error || t("queue.alerts.addFailed"));
     }
-  } catch (_error) {
+  } catch (error) {
     toast.error(t("queue.alerts.addRetry"));
     console.error("Failed to add to queue:", error);
   } finally {
@@ -1143,7 +1143,7 @@ const confirmSeatAssignment = async () => {
     } else {
       toast.error(result.error || t("queue.alerts.seatFailed"));
     }
-  } catch (_error) {
+  } catch (error) {
     toast.error(t("queue.alerts.seatRetry"));
     console.error("Failed to seat customer:", error);
   }
