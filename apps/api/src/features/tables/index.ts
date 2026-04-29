@@ -127,7 +127,7 @@ export function createTablesModule(): TablesModule {
   return tablesModuleInstance;
 }
 
-// Export default for backward compatibility
+// Default export — shorthand for `import x from "..."` consumers
 export default {
   routes, // Direct export instead of through module wrapper
   getHealthStatus: () => createTablesModule().getHealthStatus(),

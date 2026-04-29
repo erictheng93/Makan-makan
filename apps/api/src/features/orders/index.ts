@@ -367,7 +367,7 @@ export function createOrdersModule(): OrdersModule {
   return ordersModuleInstance;
 }
 
-// Export default for backward compatibility
+// Default export — shorthand for `import x from "..."` consumers
 export default {
   get routes() {
     return createOrdersModule().routes;

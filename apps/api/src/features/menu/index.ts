@@ -298,7 +298,7 @@ export function createMenuModule(): MenuModule {
   return menuModuleInstance;
 }
 
-// Export default for backward compatibility
+// Default export — shorthand for `import x from "..."` consumers
 export default {
   get routes() {
     return createMenuModule().routes;

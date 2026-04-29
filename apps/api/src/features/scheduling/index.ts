@@ -323,7 +323,7 @@ export function createSchedulingModule(): SchedulingModule {
   return schedulingModuleInstance;
 }
 
-// Export default for backward compatibility
+// Default export — shorthand for `import x from "..."` consumers
 export default {
   get routes() {
     return createSchedulingModule().routes;

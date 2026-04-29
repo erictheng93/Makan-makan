@@ -76,7 +76,7 @@ export function createRestaurantsModule(): RestaurantsModule {
   return restaurantsModuleInstance;
 }
 
-// Export default for backward compatibility
+// Default export — shorthand for `import x from "..."` consumers
 export default {
   get routes() {
     return createRestaurantsModule().routes;
