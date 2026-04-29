@@ -399,8 +399,9 @@ class CustomerBackgroundSyncService {
 
   // Utility methods
   private addOrUpdateSyncEvent(event: SyncEvent): void {
+    const dedupeKey = this.getSyncEventDedupeKey(event);
     const existingIndex = this.syncQueue.findIndex(
-      (e) => e.type === event.type,
+      (e) => this.getSyncEventDedupeKey(e) === dedupeKey,
     );
     if (existingIndex >= 0) {
       this.syncQueue[existingIndex] = event;
@@ -408,6 +409,23 @@ class CustomerBackgroundSyncService {
       this.syncQueue.push(event);
     }
     this.saveSyncQueue();
+  }
+
+  private getSyncEventDedupeKey(event: SyncEvent): string {
+    if (
+      event.data === null ||
+      typeof event.data !== "object" ||
+      Array.isArray(event.data)
+    ) {
+      return event.type;
+    }
+
+    const data = event.data as Record<string, unknown>;
+    const rawId =
+      data.id ?? data.order_id ?? data.offline_order_id ?? data.sync_id;
+    return rawId === undefined || rawId === null
+      ? event.type
+      : `${event.type}:${String(rawId)}`;
   }
 
   private removeSyncEvent(type: string, id?: string): void {

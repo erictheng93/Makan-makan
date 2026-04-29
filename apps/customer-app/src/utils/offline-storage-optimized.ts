@@ -240,8 +240,8 @@ class OptimizedOfflineStorageManager {
 
       // Create range for specific restaurant
       const range = IDBKeyRange.bound(
-        [restaurantId, 0],
-        [restaurantId, Date.now()],
+        [restaurantId, ""],
+        [restaurantId, "\uffff"],
       );
 
       const results = await new Promise<OfflineOrder[]>((resolve, reject) => {
@@ -410,8 +410,7 @@ class OptimizedOfflineStorageManager {
           request.onerror = () => reject(request.error);
         });
       } else {
-        // Fallback to full scan with filtering
-        results = await this.getCachedMenuItems(restaurantId);
+        results = await this.getCachedMenuItemsFromStore(restaurantId);
 
         if (priceRange) {
           results = results.filter(
@@ -694,6 +693,32 @@ class OptimizedOfflineStorageManager {
     });
   }
 
+  private async getCachedMenuItemsFromStore(
+    restaurantId: string,
+  ): Promise<CachedMenuItem[]> {
+    const store = this.getStore("optimizedMenuItems");
+    const index = store.index("restaurant_category");
+    const range = IDBKeyRange.bound(
+      [restaurantId, ""],
+      [restaurantId, "\uffff"],
+    );
+
+    return new Promise((resolve, reject) => {
+      const items: CachedMenuItem[] = [];
+      const request = index.openCursor(range);
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          items.push(this.decompressIfNeeded(cursor.value));
+          cursor.continue();
+        } else {
+          resolve(items);
+        }
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // Existing interface compatibility
   async getOfflineOrders(): Promise<OfflineOrder[]> {
     // Implementation for backward compatibility
@@ -714,12 +739,13 @@ class OptimizedOfflineStorageManager {
     const store = this.getStore("optimizedOrders");
     const index = store.index("synced_timestamp");
     return new Promise((resolve, reject) => {
-      const request = index.getAll(undefined);
+      const range = IDBKeyRange.bound([false, ""], [false, "\uffff"]);
+      const request = index.getAll(range);
       request.onsuccess = () => {
         const results = request.result.map((item) =>
           this.decompressIfNeeded(item),
         );
-        resolve(results);
+        resolve(results.filter((order) => order.synced === false));
       };
       request.onerror = () => reject(request.error);
     });

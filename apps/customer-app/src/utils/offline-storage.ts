@@ -155,8 +155,9 @@ class OfflineStorageManager {
     const store = this.getStore("offlineOrders");
     const index = store.index("synced");
     return new Promise((resolve, reject) => {
-      const request = index.getAll();
-      request.onsuccess = () => resolve(request.result);
+      const request = index.getAll(false);
+      request.onsuccess = () =>
+        resolve(request.result.filter((order) => order.synced === false));
       request.onerror = () => reject(request.error);
     });
   }
