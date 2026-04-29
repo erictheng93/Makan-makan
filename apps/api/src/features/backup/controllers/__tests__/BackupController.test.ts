@@ -20,6 +20,9 @@ const mockBackupService = {
   getSystemHealth: vi.fn(),
   getRestaurantMetrics: vi.fn(),
   getRestaurantAlerts: vi.fn(),
+  getAlertById: vi.fn(),
+  acknowledgeAlert: vi.fn(),
+  resolveAlert: vi.fn(),
 };
 
 const mockConfigService = {
@@ -629,6 +632,91 @@ describe("BackupController", () => {
         expect.objectContaining({ error: "Invalid restaurant ID" }),
         400,
       );
+    });
+  });
+
+  // ========================================
+  // acknowledgeAlert / resolveAlert
+  // ========================================
+
+  describe("alert mutations - 備份警報狀態更新", () => {
+    it("should acknowledge an alert after verifying restaurant access", async () => {
+      const alert = {
+        id: "alert-1",
+        restaurant_id: VALID_UUID,
+        acknowledged: false,
+      };
+      const acknowledged = { ...alert, acknowledged: true };
+      mockBackupService.getAlertById.mockResolvedValue(alert);
+      mockBackupService.acknowledgeAlert.mockResolvedValue(acknowledged);
+
+      const c = createMockContext({
+        params: { id: "alert-1" },
+        user: { id: 1, role: 0 },
+      });
+
+      await controller.acknowledgeAlert(c);
+
+      expect(mockValidationService.verifyRestaurantAccess).toHaveBeenCalledWith(
+        c,
+        VALID_UUID,
+      );
+      expect(mockBackupService.acknowledgeAlert).toHaveBeenCalledWith(
+        "alert-1",
+        "1",
+      );
+      expect(c.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: acknowledged,
+        }),
+      );
+    });
+
+    it("should resolve an alert after verifying restaurant access", async () => {
+      const alert = {
+        id: "alert-2",
+        restaurant_id: VALID_UUID,
+        resolved: false,
+      };
+      const resolved = { ...alert, resolved: true };
+      mockBackupService.getAlertById.mockResolvedValue(alert);
+      mockBackupService.resolveAlert.mockResolvedValue(resolved);
+
+      const c = createMockContext({
+        params: { id: "alert-2" },
+        user: { id: 1, role: 0 },
+      });
+
+      await controller.resolveAlert(c);
+
+      expect(mockValidationService.verifyRestaurantAccess).toHaveBeenCalledWith(
+        c,
+        VALID_UUID,
+      );
+      expect(mockBackupService.resolveAlert).toHaveBeenCalledWith(
+        "alert-2",
+        "1",
+      );
+      expect(c.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: resolved,
+        }),
+      );
+    });
+
+    it("should return 404 when alert is not found", async () => {
+      mockBackupService.getAlertById.mockResolvedValue(null);
+
+      const c = createMockContext({ params: { id: "missing-alert" } });
+      await controller.acknowledgeAlert(c);
+
+      expect(c.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, error: "Alert not found" }),
+        404,
+      );
+      expect(mockBackupService.acknowledgeAlert).not.toHaveBeenCalled();
     });
   });
 });

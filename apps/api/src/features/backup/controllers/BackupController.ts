@@ -524,4 +524,116 @@ export class BackupController {
       );
     }
   }
+
+  /**
+   * Acknowledge a backup alert
+   */
+  async acknowledgeAlert(c: Context): Promise<Response> {
+    try {
+      const alertId = c.req.param("id");
+      const user = c.get("user");
+
+      if (!alertId) {
+        return c.json(
+          {
+            success: false,
+            error: "Invalid alert ID",
+          },
+          400,
+        );
+      }
+
+      const alert = await this.backupService.getAlertById(alertId);
+      if (!alert) {
+        return c.json(
+          {
+            success: false,
+            error: "Alert not found",
+          },
+          404,
+        );
+      }
+
+      await this.validationService.verifyRestaurantAccess(
+        c,
+        alert.restaurant_id,
+      );
+
+      const acknowledged = await this.backupService.acknowledgeAlert(
+        alertId,
+        user.id.toString(),
+      );
+
+      return c.json({
+        success: true,
+        data: acknowledged,
+        message: "Alert acknowledged successfully",
+      });
+    } catch (error) {
+      console.error("Error acknowledging alert:", error);
+      return c.json(
+        {
+          success: false,
+          error: (error as Error).message || "Failed to acknowledge alert",
+        },
+        400,
+      );
+    }
+  }
+
+  /**
+   * Resolve a backup alert
+   */
+  async resolveAlert(c: Context): Promise<Response> {
+    try {
+      const alertId = c.req.param("id");
+      const user = c.get("user");
+
+      if (!alertId) {
+        return c.json(
+          {
+            success: false,
+            error: "Invalid alert ID",
+          },
+          400,
+        );
+      }
+
+      const alert = await this.backupService.getAlertById(alertId);
+      if (!alert) {
+        return c.json(
+          {
+            success: false,
+            error: "Alert not found",
+          },
+          404,
+        );
+      }
+
+      await this.validationService.verifyRestaurantAccess(
+        c,
+        alert.restaurant_id,
+      );
+
+      const resolved = await this.backupService.resolveAlert(
+        alertId,
+        user.id.toString(),
+      );
+
+      return c.json({
+        success: true,
+        data: resolved,
+        message: "Alert resolved successfully",
+      });
+    } catch (error) {
+      console.error("Error resolving alert:", error);
+      return c.json(
+        {
+          success: false,
+          error: (error as Error).message || "Failed to resolve alert",
+        },
+        400,
+      );
+    }
+  }
 }

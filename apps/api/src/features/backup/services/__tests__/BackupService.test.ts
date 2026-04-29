@@ -164,7 +164,9 @@ vi.mock("@makanmakan/database", () => ({
   backupAlerts: {
     id: "id",
     restaurantId: "restaurant_id",
+    acknowledged: "acknowledged",
     resolved: "resolved",
+    resolvedAt: "resolved_at",
     triggeredAt: "triggered_at",
   },
   backupAuditLogs: { id: "id", restaurantId: "restaurant_id" },
@@ -913,6 +915,107 @@ describe("BackupService", () => {
       const alerts = await service.getRestaurantAlerts("rest-1", true);
 
       expect(Array.isArray(alerts)).toBe(true);
+    });
+
+    it("should normalize alert rows to the public backup alert contract", async () => {
+      mockDrizzleDb.select.mockImplementation(() => {
+        const chain: any = {
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          orderBy: vi.fn().mockReturnThis(),
+        };
+        chain.then = (resolve: any, reject: any) =>
+          Promise.resolve([
+            {
+              id: "alert-1",
+              restaurantId: "rest-1",
+              alertType: "backup_failed",
+              severity: "high",
+              message: "Backup failed",
+              details: { title: "Backup Failure" },
+              acknowledged: 0,
+              resolved: 0,
+              triggeredAt: "2024-01-01T00:00:00.000Z",
+            },
+          ]).then(resolve, reject);
+        return chain;
+      });
+
+      const alerts = await service.getRestaurantAlerts("rest-1");
+
+      expect(alerts[0]).toEqual(
+        expect.objectContaining({
+          id: "alert-1",
+          restaurant_id: "rest-1",
+          alert_type: "backup_failed",
+          title: "Backup Failure",
+          triggered_at: "2024-01-01T00:00:00.000Z",
+          acknowledged: false,
+          resolved: false,
+        }),
+      );
+    });
+
+    it("should acknowledge an alert and audit the action", async () => {
+      mockDrizzleDb.select.mockImplementation(() => {
+        const chain: any = {
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+        };
+        chain.then = (resolve: any, reject: any) =>
+          Promise.resolve([
+            {
+              id: "alert-1",
+              restaurantId: "rest-1",
+              alertType: "backup_failed",
+              severity: "high",
+              message: "Backup failed",
+              acknowledged: 0,
+              resolved: 0,
+              triggeredAt: "2024-01-01T00:00:00.000Z",
+            },
+          ]).then(resolve, reject);
+        return chain;
+      });
+
+      const alert = await service.acknowledgeAlert("alert-1", "user-1");
+
+      expect(alert.acknowledged).toBe(true);
+      expect(alert.acknowledged_by).toBe("user-1");
+      expect(mockDrizzleDb.update).toHaveBeenCalledOnce();
+      expect(mockDrizzleDb.insert).toHaveBeenCalled();
+    });
+
+    it("should resolve an alert and audit the action", async () => {
+      mockDrizzleDb.select.mockImplementation(() => {
+        const chain: any = {
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+        };
+        chain.then = (resolve: any, reject: any) =>
+          Promise.resolve([
+            {
+              id: "alert-2",
+              restaurantId: "rest-1",
+              alertType: "backup_failed",
+              severity: "high",
+              message: "Backup failed",
+              acknowledged: 0,
+              resolved: 0,
+              triggeredAt: "2024-01-01T00:00:00.000Z",
+            },
+          ]).then(resolve, reject);
+        return chain;
+      });
+
+      const alert = await service.resolveAlert("alert-2", "user-1");
+
+      expect(alert.resolved).toBe(true);
+      expect(alert.resolved_at).toEqual(expect.any(String));
+      expect(mockDrizzleDb.update).toHaveBeenCalledOnce();
+      expect(mockDrizzleDb.insert).toHaveBeenCalled();
     });
   });
 

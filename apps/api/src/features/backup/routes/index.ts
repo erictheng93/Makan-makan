@@ -324,6 +324,24 @@ export function createBackupRoutes(): Hono<Context> {
     return await controller.getRestaurantAlerts(c);
   });
 
+  /**
+   * PATCH /api/v1/backup/alerts/:id/acknowledge
+   * Acknowledge a backup alert after restaurant access is verified.
+   */
+  backup.patch("/alerts/:id/acknowledge", async (c) => {
+    const controller = c.get("backupController");
+    return await controller.acknowledgeAlert(c);
+  });
+
+  /**
+   * PATCH /api/v1/backup/alerts/:id/resolve
+   * Resolve a backup alert after restaurant access is verified.
+   */
+  backup.patch("/alerts/:id/resolve", async (c) => {
+    const controller = c.get("backupController");
+    return await controller.resolveAlert(c);
+  });
+
   return backup;
 }
 

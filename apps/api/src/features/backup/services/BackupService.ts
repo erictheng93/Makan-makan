@@ -808,6 +808,104 @@ export class BackupService {
     }
   }
 
+  /**
+   * Get backup alert by ID
+   */
+  async getAlertById(alertId: string): Promise<BackupAlert | null> {
+    try {
+      const results = await this.db
+        .select()
+        .from(backupAlerts)
+        .where(eq(backupAlerts.id, alertId))
+        .limit(1);
+
+      const alerts = this.parseBackupAlerts(results);
+      return alerts[0] ?? null;
+    } catch (error) {
+      console.error("Error getting backup alert:", error);
+      throw new Error("Failed to get backup alert");
+    }
+  }
+
+  /**
+   * Acknowledge backup alert
+   */
+  async acknowledgeAlert(
+    alertId: string,
+    userId: string,
+  ): Promise<BackupAlert> {
+    try {
+      const alert = await this.getAlertById(alertId);
+      if (!alert) {
+        throw notFound("Alert not found", "BACKUP_ALERT_NOT_FOUND");
+      }
+
+      await this.db
+        .update(backupAlerts)
+        .set({ acknowledged: true })
+        .where(eq(backupAlerts.id, alertId));
+
+      await this.createAuditLog({
+        restaurant_id: alert.restaurant_id,
+        action: "backup_alert_acknowledged",
+        details: { alert_id: alertId },
+        performed_by: userId,
+      });
+
+      return {
+        ...alert,
+        acknowledged: true,
+        acknowledged_by: userId,
+        acknowledged_at: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error("Error acknowledging backup alert:", error);
+      throw new Error(
+        `Failed to acknowledge backup alert: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Resolve backup alert
+   */
+  async resolveAlert(alertId: string, userId: string): Promise<BackupAlert> {
+    try {
+      const alert = await this.getAlertById(alertId);
+      if (!alert) {
+        throw notFound("Alert not found", "BACKUP_ALERT_NOT_FOUND");
+      }
+
+      const resolvedAt = new Date().toISOString();
+      await this.db
+        .update(backupAlerts)
+        .set({ resolved: true, resolvedAt })
+        .where(eq(backupAlerts.id, alertId));
+
+      await this.createAuditLog({
+        restaurant_id: alert.restaurant_id,
+        action: "backup_alert_resolved",
+        details: { alert_id: alertId },
+        performed_by: userId,
+      });
+
+      return {
+        ...alert,
+        resolved: true,
+        resolved_at: resolvedAt,
+      };
+    } catch (error) {
+      console.error("Error resolving backup alert:", error);
+      throw new Error(
+        `Failed to resolve backup alert: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
+  }
+
   // Private helper methods
 
   private async getRestaurantTables(
@@ -1351,13 +1449,66 @@ export class BackupService {
   private parseBackupAlerts(
     results: Record<string, unknown>[],
   ): BackupAlert[] {
-    return results.map(
-      (result) =>
-        ({
-          ...result,
-          acknowledged: Boolean(result.acknowledged),
-          resolved: Boolean(result.resolved),
-        }) as BackupAlert,
-    );
+    return results.map((result) => {
+      const details = this.parseAlertDetails(result.details);
+      const alertType = String(
+        result.alert_type ?? result.alertType ?? "backup_failed",
+      );
+      const message = String(result.message ?? "");
+
+      return {
+        id: String(result.id),
+        restaurant_id: String(result.restaurant_id ?? result.restaurantId),
+        alert_type: alertType as BackupAlert["alert_type"],
+        severity: String(result.severity ?? "medium") as BackupAlert["severity"],
+        title: String(
+          result.title ?? details.title ?? this.formatAlertTitle(alertType),
+        ),
+        message,
+        related_backup_id: this.optionalString(
+          result.related_backup_id ??
+            result.relatedBackupId ??
+            details.related_backup_id,
+        ),
+        triggered_at: String(result.triggered_at ?? result.triggeredAt ?? ""),
+        acknowledged: Boolean(result.acknowledged),
+        acknowledged_by: this.optionalString(
+          result.acknowledged_by ?? result.acknowledgedBy,
+        ),
+        acknowledged_at: this.optionalString(
+          result.acknowledged_at ?? result.acknowledgedAt,
+        ),
+        resolved: Boolean(result.resolved),
+        resolved_at: this.optionalString(result.resolved_at ?? result.resolvedAt),
+      };
+    });
+  }
+
+  private parseAlertDetails(value: unknown): Record<string, unknown> {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    if (typeof value === "string" && value.trim()) {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed as Record<string, unknown>;
+        }
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  }
+
+  private optionalString(value: unknown): string | undefined {
+    return value === null || value === undefined ? undefined : String(value);
+  }
+
+  private formatAlertTitle(alertType: string): string {
+    return alertType
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   }
 }
