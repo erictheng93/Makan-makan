@@ -366,22 +366,15 @@ jobs:
 
       - name: 🔥 執行 REST API 負載測試
         run: |
-          artillery run tests/performance/artillery-api.yml \
+          artillery run tests/performance/artillery-api-ci.yml \
             --output artillery-api-report.json \
             --quiet
-        env:
-          API_URL: http://localhost:8787
-          TEST_USERNAME: testuser
-          TEST_PASSWORD: testpass123
 
-      - name: 🌐 執行 WebSocket 負載測試
+      - name: 🌐 執行 Realtime Worker 負載煙霧測試
         run: |
-          artillery run tests/performance/artillery-websocket.yml \
-            --output artillery-ws-report.json \
+          artillery run tests/performance/artillery-realtime-ci.yml \
+            --output artillery-realtime-report.json \
             --quiet
-        env:
-          API_URL: http://localhost:8787
-          WS_URL: ws://localhost:8788
 
       - name: 📊 生成 Artillery 報告
         if: always()
@@ -389,8 +382,8 @@ jobs:
           if [ -f artillery-api-report.json ]; then
             artillery report artillery-api-report.json --output artillery-api-report.html
           fi
-          if [ -f artillery-ws-report.json ]; then
-            artillery report artillery-ws-report.json --output artillery-ws-report.html
+          if [ -f artillery-realtime-report.json ]; then
+            artillery report artillery-realtime-report.json --output artillery-realtime-report.html
           fi
 
       - name: 📎 上傳性能測試報告
@@ -401,8 +394,8 @@ jobs:
           path: |
             artillery-api-report.json
             artillery-api-report.html
-            artillery-ws-report.json
-            artillery-ws-report.html
+            artillery-realtime-report.json
+            artillery-realtime-report.html
           retention-days: 30
 
       - name: 🛑 停止測試服務器
