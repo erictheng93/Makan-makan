@@ -10,8 +10,10 @@ import {
   type OfflineUserAction,
 } from "./offline-storage";
 import { apiClient } from "@/services/api";
-import { apiPath } from "@/services/api-url";
-import { buildMenuUpdateSyncRequest } from "./background-sync-requests";
+import {
+  buildMenuUpdateSyncRequest,
+  type MenuSyncRequest,
+} from "./background-sync-requests";
 
 export interface AdminSyncEvent {
   id: string;
@@ -131,32 +133,18 @@ class AdminBackgroundSyncService {
     try {
       console.log(`[Admin Background Sync] Syncing order update ${update.id}`);
 
-      const response = await fetch(
-        apiPath(`/orders/${update.order_id}/status`),
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.getAuthToken()}`,
-          },
-          body: JSON.stringify({
-            status: update.status,
-            notes: update.notes,
-            updated_by: update.updated_by,
-            timestamp: update.timestamp,
-          }),
-        },
-      );
+      await apiClient.put(`/orders/${update.order_id}/status`, {
+        status: update.status,
+        notes: update.notes,
+        updated_by: update.updated_by,
+        timestamp: update.timestamp,
+      });
 
-      if (response.ok) {
-        console.log(
-          `[Admin Background Sync] Order update ${update.id} synced successfully`,
-        );
-        await adminOfflineStorage.markOrderUpdateAsSynced(update.id);
-        this.notifyAdminSync("order_update", update.order_id);
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      console.log(
+        `[Admin Background Sync] Order update ${update.id} synced successfully`,
+      );
+      await adminOfflineStorage.markOrderUpdateAsSynced(update.id);
+      this.notifyAdminSync("order_update", update.order_id);
     } catch (error) {
       console.error(
         `[Admin Background Sync] Failed to sync order update ${update.id}:`,
@@ -213,25 +201,13 @@ class AdminBackgroundSyncService {
       console.log(`[Admin Background Sync] Syncing menu update ${update.id}`);
 
       const request = buildMenuUpdateSyncRequest(update);
+      await this.sendMenuSyncRequest(request);
 
-      const response = await fetch(request.endpoint, {
-        method: request.method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: request.body ? JSON.stringify(request.body) : undefined,
-      });
-
-      if (response.ok) {
-        console.log(
-          `[Admin Background Sync] Menu update ${update.id} synced successfully`,
-        );
-        await adminOfflineStorage.markMenuUpdateAsSynced(update.id);
-        this.notifyAdminSync("menu_update", update.menu_item_id || "new");
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      console.log(
+        `[Admin Background Sync] Menu update ${update.id} synced successfully`,
+      );
+      await adminOfflineStorage.markMenuUpdateAsSynced(update.id);
+      this.notifyAdminSync("menu_update", update.menu_item_id || "new");
     } catch (error) {
       console.error(
         `[Admin Background Sync] Failed to sync menu update ${update.id}:`,
@@ -598,8 +574,18 @@ class AdminBackgroundSyncService {
     return existing ? existing.retryCount : 0;
   }
 
-  private getAuthToken(): string {
-    return localStorage.getItem("auth_token") || "";
+  private async sendMenuSyncRequest(request: MenuSyncRequest): Promise<void> {
+    switch (request.method) {
+      case "POST":
+        await apiClient.post(request.path, request.body);
+        break;
+      case "PUT":
+        await apiClient.put(request.path, request.body);
+        break;
+      case "DELETE":
+        await apiClient.delete(request.path);
+        break;
+    }
   }
 
   private notifyAdminSync(type: string, targetId: string): void {

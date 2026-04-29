@@ -14,7 +14,7 @@ const baseUpdate: OfflineMenuUpdate = {
 describe("buildMenuUpdateSyncRequest", () => {
   it("keeps menu creates on the restaurant-scoped collection endpoint", () => {
     expect(buildMenuUpdateSyncRequest(baseUpdate)).toEqual({
-      endpoint: "/api/v1/menu/restaurant-1/items",
+      path: "/menu/restaurant-1/items",
       method: "POST",
       body: { name: "Nasi Lemak" },
     });
@@ -29,7 +29,7 @@ describe("buildMenuUpdateSyncRequest", () => {
         data: { price: 12 },
       }),
     ).toEqual({
-      endpoint: "/api/v1/menu/items/item-1",
+      path: "/menu/items/item-1",
       method: "PUT",
       body: { price: 12 },
     });
@@ -43,7 +43,7 @@ describe("buildMenuUpdateSyncRequest", () => {
         menu_item_id: "item-1",
       }),
     ).toEqual({
-      endpoint: "/api/v1/menu/items/item-1",
+      path: "/menu/items/item-1",
       method: "DELETE",
     });
   });
