@@ -130,11 +130,12 @@ class AdminPushNotificationService {
     subscription: NotificationSubscription,
   ): Promise<void> {
     try {
+      const restaurantId = this.getRestaurantId();
       await apiClient.post("/push/subscribe", {
         subscription,
         user_type: "admin",
         role: this.getUserRole(),
-        restaurant_id: this.getRestaurantId(),
+        ...(restaurantId && { restaurant_id: restaurantId }),
         device_info: this.getDeviceInfo(),
       });
 
@@ -463,11 +464,30 @@ class AdminPushNotificationService {
   }
 
   private getUserRole(): string {
-    return localStorage.getItem("user_role") || "admin";
+    const storedUser = this.getStoredAuthUser();
+    return storedUser?.role !== undefined
+      ? String(storedUser.role)
+      : localStorage.getItem("user_role") || "admin";
   }
 
   private getRestaurantId(): string {
-    return localStorage.getItem("restaurant_id") || "";
+    return (
+      sessionStorage.getItem("admin_selected_restaurant_id") ||
+      this.getStoredAuthUser()?.restaurantId?.toString() ||
+      localStorage.getItem("restaurant_id") ||
+      ""
+    );
+  }
+
+  private getStoredAuthUser():
+    | { role?: string | number; restaurantId?: string | number | null }
+    | undefined {
+    try {
+      const rawUser = localStorage.getItem("auth_user");
+      return rawUser ? JSON.parse(rawUser) : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   private getDeviceInfo(): Record<string, any> {
