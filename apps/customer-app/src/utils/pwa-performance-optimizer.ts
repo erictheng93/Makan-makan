@@ -3,6 +3,7 @@
  * 實施關鍵性能優化以提升用戶體驗
  */
 
+import { apiClient } from "@/services/api";
 import { optimizedOfflineStorage as _optimizedOfflineStorage } from "./offline-storage-optimized";
 import { optimizedBackgroundSync } from "./background-sync-optimized";
 import { performanceMonitor } from "./performance-monitor";
@@ -205,16 +206,15 @@ export class ServiceWorkerOptimizer {
 
   private async sendToAnalytics(data: any): Promise<void> {
     try {
-      await fetch("/api/v1/analytics/pwa-performance", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          timestamp: new Date().toISOString(),
-          app: "customer",
-          metrics: data,
-        }),
+      await apiClient.post("/analytics/batch-sync", {
+        events: [
+          {
+            type: "pwa_performance",
+            timestamp: new Date().toISOString(),
+            app: "customer",
+            metrics: data,
+          },
+        ],
       });
     } catch (error) {
       console.warn("Failed to send performance metrics:", error);
@@ -558,37 +558,40 @@ export class BackgroundSyncOptimizer {
   }
 
   private async syncBatch(type: string, batch: any[]): Promise<void> {
-    const endpoint = this.getEndpointForType(type);
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getAuthToken()}`,
-      },
-      body: JSON.stringify({
+    await apiClient.post(
+      this.getEndpointForType(type),
+      this.getPayloadForType(
         type,
-        batch: batch.map((item) => item.data),
-        timestamp: new Date().toISOString(),
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
+        batch.map((item) => item.data),
+      ),
+    );
   }
 
   private getEndpointForType(type: string): string {
     const endpoints = {
-      order_submission: "/api/v1/orders/batch",
-      favorite_sync: "/api/v1/users/favorites/batch",
-      settings_sync: "/api/v1/users/settings/batch",
-      feedback_sync: "/api/v1/feedback/batch",
+      order_submission: "/orders/batch-sync",
+      favorite_sync: "/users/favorites/sync",
+      settings_sync: "/users/settings/sync",
+      feedback_sync: "/feedback/batch-sync",
     };
-    return endpoints[type as keyof typeof endpoints] || "/api/v1/sync/batch";
+    return endpoints[type as keyof typeof endpoints] || `/${type}/batch-sync`;
   }
 
-  private getAuthToken(): string {
-    return localStorage.getItem("auth_token") || "";
+  private getPayloadForType(type: string, data: any[]): Record<string, any> {
+    const timestamp = new Date().toISOString();
+
+    switch (type) {
+      case "order_submission":
+        return { orders: data, timestamp };
+      case "favorite_sync":
+        return { favorites: data, timestamp };
+      case "settings_sync":
+        return { settings: data, timestamp };
+      case "feedback_sync":
+        return { feedback: data, timestamp };
+      default:
+        return { type, data, timestamp };
+    }
   }
 
   // 獲取批次狀態
