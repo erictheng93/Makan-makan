@@ -280,7 +280,9 @@ export async function mockOrderAPI(page: Page) {
     if (method === "GET") {
       route.fulfill(json({ success: true, data: order }));
     } else if (method === "PUT") {
-      route.fulfill(json({ success: true, data: { ...order, status: 2 } }));
+      route.fulfill(
+        json({ success: true, data: { ...order, status: "preparing" } }),
+      );
     } else if (method === "DELETE") {
       route.fulfill(json({ success: true, message: "Order cancelled" }));
     } else {
@@ -309,7 +311,7 @@ export async function mockOrderAPI(page: Page) {
 // ---------------------------------------------------------------------------
 
 export async function mockKitchenAPI(page: Page) {
-  const order = createMockOrder({ status: 0 });
+  const order = createMockOrder({ status: "pending" });
 
   await page.route(new RegExp(`${API_RE}/kitchen/.+/orders`), (route) =>
     route.fulfill(
@@ -320,12 +322,12 @@ export async function mockKitchenAPI(page: Page) {
           createMockOrder({
             id: "order-2",
             orderNumber: "ORD-002",
-            status: 2,
+            status: "preparing",
           }),
           createMockOrder({
             id: "order-3",
             orderNumber: "ORD-003",
-            status: 3,
+            status: "ready",
           }),
         ],
       }),
@@ -335,7 +337,8 @@ export async function mockKitchenAPI(page: Page) {
   // Update item status
   await page.route(
     new RegExp(`${API_RE}/kitchen/.+/orders/.+/items/.+`),
-    (route) => route.fulfill(json({ success: true, data: { status: 2 } })),
+    (route) =>
+      route.fulfill(json({ success: true, data: { status: "preparing" } })),
   );
 
   // SSE events — serve as text/event-stream

@@ -125,7 +125,7 @@ describe("OfflineService - Sync Logic", () => {
     });
 
     it("should save data to localStorage after queuing", () => {
-      offlineService.queueAction("update_status", 10, { status: 3 });
+      offlineService.queueAction("update_status", 10, { status: "ready" });
 
       expect(localStorage.setItem).toHaveBeenCalledWith(
         "kitchen-offline-data",
@@ -152,7 +152,7 @@ describe("OfflineService - Sync Logic", () => {
     });
 
     it("should support queuing without itemId", () => {
-      offlineService.queueAction("update_status", 7, { status: 2 });
+      offlineService.queueAction("update_status", 7, { status: "preparing" });
 
       const action = offlineService.pendingActions.value[0];
       expect(action.itemId).toBeUndefined();
@@ -220,7 +220,7 @@ describe("OfflineService - Sync Logic", () => {
         id: "action_sync_progress",
         type: "update_status",
         orderId: 5,
-        payload: { status: 2 },
+        payload: { status: "preparing" },
         timestamp: Date.now(),
         synced: false,
         retryCount: 0,
@@ -273,7 +273,7 @@ describe("OfflineService - Sync Logic", () => {
         id: "action_time",
         type: "update_status",
         orderId: 3,
-        payload: { status: 3 },
+        payload: { status: "ready" },
         timestamp: Date.now(),
         synced: false,
         retryCount: 0,
@@ -340,7 +340,7 @@ describe("OfflineService - Sync Logic", () => {
         id: "action_fail",
         type: "update_status" as const,
         orderId: 10,
-        payload: { status: 2 },
+        payload: { status: "preparing" },
         timestamp: Date.now(),
         synced: false,
         retryCount: 0,
@@ -429,7 +429,7 @@ describe("OfflineService - Sync Logic", () => {
         id: "action_transport_fail",
         type: "update_status",
         orderId: 10,
-        payload: { status: 2 },
+        payload: { status: "preparing" },
         timestamp: Date.now(),
         synced: false,
         retryCount: 0,
@@ -450,7 +450,7 @@ describe("OfflineService - Sync Logic", () => {
           success: false,
           conflict: {
             type: "status_conflict",
-            serverData: { status: 3 },
+            serverData: { status: "ready" },
           },
         },
       });
@@ -459,7 +459,7 @@ describe("OfflineService - Sync Logic", () => {
         id: "action_conflict",
         type: "update_status",
         orderId: 42,
-        payload: { status: 2 },
+        payload: { status: "preparing" },
         timestamp: Date.now(),
         synced: false,
         retryCount: 0,
@@ -593,8 +593,8 @@ describe("OfflineService - Sync Logic", () => {
       offlineService.syncConflicts.value.push({
         id: "conflict_1",
         type: "order_updated",
-        localData: { status: 2 },
-        serverData: { status: 3 },
+        localData: { status: "preparing" },
+        serverData: { status: "ready" },
       });
 
       offlineService.resolveConflict("conflict_1", "local");
@@ -606,8 +606,8 @@ describe("OfflineService - Sync Logic", () => {
       offlineService.syncConflicts.value.push({
         id: "conflict_2",
         type: "status_conflict",
-        localData: { status: 1 },
-        serverData: { status: 4 },
+        localData: { status: "confirmed" },
+        serverData: { status: "delivered" },
       });
 
       offlineService.resolveConflict("conflict_2", "server");

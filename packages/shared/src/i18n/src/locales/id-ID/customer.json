@@ -547,6 +547,7 @@
       "served": "Hidangan telah diantar ke meja Anda",
       "paid": "Pesanan selesai dan telah dibayar",
       "cancelled": "Pesanan ini telah dibatalkan",
+      "refunded": "Dana pesanan ini telah dikembalikan",
       "unknown": "Status pesanan tidak diketahui"
     },
     "timeline": {
@@ -561,7 +562,9 @@
       "served": "Disajikan",
       "servedDesc": "Hidangan telah diantar ke meja Anda",
       "cancelled": "Pesanan Dibatalkan",
-      "cancelledDesc": "Pesanan ini telah dibatalkan"
+      "cancelledDesc": "Pesanan ini telah dibatalkan",
+      "refunded": "Pesanan Dikembalikan",
+      "refundedDesc": "Dana pesanan ini telah dikembalikan"
     },
     "status": {
       "pending": "Menunggu",
@@ -570,7 +573,8 @@
       "ready": "Siap",
       "served": "Disajikan",
       "cancelled": "Dibatalkan",
-      "paid": "Selesai"
+      "paid": "Selesai",
+      "refunded": "Dikembalikan"
     }
   },
   "orderHistory": {
@@ -586,6 +590,8 @@
     "statusServed": "Disajikan",
     "statusPaid": "Dibayar",
     "statusCancelled": "Dibatalkan",
+    "statusRefunded": "Dikembalikan",
+    "statusUnknown": "Tidak diketahui",
     "startDate": "Tanggal Mulai",
     "endDate": "Tanggal Akhir",
     "resetFilter": "Reset Filter",
@@ -783,6 +789,7 @@
     "orderDelivered": "Dikirim",
     "orderPaid": "Selesai",
     "orderCancelled": "Dibatalkan",
+    "orderRefunded": "Dikembalikan",
     "unknownStatus": "Status tidak diketahui",
     "noItems": "Tidak ada {item}"
   },

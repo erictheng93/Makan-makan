@@ -518,6 +518,7 @@ const statusOrder = [
   "ready",
   "delivered",
   "paid",
+  "refunded",
 ] as const;
 
 const estimatedTime = computed(() => {
@@ -575,11 +576,12 @@ const orderTimeline = computed(() => {
     },
   ];
 
-  if (order.value.status === "cancelled") {
+  if (order.value.status === "cancelled" || order.value.status === "refunded") {
+    const terminalStatus = order.value.status;
     timeline.push({
-      status: "cancelled",
-      title: t("orderTracking.timeline.cancelled"),
-      description: t("orderTracking.timeline.cancelledDesc"),
+      status: terminalStatus,
+      title: t(`orderTracking.timeline.${terminalStatus}`),
+      description: t(`orderTracking.timeline.${terminalStatus}Desc`),
       time: order.value.updatedAt,
       completed: true,
     });
@@ -597,6 +599,7 @@ const statusTitles = computed(
     delivered: t("orderTracking.status.served"),
     paid: t("orderTracking.status.paid"),
     cancelled: t("orderTracking.status.cancelled"),
+    refunded: t("orderTracking.status.refunded"),
   }),
 );
 
@@ -609,6 +612,7 @@ const statusDescriptions = computed(
     delivered: t("orderTracking.statusDesc.served"),
     paid: t("orderTracking.statusDesc.paid"),
     cancelled: t("orderTracking.statusDesc.cancelled"),
+    refunded: t("orderTracking.statusDesc.refunded"),
   }),
 );
 
@@ -621,6 +625,7 @@ const getStatusIcon = (status: OrderStatus) => {
     delivered: TruckIcon,
     paid: CheckCircleIcon,
     cancelled: XCircleIcon,
+    refunded: XCircleIcon,
   };
   return icons[status] || ClockIcon;
 };
@@ -634,6 +639,7 @@ const getStatusColor = (status: OrderStatus) => {
     delivered: { bg: "bg-ios-green/15", text: "text-ios-green" },
     paid: { bg: "bg-ios-green/15", text: "text-ios-green" },
     cancelled: { bg: "bg-ios-red/15", text: "text-ios-red" },
+    refunded: { bg: "bg-ios-red/15", text: "text-ios-red" },
   };
   return colors[status] || colors.pending;
 };
@@ -657,6 +663,7 @@ const getProgressPercentage = (status: OrderStatus) => {
     delivered: 100,
     paid: 100,
     cancelled: 0,
+    refunded: 100,
   };
   return percentages[status] ?? 0;
 };

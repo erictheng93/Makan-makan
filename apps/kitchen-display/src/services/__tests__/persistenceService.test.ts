@@ -881,7 +881,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
 
       // Should not throw
       expect(() => {
-        offlineService.queueAction("update_status", 1, { status: 3 });
+        offlineService.queueAction("update_status", 1, { status: "ready" });
       }).not.toThrow();
 
       expect(consoleSpy).toHaveBeenCalledWith(

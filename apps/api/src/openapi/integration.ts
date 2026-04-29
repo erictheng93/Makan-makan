@@ -4,6 +4,7 @@
  */
 
 import { swaggerUI } from "@hono/swagger-ui";
+import { ORDER_STATUSES } from "@makanmakan/shared-types";
 import { createOpenAPIApp, errorResponses } from "./config";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { Hono } from "hono";
@@ -274,16 +275,7 @@ export const MenuSchemas = {
 };
 
 // Define order-related schemas first to avoid circular reference
-const OrderStatus = z.enum([
-  "pending",
-  "confirmed",
-  "preparing",
-  "ready",
-  "delivered",
-  "paid",
-  "cancelled",
-  "refunded",
-]);
+const OrderStatus = z.enum(ORDER_STATUSES);
 const OrderItem = z.object({
   id: z.string(),
   menuItemId: z.string().uuid(),

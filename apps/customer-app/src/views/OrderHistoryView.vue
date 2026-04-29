@@ -391,6 +391,7 @@ const getStatusClass = (status: string) => {
     delivered: "bg-ios-green/15 text-ios-green",
     paid: "bg-ios-green/15 text-ios-green",
     cancelled: "bg-ios-red/15 text-ios-red",
+    refunded: "bg-ios-red/15 text-ios-red",
   };
   return classes[status] || "bg-ios-bg text-ios-secondary";
 };
@@ -405,6 +406,7 @@ const statusTexts = computed(
     delivered: t("orderHistory.statusServed"),
     paid: t("orderHistory.statusPaid"),
     cancelled: t("orderHistory.statusCancelled"),
+    refunded: t("orderHistory.statusRefunded"),
   }),
 );
 

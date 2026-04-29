@@ -213,8 +213,10 @@ class CustomerPushNotificationService {
       confirmed: "Your order has been confirmed and is being prepared",
       preparing: "Your order is now being prepared in the kitchen",
       ready: "Your order is ready for pickup!",
-      completed: "Your order has been completed. Thank you!",
+      delivered: "Your order has been delivered. Enjoy!",
+      paid: "Your order has been completed. Thank you!",
       cancelled: "Your order has been cancelled",
+      refunded: "Your order has been refunded",
     };
 
     const message =

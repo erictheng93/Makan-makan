@@ -547,6 +547,7 @@
       "served": "餐点已送到您的桌上",
       "paid": "订单已完成并结账",
       "cancelled": "此订单已被取消",
+      "refunded": "此订单已退款",
       "unknown": "订单状态未知"
     },
     "timeline": {
@@ -561,7 +562,9 @@
       "served": "已送达",
       "servedDesc": "餐点已送到您的桌上",
       "cancelled": "订单已取消",
-      "cancelledDesc": "此订单已被取消"
+      "cancelledDesc": "此订单已被取消",
+      "refunded": "订单已退款",
+      "refundedDesc": "此订单已退款"
     },
     "status": {
       "pending": "待确认",
@@ -570,7 +573,8 @@
       "ready": "准备完成",
       "served": "已送达",
       "cancelled": "已取消",
-      "paid": "已完成"
+      "paid": "已完成",
+      "refunded": "已退款"
     }
   },
   "orderHistory": {
@@ -586,6 +590,8 @@
     "statusServed": "已送达",
     "statusPaid": "已付款",
     "statusCancelled": "已取消",
+    "statusRefunded": "已退款",
+    "statusUnknown": "未知状态",
     "startDate": "开始日期",
     "endDate": "结束日期",
     "resetFilter": "重置筛选",
@@ -783,6 +789,7 @@
     "orderDelivered": "已送达",
     "orderPaid": "已完成",
     "orderCancelled": "已取消",
+    "orderRefunded": "已退款",
     "unknownStatus": "未知状态",
     "noItems": "无{item}"
   },

@@ -81,8 +81,8 @@ describe("Offline Mode Integration", () => {
   describe("Data Caching", () => {
     it("should cache orders when going offline", () => {
       const orders = [
-        { id: "1", orderNumber: "ORD-001", status: 1 },
-        { id: "2", orderNumber: "ORD-002", status: 2 },
+        { id: "1", orderNumber: "ORD-001", status: "confirmed" },
+        { id: "2", orderNumber: "ORD-002", status: "preparing" },
       ];
 
       localStorage.setItem("offline-orders", JSON.stringify(orders));
@@ -99,7 +99,7 @@ describe("Offline Mode Integration", () => {
         {
           type: "UPDATE_STATUS",
           orderId: "1",
-          status: 2,
+          status: "preparing",
           timestamp: Date.now(),
         },
         { type: "COMPLETE_ORDER", orderId: "2", timestamp: Date.now() },
@@ -118,8 +118,8 @@ describe("Offline Mode Integration", () => {
   describe("Sync on Reconnect", () => {
     it("should sync pending actions when back online", () => {
       const pendingActions = [
-        { type: "UPDATE_STATUS", orderId: "1", status: 2 },
-        { type: "UPDATE_STATUS", orderId: "2", status: 3 },
+        { type: "UPDATE_STATUS", orderId: "1", status: "preparing" },
+        { type: "UPDATE_STATUS", orderId: "2", status: "ready" },
       ];
 
       localStorage.setItem("pending-actions", JSON.stringify(pendingActions));
@@ -138,18 +138,20 @@ describe("Offline Mode Integration", () => {
     });
 
     it("should merge server data with cached data", () => {
-      const _cachedOrders = [{ id: "1", orderNumber: "ORD-001", status: 1 }];
+      const _cachedOrders = [
+        { id: "1", orderNumber: "ORD-001", status: "confirmed" },
+      ];
 
       const serverOrders = [
-        { id: "1", orderNumber: "ORD-001", status: 2 },
-        { id: "2", orderNumber: "ORD-002", status: 1 },
+        { id: "1", orderNumber: "ORD-001", status: "preparing" },
+        { id: "2", orderNumber: "ORD-002", status: "confirmed" },
       ];
 
       // Server data takes precedence
       const merged = serverOrders;
 
       expect(merged).toHaveLength(2);
-      expect(merged[0].status).toBe(2); // Updated from server
+      expect(merged[0].status).toBe("preparing"); // Updated from server
     });
   });
 
@@ -157,13 +159,13 @@ describe("Offline Mode Integration", () => {
     it("should resolve conflicts with server timestamp", () => {
       const localChange = {
         id: "1",
-        status: 2,
+        status: "preparing",
         updatedAt: Date.now() - 1000, // 1 second ago
       };
 
       const serverChange = {
         id: "1",
-        status: 3,
+        status: "ready",
         updatedAt: Date.now(), // Now
       };
 
@@ -173,7 +175,7 @@ describe("Offline Mode Integration", () => {
           ? serverChange
           : localChange;
 
-      expect(resolved.status).toBe(3);
+      expect(resolved.status).toBe("ready");
     });
   });
 
@@ -205,7 +207,7 @@ describe("Offline Mode Integration", () => {
   describe("Data Persistence", () => {
     it("should maintain order state offline", () => {
       const orderState = {
-        orders: [{ id: "1", status: 2 }],
+        orders: [{ id: "1", status: "preparing" }],
         lastSync: Date.now(),
       };
 

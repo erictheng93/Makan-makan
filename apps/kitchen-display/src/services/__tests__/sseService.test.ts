@@ -457,7 +457,7 @@ describe("KitchenSSEService", () => {
       const orderData = {
         type: "ORDER_STATUS_UPDATE",
         orderId: 7,
-        payload: { status: 2 },
+        payload: { status: "preparing" },
         timestamp: "2026-01-01T00:01:00Z",
         restaurantId: 42,
       };

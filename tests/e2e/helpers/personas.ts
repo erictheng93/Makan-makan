@@ -203,7 +203,31 @@ export const MENU_ITEMS = [
   },
 ];
 
+const LEGACY_NUMERIC_ORDER_STATUS: Record<number, string> = {
+  0: "pending",
+  1: "confirmed",
+  2: "preparing",
+  3: "ready",
+  4: "delivered",
+  5: "paid",
+  6: "cancelled",
+  7: "refunded",
+};
+
+function normalizeOrderStatus(status: unknown): unknown {
+  return typeof status === "number"
+    ? (LEGACY_NUMERIC_ORDER_STATUS[status] ?? status)
+    : status;
+}
+
 export function createMockOrder(overrides: Record<string, any> = {}) {
+  const normalizedOverrides = { ...overrides };
+  if ("status" in normalizedOverrides) {
+    normalizedOverrides.status = normalizeOrderStatus(
+      normalizedOverrides.status,
+    );
+  }
+
   return {
     id: "order-e2e-001",
     orderNumber: "ORD-20260330-001",
@@ -238,6 +262,6 @@ export function createMockOrder(overrides: Record<string, any> = {}) {
     customerPhone: "0912345678",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    ...overrides,
+    ...normalizedOverrides,
   };
 }

@@ -3,7 +3,14 @@
 **Date:** 2026-04-09
 **Last updated:** 2026-04-10
 **Related issue:** #9
-**Status:** Complete — awaiting Phase 0.5 decision
+**Status:** Historical audit — implementation mostly complete as of 2026-04-29
+
+> Current note (2026-04-29): the major migration described here has already
+> landed. `@makanmakan/shared-types` now exports `OrderStatus` as a canonical
+> string union derived from `ORDER_STATUSES`, API validation/OpenAPI contracts
+> use the same runtime tuple, and DB/query/status-transition code is string
+> based. Treat the numeric-enum sections below as historical context, not as a
+> current migration backlog.
 
 ## Summary
 

@@ -5,6 +5,7 @@
  * Customer app and admin dashboard depend on these shapes.
  */
 
+import { ORDER_STATUSES } from "@makanmakan/shared-types";
 import { z } from "zod";
 import {
   successEnvelope,
@@ -17,16 +18,7 @@ import {
 // Enums
 // ---------------------------------------------------------------------------
 
-export const OrderStatusEnum = z.enum([
-  "pending",
-  "confirmed",
-  "preparing",
-  "ready",
-  "delivered",
-  "paid",
-  "cancelled",
-  "refunded",
-]);
+export const OrderStatusEnum = z.enum(ORDER_STATUSES);
 
 export const PaymentStatusEnum = z.enum(["pending", "paid", "failed"]);
 

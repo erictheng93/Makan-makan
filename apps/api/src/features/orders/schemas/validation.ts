@@ -3,7 +3,9 @@
  * Zod validation schemas for all order endpoints and operations
  */
 
+import { ORDER_STATUSES } from "@makanmakan/shared-types";
 import { z } from "zod";
+import { ORDER_STATUS_TRANSITIONS } from "../types";
 
 // Common validation patterns
 const idSchema = z.number().int().positive();
@@ -27,17 +29,8 @@ const paginationSchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
 });
 
-// Order status enums matching the shared types
-const orderStatusSchema = z.enum([
-  "pending",
-  "confirmed",
-  "preparing",
-  "ready",
-  "delivered",
-  "paid",
-  "cancelled",
-  "refunded",
-]);
+// Order status enum matching the shared-types canonical runtime tuple.
+const orderStatusSchema = z.enum(ORDER_STATUSES);
 
 const orderPaymentStatusSchema = z.enum(["pending", "paid", "failed"]);
 
@@ -486,9 +479,6 @@ export const advancedOrderQuerySchema = orderFilterSchema.extend({
     .transform((s) => s.split(","))
     .optional(), // Exclude specific fields
 });
-
-// Validation helpers and transformers
-import { ORDER_STATUS_TRANSITIONS } from "../types";
 
 export const validateOrderStatusTransition = (
   currentStatus: string,

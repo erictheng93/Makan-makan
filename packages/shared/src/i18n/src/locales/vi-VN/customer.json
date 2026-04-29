@@ -547,6 +547,7 @@
       "served": "Món ăn đã được mang đến bàn của bạn",
       "paid": "Đơn hàng đã hoàn tất và thanh toán",
       "cancelled": "Đơn hàng này đã bị hủy",
+      "refunded": "Đơn hàng này đã được hoàn tiền",
       "unknown": "Trạng thái đơn hàng không xác định"
     },
     "timeline": {
@@ -561,7 +562,9 @@
       "served": "Đã phục vụ",
       "servedDesc": "Món ăn đã được mang đến bàn của bạn",
       "cancelled": "Đơn hàng đã hủy",
-      "cancelledDesc": "Đơn hàng này đã bị hủy"
+      "cancelledDesc": "Đơn hàng này đã bị hủy",
+      "refunded": "Đơn hàng đã hoàn tiền",
+      "refundedDesc": "Đơn hàng này đã được hoàn tiền"
     },
     "status": {
       "pending": "Đang chờ",
@@ -570,7 +573,8 @@
       "ready": "Sẵn sàng",
       "served": "Đã phục vụ",
       "cancelled": "Đã hủy",
-      "paid": "Đã hoàn thành"
+      "paid": "Đã hoàn thành",
+      "refunded": "Đã hoàn tiền"
     }
   },
   "orderHistory": {
@@ -586,6 +590,8 @@
     "statusServed": "Đã phục vụ",
     "statusPaid": "Đã thanh toán",
     "statusCancelled": "Đã hủy",
+    "statusRefunded": "Đã hoàn tiền",
+    "statusUnknown": "Không xác định",
     "startDate": "Ngày bắt đầu",
     "endDate": "Ngày kết thúc",
     "resetFilter": "Đặt lại bộ lọc",
@@ -783,6 +789,7 @@
     "orderDelivered": "Đã giao",
     "orderPaid": "Hoàn thành",
     "orderCancelled": "Đã hủy",
+    "orderRefunded": "Đã hoàn tiền",
     "unknownStatus": "Trạng thái không xác định",
     "noItems": "Không có {item}"
   },

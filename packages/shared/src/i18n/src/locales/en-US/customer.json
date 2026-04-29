@@ -547,6 +547,7 @@
       "served": "The meal has been delivered to your table",
       "paid": "Order completed and paid",
       "cancelled": "This order has been cancelled",
+      "refunded": "This order has been refunded",
       "unknown": "Order status unknown"
     },
     "timeline": {
@@ -561,7 +562,9 @@
       "served": "Served",
       "servedDesc": "The meal has been delivered to your table",
       "cancelled": "Order Cancelled",
-      "cancelledDesc": "This order has been cancelled"
+      "cancelledDesc": "This order has been cancelled",
+      "refunded": "Order Refunded",
+      "refundedDesc": "This order has been refunded"
     },
     "status": {
       "pending": "Pending",
@@ -570,7 +573,8 @@
       "ready": "Ready",
       "served": "Served",
       "cancelled": "Cancelled",
-      "paid": "Completed"
+      "paid": "Completed",
+      "refunded": "Refunded"
     }
   },
   "orderHistory": {
@@ -586,6 +590,8 @@
     "statusServed": "Served",
     "statusPaid": "Paid",
     "statusCancelled": "Cancelled",
+    "statusRefunded": "Refunded",
+    "statusUnknown": "Unknown",
     "startDate": "Start Date",
     "endDate": "End Date",
     "resetFilter": "Reset Filter",
@@ -783,6 +789,7 @@
     "orderDelivered": "Delivered",
     "orderPaid": "Completed",
     "orderCancelled": "Cancelled",
+    "orderRefunded": "Refunded",
     "unknownStatus": "Unknown status",
     "noItems": "No {item}"
   },

@@ -4,6 +4,10 @@
 >
 > **Prerequisites before execution:** Plan must be reviewed via `superpowers:plan-eng-review` and `superpowers:plan-ceo-review` (per Issue #9 AC). Phase 0.5 is a hard gate requiring explicit user decision before Phase 1+ can proceed.
 
+> Current note (2026-04-29): this plan is retained for history. The major
+> numeric-enum to string-union migration has been implemented; new work should
+> focus on small consistency cleanups rather than re-running these phases.
+
 **Goal:** Unify the three divergent `OrderStatus` type definitions across `shared-types`, `database`, and `realtime` into a single canonical string-union type, eliminate the bidirectional numeric↔string mapping layer in `OrdersService`, and roll the change out across 11 Cloudflare deployment targets without breaking open browser tabs, hibernated Durable Object sessions, or cached kitchen-display data.
 
 **Architecture:** The DB schema (`ORDER_STATUS` in `packages/database/src/schema/orders.ts`) is already the canonical source of truth — 8 string values (`pending/confirmed/preparing/ready/delivered/paid/cancelled/refunded`). The numeric enum in `packages/shared-types/src/order.ts` and the divergent string enum in `apps/realtime/src/advanced-realtime-session.ts` are both wrong and must be migrated to match the DB. The migration is staged: API (dual-emit) → realtime (with DO state versioning) → frontends (with bundle version check + forced reload). Each stage is independently rollback-able.

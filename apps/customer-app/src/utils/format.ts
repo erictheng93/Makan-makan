@@ -277,6 +277,7 @@ export const formatOrderStatus = (status: string): string => {
     delivered: t("format.orderDelivered"),
     paid: t("format.orderPaid"),
     cancelled: t("format.orderCancelled"),
+    refunded: t("format.orderRefunded"),
   };
 
   return statuses[status] || t("format.unknownStatus");
