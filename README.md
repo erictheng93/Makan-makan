@@ -191,7 +191,7 @@ makanmakan/
 
 ### Production-Ready Systems
 
-- Core API (34 feature modules, 29+ endpoint groups)
+- Core API (41 feature modules, 29+ endpoint groups)
 - JWT multi-role authentication with bcrypt
 - QR code ordering (table/seat/shop modes)
 - Employee scheduling & leave management

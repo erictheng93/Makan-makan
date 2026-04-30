@@ -6,11 +6,12 @@
 makanmakan/
 ├── apps/                          # 應用程式
 │   ├── api/                       # 核心 API (Cloudflare Workers + Hono)
-│   │   └── src/features/          # 功能模組 (34 modules)
+│   │   └── src/features/          # 功能模組 (41 modules)
 │   │       ├── authentication/    # 認證 (login, register, sessions, JWT)
 │   │       ├── users/             # 員工管理
 │   │       ├── customers/         # 顧客資料
 │   │       ├── verification/      # Email/手機驗證
+│   │       ├── admin-settings/    # 管理員設定
 │   │       ├── restaurants/       # 餐廳 CRUD + 店鋪 QR
 │   │       ├── menu/              # 菜單管理 + 分類
 │   │       ├── orders/            # 訂單生命週期
@@ -23,20 +24,26 @@ makanmakan/
 │   │       ├── queue/             # 排隊系統 (legacy)
 │   │       ├── waiting-list/      # 候位系統 (modular)
 │   │       ├── pos/               # POS 收銀 (收銀機/班次/現金/收據)
+│   │       ├── payments/          # 支付、退款與分帳
 │   │       ├── kitchen/           # 廚房顯示 (SSE)
 │   │       ├── coupons/           # 優惠券
 │   │       ├── partnerships/      # 合作夥伴 + 會員
 │   │       ├── ingredients/       # 食材 + 食譜管理
 │   │       ├── forecast/          # 銷售/食材預測
 │   │       ├── discovery/         # 菜餚/餐廳搜尋
+│   │       ├── feedback/          # 顧客回饋
 │   │       ├── analytics/         # 儀表板分析
 │   │       ├── ai-analytics/      # AI 分析報告
 │   │       ├── scheduling/        # 排班 + 打卡 + 換班
 │   │       ├── leaves/            # 請假管理
+│   │       ├── manager/           # 主管委派與管理操作
 │   │       ├── integrations/      # 第三方平台 (Uber Eats, Foodpanda)
 │   │       ├── realtime/          # WebSocket Token 管理
 │   │       ├── sse/               # SSE 即時事件
 │   │       ├── notifications/     # 通知發送
+│   │       ├── push/              # 推播通知
+│   │       ├── subscriptions/     # 訂閱方案
+│   │       ├── audit/             # 稽核日誌
 │   │       ├── system/            # 系統健康 + 錯誤報告
 │   │       ├── monitoring/        # 監控 + 警報
 │   │       ├── backup/            # 備份管理
@@ -150,7 +157,7 @@ pnpm deploy:prod          # 部署到 production
 
 ---
 
-**最後更新**: 2026-03-28
-**功能模組**: 34
+**最後更新**: 2026-04-30
+**功能模組**: 41
 **API 端點**: 300+
 **前端應用**: 3 (customer, admin, kitchen)
