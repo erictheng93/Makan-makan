@@ -316,7 +316,8 @@ export interface LeaveRequest {
 export const leavesService = {
   async getLeaveTypes(restaurantId: string): Promise<LeaveType[]> {
     const response = await apiClient.get(`/leaves/${restaurantId}/types`);
-    return (response.data as any).data || response.data;
+    const body = response.data as { data?: LeaveType[] } | LeaveType[];
+    return Array.isArray(body) ? body : body.data ?? [];
   },
 
   async getBalances(params: {
@@ -325,7 +326,8 @@ export const leavesService = {
     year?: number;
   }): Promise<LeaveBalance[]> {
     const response = await apiClient.get("/leaves/balances", params);
-    return (response.data as any).data || response.data;
+    const body = response.data as { data?: LeaveBalance[] } | LeaveBalance[];
+    return Array.isArray(body) ? body : body.data ?? [];
   },
 
   async getRequests(
@@ -341,7 +343,8 @@ export const leavesService = {
       `/leaves/${restaurantId}/requests`,
       params,
     );
-    return (response.data as any).data || response.data;
+    const body = response.data as { data?: LeaveRequest[] } | LeaveRequest[];
+    return Array.isArray(body) ? body : body.data ?? [];
   },
 
   async createRequest(
@@ -358,7 +361,8 @@ export const leavesService = {
       `/leaves/${restaurantId}/requests`,
       data,
     );
-    return (response.data as any).data || response.data;
+    const body = response.data as { data?: LeaveRequest } | LeaveRequest;
+    return "data" in body && body.data ? body.data : body;
   },
 
   async approveRequest(requestId: number): Promise<void> {

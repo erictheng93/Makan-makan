@@ -120,7 +120,7 @@ Tests:       95 failed | 616 passed (711 total)
 
 **兼容層模式**:
 
-- 使用 `as any` 繞過 TypeScript 檢查
+- 使用寬鬆 `any` 斷言繞過 TypeScript 檢查
 - 增加了一層間接性
 - 如果實際 API 更改，需要更新兩處
 

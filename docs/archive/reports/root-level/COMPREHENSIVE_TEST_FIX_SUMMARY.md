@@ -265,7 +265,7 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
   // 支援兩種 payload 格式
   const newOrder: KitchenOrder =
     event.payload.order || // 格式 1: { payload: { order: {...} } }
-    (event.payload as any); // 格式 2: { payload: {...} }
+    (event.payload as KitchenOrder); // 格式 2: { payload: {...} }
 
   // 驗證
   if (!newOrder || !newOrder.id) {

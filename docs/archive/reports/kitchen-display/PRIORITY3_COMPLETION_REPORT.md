@@ -55,13 +55,19 @@
 
 ```typescript
 // Add compatibility methods for tests
-(performanceService as any).stop = () => performanceService.stopCollection();
-(performanceService as any).start = () => performanceService.startCollection();
-(performanceService as any).clearMetrics = () => {
+const performanceCompat = performanceService as unknown as {
+  stop: () => void;
+  start: () => void;
+  clearMetrics: () => void;
+  getMetrics: () => typeof performanceService.metrics.value;
+};
+performanceCompat.stop = () => performanceService.stopCollection();
+performanceCompat.start = () => performanceService.startCollection();
+performanceCompat.clearMetrics = () => {
   performanceService.metrics.value = [];
   performanceService.alerts.value = [];
 };
-(performanceService as any).getMetrics = () => performanceService.metrics.value;
+performanceCompat.getMetrics = () => performanceService.metrics.value;
 Object.defineProperty(performanceService, "isEnabled", {
   get: () => performanceService.config.value.enabled,
 });
@@ -93,10 +99,14 @@ Object.defineProperty(performanceService, "isMonitoring", {
 
 ```typescript
 // Add compatibility methods for audioService tests
-(audioService as any).initialize = async () => {
+const audioCompat = audioService as unknown as {
+  initialize: () => Promise<void>;
+  cleanup: () => void;
+};
+audioCompat.initialize = async () => {
   return Promise.resolve();
 };
-(audioService as any).cleanup = () => {
+audioCompat.cleanup = () => {
   audioService.stopAll();
 };
 Object.defineProperty(audioService, "isEnabled", {
@@ -249,7 +259,7 @@ store.handleSSEEvent({
 
 **缺點**:
 
-- 使用 `as any` 繞過類型檢查
+- 使用寬鬆 `any` 斷言繞過類型檢查
 - 增加間接層
 - 技術債務
 

@@ -394,7 +394,7 @@ class ApiService {
           headers: { "X-Refresh-Token": refreshToken },
           // Skip the 401 interceptor for the refresh call itself
           _retry: true,
-        } as any);
+        } satisfies AxiosRequestConfig & { _retry?: boolean });
 
         const newToken = response.data?.data?.token;
         const newRefreshToken = response.data?.data?.refreshToken;
@@ -1060,7 +1060,7 @@ async function handleTokenRefresh(): Promise<string | null> {
       const response = await api.post("/auth/refresh", {}, {
         headers: { "X-Refresh-Token": rt },
         _retry: true,
-      } as any);
+      } satisfies AxiosRequestConfig & { _retry?: boolean });
 
       const newToken = response.data?.data?.token;
       const newRefreshToken = response.data?.data?.refreshToken;

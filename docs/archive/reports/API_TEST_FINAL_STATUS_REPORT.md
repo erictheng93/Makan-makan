@@ -94,7 +94,7 @@ export const mockEnv = {
   DB: mockDB,
   CACHE_KV: mockKV,
   TOKEN_BLACKLIST: mockKV,
-  IMAGES_BUCKET: {} as any,
+  IMAGES_BUCKET: {} as unknown as R2Bucket,
   // ... 所有必需屬性
 };
 ```

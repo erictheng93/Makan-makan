@@ -450,7 +450,10 @@ describe("ForecastService", () => {
   beforeEach(() => {
     mockDb = createMockDb();
     mockKV = createMockKV();
-    service = new ForecastService(mockDb as any, mockKV as any);
+    service = new ForecastService(
+      mockDb as unknown as ConstructorParameters<typeof ForecastService>[0],
+      mockKV as unknown as ConstructorParameters<typeof ForecastService>[1],
+    );
   });
 
   describe("generateForecast", () => {

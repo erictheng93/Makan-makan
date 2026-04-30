@@ -872,7 +872,7 @@ Successfully resolved all remaining TypeScript compilation errors across the API
    - Resolved `packages/database/src/index.ts` and `packages/database/src/services/base.ts`
 
 2. **QRCode Service Method Signatures (6 errors)**:
-   - Corrected property access patterns from `(result as any).success` to direct property access
+   - Corrected property access patterns from unsafe result casts to direct property access
    - Fixed method naming from `getAllTemplates()` to `getActiveTemplates()`
    - Updated service response structures to match actual implementation
    - Resolved in `apps/api/src/routes/qrcode.ts`

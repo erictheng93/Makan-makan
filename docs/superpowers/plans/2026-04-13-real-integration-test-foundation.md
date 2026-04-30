@@ -835,10 +835,19 @@ import { issueTestJwt, buildAuthHelper } from "../issue-test-jwt";
 
 const TEST_SECRET = "test-jwt-secret-do-not-use-in-prod";
 
+type TestJwtClaims = {
+  role: number;
+  id: number;
+  sub?: string;
+  restaurantId?: string;
+  exp: number;
+  iat: number;
+};
+
 describe("issueTestJwt", () => {
   it("issues a token with the expected role and default claims", async () => {
     const token = issueTestJwt(5, { userId: 42 });
-    const decoded = (await verify(token, TEST_SECRET)) as any;
+    const decoded = (await verify(token, TEST_SECRET)) as TestJwtClaims;
     expect(decoded.role).toBe(5);
     expect(decoded.id).toBe(42);
     expect(decoded.sub).toBe("42");
@@ -852,7 +861,7 @@ describe("issueTestJwt", () => {
       restaurantId: "r-special",
       expiresInSeconds: 60,
     });
-    const decoded = (await verify(token, TEST_SECRET)) as any;
+    const decoded = (await verify(token, TEST_SECRET)) as TestJwtClaims;
     expect(decoded.restaurantId).toBe("r-special");
     expect(decoded.exp - decoded.iat).toBe(60);
   });
@@ -862,19 +871,19 @@ describe("buildAuthHelper", () => {
   const helper = buildAuthHelper();
 
   it("adminToken produces a role=0 token", async () => {
-    const decoded = (await verify(helper.adminToken(), TEST_SECRET)) as any;
+    const decoded = (await verify(helper.adminToken(), TEST_SECRET)) as TestJwtClaims;
     expect(decoded.role).toBe(0);
   });
 
   it("ownerToken produces a role=1 token with userId and restaurantId", async () => {
-    const decoded = (await verify(helper.ownerToken(9, "r-1"), TEST_SECRET)) as any;
+    const decoded = (await verify(helper.ownerToken(9, "r-1"), TEST_SECRET)) as TestJwtClaims;
     expect(decoded.role).toBe(1);
     expect(decoded.id).toBe(9);
     expect(decoded.restaurantId).toBe("r-1");
   });
 
   it("customerToken produces a role=5 token", async () => {
-    const decoded = (await verify(helper.customerToken(100), TEST_SECRET)) as any;
+    const decoded = (await verify(helper.customerToken(100), TEST_SECRET)) as TestJwtClaims;
     expect(decoded.role).toBe(5);
     expect(decoded.id).toBe(100);
   });
@@ -1017,15 +1026,24 @@ export function createDurableObjectStub(): DurableObjectNamespace {
   const state = new Map<string, Map<string, unknown>>();
 
   return {
-    idFromName: (name: string) => ({ toString: () => name, name }) as any,
-    idFromString: (id: string) => ({ toString: () => id }) as any,
-    newUniqueId: () => ({ toString: () => crypto.randomUUID() }) as any,
+    idFromName: (name: string) =>
+      ({ toString: () => name, name }) as unknown as ReturnType<
+        DurableObjectNamespace["idFromName"]
+      >,
+    idFromString: (id: string) =>
+      ({ toString: () => id }) as unknown as ReturnType<
+        DurableObjectNamespace["idFromString"]
+      >,
+    newUniqueId: () =>
+      ({ toString: () => crypto.randomUUID() }) as unknown as ReturnType<
+        DurableObjectNamespace["newUniqueId"]
+      >,
     get: (id: any) => {
       const idStr = id.toString();
       if (!state.has(idStr)) state.set(idStr, new Map());
       return {
         fetch: async () => new Response("{}", { status: 200 }),
-      } as any;
+      } as unknown as ReturnType<DurableObjectNamespace["get"]>;
     },
   } as DurableObjectNamespace;
 }
@@ -1153,9 +1171,9 @@ function buildTestEnv(testDb: TestDatabase): Env {
     RATE_LIMIT_KV: testDb.bindings.RATE_LIMIT_KV,
     IMAGES_BUCKET: testDb.bindings.IMAGES_BUCKET,
     BACKUP_STORAGE: testDb.bindings.BACKUP_STORAGE,
-    JOB_QUEUE: { send: async () => {} } as any,
-    PRELOAD_QUEUE: { send: async () => {} } as any,
-    REVALIDATION_QUEUE: { send: async () => {} } as any,
+    JOB_QUEUE: { send: async () => {} } as unknown as Env["JOB_QUEUE"],
+    PRELOAD_QUEUE: { send: async () => {} } as unknown as Env["PRELOAD_QUEUE"],
+    REVALIDATION_QUEUE: { send: async () => {} } as unknown as Env["REVALIDATION_QUEUE"],
     REALTIME_ORDERS: createDurableObjectStub(),
     REALTIME_SESSION: createDurableObjectStub(),
     ANALYTICS_ENGINE: { writeDataPoint: () => {} },
@@ -1289,7 +1307,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
       const data = restaurantFactory.build({ overrides });
       const [row] = await testDb.drizzle
         .insert(restaurants)
-        .values(data as any)
+        .values(data)
         .returning();
       return { id: row.id };
     },
@@ -1300,7 +1318,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
       });
       const [row] = await testDb.drizzle
         .insert(menuItems)
-        .values(data as any)
+        .values(data)
         .returning();
       return { id: row.id as number };
     },
@@ -1311,7 +1329,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
       });
       const [row] = await testDb.drizzle
         .insert(orders)
-        .values(data as any)
+        .values(data)
         .returning();
       return { id: row.id as number };
     },
@@ -1418,7 +1436,9 @@ export async function startTestApiServer(
   });
 
   // @hono/node-server's serve returns a Node http.Server
-  const address = (server as any).address() as AddressInfo;
+  const address = (
+    server as unknown as { address(): AddressInfo }
+  ).address();
   const url = `http://127.0.0.1:${address.port}`;
 
   return {
@@ -1428,7 +1448,11 @@ export async function startTestApiServer(
     seed: buildSeedHelpers(testApp.testDb),
     stop: async () => {
       await new Promise<void>((resolve, reject) => {
-        (server as any).close((err: Error | null) => {
+        (
+          server as unknown as {
+            close(callback: (err: Error | null) => void): void;
+          }
+        ).close((err: Error | null) => {
           if (err) reject(err);
           else resolve();
         });
@@ -1692,7 +1716,7 @@ describe("Menu API — real integration", () => {
         restaurantId: restaurant.id,
         name: "Mains",
         sortOrder: 1,
-      } as any)
+      })
       .returning();
 
     await seed.menuItem(restaurant.id, {

@@ -25,13 +25,19 @@
 
 ```typescript
 // Add compatibility methods for tests
-(performanceService as any).stop = () => performanceService.stopCollection();
-(performanceService as any).start = () => performanceService.startCollection();
-(performanceService as any).clearMetrics = () => {
+const performanceCompat = performanceService as unknown as {
+  stop: () => void;
+  start: () => void;
+  clearMetrics: () => void;
+  getMetrics: () => typeof performanceService.metrics.value;
+};
+performanceCompat.stop = () => performanceService.stopCollection();
+performanceCompat.start = () => performanceService.startCollection();
+performanceCompat.clearMetrics = () => {
   performanceService.metrics.value = [];
   performanceService.alerts.value = [];
 };
-(performanceService as any).getMetrics = () => performanceService.metrics.value;
+performanceCompat.getMetrics = () => performanceService.metrics.value;
 Object.defineProperty(performanceService, "isEnabled", {
   get: () => performanceService.config.value.enabled,
 });
@@ -64,11 +70,15 @@ Object.defineProperty(performanceService, "isMonitoring", {
 
 ```typescript
 // Add compatibility methods for audioService tests
-(audioService as any).initialize = async () => {
+const audioCompat = audioService as unknown as {
+  initialize: () => Promise<void>;
+  cleanup: () => void;
+};
+audioCompat.initialize = async () => {
   // Service is already initialized on import
   return Promise.resolve();
 };
-(audioService as any).cleanup = () => {
+audioCompat.cleanup = () => {
   audioService.stopAll();
 };
 Object.defineProperty(audioService, "isEnabled", {
@@ -115,7 +125,7 @@ Object.defineProperty(audioService, "sounds", {
 
 ### 缺點
 
-- ⚠️ 使用 `as any` 繞過 TypeScript 檢查
+- ⚠️ 使用寬鬆 `any` 斷言繞過 TypeScript 檢查
 - ⚠️ 增加了一層間接性
 - ⚠️ 如果實際 API 更改，需要更新兩個地方
 
@@ -255,7 +265,10 @@ mockKitchenApi.getOrders.mockResolvedValue({
 
 ```typescript
 // 方法映射
-(service as any).newMethod = () => service.actualMethod();
+const serviceCompat = service as unknown as {
+  newMethod: typeof service.actualMethod;
+};
+serviceCompat.newMethod = () => service.actualMethod();
 
 // Getter 映射
 Object.defineProperty(service, "newProperty", {
@@ -281,7 +294,7 @@ Object.defineProperty(service, "newProperty", {
 **最佳實踐**:
 對於測試修復，優先使用兼容層。對於新功能，應該設計統一的 API。
 
-### 3. 何時使用 `as any`
+### 3. 何時使用寬鬆型別斷言
 
 僅在測試適配層中使用：
 

@@ -532,7 +532,10 @@ describe("DiscoveryService", () => {
   beforeEach(() => {
     mockDb = createMockDb();
     mockKV = createMockKV();
-    service = new DiscoveryService(mockDb as any, mockKV as any);
+    service = new DiscoveryService(
+      mockDb as unknown as ConstructorParameters<typeof DiscoveryService>[0],
+      mockKV as unknown as ConstructorParameters<typeof DiscoveryService>[1],
+    );
   });
 
   describe("searchDishes", () => {

@@ -1135,10 +1135,12 @@ describe("AdvancedRealtimeSession DO state migration", () => {
     await storage.put("order:o1", { currentState: "serving", id: "o1" });
 
     const session = new AdvancedRealtimeSession(
-      { storage } as any,
+      { storage } as unknown as DurableObjectState,
       {} as Env,
     );
-    await (session as any).loadPersistedState();
+    await (
+      session as unknown as { loadPersistedState(): Promise<void> }
+    ).loadPersistedState();
 
     const migrated = await storage.get("order:o1");
     expect(migrated).toMatchObject({ currentState: "delivered" });
@@ -1393,7 +1395,8 @@ Understand what the validator is protecting against and what happens when it ret
 ```typescript
 // Before:
 // isValid(order: unknown): boolean {
-//   return typeof (order as any).status === "number";
+//   const status = (order as { status?: unknown }).status;
+//   return typeof status === "number";
 // }
 
 // After: validate against the canonical string union

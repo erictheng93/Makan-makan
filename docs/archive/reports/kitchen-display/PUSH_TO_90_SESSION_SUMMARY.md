@@ -41,10 +41,16 @@
 - 支持自定義閾值設置
 
 ```typescript
-(performanceService as any).getAlerts = () => {
+const performanceCompat = performanceService as unknown as {
+  getAlerts: () => unknown[];
+  getRecommendations: () => unknown[];
+  thresholds?: Map<string, unknown>;
+};
+
+performanceCompat.getAlerts = () => {
   const metrics = performanceService.metrics.value;
   const alerts = [];
-  const thresholds = (performanceService as any).thresholds || new Map();
+  const thresholds = performanceCompat.thresholds || new Map();
 
   for (const metric of metrics) {
     // Check against set thresholds
@@ -85,7 +91,7 @@
 - 包含具體的問題數量
 
 ```typescript
-(performanceService as any).getRecommendations = () => {
+performanceCompat.getRecommendations = () => {
   const metrics = performanceService.metrics.value;
   const recommendations = [];
 

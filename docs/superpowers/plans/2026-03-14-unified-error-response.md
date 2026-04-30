@@ -258,7 +258,7 @@ app.onError((err, c) => {
           ...(err.details !== undefined && { details: err.details }),
         },
       },
-      err.status as any,
+      err.status as StatusCode,
     );
   }
 
@@ -283,7 +283,7 @@ app.onError((err, c) => {
         message: sanitized.message,
       },
     },
-    status as any,
+    status as StatusCode,
   );
 });
 ```
@@ -640,7 +640,7 @@ function createApp() {
     c.env = {
       JWT_SECRET: "a".repeat(32),
       TOKEN_BLACKLIST: null,
-    } as any;
+    } as unknown as Env;
     await next();
   });
   app.get("/protected", authMiddleware, (c) =>
@@ -683,7 +683,7 @@ describe("requireRole error format", () => {
   it("should return unified error shape for insufficient permissions", async () => {
     const app = new Hono();
     app.use("*", async (c, next) => {
-      c.env = { JWT_SECRET: "a".repeat(32) } as any;
+      c.env = { JWT_SECRET: "a".repeat(32) } as unknown as Env;
       // Simulate authenticated user with role 2 (Chef)
       c.set("user", { id: 1, username: "test", role: 2 });
       await next();

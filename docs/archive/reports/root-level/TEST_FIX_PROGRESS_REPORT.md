@@ -132,8 +132,8 @@ const createStorageMock = () => {
   };
 };
 
-global.localStorage = createStorageMock() as any;
-global.sessionStorage = createStorageMock() as any;
+global.localStorage = createStorageMock() as unknown as Storage;
+global.sessionStorage = createStorageMock() as unknown as Storage;
 ```
 
 **影響**: 修復了離線同步測試中的 ~5-7 個 Storage 相關失敗

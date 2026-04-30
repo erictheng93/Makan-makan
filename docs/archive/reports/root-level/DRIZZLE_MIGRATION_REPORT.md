@@ -346,7 +346,7 @@ const membersResult = await this.db
 const result = (await this.d1
   .prepare("SELECT * FROM users WHERE id = ?")
   .bind(userId)
-  .first()) as any; // ❌ 类型不安全
+  .first()) as UserRow | null; // ❌ 宽鬆类型断言不安全
 ```
 
 **迁移后**:

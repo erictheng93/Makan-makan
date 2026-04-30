@@ -287,7 +287,7 @@ npx wrangler kv:key list --binding CACHE_KV
    - 解決 `packages/database/src/index.ts` 和 `packages/database/src/services/base.ts`
 
 2. **QRCode 服務方法簽名（6 個錯誤）**:
-   - 修正從 `(result as any).success` 到直接屬性存取的屬性存取模式
+   - 修正從不安全的 result 轉型到直接屬性存取的屬性存取模式
    - 將方法名稱從 `getAllTemplates()` 修正為 `getActiveTemplates()`
    - 更新服務回應結構以匹配實際實作
    - 在 `apps/api/src/routes/qrcode.ts` 中解決

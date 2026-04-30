@@ -430,7 +430,7 @@ expect(retrieved).toEqual(filter); // ✅ 通過！
 + const browserAPIs = setupAllBrowserAPIs()
 
   beforeEach(() => {
--   (window.localStorage.getItem as any).mockReturnValue(null)
+-   (window.localStorage.getItem as Mock).mockReturnValue(null)
 +   window.localStorage.clear()
   })
 ```

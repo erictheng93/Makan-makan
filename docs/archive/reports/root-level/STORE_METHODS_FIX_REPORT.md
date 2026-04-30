@@ -176,7 +176,7 @@ const handleNewOrder = (event: KitchenSSEEvent) => {
   // 支援兩種 payload 格式
   const newOrder: KitchenOrder =
     event.payload.order || // 格式 1: payload.order
-    (event.payload as any); // 格式 2: payload 本身就是 order
+    (event.payload as KitchenOrder); // 格式 2: payload 本身就是 order
 
   // 驗證是否為有效訂單物件
   if (!newOrder || !newOrder.id) {

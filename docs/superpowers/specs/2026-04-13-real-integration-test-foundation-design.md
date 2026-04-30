@@ -349,9 +349,9 @@ function buildTestEnv(testDb: TestDatabase): Env {
     RATE_LIMIT_KV: testDb.bindings.RATE_LIMIT_KV,
     IMAGES_BUCKET: testDb.bindings.IMAGES_BUCKET,
     BACKUP_STORAGE: testDb.bindings.BACKUP_STORAGE,
-    JOB_QUEUE: { send: async () => {} } as any,
-    PRELOAD_QUEUE: { send: async () => {} } as any,
-    REVALIDATION_QUEUE: { send: async () => {} } as any,
+    JOB_QUEUE: { send: async () => {} } as unknown as Env["JOB_QUEUE"],
+    PRELOAD_QUEUE: { send: async () => {} } as unknown as Env["PRELOAD_QUEUE"],
+    REVALIDATION_QUEUE: { send: async () => {} } as unknown as Env["REVALIDATION_QUEUE"],
     REALTIME_ORDERS: createDurableObjectStub(),
     REALTIME_SESSION: createDurableObjectStub(),
     ANALYTICS_ENGINE: { writeDataPoint: () => {} },
@@ -365,15 +365,24 @@ function buildTestEnv(testDb: TestDatabase): Env {
 function createDurableObjectStub(): DurableObjectNamespace {
   const state = new Map<string, Map<string, unknown>>();
   return {
-    idFromName: (name: string) => ({ toString: () => name, name }) as any,
-    idFromString: (id: string) => ({ toString: () => id }) as any,
-    newUniqueId: () => ({ toString: () => crypto.randomUUID() }) as any,
+    idFromName: (name: string) =>
+      ({ toString: () => name, name }) as unknown as ReturnType<
+        DurableObjectNamespace["idFromName"]
+      >,
+    idFromString: (id: string) =>
+      ({ toString: () => id }) as unknown as ReturnType<
+        DurableObjectNamespace["idFromString"]
+      >,
+    newUniqueId: () =>
+      ({ toString: () => crypto.randomUUID() }) as unknown as ReturnType<
+        DurableObjectNamespace["newUniqueId"]
+      >,
     get: (id: any) => {
       const idStr = id.toString();
       if (!state.has(idStr)) state.set(idStr, new Map());
       return {
         fetch: async () => new Response("{}", { status: 200 }),
-      } as any;
+      } as unknown as ReturnType<DurableObjectNamespace["get"]>;
     },
   } as DurableObjectNamespace;
 }
@@ -454,7 +463,9 @@ export async function startTestApiServer(
 ): Promise<TestApiServerHandle> {
   const testApp = await createRealIntegrationTestApp();
   const server = serve({ fetch: testApp.app.fetch, port: options.port ?? 0 });
-  const address = (server as any).address();
+  const address = (
+    server as unknown as { address(): { port: number } }
+  ).address();
   const url = `http://127.0.0.1:${address.port}`;
 
   return {

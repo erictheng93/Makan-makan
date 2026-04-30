@@ -58,7 +58,7 @@ const result = await this.db.run(sql`
       updated_at = ${now}
   WHERE id = ${id} AND status = 'waiting'
 `);
-if ((result as any)?.meta?.changes === 0) {
+if ((result as { meta?: { changes?: number } })?.meta?.changes === 0) {
   throw new Error("叫號失敗：狀態已被其他操作更新，請刷新");
 }
 ```
@@ -73,7 +73,7 @@ const result = await this.db.run(sql`
       updated_at = ${now}
   WHERE id = ${id} AND status = 'called'
 `);
-if ((result as any)?.meta?.changes === 0) {
+if ((result as { meta?: { changes?: number } })?.meta?.changes === 0) {
   throw new Error("確認失敗：狀態已被其他操作更新，請刷新");
 }
 ```
@@ -88,7 +88,7 @@ const result = await this.db.run(sql`
       updated_at = ${now}
   WHERE id = ${id} AND (status = 'called' OR status = 'confirmed')
 `);
-if ((result as any)?.meta?.changes === 0) {
+if ((result as { meta?: { changes?: number } })?.meta?.changes === 0) {
   throw new Error("入座失敗：狀態已被其他操作更新，請刷新");
 }
 ```
@@ -103,7 +103,7 @@ const result = await this.db.run(sql`
       updated_at = ${now}
   WHERE id = ${id} AND status IN ('waiting', 'called', 'confirmed')
 `);
-if ((result as any)?.meta?.changes === 0) {
+if ((result as { meta?: { changes?: number } })?.meta?.changes === 0) {
   throw new Error("取消失敗：狀態已被其他操作更新，請刷新");
 }
 ```
@@ -118,7 +118,7 @@ const result = await this.db.run(sql`
       updated_at = ${now}
   WHERE id = ${id} AND status IN ('waiting', 'called', 'confirmed')
 `);
-if ((result as any)?.meta?.changes === 0) {
+if ((result as { meta?: { changes?: number } })?.meta?.changes === 0) {
   throw new Error("過期標記失敗：狀態已被其他操作更新，請刷新");
 }
 ```
@@ -370,7 +370,7 @@ async findAvailableTable(
       AND capacity >= ${partySize}
     ORDER BY capacity ASC, id ASC
     LIMIT 1
-  `)) as any;
+  `)) as { id: number; table_number?: string | null; capacity: number } | null;
 
   if (!table) return null;
 
@@ -445,7 +445,7 @@ async batchCallNext(
 ): Promise<Array<{ id: string; success: boolean; tableId?: number; message: string }>> {
   const { data: waitingList } = await this.listWaitingList({
     restaurantId,
-    status: "waiting" as any,
+    status: "waiting" as const,
     limit: count,
   });
 
