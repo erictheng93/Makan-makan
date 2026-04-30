@@ -184,6 +184,8 @@ import { useOrderManagementStore } from "@/stores/orderManagement";
 import type { KitchenOrder } from "@/types";
 import DraggableOrderCard from "./DraggableOrderCard.vue";
 
+type BoardOrderStatus = "pending" | "preparing" | "ready";
+
 // Props
 interface Props {
   pendingOrders: KitchenOrder[];
@@ -198,10 +200,7 @@ const emit = defineEmits<{
   "start-cooking": [orderId: number, itemId: number];
   "mark-ready": [orderId: number, itemId: number];
   "view-details": [order: KitchenOrder];
-  "order-status-changed": [
-    orderId: number,
-    newStatus: "pending" | "preparing" | "ready",
-  ];
+  "order-status-changed": [orderId: number, newStatus: BoardOrderStatus];
   "batch-start-order": [orderId: number];
   "batch-complete-order": [orderId: number];
   "toggle-selection": [orderId: number];
@@ -279,11 +278,11 @@ const setupSortable = () => {
 // Methods
 const handleStatusChange = async (
   orderId: number,
-  newStatus: string,
-  oldStatus: string,
+  newStatus: BoardOrderStatus,
+  oldStatus: BoardOrderStatus,
 ) => {
   try {
-    emit("order-status-changed", orderId, newStatus as any);
+    emit("order-status-changed", orderId, newStatus);
 
     if (oldStatus === "pending" && newStatus === "preparing") {
       emit("batch-start-order", orderId);

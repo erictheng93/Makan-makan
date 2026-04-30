@@ -83,7 +83,7 @@ class AudioAccessibilityService {
   private availableVoices = ref<SpeechSynthesisVoice[]>([]);
 
   // Voice recognition
-  private speechRecognition: any = null;
+  private speechRecognition: KitchenSpeechRecognition | null = null;
   private isListening = ref(false);
 
   // Screen reader compatibility
@@ -119,8 +119,7 @@ class AudioAccessibilityService {
 
   private initializeSpeechRecognition(): void {
     const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (SpeechRecognition) {
       this.speechRecognition = new SpeechRecognition();
@@ -128,13 +127,13 @@ class AudioAccessibilityService {
       this.speechRecognition.interimResults = false;
       this.speechRecognition.lang = this.getLanguageCode();
 
-      this.speechRecognition.onresult = (event: any) => {
+      this.speechRecognition.onresult = (event) => {
         const transcript =
           event.results[event.results.length - 1][0].transcript.trim();
         this.processVoiceCommand(transcript);
       };
 
-      this.speechRecognition.onerror = (event: any) => {
+      this.speechRecognition.onerror = (event) => {
         console.error("Speech recognition error:", event.error);
         this.isListening.value = false;
       };

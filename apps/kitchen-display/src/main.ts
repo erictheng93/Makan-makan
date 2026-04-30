@@ -55,8 +55,8 @@ app.use(Toast, {
 });
 
 // Install lazy component plugin if available
-if ((window as any).__lazyComponentPlugin) {
-  app.use((window as any).__lazyComponentPlugin);
+if (window.__lazyComponentPlugin) {
+  app.use(window.__lazyComponentPlugin);
 }
 
 app.use(pinia);

@@ -3,7 +3,7 @@ import {
   createKitchenSSE,
   type KitchenSSEService,
 } from "@/services/sseService";
-import { useToast } from "vue-toastification";
+import { POSITION, useToast } from "vue-toastification";
 import { t } from "@/i18n";
 import type { KitchenSSEEvent, ConnectionStatus } from "@/types";
 
@@ -45,7 +45,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
       case "NEW_ORDER":
         options.onNewOrder?.(event);
         toast.info(t("kitchen.newOrderReceived"), {
-          position: "top-right" as any,
+          position: POSITION.TOP_RIGHT,
           timeout: 5000,
         });
         break;
@@ -57,7 +57,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
       case "ORDER_CANCELLED":
         options.onOrderCancelled?.(event);
         toast.warning(t("kitchen.orderCancelled"), {
-          position: "top-right" as any,
+          position: POSITION.TOP_RIGHT,
           timeout: 3000,
         });
         break;
@@ -65,7 +65,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
       case "PRIORITY_UPDATE":
         options.onPriorityUpdate?.(event);
         toast.warning(t("kitchen.priorityUpdated"), {
-          position: "top-right" as any,
+          position: POSITION.TOP_RIGHT,
           timeout: 3000,
         });
         break;
@@ -86,7 +86,7 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
     switch (status) {
       case "connected":
         toast.success(t("kitchen.kitchenConnected"), {
-          position: "bottom-right" as any,
+          position: POSITION.BOTTOM_RIGHT,
           timeout: 2000,
         });
         break;
@@ -97,14 +97,14 @@ export function useKitchenSSE(options: UseKitchenSSEOptions) {
 
       case "disconnected":
         toast.warning(t("kitchen.kitchenOffline"), {
-          position: "bottom-right" as any,
+          position: POSITION.BOTTOM_RIGHT,
           timeout: 3000,
         });
         break;
 
       case "error":
         toast.error(t("kitchen.kitchenConnectionError"), {
-          position: "bottom-right" as any,
+          position: POSITION.BOTTOM_RIGHT,
           timeout: 5000,
         });
         break;

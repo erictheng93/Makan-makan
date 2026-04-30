@@ -317,26 +317,28 @@ class SystemHealthService {
 
     // Memory usage
     if ("memory" in performance) {
-      const memory = (performance as any).memory;
-      const memoryUsage =
-        (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
+      const memory = performance.memory;
+      if (memory) {
+        const memoryUsage =
+          (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
 
-      newMetrics.push({
-        id: "memory_usage",
-        name: "Memory Usage",
-        value: memoryUsage,
-        unit: "%",
-        status:
-          memoryUsage > 80
-            ? "critical"
-            : memoryUsage > 60
-              ? "warning"
-              : "healthy",
-        threshold: { warning: 60, critical: 80 },
-        timestamp: now,
-        trend: this.calculateTrend("memory_usage", memoryUsage),
-        description: "JavaScript heap memory usage percentage",
-      });
+        newMetrics.push({
+          id: "memory_usage",
+          name: "Memory Usage",
+          value: memoryUsage,
+          unit: "%",
+          status:
+            memoryUsage > 80
+              ? "critical"
+              : memoryUsage > 60
+                ? "warning"
+                : "healthy",
+          threshold: { warning: 60, critical: 80 },
+          timestamp: now,
+          trend: this.calculateTrend("memory_usage", memoryUsage),
+          description: "JavaScript heap memory usage percentage",
+        });
+      }
     }
 
     // Response time
@@ -837,7 +839,7 @@ class SystemHealthService {
   }
 
   private testAudioContext(): boolean {
-    return !!(window.AudioContext || (window as any).webkitAudioContext);
+    return !!(window.AudioContext || window.webkitAudioContext);
   }
 
   private testPerformanceAPI(): boolean {

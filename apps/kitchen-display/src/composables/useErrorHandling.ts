@@ -7,6 +7,29 @@ import {
 } from "@/services/errorReportingService";
 import { performanceService } from "@/services/performanceService";
 
+const getResourceUrl = (target: EventTarget): string | undefined => {
+  if (
+    target instanceof HTMLImageElement ||
+    target instanceof HTMLScriptElement ||
+    target instanceof HTMLIFrameElement ||
+    target instanceof HTMLAudioElement ||
+    target instanceof HTMLVideoElement ||
+    target instanceof HTMLSourceElement ||
+    target instanceof HTMLTrackElement
+  ) {
+    return target.src;
+  }
+
+  if (
+    target instanceof HTMLLinkElement ||
+    target instanceof HTMLAnchorElement
+  ) {
+    return target.href;
+  }
+
+  return undefined;
+};
+
 export interface ErrorHandlingOptions {
   showToast?: boolean;
   reportError?: boolean;
@@ -392,12 +415,13 @@ export function useGlobalErrorHandler() {
       (event) => {
         if (event.target && event.target !== window) {
           const target = event.target as HTMLElement;
+          const resourceUrl = getResourceUrl(event.target);
           errorHandler.handleError(
             new Error(`Failed to load resource: ${target.tagName}`),
             {
               type: "resourceError",
               tagName: target.tagName,
-              src: (target as any).src || (target as any).href,
+              src: resourceUrl,
             },
           );
         }

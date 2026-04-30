@@ -10,6 +10,7 @@ interface KitchenOrder {
     specialInstructions?: string;
     category: string;
     priority: "low" | "medium" | "high";
+    completed?: boolean;
   }>;
   status: "pending" | "preparing" | "ready";
   orderTime: string;
@@ -165,7 +166,7 @@ export function useRealtimeKitchen() {
       kitchenOrders.value.set(orderId, updatedOrder);
 
       // Check if all items are complete
-      const allComplete = updatedItems.every((item) => (item as any).completed);
+      const allComplete = updatedItems.every((item) => item.completed === true);
       if (allComplete) {
         updateOrderStatus(orderId, "ready");
       }

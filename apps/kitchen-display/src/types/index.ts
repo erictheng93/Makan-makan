@@ -12,6 +12,7 @@ export interface KitchenOrderItem {
   status: ItemStatus;
   notes?: string;
   customizations?: string[];
+  allergens?: string[];
   estimatedTime?: number; // 預估製作時間（分鐘）
   startedAt?: string;
   completedAt?: string;

@@ -1,5 +1,93 @@
 // Type definitions with index signatures for dynamic property access
 
+import type { Plugin } from "vue";
+
+declare global {
+  interface KitchenPerformanceMemory {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  }
+
+  interface KitchenNetworkInformation extends EventTarget {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+    saveData?: boolean;
+  }
+
+  interface KitchenSpeechRecognitionAlternative {
+    transcript: string;
+    confidence: number;
+  }
+
+  interface KitchenSpeechRecognitionResult {
+    readonly length: number;
+    readonly isFinal: boolean;
+    item(index: number): KitchenSpeechRecognitionAlternative;
+    [index: number]: KitchenSpeechRecognitionAlternative;
+  }
+
+  interface KitchenSpeechRecognitionResultList {
+    readonly length: number;
+    item(index: number): KitchenSpeechRecognitionResult;
+    [index: number]: KitchenSpeechRecognitionResult;
+  }
+
+  interface KitchenSpeechRecognitionEvent extends Event {
+    readonly results: KitchenSpeechRecognitionResultList;
+  }
+
+  interface KitchenSpeechRecognitionErrorEvent extends Event {
+    readonly error: string;
+    readonly message?: string;
+  }
+
+  interface KitchenSpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult:
+      | ((
+          this: KitchenSpeechRecognition,
+          event: KitchenSpeechRecognitionEvent,
+        ) => void)
+      | null;
+    onerror:
+      | ((
+          this: KitchenSpeechRecognition,
+          event: KitchenSpeechRecognitionErrorEvent,
+        ) => void)
+      | null;
+    start(): void;
+    stop(): void;
+    abort(): void;
+  }
+
+  interface KitchenSpeechRecognitionConstructor {
+    new (): KitchenSpeechRecognition;
+  }
+
+  interface Performance {
+    memory?: KitchenPerformanceMemory;
+  }
+
+  interface Navigator {
+    connection?: KitchenNetworkInformation;
+    mozConnection?: KitchenNetworkInformation;
+    webkitConnection?: KitchenNetworkInformation;
+    memory?: KitchenPerformanceMemory;
+  }
+
+  interface Window {
+    SpeechRecognition?: KitchenSpeechRecognitionConstructor;
+    webkitSpeechRecognition?: KitchenSpeechRecognitionConstructor;
+    webkitAudioContext?: typeof AudioContext;
+    mozAudioContext?: typeof AudioContext;
+    __lazyComponentPlugin?: Plugin;
+  }
+}
+
 export interface StringIndexable {
   [key: string]: any;
 }

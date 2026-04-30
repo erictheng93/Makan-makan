@@ -314,7 +314,9 @@ function setupSystemMonitoring() {
   // Memory monitoring (if available)
   if ("memory" in performance) {
     const checkMemory = () => {
-      const memory = (performance as any).memory;
+      const memory = performance.memory;
+      if (!memory) return;
+
       const usedMemory = memory.usedJSHeapSize / memory.jsHeapSizeLimit;
       memoryStatus.value = usedMemory > 0.8 ? "high" : "normal";
     };

@@ -60,6 +60,15 @@ export interface SystemInfo {
   };
 }
 
+interface MetricSummary {
+  count: number;
+  min: number;
+  max: number;
+  avg: number;
+  p95: number;
+  p99: number;
+}
+
 class PerformanceService {
   private readonly STORAGE_KEY = "kitchen-performance-data";
   private readonly MAX_METRICS = 1000;
@@ -104,27 +113,28 @@ class PerformanceService {
   }
 
   private collectSystemInfo(): SystemInfo {
-    const nav = navigator as any;
+    const memory = navigator.memory;
+    const connection = navigator.connection;
 
     return {
-      userAgent: nav.userAgent,
-      platform: nav.platform,
-      language: nav.language,
-      cookieEnabled: nav.cookieEnabled,
-      onLine: nav.onLine,
-      hardwareConcurrency: nav.hardwareConcurrency || 1,
-      memory: nav.memory
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+      cookieEnabled: navigator.cookieEnabled,
+      onLine: navigator.onLine,
+      hardwareConcurrency: navigator.hardwareConcurrency || 1,
+      memory: memory
         ? {
-            usedJSHeapSize: nav.memory.usedJSHeapSize,
-            totalJSHeapSize: nav.memory.totalJSHeapSize,
-            jsHeapSizeLimit: nav.memory.jsHeapSizeLimit,
+            usedJSHeapSize: memory.usedJSHeapSize,
+            totalJSHeapSize: memory.totalJSHeapSize,
+            jsHeapSizeLimit: memory.jsHeapSizeLimit,
           }
         : undefined,
-      connection: nav.connection
+      connection: connection
         ? {
-            effectiveType: nav.connection.effectiveType,
-            downlink: nav.connection.downlink,
-            rtt: nav.connection.rtt,
+            effectiveType: connection.effectiveType ?? "unknown",
+            downlink: connection.downlink ?? 0,
+            rtt: connection.rtt ?? 0,
           }
         : undefined,
     };
@@ -240,19 +250,20 @@ class PerformanceService {
 
   private collectSystemMetrics() {
     // Memory usage
-    const nav = navigator as any;
-    if (nav.memory) {
+    const memory = navigator.memory;
+    if (memory) {
       const memoryUsage =
-        (nav.memory.usedJSHeapSize / nav.memory.jsHeapSizeLimit) * 100;
+        (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
       this.recordMetric("memory-usage", memoryUsage, "%", "system");
     }
 
     // Connection info
-    if (nav.connection) {
-      this.recordMetric("connection-rtt", nav.connection.rtt, "ms", "network");
+    const connection = navigator.connection;
+    if (connection) {
+      this.recordMetric("connection-rtt", connection.rtt ?? 0, "ms", "network");
       this.recordMetric(
         "connection-downlink",
-        nav.connection.downlink,
+        connection.downlink ?? 0,
         "Mbps",
         "network",
       );
@@ -458,14 +469,7 @@ class PerformanceService {
   public getMetricSummary(
     metricName: string,
     timeWindow = 3600000,
-  ): {
-    count: number;
-    min: number;
-    max: number;
-    avg: number;
-    p95: number;
-    p99: number;
-  } {
+  ): MetricSummary {
     const cutoff = Date.now() - timeWindow;
     const recentMetrics = this.metrics.value
       .filter((m) => m.name === metricName && m.timestamp >= cutoff)
@@ -566,10 +570,10 @@ class PerformanceService {
       "api-response-time",
       "memory-usage",
       "frame-rate",
-    ].reduce((acc, metricName) => {
+    ].reduce<Record<string, MetricSummary>>((acc, metricName) => {
       acc[metricName] = this.getMetricSummary(metricName);
       return acc;
-    }, {} as any);
+    }, {});
 
     const recommendations: string[] = [];
 

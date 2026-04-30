@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref, computed, type App, type DirectiveBinding } from "vue";
 
 /**
  * Sanitizes a URL string for safe use as an image src.
@@ -102,8 +102,11 @@ class PerformanceOptimizationService {
 
     // Estimate bundle size from transferred bytes
     let totalSize = 0;
-    resources.forEach((resource: any) => {
-      if (resource.transferSize) {
+    resources.forEach((resource) => {
+      if (
+        "transferSize" in resource &&
+        typeof resource.transferSize === "number"
+      ) {
         totalSize += resource.transferSize;
       }
     });
@@ -111,11 +114,10 @@ class PerformanceOptimizationService {
   }
 
   private startMemoryMonitoring(): void {
-    if (!(performance as any).memory) return;
+    if (!performance.memory) return;
 
     const updateMemory = () => {
-      const memory = (performance as any).memory;
-      this.metrics.value.memoryUsage = memory.usedJSHeapSize;
+      this.metrics.value.memoryUsage = performance.memory?.usedJSHeapSize ?? 0;
     };
 
     updateMemory();
@@ -177,9 +179,9 @@ class PerformanceOptimizationService {
   private setupComponentLazyLoading(): void {
     // Create a Vue plugin for lazy component loading
     const lazyComponentPlugin = {
-      install: (app: any) => {
+      install: (app: App) => {
         app.directive("lazy-component", {
-          mounted: (el: HTMLElement, binding: any) => {
+          mounted: (el: HTMLElement, binding: DirectiveBinding<string>) => {
             el.setAttribute("data-lazy-component", binding.value);
           },
         });
@@ -187,7 +189,7 @@ class PerformanceOptimizationService {
     };
 
     // Store plugin reference for use in main.ts
-    (window as any).__lazyComponentPlugin = lazyComponentPlugin;
+    window.__lazyComponentPlugin = lazyComponentPlugin;
   }
 
   // Resource Hints and Preloading

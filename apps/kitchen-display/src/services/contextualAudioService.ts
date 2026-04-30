@@ -626,7 +626,7 @@ class ContextualAudioService {
       tableNumber: order.tableName,
       specialInstructions: !!(order.notes && order.notes.length > 0),
       allergyAlert: order.items?.some(
-        (item) => (item as any).allergens?.length > 0,
+        (item) => (item.allergens?.length ?? 0) > 0,
       ),
     });
   }

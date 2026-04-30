@@ -1,9 +1,11 @@
 // Enhanced keyboard shortcuts with visual feedback and customization
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, type Ref } from "vue";
 import { useToast } from "vue-toastification";
 import { enhancedAudioService } from "@/services/enhancedAudioService";
 import { useOrderManagementStore } from "@/stores/orderManagement";
-import type { OrderStatus } from "@/types";
+import type { KitchenOrder, OrderStatus } from "@/types";
+
+type KitchenOrderPriority = KitchenOrder["priority"];
 
 export interface KeyboardShortcut {
   id: string;
@@ -39,7 +41,9 @@ export interface ShortcutStats {
   recentExecutions: ShortcutExecution[];
 }
 
-export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
+export function useEnhancedKeyboardShortcuts(
+  orders: Ref<KitchenOrder[]> = ref<KitchenOrder[]>([]),
+) {
   const toast = useToast();
   const orderStore = useOrderManagementStore();
 
@@ -501,23 +505,23 @@ export function useEnhancedKeyboardShortcuts(orders = ref<any[]>([])) {
 
     const firstOrderId = selectedOrderIds[0];
     const selectedOrder = orders.value?.find(
-      (order: any) => order.id === firstOrderId,
+      (order) => order.id === firstOrderId,
     );
     if (!selectedOrder) {
       toast.warning("找不到選中的訂單");
       return false;
     }
 
-    const priorities = ["normal", "high", "urgent"];
+    const priorities: KitchenOrderPriority[] = ["normal", "high", "urgent"];
     const currentIndex = priorities.indexOf(selectedOrder.priority);
     const nextPriority = priorities[(currentIndex + 1) % priorities.length];
 
     try {
       // Use updateOrderPriorities instead of updateOrderPriority
       const updatedOrders =
-        orders.value?.map((order: any) =>
+        orders.value?.map((order) =>
           order.id === selectedOrder.id
-            ? { ...order, priority: nextPriority as any }
+            ? { ...order, priority: nextPriority }
             : order,
         ) || [];
       orders.value = orderStore.updateOrderPriorities(updatedOrders);

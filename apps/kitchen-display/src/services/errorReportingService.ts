@@ -297,7 +297,7 @@ class ErrorReportingService {
     return {
       appVersion: __APP_VERSION__ || "1.0.0",
       networkStatus: navigator.onLine ? "online" : "offline",
-      memoryUsage: (performance as any).memory?.usedJSHeapSize,
+      memoryUsage: performance.memory?.usedJSHeapSize,
       storageAvailable: this.checkStorageAvailability(),
     };
   }

@@ -1,5 +1,5 @@
 // Enhanced Interactive Audio Notification Service with Web Audio API
-import { Howl } from "howler";
+import { Howl, Howler } from "howler";
 import { ref, reactive } from "vue";
 import { useToast } from "vue-toastification";
 
@@ -117,10 +117,13 @@ class EnhancedAudioNotificationService {
   // Web Audio API initialization
   private async initializeWebAudio(): Promise<void> {
     try {
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) {
+        throw new Error("Web Audio API is not supported");
+      }
+
       // Create audio context
-      this.audioContext = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )();
+      this.audioContext = new AudioContextCtor();
 
       // Create main gain node
       this.gainNode = this.audioContext.createGain();
@@ -165,11 +168,8 @@ class EnhancedAudioNotificationService {
   private async initializeHowlerFallback(): Promise<void> {
     try {
       // Howler.js global settings
-      const Howler = (window as any).Howler;
-      if (Howler) {
-        Howler.volume(this.settings.masterVolume);
-        Howler.mute(!this.settings.enabled);
-      }
+      Howler.volume(this.settings.masterVolume);
+      Howler.mute(!this.settings.enabled);
       console.log("Howler.js fallback initialized");
     } catch (error) {
       console.error("Howler.js fallback initialization failed:", error);
@@ -631,8 +631,8 @@ class EnhancedAudioNotificationService {
   private detectWebAudioSupport(): void {
     this.isWebAudioSupported.value = !!(
       window.AudioContext ||
-      (window as any).webkitAudioContext ||
-      (window as any).mozAudioContext
+      window.webkitAudioContext ||
+      window.mozAudioContext
     );
   }
 

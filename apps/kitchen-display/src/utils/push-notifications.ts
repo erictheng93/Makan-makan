@@ -51,9 +51,10 @@ class KitchenPushNotificationService {
 
   private initializeAudioContext(): void {
     try {
-      this.audioContext = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )();
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) return;
+
+      this.audioContext = new AudioContextCtor();
     } catch (error) {
       console.warn("AudioContext not supported:", error);
     }

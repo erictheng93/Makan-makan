@@ -9,6 +9,29 @@ import type {
   ItemStatus,
 } from "@/types";
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isKitchenOrder = (value: unknown): value is KitchenOrder =>
+  isRecord(value) &&
+  typeof value.id === "number" &&
+  Number.isFinite(value.id) &&
+  value.id > 0 &&
+  typeof value.orderNumber === "string" &&
+  Array.isArray(value.items);
+
+const extractKitchenOrderPayload = (payload: unknown): KitchenOrder | null => {
+  if (isRecord(payload) && isKitchenOrder(payload.order)) {
+    return payload.order;
+  }
+
+  if (isKitchenOrder(payload)) {
+    return payload;
+  }
+
+  return null;
+};
+
 export const useOrdersStore = defineStore("orders", () => {
   // State
   const orders = ref<KitchenOrder[]>([]);
@@ -113,13 +136,10 @@ export const useOrdersStore = defineStore("orders", () => {
   const handleNewOrder = (event: KitchenSSEEvent) => {
     if (!event.payload) return;
 
-    // 支援兩種 payload 格式
-    const newOrder: KitchenOrder =
-      event.payload.order || // 格式 1: payload.order
-      (event.payload as any); // 格式 2: payload 本身就是 order
+    const newOrder = extractKitchenOrderPayload(event.payload);
 
     // 驗證是否為有效訂單物件
-    if (!newOrder || !newOrder.id) {
+    if (!newOrder) {
       console.warn("Invalid order data in NEW_ORDER event", event);
       return;
     }
