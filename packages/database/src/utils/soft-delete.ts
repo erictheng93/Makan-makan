@@ -59,11 +59,13 @@ export function isDeleted(deletedAtColumn: SQLiteColumn): SQL {
  * 軟刪除服務類
  * 提供軟刪除相關的 CRUD 操作
  */
-export class SoftDeleteService {
-  private db: DrizzleD1Database;
+export class SoftDeleteService<
+  TSchema extends Record<string, unknown> = Record<string, never>,
+> {
+  private db: DrizzleD1Database<TSchema>;
   private defaultRetentionDays: number;
 
-  constructor(db: DrizzleD1Database, options: SoftDeleteOptions = {}) {
+  constructor(db: DrizzleD1Database<TSchema>, options: SoftDeleteOptions = {}) {
     this.db = db;
     this.defaultRetentionDays = options.retentionDays ?? 90;
   }

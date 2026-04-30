@@ -140,7 +140,7 @@ export class TableService extends BaseService {
 
       // 如果是座位模式，自動創建座位
       if (qrMode === "seat" && seatCount > 0) {
-        const seatService = new SeatService(this.db as any, this.env);
+        const seatService = new SeatService(this.d1, this.env);
         await seatService.createSeatsForTable(newTable.id, seatCount, {
           numberingStyle: seatNumberingStyle,
         });
@@ -208,7 +208,7 @@ export class TableService extends BaseService {
 
       // 如果是座位模式，附加座位資訊
       if (table.qrMode === "seat") {
-        const seatService = new SeatService(this.db as any, this.env);
+        const seatService = new SeatService(this.d1, this.env);
         const seatsResult = await seatService.getSeatsByTableId(id);
         tableData.seats = seatsResult.seats;
       }
@@ -802,7 +802,7 @@ export class TableService extends BaseService {
         };
       }
 
-      const seatService = new SeatService(this.db as any, this.env);
+      const seatService = new SeatService(this.d1, this.env);
 
       // 從桌子模式切換到座位模式
       if (oldMode === "table" && newMode === "seat") {

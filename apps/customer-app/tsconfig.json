@@ -17,6 +17,7 @@
     }
   },
   "include": [
+    "*.d.ts",
     "src/**/*",
     "*.config.*",
     "../../packages/shared-types/src/**/*",

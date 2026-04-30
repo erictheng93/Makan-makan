@@ -151,6 +151,15 @@ const splitBillSchema = z.object({
     .optional(),
 });
 
+const getMutationChanges = (result: unknown): number => {
+  if (typeof result !== "object" || result === null || !("changes" in result)) {
+    return 0;
+  }
+
+  const changes = (result as { changes?: unknown }).changes;
+  return typeof changes === "number" ? changes : 0;
+};
+
 export class GroupOrderService extends BaseService {
   constructor(db: any, env: CloudflareEnv) {
     super(db, env);
@@ -1014,7 +1023,7 @@ export class GroupOrderService extends BaseService {
 
       return {
         success: true,
-        cleaned: (result as any).changes || 0,
+        cleaned: getMutationChanges(result),
       };
     } catch (error) {
       console.error("清理過期群組失敗:", error);

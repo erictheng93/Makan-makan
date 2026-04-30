@@ -114,6 +114,32 @@ export const PaymentMethods = {
   APPLE_PAY: "apple_pay",
 } as const;
 
+const confirmedTimestampStatuses: readonly string[] = [
+  OrderStatus.CONFIRMED,
+  OrderStatus.PREPARING,
+  OrderStatus.READY,
+  OrderStatus.DELIVERED,
+  OrderStatus.PAID,
+];
+
+const preparingTimestampStatuses: readonly string[] = [
+  OrderStatus.PREPARING,
+  OrderStatus.READY,
+  OrderStatus.DELIVERED,
+  OrderStatus.PAID,
+];
+
+const readyTimestampStatuses: readonly string[] = [
+  OrderStatus.READY,
+  OrderStatus.DELIVERED,
+  OrderStatus.PAID,
+];
+
+const deliveredTimestampStatuses: readonly string[] = [
+  OrderStatus.DELIVERED,
+  OrderStatus.PAID,
+];
+
 /**
  * 訂單工廠
  */
@@ -163,33 +189,16 @@ export class OrderFactory extends BaseFactory<OrderTestData> {
       },
       estimatedPrepTime: randomNumber(15, 45),
       actualPrepTime: status === OrderStatus.PAID ? randomNumber(15, 60) : null,
-      confirmedAt: [
-        OrderStatus.CONFIRMED,
-        OrderStatus.PREPARING,
-        OrderStatus.READY,
-        OrderStatus.DELIVERED,
-        OrderStatus.PAID,
-      ].includes(status as any)
+      confirmedAt: confirmedTimestampStatuses.includes(status)
         ? pastTimestamp(0.02) // 30 minutes ago
         : null,
-      preparingAt: [
-        OrderStatus.PREPARING,
-        OrderStatus.READY,
-        OrderStatus.DELIVERED,
-        OrderStatus.PAID,
-      ].includes(status as any)
+      preparingAt: preparingTimestampStatuses.includes(status)
         ? pastTimestamp(0.01) // 15 minutes ago
         : null,
-      readyAt: [
-        OrderStatus.READY,
-        OrderStatus.DELIVERED,
-        OrderStatus.PAID,
-      ].includes(status as any)
+      readyAt: readyTimestampStatuses.includes(status)
         ? pastTimestamp(0.005) // 7 minutes ago
         : null,
-      deliveredAt: [OrderStatus.DELIVERED, OrderStatus.PAID].includes(
-        status as any,
-      )
+      deliveredAt: deliveredTimestampStatuses.includes(status)
         ? pastTimestamp(0.002) // 3 minutes ago
         : null,
       paidAt: status === OrderStatus.PAID ? now : null,

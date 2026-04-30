@@ -145,6 +145,7 @@ export function createRouteComponents(
  */
 export class ComponentLoader {
   private cache = new Map<string, Promise<Component>>();
+  private loadedComponents = new Map<string, Component>();
   private preloadQueue = new Set<string>();
   private loadingComponents = new Set<string>();
 
@@ -154,6 +155,11 @@ export class ComponentLoader {
    * Load component with caching
    */
   async load(name: string): Promise<Component> {
+    const loaded = this.loadedComponents.get(name);
+    if (loaded) {
+      return loaded;
+    }
+
     if (this.cache.has(name)) {
       return this.cache.get(name)!;
     }
@@ -162,7 +168,10 @@ export class ComponentLoader {
       throw new Error(`Component "${name}" not found`);
     }
 
-    const loadPromise = this.loadComponent(name);
+    const loadPromise = this.loadComponent(name).then((component) => {
+      this.loadedComponents.set(name, component);
+      return component;
+    });
     this.cache.set(name, loadPromise);
 
     return loadPromise;
@@ -206,17 +215,7 @@ export class ComponentLoader {
    * Get component synchronously if already loaded
    */
   getLoaded(name: string): Component | null {
-    const cached = this.cache.get(name);
-
-    if (cached && this.isPromiseResolved(cached)) {
-      try {
-        return cached as any; // TypeScript hack for resolved promises
-      } catch {
-        return null;
-      }
-    }
-
-    return null;
+    return this.loadedComponents.get(name) ?? null;
   }
 
   /**
@@ -225,8 +224,10 @@ export class ComponentLoader {
   clearCache(name?: string): void {
     if (name) {
       this.cache.delete(name);
+      this.loadedComponents.delete(name);
     } else {
       this.cache.clear();
+      this.loadedComponents.clear();
     }
   }
 
@@ -235,7 +236,7 @@ export class ComponentLoader {
    */
   getCacheStats() {
     return {
-      cached: this.cache.size,
+      cached: this.loadedComponents.size,
       preloadQueue: this.preloadQueue.size,
       loading: this.loadingComponents.size,
       available: Object.keys(this.components).length,
@@ -266,12 +267,6 @@ export class ComponentLoader {
         console.warn(`Failed to preload component "${name}":`, error);
       });
     });
-  }
-
-  private isPromiseResolved(promise: Promise<any>): boolean {
-    // This is a hack to check if promise is resolved
-    // In practice, you might want to track resolution state manually
-    return (promise as any)._state === "fulfilled";
   }
 }
 

@@ -55,17 +55,17 @@ export function usePerformanceMonitor() {
    */
   function shouldSendReport(): boolean {
     // Check data saver mode
-    if ("connection" in navigator) {
-      const conn = (navigator as any).connection;
+    const conn = navigator.connection;
+    if (conn) {
       if (conn.saveData) return false;
 
       // Don't send on slow connections
       const slowConnections = ["slow-2g", "2g"];
-      if (slowConnections.includes(conn.effectiveType)) {
+      if (slowConnections.includes(conn.effectiveType ?? "")) {
         return false;
       }
 
-      connectionType.value = conn.effectiveType;
+      connectionType.value = conn.effectiveType ?? "unknown";
     }
 
     return true;
@@ -184,12 +184,12 @@ export function usePerformanceMonitor() {
    * Handle connection change
    */
   function handleConnectionChange(): void {
-    if ("connection" in navigator) {
-      const conn = (navigator as any).connection;
-      connectionType.value = conn.effectiveType;
+    const conn = navigator.connection;
+    if (conn) {
+      connectionType.value = conn.effectiveType ?? "unknown";
 
       // Try to process queue if connection improved
-      if (["4g", "3g"].includes(conn.effectiveType)) {
+      if (["4g", "3g"].includes(conn.effectiveType ?? "")) {
         processQueuedReports();
       }
     }
@@ -208,10 +208,9 @@ export function usePerformanceMonitor() {
     metrics.value = monitor.getMetrics();
     resources.value = monitor.getResourceTimings();
 
-    // Update connection type
-    if ("connection" in navigator) {
-      const conn = (navigator as any).connection;
-      connectionType.value = conn.effectiveType;
+    const conn = navigator.connection;
+    if (conn) {
+      connectionType.value = conn.effectiveType ?? "unknown";
     }
 
     // Listen for online/offline events
@@ -219,8 +218,7 @@ export function usePerformanceMonitor() {
     window.addEventListener("offline", handleOffline);
 
     // Listen for connection changes
-    if ("connection" in navigator) {
-      const conn = (navigator as any).connection;
+    if (conn) {
       conn.addEventListener("change", handleConnectionChange);
     }
 
@@ -236,8 +234,8 @@ export function usePerformanceMonitor() {
     window.removeEventListener("online", handleOnline);
     window.removeEventListener("offline", handleOffline);
 
-    if ("connection" in navigator) {
-      const conn = (navigator as any).connection;
+    const conn = navigator.connection;
+    if (conn) {
       conn.removeEventListener("change", handleConnectionChange);
     }
   });

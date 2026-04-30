@@ -107,11 +107,20 @@ class StarPRNTCommands {
   }
 
   // Star 特有的條碼命令
-  static barcode(data: string, type: "CODE128" | "CODE39" = "CODE128"): Buffer {
+  static barcode(
+    data: string,
+    type: "CODE128" | "CODE39" | "EAN13" | "EAN8" = "CODE128",
+  ): Buffer {
     const commands: Buffer[] = [];
 
     // 設定條碼類型
-    const barcodeType = type === "CODE128" ? 0x06 : 0x04;
+    const barcodeTypeMap: Record<typeof type, number> = {
+      CODE128: 0x06,
+      CODE39: 0x04,
+      EAN13: 0x02,
+      EAN8: 0x03,
+    };
+    const barcodeType = barcodeTypeMap[type];
     commands.push(Buffer.from([this.ESC, 0x62, barcodeType, 0x01, 0x02, 0x48]));
 
     // 條碼資料
@@ -643,10 +652,7 @@ export class StarDriver extends PrinterDriver {
     if (footer.barcode) {
       commands.push(StarPRNTCommands.lineFeed());
       commands.push(
-        StarPRNTCommands.barcode(
-          footer.barcode.data,
-          footer.barcode.format as any,
-        ),
+        StarPRNTCommands.barcode(footer.barcode.data, footer.barcode.format),
       );
     }
 

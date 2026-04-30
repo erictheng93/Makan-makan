@@ -45,6 +45,10 @@ interface ConnectionPoolStats {
   uptime: number;
 }
 
+type ParsedMessageEvent = MessageEvent & {
+  parsedData: unknown;
+};
+
 /**
  * SSE Connection Pool Manager
  * Efficiently manages multiple Server-Sent Events connections with automatic reconnection,
@@ -260,7 +264,9 @@ export class SSEConnectionPool {
     if (listeners) {
       listeners.forEach((listener) => {
         try {
-          listener({ ...event, parsedData: data } as any);
+          listener(
+            Object.assign(event, { parsedData: data }) as ParsedMessageEvent,
+          );
         } catch (error) {
           console.error("Error in SSE listener:", error);
         }

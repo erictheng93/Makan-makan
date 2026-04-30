@@ -59,7 +59,7 @@ export class CommandBuilder {
    */
   addBarcode(
     data: string,
-    type: "CODE128" | "CODE39" | "EAN13" = "CODE128",
+    type: "CODE128" | "CODE39" | "EAN13" | "EAN8" = "CODE128",
   ): CommandBuilder {
     this.commands.push({
       type: "barcode",
@@ -250,7 +250,7 @@ export class CommandBuilder {
     if (content.footer?.barcode) {
       builder.addBarcode(
         content.footer.barcode.data,
-        content.footer.barcode.format as any,
+        content.footer.barcode.format,
       );
     }
 

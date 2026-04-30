@@ -48,7 +48,7 @@ export class BaseService {
   protected env: CloudflareEnv;
   protected queryCache: QueryCache;
   protected connectionManager: ConnectionManager;
-  protected softDelete: SoftDeleteService;
+  protected softDelete: SoftDeleteService<typeof schema>;
 
   // Deployment mode properties
   protected deploymentMode: DeploymentMode;
@@ -81,7 +81,7 @@ export class BaseService {
 
     this.queryCache = new QueryCache(env.CACHE_KV);
     this.connectionManager = getConnectionManager();
-    this.softDelete = new SoftDeleteService(this.db as any, {
+    this.softDelete = new SoftDeleteService(this.db, {
       retentionDays: 90,
     });
   }

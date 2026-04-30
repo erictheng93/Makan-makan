@@ -1,11 +1,8 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
-import { i18n } from "@/i18n";
 import { getRefreshDelay } from "@makanmakan/utils";
 import { apiClient } from "@/services/api";
-
-// Helper to avoid vue-i18n's deep type instantiation on t()
-const t = (key: string): string => (i18n as any).global.t(key);
+import { translate as t } from "@/utils/i18n";
 
 // 定義客戶用戶類型
 export interface CustomerUser {

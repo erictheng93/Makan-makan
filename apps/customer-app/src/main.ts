@@ -60,7 +60,7 @@ async function initializePWAOptimizations() {
     await performanceManager.initializeOptimizations();
 
     // Make manager globally available
-    (window as any).pwaPerformanceManager = performanceManager;
+    window.pwaPerformanceManager = performanceManager;
 
     console.log("✅ PWA performance optimizations initialized");
   } catch (error) {

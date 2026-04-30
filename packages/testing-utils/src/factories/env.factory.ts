@@ -110,13 +110,13 @@ export const envFactory = {
       DB: mockDB,
       CACHE_KV: mockKV,
       TOKEN_BLACKLIST: mockKV,
-      IMAGES_BUCKET: {} as any,
-      BACKUP_STORAGE: {} as any,
-      JOB_QUEUE: {} as any,
-      REALTIME_ORDERS: {} as any,
-      ANALYTICS_ENGINE: { writeDataPoint: vi.fn() } as any,
+      IMAGES_BUCKET: {},
+      BACKUP_STORAGE: {},
+      JOB_QUEUE: {},
+      REALTIME_ORDERS: {},
+      ANALYTICS_ENGINE: { writeDataPoint: vi.fn() },
       RATE_LIMIT_KV: mockKV,
-      REALTIME_SESSION: {} as any,
+      REALTIME_SESSION: {},
       SLACK_WEBHOOK_URL: "https://hooks.slack.com/test/webhook",
       API_BASE_URL: "http://localhost:8787",
       INTERNAL_API_TOKEN: "test-internal-token",
@@ -157,7 +157,7 @@ export const envFactory = {
     const mockKV = createMockKV();
 
     return {
-      REALTIME_SESSION: {} as any,
+      REALTIME_SESSION: {},
       DB: mockDB,
       CACHE_KV: mockKV,
       TOKEN_BLACKLIST: mockKV,

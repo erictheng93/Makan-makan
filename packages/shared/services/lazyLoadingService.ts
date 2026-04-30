@@ -44,6 +44,23 @@ interface LoadingQueue {
   failed: Set<string>;
 }
 
+interface NetworkInformationLike extends EventTarget {
+  readonly downlink?: number;
+  readonly effectiveType?: string;
+  readonly rtt?: number;
+  readonly saveData?: boolean;
+}
+
+type NavigatorWithDeviceSignals = Navigator & {
+  readonly connection?: NetworkInformationLike;
+  readonly deviceMemory?: number;
+};
+
+const getNavigatorSignals = (): NavigatorWithDeviceSignals | null =>
+  typeof navigator === "undefined"
+    ? null
+    : (navigator as NavigatorWithDeviceSignals);
+
 export class LazyLoadingService {
   private config: LazyLoadingConfig;
   private queue: LoadingQueue;
@@ -89,43 +106,40 @@ export class LazyLoadingService {
    */
   private initPerformanceMonitoring(): void {
     // Monitor network connection
-    if ("connection" in navigator) {
-      const connection = (navigator as any).connection;
+    const navigatorSignals = getNavigatorSignals();
+    const connection = navigatorSignals?.connection;
 
-      if (connection) {
-        // Adjust strategy based on connection speed
-        if (
-          connection.effectiveType === "slow-2g" ||
-          connection.effectiveType === "2g"
-        ) {
-          this.config.strategy = "lazy";
-          this.config.defaultQuality = 60;
-          this.config.maxConcurrentLoads = 2;
-        } else if (connection.effectiveType === "3g") {
-          this.config.strategy = "progressive";
-          this.config.defaultQuality = 75;
-          this.config.maxConcurrentLoads = 4;
-        }
-
-        // Listen for connection changes
-        connection.addEventListener("change", () => {
-          this.adaptToNetworkConditions();
-        });
+    if (connection) {
+      // Adjust strategy based on connection speed
+      if (
+        connection.effectiveType === "slow-2g" ||
+        connection.effectiveType === "2g"
+      ) {
+        this.config.strategy = "lazy";
+        this.config.defaultQuality = 60;
+        this.config.maxConcurrentLoads = 2;
+      } else if (connection.effectiveType === "3g") {
+        this.config.strategy = "progressive";
+        this.config.defaultQuality = 75;
+        this.config.maxConcurrentLoads = 4;
       }
+
+      // Listen for connection changes
+      connection.addEventListener("change", () => {
+        this.adaptToNetworkConditions();
+      });
     }
 
     // Monitor device memory (if available)
-    if ("deviceMemory" in navigator) {
-      const deviceMemory = (navigator as any).deviceMemory;
+    const deviceMemory = navigatorSignals?.deviceMemory;
 
-      if (deviceMemory && deviceMemory < 4) {
-        // Reduce cache size and concurrent loads for low-memory devices
-        this.config.cacheSize = Math.min(this.config.cacheSize, 50);
-        this.config.maxConcurrentLoads = Math.min(
-          this.config.maxConcurrentLoads,
-          3,
-        );
-      }
+    if (deviceMemory && deviceMemory < 4) {
+      // Reduce cache size and concurrent loads for low-memory devices
+      this.config.cacheSize = Math.min(this.config.cacheSize, 50);
+      this.config.maxConcurrentLoads = Math.min(
+        this.config.maxConcurrentLoads,
+        3,
+      );
     }
   }
 
@@ -133,8 +147,8 @@ export class LazyLoadingService {
    * Adapt loading strategy based on current network conditions
    */
   private adaptToNetworkConditions(): void {
-    if ("connection" in navigator) {
-      const connection = (navigator as any).connection;
+    const connection = getNavigatorSignals()?.connection;
+    if (connection) {
       const rtt = connection.rtt || 0;
       const downlink = connection.downlink || 0;
 

@@ -43,8 +43,8 @@ export interface CreateErrorReportData {
 export interface ErrorReportFilters {
   userId?: number;
   restaurantId?: string;
-  errorType?: string;
-  severity?: string;
+  errorType?: CreateErrorReportData["errorType"];
+  severity?: CreateErrorReportData["severity"];
   dateRange?: [Date, Date];
   resolved?: boolean;
 }
@@ -134,11 +134,11 @@ export class ErrorReportingService extends BaseService {
     }
 
     if (filters.errorType) {
-      conditions.push(eq(errorReports.errorType, filters.errorType as any));
+      conditions.push(eq(errorReports.errorType, filters.errorType));
     }
 
     if (filters.severity) {
-      conditions.push(eq(errorReports.severity, filters.severity as any));
+      conditions.push(eq(errorReports.severity, filters.severity));
     }
 
     if (filters.dateRange) {

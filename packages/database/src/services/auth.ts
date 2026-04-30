@@ -3,6 +3,7 @@ import { BaseService } from "./base";
 import { users, sessions } from "../schema";
 import * as bcrypt from "bcryptjs";
 import { sign, verify } from "jsonwebtoken";
+import type { JwtPayload } from "jsonwebtoken";
 
 export interface LoginData {
   username: string;
@@ -31,6 +32,22 @@ export interface RegisterData {
   role: number;
   restaurantId?: string | null;
 }
+
+interface AuthTokenPayload extends JwtPayload {
+  id?: number;
+  userId?: number;
+  type?: string;
+  tv?: number;
+}
+
+const verifyAuthToken = (token: string, secret: string): AuthTokenPayload => {
+  const decoded = verify(token, secret);
+  if (typeof decoded === "string") {
+    throw new Error("Invalid token payload");
+  }
+
+  return decoded as AuthTokenPayload;
+};
 
 export interface SessionData {
   userId: number;
@@ -305,12 +322,18 @@ export class AuthService extends BaseService {
       }
 
       // 驗證 refresh token
-      const decoded = verify(refreshToken, jwtSecret) as any;
+      const decoded = verifyAuthToken(refreshToken, jwtSecret);
 
       if (decoded.type !== "refresh") {
         return {
           success: false,
           error: "Invalid refresh token",
+        };
+      }
+      if (typeof decoded.userId !== "number") {
+        return {
+          success: false,
+          error: "Invalid refresh token payload",
         };
       }
 
@@ -467,7 +490,10 @@ export class AuthService extends BaseService {
       }
 
       // 驗證 JWT
-      const decoded = verify(token, jwtSecret) as any;
+      const decoded = verifyAuthToken(token, jwtSecret);
+      if (typeof decoded.id !== "number") {
+        return { valid: false, error: "Invalid token payload" };
+      }
 
       // 查詢 session 是否有效 (only select needed fields for security and performance)
       const session = await this.db

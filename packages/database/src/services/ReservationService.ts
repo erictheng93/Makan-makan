@@ -22,6 +22,38 @@ import type {
   TableAssignmentResult,
 } from "@makanmakan/shared-types";
 
+interface ReservationDbRow {
+  id: string;
+  restaurant_id: string;
+  customer_id?: number | null;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string | null;
+  party_size: number;
+  reservation_date: string;
+  reservation_time: string;
+  duration_minutes: number;
+  table_id?: number | null;
+  special_requests?: string | null;
+  status: ReservationStatus;
+  confirmation_code?: string | null;
+  notes?: string | null;
+  created_at: number;
+  confirmed_at?: number | null;
+  reminded_at?: number | null;
+  arrived_at?: number | null;
+  seated_at?: number | null;
+  completed_at?: number | null;
+  cancelled_at?: number | null;
+  no_show_at?: number | null;
+  updated_at: number;
+  table?: string | null;
+  customer?: string | null;
+}
+
+const nullToUndefined = <T>(value: T | null | undefined): T | undefined =>
+  value ?? undefined;
+
 /**
  * 訂位系統服務
  * 負責訂位管理、時段容量管理、智能桌位分配
@@ -139,7 +171,7 @@ export class ReservationService extends BaseService {
    */
   async getReservationById(id: string): Promise<ReservationResponse | null> {
     try {
-      const result = await this.db.get(sql`
+      const result = await this.db.get<ReservationDbRow>(sql`
         SELECT
           r.*,
           json_object(
@@ -176,7 +208,7 @@ export class ReservationService extends BaseService {
     confirmationCode: string,
   ): Promise<ReservationResponse | null> {
     try {
-      const result = await this.db.get(sql`
+      const result = await this.db.get<ReservationDbRow>(sql`
         SELECT
           r.*,
           json_object(
@@ -273,7 +305,7 @@ export class ReservationService extends BaseService {
       `);
       const total = countRow?.total ?? 0;
 
-      const rows = (await this.db.all(sql`
+      const rows = await this.db.all<ReservationDbRow>(sql`
         SELECT
           ${reservations}.*,
           json_object(
@@ -286,7 +318,7 @@ export class ReservationService extends BaseService {
         WHERE ${whereExpr}
         ORDER BY ${sortCol} ${sortDir}
         LIMIT ${limit} OFFSET ${offset}
-      `)) as any[];
+      `);
 
       const data = rows.map((r) => this.formatReservationResponse(r));
 
@@ -1040,31 +1072,33 @@ export class ReservationService extends BaseService {
   /**
    * 格式化訂位回應
    */
-  private formatReservationResponse(data: any): ReservationResponse {
+  private formatReservationResponse(
+    data: ReservationDbRow,
+  ): ReservationResponse {
     return {
       id: data.id,
       restaurantId: data.restaurant_id,
-      customerId: data.customer_id,
+      customerId: nullToUndefined(data.customer_id),
       customerName: data.customer_name,
       customerPhone: data.customer_phone,
-      customerEmail: data.customer_email,
+      customerEmail: nullToUndefined(data.customer_email),
       partySize: data.party_size,
       reservationDate: data.reservation_date,
       reservationTime: data.reservation_time,
       durationMinutes: data.duration_minutes,
-      tableId: data.table_id,
-      specialRequests: data.special_requests,
+      tableId: nullToUndefined(data.table_id),
+      specialRequests: nullToUndefined(data.special_requests),
       status: data.status,
-      confirmationCode: data.confirmation_code,
-      notes: data.notes,
+      confirmationCode: data.confirmation_code ?? "",
+      notes: nullToUndefined(data.notes),
       createdAt: data.created_at,
-      confirmedAt: data.confirmed_at,
-      remindedAt: data.reminded_at,
-      arrivedAt: data.arrived_at,
-      seatedAt: data.seated_at,
-      completedAt: data.completed_at,
-      cancelledAt: data.cancelled_at,
-      noShowAt: data.no_show_at,
+      confirmedAt: nullToUndefined(data.confirmed_at),
+      remindedAt: nullToUndefined(data.reminded_at),
+      arrivedAt: nullToUndefined(data.arrived_at),
+      seatedAt: nullToUndefined(data.seated_at),
+      completedAt: nullToUndefined(data.completed_at),
+      cancelledAt: nullToUndefined(data.cancelled_at),
+      noShowAt: nullToUndefined(data.no_show_at),
       updatedAt: data.updated_at,
       table: data.table ? JSON.parse(data.table) : undefined,
       customer: data.customer ? JSON.parse(data.customer) : undefined,

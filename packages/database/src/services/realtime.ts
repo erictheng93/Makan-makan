@@ -7,7 +7,9 @@ interface RealtimeMessage {
     | "order_update"
     | "kitchen_status"
     | "table_notification"
-    | "system_alert";
+    | "system_alert"
+    | "new_order"
+    | "table_request";
   data: any;
   targetType?: "customer" | "admin" | "kitchen";
   targetId?: string;
@@ -90,7 +92,7 @@ export class RealtimeService extends BaseService {
     },
   ): Promise<boolean> {
     return this.broadcast("admin", restaurantId, {
-      type: notification.type as any,
+      type: notification.type,
       data: {
         ...notification.data,
         orderId: notification.orderId,
@@ -193,7 +195,7 @@ export class RealtimeService extends BaseService {
     try {
       // Update database using OrderService
       await this.orderService.updateOrderStatus(parseInt(orderId), {
-        status: newStatus as any,
+        status: newStatus,
       });
 
       // Cache the status

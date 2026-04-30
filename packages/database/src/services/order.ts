@@ -25,6 +25,11 @@ import type {
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
 
+const cancellableOrderStatuses: readonly string[] = [
+  ORDER_STATUS.PENDING,
+  ORDER_STATUS.CONFIRMED,
+];
+
 export interface CreateOrderData {
   restaurantId: string;
   tableId?: number;
@@ -631,11 +636,7 @@ export class OrderService extends BaseService {
         throw new Error("Order not found");
       }
 
-      if (
-        ![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(
-          order.status as any,
-        )
-      ) {
+      if (!cancellableOrderStatuses.includes(order.status)) {
         throw new Error("Order cannot be cancelled");
       }
 

@@ -405,8 +405,9 @@ export class CitizenDriver extends PrinterDriver {
 
     try {
       // 使用 Citizen 增強蜂鳴器
-      const pattern = times === 1 ? "short" : times === 2 ? "double" : "triple";
-      const buzzerCommand = CitizenCommands.buzzerCitizen(pattern as any);
+      const pattern: "short" | "double" | "triple" =
+        times === 1 ? "short" : times === 2 ? "double" : "triple";
+      const buzzerCommand = CitizenCommands.buzzerCitizen(pattern);
       await this.sendRawData(buzzerCommand);
       return true;
     } catch (error) {

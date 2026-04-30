@@ -151,8 +151,10 @@ export class PWAPerformanceMonitor {
       // 監控 LCP (Largest Contentful Paint)
       const lcpObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        const lastEntry = entries[entries.length - 1] as any;
-        this.metrics.firstContentfulPaint = lastEntry.startTime;
+        const lastEntry = entries.at(-1);
+        if (lastEntry) {
+          this.metrics.firstContentfulPaint = lastEntry.startTime;
+        }
       });
       lcpObserver.observe({ entryTypes: ["largest-contentful-paint"] });
       this.observers.push(lcpObserver);
@@ -184,8 +186,8 @@ export class PWAPerformanceMonitor {
    * 監控網路狀態
    */
   private observeNetworkStatus(): void {
-    if ("connection" in navigator) {
-      const connection = (navigator as any).connection;
+    const connection = navigator.connection;
+    if (connection) {
       this.metrics.connectionType = connection.effectiveType || "unknown";
       this.metrics.networkSpeed = connection.downlink || 0;
 
@@ -220,10 +222,12 @@ export class PWAPerformanceMonitor {
    * 監控記憶體使用
    */
   private observeMemoryUsage(): void {
-    if ("memory" in performance) {
+    if (performance.memory) {
       const updateMemoryUsage = () => {
-        const memory = (performance as any).memory;
-        this.metrics.memoryUsage = memory.usedJSHeapSize;
+        const memory = performance.memory;
+        if (memory) {
+          this.metrics.memoryUsage = memory.usedJSHeapSize;
+        }
       };
 
       updateMemoryUsage();

@@ -230,12 +230,17 @@ export class ErrorTracker {
       };
     } else {
       // Create new error
+      const errorWithCode = errorObj as Error & {
+        code?: string | number;
+      };
+      const rawCode = errorWithCode.code;
+
       trackedError = {
         id: errorId,
         message: errorObj.message,
         stack: errorObj.stack,
         name: errorObj.name,
-        code: (errorObj as any).code,
+        code: typeof rawCode === "number" ? String(rawCode) : rawCode,
         severity: options.severity ?? this.categorizeSeverity(errorObj),
         category: options.category ?? this.categorizeError(errorObj),
         context: {

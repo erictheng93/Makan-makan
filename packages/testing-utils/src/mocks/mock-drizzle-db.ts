@@ -78,6 +78,9 @@ export const getTableName = (table: any): string => {
   return "groupOrders";
 };
 
+const hasQueryChunks = (value: unknown): value is { queryChunks: unknown } =>
+  typeof value === "object" && value !== null && "queryChunks" in value;
+
 /**
  * SQL column name → JS property name mapping for common columns.
  */
@@ -460,11 +463,7 @@ export const createOptimizedMockDB = () => {
               const filters = extractFilters(condition);
               const resolvedData: Record<string, any> = {};
               for (const [key, val] of Object.entries(updateData)) {
-                if (
-                  val &&
-                  typeof val === "object" &&
-                  (val as any).queryChunks
-                ) {
+                if (hasQueryChunks(val)) {
                   continue;
                 }
                 resolvedData[key] = val;

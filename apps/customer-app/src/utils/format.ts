@@ -2,11 +2,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/zh-tw";
 import relativeTime from "dayjs/plugin/relativeTime";
 import localizedFormat from "dayjs/plugin/localizedFormat";
-import { i18n } from "@/i18n";
-
-// Helper to avoid vue-i18n's deep type instantiation on t()
-const t = (key: string, named?: Record<string, unknown>): string =>
-  (i18n.global as any).t(key, named) as string;
+import { translate as t } from "@/utils/i18n";
 
 // 設定 dayjs
 dayjs.locale("zh-tw");

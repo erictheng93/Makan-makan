@@ -1,5 +1,10 @@
 import { ref, onMounted, onUnmounted } from "vue";
-import type { WebSocketMessage } from "@makanmakan/shared-types";
+import type {
+  NotificationData,
+  OrderUpdateData,
+  RestaurantStatusData,
+  WebSocketMessage,
+} from "@makanmakan/shared-types";
 
 interface UseWebSocketOptions {
   url?: string;
@@ -242,16 +247,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 }
 
 export function useOrderTracking(orderId: number) {
-  const orderUpdates = ref<any[]>([]);
+  const orderUpdates = ref<OrderUpdateData[]>([]);
   const currentStatus = ref<string>("");
 
   const { isConnected, isConnecting, connect, disconnect } = useWebSocket({
     url: `${import.meta.env.VITE_WS_BASE_URL}/orders/${orderId}/tracking`,
     onMessage: (data: WebSocketMessage) => {
-      if ((data as any).type === "order_update" && (data as any).data) {
-        orderUpdates.value.push((data as any).data);
-        if ((data as any).data.status !== undefined) {
-          currentStatus.value = String((data as any).data.status);
+      if (data.type === "order_update" && data.data) {
+        orderUpdates.value.push(data.data);
+        if (data.data.status !== undefined) {
+          currentStatus.value = String(data.data.status);
         }
       }
     },
@@ -277,21 +282,21 @@ export function useOrderTracking(orderId: number) {
 }
 
 export function useRestaurantStatus(restaurantId: string, tableId?: number) {
-  const restaurantStatus = ref<any>({});
-  const notifications = ref<any[]>([]);
+  const restaurantStatus = ref<Partial<RestaurantStatusData>>({});
+  const notifications = ref<NotificationData[]>([]);
 
   const { isConnected, isConnecting, connect, disconnect } = useWebSocket({
     url: `${import.meta.env.VITE_WS_BASE_URL}/restaurants/${restaurantId}/status`,
     onMessage: (data: WebSocketMessage) => {
-      switch ((data as any).type) {
+      switch (data.type) {
         case "restaurant_status_update":
           restaurantStatus.value = {
             ...restaurantStatus.value,
-            ...(data as any).data,
+            ...data.data,
           };
           break;
         case "notification":
-          notifications.value.push((data as any).data);
+          notifications.value.push(data.data);
           break;
       }
     },

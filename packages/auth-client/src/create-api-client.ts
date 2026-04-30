@@ -1,5 +1,9 @@
 import axios from "axios";
-import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import type {
+  AxiosError,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+} from "axios";
 import { createPrefixedStorage } from "./storage";
 import { createTokenManager } from "./create-token-manager";
 import type { ApiClient, AuthClientConfig, CsrfConfig } from "./types";
@@ -59,10 +63,15 @@ export function createAuthenticatedApiClient(
       if (!rt) return null;
 
       try {
-        const response = await instance.post("/auth/refresh", {}, {
+        const refreshConfig: AxiosRequestConfig & { _retry?: boolean } = {
           headers: { "X-Refresh-Token": rt },
           _retry: true, // skip 401 interceptor for the refresh call itself
-        } as any);
+        };
+        const response = await instance.post(
+          "/auth/refresh",
+          {},
+          refreshConfig,
+        );
 
         const data = response.data?.data;
         if (data?.token) {

@@ -84,12 +84,13 @@ export class ESCPOSCommands {
    */
   static printBarcode(
     data: string,
-    type: "CODE128" | "CODE39" | "EAN13" = "CODE128",
+    type: "CODE128" | "CODE39" | "EAN13" | "EAN8" = "CODE128",
   ): string {
     const barcodeTypes = {
       CODE128: 73,
       CODE39: 69,
       EAN13: 67,
+      EAN8: 68,
     };
 
     return (

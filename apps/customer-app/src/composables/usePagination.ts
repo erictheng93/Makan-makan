@@ -73,24 +73,21 @@ export function useInfiniteScroll<T>(
     if (!networkAware) return true;
     if (!isOnline.value) return false;
 
-    // Check connection type if available
-    if ("connection" in navigator) {
-      const conn = (navigator as any).connection;
-      if (conn) {
-        // Don't auto-load on slow connections
-        if (conn.effectiveType === "2g" || conn.effectiveType === "slow-2g") {
-          console.log(
-            "[InfiniteScroll] Slow connection detected, skipping auto-load",
-          );
-          return false;
-        }
-        // Respect data saver mode
-        if (conn.saveData) {
-          console.log(
-            "[InfiniteScroll] Data saver mode detected, skipping auto-load",
-          );
-          return false;
-        }
+    const conn = navigator.connection;
+    if (conn) {
+      // Don't auto-load on slow connections
+      if (conn.effectiveType === "2g" || conn.effectiveType === "slow-2g") {
+        console.log(
+          "[InfiniteScroll] Slow connection detected, skipping auto-load",
+        );
+        return false;
+      }
+      // Respect data saver mode
+      if (conn.saveData) {
+        console.log(
+          "[InfiniteScroll] Data saver mode detected, skipping auto-load",
+        );
+        return false;
       }
     }
 

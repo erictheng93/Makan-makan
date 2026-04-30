@@ -452,14 +452,32 @@ export function downloadExportedFile(
   filename: string,
   mimeType: string,
 ): void {
-  // Type assertion for browser environment check
-  const global = globalThis as any;
+  type DownloadAnchor = {
+    href: string;
+    download: string;
+    click(): void;
+  };
+
+  type BrowserGlobal = typeof globalThis & {
+    window?: {
+      URL: {
+        createObjectURL(blob: Blob): string;
+        revokeObjectURL(url: string): void;
+      };
+    };
+    document?: {
+      createElement(tagName: "a"): DownloadAnchor;
+      body: {
+        appendChild(node: DownloadAnchor): void;
+        removeChild(node: DownloadAnchor): void;
+      };
+    };
+  };
+
+  const global = globalThis as BrowserGlobal;
 
   // Check if we're in a browser environment
-  if (
-    typeof global.window === "undefined" ||
-    typeof global.document === "undefined"
-  ) {
+  if (!global.window || !global.document) {
     throw new Error(
       "downloadExportedFile is only available in browser environments",
     );

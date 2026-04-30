@@ -107,6 +107,19 @@ export interface PerformanceMonitorOptions {
   debug?: boolean;
 }
 
+type PerformanceWithTiming = Performance & {
+  readonly timing?: PerformanceTiming;
+};
+
+type FirstInputPerformanceEntry = PerformanceEntry & {
+  readonly processingStart: number;
+};
+
+type LayoutShiftPerformanceEntry = PerformanceEntry & {
+  readonly hadRecentInput?: boolean;
+  readonly value: number;
+};
+
 export class PerformanceMonitor {
   private options: Required<Omit<PerformanceMonitorOptions, "onReport">> &
     Pick<PerformanceMonitorOptions, "onReport">;
@@ -188,7 +201,7 @@ export class PerformanceMonitor {
    */
   mark(name: string): void {
     if (!this.options.enabled) return;
-    (performance as any).mark(name);
+    performance.mark(name);
   }
 
   /**
@@ -198,8 +211,8 @@ export class PerformanceMonitor {
     if (!this.options.enabled) return;
 
     try {
-      (performance as any).measure(name, startMark, endMark);
-      const measure = (performance as any).getEntriesByName(name, "measure")[0];
+      performance.measure(name, startMark, endMark);
+      const measure = performance.getEntriesByName(name, "measure")[0];
 
       if (measure) {
         this.trackMetric({
@@ -233,9 +246,9 @@ export class PerformanceMonitor {
   getResourceTimings(): ResourceTiming[] {
     if (!this.options.trackResources) return [];
 
-    const resources = (performance as any).getEntriesByType(
+    const resources = performance.getEntriesByType(
       "resource",
-    ) as any[];
+    ) as PerformanceResourceTiming[];
 
     return resources.map((resource) => ({
       name: resource.name,
@@ -283,8 +296,8 @@ export class PerformanceMonitor {
   clear(): void {
     this.metrics = [];
     this.webVitals = {};
-    (performance as any).clearMarks();
-    (performance as any).clearMeasures();
+    performance.clearMarks();
+    performance.clearMeasures();
   }
 
   /**
@@ -335,7 +348,7 @@ export class PerformanceMonitor {
           }
 
           if (entry.entryType === "first-input") {
-            const fidEntry = entry as any;
+            const fidEntry = entry as FirstInputPerformanceEntry;
             this.webVitals.FID = fidEntry.processingStart - fidEntry.startTime;
             this.trackMetric({
               name: "FID",
@@ -346,9 +359,11 @@ export class PerformanceMonitor {
 
           if (
             entry.entryType === "layout-shift" &&
-            !(entry as any).hadRecentInput
+            !(entry as LayoutShiftPerformanceEntry).hadRecentInput
           ) {
-            const currentCLS = (this.webVitals.CLS || 0) + (entry as any).value;
+            const currentCLS =
+              (this.webVitals.CLS || 0) +
+              (entry as LayoutShiftPerformanceEntry).value;
             this.webVitals.CLS = currentCLS;
             this.trackMetric({ name: "CLS", value: currentCLS, unit: "score" });
           }
@@ -382,10 +397,9 @@ export class PerformanceMonitor {
     }
 
     // Track TTFB from Navigation Timing
-    if ((performance as any).timing) {
-      const ttfb =
-        (performance as any).timing.responseStart -
-        (performance as any).timing.requestStart;
+    const timing = (performance as PerformanceWithTiming).timing;
+    if (timing) {
+      const ttfb = timing.responseStart - timing.requestStart;
       this.webVitals.TTFB = ttfb;
       this.trackMetric({ name: "TTFB", value: ttfb, unit: "ms" });
     }

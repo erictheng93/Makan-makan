@@ -55,6 +55,15 @@ const defaultOptions: LazyLoadingPluginOptions = {
   injectStyles: true,
 };
 
+interface PerformanceMemoryLike {
+  readonly usedJSHeapSize: number;
+  readonly totalJSHeapSize: number;
+}
+
+type PerformanceWithMemory = Performance & {
+  readonly memory?: PerformanceMemoryLike;
+};
+
 export default {
   install(app: App, options?: LazyLoadingPluginOptions) {
     const finalOptions = { ...defaultOptions, ...options };
@@ -281,9 +290,12 @@ function setupPerformanceMonitoring(): void {
   }
 
   // Monitor memory usage
-  if ("memory" in performance) {
+  const performanceWithMemory = performance as PerformanceWithMemory;
+  if (performanceWithMemory.memory) {
     setInterval(() => {
-      const memory = (performance as any).memory;
+      const memory = performanceWithMemory.memory;
+      if (!memory) return;
+
       const usedMemory = memory.usedJSHeapSize / memory.totalJSHeapSize;
 
       // Reduce cache size if memory usage is high

@@ -11,6 +11,7 @@ import { mount, type VueWrapper } from "@vue/test-utils";
 import { createTestingPinia, type TestingOptions } from "@pinia/testing";
 import { vi } from "vitest";
 import type { ComponentMountingOptions } from "@vue/test-utils";
+import type { Component } from "vue";
 import type { Router } from "vue-router";
 
 /**
@@ -35,8 +36,8 @@ export interface MountWithPluginsOptions<
  *   }
  * });
  */
-export function mountWithPlugins<T>(
-  component: T,
+export function mountWithPlugins(
+  component: Component,
   options: MountWithPluginsOptions = {},
 ): VueWrapper<any> {
   const { router, piniaOptions = {}, ...mountOptions } = options;
@@ -78,7 +79,7 @@ export function mountWithPlugins<T>(
     },
   };
 
-  return mount(component as any, mergedOptions);
+  return mount(component, mergedOptions);
 }
 
 /**

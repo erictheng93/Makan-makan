@@ -2,9 +2,9 @@ import { sql, type SQL } from "drizzle-orm";
 import { BaseService } from "./base";
 import { tables as restaurantTables } from "../schema/tables";
 import { waitingList } from "../schema/waiting-list";
+import { WaitingStatus } from "@makanmakan/shared-types";
 import type {
   WaitingListEntry,
-  WaitingStatus,
   JoinWaitingListRequest,
   WaitingListFilters,
   WaitingListResponse,
@@ -28,6 +28,70 @@ const DEFAULT_TURNOVER_MINUTES = 45;
 const DEFAULT_WAIT_MINUTES = 30;
 
 type TableStatusAction = "reserved" | "occupied" | "available";
+
+interface WaitingListDbRow {
+  id: string;
+  restaurant_id: string;
+  customer_id?: number | null;
+  customer_name: string;
+  customer_phone: string;
+  party_size: number;
+  preferred_table_type?: string | null;
+  queue_number: number;
+  queue_letter?: string | null;
+  priority: number;
+  estimated_wait_minutes?: number | null;
+  table_id?: number | null;
+  status: WaitingStatus;
+  notes?: string | null;
+  created_at: number;
+  called_at?: number | null;
+  notified_at?: number | null;
+  confirmed_at?: number | null;
+  seated_at?: number | null;
+  cancelled_at?: number | null;
+  expired_at?: number | null;
+  timeout_at?: number | null;
+  updated_at: number;
+  table?: string | null;
+}
+
+interface AvailableTableRow {
+  id: number;
+  table_number?: string | null;
+  capacity: number;
+}
+
+interface WaitingStatsRow {
+  total_waiting?: number | null;
+  seated_count?: number | null;
+  expired_count?: number | null;
+  cancelled_count?: number | null;
+  avg_wait_minutes?: number | null;
+  expire_rate?: number | null;
+}
+
+interface QueueNumberRow {
+  max_number?: number | null;
+}
+
+interface CountRow {
+  count?: number | null;
+}
+
+interface WaitingPartySizeRow {
+  id: string;
+  party_size: number;
+}
+
+const getMutationChanges = (result: unknown): number => {
+  if (typeof result !== "object" || result === null || !("meta" in result)) {
+    return 0;
+  }
+
+  const meta = (result as { meta?: { changes?: unknown } }).meta;
+  return typeof meta?.changes === "number" ? meta.changes : 0;
+};
 
 export class WaitingListService extends BaseService {
   private reservationService: ReservationService;
@@ -86,13 +150,13 @@ export class WaitingListService extends BaseService {
       this.validateWaitingListData(data);
 
       // 2. 檢查是否已在候位中（防止重複排隊）
-      const existingEntry = (await this.db.get(sql`
+      const existingEntry = await this.db.get<{ id: string }>(sql`
         SELECT id FROM waiting_list
         WHERE restaurant_id = ${data.restaurantId}
           AND customer_phone = ${data.customerPhone}
           AND status IN ('waiting', 'called', 'confirmed')
           AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
-      `)) as any;
+      `);
 
       if (existingEntry) {
         throw new Error("您已在候位列表中");
@@ -190,7 +254,7 @@ export class WaitingListService extends BaseService {
     id: string,
   ): Promise<WaitingListResponse | null> {
     try {
-      const result = (await this.db.get(sql`
+      const result = await this.db.get<WaitingListDbRow>(sql`
         SELECT
           w.*,
           json_object(
@@ -201,7 +265,7 @@ export class WaitingListService extends BaseService {
         FROM waiting_list w
         LEFT JOIN tables t ON w.table_id = t.id
         WHERE w.id = ${id}
-      `)) as any;
+      `);
 
       if (!result) return null;
 
@@ -278,7 +342,7 @@ export class WaitingListService extends BaseService {
 
       const total = countResult?.total || 0;
 
-      const results = (await this.db.all(sql`
+      const results = await this.db.all<WaitingListDbRow>(sql`
         SELECT
           ${waitingList}.*,
           json_object(
@@ -298,7 +362,7 @@ export class WaitingListService extends BaseService {
           END,
           ${waitingList.queueNumber} ASC
         LIMIT ${limit} OFFSET ${offset}
-      `)) as any[];
+      `);
 
       const data = await Promise.all(
         results.map(async (r) => {
@@ -338,12 +402,12 @@ export class WaitingListService extends BaseService {
       }
 
       // 驗證桌位
-      const table = (await this.db.get(sql`
+      const table = await this.db.get<AvailableTableRow>(sql`
         SELECT * FROM tables
         WHERE id = ${request.tableId}
           AND restaurant_id = ${entry.restaurantId}
           AND is_occupied = 0
-      `)) as any;
+      `);
 
       if (!table) {
         throw new Error("桌位不可用");
@@ -365,7 +429,7 @@ export class WaitingListService extends BaseService {
             updated_at = ${now}
         WHERE id = ${id} AND status = 'waiting'
       `);
-      if ((callResult as any)?.meta?.changes === 0) {
+      if (getMutationChanges(callResult) === 0) {
         throw new Error("叫號失敗：狀態已被其他操作更新，請刷新");
       }
 
@@ -420,7 +484,7 @@ export class WaitingListService extends BaseService {
             updated_at = ${now}
         WHERE id = ${id} AND status = 'called'
       `);
-      if ((confirmResult as any)?.meta?.changes === 0) {
+      if (getMutationChanges(confirmResult) === 0) {
         throw new Error("確認失敗：狀態已被其他操作更新，請刷新");
       }
 
@@ -454,7 +518,7 @@ export class WaitingListService extends BaseService {
             updated_at = ${now}
         WHERE id = ${id} AND (status = 'called' OR status = 'confirmed')
       `);
-      if ((seatResult as any)?.meta?.changes === 0) {
+      if (getMutationChanges(seatResult) === 0) {
         throw new Error("入座失敗：狀態已被其他操作更新，請刷新");
       }
 
@@ -499,7 +563,7 @@ export class WaitingListService extends BaseService {
             updated_at = ${now}
         WHERE id = ${id} AND status IN ('waiting', 'called', 'confirmed')
       `);
-      if ((cancelResult as any)?.meta?.changes === 0) {
+      if (getMutationChanges(cancelResult) === 0) {
         throw new Error("取消失敗：狀態已被其他操作更新，請刷新");
       }
 
@@ -542,7 +606,7 @@ export class WaitingListService extends BaseService {
             updated_at = ${now}
         WHERE id = ${id} AND status IN ('waiting', 'called', 'confirmed')
       `);
-      if ((expireResult as any)?.meta?.changes === 0) {
+      if (getMutationChanges(expireResult) === 0) {
         throw new Error("過期標記失敗：狀態已被其他操作更新，請刷新");
       }
 
@@ -584,7 +648,7 @@ export class WaitingListService extends BaseService {
     partySize: number,
     excludeTableIds: number[] = [],
   ): Promise<TableAssignmentResult | null> {
-    const table = (await this.db.get(sql`
+    const table = await this.db.get<AvailableTableRow>(sql`
       SELECT id, table_number, capacity
       FROM tables
       WHERE restaurant_id = ${restaurantId}
@@ -594,7 +658,7 @@ export class WaitingListService extends BaseService {
         AND capacity >= ${partySize}
       ORDER BY capacity ASC, id ASC
       LIMIT 1
-    `)) as any;
+    `);
 
     if (!table) return null;
 
@@ -628,7 +692,7 @@ export class WaitingListService extends BaseService {
   > {
     const { data: waitingList } = await this.listWaitingList({
       restaurantId,
-      status: "waiting" as any,
+      status: WaitingStatus.WAITING,
       limit: count,
     });
 
@@ -882,7 +946,7 @@ export class WaitingListService extends BaseService {
       }
 
       const whereExpr = sql.join(conditions, sql` AND `);
-      const result = (await this.db.get(sql`
+      const result = await this.db.get<WaitingStatsRow>(sql`
         SELECT
           COUNT(*) as total_waiting,
           SUM(CASE WHEN ${waitingList.status} = 'seated' THEN 1 ELSE 0 END) as seated_count,
@@ -897,7 +961,7 @@ export class WaitingListService extends BaseService {
           ROUND(CAST(SUM(CASE WHEN ${waitingList.status} = 'expired' THEN 1 ELSE 0 END) AS REAL) / NULLIF(COUNT(*), 0) * 100, 2) as expire_rate
         FROM ${waitingList}
         WHERE ${whereExpr}
-      `)) as any;
+      `);
 
       return {
         restaurantId,
@@ -952,13 +1016,13 @@ export class WaitingListService extends BaseService {
       }
 
       // 查詢今日該類型最大號碼
-      const result = (await this.db.get(sql`
+      const result = await this.db.get<QueueNumberRow>(sql`
         SELECT MAX(queue_number) as max_number
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
           AND queue_letter = ${letter}
           AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
-      `)) as any;
+      `);
 
       const maxNumber = result?.max_number || 0;
       const nextNumber = maxNumber + 1;
@@ -979,7 +1043,7 @@ export class WaitingListService extends BaseService {
     partySize: number,
   ): Promise<number> {
     try {
-      const result = (await this.db.get(sql`
+      const result = await this.db.get<CountRow>(sql`
         SELECT COUNT(*) as count
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
@@ -987,7 +1051,7 @@ export class WaitingListService extends BaseService {
           AND queue_number < ${queueNumber}
           AND party_size <= ${partySize + 2}
           AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
-      `)) as any;
+      `);
 
       return result?.count || 0;
     } catch (error) {
@@ -1002,14 +1066,14 @@ export class WaitingListService extends BaseService {
   private async recalculateWaitTimes(restaurantId: string): Promise<void> {
     try {
       // 取得所有等待中的候位
-      const waitingEntries = (await this.db.all(sql`
+      const waitingEntries = await this.db.all<WaitingPartySizeRow>(sql`
         SELECT id, party_size
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
           AND status = 'waiting'
           AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
         ORDER BY queue_number ASC
-      `)) as any[];
+      `);
 
       // 更新每個候位的預估時間
       for (const entry of waitingEntries) {

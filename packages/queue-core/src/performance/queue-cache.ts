@@ -215,6 +215,10 @@ export class QueueCache {
 /**
  * Cache decorator for queue methods
  */
+interface CacheOwner {
+  cache?: QueueCache;
+}
+
 export function cached(keyGenerator: (args: any[]) => CacheKey, ttl?: number) {
   return function (
     _target: any,
@@ -224,7 +228,7 @@ export function cached(keyGenerator: (args: any[]) => CacheKey, ttl?: number) {
     const method = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const cache: QueueCache = (this as any).cache || new QueueCache();
+      const cache = (this as CacheOwner).cache || new QueueCache();
       const cacheKey = keyGenerator(args);
 
       // Try to get from cache first
@@ -262,7 +266,7 @@ export function invalidateCache(tagGenerator: (args: any[]) => string[]) {
 
       // Invalidate cache if operation was successful
       if (result && result.success) {
-        const cache: QueueCache = (this as any).cache || new QueueCache();
+        const cache = (this as CacheOwner).cache || new QueueCache();
         const tags = tagGenerator(args);
         cache.invalidateByTags(tags);
       }

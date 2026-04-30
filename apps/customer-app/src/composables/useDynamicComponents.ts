@@ -152,17 +152,15 @@ export function useAdaptiveComponent(
   options: AsyncComponentOptions = {},
 ) {
   const getConnectionSpeed = (): "slow" | "fast" => {
-    if ("connection" in navigator) {
-      const conn = (navigator as any).connection;
-      if (conn) {
-        // 2G or slow-2g = slow
-        if (conn.effectiveType === "2g" || conn.effectiveType === "slow-2g") {
-          return "slow";
-        }
-        // saveData mode = slow
-        if (conn.saveData) {
-          return "slow";
-        }
+    const conn = navigator.connection;
+    if (conn) {
+      // 2G or slow-2g = slow
+      if (conn.effectiveType === "2g" || conn.effectiveType === "slow-2g") {
+        return "slow";
+      }
+      // saveData mode = slow
+      if (conn.saveData) {
+        return "slow";
       }
     }
     return "fast";
@@ -194,11 +192,7 @@ export function useComponentMetrics(componentName: string) {
   const startTime = performance.now();
 
   const getConnectionType = (): string => {
-    if ("connection" in navigator) {
-      const conn = (navigator as any).connection;
-      return conn?.effectiveType || "unknown";
-    }
-    return "unknown";
+    return navigator.connection?.effectiveType || "unknown";
   };
 
   const recordSuccess = (cacheHit = false) => {

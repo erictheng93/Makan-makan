@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import type { PluginOption } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
@@ -16,7 +17,7 @@ export default defineConfig({
             open: true,
             gzipSize: true,
             brotliSize: true,
-          }) as any,
+          }) as PluginOption,
         ]
       : []),
     VitePWA({

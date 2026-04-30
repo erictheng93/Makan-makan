@@ -434,8 +434,8 @@ const toggleFlash = async () => {
   try {
     const track = stream.value.getVideoTracks()[0];
     await track.applyConstraints({
-      advanced: [{ torch: !flashOn.value } as any],
-    } as any);
+      advanced: [{ torch: !flashOn.value }],
+    });
     flashOn.value = !flashOn.value;
   } catch (error) {
     console.error("切換閃光燈失敗:", error);

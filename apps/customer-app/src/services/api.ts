@@ -4,7 +4,7 @@ import type {
   ApiErrorCode,
   PaginatedResponse,
 } from "@makanmakan/shared-types";
-import { i18n } from "@/i18n";
+import { translate } from "@/utils/i18n";
 
 // API 配置
 const getApiBaseUrl = (): string => {
@@ -133,7 +133,7 @@ class ApiClient {
         if (!error.response) {
           throw new ApiException(
             "NETWORK_ERROR" as ApiErrorCode,
-            (i18n.global as any).t("messages.networkError"),
+            translate("messages.networkError"),
             error.message,
           );
         }
@@ -145,7 +145,7 @@ class ApiClient {
           await this.handleAuthError();
           throw new ApiException(
             "UNAUTHORIZED" as ApiErrorCode,
-            (i18n.global as any).t("messages.sessionExpired"),
+            translate("messages.sessionExpired"),
             data,
             status,
           );
@@ -214,21 +214,18 @@ class ApiClient {
   }
 
   private getErrorMessage(status: number): string {
-    const t = (i18n.global as any).t.bind(i18n.global) as (
-      key: string,
-    ) => string;
     const messages: Record<number, string> = {
-      400: t("errors.badRequest"),
-      403: t("errors.forbidden"),
-      404: t("errors.notFoundResource"),
-      409: t("errors.conflict"),
-      429: t("errors.tooManyRequests"),
-      500: t("errors.internalServerError"),
-      502: t("errors.badGateway"),
-      503: t("errors.serviceUnavailable"),
-      504: t("errors.gatewayTimeout"),
+      400: translate("errors.badRequest"),
+      403: translate("errors.forbidden"),
+      404: translate("errors.notFoundResource"),
+      409: translate("errors.conflict"),
+      429: translate("errors.tooManyRequests"),
+      500: translate("errors.internalServerError"),
+      502: translate("errors.badGateway"),
+      503: translate("errors.serviceUnavailable"),
+      504: translate("errors.gatewayTimeout"),
     };
-    return messages[status] || t("errors.unknown");
+    return messages[status] || translate("errors.unknown");
   }
 
   // 通用請求方法
@@ -244,7 +241,7 @@ class ApiClient {
       }
       throw new ApiException(
         "INTERNAL_SERVER_ERROR" as ApiErrorCode,
-        (i18n.global as any).t("errors.requestFailed"),
+        translate("errors.requestFailed"),
         error,
       );
     }
@@ -353,5 +350,5 @@ export const handleApiError = (error: unknown): string => {
     return error.message;
   }
 
-  return (i18n.global as any).t("errors.unknown");
+  return translate("errors.unknown");
 };

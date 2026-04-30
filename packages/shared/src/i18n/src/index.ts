@@ -183,7 +183,7 @@ export function createAppI18n<
     legacy: false,
     locale,
     fallbackLocale: "en-US",
-    messages: {} as any, // Will be loaded dynamically
+    messages: {} as NonNullable<I18nOptions["messages"]>, // Will be loaded dynamically
     silentTranslationWarn: false,
     silentFallbackWarn: false,
     ...options,
@@ -210,7 +210,7 @@ export function createI18nComposable(i18nInstance: I18n) {
         i18nInstance.global.setLocaleMessage(locale, messages);
         if (typeof i18nInstance.global.locale === "string") {
           // For legacy mode
-          (i18nInstance.global.locale as any) = locale;
+          (i18nInstance.global as { locale: SupportedLocale }).locale = locale;
         } else {
           // For composition mode
           i18nInstance.global.locale.value = locale;

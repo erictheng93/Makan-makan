@@ -538,13 +538,13 @@ export class EpsonDriver extends PrinterDriver {
     // QR Code
     if (footer.qrCode) {
       commands.push(ESCPOSCommands.lineFeed());
-      const qrSize =
+      const qrSize: 3 | 4 | 6 =
         footer.qrCode.size === "small"
           ? 3
           : footer.qrCode.size === "large"
             ? 6
             : 4;
-      commands.push(ESCPOSCommands.qrCode(footer.qrCode.data, qrSize as any));
+      commands.push(ESCPOSCommands.qrCode(footer.qrCode.data, qrSize));
 
       if (footer.qrCode.label) {
         commands.push(ESCPOSCommands.textLine(footer.qrCode.label));

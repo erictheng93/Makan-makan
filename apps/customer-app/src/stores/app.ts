@@ -1,12 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { Restaurant } from "@makanmakan/shared-types";
-import { i18n } from "@/i18n";
-
-// Helper to avoid deep type inference issues with vue-i18n
-
-const translate = (key: string): string =>
-  (i18n.global as any).t(key) as string;
+import { translate } from "@/utils/i18n";
 
 export const useAppStore = defineStore("app", () => {
   // State

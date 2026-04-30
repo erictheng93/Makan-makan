@@ -50,6 +50,10 @@ export interface GuestOrderResponse {
   tokenExpiresAt: string;
 }
 
+interface GuestOrderEnvelope {
+  order: Order;
+}
+
 export interface GuestRealtimeTokenRequest {
   restaurantId: string;
   tableId: string;
@@ -95,9 +99,11 @@ export const orderApi = {
    * 獲取訪客訂單詳情 (uses guest token from localStorage)
    */
   async getGuestOrder(orderId: number): Promise<Order> {
-    const response = await apiClient.get<Order>(`/guest-orders/${orderId}`);
+    const response = await apiClient.get<Order | GuestOrderEnvelope>(
+      `/guest-orders/${orderId}`,
+    );
     // API wraps in { order }, unwrap it
-    return (response as any).order || response;
+    return "order" in response ? response.order : response;
   },
 
   async getGuestRealtimeToken(

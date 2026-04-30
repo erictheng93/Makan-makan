@@ -348,13 +348,14 @@ class CustomerBackgroundSyncService {
   }
 
   private async registerBackgroundSync(tag: string): Promise<void> {
-    if (
-      "serviceWorker" in navigator &&
-      "sync" in (window as any).ServiceWorkerRegistration.prototype
-    ) {
+    if ("serviceWorker" in navigator) {
       try {
         const registration = await navigator.serviceWorker.ready;
-        await (registration as any).sync.register(tag);
+        if (!registration.sync) {
+          return;
+        }
+
+        await registration.sync.register(tag);
         console.log(`[Background Sync] Registered background sync: ${tag}`);
       } catch (error) {
         console.error(
