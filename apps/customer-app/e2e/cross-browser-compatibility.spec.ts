@@ -226,10 +226,18 @@ test.describe("跨瀏覽器相容性測試", () => {
   test("功能降級處理", async ({ page }) => {
     // 模擬舊瀏覽器環境
     await page.addInitScript(() => {
+      type LegacyWindow = Window & {
+        fetch?: typeof fetch;
+        Promise?: PromiseConstructor;
+        IntersectionObserver?: typeof IntersectionObserver;
+        XMLHttpRequest?: typeof XMLHttpRequest;
+      };
+      const legacyWindow = window as LegacyWindow;
+
       // 移除現代 API
-      delete (window as any).fetch;
-      delete (window as any).Promise;
-      delete (window as any).IntersectionObserver;
+      delete legacyWindow.fetch;
+      delete legacyWindow.Promise;
+      delete legacyWindow.IntersectionObserver;
 
       // 模擬舊版 CSS 支援
       const _originalSupports = CSS.supports;
@@ -240,7 +248,12 @@ test.describe("跨瀏覽器相容性測試", () => {
 
     // 檢查是否有適當的 polyfill 載入
     const hasPolyfills = await page.evaluate(() => {
-      return !!(window as any).fetch || !!(window as any).XMLHttpRequest;
+      type LegacyWindow = Window & {
+        fetch?: typeof fetch;
+        XMLHttpRequest?: typeof XMLHttpRequest;
+      };
+      const legacyWindow = window as LegacyWindow;
+      return !!legacyWindow.fetch || !!legacyWindow.XMLHttpRequest;
     });
 
     expect(hasPolyfills).toBe(true);

@@ -30,7 +30,7 @@ describe("AdvancedAnalyticsService", () => {
     service = new AdvancedAnalyticsService(
       mockAnalyticsEngine,
       mockContext,
-      mockEnv as any,
+      mockEnv as unknown as ApiTestEnv,
     );
   });
 
@@ -331,7 +331,9 @@ describe("Advanced Analytics Middleware", () => {
     let analyticsService: any;
 
     app.get("/check-analytics", (c) => {
-      analyticsService = (c as any).get("analytics");
+      analyticsService = (c as unknown as ApiTestContextWithEnv).get(
+        "analytics",
+      );
       return c.json({ success: true });
     });
 
@@ -398,7 +400,7 @@ describe("Analytics Helper Functions", () => {
     service = new AdvancedAnalyticsService(
       mockAnalyticsEngine,
       mockContext,
-      mockEnv as any,
+      mockEnv as unknown as ApiTestEnv,
     );
   });
 

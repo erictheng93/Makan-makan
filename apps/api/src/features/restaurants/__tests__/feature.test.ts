@@ -334,7 +334,7 @@ describe("RestaurantsService", () => {
       vi.spyOn(
         service["dbService"],
         "searchNearbyRestaurants",
-      ).mockResolvedValue(nearbyRestaurants as any);
+      ).mockResolvedValue(nearbyRestaurants as never);
 
       const result = await service.searchNearbyRestaurants("Test District", 5);
 
@@ -364,7 +364,7 @@ describe("RestaurantsService", () => {
     it("should get popular restaurants successfully", async () => {
       const popularRestaurants = [mockRestaurant];
       vi.spyOn(service["dbService"], "getPopularRestaurants").mockResolvedValue(
-        popularRestaurants as any,
+        popularRestaurants as never,
       );
 
       const result = await service.getPopularRestaurants(5);

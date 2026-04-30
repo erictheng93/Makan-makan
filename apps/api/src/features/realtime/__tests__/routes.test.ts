@@ -95,7 +95,7 @@ function attachGlobalErrorHandler(app: Hono<any>) {
             message: ErrorSanitizer.sanitizeMessage(err.message),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
 
@@ -110,7 +110,7 @@ function attachGlobalErrorHandler(app: Hono<any>) {
           message: sanitized.message,
         },
       },
-      status as any,
+      status as never,
     );
   });
 }
@@ -146,9 +146,9 @@ describe("Realtime Routes", () => {
       REALTIME_JWT_SECRET:
         "test-realtime-secret-key-at-least-32-chars-long-for-security",
       API_VERSION: "1.0.0",
-      DB: mockDb as any,
-      CACHE_KV: mockKV as any,
-      TOKEN_BLACKLIST: mockKV as any,
+      DB: mockDb as never,
+      CACHE_KV: mockKV as never,
+      TOKEN_BLACKLIST: mockKV as never,
       REALTIME_SERVICE_URL: "http://localhost:8788",
     };
 
@@ -180,7 +180,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data?.token).toBeDefined();
       expect(data.data?.expiresIn).toBe(300);
@@ -240,7 +240,7 @@ describe("Realtime Routes", () => {
         mockEnv as Env,
       );
 
-      const tokenData = (await tokenResponse.json()) as any;
+      const tokenData = (await tokenResponse.json()) as ApiTestResponse;
       const token = tokenData.data?.token;
 
       if (token) {
@@ -255,7 +255,7 @@ describe("Realtime Routes", () => {
         );
 
         expect(verifyResponse.status).toBe(200);
-        const data = (await verifyResponse.json()) as any;
+        const data = (await verifyResponse.json()) as ApiTestResponse;
         expect(data.success).toBe(true);
         expect(data.data?.valid).toBe(true);
       }
@@ -273,7 +273,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(response.status).toBe(401);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
     });
 
@@ -303,7 +303,7 @@ describe("Realtime Routes", () => {
         mockEnv as Env,
       );
 
-      const tokenData = (await tokenResponse.json()) as any;
+      const tokenData = (await tokenResponse.json()) as ApiTestResponse;
       const token = tokenData.data?.token;
 
       if (token) {
@@ -318,7 +318,7 @@ describe("Realtime Routes", () => {
         );
 
         expect(verifyResponse.status).toBe(401);
-        const data = (await verifyResponse.json()) as any;
+        const data = (await verifyResponse.json()) as ApiTestResponse;
         expect(data.success).toBe(false);
       }
     });
@@ -360,7 +360,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data?.token).toBeDefined();
       expect(data.data?.wsUrl).toContain("/customer/order:123");
@@ -380,7 +380,7 @@ describe("Realtime Routes", () => {
         },
         mockEnv as Env,
       );
-      const tokenData = (await tokenResponse.json()) as any;
+      const tokenData = (await tokenResponse.json()) as ApiTestResponse;
 
       const verifyResponse = await app.request(
         "/realtime/auth/verify",
@@ -396,7 +396,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(verifyResponse.status).toBe(200);
-      const data = (await verifyResponse.json()) as any;
+      const data = (await verifyResponse.json()) as ApiTestResponse;
       expect(data.data?.payload?.scope).toBe("guest-realtime");
       expect(data.data?.payload?.orderId).toBe("123");
     });
@@ -415,7 +415,7 @@ describe("Realtime Routes", () => {
         },
         mockEnv as Env,
       );
-      const tokenData = (await tokenResponse.json()) as any;
+      const tokenData = (await tokenResponse.json()) as ApiTestResponse;
 
       const verifyResponse = await app.request(
         "/realtime/auth/verify",
@@ -447,7 +447,7 @@ describe("Realtime Routes", () => {
         },
         mockEnv as Env,
       );
-      const tokenData = (await tokenResponse.json()) as any;
+      const tokenData = (await tokenResponse.json()) as ApiTestResponse;
 
       const verifyResponse = await app.request(
         "/realtime/auth/verify",
@@ -502,7 +502,7 @@ describe("Realtime Routes", () => {
         mockEnv as Env,
       );
 
-      const tokenData = (await tokenResponse.json()) as any;
+      const tokenData = (await tokenResponse.json()) as ApiTestResponse;
       const token = tokenData.data?.token;
 
       if (token) {
@@ -520,7 +520,7 @@ describe("Realtime Routes", () => {
         );
 
         expect(revokeResponse.status).toBe(200);
-        const data = (await revokeResponse.json()) as any;
+        const data = (await revokeResponse.json()) as ApiTestResponse;
         expect(data.success).toBe(true);
         expect(data.data?.revoked).toBe(true);
         expect(mockKV.put).toHaveBeenCalled();
@@ -612,7 +612,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data?.revokedCount).toBe(3);
     });
@@ -649,7 +649,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data?.available).toBe(true);
     });
@@ -666,7 +666,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
     });
 
@@ -719,7 +719,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
     });
 
@@ -735,7 +735,7 @@ describe("Realtime Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.data?.status).toBe("degraded");
       expect(data.data?.realtimeService).toBe("unreachable");
     });

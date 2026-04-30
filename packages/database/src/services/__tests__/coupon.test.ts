@@ -7,6 +7,19 @@ import type {
 } from "../coupon";
 import { resetAllFactories } from "@makanmakan/testing-utils";
 
+type CouponMockDb = {
+  query: {
+    coupons: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+    };
+  };
+  select: ReturnType<typeof vi.fn>;
+  insert: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+};
+
 // Mock database
 const mockDb = {
   query: {
@@ -19,7 +32,7 @@ const mockDb = {
   insert: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
-} as any;
+} as CouponMockDb;
 
 describe("CouponService", () => {
   let couponService: CouponService;
@@ -27,7 +40,9 @@ describe("CouponService", () => {
   beforeEach(() => {
     resetAllFactories();
     vi.clearAllMocks();
-    couponService = new CouponService(mockDb, { JWT_SECRET: "test-secret" });
+    couponService = new CouponService(mockDb as unknown as D1Database, {
+      JWT_SECRET: "test-secret",
+    });
   });
 
   describe("validateCoupon", () => {

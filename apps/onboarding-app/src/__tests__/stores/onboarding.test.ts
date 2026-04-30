@@ -201,7 +201,7 @@ describe("useOnboardingStore", () => {
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockApi.checkSubdomain.mockReturnValueOnce(promise as any);
+      mockApi.checkSubdomain.mockReturnValueOnce(promise as never);
 
       const checkPromise = store.checkSubdomain("mysite");
 
@@ -286,7 +286,7 @@ describe("useOnboardingStore", () => {
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockApi.createApplication.mockReturnValueOnce(promise as any);
+      mockApi.createApplication.mockReturnValueOnce(promise as never);
 
       const submitPromise = store.submitApplication(validData);
       expect(store.isLoading).toBe(true);
@@ -381,7 +381,7 @@ describe("useOnboardingStore", () => {
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockApi.verifyCloudflare.mockReturnValueOnce(promise as any);
+      mockApi.verifyCloudflare.mockReturnValueOnce(promise as never);
 
       const verifyPromise = store.verifyCloudflare("acc", "tok");
       expect(store.isVerifyingCf).toBe(true);
@@ -456,7 +456,7 @@ describe("useOnboardingStore", () => {
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockApi.completeApplication.mockReturnValueOnce(promise as any);
+      mockApi.completeApplication.mockReturnValueOnce(promise as never);
 
       const completePromise = store.completeApplication();
       expect(store.isCompleting).toBe(true);

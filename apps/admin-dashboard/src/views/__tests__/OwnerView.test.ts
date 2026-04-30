@@ -244,6 +244,15 @@ function createWrapper() {
   });
 }
 
+type OwnerViewTestVm = InstanceType<typeof OwnerView> & {
+  emergencyAlerts: Array<{
+    id: number;
+    title: string;
+    description: string;
+    time: string;
+  }>;
+};
+
 function setAuthRestaurantId(id: string | null) {
   const authStore = useAuthStore();
   Object.defineProperty(authStore, "restaurantId", {
@@ -737,7 +746,7 @@ describe("OwnerView", () => {
       await flushPromises();
 
       // Manually set the emergencyAlerts ref (since there's no API for it)
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as unknown as OwnerViewTestVm;
       vm.emergencyAlerts = [
         {
           id: 1,
@@ -757,7 +766,7 @@ describe("OwnerView", () => {
       const wrapper = createWrapper();
       await flushPromises();
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as unknown as OwnerViewTestVm;
       vm.emergencyAlerts = [
         { id: 1, title: "Alert 1", description: "Desc 1", time: "10:30" },
       ];
@@ -771,7 +780,7 @@ describe("OwnerView", () => {
       const wrapper = createWrapper();
       await flushPromises();
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as unknown as OwnerViewTestVm;
       vm.emergencyAlerts = [
         { id: 42, title: "Alert", description: "Desc", time: "10:30" },
       ];
@@ -791,7 +800,7 @@ describe("OwnerView", () => {
       const wrapper = createWrapper();
       await flushPromises();
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as unknown as OwnerViewTestVm;
       vm.emergencyAlerts = [
         { id: 42, title: "Alert", description: "Desc", time: "10:30" },
       ];
@@ -811,7 +820,7 @@ describe("OwnerView", () => {
       const wrapper = createWrapper();
       await flushPromises();
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as unknown as OwnerViewTestVm;
       vm.emergencyAlerts = [
         { id: 99, title: "Alert", description: "Desc", time: "10:30" },
       ];

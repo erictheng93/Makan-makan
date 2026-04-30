@@ -250,7 +250,10 @@ describe("Cross-Module Integration Tests", () => {
 
     // Simulate route-level seat creation after table is created
     const { SeatService } = await import("@makanmakan/database");
-    const seatService = new SeatService(mockEnv.DB as any, mockEnv as any);
+    const seatService = new SeatService(
+      mockEnv.DB as never,
+      mockEnv as unknown as ApiTestEnv,
+    );
     const seats = await seatService.createSeatsForTable(table.id, 4);
 
     expect(seats).toHaveLength(4);
@@ -268,7 +271,10 @@ describe("Cross-Module Integration Tests", () => {
     await tablesService.occupyTable(1, 500);
 
     const { SeatService } = await import("@makanmakan/database");
-    const seatService = new SeatService(mockEnv.DB as any, mockEnv as any);
+    const seatService = new SeatService(
+      mockEnv.DB as never,
+      mockEnv as unknown as ApiTestEnv,
+    );
     const seat1 = await seatService.occupySeat(1, 501, "Guest A");
     const seat2 = await seatService.occupySeat(2, 502, "Guest B");
 
@@ -295,7 +301,10 @@ describe("Cross-Module Integration Tests", () => {
 
     // Route handler would cascade release to occupied seats
     const { SeatService } = await import("@makanmakan/database");
-    const seatService = new SeatService(mockEnv.DB as any, mockEnv as any);
+    const seatService = new SeatService(
+      mockEnv.DB as never,
+      mockEnv as unknown as ApiTestEnv,
+    );
     const { seats: occupiedSeats } = await seatService.getSeatsByTableId(1, {
       isOccupied: true,
     });
@@ -322,7 +331,10 @@ describe("Cross-Module Integration Tests", () => {
 
     // Route handler creates seats after mode switch
     const { SeatService } = await import("@makanmakan/database");
-    const seatService = new SeatService(mockEnv.DB as any, mockEnv as any);
+    const seatService = new SeatService(
+      mockEnv.DB as never,
+      mockEnv as unknown as ApiTestEnv,
+    );
     const seats = await seatService.createSeatsForTable(1, 2);
 
     expect(seats).toHaveLength(2);
@@ -336,7 +348,10 @@ describe("Cross-Module Integration Tests", () => {
 
     // Route handler deletes all seats on mode switch
     const { SeatService } = await import("@makanmakan/database");
-    const seatService = new SeatService(mockEnv.DB as any, mockEnv as any);
+    const seatService = new SeatService(
+      mockEnv.DB as never,
+      mockEnv as unknown as ApiTestEnv,
+    );
     const deleted = await seatService.deleteSeatsForTable(1);
 
     expect(deleted).toBe(true);

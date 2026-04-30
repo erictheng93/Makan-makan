@@ -103,7 +103,7 @@ describe("POS API Integration", () => {
         restaurantId: String(restaurantId),
       }),
     });
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     return body.data;
   }
 
@@ -125,7 +125,7 @@ describe("POS API Integration", () => {
         notes: "Morning shift",
       }),
     });
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     return body.data;
   }
 
@@ -146,7 +146,7 @@ describe("POS API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.id).toEqual(expect.any(String));
@@ -174,7 +174,7 @@ describe("POS API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.id).toEqual(expect.any(String));
@@ -214,7 +214,7 @@ describe("POS API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.receiptNumber).toEqual(expect.any(String));
@@ -242,7 +242,7 @@ describe("POS API Integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.date).toBe(today);
@@ -279,7 +279,7 @@ describe("POS API Integration", () => {
     // The service returns { success: false, error: "..." } which the route
     // converts to a 400 via badRequest()
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });
@@ -296,7 +296,7 @@ describe("POS API Integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });

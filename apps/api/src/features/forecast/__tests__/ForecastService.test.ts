@@ -144,7 +144,7 @@ describe("ForecastService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockKV = createMockKV();
-    service = new ForecastService({} as any, mockKV as any);
+    service = new ForecastService({} as never, mockKV as never);
   });
 
   // ─── generateForecast ───────────────────────────────────────────

@@ -27,7 +27,7 @@ export class StripeIntegrationExample {
   constructor() {
     // 初始化各種服務
     this.paymentService = new PaymentService({ database: {} })
-    this.configManager = new PaymentConfigManager({} as any)
+    this.configManager = new PaymentConfigManager({} as never)
   }
   
   /**

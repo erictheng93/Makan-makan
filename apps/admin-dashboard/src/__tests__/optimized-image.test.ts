@@ -63,7 +63,8 @@ describe("OptimizedImage Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // 替換全局 Image 類別
-    (globalThis as any).Image = MockImage;
+    (globalThis as typeof globalThis & { Image: typeof Image }).Image =
+      MockImage as unknown as typeof Image;
   });
 
   afterEach(() => {

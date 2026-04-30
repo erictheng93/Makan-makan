@@ -111,9 +111,9 @@ describe("IngredientForecastService", () => {
     mockKV = createMockKV();
     mockForecastService = createMockForecastService();
     service = new IngredientForecastService(
-      {} as any,
-      mockKV as any,
-      mockForecastService as any,
+      {} as never,
+      mockKV as never,
+      mockForecastService as never,
     );
   });
 

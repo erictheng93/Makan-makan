@@ -16,6 +16,17 @@ import {
 import type { CloudflareEnv } from "../base";
 import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
 
+type NotificationServiceTestAccess = NotificationService & {
+  emailProvider: EmailProvider | null;
+  smsProvider: SMSProvider | null;
+  renderTemplate(template: string, data: Record<string, unknown>): string;
+};
+
+const asNotificationServiceTest = (
+  target: NotificationService,
+): NotificationServiceTestAccess =>
+  target as unknown as NotificationServiceTestAccess;
+
 // ========================================
 // Mock Providers
 // ========================================
@@ -101,6 +112,7 @@ const createMockDB = (): any => {
 
 describe("NotificationService", () => {
   let service: NotificationService;
+  let serviceTest: NotificationServiceTestAccess;
   let mockDB: any;
   let mockEmailProvider: MockEmailProvider;
   let mockSMSProvider: MockSMSProvider;
@@ -121,9 +133,10 @@ describe("NotificationService", () => {
     }) as unknown as CloudflareEnv;
 
     service = new NotificationService(mockDB, mockEnv);
+    serviceTest = asNotificationServiceTest(service);
     // Replace providers with mocks
-    (service as any).emailProvider = mockEmailProvider;
-    (service as any).smsProvider = mockSMSProvider;
+    serviceTest.emailProvider = mockEmailProvider;
+    serviceTest.smsProvider = mockSMSProvider;
   });
 
   // ========================================
@@ -158,7 +171,7 @@ describe("NotificationService", () => {
     });
 
     it("應該在 email 提供者未配置時返回錯誤", async () => {
-      (service as any).emailProvider = null;
+      serviceTest.emailProvider = null;
 
       const payload: NotificationPayload = {
         recipientId: 1,
@@ -321,7 +334,7 @@ describe("NotificationService", () => {
     });
 
     it("應該在 SMS 提供者未配置時返回錯誤", async () => {
-      (service as any).smsProvider = null;
+      serviceTest.smsProvider = null;
 
       const payload: NotificationPayload = {
         recipientId: 1,
@@ -412,7 +425,7 @@ describe("NotificationService", () => {
         "Hello {{name}}, your order {{orderId}} is ready at {{time}}.";
       const data = { name: "Alice", orderId: "12345", time: "14:30" };
 
-      const result = (service as any).renderTemplate(template, data);
+      const result = serviceTest.renderTemplate(template, data);
 
       expect(result).toBe("Hello Alice, your order 12345 is ready at 14:30.");
     });
@@ -423,12 +436,12 @@ describe("NotificationService", () => {
 
       // With notes
       let data = { orderId: "123", notes: "Extra spicy" };
-      let result = (service as any).renderTemplate(template, data);
+      let result = serviceTest.renderTemplate(template, data);
       expect(result).toBe("Order 123 - Note: Extra spicy");
 
       // Without notes
       data = { orderId: "123", notes: "" };
-      result = (service as any).renderTemplate(template, data);
+      result = serviceTest.renderTemplate(template, data);
       expect(result).toBe("Order 123");
     });
 
@@ -437,7 +450,7 @@ describe("NotificationService", () => {
         "{{name}} ordered {{item}} and {{item}} again. Total: {{total}}";
       const data = { name: "Bob", item: "Coffee", total: "$10" };
 
-      const result = (service as any).renderTemplate(template, data);
+      const result = serviceTest.renderTemplate(template, data);
 
       expect(result).toBe("Bob ordered Coffee and Coffee again. Total: $10");
     });
@@ -446,7 +459,7 @@ describe("NotificationService", () => {
       const template = "Name: {{name}}, Age: {{age}}, City: {{city}}";
       const data = { name: "Charlie", age: 25 };
 
-      const result = (service as any).renderTemplate(template, data);
+      const result = serviceTest.renderTemplate(template, data);
 
       expect(result).toBe("Name: Charlie, Age: 25, City:");
     });
@@ -455,7 +468,7 @@ describe("NotificationService", () => {
       const template = "Message: {{message}}";
       const data = { message: "Order #123 @ $50.00 (20% off)" };
 
-      const result = (service as any).renderTemplate(template, data);
+      const result = serviceTest.renderTemplate(template, data);
 
       expect(result).toBe("Message: Order #123 @ $50.00 (20% off)");
     });
@@ -762,7 +775,8 @@ describe("NotificationService", () => {
       const payload: NotificationPayload = {
         recipientId: 1,
         recipientEmail: "employee@test.com",
-        category: "invalid_category" as any,
+        category:
+          "invalid_category" as unknown as NotificationPayload["category"],
         type: "email",
         data: {},
       };
@@ -823,7 +837,7 @@ describe("NotificationService", () => {
 
     it("應該處理無效的測試通知類型", async () => {
       const result = await service.sendTestNotification(
-        "invalid" as any,
+        "invalid" as unknown as NotificationPayload["type"],
         "test@test.com",
       );
 
@@ -861,8 +875,12 @@ describe("NotificationService", () => {
       } as CloudflareEnv;
       const serviceWithoutProviders = new NotificationService(mockDB, emptyEnv);
 
-      expect((serviceWithoutProviders as any).emailProvider).toBeNull();
-      expect((serviceWithoutProviders as any).smsProvider).toBeNull();
+      expect(
+        asNotificationServiceTest(serviceWithoutProviders).emailProvider,
+      ).toBeNull();
+      expect(
+        asNotificationServiceTest(serviceWithoutProviders).smsProvider,
+      ).toBeNull();
     });
   });
 

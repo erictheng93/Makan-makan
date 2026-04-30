@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
+import type { MiddlewareHandler } from "hono";
 import {
   handleValidationError,
   validateBody,
@@ -19,6 +20,17 @@ import {
   createPNGBuffer,
   createInvalidBuffer,
 } from "./setup";
+
+type ValidationResponse = {
+  ok?: boolean;
+  success?: boolean;
+  error?: string;
+  data: Record<string, unknown> & {
+    name?: string;
+    page?: number;
+    id?: string;
+  };
+};
 
 describe("Validation Middleware", () => {
   let env: ReturnType<typeof createMockEnv>;
@@ -61,7 +73,7 @@ describe("Validation Middleware", () => {
       const schema = z.object({ name: z.string() });
       const app = new Hono();
 
-      app.post("/test", validateBody(schema) as any, (c) => {
+      app.post("/test", validateBody(schema) as MiddlewareHandler, (c) => {
         return c.json({ ok: true, data: c.get("validatedBody") });
       });
 
@@ -72,7 +84,7 @@ describe("Validation Middleware", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ValidationResponse;
       expect(body.data.name).toBe("test");
     });
 
@@ -80,7 +92,7 @@ describe("Validation Middleware", () => {
       const schema = z.object({ name: z.string().min(3) });
       const app = new Hono();
 
-      app.post("/test", validateBody(schema) as any, (c) => {
+      app.post("/test", validateBody(schema) as MiddlewareHandler, (c) => {
         return c.json({ ok: true });
       });
 
@@ -91,7 +103,7 @@ describe("Validation Middleware", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ValidationResponse;
       expect(body.success).toBe(false);
       expect(body.error).toBe("Validation failed");
     });
@@ -100,7 +112,7 @@ describe("Validation Middleware", () => {
       const schema = z.object({ name: z.string() });
       const app = new Hono();
 
-      app.post("/test", validateBody(schema) as any, (c) => {
+      app.post("/test", validateBody(schema) as MiddlewareHandler, (c) => {
         return c.json({ ok: true });
       });
 
@@ -123,12 +135,12 @@ describe("Validation Middleware", () => {
       });
       const app = new Hono();
 
-      app.get("/test", validateQuery(schema) as any, (c) => {
+      app.get("/test", validateQuery(schema) as MiddlewareHandler, (c) => {
         return c.json({ data: c.get("validatedQuery") });
       });
 
       const res = await app.request("/test?page=5");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ValidationResponse;
 
       expect(res.status).toBe(200);
       expect(body.data.page).toBe(5);
@@ -138,7 +150,7 @@ describe("Validation Middleware", () => {
       const schema = z.object({ page: z.string().min(1) });
       const app = new Hono();
 
-      app.get("/test", validateQuery(schema) as any, (c) => {
+      app.get("/test", validateQuery(schema) as MiddlewareHandler, (c) => {
         return c.json({ ok: true });
       });
 
@@ -155,12 +167,12 @@ describe("Validation Middleware", () => {
       const schema = z.object({ id: z.string().min(1) });
       const app = new Hono();
 
-      app.get("/:id", validateParams(schema) as any, (c) => {
+      app.get("/:id", validateParams(schema) as MiddlewareHandler, (c) => {
         return c.json({ data: c.get("validatedParams") });
       });
 
       const res = await app.request("/abc123");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ValidationResponse;
 
       expect(res.status).toBe(200);
       expect(body.data.id).toBe("abc123");
@@ -356,8 +368,10 @@ describe("Validation Middleware", () => {
       const app = new Hono();
       const allowedTypes = ["image/jpeg", "image/png"];
 
-      app.post("/upload", validateFileType(allowedTypes) as any, (c) =>
-        c.json({ ok: true }),
+      app.post(
+        "/upload",
+        validateFileType(allowedTypes) as MiddlewareHandler,
+        (c) => c.json({ ok: true }),
       );
 
       const formData = new FormData();
@@ -377,8 +391,10 @@ describe("Validation Middleware", () => {
     it("should reject invalid MIME type", async () => {
       const app = new Hono();
 
-      app.post("/upload", validateFileType(["image/jpeg"]) as any, (c) =>
-        c.json({ ok: true }),
+      app.post(
+        "/upload",
+        validateFileType(["image/jpeg"]) as MiddlewareHandler,
+        (c) => c.json({ ok: true }),
       );
 
       const formData = new FormData();
@@ -393,15 +409,17 @@ describe("Validation Middleware", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ValidationResponse;
       expect(body.error).toBe("Invalid file type");
     });
 
     it("should pass through non-multipart requests", async () => {
       const app = new Hono();
 
-      app.post("/upload", validateFileType(["image/jpeg"]) as any, (c) =>
-        c.json({ ok: true }),
+      app.post(
+        "/upload",
+        validateFileType(["image/jpeg"]) as MiddlewareHandler,
+        (c) => c.json({ ok: true }),
       );
 
       const res = await app.request("/upload", {
@@ -430,7 +448,7 @@ describe("Validation Middleware", () => {
           c.set("file", file);
           await next();
         },
-        securityScan as any,
+        securityScan as MiddlewareHandler,
         (c) => c.json({ ok: true }),
       );
 
@@ -451,7 +469,7 @@ describe("Validation Middleware", () => {
           c.set("file", file);
           await next();
         },
-        securityScan as any,
+        securityScan as MiddlewareHandler,
         (c) => c.json({ ok: true }),
       );
 
@@ -473,13 +491,13 @@ describe("Validation Middleware", () => {
           c.set("file", file);
           await next();
         },
-        securityScan as any,
+        securityScan as MiddlewareHandler,
         (c) => c.json({ ok: true }),
       );
 
       const res = await app.request("/upload", { method: "POST" });
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ValidationResponse;
       expect(body.error).toContain("mismatch");
     });
 
@@ -496,20 +514,22 @@ describe("Validation Middleware", () => {
           c.set("file", file);
           await next();
         },
-        securityScan as any,
+        securityScan as MiddlewareHandler,
         (c) => c.json({ ok: true }),
       );
 
       const res = await app.request("/upload", { method: "POST" });
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ValidationResponse;
       expect(body.error).toContain("Invalid image file format");
     });
 
     it("should pass through when no file is set", async () => {
       const app = new Hono();
 
-      app.post("/upload", securityScan as any, (c) => c.json({ ok: true }));
+      app.post("/upload", securityScan as MiddlewareHandler, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await app.request("/upload", { method: "POST" });
       expect(res.status).toBe(200);

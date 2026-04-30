@@ -40,7 +40,7 @@ function withErrorHandler(app: Hono<any>): void {
           success: false,
           error: { code: err.code, message: err.message },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -121,12 +121,15 @@ function buildApp(options: {
 
   // Inject env + user
   app.use("*", async (c, next) => {
-    (c as any).env = { DB: {}, CACHE_KV: mockKV };
+    (c as unknown as ApiTestContextWithEnv).env = {
+      DB: {},
+      CACHE_KV: mockKV,
+    } as unknown as ApiTestEnv;
     if (user !== null) c.set("user", user);
     await next();
   });
 
-  app.use("/test", moduleGate(module as any));
+  app.use("/test", moduleGate(module as never));
   app.get("/test", (c) => c.json({ success: true }));
 
   return { app, mockKV };
@@ -165,7 +168,7 @@ describe("moduleGate", () => {
       }); // no restaurantId
 
       const res = await app.request("http://localhost/test");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(body.error.code).toBe("NO_RESTAURANT");
@@ -180,7 +183,7 @@ describe("moduleGate", () => {
       const { app } = buildApp({ cachedSub: null, dbRow: null });
 
       const res = await app.request("http://localhost/test");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(body.error.code).toBe("SUBSCRIPTION_NOT_FOUND");
@@ -209,7 +212,7 @@ describe("moduleGate", () => {
       });
 
       const res = await app.request("http://localhost/test");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(body.error.code).toBe("MODULE_NOT_ENABLED");
@@ -233,7 +236,7 @@ describe("moduleGate", () => {
         expect(res.status).toBe(200);
       } else {
         expect(res.status).toBe(403);
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.error.code).toBe("MODULE_NOT_ENABLED");
       }
     });
@@ -265,7 +268,7 @@ describe("moduleGate", () => {
       });
 
       const res = await app.request("http://localhost/test");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(body.error.code).toBe("MODULE_NOT_ENABLED");
@@ -294,7 +297,7 @@ describe("moduleGate", () => {
       });
 
       const res = await app.request("http://localhost/test");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(body.error.code).toBe("TRIAL_EXPIRED");
@@ -354,7 +357,7 @@ describe("invalidateSubscriptionCache", () => {
     const mockKV = createMockKV();
     const mockContext = {
       env: { CACHE_KV: mockKV },
-    } as any;
+    } as never;
 
     await invalidateSubscriptionCache(mockContext, "rest-abc");
 

@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useShopCartStore } from "@/stores/shopCart";
+import { SpiceLevel } from "@makanmakan/shared-types";
+import type { CartItem, MenuItem } from "@makanmakan/shared-types";
 
 // Helper: build a minimal valid cart data object for localStorage
 function buildCartData(overrides: Record<string, unknown> = {}) {
@@ -17,10 +19,28 @@ function buildCartData(overrides: Record<string, unknown> = {}) {
 }
 
 // Helper: build a minimal valid cart item for tests that need subtotal
-function buildCartItem(totalPrice = 100) {
+function buildMenuItem(): MenuItem {
+  return {
+    id: 1,
+    restaurantId: "rest-001",
+    categoryId: 1,
+    name: "Nasi Lemak",
+    price: 100,
+    spiceLevel: SpiceLevel.NONE,
+    sortOrder: 0,
+    isAvailable: true,
+    isFeatured: false,
+    inventoryCount: -1,
+    orderCount: 0,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+}
+
+function buildCartItem(totalPrice = 100): CartItem {
   return {
     id: "item-1",
-    menuItem: { id: 1, name: "Nasi Lemak", price: 100 },
+    menuItem: buildMenuItem(),
     quantity: 1,
     customizations: undefined,
     notes: undefined,
@@ -140,7 +160,7 @@ describe("shopCart store – delivery/takeaway features", () => {
     it("should return subtotal when fulfillmentType is takeaway (no fee added)", () => {
       const store = useShopCartStore();
       // Add item to get a non-zero subtotal via direct push (bypasses addItem complexity)
-      store.items.push(buildCartItem(100) as any);
+      store.items.push(buildCartItem(100));
       store.setDeliveryFee(10);
       store.setFulfillmentType("takeaway");
       expect(store.totalWithDelivery).toBe(100);
@@ -148,7 +168,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should return subtotal + deliveryFee when fulfillmentType is delivery", () => {
       const store = useShopCartStore();
-      store.items.push(buildCartItem(100) as any);
+      store.items.push(buildCartItem(100));
       store.setDeliveryFee(10);
       store.setFulfillmentType("delivery");
       expect(store.totalWithDelivery).toBe(110);
@@ -156,7 +176,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should return subtotal when deliveryFee is 0 even for delivery", () => {
       const store = useShopCartStore();
-      store.items.push(buildCartItem(100) as any);
+      store.items.push(buildCartItem(100));
       store.setDeliveryFee(0);
       store.setFulfillmentType("delivery");
       expect(store.totalWithDelivery).toBe(100);
@@ -164,7 +184,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should update when fulfillmentType changes", () => {
       const store = useShopCartStore();
-      store.items.push(buildCartItem(100) as any);
+      store.items.push(buildCartItem(100));
       store.setDeliveryFee(15);
 
       store.setFulfillmentType("delivery");

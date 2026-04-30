@@ -96,7 +96,7 @@ function attachGlobalErrorHandler(app: Hono) {
             message: ErrorSanitizer.sanitizeMessage(err.message),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
 
@@ -111,7 +111,7 @@ function attachGlobalErrorHandler(app: Hono) {
           message: sanitized.message,
         },
       },
-      status as any,
+      status as never,
     );
   });
 }

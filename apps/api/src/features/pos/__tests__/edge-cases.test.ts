@@ -258,7 +258,7 @@ describe("POS Edge Cases Tests", () => {
   describe("極端數值處理", () => {
     describe("ShiftService", () => {
       it("應該處理零開班金額", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -281,7 +281,7 @@ describe("POS Edge Cases Tests", () => {
       });
 
       it("應該處理大額開班金額", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -306,7 +306,7 @@ describe("POS Edge Cases Tests", () => {
 
     describe("RefundService", () => {
       it("應該處理零金額退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         const result = await service.processRefund(
           {
@@ -325,7 +325,7 @@ describe("POS Edge Cases Tests", () => {
       });
 
       it("應該處理小數金額退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -373,7 +373,7 @@ describe("POS Edge Cases Tests", () => {
 
     describe("CashMovementService", () => {
       it("應該處理大額現金操作", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([
           {
@@ -397,7 +397,7 @@ describe("POS Edge Cases Tests", () => {
       });
 
       it("應該處理複雜面額明細", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([
           {
@@ -436,7 +436,7 @@ describe("POS Edge Cases Tests", () => {
 
   describe("並發操作處理", () => {
     it("應該防止同一收銀機同時開兩個班次", async () => {
-      const service = new ShiftService({} as any);
+      const service = new ShiftService({} as never);
 
       // First startShift: no active shift -> success
       // Second startShift: has active shift -> failure
@@ -474,7 +474,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理同時多個退款請求", async () => {
-      const service = new RefundService({} as any);
+      const service = new RefundService({} as never);
 
       let selectCallCount = 0;
       mockSelect.mockImplementation(() => {
@@ -520,7 +520,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理快速連續的現金操作", async () => {
-      const service = new CashMovementService({} as any);
+      const service = new CashMovementService({} as never);
 
       mockSelect.mockImplementation(() =>
         createChain([
@@ -554,7 +554,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理同時打印多張收據", async () => {
-      const service = new ReceiptService({} as any);
+      const service = new ReceiptService({} as never);
 
       mockSelect.mockImplementation(() => {
         // Each printReceipt call needs: order check, order items, get receipt
@@ -589,7 +589,7 @@ describe("POS Edge Cases Tests", () => {
 
   describe("錯誤恢復", () => {
     it("應該處理資料庫連接錯誤", async () => {
-      const service = new RegisterService({} as any);
+      const service = new RegisterService({} as never);
 
       const chain = createChain([]);
       chain.then = vi.fn((_resolve: any, reject: any) => {
@@ -605,7 +605,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理 JSON 解析錯誤", async () => {
-      const service = new RegisterService({} as any);
+      const service = new RegisterService({} as never);
 
       setupSelect([
         {
@@ -625,7 +625,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理班次結束時的計算錯誤", async () => {
-      const service = new ShiftService({} as any);
+      const service = new ShiftService({} as never);
 
       setupSelect([
         {
@@ -653,7 +653,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該處理報表生成時的資料缺失", async () => {
-      const service = new ReportService({} as any);
+      const service = new ReportService({} as never);
 
       let selectCallCount = 0;
       mockSelect.mockImplementation(() => {
@@ -699,7 +699,7 @@ describe("POS Edge Cases Tests", () => {
 
   describe("資料一致性", () => {
     it("應該確保退款金額不超過訂單總額", async () => {
-      const service = new RefundService({} as any);
+      const service = new RefundService({} as never);
 
       let selectCallCount = 0;
       mockSelect.mockImplementation(() => {
@@ -735,7 +735,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該確保班次結束時更新收銀機狀態", async () => {
-      const service = new ShiftService({} as any);
+      const service = new ShiftService({} as never);
 
       let selectCallCount = 0;
       mockSelect.mockImplementation(() => {
@@ -773,7 +773,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該確保現金操作記錄正確的班次和收銀機", async () => {
-      const service = new CashMovementService({} as any);
+      const service = new CashMovementService({} as never);
 
       setupSelect([
         {
@@ -798,7 +798,7 @@ describe("POS Edge Cases Tests", () => {
     });
 
     it("應該確保收據編號唯一", async () => {
-      const service = new ReceiptService({} as any);
+      const service = new ReceiptService({} as never);
 
       mockSelect.mockImplementation(() =>
         createChain([{ id: 1, order_number: "ORD-001" }]),

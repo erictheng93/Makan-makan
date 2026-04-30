@@ -52,7 +52,7 @@ const mockLogger = {
 };
 
 const mockEnv = envFactory.build({
-  CACHE_KV: mockCacheKV as any,
+  CACHE_KV: mockCacheKV as never,
 }) as unknown as Env;
 
 // User role constants
@@ -73,12 +73,12 @@ describe("Orders Permissions", () => {
     ordersService = new OrdersService(mockEnv);
 
     // Replace internal services with mocks
-    ordersService["baseOrderService"] = mockOrderServiceInstance as any;
-    ordersService["couponService"] = mockCouponServiceInstance as any;
+    ordersService["baseOrderService"] = mockOrderServiceInstance as never;
+    ordersService["couponService"] = mockCouponServiceInstance as never;
     ordersService["realtimeBroadcastService"] =
-      mockRealtimeBroadcastServiceInstance as any;
+      mockRealtimeBroadcastServiceInstance as never;
     ordersService["cacheKV"] = mockCacheKV;
-    ordersService["logger"] = mockLogger as any;
+    ordersService["logger"] = mockLogger as never;
   });
 
   describe("Status Transition Validation", () => {
@@ -104,7 +104,7 @@ describe("Orders Permissions", () => {
         });
 
         const result = await ordersService.updateOrderStatus(1, {
-          status: "confirmed" as any,
+          status: "confirmed" as never,
         });
 
         expect(result?.status).toBe("confirmed");
@@ -118,7 +118,7 @@ describe("Orders Permissions", () => {
         });
 
         const result = await ordersService.updateOrderStatus(1, {
-          status: "preparing" as any,
+          status: "preparing" as never,
         });
 
         expect(result?.status).toBe("preparing");
@@ -132,7 +132,7 @@ describe("Orders Permissions", () => {
         });
 
         const result = await ordersService.updateOrderStatus(1, {
-          status: "ready" as any,
+          status: "ready" as never,
         });
 
         expect(result?.status).toBe("ready");
@@ -146,7 +146,7 @@ describe("Orders Permissions", () => {
         });
 
         const result = await ordersService.updateOrderStatus(1, {
-          status: "delivered" as any,
+          status: "delivered" as never,
         });
 
         expect(result?.status).toBe("delivered");
@@ -158,7 +158,7 @@ describe("Orders Permissions", () => {
         mockCacheKV.get.mockResolvedValueOnce(createMockOrder("delivered"));
 
         await expect(
-          ordersService.updateOrderStatus(1, { status: "pending" as any }),
+          ordersService.updateOrderStatus(1, { status: "pending" as never }),
         ).rejects.toThrow();
       });
 
@@ -166,7 +166,7 @@ describe("Orders Permissions", () => {
         mockCacheKV.get.mockResolvedValueOnce(createMockOrder("cancelled"));
 
         await expect(
-          ordersService.updateOrderStatus(1, { status: "confirmed" as any }),
+          ordersService.updateOrderStatus(1, { status: "confirmed" as never }),
         ).rejects.toThrow();
       });
     });

@@ -66,16 +66,16 @@ describe("RealtimeBroadcastService", () => {
       JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
       ENCRYPTION_KEY: "test-encryption-key-32-chars-long",
       API_VERSION: "1.0.0",
-      DB: {} as any,
-      CACHE_KV: {} as any,
-      TOKEN_BLACKLIST: {} as any,
-      IMAGES_BUCKET: {} as any,
-      BACKUP_STORAGE: {} as any,
-      JOB_QUEUE: {} as any,
-      REALTIME_ORDERS: {} as any,
-      ANALYTICS_ENGINE: {} as any,
-      RATE_LIMIT_KV: {} as any,
-      REALTIME_SESSION: mockDurableObjectNamespace as any,
+      DB: {} as never,
+      CACHE_KV: {} as never,
+      TOKEN_BLACKLIST: {} as never,
+      IMAGES_BUCKET: {} as never,
+      BACKUP_STORAGE: {} as never,
+      JOB_QUEUE: {} as never,
+      REALTIME_ORDERS: {} as never,
+      ANALYTICS_ENGINE: {} as never,
+      RATE_LIMIT_KV: {} as never,
+      REALTIME_SESSION: mockDurableObjectNamespace as never,
     };
 
     service = new RealtimeBroadcastService(mockEnv);
@@ -338,7 +338,7 @@ describe("RealtimeBroadcastService", () => {
       );
 
       const result = await service.broadcastOrderItemStatusUpdate(
-        itemUpdateEvent as any,
+        itemUpdateEvent as never,
       );
 
       expect(result.success).toBe(true);
@@ -374,7 +374,7 @@ describe("RealtimeBroadcastService", () => {
       );
 
       const result = await service.broadcastKitchenItemStatus(
-        kitchenEvent as any,
+        kitchenEvent as never,
       );
 
       expect(result.success).toBe(true);
@@ -408,7 +408,7 @@ describe("RealtimeBroadcastService", () => {
       );
 
       const result = await service.broadcastMenuAvailabilityUpdate(
-        menuEvent as any,
+        menuEvent as never,
       );
 
       expect(result.success).toBe(true);

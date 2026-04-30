@@ -42,7 +42,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.1" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -57,8 +59,10 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.1" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
-      const result = (await res.json()) as any;
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(429);
       expect(result.error).toBe("Too many requests");
@@ -74,7 +78,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.1" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.headers.get("X-RateLimit-Limit")).toBe("100");
       expect(res.headers.get("X-RateLimit-Remaining")).toBe("49");
@@ -91,7 +97,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.1" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.headers.get("Retry-After")).toBeTruthy();
     });
@@ -106,7 +114,7 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.100" },
       });
 
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockEnv.CACHE_KV.get).toHaveBeenCalledWith(
         expect.stringContaining("10.0.0.100"),
@@ -121,7 +129,7 @@ describe("Rate Limit Middleware", () => {
         headers: { "x-forwarded-for": "10.0.0.200" },
       });
 
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockEnv.CACHE_KV.get).toHaveBeenCalledWith(
         expect.stringContaining("10.0.0.200"),
@@ -138,7 +146,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "127.0.0.1" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200); // Should not be rate limited
     });
@@ -153,7 +163,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "::1" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -175,7 +187,7 @@ describe("Rate Limit Middleware", () => {
         headers: { "X-API-Key": "my-api-key-123" },
       });
 
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockEnv.CACHE_KV.get).toHaveBeenCalledWith(
         expect.stringContaining("my-api-key-123"),
@@ -201,7 +213,7 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.50" },
       });
 
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       // Should not increment counter for successful request
       expect(mockEnv.CACHE_KV.put).not.toHaveBeenCalled();
@@ -224,7 +236,7 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.51" },
       });
 
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       // Should not increment counter for failed request
       expect(mockEnv.CACHE_KV.put).not.toHaveBeenCalled();
@@ -250,7 +262,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.60" },
       });
 
-      const res = await appWithoutKV.request(req, { env: envWithoutKV } as any);
+      const res = await appWithoutKV.request(req, {
+        env: envWithoutKV,
+      } as never);
 
       expect(res.status).toBe(503);
     });
@@ -265,7 +279,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.61" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(503);
     });
@@ -282,7 +298,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.70" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(429);
     });
@@ -297,7 +315,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.71" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200); // Under 20 limit
     });
@@ -312,7 +332,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.72" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200); // Under 1000 limit
     });
@@ -327,7 +349,9 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.73" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200); // Under 500 limit
     });
@@ -344,7 +368,7 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.1" }, // Use non-localhost IP
       });
 
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         expect.any(String),
@@ -363,7 +387,7 @@ describe("Rate Limit Middleware", () => {
         headers: { "cf-connecting-ip": "10.0.0.2" }, // Use non-localhost IP
       });
 
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
         expect.any(String),

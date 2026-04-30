@@ -77,7 +77,7 @@ describe("Provider Factory - createProvider", () => {
 
   it("throws for unknown provider", () => {
     const config = {
-      provider: "unknown-provider" as any,
+      provider: "unknown-provider" as never,
       apiKey: "key",
     };
     expect(() => createProvider(config)).toThrow("Unknown provider");

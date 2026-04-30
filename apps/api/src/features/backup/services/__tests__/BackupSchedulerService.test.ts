@@ -98,7 +98,7 @@ vi.mock("@makanmakan/database", () => ({
 }));
 
 vi.stubGlobal("crypto", {
-  ...(globalThis as any).crypto,
+  ...(globalThis as typeof globalThis & { crypto: Crypto }).crypto,
   randomUUID: vi.fn().mockReturnValue("mock-schedule-uuid"),
 });
 
@@ -139,7 +139,7 @@ const buildConfig = (
 
 describe("BackupSchedulerService", () => {
   let service: BackupSchedulerService;
-  const mockD1 = {} as any;
+  const mockD1 = {} as never;
   const mockAnalytics = {
     writeDataPoint: vi.fn(),
   };
@@ -153,9 +153,9 @@ describe("BackupSchedulerService", () => {
 
     service = new BackupSchedulerService(
       mockD1,
-      mockBackupService as any,
-      mockConfigService as any,
-      mockAnalytics as any,
+      mockBackupService as never,
+      mockConfigService as never,
+      mockAnalytics as never,
     );
   });
 

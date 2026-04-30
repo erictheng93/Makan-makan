@@ -18,6 +18,7 @@ vi.mock("@/i18n", () => ({
 
 import { orderApi } from "@/services/orderApi";
 import { apiClient } from "@/services/api";
+import type { CreateOrderRequest } from "@makanmakan/shared-types";
 
 const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
 const mockPost = apiClient.post as ReturnType<typeof vi.fn>;
@@ -32,7 +33,11 @@ describe("orderApi", () => {
 
   describe("createOrder", () => {
     it("should POST to /orders with order data", async () => {
-      const orderData = { restaurantId: "r1", items: [] } as any;
+      const orderData: CreateOrderRequest = {
+        restaurantId: "r1",
+        tableId: 1,
+        items: [],
+      };
       const mockOrder = { id: 1, status: "pending" };
       mockPost.mockResolvedValueOnce(mockOrder);
 

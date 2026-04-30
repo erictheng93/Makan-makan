@@ -223,8 +223,9 @@ describe("OrderItemCard.vue", () => {
     });
 
     it("未知狀態應該顯示未知", async () => {
+      const invalidStatus = 99 as unknown as OrderItemStatus;
       await wrapper.setProps({
-        item: { ...mockOrderItem, status: 99 as any },
+        item: { ...mockOrderItem, status: invalidStatus },
       });
       // Unknown status falls through to empty string in the current statusMap
       expect(wrapper.exists()).toBe(true);

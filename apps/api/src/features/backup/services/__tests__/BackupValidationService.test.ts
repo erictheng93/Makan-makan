@@ -97,7 +97,7 @@ const buildRestoreRequest = (
 
 describe("BackupValidationService", () => {
   let service: BackupValidationService;
-  const mockD1 = {} as any;
+  const mockD1 = {} as never;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -176,7 +176,7 @@ describe("BackupValidationService", () => {
     it("should reject invalid backup type", async () => {
       await expect(
         service.validateCreateBackupRequest(
-          buildCreateRequest({ backup_type: "snapshot" as any }),
+          buildCreateRequest({ backup_type: "snapshot" as never }),
         ),
       ).rejects.toThrow("Invalid backup type");
     });
@@ -228,7 +228,7 @@ describe("BackupValidationService", () => {
     it("should reject invalid restore_type", async () => {
       await expect(
         service.validateRestoreRequest(
-          buildRestoreRequest({ restore_type: "partial" as any }),
+          buildRestoreRequest({ restore_type: "partial" as never }),
         ),
       ).rejects.toThrow("Invalid restore type");
     });
@@ -236,7 +236,7 @@ describe("BackupValidationService", () => {
     it("should reject missing safety confirmation", async () => {
       await expect(
         service.validateRestoreRequest(
-          buildRestoreRequest({ safety_confirmation: undefined as any }),
+          buildRestoreRequest({ safety_confirmation: undefined as never }),
         ),
       ).rejects.toThrow("Safety confirmation is required");
     });
@@ -410,7 +410,7 @@ describe("BackupValidationService", () => {
     it("should allow admin access to any restaurant", async () => {
       const mockContext = {
         get: vi.fn().mockReturnValue({ id: 1, role: 0 }),
-      } as any;
+      } as never;
 
       await expect(
         service.verifyRestaurantAccess(mockContext, VALID_UUID),
@@ -425,7 +425,7 @@ describe("BackupValidationService", () => {
 
       const mockContext = {
         get: vi.fn().mockReturnValue({ id: 42, role: 1 }),
-      } as any;
+      } as never;
 
       await expect(
         service.verifyRestaurantAccess(mockContext, VALID_UUID),
@@ -439,7 +439,7 @@ describe("BackupValidationService", () => {
 
       const mockContext = {
         get: vi.fn().mockReturnValue({ id: 42, role: 1 }),
-      } as any;
+      } as never;
 
       await expect(
         service.verifyRestaurantAccess(mockContext, VALID_UUID),

@@ -76,7 +76,7 @@ describe("SSE Routes", () => {
         if (err instanceof ApiError) {
           return c.json(
             { success: false, error: { code: err.code, message: err.message } },
-            err.status as any,
+            err.status as never,
           );
         }
         const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -96,7 +96,7 @@ describe("SSE Routes", () => {
               message: sanitized.message,
             },
           },
-          (STATUS_MAP[sanitized.type] ?? 500) as any,
+          (STATUS_MAP[sanitized.type] ?? 500) as never,
         );
       });
 

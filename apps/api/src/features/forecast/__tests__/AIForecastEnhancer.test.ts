@@ -3,6 +3,30 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AIForecastEnhancer } from "../services/AIForecastEnhancer";
 import type { IngredientForecastItem } from "@makanmakan/shared-types";
 
+interface TestLLMAdjustment {
+  ingredientId: number;
+  adjustmentFactor: number;
+  reason: string;
+}
+
+interface TestLLMResponse {
+  adjustments: TestLLMAdjustment[];
+  recommendations: string[];
+}
+
+type AIForecastEnhancerTestAccess = {
+  applyAdjustments(
+    forecasts: IngredientForecastItem[],
+    adjustments: TestLLMAdjustment[],
+  ): IngredientForecastItem[];
+  parseResponse(content: string): TestLLMResponse;
+};
+
+const asEnhancerTest = (
+  target: AIForecastEnhancer,
+): AIForecastEnhancerTestAccess =>
+  target as unknown as AIForecastEnhancerTestAccess;
+
 function createMockDb() {
   return {
     prepare: vi.fn().mockReturnValue({
@@ -51,7 +75,7 @@ describe("AIForecastEnhancer", () => {
 
   beforeEach(() => {
     mockDb = createMockDb();
-    enhancer = new AIForecastEnhancer(mockDb as any, "test-encryption-key");
+    enhancer = new AIForecastEnhancer(mockDb as never, "test-encryption-key");
   });
 
   describe("buildPrompt", () => {
@@ -200,9 +224,8 @@ describe("AIForecastEnhancer", () => {
       ];
 
       // Access private method for testing
-      const applyAdjustments = (enhancer as any).applyAdjustments.bind(
-        enhancer,
-      );
+      const applyAdjustments =
+        asEnhancerTest(enhancer).applyAdjustments.bind(enhancer);
       const adjusted = applyAdjustments(
         forecasts,
         adjustments,
@@ -267,9 +290,8 @@ describe("AIForecastEnhancer", () => {
         { ingredientId: 100, adjustmentFactor: 1.2, reason: "Weekend boost" },
       ];
 
-      const applyAdjustments = (enhancer as any).applyAdjustments.bind(
-        enhancer,
-      );
+      const applyAdjustments =
+        asEnhancerTest(enhancer).applyAdjustments.bind(enhancer);
       const adjusted = applyAdjustments(
         forecasts,
         adjustments,
@@ -299,9 +321,8 @@ describe("AIForecastEnhancer", () => {
         { ingredientId: 100, adjustmentFactor: 0.5, reason: "Low demand" },
       ];
 
-      const applyAdjustments = (enhancer as any).applyAdjustments.bind(
-        enhancer,
-      );
+      const applyAdjustments =
+        asEnhancerTest(enhancer).applyAdjustments.bind(enhancer);
       const adjusted = applyAdjustments(
         forecasts,
         adjustments,
@@ -315,21 +336,24 @@ describe("AIForecastEnhancer", () => {
 
   describe("parseResponse", () => {
     it("returns empty adjustments and recommendations for plain text without JSON", () => {
-      const parseResponse = (enhancer as any).parseResponse.bind(enhancer);
+      const parseResponse =
+        asEnhancerTest(enhancer).parseResponse.bind(enhancer);
       const result = parseResponse("Sorry, I cannot process this request.");
       expect(result.adjustments).toEqual([]);
       expect(result.recommendations).toEqual([]);
     });
 
     it("returns empty adjustments for malformed JSON (invalid JSON block)", () => {
-      const parseResponse = (enhancer as any).parseResponse.bind(enhancer);
+      const parseResponse =
+        asEnhancerTest(enhancer).parseResponse.bind(enhancer);
       const result = parseResponse("{invalid json here}");
       expect(result.adjustments).toEqual([]);
       expect(result.recommendations).toEqual([]);
     });
 
     it("handles JSON wrapped in markdown code block", () => {
-      const parseResponse = (enhancer as any).parseResponse.bind(enhancer);
+      const parseResponse =
+        asEnhancerTest(enhancer).parseResponse.bind(enhancer);
       const content = `Here is the analysis:
 \`\`\`json
 {"adjustments": [{"ingredientId": 1, "adjustmentFactor": 1.1, "reason": "Weekend"}], "recommendations": ["Buy more"]}
@@ -341,7 +365,8 @@ describe("AIForecastEnhancer", () => {
     });
 
     it("caps recommendations at 5 items", () => {
-      const parseResponse = (enhancer as any).parseResponse.bind(enhancer);
+      const parseResponse =
+        asEnhancerTest(enhancer).parseResponse.bind(enhancer);
       const content = JSON.stringify({
         adjustments: [],
         recommendations: ["A", "B", "C", "D", "E", "F", "G"],
@@ -351,7 +376,8 @@ describe("AIForecastEnhancer", () => {
     });
 
     it("handles response where adjustments is not an array", () => {
-      const parseResponse = (enhancer as any).parseResponse.bind(enhancer);
+      const parseResponse =
+        asEnhancerTest(enhancer).parseResponse.bind(enhancer);
       const content = JSON.stringify({
         adjustments: "not-an-array",
         recommendations: [],

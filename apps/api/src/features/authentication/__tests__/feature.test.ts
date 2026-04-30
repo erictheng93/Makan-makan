@@ -78,20 +78,22 @@ describe("Authentication Feature", () => {
     mockCache.clear.mockResolvedValue(undefined);
 
     // Setup mocks (use function for constructors in Vitest 4)
-    vi.mocked(databaseModule.getDatabaseConnection).mockReturnValue({} as any);
+    vi.mocked(databaseModule.getDatabaseConnection).mockReturnValue(
+      {} as never,
+    );
     vi.mocked(cacheModule.KVCacheService).mockImplementation(function () {
-      return mockCache as any;
+      return mockCache as never;
     });
     vi.mocked(monitoringModule.ConsoleLogger).mockImplementation(function () {
-      return mockLogger as any;
+      return mockLogger as never;
     });
     vi.mocked(monitoringModule.SimplePerformanceTracker).mockImplementation(
       function () {
-        return mockPerformance as any;
+        return mockPerformance as never;
       },
     );
     vi.mocked(dbModule.AuthService).mockImplementation(function () {
-      return mockDbAuthService as any;
+      return mockDbAuthService as never;
     });
 
     authService = new AuthService(mockEnv);

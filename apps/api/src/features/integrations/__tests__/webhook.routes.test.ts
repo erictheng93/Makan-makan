@@ -84,7 +84,7 @@ const mockEnv = {
   CACHE_KV: {},
   JWT_SECRET: "test-jwt-secret-key-for-testing-only",
   ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-} as any;
+} as never;
 
 const INTEGRATION = {
   id: 1,

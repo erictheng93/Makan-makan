@@ -99,7 +99,7 @@ function buildApp() {
     if (err instanceof ApiError) {
       return c.json(
         { success: false, error: { code: err.code, message: err.message } },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -113,7 +113,12 @@ function buildApp() {
 
   // Inject a minimal env so Hono doesn't complain
   app.use("*", async (c, next) => {
-    if (!c.env) (c as any).env = { DB: {}, CACHE_KV: {} };
+    if (!c.env) {
+      (c as unknown as ApiTestContextWithEnv).env = {
+        DB: {},
+        CACHE_KV: {},
+      } as unknown as ApiTestEnv;
+    }
     await next();
   });
 
@@ -147,7 +152,7 @@ describe("Admin Subscription Routes", () => {
   describe("GET /", () => {
     it("returns all subscriptions with effectiveModules", async () => {
       const res = await app.request("http://localhost/");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(body.success).toBe(true);
@@ -167,7 +172,7 @@ describe("Admin Subscription Routes", () => {
   describe("GET /:restaurantId", () => {
     it("returns subscription with effectiveModules when found", async () => {
       const res = await app.request("http://localhost/rest-1");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(body.success).toBe(true);
@@ -182,7 +187,7 @@ describe("Admin Subscription Routes", () => {
       mockService.getByRestaurantId.mockResolvedValue(null);
 
       const res = await app.request("http://localhost/nonexistent");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(404);
       expect(body.success).toBe(false);
@@ -205,7 +210,7 @@ describe("Admin Subscription Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validPayload),
       });
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(201);
       expect(body.success).toBe(true);
@@ -250,7 +255,7 @@ describe("Admin Subscription Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ overrides: { ai_analytics: true } }),
       });
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(body.success).toBe(true);
@@ -283,7 +288,7 @@ describe("Admin Subscription Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planTier: "enterprise" }),
       });
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(body.success).toBe(true);
@@ -315,7 +320,7 @@ describe("Admin Subscription Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: false }),
       });
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(body.success).toBe(true);

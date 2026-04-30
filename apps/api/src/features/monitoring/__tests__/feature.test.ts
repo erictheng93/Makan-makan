@@ -22,7 +22,7 @@ describe("Monitoring Feature", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    monitoringService = createMonitoringService(mockKV as any);
+    monitoringService = createMonitoringService(mockKV as never);
   });
 
   describe("MonitoringService", () => {
@@ -207,8 +207,8 @@ describe("Monitoring Feature", () => {
 
   describe("Service Factory", () => {
     it("should return singleton instance", () => {
-      const instance1 = createMonitoringService(mockKV as any);
-      const instance2 = createMonitoringService(mockKV as any);
+      const instance1 = createMonitoringService(mockKV as never);
+      const instance2 = createMonitoringService(mockKV as never);
 
       expect(instance1).toBe(instance2);
     });

@@ -30,7 +30,7 @@ function withErrorHandler(app: Hono<any>): void {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -82,7 +82,7 @@ describe("Auth Middleware", () => {
     // Inject env into context
     app.use("*", async (c, next) => {
       if (!c.env) {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
       } else {
         Object.assign(c.env, mockEnv);
       }
@@ -103,7 +103,7 @@ describe("Auth Middleware", () => {
       it("should reject request without Authorization header", async () => {
         const req = new Request("http://localhost/protected/test");
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe(
@@ -116,7 +116,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: "" },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe(
@@ -129,7 +129,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: "Basic some-token" },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe(
@@ -164,14 +164,17 @@ describe("Auth Middleware", () => {
         const appNoSecret = new Hono<{ Bindings: typeof mockEnv }>();
         withErrorHandler(appNoSecret);
         appNoSecret.use("*", async (c, next) => {
-          (c as any).env = { ...mockEnv, JWT_SECRET: undefined };
+          (c as unknown as ApiTestContextWithEnv).env = {
+            ...mockEnv,
+            JWT_SECRET: undefined,
+          };
           await next();
         });
         appNoSecret.use("/protected/*", authMiddleware);
         appNoSecret.get("/protected/test", (c) => c.json({ success: true }));
 
         const res = await appNoSecret.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(500);
         expect(result.error.message).toBe("Server configuration error");
@@ -191,14 +194,17 @@ describe("Auth Middleware", () => {
         const appShortSecret = new Hono<{ Bindings: typeof mockEnv }>();
         withErrorHandler(appShortSecret);
         appShortSecret.use("*", async (c, next) => {
-          (c as any).env = { ...mockEnv, JWT_SECRET: "short" };
+          (c as unknown as ApiTestContextWithEnv).env = {
+            ...mockEnv,
+            JWT_SECRET: "short",
+          };
           await next();
         });
         appShortSecret.use("/protected/*", authMiddleware);
         appShortSecret.get("/protected/test", (c) => c.json({ success: true }));
 
         const res = await appShortSecret.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(500);
         expect(result.error.message).toBe("Server configuration error");
@@ -218,7 +224,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe("Token has been invalidated");
@@ -237,7 +243,10 @@ describe("Auth Middleware", () => {
         const appNoBlacklist = new Hono<{ Bindings: typeof mockEnv }>();
         withErrorHandler(appNoBlacklist);
         appNoBlacklist.use("*", async (c, next) => {
-          (c as any).env = { ...mockEnv, TOKEN_BLACKLIST: undefined };
+          (c as unknown as ApiTestContextWithEnv).env = {
+            ...mockEnv,
+            TOKEN_BLACKLIST: undefined,
+          };
           await next();
         });
         appNoBlacklist.use("/protected/*", authMiddleware);
@@ -270,7 +279,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toContain("expired");
@@ -287,7 +296,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         // Without exp claim, the auth middleware will reject it in the manual check
@@ -305,7 +314,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         // hono/jwt verify() throws JwtTokenIssuedAt error for future iat, caught by catch block
@@ -330,7 +339,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         // hono/jwt verify() throws JwtTokenNotBefore error, caught by catch block
@@ -354,7 +363,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe("Token too old, please refresh");
@@ -372,7 +381,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe("Invalid token claims");
@@ -385,7 +394,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe("Invalid token claims");
@@ -401,7 +410,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe("Invalid token claims");
@@ -417,7 +426,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe("Invalid token claims");
@@ -433,7 +442,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe("Invalid role in token");
@@ -449,7 +458,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error.message).toBe("Invalid role in token");
@@ -502,7 +511,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(200);
         expect(result.success).toBe(true);
@@ -525,7 +534,7 @@ describe("Auth Middleware", () => {
             headers: { Authorization: `Bearer ${token}` },
           });
           const res = await app.request(req, undefined, mockEnv);
-          const result = (await res.json()) as any;
+          const result = (await res.json()) as ApiTestResponse;
 
           expect(res.status).toBe(200);
           expect(result.user.role).toBe(role);
@@ -539,7 +548,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: "Bearer invalid-token-format" },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error).toBeTruthy();
@@ -555,7 +564,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(401);
         expect(result.error).toBeTruthy();
@@ -582,7 +591,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.user.role).toBe(5);
@@ -599,7 +608,7 @@ describe("Auth Middleware", () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const res = await app.request(req, undefined, mockEnv);
-        const result = (await res.json()) as any;
+        const result = (await res.json()) as ApiTestResponse;
 
         expect(res.status).toBe(200);
         expect(result.user.role).toBe(role);
@@ -623,7 +632,7 @@ describe("Auth Middleware", () => {
       const appNoAuth = new Hono<{ Bindings: typeof mockEnv }>();
       withErrorHandler(appNoAuth);
       appNoAuth.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
       appNoAuth.use("/admin/*", requireRole([0]));
@@ -631,7 +640,7 @@ describe("Auth Middleware", () => {
 
       const req = new Request("http://localhost/admin/test");
       const res = await appNoAuth.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(401);
       expect(result.error.message).toBe("Authentication required");
@@ -647,7 +656,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.error.message).toBe("Insufficient permissions");
@@ -663,7 +672,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -679,7 +688,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -699,7 +708,7 @@ describe("Auth Middleware", () => {
       const appNoAuth = new Hono<{ Bindings: typeof mockEnv }>();
       withErrorHandler(appNoAuth);
       appNoAuth.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
       appNoAuth.use("/restaurant/:restaurantId/*", requireRestaurantAccess());
@@ -709,7 +718,7 @@ describe("Auth Middleware", () => {
 
       const req = new Request("http://localhost/restaurant/123/menu");
       const res = await appNoAuth.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(401);
       expect(result.error.message).toBe("Authentication required");
@@ -725,7 +734,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -741,7 +750,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.error.message).toBe("Access denied to this restaurant");
@@ -757,7 +766,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.error.message).toBe("Access denied to this restaurant");
@@ -773,7 +782,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -783,7 +792,7 @@ describe("Auth Middleware", () => {
       const appCustomParam = new Hono<{ Bindings: typeof mockEnv }>();
       withErrorHandler(appCustomParam);
       appCustomParam.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
       appCustomParam.use("/shop/:shopId/*", authMiddleware);
@@ -801,7 +810,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await appCustomParam.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -812,7 +821,7 @@ describe("Auth Middleware", () => {
     it("should add token to blacklist", async () => {
       const mockContext = {
         env: mockEnv,
-      } as any;
+      } as never;
 
       await blacklistToken(mockContext, "test-token");
 
@@ -826,7 +835,7 @@ describe("Auth Middleware", () => {
     it("should add token to blacklist with TTL when expiryTime provided", async () => {
       const mockContext = {
         env: mockEnv,
-      } as any;
+      } as never;
 
       const now = Math.floor(Date.now() / 1000);
       const expiryTime = now + 3600; // 1 hour from now
@@ -849,7 +858,7 @@ describe("Auth Middleware", () => {
     it("should handle expired token with TTL of 0", async () => {
       const mockContext = {
         env: mockEnv,
-      } as any;
+      } as never;
 
       const now = Math.floor(Date.now() / 1000);
       const expiryTime = now - 100; // Already expired
@@ -868,7 +877,7 @@ describe("Auth Middleware", () => {
     it("should skip when TOKEN_BLACKLIST not available", async () => {
       const mockContext = {
         env: { ...mockEnv, TOKEN_BLACKLIST: undefined },
-      } as any;
+      } as never;
 
       await blacklistToken(mockContext, "test-token");
 
@@ -889,7 +898,7 @@ describe("Auth Middleware", () => {
     it("should continue without token", async () => {
       const req = new Request("http://localhost/public/menu");
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -906,7 +915,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -930,7 +939,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -942,7 +951,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: "Bearer invalid-token" },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -959,7 +968,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const res = await app.request(req, undefined, mockEnv);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);

@@ -19,6 +19,8 @@ vi.mock("drizzle-orm", () => ({
   and: (...conditions: any[]) => ({ _type: "and", conditions }),
 }));
 
+type SoftDeleteColumn = Parameters<typeof notDeleted>[0];
+
 // Create mock DB that returns chainable query builders
 function createMockDb() {
   const setResult = { where: vi.fn().mockResolvedValue(undefined) };
@@ -35,10 +37,12 @@ function createMockDb() {
     delete: vi.fn().mockReturnValue(deleteResult),
     select: vi.fn().mockReturnValue(selectResult),
     _mocks: { updateResult, setResult, deleteResult, selectResult },
-  } as any;
+  };
 }
 
-const mockTable = { deletedAt: { name: "deleted_at" } } as any;
+const mockTable = {
+  deletedAt: { name: "deleted_at" } as unknown as SoftDeleteColumn,
+};
 
 describe("soft-delete", () => {
   describe("notDeleted", () => {
@@ -62,12 +66,12 @@ describe("soft-delete", () => {
     beforeEach(() => {
       vi.clearAllMocks();
       db = createMockDb();
-      service = new SoftDeleteService(db, { retentionDays: 90 });
+      service = new SoftDeleteService(db as never, { retentionDays: 90 });
     });
 
     describe("softDelete", () => {
       it("should update table setting deletedAt to current time", async () => {
-        const mockCondition = { _type: "eq" } as any;
+        const mockCondition = { _type: "eq" } as never;
 
         await service.softDelete(mockTable, mockCondition);
 
@@ -80,7 +84,7 @@ describe("soft-delete", () => {
 
       it("should use unix seconds (not milliseconds) for deletedAt", async () => {
         const beforeSeconds = Math.floor(Date.now() / 1000);
-        await service.softDelete(mockTable, {} as any);
+        await service.softDelete(mockTable, {} as never);
         const afterSeconds = Math.floor(Date.now() / 1000);
 
         const setArg = db._mocks.updateResult.set.mock.calls[0][0];
@@ -91,7 +95,7 @@ describe("soft-delete", () => {
 
     describe("restore", () => {
       it("should set deletedAt to null", async () => {
-        const mockCondition = { _type: "eq" } as any;
+        const mockCondition = { _type: "eq" } as never;
 
         await service.restore(mockTable, mockCondition);
 
@@ -168,7 +172,7 @@ describe("soft-delete", () => {
   describe("createSoftDeleteService", () => {
     it("should create a SoftDeleteService instance", () => {
       const db = createMockDb();
-      const service = createSoftDeleteService(db);
+      const service = createSoftDeleteService(db as never);
       expect(service).toBeInstanceOf(SoftDeleteService);
     });
   });

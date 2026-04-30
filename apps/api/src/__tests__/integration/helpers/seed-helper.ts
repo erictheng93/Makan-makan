@@ -61,20 +61,18 @@ function toDate(value: unknown): Date | undefined {
   return undefined;
 }
 
+type SeedRecord = Record<string, unknown>;
+
 export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
   return {
     restaurant: async (overrides) => {
-      const data = restaurantFactory.build({ overrides: overrides as any });
+      const data = restaurantFactory.build({
+        overrides: overrides as never,
+      }) as unknown as SeedRecord;
 
       // Strip fields not present in the schema and convert timestamps.
       // The factory includes `id` (integer) and `status` which are not schema columns.
-      const {
-        id: _id,
-        status: _status,
-        createdAt,
-        updatedAt,
-        ...rest
-      } = data as any;
+      const { id: _id, status: _status, createdAt, updatedAt, ...rest } = data;
 
       const [row] = await testDb.drizzle
         .insert(restaurants)
@@ -82,7 +80,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           ...rest,
           createdAt: toDate(createdAt),
           updatedAt: toDate(updatedAt),
-        } as any)
+        } as never)
         .returning();
       return { id: row.id };
     },
@@ -93,14 +91,14 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
       // categoryFactory's type expects `restaurantId: number`, but the real
       // schema uses TEXT UUID. Cast to `any` to bypass the stale factory type.
       const catData = categoryFactory.build({
-        overrides: { restaurantId: String(restaurantId) } as any,
-      });
+        overrides: { restaurantId: String(restaurantId) } as never,
+      }) as unknown as SeedRecord;
       const {
         id: _catId,
         createdAt: catCa,
         updatedAt: catUa,
         ...catRest
-      } = catData as any;
+      } = catData;
 
       const [catRow] = await testDb.drizzle
         .insert(categories)
@@ -109,7 +107,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           restaurantId: String(restaurantId),
           createdAt: toDate(catCa),
           updatedAt: toDate(catUa),
-        } as any)
+        } as never)
         .returning();
 
       const data = menuItemFactory.build({
@@ -117,10 +115,10 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           restaurantId: String(restaurantId),
           categoryId: catRow.id,
           ...overrides,
-        } as any,
-      });
+        } as never,
+      }) as unknown as SeedRecord;
 
-      const { id: _id, createdAt, updatedAt, ...rest } = data as any;
+      const { id: _id, createdAt, updatedAt, ...rest } = data;
 
       const [row] = await testDb.drizzle
         .insert(menuItems)
@@ -130,13 +128,15 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           categoryId: catRow.id,
           createdAt: toDate(createdAt),
           updatedAt: toDate(updatedAt),
-        } as any)
+        } as never)
         .returning();
       return { id: row.id as number };
     },
 
     user: async (overrides) => {
-      const data = userFactory.build({ overrides: overrides as any });
+      const data = userFactory.build({
+        overrides: overrides as never,
+      }) as unknown as SeedRecord;
 
       // Factory produces camelCase; strip fields not in schema and convert timestamps.
       const {
@@ -145,7 +145,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
         updatedAt,
         status: _status, // not a schema column on users
         ...rest
-      } = data as any;
+      } = data;
 
       const [row] = await testDb.drizzle
         .insert(users)
@@ -160,7 +160,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           passwordChangedAt: rest.passwordChangedAt
             ? toDate(rest.passwordChangedAt)
             : null,
-        } as any)
+        } as never)
         .returning();
       return { id: row.id as number, username: row.username as string };
     },
@@ -205,7 +205,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
         .values({
           ...merged,
           restaurantId: String(restaurantId),
-        } as any)
+        } as never)
         .returning();
       return { id: row.id as number, code: row.code as string };
     },
@@ -227,10 +227,10 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           tableId: null,
           customerId: null,
           ...overrides,
-        } as any,
-      });
+        } as never,
+      }) as unknown as SeedRecord;
 
-      const { id: _id, createdAt, updatedAt, ...rest } = data as any;
+      const { id: _id, createdAt, updatedAt, ...rest } = data;
 
       const [row] = await testDb.drizzle
         .insert(orders)
@@ -249,7 +249,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           paidAt: rest.paidAt ? toDate(rest.paidAt) : null,
           cancelledAt: rest.cancelledAt ? toDate(rest.cancelledAt) : null,
           reviewedAt: rest.reviewedAt ? toDate(rest.reviewedAt) : null,
-        } as any)
+        } as never)
         .returning();
       return { id: row.id as number };
     },

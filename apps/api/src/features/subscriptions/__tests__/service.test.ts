@@ -55,7 +55,7 @@ describe("SubscriptionService", () => {
             limit: vi.fn().mockResolvedValue([mockSubRow]),
           }),
         }),
-      } as any);
+      } as never);
 
       const result = await service.getByRestaurantId("rest-1");
       expect(result).toEqual(mockSubRow);
@@ -68,7 +68,7 @@ describe("SubscriptionService", () => {
             limit: vi.fn().mockResolvedValue([]),
           }),
         }),
-      } as any);
+      } as never);
 
       const result = await service.getByRestaurantId("nonexistent");
       expect(result).toBeNull();
@@ -88,7 +88,7 @@ describe("SubscriptionService", () => {
         from: vi.fn().mockReturnValue({
           orderBy: vi.fn().mockResolvedValue(rows),
         }),
-      } as any);
+      } as never);
 
       const result = await service.listAll();
       expect(result).toHaveLength(2);
@@ -107,7 +107,7 @@ describe("SubscriptionService", () => {
         values: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([createdRow]),
         }),
-      } as any);
+      } as never);
 
       const result = await service.create({
         restaurantId: "rest-1",
@@ -137,7 +137,7 @@ describe("SubscriptionService", () => {
     it("merges new overrides into existing ones", async () => {
       const existingRow = {
         ...mockSubRow,
-        moduleOverrides: { coupons: false } as any,
+        moduleOverrides: { coupons: false } as never,
       };
 
       vi.spyOn(service, "getByRestaurantId").mockResolvedValue(existingRow);
@@ -153,7 +153,7 @@ describe("SubscriptionService", () => {
             returning: vi.fn().mockResolvedValue([updatedRow]),
           }),
         }),
-      } as any);
+      } as never);
 
       const result = await service.updateModules("rest-1", {
         overrides: { ai_analytics: true },
@@ -165,7 +165,7 @@ describe("SubscriptionService", () => {
     it("removes a key set to undefined (reset to plan default)", async () => {
       const existingRow = {
         ...mockSubRow,
-        moduleOverrides: { coupons: false, analytics: true } as any,
+        moduleOverrides: { coupons: false, analytics: true } as never,
       };
 
       vi.spyOn(service, "getByRestaurantId").mockResolvedValue(existingRow);
@@ -180,10 +180,10 @@ describe("SubscriptionService", () => {
             }),
           };
         }),
-      } as any);
+      } as never);
 
       await service.updateModules("rest-1", {
-        overrides: { coupons: undefined as any },
+        overrides: { coupons: undefined as never },
       });
 
       // 'coupons' should be absent from the merged overrides (undefined keys are deleted)
@@ -225,7 +225,7 @@ describe("SubscriptionService", () => {
             }),
           };
         }),
-      } as any);
+      } as never);
 
       const result = await service.changePlan("rest-1", "enterprise");
 
@@ -264,7 +264,7 @@ describe("SubscriptionService", () => {
             }),
           };
         }),
-      } as any);
+      } as never);
 
       const result = await service.setActive("rest-1", false);
 
@@ -310,7 +310,7 @@ describe("SubscriptionService", () => {
         moduleOverrides: {
           kitchen_display: true,
           menu_management: false,
-        } as any,
+        } as never,
       });
 
       expect(result.kitchen_display).toBe(true); // override grants

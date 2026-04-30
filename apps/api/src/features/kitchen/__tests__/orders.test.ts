@@ -69,7 +69,7 @@ const mockEnv = {
   NODE_ENV: "test",
   DB: {},
   CACHE_KV: {},
-} as any;
+} as never;
 
 describe("KitchenService Orders", () => {
   let kitchenService: KitchenService;

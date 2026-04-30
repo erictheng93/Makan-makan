@@ -22,7 +22,7 @@ describe('SchedulingService', () => {
   let service: SchedulingService
 
   beforeEach(() => {
-    service = new SchedulingService(mockDb as any, mockEnv as any)
+    service = new SchedulingService(mockDb as D1Database, mockEnv as never)
     vi.clearAllMocks()
   })
 

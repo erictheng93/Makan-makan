@@ -42,7 +42,7 @@ describe("GroupOrderService - 支付處理", () => {
     testGroupOrderId = createResult.data!.groupOrderId;
 
     const members = Array.from(mockDB._mockData.groupMembers.values());
-    testMemberId = (members[0] as any).id;
+    testMemberId = (members[0] as { id: string }).id;
 
     // 創建待支付的分帳記錄
     testSplitBillId = crypto.randomUUID();

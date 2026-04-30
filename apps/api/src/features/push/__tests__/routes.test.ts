@@ -31,7 +31,7 @@ function buildApp(kv = createMockKV()) {
     if (err instanceof ApiError) {
       return c.json(
         { success: false, error: { code: err.code, message: err.message } },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -85,7 +85,7 @@ describe("Push Routes", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);
@@ -125,7 +125,7 @@ describe("Push Routes", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(400);
     expect(json.error.code).toBe("VALIDATION_ERROR");
@@ -147,7 +147,7 @@ describe("Push Routes", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(403);
     expect(json.error.code).toBe("PUSH_SUBSCRIPTION_FORBIDDEN");
@@ -169,7 +169,7 @@ describe("Push Routes", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);
@@ -193,7 +193,7 @@ describe("Push Routes", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(403);
     expect(json.error.code).toBe("PUSH_SUBSCRIPTION_FORBIDDEN");
@@ -213,7 +213,7 @@ describe("Push Routes", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);

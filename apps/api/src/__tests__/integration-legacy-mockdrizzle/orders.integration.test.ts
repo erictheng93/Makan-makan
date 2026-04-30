@@ -74,7 +74,7 @@ describe("Orders API Integration", () => {
       }),
     });
     expect(catRes.status).toBe(201);
-    const categoryId = ((await catRes.json()) as any as any).data.id;
+    const categoryId = ((await catRes.json()) as ApiTestResponse).data.id;
 
     // 2. Menu items
     const item1Res = await app.request(`/api/v1/menu/${restId}/items`, {
@@ -92,7 +92,7 @@ describe("Orders API Integration", () => {
       }),
     });
     expect(item1Res.status).toBe(201);
-    const item1Data = ((await item1Res.json()) as any as any).data;
+    const item1Data = ((await item1Res.json()) as ApiTestResponse).data;
 
     const item2Res = await app.request(`/api/v1/menu/${restId}/items`, {
       method: "POST",
@@ -109,7 +109,7 @@ describe("Orders API Integration", () => {
       }),
     });
     expect(item2Res.status).toBe(201);
-    const item2Data = ((await item2Res.json()) as any as any).data;
+    const item2Data = ((await item2Res.json()) as ApiTestResponse).data;
 
     // 3. Table
     const tableRes = await app.request("/api/v1/tables", {
@@ -126,7 +126,7 @@ describe("Orders API Integration", () => {
       }),
     });
     expect(tableRes.status).toBe(201);
-    const tableId = ((await tableRes.json()) as any as any).data.id;
+    const tableId = ((await tableRes.json()) as ApiTestResponse).data.id;
 
     return {
       categoryId,
@@ -205,7 +205,7 @@ describe("Orders API Integration", () => {
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBeGreaterThanOrEqual(2);
@@ -223,14 +223,14 @@ describe("Orders API Integration", () => {
         tableId,
       );
       expect(createRes.status).toBe(201);
-      const orderId = ((await createRes.json()) as any as any).data.id;
+      const orderId = ((await createRes.json()) as ApiTestResponse).data.id;
 
       const res = await app.request(`/api/v1/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
       expect(body.data.id).toBe(orderId);
     });
@@ -241,7 +241,7 @@ describe("Orders API Integration", () => {
       });
 
       expect(res.status).toBe(404);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error).toBeDefined();
     });
@@ -264,7 +264,7 @@ describe("Orders API Integration", () => {
       );
 
       expect(res.status).toBe(201);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
       expect(body.data).toBeDefined();
       expect(body.data.id).toBeDefined();
@@ -295,7 +295,7 @@ describe("Orders API Integration", () => {
 
       // Zod validation rejects items.min(1)
       expect([400, 422]).toContain(res.status);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
     });
   });
@@ -312,22 +312,22 @@ describe("Orders API Integration", () => {
         tableId,
       );
       expect(createRes.status).toBe(201);
-      const orderId = ((await createRes.json()) as any as any).data.id;
+      const orderId = ((await createRes.json()) as ApiTestResponse).data.id;
 
       // pending -> confirmed
       const confirmRes = await updateStatusViaAPI(orderId, "confirmed");
       expect(confirmRes.status).toBe(200);
-      expect(((await confirmRes.json()) as any as any).success).toBe(true);
+      expect(((await confirmRes.json()) as ApiTestResponse).success).toBe(true);
 
       // confirmed -> preparing
       const prepRes = await updateStatusViaAPI(orderId, "preparing");
       expect(prepRes.status).toBe(200);
-      expect(((await prepRes.json()) as any as any).success).toBe(true);
+      expect(((await prepRes.json()) as ApiTestResponse).success).toBe(true);
 
       // preparing -> ready
       const readyRes = await updateStatusViaAPI(orderId, "ready");
       expect(readyRes.status).toBe(200);
-      expect(((await readyRes.json()) as any as any).success).toBe(true);
+      expect(((await readyRes.json()) as ApiTestResponse).success).toBe(true);
 
       // Verify final DB state
       const dbOrder = ctx.dataStore.selectOne("orders", { id: orderId });
@@ -347,13 +347,13 @@ describe("Orders API Integration", () => {
         tableId,
       );
       expect(createRes.status).toBe(201);
-      const orderId = ((await createRes.json()) as any as any).data.id;
+      const orderId = ((await createRes.json()) as ApiTestResponse).data.id;
 
       // pending -> ready is NOT allowed (must go confirmed -> preparing first)
       const res = await updateStatusViaAPI(orderId, "ready");
       // 403 from role permission check, 409 from transition validation
       expect([400, 403, 409]).toContain(res.status);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error).toBeDefined();
     });
@@ -366,7 +366,7 @@ describe("Orders API Integration", () => {
         tableId,
       );
       expect(createRes.status).toBe(201);
-      const orderId = ((await createRes.json()) as any as any).data.id;
+      const orderId = ((await createRes.json()) as ApiTestResponse).data.id;
 
       // Cancel first (pending -> cancelled is valid)
       const cancelRes = await updateStatusViaAPI(orderId, "cancelled");
@@ -375,7 +375,7 @@ describe("Orders API Integration", () => {
       // cancelled -> confirmed is invalid (no transitions out of cancelled)
       const res = await updateStatusViaAPI(orderId, "confirmed");
       expect([400, 403, 409]).toContain(res.status);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
     });
   });
@@ -391,7 +391,7 @@ describe("Orders API Integration", () => {
         tableId,
       );
       expect(createRes.status).toBe(201);
-      const orderId = ((await createRes.json()) as any as any).data.id;
+      const orderId = ((await createRes.json()) as ApiTestResponse).data.id;
 
       const res = await app.request(`/api/v1/orders/${orderId}`, {
         method: "DELETE",
@@ -399,7 +399,7 @@ describe("Orders API Integration", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
 
       // Verify the order is cancelled in the DB
@@ -415,7 +415,7 @@ describe("Orders API Integration", () => {
       });
 
       expect(res.status).toBe(404);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
     });
   });
@@ -427,7 +427,7 @@ describe("Orders API Integration", () => {
       const res = await app.request("/api/v1/orders");
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
     });
 
@@ -442,7 +442,7 @@ describe("Orders API Integration", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
     });
   });
@@ -463,7 +463,7 @@ describe("Orders API Integration", () => {
       );
 
       expect(res.status).toBe(201);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
 
       // Verify the notes were stored in the DB
@@ -496,7 +496,7 @@ describe("Orders API Integration", () => {
       });
 
       expect(res.status).toBe(201);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
 
       // Verify item-level notes in the DB
       const dbItems = ctx.dataStore.select("order_items", {
@@ -526,7 +526,7 @@ describe("Orders API Integration", () => {
       expect(r1.status).toBe(201);
       expect(r2.status).toBe(201);
 
-      const order1Id = ((await r1.json()) as any as any).data.id;
+      const order1Id = ((await r1.json()) as ApiTestResponse).data.id;
 
       // Confirm only the first order
       const confirmRes = await updateStatusViaAPI(order1Id, "confirmed");
@@ -539,7 +539,7 @@ describe("Orders API Integration", () => {
       );
 
       expect(listRes.status).toBe(200);
-      const listBody = (await listRes.json()) as any;
+      const listBody = (await listRes.json()) as ApiTestResponse;
       expect(listBody.success).toBe(true);
       expect(Array.isArray(listBody.data)).toBe(true);
 
@@ -565,14 +565,14 @@ describe("Orders API Integration", () => {
         tableId,
       );
       expect(createRes.status).toBe(201);
-      const orderId = ((await createRes.json()) as any as any).data.id;
+      const orderId = ((await createRes.json()) as ApiTestResponse).data.id;
 
       const res = await updateStatusViaAPI(orderId, "confirmed", undefined, {
         notes: "Customer asked to rush this order",
       });
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
     });
   });
@@ -589,7 +589,7 @@ describe("Orders API Integration", () => {
         tableId,
       );
       expect(createRes.status).toBe(201);
-      const orderId = ((await createRes.json()) as any as any).data.id;
+      const orderId = ((await createRes.json()) as ApiTestResponse).data.id;
 
       const confirmRes = await updateStatusViaAPI(orderId, "confirmed");
       expect(confirmRes.status).toBe(200);
@@ -599,7 +599,7 @@ describe("Orders API Integration", () => {
       const res = await updateStatusViaAPI(orderId, "preparing", chefToken);
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
     });
 
@@ -611,14 +611,14 @@ describe("Orders API Integration", () => {
         tableId,
       );
       expect(createRes.status).toBe(201);
-      const orderId = ((await createRes.json()) as any as any).data.id;
+      const orderId = ((await createRes.json()) as ApiTestResponse).data.id;
 
       // Chef tries to confirm — NOT in ROLE_STATUS_PERMISSIONS[2]
       const chefToken = authHelper.staffToken(99, 2, restaurantId);
       const res = await updateStatusViaAPI(orderId, "confirmed", chefToken);
 
       expect(res.status).toBe(403);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
     });
   });

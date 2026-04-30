@@ -10,7 +10,7 @@ const authRouter = authFeature.routes;
 
 // Mock @makanmakan/database to provide AuthService
 vi.mock("@makanmakan/database", async (importOriginal) => {
-  const actual = (await importOriginal()) as any;
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     AuthService: vi.fn(function () {
@@ -55,7 +55,7 @@ describe("Auth Routes", () => {
               ...(err.details !== undefined && { details: err.details }),
             },
           },
-          err.status as any,
+          err.status as never,
         );
       }
       const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -75,7 +75,8 @@ describe("Auth Routes", () => {
     app.use("*", async (c, next) => {
       // Initialize c.env if it doesn't exist
       if (!c.env) {
-        (c as any).env = {};
+        (c as unknown as ApiTestContextWithEnv).env =
+          {} as unknown as ApiTestEnv;
       }
       // Inject mock env
       Object.assign(c.env, mockEnv);
@@ -97,7 +98,7 @@ describe("Auth Routes", () => {
     // vitest 4 requires 'function' keyword for constructor mocks
     vi.mocked(AuthService).mockImplementation(function (this: any) {
       return mockAuthServiceInstance;
-    } as any);
+    } as never);
 
     vi.clearAllMocks();
   });
@@ -132,8 +133,10 @@ describe("Auth Routes", () => {
         }),
       });
 
-      const response = await app.request(req, { env: mockEnv } as any);
-      const result = (await response.json()) as any;
+      const response = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(response.status).toBe(200);
       expect(result.success).toBe(true);
@@ -163,8 +166,10 @@ describe("Auth Routes", () => {
         }),
       });
 
-      const response = await app.request(req, { env: mockEnv } as any);
-      const result = (await response.json()) as any;
+      const response = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(response.status).toBe(401);
       expect(result.success).toBe(false);
@@ -192,8 +197,10 @@ describe("Auth Routes", () => {
         }),
       });
 
-      const response = await app.request(req, { env: mockEnv } as any);
-      const result = (await response.json()) as any;
+      const response = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(response.status).toBe(401);
       expect(result.success).toBe(false);
@@ -215,8 +222,10 @@ describe("Auth Routes", () => {
         }),
       });
 
-      const response = await app.request(req, { env: mockEnv } as any);
-      const result = (await response.json()) as any;
+      const response = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(response.status).toBe(400);
       expect(result.success).toBe(false);
@@ -242,8 +251,10 @@ describe("Auth Routes", () => {
         }),
       });
 
-      const response = await app.request(req, { env: mockEnv } as any);
-      const result = (await response.json()) as any;
+      const response = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await response.json()) as ApiTestResponse;
 
       // If validation passes, auth middleware should return 401
       // If validation fails first, we get 400 with ZodError
@@ -265,8 +276,10 @@ describe("Auth Routes", () => {
         method: "GET",
       });
 
-      const response = await app.request(req, { env: mockEnv } as any);
-      const result = (await response.json()) as any;
+      const response = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(response.status).toBe(401);
       expect(result.success).toBe(false);

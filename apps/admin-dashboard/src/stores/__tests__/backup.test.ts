@@ -177,7 +177,7 @@ describe("Backup Store", () => {
         id: "a1",
         acknowledged: false,
         acknowledged_at: null,
-      } as any);
+      } as never);
 
       await store.acknowledgeAlert("a1");
 
@@ -198,7 +198,7 @@ describe("Backup Store", () => {
         id: "a2",
         resolved: false,
         resolved_at: null,
-      } as any);
+      } as never);
 
       await store.resolveAlert("a2");
 
@@ -242,10 +242,10 @@ describe("Backup Store", () => {
   describe("clearCache", () => {
     it("should reset all state", () => {
       const store = useBackupStore();
-      store.backups.push({ id: "b1" } as any);
-      store.configurations.push({ id: "c1" } as any);
-      store.systemHealth = { status: "healthy" } as any;
-      store.alerts.push({ id: "a1" } as any);
+      store.backups.push({ id: "b1" } as never);
+      store.configurations.push({ id: "c1" } as never);
+      store.systemHealth = { status: "healthy" } as never;
+      store.alerts.push({ id: "a1" } as never);
 
       store.clearCache();
 
@@ -264,7 +264,7 @@ describe("Backup Store", () => {
       });
 
       const store = useBackupStore();
-      store.backups.push({ id: "b1", status: "in_progress" } as any);
+      store.backups.push({ id: "b1", status: "in_progress" } as never);
 
       const result = await store.pollBackupStatus("b1");
 

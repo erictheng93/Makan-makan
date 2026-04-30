@@ -16,7 +16,7 @@ const MOCK_HASH = new Uint8Array([
 ]);
 
 vi.stubGlobal("crypto", {
-  ...(globalThis as any).crypto,
+  ...(globalThis as typeof globalThis & { crypto: Crypto }).crypto,
   subtle: {
     digest: vi.fn().mockResolvedValue(MOCK_HASH.buffer),
     importKey: vi.fn().mockResolvedValue("mock-key-material"),
@@ -92,8 +92,8 @@ describe("BackupStorageService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new BackupStorageService(
-      mockR2Storage as any,
-      mockKVStorage as any,
+      mockR2Storage as never,
+      mockKVStorage as never,
     );
   });
 
@@ -154,7 +154,7 @@ describe("BackupStorageService", () => {
       const backup = buildBackupRecord();
 
       await expect(
-        service.storeBackup(backup, "data", "azure" as any),
+        service.storeBackup(backup, "data", "azure" as never),
       ).rejects.toThrow("Failed to store backup");
     });
   });
@@ -212,7 +212,7 @@ describe("BackupStorageService", () => {
     });
 
     it("should throw for unsupported storage provider on retrieve", async () => {
-      const backup = buildBackupRecord({ storage_provider: "gcs" as any });
+      const backup = buildBackupRecord({ storage_provider: "gcs" as never });
 
       await expect(service.retrieveBackup(backup)).rejects.toThrow(
         "Failed to retrieve backup",
@@ -242,7 +242,7 @@ describe("BackupStorageService", () => {
     });
 
     it("should throw for unsupported provider", async () => {
-      const backup = buildBackupRecord({ storage_provider: "azure" as any });
+      const backup = buildBackupRecord({ storage_provider: "azure" as never });
 
       await expect(service.deleteBackup(backup)).rejects.toThrow(
         "Failed to delete backup",
@@ -291,7 +291,7 @@ describe("BackupStorageService", () => {
     });
 
     it("should return false for unsupported provider", async () => {
-      const backup = buildBackupRecord({ storage_provider: "s3" as any });
+      const backup = buildBackupRecord({ storage_provider: "s3" as never });
 
       const exists = await service.backupExists(backup);
       expect(exists).toBe(false);

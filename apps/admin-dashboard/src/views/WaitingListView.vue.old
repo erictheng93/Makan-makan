@@ -691,7 +691,7 @@ function getStatusText(status: WaitingStatus): string {
  * 取得狀態類型
  */
 function getStatusType(status: WaitingStatus): string {
-  return WaitingListService.getStatusColor(status) as any;
+  return WaitingListService.getStatusColor(status) as never;
 }
 
 // 監聽表單人數變化，自動預估等待時間

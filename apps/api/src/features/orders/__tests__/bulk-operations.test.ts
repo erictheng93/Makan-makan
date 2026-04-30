@@ -53,7 +53,7 @@ const mockLogger = {
 };
 
 const mockEnv = envFactory.build({
-  CACHE_KV: mockCacheKV as any,
+  CACHE_KV: mockCacheKV as never,
 }) as unknown as Env;
 
 const createMockOrder = (id: number, status: string = "pending") => ({
@@ -78,12 +78,12 @@ describe("Orders Bulk Operations", () => {
     ordersService = new OrdersService(mockEnv);
 
     // Replace internal services with mocks
-    ordersService["baseOrderService"] = mockOrderServiceInstance as any;
-    ordersService["couponService"] = mockCouponServiceInstance as any;
+    ordersService["baseOrderService"] = mockOrderServiceInstance as never;
+    ordersService["couponService"] = mockCouponServiceInstance as never;
     ordersService["realtimeBroadcastService"] =
-      mockRealtimeBroadcastServiceInstance as any;
+      mockRealtimeBroadcastServiceInstance as never;
     ordersService["cacheKV"] = mockCacheKV;
-    ordersService["logger"] = mockLogger as any;
+    ordersService["logger"] = mockLogger as never;
   });
 
   describe("bulkUpdateOrders - Status Updates", () => {
@@ -304,7 +304,7 @@ describe("Orders Bulk Operations", () => {
     it("should handle unsupported action", async () => {
       const operation: BulkOrderOperation = {
         orderIds: [1],
-        action: "unsupported_action" as any,
+        action: "unsupported_action" as never,
         data: {},
       };
 

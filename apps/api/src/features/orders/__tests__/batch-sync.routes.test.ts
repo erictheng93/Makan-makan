@@ -81,7 +81,7 @@ describe("Order Batch Sync Compatibility Route", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.data).toMatchObject({

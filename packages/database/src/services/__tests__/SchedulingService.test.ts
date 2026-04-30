@@ -35,7 +35,7 @@ describe("SchedulingService", () => {
     resetAllFactories();
     mockDb = createMockDatabase();
     mockEnv = createMockEnv();
-    service = new SchedulingService(mockDb as any, mockEnv);
+    service = new SchedulingService(mockDb, mockEnv);
     vi.clearAllMocks();
   });
 

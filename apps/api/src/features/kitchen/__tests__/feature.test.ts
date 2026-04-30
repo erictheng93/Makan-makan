@@ -10,7 +10,7 @@ const mockEnv = {
   NODE_ENV: "test",
   DB: {},
   CACHE_KV: {},
-} as any;
+} as never;
 
 describe("Kitchen Feature Module", () => {
   test("should create KitchenService instance", () => {

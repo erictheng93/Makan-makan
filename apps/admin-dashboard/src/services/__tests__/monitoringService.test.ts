@@ -64,7 +64,7 @@ describe("MonitoringService", () => {
       mockApiGet.mockResolvedValue({ data: { data: metrics } });
 
       const params = { period: "1h" };
-      const result = await service.getMetrics(params as any);
+      const result = await service.getMetrics(params as never);
 
       expect(mockApiGet).toHaveBeenCalledWith("/monitoring/metrics", params);
       expect(result).toEqual(metrics);
@@ -102,7 +102,7 @@ describe("MonitoringService", () => {
       mockApiPost.mockResolvedValue({ data: { data: rule } });
 
       const request = { name: "CPU Alert", metric: "cpu", threshold: 90 };
-      const result = await service.createAlertRule(request as any);
+      const result = await service.createAlertRule(request as never);
 
       expect(mockApiPost).toHaveBeenCalledWith(
         "/monitoring/alerts/rules",
@@ -117,7 +117,7 @@ describe("MonitoringService", () => {
 
       const result = await service.updateAlertRule("r1", {
         name: "Updated",
-      } as any);
+      } as never);
 
       expect(mockApiPut).toHaveBeenCalledWith("/monitoring/alerts/rules/r1", {
         name: "Updated",
@@ -147,7 +147,7 @@ describe("MonitoringService", () => {
       mockApiPost.mockResolvedValue({ data: { data: response } });
 
       const request = { type: "cpu", severity: "warning" };
-      const result = await service.testAlert(request as any);
+      const result = await service.testAlert(request as never);
 
       expect(mockApiPost).toHaveBeenCalledWith(
         "/monitoring/alerts/test",
@@ -163,7 +163,7 @@ describe("MonitoringService", () => {
       mockApiPost.mockResolvedValue({ data: { data: response } });
 
       const error = { message: "Something failed", source: "frontend" };
-      const result = await service.recordError(error as any);
+      const result = await service.recordError(error as never);
 
       expect(mockApiPost).toHaveBeenCalledWith("/monitoring/errors", error);
       expect(result).toEqual(response);

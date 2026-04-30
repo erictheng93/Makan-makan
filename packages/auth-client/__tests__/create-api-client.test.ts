@@ -50,7 +50,7 @@ function ok<T>(data: T): AxiosResponse<T> {
     status: 200,
     statusText: "OK",
     headers: {},
-    config: {} as any,
+    config: {} as never,
   };
 }
 

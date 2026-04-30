@@ -51,7 +51,7 @@ function withErrorHandler(app: Hono<any>): void {
           success: false,
           error: { code: err.code, message: err.message },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -91,14 +91,14 @@ function createAuthApp(envOverrides: any = {}) {
 
   app.use("*", async (c, next) => {
     if (!c.env) {
-      (c as any).env = env;
+      (c as unknown as ApiTestContextWithEnv).env = env;
     } else {
       Object.assign(c.env, env);
     }
     await next();
   });
 
-  app.get("/protected", authMiddleware as any, (c) =>
+  app.get("/protected", authMiddleware as never, (c) =>
     c.json({ success: true, user: c.get("user") }),
   );
 
@@ -113,18 +113,18 @@ function createGuestApp(envOverrides: any = {}) {
 
   app.use("*", async (c, next) => {
     if (!c.env) {
-      (c as any).env = env;
+      (c as unknown as ApiTestContextWithEnv).env = env;
     } else {
       Object.assign(c.env, env);
     }
     await next();
   });
 
-  app.get("/orders/:id", guestTokenAuth as any, (c) =>
+  app.get("/orders/:id", guestTokenAuth as never, (c) =>
     c.json({ success: true, order: c.get("guestOrder") }),
   );
 
-  app.get("/session", guestSessionAuth as any, (c) =>
+  app.get("/session", guestSessionAuth as never, (c) =>
     c.json({ success: true, session: c.get("guestSession") }),
   );
 
@@ -157,7 +157,7 @@ describe("1. JWT 操控攻擊 (JWT Manipulation Attacks)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -181,7 +181,7 @@ describe("1. JWT 操控攻擊 (JWT Manipulation Attacks)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -197,7 +197,7 @@ describe("1. JWT 操控攻擊 (JWT Manipulation Attacks)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -211,7 +211,7 @@ describe("1. JWT 操控攻擊 (JWT Manipulation Attacks)", () => {
 
     // JWT_SECRET 為空時，auth middleware 應返回 500 SERVER_CONFIG_ERROR
     expect(res.status).toBe(500);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("SERVER_CONFIG_ERROR");
   });
@@ -225,7 +225,7 @@ describe("1. JWT 操控攻擊 (JWT Manipulation Attacks)", () => {
     });
 
     expect(res.status).toBe(500);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("SERVER_CONFIG_ERROR");
   });
@@ -242,7 +242,7 @@ describe("1. JWT 操控攻擊 (JWT Manipulation Attacks)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 });
@@ -270,7 +270,7 @@ describe("2. Token 失效後重用 (Token Reuse After Invalidation)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("TOKEN_BLACKLISTED");
   });
@@ -287,7 +287,7 @@ describe("2. Token 失效後重用 (Token Reuse After Invalidation)", () => {
 
     // 即使 KV 不可用，合法 token 仍應通過驗證
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
   });
 
@@ -333,7 +333,7 @@ describe("2. Token 失效後重用 (Token Reuse After Invalidation)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.error.code).toBe("TOKEN_BLACKLISTED");
   });
 });
@@ -361,7 +361,7 @@ describe("3. Token 時序攻擊 (Token Timing Attacks)", () => {
 
     // exp <= now 被拒絕
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -379,7 +379,7 @@ describe("3. Token 時序攻擊 (Token Timing Attacks)", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
   });
 
@@ -397,7 +397,7 @@ describe("3. Token 時序攻擊 (Token Timing Attacks)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -419,7 +419,7 @@ describe("3. Token 時序攻擊 (Token Timing Attacks)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -494,7 +494,7 @@ describe("3. Token 時序攻擊 (Token Timing Attacks)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     // hono/jwt verify() 先於 middleware 的手動檢查攔截了 future iat，
     // 因此 error code 可能是 TOKEN_FUTURE (middleware) 或 TOKEN_INVALID (catch block)
     expect(["TOKEN_FUTURE", "TOKEN_INVALID"]).toContain(body.error.code);
@@ -541,7 +541,7 @@ describe("4. 刷新令牌安全 (Refresh Token Security)", () => {
     // 注入 env 到 context
     app.use("*", async (c, next) => {
       if (!c.env) {
-        (c as any).env = env;
+        (c as unknown as ApiTestContextWithEnv).env = env;
       } else {
         Object.assign(c.env, env);
       }
@@ -570,7 +570,7 @@ describe("4. 刷新令牌安全 (Refresh Token Security)", () => {
 
     // zValidator 驗證失敗返回 400
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -589,7 +589,7 @@ describe("4. 刷新令牌安全 (Refresh Token Security)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBe("Invalid refresh token");
 
@@ -615,7 +615,7 @@ describe("4. 刷新令牌安全 (Refresh Token Security)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBe("Refresh token has expired");
 
@@ -659,7 +659,7 @@ describe("4. 刷新令牌安全 (Refresh Token Security)", () => {
       },
     });
     expect(res2.status).toBe(401);
-    const body = (await res2.json()) as any;
+    const body = (await res2.json()) as ApiTestResponse;
     expect(body.error).toBe("Refresh token has been revoked");
 
     // 驗證 refreshToken 被呼叫了兩次
@@ -686,7 +686,7 @@ describe("4. 刷新令牌安全 (Refresh Token Security)", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data.token).toBe("new-access-token-xyz");
     expect(body.data.refreshToken).toBe("new-refresh-token-xyz");
@@ -715,7 +715,7 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
 
     // authMiddleware 會嘗試 JWT verify，gt_ token 不是合法 JWT
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -729,7 +729,7 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
 
     // guestTokenAuth 檢查 Bearer gt_ 前綴，JWT token 沒有此前綴
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("guest token");
   });
@@ -750,7 +750,7 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("expired or invalid");
   });
@@ -777,7 +777,7 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("does not match");
   });
@@ -806,7 +806,7 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -866,7 +866,7 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.error).toContain("expired or invalid");
   });
 
@@ -893,7 +893,7 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.session.restaurantId).toBe("S-20240101-001");
   });
@@ -906,7 +906,7 @@ describe("5. Guest Token 邊界測試 (Guest Token Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -943,7 +943,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("TOKEN_INVALID");
   });
@@ -957,7 +957,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("TOKEN_INVALID");
   });
@@ -971,7 +971,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -987,7 +987,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     // 但因為 auth middleware 只做 range 檢查，0.5 可能通過
     // 實際上 0.5 >= 0 && 0.5 <= 4 為 true，所以需要確認行為
     // 不管結果如何，不應該讓非整數 role 產生安全問題
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     // 如果通過了也不應該有 admin 權限（role 不等於 0）
     if (res.status === 200) {
       expect(body.user.role).toBe(0.5);
@@ -1007,7 +1007,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("TOKEN_INVALID");
   });
@@ -1022,7 +1022,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("TOKEN_INVALID");
   });
@@ -1040,7 +1040,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
 
     // 驗證 user 物件只包含預期的欄位，不含注入的聲明
@@ -1060,7 +1060,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.user.role).toBe(role);
     }
   });
@@ -1072,7 +1072,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
 
     app.use("*", async (c, next) => {
       if (!c.env) {
-        (c as any).env = env;
+        (c as unknown as ApiTestContextWithEnv).env = env;
       } else {
         Object.assign(c.env, env);
       }
@@ -1082,8 +1082,8 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     // 只允許 admin (0) 和 owner (1)
     app.get(
       "/admin-only",
-      authMiddleware as any,
-      requireRole([0, 1]) as any,
+      authMiddleware as never,
+      requireRole([0, 1]) as never,
       (c) => c.json({ success: true }),
     );
 
@@ -1094,17 +1094,16 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.error.code).toBe("INSUFFICIENT_ROLE");
   });
 
   it("缺少 role 聲明的 token 應被拒絕", async () => {
     // 完全移除 role 欄位
-    const payload = validPayload();
-    delete (payload as any).role;
+    const { role: _role, ...payload } = validPayload();
     // 手動設 role 為 undefined 來繞過 TypeScript
     const token = await sign(
-      { ...payload, role: undefined as any },
+      { ...payload, role: undefined as never },
       SECRET,
       "HS256",
     );
@@ -1115,7 +1114,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -1124,7 +1123,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     const res = await app.request("/protected");
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("MISSING_AUTH_HEADER");
   });
@@ -1138,7 +1137,7 @@ describe("6. Token 聲明邊界測試 (Token Claim Boundary Tests)", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.error.code).toBe("MISSING_AUTH_HEADER");
   });
 });

@@ -35,7 +35,7 @@ if (typeof global.CloseEvent === "undefined") {
       this.reason = eventInitDict?.reason ?? "";
       this.wasClean = eventInitDict?.wasClean ?? false;
     }
-  } as any;
+  } as unknown as typeof CloseEvent;
 }
 
 /**
@@ -44,20 +44,20 @@ if (typeof global.CloseEvent === "undefined") {
  */
 if (typeof global.MessageEvent === "undefined") {
   global.MessageEvent = class MessageEvent extends Event {
-    data: any;
+    data: unknown;
     origin: string;
     lastEventId: string;
-    source: any;
-    ports: any[];
+    source: MessageEventSource | null;
+    ports: readonly MessagePort[];
 
     constructor(
       type: string,
       eventInitDict?: {
-        data?: any;
+        data?: unknown;
         origin?: string;
         lastEventId?: string;
-        source?: any;
-        ports?: any[];
+        source?: MessageEventSource | null;
+        ports?: readonly MessagePort[];
         bubbles?: boolean;
         cancelable?: boolean;
         composed?: boolean;
@@ -70,7 +70,7 @@ if (typeof global.MessageEvent === "undefined") {
       this.source = eventInitDict?.source ?? null;
       this.ports = eventInitDict?.ports ?? [];
     }
-  } as any;
+  } as unknown as typeof MessageEvent;
 }
 
 /**
@@ -130,7 +130,7 @@ if (typeof global.WebSocket === "undefined") {
         this.onclose?.(event);
       }, 0);
     }
-  } as any;
+  } as unknown as typeof WebSocket;
 }
 
 // ============================================================
@@ -163,8 +163,8 @@ global.console = {
 if (typeof global.performance === "undefined") {
   global.performance = {
     now: () => Date.now(),
-    timing: {} as any, // Legacy API - using any for test compatibility
-    navigation: {} as any, // Legacy API - using any for test compatibility
+    timing: {},
+    navigation: {},
     timeOrigin: Date.now(),
     mark: vi.fn(),
     measure: vi.fn(),
@@ -174,7 +174,7 @@ if (typeof global.performance === "undefined") {
     getEntriesByType: vi.fn(() => []),
     getEntries: vi.fn(() => []),
     toJSON: vi.fn(() => ({})),
-  } as any;
+  } as unknown as Performance;
 }
 
 // ============================================================
@@ -196,7 +196,7 @@ if (typeof global.crypto === "undefined") {
         return v.toString(16);
       });
     },
-  } as any;
+  } as unknown as Crypto;
 }
 
 // ============================================================

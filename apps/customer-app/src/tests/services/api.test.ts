@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ApiErrorCode } from "@makanmakan/shared-types";
 
 // Mock i18n before importing api module
 vi.mock("@/i18n", () => ({
@@ -23,7 +24,7 @@ describe("api service", () => {
 
   describe("ApiException", () => {
     it("should create an error with code and message", () => {
-      const error = new ApiException("NOT_FOUND" as any, "Item not found");
+      const error = new ApiException(ApiErrorCode.NOT_FOUND, "Item not found");
       expect(error.message).toBe("Item not found");
       expect(error.code).toBe("NOT_FOUND");
       expect(error.name).toBe("ApiException");
@@ -32,7 +33,7 @@ describe("api service", () => {
 
     it("should include optional details and status", () => {
       const error = new ApiException(
-        "VALIDATION_ERROR" as any,
+        ApiErrorCode.VALIDATION_ERROR,
         "Invalid input",
         { field: "name" },
         400,
@@ -48,7 +49,7 @@ describe("api service", () => {
 
   describe("handleApiError", () => {
     it("should return message from ApiException", () => {
-      const error = new ApiException("NOT_FOUND" as any, "Not found");
+      const error = new ApiException(ApiErrorCode.NOT_FOUND, "Not found");
       expect(handleApiError(error)).toBe("Not found");
     });
 

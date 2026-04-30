@@ -65,7 +65,7 @@ describe("KitchenService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEnv = createMockEnv();
-    service = new KitchenService(mockEnv as any);
+    service = new KitchenService(mockEnv as unknown as ApiTestEnv);
   });
 
   describe("Kitchen Operations", () => {

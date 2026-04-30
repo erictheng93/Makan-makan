@@ -22,7 +22,7 @@ function createApp() {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -49,7 +49,7 @@ describe("validation middleware error format", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toHaveProperty("code", "VALIDATION_ERROR");
     expect(body.error).toHaveProperty("message", "Validation failed");
@@ -68,7 +68,7 @@ describe("validation middleware error format", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toHaveProperty("code", "INVALID_JSON");
     expect(body.error).toHaveProperty("message");

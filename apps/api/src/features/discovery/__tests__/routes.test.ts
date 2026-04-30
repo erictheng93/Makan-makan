@@ -91,6 +91,20 @@ import routes from "../routes/index";
 import { ApiError } from "../../../shared/utils/api-error";
 import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
+type TestUserContext = {
+  set(key: "user", value: { id: number; role: number; username: string }): void;
+};
+
+type MockAuthMiddleware = {
+  getMockImplementation?: () => unknown;
+  mockImplementation(
+    implementation: (
+      c: TestUserContext,
+      next: () => Promise<void>,
+    ) => Promise<void>,
+  ): void;
+};
+
 function createApp() {
   const app = new Hono<{ Bindings: Env }>();
   app.route("/discovery", routes);
@@ -107,7 +121,7 @@ function createApp() {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -128,7 +142,7 @@ function createApp() {
           message: sanitized.message,
         },
       },
-      status as any,
+      status as never,
     );
   });
 
@@ -137,20 +151,20 @@ function createApp() {
 
 function createMockEnv(): Env {
   return {
-    DB: {} as any,
-    CACHE_KV: {} as any,
+    DB: {} as never,
+    CACHE_KV: {} as never,
     JWT_SECRET: "test-secret",
     NODE_ENV: "test",
     API_VERSION: "v1",
     ENCRYPTION_KEY: "test-key-32-chars-long-for-test!!",
-    TOKEN_BLACKLIST: {} as any,
-    IMAGES_BUCKET: {} as any,
-    BACKUP_STORAGE: {} as any,
-    JOB_QUEUE: {} as any,
-    REALTIME_ORDERS: {} as any,
-    ANALYTICS_ENGINE: { writeDataPoint: vi.fn() } as any,
-    RATE_LIMIT_KV: {} as any,
-    REALTIME_SESSION: {} as any,
+    TOKEN_BLACKLIST: {} as never,
+    IMAGES_BUCKET: {} as never,
+    BACKUP_STORAGE: {} as never,
+    JOB_QUEUE: {} as never,
+    REALTIME_ORDERS: {} as never,
+    ANALYTICS_ENGINE: { writeDataPoint: vi.fn() } as never,
+    RATE_LIMIT_KV: {} as never,
+    REALTIME_SESSION: {} as never,
     SLACK_WEBHOOK_URL: "",
     API_BASE_URL: "http://localhost:8787",
     INTERNAL_API_TOKEN: "test-token",
@@ -216,7 +230,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(true);
       expect(json.data.results).toHaveLength(1);
       expect(json.data.results[0].dishName).toBe("牛肉麵");
@@ -229,7 +243,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(false);
     });
 
@@ -242,7 +256,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(false);
       expect(typeof json.error.code).toBe("string");
     });
@@ -283,7 +297,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(true);
       expect(json.data.total).toBe(12);
       expect(json.data.page).toBe(2);
@@ -307,7 +321,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(true);
       expect(json.data.results).toHaveLength(1);
     });
@@ -321,7 +335,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(typeof json.error.code).toBe("string");
     });
 
@@ -363,7 +377,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(true);
       expect(json.data.items).toHaveLength(1);
     });
@@ -377,7 +391,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(typeof json.error.code).toBe("string");
     });
   });
@@ -396,7 +410,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(true);
       expect(json.data.keywords).toEqual(["牛肉麵", "炒飯"]);
     });
@@ -410,7 +424,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(typeof json.error.code).toBe("string");
     });
   });
@@ -429,7 +443,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(true);
       expect(json.data.dishes).toBe(150);
     });
@@ -437,15 +451,13 @@ describe("Discovery Routes", () => {
     it("should return 403 for non-admin users", async () => {
       // Re-mock authMiddleware to set non-admin role for this test
       const auth = await import("../../../middleware/auth");
-      const originalImpl = (
-        auth.authMiddleware as any
-      ).getMockImplementation?.();
-      (auth.authMiddleware as any).mockImplementation(
-        async (c: any, next: any) => {
-          c.set("user", { id: 1, role: 1, username: "owner" }); // role 1 = owner
-          await next();
-        },
-      );
+      const mockAuthMiddleware =
+        auth.authMiddleware as unknown as MockAuthMiddleware;
+      const originalImpl = mockAuthMiddleware.getMockImplementation?.();
+      mockAuthMiddleware.mockImplementation(async (c, next) => {
+        c.set("user", { id: 1, role: 1, username: "owner" }); // role 1 = owner
+        await next();
+      });
 
       const freshApp = createApp();
       const res = await freshApp.fetch(
@@ -456,12 +468,10 @@ describe("Discovery Routes", () => {
       expect(res.status).toBe(403);
 
       // Restore original mock for subsequent tests
-      (auth.authMiddleware as any).mockImplementation(
-        async (c: any, next: any) => {
-          c.set("user", { id: 999, role: 0, username: "admin" });
-          await next();
-        },
-      );
+      mockAuthMiddleware.mockImplementation(async (c, next) => {
+        c.set("user", { id: 999, role: 0, username: "admin" });
+        await next();
+      });
     });
 
     it("should return 500 when reindex fails", async () => {
@@ -473,7 +483,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(500);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(typeof json.error.code).toBe("string");
     });
   });
@@ -487,7 +497,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(false);
       expect(json.error.code).toBe("VALIDATION_ERROR");
     });
@@ -499,7 +509,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(false);
     });
 
@@ -510,7 +520,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(false);
     });
 
@@ -544,7 +554,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(true);
       expect(json.data.results).toHaveLength(0);
       expect(json.data.total).toBe(0);
@@ -568,7 +578,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(400);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(false);
     });
 
@@ -614,7 +624,7 @@ describe("Discovery Routes", () => {
       );
 
       expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
+      const json = (await res.json()) as ApiTestResponse;
       expect(json.success).toBe(true);
       expect(json.data.items).toHaveLength(0);
     });

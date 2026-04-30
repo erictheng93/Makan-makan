@@ -15,8 +15,14 @@ import type { SupportedLanguage } from "@/i18n";
 
 // Helper to avoid TS2589
 
-const tGlobal = (key: string, params?: Record<string, any>): string =>
-  params ? (i18n.global as any).t(key, params) : (i18n.global as any).t(key);
+type I18nGlobal = {
+  t: (key: string, params?: Record<string, unknown>) => string;
+};
+
+const testI18n = i18n.global as unknown as I18nGlobal;
+
+const tGlobal = (key: string, params?: Record<string, unknown>): string =>
+  params ? testI18n.t(key, params) : testI18n.t(key);
 
 const ALL_LOCALES: SupportedLanguage[] = [
   "zh-TW",

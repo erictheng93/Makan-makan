@@ -1,6 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useAppStore } from "@/stores/app";
+import { PlanType, Status } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmakan/shared-types";
+
+const buildRestaurant = (overrides: Partial<Restaurant> = {}): Restaurant => ({
+  id: "rest-1",
+  name: "Test",
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+  status: Status.ACTIVE,
+  planType: PlanType.BASIC,
+  ...overrides,
+});
 
 // Mock i18n
 vi.mock("@/i18n", () => ({
@@ -47,7 +59,7 @@ describe("app store", () => {
 
     it("hasRestaurantContext should be truthy when both restaurant and table are set", () => {
       const store = useAppStore();
-      const mockRestaurant = { id: "rest-1", name: "Test" } as any;
+      const mockRestaurant = buildRestaurant();
       store.setRestaurantContext(mockRestaurant, 1);
       expect(store.hasRestaurantContext).toBeTruthy();
     });
@@ -70,7 +82,7 @@ describe("app store", () => {
   describe("setRestaurantContext", () => {
     it("should set restaurant and tableId", () => {
       const store = useAppStore();
-      const restaurant = { id: "rest-1", name: "Burger Shop" } as any;
+      const restaurant = buildRestaurant({ name: "Burger Shop" });
       store.setRestaurantContext(restaurant, 5);
 
       expect(store.currentRestaurant).toEqual(
@@ -81,7 +93,7 @@ describe("app store", () => {
 
     it("should persist context to localStorage", () => {
       const store = useAppStore();
-      const restaurant = { id: "rest-1", name: "Test" } as any;
+      const restaurant = buildRestaurant();
       store.setRestaurantContext(restaurant, 3);
 
       expect(window.localStorage.setItem).toHaveBeenCalledWith(
@@ -103,7 +115,7 @@ describe("app store", () => {
   describe("clearRestaurantContext", () => {
     it("should clear restaurant state and localStorage", () => {
       const store = useAppStore();
-      store.setRestaurantContext({ id: "r1", name: "T" } as any, 1);
+      store.setRestaurantContext(buildRestaurant({ id: "r1", name: "T" }), 1);
       store.clearRestaurantContext();
 
       expect(store.currentRestaurant).toBeNull();

@@ -37,7 +37,7 @@ export const useTestQueueStore = defineStore("queue", {
 
 export const useTestApiStore = defineStore("api", {
   state: () => ({
-    error: null as any,
+    error: null as never,
     isLoading: false,
   }),
 

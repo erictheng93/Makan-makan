@@ -23,7 +23,7 @@ function addErrorHandler(app: Hono) {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -43,7 +43,7 @@ function createApp() {
     c.env = {
       JWT_SECRET: "a".repeat(32),
       TOKEN_BLACKLIST: null,
-    } as any;
+    } as never;
     await next();
   });
   app.get("/protected", authMiddleware, (c) =>
@@ -57,7 +57,7 @@ describe("auth middleware error format", () => {
     const app = createApp();
     const res = await app.request("/protected");
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toHaveProperty("code", "MISSING_AUTH_HEADER");
     expect(body.error).toHaveProperty("message");
@@ -77,7 +77,7 @@ describe("auth middleware error format", () => {
       headers: { Authorization: "Bearer valid-token" },
     });
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.error).toHaveProperty("code", "TOKEN_EXPIRED");
 
     expect(verify).toHaveBeenCalledOnce();
@@ -94,7 +94,7 @@ describe("requireRole error format", () => {
     const app = new Hono();
     addErrorHandler(app);
     app.use("*", async (c, next) => {
-      c.env = { JWT_SECRET: "a".repeat(32) } as any;
+      c.env = { JWT_SECRET: "a".repeat(32) } as never;
       c.set("user", { id: 1, username: "test", role: 2 });
       await next();
     });
@@ -102,7 +102,7 @@ describe("requireRole error format", () => {
 
     const res = await app.request("/admin");
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.error).toHaveProperty("code", "INSUFFICIENT_ROLE");
     expect(body.error).toHaveProperty("message");
   });

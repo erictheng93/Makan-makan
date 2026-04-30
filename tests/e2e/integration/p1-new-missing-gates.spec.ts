@@ -324,7 +324,7 @@ test.describe
               choiceName: "Hong Cha",
             },
           ],
-        } as any,
+        } as never,
       },
     ]);
     createdOrderIds.push(created.data.order.id);

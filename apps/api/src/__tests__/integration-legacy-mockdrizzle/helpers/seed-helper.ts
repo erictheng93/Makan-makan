@@ -93,7 +93,7 @@ export async function seedRestaurant(
   ctx: SeedContext,
   overrides?: Record<string, any>,
 ): Promise<SeededRestaurant> {
-  const data = restaurantFactory.build({ overrides: overrides as any });
+  const data = restaurantFactory.build({ overrides: overrides as never });
   const normalized = normalizeForDB(data);
   // Remove factory-generated `id` so DB auto-increments
   delete normalized.id;
@@ -111,7 +111,7 @@ export async function seedUser(
   overrides?: Record<string, any>,
 ): Promise<SeededUser> {
   const data = userFactory.build({
-    overrides: { restaurantId, ...overrides } as any,
+    overrides: { restaurantId, ...overrides } as never,
   });
   const normalized = normalizeForDB(data);
   delete normalized.id;
@@ -138,7 +138,7 @@ export async function seedCategory(
 ): Promise<SeededCategory> {
   const data = categoryFactory.build({
     relations: { restaurantId },
-    overrides: overrides as any,
+    overrides: overrides as never,
   });
   const normalized = normalizeForDB(data);
   delete normalized.id;
@@ -154,7 +154,7 @@ export async function seedMenuItem(
 ): Promise<SeededMenuItem> {
   const data = menuItemFactory.build({
     relations: { restaurantId, categoryId },
-    overrides: overrides as any,
+    overrides: overrides as never,
   });
   const normalized = normalizeForDB(data);
   delete normalized.id;
@@ -202,7 +202,7 @@ export async function seedOrder(
 ): Promise<SeededOrder> {
   const data = orderFactory.build({
     relations: { restaurantId },
-    overrides: overrides as any,
+    overrides: overrides as never,
   });
   const normalized = normalizeForDB(data);
   delete normalized.id;
@@ -223,7 +223,7 @@ export async function seedOrderItem(
 ): Promise<{ id: number }> {
   const data = orderItemFactory.build({
     relations: { orderId, menuItemId },
-    overrides: overrides as any,
+    overrides: overrides as never,
   });
   const normalized = normalizeForDB(data);
   delete normalized.id;

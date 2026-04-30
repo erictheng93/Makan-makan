@@ -8,6 +8,7 @@ import { createTestingPinia, TestingOptions } from "@pinia/testing";
 import { vi } from "vitest";
 import { mockRouter } from "./setup";
 import type { ComponentMountingOptions } from "@vue/test-utils";
+import type { Component, Plugin } from "vue";
 
 /**
  * 擴展 mount 選項以支持 router
@@ -42,12 +43,12 @@ export function mountWithRouter<T>(
 
       // 合併 plugins
       plugins: [
-        ...((mountOptions.global?.plugins as any[]) || []),
+        ...((mountOptions.global?.plugins as unknown[]) || []),
         createTestingPinia({
           createSpy: vi.fn,
           ...piniaOptions,
-        }) as any,
-        router as any, // 添加 router 作為插件
+        }) as unknown as Plugin,
+        router as unknown as Plugin, // 添加 router 作為插件
       ],
 
       // 合併 mocks
@@ -77,7 +78,7 @@ export function mountWithRouter<T>(
     },
   };
 
-  return mount(component as any, mergedOptions);
+  return mount(component as Component, mergedOptions);
 }
 
 /**

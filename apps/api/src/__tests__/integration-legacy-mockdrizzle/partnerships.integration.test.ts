@@ -149,7 +149,7 @@ describe("Partnerships API Integration", () => {
     // We verify the route exists, auth works, and if it succeeds — verify the data.
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(404);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     if (res.status === 200) {
       expect(body.success).toBe(true);
       expect(body.data).toBeDefined();
@@ -179,7 +179,7 @@ describe("Partnerships API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(Array.isArray(body.data)).toBe(true);
     expect(body.data.length).toBeGreaterThanOrEqual(2);
@@ -199,7 +199,7 @@ describe("Partnerships API Integration", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     const name = body.data.partnerName ?? body.data.partner_name;
@@ -231,7 +231,7 @@ describe("Partnerships API Integration", () => {
     // is updated_at_ms — mock DB limitation.
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(404);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     if (res.status === 200) {
       expect(body.success).toBe(true);
       expect(body.data).toBeDefined();
@@ -271,7 +271,7 @@ describe("Partnerships API Integration", () => {
     // (mock DB limitation with _ms suffix columns).
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(404);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     if (res.status === 200) {
       expect(body.success).toBe(true);
       expect(body.data).toBeDefined();
@@ -297,7 +297,7 @@ describe("Partnerships API Integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     // With no usage logs, all stats should be zero
@@ -313,7 +313,7 @@ describe("Partnerships API Integration", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });

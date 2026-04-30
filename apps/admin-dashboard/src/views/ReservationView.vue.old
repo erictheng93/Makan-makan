@@ -521,7 +521,7 @@ function getStatusText(status: ReservationStatus): string {
  * 取得狀態類型（ElementPlus tag type）
  */
 function getStatusType(status: ReservationStatus): string {
-  return ReservationService.getStatusColor(status) as any;
+  return ReservationService.getStatusColor(status) as never;
 }
 
 // 初始化

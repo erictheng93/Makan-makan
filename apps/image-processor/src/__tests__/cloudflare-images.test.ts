@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { CloudflareImagesAPI, ImageUtils } from "../utils/cloudflare-images";
 import { createMockEnv } from "./setup";
+import type { Env } from "../types/env";
 
 // ── CloudflareImagesAPI ────────────────────────────────────────────
 
@@ -13,7 +14,7 @@ describe("CloudflareImagesAPI", () => {
 
   beforeEach(() => {
     env = createMockEnv();
-    api = new CloudflareImagesAPI(env as any);
+    api = new CloudflareImagesAPI(env as unknown as Env);
     vi.restoreAllMocks();
     // Re-suppress console noise after restoreAllMocks
     vi.spyOn(console, "error").mockImplementation(() => {});

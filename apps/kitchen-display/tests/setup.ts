@@ -67,8 +67,8 @@ const createStorageMock = () => {
   };
 };
 
-global.localStorage = createStorageMock() as any;
-global.sessionStorage = createStorageMock() as any;
+global.localStorage = createStorageMock() as Storage;
+global.sessionStorage = createStorageMock() as Storage;
 
 // Mock EventSource
 global.EventSource = vi.fn().mockImplementation(() => ({

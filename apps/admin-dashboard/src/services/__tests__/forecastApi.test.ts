@@ -33,7 +33,7 @@ describe("forecastApi", () => {
         endDate: "2026-04-07",
         type: "daily",
       };
-      const result = await forecastApi.generate("r1", params as any);
+      const result = await forecastApi.generate("r1", params as never);
 
       expect(mockApiPost).toHaveBeenCalledOnce();
       expect(mockApiPost).toHaveBeenCalledWith("/forecast/r1/generate", params);

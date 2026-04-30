@@ -9,6 +9,21 @@ import type { Env } from "../../../shared/types";
 import type { RealtimeAuthTokenRequest } from "@makanmakan/shared-types";
 import * as jwt from "jsonwebtoken";
 
+type RealtimeAuthServiceTestAccess = {
+  verifyTableExists(tableId: string, restaurantId: string): Promise<boolean>;
+  verifySeatExists(seatId: string, restaurantId: string): Promise<boolean>;
+  determineRole(
+    roomType: "customer" | "kitchen" | "admin" | "restaurant",
+    sessionId?: string,
+  ): "customer" | "staff" | "admin";
+  buildWebSocketUrl(roomType: string, roomId: string, token: string): string;
+};
+
+const asRealtimeAuthTest = (
+  target: RealtimeAuthService,
+): RealtimeAuthServiceTestAccess =>
+  target as unknown as RealtimeAuthServiceTestAccess;
+
 // ─── Mock Drizzle ────────────────────────────────────────────────────────
 
 const mockDrizzleDb = {
@@ -80,16 +95,16 @@ describe("RealtimeAuthService", () => {
         "test-realtime-secret-key-at-least-32-chars-long-for-security",
       API_VERSION: "1.0.0",
       ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-      DB: mockDb as any,
-      CACHE_KV: mockTokenBlacklistKV as any,
-      TOKEN_BLACKLIST: mockTokenBlacklistKV as any,
-      IMAGES_BUCKET: {} as any,
-      BACKUP_STORAGE: {} as any,
-      JOB_QUEUE: {} as any,
-      REALTIME_ORDERS: {} as any,
-      ANALYTICS_ENGINE: {} as any,
-      RATE_LIMIT_KV: {} as any,
-      REALTIME_SESSION: {} as any,
+      DB: mockDb as never,
+      CACHE_KV: mockTokenBlacklistKV as never,
+      TOKEN_BLACKLIST: mockTokenBlacklistKV as never,
+      IMAGES_BUCKET: {} as never,
+      BACKUP_STORAGE: {} as never,
+      JOB_QUEUE: {} as never,
+      REALTIME_ORDERS: {} as never,
+      ANALYTICS_ENGINE: {} as never,
+      RATE_LIMIT_KV: {} as never,
+      REALTIME_SESSION: {} as never,
     };
 
     service = new RealtimeAuthService(mockEnv);
@@ -254,7 +269,7 @@ describe("RealtimeAuthService", () => {
         roomType: "invalid_type",
         roomId: "room_999",
         restaurantId: "rest_7",
-      } as any;
+      } as never;
 
       const result = await service.generateWebSocketToken(request);
 
@@ -359,7 +374,10 @@ describe("RealtimeAuthService", () => {
       };
       mockDrizzleDb.select.mockReturnValue(chain);
 
-      const exists = await (service as any).verifyTableExists("table_1", "1");
+      const exists = await asRealtimeAuthTest(service).verifyTableExists(
+        "table_1",
+        "1",
+      );
 
       expect(exists).toBe(true);
       expect(mockDrizzleDb.select).toHaveBeenCalled();
@@ -373,7 +391,7 @@ describe("RealtimeAuthService", () => {
       };
       mockDrizzleDb.select.mockReturnValue(chain);
 
-      const exists = await (service as any).verifyTableExists(
+      const exists = await asRealtimeAuthTest(service).verifyTableExists(
         "invalid_table",
         "1",
       );
@@ -386,7 +404,10 @@ describe("RealtimeAuthService", () => {
         throw new Error("Database error");
       });
 
-      const exists = await (service as any).verifyTableExists("table_1", "1");
+      const exists = await asRealtimeAuthTest(service).verifyTableExists(
+        "table_1",
+        "1",
+      );
 
       expect(exists).toBe(false);
     });
@@ -402,7 +423,10 @@ describe("RealtimeAuthService", () => {
       };
       mockDrizzleDb.select.mockReturnValue(chain);
 
-      const exists = await (service as any).verifySeatExists("seat_1", "1");
+      const exists = await asRealtimeAuthTest(service).verifySeatExists(
+        "seat_1",
+        "1",
+      );
 
       expect(exists).toBe(true);
       expect(mockDrizzleDb.select).toHaveBeenCalled();
@@ -417,7 +441,7 @@ describe("RealtimeAuthService", () => {
       };
       mockDrizzleDb.select.mockReturnValue(chain);
 
-      const exists = await (service as any).verifySeatExists(
+      const exists = await asRealtimeAuthTest(service).verifySeatExists(
         "invalid_seat",
         "1",
       );
@@ -430,7 +454,10 @@ describe("RealtimeAuthService", () => {
         throw new Error("Database error");
       });
 
-      const exists = await (service as any).verifySeatExists("seat_1", "1");
+      const exists = await asRealtimeAuthTest(service).verifySeatExists(
+        "seat_1",
+        "1",
+      );
 
       expect(exists).toBe(false);
     });
@@ -438,29 +465,38 @@ describe("RealtimeAuthService", () => {
 
   describe("determineRole", () => {
     it("應該為 customer roomType 返回 customer 角色", () => {
-      const role = (service as any).determineRole("customer");
+      const role = asRealtimeAuthTest(service).determineRole("customer");
       expect(role).toBe("customer");
     });
 
     it("應該為 kitchen roomType 返回 staff 角色", () => {
-      const role = (service as any).determineRole("kitchen", "session_123");
+      const role = asRealtimeAuthTest(service).determineRole(
+        "kitchen",
+        "session_123",
+      );
       expect(role).toBe("staff");
     });
 
     it("應該為 admin roomType 返回 admin 角色", () => {
-      const role = (service as any).determineRole("admin", "session_456");
+      const role = asRealtimeAuthTest(service).determineRole(
+        "admin",
+        "session_456",
+      );
       expect(role).toBe("admin");
     });
 
     it("應該為 restaurant roomType 返回 admin 角色", () => {
-      const role = (service as any).determineRole("restaurant", "session_789");
+      const role = asRealtimeAuthTest(service).determineRole(
+        "restaurant",
+        "session_789",
+      );
       expect(role).toBe("admin");
     });
   });
 
   describe("buildWebSocketUrl", () => {
     it("應該構建正確的 WebSocket URL", () => {
-      const url = (service as any).buildWebSocketUrl(
+      const url = asRealtimeAuthTest(service).buildWebSocketUrl(
         "customer",
         "room_123",
         "token_abc",

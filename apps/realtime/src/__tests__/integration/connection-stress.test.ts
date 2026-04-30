@@ -412,7 +412,11 @@ describe("Connection Stress Integration Tests", () => {
   let memoryTracker: MemoryUsageTracker;
 
   beforeEach(() => {
-    (globalThis as any).WebSocketPair = MockWebSocketPair;
+    (
+      globalThis as typeof globalThis & {
+        WebSocketPair: typeof MockWebSocketPair;
+      }
+    ).WebSocketPair = MockWebSocketPair;
     manager = new StressTestConnectionManager();
     memoryTracker = new MemoryUsageTracker();
   });

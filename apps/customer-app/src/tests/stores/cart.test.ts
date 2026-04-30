@@ -1,13 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useCartStore } from "@/stores/cart";
+import { SpiceLevel } from "@makanmakan/shared-types";
+import type { MenuItem } from "@makanmakan/shared-types";
 
 // Helper: build a minimal MenuItem
-function buildMenuItem(overrides: Record<string, unknown> = {}) {
+function buildMenuItem(overrides: Partial<MenuItem> = {}): MenuItem {
   return {
     id: 1,
+    restaurantId: "rest-001",
+    categoryId: 1,
     name: "Nasi Lemak",
     price: 10,
+    spiceLevel: SpiceLevel.NONE,
+    sortOrder: 0,
+    isAvailable: true,
+    isFeatured: false,
+    inventoryCount: -1,
+    orderCount: 0,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
 }
@@ -67,7 +79,7 @@ describe("cart store", () => {
     it("should clear cart when switching to a different restaurant", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 2);
+      store.addItem(buildMenuItem(), 2);
       expect(store.items).toHaveLength(1);
 
       store.initializeCart("rest-002", 1);
@@ -77,7 +89,7 @@ describe("cart store", () => {
     it("should clear cart when switching to a different table", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
+      store.addItem(buildMenuItem(), 1);
 
       store.initializeCart("rest-001", 2);
       expect(store.items).toHaveLength(0);
@@ -115,7 +127,7 @@ describe("cart store", () => {
     it("should add a new item to cart", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 2);
+      store.addItem(buildMenuItem(), 2);
 
       expect(store.items).toHaveLength(1);
       expect(store.itemCount).toBe(2);
@@ -125,8 +137,8 @@ describe("cart store", () => {
     it("should merge quantity for identical items", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
-      store.addItem(buildMenuItem() as any, 3);
+      store.addItem(buildMenuItem(), 1);
+      store.addItem(buildMenuItem(), 3);
 
       expect(store.items).toHaveLength(1);
       expect(store.itemCount).toBe(4);
@@ -137,7 +149,7 @@ describe("cart store", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
 
-      const menuItem = buildMenuItem() as any;
+      const menuItem = buildMenuItem();
       store.addItem(menuItem, 1, {
         size: { id: "1", name: "Large", priceAdjustment: 5 },
       });
@@ -151,7 +163,7 @@ describe("cart store", () => {
     it("should calculate price with size customization", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem({ price: 10 }) as any, 1, {
+      store.addItem(buildMenuItem({ price: 10 }), 1, {
         size: { id: "1", name: "Large", priceAdjustment: 5 },
       });
 
@@ -162,7 +174,7 @@ describe("cart store", () => {
     it("should calculate price with addOns", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem({ price: 10 }) as any, 1, {
+      store.addItem(buildMenuItem({ price: 10 }), 1, {
         addOns: [
           { id: "1", name: "Egg", unitPrice: 2, quantity: 1, totalPrice: 2 },
           { id: "2", name: "Sambal", unitPrice: 1, quantity: 1, totalPrice: 1 },
@@ -175,7 +187,7 @@ describe("cart store", () => {
     it("should calculate price with option adjustments", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem({ price: 10 }) as any, 1, {
+      store.addItem(buildMenuItem({ price: 10 }), 1, {
         options: [
           {
             id: "1",
@@ -200,7 +212,7 @@ describe("cart store", () => {
     it("should ensure price is never negative", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem({ price: 5 }) as any, 1, {
+      store.addItem(buildMenuItem({ price: 5 }), 1, {
         size: { id: "1", name: "Tiny", priceAdjustment: -10 },
       });
 
@@ -211,7 +223,7 @@ describe("cart store", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
 
-      const menuItem = buildMenuItem() as any;
+      const menuItem = buildMenuItem();
       store.addItem(menuItem, 1, undefined, "no peanuts");
       store.addItem(menuItem, 1, undefined, "extra sauce");
 
@@ -221,7 +233,7 @@ describe("cart store", () => {
     it("should persist to localStorage after adding", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
+      store.addItem(buildMenuItem(), 1);
 
       expect(window.localStorage.setItem).toHaveBeenCalled();
       const calls = (window.localStorage.setItem as ReturnType<typeof vi.fn>)
@@ -240,7 +252,7 @@ describe("cart store", () => {
     it("should update item quantity and recalculate totalPrice", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem({ price: 10 }) as any, 1);
+      store.addItem(buildMenuItem({ price: 10 }), 1);
 
       const itemId = store.items[0].id;
       store.updateQuantity(itemId, 5);
@@ -252,7 +264,7 @@ describe("cart store", () => {
     it("should remove item when quantity is set to 0", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
+      store.addItem(buildMenuItem(), 1);
 
       const itemId = store.items[0].id;
       store.updateQuantity(itemId, 0);
@@ -263,7 +275,7 @@ describe("cart store", () => {
     it("should do nothing for non-existent item id", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
+      store.addItem(buildMenuItem(), 1);
 
       store.updateQuantity("non-existent", 5);
       expect(store.items).toHaveLength(1);
@@ -279,7 +291,7 @@ describe("cart store", () => {
     it("should remove an item by id", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
+      store.addItem(buildMenuItem(), 1);
 
       const itemId = store.items[0].id;
       store.removeItem(itemId);
@@ -304,7 +316,7 @@ describe("cart store", () => {
     it("should clear all items and reset state", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 3);
+      store.addItem(buildMenuItem(), 3);
 
       store.clearCart();
 
@@ -323,7 +335,7 @@ describe("cart store", () => {
     it("should update notes on an existing item", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
+      store.addItem(buildMenuItem(), 1);
 
       const itemId = store.items[0].id;
       store.updateItemNotes(itemId, "no chili");
@@ -462,8 +474,8 @@ describe("cart store", () => {
     it("itemCount should sum all quantities", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem({ id: 1 }) as any, 2);
-      store.addItem(buildMenuItem({ id: 2, name: "Roti" }) as any, 3);
+      store.addItem(buildMenuItem({ id: 1 }), 2);
+      store.addItem(buildMenuItem({ id: 2, name: "Roti" }), 3);
 
       expect(store.itemCount).toBe(5);
     });
@@ -471,8 +483,8 @@ describe("cart store", () => {
     it("subtotal should sum all totalPrices", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem({ id: 1, price: 10 }) as any, 2); // 20
-      store.addItem(buildMenuItem({ id: 2, name: "Roti", price: 5 }) as any, 3); // 15
+      store.addItem(buildMenuItem({ id: 1, price: 10 }), 2); // 20
+      store.addItem(buildMenuItem({ id: 2, name: "Roti", price: 5 }), 3); // 15
 
       expect(store.subtotal).toBe(35);
     });
@@ -480,14 +492,14 @@ describe("cart store", () => {
     it("isEmpty should be false when items exist", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
+      store.addItem(buildMenuItem(), 1);
       expect(store.isEmpty).toBe(false);
     });
 
     it("getItemById should return matching item", () => {
       const store = useCartStore();
       store.initializeCart("rest-001", 1);
-      store.addItem(buildMenuItem() as any, 1);
+      store.addItem(buildMenuItem(), 1);
 
       const itemId = store.items[0].id;
       const found = store.getItemById(itemId);

@@ -227,9 +227,9 @@ describe("Discovery API — real integration", () => {
     expect(page2Res.status).toBe(200);
     expect(page3Res.status).toBe(200);
 
-    const page1 = ((await page1Res.json()) as any).data;
-    const page2 = ((await page2Res.json()) as any).data;
-    const page3 = ((await page3Res.json()) as any).data;
+    const page1 = ((await page1Res.json()) as ApiTestResponse).data;
+    const page2 = ((await page2Res.json()) as ApiTestResponse).data;
+    const page3 = ((await page3Res.json()) as ApiTestResponse).data;
 
     expect(page1.total).toBe(25);
     expect(page2.total).toBe(25);
@@ -301,7 +301,7 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const data = ((await res.json()) as any).data;
+    const data = ((await res.json()) as ApiTestResponse).data;
 
     expect(data.page).toBe(1);
     expect(data.limit).toBe(2);

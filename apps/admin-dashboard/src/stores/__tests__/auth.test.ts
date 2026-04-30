@@ -446,7 +446,7 @@ describe("Auth Store", () => {
             user: { id: 1, username: "admin" },
           },
         },
-      } as any);
+      } as never);
 
       const store = useAuthStore();
       const result = await store.refreshToken();

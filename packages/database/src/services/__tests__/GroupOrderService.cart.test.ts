@@ -42,7 +42,7 @@ describe("GroupOrderService - 購物車操作", () => {
 
     // 獲取創建者成員ID
     const members = Array.from(mockDB._mockData.groupMembers.values());
-    testMemberId = (members[0] as any).id;
+    testMemberId = (members[0] as { id: string }).id;
 
     // 添加測試菜品
     mockDB._mockData.menuItems.set(1, {

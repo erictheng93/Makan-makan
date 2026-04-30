@@ -78,7 +78,7 @@ async function basicPaymentExample() {
  * 展示如何為不同國家配置支付提供商
  */
 async function multiCountryPaymentExample() {
-  const configManager = new PaymentConfigManager({} as any)
+  const configManager = new PaymentConfigManager({} as never)
   
   // 台灣：ECPay + LINE Pay
   await configManager.setCountryConfig({

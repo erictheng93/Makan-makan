@@ -40,7 +40,7 @@ function buildApp(kv = createMockKV()) {
     if (err instanceof ApiError) {
       return c.json(
         { success: false, error: { code: err.code, message: err.message } },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -77,7 +77,7 @@ describe("Feedback Batch Sync Compatibility Route", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.data).toMatchObject({

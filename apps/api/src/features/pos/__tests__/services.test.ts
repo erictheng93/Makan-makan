@@ -263,7 +263,7 @@ describe("POS Services Unit Tests", () => {
   describe("RegisterService", () => {
     describe("createRegister", () => {
       it("應該成功創建收銀機", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         // insert().values()
         setupInsert();
@@ -293,7 +293,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕無效的收銀機名稱", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         const result = await service.createRegister(
           {
@@ -309,7 +309,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getRegisters", () => {
       it("應該返回餐廳的收銀機列表", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupSelect([
           {
@@ -337,7 +337,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理空結果", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupSelect([]);
 
@@ -348,7 +348,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理資料庫錯誤", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         const chain = createChain([]);
         chain.then = vi.fn((_resolve: any, reject: any) => {
@@ -366,7 +366,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getRegisterStatus", () => {
       it("應該返回收銀機狀態", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupSelect([
           {
@@ -386,7 +386,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理不存在的收銀機", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupSelect([]);
 
@@ -399,7 +399,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("updateRegister", () => {
       it("應該成功更新收銀機設定", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupUpdate();
         setupSelect([
@@ -420,7 +420,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕空更新", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         const result = await service.updateRegister("reg-001", {});
 
@@ -431,7 +431,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("toggleRegisterStatus", () => {
       it("應該成功啟用收銀機", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupUpdate();
 
@@ -441,7 +441,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該成功停用收銀機", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupUpdate();
 
@@ -453,7 +453,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("deleteRegister", () => {
       it("應該成功刪除無活躍班次的收銀機", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupSelect([]); // No active shift
         setupDelete();
@@ -464,7 +464,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕刪除有活躍班次的收銀機", async () => {
-        const service = new RegisterService({} as any);
+        const service = new RegisterService({} as never);
 
         setupSelect([{ id: "shift-001" }]); // Has active shift
 
@@ -486,7 +486,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("startShift", () => {
       it("應該成功開始新班次", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         // First call: check existing shift (select returns empty)
         // Second call: insert shift
@@ -521,7 +521,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕在已有活動班次時開班", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         setupSelect([{ id: "existing-shift", status: "active" }]);
 
@@ -536,7 +536,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕負數開班金額", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         const result = await service.startShift({
           registerId: validRegisterId,
@@ -548,7 +548,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援開班備註", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -579,7 +579,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("endShift", () => {
       it("應該成功結束班次", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -618,7 +618,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕結束不存在的班次", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         setupSelect([]);
 
@@ -635,7 +635,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該計算現金差額", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -672,7 +672,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援結班備註", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -711,7 +711,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getCurrentShift", () => {
       it("應該返回當前活動班次", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         setupSelect([
           {
@@ -728,7 +728,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該返回 null 當沒有活動班次", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         setupSelect([]);
 
@@ -741,7 +741,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("suspendShift", () => {
       it("應該成功暫停班次", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         setupUpdate();
 
@@ -751,7 +751,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援無原因暫停", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         setupUpdate();
 
@@ -763,7 +763,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("resumeShift", () => {
       it("應該成功恢復班次", async () => {
-        const service = new ShiftService({} as any);
+        const service = new ShiftService({} as never);
 
         setupUpdate();
 
@@ -781,7 +781,7 @@ describe("POS Services Unit Tests", () => {
   describe("CashMovementService", () => {
     describe("processCashMovement", () => {
       it("應該成功記錄現金存入", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([
           {
@@ -805,7 +805,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該成功記錄現金取出", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([
           {
@@ -829,7 +829,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕在非活動班次記錄", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([
           {
@@ -852,7 +852,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕不存在的班次", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([]);
 
@@ -870,7 +870,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援面額明細", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([
           {
@@ -897,7 +897,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getCashMovements", () => {
       it("應該返回現金流動記錄", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([
           {
@@ -923,7 +923,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援類型過濾", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([
           {
@@ -943,7 +943,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援分頁", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupSelect([]);
 
@@ -959,7 +959,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("approveCashMovement", () => {
       it("應該成功審核現金操作", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupUpdate();
 
@@ -971,7 +971,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("rejectCashMovement", () => {
       it("應該成功拒絕現金操作", async () => {
-        const service = new CashMovementService({} as any);
+        const service = new CashMovementService({} as never);
 
         setupUpdate();
 
@@ -993,7 +993,7 @@ describe("POS Services Unit Tests", () => {
   describe("ReceiptService", () => {
     describe("printReceipt", () => {
       it("應該成功打印收據", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1032,7 +1032,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕不存在的訂單", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupSelect([]);
 
@@ -1050,7 +1050,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援不同收據類型", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1078,7 +1078,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援多份打印", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1107,7 +1107,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("reprintReceipt", () => {
       it("應該成功重打收據", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupSelect([
           {
@@ -1123,7 +1123,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕不存在的收據", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupSelect([]);
 
@@ -1136,7 +1136,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getReceipts", () => {
       it("應該返回收據列表", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupSelect([
           { id: "receipt-001", receipt_number: "R001", content: "{}" },
@@ -1150,7 +1150,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援日期過濾", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupSelect([]);
 
@@ -1163,7 +1163,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援類型過濾", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupSelect([]);
 
@@ -1177,7 +1177,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getReceiptDetail", () => {
       it("應該返回收據詳情", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupSelect([
           {
@@ -1194,7 +1194,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理不存在的收據", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupSelect([]);
 
@@ -1206,7 +1206,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("cancelPrint", () => {
       it("應該成功取消打印", async () => {
-        const service = new ReceiptService({} as any);
+        const service = new ReceiptService({} as never);
 
         setupUpdate();
 
@@ -1224,7 +1224,7 @@ describe("POS Services Unit Tests", () => {
   describe("RefundService", () => {
     describe("processRefund", () => {
       it("應該成功處理全額退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1273,7 +1273,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該成功處理部分退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1319,7 +1319,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕超過訂單金額的退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         setupSelect([
           {
@@ -1347,7 +1347,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕對不存在訂單的退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         setupSelect([]);
 
@@ -1368,7 +1368,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該拒絕超過可退款額度的退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1404,7 +1404,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援卡片退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1450,7 +1450,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援項目退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1500,7 +1500,7 @@ describe("POS Services Unit Tests", () => {
       // refund row but not mutate the closed ledger, and the response must
       // expose an adjustmentId plus ledgerMutation=false.
       it("closed shift: returns adjustmentId + ledgerMutation=false and skips cash movement", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1555,7 +1555,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("active shift: returns ledgerMutation=true and records a cash movement", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1603,7 +1603,9 @@ describe("POS Services Unit Tests", () => {
 
         expect(result.success).toBe(true);
         expect(result.data?.ledgerMutation).toBe(true);
-        expect((result.data as any)?.adjustmentId).toBeUndefined();
+        expect(
+          (result.data as { adjustmentId?: unknown } | undefined)?.adjustmentId,
+        ).toBeUndefined();
         // Refund insert + cash_movement insert.
         expect(mockInsert).toHaveBeenCalledTimes(2);
       });
@@ -1611,7 +1613,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getRefunds", () => {
       it("應該返回退款記錄列表", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         setupSelect([
           {
@@ -1637,7 +1639,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援狀態過濾", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         setupSelect([]);
 
@@ -1649,7 +1651,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援訂單過濾", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         setupSelect([]);
 
@@ -1661,7 +1663,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("approveRefund", () => {
       it("應該成功審核退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         setupUpdate();
 
@@ -1673,7 +1675,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("rejectRefund", () => {
       it("應該成功拒絕退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         setupUpdate();
 
@@ -1689,7 +1691,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("cancelRefund", () => {
       it("應該成功取消退款", async () => {
-        const service = new RefundService({} as any);
+        const service = new RefundService({} as never);
 
         setupUpdate();
 
@@ -1707,7 +1709,7 @@ describe("POS Services Unit Tests", () => {
   describe("ReportService", () => {
     describe("generateShiftReport", () => {
       it("應該成功生成班次報表", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1762,7 +1764,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該處理不存在的班次", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         setupSelect([]);
 
@@ -1773,7 +1775,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該計算班次時長", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1815,7 +1817,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getDailyReport", () => {
       it("應該成功生成日報表", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1859,7 +1861,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該正確計算淨銷售額", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         let selectCallCount = 0;
         mockSelect.mockImplementation(() => {
@@ -1900,7 +1902,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getShiftStats", () => {
       it("應該返回班次統計", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         setupSelect([
           {
@@ -1915,7 +1917,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援日期範圍", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         setupSelect([
           {
@@ -1935,7 +1937,7 @@ describe("POS Services Unit Tests", () => {
 
     describe("getRegisterUsageStats", () => {
       it("應該返回收銀機使用統計", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         setupSelect([]);
 
@@ -1946,7 +1948,7 @@ describe("POS Services Unit Tests", () => {
       });
 
       it("應該支援不同統計週期", async () => {
-        const service = new ReportService({} as any);
+        const service = new ReportService({} as never);
 
         setupSelect([]);
 

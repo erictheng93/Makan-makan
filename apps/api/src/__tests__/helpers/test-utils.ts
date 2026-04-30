@@ -28,6 +28,19 @@ import analyticsFeature from "../../features/analytics";
 import qrCodesFeature from "../../features/qr-codes";
 import couponsFeature from "../../features/coupons";
 
+type SqlJsDatabaseWithFunctions = SqlJsDatabase & {
+  create_function(name: string, fn: (arg: string | null) => number): void;
+};
+
+type SqlJsModuleWithDatabase = {
+  Database: new () => SqlJsDatabaseWithFunctions;
+};
+
+type SqlExpressionLike = {
+  queryChunks?: unknown;
+  sql?: unknown;
+};
+
 // ============================================
 // Shared Data Store for Test Database
 // ============================================
@@ -48,7 +61,7 @@ class SharedDataStore {
    */
   static async create(): Promise<SharedDataStore> {
     const SQL = await initSqlJs();
-    const sqlDb: any = new (SQL as any).Database();
+    const sqlDb = new (SQL as unknown as SqlJsModuleWithDatabase).Database();
 
     // Register custom unixepoch function to emulate SQLite 3.38+ behavior
     // This is necessary because sql.js uses an older SQLite version
@@ -746,7 +759,7 @@ export async function createTestApp(customDB?: any) {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -766,7 +779,7 @@ export async function createTestApp(customDB?: any) {
           message: sanitized.message,
         },
       },
-      (STATUS_MAP[sanitized.type] ?? 500) as any,
+      (STATUS_MAP[sanitized.type] ?? 500) as never,
     );
   });
 
@@ -808,10 +821,10 @@ export async function createTestApp(customDB?: any) {
       set: vi.fn().mockResolvedValue(undefined), // Alias for put (some services use set instead)
       delete: vi.fn().mockResolvedValue(true),
       list: vi.fn().mockResolvedValue({ keys: [] }),
-    } as any,
+    } as never,
     ANALYTICS_ENGINE: {
       writeDataPoint: vi.fn(),
-    } as any,
+    } as never,
     API_BASE_URL: "http://localhost:8787",
   };
 
@@ -819,7 +832,7 @@ export async function createTestApp(customDB?: any) {
   app.use("*", async (c, next) => {
     // Initialize c.env if it doesn't exist
     if (!c.env) {
-      (c as any).env = {};
+      (c as unknown as ApiTestContextWithEnv).env = {} as unknown as ApiTestEnv;
     }
     // Inject mock env
     Object.assign(c.env, mockEnv);
@@ -2180,7 +2193,8 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
                     if (
                       value &&
                       typeof value === "object" &&
-                      ((value as any).queryChunks || (value as any).sql)
+                      ((value as SqlExpressionLike).queryChunks ||
+                        (value as SqlExpressionLike).sql)
                     ) {
                       // For increment operations like sql`${field} + 1`, just increment by 1
                       // This is a simplified mock - doesn't parse the actual SQL

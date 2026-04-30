@@ -10,6 +10,38 @@ import { sign } from "hono/jwt";
 import { createMockEnv } from "./setup";
 
 type MockEnv = ReturnType<typeof createMockEnv>;
+type AnalyticsUser = {
+  id: number;
+  username: string;
+  role: number;
+  restaurantId: number;
+};
+type AnalyticsAppEnv = {
+  Bindings: MockEnv;
+  Variables: {
+    user: AnalyticsUser;
+  };
+};
+type AnalyticsData = Record<string, unknown> & {
+  totalImages?: number;
+  storageUsage?: { total?: number };
+  totalStorage?: number;
+  imageCount?: number;
+  totalViews?: number;
+  avgProcessingTime?: number;
+  successRate?: number;
+  type?: string;
+  format?: string;
+  download_url?: string;
+  expires_at?: string;
+  mostUsedVariants?: unknown[];
+  byCategory?: unknown[];
+};
+type AnalyticsResponse = {
+  success: boolean;
+  error?: string;
+  data: AnalyticsData;
+};
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -40,7 +72,7 @@ function authHeader(token: string) {
 function buildAnalyticsApp() {
   // Lazy-import the real route module so mocks are already in place
   // We re-create the app with real middleware + route to integration-test
-  const app = new Hono<{ Bindings: MockEnv }>();
+  const app = new Hono<AnalyticsAppEnv>();
 
   // Mount the analytics routes behind the same middleware chain the real
   // index.ts uses.  We import dynamically to avoid stale module caches.
@@ -109,7 +141,7 @@ function buildMockAnalyticsApp(
     ...dbImageServiceOverrides,
   };
 
-  const app = new Hono<{ Bindings: MockEnv }>();
+  const app = new Hono<AnalyticsAppEnv>();
 
   // Inline auth middleware (same logic as real middleware)
   app.use("/*", async (c, next) => {
@@ -124,7 +156,11 @@ function buildMockAnalyticsApp(
     const token = authHdr.substring(7);
     try {
       const { verify } = await import("hono/jwt");
-      const decoded = (await verify(token, c.env.JWT_SECRET, "HS256")) as any;
+      const decoded = (await verify(
+        token,
+        c.env.JWT_SECRET,
+        "HS256",
+      )) as Partial<AnalyticsUser>;
 
       if (
         !decoded ||
@@ -143,7 +179,7 @@ function buildMockAnalyticsApp(
         );
       }
 
-      c.set("user" as any, {
+      c.set("user", {
         id: decoded.id,
         username: decoded.username,
         role: decoded.role,
@@ -159,7 +195,7 @@ function buildMockAnalyticsApp(
   // Dashboard
   app.get("/dashboard", async (c) => {
     try {
-      const user = (c as any).get("user");
+      const user = c.get("user");
       const query = Object.fromEntries(
         new URL(c.req.url).searchParams.entries(),
       );
@@ -186,7 +222,7 @@ function buildMockAnalyticsApp(
   // Storage
   app.get("/storage", async (c) => {
     try {
-      const user = (c as any).get("user");
+      const user = c.get("user");
       const query = Object.fromEntries(
         new URL(c.req.url).searchParams.entries(),
       );
@@ -207,7 +243,7 @@ function buildMockAnalyticsApp(
   // Usage
   app.get("/usage", async (c) => {
     try {
-      const user = (c as any).get("user");
+      const user = c.get("user");
       const query = Object.fromEntries(
         new URL(c.req.url).searchParams.entries(),
       );
@@ -228,7 +264,7 @@ function buildMockAnalyticsApp(
   // Performance
   app.get("/performance", async (c) => {
     try {
-      const user = (c as any).get("user");
+      const user = c.get("user");
       const query = Object.fromEntries(
         new URL(c.req.url).searchParams.entries(),
       );
@@ -314,10 +350,10 @@ describe("Analytics Routes", () => {
   describe("Authentication", () => {
     it("should reject requests without auth header", async () => {
       const { app } = buildMockAnalyticsApp();
-      const res = await app.request("/dashboard", undefined, env as any);
+      const res = await app.request("/dashboard", undefined, env);
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(false);
       expect(body.error).toContain("authorization");
     });
@@ -327,11 +363,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/dashboard",
         { headers: authHeader("invalid-token-abc") },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(false);
     });
 
@@ -340,11 +376,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/dashboard",
         { headers: authHeader(chefToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(403);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(false);
       expect(body.error).toContain("permissions");
     });
@@ -354,11 +390,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/dashboard",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(true);
     });
 
@@ -367,11 +403,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/dashboard",
         { headers: authHeader(ownerToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(true);
     });
   });
@@ -384,11 +420,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/dashboard",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(true);
       expect(body.data.totalImages).toBe(42);
       expect(body.data.storageUsage.total).toBe(1024000);
@@ -396,11 +432,7 @@ describe("Analytics Routes", () => {
 
     it("should scope by restaurantId for non-admin users", async () => {
       const { app, mockImageService } = buildMockAnalyticsApp();
-      await app.request(
-        "/dashboard",
-        { headers: authHeader(ownerToken) },
-        env as any,
-      );
+      await app.request("/dashboard", { headers: authHeader(ownerToken) }, env);
 
       expect(mockImageService.getImageAnalytics).toHaveBeenCalledWith(
         expect.objectContaining({ restaurantId: 200 }),
@@ -409,11 +441,7 @@ describe("Analytics Routes", () => {
 
     it("should not force restaurantId for admin users", async () => {
       const { app, mockImageService } = buildMockAnalyticsApp();
-      await app.request(
-        "/dashboard",
-        { headers: authHeader(adminToken) },
-        env as any,
-      );
+      await app.request("/dashboard", { headers: authHeader(adminToken) }, env);
 
       const callArgs = mockImageService.getImageAnalytics.mock.calls[0][0];
       expect(callArgs.restaurantId).toBeUndefined();
@@ -430,11 +458,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/dashboard",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(500);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(false);
     });
 
@@ -446,11 +474,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/dashboard",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(500);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(false);
       expect(body.error).toBe("Failed to get analytics dashboard");
     });
@@ -464,11 +492,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/storage",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(true);
       expect(body.data.totalStorage).toBe(2048000);
       expect(body.data.imageCount).toBe(50);
@@ -476,11 +504,7 @@ describe("Analytics Routes", () => {
 
     it("should scope storage analytics for owner", async () => {
       const { app, mockDbImageService } = buildMockAnalyticsApp();
-      await app.request(
-        "/storage",
-        { headers: authHeader(ownerToken) },
-        env as any,
-      );
+      await app.request("/storage", { headers: authHeader(ownerToken) }, env);
 
       expect(mockDbImageService.getStorageAnalytics).toHaveBeenCalledWith(
         expect.objectContaining({ restaurantId: 200 }),
@@ -498,11 +522,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/storage",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(500);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(false);
     });
   });
@@ -515,22 +539,18 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/usage",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(true);
       expect(body.data.totalViews).toBe(5000);
     });
 
     it("should scope usage analytics for owner", async () => {
       const { app, mockDbImageService } = buildMockAnalyticsApp();
-      await app.request(
-        "/usage",
-        { headers: authHeader(ownerToken) },
-        env as any,
-      );
+      await app.request("/usage", { headers: authHeader(ownerToken) }, env);
 
       expect(mockDbImageService.getUsageAnalytics).toHaveBeenCalledWith(
         expect.objectContaining({ restaurantId: 200 }),
@@ -548,7 +568,7 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/usage",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(500);
@@ -563,11 +583,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/performance",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(true);
       expect(body.data.avgProcessingTime).toBe(95);
       expect(body.data.successRate).toBe(0.99);
@@ -578,7 +598,7 @@ describe("Analytics Routes", () => {
       await app.request(
         "/performance",
         { headers: authHeader(ownerToken) },
-        env as any,
+        env,
       );
 
       expect(mockDbImageService.getPerformanceAnalytics).toHaveBeenCalledWith(
@@ -599,7 +619,7 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/performance",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(500);
@@ -614,11 +634,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/export",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(true);
       expect(body.data.type).toBe("summary");
       expect(body.data.format).toBe("json");
@@ -631,11 +651,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/export?type=storage&format=csv",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.data.type).toBe("storage");
       expect(body.data.format).toBe("csv");
       expect(body.data.download_url).toContain(".csv");
@@ -647,10 +667,10 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/export",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       const expiresAt = new Date(body.data.expires_at).getTime();
       const twentyFourHours = 24 * 60 * 60 * 1000;
 
@@ -669,7 +689,7 @@ describe("Analytics Routes", () => {
       await app.request(
         "/dashboard?dateFrom=2025-01-01&dateTo=2025-12-31",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(mockImageService.getImageAnalytics).toHaveBeenCalledWith(
@@ -685,7 +705,7 @@ describe("Analytics Routes", () => {
       await app.request(
         "/storage?dateFrom=2025-06-01",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(mockDbImageService.getStorageAnalytics).toHaveBeenCalledWith(
@@ -716,11 +736,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/dashboard",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.success).toBe(true);
       expect(body.data.totalImages).toBe(0);
       expect(body.data.mostUsedVariants).toEqual([]);
@@ -742,11 +762,11 @@ describe("Analytics Routes", () => {
       const res = await app.request(
         "/storage",
         { headers: authHeader(adminToken) },
-        env as any,
+        env,
       );
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AnalyticsResponse;
       expect(body.data.imageCount).toBe(0);
       expect(body.data.byCategory).toEqual([]);
     });

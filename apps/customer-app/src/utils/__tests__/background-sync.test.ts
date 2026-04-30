@@ -21,6 +21,13 @@ vi.mock("../offline-storage", () => ({
 
 import customerBackgroundSync from "../background-sync";
 
+type BackgroundSyncTestApi = {
+  syncSingleOrder(order: OfflineOrder): Promise<void>;
+};
+
+const backgroundSyncTestApi =
+  customerBackgroundSync as unknown as BackgroundSyncTestApi;
+
 const offlineOrder: OfflineOrder = {
   id: "offline-1",
   restaurant_id: "rest-1",
@@ -51,7 +58,7 @@ describe("customerBackgroundSync", () => {
   });
 
   it("submits offline orders using the orders API contract", async () => {
-    await (customerBackgroundSync as any).syncSingleOrder(offlineOrder);
+    await backgroundSyncTestApi.syncSingleOrder(offlineOrder);
 
     expect(mockApiClient.post).toHaveBeenCalledWith("/orders", {
       restaurantId: "rest-1",

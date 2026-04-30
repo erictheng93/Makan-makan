@@ -43,7 +43,9 @@ describe("CSRF Protection Middleware", () => {
         headers: { Host: "localhost" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -54,7 +56,9 @@ describe("CSRF Protection Middleware", () => {
         headers: { Host: "localhost" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -65,7 +69,9 @@ describe("CSRF Protection Middleware", () => {
         headers: { Host: "localhost" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -89,8 +95,10 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
-      const result = (await res.json()) as any;
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.error).toContain("CSRF token missing");
@@ -105,7 +113,9 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(403);
     });
@@ -119,7 +129,9 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(403);
     });
@@ -133,7 +145,9 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(403);
     });
@@ -154,8 +168,10 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
-      const result = (await res.json()) as any;
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.error).toContain("Invalid request origin");
@@ -174,7 +190,9 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -192,7 +210,9 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -214,8 +234,10 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
-      const result = (await res.json()) as any;
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.error).toContain("CSRF token invalid format");
@@ -234,7 +256,9 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -260,8 +284,10 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
-      const result = (await res.json()) as any;
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.error).toContain("CSRF token invalid");
@@ -280,7 +306,9 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -305,7 +333,9 @@ describe("CSRF Protection Middleware", () => {
         headers: { Host: "localhost" },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -319,7 +349,9 @@ describe("CSRF Protection Middleware", () => {
         },
       });
 
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(403);
     });
@@ -346,8 +378,8 @@ describe("Generate CSRF Token Handler", () => {
   it("should generate CSRF token", async () => {
     const req = new Request("http://localhost/csrf-token");
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(res.status).toBe(200);
     expect(result.success).toBe(true);
@@ -358,7 +390,7 @@ describe("Generate CSRF Token Handler", () => {
   it("should set CSRF cookie with SameSite=Lax", async () => {
     const req = new Request("http://localhost/csrf-token");
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     const setCookie = res.headers.get("Set-Cookie");
     expect(setCookie).toContain("csrf_token=");
@@ -380,10 +412,10 @@ describe("Generate CSRF Token Handler", () => {
       c.env = prodEnv;
       await next();
     });
-    prodApp.get("/csrf-token", generateCSRFTokenHandler as any);
+    prodApp.get("/csrf-token", generateCSRFTokenHandler as never);
 
     const req = new Request("http://api.makanmakan.com/csrf-token");
-    const res = await prodApp.request(req, { env: prodEnv } as any);
+    const res = await prodApp.request(req, { env: prodEnv } as never);
 
     const setCookie = res.headers.get("Set-Cookie");
     expect(setCookie).toContain("csrf_token=");
@@ -394,7 +426,7 @@ describe("Generate CSRF Token Handler", () => {
   it("should store token in KV", async () => {
     const req = new Request("http://localhost/csrf-token");
 
-    await app.request(req, { env: mockEnv } as any);
+    await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(mockEnv.CACHE_KV.put).toHaveBeenCalledWith(
       expect.stringContaining("csrf:"),
@@ -406,8 +438,8 @@ describe("Generate CSRF Token Handler", () => {
   it("should include expiry time in response", async () => {
     const req = new Request("http://localhost/csrf-token");
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(result.data.expiresIn).toBe(3600000); // 1 hour
   });
@@ -437,7 +469,7 @@ describe("Attach CSRF Token Middleware", () => {
       method: "POST",
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-CSRF-Token")).toBeTruthy();
     expect(res.headers.get("X-CSRF-Token")).toHaveLength(64);
@@ -448,7 +480,7 @@ describe("Attach CSRF Token Middleware", () => {
       method: "POST",
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     const setCookie = res.headers.get("Set-Cookie");
     expect(setCookie).toContain("csrf_token=");
@@ -457,7 +489,7 @@ describe("Attach CSRF Token Middleware", () => {
   it("should not attach token to non-auth responses", async () => {
     const req = new Request("http://localhost/other");
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-CSRF-Token")).toBeNull();
   });

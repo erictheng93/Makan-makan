@@ -8,6 +8,16 @@ import type { Env } from "../../../types/env";
 import { buildAuthHelper, type AuthHelper } from "./issue-test-jwt";
 import { createDurableObjectStub } from "./durable-object-stub";
 
+type TestCachesGlobal = typeof globalThis & {
+  caches?: {
+    default: {
+      match: () => Promise<undefined>;
+      put: () => Promise<void>;
+      delete: () => Promise<boolean>;
+    };
+  };
+};
+
 // Workers Cache API global stub. The production middleware
 // `cacheWarmingMiddleware` (apps/api/src/middleware/edge-cache.ts)
 // fires `caches.default.delete(...)` after any successful POST/PUT/
@@ -23,8 +33,9 @@ import { createDurableObjectStub } from "./durable-object-stub";
 // by unit tests against edge-cache.ts; there is no value in exercising
 // it in the real-integration layer, and the Node test runner has no
 // Cache API to invalidate anyway.
-if (typeof (globalThis as any).caches === "undefined") {
-  (globalThis as any).caches = {
+const testGlobal = globalThis as TestCachesGlobal;
+if (typeof testGlobal.caches === "undefined") {
+  testGlobal.caches = {
     default: {
       match: async () => undefined,
       put: async () => {},
@@ -104,9 +115,9 @@ function buildTestEnv(testDb: TestDatabase): Env {
     RATE_LIMIT_KV: testDb.bindings.RATE_LIMIT_KV,
     IMAGES_BUCKET: testDb.bindings.IMAGES_BUCKET,
     BACKUP_STORAGE: testDb.bindings.BACKUP_STORAGE,
-    JOB_QUEUE: { send: async () => {} } as any,
-    PRELOAD_QUEUE: { send: async () => {} } as any,
-    REVALIDATION_QUEUE: { send: async () => {} } as any,
+    JOB_QUEUE: { send: async () => {} } as never,
+    PRELOAD_QUEUE: { send: async () => {} } as never,
+    REVALIDATION_QUEUE: { send: async () => {} } as never,
     REALTIME_ORDERS: createDurableObjectStub(),
     REALTIME_SESSION: createDurableObjectStub(),
     ANALYTICS_ENGINE: { writeDataPoint: () => {} },

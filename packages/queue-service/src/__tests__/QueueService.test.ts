@@ -208,7 +208,7 @@ describe("QueueService", () => {
       };
 
       // Service catches validation errors and returns {success:false}
-      const result = await queueService.joinQueue(invalidRequest as any);
+      const result = await queueService.joinQueue(invalidRequest as never);
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });

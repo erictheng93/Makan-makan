@@ -52,7 +52,7 @@ const mockLogger = {
 };
 
 const mockEnv = envFactory.build({
-  CACHE_KV: mockCacheKV as any,
+  CACHE_KV: mockCacheKV as never,
 }) as unknown as Env;
 
 describe("Orders Analytics", () => {
@@ -63,12 +63,12 @@ describe("Orders Analytics", () => {
     resetAllFactories();
     ordersService = new OrdersService(mockEnv);
 
-    ordersService["baseOrderService"] = mockOrderServiceInstance as any;
-    ordersService["couponService"] = mockCouponServiceInstance as any;
+    ordersService["baseOrderService"] = mockOrderServiceInstance as never;
+    ordersService["couponService"] = mockCouponServiceInstance as never;
     ordersService["realtimeBroadcastService"] =
-      mockRealtimeBroadcastServiceInstance as any;
+      mockRealtimeBroadcastServiceInstance as never;
     ordersService["cacheKV"] = mockCacheKV;
-    ordersService["logger"] = mockLogger as any;
+    ordersService["logger"] = mockLogger as never;
   });
 
   describe("getOrderAnalytics", () => {

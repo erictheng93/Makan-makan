@@ -59,7 +59,7 @@ describe("SearchIndexSyncService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockKV = createMockKV();
-    service = new SearchIndexSyncService({} as any, mockKV as any);
+    service = new SearchIndexSyncService({} as never, mockKV as never);
   });
 
   describe("onMenuItemChanged", () => {

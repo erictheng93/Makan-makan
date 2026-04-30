@@ -42,7 +42,7 @@ describe("TokenBlacklistService", () => {
       list: vi.fn(),
     };
 
-    service = new TokenBlacklistService(mockKV as any);
+    service = new TokenBlacklistService(mockKV as never);
   });
 
   afterEach(() => {

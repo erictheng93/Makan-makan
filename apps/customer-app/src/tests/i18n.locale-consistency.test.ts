@@ -15,6 +15,12 @@ const flattenKeys = (obj: any, prefix = ""): string[] => {
   return keys;
 };
 
+type I18nGlobal = {
+  t: (key: string) => string;
+};
+
+const testI18n = i18n.global as unknown as I18nGlobal;
+
 describe("Locale Consistency", () => {
   it("should have all 6 locales loaded", () => {
     expect(SUPPORTED_LANGUAGES).toHaveLength(6);
@@ -66,7 +72,7 @@ describe("Locale Consistency", () => {
       const messages = i18n.global.getLocaleMessage(code);
       const keys = flattenKeys(messages);
       keys.forEach((key) => {
-        const val = (i18n.global as any).t(key) as string;
+        const val = testI18n.t(key);
         expect(val, `Empty value for ${key} in ${code}`).toBeTruthy();
       });
     });
@@ -88,7 +94,7 @@ describe("Locale Consistency", () => {
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
       switchLanguage(code as SupportedLanguage);
       spotCheckKeys.forEach((key) => {
-        const val = (i18n.global as any).t(key) as string;
+        const val = testI18n.t(key);
         expect(val, `${key} returned key path in ${code}`).not.toBe(key);
       });
     });

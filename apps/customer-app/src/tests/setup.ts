@@ -92,11 +92,19 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Make mocks available globally for tests
-declare global {
-  var localStorageMock: Storage;
+type LocalStorageMock = typeof localStorageMock;
+type DocumentElementMock = typeof documentElementMock;
 
-  var documentElementMock: HTMLElement;
+declare global {
+  var localStorageMock: LocalStorageMock;
+
+  var documentElementMock: DocumentElementMock;
 }
 
-(global as any).localStorageMock = localStorageMock;
-(global as any).documentElementMock = documentElementMock;
+const testGlobal = globalThis as typeof globalThis & {
+  localStorageMock: LocalStorageMock;
+  documentElementMock: DocumentElementMock;
+};
+
+testGlobal.localStorageMock = localStorageMock;
+testGlobal.documentElementMock = documentElementMock;

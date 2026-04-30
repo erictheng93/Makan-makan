@@ -362,7 +362,11 @@ describe("Event History Integration Tests", () => {
   let reconnectionHandler: MockReconnectionHandler;
 
   beforeEach(() => {
-    (globalThis as any).WebSocketPair = MockWebSocketPair;
+    (
+      globalThis as typeof globalThis & {
+        WebSocketPair: typeof MockWebSocketPair;
+      }
+    ).WebSocketPair = MockWebSocketPair;
     eventHistory = new MockEventHistoryManager();
     reconnectionHandler = new MockReconnectionHandler(eventHistory);
   });

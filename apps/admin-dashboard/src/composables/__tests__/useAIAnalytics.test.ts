@@ -26,7 +26,7 @@ describe("useAIAnalytics", () => {
 
   it("gets AI config through the shared API client", async () => {
     const config = { success: true, config: { provider: "openai" } };
-    vi.mocked(api.get).mockResolvedValue({ data: config } as any);
+    vi.mocked(api.get).mockResolvedValue({ data: config } as never);
 
     const { getConfig, loading, error } = useAIAnalytics();
     const result = await getConfig("r1");
@@ -46,10 +46,10 @@ describe("useAIAnalytics", () => {
       model: "gpt-4o-mini",
       enabled: true,
     };
-    vi.mocked(api.post).mockResolvedValue({ data: resultData } as any);
+    vi.mocked(api.post).mockResolvedValue({ data: resultData } as never);
 
     const { saveConfig } = useAIAnalytics();
-    const result = await saveConfig(payload as any);
+    const result = await saveConfig(payload as never);
 
     expect(api.post).toHaveBeenCalledWith("/ai-analytics/config", payload);
     expect(result).toBe(resultData);
@@ -59,10 +59,10 @@ describe("useAIAnalytics", () => {
     const report = { summary: "Revenue up" };
     vi.mocked(api.post).mockResolvedValue({
       data: { success: true, report },
-    } as any);
+    } as never);
 
     const { generateReport } = useAIAnalytics();
-    const result = await generateReport("r1", { range: "30d" } as any, {
+    const result = await generateReport("r1", { range: "30d" } as never, {
       refreshCache: true,
     });
 
@@ -78,7 +78,7 @@ describe("useAIAnalytics", () => {
     const products = [{ id: "p1", name: "Nasi Lemak" }];
     vi.mocked(api.get).mockResolvedValue({
       data: { success: true, products },
-    } as any);
+    } as never);
 
     const { getTrafficDrivers } = useAIAnalytics();
     const result = await getTrafficDrivers("r1", "7d", 5);
@@ -99,7 +99,7 @@ describe("useAIAnalytics", () => {
     const usage = [{ operation: "generate_report" }];
     vi.mocked(api.get).mockResolvedValue({
       data: { success: true, usage },
-    } as any);
+    } as never);
 
     const { getUsageStats } = useAIAnalytics();
     const result = await getUsageStats("r1", "2026-01-01");

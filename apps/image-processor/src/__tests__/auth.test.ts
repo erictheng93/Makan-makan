@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
+import type { MiddlewareHandler } from "hono";
 import { sign } from "hono/jwt";
 import {
   authMiddleware,
@@ -16,6 +17,21 @@ import {
 import { createMockEnv, createMockKV } from "./setup";
 
 type MockEnv = ReturnType<typeof createMockEnv>;
+type TestMiddleware = MiddlewareHandler<{ Bindings: MockEnv }>;
+type AuthTestResponse = {
+  ok?: boolean;
+  user?: {
+    id: number;
+    username: string;
+    role: number;
+    restaurantId: number;
+  };
+  error?: string;
+};
+type CorsTestContext = {
+  req: { method: string };
+  header(key: string, val: string): void;
+};
 
 // Hono app.request supports passing env/bindings as 3rd arg
 function createApp() {
@@ -55,7 +71,7 @@ describe("Auth Middleware", () => {
     path: string,
     init?: RequestInit,
   ) {
-    return app.request(path, init, env as any);
+    return app.request(path, init, env);
   }
 
   // ── authMiddleware ───────────────────────────────────────────
@@ -63,7 +79,7 @@ describe("Auth Middleware", () => {
   describe("authMiddleware", () => {
     it("should authenticate with valid token", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) =>
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
         c.json({ user: c.get("user") }),
       );
 
@@ -73,7 +89,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.user.id).toBe(1);
       expect(body.user.username).toBe("testuser");
       expect(body.user.role).toBe(0);
@@ -81,18 +97,22 @@ describe("Auth Middleware", () => {
 
     it("should reject missing Authorization header", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await req(app, "/test");
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("authorization");
     });
 
     it("should reject non-Bearer token", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await req(app, "/test", {
         headers: { Authorization: "Basic abc123" },
@@ -103,7 +123,9 @@ describe("Auth Middleware", () => {
 
     it("should reject expired token", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const token = await createValidToken(env.JWT_SECRET, {
         iat: Math.floor(Date.now() / 1000) - 7200,
@@ -119,7 +141,9 @@ describe("Auth Middleware", () => {
 
     it("should reject token with invalid role (out of range)", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const token = await createValidToken(env.JWT_SECRET, { role: 5 });
 
@@ -128,13 +152,15 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("Invalid role");
     });
 
     it("should reject token with missing required claims", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const now = Math.floor(Date.now() / 1000);
       const token = await sign(
@@ -148,13 +174,15 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("Invalid token claims");
     });
 
     it("should reject token older than 24 hours", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const now = Math.floor(Date.now() / 1000);
       const token = await createValidToken(env.JWT_SECRET, {
@@ -167,7 +195,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("too old");
     });
 
@@ -179,20 +207,24 @@ describe("Auth Middleware", () => {
       await blacklistKV.put(`token:${token}`, "revoked");
 
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await req(app, "/test", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("invalidated");
     });
 
     it("should set refresh header when token is about to expire", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const now = Math.floor(Date.now() / 1000);
       const token = await createValidToken(env.JWT_SECRET, {
@@ -211,14 +243,16 @@ describe("Auth Middleware", () => {
     it("should reject when JWT_SECRET is too short", async () => {
       env.JWT_SECRET = "short";
       const app = createApp();
-      app.get("/test", authMiddleware as any, (c) => c.json({ ok: true }));
+      app.get("/test", authMiddleware as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await req(app, "/test", {
         headers: { Authorization: "Bearer some-token" },
       });
 
       expect(res.status).toBe(500);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("Server configuration");
     });
   });
@@ -228,7 +262,7 @@ describe("Auth Middleware", () => {
   describe("optionalAuth", () => {
     it("should set user when valid token provided", async () => {
       const app = createApp();
-      app.get("/test", optionalAuth as any, (c) =>
+      app.get("/test", optionalAuth as TestMiddleware, (c) =>
         c.json({ user: c.get("user") || null }),
       );
 
@@ -237,7 +271,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(res.status).toBe(200);
       expect(body.user).not.toBeNull();
       expect(body.user.id).toBe(1);
@@ -245,12 +279,12 @@ describe("Auth Middleware", () => {
 
     it("should continue without user when no token provided", async () => {
       const app = createApp();
-      app.get("/test", optionalAuth as any, (c) =>
+      app.get("/test", optionalAuth as TestMiddleware, (c) =>
         c.json({ user: c.get("user") || null }),
       );
 
       const res = await req(app, "/test");
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
 
       expect(res.status).toBe(200);
       expect(body.user).toBeNull();
@@ -258,7 +292,7 @@ describe("Auth Middleware", () => {
 
     it("should continue without user when token is invalid", async () => {
       const app = createApp();
-      app.get("/test", optionalAuth as any, (c) =>
+      app.get("/test", optionalAuth as TestMiddleware, (c) =>
         c.json({ user: c.get("user") || null }),
       );
 
@@ -266,7 +300,7 @@ describe("Auth Middleware", () => {
         headers: { Authorization: "Bearer invalid-token-here" },
       });
 
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(res.status).toBe(200);
       expect(body.user).toBeNull();
     });
@@ -277,8 +311,11 @@ describe("Auth Middleware", () => {
   describe("requireRole", () => {
     it("should allow user with matching role", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, requireRole([0, 1]) as any, (c) =>
-        c.json({ ok: true }),
+      app.get(
+        "/test",
+        authMiddleware as TestMiddleware,
+        requireRole([0, 1]) as TestMiddleware,
+        (c) => c.json({ ok: true }),
       );
 
       const token = await createValidToken(env.JWT_SECRET, { role: 0 });
@@ -291,8 +328,11 @@ describe("Auth Middleware", () => {
 
     it("should reject user without matching role", async () => {
       const app = createApp();
-      app.get("/test", authMiddleware as any, requireRole([0]) as any, (c) =>
-        c.json({ ok: true }),
+      app.get(
+        "/test",
+        authMiddleware as TestMiddleware,
+        requireRole([0]) as TestMiddleware,
+        (c) => c.json({ ok: true }),
       );
 
       const token = await createValidToken(env.JWT_SECRET, { role: 3 });
@@ -301,13 +341,15 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(403);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("Insufficient permissions");
     });
 
     it("should return 401 when no user is authenticated", async () => {
       const app = createApp();
-      app.get("/test", requireRole([0]) as any, (c) => c.json({ ok: true }));
+      app.get("/test", requireRole([0]) as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await req(app, "/test");
 
@@ -320,7 +362,9 @@ describe("Auth Middleware", () => {
   describe("apiKeyAuth", () => {
     it("should accept valid API key", async () => {
       const app = createApp();
-      app.get("/test", apiKeyAuth as any, (c) => c.json({ ok: true }));
+      app.get("/test", apiKeyAuth as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await req(app, "/test", {
         headers: { "X-API-Key": "test-api-key" },
@@ -331,25 +375,29 @@ describe("Auth Middleware", () => {
 
     it("should reject missing API key", async () => {
       const app = createApp();
-      app.get("/test", apiKeyAuth as any, (c) => c.json({ ok: true }));
+      app.get("/test", apiKeyAuth as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await req(app, "/test");
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("API key required");
     });
 
     it("should reject invalid API key", async () => {
       const app = createApp();
-      app.get("/test", apiKeyAuth as any, (c) => c.json({ ok: true }));
+      app.get("/test", apiKeyAuth as TestMiddleware, (c) =>
+        c.json({ ok: true }),
+      );
 
       const res = await req(app, "/test", {
         headers: { "X-API-Key": "wrong-key" },
       });
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("Invalid API key");
     });
   });
@@ -383,7 +431,7 @@ describe("Auth Middleware", () => {
         header: (key: string, val: string) => {
           mockHeaders[key] = val;
         },
-      } as any;
+      } as CorsTestContext;
 
       const next = vi.fn();
 
@@ -409,7 +457,7 @@ describe("Auth Middleware", () => {
   describe("rateLimiter", () => {
     it("should allow requests under the limit", async () => {
       const app = createApp();
-      app.get("/test", rateLimiter(10, 60000) as any, (c) =>
+      app.get("/test", rateLimiter(10, 60000) as TestMiddleware, (c) =>
         c.json({ ok: true }),
       );
 
@@ -427,7 +475,7 @@ describe("Auth Middleware", () => {
       await env.IMAGE_CACHE.put(key, "10");
 
       const app = createApp();
-      app.get("/test", rateLimiter(10, 60000) as any, (c) =>
+      app.get("/test", rateLimiter(10, 60000) as TestMiddleware, (c) =>
         c.json({ ok: true }),
       );
 
@@ -436,7 +484,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(429);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("Rate limit");
     });
 
@@ -444,7 +492,7 @@ describe("Auth Middleware", () => {
       env.IMAGE_CACHE.get = vi.fn().mockRejectedValue(new Error("KV down"));
 
       const app = createApp();
-      app.get("/test", rateLimiter(10, 60000) as any, (c) =>
+      app.get("/test", rateLimiter(10, 60000) as TestMiddleware, (c) =>
         c.json({ ok: true }),
       );
 
@@ -479,7 +527,7 @@ describe("Auth Middleware", () => {
       });
 
       expect(res.status).toBe(413);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as AuthTestResponse;
       expect(body.error).toContain("File too large");
     });
 

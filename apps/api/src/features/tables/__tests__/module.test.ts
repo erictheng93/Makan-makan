@@ -30,13 +30,17 @@ vi.mock("../routes", () => {
 import { TablesModule, createTablesModule } from "../index";
 import tablesDefault from "../index";
 
+type TablesModuleTestGlobal = typeof globalThis & {
+  tablesModuleInstance?: TablesModule | null;
+};
+
 describe("TablesModule", () => {
   let tablesModule: TablesModule;
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset the singleton instance for each test
-    (global as any).tablesModuleInstance = null;
+    (globalThis as TablesModuleTestGlobal).tablesModuleInstance = null;
   });
 
   afterEach(() => {

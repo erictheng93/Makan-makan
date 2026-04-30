@@ -114,7 +114,7 @@ describe("AIAnalyticsService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new AIAnalyticsService({} as any, ENCRYPTION_KEY);
+    service = new AIAnalyticsService({} as never, ENCRYPTION_KEY);
   });
 
   // ─── Encryption / Decryption ────────────────────────────────────
@@ -471,7 +471,7 @@ describe("AIAnalyticsService", () => {
         },
       });
       vi.mocked(AIInsightsService).mockImplementationOnce(function () {
-        return { generateReport: generateReportMock } as any;
+        return { generateReport: generateReportMock } as never;
       });
 
       await service.generateReport(
@@ -500,7 +500,7 @@ describe("AIAnalyticsService", () => {
         await import("@makanmakan/ai-analytics");
       const getTrafficDriversMock = vi.fn().mockResolvedValue([]);
       vi.mocked(ProductAnalysisService).mockImplementationOnce(function () {
-        return { getTrafficDrivers: getTrafficDriversMock } as any;
+        return { getTrafficDrivers: getTrafficDriversMock } as never;
       });
 
       await service.getTrafficDrivers(RESTAURANT_ID, { range: "30d" }, 5);
@@ -517,7 +517,7 @@ describe("AIAnalyticsService", () => {
         await import("@makanmakan/ai-analytics");
       const getBestsellersMock = vi.fn().mockResolvedValue([]);
       vi.mocked(ProductAnalysisService).mockImplementationOnce(function () {
-        return { getBestsellers: getBestsellersMock } as any;
+        return { getBestsellers: getBestsellersMock } as never;
       });
 
       await service.getBestsellers(RESTAURANT_ID, { range: "14d" }, 15);
@@ -534,7 +534,7 @@ describe("AIAnalyticsService", () => {
         await import("@makanmakan/ai-analytics");
       const getProfitLeadersMock = vi.fn().mockResolvedValue([]);
       vi.mocked(ProductAnalysisService).mockImplementationOnce(function () {
-        return { getProfitLeaders: getProfitLeadersMock } as any;
+        return { getProfitLeaders: getProfitLeadersMock } as never;
       });
 
       await service.getProfitLeaders(RESTAURANT_ID, { range: "90d" });
@@ -551,7 +551,7 @@ describe("AIAnalyticsService", () => {
         await import("@makanmakan/ai-analytics");
       const analyzeProductsMock = vi.fn().mockResolvedValue([]);
       vi.mocked(ProductAnalysisService).mockImplementationOnce(function () {
-        return { analyzeProducts: analyzeProductsMock } as any;
+        return { analyzeProducts: analyzeProductsMock } as never;
       });
 
       await service.analyzeProducts(RESTAURANT_ID, { range: "180d" });

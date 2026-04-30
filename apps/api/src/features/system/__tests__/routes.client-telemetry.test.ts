@@ -75,7 +75,7 @@ describe("System loose client telemetry routes", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json).toMatchObject({
@@ -124,7 +124,7 @@ describe("System loose client telemetry routes", () => {
       },
       { DB: {}, CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);

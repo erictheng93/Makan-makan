@@ -4,6 +4,11 @@ import { Hono } from "hono";
 import routes from "../routes";
 import { ApiError } from "../../../shared/utils/api-error";
 
+type AIAnalyticsServiceMock = ReturnType<typeof vi.fn> & {
+  getAvailableModels: ReturnType<typeof vi.fn>;
+  getDefaultModel: ReturnType<typeof vi.fn>;
+};
+
 // Mock AIAnalyticsService — configurable per test
 const mockServiceInstance = {
   getConfig: vi.fn().mockResolvedValue(null),
@@ -34,11 +39,11 @@ const mockServiceInstance = {
 vi.mock("../services/AIAnalyticsService", () => {
   const MockService = vi.fn().mockImplementation(function () {
     return mockServiceInstance;
-  });
-  (MockService as any).getAvailableModels = vi
+  }) as AIAnalyticsServiceMock;
+  MockService.getAvailableModels = vi
     .fn()
     .mockReturnValue(["claude-3-haiku-20240307", "claude-3-sonnet-20240229"]);
-  (MockService as any).getDefaultModel = vi
+  MockService.getDefaultModel = vi
     .fn()
     .mockReturnValue("claude-3-haiku-20240307");
   return { AIAnalyticsService: MockService };
@@ -91,7 +96,7 @@ function createApp(userRole: number) {
           success: false,
           error: { code: err.code, message: err.message },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(

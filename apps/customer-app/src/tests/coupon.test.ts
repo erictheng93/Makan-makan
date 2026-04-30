@@ -75,9 +75,9 @@ vi.mock("@/stores/cart", () => ({
 }));
 
 vi.mock("vue-router", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import("vue-router")>();
   return {
-    ...(actual as any),
+    ...actual,
     useRouter: () => mockRouter,
     RouterLink: {
       name: "RouterLink",

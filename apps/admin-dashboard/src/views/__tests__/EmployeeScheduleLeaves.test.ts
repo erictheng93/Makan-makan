@@ -776,7 +776,9 @@ describe("LeavesTab", () => {
 
   it("should filter leave requests: queue shows only pending", async () => {
     const queue = wrapper.findComponent({ name: "LeaveApprovalQueue" });
-    const pendingRequests = queue.props("requests") as any[];
+    const pendingRequests = queue.props("requests") as Array<
+      Record<string, unknown>
+    >;
     expect(pendingRequests.every((r: any) => r.status === "pending")).toBe(
       true,
     );

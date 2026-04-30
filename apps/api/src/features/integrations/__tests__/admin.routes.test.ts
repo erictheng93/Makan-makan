@@ -101,7 +101,7 @@ const mockEnv = {
   CACHE_KV: {},
   JWT_SECRET: "test-jwt-secret-key-for-testing-only",
   ENCRYPTION_KEY: "test-encryption-key-for-testing-only-32chars",
-} as any;
+} as never;
 
 function buildApp(userRole: number | null) {
   const app = new Hono();
@@ -127,7 +127,7 @@ function buildApp(userRole: number | null) {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -147,7 +147,7 @@ function buildApp(userRole: number | null) {
           message: sanitized.message,
         },
       },
-      (STATUS_MAP[sanitized.type] ?? 500) as any,
+      (STATUS_MAP[sanitized.type] ?? 500) as never,
     );
   });
 

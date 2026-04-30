@@ -23,6 +23,10 @@ import {
   combineConfigs,
 } from "../axios-deduplication-interceptor";
 
+type DedupConfig = {
+  dedupTTL?: number;
+};
+
 function createMockAxiosInstance(): AxiosInstance {
   const interceptors = {
     request: { use: vi.fn().mockReturnValue(1), eject: vi.fn() },
@@ -150,7 +154,7 @@ describe("axios-deduplication-interceptor", () => {
   describe("withDedupTTL", () => {
     it("should return config with dedupTTL", () => {
       const config = withDedupTTL(30000);
-      expect((config as any).dedupTTL).toBe(30000);
+      expect((config as DedupConfig).dedupTTL).toBe(30000);
     });
   });
 
@@ -159,7 +163,7 @@ describe("axios-deduplication-interceptor", () => {
       const combined = combineConfigs(withDedupTTL(10000), {
         headers: { "X-Custom": "value" },
       });
-      expect((combined as any).dedupTTL).toBe(10000);
+      expect((combined as DedupConfig).dedupTTL).toBe(10000);
       expect(combined.headers).toEqual({ "X-Custom": "value" });
     });
 

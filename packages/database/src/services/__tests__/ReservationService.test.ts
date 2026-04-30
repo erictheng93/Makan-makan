@@ -16,6 +16,38 @@ import {
   type TableAssignmentRequest,
 } from "@makanmakan/shared-types";
 import { resetAllFactories } from "@makanmakan/testing-utils";
+import type { CloudflareEnv } from "../base";
+
+type MockTableRecord = Record<string, unknown> & {
+  id: number;
+  number?: string;
+  capacity: number;
+  current_status: string;
+  is_active: number;
+  features?: string;
+};
+
+type MockReservationRecord = Record<string, unknown> & {
+  id: string;
+  table_id: number;
+  restaurant_id?: string;
+  restaurantId?: string;
+  reservation_date?: string;
+  reservationDate?: string;
+  confirmation_code?: string;
+  status: string;
+};
+
+type MockSlotRecord = Record<string, unknown> & {
+  id: string;
+};
+
+type ReservationServiceTestAccess = ReservationService & {
+  checkSlotAvailability(
+    request: AvailabilityRequest,
+  ): Promise<{ available: boolean; reason?: string }>;
+  getSlotById(id: string): Promise<MockSlotRecord | null>;
+};
 
 // ========================================
 // Mock Database
@@ -369,48 +401,52 @@ describe("ReservationService", () => {
   beforeEach(() => {
     resetAllFactories();
     mockDB = createMockDB();
-    service = new ReservationService(mockDB as any, {} as any);
+    service = new ReservationService(mockDB, {} as unknown as CloudflareEnv);
 
     // Mock the private checkSlotAvailability method to always return available
-    vi.spyOn(service as any, "checkSlotAvailability").mockResolvedValue({
+    vi.spyOn(
+      service as unknown as ReservationServiceTestAccess,
+      "checkSlotAvailability",
+    ).mockResolvedValue({
       available: true,
       reason: undefined,
     });
 
     // Mock the private getSlotById method
-    vi.spyOn(service as any, "getSlotById").mockImplementation(
-      async (...args: unknown[]) => {
-        const id = args[0] as string;
-        const slots = mockDB.getSlots();
-        return slots.get(id) || null;
-      },
-    );
+    vi.spyOn(
+      service as unknown as ReservationServiceTestAccess,
+      "getSlotById",
+    ).mockImplementation(async (...args: unknown[]) => {
+      const id = args[0] as string;
+      const slots = mockDB.getSlots();
+      return slots.get(id) || null;
+    });
 
     // Mock the assignTable method to return a valid table assignment
     vi.spyOn(service, "assignTable").mockImplementation(
       async (request: any) => {
         const tables = mockDB.getTables();
         const availableTables = Array.from(tables.values()).filter(
-          (t: any) =>
+          (t: MockTableRecord) =>
             t.current_status === "available" &&
             t.is_active === 1 &&
             t.capacity >= request.partySize,
-        ) as any[];
+        ) as MockTableRecord[];
 
         if (availableTables.length === 0) return null;
 
         // Find best matching table
-        let bestTable: any = availableTables[0];
+        let bestTable: MockTableRecord = availableTables[0];
         for (const table of availableTables) {
           if (
-            (table as any).capacity >= request.partySize &&
-            (table as any).capacity < bestTable.capacity
+            table.capacity >= request.partySize &&
+            table.capacity < bestTable.capacity
           ) {
             bestTable = table;
           }
           // Check for special requests
           if (request.specialRequests) {
-            const features = JSON.parse((table as any).features || "{}");
+            const features = JSON.parse(table.features || "{}");
             if (request.specialRequests.includes("靠窗") && features.hasView) {
               bestTable = table;
               break;
@@ -431,7 +467,9 @@ describe("ReservationService", () => {
     vi.spyOn(service, "getReservationById").mockImplementation(
       async (id: string): Promise<any> => {
         const reservations = mockDB.getReservations();
-        const reservation = reservations.get(id) as any;
+        const reservation = reservations.get(id) as
+          | MockReservationRecord
+          | undefined;
         if (!reservation) return null;
         return {
           ...reservation,
@@ -449,8 +487,8 @@ describe("ReservationService", () => {
       async (code: string) => {
         const reservations = mockDB.getReservations();
         const reservation = Array.from(reservations.values()).find(
-          (r: any) => r.confirmation_code === code,
-        ) as any;
+          (r: MockReservationRecord) => r.confirmation_code === code,
+        ) as never;
         if (!reservation) return null;
         return {
           ...reservation,
@@ -459,7 +497,7 @@ describe("ReservationService", () => {
             number: `T${reservation.table_id}`,
             capacity: 4,
           },
-        } as any;
+        } as never;
       },
     );
 
@@ -502,13 +540,15 @@ describe("ReservationService", () => {
         // Get table assignment
         const tables = mockDB.getTables();
         const availableTables = Array.from(tables.values()).filter(
-          (t: any) =>
+          (t: MockTableRecord) =>
             t.current_status === "available" &&
             t.is_active === 1 &&
             t.capacity >= data.partySize,
         );
         const tableId =
-          availableTables.length > 0 ? (availableTables[0] as any).id : 1;
+          availableTables.length > 0
+            ? (availableTables[0] as MockTableRecord).id
+            : 1;
 
         // Create reservation object
         const reservation = {
@@ -550,7 +590,7 @@ describe("ReservationService", () => {
         return {
           ...reservation,
           table: { id: tableId, number: `T${tableId}`, capacity: 4 },
-        } as any;
+        } as never;
       },
     );
 
@@ -584,7 +624,7 @@ describe("ReservationService", () => {
       };
 
       mockDB.getSlots().set(id, slot);
-      return slot as any;
+      return slot as never;
     });
 
     // Mock updateReservation
@@ -632,7 +672,7 @@ describe("ReservationService", () => {
             number: `T${reservation.table_id}`,
             capacity: 4,
           },
-        } as any;
+        } as never;
       },
     );
 
@@ -653,7 +693,7 @@ describe("ReservationService", () => {
           number: `T${reservation.table_id}`,
           capacity: 4,
         },
-      } as any;
+      } as never;
     });
 
     vi.spyOn(service, "markSeated").mockImplementation(async (id: string) => {
@@ -672,7 +712,7 @@ describe("ReservationService", () => {
           number: `T${reservation.table_id}`,
           capacity: 4,
         },
-      } as any;
+      } as never;
     });
 
     vi.spyOn(service, "completeReservation").mockImplementation(
@@ -692,7 +732,7 @@ describe("ReservationService", () => {
             number: `T${reservation.table_id}`,
             capacity: 4,
           },
-        } as any;
+        } as never;
       },
     );
 
@@ -714,7 +754,7 @@ describe("ReservationService", () => {
             number: `T${reservation.table_id}`,
             capacity: 4,
           },
-        } as any;
+        } as never;
       },
     );
 
@@ -734,33 +774,37 @@ describe("ReservationService", () => {
           number: `T${reservation.table_id}`,
           capacity: 4,
         },
-      } as any;
+      } as never;
     });
 
     // Mock listReservations
     vi.spyOn(service, "listReservations").mockImplementation(
       async (filters: any) => {
         const reservations = mockDB.getReservations();
-        let data = Array.from(reservations.values()) as any[];
+        let data = Array.from(reservations.values()) as MockTableRecord[];
 
         // Apply filters
         if (filters.restaurantId) {
           data = data.filter(
-            (r: any) =>
+            (r: MockReservationRecord) =>
               r.restaurant_id === filters.restaurantId ||
               r.restaurantId === filters.restaurantId,
           );
         }
         if (filters.status) {
           if (Array.isArray(filters.status)) {
-            data = data.filter((r: any) => filters.status.includes(r.status));
+            data = data.filter((r: MockReservationRecord) =>
+              filters.status.includes(r.status),
+            );
           } else {
-            data = data.filter((r: any) => r.status === filters.status);
+            data = data.filter(
+              (r: MockReservationRecord) => r.status === filters.status,
+            );
           }
         }
         if (filters.reservationDate) {
           data = data.filter(
-            (r: any) =>
+            (r: MockReservationRecord) =>
               r.reservation_date === filters.reservationDate ||
               r.reservationDate === filters.reservationDate,
           );
@@ -773,7 +817,7 @@ describe("ReservationService", () => {
         const paginatedData = data.slice(offset, offset + limit);
 
         return {
-          data: paginatedData.map((r: any) => ({
+          data: paginatedData.map((r: MockReservationRecord) => ({
             ...r,
             table: { id: r.table_id, number: `T${r.table_id}`, capacity: 4 },
           })),
@@ -786,34 +830,34 @@ describe("ReservationService", () => {
     vi.spyOn(service, "getReservationStats").mockImplementation(
       async (restaurantId: string, date?: string) => {
         const reservations = mockDB.getReservations();
-        let data = Array.from(reservations.values()) as any[];
+        let data = Array.from(reservations.values()) as MockTableRecord[];
 
         // Filter by restaurant
         data = data.filter(
-          (r: any) =>
+          (r: MockReservationRecord) =>
             r.restaurant_id === restaurantId || r.restaurantId === restaurantId,
         );
 
         // Filter by date if provided
         if (date) {
           data = data.filter(
-            (r: any) =>
+            (r: MockReservationRecord) =>
               r.reservation_date === date || r.reservationDate === date,
           );
         }
 
         const totalReservations = data.length;
         const confirmedCount = data.filter(
-          (r: any) => r.status === "confirmed",
+          (r: MockReservationRecord) => r.status === "confirmed",
         ).length;
         const completedCount = data.filter(
-          (r: any) => r.status === "completed",
+          (r: MockReservationRecord) => r.status === "completed",
         ).length;
         const noShowCount = data.filter(
-          (r: any) => r.status === "no_show",
+          (r: MockReservationRecord) => r.status === "no_show",
         ).length;
         const cancelledCount = data.filter(
-          (r: any) => r.status === "cancelled",
+          (r: MockReservationRecord) => r.status === "cancelled",
         ).length;
         const totalGuests = data.reduce(
           (sum: number, r: any) => sum + (r.party_size || r.partySize || 0),

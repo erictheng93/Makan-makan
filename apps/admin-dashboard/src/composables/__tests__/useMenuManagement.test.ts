@@ -324,7 +324,7 @@ describe("useMenuManagement", () => {
       const newOrder = [
         { id: 2, name: "Desserts", sortOrder: 1 },
         { id: 1, name: "Mains", sortOrder: 0 },
-      ] as any[];
+      ] as Array<Record<string, unknown>>;
 
       // Start but don't await
       reorderCategories(newOrder);
@@ -339,7 +339,7 @@ describe("useMenuManagement", () => {
       const newOrder = [
         { id: 2, name: "Desserts", sortOrder: 99 },
         { id: 1, name: "Mains", sortOrder: 99 },
-      ] as any[];
+      ] as Array<Record<string, unknown>>;
 
       await reorderCategories(newOrder);
 
@@ -367,7 +367,7 @@ describe("useMenuManagement", () => {
       const newOrder = [
         { id: 2, name: "Desserts", sortOrder: 1 },
         { id: 1, name: "Mains", sortOrder: 0 },
-      ] as any[];
+      ] as Array<Record<string, unknown>>;
 
       await reorderCategories(newOrder);
 
@@ -576,7 +576,11 @@ describe("useMenuManagement", () => {
 
     describe("API failure handling", () => {
       test("saveMenuItem shows error toast and does not update state on 500", async () => {
-        const serverError = new Error("Internal Server Error") as any;
+        const serverError = new Error("Internal Server Error") as Error & {
+          response?: { status: number; data?: unknown };
+          status?: number;
+          code?: string;
+        };
         serverError.response = {
           status: 500,
           data: { error: { message: "Internal server error" } },
@@ -619,7 +623,11 @@ describe("useMenuManagement", () => {
       });
 
       test("saveMenuItem (update) shows error toast on 500", async () => {
-        const serverError = new Error("Internal Server Error") as any;
+        const serverError = new Error("Internal Server Error") as Error & {
+          response?: { status: number; data?: unknown };
+          status?: number;
+          code?: string;
+        };
         serverError.response = {
           status: 500,
           data: { error: { message: "Database write failed" } },
@@ -644,7 +652,11 @@ describe("useMenuManagement", () => {
       });
 
       test("deleteMenuItem shows error toast on 500 and does not refetch", async () => {
-        const serverError = new Error("Server Error") as any;
+        const serverError = new Error("Server Error") as Error & {
+          response?: { status: number; data?: unknown };
+          status?: number;
+          code?: string;
+        };
         serverError.response = {
           status: 500,
           data: { error: { message: "Cannot delete item" } },
@@ -675,7 +687,11 @@ describe("useMenuManagement", () => {
       });
 
       test("deleteCategory shows error toast on 500", async () => {
-        const serverError = new Error("Server Error") as any;
+        const serverError = new Error("Server Error") as Error & {
+          response?: { status: number; data?: unknown };
+          status?: number;
+          code?: string;
+        };
         serverError.response = {
           status: 500,
           data: { error: { message: "Foreign key constraint" } },
@@ -829,7 +845,11 @@ describe("useMenuManagement", () => {
       });
 
       test("shows server validation error for empty name when API rejects", async () => {
-        const validationError = new Error("Validation Error") as any;
+        const validationError = new Error("Validation Error") as Error & {
+          response?: { status: number; data?: unknown };
+          status?: number;
+          code?: string;
+        };
         validationError.response = {
           status: 400,
           data: { error: { message: "Name is required" } },
@@ -1074,7 +1094,11 @@ describe("useMenuManagement", () => {
       });
 
       test("API rejects delete of category that has items — error is shown", async () => {
-        const fkError = new Error("Constraint violation") as any;
+        const fkError = new Error("Constraint violation") as Error & {
+          response?: { status: number; data?: unknown };
+          status?: number;
+          code?: string;
+        };
         fkError.response = {
           status: 409,
           data: {
@@ -1139,7 +1163,11 @@ describe("useMenuManagement", () => {
       });
 
       test("selectedCategoryId is preserved when deleting a different category fails", async () => {
-        const fkError = new Error("Constraint violation") as any;
+        const fkError = new Error("Constraint violation") as Error & {
+          response?: { status: number; data?: unknown };
+          status?: number;
+          code?: string;
+        };
         fkError.response = {
           status: 409,
           data: {

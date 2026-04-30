@@ -9,15 +9,15 @@ export function createDurableObjectStub(): DurableObjectNamespace {
   const state = new Map<string, Map<string, unknown>>();
 
   return {
-    idFromName: (name: string) => ({ toString: () => name, name }) as any,
-    idFromString: (id: string) => ({ toString: () => id }) as any,
-    newUniqueId: () => ({ toString: () => crypto.randomUUID() }) as any,
+    idFromName: (name: string) => ({ toString: () => name, name }) as never,
+    idFromString: (id: string) => ({ toString: () => id }) as never,
+    newUniqueId: () => ({ toString: () => crypto.randomUUID() }) as never,
     get: (id: any) => {
       const idStr = id.toString();
       if (!state.has(idStr)) state.set(idStr, new Map());
       return {
         fetch: async () => new Response("{}", { status: 200 }),
-      } as any;
+      } as never;
     },
-  } as DurableObjectNamespace;
+  } as unknown as DurableObjectNamespace;
 }

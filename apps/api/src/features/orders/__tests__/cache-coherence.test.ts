@@ -100,14 +100,18 @@ describe("OrdersService — Cache Coherence & Concurrency", () => {
     const mockCouponService = {
       validateCoupon: vi.fn(),
     };
-    (OrderService as any).mockImplementation(function () {
-      return mockBaseOrderService;
-    });
-    (CouponService as any).mockImplementation(function () {
-      return mockCouponService;
-    });
+    (OrderService as unknown as ApiTestMockedConstructor).mockImplementation(
+      function () {
+        return mockBaseOrderService;
+      },
+    );
+    (CouponService as unknown as ApiTestMockedConstructor).mockImplementation(
+      function () {
+        return mockCouponService;
+      },
+    );
 
-    service = new OrdersService(mockEnv as any);
+    service = new OrdersService(mockEnv as unknown as ApiTestEnv);
   });
 
   // ─────────────────────────────────────────────────────────────────────────

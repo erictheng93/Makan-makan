@@ -60,3 +60,112 @@ declare module "fflate" {
     opts?: ZipOptions,
   ): Uint8Array;
 }
+
+/**
+ * Shared loose response shape for API tests that inspect JSON payloads.
+ * The runtime contract is still validated by assertions in each test; this
+ * type only replaces historical loose response casts.
+ */
+type ApiTestJsonPrimitive = string | number | boolean | null | undefined;
+type ApiTestJsonValue =
+  | ApiTestJsonPrimitive
+  | ApiTestJsonObject
+  | ApiTestJsonValue[];
+
+interface ApiTestJsonObject {
+  [key: string]: ApiTestJsonValue;
+}
+
+interface ApiTestEntity {
+  [key: string]: ApiTestJsonValue | ApiTestEntity | ApiTestEntity[];
+  [key: number]: ApiTestEntity;
+  id: never;
+  name: string;
+  username: string;
+  role: string | number;
+  profile: ApiTestEntity;
+  restaurantId: string;
+  restaurantName: string;
+  groupOrderId: string;
+  shareCode: string;
+  memberId: string;
+  memberName: string;
+  itemId: string;
+  isHost: boolean;
+  price: number;
+  timestamp: string;
+  payload: ApiTestEntity;
+  host: ApiTestEntity;
+  member: ApiTestEntity;
+  groupOrder: ApiTestEntity;
+  user: ApiTestEntity;
+  session: ApiTestEntity;
+  categories: ApiTestEntity[];
+  menuItems: ApiTestEntity[];
+  members: ApiTestEntity[];
+  cartItems: ApiTestEntity[];
+  results: ApiTestEntity[];
+  items: (ApiTestEntity & string)[];
+  rules: ApiTestEntity[];
+  connections: ApiTestEntity[];
+  pagination: ApiTestPagination;
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  scope: string;
+  orderId: string | number;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+  token: string;
+}
+
+interface ApiTestPagination {
+  [key: string]: number;
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+type ApiTestData = ApiTestEntity & ApiTestEntity[];
+
+interface ApiTestResponse<TData = ApiTestData> {
+  success: boolean;
+  data: TData;
+  error: {
+    code: string;
+    message: string;
+    details: ApiTestEntity[];
+  };
+  message: string;
+  pagination: ApiTestPagination;
+  user: ApiTestEntity;
+  session: ApiTestEntity;
+  items: (ApiTestEntity & string)[];
+  results: ApiTestEntity[];
+  connections: ApiTestEntity[];
+  [key: string]: ApiTestJsonValue | TData | ApiTestEntity | ApiTestEntity[];
+}
+
+type ApiTestEnv = import("./env").Env;
+type ApiTestRequestInit = RequestInit & { env: unknown };
+type ApiTestContextWithEnv = {
+  env: ApiTestEnv;
+  set(key: string, value: unknown): void;
+  get<T = unknown>(key: string): T;
+};
+type ApiTestContextWithTestData = ApiTestContextWithEnv & {
+  testBody?: unknown;
+  testQuery?: unknown;
+  testParams?: unknown;
+};
+type ApiTestAppWithEnv = {
+  env?: {
+    MOCK_DRIZZLE_DB?: unknown;
+  };
+};
+type ApiTestMockedConstructor = {
+  mockImplementation(implementation: () => unknown): void;
+};

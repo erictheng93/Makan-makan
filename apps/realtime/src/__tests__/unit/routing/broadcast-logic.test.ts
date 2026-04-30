@@ -42,10 +42,27 @@ class MockWebSocket extends EventTarget {
   }
 }
 
+type TestConnectionInfo = {
+  id?: string;
+  auth?: {
+    restaurantId?: string;
+  };
+};
+
+const createConnections = () => new Map<MockWebSocket, TestConnectionInfo>();
+
+const newOrderData = (): NewOrderEvent["data"] => ({
+  orderId: 1,
+  orderNumber: "ORD-001",
+  tableId: "1",
+  items: [],
+  totalAmount: 0,
+});
+
 describe("Broadcast Logic", () => {
   describe("Basic Broadcasting", () => {
     it("should broadcast event to all connected clients", () => {
-      const connections = new Map();
+      const connections = createConnections();
       const sockets: MockWebSocket[] = [];
 
       // Create 3 connections
@@ -105,7 +122,7 @@ describe("Broadcast Logic", () => {
     });
 
     it("should only send to connections with matching restaurantId", () => {
-      const connections = new Map();
+      const connections = createConnections();
       const ws1 = new MockWebSocket();
       const ws2 = new MockWebSocket();
 
@@ -124,12 +141,12 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       // Send only to matching restaurant
       for (const [socket, connectionInfo] of connections) {
-        if ((connectionInfo as any).auth?.restaurantId === event.restaurantId) {
+        if (connectionInfo.auth?.restaurantId === event.restaurantId) {
           socket.send(JSON.stringify(event));
         }
       }
@@ -139,7 +156,7 @@ describe("Broadcast Logic", () => {
     });
 
     it("should track number of recipients", () => {
-      const connections = new Map();
+      const connections = createConnections();
       let sentCount = 0;
 
       for (let i = 0; i < 5; i++) {
@@ -155,11 +172,11 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       for (const [socket, connectionInfo] of connections) {
-        if ((connectionInfo as any).auth?.restaurantId === event.restaurantId) {
+        if (connectionInfo.auth?.restaurantId === event.restaurantId) {
           socket.send(JSON.stringify(event));
           sentCount++;
         }
@@ -171,7 +188,7 @@ describe("Broadcast Logic", () => {
 
   describe("Broadcast with Exclusions", () => {
     it("should exclude sender when excludeSender is true", () => {
-      const connections = new Map();
+      const connections = createConnections();
       const senderWs = new MockWebSocket();
       const recipientWs = new MockWebSocket();
 
@@ -190,7 +207,7 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       const senderId = "sender-conn";
@@ -198,8 +215,8 @@ describe("Broadcast Logic", () => {
       // Send to all except sender
       for (const [socket, connectionInfo] of connections) {
         if (
-          (connectionInfo as any).id !== senderId &&
-          (connectionInfo as any).auth?.restaurantId === event.restaurantId
+          connectionInfo.id !== senderId &&
+          connectionInfo.auth?.restaurantId === event.restaurantId
         ) {
           socket.send(JSON.stringify(event));
         }
@@ -210,7 +227,7 @@ describe("Broadcast Logic", () => {
     });
 
     it("should include sender when excludeSender is false", () => {
-      const connections = new Map();
+      const connections = createConnections();
       const senderWs = new MockWebSocket();
       const recipientWs = new MockWebSocket();
 
@@ -229,12 +246,12 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       // Send to all including sender
       for (const [socket, connectionInfo] of connections) {
-        if ((connectionInfo as any).auth?.restaurantId === event.restaurantId) {
+        if (connectionInfo.auth?.restaurantId === event.restaurantId) {
           socket.send(JSON.stringify(event));
         }
       }
@@ -262,7 +279,7 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       sockets.forEach((socket) => {
@@ -287,7 +304,7 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       // Should not throw
@@ -311,7 +328,7 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       // Add to history
@@ -332,7 +349,7 @@ describe("Broadcast Logic", () => {
           eventId: `event-${i}`,
           timestamp: Date.now(),
           restaurantId: "restaurant-123",
-          data: {} as any,
+          data: newOrderData(),
         });
 
         // Keep only last 100 events
@@ -357,7 +374,7 @@ describe("Broadcast Logic", () => {
         eventId: "old-event",
         timestamp: now - 25 * 60 * 60 * 1000, // 25 hours ago
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       });
 
       eventHistory.push({
@@ -365,7 +382,7 @@ describe("Broadcast Logic", () => {
         eventId: "new-event",
         timestamp: now,
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       });
 
       // Filter out old events
@@ -394,7 +411,7 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       // Simulate broadcast
@@ -436,16 +453,16 @@ describe("Broadcast Logic", () => {
     });
 
     it("should return error response on invalid event format", () => {
-      const invalidEvent = {
+      const invalidEvent: Partial<RealtimeEvent> = {
         type: RealtimeEventType.NEW_ORDER,
         // Missing required fields: eventId, timestamp, restaurantId
       };
 
       const hasRequiredFields = !!(
-        (invalidEvent as any).type &&
-        (invalidEvent as any).eventId &&
-        (invalidEvent as any).timestamp &&
-        (invalidEvent as any).restaurantId
+        invalidEvent.type &&
+        invalidEvent.eventId &&
+        invalidEvent.timestamp &&
+        invalidEvent.restaurantId
       );
 
       expect(hasRequiredFields).toBe(false);
@@ -472,7 +489,7 @@ describe("Broadcast Logic", () => {
 
   describe("Concurrent Broadcasting", () => {
     it("should handle multiple concurrent broadcasts", async () => {
-      const connections = new Map();
+      const connections = createConnections();
       const ws = new MockWebSocket();
 
       connections.set(ws, {
@@ -489,16 +506,14 @@ describe("Broadcast Logic", () => {
           eventId: `event-${i}`,
           timestamp: Date.now(),
           restaurantId: "restaurant-123",
-          data: {} as any,
+          data: newOrderData(),
         });
       }
 
       // Broadcast all events
       for (const event of events) {
         for (const [socket, connectionInfo] of connections) {
-          if (
-            (connectionInfo as any).auth?.restaurantId === event.restaurantId
-          ) {
+          if (connectionInfo.auth?.restaurantId === event.restaurantId) {
             socket.send(JSON.stringify(event));
           }
         }
@@ -531,7 +546,7 @@ describe("Broadcast Logic", () => {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       const isValid = !!(
@@ -545,36 +560,36 @@ describe("Broadcast Logic", () => {
     });
 
     it("should reject events with missing type", () => {
-      const invalidEvent = {
+      const invalidEvent: Partial<RealtimeEvent> = {
         eventId: "event-001",
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       const isValid = !!(
-        (invalidEvent as any).type &&
-        (invalidEvent as any).eventId &&
-        (invalidEvent as any).timestamp &&
-        (invalidEvent as any).restaurantId
+        invalidEvent.type &&
+        invalidEvent.eventId &&
+        invalidEvent.timestamp &&
+        invalidEvent.restaurantId
       );
 
       expect(isValid).toBe(false);
     });
 
     it("should reject events with missing eventId", () => {
-      const invalidEvent = {
+      const invalidEvent: Partial<RealtimeEvent> = {
         type: RealtimeEventType.NEW_ORDER,
         timestamp: Date.now(),
         restaurantId: "restaurant-123",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       const isValid = !!(
-        (invalidEvent as any).type &&
-        (invalidEvent as any).eventId &&
-        (invalidEvent as any).timestamp &&
-        (invalidEvent as any).restaurantId
+        invalidEvent.type &&
+        invalidEvent.eventId &&
+        invalidEvent.timestamp &&
+        invalidEvent.restaurantId
       );
 
       expect(isValid).toBe(false);

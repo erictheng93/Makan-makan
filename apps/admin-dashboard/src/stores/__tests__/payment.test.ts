@@ -56,7 +56,7 @@ describe("Payment Store", () => {
 
     it("should return empty array for unsupported country", () => {
       const store = usePaymentStore();
-      expect(store.getAvailableMethodsForCountry("XX" as any)).toEqual([]);
+      expect(store.getAvailableMethodsForCountry("XX" as never)).toEqual([]);
     });
   });
 

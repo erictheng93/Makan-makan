@@ -31,7 +31,7 @@ function buildApp(db = createMockDb()) {
     if (err instanceof ApiError) {
       return c.json(
         { success: false, error: { code: err.code, message: err.message } },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -74,7 +74,7 @@ describe("Audit Compatibility Routes", () => {
       },
       { DB: { prepare: db.prepare } },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(201);
     expect(json).toMatchObject({
@@ -118,7 +118,7 @@ describe("Audit Compatibility Routes", () => {
       },
       { DB: { prepare: db.prepare } },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(400);
     expect(json.error.code).toBe("VALIDATION_ERROR");
@@ -140,7 +140,7 @@ describe("Audit Compatibility Routes", () => {
       },
       { DB: { prepare: db.prepare } },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(403);
     expect(json.error.code).toBe("AUDIT_ACTION_FORBIDDEN");

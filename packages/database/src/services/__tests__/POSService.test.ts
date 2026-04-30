@@ -758,7 +758,7 @@ describe("POSService", () => {
 
       it("應該驗證操作類型", async () => {
         const movementData = {
-          type: "invalid_type" as any,
+          type: "invalid_type" as never,
           amount: 500,
           description: "無效操作",
         };

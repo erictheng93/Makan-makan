@@ -372,14 +372,14 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   root: null,
   rootMargin: "",
   thresholds: [],
-})) as any;
+})) as unknown as typeof IntersectionObserver;
 
 // ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
-})) as any;
+})) as unknown as typeof ResizeObserver;
 
 // URL
 if (typeof window.URL.createObjectURL === "undefined") {

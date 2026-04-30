@@ -78,7 +78,7 @@ describe("AIInsightsService", () => {
     mockDb = createMockDb();
     mockFetch.mockReset();
     const drizzleDb = createMockDrizzleDb();
-    service = new AIInsightsService(mockDb as any, drizzleDb as any);
+    service = new AIInsightsService(mockDb as never, drizzleDb as never);
   });
 
   describe("generateReport", () => {
@@ -88,7 +88,7 @@ describe("AIInsightsService", () => {
         restaurantId: "rest-1",
         generatedAt: new Date().toISOString(),
         timeRange: { range: "30d" },
-        metrics: {} as any,
+        metrics: {} as never,
         insights: [],
         executiveSummary: "Cached summary",
         metadata: {

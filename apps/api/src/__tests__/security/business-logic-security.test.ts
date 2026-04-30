@@ -32,6 +32,21 @@ import {
   resetAllFactories,
 } from "@makanmakan/testing-utils";
 
+type MockedServiceConstructor = {
+  mockImplementation(implementation: () => unknown): void;
+};
+
+type GuestTokenData = {
+  orderId?: string;
+};
+
+type TestJwtPayload = {
+  id: number;
+  username: string;
+  role: number;
+  restaurantId: string;
+};
+
 // ── Mock dependencies ──────────────────────────────────────────────────
 
 vi.mock("../../utils/errorSanitizer", () => ({
@@ -134,7 +149,7 @@ function withErrorHandler(app: Hono<any>): void {
     if (err instanceof ApiError) {
       return c.json(
         { success: false, error: { code: err.code, message: err.message } },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -188,7 +203,7 @@ function createJwtAuthMiddleware(
     const token = authHeader.substring(7);
     try {
       const { verify } = await import("hono/jwt");
-      const decoded = (await verify(token, secret, "HS256")) as any;
+      const decoded = (await verify(token, secret, "HS256")) as TestJwtPayload;
       c.set("user", {
         id: decoded.id,
         username: decoded.username,
@@ -289,7 +304,7 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     // getUserProfile 不應該被呼叫 — 在權限檢查階段就被攔截
     expect(mockService.getUserProfile).not.toHaveBeenCalled();
@@ -320,7 +335,7 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     // updateUserProfile 不應該被呼叫
     expect(mockService.updateUserProfile).not.toHaveBeenCalled();
@@ -356,7 +371,7 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data.id).toBe(userB.id);
     expect(mockService.getUserProfile).toHaveBeenCalledOnce();
@@ -393,7 +408,7 @@ describe("IDOR — Profile Access (不安全的直接物件引用)", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data.id).toBe(ownerA.id);
     expect(mockService.getUserProfile).toHaveBeenCalledOnce();
@@ -483,7 +498,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Shop owners can only create staff accounts");
     // register 不應該被呼叫 — 在權限檢查階段就被攔截
@@ -518,7 +533,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Shop owners can only create staff accounts");
     expect(mockService.register).not.toHaveBeenCalled();
@@ -556,7 +571,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(201);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(mockService.register).toHaveBeenCalledOnce();
     // 驗證 createdBy 參數 — 傳入的是當前用戶 ID
@@ -593,7 +608,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(mockService.register).not.toHaveBeenCalled();
   });
@@ -625,7 +640,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(mockService.register).not.toHaveBeenCalled();
   });
@@ -661,7 +676,7 @@ describe("Privilege Escalation — Staff Registration (權限提升攻擊)", () 
     );
 
     expect(res.status).toBe(201);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(mockService.register).toHaveBeenCalledOnce();
   });
@@ -698,14 +713,18 @@ describe("Cross-Tenant Order Access — Service Level (跨租戶訂單存取)", 
 
     const mockCouponService = { validateCoupon: vi.fn() };
 
-    (OrderService as any).mockImplementation(function () {
-      return mockBaseOrderService;
-    });
-    (CouponService as any).mockImplementation(function () {
-      return mockCouponService;
-    });
+    (OrderService as unknown as MockedServiceConstructor).mockImplementation(
+      function () {
+        return mockBaseOrderService;
+      },
+    );
+    (CouponService as unknown as MockedServiceConstructor).mockImplementation(
+      function () {
+        return mockCouponService;
+      },
+    );
 
-    service = new OrdersService(mockEnv as any);
+    service = new OrdersService(mockEnv as unknown as ApiTestEnv);
   });
 
   // 餐廳A的店主嘗試查看餐廳B的訂單 — 必須被拒絕
@@ -739,9 +758,9 @@ describe("Cross-Tenant Order Access — Service Level (跨租戶訂單存取)", 
     await expect(
       service.updateOrderStatus(
         99,
-        { status: "confirmed" as any, notes: "" },
+        { status: "confirmed" as never, notes: "" },
         10,
-        1 as any,
+        1 as never,
         callerFromA,
       ),
     ).rejects.toThrow("Access denied");
@@ -804,7 +823,7 @@ describe("Cross-Tenant Order Access — Service Level (跨租戶訂單存取)", 
     await service.getOrders(
       { restaurantId: RESTAURANT_B },
       10,
-      1 as any,
+      1 as never,
       callerFromA,
     );
 
@@ -829,7 +848,7 @@ describe("Cross-Tenant Order Access — Service Level (跨租戶訂單存取)", 
     await service.getOrders(
       { restaurantId: RESTAURANT_B },
       1,
-      0 as any,
+      0 as never,
       adminCaller,
     );
 
@@ -888,7 +907,7 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -912,7 +931,7 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
   });
 
@@ -936,7 +955,7 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -959,7 +978,7 @@ describe("Cross-Tenant Restaurant Access — Middleware Level (跨租戶餐廳�
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
   });
 });
@@ -1182,7 +1201,10 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
 
       // 驗證 orderId 匹配
       const routeOrderId = c.req.param("id");
-      if (routeOrderId && (tokenData as any).orderId !== routeOrderId) {
+      if (
+        routeOrderId &&
+        (tokenData as GuestTokenData).orderId !== routeOrderId
+      ) {
         return c.json(
           { success: false, error: "Token does not match this order" },
           403,
@@ -1208,7 +1230,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -1245,7 +1267,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Token does not match this order");
   });
@@ -1282,7 +1304,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
   });
 
@@ -1304,7 +1326,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Guest token expired or invalid");
   });
@@ -1320,7 +1342,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Missing or invalid guest token");
   });
@@ -1346,7 +1368,7 @@ describe("Guest Token Scope Escalation (訪客 Token 範圍提升)", () => {
 
     // JWT token 不以 "gt_" 開頭，所以會被拒絕
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toContain("Missing or invalid guest token");
   });

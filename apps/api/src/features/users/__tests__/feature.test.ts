@@ -6,7 +6,7 @@ import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
 // Mock environment for testing
 const mockEnv = {
   DB: {}, // Mock database connection
-} as any;
+} as never;
 
 describe("Users Feature Module", () => {
   let usersService: UsersService;
@@ -42,7 +42,7 @@ describe("Users Feature Module", () => {
         const ownerUser = userFactory.buildShopOwner(1);
         // Use the restaurantId directly from the factory (may be number or string)
         // so the strict === comparison in canManageUser matches the type stored in the user
-        const ownerRestaurantId = ownerUser.restaurantId as any;
+        const ownerRestaurantId = ownerUser.restaurantId as never;
 
         // Can manage staff in same restaurant
         expect(
@@ -97,7 +97,7 @@ describe("Users Feature Module", () => {
           usersService.canManageUser(
             ownerUser,
             USER_ROLES.CHEF,
-            otherRestaurantId as any,
+            otherRestaurantId as never,
           ),
         ).toBe(false);
       });

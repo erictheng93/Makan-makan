@@ -101,14 +101,18 @@ describe("OrdersService", () => {
       validateCoupon: vi.fn(),
     };
     // Use function syntax for constructor mocks in Vitest 4
-    (OrderService as any).mockImplementation(function () {
-      return mockBaseOrderService;
-    });
-    (CouponService as any).mockImplementation(function () {
-      return mockCouponService;
-    });
+    (OrderService as unknown as ApiTestMockedConstructor).mockImplementation(
+      function () {
+        return mockBaseOrderService;
+      },
+    );
+    (CouponService as unknown as ApiTestMockedConstructor).mockImplementation(
+      function () {
+        return mockCouponService;
+      },
+    );
 
-    service = new OrdersService(mockEnv as any);
+    service = new OrdersService(mockEnv as unknown as ApiTestEnv);
   });
 
   describe("Order Creation", () => {

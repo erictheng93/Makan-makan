@@ -22,6 +22,18 @@ import type {
   MenuStructure,
 } from "../types";
 
+type MenuServiceTestAccess = {
+  dbService?: unknown;
+  cacheService?: unknown;
+};
+
+const asMenuServiceTest = (service: MenuService): MenuServiceTestAccess =>
+  service as unknown as MenuServiceTestAccess;
+
+type MockedKvGet = {
+  mockResolvedValue(value: unknown): void;
+};
+
 // Mock environment
 const mockEnv = envFactory.build({
   CACHE_KV: createMockKV(),
@@ -96,7 +108,7 @@ const mockMenuItem: MenuItem = {
     glutenFree: true,
     halal: true,
   },
-  options: {} as any, // MenuItemOptions type expects object, not array
+  options: {} as never, // MenuItemOptions type expects object, not array
   createdAt: "2024-01-01T00:00:00.000Z",
   updatedAt: "2024-01-15T00:00:00.000Z",
   reviewCount: 50,
@@ -133,7 +145,7 @@ describe("MenuService", () => {
     resetAllFactories();
     menuService = new MenuService(mockEnv);
     // Replace internal DB service with mock
-    (menuService as any).dbService = mockDbService;
+    asMenuServiceTest(menuService).dbService = mockDbService;
     vi.clearAllMocks();
   });
 
@@ -175,7 +187,7 @@ describe("MenuService", () => {
     });
 
     it("should return null when menu not found", async () => {
-      (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
+      (mockEnv.CACHE_KV.get as unknown as MockedKvGet).mockResolvedValue(null);
       mockDbService.getMenu.mockResolvedValue(null);
 
       const result = await menuService.getMenu("999");
@@ -719,7 +731,7 @@ describe("MenuService", () => {
   // ========================================
   describe("getMenuAnalytics", () => {
     beforeEach(() => {
-      (mockEnv.CACHE_KV.get as any).mockResolvedValue(null);
+      (mockEnv.CACHE_KV.get as unknown as MockedKvGet).mockResolvedValue(null);
       mockDbService.getMenu.mockResolvedValue({
         categories: [mockCategory],
         menuItems: [
@@ -854,7 +866,7 @@ describe("MenuService", () => {
   // ========================================
   describe("cache invalidation", () => {
     it("should handle cache deletion error gracefully", async () => {
-      (mockEnv.CACHE_KV.delete as any).mockRejectedValue(
+      vi.mocked(mockEnv.CACHE_KV.delete).mockRejectedValue(
         new Error("Cache error"),
       );
       mockDbService.getMenuItem.mockResolvedValue(mockMenuItem);
@@ -868,9 +880,9 @@ describe("MenuService", () => {
       const serviceWithoutCache = new MenuService({
         ...mockEnv,
         CACHE_KV: undefined,
-      } as any);
-      (serviceWithoutCache as any).dbService = mockDbService;
-      (serviceWithoutCache as any).cacheService = undefined;
+      } as never);
+      asMenuServiceTest(serviceWithoutCache).dbService = mockDbService;
+      asMenuServiceTest(serviceWithoutCache).cacheService = undefined;
 
       mockDbService.getMenu.mockResolvedValue(mockMenuStructure);
 

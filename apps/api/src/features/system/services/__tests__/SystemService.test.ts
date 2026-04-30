@@ -11,6 +11,15 @@ import type {
   ErrorStats,
 } from "../../types";
 
+type SystemServiceTestAccess = {
+  errorReportingService: MockErrorReportingService;
+  cache: MockCacheService;
+  logger: MockLogger;
+};
+
+const asSystemServiceTest = (target: SystemService): SystemServiceTestAccess =>
+  target as unknown as SystemServiceTestAccess;
+
 // ========================================
 // Mock Services
 // ========================================
@@ -178,12 +187,16 @@ describe("SystemService", () => {
 
     const db = createMockDB();
 
-    service = new SystemService(db as any, mockEnv as any, mockEnv.CACHE_KV);
+    service = new SystemService(
+      db as never,
+      mockEnv as unknown as ApiTestEnv,
+      mockEnv.CACHE_KV,
+    );
 
     // Replace internal services with mocks
-    (service as any).errorReportingService = mockErrorReporting;
-    (service as any).cache = mockCache;
-    (service as any).logger = mockLogger;
+    asSystemServiceTest(service).errorReportingService = mockErrorReporting;
+    asSystemServiceTest(service).cache = mockCache;
+    asSystemServiceTest(service).logger = mockLogger;
   });
 
   // ========================================

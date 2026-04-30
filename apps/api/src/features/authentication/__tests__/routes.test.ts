@@ -197,7 +197,7 @@ describe("Authentication Routes", () => {
       if (err instanceof ApiError) {
         return c.json(
           { success: false, error: err.message },
-          err.status as any,
+          err.status as never,
         );
       }
       return c.json({ success: false, error: "Internal server error" }, 500);
@@ -241,7 +241,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -272,7 +272,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(401);
       expect(result.success).toBe(false);
@@ -340,7 +340,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(201);
       expect(result.success).toBe(true);
@@ -366,7 +366,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(409);
       expect(result.success).toBe(false);
@@ -403,7 +403,7 @@ describe("Authentication Routes", () => {
         if (err instanceof ApiError) {
           return c.json(
             { success: false, error: err.message },
-            err.status as any,
+            err.status as never,
           );
         }
         return c.json({ success: false, error: "Internal server error" }, 500);
@@ -444,7 +444,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(201);
       expect(result.success).toBe(true);
@@ -478,7 +478,7 @@ describe("Authentication Routes", () => {
         if (err instanceof ApiError) {
           return c.json(
             { success: false, error: err.message },
-            err.status as any,
+            err.status as never,
           );
         }
         return c.json({ success: false, error: "Internal server error" }, 500);
@@ -503,7 +503,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.success).toBe(false);
@@ -538,7 +538,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -561,7 +561,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(401);
       expect(result.success).toBe(false);
@@ -590,7 +590,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -609,7 +609,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(500);
       expect(result.success).toBe(false);
@@ -637,7 +637,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -658,7 +658,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(401);
       expect(result.success).toBe(false);
@@ -682,7 +682,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -697,7 +697,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(403);
       expect(result.success).toBe(false);
@@ -729,7 +729,7 @@ describe("Authentication Routes", () => {
         if (err instanceof ApiError) {
           return c.json(
             { success: false, error: err.message },
-            err.status as any,
+            err.status as never,
           );
         }
         return c.json({ success: false, error: "Internal server error" }, 500);
@@ -745,7 +745,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(404);
       expect(result.success).toBe(false);
@@ -774,7 +774,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -800,7 +800,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(400);
       expect(result.success).toBe(false);
@@ -825,7 +825,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -852,7 +852,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(400);
       expect(result.success).toBe(false);
@@ -878,7 +878,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -899,7 +899,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -917,7 +917,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(400);
       expect(result.success).toBe(false);
@@ -936,7 +936,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -957,7 +957,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -982,7 +982,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(400);
       expect(result.success).toBe(false);
@@ -1004,7 +1004,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -1025,7 +1025,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -1060,7 +1060,7 @@ describe("Authentication Routes", () => {
         if (err instanceof ApiError) {
           return c.json(
             { success: false, error: err.message },
-            err.status as any,
+            err.status as never,
           );
         }
         return c.json({ success: false, error: "Internal server error" }, 500);
@@ -1083,7 +1083,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);
@@ -1119,7 +1119,7 @@ describe("Authentication Routes", () => {
         if (err instanceof ApiError) {
           return c.json(
             { success: false, error: err.message },
-            err.status as any,
+            err.status as never,
           );
         }
         return c.json({ success: false, error: "Internal server error" }, 500);
@@ -1144,7 +1144,7 @@ describe("Authentication Routes", () => {
       });
 
       const res = await app.request(req);
-      const result = (await res.json()) as any;
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.status).toBe(200);
       expect(result.success).toBe(true);

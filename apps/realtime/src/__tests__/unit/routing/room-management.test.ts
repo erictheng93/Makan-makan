@@ -62,7 +62,11 @@ class MockWebSocket extends EventTarget {
 
 describe("Room Management", () => {
   beforeEach(() => {
-    (globalThis as any).WebSocketPair = MockWebSocketPair;
+    (
+      globalThis as typeof globalThis & {
+        WebSocketPair: typeof MockWebSocketPair;
+      }
+    ).WebSocketPair = MockWebSocketPair;
   });
 
   describe("Room Creation and Initialization", () => {

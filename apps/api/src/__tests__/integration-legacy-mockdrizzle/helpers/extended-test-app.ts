@@ -491,7 +491,15 @@ const ADDITIONAL_TABLES_DDL = [
 export async function createIntegrationTestApp(): Promise<IntegrationTestApp> {
   // 1. Create DB with SharedDataStore (reusing existing infrastructure)
   const db = await createTestDB();
-  const dataStore = (db as any).dataStore;
+  const dataStore = (
+    db as {
+      dataStore?: {
+        getDB(): {
+          run(sql: string): void;
+        };
+      };
+    }
+  ).dataStore;
 
   if (!dataStore) {
     throw new Error(
@@ -503,10 +511,11 @@ export async function createIntegrationTestApp(): Promise<IntegrationTestApp> {
   for (const ddl of ADDITIONAL_TABLES_DDL) {
     try {
       dataStore.getDB().run(ddl);
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Table might already exist, that's fine
-      if (!e.message?.includes("already exists")) {
-        console.warn(`[ExtendedTestApp] DDL warning: ${e.message}`);
+      const message = e instanceof Error ? e.message : String(e);
+      if (!message.includes("already exists")) {
+        console.warn(`[ExtendedTestApp] DDL warning: ${message}`);
       }
     }
   }
@@ -526,7 +535,7 @@ export async function createIntegrationTestApp(): Promise<IntegrationTestApp> {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -546,7 +555,7 @@ export async function createIntegrationTestApp(): Promise<IntegrationTestApp> {
           message: sanitized.message,
         },
       },
-      (STATUS_MAP[sanitized.type] ?? 500) as any,
+      (STATUS_MAP[sanitized.type] ?? 500) as never,
     );
   });
 
@@ -579,7 +588,7 @@ export async function createIntegrationTestApp(): Promise<IntegrationTestApp> {
   const probeApp = new Hono();
   probeApp.use("*", async (c, next) => {
     // Copy env from baseApp by making a sub-request
-    capturedEnv = { ...(c as any).env };
+    capturedEnv = { ...(c as unknown as ApiTestContextWithEnv).env };
     await next();
   });
 

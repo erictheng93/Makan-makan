@@ -267,7 +267,11 @@ describe("Durable Object Persistence", () => {
   let session: TestableRealtimeSession;
 
   beforeEach(() => {
-    (globalThis as any).WebSocketPair = MockWebSocketPair;
+    (
+      globalThis as typeof globalThis & {
+        WebSocketPair: typeof MockWebSocketPair;
+      }
+    ).WebSocketPair = MockWebSocketPair;
     state = new MockDurableObjectState();
     session = new TestableRealtimeSession(state);
   });

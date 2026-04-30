@@ -46,7 +46,7 @@ class MockDurableObjectStub {
     const path = new URL(request.url).pathname;
 
     if (path === "/broadcast" && request.method === "POST") {
-      const body = (await request.json()) as any;
+      const body = (await request.json()) as ApiTestResponse;
       this.broadcastHistory.push(body);
 
       return Response.json({
@@ -148,7 +148,7 @@ describe("Broadcast Integration Tests", () => {
         },
       );
 
-      const result = (await response.json()) as any;
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(result.success).toBe(true);
       expect(result.eventId).toBe("evt_order_123");
@@ -217,7 +217,7 @@ describe("Broadcast Integration Tests", () => {
         },
       );
 
-      const result = (await response.json()) as any;
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(result.success).toBe(true);
       expect(result.recipientCount).toBeGreaterThan(0);
@@ -259,7 +259,7 @@ describe("Broadcast Integration Tests", () => {
         },
       );
 
-      const result = (await response.json()) as any;
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(result.success).toBe(true);
 
@@ -298,7 +298,7 @@ describe("Broadcast Integration Tests", () => {
         },
       );
 
-      const result = (await response.json()) as any;
+      const result = (await response.json()) as ApiTestResponse;
 
       expect(result.success).toBe(true);
 
@@ -379,7 +379,7 @@ describe("Broadcast Integration Tests", () => {
         method: "GET",
       });
 
-      const stats = (await response.json()) as any;
+      const stats = (await response.json()) as ApiTestResponse;
 
       expect(stats.connectionCount).toBe(3);
       expect(stats.connections).toHaveLength(3);
@@ -395,7 +395,7 @@ describe("Broadcast Integration Tests", () => {
         method: "GET",
       });
 
-      const stats = (await response.json()) as any;
+      const stats = (await response.json()) as ApiTestResponse;
 
       const connections = stats.connections;
       expect(connections.some((c: any) => c.type === "customer")).toBe(true);

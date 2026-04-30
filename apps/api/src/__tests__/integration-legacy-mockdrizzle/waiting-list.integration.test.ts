@@ -126,7 +126,7 @@ describe("Waiting List API Integration", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
     expect(body.error.code).toBeDefined();
@@ -147,7 +147,7 @@ describe("Waiting List API Integration", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });
@@ -174,7 +174,7 @@ describe("Waiting List API Integration", () => {
       },
     );
 
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     // WaitingListService.listWaitingList uses DATE(created_at / 1000, 'unixepoch', 'localtime')
     // for date filtering via D1 prepare().bind().all(). The mock may return 0 rows
     // if the date arithmetic doesn't match the seeded timestamps.
@@ -202,7 +202,7 @@ describe("Waiting List API Integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });
@@ -232,7 +232,7 @@ describe("Waiting List API Integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.restaurantId).toBe(String(restaurantId));
@@ -256,7 +256,7 @@ describe("Waiting List API Integration", () => {
     );
 
     expect(res.status).toBe(403);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });
@@ -271,7 +271,7 @@ describe("Waiting List API Integration", () => {
     });
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });
@@ -291,7 +291,7 @@ describe("Waiting List API Integration", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });

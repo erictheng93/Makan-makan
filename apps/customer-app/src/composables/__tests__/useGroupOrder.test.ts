@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ref } from "vue";
+import { ref, type Ref } from "vue";
 import type {
   GroupOrder,
   GroupMember,
@@ -36,6 +36,14 @@ vi.mock("@/services/api", () => ({
 // Import after mocks are set up
 const { useGroupOrder } = await import("../useGroupOrder");
 const { apiClient } = await import("@/services/api");
+
+type MockApiClient = {
+  post: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
+};
+
+const mockApiClient = (): MockApiClient =>
+  apiClient as unknown as MockApiClient;
 
 describe("useGroupOrder", () => {
   const mockOptions = {
@@ -81,7 +89,7 @@ describe("useGroupOrder", () => {
 
   describe("createGroupOrder", () => {
     it("應該成功創建群組訂單", async () => {
-      const mockApi = apiClient as any;
+      const mockApi = mockApiClient();
       mockApi.post.mockResolvedValueOnce({ groupOrderId: "go_123" });
       mockApi.get.mockResolvedValueOnce({
         id: "go_123",
@@ -116,7 +124,7 @@ describe("useGroupOrder", () => {
     });
 
     it("應該處理創建失敗", async () => {
-      const mockApi = apiClient as any;
+      const mockApi = mockApiClient();
       mockApi.post.mockResolvedValueOnce(null);
 
       const { createGroupOrder, error } = useGroupOrder(mockOptions);
@@ -153,7 +161,7 @@ describe("useGroupOrder", () => {
         updatedAt: Date.now(),
       };
 
-      const mockApi = apiClient as any;
+      const mockApi = mockApiClient();
       mockApi.get.mockResolvedValueOnce(mockGroupOrder);
       mockApi.post.mockResolvedValueOnce({ token: "ws_token_456" });
 
@@ -167,7 +175,7 @@ describe("useGroupOrder", () => {
   });
 
   describe("購物車操作", () => {
-    let groupOrderRef: any;
+    let groupOrderRef: Ref<GroupOrder>;
 
     beforeEach(() => {
       groupOrderRef = ref<GroupOrder>({
@@ -200,7 +208,7 @@ describe("useGroupOrder", () => {
       // 手動設置 groupOrder（模擬已加入）
       groupOrder.value = groupOrderRef.value;
 
-      const mockApi = apiClient as any;
+      const mockApi = mockApiClient();
       mockApi.post.mockResolvedValue({ success: true });
 
       addToCart({

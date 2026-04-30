@@ -58,8 +58,8 @@ export function createDrizzleTestDB() {
   };
 
   return {
-    db: null as any, // Drizzle instance not needed for basic tests
-    sqlite: mockSqlite as any,
+    db: null as never, // Drizzle instance not needed for basic tests
+    sqlite: mockSqlite as never,
     close: () => mockSqlite.close(),
   };
 }

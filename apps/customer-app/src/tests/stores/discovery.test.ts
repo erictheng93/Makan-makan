@@ -13,6 +13,43 @@ vi.mock("@/services/discoveryApi", () => ({
 
 import { useDiscoveryStore } from "@/stores/discovery";
 import { discoveryApi } from "@/services/discoveryApi";
+import type {
+  DishSearchResult,
+  RestaurantListItem,
+} from "@/services/discoveryApi";
+
+const buildDishResult = (
+  overrides: Partial<DishSearchResult> = {},
+): DishSearchResult => ({
+  menuItemId: 1,
+  dishName: "Nasi Lemak",
+  price: 10,
+  categoryName: null,
+  restaurantId: "r1",
+  restaurantName: "Test",
+  district: null,
+  isOpen: true,
+  supportsTakeaway: true,
+  supportsDelivery: false,
+  tags: [],
+  ...overrides,
+});
+
+const buildRestaurantResult = (
+  overrides: Partial<RestaurantListItem> = {},
+): RestaurantListItem => ({
+  restaurantId: "r1",
+  name: "Test",
+  type: null,
+  district: null,
+  priceRange: null,
+  rating: null,
+  isOpen: true,
+  supportsTakeaway: true,
+  supportsDelivery: false,
+  imageUrl: null,
+  ...overrides,
+});
 
 const mockSearchDishes = discoveryApi.searchDishes as ReturnType<typeof vi.fn>;
 const mockBrowseRestaurants = discoveryApi.browseRestaurants as ReturnType<
@@ -221,7 +258,7 @@ describe("discovery store", () => {
     it("should clear search state and switch to browse mode", () => {
       const store = useDiscoveryStore();
       store.searchQuery = "test";
-      store.dishResults = [{ menuItemId: 1 } as any];
+      store.dishResults = [buildDishResult()];
       store.mode = "search";
       store.page = 3;
 
@@ -239,8 +276,8 @@ describe("discovery store", () => {
       const store = useDiscoveryStore();
       store.searchQuery = "something";
       store.filters = { district: "PJ" };
-      store.dishResults = [{ menuItemId: 1 } as any];
-      store.restaurantResults = [{ restaurantId: "r1" } as any];
+      store.dishResults = [buildDishResult()];
+      store.restaurantResults = [buildRestaurantResult()];
       store.error = "old error";
       store.total = 50;
       store.page = 5;

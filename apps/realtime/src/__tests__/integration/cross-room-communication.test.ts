@@ -208,7 +208,11 @@ describe("Cross-Room Communication", () => {
   let roomManager: MockRoomManager;
 
   beforeEach(() => {
-    (globalThis as any).WebSocketPair = MockWebSocketPair;
+    (
+      globalThis as typeof globalThis & {
+        WebSocketPair: typeof MockWebSocketPair;
+      }
+    ).WebSocketPair = MockWebSocketPair;
     roomManager = new MockRoomManager();
   });
 

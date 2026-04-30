@@ -26,6 +26,10 @@ import {
 } from "../monitoring";
 import { mockEnv as baseMockEnv } from "../../__tests__/setup";
 
+type TestHealthStatus = {
+  overall: string;
+};
+
 // Create a fresh mock service that can be configured in each test
 const createMockMonitoringService = (): MonitoringServiceInterface => ({
   recordApiRequest: vi.fn().mockResolvedValue(undefined),
@@ -365,7 +369,9 @@ describe("Health Check Middleware", () => {
       healthCheckMiddleware({ createMonitoringService: mockServiceFactory }),
     );
     app.get("/health", (c) => {
-      const healthStatus = (c as any).get("healthStatus");
+      const healthStatus = (c as unknown as ApiTestContextWithEnv).get(
+        "healthStatus",
+      ) as TestHealthStatus | undefined;
       return c.json({ status: healthStatus?.overall || "unknown" });
     });
     app.get("/other", (c) => c.json({ success: true }));
@@ -453,7 +459,9 @@ describe("Health Check Middleware", () => {
       healthCheckMiddleware({ createMonitoringService: mockServiceFactory }),
     );
     testApp.get("/health", (c) => {
-      const healthStatus = (c as any).get("healthStatus");
+      const healthStatus = (c as unknown as ApiTestContextWithEnv).get(
+        "healthStatus",
+      ) as TestHealthStatus | undefined;
       return c.json({ status: healthStatus?.overall || "unknown" });
     });
 

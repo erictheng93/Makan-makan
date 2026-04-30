@@ -49,7 +49,7 @@ const actor = {
   id: 42,
   username: "manager-42",
   role: 1,
-} as any;
+} as never;
 
 // The service chain is one of:
 //   select().from().where().limit(1)                  (menu item lookup)
@@ -95,7 +95,7 @@ describe("ManagerActionsService", () => {
     mockUpdate.mockReturnValue(updateChain());
     mockInsert.mockReturnValue(insertChain([{ id: 7 }]));
 
-    const service = new ManagerActionsService({ DB: {} } as any);
+    const service = new ManagerActionsService({ DB: {} } as never);
     const result = await service.execute(
       {
         restaurantId: "rest-1",
@@ -104,7 +104,7 @@ describe("ManagerActionsService", () => {
         resourceId: "15",
         onBehalfOfUserId: 99,
         reason: "M1 gate",
-      } as any,
+      } as never,
       actor,
     );
 
@@ -122,7 +122,7 @@ describe("ManagerActionsService", () => {
     mockUpdate.mockReturnValue(updateSpy);
     mockInsert.mockReturnValue(insertChain([{ id: 8 }]));
 
-    const service = new ManagerActionsService({ DB: {} } as any);
+    const service = new ManagerActionsService({ DB: {} } as never);
     await service.execute(
       {
         restaurantId: "rest-1",
@@ -130,7 +130,7 @@ describe("ManagerActionsService", () => {
         resource: "menu_item",
         resourceId: "15",
         payload: { isAvailable: false },
-      } as any,
+      } as never,
       actor,
     );
 
@@ -140,15 +140,15 @@ describe("ManagerActionsService", () => {
   });
 
   it("rejects update_menu_availability against a non menu_item resource", async () => {
-    const service = new ManagerActionsService({ DB: {} } as any);
+    const service = new ManagerActionsService({ DB: {} } as never);
     await expect(
       service.execute(
         {
           restaurantId: "rest-1",
           action: "update_menu_availability",
-          resource: "order" as any,
+          resource: "order" as never,
           resourceId: "1",
-        } as any,
+        } as never,
         actor,
       ),
     ).rejects.toMatchObject({ code: "MANAGER_ACTION_INVALID" });
@@ -157,7 +157,7 @@ describe("ManagerActionsService", () => {
   it("returns 404 when the targeted menu item does not exist", async () => {
     mockSelect.mockReturnValue(chain([])); // empty result
 
-    const service = new ManagerActionsService({ DB: {} } as any);
+    const service = new ManagerActionsService({ DB: {} } as never);
     await expect(
       service.execute(
         {
@@ -165,7 +165,7 @@ describe("ManagerActionsService", () => {
           action: "update_menu_availability",
           resource: "menu_item",
           resourceId: "999",
-        } as any,
+        } as never,
         actor,
       ),
     ).rejects.toMatchObject({ code: "MENU_ITEM_NOT_FOUND" });
@@ -196,12 +196,12 @@ describe("AuditLogService", () => {
       ]),
     );
 
-    const service = new AuditLogService({ DB: {} } as any);
+    const service = new AuditLogService({ DB: {} } as never);
     const result = await service.list({
       resourceId: "15",
       limit: 50,
       offset: 0,
-    } as any);
+    } as never);
 
     expect(result.logs).toHaveLength(1);
     const entry = result.logs[0];
@@ -216,8 +216,8 @@ describe("AuditLogService", () => {
     const innerChain = chain([]);
     mockSelect.mockReturnValue(innerChain);
 
-    const service = new AuditLogService({ DB: {} } as any);
-    await service.list({ limit: 999, offset: 0 } as any);
+    const service = new AuditLogService({ DB: {} } as never);
+    await service.list({ limit: 999, offset: 0 } as never);
 
     expect(innerChain.limit).toHaveBeenCalledWith(100);
   });

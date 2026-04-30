@@ -68,7 +68,7 @@ describe("Queue Validators", () => {
         partySize: 2,
       };
 
-      expect(() => validateJoinQueue(invalidData as any)).toThrow();
+      expect(() => validateJoinQueue(invalidData as never)).toThrow();
     });
 
     it("should reject invalid party size", () => {
@@ -209,7 +209,7 @@ describe("Queue Validators", () => {
         restaurantId: "invalid",
       };
 
-      expect(() => validateCallNext(invalidData as any)).toThrow();
+      expect(() => validateCallNext(invalidData as never)).toThrow();
     });
 
     it("should reject invalid table ID", () => {
@@ -218,7 +218,7 @@ describe("Queue Validators", () => {
         tableId: "invalid",
       };
 
-      expect(() => validateCallNext(invalidData as any)).toThrow();
+      expect(() => validateCallNext(invalidData as never)).toThrow();
     });
   });
 

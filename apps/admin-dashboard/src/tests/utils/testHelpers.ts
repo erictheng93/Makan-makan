@@ -162,7 +162,7 @@ export function createTrackedMockWebSocket(): {
 
       const handlerName = `on${type}` as keyof this;
       if (typeof this[handlerName] === "function") {
-        (this[handlerName] as any)(event);
+        (this[handlerName] as (event: Event) => void)(event);
       }
     }
 
@@ -179,7 +179,7 @@ export function createTrackedMockWebSocket(): {
     mockError(error?: any): void {
       const errorEvent = new Event("error");
       if (error) {
-        (errorEvent as any).error = error;
+        (errorEvent as Event & { error?: unknown }).error = error;
       }
       this.dispatchEvent(errorEvent);
     }
@@ -263,7 +263,7 @@ export function createTrackedMockWebSocket(): {
   }
 
   return {
-    TrackedMockWebSocket: MockWebSocketInstance as any,
+    TrackedMockWebSocket: MockWebSocketInstance as unknown as typeof WebSocket,
     getActiveInstance: () => activeInstance,
     clearActiveInstance: () => {
       activeInstance = null;
@@ -666,8 +666,12 @@ export class ConnectionSimulator {
     this.latency = latencies[quality];
 
     // 模擬網絡信息更新
-    if (typeof navigator !== "undefined" && (navigator as any).connection) {
-      const connection = (navigator as any).connection;
+    if (
+      typeof navigator !== "undefined" &&
+      (navigator as Navigator & { connection?: unknown }).connection
+    ) {
+      const connection = (navigator as Navigator & { connection?: unknown })
+        .connection;
       Object.defineProperty(connection, "effectiveType", {
         value: quality === "poor" ? "2g" : quality === "fair" ? "3g" : "4g",
         writable: true,

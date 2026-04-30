@@ -262,14 +262,9 @@ describe("Role-Based Routing", () => {
   // -----------------------------------------------------------------------
   describe("validateRestaurantAccess", () => {
     it("should reject when userId is missing", async () => {
-      const payload = createTestAuthPayload(
-        "admin",
-        "admin-room",
-        "restaurant-123",
-        0,
-      );
-      // Remove userId to simulate missing value
-      delete (payload as any).userId;
+      const { userId: _userId, ...payloadWithoutUserId } =
+        createTestAuthPayload("admin", "admin-room", "restaurant-123", 0);
+      const payload = payloadWithoutUserId as unknown as RealtimeAuthPayload;
       const db = createMockDB();
 
       const result = await validateRestaurantAccess(payload, db);

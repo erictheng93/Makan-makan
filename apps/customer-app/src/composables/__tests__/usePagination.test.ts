@@ -17,6 +17,20 @@ const mockMeta = (hasNextPage: boolean): PaginationMeta => ({
   endIndex: 0,
 });
 
+const touchEvent = (
+  clientY: number,
+  preventDefault: () => void = vi.fn(),
+): TouchEvent =>
+  ({
+    touches: [{ clientY }],
+    preventDefault,
+  }) as unknown as TouchEvent;
+
+const scrollEvent = (scrollTop: number): Event =>
+  ({
+    target: { scrollTop },
+  }) as unknown as Event;
+
 // We need to test the composables in isolation. Since they use onMounted/onUnmounted,
 // we need to mock Vue lifecycle hooks for unit testing outside components.
 vi.mock("vue", async () => {
@@ -217,11 +231,8 @@ describe("usePullToRefresh", () => {
     // Simulate scrollY = 0 for pull-to-refresh to activate
     Object.defineProperty(window, "scrollY", { value: 0, writable: true });
 
-    handleTouchStart({ touches: [{ clientY: 100 }] } as any);
-    handleTouchMove({
-      touches: [{ clientY: 200 }],
-      preventDefault: vi.fn(),
-    } as any);
+    handleTouchStart(touchEvent(100));
+    handleTouchMove(touchEvent(200));
 
     expect(pullDistance.value).toBe(100);
   });
@@ -233,11 +244,8 @@ describe("usePullToRefresh", () => {
     Object.defineProperty(window, "scrollY", { value: 0, writable: true });
 
     // startY must be > 0 for handleTouchMove to track movement
-    handleTouchStart({ touches: [{ clientY: 10 }] } as any);
-    handleTouchMove({
-      touches: [{ clientY: 100 }],
-      preventDefault: vi.fn(),
-    } as any);
+    handleTouchStart(touchEvent(10));
+    handleTouchMove(touchEvent(100));
 
     expect(shouldRefresh.value).toBe(true);
   });
@@ -249,11 +257,8 @@ describe("usePullToRefresh", () => {
 
     Object.defineProperty(window, "scrollY", { value: 0, writable: true });
 
-    handleTouchStart({ touches: [{ clientY: 10 }] } as any);
-    handleTouchMove({
-      touches: [{ clientY: 100 }],
-      preventDefault: vi.fn(),
-    } as any);
+    handleTouchStart(touchEvent(10));
+    handleTouchMove(touchEvent(100));
 
     await handleTouchEnd();
 
@@ -266,11 +271,8 @@ describe("usePullToRefresh", () => {
 
     Object.defineProperty(window, "scrollY", { value: 0, writable: true });
 
-    handleTouchStart({ touches: [{ clientY: 0 }] } as any);
-    handleTouchMove({
-      touches: [{ clientY: 50 }],
-      preventDefault: vi.fn(),
-    } as any);
+    handleTouchStart(touchEvent(0));
+    handleTouchMove(touchEvent(50));
 
     await handleTouchEnd();
 
@@ -316,7 +318,7 @@ describe("useVirtualScroll", () => {
     const initialCount = visibleItems.value.length;
 
     // Simulate scrolling down
-    handleScroll({ target: { scrollTop: 2000 } } as any);
+    handleScroll(scrollEvent(2000));
 
     await nextTick();
 

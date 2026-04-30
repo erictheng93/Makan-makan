@@ -43,6 +43,20 @@ vi.mock("@makanmakan/database", () => {
 // Import after mocking
 import { CouponsService } from "../services/CouponsService";
 
+type CouponsServiceTestAccess = {
+  createCoupon: ReturnType<typeof vi.fn>;
+  getAvailableCoupons: ReturnType<typeof vi.fn>;
+  updateCoupon: ReturnType<typeof vi.fn>;
+  deactivateCoupon: ReturnType<typeof vi.fn>;
+  deleteCoupon: ReturnType<typeof vi.fn>;
+  getCoupons: ReturnType<typeof vi.fn>;
+  getCouponStats: ReturnType<typeof vi.fn>;
+};
+
+const asCouponsServiceTest = (
+  target: CouponsService,
+): CouponsServiceTestAccess => target as unknown as CouponsServiceTestAccess;
+
 // Mock environment
 const mockEnv = {
   JWT_SECRET: "test-secret",
@@ -135,7 +149,9 @@ describe("CouponsService", () => {
 
     it("should not throw for valid percentage discount at 100%", async () => {
       // Mock the base createCoupon method
-      (service as any).createCoupon = vi.fn().mockResolvedValue({ id: 1 });
+      asCouponsServiceTest(service).createCoupon = vi
+        .fn()
+        .mockResolvedValue({ id: 1 });
 
       const validData = {
         code: "TESTCODE",
@@ -152,7 +168,9 @@ describe("CouponsService", () => {
     });
 
     it("should allow fixed discount of any value", async () => {
-      (service as any).createCoupon = vi.fn().mockResolvedValue({ id: 1 });
+      asCouponsServiceTest(service).createCoupon = vi
+        .fn()
+        .mockResolvedValue({ id: 1 });
 
       const data = {
         code: "TESTCODE",
@@ -324,7 +342,7 @@ describe("CouponsService", () => {
         { id: 1, code: "COUPON1", minOrderAmount: 50 },
         { id: 2, code: "COUPON2", minOrderAmount: 100 },
       ];
-      (service as any).getAvailableCoupons = vi
+      asCouponsServiceTest(service).getAvailableCoupons = vi
         .fn()
         .mockResolvedValue(availableCoupons);
 
@@ -340,7 +358,7 @@ describe("CouponsService", () => {
         { id: 2, code: "COUPON2", minOrderAmount: 100 },
         { id: 3, code: "COUPON3", minOrderAmount: 200 },
       ];
-      (service as any).getAvailableCoupons = vi
+      asCouponsServiceTest(service).getAvailableCoupons = vi
         .fn()
         .mockResolvedValue(availableCoupons);
 
@@ -357,7 +375,7 @@ describe("CouponsService", () => {
         { id: 2, code: "COUPON2" }, // undefined minOrderAmount
         { id: 3, code: "COUPON3", minOrderAmount: 100 },
       ];
-      (service as any).getAvailableCoupons = vi
+      asCouponsServiceTest(service).getAvailableCoupons = vi
         .fn()
         .mockResolvedValue(availableCoupons);
 
@@ -371,7 +389,7 @@ describe("CouponsService", () => {
       const availableCoupons = [
         { id: 1, code: "COUPON1", minOrderAmount: 500 },
       ];
-      (service as any).getAvailableCoupons = vi
+      asCouponsServiceTest(service).getAvailableCoupons = vi
         .fn()
         .mockResolvedValue(availableCoupons);
 
@@ -387,7 +405,7 @@ describe("CouponsService", () => {
   describe("bulkActivateCoupons", () => {
     it("should activate multiple coupons successfully", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).updateCoupon = vi
+      asCouponsServiceTest(service).updateCoupon = vi
         .fn()
         .mockResolvedValue({ id: 1, isActive: true });
 
@@ -395,12 +413,14 @@ describe("CouponsService", () => {
 
       expect(result.success).toBe(3);
       expect(result.failed).toBe(0);
-      expect((service as any).updateCoupon).toHaveBeenCalledTimes(3);
+      expect(asCouponsServiceTest(service).updateCoupon).toHaveBeenCalledTimes(
+        3,
+      );
     });
 
     it("should handle partial failures", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).updateCoupon = vi
+      asCouponsServiceTest(service).updateCoupon = vi
         .fn()
         .mockResolvedValueOnce({ id: 1 })
         .mockRejectedValueOnce(new Error("Update failed"))
@@ -429,7 +449,7 @@ describe("CouponsService", () => {
   describe("bulkDeactivateCoupons", () => {
     it("should deactivate multiple coupons successfully", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).deactivateCoupon = vi
+      asCouponsServiceTest(service).deactivateCoupon = vi
         .fn()
         .mockResolvedValue({ id: 1, isActive: false });
 
@@ -441,7 +461,7 @@ describe("CouponsService", () => {
 
     it("should handle deactivation failures", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).deactivateCoupon = vi
+      asCouponsServiceTest(service).deactivateCoupon = vi
         .fn()
         .mockResolvedValueOnce({ id: 1 })
         .mockRejectedValueOnce(new Error("Deactivation failed"));
@@ -461,7 +481,9 @@ describe("CouponsService", () => {
   describe("bulkDeleteCoupons", () => {
     it("should delete multiple coupons successfully", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).deleteCoupon = vi.fn().mockResolvedValue(undefined);
+      asCouponsServiceTest(service).deleteCoupon = vi
+        .fn()
+        .mockResolvedValue(undefined);
 
       const result = await service.bulkDeleteCoupons([1, 2, 3]);
 
@@ -471,7 +493,7 @@ describe("CouponsService", () => {
 
     it("should handle deletion failures", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).deleteCoupon = vi
+      asCouponsServiceTest(service).deleteCoupon = vi
         .fn()
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error("Deletion failed"))
@@ -492,7 +514,7 @@ describe("CouponsService", () => {
   describe("getCouponsWithEnhancedFilters", () => {
     it("should calculate pages correctly", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).getCoupons = vi.fn().mockResolvedValue({
+      asCouponsServiceTest(service).getCoupons = vi.fn().mockResolvedValue({
         coupons: [],
         total: 50,
         page: 1,
@@ -506,7 +528,7 @@ describe("CouponsService", () => {
 
     it("should handle exact division", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).getCoupons = vi.fn().mockResolvedValue({
+      asCouponsServiceTest(service).getCoupons = vi.fn().mockResolvedValue({
         coupons: [],
         total: 100,
         page: 1,
@@ -520,7 +542,7 @@ describe("CouponsService", () => {
 
     it("should handle empty results", async () => {
       const service = new CouponsService(mockDb, mockEnv);
-      (service as any).getCoupons = vi.fn().mockResolvedValue({
+      asCouponsServiceTest(service).getCoupons = vi.fn().mockResolvedValue({
         coupons: [],
         total: 0,
         page: 1,
@@ -545,7 +567,9 @@ describe("CouponsService", () => {
         avgDiscount: 10.03,
         lastUsed: "2025-01-15T10:30:00Z",
       };
-      (service as any).getCouponStats = vi.fn().mockResolvedValue(baseStats);
+      asCouponsServiceTest(service).getCouponStats = vi
+        .fn()
+        .mockResolvedValue(baseStats);
 
       const result = await service.getComprehensiveCouponStats(1);
 

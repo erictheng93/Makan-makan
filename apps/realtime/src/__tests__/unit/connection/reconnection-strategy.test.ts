@@ -7,6 +7,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type {
   RealtimeEvent,
   RealtimeAuthPayload,
+  NewOrderEvent,
+  OrderStatusUpdateEvent,
 } from "@makanmakan/shared-types";
 import { RealtimeEventType } from "@makanmakan/shared-types";
 
@@ -35,6 +37,21 @@ const DEFAULT_RECONNECTION_CONFIG: ReconnectionConfig = {
   backoffMultiplier: 2,
   jitterFactor: 0.2,
 };
+
+const newOrderData = (): NewOrderEvent["data"] => ({
+  orderId: 1,
+  orderNumber: "ORD-001",
+  tableId: "1",
+  items: [],
+  totalAmount: 0,
+});
+
+const orderStatusUpdateData = (): OrderStatusUpdateEvent["data"] => ({
+  orderId: 1,
+  orderNumber: "ORD-001",
+  status: "confirmed",
+  previousStatus: "pending",
+});
 
 // Reconnection state
 interface ReconnectionState {
@@ -375,14 +392,14 @@ describe("Reconnection Strategy", () => {
           eventId: "event-001",
           timestamp: Date.now(),
           restaurantId: "restaurant-123",
-          data: {} as any,
+          data: newOrderData(),
         },
         {
           type: RealtimeEventType.ORDER_STATUS_UPDATE,
           eventId: "event-002",
           timestamp: Date.now(),
           restaurantId: "restaurant-123",
-          data: {} as any,
+          data: orderStatusUpdateData(),
         },
       ];
 
@@ -407,35 +424,35 @@ describe("Reconnection Strategy", () => {
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
         {
           eventId: "event-004",
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
         {
           eventId: "event-005",
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
         {
           eventId: "event-006",
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
         {
           eventId: "event-007",
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
       ];
 
@@ -457,14 +474,14 @@ describe("Reconnection Strategy", () => {
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
         {
           eventId: "event-002",
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
       ];
 
@@ -482,7 +499,7 @@ describe("Reconnection Strategy", () => {
         type: RealtimeEventType.NEW_ORDER,
         timestamp: Date.now(),
         restaurantId: "r1",
-        data: {} as any,
+        data: newOrderData(),
       });
 
       expect(state.eventsSinceDisconnect).toHaveLength(1);
@@ -504,14 +521,14 @@ describe("Reconnection Strategy", () => {
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
         {
           eventId: "event-016",
           type: RealtimeEventType.NEW_ORDER,
           timestamp: Date.now(),
           restaurantId: "r1",
-          data: {} as any,
+          data: newOrderData(),
         },
       ];
 

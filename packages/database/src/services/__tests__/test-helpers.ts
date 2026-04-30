@@ -491,11 +491,7 @@ export const createOptimizedMockDB = () => {
               const resolvedData: Record<string, any> = {};
               for (const [key, val] of Object.entries(updateData)) {
                 // Skip SQL expressions (like sql`col + 1`) - they can't be resolved in mock
-                if (
-                  val &&
-                  typeof val === "object" &&
-                  (val as any).queryChunks
-                ) {
+                if (val && typeof val === "object" && "queryChunks" in val) {
                   continue;
                 }
                 resolvedData[key] = val;

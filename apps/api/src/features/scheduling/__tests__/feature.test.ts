@@ -117,7 +117,7 @@ describe("Scheduling Feature", () => {
       if (err instanceof ApiError) {
         return c.json(
           { success: false, error: { code: err.code, message: err.message } },
-          err.status as any,
+          err.status as never,
         );
       }
       return c.json(

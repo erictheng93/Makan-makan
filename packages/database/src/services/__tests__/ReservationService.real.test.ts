@@ -116,7 +116,7 @@ beforeEach(async () => {
   await testDb.truncateAll();
   await seedRestaurant(testDb, RESTAURANT_ID);
   const env = { JWT_SECRET: "test", NODE_ENV: "test" } as CloudflareEnv;
-  service = new ReservationService(testDb.db as any, env);
+  service = new ReservationService(testDb.db as D1Database, env);
 });
 
 describe("ReservationService.updateReservation — real D1", () => {
@@ -279,7 +279,7 @@ describe("ReservationService.listReservations — real D1", () => {
       // Bogus sort key that would have been interpolated literally by the
       // old `r.${sortBy}` code, breaking the query (or worse, opening
       // identifier injection). The allowlist drops it back to createdAt.
-      sortBy: "evil; DROP TABLE reservations; --" as any,
+      sortBy: "evil; DROP TABLE reservations; --" as never,
     });
 
     expect(result.total).toBe(2);

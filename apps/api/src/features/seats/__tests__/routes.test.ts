@@ -238,7 +238,7 @@ describe("Seats Routes", () => {
               ...(err.details !== undefined && { details: err.details }),
             },
           },
-          err.status as any,
+          err.status as never,
         );
       }
       return c.json(

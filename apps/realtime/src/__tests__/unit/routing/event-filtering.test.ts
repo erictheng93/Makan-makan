@@ -46,6 +46,19 @@ function _createConnectionInfo(
   };
 }
 
+const newOrderData = (): NewOrderEvent["data"] => ({
+  orderId: 1,
+  orderNumber: "ORD-001",
+  tableId: "1",
+  items: [],
+  totalAmount: 0,
+});
+
+const menuItemUpdateData = (): MenuItemUpdateEvent["data"] => ({
+  menuItemId: 1,
+  action: "updated",
+});
+
 // Helper function to check if event should be sent to connection
 function shouldSendEventToConnection(
   event: RealtimeEvent,
@@ -317,8 +330,9 @@ describe("Event Filtering", () => {
         data: {
           orderId: 1,
           orderItemId: 1,
+          menuItemName: "Test item",
           status: "ready",
-        } as any,
+        },
       };
 
       const testCases = [
@@ -480,12 +494,12 @@ describe("Event Filtering", () => {
       ];
 
       eventTypes.forEach((eventType) => {
-        const event: RealtimeEvent = {
+        const event = {
           type: eventType,
           eventId: `event-${eventType}`,
           timestamp: Date.now(),
           restaurantId: "restaurant-123",
-          data: {} as any, // Generic test data
+          data: {}, // Generic test data
         };
 
         expect(event.type).toBe(eventType);
@@ -749,16 +763,23 @@ describe("Event Filtering", () => {
 
       // Create 50 events
       for (let i = 0; i < 50; i++) {
-        events.push({
-          type:
-            i % 2 === 0
-              ? RealtimeEventType.NEW_ORDER
-              : RealtimeEventType.MENU_ITEM_UPDATE,
-          eventId: `event-${i}`,
-          timestamp: Date.now(),
-          restaurantId: "restaurant-123",
-          data: {} as any, // Generic test data
-        });
+        if (i % 2 === 0) {
+          events.push({
+            type: RealtimeEventType.NEW_ORDER,
+            eventId: `event-${i}`,
+            timestamp: Date.now(),
+            restaurantId: "restaurant-123",
+            data: newOrderData(),
+          });
+        } else {
+          events.push({
+            type: RealtimeEventType.MENU_ITEM_UPDATE,
+            eventId: `event-${i}`,
+            timestamp: Date.now(),
+            restaurantId: "restaurant-123",
+            data: menuItemUpdateData(),
+          });
+        }
       }
 
       const connection: ConnectionInfo = {

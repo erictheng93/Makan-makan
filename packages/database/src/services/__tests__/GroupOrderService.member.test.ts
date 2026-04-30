@@ -42,7 +42,7 @@ describe("GroupOrderService - 成員管理", () => {
     testGroupOrderId = createResult.data!.groupOrderId;
 
     const members = Array.from(mockDB._mockData.groupMembers.values());
-    testCreatorId = (members[0] as any).id;
+    testCreatorId = (members[0] as { id: string }).id;
 
     // 添加普通成員
     const memberData = {

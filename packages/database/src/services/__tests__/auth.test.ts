@@ -35,6 +35,13 @@ vi.mock("jsonwebtoken", () => ({
 import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
 
+type AuthMockUser = Omit<
+  ReturnType<typeof userFactory.buildShopOwner>,
+  "restaurantId"
+> & {
+  restaurantId: string | number;
+};
+
 describe("AuthService", () => {
   let authService: AuthService;
   let mockDb: any;
@@ -78,7 +85,7 @@ describe("AuthService", () => {
         passwordHash: "$2a$10$hashedpassword",
         restaurantId: 1,
       },
-    }) as any;
+    }) as AuthMockUser;
     // Auth tests use restaurantId as string "R-001"
     mockUser.restaurantId = "R-001";
 
@@ -89,7 +96,7 @@ describe("AuthService", () => {
       });
 
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-      vi.mocked(jwt.sign).mockReturnValue("mock-token" as any);
+      vi.mocked(jwt.sign).mockReturnValue("mock-token" as never);
 
       // Mock logout to return true
       vi.spyOn(authService, "logout").mockResolvedValue(true);
@@ -185,7 +192,7 @@ describe("AuthService", () => {
         select: [mockUser],
       });
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-      vi.mocked(jwt.sign).mockReturnValue("mock-token" as any);
+      vi.mocked(jwt.sign).mockReturnValue("mock-token" as never);
       vi.spyOn(authService, "logout").mockResolvedValue(true);
       vi.spyOn(authService, "createSession").mockResolvedValue(undefined);
 
@@ -218,7 +225,7 @@ describe("AuthService", () => {
         select: [mockUser],
       });
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-      vi.mocked(jwt.sign).mockReturnValue("mock-token" as any);
+      vi.mocked(jwt.sign).mockReturnValue("mock-token" as never);
       vi.spyOn(authService, "logout").mockResolvedValue(true);
       const createSessionSpy = vi
         .spyOn(authService, "createSession")
@@ -454,7 +461,7 @@ describe("AuthService", () => {
         },
       }),
       restaurantId: "R-001",
-    } as any;
+    } as AuthMockUser;
 
     const mockSession = {
       id: "session-id",
@@ -470,7 +477,7 @@ describe("AuthService", () => {
       vi.mocked(jwt.verify).mockReturnValue({
         userId: 1,
         type: "refresh",
-      } as any);
+      } as never);
 
       // Mock two separate select queries: one for session, one for user
       mockDb.select
@@ -489,7 +496,7 @@ describe("AuthService", () => {
           }),
         });
 
-      vi.mocked(jwt.sign).mockReturnValue("new-access-token" as any);
+      vi.mocked(jwt.sign).mockReturnValue("new-access-token" as never);
 
       // Act
       const result = await authService.refreshToken("valid-refresh-token");
@@ -520,7 +527,7 @@ describe("AuthService", () => {
       vi.mocked(jwt.verify).mockReturnValue({
         userId: 1,
         type: "access",
-      } as any);
+      } as never);
 
       // Act
       const result = await authService.refreshToken("access-token");
@@ -535,7 +542,7 @@ describe("AuthService", () => {
       vi.mocked(jwt.verify).mockReturnValue({
         userId: 1,
         type: "refresh",
-      } as any);
+      } as never);
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -557,7 +564,7 @@ describe("AuthService", () => {
       vi.mocked(jwt.verify).mockReturnValue({
         userId: 1,
         type: "refresh",
-      } as any);
+      } as never);
 
       // Mock session found, but user not found (inactive)
       mockDb.select
@@ -596,7 +603,7 @@ describe("AuthService", () => {
         },
       }),
       restaurantId: "R-001",
-    } as any;
+    } as AuthMockUser;
 
     const mockSession = {
       id: "session-id",
@@ -612,7 +619,7 @@ describe("AuthService", () => {
       vi.mocked(jwt.verify).mockReturnValue({
         id: 1,
         username: "testuser",
-      } as any);
+      } as never);
 
       // Mock two select queries: session and user
       mockDb.select
@@ -655,7 +662,7 @@ describe("AuthService", () => {
 
     it("should fail if session not found", async () => {
       // Arrange
-      vi.mocked(jwt.verify).mockReturnValue({ id: 1 } as any);
+      vi.mocked(jwt.verify).mockReturnValue({ id: 1 } as never);
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -674,7 +681,7 @@ describe("AuthService", () => {
 
     it("should update last accessed time on validation", async () => {
       // Arrange
-      vi.mocked(jwt.verify).mockReturnValue({ id: 1 } as any);
+      vi.mocked(jwt.verify).mockReturnValue({ id: 1 } as never);
       mockDb.select
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({

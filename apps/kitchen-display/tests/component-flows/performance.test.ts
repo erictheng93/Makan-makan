@@ -18,6 +18,62 @@ import PerformanceDashboard from "@/components/performance/PerformanceDashboard.
 import { performanceService } from "@/services/performanceService";
 import type { PerformanceMetric } from "@/types";
 
+type PerformanceStatistics = {
+  mean: number;
+  median: number;
+  min: number;
+  max: number;
+  count: number;
+  p90: number;
+  p95: number;
+  p99: number;
+};
+
+type PerformanceThreshold = {
+  value: number;
+  severity: string;
+};
+
+type PerformanceServiceTestAccess = typeof performanceService & {
+  stop(): void;
+  start(): void;
+  clearMetrics(): void;
+  getMetrics(category?: PerformanceMetric["category"]): PerformanceMetric[];
+  calculateStatistics(metricName: string): PerformanceStatistics;
+  setThreshold(metricName: string, value: number, severity: string): void;
+  collectWebVitals(): void;
+  recordUserInteraction(interactionType: string, duration: number): void;
+  getRecommendations(): string[];
+  cleanupOldMetrics(maxAge?: number): void;
+  collectResourceMetrics(): void;
+  collectMemoryMetrics(): void;
+  generateReport(timeRange: string): {
+    timeRange: string;
+    metrics: PerformanceMetric[];
+    summary: {
+      totalMetrics: number;
+      avgValue: number;
+    };
+  };
+  getAlerts(): Array<{
+    severity: string;
+    metricName: string;
+    value: number;
+    threshold?: number;
+    message: string;
+  }>;
+  thresholds?: Map<string, PerformanceThreshold>;
+};
+
+type PerformanceWithMemory = Performance & {
+  memory?: {
+    usedJSHeapSize: number;
+  };
+};
+
+const testPerformanceService =
+  performanceService as PerformanceServiceTestAccess;
+
 // Store original PerformanceObserver for restoration
 const _originalPerformanceObserver = global.PerformanceObserver;
 
@@ -60,13 +116,18 @@ const mockMetrics: PerformanceMetric[] = [
 ];
 
 // Add compatibility methods for tests
-(performanceService as any).stop = () => performanceService.stopCollection();
-(performanceService as any).start = () => performanceService.startCollection();
-(performanceService as any).clearMetrics = () => {
+testPerformanceService.stop = () => performanceService.stopCollection();
+testPerformanceService.start = () => performanceService.startCollection();
+testPerformanceService.clearMetrics = () => {
   performanceService.metrics.value = [];
   performanceService.alerts.value = [];
 };
-(performanceService as any).getMetrics = () => performanceService.metrics.value;
+testPerformanceService.getMetrics = (
+  category?: PerformanceMetric["category"],
+) =>
+  category
+    ? performanceService.metrics.value.filter((m) => m.category === category)
+    : performanceService.metrics.value;
 Object.defineProperty(performanceService, "isEnabled", {
   get: () => performanceService.config.value.enabled,
 });
@@ -75,7 +136,7 @@ Object.defineProperty(performanceService, "isMonitoring", {
 });
 
 // Add missing methods for compatibility
-(performanceService as any).calculateStatistics = (metricName: string) => {
+testPerformanceService.calculateStatistics = (metricName: string) => {
   const metrics = performanceService.metrics.value.filter(
     (m) => m.name === metricName,
   );
@@ -129,19 +190,19 @@ Object.defineProperty(performanceService, "isMonitoring", {
   };
 };
 
-(performanceService as any).setThreshold = (
+testPerformanceService.setThreshold = (
   metricName: string,
   value: number,
   severity: string,
 ) => {
   // Store thresholds for checking
-  if (!(performanceService as any).thresholds) {
-    (performanceService as any).thresholds = new Map();
+  if (!testPerformanceService.thresholds) {
+    testPerformanceService.thresholds = new Map();
   }
-  (performanceService as any).thresholds.set(metricName, { value, severity });
+  testPerformanceService.thresholds.set(metricName, { value, severity });
 };
 
-(performanceService as any).collectWebVitals = () => {
+testPerformanceService.collectWebVitals = () => {
   // Mock Web Vitals collection
   performanceService.recordMetric({
     name: "FCP",
@@ -161,7 +222,7 @@ Object.defineProperty(performanceService, "isMonitoring", {
   });
 };
 
-(performanceService as any).recordUserInteraction = (
+testPerformanceService.recordUserInteraction = (
   interactionType: string,
   duration: number,
 ) => {
@@ -175,7 +236,7 @@ Object.defineProperty(performanceService, "isMonitoring", {
   });
 };
 
-(performanceService as any).getRecommendations = () => {
+testPerformanceService.getRecommendations = () => {
   const metrics = performanceService.metrics.value;
   const recommendations = [];
 
@@ -212,7 +273,7 @@ Object.defineProperty(performanceService, "isMonitoring", {
   return recommendations;
 };
 
-(performanceService as any).cleanupOldMetrics = (maxAge: number = 3600000) => {
+testPerformanceService.cleanupOldMetrics = (maxAge: number = 3600000) => {
   const now = Date.now();
   performanceService.metrics.value = performanceService.metrics.value.filter(
     (m) => now - m.timestamp < maxAge,
@@ -220,10 +281,10 @@ Object.defineProperty(performanceService, "isMonitoring", {
 };
 
 // Add missing collectResourceMetrics method
-(performanceService as any).collectResourceMetrics = () => {
+testPerformanceService.collectResourceMetrics = () => {
   try {
     const entries = performance.getEntriesByType("resource");
-    entries.forEach((entry: any) => {
+    entries.forEach((entry) => {
       if (entry.name && entry.duration !== undefined) {
         const isAPI = entry.name.includes("api");
         performanceService.recordMetric({
@@ -244,9 +305,9 @@ Object.defineProperty(performanceService, "isMonitoring", {
 };
 
 // Add missing collectMemoryMetrics method
-(performanceService as any).collectMemoryMetrics = () => {
+testPerformanceService.collectMemoryMetrics = () => {
   try {
-    const memory = (performance as any).memory;
+    const memory = (performance as PerformanceWithMemory).memory;
     if (memory) {
       performanceService.recordMetric({
         name: "heap_used",
@@ -263,7 +324,7 @@ Object.defineProperty(performanceService, "isMonitoring", {
 };
 
 // Add missing generateReport method
-(performanceService as any).generateReport = (timeRange: string) => {
+testPerformanceService.generateReport = (timeRange: string) => {
   const metrics = performanceService.metrics.value;
   return {
     timeRange,
@@ -278,10 +339,10 @@ Object.defineProperty(performanceService, "isMonitoring", {
   };
 };
 
-(performanceService as any).getAlerts = () => {
+testPerformanceService.getAlerts = () => {
   const metrics = performanceService.metrics.value;
   const alerts = [];
-  const thresholds = (performanceService as any).thresholds || new Map();
+  const thresholds = testPerformanceService.thresholds || new Map();
 
   for (const metric of metrics) {
     const threshold = thresholds.get(metric.name);
@@ -324,8 +385,8 @@ describe("Performance Integration Tests", () => {
     global.PerformanceObserver = mockPerformanceObserver;
 
     // Reset performance service
-    performanceService.stop();
-    performanceService.clearMetrics();
+    testPerformanceService.stop();
+    testPerformanceService.clearMetrics();
 
     // Clear localStorage
     try {
@@ -335,17 +396,17 @@ describe("Performance Integration Tests", () => {
     }
 
     // Clear any stored thresholds
-    (performanceService as any).thresholds = new Map();
+    testPerformanceService.thresholds = new Map();
 
     vi.clearAllMocks();
   });
 
   afterEach(() => {
     // Stop all monitoring
-    performanceService.stop();
+    testPerformanceService.stop();
 
     // Clear all metrics to prevent memory accumulation
-    performanceService.clearMetrics();
+    testPerformanceService.clearMetrics();
 
     // Unmount all tracked wrappers
     mountedWrappers.forEach((wrapper) => {
@@ -373,20 +434,20 @@ describe("Performance Integration Tests", () => {
 
   describe("Performance Service Integration", () => {
     it("should initialize and start monitoring", () => {
-      performanceService.start();
+      testPerformanceService.start();
 
       expect(performanceService.isEnabled).toBe(true);
       expect(performanceService.isMonitoring).toBe(true);
     });
 
     it("should collect system metrics", async () => {
-      performanceService.start();
+      testPerformanceService.start();
 
       // Record some metrics
       performanceService.recordMetric("test_metric", 100, "ms", "system");
       performanceService.recordMetric("api_call", 200, "ms", "network");
 
-      const metrics = performanceService.getMetrics();
+      const metrics = testPerformanceService.getMetrics();
       expect(metrics.length).toBe(2);
       expect(metrics[0].name).toBe("test_metric");
       expect(metrics[0].value).toBe(100);
@@ -404,7 +465,7 @@ describe("Performance Integration Tests", () => {
         );
       });
 
-      const stats = performanceService.calculateStatistics("response_time");
+      const stats = testPerformanceService.calculateStatistics("response_time");
 
       expect(stats.mean).toBe(271.43); // Average
       expect(stats.median).toBe(250); // Middle value
@@ -413,10 +474,10 @@ describe("Performance Integration Tests", () => {
     });
 
     it("should detect performance thresholds", async () => {
-      performanceService.start();
+      testPerformanceService.start();
 
       // Set threshold
-      performanceService.setThreshold("api_response_time", 200, "warning");
+      testPerformanceService.setThreshold("api_response_time", 200, "warning");
 
       // Record metrics that exceed threshold
       performanceService.recordMetric(
@@ -428,7 +489,7 @@ describe("Performance Integration Tests", () => {
 
       await nextTick();
 
-      const alerts = performanceService.getAlerts();
+      const alerts = testPerformanceService.getAlerts();
       expect(alerts.length).toBeGreaterThan(0);
       expect(alerts[0].severity).toBe("warning");
     });
@@ -453,7 +514,7 @@ describe("Performance Integration Tests", () => {
         "business",
       );
 
-      const businessMetrics = performanceService.getMetrics("business");
+      const businessMetrics = testPerformanceService.getMetrics("business");
       expect(businessMetrics.length).toBe(3);
 
       const efficiency = businessMetrics.find(
@@ -579,13 +640,13 @@ describe("Performance Integration Tests", () => {
       ];
 
       vi.spyOn(performance, "getEntriesByType").mockReturnValue(
-        mockEntries as any,
+        mockEntries as unknown as PerformanceEntry[],
       );
 
-      performanceService.start();
-      await performanceService.collectWebVitals();
+      testPerformanceService.start();
+      await testPerformanceService.collectWebVitals();
 
-      const metrics = performanceService.getMetrics();
+      const metrics = testPerformanceService.getMetrics();
       // collectWebVitals adds FCP and LCP metrics, not necessarily 'load'
       expect(metrics.length).toBeGreaterThan(0);
     });
@@ -609,18 +670,18 @@ describe("Performance Integration Tests", () => {
       ];
 
       vi.spyOn(performance, "getEntriesByType").mockReturnValue(
-        mockResourceEntries as any,
+        mockResourceEntries as unknown as PerformanceEntry[],
       );
 
-      performanceService.collectResourceMetrics();
+      testPerformanceService.collectResourceMetrics();
 
-      const metrics = performanceService.getMetrics();
+      const metrics = testPerformanceService.getMetrics();
       // Verify metrics were collected (may have different naming)
       expect(metrics.length).toBeGreaterThanOrEqual(0);
     });
 
     it("should monitor user interactions", async () => {
-      performanceService.start();
+      testPerformanceService.start();
 
       // Simulate user interaction
       const interactionStart = performance.now();
@@ -631,7 +692,7 @@ describe("Performance Integration Tests", () => {
       const interactionEnd = performance.now();
       const interactionDuration = interactionEnd - interactionStart;
 
-      performanceService.recordUserInteraction(
+      testPerformanceService.recordUserInteraction(
         "order_card_click",
         interactionDuration,
       );
@@ -656,15 +717,15 @@ describe("Performance Integration Tests", () => {
 
   describe("Alert and Notification System", () => {
     it("should trigger alerts for critical thresholds", async () => {
-      performanceService.start();
+      testPerformanceService.start();
 
       // Set critical threshold
-      performanceService.setThreshold("memory_usage", 90, "error");
+      testPerformanceService.setThreshold("memory_usage", 90, "error");
 
       // Record high memory usage
       performanceService.recordMetric("memory_usage", 95, "%", "system");
 
-      const alerts = performanceService.getAlerts();
+      const alerts = testPerformanceService.getAlerts();
       const criticalAlert = alerts.find((a) => a.severity === "error");
 
       expect(criticalAlert).toBeDefined();
@@ -681,7 +742,7 @@ describe("Performance Integration Tests", () => {
       );
       performanceService.recordMetric("dom_render_time", 300, "ms", "system");
 
-      const recommendations = performanceService.getRecommendations();
+      const recommendations = testPerformanceService.getRecommendations();
 
       expect(recommendations.length).toBeGreaterThan(0);
       expect(recommendations.some((r) => r.includes("API"))).toBe(true);
@@ -693,7 +754,7 @@ describe("Performance Integration Tests", () => {
       performanceService.recordMetric("test_metric", 100, "ms", "system");
 
       // Check if metrics are stored in the service
-      const metrics = performanceService.getMetrics();
+      const metrics = testPerformanceService.getMetrics();
       expect(metrics.length).toBe(1);
       expect(metrics[0].name).toBe("test_metric");
 
@@ -725,7 +786,7 @@ describe("Performance Integration Tests", () => {
         );
       }
 
-      const report = performanceService.generateReport("24h");
+      const report = testPerformanceService.generateReport("24h");
 
       expect(report.timeRange).toBe("24h");
       expect(report.metrics.length).toBe(5);
@@ -734,7 +795,7 @@ describe("Performance Integration Tests", () => {
 
     it("should cleanup old metrics data", () => {
       // First clear any existing metrics
-      performanceService.clearMetrics();
+      testPerformanceService.clearMetrics();
 
       const now = Date.now();
       const oldTimestamp = now - 8 * 24 * 60 * 60 * 1000; // 8 days ago
@@ -764,9 +825,9 @@ describe("Performance Integration Tests", () => {
       expect(performanceService.metrics.value.length).toBe(2);
 
       // Cleanup metrics older than 7 days
-      performanceService.cleanupOldMetrics(7 * 24 * 60 * 60 * 1000);
+      testPerformanceService.cleanupOldMetrics(7 * 24 * 60 * 60 * 1000);
 
-      const metrics = performanceService.getMetrics();
+      const metrics = testPerformanceService.getMetrics();
       const metricsArray = Array.isArray(metrics) ? metrics : [...metrics];
 
       // Verify old metric was cleaned up and recent metric remains
@@ -798,7 +859,7 @@ describe("Performance Integration Tests", () => {
       }, 100);
 
       // Should track business metrics
-      const businessMetrics = performanceService.getMetrics("business");
+      const businessMetrics = testPerformanceService.getMetrics("business");
       expect(businessMetrics).toBeDefined();
     });
 
@@ -840,11 +901,15 @@ describe("Performance Integration Tests", () => {
     it("should handle PerformanceObserver not supported", () => {
       // Temporarily remove PerformanceObserver
       const savedObserver = global.PerformanceObserver;
-      global.PerformanceObserver = undefined as any;
+      (
+        global as typeof globalThis & {
+          PerformanceObserver?: typeof PerformanceObserver;
+        }
+      ).PerformanceObserver = undefined;
 
       try {
         expect(() => {
-          performanceService.start();
+          testPerformanceService.start();
         }).not.toThrow();
 
         // The service might still work without PerformanceObserver
@@ -866,7 +931,7 @@ describe("Performance Integration Tests", () => {
           "test",
           Infinity,
           "ms",
-          "invalid" as any,
+          "invalid" as unknown as PerformanceMetric["category"],
         );
       }).not.toThrow();
     });
@@ -877,7 +942,7 @@ describe("Performance Integration Tests", () => {
         performanceService.recordMetric(`metric_${i}`, i, "ms", "system");
       }
 
-      const metrics = performanceService.getMetrics();
+      const metrics = testPerformanceService.getMetrics();
 
       // Should have recorded metrics (service may or may not have limits)
       expect(metrics.length).toBeGreaterThan(0);
@@ -894,7 +959,7 @@ describe("Performance Integration Tests", () => {
         performanceService.recordMetric(`test_${i}`, i, "ms", "system");
       }
 
-      const stats = performanceService.calculateStatistics("test_1");
+      const stats = testPerformanceService.calculateStatistics("test_1");
       const endTime = performance.now();
 
       // Adjusted threshold for CI environments (from 1000ms to 30000ms)
@@ -909,9 +974,9 @@ describe("Performance Integration Tests", () => {
         const batchStart = performance.now();
 
         await Promise.all([
-          performanceService.collectWebVitals(),
-          performanceService.collectResourceMetrics(),
-          performanceService.collectMemoryMetrics(),
+          testPerformanceService.collectWebVitals(),
+          testPerformanceService.collectResourceMetrics(),
+          testPerformanceService.collectMemoryMetrics(),
         ]);
 
         const batchEnd = performance.now();

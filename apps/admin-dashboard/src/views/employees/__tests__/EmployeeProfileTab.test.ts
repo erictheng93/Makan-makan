@@ -99,7 +99,7 @@ const mockSchedules: Partial<EmployeeSchedule>[] = [
     clockOutTime: null,
     createdAt: "2026-03-20T00:00:00Z",
     updatedAt: "2026-03-20T00:00:00Z",
-  } as any,
+  } as never,
   {
     id: 2,
     employeeId: 42,
@@ -111,7 +111,7 @@ const mockSchedules: Partial<EmployeeSchedule>[] = [
     clockOutTime: "2026-03-01T17:00:00Z",
     createdAt: "2026-02-25T00:00:00Z",
     updatedAt: "2026-03-01T17:00:00Z",
-  } as any,
+  } as never,
   {
     id: 3,
     employeeId: 42,
@@ -123,7 +123,7 @@ const mockSchedules: Partial<EmployeeSchedule>[] = [
     clockOutTime: null,
     createdAt: "2026-02-20T00:00:00Z",
     updatedAt: "2026-02-28T00:00:00Z",
-  } as any,
+  } as never,
 ];
 
 const mockLeaveRequests: LeaveRequest[] = [

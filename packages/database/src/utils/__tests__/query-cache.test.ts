@@ -12,7 +12,7 @@ function createMockKV() {
     delete: vi.fn(),
     list: vi.fn(),
     getWithMetadata: vi.fn(),
-  } as any;
+  } as unknown as KVNamespace;
 }
 
 describe("QueryCache", () => {

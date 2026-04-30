@@ -10,6 +10,9 @@ import couponsRoutes from "../routes";
 import { ApiError } from "../../../shared/utils/api-error";
 import { ErrorSanitizer } from "../../../utils/errorSanitizer";
 
+const asCouponTestContext = (context: unknown): ApiTestContextWithTestData =>
+  context as ApiTestContextWithTestData;
+
 // Mock CouponsService
 const mockCouponsService = {
   validateCouponWithBusinessRules: vi.fn(),
@@ -46,15 +49,15 @@ vi.mock("../../../middleware/auth", () => ({
 
 vi.mock("../../../middleware/validation", () => ({
   validateBody: vi.fn(() => (c: any, next: any) => {
-    c.set("validatedBody", (c as any).testBody);
+    c.set("validatedBody", asCouponTestContext(c).testBody);
     return next();
   }),
   validateQuery: vi.fn(() => (c: any, next: any) => {
-    c.set("validatedQuery", (c as any).testQuery);
+    c.set("validatedQuery", asCouponTestContext(c).testQuery);
     return next();
   }),
   validateParams: vi.fn(() => (c: any, next: any) => {
-    c.set("validatedParams", (c as any).testParams);
+    c.set("validatedParams", asCouponTestContext(c).testParams);
     return next();
   }),
   commonSchemas: {
@@ -79,7 +82,7 @@ function attachOnError(honoApp: Hono): void {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -99,7 +102,7 @@ function attachOnError(honoApp: Hono): void {
           message: sanitized.message,
         },
       },
-      (STATUS_MAP[sanitized.type] ?? 500) as any,
+      (STATUS_MAP[sanitized.type] ?? 500) as never,
     );
   });
 }
@@ -130,7 +133,7 @@ describe("Coupons Feature Module", () => {
       const testApp = new Hono();
       testApp.use("*", async (c, next) => {
         c.env = { DB: {} };
-        (c as any).testBody = {
+        asCouponTestContext(c).testBody = {
           code: "VALID10",
           restaurantId: "1",
           orderAmount: 100,
@@ -172,7 +175,7 @@ describe("Coupons Feature Module", () => {
       const testApp = new Hono();
       testApp.use("*", async (c, next) => {
         c.env = { DB: {} };
-        (c as any).testBody = {
+        asCouponTestContext(c).testBody = {
           code: "INVALID",
           restaurantId: "1",
           orderAmount: 100,
@@ -214,7 +217,7 @@ describe("Coupons Feature Module", () => {
       const testApp = new Hono();
       testApp.use("*", async (c, next) => {
         c.env = { DB: {} };
-        (c as any).testParams = { restaurantId: "1" };
+        asCouponTestContext(c).testParams = { restaurantId: "1" };
         return next();
       });
       testApp.route("/", couponsRoutes);
@@ -249,7 +252,7 @@ describe("Coupons Feature Module", () => {
 
       const testApp = new Hono();
       testApp.use("*", (c, next) => {
-        (c as any).testBody = couponData;
+        asCouponTestContext(c).testBody = couponData;
         c.set("user", {
           id: 1,
           username: "testuser",
@@ -294,7 +297,7 @@ describe("Coupons Feature Module", () => {
 
       const testApp = new Hono();
       testApp.use("*", (c, next) => {
-        (c as any).testQuery = { page: 1, limit: 20 };
+        asCouponTestContext(c).testQuery = { page: 1, limit: 20 };
         c.set("user", {
           id: 1,
           username: "testuser",
@@ -333,7 +336,10 @@ describe("Coupons Feature Module", () => {
 
       const testApp = new Hono();
       testApp.use("*", (c, next) => {
-        (c as any).testBody = { couponIds: [1, 2], action: "activate" };
+        asCouponTestContext(c).testBody = {
+          couponIds: [1, 2],
+          action: "activate",
+        };
         c.set("user", {
           id: 1,
           username: "testuser",
@@ -366,7 +372,10 @@ describe("Coupons Feature Module", () => {
 
       const testApp = new Hono();
       testApp.use("*", (c, next) => {
-        (c as any).testBody = { couponIds: [1], action: "activate" };
+        asCouponTestContext(c).testBody = {
+          couponIds: [1],
+          action: "activate",
+        };
         c.set("user", {
           id: 1,
           username: "testuser",
@@ -418,7 +427,7 @@ describe("Coupons Feature Module", () => {
 
       const testApp = new Hono();
       testApp.use("*", (c, next) => {
-        (c as any).testParams = { id: 1 };
+        asCouponTestContext(c).testParams = { id: 1 };
         c.set("user", {
           id: 1,
           username: "testuser",
@@ -485,7 +494,7 @@ describe("Coupons Feature Module", () => {
       const testApp = new Hono();
       testApp.use("*", async (c, next) => {
         c.env = { DB: {} };
-        (c as any).testBody = {
+        asCouponTestContext(c).testBody = {
           code: "TEST",
           restaurantId: "1",
           orderAmount: 100,

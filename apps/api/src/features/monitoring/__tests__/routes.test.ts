@@ -214,7 +214,7 @@ describe("Monitoring Routes", () => {
       NODE_ENV: "test",
       JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
       API_VERSION: "1.0.0",
-      CACHE_KV: mockKV as any,
+      CACHE_KV: mockKV as never,
       SLACK_WEBHOOK_URL: "https://hooks.slack.com/test",
     };
 
@@ -238,7 +238,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data).toHaveProperty("overall");
       expect(data).toHaveProperty("components");
       expect(data).toHaveProperty("uptime");
@@ -256,7 +256,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.components).toHaveProperty("api");
       expect(data.components).toHaveProperty("database");
       expect(data.components).toHaveProperty("cache");
@@ -285,7 +285,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data).toHaveProperty("timestamp");
       expect(data.data).toHaveProperty("summary");
@@ -301,7 +301,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data.query).toBeDefined();
     });
@@ -318,7 +318,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.message).toContain("reset");
     });
@@ -341,7 +341,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(201);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data.type).toBe("test_error");
       expect(data.data.severity).toBe("warning");
@@ -363,7 +363,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(201);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.data.severity).toBe("critical");
     });
   });
@@ -391,7 +391,7 @@ describe("Monitoring Routes", () => {
         );
 
         expect(response.status).toBe(200);
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as ApiTestResponse;
         expect(data.success).toBe(true);
         expect(data.data).toHaveProperty("rules");
         expect(data.data).toHaveProperty("pagination");
@@ -407,7 +407,7 @@ describe("Monitoring Routes", () => {
         );
 
         expect(response.status).toBe(200);
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as ApiTestResponse;
         expect(data.data.pagination.page).toBe(1);
       });
     });
@@ -439,7 +439,7 @@ describe("Monitoring Routes", () => {
         );
 
         expect(response.status).toBe(201);
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as ApiTestResponse;
         expect(data.success).toBe(true);
         expect(data.data.id).toMatch(/^alert_/);
         expect(data.data.name).toBe("Test Alert");
@@ -467,7 +467,7 @@ describe("Monitoring Routes", () => {
           mockEnv as Env,
         );
 
-        const createData = (await createResponse.json()) as any;
+        const createData = (await createResponse.json()) as ApiTestResponse;
         const ruleId = createData.data.id;
 
         // Now update it
@@ -485,7 +485,7 @@ describe("Monitoring Routes", () => {
         );
 
         expect(response.status).toBe(200);
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as ApiTestResponse;
         expect(data.success).toBe(true);
       });
 
@@ -525,7 +525,7 @@ describe("Monitoring Routes", () => {
           mockEnv as Env,
         );
 
-        const createData = (await createResponse.json()) as any;
+        const createData = (await createResponse.json()) as ApiTestResponse;
         const ruleId = createData.data.id;
 
         // Now delete it
@@ -538,7 +538,7 @@ describe("Monitoring Routes", () => {
         );
 
         expect(response.status).toBe(200);
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as ApiTestResponse;
         expect(data.success).toBe(true);
       });
     });
@@ -555,7 +555,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data.rules).toBeDefined();
       expect(Array.isArray(data.data.rules)).toBe(true);
@@ -579,7 +579,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data.message).toContain("sent successfully");
     });
@@ -596,7 +596,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data).toHaveProperty("status");
       expect(data.data).toHaveProperty("uptime");
@@ -613,7 +613,7 @@ describe("Monitoring Routes", () => {
         mockEnv as Env,
       );
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.data.keyMetrics).toHaveProperty("requestsPerMinute");
       expect(data.data.keyMetrics).toHaveProperty("errorRate");
       expect(data.data.keyMetrics).toHaveProperty("averageResponseTime");
@@ -632,7 +632,7 @@ describe("Monitoring Routes", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(true);
       expect(data.data).toHaveProperty("period");
       expect(data.data).toHaveProperty("apiPerformance");
@@ -651,7 +651,7 @@ describe("Monitoring Routes", () => {
         mockEnv as Env,
       );
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.data.apiPerformance).toHaveProperty("totalRequests");
       expect(data.data.apiPerformance).toHaveProperty("averageResponseTime");
       expect(data.data.apiPerformance).toHaveProperty("p95ResponseTime");
@@ -668,7 +668,7 @@ describe("Monitoring Routes", () => {
         mockEnv as Env,
       );
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(Array.isArray(data.data.recommendations)).toBe(true);
     });
   });

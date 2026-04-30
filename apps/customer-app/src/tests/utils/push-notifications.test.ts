@@ -15,6 +15,12 @@ import customerPushService, {
   type NotificationSubscription,
 } from "@/utils/push-notifications";
 
+type PushServiceTestApi = {
+  subscription: Pick<PushSubscription, "endpoint"> | null;
+};
+
+const pushServiceTestApi = customerPushService as unknown as PushServiceTestApi;
+
 describe("customerPushService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,7 +50,7 @@ describe("customerPushService", () => {
 
   it("removes push subscriptions through the shared API client", async () => {
     mockApiClient.post.mockResolvedValueOnce({});
-    (customerPushService as any).subscription = {
+    pushServiceTestApi.subscription = {
       endpoint: "https://push.example.test/customer/abc",
     };
 

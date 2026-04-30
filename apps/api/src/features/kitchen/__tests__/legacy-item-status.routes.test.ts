@@ -52,7 +52,7 @@ function buildApp() {
     if (err instanceof ApiError) {
       return c.json(
         { success: false, error: { code: err.code, message: err.message } },
-        err.status as any,
+        err.status as never,
       );
     }
 
@@ -95,7 +95,7 @@ describe("Kitchen Legacy Item Status Routes", () => {
         data: { notes: "Fire now" },
       }),
     });
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);
@@ -122,7 +122,7 @@ describe("Kitchen Legacy Item Status Routes", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "mark_ready" }),
     });
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);
@@ -144,7 +144,7 @@ describe("Kitchen Legacy Item Status Routes", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(403);
     expect(json.error.code).toBe("CHEF_ACCESS_REQUIRED");

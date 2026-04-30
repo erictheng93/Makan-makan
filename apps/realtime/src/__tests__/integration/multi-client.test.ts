@@ -240,7 +240,11 @@ describe("Multi-Client Integration Tests", () => {
   let connectionManager: MockConnectionManager;
 
   beforeEach(() => {
-    (globalThis as any).WebSocketPair = MockWebSocketPair;
+    (
+      globalThis as typeof globalThis & {
+        WebSocketPair: typeof MockWebSocketPair;
+      }
+    ).WebSocketPair = MockWebSocketPair;
     connectionManager = new MockConnectionManager();
   });
 

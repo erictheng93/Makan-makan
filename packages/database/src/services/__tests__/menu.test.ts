@@ -36,6 +36,10 @@ describe("MenuService", () => {
   let mockDb: any;
   let mockEnv: any;
 
+  type MenuServiceTestAccess = MenuService & {
+    cachedQuery: (...args: unknown[]) => Promise<unknown>;
+  };
+
   // Mock data - use factories for menu items, keep structure for relational queries
   const basePastaItem = menuItemFactory.build({
     overrides: {
@@ -46,7 +50,7 @@ describe("MenuService", () => {
       price: 12.99,
       originalPrice: 15.99,
       imageUrl: "pasta.jpg",
-      imageVariants: {} as any,
+      imageVariants: {},
       isAvailable: true,
       isFeatured: true,
       isPopular: true,
@@ -57,7 +61,7 @@ describe("MenuService", () => {
       calories: 500,
       dietaryInfo: { vegetarian: true },
       allergens: ["gluten"],
-      options: [] as any,
+      options: [],
       keywords: "italian pasta",
       orderCount: 100,
       viewCount: 500,
@@ -77,7 +81,7 @@ describe("MenuService", () => {
       price: 6.99,
       originalPrice: null,
       imageUrl: "cake.jpg",
-      imageVariants: {} as any,
+      imageVariants: {},
       isAvailable: true,
       isFeatured: false,
       isPopular: true,
@@ -88,7 +92,7 @@ describe("MenuService", () => {
       calories: 300,
       dietaryInfo: { vegetarian: true },
       allergens: ["gluten", "dairy"],
-      options: [] as any,
+      options: [],
       keywords: "dessert cake",
       orderCount: 80,
       viewCount: 300,
@@ -250,7 +254,10 @@ describe("MenuService", () => {
       mockDb.select.mockReturnValueOnce(createQueryChain([{ itemCount: 1 }]));
 
       // Spy on cachedQuery method
-      const cachedQuerySpy = vi.spyOn(menuService as any, "cachedQuery");
+      const cachedQuerySpy = vi.spyOn(
+        menuService as unknown as MenuServiceTestAccess,
+        "cachedQuery",
+      );
 
       // Act
       await menuService.getMenu("R-001");

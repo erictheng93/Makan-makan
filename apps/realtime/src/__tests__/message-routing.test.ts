@@ -8,18 +8,33 @@ import { RealtimeEventType } from "@makanmakan/shared-types";
 import type {
   RealtimeEvent,
   RealtimeAuthPayload,
+  NewOrderEvent,
 } from "@makanmakan/shared-types";
 import {
   realtimeAuthFactory,
   resetAllFactories,
 } from "@makanmakan/testing-utils";
 
+type UnknownRealtimeEvent = Omit<RealtimeEvent, "type"> & {
+  type: "UNKNOWN_EVENT_TYPE";
+};
+
+type RoutableEvent = RealtimeEvent | UnknownRealtimeEvent;
+
+const newOrderData = (): NewOrderEvent["data"] => ({
+  orderId: 1,
+  orderNumber: "ORD-001",
+  tableId: "1",
+  items: [],
+  totalAmount: 0,
+});
+
 /**
  * 模擬 shouldSendEventToConnection 邏輯
  * 這是從 RealtimeSession 抽取出來的核心路由邏輯
  */
 function shouldSendEventToConnection(
-  event: RealtimeEvent,
+  event: RoutableEvent,
   connectionInfo: {
     auth?: RealtimeAuthPayload;
   },
@@ -101,7 +116,7 @@ describe("Message Routing Logic", () => {
         eventId: "evt_1",
         timestamp: Date.now(),
         restaurantId: "rest_1",
-        data: {} as any,
+        data: newOrderData(),
       };
 
       const matchingConnection = connWith({
@@ -131,7 +146,7 @@ describe("Message Routing Logic", () => {
       eventId: "evt_new_1",
       timestamp: Date.now(),
       restaurantId: "rest_1",
-      data: {} as any,
+      data: newOrderData(),
     };
 
     it("應該發送給所有角色", () => {
@@ -426,14 +441,14 @@ describe("Message Routing Logic", () => {
   describe("未知事件類型", () => {
     it("未知事件應該只發送給管理員", () => {
       const unknownEvent = {
-        type: "UNKNOWN_EVENT_TYPE" as any,
+        type: "UNKNOWN_EVENT_TYPE",
         eventId: "evt_unknown_1",
         timestamp: Date.now(),
         restaurantId: "rest_1",
         data: {
           isOpen: true,
         },
-      } as RealtimeEvent;
+      } as UnknownRealtimeEvent;
 
       const customerConnection = connWith({
         roomType: "customer",

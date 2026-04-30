@@ -5,7 +5,7 @@
 
 import { vi, beforeEach } from "vitest";
 import { config } from "@vue/test-utils";
-import { ref, h } from "vue";
+import { ref, h, type Plugin } from "vue";
 import { setupAllBrowserAPIs } from "./browser-api-mocks";
 
 // ============================================================
@@ -441,7 +441,7 @@ config.global = {
   },
 
   // Plugins - 包含 mock router
-  plugins: [mockRouter as any],
+  plugins: [mockRouter as unknown as Plugin],
 };
 
 // ============================================================
@@ -464,7 +464,7 @@ global.EventSource = vi.fn().mockImplementation(() => ({
   CONNECTING: 0,
   OPEN: 1,
   CLOSED: 2,
-})) as any;
+})) as unknown as typeof EventSource;
 
 /**
  * Mock Notification API
@@ -507,7 +507,7 @@ if (typeof global.Notification === "undefined") {
         this.onclose?.(new Event("close"));
       }, 0);
     }
-  } as any;
+  } as unknown as typeof Notification;
 }
 
 /**
@@ -536,7 +536,7 @@ if (typeof global.CloseEvent === "undefined") {
       this.reason = eventInitDict?.reason ?? "";
       this.wasClean = eventInitDict?.wasClean ?? false;
     }
-  } as any;
+  } as unknown as typeof CloseEvent;
 }
 
 /**
@@ -545,20 +545,20 @@ if (typeof global.CloseEvent === "undefined") {
  */
 if (typeof global.MessageEvent === "undefined") {
   global.MessageEvent = class MessageEvent extends Event {
-    data: any;
+    data: unknown;
     origin: string;
     lastEventId: string;
-    source: any;
-    ports: any[];
+    source: MessageEventSource | null;
+    ports: readonly MessagePort[];
 
     constructor(
       type: string,
       eventInitDict?: {
-        data?: any;
+        data?: unknown;
         origin?: string;
         lastEventId?: string;
-        source?: any;
-        ports?: any[];
+        source?: MessageEventSource | null;
+        ports?: readonly MessagePort[];
         bubbles?: boolean;
         cancelable?: boolean;
         composed?: boolean;
@@ -571,7 +571,7 @@ if (typeof global.MessageEvent === "undefined") {
       this.source = eventInitDict?.source ?? null;
       this.ports = eventInitDict?.ports ?? [];
     }
-  } as any;
+  } as unknown as typeof MessageEvent;
 }
 
 // ============================================================
@@ -636,7 +636,10 @@ Object.defineProperty(window, "prompt", {
  * 用於測試複製功能
  */
 if (typeof global.navigator === "undefined") {
-  (global as any).navigator = {};
+  Object.defineProperty(global, "navigator", {
+    value: {},
+    configurable: true,
+  });
 }
 
 Object.defineProperty(global.navigator, "clipboard", {
@@ -685,14 +688,14 @@ beforeEach(() => {
 
   // 重置 window dialog mocks
   if (vi.isMockFunction(window.alert)) {
-    (window.alert as any).mockClear();
+    vi.mocked(window.alert).mockClear();
   }
   if (vi.isMockFunction(window.confirm)) {
-    (window.confirm as any).mockClear();
-    (window.confirm as any).mockReturnValue(true);
+    vi.mocked(window.confirm).mockClear();
+    vi.mocked(window.confirm).mockReturnValue(true);
   }
   if (vi.isMockFunction(window.prompt)) {
-    (window.prompt as any).mockClear();
+    vi.mocked(window.prompt).mockClear();
   }
 });
 

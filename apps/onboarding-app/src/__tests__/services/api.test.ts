@@ -12,7 +12,7 @@ import {
 
 // Mock axios
 vi.mock("axios", async () => {
-  const actual = await vi.importActual("axios");
+  const actual = await vi.importActual<typeof import("axios")>("axios");
   const mockInstance = {
     get: vi.fn(),
     post: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock("axios", async () => {
     default: {
       ...actual,
       create: vi.fn(() => mockInstance),
-      isAxiosError: (actual as any).default?.isAxiosError || vi.fn(() => false),
+      isAxiosError: actual.default.isAxiosError || vi.fn(() => false),
     },
     __mockInstance: mockInstance,
   };
@@ -39,7 +39,10 @@ vi.mock("axios", async () => {
 
 // Get reference to mock instance
 function getMockClient() {
-  const mod = axios as any;
+  const mod = axios as unknown as {
+    __mockInstance?: unknown;
+    create(): unknown;
+  };
   return mod.__mockInstance || mod.create();
 }
 
@@ -106,7 +109,11 @@ describe("onboardingApi", () => {
     });
 
     it("should throw ApiError on network failure", async () => {
-      const axiosError = new Error("Network Error") as any;
+      const axiosError = new Error("Network Error") as Error & {
+        isAxiosError?: boolean;
+        code?: string;
+        response?: unknown;
+      };
       axiosError.isAxiosError = true;
       axiosError.code = undefined;
       axiosError.response = undefined;

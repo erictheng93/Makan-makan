@@ -9,6 +9,29 @@ import { Hono } from "hono";
 import { createMockEnv } from "./setup";
 
 type MockEnv = ReturnType<typeof createMockEnv>;
+type IndexTestResponse = {
+  name?: string;
+  version?: string;
+  features?: string[];
+  limits?: {
+    maxFileSize?: string;
+    allowedFormats?: string[];
+  };
+  service?: string;
+  capabilities?: {
+    upload?: boolean;
+    transformation?: boolean;
+    optimization?: boolean;
+  };
+  supportedFormats?: {
+    input?: string[];
+    output?: string[];
+  };
+  success?: boolean;
+  error?: string;
+  path?: string;
+  stack?: string;
+};
 
 /**
  * Builds a minimal Hono app that mirrors the key routes from index.ts
@@ -106,18 +129,18 @@ describe("Main App (index.ts)", () => {
   describe("GET /", () => {
     it("should return service info with correct name", async () => {
       const app = buildTestApp();
-      const res = await app.request("/", undefined, env as any);
+      const res = await app.request("/", undefined, env);
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as IndexTestResponse;
       expect(body.name).toBe("MakanMakan Image Processing Service");
       expect(body.version).toBe("v1");
     });
 
     it("should list all features", async () => {
       const app = buildTestApp();
-      const res = await app.request("/", undefined, env as any);
-      const body = (await res.json()) as any;
+      const res = await app.request("/", undefined, env);
+      const body = (await res.json()) as IndexTestResponse;
 
       expect(body.features).toContain("Image upload and storage");
       expect(body.features).toContain("Security scanning");
@@ -126,8 +149,8 @@ describe("Main App (index.ts)", () => {
 
     it("should include limits from env", async () => {
       const app = buildTestApp();
-      const res = await app.request("/", undefined, env as any);
-      const body = (await res.json()) as any;
+      const res = await app.request("/", undefined, env);
+      const body = (await res.json()) as IndexTestResponse;
 
       expect(body.limits.maxFileSize).toBe("10MB");
       expect(body.limits.allowedFormats).toContain("image/jpeg");
@@ -141,10 +164,10 @@ describe("Main App (index.ts)", () => {
   describe("GET /info", () => {
     it("should return service capabilities", async () => {
       const app = buildTestApp();
-      const res = await app.request("/info", undefined, env as any);
+      const res = await app.request("/info", undefined, env);
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as IndexTestResponse;
       expect(body.service).toBe("MakanMakan Image Processor");
       expect(body.capabilities.upload).toBe(true);
       expect(body.capabilities.transformation).toBe(true);
@@ -152,8 +175,8 @@ describe("Main App (index.ts)", () => {
 
     it("should list supported input and output formats", async () => {
       const app = buildTestApp();
-      const res = await app.request("/info", undefined, env as any);
-      const body = (await res.json()) as any;
+      const res = await app.request("/info", undefined, env);
+      const body = (await res.json()) as IndexTestResponse;
 
       expect(body.supportedFormats.input).toContain("image/jpeg");
       expect(body.supportedFormats.output).toContain("image/webp");
@@ -166,14 +189,10 @@ describe("Main App (index.ts)", () => {
   describe("404 handler", () => {
     it("should return 404 for unknown paths", async () => {
       const app = buildTestApp();
-      const res = await app.request(
-        "/nonexistent/endpoint",
-        undefined,
-        env as any,
-      );
+      const res = await app.request("/nonexistent/endpoint", undefined, env);
 
       expect(res.status).toBe(404);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as IndexTestResponse;
       expect(body.success).toBe(false);
       expect(body.error).toBe("API endpoint not found");
       expect(body.path).toBe("/nonexistent/endpoint");
@@ -185,10 +204,10 @@ describe("Main App (index.ts)", () => {
   describe("Error handler", () => {
     it("should return detailed error in development mode", async () => {
       const app = buildTestApp();
-      const res = await app.request("/throw", undefined, env as any);
+      const res = await app.request("/throw", undefined, env);
 
       expect(res.status).toBe(500);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as IndexTestResponse;
       expect(body.success).toBe(false);
       expect(body.error).toBe("Test error");
       expect(body.stack).toBeDefined();
@@ -198,8 +217,8 @@ describe("Main App (index.ts)", () => {
       const prodEnv = { ...env, NODE_ENV: "production" as const };
       const app = buildTestApp();
 
-      const res = await app.request("/throw", undefined, prodEnv as any);
-      const body = (await res.json()) as any;
+      const res = await app.request("/throw", undefined, prodEnv);
+      const body = (await res.json()) as IndexTestResponse;
 
       expect(res.status).toBe(500);
       expect(body.error).toBe("Internal server error");

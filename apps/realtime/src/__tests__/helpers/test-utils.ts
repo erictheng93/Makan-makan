@@ -59,5 +59,9 @@ export class MockWebSocketPair {
 
 // Make MockWebSocketPair available globally for tests
 if (typeof globalThis !== "undefined") {
-  (globalThis as any).WebSocketPair = MockWebSocketPair;
+  (
+    globalThis as typeof globalThis & {
+      WebSocketPair: typeof MockWebSocketPair;
+    }
+  ).WebSocketPair = MockWebSocketPair;
 }

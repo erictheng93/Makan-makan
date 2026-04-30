@@ -13,6 +13,7 @@ vi.mock("@/i18n", () => ({
 
 import { customerOrderApi } from "@/services/customerOrderApi";
 import { apiClient } from "@/services/api";
+import type { OrderStatus } from "@makanmakan/shared-types";
 
 const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
 const mockDelete = apiClient.delete as ReturnType<typeof vi.fn>;
@@ -54,7 +55,7 @@ describe("customerOrderApi", () => {
         pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
       });
 
-      await customerOrderApi.getMyOrders({ status: "confirmed" as any });
+      await customerOrderApi.getMyOrders({ status: "confirmed" });
 
       const url = mockGet.mock.calls[0][0] as string;
       expect(url).toContain("status=confirmed");
@@ -66,9 +67,8 @@ describe("customerOrderApi", () => {
         pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
       });
 
-      await customerOrderApi.getMyOrders({
-        status: ["pending", "confirmed"] as any,
-      });
+      const statuses: OrderStatus[] = ["pending", "confirmed"];
+      await customerOrderApi.getMyOrders({ status: statuses });
 
       const url = mockGet.mock.calls[0][0] as string;
       expect(url).toContain("status=pending");

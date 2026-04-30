@@ -23,7 +23,7 @@ if (typeof CloseEvent === "undefined") {
       this.reason = eventInitDict?.reason ?? "";
       this.wasClean = eventInitDict?.wasClean ?? false;
     }
-  } as any;
+  } as unknown as typeof CloseEvent;
 }
 
 // Mock event history storage

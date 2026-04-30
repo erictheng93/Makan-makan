@@ -207,7 +207,7 @@ describe("PrintAgentService", () => {
       const request = printRequestFactory.build({
         overrides: {
           restaurantId: config.restaurantId,
-          country: "" as any,
+          country: "" as never,
         },
       });
 
@@ -232,7 +232,7 @@ describe("PrintAgentService", () => {
       const request = printRequestFactory.build({
         overrides: {
           restaurantId: config.restaurantId,
-          type: "" as any,
+          type: "" as never,
         },
       });
 
@@ -246,7 +246,7 @@ describe("PrintAgentService", () => {
       const request = printRequestFactory.build({
         overrides: {
           restaurantId: config.restaurantId,
-          data: undefined as any,
+          data: undefined as never,
         },
       });
 
@@ -260,7 +260,7 @@ describe("PrintAgentService", () => {
       const request = printRequestFactory.build({
         overrides: {
           restaurantId: config.restaurantId,
-          data: {} as any,
+          data: {} as never,
         },
       });
 
@@ -540,7 +540,7 @@ describe("PrintAgentService", () => {
 
     it("should not allow mutation of the original config via the getter", () => {
       const exposed = service.configuration;
-      (exposed as any).restaurantId = "mutated";
+      (exposed as { restaurantId: string }).restaurantId = "mutated";
       expect(service.configuration.restaurantId).toBe(config.restaurantId);
     });
   });

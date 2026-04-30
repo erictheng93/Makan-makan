@@ -196,7 +196,7 @@ describe("CreateTenantModal", () => {
       status: "pending",
       createdAt: "2026-03-01",
     };
-    vi.mocked(tenantsApi.create).mockResolvedValue(newTenant as any);
+    vi.mocked(tenantsApi.create).mockResolvedValue(newTenant as never);
 
     const wrapper = mountModal();
 

@@ -47,7 +47,7 @@ describe("ProductAnalysisService", () => {
 
   beforeEach(() => {
     mockDb = createMockDrizzleDb();
-    service = new ProductAnalysisService(mockDb as any);
+    service = new ProductAnalysisService(mockDb as never);
   });
 
   describe("analyzeProducts", () => {
@@ -356,7 +356,7 @@ describe("ProductAnalysisService - Calculation Methods (via analyzeProducts)", (
 
   beforeEach(() => {
     mockDb = createMockDrizzleDb();
-    service = new ProductAnalysisService(mockDb as any);
+    service = new ProductAnalysisService(mockDb as never);
   });
 
   describe("trend score calculation", () => {
@@ -620,7 +620,7 @@ describe("ProductAnalysisService - getProfitLeaders 利潤排行", () => {
 
   beforeEach(() => {
     mockDb = createMockDrizzleDb();
-    service = new ProductAnalysisService(mockDb as any);
+    service = new ProductAnalysisService(mockDb as never);
   });
 
   it("按利潤排序返回商品（revenue - cost * quantity）", async () => {
@@ -792,7 +792,7 @@ describe("ProductAnalysisService - getUnderperformers 表現不佳商品", () =>
 
   beforeEach(() => {
     mockDb = createMockDrizzleDb();
-    service = new ProductAnalysisService(mockDb as any);
+    service = new ProductAnalysisService(mockDb as never);
   });
 
   it("返回下降趨勢的商品", async () => {
@@ -934,7 +934,7 @@ describe("ProductAnalysisService - 日期範圍處理", () => {
 
   beforeEach(() => {
     mockDb = createMockDrizzleDb();
-    service = new ProductAnalysisService(mockDb as any);
+    service = new ProductAnalysisService(mockDb as never);
   });
 
   it("7d 範圍計算正確的開始與結束日期", async () => {

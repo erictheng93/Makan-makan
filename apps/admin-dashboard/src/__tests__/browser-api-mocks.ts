@@ -150,7 +150,7 @@ export function setupFileDownloadMock() {
     }
 
     return element;
-  }) as any;
+  }) as unknown as typeof document.createElement;
 
   return { downloads };
 }
@@ -188,7 +188,7 @@ export function setupBlobMock() {
       slice(_start?: number, _end?: number, contentType?: string): Blob {
         return new BlobMock(this.parts, {
           type: contentType || this.type,
-        }) as any;
+        }) as unknown as Blob;
       }
 
       async text(): Promise<string> {
@@ -202,7 +202,7 @@ export function setupBlobMock() {
       }
     }
 
-    global.Blob = BlobMock as any;
+    global.Blob = BlobMock as unknown as typeof Blob;
   }
 }
 

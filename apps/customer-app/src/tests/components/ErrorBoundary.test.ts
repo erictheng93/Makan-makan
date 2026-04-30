@@ -122,7 +122,10 @@ describe("ErrorBoundary.vue", () => {
       });
 
       // 手動觸發錯誤狀態
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as unknown as {
+        hasError?: boolean;
+        error?: Error;
+      };
       if (vm.hasError !== undefined) {
         vm.hasError = true;
         vm.error = new Error("測試錯誤");

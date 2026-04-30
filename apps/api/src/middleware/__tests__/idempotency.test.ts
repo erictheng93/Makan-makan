@@ -88,7 +88,7 @@ function createApp(db = createIdempotencyDb()) {
           success: false,
           error: { code: err.code, message: err.message },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json({ success: false, error: { message: err.message } }, 500);
@@ -120,7 +120,7 @@ function createApp(db = createIdempotencyDb()) {
 
   return {
     app,
-    env: { DB: db } as any,
+    env: { DB: db } as never,
     get effects() {
       return effects;
     },
@@ -136,7 +136,7 @@ describe("idempotencyMiddleware", () => {
       body: JSON.stringify({ amount: 100 }),
     });
     const res = await app.request(req, undefined, env);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
 
     expect(res.status).toBe(400);
     expect(body.error.code).toBe("IDEMPOTENCY_KEY_REQUIRED");
@@ -155,9 +155,9 @@ describe("idempotencyMiddleware", () => {
       });
 
     const first = await fixture.app.request(request(), undefined, fixture.env);
-    const firstBody = (await first.json()) as any;
+    const firstBody = (await first.json()) as ApiTestResponse;
     const second = await fixture.app.request(request(), undefined, fixture.env);
-    const secondBody = (await second.json()) as any;
+    const secondBody = (await second.json()) as ApiTestResponse;
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
@@ -192,7 +192,7 @@ describe("idempotencyMiddleware", () => {
       undefined,
       fixture.env,
     );
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
 
     expect(res.status).toBe(422);
     expect(body.error.code).toBe("IDEMPOTENCY_BODY_MISMATCH");
@@ -226,7 +226,7 @@ describe("idempotencyMiddleware", () => {
       undefined,
       fixture.env,
     );
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
 
     expect(res.status).toBe(422);
     expect(body.error.code).toBe("IDEMPOTENCY_SCOPE_MISMATCH");
@@ -260,7 +260,7 @@ describe("idempotencyMiddleware", () => {
       undefined,
       fixture.env,
     );
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
 
     expect(res.status).toBe(409);
     expect(body.error.code).toBe("IDEMPOTENCY_IN_PROGRESS");
@@ -296,7 +296,7 @@ describe("idempotencyMiddleware", () => {
       undefined,
       fixture.env,
     );
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
 
     expect(res.status).toBe(200);
     expect(body.data.paymentId).toBe("pay_1");
@@ -334,7 +334,7 @@ describe("idempotencyMiddleware", () => {
       undefined,
       fixture.env,
     );
-    const body = (await second.json()) as any;
+    const body = (await second.json()) as ApiTestResponse;
 
     expect(second.status).toBe(200);
     expect(body.data.paymentId).toBe("pay_1");
@@ -360,7 +360,7 @@ describe("idempotencyMiddleware", () => {
       },
     );
 
-    const env = { DB: db } as any;
+    const env = { DB: db } as never;
     const res = await app.request(
       new Request("http://localhost/webhook", {
         method: "POST",

@@ -193,7 +193,8 @@ describe("TimelineItem.vue", () => {
     });
 
     it("應該處理無效的狀態值", async () => {
-      await wrapper.setProps({ status: "invalid" as any });
+      const invalidStatus = "invalid" as unknown as "completed";
+      await wrapper.setProps({ status: invalidStatus });
 
       // Should still render without crashing
       expect(wrapper.exists()).toBe(true);

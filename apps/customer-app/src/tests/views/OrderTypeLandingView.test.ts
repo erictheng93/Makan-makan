@@ -8,6 +8,8 @@ import {
   restaurantFactory,
   resetAllFactories,
 } from "@makanmakan/testing-utils";
+import { PlanType, Status } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmakan/shared-types";
 
 // Mock menuApi
 vi.mock("@/services/menuApi", () => ({
@@ -32,11 +34,15 @@ const baseRestaurant = restaurantFactory.build({
   },
 });
 
-const mockRestaurant = {
+const mockRestaurant: Restaurant = {
   id: "rest-001",
   name: baseRestaurant.name,
   description: baseRestaurant.description,
-  logoUrl: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+  status: Status.ACTIVE,
+  planType: PlanType.BASIC,
+  logoUrl: undefined,
   settings: {
     enableDineIn: false,
     enableTakeaway: true,
@@ -90,7 +96,7 @@ describe("OrderTypeLandingView", () => {
     });
 
     it("should hide loading spinner after data is fetched", async () => {
-      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant as any);
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant);
       wrapper = mountComponent();
 
       await flushPromises();
@@ -128,7 +134,7 @@ describe("OrderTypeLandingView", () => {
     it("should retry fetching restaurant when retry button is clicked", async () => {
       vi.mocked(menuApi.getRestaurant)
         .mockRejectedValueOnce(new Error("Network error"))
-        .mockResolvedValueOnce(mockRestaurant as any);
+        .mockResolvedValueOnce(mockRestaurant);
 
       wrapper = mountComponent();
       await flushPromises();
@@ -148,7 +154,7 @@ describe("OrderTypeLandingView", () => {
 
   describe("成功狀態", () => {
     it("should display restaurant name after successful fetch", async () => {
-      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant as any);
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant);
       wrapper = mountComponent();
 
       await flushPromises();
@@ -157,7 +163,7 @@ describe("OrderTypeLandingView", () => {
     });
 
     it("should show placeholder icon when no logo", async () => {
-      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant as any);
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant);
       wrapper = mountComponent();
 
       await flushPromises();
@@ -172,7 +178,7 @@ describe("OrderTypeLandingView", () => {
 
     it("should show restaurant logo when available", async () => {
       vi.mocked(menuApi.getRestaurant).mockResolvedValue(
-        mockRestaurantWithLogo as any,
+        mockRestaurantWithLogo,
       );
       wrapper = mountComponent();
 
@@ -187,7 +193,7 @@ describe("OrderTypeLandingView", () => {
 
   describe("取餐方式選擇", () => {
     it("should show takeaway button by default", async () => {
-      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant as any);
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant);
       wrapper = mountComponent();
 
       await flushPromises();
@@ -196,7 +202,7 @@ describe("OrderTypeLandingView", () => {
     });
 
     it("should hide delivery button when enableDelivery is false", async () => {
-      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant as any);
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant);
       wrapper = mountComponent();
 
       await flushPromises();
@@ -206,7 +212,7 @@ describe("OrderTypeLandingView", () => {
 
     it("should show delivery button when enableDelivery is true", async () => {
       vi.mocked(menuApi.getRestaurant).mockResolvedValue(
-        mockRestaurantWithDelivery as any,
+        mockRestaurantWithDelivery,
       );
       wrapper = mountComponent();
 
@@ -217,7 +223,7 @@ describe("OrderTypeLandingView", () => {
 
     it("should select takeaway by default", async () => {
       vi.mocked(menuApi.getRestaurant).mockResolvedValue(
-        mockRestaurantWithDelivery as any,
+        mockRestaurantWithDelivery,
       );
       wrapper = mountComponent();
 
@@ -233,7 +239,7 @@ describe("OrderTypeLandingView", () => {
 
     it("should update selection when delivery button is clicked", async () => {
       vi.mocked(menuApi.getRestaurant).mockResolvedValue(
-        mockRestaurantWithDelivery as any,
+        mockRestaurantWithDelivery,
       );
       wrapper = mountComponent();
 
@@ -252,7 +258,7 @@ describe("OrderTypeLandingView", () => {
 
   describe("繼續按鈕", () => {
     it("should navigate to ShopPhoneVerification on continue", async () => {
-      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant as any);
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant);
       wrapper = mountComponent();
 
       await flushPromises();
@@ -269,7 +275,7 @@ describe("OrderTypeLandingView", () => {
     });
 
     it("should call setFulfillmentType on store when continuing", async () => {
-      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant as any);
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue(mockRestaurant);
       wrapper = mountComponent();
 
       await flushPromises();
@@ -285,7 +291,7 @@ describe("OrderTypeLandingView", () => {
 
     it("should call setDeliveryFee when delivery is selected and fee is set", async () => {
       vi.mocked(menuApi.getRestaurant).mockResolvedValue(
-        mockRestaurantWithDelivery as any,
+        mockRestaurantWithDelivery,
       );
       wrapper = mountComponent();
 

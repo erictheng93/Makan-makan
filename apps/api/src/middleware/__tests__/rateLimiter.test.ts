@@ -48,7 +48,7 @@ describe("RateLimiter", () => {
     it("should allow first request and start new window", async () => {
       mockKV.get.mockResolvedValue(null); // No existing data
 
-      const limiter = new RateLimiter(mockKV as any, config);
+      const limiter = new RateLimiter(mockKV as never, config);
       const result = await limiter.checkLimit("user123");
 
       expect(result.allowed).toBe(true);
@@ -69,7 +69,7 @@ describe("RateLimiter", () => {
       };
       mockKV.get.mockResolvedValue(existingData);
 
-      const limiter = new RateLimiter(mockKV as any, config);
+      const limiter = new RateLimiter(mockKV as never, config);
       const result = await limiter.checkLimit("user123");
 
       expect(result.allowed).toBe(true);
@@ -89,7 +89,7 @@ describe("RateLimiter", () => {
       };
       mockKV.get.mockResolvedValue(existingData);
 
-      const limiter = new RateLimiter(mockKV as any, config);
+      const limiter = new RateLimiter(mockKV as never, config);
       const result = await limiter.checkLimit("user123");
 
       expect(result.allowed).toBe(false);
@@ -106,7 +106,7 @@ describe("RateLimiter", () => {
       };
       mockKV.get.mockResolvedValue(existingData);
 
-      const limiter = new RateLimiter(mockKV as any, config);
+      const limiter = new RateLimiter(mockKV as never, config);
       const result = await limiter.checkLimit("user123");
 
       expect(result.allowed).toBe(true);
@@ -120,7 +120,7 @@ describe("RateLimiter", () => {
         windowMs: 60000,
         maxRequests: 10,
       };
-      const limiter = new RateLimiter(mockKV as any, configWithoutPrefix);
+      const limiter = new RateLimiter(mockKV as never, configWithoutPrefix);
       await limiter.checkLimit("user123");
 
       expect(mockKV.put).toHaveBeenCalledWith(
@@ -133,7 +133,7 @@ describe("RateLimiter", () => {
 
   describe("reset", () => {
     it("should delete rate limit key", async () => {
-      const limiter = new RateLimiter(mockKV as any, config);
+      const limiter = new RateLimiter(mockKV as never, config);
       await limiter.reset("user123");
 
       expect(mockKV.delete).toHaveBeenCalledWith("test:user123");
@@ -144,7 +144,7 @@ describe("RateLimiter", () => {
         windowMs: 60000,
         maxRequests: 10,
       };
-      const limiter = new RateLimiter(mockKV as any, configWithoutPrefix);
+      const limiter = new RateLimiter(mockKV as never, configWithoutPrefix);
       await limiter.reset("user123");
 
       expect(mockKV.delete).toHaveBeenCalledWith("ratelimit:user123");
@@ -161,14 +161,15 @@ describe("RateLimiter", () => {
     beforeEach(() => {
       app = new Hono<{ Bindings: Env }>();
       mockEnv = {
-        CACHE_KV: mockKV as any,
+        CACHE_KV: mockKV as never,
       };
 
       // Properly inject env for Hono - must set c.env before next()
       app.use("*", async (c, next) => {
         // For Hono, we need to mutate c.env directly when it doesn't exist
         if (!c.env) {
-          (c as any).env = mockEnv;
+          (c as unknown as ApiTestContextWithEnv).env =
+            mockEnv as unknown as ApiTestEnv;
         } else {
           Object.assign(c.env, mockEnv);
         }
@@ -256,7 +257,8 @@ describe("RateLimiter", () => {
       // Set env but without CACHE_KV
       appWithoutKV.use("*", async (c, next) => {
         if (!c.env) {
-          (c as any).env = {}; // Empty env - no CACHE_KV
+          (c as unknown as ApiTestContextWithEnv).env =
+            {} as unknown as ApiTestEnv; // Empty env - no CACHE_KV
         }
         await next();
       });
@@ -363,13 +365,14 @@ describe("RateLimiter", () => {
     beforeEach(() => {
       app = new Hono<{ Bindings: Env }>();
       mockEnv = {
-        CACHE_KV: mockKV as any,
+        CACHE_KV: mockKV as never,
       };
 
       // Properly inject env for Hono
       app.use("*", async (c, next) => {
         if (!c.env) {
-          (c as any).env = mockEnv;
+          (c as unknown as ApiTestContextWithEnv).env =
+            mockEnv as unknown as ApiTestEnv;
         } else {
           Object.assign(c.env, mockEnv);
         }
@@ -382,7 +385,8 @@ describe("RateLimiter", () => {
       // Set env but without CACHE_KV
       appWithoutKV.use("*", async (c, next) => {
         if (!c.env) {
-          (c as any).env = {}; // Empty env - no CACHE_KV
+          (c as unknown as ApiTestContextWithEnv).env =
+            {} as unknown as ApiTestEnv; // Empty env - no CACHE_KV
         }
         await next();
       });
@@ -407,7 +411,7 @@ describe("RateLimiter", () => {
       mockKV.get.mockResolvedValue(null);
 
       app.use("*", async (c, next) => {
-        (c as any).set("userId", 123);
+        (c as unknown as ApiTestContextWithEnv).set("userId", 123);
         await next();
       });
       app.use("*", userRateLimitMiddleware(config));
@@ -443,7 +447,7 @@ describe("RateLimiter", () => {
       mockKV.get.mockResolvedValue(existingData);
 
       app.use("*", async (c, next) => {
-        (c as any).set("userId", 123);
+        (c as unknown as ApiTestContextWithEnv).set("userId", 123);
         await next();
       });
       app.use("*", userRateLimitMiddleware(config));
@@ -459,7 +463,7 @@ describe("RateLimiter", () => {
       mockKV.get.mockResolvedValue(null);
 
       app.use("*", async (c, next) => {
-        (c as any).set("userId", 123);
+        (c as unknown as ApiTestContextWithEnv).set("userId", 123);
         await next();
       });
       app.use("*", userRateLimitMiddleware(config));
@@ -533,7 +537,7 @@ describe("RateLimiter", () => {
         maxRequests: 1000,
       };
 
-      const limiter = new RateLimiter(mockKV as any, longWindowConfig);
+      const limiter = new RateLimiter(mockKV as never, longWindowConfig);
       const result = await limiter.checkLimit("user123");
 
       expect(result.allowed).toBe(true);
@@ -551,7 +555,7 @@ describe("RateLimiter", () => {
       };
       mockKV.get.mockResolvedValue(existingData);
 
-      const limiter = new RateLimiter(mockKV as any, config);
+      const limiter = new RateLimiter(mockKV as never, config);
       const result = await limiter.checkLimit("user123");
 
       expect(result.allowed).toBe(true);
@@ -566,7 +570,7 @@ describe("RateLimiter", () => {
       };
       mockKV.get.mockResolvedValue(existingData);
 
-      const limiter = new RateLimiter(mockKV as any, config);
+      const limiter = new RateLimiter(mockKV as never, config);
       await limiter.checkLimit("user123");
 
       expect(mockKV.put).toHaveBeenCalledWith(

@@ -42,7 +42,7 @@ describe("GroupOrderService - 帳單分攤", () => {
 
     // 獲取創建者ID
     const members = Array.from(mockDB._mockData.groupMembers.values());
-    testCreatorId = (members[0] as any).id;
+    testCreatorId = (members[0] as { id: string }).id;
 
     // 添加測試菜品和購物車項目
     mockDB._mockData.menuItems.set(1, {

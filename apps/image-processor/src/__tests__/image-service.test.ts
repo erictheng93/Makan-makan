@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createMockEnv } from "./setup";
+import type { Env } from "../types/env";
 
 // Create a shared mock object that persists across test runs
 const mockDbService = {
@@ -31,8 +32,9 @@ const mockDbService = {
 vi.mock("@makanmakan/database", () => {
   // Use a class so it can be used with `new`
   class MockImageService {
-    constructor(..._args: any[]) {
-      return mockDbService as any;
+    constructor(..._args: unknown[]) {
+      return mockDbService as unknown as MockImageService &
+        typeof mockDbService;
     }
   }
 
@@ -59,8 +61,8 @@ describe("ImageService", () => {
     env = createMockEnv();
     // Reset all mock call history but keep implementations
     Object.values(mockDbService).forEach((fn) => {
-      if (typeof fn === "function" && "mockClear" in fn) {
-        (fn as any).mockClear();
+      if (vi.isMockFunction(fn)) {
+        fn.mockClear();
       }
     });
 
@@ -84,7 +86,7 @@ describe("ImageService", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    service = new ImageService(env as any);
+    service = new ImageService(env as unknown as Env);
   });
 
   // ── saveImageMetadata ────────────────────────────────────────
@@ -98,7 +100,7 @@ describe("ImageService", () => {
         size: 1024000,
         width: 800,
         height: 600,
-        variants: {} as any,
+        variants: {},
         uploadedAt: new Date().toISOString(),
         uploadedBy: 1,
         restaurantId: 100,
@@ -128,7 +130,7 @@ describe("ImageService", () => {
         originalFilename: "test.jpg",
         mimeType: "image/jpeg",
         size: 1000,
-        variants: {} as any,
+        variants: {},
         uploadedAt: new Date().toISOString(),
       });
 

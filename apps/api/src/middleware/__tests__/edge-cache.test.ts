@@ -45,7 +45,11 @@ describe("EdgeCacheManager", () => {
     mockCacheAPI.default.put.mockResolvedValue(undefined);
     mockCacheAPI.default.delete.mockResolvedValue(true);
 
-    cacheManager = new EdgeCacheManager(mockKV, mockContext, mockEnv as any);
+    cacheManager = new EdgeCacheManager(
+      mockKV,
+      mockContext,
+      mockEnv as unknown as ApiTestEnv,
+    );
   });
 
   describe("get", () => {
@@ -312,7 +316,7 @@ describe("Smart Cache Middleware", () => {
 
     const req = new Request("http://localhost/test");
     const res = await app.fetch(req, mockEnv, mockExecutionCtx);
-    const result = (await res.json()) as any;
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(result.cached).toBe(true);
   });
@@ -431,7 +435,11 @@ describe("Cache Key Building", () => {
       delete: vi.fn(),
     };
     mockContext = { waitUntil: vi.fn() };
-    cacheManager = new EdgeCacheManager(mockKV, mockContext, mockEnv as any);
+    cacheManager = new EdgeCacheManager(
+      mockKV,
+      mockContext,
+      mockEnv as unknown as ApiTestEnv,
+    );
   });
 
   it("should build cache key without vary headers", async () => {
@@ -464,7 +472,11 @@ describe("Cache Priority", () => {
       put: vi.fn(),
     };
     mockContext = { waitUntil: vi.fn() };
-    cacheManager = new EdgeCacheManager(mockKV, mockContext, mockEnv as any);
+    cacheManager = new EdgeCacheManager(
+      mockKV,
+      mockContext,
+      mockEnv as unknown as ApiTestEnv,
+    );
   });
 
   it("should set high priority for important content", async () => {

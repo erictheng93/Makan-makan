@@ -283,7 +283,7 @@ describe("TablesService", () => {
 
   describe("permission validation", () => {
     it("should validate table access for admin users", () => {
-      const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
+      const table = { id: 1, restaurantId: "test-restaurant-1" } as never;
 
       const result = tablesService.validateTableAccess(
         table,
@@ -295,7 +295,7 @@ describe("TablesService", () => {
     });
 
     it("should validate table access for restaurant owners", () => {
-      const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
+      const table = { id: 1, restaurantId: "test-restaurant-1" } as never;
 
       const result = tablesService.validateTableAccess(
         table,
@@ -307,7 +307,7 @@ describe("TablesService", () => {
     });
 
     it("should deny table access for different restaurant", () => {
-      const table = { id: 1, restaurantId: "test-restaurant-1" } as any;
+      const table = { id: 1, restaurantId: "test-restaurant-1" } as never;
 
       const result = tablesService.validateTableAccess(
         table,
@@ -369,7 +369,7 @@ describe("TablesService", () => {
         maintenanceNotes: "Private notes",
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any;
+      } as never;
 
       const result = tablesService.getPublicTableInfo(table);
 

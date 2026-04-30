@@ -42,7 +42,7 @@ describe("QrCodesService", () => {
         metadataJson: null,
         createdAt: "2023-01-01T00:00:00Z",
         updatedAt: "2023-01-01T00:00:00Z",
-      } as any);
+      } as never);
 
       vi.spyOn(service["qrService"], "createAuditLog").mockResolvedValue();
 
@@ -119,7 +119,7 @@ describe("QrCodesService", () => {
         metadataJson: null,
         createdAt: "2023-01-01T00:00:00Z",
         updatedAt: "2023-01-01T00:00:00Z",
-      } as any);
+      } as never);
 
       vi.spyOn(service["qrService"], "recordDownload").mockResolvedValue();
 
@@ -144,7 +144,7 @@ describe("QrCodesService", () => {
         restaurantId: "rest-1",
         totalCodes: 2,
         status: "completed",
-      } as any);
+      } as never);
 
       const result = await service.downloadBatch("batch123");
 
@@ -200,7 +200,7 @@ describe("QrCodesService", () => {
       ];
 
       vi.spyOn(service["qrService"], "getActiveTemplates").mockResolvedValue(
-        mockTemplates as any,
+        mockTemplates as never,
       );
 
       const result = await service.listTemplates();
@@ -238,7 +238,7 @@ describe("QrCodesService", () => {
       };
 
       vi.spyOn(service["qrService"], "createTemplate").mockResolvedValue(
-        mockCreatedTemplate as any,
+        mockCreatedTemplate as never,
       );
 
       const result = await service.createTemplate(mockTemplateData);
@@ -295,7 +295,7 @@ describe("QR Codes API Integration", () => {
         metadataJson: null,
         createdAt: "2023-01-01T00:00:00Z",
         updatedAt: "2023-01-01T00:00:00Z",
-      } as any);
+      } as never);
       vi.spyOn(service["qrService"], "createAuditLog").mockResolvedValue();
 
       const response = await app.request("/qr/generate", {
@@ -378,7 +378,7 @@ describe("QR Codes Performance", () => {
         metadataJson: null,
         createdAt: "2023-01-01T00:00:00Z",
         updatedAt: "2023-01-01T00:00:00Z",
-      } as any);
+      } as never);
       vi.spyOn(service["qrService"], "createAuditLog").mockResolvedValue();
 
       const start = performance.now();
@@ -476,7 +476,7 @@ describe("QR Codes Performance", () => {
         createdBy: 1,
         createdAt: "2023-01-01T00:00:00Z",
         updatedAt: "2023-01-01T00:00:00Z",
-      } as any);
+      } as never);
 
       const start = performance.now();
 
@@ -504,7 +504,7 @@ describe("QR Codes Performance", () => {
         metadataJson: null,
         createdAt: "2023-01-01T00:00:00Z",
         updatedAt: "2023-01-01T00:00:00Z",
-      } as any);
+      } as never);
       vi.spyOn(service["qrService"], "recordDownload").mockResolvedValue();
 
       const start = performance.now();

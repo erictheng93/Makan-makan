@@ -53,8 +53,8 @@ test.describe("性能與可存取性測試", () => {
         return new Promise<number>((resolve) => {
           const observer = new PerformanceObserver((list) => {
             const entries = list.getEntries();
-            const lastEntry = entries[entries.length - 1] as any;
-            resolve(lastEntry.startTime);
+            const lastEntry = entries[entries.length - 1];
+            resolve(lastEntry?.startTime ?? 0);
             observer.disconnect();
           });
           observer.observe({
@@ -255,9 +255,11 @@ test.describe("性能與可存取性測試", () => {
 
       // 獲取初始記憶體使用
       const initialMemory = await page.evaluate(() => {
-        return (performance as any).memory
-          ? (performance as any).memory.usedJSHeapSize
-          : 0;
+        type PerformanceWithMemory = Performance & {
+          memory?: { usedJSHeapSize: number };
+        };
+        const memory = (performance as PerformanceWithMemory).memory;
+        return memory ? memory.usedJSHeapSize : 0;
       });
 
       // 模擬用戶操作
@@ -269,8 +271,10 @@ test.describe("性能與可存取性測試", () => {
 
       // 觸發垃圾回收（如果支援）
       await page.evaluate(() => {
-        if ((window as any).gc) {
-          (window as any).gc();
+        type WindowWithGc = Window & { gc?: () => void };
+        const gc = (window as WindowWithGc).gc;
+        if (gc) {
+          gc();
         }
       });
 
@@ -278,9 +282,11 @@ test.describe("性能與可存取性測試", () => {
 
       // 檢查最終記憶體使用
       const finalMemory = await page.evaluate(() => {
-        return (performance as any).memory
-          ? (performance as any).memory.usedJSHeapSize
-          : 0;
+        type PerformanceWithMemory = Performance & {
+          memory?: { usedJSHeapSize: number };
+        };
+        const memory = (performance as PerformanceWithMemory).memory;
+        return memory ? memory.usedJSHeapSize : 0;
       });
 
       if (initialMemory > 0 && finalMemory > 0) {
@@ -297,16 +303,18 @@ test.describe("性能與可存取性測試", () => {
 
       // 開始性能監控
       await page.evaluate(() => {
-        (window as any).scrollFrames = [];
+        type WindowWithScrollFrames = Window & { scrollFrames: number[] };
+        const metricsWindow = window as WindowWithScrollFrames;
+        metricsWindow.scrollFrames = [];
 
         let lastTime = performance.now();
         function measureFrame() {
           const currentTime = performance.now();
           const delta = currentTime - lastTime;
-          (window as any).scrollFrames.push(delta);
+          metricsWindow.scrollFrames.push(delta);
           lastTime = currentTime;
 
-          if ((window as any).scrollFrames.length < 60) {
+          if (metricsWindow.scrollFrames.length < 60) {
             // 監控 60 幀
             requestAnimationFrame(measureFrame);
           }
@@ -321,7 +329,8 @@ test.describe("性能與可存取性測試", () => {
 
       // 分析幀率
       const frameData = await page.evaluate(() => {
-        const frames = (window as any).scrollFrames || [];
+        type WindowWithScrollFrames = Window & { scrollFrames?: number[] };
+        const frames = (window as WindowWithScrollFrames).scrollFrames ?? [];
         const avgFrameTime =
           frames.reduce((a: number, b: number) => a + b, 0) / frames.length;
         const fps = 1000 / avgFrameTime;

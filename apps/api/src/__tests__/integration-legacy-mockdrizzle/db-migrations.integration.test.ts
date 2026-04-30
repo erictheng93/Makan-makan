@@ -23,6 +23,10 @@ const MIGRATIONS_DIR = join(
 
 const EXPECTED_MIGRATION_COUNT = 14;
 
+type SqlJsDatabaseWithFunctions = Database & {
+  create_function(name: string, fn: (arg: string | null) => number): void;
+};
+
 /** All .sql files sorted by name (0000..0013) */
 function getMigrationFiles(): string[] {
   return readdirSync(MIGRATIONS_DIR)
@@ -57,12 +61,15 @@ describe("Database Migrations Integration", () => {
     sqlDb = new SQL.Database();
 
     // Register `unixepoch` -- sql.js may use an older SQLite build that lacks it.
-    (sqlDb as any).create_function("unixepoch", (arg: string | null) => {
-      if (arg === "now" || arg === null) {
-        return Math.floor(Date.now() / 1000);
-      }
-      return Math.floor(new Date(arg).getTime() / 1000);
-    });
+    (sqlDb as SqlJsDatabaseWithFunctions).create_function(
+      "unixepoch",
+      (arg: string | null) => {
+        if (arg === "now" || arg === null) {
+          return Math.floor(Date.now() / 1000);
+        }
+        return Math.floor(new Date(arg).getTime() / 1000);
+      },
+    );
   });
 
   // -----------------------------------------------------------------------

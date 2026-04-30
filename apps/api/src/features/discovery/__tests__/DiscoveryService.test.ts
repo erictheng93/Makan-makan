@@ -149,7 +149,7 @@ describe("DiscoveryService", () => {
     vi.clearAllMocks();
     mockD1 = createMockD1();
     mockKV = createMockKV();
-    service = new DiscoveryService(mockD1 as any, mockKV as any);
+    service = new DiscoveryService(mockD1 as never, mockKV as never);
   });
 
   describe("searchDishes", () => {

@@ -106,7 +106,10 @@ describe("Ingredient Routes", () => {
     app = new Hono();
     // Inject mock env bindings so c.env.DB is accessible
     app.use("*", async (c, next) => {
-      (c as any).env = { DB: {}, CACHE_KV: {} };
+      (c as unknown as ApiTestContextWithEnv).env = {
+        DB: {},
+        CACHE_KV: {},
+      } as unknown as ApiTestEnv;
       await next();
     });
     app.route("/", routes);
@@ -116,7 +119,7 @@ describe("Ingredient Routes", () => {
       if (err instanceof ApiError) {
         return c.json(
           { success: false, error: { code: err.code, message: err.message } },
-          err.status as any,
+          err.status as never,
         );
       }
       return c.json(
@@ -133,7 +136,7 @@ describe("Ingredient Routes", () => {
     it("returns ingredient list", async () => {
       const res = await app.request("/test-restaurant", { method: "GET" });
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
 
       expect(mockIngredientService.list).toHaveBeenCalledOnce();
@@ -148,7 +151,7 @@ describe("Ingredient Routes", () => {
         body: JSON.stringify({ name: "Chicken", unit: "kg" }),
       });
       expect(res.status).toBe(201);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
       expect(body.data.ingredient).toBeDefined();
 
@@ -160,7 +163,7 @@ describe("Ingredient Routes", () => {
     it("returns a single ingredient", async () => {
       const res = await app.request("/test-restaurant/1", { method: "GET" });
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
 
       expect(mockIngredientService.get).toHaveBeenCalledOnce();
@@ -215,7 +218,7 @@ describe("Ingredient Routes", () => {
         method: "GET",
       });
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
 
       expect(mockIngredientService.getCategories).toHaveBeenCalledOnce();
@@ -228,7 +231,7 @@ describe("Ingredient Routes", () => {
         method: "GET",
       });
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
 
       expect(mockRecipeService.getRecipe).toHaveBeenCalledOnce();
@@ -258,7 +261,7 @@ describe("Ingredient Routes", () => {
         method: "POST",
       });
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
 
       expect(mockRecipeService.validateRecipe).toHaveBeenCalledOnce();

@@ -87,7 +87,7 @@ describe("Orders + Realtime Integration", () => {
         set: vi.fn().mockResolvedValue(undefined),
         put: vi.fn().mockResolvedValue(undefined),
         delete: vi.fn().mockResolvedValue(true),
-      } as any,
+      } as never,
     }) as unknown as Env;
 
     // Create service instance
@@ -103,7 +103,7 @@ describe("Orders + Realtime Integration", () => {
       error: vi.fn(),
       warn: vi.fn(),
       debug: vi.fn(),
-    } as any;
+    } as never;
   });
 
   describe("createOrder - Realtime Integration", () => {
@@ -249,7 +249,7 @@ describe("Orders + Realtime Integration", () => {
         restaurantId: "3",
         tableId: 30,
         orderNumber: "#003",
-        status: currentStatus as any,
+        status: currentStatus as never,
         totalAmount: 1500,
         subtotal: 1500,
         paymentStatus: 0,
@@ -260,7 +260,7 @@ describe("Orders + Realtime Integration", () => {
 
       const updatedOrder = {
         ...currentOrder,
-        status: newStatus as any,
+        status: newStatus as never,
         updatedAt: new Date().toISOString(),
       };
 
@@ -268,7 +268,7 @@ describe("Orders + Realtime Integration", () => {
       mockOrderService.updateOrderStatus.mockResolvedValue(updatedOrder);
 
       const result = await ordersService.updateOrderStatus(orderId, {
-        status: newStatus as any,
+        status: newStatus as never,
         notes,
       });
 
@@ -297,7 +297,7 @@ describe("Orders + Realtime Integration", () => {
         restaurantId: "4",
         tableId: 40,
         orderNumber: "#004",
-        status: "confirmed" as any,
+        status: "confirmed" as never,
         totalAmount: 3000,
         subtotal: 3000,
         paymentStatus: 0,
@@ -309,7 +309,7 @@ describe("Orders + Realtime Integration", () => {
 
       await ordersService.broadcastOrderUpdate({
         orderId: 4,
-        newStatus: "confirmed" as any,
+        newStatus: "confirmed" as never,
         previousStatus: "pending" as OrderStatus,
         notes: "Order confirmed",
         updatedBy: 1,
@@ -326,7 +326,7 @@ describe("Orders + Realtime Integration", () => {
 
       await ordersService.broadcastOrderUpdate({
         orderId: 999,
-        newStatus: "confirmed" as any,
+        newStatus: "confirmed" as never,
         previousStatus: "pending" as OrderStatus,
         updatedBy: 1,
         updatedAt: new Date(),

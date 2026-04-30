@@ -20,7 +20,7 @@ function createMockDb() {
   return {
     select: vi.fn(() => ({
       from: fromFn,
-    })) as any,
+    })),
     insert: vi.fn(() => ({
       values: valuesFn,
     })),
@@ -57,7 +57,7 @@ describe("FeedbackService", () => {
     resetAllFactories();
     vi.clearAllMocks();
     mockDb = createMockDb();
-    service = new FeedbackService({} as any, {
+    service = new FeedbackService({} as D1Database, {
       JWT_SECRET: "test-secret",
       NODE_ENV: "test",
       MOCK_DRIZZLE_DB: mockDb,
@@ -202,7 +202,7 @@ describe("FeedbackService", () => {
       const leftJoin2 = vi.fn(() => ({ where: whereFn }));
       const leftJoin1 = vi.fn(() => ({ leftJoin: leftJoin2 }));
       const fromFn = vi.fn(() => ({ leftJoin: leftJoin1 }));
-      mockDb.select.mockReturnValueOnce({ from: fromFn });
+      mockDb.select.mockReturnValueOnce({ from: fromFn } as never);
 
       // Second select (getResponses — called internally)
       const respOrderBy = vi.fn(() => [
@@ -219,7 +219,7 @@ describe("FeedbackService", () => {
       const respWhere = vi.fn(() => ({ orderBy: respOrderBy }));
       const respLeftJoin = vi.fn(() => ({ where: respWhere }));
       const respFrom = vi.fn(() => ({ leftJoin: respLeftJoin }));
-      mockDb.select.mockReturnValueOnce({ from: respFrom });
+      mockDb.select.mockReturnValueOnce({ from: respFrom } as never);
 
       const result = await service.getFeedbackById(1);
 
@@ -247,14 +247,14 @@ describe("FeedbackService", () => {
       const leftJoin2 = vi.fn(() => ({ where: whereFn }));
       const leftJoin1 = vi.fn(() => ({ leftJoin: leftJoin2 }));
       const fromFn = vi.fn(() => ({ leftJoin: leftJoin1 }));
-      mockDb.select.mockReturnValueOnce({ from: fromFn });
+      mockDb.select.mockReturnValueOnce({ from: fromFn } as never);
 
       // Empty responses
       const respOrderBy = vi.fn(() => []);
       const respWhere = vi.fn(() => ({ orderBy: respOrderBy }));
       const respLeftJoin = vi.fn(() => ({ where: respWhere }));
       const respFrom = vi.fn(() => ({ leftJoin: respLeftJoin }));
-      mockDb.select.mockReturnValueOnce({ from: respFrom });
+      mockDb.select.mockReturnValueOnce({ from: respFrom } as never);
 
       const result = await service.getFeedbackById(1);
 
@@ -301,7 +301,9 @@ describe("FeedbackService", () => {
 
       await service.updateFeedbackStatus(1, "closed");
 
-      const setArg = (mockDb._set.mock.calls[0] as any[])[0];
+      const setArg = (
+        mockDb._set.mock.calls as unknown as Array<[Record<string, unknown>]>
+      )[0][0];
       expect(setArg.resolvedAt).toBeUndefined();
       expect(setArg.resolvedBy).toBeUndefined();
     });
@@ -363,7 +365,9 @@ describe("FeedbackService", () => {
 
       await service.updateFeedback(1, { priority: "high" }, 1, true);
 
-      const setArg = (mockDb._set.mock.calls[0] as any[])[0];
+      const setArg = (
+        mockDb._set.mock.calls as unknown as Array<[Record<string, unknown>]>
+      )[0][0];
       expect(setArg.priority).toBe("high");
       expect(setArg.subject).toBeUndefined();
       expect(setArg.description).toBeUndefined();
@@ -456,7 +460,7 @@ describe("FeedbackService", () => {
       };
 
       // update (updatedAt)
-      mockDb._where.mockReturnValueOnce(undefined as any);
+      mockDb._where.mockReturnValueOnce(undefined as never);
       // insert response
       mockDb._returning.mockResolvedValue([expected]);
 
@@ -481,7 +485,7 @@ describe("FeedbackService", () => {
     });
 
     it("supports internal notes", async () => {
-      mockDb._where.mockReturnValueOnce(undefined as any);
+      mockDb._where.mockReturnValueOnce(undefined as never);
       mockDb._returning.mockResolvedValue([
         { id: 11, isInternal: true, message: "Internal note" },
       ]);
@@ -619,7 +623,7 @@ describe("FeedbackService", () => {
       const totalFrom = vi.fn(() => ({
         where: vi.fn(() => [{ total: 10 }]),
       }));
-      mockDb.select.mockReturnValueOnce({ from: totalFrom } as any);
+      mockDb.select.mockReturnValueOnce({ from: totalFrom } as never);
 
       // status stats
       const statusFrom = vi.fn(() => ({
@@ -630,7 +634,7 @@ describe("FeedbackService", () => {
           ]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: statusFrom } as any);
+      mockDb.select.mockReturnValueOnce({ from: statusFrom } as never);
 
       // category stats
       const categoryFrom = vi.fn(() => ({
@@ -641,7 +645,7 @@ describe("FeedbackService", () => {
           ]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: categoryFrom } as any);
+      mockDb.select.mockReturnValueOnce({ from: categoryFrom } as never);
 
       // priority stats
       const priorityFrom = vi.fn(() => ({
@@ -652,13 +656,13 @@ describe("FeedbackService", () => {
           ]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: priorityFrom } as any);
+      mockDb.select.mockReturnValueOnce({ from: priorityFrom } as never);
 
       // avg resolution
       const avgFrom = vi.fn(() => ({
         where: vi.fn(() => [{ avgMs: 86400000 }]),
       }));
-      mockDb.select.mockReturnValueOnce({ from: avgFrom } as any);
+      mockDb.select.mockReturnValueOnce({ from: avgFrom } as never);
 
       const result = await service.getFeedbackStats();
 
@@ -676,33 +680,33 @@ describe("FeedbackService", () => {
       const totalFrom = vi.fn(() => ({
         where: vi.fn(() => [{ total: 3 }]),
       }));
-      mockDb.select.mockReturnValueOnce({ from: totalFrom });
+      mockDb.select.mockReturnValueOnce({ from: totalFrom } as never);
 
       const statusFrom = vi.fn(() => ({
         where: vi.fn(() => ({
           groupBy: vi.fn(() => [{ status: "open", count: 3 }]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: statusFrom });
+      mockDb.select.mockReturnValueOnce({ from: statusFrom } as never);
 
       const categoryFrom = vi.fn(() => ({
         where: vi.fn(() => ({
           groupBy: vi.fn(() => [{ category: "bug_report", count: 3 }]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: categoryFrom });
+      mockDb.select.mockReturnValueOnce({ from: categoryFrom } as never);
 
       const priorityFrom = vi.fn(() => ({
         where: vi.fn(() => ({
           groupBy: vi.fn(() => [{ priority: "medium", count: 3 }]),
         })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: priorityFrom });
+      mockDb.select.mockReturnValueOnce({ from: priorityFrom } as never);
 
       const avgFrom = vi.fn(() => ({
         where: vi.fn(() => [{ avgMs: null }]),
       }));
-      mockDb.select.mockReturnValueOnce({ from: avgFrom });
+      mockDb.select.mockReturnValueOnce({ from: avgFrom } as never);
 
       const result = await service.getFeedbackStats();
 
@@ -714,19 +718,19 @@ describe("FeedbackService", () => {
       const totalFrom = vi.fn(() => ({
         where: vi.fn(() => [{ total: 2 }]),
       }));
-      mockDb.select.mockReturnValueOnce({ from: totalFrom });
+      mockDb.select.mockReturnValueOnce({ from: totalFrom } as never);
 
       const emptyGroupBy = vi.fn(() => ({
         where: vi.fn(() => ({ groupBy: vi.fn(() => []) })),
       }));
-      mockDb.select.mockReturnValueOnce({ from: emptyGroupBy });
-      mockDb.select.mockReturnValueOnce({ from: emptyGroupBy });
-      mockDb.select.mockReturnValueOnce({ from: emptyGroupBy });
+      mockDb.select.mockReturnValueOnce({ from: emptyGroupBy } as never);
+      mockDb.select.mockReturnValueOnce({ from: emptyGroupBy } as never);
+      mockDb.select.mockReturnValueOnce({ from: emptyGroupBy } as never);
 
       const avgFrom = vi.fn(() => ({
         where: vi.fn(() => [{ avgMs: null }]),
       }));
-      mockDb.select.mockReturnValueOnce({ from: avgFrom });
+      mockDb.select.mockReturnValueOnce({ from: avgFrom } as never);
 
       const result = await service.getFeedbackStats("rest-1");
 
@@ -757,12 +761,12 @@ describe("FeedbackService", () => {
       const leftJoin2 = vi.fn(() => ({ where: whereFn }));
       const leftJoin1 = vi.fn(() => ({ leftJoin: leftJoin2 }));
       const fromFn = vi.fn(() => ({ leftJoin: leftJoin1 }));
-      mockDb.select.mockReturnValueOnce({ from: fromFn });
+      mockDb.select.mockReturnValueOnce({ from: fromFn } as never);
 
       // Count query
       const countWhere = vi.fn(() => [{ total: 1 }]);
       const countFrom = vi.fn(() => ({ where: countWhere }));
-      mockDb.select.mockReturnValueOnce({ from: countFrom });
+      mockDb.select.mockReturnValueOnce({ from: countFrom } as never);
 
       const result = await service.listFeedback({}, 1, 20, false);
 
@@ -794,11 +798,11 @@ describe("FeedbackService", () => {
       const leftJoin2 = vi.fn(() => ({ where: whereFn }));
       const leftJoin1 = vi.fn(() => ({ leftJoin: leftJoin2 }));
       const fromFn = vi.fn(() => ({ leftJoin: leftJoin1 }));
-      mockDb.select.mockReturnValueOnce({ from: fromFn });
+      mockDb.select.mockReturnValueOnce({ from: fromFn } as never);
 
       const countWhere = vi.fn(() => [{ total: 1 }]);
       const countFrom = vi.fn(() => ({ where: countWhere }));
-      mockDb.select.mockReturnValueOnce({ from: countFrom });
+      mockDb.select.mockReturnValueOnce({ from: countFrom } as never);
 
       const result = await service.listFeedback({}, 1, 20);
 
@@ -813,11 +817,11 @@ describe("FeedbackService", () => {
       const leftJoin2 = vi.fn(() => ({ where: whereFn }));
       const leftJoin1 = vi.fn(() => ({ leftJoin: leftJoin2 }));
       const fromFn = vi.fn(() => ({ leftJoin: leftJoin1 }));
-      mockDb.select.mockReturnValueOnce({ from: fromFn });
+      mockDb.select.mockReturnValueOnce({ from: fromFn } as never);
 
       const countWhere = vi.fn(() => [{ total: 45 }]);
       const countFrom = vi.fn(() => ({ where: countWhere }));
-      mockDb.select.mockReturnValueOnce({ from: countFrom });
+      mockDb.select.mockReturnValueOnce({ from: countFrom } as never);
 
       const result = await service.listFeedback({}, 1, 20);
 

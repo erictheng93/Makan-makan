@@ -160,7 +160,7 @@ class MockWebSocketImpl implements MockWebSocketInstance {
 
     const handlerName = `on${type}` as keyof this;
     if (typeof this[handlerName] === "function") {
-      (this[handlerName] as any)(event);
+      (this[handlerName] as (event: Event) => void)(event);
     }
   }
 
@@ -176,7 +176,7 @@ class MockWebSocketImpl implements MockWebSocketInstance {
   mockError(error?: any): void {
     const errorEvent = new Event("error");
     if (error) {
-      (errorEvent as any).error = error;
+      (errorEvent as Event & { error?: unknown }).error = error;
     }
     this.dispatchEvent(errorEvent);
   }

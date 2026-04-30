@@ -57,7 +57,7 @@ function attachOnError(honoApp: Hono): void {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -77,7 +77,7 @@ function attachOnError(honoApp: Hono): void {
           message: sanitized.message,
         },
       },
-      (STATUS_MAP[sanitized.type] ?? 500) as any,
+      (STATUS_MAP[sanitized.type] ?? 500) as never,
     );
   });
 }

@@ -48,7 +48,7 @@ function withErrorHandler(app: Hono<any>): void {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -171,7 +171,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -228,7 +228,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -278,7 +278,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
         it("should reject unauthenticated access with 401", async () => {
           const req = makeRequest(path, method);
           const res = await app.request(req, undefined, mockEnv);
-          const body = (await res.json()) as any;
+          const body = (await res.json()) as ApiTestResponse;
 
           expect(res.status).toBe(401);
           expect(body.success).toBe(false);
@@ -293,7 +293,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
             const res = await app.request(req, undefined, mockEnv);
 
             expect([200, 201]).toContain(res.status);
-            const body = (await res.json()) as any;
+            const body = (await res.json()) as ApiTestResponse;
             expect(body.success).toBe(true);
           },
         );
@@ -312,7 +312,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -351,7 +351,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
           const res = await app.request(req, undefined, mockEnv);
 
           expect(res.status).toBe(401);
-          const body = (await res.json()) as any;
+          const body = (await res.json()) as ApiTestResponse;
           expect(body.success).toBe(false);
         });
 
@@ -361,7 +361,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
           const res = await app.request(req, undefined, mockEnv);
 
           expect(res.status).toBe(200);
-          const body = (await res.json()) as any;
+          const body = (await res.json()) as ApiTestResponse;
           expect(body.success).toBe(true);
         });
 
@@ -373,7 +373,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
             const res = await app.request(req, undefined, mockEnv);
 
             expect(res.status).toBe(403);
-            const body = (await res.json()) as any;
+            const body = (await res.json()) as ApiTestResponse;
             expect(body.success).toBe(false);
             expect(body.error.code).toBe("INSUFFICIENT_ROLE");
             expect(body.error.message).toBe("Insufficient permissions");
@@ -394,7 +394,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -474,7 +474,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
           const res = await app.request(req, undefined, mockEnv);
 
           expect(res.status).toBe(401);
-          const body = (await res.json()) as any;
+          const body = (await res.json()) as ApiTestResponse;
           expect(body.success).toBe(false);
         });
 
@@ -484,7 +484,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
           const res = await app.request(req, undefined, mockEnv);
 
           expect([200, 201]).toContain(res.status);
-          const body = (await res.json()) as any;
+          const body = (await res.json()) as ApiTestResponse;
           expect(body.success).toBe(true);
         });
 
@@ -494,7 +494,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
           const res = await app.request(req, undefined, mockEnv);
 
           expect([200, 201]).toContain(res.status);
-          const body = (await res.json()) as any;
+          const body = (await res.json()) as ApiTestResponse;
           expect(body.success).toBe(true);
         });
 
@@ -506,7 +506,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
             const res = await app.request(req, undefined, mockEnv);
 
             expect(res.status).toBe(403);
-            const body = (await res.json()) as any;
+            const body = (await res.json()) as ApiTestResponse;
             expect(body.success).toBe(false);
             expect(body.error.code).toBe("INSUFFICIENT_ROLE");
           },
@@ -526,7 +526,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -554,7 +554,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
     });
 
@@ -564,7 +564,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
     });
 
@@ -580,7 +580,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
         const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(403);
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.error.code).toBe("INSUFFICIENT_ROLE");
       },
     );
@@ -597,7 +597,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -631,7 +631,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
     });
 
@@ -645,7 +645,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(true);
     });
 
@@ -659,7 +659,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(403);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.error.code).toBe("FORBIDDEN");
       expect(body.error.message).toBe("Access denied to this restaurant");
     });
@@ -676,7 +676,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
         const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(403);
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.error.code).toBe("INSUFFICIENT_ROLE");
       },
     );
@@ -693,7 +693,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -722,7 +722,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
         const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(200);
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.success).toBe(true);
       },
     );
@@ -742,7 +742,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -827,7 +827,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
         const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(403);
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.error.message).toBe("Access denied to this restaurant");
       });
 
@@ -872,7 +872,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
           const res = await app.request(req, undefined, mockEnv);
 
           expect(res.status).toBe(403);
-          const body = (await res.json()) as any;
+          const body = (await res.json()) as ApiTestResponse;
           expect(body.error.message).toBe("Access denied to this restaurant");
         },
       );
@@ -905,7 +905,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -933,7 +933,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
         const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(403);
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.error.code).toBe("INSUFFICIENT_ROLE");
       });
 
@@ -997,7 +997,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
         const res = await app.request(req, undefined, mockEnv);
 
         expect(res.status).toBe(403);
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.error.code).toBe("INSUFFICIENT_ROLE");
       });
     });
@@ -1014,7 +1014,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -1268,7 +1268,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
                 const res = await app.request(req, undefined, mockEnv);
 
                 expect(res.status).toBeLessThan(400);
-                const body = (await res.json()) as any;
+                const body = (await res.json()) as ApiTestResponse;
                 expect(body.success).toBe(true);
               });
             } else {
@@ -1278,7 +1278,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
                 const res = await app.request(req, undefined, mockEnv);
 
                 expect(res.status).toBe(403);
-                const body = (await res.json()) as any;
+                const body = (await res.json()) as ApiTestResponse;
                 expect(body.success).toBe(false);
                 expect(body.error.code).toBe("INSUFFICIENT_ROLE");
               });
@@ -1300,7 +1300,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -1320,7 +1320,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.error.message).toBe("Invalid role in token");
     });
 
@@ -1335,7 +1335,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.error.message).toBe("Invalid role in token");
     });
 
@@ -1350,7 +1350,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.error.message).toBe("Invalid token claims");
     });
 
@@ -1368,7 +1368,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
 
       // authMiddleware 通過 (0 <= 0.5 <= 4)，但 requireRole([0,1]) 拒絕 0.5
       expect(res.status).toBe(403);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.error.code).toBe("INSUFFICIENT_ROLE");
     });
 
@@ -1427,7 +1427,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.error.message).toBe("Token has been invalidated");
     });
   });
@@ -1443,7 +1443,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -1491,7 +1491,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -1510,7 +1510,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(403);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       // 確認是 INSUFFICIENT_ROLE 而非 FORBIDDEN (餐廳存取拒絕)
       expect(body.error.code).toBe("INSUFFICIENT_ROLE");
     });
@@ -1519,7 +1519,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const app = new Hono();
       withErrorHandler(app);
       app.use("*", async (c, next) => {
-        (c as any).env = mockEnv;
+        (c as unknown as ApiTestContextWithEnv).env = mockEnv;
         await next();
       });
 
@@ -1531,7 +1531,7 @@ describe("Authorization Matrix (授權矩陣)", () => {
       const res = await app.request(req, undefined, mockEnv);
 
       expect(res.status).toBe(401);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       // 確認是認證錯誤而非角色錯誤
       expect(body.error.code).toBe("MISSING_AUTH_HEADER");
     });

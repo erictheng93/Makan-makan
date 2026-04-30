@@ -109,7 +109,7 @@ describe("pagination-helpers", () => {
     });
 
     it("should apply where clause when provided", async () => {
-      const whereClause = {} as any;
+      const whereClause = {};
       const { db, fromResult } = createCountDb(10);
 
       await getTotalCount(db, {}, whereClause);

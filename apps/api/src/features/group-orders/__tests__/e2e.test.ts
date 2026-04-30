@@ -292,7 +292,7 @@ describe("Group Orders E2E Tests", () => {
       });
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -355,7 +355,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       shareCode = createData.data.shareCode;
       groupOrderId = createData.data.groupOrderId;
     });
@@ -377,7 +377,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -400,7 +400,7 @@ describe("Group Orders E2E Tests", () => {
       });
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
       expect(data.error.message).toMatch(/not found|expired/i);
     });
@@ -432,7 +432,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
       expect(data.error.message).toMatch(/already exists/i);
     });
@@ -468,7 +468,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
       expect(data.error.message).toMatch(/full/i);
     });
@@ -492,7 +492,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       groupOrderId = createData.data.groupOrderId;
       const shareCode = createData.data.shareCode;
 
@@ -510,7 +510,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const joinData = (await joinResponse.json()) as any;
+      const joinData = (await joinResponse.json()) as ApiTestResponse;
       memberId = joinData.data.member.memberId;
     });
 
@@ -536,7 +536,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -567,7 +567,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
     });
 
@@ -588,7 +588,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
       expect(data.error.message).toMatch(/not found/i);
     });
@@ -632,7 +632,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       groupOrderId = createData.data.groupOrderId;
       const shareCode = createData.data.shareCode;
 
@@ -649,7 +649,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const joinData = (await joinResponse.json()) as any;
+      const joinData = (await joinResponse.json()) as ApiTestResponse;
       memberId = joinData.data.member.memberId;
 
       // Add item to cart
@@ -668,7 +668,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const addData = (await addResponse.json()) as any;
+      const addData = (await addResponse.json()) as ApiTestResponse;
       itemId = addData.data.itemId;
     });
 
@@ -687,7 +687,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -713,7 +713,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data.customizations).toEqual({ spiceLevel: "hot" });
@@ -737,7 +737,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
       expect(data.error.message).toMatch(/not found/i);
     });
@@ -762,7 +762,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       groupOrderId = createData.data.groupOrderId;
       const shareCode = createData.data.shareCode;
 
@@ -779,7 +779,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const joinData = (await joinResponse.json()) as any;
+      const joinData = (await joinResponse.json()) as ApiTestResponse;
       memberId = joinData.data.member.memberId;
 
       const addResponse = await app.request(
@@ -797,7 +797,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const addData = (await addResponse.json()) as any;
+      const addData = (await addResponse.json()) as ApiTestResponse;
       itemId = addData.data.itemId;
     });
 
@@ -816,7 +816,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.message).toMatch(/removed successfully/i);
@@ -839,7 +839,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
       expect(data.error.message).toMatch(/not found|not owned/i);
     });
@@ -863,7 +863,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       groupOrderId = createData.data.groupOrderId;
       const shareCode = createData.data.shareCode;
 
@@ -880,7 +880,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const joinData = (await joinResponse.json()) as any;
+      const joinData = (await joinResponse.json()) as ApiTestResponse;
       memberId = joinData.data.member.memberId;
 
       // Add item to cart
@@ -909,7 +909,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -936,7 +936,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(404);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
       expect(data.error.message).toMatch(/not found/i);
     });
@@ -959,7 +959,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       groupOrderId = createData.data.groupOrderId;
       const shareCode = createData.data.shareCode;
 
@@ -997,7 +997,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeInstanceOf(Array);
@@ -1023,7 +1023,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       const activities = data.data;
 
       // Check timestamps are in descending order
@@ -1054,7 +1054,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       groupOrderId = createData.data.groupOrderId;
       const shareCode = createData.data.shareCode;
 
@@ -1072,7 +1072,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const join1Data = (await join1Response.json()) as any;
+      const join1Data = (await join1Response.json()) as ApiTestResponse;
       member1Id = join1Data.data.member.memberId;
 
       await app.request(`/api/v1/orders/group/${groupOrderId}/cart`, {
@@ -1101,7 +1101,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const join2Data = (await join2Response.json()) as any;
+      const join2Data = (await join2Response.json()) as ApiTestResponse;
       member2Id = join2Data.data.member.memberId;
 
       await app.request(`/api/v1/orders/group/${groupOrderId}/cart`, {
@@ -1134,7 +1134,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -1157,7 +1157,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
     });
@@ -1181,7 +1181,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
     });
@@ -1205,7 +1205,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       groupOrderId = createData.data.groupOrderId;
       const shareCode = createData.data.shareCode;
 
@@ -1222,7 +1222,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const joinData = (await joinResponse.json()) as any;
+      const joinData = (await joinResponse.json()) as ApiTestResponse;
       memberId = joinData.data.member.memberId;
 
       await app.request(`/api/v1/orders/group/${groupOrderId}/cart`, {
@@ -1268,7 +1268,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -1310,7 +1310,7 @@ describe("Group Orders E2E Tests", () => {
         }),
       });
 
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       groupOrderId = createData.data.groupOrderId;
       const shareCode = createData.data.shareCode;
 
@@ -1327,7 +1327,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const joinData = (await joinResponse.json()) as any;
+      const joinData = (await joinResponse.json()) as ApiTestResponse;
       memberId = joinData.data.member.memberId;
     });
 
@@ -1343,7 +1343,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.message).toMatch(/left group/i);
@@ -1361,7 +1361,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(400);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
     });
   });
@@ -1394,7 +1394,7 @@ describe("Group Orders E2E Tests", () => {
       });
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -1414,7 +1414,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(200);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
 
       expect(data.success).toBe(true);
       expect(data.data).toBeDefined();
@@ -1444,7 +1444,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(response.status).toBe(403);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
       expect(data.error.message).toMatch(/access denied/i);
     });
@@ -1467,7 +1467,7 @@ describe("Group Orders E2E Tests", () => {
       });
 
       expect(createResponse.status).toBe(200);
-      const createData = (await createResponse.json()) as any;
+      const createData = (await createResponse.json()) as ApiTestResponse;
       const { groupOrderId, shareCode } = createData.data;
 
       // Step 2: Two members join
@@ -1484,7 +1484,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const member1Data = (await member1Response.json()) as any;
+      const member1Data = (await member1Response.json()) as ApiTestResponse;
       const member1Id = member1Data.data.member.memberId;
 
       const member2Response = await app.request(
@@ -1500,7 +1500,7 @@ describe("Group Orders E2E Tests", () => {
         },
       );
 
-      const member2Data = (await member2Response.json()) as any;
+      const member2Data = (await member2Response.json()) as ApiTestResponse;
       const member2Id = member2Data.data.member.memberId;
 
       // Step 3: Members add items to cart
@@ -1537,7 +1537,7 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(detailsResponse.status).toBe(200);
-      const detailsData = (await detailsResponse.json()) as any;
+      const detailsData = (await detailsResponse.json()) as ApiTestResponse;
       expect(detailsData.data.members.length).toBe(3); // Host + 2 members
       expect(detailsData.data.cartItems.length).toBe(2);
       expect(detailsData.data.totalAmount).toBe(450.0); // (150 * 2) + (150 * 1)
@@ -1598,7 +1598,8 @@ describe("Group Orders E2E Tests", () => {
       );
 
       expect(activitiesResponse.status).toBe(200);
-      const activitiesData = (await activitiesResponse.json()) as any;
+      const activitiesData =
+        (await activitiesResponse.json()) as ApiTestResponse;
       expect(activitiesData.data.length).toBeGreaterThanOrEqual(6); // Creation, 2 joins, 2 items added, split
     });
   });

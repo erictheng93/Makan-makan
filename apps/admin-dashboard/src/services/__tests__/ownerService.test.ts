@@ -36,7 +36,7 @@ describe("ownerService", () => {
     };
     vi.mocked(api.get).mockResolvedValue({
       data: { success: true, data: dashboard },
-    } as any);
+    } as never);
 
     const result = await ownerService.getDashboardData("r1");
 
@@ -56,7 +56,7 @@ describe("ownerService", () => {
     };
     vi.mocked(api.get).mockResolvedValue({
       data: { success: true, data: dashboard },
-    } as any);
+    } as never);
 
     await ownerService.getDashboardData();
 
@@ -72,7 +72,7 @@ describe("ownerService", () => {
         success: false,
         error: { message: "Not allowed" },
       },
-    } as any);
+    } as never);
 
     await expect(ownerService.getDashboardData("r1")).rejects.toThrow(
       "Not allowed",
@@ -88,7 +88,7 @@ describe("ownerService", () => {
     };
     vi.mocked(api.get).mockResolvedValue({
       data: { success: true, data: report },
-    } as any);
+    } as never);
 
     const result = await ownerService.getFinancialReport({
       restaurantId: "r1",
@@ -111,7 +111,7 @@ describe("ownerService", () => {
         success: true,
         data: { active_orders: activeOrders },
       },
-    } as any);
+    } as never);
 
     const result = await ownerService.getRealtimeOrders("r1");
 
@@ -140,7 +140,7 @@ describe("ownerService", () => {
           },
         ],
       },
-    } as any);
+    } as never);
 
     const result = await ownerService.getStaffActivity("r1");
 
@@ -173,7 +173,7 @@ describe("ownerService", () => {
   });
 
   it("posts emergency alert actions through the shared API client", async () => {
-    vi.mocked(api.post).mockResolvedValue({ data: { success: true } } as any);
+    vi.mocked(api.post).mockResolvedValue({ data: { success: true } } as never);
 
     await ownerService.resolveEmergencyAlert(42);
     await ownerService.escalateEmergencyAlert(42);

@@ -107,15 +107,37 @@ export interface PerformanceMonitorOptions {
   debug?: boolean;
 }
 
-type PerformanceWithTiming = Performance & {
-  readonly timing?: PerformanceTiming;
+type BrowserPerformanceTiming = {
+  readonly requestStart: number;
+  readonly responseStart: number;
 };
 
-type FirstInputPerformanceEntry = PerformanceEntry & {
+type BrowserPerformanceEntry = {
+  readonly name: string;
+  readonly entryType: string;
+  readonly startTime: number;
+  readonly duration: number;
+};
+
+type BrowserResourceTiming = BrowserPerformanceEntry & {
+  readonly transferSize?: number;
+};
+
+type PerformanceWithBrowserApis = Performance & {
+  readonly timing?: BrowserPerformanceTiming;
+  mark?: (name: string) => void;
+  measure?: (name: string, startMark: string, endMark: string) => void;
+  getEntriesByName?: (name: string, type?: string) => BrowserPerformanceEntry[];
+  getEntriesByType?: (type: string) => BrowserPerformanceEntry[];
+  clearMarks?: () => void;
+  clearMeasures?: () => void;
+};
+
+type FirstInputPerformanceEntry = BrowserPerformanceEntry & {
   readonly processingStart: number;
 };
 
-type LayoutShiftPerformanceEntry = PerformanceEntry & {
+type LayoutShiftPerformanceEntry = BrowserPerformanceEntry & {
   readonly hadRecentInput?: boolean;
   readonly value: number;
 };
@@ -201,7 +223,7 @@ export class PerformanceMonitor {
    */
   mark(name: string): void {
     if (!this.options.enabled) return;
-    performance.mark(name);
+    (performance as PerformanceWithBrowserApis).mark?.(name);
   }
 
   /**
@@ -211,8 +233,11 @@ export class PerformanceMonitor {
     if (!this.options.enabled) return;
 
     try {
-      performance.measure(name, startMark, endMark);
-      const measure = performance.getEntriesByName(name, "measure")[0];
+      const browserPerformance = performance as PerformanceWithBrowserApis;
+      browserPerformance.measure?.(name, startMark, endMark);
+      const measures =
+        browserPerformance.getEntriesByName?.(name, "measure") ?? [];
+      const measure = measures[0];
 
       if (measure) {
         this.trackMetric({
@@ -246,11 +271,12 @@ export class PerformanceMonitor {
   getResourceTimings(): ResourceTiming[] {
     if (!this.options.trackResources) return [];
 
-    const resources = performance.getEntriesByType(
-      "resource",
-    ) as PerformanceResourceTiming[];
+    const resources =
+      (performance as PerformanceWithBrowserApis).getEntriesByType?.(
+        "resource",
+      ) ?? [];
 
-    return resources.map((resource) => ({
+    return (resources as BrowserResourceTiming[]).map((resource) => ({
       name: resource.name,
       duration: resource.duration,
       size: resource.transferSize,
@@ -296,8 +322,9 @@ export class PerformanceMonitor {
   clear(): void {
     this.metrics = [];
     this.webVitals = {};
-    performance.clearMarks();
-    performance.clearMeasures();
+    const browserPerformance = performance as PerformanceWithBrowserApis;
+    browserPerformance.clearMarks?.();
+    browserPerformance.clearMeasures?.();
   }
 
   /**
@@ -397,7 +424,7 @@ export class PerformanceMonitor {
     }
 
     // Track TTFB from Navigation Timing
-    const timing = (performance as PerformanceWithTiming).timing;
+    const timing = (performance as PerformanceWithBrowserApis).timing;
     if (timing) {
       const ttfb = timing.responseStart - timing.requestStart;
       this.webVitals.TTFB = ttfb;

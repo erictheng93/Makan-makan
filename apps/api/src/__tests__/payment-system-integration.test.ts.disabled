@@ -73,7 +73,7 @@ describe('支付系統整合測試', () => {
 
   beforeAll(async () => {
     // 初始化測試環境
-    configManager = new PaymentConfigManager(mockDB as any)
+    configManager = new PaymentConfigManager(mockDB as never)
     paymentService = new PaymentService({
       database: mockDB,
       orchestratorConfig: {

@@ -5,6 +5,11 @@
 
 import { vi } from "vitest";
 
+type DynamicEventHandlers = Record<
+  string,
+  ((event: Event) => void) | null | undefined
+>;
+
 export class MockWebSocket {
   public readyState: number = WebSocket.CONNECTING;
   public url: string;
@@ -94,8 +99,9 @@ export class MockWebSocket {
 
     // 調用 on* 處理器
     const handlerName = `on${type}`;
-    if (typeof (this as any)[handlerName] === "function") {
-      (this as any)[handlerName](event);
+    const handler = (this as unknown as DynamicEventHandlers)[handlerName];
+    if (typeof handler === "function") {
+      handler(event);
     }
   }
 
@@ -121,7 +127,7 @@ export class MockWebSocket {
   mockError(error?: any): void {
     const errorEvent = new Event("error");
     if (error) {
-      (errorEvent as any).error = error;
+      (errorEvent as Event & { error?: unknown }).error = error;
     }
     this.dispatchEvent(errorEvent);
   }
@@ -223,7 +229,7 @@ export function createMockWebSocket(): MockWebSocket & {
     .fn()
     .mockImplementation((url: string, protocol?: string) => {
       return new MockWebSocket(url, protocol);
-    }) as any;
+    }) as unknown as typeof MockWebSocket;
 
   // 添加WebSocket常量
   MockWebSocketConstructor.CONNECTING = WebSocket.CONNECTING;
@@ -285,8 +291,9 @@ export class MockEventSource {
 
     // 調用 on* 處理器
     const handlerName = `on${type}`;
-    if (typeof (this as any)[handlerName] === "function") {
-      (this as any)[handlerName](event);
+    const handler = (this as unknown as DynamicEventHandlers)[handlerName];
+    if (typeof handler === "function") {
+      handler(event);
     }
   }
 
@@ -310,8 +317,8 @@ export function setupGlobalWebSocketMock(): () => void {
   const originalEventSource = global.EventSource;
 
   const mockWS = createMockWebSocket();
-  global.WebSocket = mockWS.constructor as any;
-  global.EventSource = MockEventSource as any;
+  global.WebSocket = mockWS.constructor as unknown as typeof WebSocket;
+  global.EventSource = MockEventSource as unknown as typeof EventSource;
 
   // 返回清理函數
   return () => {

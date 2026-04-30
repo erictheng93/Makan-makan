@@ -132,14 +132,18 @@ describe("OrdersService — Multi-Tenant Data Isolation", () => {
 
     const mockCouponService = { validateCoupon: vi.fn() };
 
-    (OrderService as any).mockImplementation(function () {
-      return mockBaseOrderService;
-    });
-    (CouponService as any).mockImplementation(function () {
-      return mockCouponService;
-    });
+    (OrderService as unknown as ApiTestMockedConstructor).mockImplementation(
+      function () {
+        return mockBaseOrderService;
+      },
+    );
+    (CouponService as unknown as ApiTestMockedConstructor).mockImplementation(
+      function () {
+        return mockCouponService;
+      },
+    );
 
-    service = new OrdersService(mockEnv as any);
+    service = new OrdersService(mockEnv as unknown as ApiTestEnv);
   });
 
   // ════════════════════════════════════════════════════════════════════
@@ -214,7 +218,7 @@ describe("OrdersService — Multi-Tenant Data Isolation", () => {
         await service.getOrders(
           { restaurantId: RESTAURANT_A },
           20,
-          role as any,
+          role as never,
         );
 
         const calledFilters = mockBaseOrderService.getOrders.mock.calls[0][0];

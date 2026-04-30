@@ -11,6 +11,14 @@ import {
 } from '@makanmakan/shared-types'
 import { StripeConfig } from '@makanmakan/shared-types'
 
+type StripeProviderTestAccess = StripeProvider & {
+  convertToStripeAmount(amount: number, currency: string): number
+}
+
+const asStripeProviderTest = (
+  provider: StripeProvider
+): StripeProviderTestAccess => provider as StripeProviderTestAccess
+
 // Mock Stripe SDK
 vi.mock('stripe', () => {
   const mockStripe = {
@@ -89,7 +97,7 @@ describe('StripeProvider', () => {
     }
 
     // Mock Stripe 構造函數
-    ;(Stripe as any).mockImplementation(() => mockStripe)
+    vi.mocked(Stripe).mockImplementation(() => mockStripe)
 
     stripeProvider = new StripeProvider(testConfig)
   })
@@ -257,8 +265,8 @@ describe('StripeProvider', () => {
     it('should handle unsupported country', async () => {
       const invalidRequest: PaymentRequest = {
         ...basePaymentRequest,
-        country: 'US' as any,
-        currency: 'USD' as any
+        country: 'US' as never,
+        currency: 'USD' as never
       }
 
       const result = await stripeProvider.createPayment(invalidRequest)
@@ -598,8 +606,7 @@ describe('StripeProvider', () => {
       ]
 
       testCases.forEach(({ currency, amount, expected }) => {
-        // 測試私有方法需要通過 any 類型轉換
-        const result = (stripeProvider as any).convertToStripeAmount(amount, currency)
+        const result = asStripeProviderTest(stripeProvider).convertToStripeAmount(amount, currency)
         expect(result).toBe(expected)
       })
     })
@@ -610,7 +617,7 @@ describe('StripeProvider', () => {
       ]
 
       testCases.forEach(({ currency, amount, expected }) => {
-        const result = (stripeProvider as any).convertToStripeAmount(amount, currency)
+        const result = asStripeProviderTest(stripeProvider).convertToStripeAmount(amount, currency)
         expect(result).toBe(expected)
       })
     })

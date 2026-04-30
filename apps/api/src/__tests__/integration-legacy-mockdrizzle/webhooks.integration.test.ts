@@ -130,7 +130,7 @@ describe("Uber Eats Webhook Integration Tests", () => {
     // Inject ENCRYPTION_KEY into the env for PlatformIntegrationService
     app.use("*", async (c, next) => {
       if (!c.env.ENCRYPTION_KEY) {
-        (c.env as any).ENCRYPTION_KEY =
+        (c.env as ApiTestEnv).ENCRYPTION_KEY =
           "test-encryption-key-for-webhook-integration-tests";
       }
       await next();

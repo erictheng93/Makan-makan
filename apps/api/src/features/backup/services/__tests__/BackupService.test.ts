@@ -57,7 +57,7 @@ const createChainMock = () => {
       _values = values;
       return chain;
     }),
-    then: undefined as any, // will be set below
+    then: undefined as never, // will be set below
   };
 
   return chain;
@@ -319,10 +319,10 @@ describe("BackupService", () => {
     const selectChain = setupSelectMock();
 
     service = new BackupService(
-      {} as any, // D1Database - mocked via drizzle
-      mockStorage as any,
-      mockConfig as any,
-      mockValidation as any,
+      {} as never, // D1Database - mocked via drizzle
+      mockStorage as never,
+      mockConfig as never,
+      mockValidation as never,
     );
   });
 

@@ -49,7 +49,7 @@ function buildApp(kv = createMockKV()) {
     if (err instanceof ApiError) {
       return c.json(
         { success: false, error: { code: err.code, message: err.message } },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -95,7 +95,7 @@ describe("Kitchen Notification Settings Routes", () => {
       },
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);
@@ -123,7 +123,7 @@ describe("Kitchen Notification Settings Routes", () => {
       {},
       { CACHE_KV: kv },
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json).toEqual({ success: true, data: settings });

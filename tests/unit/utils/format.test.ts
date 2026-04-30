@@ -112,8 +112,8 @@ describe("Format Utils", () => {
     });
 
     it("formatOrderStatus 處理 null/undefined", () => {
-      expect(formatOrderStatus(null as any)).toBe("未知狀態");
-      expect(formatOrderStatus(undefined as any)).toBe("未知狀態");
+      expect(formatOrderStatus(null as never)).toBe("未知狀態");
+      expect(formatOrderStatus(undefined as never)).toBe("未知狀態");
     });
   });
 });

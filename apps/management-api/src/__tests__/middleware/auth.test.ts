@@ -9,6 +9,15 @@ import {
 import { ApiError } from "@makanmakan/utils";
 
 const JWT_SECRET = "test-jwt-secret-for-auth-middleware-tests";
+const testEnv = { JWT_SECRET } as ManagementEnv;
+
+type ManagementAuthResponse = {
+  success: boolean;
+  error: {
+    code: string;
+  };
+  user: ManagementUser;
+};
 
 // Helper to create a valid JWT
 async function createTestToken(
@@ -66,9 +75,9 @@ describe("managementAuthMiddleware", () => {
   });
 
   it("should reject request without Authorization header", async () => {
-    const res = await app.request("/test", {}, { JWT_SECRET } as any);
+    const res = await app.request("/test", {}, testEnv);
     expect(res.status).toBe(401);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ManagementAuthResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("UNAUTHORIZED");
   });
@@ -77,7 +86,7 @@ describe("managementAuthMiddleware", () => {
     const res = await app.request(
       "/test",
       { headers: { Authorization: "Basic abc123" } },
-      { JWT_SECRET } as any,
+      testEnv,
     );
     expect(res.status).toBe(401);
   });
@@ -86,7 +95,7 @@ describe("managementAuthMiddleware", () => {
     const res = await app.request(
       "/test",
       { headers: { Authorization: "Bearer invalid-token" } },
-      { JWT_SECRET } as any,
+      testEnv,
     );
     expect(res.status).toBe(401);
   });
@@ -105,7 +114,7 @@ describe("managementAuthMiddleware", () => {
     const res = await app.request(
       "/test",
       { headers: { Authorization: `Bearer ${expiredToken}` } },
-      { JWT_SECRET } as any,
+      testEnv,
     );
     expect(res.status).toBe(401);
   });
@@ -122,7 +131,7 @@ describe("managementAuthMiddleware", () => {
     const res = await app.request(
       "/test",
       { headers: { Authorization: `Bearer ${token}` } },
-      { JWT_SECRET } as any,
+      testEnv,
     );
     expect(res.status).toBe(401);
   });
@@ -132,10 +141,10 @@ describe("managementAuthMiddleware", () => {
     const res = await app.request(
       "/test",
       { headers: { Authorization: `Bearer ${token}` } },
-      { JWT_SECRET } as any,
+      testEnv,
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ManagementAuthResponse;
     expect(body.success).toBe(true);
     expect(body.user).toEqual({
       id: "admin-001",

@@ -24,6 +24,19 @@ import type {
   PopularityMetrics,
 } from "../types";
 
+type MenuServiceTestAccess = {
+  dbService?: unknown;
+  cacheService?: unknown;
+  logger?: unknown;
+  validateCategoryAccess?: unknown;
+  invalidateMenuCache?: unknown;
+  getMenuItem?: unknown;
+  getMenu?: unknown;
+};
+
+const asMenuServiceTest = (service: MenuService): MenuServiceTestAccess =>
+  service as unknown as MenuServiceTestAccess;
+
 // =============================================================================
 // HOISTED MOCK INSTANCES (must be defined before vi.mock factories run)
 // =============================================================================
@@ -273,9 +286,10 @@ describe("Menu Feature Module", () => {
 
     // CRITICAL: Replace internal services with our mocks
     // This ensures all tests use our controlled mock instances
-    (menuService as any)["dbService"] = mockDatabaseMenuServiceInstance as any;
-    (menuService as any)["cacheService"] = mockCacheKV;
-    (menuService as any)["logger"] = mockLogger as any;
+    const serviceInternals = asMenuServiceTest(menuService);
+    serviceInternals.dbService = mockDatabaseMenuServiceInstance;
+    serviceInternals.cacheService = mockCacheKV;
+    serviceInternals.logger = mockLogger;
   });
 
   afterEach(() => {
@@ -291,7 +305,7 @@ describe("Menu Feature Module", () => {
         };
 
         // Replace the db service in menu service
-        (menuService as any).dbService = mockDbService;
+        asMenuServiceTest(menuService).dbService = mockDbService;
 
         const result = await menuService.getMenu(mockRestaurantId);
 
@@ -307,7 +321,7 @@ describe("Menu Feature Module", () => {
           getMenuItem: vi.fn().mockResolvedValue(mockMenuItem),
         };
 
-        (menuService as any).dbService = mockDbService;
+        asMenuServiceTest(menuService).dbService = mockDbService;
 
         const result = await menuService.getMenuItem(1);
 
@@ -320,7 +334,7 @@ describe("Menu Feature Module", () => {
           getMenuItem: vi.fn().mockResolvedValue(null),
         };
 
-        (menuService as any).dbService = mockDbService;
+        asMenuServiceTest(menuService).dbService = mockDbService;
 
         const result = await menuService.getMenuItem(999);
 
@@ -342,11 +356,11 @@ describe("Menu Feature Module", () => {
           createMenuItem: vi.fn().mockResolvedValue(mockMenuItem),
         };
 
-        (menuService as any).dbService = mockDbService;
-        (menuService as any).validateCategoryAccess = vi
+        asMenuServiceTest(menuService).dbService = mockDbService;
+        asMenuServiceTest(menuService).validateCategoryAccess = vi
           .fn()
           .mockResolvedValue(undefined);
-        (menuService as any).invalidateMenuCache = vi
+        asMenuServiceTest(menuService).invalidateMenuCache = vi
           .fn()
           .mockResolvedValue(undefined);
 
@@ -373,8 +387,8 @@ describe("Menu Feature Module", () => {
             .mockResolvedValue({ ...mockMenuItem, ...updateData }),
         };
 
-        (menuService as any).dbService = mockDbService;
-        (menuService as any).invalidateMenuCache = vi
+        asMenuServiceTest(menuService).dbService = mockDbService;
+        asMenuServiceTest(menuService).invalidateMenuCache = vi
           .fn()
           .mockResolvedValue(undefined);
 
@@ -391,7 +405,9 @@ describe("Menu Feature Module", () => {
       test("should throw error when updating non-existent menu item", async () => {
         const updateData: UpdateMenuItemData = { name: "Updated Item" };
 
-        (menuService as any).getMenuItem = vi.fn().mockResolvedValue(null);
+        asMenuServiceTest(menuService).getMenuItem = vi
+          .fn()
+          .mockResolvedValue(null);
 
         await expect(
           menuService.updateMenuItem(999, updateData),
@@ -411,8 +427,8 @@ describe("Menu Feature Module", () => {
           createCategory: vi.fn().mockResolvedValue(mockCategory),
         };
 
-        (menuService as any).dbService = mockDbService;
-        (menuService as any).invalidateMenuCache = vi
+        asMenuServiceTest(menuService).dbService = mockDbService;
+        asMenuServiceTest(menuService).invalidateMenuCache = vi
           .fn()
           .mockResolvedValue(undefined);
 
@@ -442,7 +458,7 @@ describe("Menu Feature Module", () => {
           searchMenuItems: vi.fn().mockResolvedValue(mockSearchResult),
         };
 
-        (menuService as any).dbService = mockDbService;
+        asMenuServiceTest(menuService).dbService = mockDbService;
 
         const searchParams = {
           search: "test",
@@ -469,7 +485,7 @@ describe("Menu Feature Module", () => {
       });
 
       test("should get menu analytics", async () => {
-        (menuService as any).getMenu = vi
+        asMenuServiceTest(menuService).getMenu = vi
           .fn()
           .mockResolvedValue(mockMenuStructure);
 
@@ -486,11 +502,11 @@ describe("Menu Feature Module", () => {
           getPopularItems: vi.fn().mockResolvedValue([mockMenuItem]),
           searchMenuItems: vi.fn().mockResolvedValue({
             items: [mockMenuItem],
-            pagination: {} as any,
+            pagination: {} as never,
           }),
         };
 
-        (menuService as any).dbService = mockDbService;
+        asMenuServiceTest(menuService).dbService = mockDbService;
 
         const result = await menuService.getPopularityMetrics(mockRestaurantId);
 
@@ -513,8 +529,8 @@ describe("Menu Feature Module", () => {
           batchUpdateAvailability: vi.fn().mockResolvedValue(undefined),
         };
 
-        (menuService as any).dbService = mockDbService;
-        (menuService as any).invalidateMenuCache = vi
+        asMenuServiceTest(menuService).dbService = mockDbService;
+        asMenuServiceTest(menuService).invalidateMenuCache = vi
           .fn()
           .mockResolvedValue(undefined);
 
@@ -536,8 +552,8 @@ describe("Menu Feature Module", () => {
           updateMenuItem: vi.fn().mockResolvedValue(mockMenuItem),
         };
 
-        (menuService as any).dbService = mockDbService;
-        (menuService as any).invalidateMenuCache = vi
+        asMenuServiceTest(menuService).dbService = mockDbService;
+        asMenuServiceTest(menuService).invalidateMenuCache = vi
           .fn()
           .mockResolvedValue(undefined);
 
@@ -555,7 +571,7 @@ describe("Menu Feature Module", () => {
           incrementOrderCount: vi.fn().mockResolvedValue(undefined),
         };
 
-        (menuService as any).dbService = mockDbService;
+        asMenuServiceTest(menuService).dbService = mockDbService;
 
         await menuService.incrementOrderCount(1, 2);
 
@@ -567,7 +583,7 @@ describe("Menu Feature Module", () => {
           incrementViewCount: vi.fn().mockResolvedValue(undefined),
         };
 
-        (menuService as any).dbService = mockDbService;
+        asMenuServiceTest(menuService).dbService = mockDbService;
 
         await menuService.incrementViewCount(1);
 
@@ -673,7 +689,7 @@ describe("Menu Feature Module", () => {
       };
 
       const service = new MenuService(mockEnv);
-      (service as any).dbService = mockDbService;
+      asMenuServiceTest(service).dbService = mockDbService;
 
       const result = await service.getMenu(mockRestaurantId);
 
@@ -691,7 +707,7 @@ describe("Menu Feature Module", () => {
       };
 
       const service = new MenuService(mockEnv);
-      (service as any).dbService = mockDbService;
+      asMenuServiceTest(service).dbService = mockDbService;
 
       await expect(service.getMenu(mockRestaurantId)).rejects.toThrow(
         "Database error",

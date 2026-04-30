@@ -94,7 +94,7 @@ vi.mock("@makanmakan/database", () => ({
 
 // Mock crypto.randomUUID
 vi.stubGlobal("crypto", {
-  ...(globalThis as any).crypto,
+  ...(globalThis as typeof globalThis & { crypto: Crypto }).crypto,
   randomUUID: vi.fn().mockReturnValue("mock-uuid-1234"),
 });
 
@@ -157,7 +157,7 @@ const buildDbRow = (overrides: any = {}) => ({
 
 describe("BackupConfigService", () => {
   let service: BackupConfigService;
-  const mockD1 = {} as any;
+  const mockD1 = {} as never;
 
   beforeEach(() => {
     vi.clearAllMocks();

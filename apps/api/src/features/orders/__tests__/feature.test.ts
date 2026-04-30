@@ -62,7 +62,7 @@ const mockLogger = {
 
 // Test fixtures
 const mockEnv = envFactory.build({
-  CACHE_KV: mockCacheKV as any,
+  CACHE_KV: mockCacheKV as never,
 }) as unknown as Env;
 
 const mockUser = {
@@ -95,7 +95,7 @@ const mockOrder = {
   serviceCharge: 100, // $1.00
   discountAmount: 0,
   totalAmount: 2300, // $23.00
-  status: "pending" as any, // Use string status for validation
+  status: "pending" as never, // Use string status for validation
   paymentStatus: OrderPaymentStatus.PENDING,
   paymentMethod: "card",
   orderType: "shop",
@@ -138,12 +138,12 @@ describe("Orders Feature", () => {
 
     // CRITICAL: Replace internal services with our mocks
     // This is the key to making these tests work reliably
-    ordersService["baseOrderService"] = mockOrderServiceInstance as any;
-    ordersService["couponService"] = mockCouponServiceInstance as any;
+    ordersService["baseOrderService"] = mockOrderServiceInstance as never;
+    ordersService["couponService"] = mockCouponServiceInstance as never;
     ordersService["realtimeBroadcastService"] =
-      mockRealtimeBroadcastServiceInstance as any;
+      mockRealtimeBroadcastServiceInstance as never;
     ordersService["cacheKV"] = mockCacheKV;
-    ordersService["logger"] = mockLogger as any;
+    ordersService["logger"] = mockLogger as never;
 
     // Setup Hono app
     app = new Hono<{ Bindings: Env }>();
@@ -238,7 +238,7 @@ describe("Orders Feature", () => {
     describe("getOrder", () => {
       it("should get order by ID from cache", async () => {
         // Arrange
-        mockCacheKV.get.mockResolvedValueOnce(mockOrder as any);
+        mockCacheKV.get.mockResolvedValueOnce(mockOrder as never);
 
         // Act
         const result = await ordersService.getOrder(1);
@@ -326,15 +326,15 @@ describe("Orders Feature", () => {
     describe("updateOrderStatus", () => {
       it("should update order status successfully", async () => {
         // Arrange
-        mockCacheKV.get.mockResolvedValueOnce(mockOrder as any);
+        mockCacheKV.get.mockResolvedValueOnce(mockOrder as never);
         mockOrderServiceInstance.updateOrderStatus.mockResolvedValue({
           ...mockOrder,
-          status: "confirmed" as any,
+          status: "confirmed" as never,
         });
 
         // Act
         const result = await ordersService.updateOrderStatus(1, {
-          status: "confirmed" as any,
+          status: "confirmed" as never,
           notes: "Order confirmed",
         });
 
@@ -357,7 +357,7 @@ describe("Orders Feature", () => {
 
         // Act
         const result = await ordersService.updateOrderStatus(999, {
-          status: "confirmed" as any,
+          status: "confirmed" as never,
         });
 
         // Assert
@@ -695,14 +695,16 @@ describe("Orders Feature", () => {
 
     it("should invalidate cache after order updates", async () => {
       // Arrange
-      mockCacheKV.get.mockResolvedValueOnce(mockOrder as any);
+      mockCacheKV.get.mockResolvedValueOnce(mockOrder as never);
       mockOrderServiceInstance.updateOrderStatus.mockResolvedValue({
         ...mockOrder,
-        status: "confirmed" as any,
+        status: "confirmed" as never,
       });
 
       // Act
-      await ordersService.updateOrderStatus(1, { status: "confirmed" as any });
+      await ordersService.updateOrderStatus(1, {
+        status: "confirmed" as never,
+      });
 
       // Assert
       expect(mockCacheKV.delete).toHaveBeenCalled();
@@ -720,31 +722,31 @@ describe("Orders Feature", () => {
       expect(createdOrder.status).toBe("pending");
 
       // Act & Assert - Update to confirmed
-      mockCacheKV.get.mockResolvedValueOnce(createdOrder as any);
+      mockCacheKV.get.mockResolvedValueOnce(createdOrder as never);
       mockOrderServiceInstance.updateOrderStatus.mockResolvedValue({
         ...createdOrder,
-        status: "confirmed" as any,
+        status: "confirmed" as never,
       });
       const confirmedOrder = await ordersService.updateOrderStatus(1, {
-        status: "confirmed" as any,
+        status: "confirmed" as never,
       });
       expect(confirmedOrder?.status).toBe("confirmed");
 
       // Act & Assert - Update to preparing
-      mockCacheKV.get.mockResolvedValueOnce(confirmedOrder as any);
+      mockCacheKV.get.mockResolvedValueOnce(confirmedOrder as never);
       mockOrderServiceInstance.updateOrderStatus.mockResolvedValue({
         ...confirmedOrder!,
-        status: "preparing" as any,
+        status: "preparing" as never,
       });
       const preparingOrder = await ordersService.updateOrderStatus(1, {
-        status: "preparing" as any,
+        status: "preparing" as never,
       });
       expect(preparingOrder?.status).toBe("preparing");
 
       // Act & Assert - Cancel order
       mockOrderServiceInstance.cancelOrder.mockResolvedValue({
         ...preparingOrder!,
-        status: "cancelled" as any,
+        status: "cancelled" as never,
       });
       const cancelledOrder = await ordersService.cancelOrder(
         1,

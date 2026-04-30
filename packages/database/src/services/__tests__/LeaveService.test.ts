@@ -22,7 +22,7 @@ describe("LeaveService", () => {
     resetAllFactories();
     mockDb = createMockDatabase();
     mockEnv = createMockEnv();
-    service = new LeaveService(mockDb as any, mockEnv);
+    service = new LeaveService(mockDb, mockEnv);
     vi.clearAllMocks();
   });
 

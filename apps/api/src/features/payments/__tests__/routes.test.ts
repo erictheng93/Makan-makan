@@ -45,7 +45,7 @@ function buildApp(env: Record<string, unknown> = {}) {
     if (err instanceof ApiError) {
       return c.json(
         { success: false, error: { code: err.code, message: err.message } },
-        err.status as any,
+        err.status as never,
       );
     }
     return c.json(
@@ -103,7 +103,7 @@ describe("Payments Routes", () => {
       },
       env,
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json).toMatchObject({
@@ -184,7 +184,7 @@ describe("Payments Routes", () => {
       },
       env,
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.data.transactionId).toBe("pay_42_1");
@@ -206,7 +206,7 @@ describe("Payments Routes", () => {
     const { app, env } = buildApp({ DB: { prepare } });
 
     const response = await app.request("/payments/status/pay_42_1", {}, env);
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json).toMatchObject({
@@ -249,7 +249,7 @@ describe("Payments Routes", () => {
       },
       env,
     );
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json).toMatchObject({
@@ -274,7 +274,7 @@ describe("Payments Routes", () => {
     const { app, env } = buildApp();
 
     const response = await app.request("/payments/methods/MY", {}, env);
-    const json = (await response.json()) as any;
+    const json = (await response.json()) as ApiTestResponse;
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);

@@ -150,7 +150,7 @@ describe("Reservations Routes", () => {
               ...(err.details !== undefined && { details: err.details }),
             },
           },
-          err.status as any,
+          err.status as never,
         );
       }
       const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -170,7 +170,7 @@ describe("Reservations Routes", () => {
             message: sanitized.message,
           },
         },
-        (STATUS_MAP[sanitized.type] ?? 500) as any,
+        (STATUS_MAP[sanitized.type] ?? 500) as never,
       );
     });
   });

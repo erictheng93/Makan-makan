@@ -4,6 +4,8 @@ import { setActivePinia, createPinia } from "pinia";
 import { useShopCartStore } from "@/stores/shopCart";
 import ShopCartModal from "@/components/ShopCartModal.vue";
 import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { SpiceLevel } from "@makanmakan/shared-types";
+import type { MenuItem } from "@makanmakan/shared-types";
 
 // ── Mock dependencies ────────────────────────────────────────────────────────
 
@@ -71,10 +73,20 @@ function populateStore(store: ReturnType<typeof useShopCartStore>) {
     {
       id: "1",
       menuItem: {
-        id: factoryItem.id,
-        name: factoryItem.name,
-        price: factoryItem.price,
-      } as any,
+        id: factoryItem.id ?? 1,
+        restaurantId: "rest-1",
+        categoryId: 1,
+        name: factoryItem.name ?? "Test Item",
+        price: factoryItem.price ?? 100,
+        spiceLevel: SpiceLevel.NONE,
+        sortOrder: 0,
+        isAvailable: true,
+        isFeatured: false,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      } satisfies MenuItem,
       quantity: 1,
       price: 100,
       totalPrice: 100,

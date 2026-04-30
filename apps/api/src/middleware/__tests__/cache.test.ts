@@ -84,7 +84,9 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ id: 2, name: "Fresh" }));
 
       const req = new Request("http://localhost/test");
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.headers.get("X-Cache")).toBe("HIT");
     });
@@ -96,8 +98,10 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ id: 1, name: "Fresh" }));
 
       const req = new Request("http://localhost/test");
-      const res = await app.request(req, { env: mockEnv } as any);
-      const result = (await res.json()) as any;
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
+      const result = (await res.json()) as ApiTestResponse;
 
       expect(res.headers.get("X-Cache")).toBe("MISS");
       expect(result.id).toBe(1);
@@ -111,7 +115,7 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ success: true, data: { id: 1 } }));
 
       const req = new Request("http://localhost/test");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.set).toHaveBeenCalled();
     });
@@ -123,7 +127,7 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ error: "Not found" }, 404));
 
       const req = new Request("http://localhost/test");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.set).not.toHaveBeenCalled();
     });
@@ -137,7 +141,7 @@ describe("Cache Middleware", () => {
       app.get("/api/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/api/test?page=1");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.get).toHaveBeenCalledWith(
         expect.stringContaining("route:GET:/api/test"),
@@ -156,7 +160,7 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/test");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       // Check that get was called with the custom key
       expect(mockCacheService.get).toHaveBeenCalledWith("custom:/test");
@@ -174,7 +178,7 @@ describe("Cache Middleware", () => {
       app.post("/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/test", { method: "POST" });
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.get).not.toHaveBeenCalled();
     });
@@ -191,7 +195,7 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/test");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.get).toHaveBeenCalled();
     });
@@ -206,7 +210,7 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ success: true, data: {} }));
 
       const req = new Request("http://localhost/test");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.set).toHaveBeenCalledWith(
         expect.any(String),
@@ -224,7 +228,9 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/test");
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       expect(res.status).toBe(200);
     });
@@ -236,7 +242,9 @@ describe("Cache Middleware", () => {
       app.get("/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/test");
-      const res = await app.request(req, { env: mockEnv } as any);
+      const res = await app.request(req, {
+        env: mockEnv,
+      } as ApiTestRequestInit);
 
       // Hono returns 500 response instead of throwing
       expect(res.status).toBe(500);
@@ -272,7 +280,7 @@ describe("Cache Invalidation Middleware", () => {
     app.post("/test", (c) => c.json({ success: true }));
 
     const req = new Request("http://localhost/test", { method: "POST" });
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(mockCacheService.invalidateByTags).toHaveBeenCalledWith([
       "menu",
@@ -286,7 +294,7 @@ describe("Cache Invalidation Middleware", () => {
     app.put("/test", (c) => c.json({ success: true }));
 
     const req = new Request("http://localhost/test", { method: "PUT" });
-    await app.request(req, { env: mockEnv } as any);
+    await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(mockCacheService.invalidateByTags).toHaveBeenCalled();
   });
@@ -296,7 +304,7 @@ describe("Cache Invalidation Middleware", () => {
     app.delete("/test", (c) => c.json({ success: true }));
 
     const req = new Request("http://localhost/test", { method: "DELETE" });
-    await app.request(req, { env: mockEnv } as any);
+    await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(mockCacheService.invalidateByTags).toHaveBeenCalled();
   });
@@ -306,7 +314,7 @@ describe("Cache Invalidation Middleware", () => {
     app.get("/test", (c) => c.json({ success: true }));
 
     const req = new Request("http://localhost/test");
-    await app.request(req, { env: mockEnv } as any);
+    await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(mockCacheService.invalidateByTags).not.toHaveBeenCalled();
   });
@@ -316,7 +324,7 @@ describe("Cache Invalidation Middleware", () => {
     app.post("/test", (c) => c.json({ error: "Failed" }, 400));
 
     const req = new Request("http://localhost/test", { method: "POST" });
-    await app.request(req, { env: mockEnv } as any);
+    await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(mockCacheService.invalidateByTags).not.toHaveBeenCalled();
   });
@@ -353,7 +361,7 @@ describe("Cache Decorators", () => {
       );
 
       const req = new Request("http://localhost/restaurants/1/menu");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.get).toHaveBeenCalled();
     });
@@ -367,7 +375,7 @@ describe("Cache Decorators", () => {
       const req = new Request("http://localhost/restaurants/1/menu", {
         method: "POST",
       });
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.get).not.toHaveBeenCalled();
     });
@@ -379,7 +387,7 @@ describe("Cache Decorators", () => {
       app.get("/restaurants/:id", (c) => c.json({ success: true, data: {} }));
 
       const req = new Request("http://localhost/restaurants/1");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.get).toHaveBeenCalled();
     });
@@ -393,7 +401,7 @@ describe("Cache Decorators", () => {
       );
 
       const req = new Request("http://localhost/restaurants/1/analytics");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.get).toHaveBeenCalled();
     });
@@ -407,7 +415,7 @@ describe("Cache Decorators", () => {
       );
 
       const req = new Request("http://localhost/restaurants/1/tables/5");
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.get).toHaveBeenCalled();
     });
@@ -419,7 +427,7 @@ describe("Cache Decorators", () => {
       app.post("/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/test", { method: "POST" });
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.invalidateByTags).toHaveBeenCalledWith(["menu"]);
     });
@@ -429,7 +437,7 @@ describe("Cache Decorators", () => {
       app.post("/test", (c) => c.json({ success: true }));
 
       const req = new Request("http://localhost/test", { method: "POST" });
-      await app.request(req, { env: mockEnv } as any);
+      await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
       expect(mockCacheService.invalidateByTags).toHaveBeenCalledWith([
         "restaurant",

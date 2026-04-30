@@ -247,7 +247,11 @@ const createMockDB = () => {
     for (const [key, value] of Object.entries(fields)) {
       if (value && typeof value === "object") {
         // Check if it's a drizzle table reference (has Symbol.for('drizzle:Name'))
-        const drizzleName = (value as any)[Symbol.for("drizzle:Name")];
+        const field = value as {
+          [key: symbol]: string | undefined;
+          name?: string;
+        };
+        const drizzleName = field[Symbol.for("drizzle:Name")];
         if (drizzleName) {
           const tableMap: Record<string, string> = {
             group_orders: "groupOrders",
@@ -261,7 +265,7 @@ const createMockDB = () => {
           };
           mapping[key] = tableMap[drizzleName] || drizzleName;
           hasTableRef = true;
-        } else if ((value as any)?.name) {
+        } else if (field.name) {
           // It's a column reference like shareCodes.usageCount - map to null
           mapping[key] = "__column__";
         }
@@ -430,7 +434,10 @@ const createMockEnv = () =>
 // Mock drizzle-orm operators to return tagged objects
 // ==========================================
 vi.mock("drizzle-orm", async () => {
-  const actual = (await vi.importActual("drizzle-orm")) as any;
+  const actual = (await vi.importActual("drizzle-orm")) as Record<
+    string,
+    unknown
+  >;
 
   const getFieldName = (field: any): string => {
     // Drizzle column objects have a .name property (SQL column name)
@@ -577,7 +584,9 @@ describe("GroupOrderService", () => {
       expect(result.success).toBe(true);
 
       const members = Array.from(mockDB._mockData.groupMembers.values());
-      const creator = members.find((m: any) => m.role === "creator") as any;
+      const creator = (
+        members as Array<{ role?: string; userId?: number }>
+      ).find((m) => m.role === "creator");
       expect(creator).toBeDefined();
       expect(creator?.userId).toBe(1);
     });
@@ -591,9 +600,13 @@ describe("GroupOrderService", () => {
       expect(result.success).toBe(true);
 
       const shareCodeRecords = Array.from(mockDB._mockData.shareCodes.values());
-      const shareCodeRecord = shareCodeRecords.find(
-        (s: any) => s.code === result.data?.shareCode,
-      ) as any;
+      const shareCodeRecord = (
+        shareCodeRecords as Array<{
+          code?: string;
+          type?: string;
+          isActive?: boolean;
+        }>
+      ).find((s) => s.code === result.data?.shareCode);
       expect(shareCodeRecord).toBeDefined();
       expect(shareCodeRecord?.type).toBe("group_order");
       expect(shareCodeRecord?.isActive).toBe(true);
@@ -834,7 +847,7 @@ describe("GroupOrderService", () => {
       testGroupOrderId = createResult.data!.groupOrderId;
 
       const members = Array.from(mockDB._mockData.groupMembers.values());
-      testMemberId = (members[0] as any).id;
+      testMemberId = (members[0] as { id: string }).id;
 
       // Add test menu item
       mockDB._mockData.menuItems.set(1, {
@@ -949,7 +962,7 @@ describe("GroupOrderService", () => {
       testGroupOrderId = createResult.data!.groupOrderId;
 
       const members = Array.from(mockDB._mockData.groupMembers.values());
-      testCreatorId = (members[0] as any).id;
+      testCreatorId = (members[0] as { id: string }).id;
 
       // Add test menu item
       mockDB._mockData.menuItems.set(1, {
@@ -1069,7 +1082,7 @@ describe("GroupOrderService", () => {
       testGroupOrderId = createResult.data!.groupOrderId;
 
       const members = Array.from(mockDB._mockData.groupMembers.values());
-      testMemberId = (members[0] as any).id;
+      testMemberId = (members[0] as { id: string }).id;
 
       // Create pending split bill
       testSplitBillId = crypto.randomUUID();
@@ -1156,7 +1169,7 @@ describe("GroupOrderService", () => {
       testGroupOrderId = createResult.data!.groupOrderId;
 
       const members = Array.from(mockDB._mockData.groupMembers.values());
-      testCreatorId = (members[0] as any).id;
+      testCreatorId = (members[0] as { id: string }).id;
 
       // Add regular member
       const memberData = {

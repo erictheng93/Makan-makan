@@ -37,7 +37,7 @@ describe("RecipeService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new RecipeService({} as any);
+    service = new RecipeService({} as never);
   });
 
   // ─── getRecipe ────────────────────────────────────────────────────

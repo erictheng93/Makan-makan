@@ -53,7 +53,7 @@ function createTestApp(options?: { withSanitization?: boolean }) {
             ...(err.details !== undefined && { details: err.details }),
           },
         },
-        err.status as any,
+        err.status as never,
       );
     }
     const sanitized = ErrorSanitizer.sanitizeError(err);
@@ -134,7 +134,7 @@ describe("SQL Injection Prevention（SQL 注入防護）", () => {
         // 短於 3 字元的 payload 會被 min(3) 擋；
         // 超過 50 字元會被 max(50) 擋；
         // 包含特殊字元的 payload 如果通過長度檢查，至少經過 sanitization
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         if (res.status === 400) {
           expect(body.success).toBe(false);
           expect(body.error.code).toBe("VALIDATION_ERROR");
@@ -157,7 +157,7 @@ describe("SQL Injection Prevention（SQL 注入防護）", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
     });
@@ -174,7 +174,7 @@ describe("SQL Injection Prevention（SQL 注入防護）", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
     });
@@ -191,7 +191,7 @@ describe("SQL Injection Prevention（SQL 注入防護）", () => {
         }),
       });
 
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       if (res.status === 200) {
         expect(body.data.username).not.toContain("<script>");
         expect(body.data.username).toContain("&lt;script&gt;");
@@ -262,7 +262,7 @@ describe("Path Traversal Prevention（路徑遍歷防護）", () => {
         `/api/v1/search?q=${encodeURIComponent(payload)}`,
       );
 
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       // 查詢通過後 sanitization 應編碼危險字元
       if (res.status === 200) {
         // 斜線和點號不構成 HTML 危險，但 sanitization 會編碼 /
@@ -283,7 +283,7 @@ describe("Path Traversal Prevention（路徑遍歷防護）", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
     });
@@ -299,7 +299,7 @@ describe("Path Traversal Prevention（路徑遍歷防護）", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
     });
@@ -315,7 +315,7 @@ describe("Path Traversal Prevention（路徑遍歷防護）", () => {
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
     });
@@ -329,7 +329,7 @@ describe("Path Traversal Prevention（路徑遍歷防護）", () => {
       // 期望 404（路由不匹配）或安全回應
       expect([404, 200]).toContain(res.status);
       if (res.status === 200) {
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(JSON.stringify(body)).not.toContain("/etc/passwd");
       }
     });
@@ -377,7 +377,7 @@ describe("Oversized Payload Prevention（超大 Payload 防護）", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("VALIDATION_ERROR");
   });
@@ -394,7 +394,7 @@ describe("Oversized Payload Prevention（超大 Payload 防護）", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("VALIDATION_ERROR");
   });
@@ -418,7 +418,7 @@ describe("Oversized Payload Prevention（超大 Payload 防護）", () => {
 
     // 深層巢狀會被 Zod 驗證或 JSON 解析正常處理
     // 如果 description 超過 1000 字元則會被 max(1000) 擋掉
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     if (res.status === 400) {
       expect(body.success).toBe(false);
     } else {
@@ -437,7 +437,7 @@ describe("Oversized Payload Prevention（超大 Payload 防護）", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("VALIDATION_ERROR");
   });
@@ -450,7 +450,7 @@ describe("Oversized Payload Prevention（超大 Payload 防護）", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 });
@@ -498,7 +498,7 @@ describe("NoSQL / JSON Injection & Prototype Pollution（NoSQL 注入與原型�
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
     });
@@ -514,7 +514,7 @@ describe("NoSQL / JSON Injection & Prototype Pollution（NoSQL 注入與原型�
       });
 
       expect(res.status).toBe(400);
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
     });
@@ -531,7 +531,7 @@ describe("NoSQL / JSON Injection & Prototype Pollution（NoSQL 注入與原型�
       });
 
       // userSchema 使用 z.object() 嚴格模式，多餘欄位會被 strip
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       if (res.status === 200) {
         // 確認 $where 不在回應中（被 Zod strip 掉）
         expect(body.data.$where).toBeUndefined();
@@ -550,9 +550,9 @@ describe("NoSQL / JSON Injection & Prototype Pollution（NoSQL 注入與原型�
         }),
       });
 
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       // 無論通過或拒絕，全域物件不應被污染
-      expect(({} as any).isAdmin).toBeUndefined();
+      expect(({} as { isAdmin?: boolean }).isAdmin).toBeUndefined();
       if (res.status === 200) {
         expect(body.data.name).toBe("test");
       }
@@ -574,9 +574,9 @@ describe("NoSQL / JSON Injection & Prototype Pollution（NoSQL 注入與原型�
         }),
       });
 
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       // 確認全域原型未被污染
-      expect(({} as any).isAdmin).toBeUndefined();
+      expect(({} as { isAdmin?: boolean }).isAdmin).toBeUndefined();
       if (res.status === 200) {
         expect(body.data.name).toBe("test");
       }
@@ -599,7 +599,7 @@ describe("NoSQL / JSON Injection & Prototype Pollution（NoSQL 注入與原型�
       });
 
       // 全域原型應保持乾淨
-      expect(({} as any).polluted).toBeUndefined();
+      expect(({} as { polluted?: boolean }).polluted).toBeUndefined();
     });
   });
 });
@@ -789,7 +789,7 @@ describe("XSS Sanitization（XSS 清理防護）", () => {
       });
 
       if (res.status === 200) {
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.data.content).not.toContain(mustNotContain);
       }
       // 如果是 400 則驗證已擋下，同樣安全
@@ -808,7 +808,7 @@ describe("XSS Sanitization（XSS 清理防護）", () => {
       });
 
       if (res.status === 200) {
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.data.title).not.toContain("<script>");
         expect(body.data.content).not.toContain("<img");
       }
@@ -826,7 +826,7 @@ describe("XSS Sanitization（XSS 清理防護）", () => {
       });
 
       if (res.status === 200) {
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.data.content).toContain("&lt;b&gt;");
         expect(body.data.content).toContain("&lt;&#x2F;b&gt;");
       }
@@ -842,7 +842,7 @@ describe("XSS Sanitization（XSS 清理防護）", () => {
       });
 
       if (res.status === 200) {
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.data.content).toContain("&quot;");
         expect(body.data.content).not.toMatch(/(?<!&quot)"/);
       }
@@ -858,7 +858,7 @@ describe("XSS Sanitization（XSS 清理防護）", () => {
       });
 
       if (res.status === 200) {
-        const body = (await res.json()) as any;
+        const body = (await res.json()) as ApiTestResponse;
         expect(body.data.content).toContain("&#x60;");
       }
     });
@@ -911,7 +911,7 @@ describe("Edge Cases & Combined Attacks（邊界案例與組合攻擊）", () =>
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("VALIDATION_ERROR");
   });
@@ -924,7 +924,7 @@ describe("Edge Cases & Combined Attacks（邊界案例與組合攻擊）", () =>
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -936,7 +936,7 @@ describe("Edge Cases & Combined Attacks（邊界案例與組合攻擊）", () =>
     });
 
     expect(res.status).toBe(400);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(false);
   });
 
@@ -950,7 +950,7 @@ describe("Edge Cases & Combined Attacks（邊界案例與組合攻擊）", () =>
       }),
     });
 
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     if (res.status === 200) {
       // 如果通過驗證，確認 XSS 已清理
       expect(body.data.username).not.toContain("<script>");
@@ -994,7 +994,7 @@ describe("Edge Cases & Combined Attacks（邊界案例與組合攻擊）", () =>
     const res = await app.request(`/api/v1/search?q=${xssQuery}`);
 
     if (res.status === 200) {
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as ApiTestResponse;
       // Query 參數不經過 inputSanitizationMiddleware（僅處理 JSON body），
       // 但 Zod 驗證和回應序列化應防止 XSS
       expect(body.data.q).toBeDefined();
@@ -1014,7 +1014,7 @@ describe("Edge Cases & Combined Attacks（邊界案例與組合攻擊）", () =>
 
     // 正常輸入應通過
     expect(res.status).toBe(200);
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as ApiTestResponse;
     expect(body.success).toBe(true);
     expect(body.data.username).toBe("user_name_ok");
   });

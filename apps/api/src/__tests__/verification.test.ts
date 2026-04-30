@@ -80,7 +80,8 @@ describe("Verification Routes", () => {
     // Add middleware to inject mockEnv and mock user into context
     app.use("*", async (c, next) => {
       if (!c.env) {
-        (c as any).env = {};
+        (c as unknown as ApiTestContextWithEnv).env =
+          {} as unknown as ApiTestEnv;
       }
       Object.assign(c.env, mockEnv);
 

@@ -4,10 +4,24 @@ import { issueTestJwt, buildAuthHelper } from "../issue-test-jwt";
 
 const TEST_SECRET = "test-jwt-secret-do-not-use-in-prod";
 
+type TestJwtPayload = {
+  role: number;
+  id: number;
+  sub: string;
+  username: string;
+  restaurantId: string;
+  exp: number;
+  iat: number;
+};
+
 describe("issueTestJwt", () => {
   it("issues a token with the expected role and default claims", async () => {
     const token = await issueTestJwt(5, { userId: 42 });
-    const decoded = (await verify(token, TEST_SECRET, "HS256")) as any;
+    const decoded = (await verify(
+      token,
+      TEST_SECRET,
+      "HS256",
+    )) as TestJwtPayload;
     expect(decoded.role).toBe(5);
     expect(decoded.id).toBe(42);
     expect(decoded.sub).toBe("42");
@@ -18,7 +32,11 @@ describe("issueTestJwt", () => {
 
   it("honors a custom username claim", async () => {
     const token = await issueTestJwt(0, { userId: 1, username: "alice" });
-    const decoded = (await verify(token, TEST_SECRET, "HS256")) as any;
+    const decoded = (await verify(
+      token,
+      TEST_SECRET,
+      "HS256",
+    )) as TestJwtPayload;
     expect(decoded.username).toBe("alice");
   });
 
@@ -28,7 +46,11 @@ describe("issueTestJwt", () => {
       restaurantId: "r-special",
       expiresInSeconds: 60,
     });
-    const decoded = (await verify(token, TEST_SECRET, "HS256")) as any;
+    const decoded = (await verify(
+      token,
+      TEST_SECRET,
+      "HS256",
+    )) as TestJwtPayload;
     expect(decoded.restaurantId).toBe("r-special");
     expect(decoded.exp - decoded.iat).toBe(60);
   });
@@ -42,7 +64,7 @@ describe("buildAuthHelper", () => {
       await helper.adminToken(),
       TEST_SECRET,
       "HS256",
-    )) as any;
+    )) as TestJwtPayload;
     expect(decoded.role).toBe(0);
   });
 
@@ -51,7 +73,7 @@ describe("buildAuthHelper", () => {
       await helper.ownerToken(9, "r-1"),
       TEST_SECRET,
       "HS256",
-    )) as any;
+    )) as TestJwtPayload;
     expect(decoded.role).toBe(1);
     expect(decoded.id).toBe(9);
     expect(decoded.restaurantId).toBe("r-1");
@@ -62,7 +84,7 @@ describe("buildAuthHelper", () => {
       await helper.customerToken(100),
       TEST_SECRET,
       "HS256",
-    )) as any;
+    )) as TestJwtPayload;
     expect(decoded.role).toBe(5);
     expect(decoded.id).toBe(100);
   });

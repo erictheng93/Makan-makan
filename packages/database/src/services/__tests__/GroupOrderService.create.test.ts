@@ -96,7 +96,9 @@ describe("GroupOrderService - 創建群組訂單", () => {
 
     // 验证创建者成員記錄
     const members = Array.from(mockDB._mockData.groupMembers.values());
-    const creator = members.find((m: any) => m.role === "creator") as any;
+    const creator = (members as Array<{ role?: string; userId?: number }>).find(
+      (m) => m.role === "creator",
+    );
     expect(creator).toBeDefined();
     expect(creator?.userId).toBe(1);
   });
@@ -107,9 +109,13 @@ describe("GroupOrderService - 創建群組訂單", () => {
     expect(result.success).toBe(true);
 
     const shareCodeRecords = Array.from(mockDB._mockData.shareCodes.values());
-    const shareCodeRecord = shareCodeRecords.find(
-      (s: any) => s.code === result.data?.shareCode,
-    ) as any;
+    const shareCodeRecord = (
+      shareCodeRecords as Array<{
+        code?: string;
+        type?: string;
+        isActive?: boolean;
+      }>
+    ).find((s) => s.code === result.data?.shareCode);
     expect(shareCodeRecord).toBeDefined();
     expect(shareCodeRecord?.type).toBe("group_order");
     expect(shareCodeRecord?.isActive).toBe(true);

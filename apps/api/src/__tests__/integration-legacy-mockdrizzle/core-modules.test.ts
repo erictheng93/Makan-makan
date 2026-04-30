@@ -332,7 +332,8 @@ describe("Core Modules Integration Tests", () => {
       // This bypasses MockDrizzle's inability to parse where(eq(tables.id, tableId))
       const tableStore = new MockTableStore();
       const mockDrizzle =
-        (app as any).env?.MOCK_DRIZZLE_DB || db.MOCK_DRIZZLE_DB;
+        (app as unknown as ApiTestAppWithEnv).env?.MOCK_DRIZZLE_DB ||
+        db.MOCK_DRIZZLE_DB;
       if (mockDrizzle) {
         enhanceMockDrizzle(mockDrizzle, { tableStore });
         console.log(
@@ -639,7 +640,8 @@ describe("Core Modules Integration Tests", () => {
       restaurantStore.addRestaurant(testRestaurantId);
 
       const mockDrizzle =
-        (app as any).env?.MOCK_DRIZZLE_DB || db.MOCK_DRIZZLE_DB;
+        (app as unknown as ApiTestAppWithEnv).env?.MOCK_DRIZZLE_DB ||
+        db.MOCK_DRIZZLE_DB;
       if (mockDrizzle) {
         enhanceMockDrizzle(mockDrizzle, { restaurantStore });
         console.log(

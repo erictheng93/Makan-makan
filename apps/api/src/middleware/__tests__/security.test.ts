@@ -22,7 +22,10 @@ describe("Security Headers Middleware", () => {
     app = new Hono<{ Bindings: typeof mockEnv }>();
     app.use("*", async (c, next) => {
       // Ensure env is properly initialized
-      if (!c.env) (c as any).env = {};
+      if (!c.env) {
+        (c as unknown as ApiTestContextWithEnv).env =
+          {} as unknown as ApiTestEnv;
+      }
       Object.assign(c.env, { ...mockEnv, NODE_ENV: "test" });
       await next();
     });
@@ -32,28 +35,28 @@ describe("Security Headers Middleware", () => {
 
   it("should set X-Content-Type-Options header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
   });
 
   it("should set X-Frame-Options header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-Frame-Options")).toBe("DENY");
   });
 
   it("should set X-XSS-Protection header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-XSS-Protection")).toBe("1; mode=block");
   });
 
   it("should set Referrer-Policy header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("Referrer-Policy")).toBe(
       "strict-origin-when-cross-origin",
@@ -62,7 +65,7 @@ describe("Security Headers Middleware", () => {
 
   it("should set Permissions-Policy header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     const policy = res.headers.get("Permissions-Policy");
     expect(policy).toContain("geolocation=()");
@@ -72,28 +75,28 @@ describe("Security Headers Middleware", () => {
 
   it("should set X-DNS-Prefetch-Control header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-DNS-Prefetch-Control")).toBe("off");
   });
 
   it("should set X-Download-Options header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-Download-Options")).toBe("noopen");
   });
 
   it("should set X-Permitted-Cross-Domain-Policies header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-Permitted-Cross-Domain-Policies")).toBe("none");
   });
 
   it("should set Content-Security-Policy header", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     const csp = res.headers.get("Content-Security-Policy");
     expect(csp).toContain("default-src 'self'");
@@ -105,7 +108,7 @@ describe("Security Headers Middleware", () => {
     app.get("/auth/login", (c) => c.json({ success: true }));
 
     const req = new Request("http://localhost/auth/login");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     // Auth endpoints should return 200
     expect(res.status).toBe(200);
@@ -115,7 +118,7 @@ describe("Security Headers Middleware", () => {
     app.get("/users/profile", (c) => c.json({ success: true }));
 
     const req = new Request("http://localhost/users/profile");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.status).toBe(200);
   });
@@ -124,7 +127,7 @@ describe("Security Headers Middleware", () => {
     app.get("/error", (c) => c.json({ error: "Not found" }, 404));
 
     const req = new Request("http://localhost/error");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.status).toBe(404);
   });
@@ -146,7 +149,7 @@ describe("Request ID Middleware", () => {
 
   it("should generate unique request ID", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.headers.get("X-Request-ID")).toBeTruthy();
     expect(res.headers.get("X-Request-ID")).toMatch(/^[a-f0-9-]{36}$/);
@@ -154,8 +157,8 @@ describe("Request ID Middleware", () => {
 
   it("should set request ID in context", async () => {
     const req = new Request("http://localhost/test");
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(result.requestId).toBeTruthy();
     expect(result.requestId).toMatch(/^[a-f0-9-]{36}$/);
@@ -165,8 +168,12 @@ describe("Request ID Middleware", () => {
     const req1 = new Request("http://localhost/test");
     const req2 = new Request("http://localhost/test");
 
-    const res1 = await app.request(req1, { env: mockEnv } as any);
-    const res2 = await app.request(req2, { env: mockEnv } as any);
+    const res1 = await app.request(req1, {
+      env: mockEnv,
+    } as ApiTestRequestInit);
+    const res2 = await app.request(req2, {
+      env: mockEnv,
+    } as ApiTestRequestInit);
 
     expect(res1.headers.get("X-Request-ID")).not.toBe(
       res2.headers.get("X-Request-ID"),
@@ -198,8 +205,8 @@ describe("Input Sanitization Middleware", () => {
       body: JSON.stringify({ name: '<script>alert("xss")</script>' }),
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(result.name).not.toContain("<script>");
   });
@@ -211,8 +218,8 @@ describe("Input Sanitization Middleware", () => {
       body: JSON.stringify({ url: "javascript:alert(1)" }),
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(result.url).not.toContain("javascript:");
   });
@@ -224,8 +231,8 @@ describe("Input Sanitization Middleware", () => {
       body: JSON.stringify({ html: '<img onerror="alert(1)" src="x">' }),
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     // The sanitizer HTML-encodes <, >, ", = characters, neutralizing the event handler.
     // The tag brackets and attribute delimiters are encoded so the browser cannot parse
@@ -241,8 +248,8 @@ describe("Input Sanitization Middleware", () => {
       body: JSON.stringify({ text: "<div>test</div>" }),
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(result.text).toContain("&lt;");
     expect(result.text).toContain("&gt;");
@@ -262,8 +269,8 @@ describe("Input Sanitization Middleware", () => {
       }),
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(result.user.name).not.toContain("<script>");
     expect(result.user.profile.bio).not.toContain("javascript:");
@@ -278,8 +285,8 @@ describe("Input Sanitization Middleware", () => {
       }),
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     result.items.forEach((item: string) => {
       expect(item).not.toContain("<script>");
@@ -297,8 +304,8 @@ describe("Input Sanitization Middleware", () => {
       }),
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
-    const result = (await res.json()) as any;
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
+    const result = (await res.json()) as ApiTestResponse;
 
     expect(result.count).toBe(42);
     expect(result.active).toBe(true);
@@ -313,7 +320,7 @@ describe("Input Sanitization Middleware", () => {
     });
 
     // Should not throw, just pass through
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
     expect(res.status).toBeDefined();
   });
 });
@@ -342,7 +349,7 @@ describe("Security Monitoring Middleware", () => {
       headers: { "cf-connecting-ip": "192.168.1.1" },
     });
 
-    await app.request(req, { env: mockEnv } as any);
+    await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(consoleSpy).toHaveBeenCalled();
   });
@@ -356,7 +363,7 @@ describe("Security Monitoring Middleware", () => {
       },
     });
 
-    await app.request(req, { env: mockEnv } as any);
+    await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(consoleSpy).toHaveBeenCalledWith(
       "[SECURITY]",
@@ -369,7 +376,7 @@ describe("Security Monitoring Middleware", () => {
       headers: { "cf-connecting-ip": "192.168.1.1" },
     });
 
-    await app.request(req, { env: mockEnv } as any);
+    await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(consoleSpy).toHaveBeenCalledWith(
       "[SECURITY]",
@@ -382,7 +389,7 @@ describe("Security Monitoring Middleware", () => {
       headers: { "cf-connecting-ip": "192.168.1.1" },
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.status).toBe(200);
   });
@@ -399,7 +406,10 @@ describe("Security Aware Rate Limit Middleware", () => {
     app = new Hono<{ Bindings: typeof mockEnv }>();
     app.use("*", async (c, next) => {
       // Ensure CACHE_KV is properly set
-      if (!c.env) (c as any).env = {};
+      if (!c.env) {
+        (c as unknown as ApiTestContextWithEnv).env =
+          {} as unknown as ApiTestEnv;
+      }
       c.env.CACHE_KV = mockEnv.CACHE_KV;
       Object.assign(c.env, mockEnv);
       await next();
@@ -417,7 +427,7 @@ describe("Security Aware Rate Limit Middleware", () => {
       headers: { "cf-connecting-ip": "127.0.0.1" },
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.status).toBe(200);
   });
@@ -429,7 +439,7 @@ describe("Security Aware Rate Limit Middleware", () => {
       headers: { "cf-connecting-ip": "10.0.0.80" },
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.status).toBe(429);
   });
@@ -441,7 +451,7 @@ describe("Security Aware Rate Limit Middleware", () => {
       headers: { "cf-connecting-ip": "10.0.0.81" },
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.status).toBe(429);
   });
@@ -453,7 +463,7 @@ describe("Security Aware Rate Limit Middleware", () => {
       headers: { "cf-connecting-ip": "10.0.0.82" },
     });
 
-    const res = await app.request(req, { env: mockEnv } as any);
+    const res = await app.request(req, { env: mockEnv } as ApiTestRequestInit);
 
     expect(res.status).toBe(200);
   });

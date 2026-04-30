@@ -3,8 +3,14 @@ import { i18n, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from "@/i18n";
 
 // Helper to avoid vue-i18n's excessively deep type instantiation in tests
 
-const tGlobal = (key: string, params?: Record<string, any>): string =>
-  params ? (i18n.global as any).t(key, params) : (i18n.global as any).t(key);
+type I18nGlobal = {
+  t: (key: string, params?: Record<string, unknown>) => string;
+};
+
+const testI18n = i18n.global as unknown as I18nGlobal;
+
+const tGlobal = (key: string, params?: Record<string, unknown>): string =>
+  params ? testI18n.t(key, params) : testI18n.t(key);
 
 describe("Basic i18n Configuration", () => {
   beforeEach(() => {

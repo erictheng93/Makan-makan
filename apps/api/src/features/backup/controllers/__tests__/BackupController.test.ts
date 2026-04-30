@@ -86,9 +86,9 @@ describe("BackupController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     controller = new BackupController(
-      mockBackupService as any,
-      mockConfigService as any,
-      mockValidationService as any,
+      mockBackupService as never,
+      mockConfigService as never,
+      mockValidationService as never,
     );
   });
 

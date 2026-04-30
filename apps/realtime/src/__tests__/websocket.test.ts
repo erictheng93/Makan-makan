@@ -78,7 +78,7 @@ class MockWebSocket {
 }
 
 // Mock global WebSocket
-global.WebSocket = MockWebSocket as any;
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
 
 describe("WebSocket Integration Tests", () => {
   let ws: MockWebSocket;

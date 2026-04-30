@@ -8,6 +8,23 @@ import { WaitingListService } from "../WaitingListService";
 import type { WaitingStatus } from "@makanmakan/shared-types";
 import { resetAllFactories } from "@makanmakan/testing-utils";
 
+type WaitingListMockRow = Record<string, unknown> & {
+  status: string;
+  queue_number?: number;
+  queue_letter?: string;
+  restaurant_id?: string;
+  customer_phone?: string;
+};
+
+type WaitingTableMockRow = Record<string, unknown> & {
+  id: number;
+  restaurant_id?: string;
+  capacity: number;
+  is_active: number;
+  is_occupied?: number;
+  waiting_list_id?: string | null;
+};
+
 describe("WaitingListService", () => {
   let service: WaitingListService;
   let mockDB: any;
@@ -526,7 +543,10 @@ describe("WaitingListService", () => {
         MOCK_DRIZZLE_DB: errorDB,
       };
 
-      const errorService = new WaitingListService(errorDB, errorEnv as any);
+      const errorService = new WaitingListService(
+        errorDB,
+        errorEnv as typeof mockEnv,
+      );
 
       await expect(
         errorService.joinWaitingList({
@@ -1307,7 +1327,9 @@ function createMockDB() {
 
     // COUNT queries for waiting_list
     if (queryStr.includes("COUNT") && tableName === "waitingList") {
-      const entries = Array.from(mockData.waitingList.values()) as any[];
+      const entries = Array.from(
+        mockData.waitingList.values(),
+      ) as WaitingListMockRow[];
 
       if (queryStr.includes("queue_number <")) {
         // getPartiesAhead: values = [restaurantId, queueNumber, partySize+2]
@@ -1326,7 +1348,9 @@ function createMockDB() {
 
     // COUNT queries for tables
     if (queryStr.includes("COUNT") && tableName === "tables") {
-      const tables = Array.from(mockData.tables.values()) as any[];
+      const tables = Array.from(
+        mockData.tables.values(),
+      ) as WaitingTableMockRow[];
       // Occupied tables count (estimateWaitTime: occupied_count alias)
       if (queryStr.includes("occupied_count")) {
         const occupied = tables.filter((t: any) => t.is_occupied === 1);
@@ -1354,7 +1378,9 @@ function createMockDB() {
 
     // MAX queue_number query (generateQueueNumber)
     if (queryStr.includes("MAX(queue_number)")) {
-      const entries = Array.from(mockData.waitingList.values()) as any[];
+      const entries = Array.from(
+        mockData.waitingList.values(),
+      ) as WaitingListMockRow[];
       const letter = values[1]; // [restaurantId, letter]
       const matching = entries.filter((e: any) => e.queue_letter === letter);
       const maxNum = matching.reduce(
@@ -1369,7 +1395,9 @@ function createMockDB() {
       queryStr.includes("total_waiting") &&
       queryStr.includes("seated_count")
     ) {
-      const entries = Array.from(mockData.waitingList.values()) as any[];
+      const entries = Array.from(
+        mockData.waitingList.values(),
+      ) as WaitingListMockRow[];
       return [
         {
           total_waiting: entries.length,
@@ -1391,7 +1419,9 @@ function createMockDB() {
       queryStr.includes("as total") &&
       tableName === "waitingList"
     ) {
-      const entries = Array.from(mockData.waitingList.values()) as any[];
+      const entries = Array.from(
+        mockData.waitingList.values(),
+      ) as WaitingListMockRow[];
       return [{ total: entries.length }];
     }
 
@@ -1414,7 +1444,9 @@ function createMockDB() {
     ) {
       const restaurantId = values[0];
       const partySize = values[1];
-      const tables = Array.from(mockData.tables.values()) as any[];
+      const tables = Array.from(
+        mockData.tables.values(),
+      ) as WaitingTableMockRow[];
       const suitable = tables
         .filter(
           (t: any) =>
@@ -1459,7 +1491,9 @@ function createMockDB() {
     if (tableName === "waitingList" && queryStr.includes("customer_phone")) {
       const restaurantId = values[0];
       const phone = values[1];
-      const entries = Array.from(mockData.waitingList.values()) as any[];
+      const entries = Array.from(
+        mockData.waitingList.values(),
+      ) as WaitingListMockRow[];
       const existing = entries.find(
         (e: any) =>
           e.restaurant_id === restaurantId &&
@@ -1616,7 +1650,9 @@ function createMockDB() {
             sqlStr.includes("total_waiting") &&
             sqlStr.includes("seated_count")
           ) {
-            const entries = Array.from(mockData.waitingList.values()) as any[];
+            const entries = Array.from(
+              mockData.waitingList.values(),
+            ) as WaitingListMockRow[];
             return {
               total_waiting: entries.length,
               seated_count: entries.filter((e: any) => e.status === "seated")
@@ -1632,13 +1668,17 @@ function createMockDB() {
           }
           // Count query (listWaitingList)
           if (sqlStr.includes("COUNT(*)") && sqlStr.includes("as total")) {
-            const entries = Array.from(mockData.waitingList.values()) as any[];
+            const entries = Array.from(
+              mockData.waitingList.values(),
+            ) as WaitingListMockRow[];
             return { total: entries.length };
           }
           return null;
         },
         all: async () => {
-          const entries = Array.from(mockData.waitingList.values()) as any[];
+          const entries = Array.from(
+            mockData.waitingList.values(),
+          ) as WaitingListMockRow[];
           return {
             results: entries.map((e: any) => ({ ...e, table: null })),
           };
