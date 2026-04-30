@@ -287,23 +287,43 @@ describe("Realtime Updates Integration", () => {
 
       // Should not throw
       expect(() => {
-        ordersStore.handleSSEEvent(malformedEvent as any);
+        ordersStore.handleSSEEvent(
+          malformedEvent as unknown as KitchenSSEEvent,
+        );
       }).not.toThrow();
     });
 
     it("should continue processing after failed event", async () => {
       const ordersStore = useOrdersStore();
       const { handleSSEEvent } = useAudioNotifications();
+      const timestamp = new Date().toISOString();
+      const firstOrder = buildKitchenOrder({
+        id: 1,
+        orderNumber: "ORD-001",
+      });
+      const secondOrder = buildKitchenOrder({
+        id: 2,
+        orderNumber: "ORD-002",
+      });
 
       const events: KitchenSSEEvent[] = [
         {
           type: "NEW_ORDER",
-          payload: { id: "ord-1", orderNumber: "ORD-001" } as any,
+          payload: firstOrder,
+          timestamp,
+          restaurantId: 1,
         },
-        { type: "INVALID_TYPE", payload: null } as any,
+        {
+          type: "INVALID_TYPE",
+          payload: null,
+          timestamp,
+          restaurantId: 1,
+        } as unknown as KitchenSSEEvent,
         {
           type: "NEW_ORDER",
-          payload: { id: "ord-2", orderNumber: "ORD-002" } as any,
+          payload: secondOrder,
+          timestamp,
+          restaurantId: 1,
         },
       ];
 

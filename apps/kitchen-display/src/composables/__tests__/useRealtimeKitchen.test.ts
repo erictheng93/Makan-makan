@@ -12,7 +12,7 @@ const WS_CLOSING = 2;
 const WS_CLOSED = 3;
 
 // Shared mock state
-let mockWsInstance: any;
+let mockWsInstance: MockWebSocket;
 let wsConstructorCalls: string[] = [];
 
 // Create a mock WebSocket class (vitest 4 compatible)
@@ -40,7 +40,7 @@ class MockWebSocket {
 }
 
 // Replace global WebSocket
-global.WebSocket = MockWebSocket as any;
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
 
 describe("useRealtimeKitchen Composable", () => {
   beforeEach(() => {

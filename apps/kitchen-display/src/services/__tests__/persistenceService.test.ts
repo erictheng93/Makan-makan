@@ -64,6 +64,10 @@ function makeItem(overrides: Partial<KitchenOrderItem> = {}): KitchenOrderItem {
   };
 }
 
+function asInvalidOrderRecord(order: KitchenOrder): Record<string, unknown> {
+  return order as unknown as Record<string, unknown>;
+}
+
 describe("OfflineService - Data Persistence & Integrity", () => {
   beforeEach(async () => {
     vi.useFakeTimers();
@@ -489,7 +493,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
 
     it("should return false when an order is missing orderNumber", () => {
       const badOrder = makeOrder({ id: 41 });
-      (badOrder as any).orderNumber = "";
+      badOrder.orderNumber = "";
       offlineService.cacheOrders([badOrder]);
 
       expect(offlineService.validateCachedData()).toBe(false);
@@ -497,7 +501,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
 
     it("should return false when an order has non-array items", () => {
       const badOrder = makeOrder({ id: 42 });
-      (badOrder as any).items = "not an array";
+      asInvalidOrderRecord(badOrder).items = "not an array";
       offlineService.cacheOrders([badOrder]);
 
       expect(offlineService.validateCachedData()).toBe(false);
@@ -505,7 +509,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
 
     it("should return false when an order has non-string status", () => {
       const badOrder = makeOrder({ id: 43 });
-      (badOrder as any).status = 3; // number instead of string
+      asInvalidOrderRecord(badOrder).status = 3; // number instead of string
       offlineService.cacheOrders([badOrder]);
 
       expect(offlineService.validateCachedData()).toBe(false);
@@ -515,7 +519,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       // getCachedOrders catches its own errors, so to test validateCachedData
       // returning false, we provide data that fails the validation checks.
       const badOrder = makeOrder({ id: 44 });
-      (badOrder as any).id = 0; // falsy id
+      badOrder.id = 0; // falsy id
       offlineService.cacheOrders([badOrder]);
 
       expect(offlineService.validateCachedData()).toBe(false);
@@ -528,11 +532,12 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       // that has an .every method that throws.
       vi.spyOn(offlineService, "getCachedOrders").mockImplementationOnce(() => {
         // Return a proxy that throws on .every()
-        return {
+        const throwingOrders = {
           every: () => {
             throw new Error("Validation explosion");
           },
-        } as any;
+        };
+        return throwingOrders as unknown as KitchenOrder[];
       });
 
       const consoleSpy = vi
@@ -553,7 +558,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
     it("should repair missing elapsedTime by calculating from createdAt", () => {
       const createdAt = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 min ago
       const order = makeOrder({ id: 50, createdAt });
-      (order as any).elapsedTime = 0; // falsy
+      order.elapsedTime = 0; // falsy
       offlineService.cacheOrders([order]);
 
       const repaired = offlineService.repairData();
@@ -565,7 +570,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
 
     it("should repair missing priority by setting to 'normal'", () => {
       const order = makeOrder({ id: 51 });
-      (order as any).priority = undefined; // missing
+      asInvalidOrderRecord(order).priority = undefined; // missing
       offlineService.cacheOrders([order]);
 
       const repaired = offlineService.repairData();
@@ -590,7 +595,7 @@ describe("OfflineService - Data Persistence & Integrity", () => {
 
     it("should save repaired orders back to cache", () => {
       const order = makeOrder({ id: 53 });
-      (order as any).priority = undefined;
+      asInvalidOrderRecord(order).priority = undefined;
       offlineService.cacheOrders([order]);
 
       vi.mocked(localStorage.setItem).mockClear();
@@ -609,11 +614,12 @@ describe("OfflineService - Data Persistence & Integrity", () => {
       // To trigger repairData's catch block, we mock getCachedOrders
       // to return data that causes forEach processing to throw.
       vi.spyOn(offlineService, "getCachedOrders").mockImplementationOnce(() => {
-        return {
+        const throwingOrders = {
           forEach: () => {
             throw new Error("Repair explosion");
           },
-        } as any;
+        };
+        return throwingOrders as unknown as KitchenOrder[];
       });
 
       const consoleSpy = vi

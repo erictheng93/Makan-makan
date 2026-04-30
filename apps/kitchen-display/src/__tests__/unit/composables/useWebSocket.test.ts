@@ -219,7 +219,7 @@ describe("useWebSocket Composable", () => {
     }
 
     // Replace global WebSocket with our mock class
-    global.WebSocket = MockWebSocket as any;
+    global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
 
     composable = useWebSocket(mockUrl);
   });
@@ -427,7 +427,7 @@ describe("useWebSocket Composable", () => {
     it("應該處理連接異常", () => {
       global.WebSocket = vi.fn(() => {
         throw new Error("Connection failed");
-      }) as any;
+      }) as unknown as typeof WebSocket;
 
       const newComposable = useWebSocket(mockUrl);
       newComposable.connect();

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import type { ErrorReport } from "@/services/errorReportingService";
 
 const { mockApiPost } = vi.hoisted(() => ({
   mockApiPost: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock("../performanceService", () => ({
 
 // Declare the type alias for convenience
 type ErrorReportingServiceType = any;
-type ErrorReportType = any;
+type ErrorReportType = ErrorReport;
 
 // Helper to create a fresh instance by resetting modules
 async function createFreshService(): Promise<{
@@ -32,7 +33,9 @@ async function createFreshService(): Promise<{
   return {
     errorReportingService:
       mod.errorReportingService as ErrorReportingServiceType,
-    performanceService: perfMod.performanceService as any,
+    performanceService: {
+      recordMetric: vi.mocked(perfMod.performanceService.recordMetric),
+    },
   };
 }
 
@@ -75,7 +78,7 @@ describe("ErrorReportingService", () => {
     mockApiPost.mockResolvedValue({ data: {} });
 
     // Mock __APP_VERSION__
-    (globalThis as any).__APP_VERSION__ = "1.0.0-test";
+    vi.stubGlobal("__APP_VERSION__", "1.0.0-test");
 
     const result = await createFreshService();
     service = result.errorReportingService;
@@ -86,6 +89,7 @@ describe("ErrorReportingService", () => {
     service.cleanup();
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   // -----------------------------------------------------------------------

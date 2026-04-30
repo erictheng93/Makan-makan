@@ -781,13 +781,19 @@ describe("useErrorHandling", () => {
   describe("邊界情況", () => {
     it("應該處理 null 錯誤", () => {
       expect(() => {
-        errorHandling.handleError(null as any);
+        errorHandling.handleError(
+          null as unknown as Parameters<typeof errorHandling.handleError>[0],
+        );
       }).toThrow();
     });
 
     it("應該處理 undefined 錯誤", () => {
       expect(() => {
-        errorHandling.handleError(undefined as any);
+        errorHandling.handleError(
+          undefined as unknown as Parameters<
+            typeof errorHandling.handleError
+          >[0],
+        );
       }).toThrow();
     });
 

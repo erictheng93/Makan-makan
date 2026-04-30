@@ -216,8 +216,14 @@ describe("Orders Store", () => {
       const store = useOrdersStore();
       const mockOrder = createMockOrder("1", "confirmed");
       mockOrder.items = [
-        { id: 101, name: "Test Item", status: "pending", quantity: 1 },
-      ] as any;
+        {
+          id: 101,
+          name: "Test Item",
+          status: "pending",
+          quantity: 1,
+          priority: "normal",
+        },
+      ];
       store.orders = [mockOrder];
 
       store.updateItemStatus(1, 101, "preparing");
@@ -249,8 +255,14 @@ describe("Orders Store", () => {
       const store = useOrdersStore();
       const mockOrder = createMockOrder("1", "confirmed");
       mockOrder.items = [
-        { id: 101, name: "Test Item", status: "pending", quantity: 1 },
-      ] as any;
+        {
+          id: 101,
+          name: "Test Item",
+          status: "pending",
+          quantity: 1,
+          priority: "normal",
+        },
+      ];
       store.orders = [mockOrder];
 
       // Note: handleOrderStatusUpdate expects orderId at top level of event,
@@ -261,7 +273,7 @@ describe("Orders Store", () => {
         payload: { itemId: 101, status: "preparing" },
         timestamp: new Date().toISOString(),
         restaurantId: 1,
-      } as any;
+      };
 
       store.handleSSEEvent(event);
 
@@ -284,7 +296,7 @@ describe("Orders Store", () => {
         payload: {},
         timestamp: new Date().toISOString(),
         restaurantId: 1,
-      } as any;
+      };
 
       store.handleSSEEvent(event);
 

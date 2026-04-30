@@ -36,7 +36,7 @@ const mockAudioService = {
 // Mock order management store
 const mockOrderStore = {
   selectedOrders: new Set<number>(),
-  focusedOrder: null as any,
+  focusedOrder: null as { id: number } | null,
   selectNextOrder: vi.fn(),
   selectPreviousOrder: vi.fn(),
   selectFirstOrder: vi.fn(),

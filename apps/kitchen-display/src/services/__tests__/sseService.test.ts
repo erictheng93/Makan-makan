@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { KitchenSSEEvent } from "@/types";
+import type { ConnectionStatus, KitchenSSEEvent } from "@/types";
+
+type MessageMock = ReturnType<typeof vi.fn> &
+  ((event: KitchenSSEEvent) => void);
+type ConnectionChangeMock = ReturnType<typeof vi.fn> &
+  ((status: ConnectionStatus) => void);
+type ErrorMock = ReturnType<typeof vi.fn> & ((error: Event) => void);
 
 // Mock @makanmakan/utils so isTokenExpired always returns false
 // (the test token "test-token-abc" is not a real JWT, so without this mock
@@ -90,18 +96,18 @@ describe("KitchenSSEService", () => {
   let KitchenSSEService: typeof import("@/services/sseService").KitchenSSEService;
   let createKitchenSSE: typeof import("@/services/sseService").createKitchenSSE;
 
-  let onMessage: ReturnType<typeof vi.fn>;
-  let onConnectionChange: ReturnType<typeof vi.fn>;
-  let onError: ReturnType<typeof vi.fn>;
+  let onMessage: MessageMock;
+  let onConnectionChange: ConnectionChangeMock;
+  let onError: ErrorMock;
   let originalEventSource: typeof globalThis.EventSource;
 
   beforeEach(async () => {
     vi.useFakeTimers();
     MockEventSource.reset();
 
-    onMessage = vi.fn();
-    onConnectionChange = vi.fn();
-    onError = vi.fn();
+    onMessage = vi.fn() as MessageMock;
+    onConnectionChange = vi.fn() as ConnectionChangeMock;
+    onError = vi.fn() as ErrorMock;
 
     // Save and replace global EventSource with our mock
     originalEventSource = global.EventSource;
@@ -139,9 +145,9 @@ describe("KitchenSSEService", () => {
   ) {
     return new KitchenSSEService({
       restaurantId: 42,
-      onMessage: onMessage as any,
-      onConnectionChange: onConnectionChange as any,
-      onError: onError as any,
+      onMessage,
+      onConnectionChange,
+      onError,
       ...overrides,
     });
   }
@@ -742,9 +748,9 @@ describe("KitchenSSEService", () => {
     it("should return an instance of KitchenSSEService", () => {
       const service = createKitchenSSE({
         restaurantId: 7,
-        onMessage: onMessage as any,
-        onConnectionChange: onConnectionChange as any,
-        onError: onError as any,
+        onMessage,
+        onConnectionChange,
+        onError,
       });
 
       expect(service).toBeInstanceOf(KitchenSSEService);

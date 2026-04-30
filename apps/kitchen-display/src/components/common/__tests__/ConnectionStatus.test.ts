@@ -13,7 +13,19 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import ConnectionStatus from "../ConnectionStatus.vue";
+import type { ComponentPublicInstance } from "vue";
 import type { ConnectionStatus as ConnectionStatusType } from "@/types";
+
+interface ConnectionHistoryEntry {
+  status: ConnectionStatusType;
+  timestamp: Date;
+}
+
+type ConnectionStatusExpose = ComponentPublicInstance & {
+  connectionHistory: ConnectionHistoryEntry[];
+  formatLastHeartbeat: () => string;
+  formatTime: (date: Date) => string;
+};
 
 // Mock Heroicons (not used by this component, but kept for safety)
 vi.mock("@heroicons/vue/24/outline", () => ({
@@ -209,7 +221,7 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as ConnectionStatusExpose;
       expect(vm.connectionHistory.length).toBeGreaterThan(0);
       expect(vm.connectionHistory[0].status).toBe("disconnected");
     });
@@ -253,7 +265,7 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as ConnectionStatusExpose;
       expect(vm.connectionHistory.length).toBeGreaterThan(0);
       expect(vm.connectionHistory[0].status).toBe("disconnected");
     });
@@ -303,8 +315,8 @@ describe("ConnectionStatus Component", () => {
       await wrapper.vm.$nextTick();
 
       // History should include both entries
-      const vm = wrapper.vm as any;
-      const statuses = vm.connectionHistory.map((h: any) => h.status);
+      const vm = wrapper.vm as ConnectionStatusExpose;
+      const statuses = vm.connectionHistory.map((h) => h.status);
       expect(statuses).toContain("disconnected");
     });
 
@@ -324,7 +336,7 @@ describe("ConnectionStatus Component", () => {
         await wrapper.setProps({ connectionStatus: status });
       }
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as ConnectionStatusExpose;
       expect(vm.connectionHistory.length).toBeLessThanOrEqual(20);
     });
 
@@ -338,7 +350,7 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as ConnectionStatusExpose;
       // onMounted pushes an entry
       expect(vm.connectionHistory.length).toBeGreaterThanOrEqual(1);
     });
@@ -355,7 +367,7 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as ConnectionStatusExpose;
       expect(vm.formatLastHeartbeat()).toBe("無");
     });
 
@@ -370,7 +382,7 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as ConnectionStatusExpose;
       expect(vm.formatLastHeartbeat()).toMatch(/\d+秒前/);
     });
 
@@ -385,7 +397,7 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as ConnectionStatusExpose;
       expect(vm.formatLastHeartbeat()).toMatch(/\d+分前/);
     });
 
@@ -400,7 +412,7 @@ describe("ConnectionStatus Component", () => {
         },
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as ConnectionStatusExpose;
       expect(vm.formatLastHeartbeat()).toMatch(/\d{2}:\d{2}/);
     });
   });

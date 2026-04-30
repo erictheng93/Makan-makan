@@ -54,6 +54,9 @@ interface UseKitchenSSEOptions {
   autoConnect?: boolean;
 }
 
+type KitchenSSEEventMock = ReturnType<typeof vi.fn> &
+  ((event: KitchenSSEEvent) => void);
+
 // Mock SSE 服務
 class MockSSEService {
   private _status: ConnectionStatus = "disconnected";
@@ -274,26 +277,26 @@ function createMockUseKitchenSSE(options: UseKitchenSSEOptions) {
 
 describe("useKitchenSSE", () => {
   let kitchenSSE: ReturnType<typeof createMockUseKitchenSSE>;
-  let onNewOrder: ReturnType<typeof vi.fn>;
-  let onOrderUpdate: ReturnType<typeof vi.fn>;
-  let onOrderCancelled: ReturnType<typeof vi.fn>;
-  let onPriorityUpdate: ReturnType<typeof vi.fn>;
+  let onNewOrder: KitchenSSEEventMock;
+  let onOrderUpdate: KitchenSSEEventMock;
+  let onOrderCancelled: KitchenSSEEventMock;
+  let onPriorityUpdate: KitchenSSEEventMock;
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
 
-    onNewOrder = vi.fn();
-    onOrderUpdate = vi.fn();
-    onOrderCancelled = vi.fn();
-    onPriorityUpdate = vi.fn();
+    onNewOrder = vi.fn() as KitchenSSEEventMock;
+    onOrderUpdate = vi.fn() as KitchenSSEEventMock;
+    onOrderCancelled = vi.fn() as KitchenSSEEventMock;
+    onPriorityUpdate = vi.fn() as KitchenSSEEventMock;
 
     kitchenSSE = createMockUseKitchenSSE({
       restaurantId: 1,
-      onNewOrder: onNewOrder as any,
-      onOrderUpdate: onOrderUpdate as any,
-      onOrderCancelled: onOrderCancelled as any,
-      onPriorityUpdate: onPriorityUpdate as any,
+      onNewOrder,
+      onOrderUpdate,
+      onOrderCancelled,
+      onPriorityUpdate,
       autoConnect: false,
     });
   });

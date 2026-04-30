@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import type { OfflineAction } from "@/services/offlineService";
 
 const { mockApiPost } = vi.hoisted(() => ({
   mockApiPost: vi.fn(),
@@ -336,7 +337,7 @@ describe("OfflineService - Sync Logic", () => {
         },
       });
 
-      const action = {
+      const action: OfflineAction = {
         id: "action_fail",
         type: "update_status" as const,
         orderId: 10,
@@ -351,7 +352,7 @@ describe("OfflineService - Sync Logic", () => {
       await offlineService.syncPendingActions();
 
       expect(action.retryCount).toBe(1);
-      expect((action as any).error).toBe("Server error");
+      expect(action.error).toBe("Server error");
     });
 
     it("should keep failed actions in pendingActions for retry", async () => {

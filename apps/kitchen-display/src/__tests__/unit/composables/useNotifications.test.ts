@@ -564,7 +564,7 @@ describe("useNotifications Composable", () => {
     });
 
     it("應該處理空結果", () => {
-      expect(composable.getByType("error" as any)).toHaveLength(0);
+      expect(composable.getByType("error")).toHaveLength(0);
       expect(composable.getByPriority("high")).toHaveLength(1);
     });
   });

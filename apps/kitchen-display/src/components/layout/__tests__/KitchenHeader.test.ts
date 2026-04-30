@@ -493,8 +493,12 @@ describe("KitchenHeader Component", () => {
         },
       });
 
-      expect((wrapper.props as any)("connectionStatus")).toBe("disconnected");
-      expect((wrapper.props as any)("isConnected")).toBe(false);
+      const props = wrapper.props() as {
+        connectionStatus: string;
+        isConnected: boolean;
+      };
+      expect(props.connectionStatus).toBe("disconnected");
+      expect(props.isConnected).toBe(false);
     });
 
     it("should accept custom connection status", () => {
@@ -508,8 +512,12 @@ describe("KitchenHeader Component", () => {
         },
       });
 
-      expect((wrapper.props as any)("connectionStatus")).toBe("connected");
-      expect((wrapper.props as any)("isConnected")).toBe(true);
+      const props = wrapper.props() as {
+        connectionStatus: string;
+        isConnected: boolean;
+      };
+      expect(props.connectionStatus).toBe("connected");
+      expect(props.isConnected).toBe(true);
     });
   });
 
