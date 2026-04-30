@@ -181,6 +181,12 @@ const errorLogs = ref<
   }>
 >([]);
 
+type OfflineStrategy = "queue";
+
+interface OfflineQueueParams {
+  offlineStrategy: OfflineStrategy;
+}
+
 // API 錯誤測試方法
 const testNetworkError = async () => {
   try {
@@ -264,10 +270,12 @@ const simulateOffline = () => {
 const testOfflineRequest = async () => {
   if (!isOnline.value) {
     try {
-      // 在離線狀態下嘗試 API 請求
-      await api.get("/analytics/dashboard", {
+      const offlineQueueParams: OfflineQueueParams = {
         offlineStrategy: "queue",
-      } as any);
+      };
+
+      // 在離線狀態下嘗試 API 請求
+      await api.get("/analytics/dashboard", offlineQueueParams);
     } catch {
       addErrorLog("network", "medium", t("exampleUsage.offlineRequestQueued"));
     }

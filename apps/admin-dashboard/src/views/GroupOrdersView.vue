@@ -870,41 +870,35 @@ import ShareIcon from "@heroicons/vue/24/outline/ShareIcon";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { useAuthStore } from "@/stores/auth";
-import { groupOrdersService } from "@/services/groupOrdersService";
+import {
+  groupOrdersService,
+  type GroupOrder as ApiGroupOrder,
+  type GroupOrderMember as ApiGroupOrderMember,
+} from "@/services/groupOrdersService";
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
 const authStore = useAuthStore();
 
 // 類別定義
-interface GroupOrderMember {
-  id: string;
-  name: string;
-  itemCount: number;
-  totalAmount: number;
-  paymentStatus: "unpaid" | "pending" | "paid";
-  joinedAt: string;
-}
+type ApiGroupOrderMemberPayload = Omit<ApiGroupOrderMember, "name"> & {
+  name?: string;
+  memberName?: string;
+};
 
-interface GroupOrder {
-  id: string;
-  shareCode: string;
-  masterOrderId: string | null;
-  tableNumber: string | null;
-  status: "active" | "ready_to_pay" | "completed" | "cancelled";
-  hostName: string;
-  memberCount: number;
+type GroupOrderMember = ApiGroupOrderMember & {
+  memberName?: string;
+};
+
+type ApiGroupOrderPayload = Omit<ApiGroupOrder, "members"> & {
+  members?: ApiGroupOrderMemberPayload[];
+  paidMembers?: number;
+};
+
+type GroupOrder = Omit<ApiGroupOrder, "members"> & {
   paidMembers: number;
-  totalAmount: number;
-  subtotal: number;
-  serviceCharge: number;
-  taxAmount: number;
-  itemCount: number;
   members: GroupOrderMember[];
-  createdAt: string;
-  completedAt: string | null;
-  expiresAt: string;
-}
+};
 
 // 響應式狀態
 const searchQuery = ref("");
@@ -1019,6 +1013,26 @@ const getMemberColor = (index: number) => {
   return colors[index % colors.length];
 };
 
+const normalizeGroupOrderMember = (
+  member: ApiGroupOrderMemberPayload,
+): GroupOrderMember => ({
+  ...member,
+  name: member.name || member.memberName || "",
+});
+
+const countPaidMembers = (members: GroupOrderMember[]) =>
+  members.filter((member) => member.paymentStatus === "paid").length;
+
+const normalizeGroupOrder = (order: ApiGroupOrderPayload): GroupOrder => {
+  const members = (order.members ?? []).map(normalizeGroupOrderMember);
+
+  return {
+    ...order,
+    members,
+    paidMembers: order.paidMembers ?? countPaidMembers(members),
+  };
+};
+
 // 操作函數
 const selectGroupOrder = (groupOrder: GroupOrder) => {
   selectedGroupOrder.value = groupOrder;
@@ -1032,17 +1046,7 @@ const refreshGroupOrders = async () => {
       groupOrdersService.getGroupOrderStats({ restaurantId }),
     ]);
 
-    groupOrders.value = (ordersData as any[]).map((o: any) => ({
-      ...o,
-      members: (o.members || []).map((m: any) => ({
-        ...m,
-        name: m.name || m.memberName || "",
-      })),
-      paidMembers:
-        o.paidMembers ??
-        o.members?.filter((m: any) => m.paymentStatus === "paid").length ??
-        0,
-    })) as GroupOrder[];
+    groupOrders.value = ordersData.map(normalizeGroupOrder);
 
     activeGroupOrders.value = statsData.activeGroupOrders ?? 0;
     todayGroupOrders.value = statsData.totalGroupOrders ?? 0;
@@ -1102,9 +1106,10 @@ const submitCreateGroupOrder = async () => {
 
     // Auto-share the newly created order
     const newGroup =
-      groupOrders.value.find((o) => o.id === created.id) || (created as any);
+      groupOrders.value.find((o) => o.id === created.id) ||
+      normalizeGroupOrder(created);
     if (newGroup) {
-      shareGroupOrder(newGroup as GroupOrder);
+      shareGroupOrder(newGroup);
     }
 
     console.log(

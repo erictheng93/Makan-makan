@@ -281,14 +281,31 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "@/i18n";
-import type { LeaveType, LeaveBalance } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
 
+interface RequestDialogLeaveType {
+  id: number;
+  name: string;
+  description?: string;
+  maxDaysPerYear?: number;
+  defaultDaysPerYear?: number;
+  minNoticeDays?: number;
+  requiresDocumentation?: boolean;
+  allowHalfDay?: boolean;
+  color?: string;
+  colorCode?: string;
+}
+
+interface RequestDialogLeaveBalance {
+  leaveTypeId: number;
+  remainingDays: number;
+}
+
 interface Props {
   isOpen: boolean;
-  leaveTypes: LeaveType[];
-  balances: LeaveBalance[];
+  leaveTypes: RequestDialogLeaveType[];
+  balances: RequestDialogLeaveBalance[];
   preselectedTypeId?: number;
 }
 

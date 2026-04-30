@@ -111,6 +111,14 @@ const toast = useToast();
 const authStore = useAuthStore();
 const loading = ref(false);
 
+interface SchedulingInsight {
+  id: number;
+  icon: string;
+  title: string;
+  description: string;
+  color: string;
+}
+
 // 快速統計數據
 const quickStats = ref([
   {
@@ -152,15 +160,7 @@ const quickStats = ref([
 ]);
 
 // 數據洞察
-const insights = ref<
-  Array<{
-    id: number;
-    icon: string;
-    title: string;
-    description: string;
-    color: string;
-  }>
->([]);
+const insights = ref<SchedulingInsight[]>([]);
 
 /**
  * Fetch analytics data from the API
@@ -221,7 +221,7 @@ const fetchAnalyticsData = async () => {
       {
         icon: "⚡",
         label: t("schedulingAnalytics.currentlyOnDuty"),
-        value: String((dailyStats as any).currentlyWorking || 0),
+        value: String(dailyStats.currentlyWorking || 0),
         change: "",
         changeIcon: "",
         trend: "positive",
@@ -230,8 +230,8 @@ const fetchAnalyticsData = async () => {
     ];
 
     // Generate data-driven insights
-    const generatedInsights: typeof insights.value = [];
-    const noShowCount = (dailyStats as any).statusBreakdown?.noShow || 0;
+    const generatedInsights: SchedulingInsight[] = [];
+    const noShowCount = dailyStats.statusBreakdown?.noShow || 0;
     if (noShowCount > 0) {
       generatedInsights.push({
         id: 1,
@@ -244,7 +244,7 @@ const fetchAnalyticsData = async () => {
       });
     }
 
-    const overtimeHours = (dailyStats as any).totalOvertimeHours || 0;
+    const overtimeHours = dailyStats.totalOvertimeHours || 0;
     if (overtimeHours > 0) {
       generatedInsights.push({
         id: 2,
@@ -257,7 +257,7 @@ const fetchAnalyticsData = async () => {
       });
     }
 
-    const cancelledCount = (dailyStats as any).statusBreakdown?.cancelled || 0;
+    const cancelledCount = dailyStats.statusBreakdown?.cancelled || 0;
     if (cancelledCount > 0) {
       generatedInsights.push({
         id: 3,
@@ -314,7 +314,7 @@ const exportReport = () => {
 };
 
 // 查看洞察詳情
-const viewInsightDetail = (insight: any) => {
+const viewInsightDetail = (insight: SchedulingInsight) => {
   console.log("Viewing insight:", insight);
   toast.info(
     `${t("schedulingAnalytics.viewInsightDetail")}:\n\n${insight.title}\n\n${insight.description}`,

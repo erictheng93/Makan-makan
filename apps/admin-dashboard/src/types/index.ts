@@ -170,9 +170,13 @@ export interface DashboardStats {
 }
 
 export interface TopMenuItem {
+  id?: string | number;
   name: string;
-  quantity: number;
+  quantity?: number;
+  count?: number;
   revenue: number;
+  category?: string;
+  percentage?: number;
 }
 
 export interface ChartData {

@@ -89,8 +89,8 @@
 
     <LeaveRequestDialog
       :is-open="showRequestDialog"
-      :leave-types="leaveTypes as any"
-      :balances="balances as any"
+      :leave-types="leaveTypes"
+      :balances="balances"
       @close="showRequestDialog = false"
       @submit="handleLeaveRequest"
     />
@@ -117,6 +117,15 @@ import type {
 const STAFFING_THRESHOLD = 3;
 
 type TabKey = "queue" | "history" | "balance";
+type LeavePeriod = "full" | "am" | "pm";
+
+interface LeaveRequestFormData {
+  leaveTypeId: number | string;
+  startDate: string;
+  endDate: string;
+  startPeriod: LeavePeriod;
+  reason: string;
+}
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "queue", label: "待我處理" },
@@ -149,6 +158,19 @@ const employeeList = computed(() =>
   })),
 );
 
+const getErrorMessage = (err: unknown, fallback: string): string => {
+  if (err instanceof Error) return err.message;
+  if (
+    typeof err === "object" &&
+    err !== null &&
+    "message" in err &&
+    typeof err.message === "string"
+  ) {
+    return err.message;
+  }
+  return fallback;
+};
+
 const loadData = async () => {
   const restaurantId = authStore.restaurantId;
   if (!restaurantId) return;
@@ -165,8 +187,8 @@ const loadData = async () => {
     leaveTypes.value = types;
     allRequests.value = reqs;
     balances.value = allBalances;
-  } catch (e: any) {
-    error.value = e?.message || "載入請假資料失敗";
+  } catch (e) {
+    error.value = getErrorMessage(e, "載入請假資料失敗");
     console.error("Failed to load leaves data:", e);
   } finally {
     isLoading.value = false;
@@ -179,9 +201,9 @@ const handleApprove = async (requestId: number) => {
     // Optimistically update status
     const req = allRequests.value.find((r) => r.id === requestId);
     if (req) req.status = "approved";
-  } catch (e: any) {
+  } catch (e) {
     console.error("Failed to approve request:", e);
-    error.value = e?.message || "批准失敗，請重試";
+    error.value = getErrorMessage(e, "批准失敗，請重試");
     await loadData(); // Refresh on error
   }
 };
@@ -195,19 +217,29 @@ const handleReject = async (requestId: number, reason?: string) => {
       req.status = "rejected";
       if (reason) req.rejectionReason = reason;
     }
-  } catch (e: any) {
+  } catch (e) {
     console.error("Failed to reject request:", e);
-    error.value = e?.message || "拒絕失敗，請重試";
+    error.value = getErrorMessage(e, "拒絕失敗，請重試");
     await loadData(); // Refresh on error
   }
 };
 
-const handleLeaveRequest = async (formData: any) => {
+const handleLeaveRequest = async (formData: LeaveRequestFormData) => {
   const restaurantId = authStore.restaurantId;
   if (!restaurantId) return;
+
+  const leaveTypeId =
+    typeof formData.leaveTypeId === "number"
+      ? formData.leaveTypeId
+      : Number(formData.leaveTypeId);
+  if (!Number.isFinite(leaveTypeId)) {
+    error.value = "請選擇有效的假別";
+    return;
+  }
+
   try {
     await leavesService.createRequest(String(restaurantId), {
-      leaveTypeId: formData.leaveTypeId,
+      leaveTypeId,
       startDate: formData.startDate,
       endDate: formData.endDate,
       period: formData.startPeriod || "full",
@@ -215,8 +247,8 @@ const handleLeaveRequest = async (formData: any) => {
     });
     showRequestDialog.value = false;
     await loadData();
-  } catch (e: any) {
-    error.value = e?.message || "申請失敗";
+  } catch (e) {
+    error.value = getErrorMessage(e, "申請失敗");
   }
 };
 
@@ -228,8 +260,8 @@ const handleAccrue = async () => {
       year: new Date().getFullYear(),
     });
     await loadData();
-  } catch (e: any) {
-    error.value = e?.message || "初始化失敗";
+  } catch (e) {
+    error.value = getErrorMessage(e, "初始化失敗");
   }
 };
 

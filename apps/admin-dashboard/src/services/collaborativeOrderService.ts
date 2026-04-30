@@ -6,8 +6,51 @@
  */
 
 import { ref } from "vue";
-import { groupOrderBroadcastService } from "./groupOrderBroadcastService";
-import { realtimeService, REALTIME_EVENTS } from "./realtimeService";
+import {
+  groupOrderBroadcastService,
+  type StateOperation,
+} from "./groupOrderBroadcastService";
+import {
+  realtimeService,
+  REALTIME_EVENTS,
+  type SSEMessage,
+} from "./realtimeService";
+
+type BroadcastEntity = StateOperation["entity"];
+type PermissionValue =
+  | string
+  | boolean
+  | ((user: UserPresence, context: PermissionContext) => boolean);
+
+interface CollaborativeEntity {
+  createdBy?: string;
+  memberId?: string;
+  [key: string]: unknown;
+}
+
+interface PermissionContext {
+  entity?: CollaborativeEntity;
+  changes?: unknown;
+  [key: string]: unknown;
+}
+
+interface CollaborationConflict {
+  type: string;
+  message: string;
+  lockedBy?: string;
+}
+
+const broadcastEntityByCollaborativeEntity: Record<string, BroadcastEntity> = {
+  cart_item: "cart_item",
+  member: "member",
+  member_profile: "member",
+  split_bill: "split_bill",
+  group_setting: "group_setting",
+  group_settings: "group_setting",
+};
+
+const toBroadcastEntity = (entityType: string): BroadcastEntity | null =>
+  broadcastEntityByCollaborativeEntity[entityType] ?? null;
 
 // 協作狀態類型定義
 export interface EditLock {
@@ -24,6 +67,7 @@ export interface EditLock {
 export interface UserPresence {
   userId: string;
   userName: string;
+  role?: string;
   sessionId: string;
   isOnline: boolean;
   lastActivity: number;
@@ -45,7 +89,7 @@ export interface CollaborativeAction {
   entityId: string;
   userId: string;
   userName: string;
-  data: any;
+  data: unknown;
   timestamp: number;
 }
 
@@ -53,12 +97,16 @@ export interface OperationPermission {
   action: string;
   entityType: string;
   required: Permission[];
-  condition?: (user: any, entity: any, context: any) => boolean;
+  condition?: (
+    user: UserPresence,
+    entity: CollaborativeEntity | undefined,
+    context: PermissionContext,
+  ) => boolean;
 }
 
 export interface Permission {
   type: "role" | "ownership" | "group_admin" | "custom";
-  value: any;
+  value: PermissionValue;
 }
 
 export interface ConflictAlert {
@@ -241,7 +289,7 @@ class CollaborativeOrderService {
     action: string,
     entityType: string,
     userId: string,
-    context: any = {},
+    context: PermissionContext = {},
   ): Promise<{ allowed: boolean; reason?: string }> {
     const rules = this.permissionRules.get(groupOrderId) || [];
     const applicableRules = rules.filter(
@@ -280,7 +328,7 @@ class CollaborativeOrderService {
   private async evaluatePermissionRule(
     rule: OperationPermission,
     user: UserPresence,
-    context: any,
+    context: PermissionContext,
   ): Promise<{ allowed: boolean; reason?: string }> {
     // 檢查必需權限
     for (const permission of rule.required) {
@@ -312,12 +360,14 @@ class CollaborativeOrderService {
    */
   private evaluatePermission(
     permission: Permission,
-    user: any,
-    context: any,
+    user: UserPresence,
+    context: PermissionContext,
   ): boolean {
     switch (permission.type) {
       case "role":
-        return user.role === permission.value;
+        return (
+          typeof permission.value === "string" && user.role === permission.value
+        );
 
       case "ownership":
         return (
@@ -391,8 +441,8 @@ class CollaborativeOrderService {
     entityType: string,
     entityId: string,
     userId: string,
-    changes: any,
-  ): Promise<{ success: boolean; conflicts?: any[] }> {
+    changes: unknown,
+  ): Promise<{ success: boolean; conflicts?: CollaborationConflict[] }> {
     // 檢查編輯鎖定
     const lockKey = `${groupOrderId}:${entityType}:${entityId}`;
     const lock = this.activeLocks.get(lockKey);
@@ -405,6 +455,19 @@ class CollaborativeOrderService {
             type: "lock_conflict",
             message: `Entity is locked by ${lock.lockedByName}`,
             lockedBy: lock.lockedBy,
+          },
+        ],
+      };
+    }
+
+    const broadcastEntity = toBroadcastEntity(entityType);
+    if (!broadcastEntity) {
+      return {
+        success: false,
+        conflicts: [
+          {
+            type: "unsupported_entity",
+            message: `Unsupported collaborative entity type: ${entityType}`,
           },
         ],
       };
@@ -448,7 +511,7 @@ class CollaborativeOrderService {
     // 廣播編輯變更
     await groupOrderBroadcastService.broadcastOperation(groupOrderId, {
       type: "update",
-      entity: entityType as any,
+      entity: broadcastEntity,
       entityId,
       data: changes,
       userId,
@@ -613,7 +676,7 @@ class CollaborativeOrderService {
         condition: (user, entity, _context) => {
           // 允許編輯自己的商品，或群組管理員
           return (
-            entity.memberId === user.userId ||
+            entity?.memberId === user.userId ||
             user.role === "creator" ||
             user.role === "admin"
           );
@@ -667,7 +730,7 @@ class CollaborativeOrderService {
   /**
    * 處理協作事件
    */
-  private handleCollaborationEvent(message: any): void {
+  private handleCollaborationEvent(message: SSEMessage): void {
     switch (message.type) {
       case "edit_lock_acquired": {
         const lock = message.data.lock;

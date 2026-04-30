@@ -90,9 +90,9 @@
           :loading-text="t('dashboard.loadingRevenueChart')"
         >
           <RevenueChart
-            :data="revenueChart as any"
+            :data="revenueChart"
             :loading="isLoading"
-            :period="revenueChartPeriod as 'daily' | 'weekly' | 'monthly'"
+            :period="revenueChartPeriod"
           />
         </LazyChart>
       </div>
@@ -119,9 +119,9 @@
           :loading-text="t('dashboard.loadingOrderChart')"
         >
           <OrdersChart
-            :data="ordersChart as any"
+            :data="ordersChart"
             :loading="isLoading"
-            :period="ordersChartPeriod as 'daily' | 'weekly' | 'monthly'"
+            :period="ordersChartPeriod"
           />
         </LazyChart>
       </div>
@@ -149,7 +149,7 @@
             :loading-text="t('dashboard.loadingPopularItems')"
           >
             <TopMenuItems
-              :items="topMenuItems as any"
+              :items="topMenuItems"
               :loading="isLoading"
               @item-click="navigateToMenuItem"
             />
@@ -264,7 +264,7 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useOrderStore } from "@/stores/order";
-import type { OrderStatus } from "@/types";
+import type { ChartData, OrderStatus, TopMenuItem } from "@/types";
 import { useDashboardPolling } from "@/composables/usePolling";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -295,8 +295,34 @@ const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
 const orderStore = useOrderStore();
 
-const revenueChartPeriod = ref("daily");
-const ordersChartPeriod = ref("daily");
+type DashboardChartPeriod = "daily" | "weekly" | "monthly";
+
+interface RevenueChartPoint {
+  label: string;
+  value: number;
+  date: string;
+}
+
+interface OrdersChartPoint {
+  label: string;
+  total: number;
+  completed: number;
+  pending: number;
+  cancelled: number;
+  date: string;
+}
+
+interface DashboardTopMenuItem {
+  id: string;
+  name: string;
+  quantity: number;
+  revenue: number;
+  category?: string;
+  percentage?: number;
+}
+
+const revenueChartPeriod = ref<DashboardChartPeriod>("daily");
+const ordersChartPeriod = ref<DashboardChartPeriod>("daily");
 
 // Start auto-refresh for dashboard data
 const { start: startPolling, stop: stopPolling } = useDashboardPolling(30000);
@@ -310,9 +336,41 @@ const todayOrders = computed(() => dashboardStore.todayOrders);
 const todayRevenue = computed(() => dashboardStore.todayRevenue);
 const averageOrderValue = computed(() => dashboardStore.averageOrderValue);
 const completionRate = computed(() => dashboardStore.completionRate);
-const topMenuItems = computed(() => dashboardStore.topMenuItems);
-const revenueChart = computed(() => dashboardStore.revenueChart);
-const ordersChart = computed(() => dashboardStore.ordersChart);
+
+const getChartDate = (point: ChartData) => point.date ?? point.label;
+
+const topMenuItems = computed<DashboardTopMenuItem[]>(() =>
+  dashboardStore.topMenuItems.map((item: TopMenuItem, index) => ({
+    id: String(item.id ?? `${item.name}-${index}`),
+    name: item.name,
+    quantity: item.quantity ?? item.count ?? 0,
+    revenue: item.revenue,
+    category: item.category,
+    percentage: item.percentage,
+  })),
+);
+
+const revenueChart = computed<RevenueChartPoint[]>(() =>
+  dashboardStore.revenueChart.map((point) => ({
+    label: point.label,
+    value: point.value,
+    date: getChartDate(point),
+  })),
+);
+
+const ordersChart = computed<OrdersChartPoint[]>(() =>
+  dashboardStore.ordersChart.map((point) => {
+    const total = point.value;
+    return {
+      label: point.label,
+      total,
+      completed: total,
+      pending: 0,
+      cancelled: 0,
+      date: getChartDate(point),
+    };
+  }),
+);
 
 const lastUpdatedText = computed(() => {
   if (!dashboardStore.lastUpdated) return t("dashboard.neverUpdated");
@@ -340,18 +398,14 @@ const refreshData = async () => {
 };
 
 const updateRevenueChart = async () => {
-  await dashboardStore.fetchRevenueAnalytics(
-    revenueChartPeriod.value as "daily" | "weekly" | "monthly",
-  );
+  await dashboardStore.fetchRevenueAnalytics(revenueChartPeriod.value);
 };
 
 const updateOrdersChart = async () => {
-  await dashboardStore.fetchOrderAnalytics(
-    ordersChartPeriod.value as "daily" | "weekly" | "monthly",
-  );
+  await dashboardStore.fetchOrderAnalytics(ordersChartPeriod.value);
 };
 
-const navigateToMenuItem = (item: any) => {
+const navigateToMenuItem = (item: DashboardTopMenuItem) => {
   router.push({
     path: "/dashboard/menu",
     query: { highlightItem: String(item.id) },
