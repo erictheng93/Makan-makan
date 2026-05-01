@@ -254,7 +254,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.confirmWaiting(entryId)).rejects.toThrow(
-        "此候位尚未叫號",
+        /transition/i,
       );
     });
 
@@ -588,7 +588,7 @@ describe("WaitingListService", () => {
 
       await expect(
         service.callWaiting(entryId, { tableId: 2 }),
-      ).rejects.toThrow("無法叫號");
+      ).rejects.toThrow(/transition/i);
     });
 
     it("cancelled → call 應該拒絕（已取消不能叫號）", async () => {
@@ -609,7 +609,7 @@ describe("WaitingListService", () => {
 
       await expect(
         service.callWaiting(entryId, { tableId: 2 }),
-      ).rejects.toThrow("無法叫號");
+      ).rejects.toThrow(/transition/i);
     });
 
     it("expired → call 應該拒絕（已過期不能叫號）", async () => {
@@ -630,7 +630,7 @@ describe("WaitingListService", () => {
 
       await expect(
         service.callWaiting(entryId, { tableId: 2 }),
-      ).rejects.toThrow("無法叫號");
+      ).rejects.toThrow(/transition/i);
     });
 
     it("seated → confirm 應該拒絕（已入座不能確認）", async () => {
@@ -642,7 +642,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.confirmWaiting(entryId)).rejects.toThrow(
-        "此候位尚未叫號",
+        /transition/i,
       );
     });
 
@@ -655,7 +655,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.confirmWaiting(entryId)).rejects.toThrow(
-        "此候位尚未叫號",
+        /transition/i,
       );
     });
 
@@ -668,7 +668,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.confirmWaiting(entryId)).rejects.toThrow(
-        "此候位尚未叫號",
+        /transition/i,
       );
     });
 
@@ -680,9 +680,7 @@ describe("WaitingListService", () => {
         restaurant_id: "R-001",
       });
 
-      await expect(service.markSeated(entryId)).rejects.toThrow(
-        "無法入座，候位狀態不正確",
-      );
+      await expect(service.markSeated(entryId)).rejects.toThrow(/transition/i);
     });
 
     it("expired → seat 應該拒絕（已過期不能入座）", async () => {
@@ -693,9 +691,7 @@ describe("WaitingListService", () => {
         restaurant_id: "R-001",
       });
 
-      await expect(service.markSeated(entryId)).rejects.toThrow(
-        "無法入座，候位狀態不正確",
-      );
+      await expect(service.markSeated(entryId)).rejects.toThrow(/transition/i);
     });
 
     it("cancelled → seat 應該拒絕（已取消不能入座）", async () => {
@@ -706,9 +702,7 @@ describe("WaitingListService", () => {
         restaurant_id: "R-001",
       });
 
-      await expect(service.markSeated(entryId)).rejects.toThrow(
-        "無法入座，候位狀態不正確",
-      );
+      await expect(service.markSeated(entryId)).rejects.toThrow(/transition/i);
     });
 
     it("seated → cancel 應該拒絕（已入座不能取消）", async () => {
@@ -720,7 +714,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.cancelWaiting(entryId)).rejects.toThrow(
-        "無法取消，當前狀態: seated",
+        /transition/i,
       );
     });
 
@@ -733,7 +727,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.cancelWaiting(entryId)).rejects.toThrow(
-        "無法取消，當前狀態: expired",
+        /transition/i,
       );
     });
 
@@ -746,7 +740,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.cancelWaiting(entryId)).rejects.toThrow(
-        "無法取消，當前狀態: cancelled",
+        /transition/i,
       );
     });
 
@@ -784,7 +778,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.expireWaiting(entryId)).rejects.toThrow(
-        "無法標記過期，當前狀態: seated",
+        /transition/i,
       );
     });
 
@@ -797,7 +791,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.expireWaiting(entryId)).rejects.toThrow(
-        "無法標記過期，當前狀態: cancelled",
+        /transition/i,
       );
     });
 
@@ -810,7 +804,7 @@ describe("WaitingListService", () => {
       });
 
       await expect(service.expireWaiting(entryId)).rejects.toThrow(
-        "無法標記過期，當前狀態: expired",
+        /transition/i,
       );
     });
 
@@ -826,6 +820,101 @@ describe("WaitingListService", () => {
       const result = await service.markSeated(entryId);
 
       expect(result.status).toBe("seated");
+    });
+  });
+
+  // ==========================================
+  // G6 — ApiError(409) INVALID_STATUS_TRANSITION 契約
+  // 鎖定 illegal transition 統一以 ApiError 結構化錯誤呈現
+  // (T2: 把 inline status 檢查改用 assertWaitingTransition)
+  // ==========================================
+
+  describe("G6 — INVALID_STATUS_TRANSITION ApiError contract", () => {
+    it("seated 票被 callWaiting 時丟 ApiError(code=INVALID_STATUS_TRANSITION, status=409)", async () => {
+      const entryId = "g6-seated-call";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "seated",
+        party_size: 2,
+        restaurant_id: "R-001",
+      });
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 4,
+      });
+
+      await expect(
+        service.callWaiting(entryId, { tableId: 1 }),
+      ).rejects.toMatchObject({
+        code: "INVALID_STATUS_TRANSITION",
+        status: 409,
+      });
+    });
+
+    it("cancelled 票被任何 mutation 時都丟 409", async () => {
+      const entryId = "g6-cancelled";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "cancelled",
+        party_size: 2,
+        restaurant_id: "R-001",
+      });
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 4,
+      });
+
+      const matcher = { code: "INVALID_STATUS_TRANSITION", status: 409 };
+      await expect(
+        service.callWaiting(entryId, { tableId: 1 }),
+      ).rejects.toMatchObject(matcher);
+      await expect(service.confirmWaiting(entryId)).rejects.toMatchObject(
+        matcher,
+      );
+      await expect(service.markSeated(entryId)).rejects.toMatchObject(matcher);
+      await expect(service.cancelWaiting(entryId)).rejects.toMatchObject(
+        matcher,
+      );
+      await expect(service.expireWaiting(entryId)).rejects.toMatchObject(
+        matcher,
+      );
+    });
+
+    it("waiting 票直接 markSeated（跳過 call/confirm）時丟 409", async () => {
+      const entryId = "g6-waiting-seat";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "waiting",
+        party_size: 2,
+        restaurant_id: "R-001",
+      });
+
+      await expect(service.markSeated(entryId)).rejects.toMatchObject({
+        code: "INVALID_STATUS_TRANSITION",
+        status: 409,
+      });
+    });
+
+    it("錯誤 message 包含 from 與 to 狀態", async () => {
+      const entryId = "g6-message";
+      mockDB._mockData.waitingList.set(entryId, {
+        id: entryId,
+        status: "expired",
+        party_size: 2,
+        restaurant_id: "R-001",
+      });
+
+      try {
+        await service.cancelWaiting(entryId);
+        throw new Error("expected service.cancelWaiting to throw");
+      } catch (err) {
+        expect((err as { message: string }).message).toContain("expired");
+        expect((err as { message: string }).message).toContain("cancelled");
+      }
     });
   });
 
@@ -941,7 +1030,7 @@ describe("WaitingListService", () => {
       // 第二次叫號：狀態已不是 waiting，應被拒絕
       await expect(
         service.callWaiting(entryId, { tableId: 11 }),
-      ).rejects.toThrow("無法叫號");
+      ).rejects.toThrow(/transition/i);
     });
 
     it("第一次確認成功後，第二次確認應被拒絕", async () => {
@@ -959,7 +1048,7 @@ describe("WaitingListService", () => {
 
       // 第二次確認：狀態已不是 called，應被拒絕
       await expect(service.confirmWaiting(entryId)).rejects.toThrow(
-        "此候位尚未叫號",
+        /transition/i,
       );
     });
 
@@ -978,7 +1067,7 @@ describe("WaitingListService", () => {
 
       // 入座後取消應被拒絕（已入座不可取消）
       await expect(service.cancelWaiting(entryId)).rejects.toThrow(
-        "無法取消，當前狀態: seated",
+        /transition/i,
       );
     });
 
@@ -996,9 +1085,7 @@ describe("WaitingListService", () => {
       expect(cancelled.status).toBe("cancelled");
 
       // 取消後嘗試入座，應被拒絕
-      await expect(service.markSeated(entryId)).rejects.toThrow(
-        "無法入座，候位狀態不正確",
-      );
+      await expect(service.markSeated(entryId)).rejects.toThrow(/transition/i);
     });
   });
 
@@ -1182,7 +1269,7 @@ describe("WaitingListService", () => {
       // App-level guard fires first (status !== "waiting")
       await expect(
         service.callWaiting(entryId, { tableId: 5 }),
-      ).rejects.toThrow("無法叫號");
+      ).rejects.toThrow(/transition/i);
 
       // Verify status was NOT changed by the update
       expect(mockDB._mockData.waitingList.get(entryId).status).toBe("called");
@@ -1197,7 +1284,9 @@ describe("WaitingListService", () => {
       });
 
       // App-level guard catches it
-      await expect(service.cancelWaiting(entryId)).rejects.toThrow("無法取消");
+      await expect(service.cancelWaiting(entryId)).rejects.toThrow(
+        /transition/i,
+      );
 
       // Status unchanged
       expect(mockDB._mockData.waitingList.get(entryId).status).toBe("seated");

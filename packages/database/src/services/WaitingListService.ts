@@ -17,6 +17,7 @@ import type {
   TableAssignmentResult,
 } from "@makanmakan/shared-types";
 import { ReservationService } from "./ReservationService";
+import { assertWaitingTransition } from "./ticket-primitives";
 
 /** Call timeout: 5 minutes */
 const CALL_TIMEOUT_MS = 5 * 60 * 1000;
@@ -399,9 +400,7 @@ export class WaitingListService extends BaseService {
         throw new Error("候位記錄不存在");
       }
 
-      if (entry.status !== "waiting") {
-        throw new Error(`無法叫號，當前狀態: ${entry.status}`);
-      }
+      assertWaitingTransition(entry.status, WaitingStatus.CALLED);
 
       // 驗證桌位
       const table = await this.db.get<AvailableTableRow>(sql`
@@ -469,9 +468,7 @@ export class WaitingListService extends BaseService {
         throw new Error("候位記錄不存在");
       }
 
-      if (entry.status !== "called") {
-        throw new Error("此候位尚未叫號");
-      }
+      assertWaitingTransition(entry.status, WaitingStatus.CONFIRMED);
 
       // 檢查是否超時
       if (entry.timeoutAt && now > entry.timeoutAt) {
@@ -509,9 +506,7 @@ export class WaitingListService extends BaseService {
         throw new Error("候位記錄不存在");
       }
 
-      if (!["called", "confirmed"].includes(entry.status)) {
-        throw new Error("無法入座，候位狀態不正確");
-      }
+      assertWaitingTransition(entry.status, WaitingStatus.SEATED);
 
       const seatResult = await this.db.run(sql`
         UPDATE waiting_list
@@ -553,10 +548,7 @@ export class WaitingListService extends BaseService {
         throw new Error("候位記錄不存在");
       }
 
-      // 只允許從 waiting/called/confirmed 狀態取消
-      if (!["waiting", "called", "confirmed"].includes(entry.status)) {
-        throw new Error(`無法取消，當前狀態: ${entry.status}`);
-      }
+      assertWaitingTransition(entry.status, WaitingStatus.CANCELLED);
 
       const cancelResult = await this.db.run(sql`
         UPDATE waiting_list
@@ -596,10 +588,7 @@ export class WaitingListService extends BaseService {
         throw new Error("候位記錄不存在");
       }
 
-      // 只允許從 waiting/called/confirmed 狀態標記過期
-      if (!["waiting", "called", "confirmed"].includes(entry.status)) {
-        throw new Error(`無法標記過期，當前狀態: ${entry.status}`);
-      }
+      assertWaitingTransition(entry.status, WaitingStatus.EXPIRED);
 
       const expireResult = await this.db.run(sql`
         UPDATE waiting_list
