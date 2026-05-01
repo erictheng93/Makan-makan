@@ -90,9 +90,6 @@ vi.mock("@makanmakan/database", () => ({
   CouponService: vi.fn(function () {
     return { validateCoupon: vi.fn() };
   }),
-}));
-
-vi.mock("../../services/RealtimeBroadcastService", () => ({
   RealtimeBroadcastService: vi.fn(function () {
     return {
       broadcastNewOrder: vi.fn().mockResolvedValue({

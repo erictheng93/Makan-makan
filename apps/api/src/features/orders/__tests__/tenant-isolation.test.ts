@@ -35,9 +35,6 @@ vi.mock("@makanmakan/database", () => ({
       validateCoupon: vi.fn(),
     };
   }),
-}));
-
-vi.mock("../../../services/RealtimeBroadcastService", () => ({
   RealtimeBroadcastService: vi.fn(function () {
     return {
       broadcastNewOrder: vi.fn().mockResolvedValue({

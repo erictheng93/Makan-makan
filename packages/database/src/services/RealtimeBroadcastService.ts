@@ -1,10 +1,13 @@
 /**
  * Realtime Broadcast Service
- * 用於從 API 向 Realtime Durable Object 廣播事件
+ * Bridges API/service-layer code to the realtime worker's Durable Object,
+ * which holds WebSocket connections per `${roomType}:${roomId}` instance.
+ *
+ * Lives in packages/database (not apps/api/src/services) so both
+ * WaitingListService and the future QueueService can import directly
+ * without crossing the apps→packages dependency boundary.
  */
 
-import type { Env } from "../shared/types";
-import { ConsoleLogger } from "../core/monitoring";
 import type {
   RealtimeEvent,
   NewOrderEvent,
@@ -14,6 +17,11 @@ import type {
   MenuAvailabilityUpdateEvent,
 } from "@makanmakan/shared-types";
 
+/** Minimal env shape — avoids depending on apps/api's full Env type. */
+interface BroadcastEnv {
+  REALTIME_SESSION?: DurableObjectNamespace;
+}
+
 export interface BroadcastResult {
   success: boolean;
   eventId?: string;
@@ -21,30 +29,27 @@ export interface BroadcastResult {
   error?: string;
 }
 
-/**
- * Realtime 廣播服務
- */
 export class RealtimeBroadcastService {
-  private env: Env;
-  private logger: ConsoleLogger;
+  private env: BroadcastEnv;
 
-  constructor(env: Env) {
+  constructor(env: BroadcastEnv) {
     this.env = env;
-    this.logger = new ConsoleLogger("realtime-broadcast");
   }
 
-  /**
-   * 廣播事件到指定的房間
-   */
   async broadcastEvent(
     roomType: string,
     roomId: string,
     event: RealtimeEvent,
   ): Promise<BroadcastResult> {
     try {
-      // 檢查 REALTIME_SESSION 是否可用（測試環境可能未配置）
+      // REALTIME_SESSION may be undefined in tests / unconfigured envs.
+      // Returning success=true here is intentional: we treat broadcast
+      // as best-effort and never fail the originating mutation. The
+      // production binding is verified at deploy time (see INC-001).
       if (!this.env.REALTIME_SESSION) {
-        this.logger.warn("REALTIME_SESSION not configured, skipping broadcast");
+        console.warn(
+          "[RealtimeBroadcastService] REALTIME_SESSION not configured, skipping broadcast",
+        );
         return {
           success: true,
           eventId: event.eventId,
@@ -52,13 +57,11 @@ export class RealtimeBroadcastService {
         };
       }
 
-      // 獲取 Durable Object 實例
       const durableObjectId = this.env.REALTIME_SESSION.idFromName(
         `${roomType}:${roomId}`,
       );
       const durableObjectStub = this.env.REALTIME_SESSION.get(durableObjectId);
 
-      // 發送廣播請求到 Durable Object
       const response = await durableObjectStub.fetch(
         `https://realtime-internal/broadcast`,
         {
@@ -76,28 +79,17 @@ export class RealtimeBroadcastService {
       };
 
       if (!result.success) {
-        this.logger.error(
-          "Failed to broadcast event",
-          new Error(result.error),
-          {
-            roomType,
-            roomId,
-            eventType: event.type,
-          },
-        );
+        console.error("[RealtimeBroadcastService] broadcast failed", {
+          roomType,
+          roomId,
+          eventType: event.type,
+          error: result.error,
+        });
         return {
           success: false,
           error: result.error,
         };
       }
-
-      this.logger.info("Event broadcast successful", {
-        roomType,
-        roomId,
-        eventType: event.type,
-        eventId: result.eventId,
-        recipientCount: result.recipientCount,
-      });
 
       return {
         success: true,
@@ -105,66 +97,48 @@ export class RealtimeBroadcastService {
         recipientCount: result.recipientCount,
       };
     } catch (error) {
-      this.logger.error("Broadcast error", error as Error, {
+      console.error("[RealtimeBroadcastService] broadcast error", {
         roomType,
         roomId,
         eventType: event.type,
+        error: error instanceof Error ? error.message : String(error),
       });
 
       return {
         success: false,
-        error: (error as Error).message,
+        error: error instanceof Error ? error.message : "unknown",
       };
     }
   }
 
-  /**
-   * 廣播新訂單事件
-   */
   async broadcastNewOrder(event: NewOrderEvent): Promise<BroadcastResult> {
-    // 廣播到餐廳房間（所有連線都會收到）
     return this.broadcastEvent("restaurant", event.restaurantId, event);
   }
 
-  /**
-   * 廣播訂單狀態更新事件
-   */
   async broadcastOrderStatusUpdate(
     event: OrderStatusUpdateEvent,
   ): Promise<BroadcastResult> {
     return this.broadcastEvent("restaurant", event.restaurantId, event);
   }
 
-  /**
-   * 廣播訂單項目狀態更新事件
-   */
   async broadcastOrderItemStatusUpdate(
     event: OrderItemStatusUpdateEvent,
   ): Promise<BroadcastResult> {
     return this.broadcastEvent("restaurant", event.restaurantId, event);
   }
 
-  /**
-   * 廣播廚房項目狀態事件
-   */
   async broadcastKitchenItemStatus(
     event: KitchenItemStatusEvent,
   ): Promise<BroadcastResult> {
     return this.broadcastEvent("restaurant", event.restaurantId, event);
   }
 
-  /**
-   * 廣播菜單可用性更新事件
-   */
   async broadcastMenuAvailabilityUpdate(
     event: MenuAvailabilityUpdateEvent,
   ): Promise<BroadcastResult> {
     return this.broadcastEvent("restaurant", event.restaurantId, event);
   }
 
-  /**
-   * 生成唯一的事件 ID
-   */
   generateEventId(): string {
     return `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }

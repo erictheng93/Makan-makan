@@ -39,6 +39,12 @@ export { PartnershipService } from "./PartnershipService";
 export { VerificationService } from "./VerificationService";
 export { FeedbackService } from "./FeedbackService";
 
+// Realtime broadcast: bridge to apps/realtime Durable Object
+export {
+  RealtimeBroadcastService,
+  type BroadcastResult,
+} from "./RealtimeBroadcastService";
+
 // Ticket-primitives: shared utilities for waiting-list and queue ticket flows
 export {
   WAITING_TRANSITIONS,

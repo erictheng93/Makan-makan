@@ -1,11 +1,5 @@
-/**
- * RealtimeBroadcastService Unit Tests
- * 測試即時廣播服務的核心功能
- */
-
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock @makanmakan/shared-types to ensure enums are available
 vi.mock("@makanmakan/shared-types", async () => {
   const actual = await vi.importActual("@makanmakan/shared-types");
   return {
@@ -20,9 +14,7 @@ vi.mock("@makanmakan/shared-types", async () => {
   };
 });
 
-// Import after mocking
 import { RealtimeBroadcastService } from "../RealtimeBroadcastService";
-import type { Env } from "../../shared/types";
 import {
   type NewOrderEvent,
   type OrderStatusUpdateEvent,
@@ -30,55 +22,31 @@ import {
   RealtimeEventType,
 } from "@makanmakan/shared-types";
 
-// Mock logger
-vi.mock("../../core/monitoring", () => ({
-  ConsoleLogger: vi.fn(function () {
-    return {
-      info: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
-    };
-  }),
-}));
+interface MockEnv {
+  REALTIME_SESSION: {
+    idFromName: ReturnType<typeof vi.fn>;
+    get: ReturnType<typeof vi.fn>;
+  };
+}
 
 describe("RealtimeBroadcastService", () => {
   let service: RealtimeBroadcastService;
-  let mockEnv: Env;
-  let mockDurableObjectStub: any;
-  let mockDurableObjectNamespace: any;
+  let mockEnv: MockEnv;
+  let mockDurableObjectStub: { fetch: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    // Mock Durable Object stub
     mockDurableObjectStub = {
       fetch: vi.fn(),
     };
 
-    // Mock Durable Object namespace
-    mockDurableObjectNamespace = {
-      idFromName: vi.fn().mockReturnValue("mock-durable-object-id"),
-      get: vi.fn().mockReturnValue(mockDurableObjectStub),
-    };
-
-    // Mock environment
     mockEnv = {
-      NODE_ENV: "test",
-      JWT_SECRET: "test-secret-key-that-is-at-least-32-chars-long",
-      ENCRYPTION_KEY: "test-encryption-key-32-chars-long",
-      API_VERSION: "1.0.0",
-      DB: {} as never,
-      CACHE_KV: {} as never,
-      TOKEN_BLACKLIST: {} as never,
-      IMAGES_BUCKET: {} as never,
-      BACKUP_STORAGE: {} as never,
-      JOB_QUEUE: {} as never,
-      REALTIME_ORDERS: {} as never,
-      ANALYTICS_ENGINE: {} as never,
-      RATE_LIMIT_KV: {} as never,
-      REALTIME_SESSION: mockDurableObjectNamespace as never,
+      REALTIME_SESSION: {
+        idFromName: vi.fn().mockReturnValue("mock-durable-object-id"),
+        get: vi.fn().mockReturnValue(mockDurableObjectStub),
+      },
     };
 
-    service = new RealtimeBroadcastService(mockEnv);
+    service = new RealtimeBroadcastService(mockEnv as never);
   });
 
   afterEach(() => {
@@ -86,7 +54,7 @@ describe("RealtimeBroadcastService", () => {
   });
 
   describe("broadcastEvent", () => {
-    it("應該成功廣播事件到 Durable Object", async () => {
+    it("should broadcast event to durable object", async () => {
       const mockEvent: NewOrderEvent = {
         type: RealtimeEventType.NEW_ORDER,
         eventId: "evt_123",
@@ -100,7 +68,6 @@ describe("RealtimeBroadcastService", () => {
         },
       };
 
-      // Mock successful response
       mockDurableObjectStub.fetch.mockResolvedValue(
         new Response(
           JSON.stringify({
@@ -121,7 +88,7 @@ describe("RealtimeBroadcastService", () => {
       expect(result.success).toBe(true);
       expect(result.eventId).toBe("evt_123");
       expect(result.recipientCount).toBe(5);
-      expect(mockDurableObjectNamespace.idFromName).toHaveBeenCalledWith(
+      expect(mockEnv.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
         "restaurant:rest_1",
       );
       expect(mockDurableObjectStub.fetch).toHaveBeenCalledWith(
@@ -134,7 +101,7 @@ describe("RealtimeBroadcastService", () => {
       );
     });
 
-    it("應該處理廣播失敗的情況", async () => {
+    it("should handle broadcast failure", async () => {
       const mockEvent: NewOrderEvent = {
         type: RealtimeEventType.NEW_ORDER,
         eventId: "evt_456",
@@ -148,7 +115,6 @@ describe("RealtimeBroadcastService", () => {
         },
       };
 
-      // Mock failure response
       mockDurableObjectStub.fetch.mockResolvedValue(
         new Response(
           JSON.stringify({
@@ -169,7 +135,7 @@ describe("RealtimeBroadcastService", () => {
       expect(result.error).toBe("Durable Object error");
     });
 
-    it("應該處理網路錯誤", async () => {
+    it("should handle network errors", async () => {
       const mockEvent: NewOrderEvent = {
         type: RealtimeEventType.NEW_ORDER,
         eventId: "evt_789",
@@ -183,7 +149,6 @@ describe("RealtimeBroadcastService", () => {
         },
       };
 
-      // Mock network error
       mockDurableObjectStub.fetch.mockRejectedValue(new Error("Network error"));
 
       const result = await service.broadcastEvent(
@@ -195,10 +160,31 @@ describe("RealtimeBroadcastService", () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe("Network error");
     });
+
+    it("should treat missing REALTIME_SESSION binding as best-effort skip", async () => {
+      const noBindingService = new RealtimeBroadcastService({} as never);
+      const mockEvent: NewOrderEvent = {
+        type: RealtimeEventType.NEW_ORDER,
+        eventId: "evt_no_binding",
+        timestamp: Date.now(),
+        restaurantId: "rest_1",
+        data: { orderId: 1, orderNumber: "#001", items: [], totalAmount: 0 },
+      };
+
+      const result = await noBindingService.broadcastEvent(
+        "restaurant",
+        "rest_1",
+        mockEvent,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.recipientCount).toBe(0);
+      expect(result.eventId).toBe("evt_no_binding");
+    });
   });
 
   describe("broadcastNewOrder", () => {
-    it("應該廣播新訂單事件到餐廳房間", async () => {
+    it("should broadcast new order to restaurant room", async () => {
       const newOrderEvent: NewOrderEvent = {
         type: RealtimeEventType.NEW_ORDER,
         eventId: "evt_new_123",
@@ -237,14 +223,14 @@ describe("RealtimeBroadcastService", () => {
       const result = await service.broadcastNewOrder(newOrderEvent);
 
       expect(result.success).toBe(true);
-      expect(mockDurableObjectNamespace.idFromName).toHaveBeenCalledWith(
+      expect(mockEnv.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
         "restaurant:rest_123",
       );
     });
   });
 
   describe("broadcastOrderStatusUpdate", () => {
-    it("應該廣播訂單狀態更新事件", async () => {
+    it("should broadcast order status update", async () => {
       const updateEvent: OrderStatusUpdateEvent = {
         type: RealtimeEventType.ORDER_STATUS_UPDATE,
         eventId: "evt_update_456",
@@ -278,14 +264,14 @@ describe("RealtimeBroadcastService", () => {
       const result = await service.broadcastOrderStatusUpdate(updateEvent);
 
       expect(result.success).toBe(true);
-      expect(mockDurableObjectNamespace.idFromName).toHaveBeenCalledWith(
+      expect(mockEnv.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
         "restaurant:rest_456",
       );
     });
   });
 
   describe("generateEventId", () => {
-    it("應該生成唯一的事件 ID", () => {
+    it("should generate unique event IDs", () => {
       const eventId1 = service.generateEventId();
       const eventId2 = service.generateEventId();
 
@@ -294,7 +280,7 @@ describe("RealtimeBroadcastService", () => {
       expect(eventId1).not.toBe(eventId2);
     });
 
-    it("應該生成帶有時間戳的 ID", () => {
+    it("should embed a timestamp", () => {
       const beforeTimestamp = Date.now();
       const eventId = service.generateEventId();
       const afterTimestamp = Date.now();
@@ -311,7 +297,7 @@ describe("RealtimeBroadcastService", () => {
   });
 
   describe("broadcastOrderItemStatusUpdate", () => {
-    it("應該廣播訂單項目狀態更新", async () => {
+    it("should broadcast order item status update", async () => {
       const itemUpdateEvent = {
         type: RealtimeEventType.ORDER_ITEM_STATUS_UPDATE,
         eventId: "evt_item_789",
@@ -346,7 +332,7 @@ describe("RealtimeBroadcastService", () => {
   });
 
   describe("broadcastKitchenItemStatus", () => {
-    it("應該廣播廚房項目狀態", async () => {
+    it("should broadcast kitchen item status", async () => {
       const kitchenEvent = {
         type: RealtimeEventType.KITCHEN_ITEM_STATUS,
         eventId: "evt_kitchen_101",
@@ -382,7 +368,7 @@ describe("RealtimeBroadcastService", () => {
   });
 
   describe("broadcastMenuAvailabilityUpdate", () => {
-    it("應該廣播菜單可用性更新", async () => {
+    it("should broadcast menu availability update", async () => {
       const menuEvent = {
         type: RealtimeEventType.MENU_AVAILABILITY_UPDATE,
         eventId: "evt_menu_202",

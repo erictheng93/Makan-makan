@@ -23,7 +23,7 @@ import {
 import type { Env } from "../../../shared/types";
 import type { UserRole } from "../../../shared/constants";
 import { ConsoleLogger } from "../../../core/monitoring";
-import { RealtimeBroadcastService } from "../../../services/RealtimeBroadcastService";
+import { RealtimeBroadcastService } from "@makanmakan/database";
 import type {
   OrderStatusUpdateEvent,
   NewOrderEvent,

@@ -71,26 +71,23 @@ vi.mock("@makanmakan/database", async (importOriginal) => {
         validateCoupon: vi.fn(),
       };
     }),
+    RealtimeBroadcastService: vi.fn(function () {
+      return {
+        broadcastNewOrder: vi.fn().mockResolvedValue({
+          success: true,
+          eventId: "evt-1",
+          recipientCount: 1,
+        }),
+        broadcastOrderStatusUpdate: vi.fn().mockResolvedValue({
+          success: true,
+          eventId: "evt-2",
+          recipientCount: 1,
+        }),
+        generateEventId: vi.fn().mockReturnValue("evt-123"),
+      };
+    }),
   };
 });
-
-vi.mock("../../../services/RealtimeBroadcastService", () => ({
-  RealtimeBroadcastService: vi.fn(function () {
-    return {
-      broadcastNewOrder: vi.fn().mockResolvedValue({
-        success: true,
-        eventId: "evt-1",
-        recipientCount: 1,
-      }),
-      broadcastOrderStatusUpdate: vi.fn().mockResolvedValue({
-        success: true,
-        eventId: "evt-2",
-        recipientCount: 1,
-      }),
-      generateEventId: vi.fn().mockReturnValue("evt-123"),
-    };
-  }),
-}));
 
 vi.mock("../../../core/monitoring", () => ({
   ConsoleLogger: vi.fn(function () {
