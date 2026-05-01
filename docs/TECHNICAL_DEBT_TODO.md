@@ -9,6 +9,15 @@ PRs.
 
 ## Review Notes
 
+- 2026-05-01 follow-up scan: current working tree still has 65 unchecked
+  backlog items in this document, 40 active `TODO` comments in `apps/`,
+  `packages/`, and `scripts/`, 16 production `REPLACE_ME__PRODUCTION`
+  Cloudflare placeholders, and 14 E2E `test.skip` / `fixme` markers.
+- 2026-05-01 follow-up scan: earlier CI blocker notes are partially stale:
+  `.github/workflows/test.yml` now has push / pull request triggers restored,
+  `tests/e2e/smoke/` exists, and production smoke probes now use `/info`.
+  Production auto-deploy is still intentionally manual-only until the
+  environment gate and remaining release checks are resolved.
 - 2026-05-01: added money cents field retirement tracking and the
   `0027_money_cents_retirement_audit.sql` pre-retirement audit migration,
   including a legacy REAL precision check.
@@ -35,6 +44,36 @@ PRs.
 - **P4**: Nice-to-have hardening or edge-case cleanup.
 
 ## P0 / P1: Product Behavior Gaps
+
+### Payment Audit Trail Is Still Not Persisted
+
+**Priority:** P1
+
+**File:** `apps/api/src/services/PaymentOrchestrator.ts`
+
+**Evidence:**
+
+- `logPaymentAttempt()` still only documents a TODO to record payment attempts
+  in a database table or monitoring system.
+- `logRefundAttempt()` still only documents a TODO to record refund attempts.
+- `docs/deployment/PRE_LAUNCH_CHECKLIST.md` also lists payment audit trail as
+  a launch checklist item, though that checklist has encoding damage and should
+  not be treated as the canonical source.
+
+**Impact:** Payment and refund events can be processed without a durable
+append-only audit trail, weakening incident investigation, reconciliation, and
+compliance review.
+
+**TODO:**
+
+- [ ] Define the payment/refund audit log schema, retention policy, and
+      redaction rules.
+- [ ] Persist every payment attempt, success, failure, refund attempt, and
+      provider error with request correlation IDs.
+- [ ] Ensure audit writes are append-only and cannot be silently overwritten by
+      normal application code.
+- [ ] Add tests proving audit rows are written for success, provider failure,
+      validation failure, and refund paths.
 
 ### Authentication Flows Were Exposed But Partially Stubbed
 
@@ -280,9 +319,11 @@ and type safety can drift per app.
 - `apps/management-api/wrangler.toml`
 - `apps/realtime/wrangler.toml`
 
-**Evidence:** Staging/production D1/KV IDs include values such as
-`staging-db-id`, `production-db-id`, `STAGING_DB_ID_TO_BE_REPLACED`, and
-`PRODUCTION_DB_ID_TO_BE_REPLACED`.
+**Evidence:** Production D1/KV IDs still include 16
+`REPLACE_ME__PRODUCTION__...` placeholders across API, realtime,
+backup-scheduler, image-processor, and management-api Worker configs.
+Realtime staging D1 now has a concrete UUID, but the stale TODO comment above
+that value still needs cleanup.
 
 **Impact:** Deployment can succeed against wrong/missing infrastructure or fail
 late during release.
@@ -292,6 +333,37 @@ late during release.
 - [ ] Replace placeholder D1/KV IDs with real Cloudflare resource IDs.
 - [ ] Add a CI config check that fails on placeholder resource IDs.
 - [ ] Document which environment owns each D1/KV/R2/queue binding.
+- [ ] Remove stale TODO comments where a real resource ID has already been
+      populated.
+
+### Production Deploy Chain Is Manual-Only
+
+**Priority:** P2
+
+**File:** `.github/workflows/deploy-production.yml`
+
+**Evidence:**
+
+- The `workflow_run` trigger that should chain production deploys after the
+  main test workflow is still commented out.
+- The file notes the manual-only state is intentional until the production
+  environment approval gate exists and remaining release checks are resolved.
+- The smoke endpoint debt is partially resolved: the production probe now calls
+  `/info` instead of the removed `/api/v1/health` route.
+
+**Impact:** Production deploys rely on manual dispatch and can drift from the
+test workflow's actual green state.
+
+**TODO:**
+
+- [ ] Configure the GitHub `production` environment with required reviewers and
+      a main-only branch restriction.
+- [ ] Re-enable the `workflow_run` trigger after the environment gate is in
+      place.
+- [ ] Add a release checklist step that verifies the deploy workflow is chained
+      to the intended test workflow name.
+- [ ] Remove stale comments that still mention fixed smoke-test and missing
+      `tests/e2e/smoke/` blockers once the auto-deploy gate is restored.
 
 ### Core Restaurant FK Rebuilds Covered By D1-Safe Components
 
@@ -455,7 +527,9 @@ representation indefinitely keeps precision drift and migration risk alive.
 
 **Evidence:** Multiple tests call `test.skip(true, ...)` or unconditional
 `test.skip()` when coupon input, coupon discount UI, remove buttons, file input,
-or setup data are missing.
+or setup data are missing. The current scan found 14 E2E skip/fixme markers;
+`tests/e2e/smoke/` now exists, so the old missing-directory blocker should be
+retired from older reports.
 
 **Impact:** Important user journeys can silently disappear from E2E coverage.
 
@@ -643,10 +717,12 @@ added later, deep merge logic should reject `__proto__`, `constructor`, and
 1. Auth placeholder flows.
 2. Backup restore and backup metrics.
 3. QR code real artifact generation.
-4. Cloudflare resource ID validation.
-5. Queue modular branch guard or implementation.
-6. E2E skip cleanup for coupon/QR/admin workflows.
-7. OrderStatus cleanup and disabled file deletion.
-8. i18n shared runtime and locale completion.
-9. Remaining admin polish and metrics TODOs.
-10. Low-risk hardening items.
+4. Payment audit trail persistence.
+5. Cloudflare resource ID validation.
+6. Production deploy environment gate and auto-deploy chain.
+7. Queue modular branch guard or implementation.
+8. E2E skip cleanup for coupon/QR/admin workflows.
+9. OrderStatus cleanup and disabled file deletion.
+10. i18n shared runtime and locale completion.
+11. Remaining admin polish and metrics TODOs.
+12. Low-risk hardening items.
