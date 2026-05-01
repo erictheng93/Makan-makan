@@ -77,6 +77,14 @@ binding = "BACKUP_STORAGE"
 bucket_name = "makanmasak-backups-dev"
 preview_bucket_name = "makanmasak-backups-preview"
 
+# Durable Object binding to apps/realtime — needed for RealtimeBroadcastService.
+# Without this, env.REALTIME_SESSION is undefined and broadcasts silently no-op
+# (see tasks/incidents/INC-001). Each env points at the matching realtime worker.
+[[durable_objects.bindings]]
+name = "REALTIME_SESSION"
+class_name = "RealtimeSession"
+script_name = "makanmasak-realtime"
+
 # === DEVELOPMENT ENVIRONMENT ===
 [env.development]
 name = "makanmasak-api-dev"
@@ -116,6 +124,11 @@ id = "makanmasak-backup-dev"
 [[env.development.r2_buckets]]
 binding = "BACKUP_STORAGE"
 bucket_name = "makanmasak-backups-dev"
+
+[[env.development.durable_objects.bindings]]
+name = "REALTIME_SESSION"
+class_name = "RealtimeSession"
+script_name = "makanmasak-realtime"
 
 # === STAGING ENVIRONMENT ===
 [env.staging]
@@ -164,6 +177,11 @@ id = "d2c8169991254846a0db4154d1595747"
 binding = "BACKUP_STORAGE"
 bucket_name = "makanmasak-backups-staging"
 
+[[env.staging.durable_objects.bindings]]
+name = "REALTIME_SESSION"
+class_name = "RealtimeSession"
+script_name = "makanmasak-realtime-staging"
+
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
 name = "makanmasak-api-prod"
@@ -210,6 +228,11 @@ id = "REPLACE_ME__PRODUCTION__TOKEN_BLACKLIST_KV"
 [[env.production.r2_buckets]]
 binding = "BACKUP_STORAGE"
 bucket_name = "makanmasak-backups-prod"
+
+[[env.production.durable_objects.bindings]]
+name = "REALTIME_SESSION"
+class_name = "RealtimeSession"
+script_name = "makanmasak-realtime-prod"
 
 # Smart placement for production
 [env.production.placement]
