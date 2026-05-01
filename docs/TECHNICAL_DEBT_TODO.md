@@ -12,9 +12,10 @@ PRs.
 - 2026-05-01: added money cents field retirement tracking and the
   `0027_money_cents_retirement_audit.sql` pre-retirement audit migration,
   including a legacy REAL precision check.
-- 2026-05-01: added physical `restaurant_id` FK rebuild migrations
-  `0028`-`0030` for operational support, workforce/backup, and core commerce
-  tables.
+- 2026-05-01: added physical `restaurant_id` FK rebuild migrations `0028`
+  and `0029` plus the D1-safe `0030` coupons and `0031` scheduling rules
+  component rebuilds. Core parent tables remain tracked as pending by the
+  migration inventory test.
 - 2026-04-21: `rtk pnpm typecheck` passed.
 - 2026-04-21: `rtk pnpm lint` timed out after 120s, so lint status is unknown.
 - Existing untracked file was left untouched:
@@ -288,6 +289,47 @@ late during release.
 - [ ] Replace placeholder D1/KV IDs with real Cloudflare resource IDs.
 - [ ] Add a CI config check that fails on placeholder resource IDs.
 - [ ] Document which environment owns each D1/KV/R2/queue binding.
+
+### Core Restaurant FK Rebuilds Still Need D1-Safe Components
+
+**Priority:** P1
+
+**Files:**
+
+- `packages/database/migrations_fresh/0028_restaurant_fk_rebuild_operational_support.sql`
+- `packages/database/migrations_fresh/0029_restaurant_fk_rebuild_leaf_dependents.sql`
+- `packages/database/migrations_fresh/0030_restaurant_fk_rebuild_coupons_component.sql`
+- `packages/database/migrations_fresh/0031_restaurant_fk_rebuild_scheduling_rules_component.sql`
+- `packages/database/src/testing/__tests__/migration-inventory.test.ts`
+
+**Evidence:**
+
+- Migration inventory now confirms physical `restaurant_id` FKs for the
+  operational support, leaf dependent, waiting list, payment, subscription, and
+  coupons and scheduling rules component tables.
+- The remaining `restaurant_id` tables without physical FKs are core parent or
+  highly connected tables: `cash_registers`, `categories`,
+  `employee_schedules`, `group_orders`, `leave_types`, `menu_items`, `orders`,
+  `partnership_plans`, `shift_templates`, `tables`, and `users`.
+- These tables have inbound foreign keys, so D1-safe rebuilds must stage and
+  rebuild each connected component instead of relying on
+  `PRAGMA foreign_keys=OFF`.
+
+**Impact:** Trigger guards still block new orphan `restaurant_id` writes, but
+existing core tables are not yet protected by SQLite/D1 physical FK metadata.
+Future table rebuilds can also accidentally lose indexes/triggers unless the
+component shape is covered by inventory tests.
+
+**TODO:**
+
+- [x] Add migration inventory coverage for current physical FK coverage,
+      remaining pending tables, temp-table cleanup, and `foreign_key_check`.
+- [ ] Split the remaining core tables into D1-safe rebuild components based on
+      inbound FK graph.
+- [ ] Run staging data audits before each component rebuild and require zero
+      orphan rows.
+- [ ] Update `migration-inventory.test.ts` as each pending table receives a
+      physical FK.
 
 ### Money REAL Columns Still Need Cents Retirement
 

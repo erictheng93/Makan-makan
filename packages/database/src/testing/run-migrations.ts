@@ -5,7 +5,9 @@ import type { D1Database } from "@cloudflare/workers-types";
 const MIGRATIONS_DIR = path.resolve(__dirname, "../../migrations_fresh");
 
 export async function runMigrations(db: D1Database): Promise<void> {
-  const label = "[runMigrations]";
+  const label = `[runMigrations:${Date.now()}:${Math.random()
+    .toString(36)
+    .slice(2)}]`;
   console.time(label);
   try {
     const files = fs
@@ -15,17 +17,21 @@ export async function runMigrations(db: D1Database): Promise<void> {
 
     for (const file of files) {
       const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), "utf-8");
-      try {
-        const statements = sql
-          .split("--> statement-breakpoint")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .map((s) => db.prepare(s));
-        await db.batch(statements);
-      } catch (err) {
-        throw new Error(
-          `[runMigrations] failed in ${file}: ${(err as Error).message}`,
-        );
+      const statements = sql
+        .split("--> statement-breakpoint")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      for (const [index, statement] of statements.entries()) {
+        try {
+          await db.prepare(statement).run();
+        } catch (err) {
+          throw new Error(
+            `[runMigrations] failed in ${file} statement ${index + 1}/${
+              statements.length
+            }: ${(err as Error).message}`,
+          );
+        }
       }
     }
   } finally {

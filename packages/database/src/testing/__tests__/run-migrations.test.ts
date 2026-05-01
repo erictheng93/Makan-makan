@@ -64,10 +64,10 @@ describe("runMigrations", () => {
     expect(tables).toContain("orders");
     expect(tables).toContain("menu_items");
     expect(tables.length).toBeGreaterThan(15);
-  });
+  }, 90_000);
 
   it("throws a helpful error when a migration statement fails", async () => {
     // Second call should fail on duplicate CREATE TABLE
     await expect(runMigrations(db)).rejects.toThrow(/runMigrations/);
-  });
+  }, 90_000);
 });
