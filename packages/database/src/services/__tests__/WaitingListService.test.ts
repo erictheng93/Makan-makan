@@ -1181,6 +1181,206 @@ describe("WaitingListService", () => {
   });
 
   // ==========================================
+  // G1 — 廣播 waiting_list_* 事件到 admin DO
+  // ==========================================
+
+  describe("G1 — broadcasts to realtime admin DO on lifecycle events", () => {
+    let mockBroadcastFetch: ReturnType<typeof vi.fn>;
+    let mockBroadcastIdFromName: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      mockBroadcastFetch = vi.fn().mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              success: true,
+              eventId: "evt-mock",
+              recipientCount: 1,
+            }),
+          ),
+      );
+      mockBroadcastIdFromName = vi.fn().mockReturnValue("mock-do-id");
+      mockEnv.REALTIME_SESSION = {
+        idFromName: mockBroadcastIdFromName,
+        get: vi.fn().mockReturnValue({ fetch: mockBroadcastFetch }),
+      };
+      service = new WaitingListService(mockDB, mockEnv);
+    });
+
+    const lastBroadcastBody = (): {
+      type: string;
+      restaurantId: string;
+      data: {
+        entryId: string;
+        queueDisplay: string;
+        status: string;
+        tableId?: number | null;
+      };
+    } => {
+      const calls = mockBroadcastFetch.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      return JSON.parse(lastCall[1].body);
+    };
+
+    const seedEntry = (
+      id: string,
+      status: string,
+      extra: Record<string, unknown> = {},
+    ) => {
+      mockDB._mockData.waitingList.set(id, {
+        id,
+        restaurant_id: "R-001",
+        customer_name: "Alice",
+        customer_phone: "0912345678",
+        party_size: 2,
+        queue_number: 5,
+        queue_letter: "A",
+        priority: 0,
+        status,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        ...extra,
+      });
+    };
+
+    it("joinWaitingList broadcasts waiting_list_joined to admin:${restaurantId}", async () => {
+      const result = await service.joinWaitingList({
+        restaurantId: "R-001",
+        customerName: "Alice",
+        customerPhone: "0912345678",
+        partySize: 2,
+      });
+
+      expect(mockBroadcastIdFromName).toHaveBeenCalledWith("admin:R-001");
+      const body = lastBroadcastBody();
+      expect(body.type).toBe("waiting_list_joined");
+      expect(body.restaurantId).toBe("R-001");
+      expect(body.data.entryId).toBe(result.id);
+      expect(body.data.queueDisplay).toBe(result.queueDisplay);
+      expect(body.data.status).toBe("waiting");
+    });
+
+    it("duplicate join returns existing ticket without broadcasting", async () => {
+      seedEntry("existing", "waiting");
+
+      const result = await service.joinWaitingList({
+        restaurantId: "R-001",
+        customerName: "Alice",
+        customerPhone: "0912345678",
+        partySize: 2,
+      });
+
+      expect(result.alreadyJoined).toBe(true);
+      expect(mockBroadcastFetch).not.toHaveBeenCalled();
+    });
+
+    it("broadcasts each successful lifecycle transition", async () => {
+      mockDB._mockData.tables.set(1, {
+        id: 1,
+        restaurant_id: "R-001",
+        is_occupied: 0,
+        is_active: 1,
+        capacity: 4,
+      });
+
+      const cases = [
+        {
+          id: "e1",
+          type: "waiting_list_called",
+          status: "called",
+          tableId: 1,
+          setup: () => seedEntry("e1", "waiting"),
+          run: () => service.callWaiting("e1", { tableId: 1 }),
+        },
+        {
+          id: "e2",
+          type: "waiting_list_confirmed",
+          status: "confirmed",
+          tableId: 2,
+          setup: () =>
+            seedEntry("e2", "called", {
+              table_id: 2,
+              timeout_at: Date.now() + 60000,
+            }),
+          run: () => service.confirmWaiting("e2"),
+        },
+        {
+          id: "e3",
+          type: "waiting_list_seated",
+          status: "seated",
+          tableId: 3,
+          setup: () => seedEntry("e3", "confirmed", { table_id: 3 }),
+          run: () => service.markSeated("e3"),
+        },
+        {
+          id: "e4",
+          type: "waiting_list_cancelled",
+          status: "cancelled",
+          tableId: 4,
+          setup: () => seedEntry("e4", "called", { table_id: 4 }),
+          run: () => service.cancelWaiting("e4"),
+        },
+        {
+          id: "e5",
+          type: "waiting_list_expired",
+          status: "expired",
+          tableId: 5,
+          setup: () => seedEntry("e5", "called", { table_id: 5 }),
+          run: () => service.expireWaiting("e5"),
+        },
+      ];
+
+      for (const testCase of cases) {
+        mockBroadcastFetch.mockClear();
+        mockBroadcastIdFromName.mockClear();
+        testCase.setup();
+
+        await testCase.run();
+
+        expect(mockBroadcastIdFromName).toHaveBeenCalledWith("admin:R-001");
+        const body = lastBroadcastBody();
+        expect(body.type).toBe(testCase.type);
+        expect(body.data.entryId).toBe(testCase.id);
+        expect(body.data.status).toBe(testCase.status);
+        expect(body.data.tableId).toBe(testCase.tableId);
+      }
+    });
+
+    it("broadcaster failure does not break the originating mutation", async () => {
+      mockBroadcastFetch.mockRejectedValueOnce(new Error("realtime down"));
+
+      await expect(
+        service.joinWaitingList({
+          restaurantId: "R-001",
+          customerName: "Bob",
+          customerPhone: "0987654321",
+          partySize: 3,
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it("broadcaster returning success: false also does not break the mutation", async () => {
+      mockBroadcastFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: "DO unavailable",
+          }),
+        ),
+      );
+
+      await expect(
+        service.joinWaitingList({
+          restaurantId: "R-001",
+          customerName: "Carol",
+          customerPhone: "0977777777",
+          partySize: 2,
+        }),
+      ).resolves.toBeDefined();
+    });
+  });
+
+  // ==========================================
   // 超時邊界測試 (Timeout Boundary)
   // ==========================================
 
@@ -1631,19 +1831,6 @@ function extractQueryInfo(query: any): { queryStr: string; values: any[] } {
     }
   }
   return { queryStr: strings.join(" ? "), values };
-}
-
-function getRealtimeBroadcastEvents(mockEnv: any): any[] {
-  return mockEnv.REALTIME_SESSION._stub.fetch.mock.calls.map((call: any[]) => {
-    const init = call[1] as { body?: string };
-    return JSON.parse(String(init.body));
-  });
-}
-
-function resetRealtimeBroadcastMock(mockEnv: any): void {
-  mockEnv.REALTIME_SESSION.idFromName.mockClear();
-  mockEnv.REALTIME_SESSION.get.mockClear();
-  mockEnv.REALTIME_SESSION._stub.fetch.mockClear();
 }
 
 /**
