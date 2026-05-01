@@ -39,6 +39,13 @@ export { PartnershipService } from "./PartnershipService";
 export { VerificationService } from "./VerificationService";
 export { FeedbackService } from "./FeedbackService";
 
+// Ticket-primitives: shared utilities for waiting-list and queue ticket flows
+export {
+  WAITING_TRANSITIONS,
+  isValidWaitingTransition,
+  assertWaitingTransition,
+} from "./ticket-primitives";
+
 // 匯出類型定義
 export type { CreateRestaurantData, UpdateRestaurantData } from "./restaurant";
 
