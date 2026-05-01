@@ -11,6 +11,7 @@ import {
   menuItems,
   users,
 } from "../schema";
+import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
 
 // 類型定義
 export interface GroupOrder {
@@ -26,6 +27,10 @@ export interface GroupOrder {
   taxAmount: number;
   serviceCharge: number;
   finalAmount: number;
+  totalAmountCents?: number | null;
+  taxAmountCents?: number | null;
+  serviceChargeCents?: number | null;
+  finalAmountCents?: number | null;
   expiresAt: Date;
   lockedAt?: Date;
   completedAt?: Date;
@@ -60,6 +65,8 @@ export interface GroupCartItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  unitPriceCents?: number | null;
+  totalPriceCents?: number | null;
   customizations: Record<string, any>;
   specialInstructions?: string;
   status: "active" | "removed" | "ordered";
@@ -77,6 +84,12 @@ export interface SplitBill {
   discountAmount: number;
   tipAmount: number;
   totalAmount: number;
+  subtotalCents?: number | null;
+  taxAmountCents?: number | null;
+  serviceChargeCents?: number | null;
+  discountAmountCents?: number | null;
+  tipAmountCents?: number | null;
+  totalAmountCents?: number | null;
   items: any[];
   paymentStatus: "pending" | "processing" | "paid" | "failed" | "refunded";
   paymentMethod?: string;
@@ -160,6 +173,21 @@ const getMutationChanges = (result: unknown): number => {
   return typeof changes === "number" ? changes : 0;
 };
 
+const moneyAmount = (
+  cents: number | null | undefined,
+  fallback: number | null | undefined,
+): number => amountFromCents(cents, fallback) ?? 0;
+
+const cartItemUnitAmount = (item: {
+  unitPriceCents?: number | null;
+  unitPrice?: number | null;
+}): number => moneyAmount(item.unitPriceCents, item.unitPrice);
+
+const cartItemTotalAmount = (item: {
+  totalPriceCents?: number | null;
+  totalPrice?: number | null;
+}): number => moneyAmount(item.totalPriceCents, item.totalPrice);
+
 export class GroupOrderService extends BaseService {
   constructor(db: any, env: CloudflareEnv) {
     super(db, env);
@@ -229,6 +257,10 @@ export class GroupOrderService extends BaseService {
           taxAmount: 0,
           serviceCharge: 0,
           finalAmount: 0,
+          totalAmountCents: 0,
+          taxAmountCents: 0,
+          serviceChargeCents: 0,
+          finalAmountCents: 0,
           createdAt: now,
           updatedAt: now,
         };
@@ -512,6 +544,7 @@ export class GroupOrderService extends BaseService {
           cartItem: groupCartItems,
           menuItemName: menuItems.name,
           originalPrice: menuItems.price,
+          originalPriceCents: menuItems.priceCents,
         })
         .from(groupCartItems)
         .innerJoin(menuItems, eq(groupCartItems.menuItemId, menuItems.id))
@@ -524,15 +557,24 @@ export class GroupOrderService extends BaseService {
         .orderBy(desc(groupCartItems.addedAt))
         .all();
 
-      const cartItems = cartItemsResult.map((item: any) => ({
-        ...item.cartItem,
-        menuItemName: item.menuItemName,
-        originalPrice: item.originalPrice,
-      })) as GroupCartItem[];
+      const cartItems = cartItemsResult.map((item: any) => {
+        const cartItem = item.cartItem;
+
+        return {
+          ...cartItem,
+          unitPrice: cartItemUnitAmount(cartItem),
+          totalPrice: cartItemTotalAmount(cartItem),
+          menuItemName: item.menuItemName,
+          originalPrice: amountFromCents(
+            item.originalPriceCents,
+            item.originalPrice,
+          ),
+        };
+      }) as GroupCartItem[];
 
       // 計算總金額
       const totalAmount = cartItems.reduce(
-        (sum, item) => sum + item.totalPrice,
+        (sum, item) => sum + cartItemTotalAmount(item),
         0,
       );
 
@@ -616,8 +658,11 @@ export class GroupOrderService extends BaseService {
       }
 
       // 計算價格（基礎邏輯，實際應包含客製化價格計算）
-      const unitPrice = parseFloat(String(menuItem.price));
-      const totalPrice = unitPrice * validatedData.quantity;
+      const unitPriceCents =
+        menuItem.priceCents ?? toRequiredCents(Number(menuItem.price));
+      const totalPriceCents = unitPriceCents * validatedData.quantity;
+      const unitPrice = fromCents(unitPriceCents);
+      const totalPrice = fromCents(totalPriceCents);
 
       // 添加購物車項目
       const cartItemId = crypto.randomUUID();
@@ -632,6 +677,8 @@ export class GroupOrderService extends BaseService {
           quantity: validatedData.quantity,
           unitPrice: unitPrice,
           totalPrice: totalPrice,
+          unitPriceCents,
+          totalPriceCents,
           customizations: validatedData.customizations || {},
           specialInstructions: validatedData.specialInstructions || null,
           status: "active" as const,
@@ -668,6 +715,8 @@ export class GroupOrderService extends BaseService {
         quantity: validatedData.quantity,
         unitPrice,
         totalPrice,
+        unitPriceCents,
+        totalPriceCents,
         customizations: validatedData.customizations,
         specialInstructions: validatedData.specialInstructions,
         status: "active",
@@ -749,7 +798,7 @@ export class GroupOrderService extends BaseService {
       if (validatedData.splitType === "equal") {
         // 平均分帳
         const totalAmount = cartItemsResult.reduce(
-          (sum, item) => sum + item.totalPrice,
+          (sum, item) => sum + cartItemTotalAmount(item),
           0,
         );
         const perPersonAmount = totalAmount / membersResult.length;
@@ -779,7 +828,7 @@ export class GroupOrderService extends BaseService {
             (item) => item.memberId === member.id,
           );
           const subtotal = memberItems.reduce(
-            (sum, item) => sum + item.totalPrice,
+            (sum, item) => sum + cartItemTotalAmount(item),
             0,
           );
 
@@ -830,6 +879,12 @@ export class GroupOrderService extends BaseService {
             discountAmount: bill.discountAmount,
             tipAmount: bill.tipAmount,
             totalAmount: bill.totalAmount,
+            subtotalCents: toRequiredCents(bill.subtotal),
+            taxAmountCents: toRequiredCents(bill.taxAmount),
+            serviceChargeCents: toRequiredCents(bill.serviceCharge),
+            discountAmountCents: toRequiredCents(bill.discountAmount),
+            tipAmountCents: toRequiredCents(bill.tipAmount),
+            totalAmountCents: toRequiredCents(bill.totalAmount),
             items: bill.items,
             paymentStatus: "pending" as const,
             createdAt: billCreatedTime,

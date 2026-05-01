@@ -23,8 +23,11 @@ interface AvailableCoupon {
   id: number;
   discountType: string;
   discountValue: number;
+  discountValueCents?: number | null;
   maxDiscountAmount?: number | null;
+  maxDiscountAmountCents?: number | null;
   minOrderAmount?: number | null;
+  minOrderAmountCents?: number | null;
 }
 
 interface CouponUsageByDay {
@@ -47,6 +50,29 @@ interface CouponUsageTrendPoint {
 }
 
 export class CouponsService extends BaseCouponService {
+  formatCouponMoneyFields<T extends AvailableCoupon>(coupon: T): T {
+    const minOrderAmount = amountFromCents(
+      coupon.minOrderAmountCents,
+      coupon.minOrderAmount,
+    );
+    const maxDiscountAmount = amountFromCents(
+      coupon.maxDiscountAmountCents,
+      coupon.maxDiscountAmount,
+    );
+    const discountValue =
+      coupon.discountType === "percentage"
+        ? coupon.discountValue
+        : (amountFromCents(coupon.discountValueCents, coupon.discountValue) ??
+          coupon.discountValue);
+
+    return {
+      ...coupon,
+      discountValue,
+      maxDiscountAmount,
+      minOrderAmount,
+    } as T;
+  }
+
   /**
    * Enhanced coupon validation with business rules
    */
@@ -87,12 +113,15 @@ export class CouponsService extends BaseCouponService {
     _sortOrder: "desc" | "asc" = "desc",
   ): Promise<PaginatedCouponsResponse> {
     const result = await this.getCoupons(filters, page, limit);
+    const couponList = result.coupons.map((coupon) =>
+      this.formatCouponMoneyFields(coupon as AvailableCoupon),
+    );
 
     // Add pages calculation
     const pages = Math.ceil(result.total / result.limit);
 
     return {
-      coupons: result.coupons,
+      coupons: couponList,
       total: result.total,
       page: result.page,
       limit: result.limit,
@@ -207,23 +236,29 @@ export class CouponsService extends BaseCouponService {
    */
   async getAvailableCouponsForUser(
     restaurantId: string,
-    userId: number,
+    userId?: number,
     orderAmount?: number,
   ): Promise<AvailableCoupon[]> {
-    const availableCoupons = (await this.getAvailableCoupons(
-      restaurantId,
-      userId,
-    )) as AvailableCoupon[];
+    const availableCoupons = (
+      (await this.getAvailableCoupons(
+        restaurantId,
+        userId,
+      )) as AvailableCoupon[]
+    ).map((coupon) => this.formatCouponMoneyFields(coupon));
 
     if (!orderAmount) {
       return availableCoupons;
     }
 
     // Filter by minimum order amount
-    return availableCoupons.filter(
-      (coupon) =>
-        !coupon.minOrderAmount || orderAmount >= coupon.minOrderAmount,
-    );
+    return availableCoupons.filter((coupon) => {
+      const minOrderAmount = amountFromCents(
+        coupon.minOrderAmountCents,
+        coupon.minOrderAmount,
+      );
+
+      return !minOrderAmount || orderAmount >= minOrderAmount;
+    });
   }
 
   /**
@@ -237,18 +272,21 @@ export class CouponsService extends BaseCouponService {
     const orderAmountCents = toRequiredCents(orderAmount);
 
     for (const coupon of coupons) {
+      const normalizedCoupon = this.formatCouponMoneyFields(coupon);
       let savingCents = 0;
 
-      if (coupon.discountType === "percentage") {
+      if (normalizedCoupon.discountType === "percentage") {
         savingCents = Math.round(
-          orderAmountCents * (coupon.discountValue / 100),
+          orderAmountCents * (normalizedCoupon.discountValue / 100),
         );
-        const maxDiscountAmountCents = toCents(coupon.maxDiscountAmount);
+        const maxDiscountAmountCents = toCents(
+          normalizedCoupon.maxDiscountAmount,
+        );
         if (maxDiscountAmountCents && savingCents > maxDiscountAmountCents) {
           savingCents = maxDiscountAmountCents;
         }
       } else {
-        savingCents = toRequiredCents(coupon.discountValue);
+        savingCents = toRequiredCents(normalizedCoupon.discountValue);
       }
 
       savingCents = Math.min(savingCents, orderAmountCents);
@@ -282,4 +320,11 @@ export class CouponsService extends BaseCouponService {
       usageByPeriod: [],
     };
   }
+}
+
+function amountFromCents(
+  cents: number | null | undefined,
+  fallback: number | null | undefined,
+): number | null {
+  return cents == null ? (fallback ?? null) : fromCents(cents);
 }

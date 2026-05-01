@@ -362,9 +362,15 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
 - `packages/database/src/testing/__tests__/migration-inventory.test.ts`
 - `packages/database/src/services/analytics.ts`
 - `packages/database/src/services/POSService.ts`
+- `packages/database/src/services/coupon.ts`
+- `packages/database/src/services/GroupOrderService.ts`
+- `packages/database/src/services/order.ts`
 - `apps/api/src/features/system/routes/index.ts`
 - `apps/api/src/features/payments/services/PaymentService.ts`
 - `apps/api/src/features/payments/routes/index.ts`
+- `apps/api/src/features/coupons/routes/index.ts`
+- `apps/api/src/features/coupons/services/CouponsService.ts`
+- `apps/api/src/features/group-orders/services/GroupOrdersService.ts`
 - `apps/api/src/features/pos/services/RefundService.ts`
 - `apps/api/src/features/pos/services/ReportService.ts`
 - `apps/api/src/features/pos/services/ReceiptService.ts`
@@ -391,6 +397,13 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
   `money_cents_retirement` audit coverage.
 - System health average order value and POS receipt content now use cents-first
   reads.
+- Coupon services and routes now normalize fixed-value coupon money fields from
+  cents first, while preserving percentage discount values as percentages.
+- Group ordering services now write cents columns on new group/cart/split rows
+  and use cents-first reads for cart totals, split totals, payment checks, and
+  group-order summaries.
+- Order item snapshot fallback and database POS receipt content now resolve
+  order/item amounts from cents before falling back to legacy `REAL` fields.
 - Service reads have not fully converged: several paths still use cents-first
   compatibility fallbacks such as `amountFromCents(cents, legacyReal)` while
   public API surfaces continue returning decimal money values.
@@ -403,6 +416,8 @@ representation indefinitely keeps precision drift and migration risk alive.
 
 - [ ] Finish the code-path inventory for every in-scope money field and mark
       cents as the authoritative read source.
+- [x] Normalize coupon and group-order service/API money reads to prefer cents
+      while preserving decimal API response contracts.
 - [x] Add executable migration inventory coverage for tracked money
       `REAL`/`*_cents` pairs and audit-table alignment.
 - [ ] Keep percentage/rate/non-money `REAL` fields out of this migration

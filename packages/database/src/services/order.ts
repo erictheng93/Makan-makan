@@ -817,7 +817,9 @@ export class OrderService extends BaseService {
             name: snapshot.name,
             description: snapshot.description,
             imageUrl: snapshot.imageUrl,
-            price: snapshot.price ?? item.unitPrice,
+            price:
+              snapshot.price ??
+              amountFromCents(item.unitPriceCents, item.unitPrice),
           }
         : item.menuItem;
 

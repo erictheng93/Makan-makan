@@ -232,6 +232,29 @@ describe("CouponsService", () => {
       expect(result[0].saving).toBe(30); // Capped at maxDiscountAmount
     });
 
+    it("should prefer cents fields for fixed savings and caps", async () => {
+      const coupons = [
+        {
+          id: 1,
+          discountType: "fixed",
+          discountValue: 99,
+          discountValueCents: 1250,
+        },
+        {
+          id: 2,
+          discountType: "percentage",
+          discountValue: 50,
+          maxDiscountAmount: 99,
+          maxDiscountAmountCents: 750,
+        },
+      ];
+
+      const result = await service.calculatePotentialSavings(coupons, 100);
+
+      expect(result[0].saving).toBe(12.5);
+      expect(result[1].saving).toBe(7.5);
+    });
+
     it("should not exceed order amount for fixed discount", async () => {
       const coupons = [{ id: 1, discountType: "fixed", discountValue: 150 }];
 
@@ -366,6 +389,30 @@ describe("CouponsService", () => {
 
       expect(result).toHaveLength(2);
       expect(result.map((c: any) => c.id)).toEqual([1, 2]);
+    });
+
+    it("should prefer minOrderAmountCents when filtering coupons", async () => {
+      const service = new CouponsService(mockDb, mockEnv);
+      const availableCoupons = [
+        {
+          id: 1,
+          code: "COUPON1",
+          discountType: "fixed",
+          discountValue: 99,
+          discountValueCents: 500,
+          minOrderAmount: 999,
+          minOrderAmountCents: 10000,
+        },
+      ];
+      asCouponsServiceTest(service).getAvailableCoupons = vi
+        .fn()
+        .mockResolvedValue(availableCoupons);
+
+      const result = await service.getAvailableCouponsForUser("1", 1, 120);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].discountValue).toBe(5);
+      expect(result[0].minOrderAmount).toBe(100);
     });
 
     it("should include coupons without minOrderAmount", async () => {

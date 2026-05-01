@@ -65,6 +65,43 @@ export interface CouponFilters {
 }
 
 export class CouponService extends BaseService {
+  private mapCouponMoneyFields<T extends Record<string, any>>(coupon: T): T {
+    const hasDiscountValue =
+      "discountValue" in coupon || "discountValueCents" in coupon;
+    const hasMaxDiscountAmount =
+      "maxDiscountAmount" in coupon || "maxDiscountAmountCents" in coupon;
+    const hasMinOrderAmount =
+      "minOrderAmount" in coupon || "minOrderAmountCents" in coupon;
+
+    const normalized: Record<string, any> = {
+      ...coupon,
+    };
+
+    if (hasDiscountValue) {
+      normalized.discountValue =
+        coupon.discountType === "percentage"
+          ? coupon.discountValue
+          : (amountFromCents(coupon.discountValueCents, coupon.discountValue) ??
+            coupon.discountValue);
+    }
+
+    if (hasMaxDiscountAmount) {
+      normalized.maxDiscountAmount = amountFromCents(
+        coupon.maxDiscountAmountCents,
+        coupon.maxDiscountAmount,
+      );
+    }
+
+    if (hasMinOrderAmount) {
+      normalized.minOrderAmount = amountFromCents(
+        coupon.minOrderAmountCents,
+        coupon.minOrderAmount,
+      );
+    }
+
+    return normalized as T;
+  }
+
   /**
    * 驗證優惠券代碼
    * @param code 優惠券代碼
@@ -213,7 +250,7 @@ export class CouponService extends BaseService {
 
       return {
         valid: true,
-        coupon,
+        coupon: this.mapCouponMoneyFields(coupon),
         discountAmount,
         finalAmount,
       };
@@ -341,7 +378,7 @@ export class CouponService extends BaseService {
       })
       .returning();
 
-    return coupon[0];
+    return coupon[0] ? this.mapCouponMoneyFields(coupon[0]) : coupon[0];
   }
 
   /**
@@ -421,7 +458,7 @@ export class CouponService extends BaseService {
     });
 
     return {
-      coupons: couponList,
+      coupons: couponList.map((coupon) => this.mapCouponMoneyFields(coupon)),
       total,
       page,
       limit,
@@ -432,7 +469,7 @@ export class CouponService extends BaseService {
    * 獲取單個優惠券詳情
    */
   async getCoupon(id: number): Promise<any | null> {
-    return await this.db.query.coupons.findFirst({
+    const coupon = await this.db.query.coupons.findFirst({
       where: eq(coupons.id, id),
       with: {
         restaurant: {
@@ -456,6 +493,7 @@ export class CouponService extends BaseService {
                 id: true,
                 orderNumber: true,
                 totalAmount: true,
+                totalAmountCents: true,
               },
             },
             user: {
@@ -467,6 +505,26 @@ export class CouponService extends BaseService {
           },
         },
       },
+    });
+
+    if (!coupon) {
+      return null;
+    }
+
+    return this.mapCouponMoneyFields({
+      ...coupon,
+      usages: coupon.usages?.map((usage: any) => ({
+        ...usage,
+        order: usage.order
+          ? {
+              ...usage.order,
+              totalAmount: amountFromCents(
+                usage.order.totalAmountCents,
+                usage.order.totalAmount,
+              ),
+            }
+          : usage.order,
+      })),
     });
   }
 
@@ -508,7 +566,7 @@ export class CouponService extends BaseService {
       .where(eq(coupons.id, id))
       .returning();
 
-    return coupon[0];
+    return coupon[0] ? this.mapCouponMoneyFields(coupon[0]) : coupon[0];
   }
 
   /**
@@ -615,7 +673,7 @@ export class CouponService extends BaseService {
   ): Promise<any[]> {
     const now = new Date().toISOString();
 
-    return await this.db.query.coupons.findMany({
+    const couponList = await this.db.query.coupons.findMany({
       where: and(
         eq(coupons.isActive, true),
         eq(coupons.isVisible, true),
@@ -626,5 +684,7 @@ export class CouponService extends BaseService {
       ),
       orderBy: [asc(coupons.minOrderAmount), desc(coupons.discountValue)],
     });
+
+    return couponList.map((coupon) => this.mapCouponMoneyFields(coupon));
   }
 }

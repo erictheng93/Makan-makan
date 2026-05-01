@@ -23,6 +23,7 @@ import type {
   GroupOrderSettings,
   SplitBillItem,
 } from "@makanmakan/shared-types";
+import { fromCents, toRequiredCents } from "../../../shared/utils/money";
 
 // Mock shared utilities - will be replaced with actual implementations
 class ConsoleLogger {
@@ -74,6 +75,35 @@ class ErrorTracker {
     console.error(`[${this.context}] Error in ${operation}:`, error, data);
   }
 }
+
+function amountFromCents(
+  cents: number | null | undefined,
+  fallback: number | null | undefined,
+): number | null {
+  return cents == null ? (fallback ?? null) : fromCents(cents);
+}
+
+function moneyAmount(
+  cents: number | null | undefined,
+  fallback: number | null | undefined,
+): number {
+  return amountFromCents(cents, fallback) ?? 0;
+}
+
+function cartItemUnitAmount(item: {
+  unitPriceCents?: number | null;
+  unitPrice?: number | null;
+}): number {
+  return moneyAmount(item.unitPriceCents, item.unitPrice);
+}
+
+function cartItemTotalAmount(item: {
+  totalPriceCents?: number | null;
+  totalPrice?: number | null;
+}): number {
+  return moneyAmount(item.totalPriceCents, item.totalPrice);
+}
+
 import type {
   IGroupOrderService,
   GroupOrder,
@@ -280,6 +310,13 @@ export class GroupOrdersService implements IGroupOrderService {
           tableNumber: data.tableNumber || null,
         },
         totalAmount: 0,
+        taxAmount: 0,
+        serviceCharge: 0,
+        finalAmount: 0,
+        totalAmountCents: 0,
+        taxAmountCents: 0,
+        serviceChargeCents: 0,
+        finalAmountCents: 0,
         createdAt: now,
         updatedAt: now,
       });
@@ -551,7 +588,10 @@ export class GroupOrdersService implements IGroupOrderService {
             imageUrl: row.menuItemImageUrl ?? undefined,
           },
         })),
-        totalAmount: groupOrder.totalAmount,
+        totalAmount: moneyAmount(
+          groupOrder.totalAmountCents,
+          groupOrder.totalAmount,
+        ),
         activities: activities.map((a) => this.formatActivity(a)),
       };
 
@@ -608,8 +648,11 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Calculate prices
-      const unitPrice = menuItem.price;
-      const totalPrice = unitPrice * itemData.quantity;
+      const unitPriceCents =
+        menuItem.priceCents ?? toRequiredCents(menuItem.price);
+      const totalPriceCents = unitPriceCents * itemData.quantity;
+      const unitPrice = fromCents(unitPriceCents);
+      const totalPrice = fromCents(totalPriceCents);
 
       // Create cart item
       const itemId = randomUUID();
@@ -622,6 +665,8 @@ export class GroupOrdersService implements IGroupOrderService {
         quantity: itemData.quantity,
         unitPrice,
         totalPrice,
+        unitPriceCents,
+        totalPriceCents,
         customizations: (itemData.customizations ||
           {}) as CartItemCustomizations,
         specialInstructions: itemData.specialInstructions || null,
@@ -672,6 +717,8 @@ export class GroupOrdersService implements IGroupOrderService {
           quantity: itemData.quantity,
           unitPrice,
           totalPrice,
+          unitPriceCents,
+          totalPriceCents,
           customizations: itemData.customizations || {},
           specialInstructions: itemData.specialInstructions || undefined,
           createdAt: new Date(),
@@ -734,8 +781,12 @@ export class GroupOrdersService implements IGroupOrderService {
       };
 
       if (updateData.quantity !== undefined) {
+        const unitPriceCents =
+          existingItem.unitPriceCents ??
+          toRequiredCents(existingItem.unitPrice);
         updateObj.quantity = updateData.quantity;
-        updateObj.totalPrice = existingItem.unitPrice * updateData.quantity;
+        updateObj.totalPriceCents = unitPriceCents * updateData.quantity;
+        updateObj.totalPrice = fromCents(updateObj.totalPriceCents);
       }
 
       if (updateData.customizations !== undefined) {
@@ -929,7 +980,7 @@ export class GroupOrdersService implements IGroupOrderService {
         );
 
       const totalCartAmount = cartItems.reduce(
-        (sum, item) => sum + item.totalPrice,
+        (sum, item) => sum + cartItemTotalAmount(item),
         0,
       );
 
@@ -949,7 +1000,7 @@ export class GroupOrdersService implements IGroupOrderService {
             (item) => item.memberId === member.id,
           );
           const subtotal = memberItems.reduce(
-            (sum, item) => sum + item.totalPrice,
+            (sum, item) => sum + cartItemTotalAmount(item),
             0,
           );
           const serviceCharge = (subtotal * serviceChargeRate) / 100;
@@ -967,8 +1018,8 @@ export class GroupOrdersService implements IGroupOrderService {
               menuItemId: item.menuItemId,
               name: "",
               quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              totalPrice: item.totalPrice,
+              unitPrice: cartItemUnitAmount(item),
+              totalPrice: cartItemTotalAmount(item),
             })),
           });
         }
@@ -1043,7 +1094,15 @@ export class GroupOrdersService implements IGroupOrderService {
           subtotal: bill.subtotal,
           taxAmount: bill.taxAmount,
           serviceCharge: bill.serviceCharge,
+          discountAmount: 0,
+          tipAmount: 0,
           totalAmount: bill.totalAmount,
+          subtotalCents: toRequiredCents(bill.subtotal),
+          taxAmountCents: toRequiredCents(bill.taxAmount),
+          serviceChargeCents: toRequiredCents(bill.serviceCharge),
+          discountAmountCents: 0,
+          tipAmountCents: 0,
+          totalAmountCents: toRequiredCents(bill.totalAmount),
           items: bill.items,
           paymentStatus: "pending",
           createdAt: now,
@@ -1079,6 +1138,10 @@ export class GroupOrdersService implements IGroupOrderService {
           taxAmount: totalTax,
           serviceCharge: totalServiceCharge,
           finalAmount,
+          totalAmountCents: toRequiredCents(totalCartAmount),
+          taxAmountCents: toRequiredCents(totalTax),
+          serviceChargeCents: toRequiredCents(totalServiceCharge),
+          finalAmountCents: toRequiredCents(finalAmount),
           lockedAt: now,
           updatedAt: now,
         })
@@ -1215,13 +1278,17 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Use provided amount or the split bill total
-      const amount = paymentData.amount || splitBill.totalAmount;
+      const splitBillTotal = moneyAmount(
+        splitBill.totalAmountCents,
+        splitBill.totalAmount,
+      );
+      const amount = paymentData.amount || splitBillTotal;
 
       // Validate amount matches split bill (with small tolerance for rounding)
-      if (Math.abs(amount - splitBill.totalAmount) > 0.01) {
+      if (Math.abs(amount - splitBillTotal) > 0.01) {
         return {
           success: false,
-          error: `Payment amount (${amount}) does not match split bill amount (${splitBill.totalAmount})`,
+          error: `Payment amount (${amount}) does not match split bill amount (${splitBillTotal})`,
         };
       }
 
@@ -1400,7 +1467,7 @@ export class GroupOrdersService implements IGroupOrderService {
     const activeConditions = [...conditions, eq(groupOrders.status, "active")];
     const avgValueConditions = [
       ...conditions,
-      sql`${groupOrders.finalAmount} > 0`,
+      sql`COALESCE(${groupOrders.finalAmountCents}, CAST(round(${groupOrders.finalAmount} * 100) AS integer)) > 0`,
     ];
 
     // Run all independent queries in parallel
@@ -1430,7 +1497,9 @@ export class GroupOrdersService implements IGroupOrderService {
         ),
         // Average order value
         this.db
-          .select({ avgValue: sql<number>`AVG(${groupOrders.finalAmount})` })
+          .select({
+            avgValue: sql<number>`AVG(COALESCE(${groupOrders.finalAmountCents}, CAST(round(${groupOrders.finalAmount} * 100) AS integer))) / 100.0`,
+          })
           .from(groupOrders)
           .where(and(...avgValueConditions)),
       ]);
@@ -1536,7 +1605,7 @@ export class GroupOrdersService implements IGroupOrderService {
   private async updateMemberTotal(groupOrderId: string, memberId: string) {
     const totalResult = await this.db
       .select({
-        total: sql<number>`COALESCE(SUM(${groupCartItems.totalPrice}), 0)`,
+        total: sql<number>`COALESCE(SUM(COALESCE(${groupCartItems.totalPriceCents}, CAST(round(${groupCartItems.totalPrice} * 100) AS integer))), 0) / 100.0`,
       })
       .from(groupCartItems)
       .where(
@@ -1569,7 +1638,17 @@ export class GroupOrdersService implements IGroupOrderService {
         .update(splitBills)
         .set({
           subtotal: total,
+          taxAmount: 0,
+          serviceCharge: 0,
+          discountAmount: 0,
+          tipAmount: 0,
           totalAmount: total,
+          subtotalCents: toRequiredCents(total),
+          taxAmountCents: 0,
+          serviceChargeCents: 0,
+          discountAmountCents: 0,
+          tipAmountCents: 0,
+          totalAmountCents: toRequiredCents(total),
           updatedAt: now,
         })
         .where(
@@ -1584,7 +1663,17 @@ export class GroupOrdersService implements IGroupOrderService {
         groupOrderId,
         memberId,
         subtotal: total,
+        taxAmount: 0,
+        serviceCharge: 0,
+        discountAmount: 0,
+        tipAmount: 0,
         totalAmount: total,
+        subtotalCents: toRequiredCents(total),
+        taxAmountCents: 0,
+        serviceChargeCents: 0,
+        discountAmountCents: 0,
+        tipAmountCents: 0,
+        totalAmountCents: toRequiredCents(total),
         paymentStatus: "pending",
         createdAt: now,
         updatedAt: now,
@@ -1595,7 +1684,7 @@ export class GroupOrdersService implements IGroupOrderService {
   private async updateGroupOrderTotal(groupOrderId: string) {
     const totalResult = await this.db
       .select({
-        total: sql<number>`COALESCE(SUM(${groupCartItems.totalPrice}), 0)`,
+        total: sql<number>`COALESCE(SUM(COALESCE(${groupCartItems.totalPriceCents}, CAST(round(${groupCartItems.totalPrice} * 100) AS integer))), 0) / 100.0`,
       })
       .from(groupCartItems)
       .where(
@@ -1611,6 +1700,7 @@ export class GroupOrdersService implements IGroupOrderService {
       .update(groupOrders)
       .set({
         totalAmount: total,
+        totalAmountCents: toRequiredCents(total),
         updatedAt: new Date(),
       })
       .where(eq(groupOrders.id, groupOrderId));
@@ -1675,7 +1765,7 @@ export class GroupOrdersService implements IGroupOrderService {
       expiresAt,
       maxMembers: settings.maxMembers || 8,
       permissions: settings.permissions || {},
-      totalAmount: data.totalAmount,
+      totalAmount: moneyAmount(data.totalAmountCents, data.totalAmount),
       finalizedAt: lockedAt,
       paidAt: completedAt,
       createdAt,
@@ -1740,8 +1830,8 @@ export class GroupOrdersService implements IGroupOrderService {
       memberId: data.memberId,
       menuItemId: data.menuItemId,
       quantity: data.quantity,
-      unitPrice: data.unitPrice,
-      totalPrice: data.totalPrice,
+      unitPrice: cartItemUnitAmount(data),
+      totalPrice: cartItemTotalAmount(data),
       customizations,
       specialInstructions: data.specialInstructions,
       createdAt: addedAt,

@@ -17,6 +17,8 @@ const asCouponTestContext = (context: unknown): ApiTestContextWithTestData =>
 const mockCouponsService = {
   validateCouponWithBusinessRules: vi.fn(),
   getAvailableCoupons: vi.fn(),
+  getAvailableCouponsForUser: vi.fn(),
+  formatCouponMoneyFields: vi.fn((coupon) => coupon),
   createCouponWithValidation: vi.fn(),
   getCouponsWithEnhancedFilters: vi.fn(),
   getCoupon: vi.fn(),
@@ -210,7 +212,7 @@ describe("Coupons Feature Module", () => {
         { id: 2, code: "SAVE20", name: "Save 20" },
       ];
 
-      mockCouponsService.getAvailableCoupons.mockResolvedValue(
+      mockCouponsService.getAvailableCouponsForUser.mockResolvedValue(
         availableCoupons,
       );
 
@@ -229,7 +231,9 @@ describe("Coupons Feature Module", () => {
       const data: any = await res.json();
       expect(data.success).toBe(true);
       expect(data.data).toEqual(availableCoupons);
-      expect(mockCouponsService.getAvailableCoupons).toHaveBeenCalledWith("1");
+      expect(
+        mockCouponsService.getAvailableCouponsForUser,
+      ).toHaveBeenCalledWith("1");
     });
   });
 

@@ -104,6 +104,22 @@ Any new money-like `REAL` field must be added to the inventory, given a cents
 counterpart, and covered by the retirement audit before it can be considered
 safe for future table rebuild retirement work.
 
+## Current Code Convergence
+
+The service layer is still transitional, but these paths now treat cents as the
+authoritative source while preserving decimal API responses:
+
+- analytics, system health, POS reports, POS receipts, payment checks, and
+  refund checks,
+- coupon validation, available-coupon responses, fixed discount value/cap/minimum
+  order formatting, and coupon usage stats,
+- database and API group-order cart totals, split bills, payment amount checks,
+  and group-order summaries,
+- order item/menu snapshot fallbacks.
+
+Remaining work should keep reducing direct legacy `REAL` reads before any table
+rebuild removes those columns.
+
 ## Table Rebuild Migration Requirements
 
 SQLite/D1 table rebuilds must be deliberate because columns, constraints,

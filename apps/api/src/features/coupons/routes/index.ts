@@ -94,7 +94,7 @@ routes.get(
     const couponsService = createCouponsService(c.env);
 
     const availableCoupons =
-      await couponsService.getAvailableCoupons(restaurantId);
+      await couponsService.getAvailableCouponsForUser(restaurantId);
 
     return c.json({
       success: true,
@@ -235,7 +235,7 @@ routes.get(
 
     return c.json({
       success: true,
-      data: coupon,
+      data: couponsService.formatCouponMoneyFields(coupon),
     });
   },
 );
@@ -276,7 +276,7 @@ routes.put(
 
     return c.json({
       success: true,
-      data: updatedCoupon,
+      data: couponsService.formatCouponMoneyFields(updatedCoupon),
     });
   },
 );
@@ -315,7 +315,7 @@ routes.post(
 
     return c.json({
       success: true,
-      data: deactivatedCoupon,
+      data: couponsService.formatCouponMoneyFields(deactivatedCoupon),
       message: "Coupon deactivated successfully",
     });
   },
@@ -382,16 +382,17 @@ routes.get(
     }
 
     const stats = await couponsService.getComprehensiveCouponStats(id);
+    const formattedCoupon = couponsService.formatCouponMoneyFields(coupon);
 
     return c.json({
       success: true,
       data: {
         coupon: {
-          id: coupon.id,
-          code: coupon.code,
-          name: coupon.name,
-          discountType: coupon.discountType,
-          discountValue: coupon.discountValue,
+          id: formattedCoupon.id,
+          code: formattedCoupon.code,
+          name: formattedCoupon.name,
+          discountType: formattedCoupon.discountType,
+          discountValue: formattedCoupon.discountValue,
         },
         stats,
       },
