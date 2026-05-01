@@ -371,9 +371,11 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
 - `apps/api/src/features/coupons/routes/index.ts`
 - `apps/api/src/features/coupons/services/CouponsService.ts`
 - `apps/api/src/features/group-orders/services/GroupOrdersService.ts`
+- `apps/api/src/features/integrations/services/PlatformOrderService.ts`
 - `apps/api/src/features/pos/services/RefundService.ts`
 - `apps/api/src/features/pos/services/ReportService.ts`
 - `apps/api/src/features/pos/services/ReceiptService.ts`
+- `packages/database/src/services/realtime.ts`
 - `packages/database/migrations_fresh/0023_integrity_audit_and_money_cents.sql`
 - `packages/database/migrations_fresh/0025_partnership_money_and_fk_audit.sql`
 - `packages/database/migrations_fresh/0027_money_cents_retirement_audit.sql`
@@ -404,6 +406,10 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
   group-order summaries.
 - Order item snapshot fallback and database POS receipt content now resolve
   order/item amounts from cents before falling back to legacy `REAL` fields.
+- Platform integration order ingestion now writes order and order-item cents
+  fields directly instead of relying only on compatibility sync triggers.
+- Legacy realtime new-order payloads accept optional cents totals and normalize
+  the broadcast amount through cents-first fallback.
 - Service reads have not fully converged: several paths still use cents-first
   compatibility fallbacks such as `amountFromCents(cents, legacyReal)` while
   public API surfaces continue returning decimal money values.

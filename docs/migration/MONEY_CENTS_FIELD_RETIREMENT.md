@@ -115,7 +115,8 @@ authoritative source while preserving decimal API responses:
   order formatting, and coupon usage stats,
 - database and API group-order cart totals, split bills, payment amount checks,
   and group-order summaries,
-- order item/menu snapshot fallbacks.
+- platform integration order ingestion,
+- order item/menu snapshot fallbacks and legacy realtime new-order payloads.
 
 Remaining work should keep reducing direct legacy `REAL` reads before any table
 rebuild removes those columns.

@@ -1,6 +1,7 @@
 import type { D1Database } from "@cloudflare/workers-types";
 import { BaseService, CloudflareEnv } from "./base";
 import { OrderService } from "./order";
+import { amountFromCents } from "../utils/money";
 
 interface RealtimeMessage {
   type:
@@ -248,8 +249,12 @@ export class RealtimeService extends BaseService {
     customerName?: string;
     items: Array<any>;
     totalAmount: number;
+    totalAmountCents?: number | null;
   }): Promise<boolean> {
     try {
+      const totalAmount =
+        amountFromCents(order.totalAmountCents, order.totalAmount) ?? 0;
+
       // Notify admin about new order
       await this.notifyAdmin(order.restaurantId, {
         type: "new_order",
@@ -260,7 +265,7 @@ export class RealtimeService extends BaseService {
           tableId: order.tableId,
           customerName: order.customerName,
           items: order.items,
-          totalAmount: order.totalAmount,
+          totalAmount,
           timestamp: new Date().toISOString(),
         },
       });

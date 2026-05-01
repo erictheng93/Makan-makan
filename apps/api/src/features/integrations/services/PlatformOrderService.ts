@@ -13,6 +13,7 @@ import type {
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";
+import { fromCents, toRequiredCents } from "../../../shared/utils/money";
 
 export class PlatformOrderService {
   private db;
@@ -50,6 +51,11 @@ export class PlatformOrderService {
 
     // Create internal order
     const now = new Date();
+    const subtotalCents = toRequiredCents(parsedOrder.subtotal);
+    const taxAmountCents = toRequiredCents(parsedOrder.taxAmount);
+    const serviceChargeCents = 0;
+    const discountAmountCents = 0;
+    const totalAmountCents = toRequiredCents(parsedOrder.totalAmount);
 
     const [insertedOrder] = await this.db
       .insert(orders)
@@ -69,6 +75,13 @@ export class PlatformOrderService {
         totalAmount: parsedOrder.totalAmount,
         subtotal: parsedOrder.subtotal,
         taxAmount: parsedOrder.taxAmount,
+        serviceCharge: fromCents(serviceChargeCents),
+        discountAmount: fromCents(discountAmountCents),
+        totalAmountCents,
+        subtotalCents,
+        taxAmountCents,
+        serviceChargeCents,
+        discountAmountCents,
         createdAt: now,
         updatedAt: now,
       })
@@ -80,12 +93,17 @@ export class PlatformOrderService {
     for (const item of parsedOrder.items) {
       const menuItemId = platformToInternalMap.get(item.platformItemId);
       if (menuItemId == null) continue; // skip unmapped items — menuItemId is NOT NULL
+      const unitPriceCents = toRequiredCents(item.unitPrice);
+      const totalPriceCents = unitPriceCents * item.quantity;
+
       await this.db.insert(orderItems).values({
         orderId,
         menuItemId,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: item.unitPrice * item.quantity,
+        unitPrice: fromCents(unitPriceCents),
+        totalPrice: fromCents(totalPriceCents),
+        unitPriceCents,
+        totalPriceCents,
         itemSnapshot: { name: item.name },
         createdAt: now,
       });
