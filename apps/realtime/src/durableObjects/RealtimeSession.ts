@@ -623,10 +623,11 @@ export class RealtimeSession implements DurableObject {
     try {
       // 查詢數據庫驗證用戶的 restaurantId
       const stmt = this.env.DB.prepare(
-        "SELECT restaurant_id FROM users WHERE id = ? AND is_active = 1",
+        "SELECT restaurant_id, role FROM users WHERE id = ? AND is_active = 1",
       );
       const result = (await stmt.bind(authPayload.userId).first()) as {
-        restaurant_id: string;
+        restaurant_id: string | null;
+        role: number;
       } | null;
 
       if (!result) {
@@ -634,6 +635,12 @@ export class RealtimeSession implements DurableObject {
           valid: false,
           error: "User not found or inactive",
         };
+      }
+
+      // Platform admins can select and monitor any restaurant from the admin
+      // dashboard. Other staff must be bound to the requested restaurant.
+      if (Number(result.role) === 0 || authPayload.appRole === 0) {
+        return { valid: true };
       }
 
       // 驗證 restaurantId 匹配

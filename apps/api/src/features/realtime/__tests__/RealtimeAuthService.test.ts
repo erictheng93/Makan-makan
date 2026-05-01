@@ -14,7 +14,7 @@ type RealtimeAuthServiceTestAccess = {
   verifySeatExists(seatId: string, restaurantId: string): Promise<boolean>;
   determineRole(
     roomType: "customer" | "kitchen" | "admin" | "restaurant",
-    sessionId?: string,
+    appRole?: number | string,
   ): "customer" | "staff" | "admin";
   buildWebSocketUrl(roomType: string, roomId: string, token: string): string;
 };
@@ -114,6 +114,28 @@ describe("RealtimeAuthService", () => {
     vi.clearAllMocks();
   });
 
+  const createSessionToken = (
+    overrides: Partial<{
+      id: number;
+      username: string;
+      role: number;
+      restaurantId: string;
+      tv: number;
+    }> = {},
+  ) =>
+    jwt.sign(
+      {
+        id: overrides.id ?? 1,
+        username: overrides.username ?? "owner",
+        role: overrides.role ?? 1,
+        restaurantId: overrides.restaurantId ?? "rest_1",
+        tv: overrides.tv ?? 1,
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000),
+      },
+      mockEnv.JWT_SECRET!,
+    );
+
   describe("constructor", () => {
     it("應該在 JWT_SECRET 太短時拋出錯誤", () => {
       const invalidEnv = {
@@ -162,11 +184,17 @@ describe("RealtimeAuthService", () => {
     });
 
     it("應該為廚房房間生成 token", async () => {
+      const sessionId = createSessionToken({
+        id: 2,
+        username: "chef",
+        role: 2,
+        restaurantId: "rest_2",
+      });
       const request: RealtimeAuthTokenRequest = {
         roomType: "kitchen",
-        roomId: "kitchen_1",
+        roomId: "rest_2",
         restaurantId: "rest_2",
-        sessionId: "session_456",
+        sessionId,
       };
 
       // No DB queries needed for kitchen/admin rooms (no tableId/seatId)
@@ -178,15 +206,24 @@ describe("RealtimeAuthService", () => {
       if (!("error" in result)) {
         expect(result.token).toBeDefined();
         expect(result.expiresIn).toBe(300);
+        const verification = await service.verifyWebSocketToken(result.token);
+        expect(verification.payload?.userId).toBe(2);
+        expect(verification.payload?.appRole).toBe(2);
       }
     });
 
     it("應該為管理員房間生成 token", async () => {
+      const sessionId = createSessionToken({
+        id: 3,
+        username: "admin",
+        role: 0,
+        restaurantId: "rest_3",
+      });
       const request: RealtimeAuthTokenRequest = {
         roomType: "admin",
-        roomId: "admin_1",
+        roomId: "rest_3",
         restaurantId: "rest_3",
-        sessionId: "session_789",
+        sessionId,
       };
 
       // No DB queries needed for kitchen/admin rooms (no tableId/seatId)
@@ -198,6 +235,11 @@ describe("RealtimeAuthService", () => {
       if (!("error" in result)) {
         expect(result.token).toBeDefined();
         expect(result.expiresIn).toBe(300);
+        expect(result.wsUrl).toContain("/admin/rest_3?");
+        const verification = await service.verifyWebSocketToken(result.token);
+        expect(verification.payload?.role).toBe("admin");
+        expect(verification.payload?.userId).toBe(3);
+        expect(verification.payload?.appRole).toBe(0);
       }
     });
 
@@ -261,6 +303,22 @@ describe("RealtimeAuthService", () => {
       expect(result).toHaveProperty("error");
       if ("error" in result) {
         expect(result.error).toBe("Session ID required for this room type");
+      }
+    });
+
+    it("應該拒絕無效 session token 的管理員房間請求", async () => {
+      const request: RealtimeAuthTokenRequest = {
+        roomType: "admin",
+        roomId: "rest_6",
+        restaurantId: "rest_6",
+        sessionId: "not-a-valid-jwt",
+      };
+
+      const result = await service.generateWebSocketToken(request);
+
+      expect(result).toHaveProperty("error");
+      if ("error" in result) {
+        expect(result.error).toBe("Invalid session token");
       }
     });
 
@@ -470,26 +528,17 @@ describe("RealtimeAuthService", () => {
     });
 
     it("應該為 kitchen roomType 返回 staff 角色", () => {
-      const role = asRealtimeAuthTest(service).determineRole(
-        "kitchen",
-        "session_123",
-      );
+      const role = asRealtimeAuthTest(service).determineRole("kitchen", 2);
       expect(role).toBe("staff");
     });
 
     it("應該為 admin roomType 返回 admin 角色", () => {
-      const role = asRealtimeAuthTest(service).determineRole(
-        "admin",
-        "session_456",
-      );
+      const role = asRealtimeAuthTest(service).determineRole("admin", 1);
       expect(role).toBe("admin");
     });
 
     it("應該為 restaurant roomType 返回 admin 角色", () => {
-      const role = asRealtimeAuthTest(service).determineRole(
-        "restaurant",
-        "session_789",
-      );
+      const role = asRealtimeAuthTest(service).determineRole("restaurant", 1);
       expect(role).toBe("admin");
     });
   });

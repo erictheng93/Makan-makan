@@ -26,6 +26,46 @@ export interface WebSocketTokenVerification {
   revoked?: boolean;
 }
 
+interface SessionTokenPayload {
+  id: number;
+  username: string;
+  role: number;
+  exp: number;
+  iat?: number;
+  nbf?: number;
+  tv?: number;
+  restaurantId?: string | number;
+}
+
+interface AuthenticatedRealtimeUser {
+  id: number;
+  username: string;
+  role: number;
+  restaurantId?: string;
+  isActive: boolean;
+  tokenVersion: number;
+}
+
+function isSessionTokenPayload(value: unknown): value is SessionTokenPayload {
+  if (!value || typeof value !== "object") return false;
+
+  const payload = value as Record<string, unknown>;
+  return (
+    Number.isInteger(payload.id) &&
+    Number(payload.id) > 0 &&
+    typeof payload.username === "string" &&
+    payload.username.length > 0 &&
+    Number.isInteger(payload.role) &&
+    typeof payload.exp === "number" &&
+    (payload.iat === undefined || typeof payload.iat === "number") &&
+    (payload.nbf === undefined || typeof payload.nbf === "number") &&
+    (payload.tv === undefined || typeof payload.tv === "number") &&
+    (payload.restaurantId === undefined ||
+      typeof payload.restaurantId === "string" ||
+      typeof payload.restaurantId === "number")
+  );
+}
+
 export class RealtimeAuthService {
   private db;
   private logger: ConsoleLogger;
@@ -57,6 +97,7 @@ export class RealtimeAuthService {
     try {
       const { roomType, roomId, restaurantId, tableId, seatId, sessionId } =
         request;
+      let authenticatedUser: AuthenticatedRealtimeUser | null = null;
 
       switch (roomType) {
         case "customer":
@@ -86,6 +127,20 @@ export class RealtimeAuthService {
           if (!sessionId) {
             return { error: "Session ID required for this room type" };
           }
+          if (roomId !== restaurantId) {
+            return { error: "Room ID must match restaurant ID" };
+          }
+          {
+            const sessionValidation = await this.validateSessionAccess(
+              sessionId,
+              roomType,
+              restaurantId,
+            );
+            if ("error" in sessionValidation) {
+              return sessionValidation;
+            }
+            authenticatedUser = sessionValidation.user;
+          }
           break;
 
         default:
@@ -98,7 +153,13 @@ export class RealtimeAuthService {
         roomType,
         roomId,
         restaurantId,
-        role: this.determineRole(roomType, sessionId),
+        role: this.determineRole(roomType, authenticatedUser?.role),
+        ...(authenticatedUser
+          ? {
+              userId: authenticatedUser.id,
+              appRole: authenticatedUser.role,
+            }
+          : {}),
         tableId,
         seatId,
         exp: issuedAt + expiresIn,
@@ -397,18 +458,191 @@ export class RealtimeAuthService {
 
   private determineRole(
     roomType: RoomType,
-    _sessionId?: string,
+    appRole?: number | string,
   ): "customer" | "staff" | "admin" {
     if (roomType === "customer") {
       return "customer";
     }
     if (roomType === "kitchen") {
+      if (typeof appRole === "number" && appRole <= 1) {
+        return "admin";
+      }
       return "staff";
     }
     if (roomType === "admin" || roomType === "restaurant") {
       return "admin";
     }
     return "customer";
+  }
+
+  private async validateSessionAccess(
+    sessionId: string,
+    roomType: RoomType,
+    restaurantId: string,
+  ): Promise<{ user: AuthenticatedRealtimeUser } | { error: string }> {
+    if (!this.env.JWT_SECRET || this.env.JWT_SECRET.length < 32) {
+      return { error: "JWT_SECRET is not configured" };
+    }
+
+    if (this.env.TOKEN_BLACKLIST) {
+      const blacklisted = await this.env.TOKEN_BLACKLIST.get(
+        `token:${sessionId}`,
+      );
+      if (blacklisted) {
+        return { error: "Session token has been invalidated" };
+      }
+    }
+
+    let decoded: unknown;
+    try {
+      decoded = verify(sessionId, this.env.JWT_SECRET);
+    } catch (error) {
+      if (error instanceof Error && error.name === "TokenExpiredError") {
+        return { error: "Session token expired" };
+      }
+      if (error instanceof Error && error.name === "NotBeforeError") {
+        return { error: "Session token not yet valid" };
+      }
+
+      this.logger.warn("Realtime session token verification failed", {
+        roomType,
+        restaurantId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return { error: "Invalid session token" };
+    }
+
+    if (!isSessionTokenPayload(decoded)) {
+      return { error: "Invalid session token claims" };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp <= now) {
+      return { error: "Session token expired" };
+    }
+    if (decoded.iat && decoded.iat > now + 60) {
+      return { error: "Session token issued in future" };
+    }
+    if (decoded.nbf && decoded.nbf > now + 60) {
+      return { error: "Session token not yet valid" };
+    }
+    if (decoded.role < 0 || decoded.role > 4) {
+      return { error: "Session role is not allowed for realtime rooms" };
+    }
+
+    if (!this.canAccessRoomType(decoded.role, roomType)) {
+      return { error: "Session role cannot access this realtime room" };
+    }
+
+    const loadedUser = await this.loadSessionUser(decoded);
+    if ("error" in loadedUser) {
+      return loadedUser;
+    }
+
+    const user = loadedUser.user;
+    if (!user.isActive) {
+      return { error: "User not found or inactive" };
+    }
+
+    const tokenVersion = typeof decoded.tv === "number" ? decoded.tv : 1;
+    if (user.tokenVersion !== tokenVersion) {
+      return { error: "Session token has been invalidated" };
+    }
+    if (user.username !== decoded.username || user.role !== decoded.role) {
+      return { error: "Invalid session token claims" };
+    }
+
+    if (!this.canAccessRestaurant(user, restaurantId)) {
+      return { error: "User does not have access to this restaurant" };
+    }
+
+    return { user };
+  }
+
+  private canAccessRoomType(role: number, roomType: RoomType): boolean {
+    if (roomType === "customer") return role === 5;
+    if (roomType === "restaurant") return role === 0 || role === 1;
+    return role >= 0 && role <= 4;
+  }
+
+  private canAccessRestaurant(
+    user: AuthenticatedRealtimeUser,
+    restaurantId: string,
+  ): boolean {
+    if (user.role === 0) {
+      return true;
+    }
+
+    return !!user.restaurantId && user.restaurantId === restaurantId;
+  }
+
+  private async loadSessionUser(
+    payload: SessionTokenPayload,
+  ): Promise<{ user: AuthenticatedRealtimeUser } | { error: string }> {
+    const fromToken = (): AuthenticatedRealtimeUser => ({
+      id: payload.id,
+      username: payload.username,
+      role: payload.role,
+      restaurantId:
+        payload.restaurantId === undefined
+          ? undefined
+          : String(payload.restaurantId),
+      isActive: true,
+      tokenVersion: typeof payload.tv === "number" ? payload.tv : 1,
+    });
+
+    if (!this.env.DB || typeof this.env.DB.prepare !== "function") {
+      if (this.allowTokenOnlySessionValidation()) {
+        return { user: fromToken() };
+      }
+      return { error: "User lookup unavailable" };
+    }
+
+    try {
+      const row = await this.env.DB.prepare(
+        `SELECT id, username, role, restaurant_id, is_active, token_version
+           FROM users
+          WHERE id = ?
+          LIMIT 1`,
+      )
+        .bind(payload.id)
+        .first<{
+          id: number;
+          username: string;
+          role: number;
+          restaurant_id: string | null;
+          is_active: number | boolean;
+          token_version: number | null;
+        }>();
+
+      if (!row) {
+        if (this.allowTokenOnlySessionValidation()) {
+          return { user: fromToken() };
+        }
+        return { error: "User not found or inactive" };
+      }
+
+      return {
+        user: {
+          id: Number(row.id),
+          username: String(row.username),
+          role: Number(row.role),
+          restaurantId: row.restaurant_id ?? undefined,
+          isActive: row.is_active === true || Number(row.is_active) === 1,
+          tokenVersion: Number(row.token_version ?? 1),
+        },
+      };
+    } catch (error) {
+      this.logger.error("Failed to load session user", error as Error);
+      if (this.allowTokenOnlySessionValidation()) {
+        return { user: fromToken() };
+      }
+      return { error: "Failed to validate session user" };
+    }
+  }
+
+  private allowTokenOnlySessionValidation(): boolean {
+    return this.env.NODE_ENV === "test" || this.env.NODE_ENV === "development";
   }
 
   private buildWebSocketUrl(

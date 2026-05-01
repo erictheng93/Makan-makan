@@ -9,6 +9,7 @@ import realtimeRoutes from "../routes";
 import type { Env } from "../../../shared/types";
 import { ApiError } from "../../../shared/utils/api-error";
 import { ErrorSanitizer } from "../../../utils/errorSanitizer";
+import * as jwt from "jsonwebtoken";
 
 // ─── Mock Drizzle (used by RealtimeAuthService) ────────────────────────
 
@@ -184,6 +185,41 @@ describe("Realtime Routes", () => {
       expect(data.success).toBe(true);
       expect(data.data?.token).toBeDefined();
       expect(data.data?.expiresIn).toBe(300);
+    });
+
+    it("應該為有效的管理員 session 生成可連線到 admin room 的 token", async () => {
+      const sessionToken = jwt.sign(
+        {
+          id: 1,
+          username: "admin",
+          role: 0,
+          restaurantId: "rest_1",
+          exp: Math.floor(Date.now() / 1000) + 3600,
+          iat: Math.floor(Date.now() / 1000),
+        },
+        mockEnv.JWT_SECRET!,
+      );
+
+      const response = await app.request(
+        "/realtime/auth/token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            roomType: "admin",
+            roomId: "rest_1",
+            restaurantId: "rest_1",
+            sessionId: sessionToken,
+          }),
+        },
+        mockEnv as Env,
+      );
+
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as ApiTestResponse;
+      expect(data.success).toBe(true);
+      expect(data.data?.token).toBeDefined();
+      expect(data.data?.wsUrl).toContain("/admin/rest_1?");
     });
 
     it("應該拒絕缺少必要欄位的請求", async () => {

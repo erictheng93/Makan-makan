@@ -46,6 +46,8 @@ export interface RealtimeAuthPayload {
   restaurantId: string;
   /** 使用者角色 */
   role: "customer" | "staff" | "admin";
+  /** 原始應用角色代碼（0=ADMIN, 1=OWNER, ...） */
+  appRole?: number;
   scope?: "guest-realtime";
   guestFlag?: boolean;
   /** 桌號 ID（顧客連線時使用） */
