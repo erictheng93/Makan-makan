@@ -38,7 +38,9 @@
     "dist",
     "**/*.spec.ts",
     "**/*.test.ts",
-    "**/*.stories.ts"
+    "**/*.stories.ts",
+    "**/__tests__/**",
+    "**/tests/**"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

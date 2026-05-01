@@ -413,9 +413,11 @@ const loadTableData = async () => {
         capacity?: number;
         location?: string;
         isActive?: boolean;
+        isOccupied?: boolean;
         qrMode?: "table" | "seat";
         qrCode?: string;
         status?: string;
+        totalUsage?: number;
         createdAt?: string;
         updatedAt?: string;
       }>(response.data.data);
