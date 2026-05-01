@@ -1,6 +1,6 @@
 # Technical Debt & TODO Backlog
 
-Last reviewed: 2026-04-21
+Last reviewed: 2026-05-01
 
 This backlog is based on a repository-wide scan of code, tests, docs, and
 Cloudflare configuration. It focuses on unresolved implementation work,
@@ -9,8 +9,14 @@ PRs.
 
 ## Review Notes
 
-- `rtk pnpm typecheck` passed.
-- `rtk pnpm lint` timed out after 120s, so lint status is unknown.
+- 2026-05-01: added money cents field retirement tracking and the
+  `0027_money_cents_retirement_audit.sql` pre-retirement audit migration,
+  including a legacy REAL precision check.
+- 2026-05-01: added physical `restaurant_id` FK rebuild migrations
+  `0028`-`0030` for operational support, workforce/backup, and core commerce
+  tables.
+- 2026-04-21: `rtk pnpm typecheck` passed.
+- 2026-04-21: `rtk pnpm lint` timed out after 120s, so lint status is unknown.
 - Existing untracked file was left untouched:
   `docs/testing/PERSONA_TEST_CHECKLIST_AUDIT.md`.
 - Existing `TODOS.md` i18n items are included here so this document can be used
@@ -282,6 +288,63 @@ late during release.
 - [ ] Replace placeholder D1/KV IDs with real Cloudflare resource IDs.
 - [ ] Add a CI config check that fails on placeholder resource IDs.
 - [ ] Document which environment owns each D1/KV/R2/queue binding.
+
+### Money REAL Columns Still Need Cents Retirement
+
+**Priority:** P2
+
+**Reference:** `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md`
+
+**Files:**
+
+- `packages/database/src/schema/orders.ts`
+- `packages/database/src/schema/order-items.ts`
+- `packages/database/src/schema/menu-items.ts`
+- `packages/database/src/schema/discovery.ts`
+- `packages/database/src/schema/coupons.ts`
+- `packages/database/src/schema/group-orders.ts`
+- `packages/database/src/schema/pos.ts`
+- `packages/database/src/schema/partnerships/*.ts`
+- `packages/database/src/schema/forecast.ts`
+- `packages/database/src/schema/scheduling/shift-templates.ts`
+- `packages/database/migrations_fresh/0023_integrity_audit_and_money_cents.sql`
+- `packages/database/migrations_fresh/0025_partnership_money_and_fk_audit.sql`
+- `packages/database/migrations_fresh/0027_money_cents_retirement_audit.sql`
+
+**Evidence:**
+
+- Current schema still defines legacy `REAL` money columns beside integer
+  `*_cents` columns, for example `orders.total_amount` /
+  `orders.total_amount_cents`, `menu_items.price` / `menu_items.price_cents`,
+  and POS/partnership amount fields.
+- Fresh migrations `0023` and `0025` add/backfill cents columns and cents sync
+  triggers. They do not remove the legacy `REAL` columns.
+- Fresh migration `0027` records `money_cents_retirement` mismatches and
+  over-precision legacy REAL values in `data_integrity_audit`; destructive
+  column retirement is still gated on zero production/staging audit violations.
+- Service reads have not fully converged: several paths still use cents-first
+  compatibility fallbacks such as `amountFromCents(cents, legacyReal)` while
+  public API surfaces continue returning decimal money values.
+
+**Impact:** Keeping both representations is a transitional state. Removing the
+legacy columns too early can break reads/writes, but leaving the dual
+representation indefinitely keeps precision drift and migration risk alive.
+
+**TODO:**
+
+- [ ] Finish the code-path inventory for every in-scope money field and mark
+      cents as the authoritative read source.
+- [ ] Keep percentage/rate/non-money `REAL` fields out of this migration
+      (`discount_type = 'percentage'`, leave days, ratings, coordinates, etc.).
+- [x] Add a dedicated `data_integrity_audit` pass that compares each legacy
+      money `REAL` value with its `*_cents` value and records sample row IDs.
+- [ ] Require zero unresolved `money_cents_retirement` audit violations before
+      any destructive schema change.
+- [ ] Land a separate D1/SQLite table-rebuild migration to remove retired
+      legacy `REAL` money columns, preserve constraints/indexes, and drop
+      obsolete cents sync triggers.
+- [ ] Add migration tests that verify rebuilt table shape, row counts, null
+      handling, percentage discount exceptions, and FK/index preservation.
 
 ## P2: Test Debt
 
