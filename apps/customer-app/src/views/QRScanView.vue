@@ -204,12 +204,20 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { BrowserQRCodeReader } from "@zxing/library";
 import ManualInputModal from "@/components/ManualInputModal.vue";
+import { menuApi } from "@/services/menuApi";
 import {
   parseQRContent,
   validateQRData,
   getQRTypeDescription,
 } from "@/utils/qr-parser";
 import { useI18n } from "@/composables/useI18n";
+
+interface RecentRestaurant {
+  id: string;
+  name: string;
+  address?: string;
+  lastVisit: number;
+}
 
 const router = useRouter();
 const toast = useToast();
@@ -399,19 +407,20 @@ const addToRecentRestaurants = async (qrData: {
   tableId: number;
 }) => {
   try {
-    // 這裡應該從API獲取餐廳資訊，暫時使用模擬數據
+    const restaurant = await menuApi.getRestaurant(qrData.restaurantId);
     const restaurantInfo = {
-      id: qrData.restaurantId,
-      name: `餐廳 ${qrData.restaurantId}`, // TODO: Replace with API data
-      address: "地址資訊", // TODO: Replace with API data
+      id: restaurant.id,
+      name: restaurant.name,
+      address: restaurant.address,
       lastVisit: Date.now(),
     };
 
     const saved = localStorage.getItem("makanmakan_recent_restaurants");
-    let recent = saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    let recent: RecentRestaurant[] = Array.isArray(parsed) ? parsed : [];
 
     // 移除重複項目
-    recent = recent.filter((item: any) => item.id !== qrData.restaurantId);
+    recent = recent.filter((item) => item.id !== qrData.restaurantId);
 
     // 添加到開頭
     recent.unshift(restaurantInfo);
