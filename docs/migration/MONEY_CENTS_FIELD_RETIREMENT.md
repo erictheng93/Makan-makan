@@ -92,6 +92,18 @@ WHERE total_amount_cents IS NULL
    OR total_amount_cents != CAST(round(total_amount * 100) AS integer);
 ```
 
+## Executable Inventory Guard
+
+`packages/database/src/testing/__tests__/migration-inventory.test.ts` tracks
+the transitional money schema inventory. It asserts that every in-scope legacy
+`REAL` money column has a paired integer `*_cents` column, that cents-native
+payment ledger columns are explicitly allowlisted, and that
+`money_cents_retirement` audit rows stay aligned with the tracked tables.
+
+Any new money-like `REAL` field must be added to the inventory, given a cents
+counterpart, and covered by the retirement audit before it can be considered
+safe for future table rebuild retirement work.
+
 ## Table Rebuild Migration Requirements
 
 SQLite/D1 table rebuilds must be deliberate because columns, constraints,

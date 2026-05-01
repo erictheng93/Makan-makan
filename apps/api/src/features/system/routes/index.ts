@@ -510,6 +510,7 @@ routes.get(
       users,
       restaurants,
       auditLogs,
+      avgMoneyAmount,
       sql,
     } = await import("@makanmakan/database");
     const db = createDatabase(c.env.DB);
@@ -559,7 +560,10 @@ routes.get(
         total_requests: count(),
         recent_requests: sql<number>`COUNT(CASE WHEN ${orders.createdAt} >= ${oneHourAgo.toISOString()} THEN 1 END)`,
         active_restaurants: sql<number>`COUNT(DISTINCT ${orders.restaurantId})`,
-        avg_order_value: sql<number>`AVG(${orders.totalAmount})`,
+        avg_order_value: avgMoneyAmount(
+          orders.totalAmountCents,
+          orders.totalAmount,
+        ),
       })
       .from(orders)
       .where(gte(orders.createdAt, twentyFourHoursAgo))

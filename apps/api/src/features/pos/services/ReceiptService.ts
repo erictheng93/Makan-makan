@@ -4,7 +4,12 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, sql, type SQL } from "drizzle-orm";
-import { receipts, orders, orderItems } from "@makanmakan/database";
+import {
+  amountFromCents,
+  receipts,
+  orders,
+  orderItems,
+} from "@makanmakan/database";
 
 type OrderRow = typeof orders.$inferSelect;
 type ReceiptRow = typeof receipts.$inferSelect;
@@ -283,17 +288,19 @@ export class ReceiptService {
       items: items.map((item: OrderItemRow) => ({
         name: item.itemSnapshot?.name ?? null,
         quantity: item.quantity,
-        price: item.unitPrice,
-        subtotal: item.totalPrice,
+        price: amountFromCents(item.unitPriceCents, item.unitPrice) ?? 0,
+        subtotal: amountFromCents(item.totalPriceCents, item.totalPrice) ?? 0,
         customizations:
           typeof item.customizations === "string"
             ? JSON.parse(item.customizations || "[]")
             : (item.customizations ?? []),
       })),
-      subtotal: order.subtotal,
-      taxAmount: order.taxAmount,
-      discountAmount: order.discountAmount,
-      totalAmount: order.totalAmount,
+      subtotal: amountFromCents(order.subtotalCents, order.subtotal) ?? 0,
+      taxAmount: amountFromCents(order.taxAmountCents, order.taxAmount) ?? 0,
+      discountAmount:
+        amountFromCents(order.discountAmountCents, order.discountAmount) ?? 0,
+      totalAmount:
+        amountFromCents(order.totalAmountCents, order.totalAmount) ?? 0,
       paymentMethod: order.paymentMethod,
       timestamp: new Date().toISOString(),
       footer: "謝謝光臨 MakanMakan",

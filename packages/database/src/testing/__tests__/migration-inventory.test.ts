@@ -64,12 +64,109 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
 
 const PENDING_RESTAURANT_ID_FK_TABLES: string[] = [];
 
+const EXPECTED_MONEY_CENTS_COLUMNS = {
+  cash_movements: [["amount", "amount_cents"]],
+  cash_shifts: [
+    ["start_amount", "start_amount_cents"],
+    ["end_amount", "end_amount_cents"],
+    ["expected_amount", "expected_amount_cents"],
+    ["actual_amount", "actual_amount_cents"],
+    ["difference_amount", "difference_amount_cents"],
+    ["total_sales", "total_sales_cents"],
+    ["total_refunds", "total_refunds_cents"],
+    ["cash_sales", "cash_sales_cents"],
+    ["card_sales", "card_sales_cents"],
+    ["digital_sales", "digital_sales_cents"],
+  ],
+  coupon_usage: [
+    ["discount_amount", "discount_amount_cents"],
+    ["original_amount", "original_amount_cents"],
+    ["final_amount", "final_amount_cents"],
+  ],
+  coupons: [
+    ["discount_value", "discount_value_cents"],
+    ["max_discount_amount", "max_discount_amount_cents"],
+    ["min_order_amount", "min_order_amount_cents"],
+  ],
+  dish_search_index: [["price", "price_cents"]],
+  group_cart_items: [
+    ["unit_price", "unit_price_cents"],
+    ["total_price", "total_price_cents"],
+  ],
+  group_orders: [
+    ["total_amount", "total_amount_cents"],
+    ["tax_amount", "tax_amount_cents"],
+    ["service_charge", "service_charge_cents"],
+    ["final_amount", "final_amount_cents"],
+  ],
+  ingredient_definitions: [["cost_per_unit", "cost_per_unit_cents"]],
+  menu_items: [
+    ["price", "price_cents"],
+    ["original_price", "original_price_cents"],
+    ["cost_price", "cost_price_cents"],
+  ],
+  order_items: [
+    ["unit_price", "unit_price_cents"],
+    ["total_price", "total_price_cents"],
+  ],
+  orders: [
+    ["subtotal", "subtotal_cents"],
+    ["tax_amount", "tax_amount_cents"],
+    ["service_charge", "service_charge_cents"],
+    ["discount_amount", "discount_amount_cents"],
+    ["total_amount", "total_amount_cents"],
+    ["refund_amount", "refund_amount_cents"],
+  ],
+  partnership_plans: [
+    ["discount_value", "discount_value_cents"],
+    ["max_discount_amount", "max_discount_amount_cents"],
+    ["min_order_amount", "min_order_amount_cents"],
+    ["max_order_amount", "max_order_amount_cents"],
+    ["total_discount_given", "total_discount_given_cents"],
+    ["total_revenue", "total_revenue_cents"],
+  ],
+  partnership_usage_logs: [
+    ["discount_value", "discount_value_cents"],
+    ["discount_amount", "discount_amount_cents"],
+    ["original_amount", "original_amount_cents"],
+    ["final_amount", "final_amount_cents"],
+  ],
+  partnerships: [
+    ["default_discount_value", "default_discount_value_cents"],
+    ["total_discount_given", "total_discount_given_cents"],
+    ["total_revenue", "total_revenue_cents"],
+  ],
+  refunds: [
+    ["original_amount", "original_amount_cents"],
+    ["refund_amount", "refund_amount_cents"],
+  ],
+  shift_templates: [["hourly_rate", "hourly_rate_cents"]],
+  split_bills: [
+    ["subtotal", "subtotal_cents"],
+    ["tax_amount", "tax_amount_cents"],
+    ["service_charge", "service_charge_cents"],
+    ["discount_amount", "discount_amount_cents"],
+    ["tip_amount", "tip_amount_cents"],
+    ["total_amount", "total_amount_cents"],
+  ],
+  verified_members: [
+    ["total_discount_received", "total_discount_received_cents"],
+    ["total_spending", "total_spending_cents"],
+  ],
+} as const;
+
+const CENTS_NATIVE_COLUMNS = [
+  "payment_transactions.amount_cents",
+  "refund_transactions.amount_cents",
+] as const;
+
 type TableRow = {
   name: string;
 };
 
 type TableColumnRow = {
   name: string;
+  type: string;
 };
 
 type ForeignKeyRow = {
@@ -176,6 +273,23 @@ function listRestaurantIdTables(db: Database.Database): string[] {
     .sort();
 }
 
+function listTableColumns(
+  db: Database.Database,
+  tableName: string,
+): TableColumnRow[] {
+  return db
+    .prepare(`PRAGMA table_info(${quoteIdentifier(tableName)})`)
+    .all() as TableColumnRow[];
+}
+
+function expectedMoneyCentsColumnNames(): string[] {
+  return Object.entries(EXPECTED_MONEY_CENTS_COLUMNS)
+    .flatMap(([tableName, pairs]) =>
+      pairs.map(([, centsColumn]) => `${tableName}.${centsColumn}`),
+    )
+    .sort();
+}
+
 describe("migration inventory", () => {
   let db: Database.Database | undefined;
 
@@ -251,6 +365,54 @@ describe("migration inventory", () => {
     for (const scope of byScope.values()) {
       expect(scope.violations).toBe(0);
     }
+  });
+
+  it("tracks every transitional money REAL column with an integer cents column", () => {
+    for (const [tableName, pairs] of Object.entries(
+      EXPECTED_MONEY_CENTS_COLUMNS,
+    )) {
+      const columns = new Map(
+        listTableColumns(db!, tableName).map((column) => [column.name, column]),
+      );
+
+      for (const [legacyColumn, centsColumn] of pairs) {
+        expect(columns.get(legacyColumn)?.type.toUpperCase()).toContain("REAL");
+        expect(columns.get(centsColumn)?.type.toUpperCase()).toContain(
+          "INTEGER",
+        );
+      }
+    }
+
+    const trackedCentsColumns = new Set([
+      ...expectedMoneyCentsColumnNames(),
+      ...CENTS_NATIVE_COLUMNS,
+    ]);
+    const actualCentsColumns = listUserTables(db!)
+      .flatMap((tableName) =>
+        listTableColumns(db!, tableName)
+          .filter((column) => column.name.endsWith("_cents"))
+          .map((column) => `${tableName}.${column.name}`),
+      )
+      .sort();
+
+    expect(actualCentsColumns).toEqual([...trackedCentsColumns].sort());
+  });
+
+  it("keeps money cents retirement audit coverage aligned with tracked tables", () => {
+    const expectedAuditTables = [
+      ...Object.keys(EXPECTED_MONEY_CENTS_COLUMNS),
+      "_all_money_tables",
+    ].sort();
+    const rows = db!
+      .prepare(
+        `SELECT DISTINCT table_name AS name
+           FROM data_integrity_audit
+          WHERE scope = 'money_cents_retirement'
+          ORDER BY table_name`,
+      )
+      .all() as TableRow[];
+
+    expect(rows.map((row) => row.name)).toEqual(expectedAuditTables);
   });
 
   it("does not leave restaurant FK rebuild temp tables behind", () => {

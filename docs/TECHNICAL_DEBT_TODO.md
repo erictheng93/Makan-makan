@@ -359,12 +359,15 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
 - `packages/database/src/schema/forecast.ts`
 - `packages/database/src/schema/scheduling/shift-templates.ts`
 - `packages/database/src/utils/money-sql.ts`
+- `packages/database/src/testing/__tests__/migration-inventory.test.ts`
 - `packages/database/src/services/analytics.ts`
 - `packages/database/src/services/POSService.ts`
+- `apps/api/src/features/system/routes/index.ts`
 - `apps/api/src/features/payments/services/PaymentService.ts`
 - `apps/api/src/features/payments/routes/index.ts`
 - `apps/api/src/features/pos/services/RefundService.ts`
 - `apps/api/src/features/pos/services/ReportService.ts`
+- `apps/api/src/features/pos/services/ReceiptService.ts`
 - `packages/database/migrations_fresh/0023_integrity_audit_and_money_cents.sql`
 - `packages/database/migrations_fresh/0025_partnership_money_and_fk_audit.sql`
 - `packages/database/migrations_fresh/0027_money_cents_retirement_audit.sql`
@@ -383,6 +386,11 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
 - Revenue analytics, POS reports, payment total checks, and refund limit checks
   now use shared cents-first SQL helpers before falling back to legacy `REAL`
   values.
+- Migration inventory tests now assert that every tracked transitional money
+  `REAL` column has an integer cents counterpart and matching
+  `money_cents_retirement` audit coverage.
+- System health average order value and POS receipt content now use cents-first
+  reads.
 - Service reads have not fully converged: several paths still use cents-first
   compatibility fallbacks such as `amountFromCents(cents, legacyReal)` while
   public API surfaces continue returning decimal money values.
@@ -395,6 +403,8 @@ representation indefinitely keeps precision drift and migration risk alive.
 
 - [ ] Finish the code-path inventory for every in-scope money field and mark
       cents as the authoritative read source.
+- [x] Add executable migration inventory coverage for tracked money
+      `REAL`/`*_cents` pairs and audit-table alignment.
 - [ ] Keep percentage/rate/non-money `REAL` fields out of this migration
       (`discount_type = 'percentage'`, leave days, ratings, coordinates, etc.).
 - [x] Add a dedicated `data_integrity_audit` pass that compares each legacy
