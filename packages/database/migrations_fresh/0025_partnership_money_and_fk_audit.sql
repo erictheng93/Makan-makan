@@ -342,62 +342,120 @@ BEGIN
 END;
 --> statement-breakpoint
 
-CREATE VIEW IF NOT EXISTS `vw_restaurant_fk_orphan_counts` AS
-SELECT 'audit_logs' AS `table_name`, count(*) AS `violation_count` FROM `audit_logs` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `audit_logs`.`restaurant_id`)
-UNION ALL SELECT 'backup_alerts', count(*) FROM `backup_alerts` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_alerts`.`restaurant_id`)
-UNION ALL SELECT 'backup_audit_logs', count(*) FROM `backup_audit_logs` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_audit_logs`.`restaurant_id`)
-UNION ALL SELECT 'backup_configurations', count(*) FROM `backup_configurations` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_configurations`.`restaurant_id`)
-UNION ALL SELECT 'backup_records', count(*) FROM `backup_records` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_records`.`restaurant_id`)
-UNION ALL SELECT 'backup_schedules', count(*) FROM `backup_schedules` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_schedules`.`restaurant_id`)
-UNION ALL SELECT 'cash_registers', count(*) FROM `cash_registers` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `cash_registers`.`restaurant_id`)
-UNION ALL SELECT 'categories', count(*) FROM `categories` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `categories`.`restaurant_id`)
-UNION ALL SELECT 'coupon_templates', count(*) FROM `coupon_templates` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `coupon_templates`.`restaurant_id`)
-UNION ALL SELECT 'coupons', count(*) FROM `coupons` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `coupons`.`restaurant_id`)
-UNION ALL SELECT 'dish_search_index', count(*) FROM `dish_search_index` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `dish_search_index`.`restaurant_id`)
-UNION ALL SELECT 'employee_availability', count(*) FROM `employee_availability` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `employee_availability`.`restaurant_id`)
-UNION ALL SELECT 'employee_leave_balances', count(*) FROM `employee_leave_balances` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `employee_leave_balances`.`restaurant_id`)
-UNION ALL SELECT 'employee_schedules', count(*) FROM `employee_schedules` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `employee_schedules`.`restaurant_id`)
-UNION ALL SELECT 'error_reports', count(*) FROM `error_reports` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `error_reports`.`restaurant_id`)
-UNION ALL SELECT 'forecast_cache', count(*) FROM `forecast_cache` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `forecast_cache`.`restaurant_id`)
-UNION ALL SELECT 'group_orders', count(*) FROM `group_orders` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `group_orders`.`restaurant_id`)
-UNION ALL SELECT 'images', count(*) FROM `images` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `images`.`restaurant_id`)
-UNION ALL SELECT 'ingredient_definitions', count(*) FROM `ingredient_definitions` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `ingredient_definitions`.`restaurant_id`)
-UNION ALL SELECT 'leave_approval_rules', count(*) FROM `leave_approval_rules` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `leave_approval_rules`.`restaurant_id`)
-UNION ALL SELECT 'leave_calendar_events', count(*) FROM `leave_calendar_events` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `leave_calendar_events`.`restaurant_id`)
-UNION ALL SELECT 'leave_requests', count(*) FROM `leave_requests` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `leave_requests`.`restaurant_id`)
-UNION ALL SELECT 'leave_types', count(*) FROM `leave_types` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `leave_types`.`restaurant_id`)
-UNION ALL SELECT 'menu_items', count(*) FROM `menu_items` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `menu_items`.`restaurant_id`)
-UNION ALL SELECT 'orders', count(*) FROM `orders` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `orders`.`restaurant_id`)
-UNION ALL SELECT 'partnership_plans', count(*) FROM `partnership_plans` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `partnership_plans`.`restaurant_id`)
-UNION ALL SELECT 'partnership_usage_logs', count(*) FROM `partnership_usage_logs` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `partnership_usage_logs`.`restaurant_id`)
-UNION ALL SELECT 'platform_integrations', count(*) FROM `platform_integrations` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `platform_integrations`.`restaurant_id`)
-UNION ALL SELECT 'platform_menu_mappings', count(*) FROM `platform_menu_mappings` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `platform_menu_mappings`.`restaurant_id`)
-UNION ALL SELECT 'platform_orders', count(*) FROM `platform_orders` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `platform_orders`.`restaurant_id`)
-UNION ALL SELECT 'platform_webhook_logs', count(*) FROM `platform_webhook_logs` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `platform_webhook_logs`.`restaurant_id`)
-UNION ALL SELECT 'qr_batches', count(*) FROM `qr_batches` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `qr_batches`.`restaurant_id`)
-UNION ALL SELECT 'reservation_slots', count(*) FROM `reservation_slots` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `reservation_slots`.`restaurant_id`)
-UNION ALL SELECT 'reservations', count(*) FROM `reservations` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `reservations`.`restaurant_id`)
-UNION ALL SELECT 'restore_operations', count(*) FROM `restore_operations` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `restore_operations`.`restaurant_id`)
-UNION ALL SELECT 'schedule_swap_requests', count(*) FROM `schedule_swap_requests` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `schedule_swap_requests`.`restaurant_id`)
-UNION ALL SELECT 'scheduling_conflicts', count(*) FROM `scheduling_conflicts` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `scheduling_conflicts`.`restaurant_id`)
-UNION ALL SELECT 'scheduling_rules', count(*) FROM `scheduling_rules` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `scheduling_rules`.`restaurant_id`)
-UNION ALL SELECT 'shift_templates', count(*) FROM `shift_templates` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `shift_templates`.`restaurant_id`)
-UNION ALL SELECT 'shop_feedback', count(*) FROM `shop_feedback` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `shop_feedback`.`restaurant_id`)
-UNION ALL SELECT 'system_alerts', count(*) FROM `system_alerts` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `system_alerts`.`restaurant_id`)
-UNION ALL SELECT 'tables', count(*) FROM `tables` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `tables`.`restaurant_id`)
-UNION ALL SELECT 'users', count(*) FROM `users` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `users`.`restaurant_id`)
-UNION ALL SELECT 'waiting_list', count(*) FROM `waiting_list` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `waiting_list`.`restaurant_id`);
+-- Restaurant FK orphan audit. Each chunk inserts up to 5 rows because D1's
+-- SQLITE_MAX_COMPOUND_SELECT is 5. The audit was originally a single 44-way
+-- UNION view; that view is dropped in favor of these per-chunk inserts.
+INSERT OR REPLACE INTO `data_integrity_audit`
+  (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
+  'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
+FROM (
+  SELECT 'audit_logs' AS `t`, count(*) AS `c` FROM `audit_logs` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `audit_logs`.`restaurant_id`)
+  UNION ALL SELECT 'backup_alerts', count(*) FROM `backup_alerts` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_alerts`.`restaurant_id`)
+  UNION ALL SELECT 'backup_audit_logs', count(*) FROM `backup_audit_logs` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_audit_logs`.`restaurant_id`)
+  UNION ALL SELECT 'backup_configurations', count(*) FROM `backup_configurations` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_configurations`.`restaurant_id`)
+  UNION ALL SELECT 'backup_records', count(*) FROM `backup_records` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_records`.`restaurant_id`)
+);
 --> statement-breakpoint
 
 INSERT OR REPLACE INTO `data_integrity_audit`
   (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
-SELECT
-  'restaurant_fk',
-  `table_name`,
-  'restaurant_id',
-  'orphan_restaurant_id',
-  'error',
-  `violation_count`,
-  NULL,
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
   'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
-FROM `vw_restaurant_fk_orphan_counts`;
+FROM (
+  SELECT 'backup_schedules' AS `t`, count(*) AS `c` FROM `backup_schedules` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `backup_schedules`.`restaurant_id`)
+  UNION ALL SELECT 'cash_registers', count(*) FROM `cash_registers` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `cash_registers`.`restaurant_id`)
+  UNION ALL SELECT 'categories', count(*) FROM `categories` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `categories`.`restaurant_id`)
+  UNION ALL SELECT 'coupon_templates', count(*) FROM `coupon_templates` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `coupon_templates`.`restaurant_id`)
+  UNION ALL SELECT 'coupons', count(*) FROM `coupons` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `coupons`.`restaurant_id`)
+);
+--> statement-breakpoint
+
+INSERT OR REPLACE INTO `data_integrity_audit`
+  (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
+  'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
+FROM (
+  SELECT 'dish_search_index' AS `t`, count(*) AS `c` FROM `dish_search_index` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `dish_search_index`.`restaurant_id`)
+  UNION ALL SELECT 'employee_availability', count(*) FROM `employee_availability` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `employee_availability`.`restaurant_id`)
+  UNION ALL SELECT 'employee_leave_balances', count(*) FROM `employee_leave_balances` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `employee_leave_balances`.`restaurant_id`)
+  UNION ALL SELECT 'employee_schedules', count(*) FROM `employee_schedules` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `employee_schedules`.`restaurant_id`)
+  UNION ALL SELECT 'error_reports', count(*) FROM `error_reports` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `error_reports`.`restaurant_id`)
+);
+--> statement-breakpoint
+
+INSERT OR REPLACE INTO `data_integrity_audit`
+  (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
+  'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
+FROM (
+  SELECT 'forecast_cache' AS `t`, count(*) AS `c` FROM `forecast_cache` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `forecast_cache`.`restaurant_id`)
+  UNION ALL SELECT 'group_orders', count(*) FROM `group_orders` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `group_orders`.`restaurant_id`)
+  UNION ALL SELECT 'images', count(*) FROM `images` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `images`.`restaurant_id`)
+  UNION ALL SELECT 'ingredient_definitions', count(*) FROM `ingredient_definitions` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `ingredient_definitions`.`restaurant_id`)
+  UNION ALL SELECT 'leave_approval_rules', count(*) FROM `leave_approval_rules` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `leave_approval_rules`.`restaurant_id`)
+);
+--> statement-breakpoint
+
+INSERT OR REPLACE INTO `data_integrity_audit`
+  (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
+  'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
+FROM (
+  SELECT 'leave_calendar_events' AS `t`, count(*) AS `c` FROM `leave_calendar_events` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `leave_calendar_events`.`restaurant_id`)
+  UNION ALL SELECT 'leave_requests', count(*) FROM `leave_requests` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `leave_requests`.`restaurant_id`)
+  UNION ALL SELECT 'leave_types', count(*) FROM `leave_types` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `leave_types`.`restaurant_id`)
+  UNION ALL SELECT 'menu_items', count(*) FROM `menu_items` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `menu_items`.`restaurant_id`)
+  UNION ALL SELECT 'orders', count(*) FROM `orders` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `orders`.`restaurant_id`)
+);
+--> statement-breakpoint
+
+INSERT OR REPLACE INTO `data_integrity_audit`
+  (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
+  'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
+FROM (
+  SELECT 'partnership_plans' AS `t`, count(*) AS `c` FROM `partnership_plans` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `partnership_plans`.`restaurant_id`)
+  UNION ALL SELECT 'partnership_usage_logs', count(*) FROM `partnership_usage_logs` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `partnership_usage_logs`.`restaurant_id`)
+  UNION ALL SELECT 'platform_integrations', count(*) FROM `platform_integrations` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `platform_integrations`.`restaurant_id`)
+  UNION ALL SELECT 'platform_menu_mappings', count(*) FROM `platform_menu_mappings` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `platform_menu_mappings`.`restaurant_id`)
+  UNION ALL SELECT 'platform_orders', count(*) FROM `platform_orders` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `platform_orders`.`restaurant_id`)
+);
+--> statement-breakpoint
+
+INSERT OR REPLACE INTO `data_integrity_audit`
+  (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
+  'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
+FROM (
+  SELECT 'platform_webhook_logs' AS `t`, count(*) AS `c` FROM `platform_webhook_logs` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `platform_webhook_logs`.`restaurant_id`)
+  UNION ALL SELECT 'qr_batches', count(*) FROM `qr_batches` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `qr_batches`.`restaurant_id`)
+  UNION ALL SELECT 'reservation_slots', count(*) FROM `reservation_slots` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `reservation_slots`.`restaurant_id`)
+  UNION ALL SELECT 'reservations', count(*) FROM `reservations` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `reservations`.`restaurant_id`)
+  UNION ALL SELECT 'restore_operations', count(*) FROM `restore_operations` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `restore_operations`.`restaurant_id`)
+);
+--> statement-breakpoint
+
+INSERT OR REPLACE INTO `data_integrity_audit`
+  (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
+  'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
+FROM (
+  SELECT 'schedule_swap_requests' AS `t`, count(*) AS `c` FROM `schedule_swap_requests` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `schedule_swap_requests`.`restaurant_id`)
+  UNION ALL SELECT 'scheduling_conflicts', count(*) FROM `scheduling_conflicts` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `scheduling_conflicts`.`restaurant_id`)
+  UNION ALL SELECT 'scheduling_rules', count(*) FROM `scheduling_rules` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `scheduling_rules`.`restaurant_id`)
+  UNION ALL SELECT 'shift_templates', count(*) FROM `shift_templates` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `shift_templates`.`restaurant_id`)
+  UNION ALL SELECT 'shop_feedback', count(*) FROM `shop_feedback` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `shop_feedback`.`restaurant_id`)
+);
+--> statement-breakpoint
+
+INSERT OR REPLACE INTO `data_integrity_audit`
+  (`scope`, `table_name`, `column_name`, `check_name`, `severity`, `violation_count`, `sample_values`, `details`)
+SELECT 'restaurant_fk', `t`, 'restaurant_id', 'orphan_restaurant_id', 'error', `c`, NULL,
+  'Current orphan count for restaurant_id; physical FK table rebuild is safe only when this count is zero.'
+FROM (
+  SELECT 'system_alerts' AS `t`, count(*) AS `c` FROM `system_alerts` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `system_alerts`.`restaurant_id`)
+  UNION ALL SELECT 'tables', count(*) FROM `tables` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `tables`.`restaurant_id`)
+  UNION ALL SELECT 'users', count(*) FROM `users` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `users`.`restaurant_id`)
+  UNION ALL SELECT 'waiting_list', count(*) FROM `waiting_list` WHERE `restaurant_id` IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `restaurants` WHERE `restaurants`.`id` = `waiting_list`.`restaurant_id`)
+);
