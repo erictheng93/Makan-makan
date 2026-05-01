@@ -14,9 +14,11 @@ PRs.
   including a legacy REAL precision check.
 - 2026-05-01: added physical `restaurant_id` FK rebuild migrations `0028`
   and `0029` plus the D1-safe `0030` coupons and `0031` scheduling rules
-  component rebuilds. Added `0032` partnership plans, `0033` leave types, and
-  `0034` workforce scheduling, and `0035` cash registers components. Core
-  parent tables remain tracked as pending by the migration inventory test.
+  component rebuilds. Added `0032` partnership plans, `0033` leave types,
+  `0034` workforce scheduling, `0035` cash registers, and `0036` ordering core
+  components, then split users root rebuild across `0037`/`0038`/`0039` to
+  stay under D1 local migration payload limits. Migration inventory now has no
+  pending physical `restaurant_id` FK tables.
 - 2026-04-21: `rtk pnpm typecheck` passed.
 - 2026-04-21: `rtk pnpm lint` timed out after 120s, so lint status is unknown.
 - Existing untracked file was left untouched:
@@ -291,7 +293,7 @@ late during release.
 - [ ] Add a CI config check that fails on placeholder resource IDs.
 - [ ] Document which environment owns each D1/KV/R2/queue binding.
 
-### Core Restaurant FK Rebuilds Still Need D1-Safe Components
+### Core Restaurant FK Rebuilds Covered By D1-Safe Components
 
 **Priority:** P1
 
@@ -305,6 +307,10 @@ late during release.
 - `packages/database/migrations_fresh/0033_restaurant_fk_rebuild_leave_types_component.sql`
 - `packages/database/migrations_fresh/0034_restaurant_fk_rebuild_workforce_scheduling_component.sql`
 - `packages/database/migrations_fresh/0035_restaurant_fk_rebuild_cash_registers_component.sql`
+- `packages/database/migrations_fresh/0036_restaurant_fk_rebuild_ordering_core_component.sql`
+- `packages/database/migrations_fresh/0037_restaurant_fk_rebuild_users_root_stage.sql`
+- `packages/database/migrations_fresh/0038_restaurant_fk_rebuild_users_root_apply.sql`
+- `packages/database/migrations_fresh/0039_restaurant_fk_rebuild_users_root_finalize.sql`
 - `packages/database/src/testing/__tests__/migration-inventory.test.ts`
 
 **Evidence:**
@@ -312,28 +318,26 @@ late during release.
 - Migration inventory now confirms physical `restaurant_id` FKs for the
   operational support, leaf dependent, waiting list, payment, subscription, and
   coupons, scheduling rules, partnership plans, leave types, and workforce
-  scheduling and cash registers component tables.
-- The remaining `restaurant_id` tables without physical FKs are core parent or
-  highly connected tables: `categories`, `group_orders`, `menu_items`,
-  `orders`, `tables`, and `users`.
-- These tables have inbound foreign keys, so D1-safe rebuilds must stage and
-  rebuild each connected component instead of relying on
-  `PRAGMA foreign_keys=OFF`.
+  scheduling, cash registers, ordering core, and users root component tables.
+- The remaining `restaurant_id` table list is empty; all 49 `restaurant_id`
+  tables now have physical SQLite/D1 FK metadata.
+- The users root rebuild is split into stage/apply/finalize files because the
+  original 204KB migration file exceeded wrangler local D1 payload limits.
 
-**Impact:** Trigger guards still block new orphan `restaurant_id` writes, but
-existing core tables are not yet protected by SQLite/D1 physical FK metadata.
-Future table rebuilds can also accidentally lose indexes/triggers unless the
-component shape is covered by inventory tests.
+**Impact:** Remote rollout still needs a staging data audit and backup window
+because the users root apply phase rebuilds many dependent tables. Inventory
+tests now guard against losing physical FK metadata, temp table cleanup, or
+`foreign_key_check` cleanliness.
 
 **TODO:**
 
 - [x] Add migration inventory coverage for current physical FK coverage,
       remaining pending tables, temp-table cleanup, and `foreign_key_check`.
-- [ ] Split the remaining core tables into D1-safe rebuild components based on
+- [x] Split the remaining core tables into D1-safe rebuild components based on
       inbound FK graph.
-- [ ] Run staging data audits before each component rebuild and require zero
-      orphan rows.
-- [ ] Update `migration-inventory.test.ts` as each pending table receives a
+- [ ] Run staging data audits before remote rollout and require zero orphan
+      rows.
+- [x] Update `migration-inventory.test.ts` as each pending table receives a
       physical FK.
 
 ### Money REAL Columns Still Need Cents Retirement

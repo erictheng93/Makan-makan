@@ -20,6 +20,7 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "backup_records",
   "backup_schedules",
   "cash_registers",
+  "categories",
   "coupon_templates",
   "coupons",
   "dish_search_index",
@@ -28,12 +29,15 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "employee_schedules",
   "error_reports",
   "forecast_cache",
+  "group_orders",
   "images",
   "ingredient_definitions",
   "leave_approval_rules",
   "leave_calendar_events",
   "leave_requests",
   "leave_types",
+  "menu_items",
+  "orders",
   "partnership_plans",
   "partnership_usage_logs",
   "payment_transactions",
@@ -53,17 +57,12 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "shop_feedback",
   "shop_subscriptions",
   "system_alerts",
+  "tables",
+  "users",
   "waiting_list",
 ];
 
-const PENDING_RESTAURANT_ID_FK_TABLES = [
-  "categories",
-  "group_orders",
-  "menu_items",
-  "orders",
-  "tables",
-  "users",
-];
+const PENDING_RESTAURANT_ID_FK_TABLES: string[] = [];
 
 type TableRow = {
   name: string;
