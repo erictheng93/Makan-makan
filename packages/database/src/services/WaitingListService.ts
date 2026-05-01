@@ -262,6 +262,49 @@ export class WaitingListService extends BaseService {
   }
 
   /**
+   * G3: 依手機號碼找回當日 active 票（為客戶遺失 ticketId 後的 fallback）。
+   * 只回傳 status in (waiting | called | confirmed)；終態票（cancelled /
+   * seated / expired / no_show）一律視為「無 active 票」回 null，避免
+   * 洩漏歷史資訊。配合 G4 冪等保證：同手機 + 同日 active 唯一。
+   */
+  async findActiveTicketByPhone(
+    restaurantId: string,
+    customerPhone: string,
+  ): Promise<WaitingListResponse | null> {
+    try {
+      const result = await this.db.get<WaitingListDbRow>(sql`
+        SELECT
+          w.*,
+          json_object(
+            'id', t.id,
+            'number', t.number,
+            'capacity', t.capacity
+          ) as table
+        FROM waiting_list w
+        LEFT JOIN tables t ON w.table_id = t.id
+        WHERE w.restaurant_id = ${restaurantId}
+          AND w.customer_phone = ${customerPhone}
+          AND w.status IN ('waiting', 'called', 'confirmed')
+          AND w.queue_date = DATE('now', 'localtime')
+        LIMIT 1
+      `);
+
+      if (!result) return null;
+
+      const partiesAhead = await this.getPartiesAhead(
+        result.restaurant_id,
+        result.queue_number,
+        result.party_size,
+      );
+
+      return this.formatWaitingListResponse(result, partiesAhead);
+    } catch (error) {
+      console.error("Error finding active ticket by phone:", error);
+      throw error;
+    }
+  }
+
+  /**
    * 根據 ID 查詢候位記錄
    */
   async getWaitingListEntryById(

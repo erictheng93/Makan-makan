@@ -68,6 +68,45 @@ app.post("/", async (c) => {
 });
 
 /**
+ * GET /waiting-list/lookup?restaurantId=&phone=
+ * G3: 顧客遺失 ticketId 後依手機找回當日 active 票（公開）。
+ *     僅回 status in (waiting | called | confirmed) 的票；終態票一律
+ *     視為「無 active 票」回 404，避免洩漏歷史。
+ *
+ * IMPORTANT: must be registered BEFORE GET /:id, otherwise Hono routes
+ * `/lookup` to the parametric handler with id="lookup".
+ */
+app.get("/lookup", async (c) => {
+  const restaurantId = c.req.query("restaurantId");
+  const phoneRaw = c.req.query("phone");
+
+  if (!restaurantId) {
+    throw badRequest("缺少 restaurantId 參數", "MISSING_RESTAURANT_ID");
+  }
+  if (!phoneRaw) {
+    throw badRequest("缺少 phone 參數", "MISSING_PHONE");
+  }
+
+  // 與 service 層 validateWaitingListData 一致的台灣手機格式
+  const phone = phoneRaw.replace(/[-\s]/g, "");
+  if (!/^09\d{8}$/.test(phone)) {
+    throw badRequest("電話格式錯誤", "INVALID_PHONE_FORMAT");
+  }
+
+  const service = new WaitingListService(c.env.DB, c.env);
+  const entry = await service.findActiveTicketByPhone(restaurantId, phone);
+
+  if (!entry) {
+    throw notFound("當日無 active 候位記錄", "NO_ACTIVE_TICKET");
+  }
+
+  return c.json({
+    success: true,
+    data: entry,
+  });
+});
+
+/**
  * GET /waiting-list/:id
  * 查詢候位記錄詳情
  */

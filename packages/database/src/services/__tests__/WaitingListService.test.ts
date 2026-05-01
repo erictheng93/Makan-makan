@@ -248,6 +248,147 @@ describe("WaitingListService", () => {
     });
   });
 
+  // ==========================================
+  // G3 — 依手機找回當日 active 票
+  // ==========================================
+
+  describe("G3 — findActiveTicketByPhone", () => {
+    it("找到 active 票（waiting / called / confirmed）回傳完整 entry", async () => {
+      mockDB._mockData.waitingList.set("active-1", {
+        id: "active-1",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        customer_name: "張三",
+        party_size: 4,
+        queue_number: 7,
+        queue_letter: "B",
+        status: "waiting",
+        created_at: Date.now(),
+        updated_at: Date.now(),
+      });
+
+      const result = await service.findActiveTicketByPhone(
+        "R-001",
+        "0912345678",
+      );
+
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe("active-1");
+      expect(result?.queueNumber).toBe(7);
+      expect(result?.queueLetter).toBe("B");
+      expect(result?.partiesAhead).toBeDefined();
+    });
+
+    it("called 狀態的票也回傳", async () => {
+      mockDB._mockData.waitingList.set("called-1", {
+        id: "called-1",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "called",
+        queue_number: 1,
+        queue_letter: "A",
+      });
+
+      const result = await service.findActiveTicketByPhone(
+        "R-001",
+        "0912345678",
+      );
+
+      expect(result?.id).toBe("called-1");
+    });
+
+    it("confirmed 狀態的票也回傳", async () => {
+      mockDB._mockData.waitingList.set("confirmed-1", {
+        id: "confirmed-1",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "confirmed",
+        queue_number: 1,
+        queue_letter: "A",
+      });
+
+      const result = await service.findActiveTicketByPhone(
+        "R-001",
+        "0912345678",
+      );
+
+      expect(result?.id).toBe("confirmed-1");
+    });
+
+    it("已 cancelled 票回 null（不洩漏終態歷史）", async () => {
+      mockDB._mockData.waitingList.set("cancelled-1", {
+        id: "cancelled-1",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "cancelled",
+      });
+
+      const result = await service.findActiveTicketByPhone(
+        "R-001",
+        "0912345678",
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it("已 seated 票回 null", async () => {
+      mockDB._mockData.waitingList.set("seated-1", {
+        id: "seated-1",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "seated",
+      });
+
+      const result = await service.findActiveTicketByPhone(
+        "R-001",
+        "0912345678",
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it("已 expired 票回 null", async () => {
+      mockDB._mockData.waitingList.set("expired-1", {
+        id: "expired-1",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "expired",
+      });
+
+      const result = await service.findActiveTicketByPhone(
+        "R-001",
+        "0912345678",
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it("跨租戶隔離：A 餐廳手機在 B 餐廳查詢回 null", async () => {
+      mockDB._mockData.waitingList.set("a-tenant", {
+        id: "a-tenant",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "waiting",
+      });
+
+      const result = await service.findActiveTicketByPhone(
+        "R-002",
+        "0912345678",
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it("沒有任何票回 null", async () => {
+      const result = await service.findActiveTicketByPhone(
+        "R-001",
+        "0900000000",
+      );
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe("callWaiting - 叫號", () => {
     it("應該成功叫號", async () => {
       const entryId = "wait-001";

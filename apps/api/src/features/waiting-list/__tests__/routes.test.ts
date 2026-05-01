@@ -19,6 +19,7 @@ vi.mock("../../../middleware/auth", () => ({
 const mockServiceInstance = {
   joinWaitingList: vi.fn(),
   getWaitingListEntryById: vi.fn(),
+  findActiveTicketByPhone: vi.fn(),
   getQueueStatus: vi.fn(),
   estimateWaitTime: vi.fn(),
   cancelWaiting: vi.fn(),
@@ -309,6 +310,117 @@ describe("Waiting List Routes", () => {
   });
 
   // ─── GET /:id - Get Entry by ID ──────────────────────────────────
+
+  // ─── G3: GET /lookup ────────────────────────────────────────────
+
+  describe("GET /lookup - Find Active Ticket by Phone (G3)", () => {
+    const validQuery = "?restaurantId=restaurant-001&phone=0912345678";
+
+    it("returns 200 with active entry when found", async () => {
+      mockServiceInstance.findActiveTicketByPhone.mockResolvedValue({
+        id: "wait-001",
+        restaurantId: "restaurant-001",
+        customerName: "Alice",
+        customerPhone: "0912345678",
+        partySize: 2,
+        status: "waiting",
+        queueNumber: 5,
+        queueDisplay: "A005",
+        partiesAhead: 2,
+      });
+
+      const req = new Request(
+        `http://localhost/waiting-list/lookup${validQuery}`,
+      );
+      const res = await app.fetch(req, mockEnv);
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        data: { id: string; queueDisplay: string };
+      };
+      expect(json.success).toBe(true);
+      expect(json.data.id).toBe("wait-001");
+      expect(json.data.queueDisplay).toBe("A005");
+      expect(mockServiceInstance.findActiveTicketByPhone).toHaveBeenCalledWith(
+        "restaurant-001",
+        "0912345678",
+      );
+    });
+
+    it("returns 404 NO_ACTIVE_TICKET when no active entry exists", async () => {
+      mockServiceInstance.findActiveTicketByPhone.mockResolvedValue(null);
+
+      const req = new Request(
+        `http://localhost/waiting-list/lookup${validQuery}`,
+      );
+      const res = await app.fetch(req, mockEnv);
+
+      expect(res.status).toBe(404);
+      const json = (await res.json()) as {
+        success: boolean;
+        error: { code: string };
+      };
+      expect(json.success).toBe(false);
+      expect(json.error.code).toBe("NO_ACTIVE_TICKET");
+    });
+
+    it("returns 400 when restaurantId is missing", async () => {
+      const req = new Request(
+        "http://localhost/waiting-list/lookup?phone=0912345678",
+      );
+      const res = await app.fetch(req, mockEnv);
+
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error: { code: string } };
+      expect(json.error.code).toBe("MISSING_RESTAURANT_ID");
+    });
+
+    it("returns 400 when phone is missing", async () => {
+      const req = new Request(
+        "http://localhost/waiting-list/lookup?restaurantId=restaurant-001",
+      );
+      const res = await app.fetch(req, mockEnv);
+
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error: { code: string } };
+      expect(json.error.code).toBe("MISSING_PHONE");
+    });
+
+    it("returns 400 when phone format is invalid", async () => {
+      const req = new Request(
+        "http://localhost/waiting-list/lookup?restaurantId=restaurant-001&phone=12345",
+      );
+      const res = await app.fetch(req, mockEnv);
+
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error: { code: string } };
+      expect(json.error.code).toBe("INVALID_PHONE_FORMAT");
+      expect(
+        mockServiceInstance.findActiveTicketByPhone,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("strips dashes/spaces from phone before validation", async () => {
+      mockServiceInstance.findActiveTicketByPhone.mockResolvedValue({
+        id: "wait-001",
+        status: "waiting",
+        queueDisplay: "A005",
+      });
+
+      const req = new Request(
+        "http://localhost/waiting-list/lookup?restaurantId=R-1&phone=0912-345-678",
+      );
+      const res = await app.fetch(req, mockEnv);
+
+      expect(res.status).toBe(200);
+      // Service receives normalized phone
+      expect(mockServiceInstance.findActiveTicketByPhone).toHaveBeenCalledWith(
+        "R-1",
+        "0912345678",
+      );
+    });
+  });
 
   describe("GET /:id - Get Entry by ID", () => {
     it("returns 200 with entry when found", async () => {
