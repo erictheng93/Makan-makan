@@ -19,6 +19,7 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "backup_configurations",
   "backup_records",
   "backup_schedules",
+  "cash_registers",
   "coupon_templates",
   "coupons",
   "dish_search_index",
@@ -56,7 +57,6 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
 ];
 
 const PENDING_RESTAURANT_ID_FK_TABLES = [
-  "cash_registers",
   "categories",
   "group_orders",
   "menu_items",
