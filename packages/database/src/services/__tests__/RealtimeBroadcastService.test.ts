@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@makanmakan/shared-types", async () => {
-  const actual = await vi.importActual("@makanmakan/shared-types");
+  const actual = await vi.importActual<
+    typeof import("@makanmakan/shared-types")
+  >("@makanmakan/shared-types");
   return {
     ...actual,
     RealtimeEventType: {
+      ...actual.RealtimeEventType,
       NEW_ORDER: "new_order",
       ORDER_STATUS_UPDATE: "order_status_update",
       ORDER_ITEM_STATUS_UPDATE: "order_item_status_update",

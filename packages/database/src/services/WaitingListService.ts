@@ -15,8 +15,10 @@ import type {
   WaitTimeEstimateResult,
   TableAssignmentRequest,
   TableAssignmentResult,
+  WaitingListEvent,
 } from "@makanmakan/shared-types";
 import { ReservationService } from "./ReservationService";
+import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
 import { assertWaitingTransition } from "./ticket-primitives";
 
 /** Call timeout: 5 minutes */
@@ -27,6 +29,15 @@ const DEFAULT_OCCUPANCY_MS = 90 * 60 * 1000;
 const DEFAULT_TURNOVER_MINUTES = 45;
 /** Default wait estimate on error: 30 minutes */
 const DEFAULT_WAIT_MINUTES = 30;
+
+const WAITING_LIST_REALTIME_EVENT = {
+  JOINED: "waiting_list_joined" as WaitingListEvent["type"],
+  CALLED: "waiting_list_called" as WaitingListEvent["type"],
+  CONFIRMED: "waiting_list_confirmed" as WaitingListEvent["type"],
+  SEATED: "waiting_list_seated" as WaitingListEvent["type"],
+  CANCELLED: "waiting_list_cancelled" as WaitingListEvent["type"],
+  EXPIRED: "waiting_list_expired" as WaitingListEvent["type"],
+} as const;
 
 type TableStatusAction = "reserved" | "occupied" | "available";
 
@@ -140,6 +151,43 @@ export class WaitingListService extends BaseService {
   }
 
   /**
+   * G1: Broadcast a waiting-list lifecycle event to admin-dashboard
+   * via the realtime DO. Failures are swallowed by the broadcaster
+   * itself; this never fails the originating mutation.
+   *
+   * Room: `admin:${restaurantId}` — that's where useRealtimeOrderStatus
+   * already connects, so the dashboard receives it without any new
+   * subscription wiring.
+   */
+  private async broadcastWaitingListEvent(
+    eventType: WaitingListEvent["type"],
+    entry: WaitingListResponse,
+  ): Promise<void> {
+    // Cast: CloudflareEnv (BaseService) is a superset of BroadcastEnv;
+    // RealtimeBroadcastService only reads REALTIME_SESSION at runtime.
+    const broadcaster = new RealtimeBroadcastService(
+      this.env as unknown as ConstructorParameters<
+        typeof RealtimeBroadcastService
+      >[0],
+    );
+    const event: WaitingListEvent = {
+      type: eventType,
+      eventId: broadcaster.generateEventId(),
+      timestamp: Date.now(),
+      restaurantId: entry.restaurantId,
+      data: {
+        entryId: entry.id,
+        queueDisplay: entry.queueDisplay,
+        status: entry.status,
+        partiesAhead: entry.partiesAhead,
+        tableId: entry.tableId ?? null,
+        customerName: entry.customerName,
+      },
+    };
+    await broadcaster.broadcastEvent("admin", entry.restaurantId, event);
+  }
+
+  /**
    * 加入候位列表
    */
   async joinWaitingList(
@@ -236,7 +284,7 @@ export class WaitingListService extends BaseService {
       );
 
       // Construct response from local data to avoid a redundant DB round-trip
-      return {
+      const response: WaitingListResponse = {
         id: entry.id!,
         restaurantId: entry.restaurantId!,
         customerId: entry.customerId ?? undefined,
@@ -255,6 +303,13 @@ export class WaitingListService extends BaseService {
         updatedAt: entry.updatedAt!,
         partiesAhead: waitEstimate.partiesAhead,
       } as WaitingListResponse;
+
+      await this.broadcastWaitingListEvent(
+        WAITING_LIST_REALTIME_EVENT.JOINED,
+        response,
+      );
+
+      return response;
     } catch (error) {
       console.error("Error joining waiting list:", error);
       throw error;
@@ -501,7 +556,14 @@ export class WaitingListService extends BaseService {
         );
       }
 
-      return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
+      const updated = (await this.getWaitingListEntryById(
+        id,
+      )) as WaitingListResponse;
+      await this.broadcastWaitingListEvent(
+        WAITING_LIST_REALTIME_EVENT.CALLED,
+        updated,
+      );
+      return updated;
     } catch (error) {
       console.error("Error calling waiting:", error);
       throw error;
@@ -539,7 +601,14 @@ export class WaitingListService extends BaseService {
         throw new Error("確認失敗：狀態已被其他操作更新，請刷新");
       }
 
-      return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
+      const updated = (await this.getWaitingListEntryById(
+        id,
+      )) as WaitingListResponse;
+      await this.broadcastWaitingListEvent(
+        WAITING_LIST_REALTIME_EVENT.CONFIRMED,
+        updated,
+      );
+      return updated;
     } catch (error) {
       console.error("Error confirming waiting:", error);
       throw error;
@@ -581,7 +650,14 @@ export class WaitingListService extends BaseService {
       // 更新後續候位的等待時間
       await this.recalculateWaitTimes(entry.restaurantId);
 
-      return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
+      const updated = (await this.getWaitingListEntryById(
+        id,
+      )) as WaitingListResponse;
+      await this.broadcastWaitingListEvent(
+        WAITING_LIST_REALTIME_EVENT.SEATED,
+        updated,
+      );
+      return updated;
     } catch (error) {
       console.error("Error marking seated:", error);
       throw error;
@@ -621,7 +697,14 @@ export class WaitingListService extends BaseService {
       // 更新後續候位的等待時間
       await this.recalculateWaitTimes(entry.restaurantId);
 
-      return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
+      const updated = (await this.getWaitingListEntryById(
+        id,
+      )) as WaitingListResponse;
+      await this.broadcastWaitingListEvent(
+        WAITING_LIST_REALTIME_EVENT.CANCELLED,
+        updated,
+      );
+      return updated;
     } catch (error) {
       console.error("Error cancelling waiting:", error);
       throw error;
@@ -675,7 +758,14 @@ export class WaitingListService extends BaseService {
       // 更新後續候位的等待時間
       await this.recalculateWaitTimes(entry.restaurantId);
 
-      return this.getWaitingListEntryById(id) as Promise<WaitingListResponse>;
+      const updated = (await this.getWaitingListEntryById(
+        id,
+      )) as WaitingListResponse;
+      await this.broadcastWaitingListEvent(
+        WAITING_LIST_REALTIME_EVENT.EXPIRED,
+        updated,
+      );
+      return updated;
     } catch (error) {
       console.error("Error expiring waiting:", error);
       throw error;

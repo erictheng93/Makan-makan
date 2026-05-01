@@ -139,6 +139,14 @@ export enum RealtimeEventType {
 
   // 餐廳事件
   RESTAURANT_STATUS_UPDATE = "restaurant_status_update",
+
+  // 候位事件 (G1)
+  WAITING_LIST_JOINED = "waiting_list_joined",
+  WAITING_LIST_CALLED = "waiting_list_called",
+  WAITING_LIST_CONFIRMED = "waiting_list_confirmed",
+  WAITING_LIST_SEATED = "waiting_list_seated",
+  WAITING_LIST_CANCELLED = "waiting_list_cancelled",
+  WAITING_LIST_EXPIRED = "waiting_list_expired",
 }
 
 /**
@@ -507,7 +515,43 @@ export type RealtimeEvent =
   | ConnectionAckEvent
   | HeartbeatEvent
   | ErrorEvent
-  | RestaurantStatusUpdateEvent;
+  | RestaurantStatusUpdateEvent
+  // 候位事件 (G1)
+  | WaitingListEvent;
+
+/**
+ * 候位生命週期事件 (G1)
+ *
+ * 同一介面涵蓋 6 個 lifecycle 事件，由 type 欄位區分：
+ *   waiting_list_joined / called / confirmed / seated / cancelled / expired
+ *
+ * 廣播 room 為 `admin:${restaurantId}`（admin-dashboard 既有的
+ * realtime worker 連線點），由 RealtimeBroadcastService.broadcastEvent
+ * 負責路由。
+ */
+export interface WaitingListEvent extends BaseRealtimeEvent {
+  type:
+    | RealtimeEventType.WAITING_LIST_JOINED
+    | RealtimeEventType.WAITING_LIST_CALLED
+    | RealtimeEventType.WAITING_LIST_CONFIRMED
+    | RealtimeEventType.WAITING_LIST_SEATED
+    | RealtimeEventType.WAITING_LIST_CANCELLED
+    | RealtimeEventType.WAITING_LIST_EXPIRED;
+  data: {
+    /** Waiting list entry id (UUID v7) */
+    entryId: string;
+    /** 顯示用號碼，例如 "A005" */
+    queueDisplay: string;
+    /** 當前狀態（與 type 一致，方便客戶端不解析 type 也能拿到） */
+    status: string;
+    /** 前方還有幾組（僅在 joined / 顯示位置時填） */
+    partiesAhead?: number;
+    /** 派位後的 tableId（called / seated 時填） */
+    tableId?: number | null;
+    /** 顧客姓名 */
+    customerName?: string;
+  };
+}
 
 // ============================================================================
 // 型別守衛函式

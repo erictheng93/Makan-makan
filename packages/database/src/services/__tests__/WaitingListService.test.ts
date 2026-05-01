@@ -5,7 +5,6 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { WaitingListService } from "../WaitingListService";
-import type { WaitingStatus } from "@makanmakan/shared-types";
 import { resetAllFactories } from "@makanmakan/testing-utils";
 
 type WaitingListMockRow = Record<string, unknown> & {
@@ -1634,6 +1633,19 @@ function extractQueryInfo(query: any): { queryStr: string; values: any[] } {
   return { queryStr: strings.join(" ? "), values };
 }
 
+function getRealtimeBroadcastEvents(mockEnv: any): any[] {
+  return mockEnv.REALTIME_SESSION._stub.fetch.mock.calls.map((call: any[]) => {
+    const init = call[1] as { body?: string };
+    return JSON.parse(String(init.body));
+  });
+}
+
+function resetRealtimeBroadcastMock(mockEnv: any): void {
+  mockEnv.REALTIME_SESSION.idFromName.mockClear();
+  mockEnv.REALTIME_SESSION.get.mockClear();
+  mockEnv.REALTIME_SESSION._stub.fetch.mockClear();
+}
+
 /**
  * Creates a mock that acts as a drizzle db instance (with get/all/run methods).
  * It is injected via env.MOCK_DRIZZLE_DB so BaseService uses it directly as this.db,
@@ -2053,9 +2065,24 @@ function createMockDB() {
 }
 
 function createMockEnv(mockDB?: any) {
+  const realtimeStub = {
+    fetch: vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({
+        success: true,
+        eventId: "evt_test",
+        recipientCount: 1,
+      }),
+    }),
+  };
+
   return {
     JWT_SECRET: "test-secret",
     NODE_ENV: "test",
     MOCK_DRIZZLE_DB: mockDB,
+    REALTIME_SESSION: {
+      idFromName: vi.fn().mockReturnValue("mock-realtime-session-id"),
+      get: vi.fn().mockReturnValue(realtimeStub),
+      _stub: realtimeStub,
+    },
   };
 }
