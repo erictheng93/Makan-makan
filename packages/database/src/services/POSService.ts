@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { eq, and, sql, count, sum, avg } from "drizzle-orm";
+import { eq, and, sql, count } from "drizzle-orm";
 import { BaseService, CloudflareEnv } from "./base";
 import {
   cashRegisters,
@@ -18,7 +18,12 @@ import {
 } from "../schema/pos";
 import { users } from "../schema/users";
 import { orders } from "../schema/orders";
-import { toRequiredCents } from "../utils/money";
+import { amountFromCents, toRequiredCents } from "../utils/money";
+import {
+  avgAbsMoneyAmount,
+  avgMoneyAmount,
+  sumMoneyAmount,
+} from "../utils/money-sql";
 
 // ==========================================
 // 類型定義
@@ -945,6 +950,46 @@ export class POSService extends BaseService {
           )
         : null;
 
+      const startAmount =
+        amountFromCents(
+          shift.shift.startAmountCents,
+          shift.shift.startAmount,
+        ) ?? 0;
+      const endAmount =
+        amountFromCents(shift.shift.endAmountCents, shift.shift.endAmount) ?? 0;
+      const expectedAmount =
+        amountFromCents(
+          shift.shift.expectedAmountCents,
+          shift.shift.expectedAmount,
+        ) ?? 0;
+      const actualAmount =
+        amountFromCents(
+          shift.shift.actualAmountCents,
+          shift.shift.actualAmount,
+        ) ?? 0;
+      const differenceAmount =
+        amountFromCents(
+          shift.shift.differenceAmountCents,
+          shift.shift.differenceAmount,
+        ) ?? 0;
+      const totalSales =
+        amountFromCents(shift.shift.totalSalesCents, shift.shift.totalSales) ??
+        0;
+      const totalRefunds =
+        amountFromCents(
+          shift.shift.totalRefundsCents,
+          shift.shift.totalRefunds,
+        ) ?? 0;
+      const cashSales =
+        amountFromCents(shift.shift.cashSalesCents, shift.shift.cashSales) ?? 0;
+      const cardSales =
+        amountFromCents(shift.shift.cardSalesCents, shift.shift.cardSales) ?? 0;
+      const digitalSales =
+        amountFromCents(
+          shift.shift.digitalSalesCents,
+          shift.shift.digitalSales,
+        ) ?? 0;
+
       // 生成報表數據
       const reportData = {
         shift: {
@@ -954,19 +999,19 @@ export class POSService extends BaseService {
           duration,
         },
         summary: {
-          startAmount: shift.shift.startAmount,
-          endAmount: shift.shift.endAmount || 0,
-          totalSales: shift.shift.totalSales,
-          totalRefunds: shift.shift.totalRefunds,
-          netSales: shift.shift.totalSales - shift.shift.totalRefunds,
-          expectedAmount: shift.shift.expectedAmount,
-          actualAmount: shift.shift.actualAmount || 0,
-          difference: shift.shift.differenceAmount,
+          startAmount,
+          endAmount,
+          totalSales,
+          totalRefunds,
+          netSales: totalSales - totalRefunds,
+          expectedAmount,
+          actualAmount,
+          difference: differenceAmount,
         },
         breakdown: {
-          cashSales: shift.shift.cashSales,
-          cardSales: shift.shift.cardSales,
-          digitalSales: shift.shift.digitalSales,
+          cashSales,
+          cardSales,
+          digitalSales,
         },
         movements: movements.map((movement: any) => ({
           ...movement,
@@ -1030,14 +1075,35 @@ export class POSService extends BaseService {
       const stats = await this.db
         .select({
           totalShifts: count(),
-          totalSales: sum(cashShifts.totalSales),
-          totalRefunds: sum(cashShifts.totalRefunds),
-          avgSalesPerShift: avg(cashShifts.totalSales),
-          totalCashSales: sum(cashShifts.cashSales),
-          totalCardSales: sum(cashShifts.cardSales),
-          totalDigitalSales: sum(cashShifts.digitalSales),
+          totalSales: sumMoneyAmount(
+            cashShifts.totalSalesCents,
+            cashShifts.totalSales,
+          ),
+          totalRefunds: sumMoneyAmount(
+            cashShifts.totalRefundsCents,
+            cashShifts.totalRefunds,
+          ),
+          avgSalesPerShift: avgMoneyAmount(
+            cashShifts.totalSalesCents,
+            cashShifts.totalSales,
+          ),
+          totalCashSales: sumMoneyAmount(
+            cashShifts.cashSalesCents,
+            cashShifts.cashSales,
+          ),
+          totalCardSales: sumMoneyAmount(
+            cashShifts.cardSalesCents,
+            cashShifts.cardSales,
+          ),
+          totalDigitalSales: sumMoneyAmount(
+            cashShifts.digitalSalesCents,
+            cashShifts.digitalSales,
+          ),
           closedShifts: sql<number>`COUNT(CASE WHEN ${cashShifts.status} = 'closed' THEN 1 END)`,
-          avgCashDifference: avg(sql`ABS(${cashShifts.differenceAmount})`),
+          avgCashDifference: avgAbsMoneyAmount(
+            cashShifts.differenceAmountCents,
+            cashShifts.differenceAmount,
+          ),
         })
         .from(cashShifts)
         .innerJoin(cashRegisters, eq(cashShifts.registerId, cashRegisters.id))

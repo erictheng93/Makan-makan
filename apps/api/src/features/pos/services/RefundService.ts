@@ -9,6 +9,8 @@ import {
   orders,
   cashMovements,
   cashShifts,
+  amountFromCents,
+  sumMoneyAmount,
 } from "@makanmakan/database";
 import type { Refund, ProcessRefundRequest } from "../types";
 import { processRefundSchema } from "../schemas";
@@ -63,10 +65,11 @@ export class RefundService {
       }
 
       // 檢查退款金額是否合理
-      const orderRecord = originalOrder as Record<string, unknown>;
-      const orderTotalAmount = parseFloat(
-        String(orderRecord.total_amount ?? orderRecord.totalAmount ?? 0),
-      );
+      const orderTotalAmount =
+        amountFromCents(
+          originalOrder.totalAmountCents,
+          originalOrder.totalAmount,
+        ) ?? 0;
       if (validatedData.refundAmount > orderTotalAmount) {
         return {
           success: false,
@@ -77,7 +80,10 @@ export class RefundService {
       // 檢查是否已有退款記錄
       const [existingRefund] = await this.db
         .select({
-          totalRefunded: sql<number>`SUM(${refunds.refundAmount})`,
+          totalRefunded: sumMoneyAmount(
+            refunds.refundAmountCents,
+            refunds.refundAmount,
+          ),
         })
         .from(refunds)
         .where(

@@ -358,6 +358,13 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
 - `packages/database/src/schema/partnerships/*.ts`
 - `packages/database/src/schema/forecast.ts`
 - `packages/database/src/schema/scheduling/shift-templates.ts`
+- `packages/database/src/utils/money-sql.ts`
+- `packages/database/src/services/analytics.ts`
+- `packages/database/src/services/POSService.ts`
+- `apps/api/src/features/payments/services/PaymentService.ts`
+- `apps/api/src/features/payments/routes/index.ts`
+- `apps/api/src/features/pos/services/RefundService.ts`
+- `apps/api/src/features/pos/services/ReportService.ts`
 - `packages/database/migrations_fresh/0023_integrity_audit_and_money_cents.sql`
 - `packages/database/migrations_fresh/0025_partnership_money_and_fk_audit.sql`
 - `packages/database/migrations_fresh/0027_money_cents_retirement_audit.sql`
@@ -373,6 +380,9 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
 - Fresh migration `0027` records `money_cents_retirement` mismatches and
   over-precision legacy REAL values in `data_integrity_audit`; destructive
   column retirement is still gated on zero production/staging audit violations.
+- Revenue analytics, POS reports, payment total checks, and refund limit checks
+  now use shared cents-first SQL helpers before falling back to legacy `REAL`
+  values.
 - Service reads have not fully converged: several paths still use cents-first
   compatibility fallbacks such as `amountFromCents(cents, legacyReal)` while
   public API surfaces continue returning decimal money values.

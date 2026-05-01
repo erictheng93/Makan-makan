@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
-import { orders } from "@makanmakan/database";
+import { amountFromCents, orders } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
@@ -78,7 +78,8 @@ export class PaymentService {
       throw new ApiError("FORBIDDEN", "Access denied", 403);
     }
 
-    const serverTotal = Number(existing.totalAmount);
+    const serverTotal =
+      amountFromCents(existing.totalAmountCents, existing.totalAmount) ?? 0;
     if (input.expectedTotal !== undefined) {
       assertSameAmount(
         input.expectedTotal,

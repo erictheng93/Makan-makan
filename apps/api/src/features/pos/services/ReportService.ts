@@ -14,6 +14,10 @@ import {
   orderItems,
   menuItems,
   shiftReports,
+  amountFromCents,
+  avgAbsMoneyAmount,
+  avgMoneyAmount,
+  sumMoneyAmount,
 } from "@makanmakan/database";
 
 export class ReportService {
@@ -65,12 +69,37 @@ export class ReportService {
       // 獲取訂單統計
       const startedAt = shift.startedAt;
       const endedAt = shift.endedAt || new Date();
+      const startAmount =
+        amountFromCents(shift.startAmountCents, shift.startAmount) ?? 0;
+      const endAmount =
+        amountFromCents(shift.endAmountCents, shift.endAmount) ?? 0;
+      const expectedAmount =
+        amountFromCents(shift.expectedAmountCents, shift.expectedAmount) ?? 0;
+      const actualAmount =
+        amountFromCents(shift.actualAmountCents, shift.actualAmount) ?? 0;
+      const differenceAmount =
+        amountFromCents(shift.differenceAmountCents, shift.differenceAmount) ??
+        0;
+      const totalRefunds =
+        amountFromCents(shift.totalRefundsCents, shift.totalRefunds) ?? 0;
+      const cashSales =
+        amountFromCents(shift.cashSalesCents, shift.cashSales) ?? 0;
+      const cardSales =
+        amountFromCents(shift.cardSalesCents, shift.cardSales) ?? 0;
+      const digitalSales =
+        amountFromCents(shift.digitalSalesCents, shift.digitalSales) ?? 0;
 
       const [orderStats] = await this.db
         .select({
           totalOrders: sql<number>`COUNT(*)`,
-          totalSales: sql<number>`SUM(${orders.totalAmount})`,
-          avgOrderValue: sql<number>`AVG(${orders.totalAmount})`,
+          totalSales: sumMoneyAmount(
+            orders.totalAmountCents,
+            orders.totalAmount,
+          ),
+          avgOrderValue: avgMoneyAmount(
+            orders.totalAmountCents,
+            orders.totalAmount,
+          ),
           cashOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'cash' THEN 1 END)`,
           cardOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'card' THEN 1 END)`,
           digitalOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'digital_wallet' THEN 1 END)`,
@@ -96,19 +125,19 @@ export class ReportService {
             : null,
         },
         summary: {
-          startAmount: shift.startAmount || 0,
-          endAmount: shift.endAmount || 0,
+          startAmount,
+          endAmount,
           totalSales: orderStats?.totalSales || 0,
-          totalRefunds: shift.totalRefunds || 0,
-          netSales: (orderStats?.totalSales || 0) - (shift.totalRefunds || 0),
-          expectedAmount: shift.expectedAmount || 0,
-          actualAmount: shift.actualAmount || 0,
-          difference: shift.differenceAmount || 0,
+          totalRefunds,
+          netSales: (orderStats?.totalSales || 0) - totalRefunds,
+          expectedAmount,
+          actualAmount,
+          difference: differenceAmount,
         },
         breakdown: {
-          cashSales: shift.cashSales || 0,
-          cardSales: shift.cardSales || 0,
-          digitalSales: shift.digitalSales || 0,
+          cashSales,
+          cardSales,
+          digitalSales,
         },
         orderStats: {
           totalOrders: orderStats?.totalOrders || 0,
@@ -120,6 +149,7 @@ export class ReportService {
         movements: movements.map(
           (movement: typeof cashMovements.$inferSelect) => ({
             ...movement,
+            amount: amountFromCents(movement.amountCents, movement.amount) ?? 0,
             denominationBreakdown: JSON.parse(
               (movement.denominationBreakdown as string) || "{}",
             ),
@@ -187,14 +217,35 @@ export class ReportService {
       const [stats] = await this.db
         .select({
           totalShifts: sql<number>`COUNT(*)`,
-          totalSales: sql<number>`SUM(${cashShifts.totalSales})`,
-          totalRefunds: sql<number>`SUM(${cashShifts.totalRefunds})`,
-          avgSalesPerShift: sql<number>`AVG(${cashShifts.totalSales})`,
-          totalCashSales: sql<number>`SUM(${cashShifts.cashSales})`,
-          totalCardSales: sql<number>`SUM(${cashShifts.cardSales})`,
-          totalDigitalSales: sql<number>`SUM(${cashShifts.digitalSales})`,
+          totalSales: sumMoneyAmount(
+            cashShifts.totalSalesCents,
+            cashShifts.totalSales,
+          ),
+          totalRefunds: sumMoneyAmount(
+            cashShifts.totalRefundsCents,
+            cashShifts.totalRefunds,
+          ),
+          avgSalesPerShift: avgMoneyAmount(
+            cashShifts.totalSalesCents,
+            cashShifts.totalSales,
+          ),
+          totalCashSales: sumMoneyAmount(
+            cashShifts.cashSalesCents,
+            cashShifts.cashSales,
+          ),
+          totalCardSales: sumMoneyAmount(
+            cashShifts.cardSalesCents,
+            cashShifts.cardSales,
+          ),
+          totalDigitalSales: sumMoneyAmount(
+            cashShifts.digitalSalesCents,
+            cashShifts.digitalSales,
+          ),
           closedShifts: sql<number>`COUNT(CASE WHEN ${cashShifts.status} = 'closed' THEN 1 END)`,
-          avgCashDifference: sql<number>`AVG(ABS(${cashShifts.differenceAmount}))`,
+          avgCashDifference: avgAbsMoneyAmount(
+            cashShifts.differenceAmountCents,
+            cashShifts.differenceAmount,
+          ),
         })
         .from(cashShifts)
         .innerJoin(cashRegisters, eq(cashShifts.registerId, cashRegisters.id))
@@ -242,10 +293,19 @@ export class ReportService {
       const [orderStats] = await this.db
         .select({
           totalOrders: sql<number>`COUNT(*)`,
-          totalSales: sql<number>`SUM(${orders.totalAmount})`,
-          totalTax: sql<number>`SUM(${orders.taxAmount})`,
-          totalDiscounts: sql<number>`SUM(${orders.discountAmount})`,
-          avgOrderValue: sql<number>`AVG(${orders.totalAmount})`,
+          totalSales: sumMoneyAmount(
+            orders.totalAmountCents,
+            orders.totalAmount,
+          ),
+          totalTax: sumMoneyAmount(orders.taxAmountCents, orders.taxAmount),
+          totalDiscounts: sumMoneyAmount(
+            orders.discountAmountCents,
+            orders.discountAmount,
+          ),
+          avgOrderValue: avgMoneyAmount(
+            orders.totalAmountCents,
+            orders.totalAmount,
+          ),
           cashOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'cash' THEN 1 END)`,
           cardOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'card' THEN 1 END)`,
           digitalOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentMethod} = 'digital_wallet' THEN 1 END)`,
@@ -262,7 +322,10 @@ export class ReportService {
       const [refundStats] = await this.db
         .select({
           totalRefunds: sql<number>`COUNT(*)`,
-          totalRefundAmount: sql<number>`SUM(${refunds.refundAmount})`,
+          totalRefundAmount: sumMoneyAmount(
+            refunds.refundAmountCents,
+            refunds.refundAmount,
+          ),
         })
         .from(refunds)
         .innerJoin(cashRegisters, eq(refunds.registerId, cashRegisters.id))
@@ -279,7 +342,10 @@ export class ReportService {
         .select({
           name: menuItems.name,
           totalQuantity: sql<number>`SUM(${orderItems.quantity})`,
-          totalRevenue: sql<number>`SUM(${orderItems.totalPrice})`,
+          totalRevenue: sumMoneyAmount(
+            orderItems.totalPriceCents,
+            orderItems.totalPrice,
+          ),
         })
         .from(orderItems)
         .innerJoin(menuItems, eq(orderItems.menuItemId, menuItems.id))
@@ -365,9 +431,15 @@ export class ReportService {
           registerName: cashRegisters.name,
           period: groupByExpr,
           shiftCount: sql<number>`COUNT(${cashShifts.id})`,
-          totalSales: sql<number>`SUM(${cashShifts.totalSales})`,
+          totalSales: sumMoneyAmount(
+            cashShifts.totalSalesCents,
+            cashShifts.totalSales,
+          ),
           totalTransactions: sql<number>`SUM(${cashShifts.totalTransactions})`,
-          avgSalesPerShift: sql<number>`AVG(${cashShifts.totalSales})`,
+          avgSalesPerShift: avgMoneyAmount(
+            cashShifts.totalSalesCents,
+            cashShifts.totalSales,
+          ),
         })
         .from(cashRegisters)
         .leftJoin(

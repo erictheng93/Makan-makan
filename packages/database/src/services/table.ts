@@ -16,6 +16,7 @@ import { BaseService } from "./base";
 import { tables, restaurants, orders } from "../schema";
 import { SeatService } from "./seat";
 import { buildSignedQRUrl } from "@makanmakan/utils";
+import { moneyAmountExpression } from "../utils/money-sql";
 
 export interface CreateTableData {
   restaurantId: string;
@@ -924,7 +925,10 @@ export class TableService extends BaseService {
           id: orders.id,
           orderNumber: orders.orderNumber,
           status: orders.status,
-          totalAmount: orders.totalAmount,
+          totalAmount: moneyAmountExpression(
+            orders.totalAmountCents,
+            orders.totalAmount,
+          ),
           customerInfo: orders.customerInfo,
           createdAt: orders.createdAt,
           confirmedAt: orders.confirmedAt,

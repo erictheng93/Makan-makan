@@ -1036,10 +1036,15 @@ describe("POSService", () => {
       mockDB._mockData.shifts.set(testShiftId, {
         ...shift,
         totalSales: 5000,
+        totalSalesCents: 500000,
         totalRefunds: 200,
+        totalRefundsCents: 20000,
         cashSales: 3000,
+        cashSalesCents: 300000,
         cardSales: 1500,
+        cardSalesCents: 150000,
         digitalSales: 500,
+        digitalSalesCents: 50000,
         totalTransactions: 25,
       });
     });

@@ -6,6 +6,7 @@ import { validateBody } from "../../../shared/middleware";
 import { idempotencyMiddleware } from "../../../middleware/idempotency";
 import { PaymentService } from "../services/PaymentService";
 import { ApiError } from "../../../shared/utils/api-error";
+import { amountFromCents } from "@makanmakan/database";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -177,8 +178,8 @@ app.get("/status/:transactionId", async (c) => {
 app.post("/refund", validateBody(refundSchema), async (c) => {
   const input = c.get("validatedBody");
   const row = await c.env.DB.prepare(
-    `SELECT id, restaurant_id, total_amount, refund_amount, payment_method,
-            payment_status
+    `SELECT id, restaurant_id, total_amount, total_amount_cents,
+            refund_amount, refund_amount_cents, payment_method, payment_status
        FROM orders
       WHERE payment_transaction_id = ?
       LIMIT 1`,
@@ -188,7 +189,9 @@ app.post("/refund", validateBody(refundSchema), async (c) => {
       id: number;
       restaurant_id: string;
       total_amount: number;
+      total_amount_cents: number | null;
       refund_amount: number | null;
+      refund_amount_cents: number | null;
       payment_method: string | null;
       payment_status: string | null;
     }>();
@@ -209,9 +212,12 @@ app.post("/refund", validateBody(refundSchema), async (c) => {
     );
   }
 
-  const paymentTotal = Number(row.total_amount);
+  const paymentTotal =
+    amountFromCents(row.total_amount_cents, row.total_amount) ?? 0;
   const refundAmount = input.amount ?? paymentTotal;
-  const nextRefundTotal = Number(row.refund_amount ?? 0) + refundAmount;
+  const currentRefundTotal =
+    amountFromCents(row.refund_amount_cents, row.refund_amount) ?? 0;
+  const nextRefundTotal = currentRefundTotal + refundAmount;
 
   if (cents(nextRefundTotal) > cents(paymentTotal)) {
     throw new ApiError(
