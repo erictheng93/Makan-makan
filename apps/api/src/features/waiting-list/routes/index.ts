@@ -195,12 +195,29 @@ app.delete("/:id", async (c) => {
 
 /**
  * POST /waiting-list/:id/confirm
- * 顧客確認候位（公開）
+ * G5: 顧客確認候位（公開）—— 必須帶 customerPhone 做主驗證，
+ *     防止任何拿到 ticketId 的人替顧客「代為確認」。比對策略與
+ *     DELETE /:id 取消端點一致：直接 string equality，不做 phone
+ *     normalize（避免引入新歧義）。
  */
 app.post("/:id/confirm", async (c) => {
   const id = c.req.param("id");
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
+
+  const { customerPhone } = await c.req.json<{ customerPhone?: string }>();
+  if (!customerPhone) {
+    throw badRequest("需要提供電話號碼", "MISSING_PHONE");
+  }
+
   const service = new WaitingListService(c.env.DB, c.env);
+
+  const entry = await service.getWaitingListEntryById(id);
+  if (!entry) {
+    throw notFound("找不到此候位記錄", "ENTRY_NOT_FOUND");
+  }
+  if (entry.customerPhone !== customerPhone) {
+    throw forbidden("電話號碼不符", "PHONE_MISMATCH");
+  }
 
   const confirmed = await service.confirmWaiting(id);
 

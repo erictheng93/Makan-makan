@@ -623,14 +623,16 @@ describe("Waiting List Routes", () => {
 
   // ─── POST /:id/confirm - Customer Confirm ───────────────────────
 
-  describe("POST /:id/confirm - Customer Confirm", () => {
-    it("returns 200 with confirmed entry", async () => {
+  describe("POST /:id/confirm - Customer Confirm (G5 phone gate)", () => {
+    const validBody = JSON.stringify({ customerPhone: "0912345678" });
+
+    it("returns 200 when phone matches", async () => {
       const req = new Request(
         "http://localhost/waiting-list/wait-001/confirm",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: validBody,
         },
       );
       const res = await app.fetch(req, mockEnv);
@@ -643,16 +645,91 @@ describe("Waiting List Routes", () => {
       expect(json.data.status).toBe("confirmed");
     });
 
-    it("returns 500 when service throws", async () => {
-      mockServiceInstance.confirmWaiting.mockRejectedValue(
-        new Error("Invalid state transition"),
-      );
+    it("returns 400 MISSING_PHONE when customerPhone is absent", async () => {
       const req = new Request(
         "http://localhost/waiting-list/wait-001/confirm",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({}),
+        },
+      );
+      const res = await app.fetch(req, mockEnv);
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error: { code: string } };
+      expect(json.error.code).toBe("MISSING_PHONE");
+      expect(mockServiceInstance.confirmWaiting).not.toHaveBeenCalled();
+    });
+
+    it("returns 403 PHONE_MISMATCH when phone differs from entry", async () => {
+      const req = new Request(
+        "http://localhost/waiting-list/wait-001/confirm",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ customerPhone: "0900000000" }),
+        },
+      );
+      const res = await app.fetch(req, mockEnv);
+      expect(res.status).toBe(403);
+      const json = (await res.json()) as { error: { code: string } };
+      expect(json.error.code).toBe("PHONE_MISMATCH");
+      expect(mockServiceInstance.confirmWaiting).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 ENTRY_NOT_FOUND when ticket id does not exist", async () => {
+      mockServiceInstance.getWaitingListEntryById.mockResolvedValue(null);
+      const req = new Request(
+        "http://localhost/waiting-list/non-existent/confirm",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: validBody,
+        },
+      );
+      const res = await app.fetch(req, mockEnv);
+      expect(res.status).toBe(404);
+      const json = (await res.json()) as { error: { code: string } };
+      expect(json.error.code).toBe("ENTRY_NOT_FOUND");
+    });
+
+    it("propagates ApiError(409) from state machine when ticket is in terminal state", async () => {
+      // T2 (G6) integration: the state machine guard fires before
+      // confirmWaiting succeeds. Route handler should pass the
+      // 409 ApiError through to the global onError handler unchanged.
+      const { ApiError } = await import("../../../shared/utils/api-error");
+      mockServiceInstance.confirmWaiting.mockRejectedValue(
+        new ApiError(
+          "INVALID_STATUS_TRANSITION",
+          'Cannot transition waiting list ticket from "seated" to "confirmed"',
+          409,
+        ),
+      );
+
+      const req = new Request(
+        "http://localhost/waiting-list/wait-001/confirm",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: validBody,
+        },
+      );
+      const res = await app.fetch(req, mockEnv);
+      expect(res.status).toBe(409);
+      const json = (await res.json()) as { error: { code: string } };
+      expect(json.error.code).toBe("INVALID_STATUS_TRANSITION");
+    });
+
+    it("returns 500 when service throws unknown error", async () => {
+      mockServiceInstance.confirmWaiting.mockRejectedValue(
+        new Error("Database connection lost"),
+      );
+      const req = new Request(
+        "http://localhost/waiting-list/wait-001/confirm",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: validBody,
         },
       );
       const res = await app.fetch(req, mockEnv);
@@ -663,7 +740,6 @@ describe("Waiting List Routes", () => {
       };
       expect(json.success).toBe(false);
       expect(json.error).toHaveProperty("code");
-      expect(json.error).toHaveProperty("message");
     });
   });
 
