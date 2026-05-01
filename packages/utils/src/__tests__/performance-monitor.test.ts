@@ -246,7 +246,7 @@ describe("PerformanceMonitor", () => {
       monitor = new PerformanceMonitor({ enabled: true });
       mockPerformance.getEntriesByName.mockReturnValue([
         { name: "operation", duration: 100 },
-      ]);
+      ] as unknown as PerformanceEntry[]);
 
       // Act
       monitor.measureBetween("operation", "start_mark", "end_mark");
@@ -446,7 +446,7 @@ describe("PerformanceMonitor", () => {
           transferSize: 20000,
           initiatorType: "link",
         },
-      ]);
+      ] as unknown as PerformanceEntry[]);
 
       monitor = new PerformanceMonitor({
         enabled: false,
@@ -517,7 +517,7 @@ describe("PerformanceMonitor", () => {
           duration: 10,
           transferSize: 1000,
         },
-      ]);
+      ] as unknown as PerformanceEntry[]);
 
       monitor = new PerformanceMonitor({
         enabled: false,
