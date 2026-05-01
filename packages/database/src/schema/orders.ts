@@ -6,7 +6,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 import { tables } from "./tables";
 import { users } from "./users";
@@ -70,6 +70,11 @@ export const orders = sqliteTable(
     serviceCharge: real("service_charge").notNull().default(0), // 服務費
     discountAmount: real("discount_amount").notNull().default(0), // 折扣金額
     totalAmount: real("total_amount").notNull(), // 總金額
+    subtotalCents: integer("subtotal_cents"),
+    taxAmountCents: integer("tax_amount_cents"),
+    serviceChargeCents: integer("service_charge_cents"),
+    discountAmountCents: integer("discount_amount_cents"),
+    totalAmountCents: integer("total_amount_cents"),
 
     // 顧客資訊
     customerInfo: text("customer_info", { mode: "json" }).$type<{
@@ -115,6 +120,7 @@ export const orders = sqliteTable(
     // 取消資訊
     cancellationReason: text("cancellation_reason"),
     refundAmount: real("refund_amount"),
+    refundAmountCents: integer("refund_amount_cents"),
 
     // 配送資訊（外送使用）
     deliveryInfo: text("delivery_info", { mode: "json" }).$type<{
@@ -163,6 +169,15 @@ export const orders = sqliteTable(
       table.paymentStatus,
       table.paidAt,
     ),
+    restaurantPaymentTxIdx: index("orders_restaurant_payment_tx_idx").on(
+      table.restaurantId,
+      table.paymentTransactionId,
+    ),
+    paymentTransactionUniqueIdx: uniqueIndex(
+      "orders_payment_transaction_unique",
+    )
+      .on(table.paymentTransactionId)
+      .where(sql`${table.paymentTransactionId} IS NOT NULL`),
     orderSourceIdx: index("orders_order_source_idx").on(
       table.restaurantId,
       table.orderSource,

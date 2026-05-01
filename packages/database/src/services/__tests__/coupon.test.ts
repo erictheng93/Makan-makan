@@ -18,6 +18,7 @@ type CouponMockDb = {
   insert: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
+  prepare: ReturnType<typeof vi.fn>;
 };
 
 // Mock database
@@ -32,6 +33,7 @@ const mockDb = {
   insert: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
+  prepare: vi.fn(),
 } as CouponMockDb;
 
 describe("CouponService", () => {
@@ -40,6 +42,11 @@ describe("CouponService", () => {
   beforeEach(() => {
     resetAllFactories();
     vi.clearAllMocks();
+    mockDb.prepare.mockReturnValue({
+      bind: vi.fn(() => ({
+        run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+      })),
+    });
     couponService = new CouponService(mockDb as unknown as D1Database, {
       JWT_SECRET: "test-secret",
     });
@@ -291,7 +298,22 @@ describe("CouponService", () => {
       };
 
       const usageRecord = { id: 1, ...usageData };
+      const precheckLimit = vi.fn().mockResolvedValue([]);
+      const precheckWhere = vi.fn().mockReturnValue({
+        limit: precheckLimit,
+      });
+      const precheckFrom = vi.fn().mockReturnValue({
+        where: precheckWhere,
+      });
+      const claimRun = vi.fn().mockResolvedValue({ meta: { changes: 1 } });
+      const claimBind = vi.fn(() => ({ run: claimRun }));
 
+      mockDb.select.mockReturnValue({
+        from: precheckFrom,
+      });
+      mockDb.prepare.mockReturnValue({
+        bind: claimBind,
+      });
       mockDb.insert.mockReturnValue({
         values: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([usageRecord]),
@@ -307,8 +329,34 @@ describe("CouponService", () => {
       const result = await couponService.useCoupon(usageData);
 
       expect(result).toEqual(usageRecord);
+      expect(mockDb.select).toHaveBeenCalled();
+      expect(claimBind).toHaveBeenCalledWith(1);
       expect(mockDb.insert).toHaveBeenCalled();
-      expect(mockDb.update).toHaveBeenCalled();
+    });
+
+    it("should reject duplicate coupon usage for the same order", async () => {
+      const usageData: UseCouponData = {
+        couponId: 1,
+        orderId: 100,
+        userId: 10,
+        discountAmount: 15,
+        originalAmount: 100,
+        finalAmount: 85,
+      };
+
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: 99 }]),
+          }),
+        }),
+      });
+
+      await expect(couponService.useCoupon(usageData)).rejects.toThrow(
+        "Coupon already used for this order",
+      );
+      expect(mockDb.prepare).not.toHaveBeenCalled();
+      expect(mockDb.insert).not.toHaveBeenCalled();
     });
   });
 

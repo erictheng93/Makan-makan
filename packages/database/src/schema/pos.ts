@@ -82,6 +82,11 @@ export const cashShifts = sqliteTable(
     expectedAmount: real("expected_amount").notNull(), // 預期金額
     actualAmount: real("actual_amount"), // 實際金額（結班後填寫）
     differenceAmount: real("difference_amount").notNull().default(0), // 差額
+    startAmountCents: integer("start_amount_cents"),
+    endAmountCents: integer("end_amount_cents"),
+    expectedAmountCents: integer("expected_amount_cents"),
+    actualAmountCents: integer("actual_amount_cents"),
+    differenceAmountCents: integer("difference_amount_cents"),
 
     // 銷售統計
     totalSales: real("total_sales").notNull().default(0),
@@ -89,6 +94,11 @@ export const cashShifts = sqliteTable(
     cashSales: real("cash_sales").notNull().default(0),
     cardSales: real("card_sales").notNull().default(0),
     digitalSales: real("digital_sales").notNull().default(0),
+    totalSalesCents: integer("total_sales_cents"),
+    totalRefundsCents: integer("total_refunds_cents"),
+    cashSalesCents: integer("cash_sales_cents"),
+    cardSalesCents: integer("card_sales_cents"),
+    digitalSalesCents: integer("digital_sales_cents"),
     totalTransactions: integer("total_transactions").notNull().default(0),
 
     // 時間資訊
@@ -131,6 +141,7 @@ export const cashMovements = sqliteTable(
     // 操作類型
     type: text("type").notNull(), // sale, refund, cash_in, cash_out, count, opening, closing, adjustment, payout, deposit
     amount: real("amount").notNull(),
+    amountCents: integer("amount_cents"),
     description: text("description"),
 
     // 參考資訊
@@ -235,6 +246,8 @@ export const refunds = sqliteTable(
     refundType: text("refund_type").notNull(), // full, partial, item, service
     originalAmount: real("original_amount").notNull(),
     refundAmount: real("refund_amount").notNull(),
+    originalAmountCents: integer("original_amount_cents"),
+    refundAmountCents: integer("refund_amount_cents"),
     refundMethod: text("refund_method").notNull(), // cash, card, original_method, etc.
 
     // 原因

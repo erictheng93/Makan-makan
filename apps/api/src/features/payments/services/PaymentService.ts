@@ -9,6 +9,11 @@ import type { PaymentRequestInput } from "../schemas/validation";
 export interface ProcessPaymentOptions {
   gatewayFixture?: string | null;
   user?: AuthUser;
+  country?: string;
+  currency?: string;
+  idempotencyKey?: string;
+  customerInfo?: unknown;
+  metadata?: unknown;
 }
 
 export interface ProcessPaymentResult {
@@ -24,6 +29,10 @@ export interface ProcessPaymentResult {
 
 function cents(value: number): number {
   return Math.round(value * 100);
+}
+
+function jsonOrNull(value: unknown): string | null {
+  return value === undefined ? null : JSON.stringify(value);
 }
 
 function assertSameAmount(
@@ -105,12 +114,32 @@ export class PaymentService {
         ? "split"
         : (input.method ?? input.gateway ?? "other");
 
+    await this.recordPaymentTransaction({
+      transactionId: paymentId,
+      orderId: input.orderId,
+      restaurantId: existing.restaurantId,
+      amountCents: cents(serverTotal),
+      currency: options.currency ?? null,
+      countryCode: options.country ?? null,
+      paymentMethod: method,
+      gateway: input.gateway ?? input.method ?? null,
+      idempotencyKey: options.idempotencyKey ?? null,
+      customerInfo: jsonOrNull(options.customerInfo),
+      metadata: jsonOrNull({
+        ...((options.metadata as Record<string, unknown> | undefined) ?? {}),
+        paymentMode: input.paymentMode,
+        closeOrder: input.closeOrder ?? true,
+        gatewayFixture: options.gatewayFixture ?? null,
+      }),
+    });
+
     if (options.gatewayFixture === "timeout") {
       await this.db
         .update(orders)
         .set({
           paymentStatus: "pending",
           paymentMethod: method,
+          paymentTransactionId: paymentId,
           updatedAt: new Date(),
         })
         .where(eq(orders.id, input.orderId));
@@ -143,6 +172,8 @@ export class PaymentService {
         paymentStatus: orders.paymentStatus,
       });
 
+    await this.updatePaymentTransactionStatus(paymentId, "paid");
+
     return {
       status: 200,
       data: {
@@ -154,5 +185,63 @@ export class PaymentService {
         authorizedTotal: serverTotal,
       },
     };
+  }
+
+  private async recordPaymentTransaction(data: {
+    transactionId: string;
+    orderId: number;
+    restaurantId: string;
+    amountCents: number;
+    currency: string | null;
+    countryCode: string | null;
+    paymentMethod: string;
+    gateway: string | null;
+    idempotencyKey: string | null;
+    customerInfo: string | null;
+    metadata: string | null;
+  }) {
+    const now = Date.now();
+
+    await this.env.DB.prepare(
+      `INSERT INTO payment_transactions (
+          transaction_id, order_id, restaurant_id, amount_cents, currency,
+          country_code, payment_method, gateway, status, idempotency_key,
+          customer_info, metadata, created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        data.transactionId,
+        data.orderId,
+        data.restaurantId,
+        data.amountCents,
+        data.currency,
+        data.countryCode,
+        data.paymentMethod,
+        data.gateway,
+        data.idempotencyKey,
+        data.customerInfo,
+        data.metadata,
+        now,
+        now,
+      )
+      .run();
+  }
+
+  private async updatePaymentTransactionStatus(
+    transactionId: string,
+    status: "paid" | "failed" | "cancelled",
+  ) {
+    const now = Date.now();
+
+    await this.env.DB.prepare(
+      `UPDATE payment_transactions
+          SET status = ?,
+              updated_at_ms = ?,
+              completed_at_ms = CASE WHEN ? = 'paid' THEN ? ELSE completed_at_ms END,
+              failed_at_ms = CASE WHEN ? = 'failed' THEN ? ELSE failed_at_ms END
+        WHERE transaction_id = ?`,
+    )
+      .bind(status, now, status, now, status, now, transactionId)
+      .run();
   }
 }

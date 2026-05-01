@@ -131,6 +131,9 @@ describe("Payments Routes", () => {
         gateway: "credit_card",
       },
       expect.objectContaining({
+        country: "MY",
+        currency: "MYR",
+        idempotencyKey: "test-key-numeric-id",
         user: expect.objectContaining({ id: 7, restaurantId: "rest-1" }),
       }),
     );
@@ -200,7 +203,11 @@ describe("Payments Routes", () => {
   });
 
   it("returns status for canonical payment transaction ids", async () => {
-    const first = vi.fn().mockResolvedValue({ id: 42, payment_status: "paid" });
+    const first = vi.fn().mockResolvedValue({
+      transaction_id: "pay_42_1",
+      order_id: 42,
+      status: "paid",
+    });
     const bind = vi.fn(() => ({ first }));
     const prepare = vi.fn(() => ({ bind }));
     const { app, env } = buildApp({ DB: { prepare } });
@@ -224,16 +231,28 @@ describe("Payments Routes", () => {
   it("updates the order refund state for refund requests", async () => {
     const first = vi.fn().mockResolvedValue({
       id: 42,
+      restaurant_id: "rest-1",
       total_amount: 100,
       refund_amount: null,
+      payment_method: "credit_card",
+      payment_status: "paid",
     });
-    const run = vi.fn().mockResolvedValue({ success: true });
+    const ledgerRun = vi.fn().mockResolvedValue({ success: true });
+    const orderRun = vi.fn().mockResolvedValue({ success: true });
+    const paymentRun = vi.fn().mockResolvedValue({ success: true });
+    const refundRun = vi.fn().mockResolvedValue({ success: true });
     const selectBind = vi.fn(() => ({ first }));
-    const updateBind = vi.fn(() => ({ run }));
+    const ledgerBind = vi.fn(() => ({ run: ledgerRun }));
+    const updateBind = vi.fn(() => ({ run: orderRun }));
+    const paymentBind = vi.fn(() => ({ run: paymentRun }));
+    const refundBind = vi.fn(() => ({ run: refundRun }));
     const prepare = vi
       .fn()
       .mockReturnValueOnce({ bind: selectBind })
-      .mockReturnValueOnce({ bind: updateBind });
+      .mockReturnValueOnce({ bind: ledgerBind })
+      .mockReturnValueOnce({ bind: updateBind })
+      .mockReturnValueOnce({ bind: paymentBind })
+      .mockReturnValueOnce({ bind: refundBind });
     const { app, env } = buildApp({ DB: { prepare } });
 
     const response = await app.request(
@@ -268,6 +287,66 @@ describe("Payments Routes", () => {
       expect.any(Number),
       42,
     );
+    expect(ledgerBind).toHaveBeenCalledWith(
+      "pay_42_1",
+      42,
+      "rest-1",
+      10000,
+      "credit_card",
+      "paid",
+      JSON.stringify({ source: "refund_legacy_backfill" }),
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(paymentBind).toHaveBeenCalledWith(
+      "partial_refunded",
+      expect.any(Number),
+      "pay_42_1",
+    );
+    expect(refundBind).toHaveBeenCalledWith(
+      expect.stringMatching(/^ref_pay_42_1_/),
+      "pay_42_1",
+      42,
+      "rest-1",
+      5000,
+      "Customer request",
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
+    );
+  });
+
+  it("rejects cumulative refunds that exceed the payment total", async () => {
+    const first = vi.fn().mockResolvedValue({
+      id: 42,
+      restaurant_id: "rest-1",
+      total_amount: 100,
+      refund_amount: 80,
+      payment_method: "credit_card",
+      payment_status: "paid",
+    });
+    const selectBind = vi.fn(() => ({ first }));
+    const prepare = vi.fn().mockReturnValueOnce({ bind: selectBind });
+    const { app, env } = buildApp({ DB: { prepare } });
+
+    const response = await app.request(
+      "/payments/refund",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactionId: "pay_42_1",
+          amount: 30,
+        }),
+      },
+      env,
+    );
+    const json = (await response.json()) as ApiTestResponse;
+
+    expect(response.status).toBe(409);
+    expect(json.error.code).toBe("REFUND_AMOUNT_EXCEEDS_PAYMENT");
+    expect(prepare).toHaveBeenCalledTimes(1);
   });
 
   it("returns supported methods by country", async () => {

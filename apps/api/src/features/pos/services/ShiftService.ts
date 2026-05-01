@@ -7,6 +7,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { cashShifts, cashRegisters, cashMovements } from "@makanmakan/database";
 import type { CashShift, StartShiftRequest, EndShiftRequest } from "../types";
 import { startShiftSchema, endShiftSchema } from "../schemas";
+import { toRequiredCents } from "../../../shared/utils/money";
 
 export class ShiftService {
   private db;
@@ -51,12 +52,20 @@ export class ShiftService {
         registerId: validatedData.registerId,
         operatorId: validatedData.operatorId,
         startAmount: validatedData.startAmount,
+        startAmountCents: toRequiredCents(validatedData.startAmount),
         expectedAmount: validatedData.startAmount,
+        expectedAmountCents: toRequiredCents(validatedData.startAmount),
+        differenceAmountCents: 0,
         totalSales: 0,
+        totalSalesCents: 0,
         totalRefunds: 0,
+        totalRefundsCents: 0,
         cashSales: 0,
+        cashSalesCents: 0,
         cardSales: 0,
+        cardSalesCents: 0,
         digitalSales: 0,
+        digitalSalesCents: 0,
         totalTransactions: 0,
         startedAt,
         status: "active",
@@ -138,9 +147,13 @@ export class ShiftService {
         .update(cashShifts)
         .set({
           endAmount: validatedData.actualAmount,
+          endAmountCents: toRequiredCents(validatedData.actualAmount),
           actualAmount: validatedData.actualAmount,
+          actualAmountCents: toRequiredCents(validatedData.actualAmount),
           expectedAmount,
+          expectedAmountCents: toRequiredCents(expectedAmount),
           differenceAmount,
+          differenceAmountCents: toRequiredCents(differenceAmount),
           endedAt,
           status: "closed",
           closingNotes: validatedData.closingNotes || null,
@@ -297,6 +310,7 @@ export class ShiftService {
       registerId: shift.registerId,
       type: movement.type,
       amount: movement.amount,
+      amountCents: toRequiredCents(movement.amount),
       description: movement.description,
       referenceId: movement.referenceId || null,
       referenceType: movement.referenceType || null,

@@ -4,6 +4,7 @@ import {
   integer,
   real,
   index,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
@@ -66,9 +67,12 @@ export const coupons = sqliteTable(
     discountType: text("discount_type").$type<DiscountType>().notNull(), // 折扣類型
     discountValue: real("discount_value").notNull(), // 折扣值
     maxDiscountAmount: real("max_discount_amount"), // 最大折扣金額
+    discountValueCents: integer("discount_value_cents"),
+    maxDiscountAmountCents: integer("max_discount_amount_cents"),
 
     // 使用條件
     minOrderAmount: real("min_order_amount").default(0), // 最低訂單金額
+    minOrderAmountCents: integer("min_order_amount_cents"),
     applicableMenuItems: text("applicable_menu_items", { mode: "json" }).$type<
       number[]
     >(), // 適用商品
@@ -134,6 +138,9 @@ export const couponUsage = sqliteTable(
     discountAmount: real("discount_amount").notNull(), // 實際折扣金額
     originalAmount: real("original_amount").notNull(), // 使用前訂單金額
     finalAmount: real("final_amount").notNull(), // 使用後訂單金額
+    discountAmountCents: integer("discount_amount_cents"),
+    originalAmountCents: integer("original_amount_cents"),
+    finalAmountCents: integer("final_amount_cents"),
 
     // 使用狀態
     status: text("status").$type<UsageStatus>().default("active"), // 使用狀態
@@ -159,6 +166,11 @@ export const couponUsage = sqliteTable(
       table.couponId,
       table.orderId,
     ),
+    activeCouponOrderUniqueIdx: uniqueIndex(
+      "coupon_usage_coupon_order_active_unique",
+    )
+      .on(table.couponId, table.orderId)
+      .where(sql`${table.status} IS NULL OR ${table.status} != 'cancelled'`),
   }),
 );
 

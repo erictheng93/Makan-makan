@@ -90,6 +90,11 @@ app.post(
       },
       {
         user,
+        country: input.country,
+        currency: input.currency,
+        idempotencyKey: c.req.header("Idempotency-Key") ?? undefined,
+        customerInfo: input.customerInfo,
+        metadata: input.metadata,
         gatewayFixture: fixtureAllowed
           ? (c.req.header("X-Payment-Gateway-Fixture") ?? null)
           : null,
@@ -120,6 +125,31 @@ app.post(
 
 app.get("/status/:transactionId", async (c) => {
   const transactionId = c.req.param("transactionId");
+  const transaction = await c.env.DB.prepare(
+    `SELECT transaction_id, order_id, status
+       FROM payment_transactions
+      WHERE transaction_id = ?
+      LIMIT 1`,
+  )
+    .bind(transactionId)
+    .first<{
+      transaction_id: string;
+      order_id: number;
+      status: string;
+    }>();
+
+  if (transaction) {
+    return c.json({
+      success: true,
+      data: {
+        transactionId: transaction.transaction_id,
+        orderId: transaction.order_id,
+        paymentStatus: transaction.status,
+        status: toExternalPaymentStatus(transaction.status),
+      },
+    });
+  }
+
   const row = await c.env.DB.prepare(
     `SELECT id, payment_status
        FROM orders
@@ -147,7 +177,8 @@ app.get("/status/:transactionId", async (c) => {
 app.post("/refund", validateBody(refundSchema), async (c) => {
   const input = c.get("validatedBody");
   const row = await c.env.DB.prepare(
-    `SELECT id, total_amount, refund_amount
+    `SELECT id, restaurant_id, total_amount, refund_amount, payment_method,
+            payment_status
        FROM orders
       WHERE payment_transaction_id = ?
       LIMIT 1`,
@@ -155,16 +186,34 @@ app.post("/refund", validateBody(refundSchema), async (c) => {
     .bind(input.transactionId)
     .first<{
       id: number;
+      restaurant_id: string;
       total_amount: number;
       refund_amount: number | null;
+      payment_method: string | null;
+      payment_status: string | null;
     }>();
 
   if (!row) {
     throw new ApiError("TRANSACTION_NOT_FOUND", "Transaction not found", 404);
   }
 
-  const refundAmount = input.amount ?? Number(row.total_amount);
-  if (cents(refundAmount) > cents(Number(row.total_amount))) {
+  if (
+    ["pending", "failed", "cancelled", "refunded"].includes(
+      row.payment_status ?? "",
+    )
+  ) {
+    throw new ApiError(
+      "PAYMENT_NOT_REFUNDABLE",
+      "Payment is not in a refundable state",
+      409,
+    );
+  }
+
+  const paymentTotal = Number(row.total_amount);
+  const refundAmount = input.amount ?? paymentTotal;
+  const nextRefundTotal = Number(row.refund_amount ?? 0) + refundAmount;
+
+  if (cents(nextRefundTotal) > cents(paymentTotal)) {
     throw new ApiError(
       "REFUND_AMOUNT_EXCEEDS_PAYMENT",
       "Refund amount exceeds payment total",
@@ -172,11 +221,20 @@ app.post("/refund", validateBody(refundSchema), async (c) => {
     );
   }
 
-  const nextRefundTotal = Number(row.refund_amount ?? 0) + refundAmount;
-  const isFullRefund =
-    cents(nextRefundTotal) >= cents(Number(row.total_amount));
+  const isFullRefund = cents(nextRefundTotal) >= cents(paymentTotal);
   const paymentStatus = isFullRefund ? "refunded" : "partial_refunded";
   const refundId = `ref_${input.transactionId}_${Date.now()}`;
+  const now = Date.now();
+
+  await ensurePaymentLedgerForRefund(c.env.DB, {
+    transactionId: input.transactionId,
+    orderId: row.id,
+    restaurantId: row.restaurant_id,
+    amountCents: cents(paymentTotal),
+    paymentMethod: row.payment_method ?? "unknown",
+    status: toLedgerPaymentStatus(row.payment_status),
+    now,
+  });
 
   await c.env.DB.prepare(
     `UPDATE orders
@@ -186,12 +244,35 @@ app.post("/refund", validateBody(refundSchema), async (c) => {
             updated_at_ms = ?
       WHERE id = ?`,
   )
+    .bind(paymentStatus, nextRefundTotal, isFullRefund ? 1 : 0, now, row.id)
+    .run();
+
+  await c.env.DB.prepare(
+    `UPDATE payment_transactions
+        SET status = ?,
+            updated_at_ms = ?
+      WHERE transaction_id = ?`,
+  )
+    .bind(paymentStatus, now, input.transactionId)
+    .run();
+
+  await c.env.DB.prepare(
+    `INSERT INTO refund_transactions (
+        refund_id, payment_transaction_id, order_id, restaurant_id,
+        amount_cents, reason, status, created_at_ms, updated_at_ms,
+        completed_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+  )
     .bind(
-      paymentStatus,
-      nextRefundTotal,
-      isFullRefund ? 1 : 0,
-      Date.now(),
+      refundId,
+      input.transactionId,
       row.id,
+      row.restaurant_id,
+      cents(refundAmount),
+      input.reason ?? null,
+      now,
+      now,
+      now,
     )
     .run();
 
@@ -288,6 +369,56 @@ function toExternalPaymentStatus(status: string | null | undefined): string {
     default:
       return "pending";
   }
+}
+
+function toLedgerPaymentStatus(status: string | null | undefined): string {
+  switch (status) {
+    case "completed":
+      return "paid";
+    case "paid":
+    case "refunded":
+    case "partial_refunded":
+    case "failed":
+    case "cancelled":
+      return status;
+    default:
+      return "paid";
+  }
+}
+
+async function ensurePaymentLedgerForRefund(
+  db: Env["DB"],
+  data: {
+    transactionId: string;
+    orderId: number;
+    restaurantId: string;
+    amountCents: number;
+    paymentMethod: string;
+    status: string;
+    now: number;
+  },
+) {
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO payment_transactions (
+          transaction_id, order_id, restaurant_id, amount_cents,
+          payment_method, status, metadata, created_at_ms, updated_at_ms,
+          completed_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      data.transactionId,
+      data.orderId,
+      data.restaurantId,
+      data.amountCents,
+      data.paymentMethod,
+      data.status,
+      JSON.stringify({ source: "refund_legacy_backfill" }),
+      data.now,
+      data.now,
+      data.now,
+    )
+    .run();
 }
 
 function cents(value: number): number {

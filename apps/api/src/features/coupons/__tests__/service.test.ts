@@ -240,14 +240,14 @@ describe("CouponsService", () => {
       expect(result[0].saving).toBe(100); // Capped at order amount
     });
 
-    it("should round percentage savings to nearest integer", async () => {
+    it("should preserve percentage savings to cents precision", async () => {
       const coupons = [
         { id: 1, discountType: "percentage", discountValue: 15 },
       ];
 
       const result = await service.calculatePotentialSavings(coupons, 33);
 
-      expect(result[0].saving).toBe(5); // round(33 * 0.15) = 4.95 ≈ 5
+      expect(result[0].saving).toBe(4.95);
     });
 
     it("should handle empty coupons array", async () => {

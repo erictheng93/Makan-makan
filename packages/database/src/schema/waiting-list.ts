@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 import { tables } from "./tables";
@@ -34,6 +40,7 @@ export const waitingList = sqliteTable(
     preferredTableType: text("preferred_table_type"),
     queueNumber: integer("queue_number").notNull(),
     queueLetter: text("queue_letter"),
+    queueDate: text("queue_date"),
     priority: integer("priority").notNull().default(0),
     estimatedWaitMinutes: integer("estimated_wait_minutes"),
     tableId: integer("table_id"),
@@ -63,6 +70,20 @@ export const waitingList = sqliteTable(
       table.restaurantId,
       table.queueLetter,
       table.queueNumber,
+    ),
+    uniqueQueueNumberPerDayIdx: uniqueIndex(
+      "waiting_unique_queue_number_per_day_idx",
+    ).on(
+      table.restaurantId,
+      table.queueDate,
+      table.queueLetter,
+      table.queueNumber,
+    ),
+    customerPhoneActiveIdx: index("waiting_customer_phone_active_idx").on(
+      table.restaurantId,
+      table.customerPhone,
+      table.queueDate,
+      table.status,
     ),
     customerPhoneIdx: index("waiting_customer_phone_idx").on(
       table.customerPhone,

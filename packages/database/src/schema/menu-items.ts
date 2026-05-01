@@ -28,6 +28,9 @@ export const menuItems = sqliteTable(
     price: real("price").notNull(),
     originalPrice: real("original_price"), // 原價（用於促銷）
     costPrice: real("cost_price"), // 成本價
+    priceCents: integer("price_cents"),
+    originalPriceCents: integer("original_price_cents"),
+    costPriceCents: integer("cost_price_cents"),
 
     // 圖片資訊
     imageUrl: text("image_url"),

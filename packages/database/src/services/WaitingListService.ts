@@ -39,6 +39,7 @@ interface WaitingListDbRow {
   preferred_table_type?: string | null;
   queue_number: number;
   queue_letter?: string | null;
+  queue_date?: string | null;
   priority: number;
   estimated_wait_minutes?: number | null;
   table_id?: number | null;
@@ -155,7 +156,7 @@ export class WaitingListService extends BaseService {
         WHERE restaurant_id = ${data.restaurantId}
           AND customer_phone = ${data.customerPhone}
           AND status IN ('waiting', 'called', 'confirmed')
-          AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
+          AND queue_date = DATE('now', 'localtime')
       `);
 
       if (existingEntry) {
@@ -198,11 +199,14 @@ export class WaitingListService extends BaseService {
         INSERT INTO waiting_list (
           id, restaurant_id, customer_id, customer_name, customer_phone,
           party_size, preferred_table_type, queue_number, queue_letter,
-          priority, estimated_wait_minutes, status, notes, created_at, updated_at
+          queue_date, priority, estimated_wait_minutes, status, notes,
+          created_at, updated_at
         ) VALUES (
           ${entry.id}, ${entry.restaurantId}, ${entry.customerId}, ${entry.customerName},
           ${entry.customerPhone}, ${entry.partySize}, ${entry.preferredTableType},
-          ${entry.queueNumber}, ${entry.queueLetter}, ${entry.priority},
+          ${entry.queueNumber}, ${entry.queueLetter},
+          DATE(${entry.createdAt} / 1000, 'unixepoch', 'localtime'),
+          ${entry.priority},
           ${entry.estimatedWaitMinutes}, ${entry.status}, ${entry.notes},
           ${entry.createdAt}, ${entry.updatedAt}
         )
@@ -317,13 +321,11 @@ export class WaitingListService extends BaseService {
       }
 
       if (filters.date) {
-        conditions.push(
-          sql`DATE(${waitingList.createdAt} / 1000, 'unixepoch', 'localtime') = ${filters.date}`,
-        );
+        conditions.push(sql`${waitingList.queueDate} = ${filters.date}`);
       } else {
         // 默認只顯示今天的
         conditions.push(
-          sql`DATE(${waitingList.createdAt} / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')`,
+          sql`${waitingList.queueDate} = DATE('now', 'localtime')`,
         );
       }
 
@@ -774,7 +776,7 @@ export class WaitingListService extends BaseService {
             WHERE restaurant_id = ${restaurantId}
               AND status = 'waiting'
               AND party_size <= ${partySize + 2}
-              AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
+              AND queue_date = DATE('now', 'localtime')
           `) as Promise<any>,
         this.db.get(sql`
             SELECT
@@ -880,7 +882,7 @@ export class WaitingListService extends BaseService {
             FROM waiting_list
             WHERE restaurant_id = ${restaurantId}
               AND status = 'waiting'
-              AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
+              AND queue_date = DATE('now', 'localtime')
           `) as Promise<any>,
         this.db.get(sql`
             SELECT COUNT(*) as count
@@ -936,12 +938,10 @@ export class WaitingListService extends BaseService {
       ];
 
       if (date) {
-        conditions.push(
-          sql`DATE(${waitingList.createdAt} / 1000, 'unixepoch', 'localtime') = ${date}`,
-        );
+        conditions.push(sql`${waitingList.queueDate} = ${date}`);
       } else {
         conditions.push(
-          sql`DATE(${waitingList.createdAt} / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')`,
+          sql`${waitingList.queueDate} = DATE('now', 'localtime')`,
         );
       }
 
@@ -1021,7 +1021,7 @@ export class WaitingListService extends BaseService {
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
           AND queue_letter = ${letter}
-          AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
+          AND queue_date = DATE('now', 'localtime')
       `);
 
       const maxNumber = result?.max_number || 0;
@@ -1050,7 +1050,7 @@ export class WaitingListService extends BaseService {
           AND status = 'waiting'
           AND queue_number < ${queueNumber}
           AND party_size <= ${partySize + 2}
-          AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
+          AND queue_date = DATE('now', 'localtime')
       `);
 
       return result?.count || 0;
@@ -1071,7 +1071,7 @@ export class WaitingListService extends BaseService {
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
           AND status = 'waiting'
-          AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')
+          AND queue_date = DATE('now', 'localtime')
         ORDER BY queue_number ASC
       `);
 

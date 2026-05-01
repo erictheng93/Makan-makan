@@ -16,6 +16,7 @@ import type {
   KitchenItemStatusEvent,
   MenuAvailabilityUpdateEvent,
 } from "@makanmakan/shared-types";
+import type { DurableObjectNamespace } from "@cloudflare/workers-types";
 
 /** Minimal env shape — avoids depending on apps/api's full Env type. */
 interface BroadcastEnv {

@@ -7,6 +7,12 @@ import type {
   TargetType,
   UsageStatus,
 } from "../schema";
+import {
+  amountFromCents,
+  fromCents,
+  toCents,
+  toRequiredCents,
+} from "../utils/money";
 
 // 優惠券驗證結果接口
 export interface CouponValidationResult {
@@ -104,11 +110,17 @@ export class CouponService extends BaseService {
         return { valid: false, error: "優惠券使用次數已達上限" };
       }
 
+      const orderAmountCents = toRequiredCents(orderAmount);
+      const minOrderAmount = amountFromCents(
+        coupon.minOrderAmountCents,
+        coupon.minOrderAmount,
+      );
+
       // 檢查最低訂單金額
-      if (coupon.minOrderAmount && orderAmount < coupon.minOrderAmount) {
+      if (minOrderAmount && orderAmount < minOrderAmount) {
         return {
           valid: false,
-          error: `訂單金額需滿 $${coupon.minOrderAmount} 才可使用此優惠券`,
+          error: `訂單金額需滿 $${minOrderAmount} 才可使用此優惠券`,
         };
       }
 
@@ -166,24 +178,38 @@ export class CouponService extends BaseService {
       }
 
       // 計算折扣金額
-      let discountAmount = 0;
+      let discountAmountCents = 0;
       if (coupon.discountType === "percentage") {
-        discountAmount = Math.round(orderAmount * (coupon.discountValue / 100));
+        discountAmountCents = Math.round(
+          orderAmountCents * (coupon.discountValue / 100),
+        );
 
         // 應用最大折扣金額限制
+        const maxDiscountAmountCents = toCents(
+          amountFromCents(
+            coupon.maxDiscountAmountCents,
+            coupon.maxDiscountAmount,
+          ),
+        );
         if (
-          coupon.maxDiscountAmount &&
-          discountAmount > coupon.maxDiscountAmount
+          maxDiscountAmountCents &&
+          discountAmountCents > maxDiscountAmountCents
         ) {
-          discountAmount = coupon.maxDiscountAmount;
+          discountAmountCents = maxDiscountAmountCents;
         }
       } else {
-        discountAmount = coupon.discountValue;
+        discountAmountCents =
+          coupon.discountValueCents ?? toRequiredCents(coupon.discountValue);
       }
 
       // 確保折扣金額不超過訂單金額
-      discountAmount = Math.min(discountAmount, orderAmount);
-      const finalAmount = Math.max(0, orderAmount - discountAmount);
+      discountAmountCents = Math.min(discountAmountCents, orderAmountCents);
+      const finalAmountCents = Math.max(
+        0,
+        orderAmountCents - discountAmountCents,
+      );
+      const discountAmount = fromCents(discountAmountCents);
+      const finalAmount = fromCents(finalAmountCents);
 
       return {
         valid: true,
@@ -201,6 +227,22 @@ export class CouponService extends BaseService {
    * 記錄優惠券使用
    */
   async useCoupon(data: UseCouponData) {
+    const [existingUsage] = await this.db
+      .select({ id: couponUsage.id })
+      .from(couponUsage)
+      .where(
+        and(
+          eq(couponUsage.couponId, data.couponId),
+          eq(couponUsage.orderId, data.orderId),
+          sql`(${couponUsage.status} IS NULL OR ${couponUsage.status} != 'cancelled')`,
+        ),
+      )
+      .limit(1);
+
+    if (existingUsage) {
+      throw new Error("Coupon already used for this order");
+    }
+
     const claim = await this.d1
       .prepare(
         `UPDATE coupons
@@ -216,20 +258,45 @@ export class CouponService extends BaseService {
       throw new Error("Coupon usage limit reached");
     }
 
-    const usageRecord = await this.db
-      .insert(couponUsage)
-      .values({
-        couponId: data.couponId,
-        orderId: data.orderId,
-        userId: data.userId,
-        discountAmount: data.discountAmount,
-        originalAmount: data.originalAmount,
-        finalAmount: data.finalAmount,
-        status: "active",
-      })
-      .returning();
+    try {
+      const usageRecord = await this.db
+        .insert(couponUsage)
+        .values({
+          couponId: data.couponId,
+          orderId: data.orderId,
+          userId: data.userId,
+          discountAmount: data.discountAmount,
+          originalAmount: data.originalAmount,
+          finalAmount: data.finalAmount,
+          discountAmountCents: toRequiredCents(data.discountAmount),
+          originalAmountCents: toRequiredCents(data.originalAmount),
+          finalAmountCents: toRequiredCents(data.finalAmount),
+          status: "active",
+        })
+        .returning();
 
-    return usageRecord[0];
+      return usageRecord[0];
+    } catch (error) {
+      try {
+        await this.d1
+          .prepare(
+            `UPDATE coupons
+                SET used_count = CASE
+                      WHEN coalesce(used_count, 0) > 0
+                      THEN coalesce(used_count, 0) - 1
+                      ELSE 0
+                    END,
+                    updated_at_ms = unixepoch('now') * 1000
+              WHERE id = ?`,
+          )
+          .bind(data.couponId)
+          .run();
+      } catch (rollbackError) {
+        console.error("Coupon usage count rollback failed:", rollbackError);
+      }
+
+      throw error;
+    }
   }
 
   /**
@@ -256,6 +323,12 @@ export class CouponService extends BaseService {
         discountValue: data.discountValue,
         maxDiscountAmount: data.maxDiscountAmount,
         minOrderAmount: data.minOrderAmount || 0,
+        discountValueCents:
+          data.discountType === "percentage"
+            ? null
+            : toRequiredCents(data.discountValue),
+        maxDiscountAmountCents: toCents(data.maxDiscountAmount),
+        minOrderAmountCents: toRequiredCents(data.minOrderAmount || 0),
         applicableMenuItems: data.applicableMenuItems,
         applicableCategories: data.applicableCategories,
         usageLimit: data.usageLimit,
@@ -404,10 +477,32 @@ export class CouponService extends BaseService {
     id: number,
     updates: Partial<CreateCouponData>,
   ): Promise<any> {
+    const centsUpdates: Record<string, number | null | undefined> = {};
+    if (
+      updates.discountValue !== undefined ||
+      updates.discountType !== undefined
+    ) {
+      centsUpdates.discountValueCents =
+        updates.discountType === "percentage"
+          ? null
+          : updates.discountValue === undefined
+            ? undefined
+            : toRequiredCents(updates.discountValue);
+    }
+    if (updates.maxDiscountAmount !== undefined) {
+      centsUpdates.maxDiscountAmountCents = toCents(updates.maxDiscountAmount);
+    }
+    if (updates.minOrderAmount !== undefined) {
+      centsUpdates.minOrderAmountCents = toRequiredCents(
+        updates.minOrderAmount,
+      );
+    }
+
     const coupon = await this.db
       .update(coupons)
       .set({
         ...updates,
+        ...centsUpdates,
         updatedAt: new Date(),
       })
       .where(eq(coupons.id, id))
@@ -437,8 +532,8 @@ export class CouponService extends BaseService {
     const stats = await this.db
       .select({
         totalUsed: sql<number>`count(*)`,
-        totalDiscount: sql<number>`sum(${couponUsage.discountAmount})`,
-        avgDiscount: sql<number>`avg(${couponUsage.discountAmount})`,
+        totalDiscount: sql<number>`sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))) / 100.0`,
+        avgDiscount: sql<number>`avg(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))) / 100.0`,
         lastUsed: sql<string>`max(${couponUsage.usedAt})`,
       })
       .from(couponUsage)
@@ -486,7 +581,7 @@ export class CouponService extends BaseService {
     const savingsResult = restaurantId
       ? await this.db
           .select({
-            totalSavings: sql<number>`coalesce(sum(${couponUsage.discountAmount}), 0)`,
+            totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))), 0) / 100.0`,
           })
           .from(couponUsage)
           .innerJoin(coupons, eq(couponUsage.couponId, coupons.id))
@@ -498,7 +593,7 @@ export class CouponService extends BaseService {
           )
       : await this.db
           .select({
-            totalSavings: sql<number>`coalesce(sum(${couponUsage.discountAmount}), 0)`,
+            totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))), 0) / 100.0`,
           })
           .from(couponUsage)
           .where(eq(couponUsage.status, "active"));

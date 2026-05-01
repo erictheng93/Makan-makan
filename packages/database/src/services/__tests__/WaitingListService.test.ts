@@ -1515,7 +1515,7 @@ function createMockDB() {
     if (queryStr.includes("waiting_list")) {
       // INSERT INTO waiting_list (id, restaurant_id, customer_id, customer_name, customer_phone,
       //   party_size, preferred_table_type, queue_number, queue_letter,
-      //   priority, estimated_wait_minutes, status, notes, created_at, updated_at)
+      //   queue_date, priority, estimated_wait_minutes, status, notes, created_at, updated_at)
       const entry: any = {
         id: values[0],
         restaurant_id: values[1],
@@ -1526,12 +1526,13 @@ function createMockDB() {
         preferred_table_type: values[6],
         queue_number: values[7],
         queue_letter: values[8],
-        priority: values[9],
-        estimated_wait_minutes: values[10],
-        status: values[11],
-        notes: values[12],
-        created_at: values[13],
-        updated_at: values[14],
+        queue_date: new Date(values[9]).toISOString().slice(0, 10),
+        priority: values[10],
+        estimated_wait_minutes: values[11],
+        status: values[12],
+        notes: values[13],
+        created_at: values[14],
+        updated_at: values[15],
       };
       mockData.waitingList.set(entry.id, entry);
     }

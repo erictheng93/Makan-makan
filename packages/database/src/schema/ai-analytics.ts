@@ -14,7 +14,10 @@ export const aiConfigurations = sqliteTable(
   "ai_configurations",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    restaurantId: text("restaurant_id").notNull().unique(),
+    restaurantId: text("restaurant_id")
+      .notNull()
+      .unique()
+      .references(() => restaurants.id, { onDelete: "cascade" }),
     provider: text("provider").notNull(), // 'openai' | 'anthropic' | 'google' | 'openrouter'
     apiKeyEncrypted: text("api_key_encrypted").notNull(),
     model: text("model"),
@@ -45,7 +48,9 @@ export const aiUsageLogs = sqliteTable(
   "ai_usage_logs",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    restaurantId: text("restaurant_id").notNull(),
+    restaurantId: text("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id, { onDelete: "cascade" }),
     provider: text("provider").notNull(),
     model: text("model").notNull(),
     operation: text("operation").notNull(), // 'generate_report' | 'analyze_products' etc.

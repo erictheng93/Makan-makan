@@ -18,6 +18,7 @@ import {
 } from "../schema/pos";
 import { users } from "../schema/users";
 import { orders } from "../schema/orders";
+import { toRequiredCents } from "../utils/money";
 
 // ==========================================
 // 類型定義
@@ -394,13 +395,21 @@ export class POSService extends BaseService {
           registerId: validatedData.registerId,
           operatorId: validatedData.operatorId,
           startAmount: validatedData.startAmount,
+          startAmountCents: toRequiredCents(validatedData.startAmount),
           expectedAmount: validatedData.startAmount,
+          expectedAmountCents: toRequiredCents(validatedData.startAmount),
           differenceAmount: 0,
+          differenceAmountCents: 0,
           totalSales: 0,
+          totalSalesCents: 0,
           totalRefunds: 0,
+          totalRefundsCents: 0,
           cashSales: 0,
+          cashSalesCents: 0,
           cardSales: 0,
+          cardSalesCents: 0,
           digitalSales: 0,
+          digitalSalesCents: 0,
           totalTransactions: 0,
           startedAt: shiftStartTime,
           status: "active" as const,
@@ -481,9 +490,13 @@ export class POSService extends BaseService {
           .update(cashShifts)
           .set({
             endAmount: validatedData.actualAmount,
+            endAmountCents: toRequiredCents(validatedData.actualAmount),
             actualAmount: validatedData.actualAmount,
+            actualAmountCents: toRequiredCents(validatedData.actualAmount),
             expectedAmount,
+            expectedAmountCents: toRequiredCents(expectedAmount),
             differenceAmount,
+            differenceAmountCents: toRequiredCents(differenceAmount),
             endedAt: shiftEndTime,
             status: "closed" as const,
             closingNotes: validatedData.closingNotes ?? null,
@@ -577,6 +590,7 @@ export class POSService extends BaseService {
       registerId: shift.registerId,
       type: movement.type,
       amount: movement.amount,
+      amountCents: toRequiredCents(movement.amount),
       description: movement.description,
       referenceId: movement.referenceId ?? null,
       referenceType: movement.referenceType ?? null,
@@ -797,6 +811,8 @@ export class POSService extends BaseService {
           refundType: validatedData.refundType,
           originalAmount: originalOrder.totalAmount,
           refundAmount: validatedData.refundAmount,
+          originalAmountCents: toRequiredCents(originalOrder.totalAmount),
+          refundAmountCents: toRequiredCents(validatedData.refundAmount),
           refundMethod: validatedData.refundMethod,
           reasonCode: validatedData.reasonCode,
           reasonDescription: validatedData.reasonDescription ?? null,

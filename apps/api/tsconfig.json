@@ -33,6 +33,9 @@
     "node_modules",
     "dist",
     "src/shared/templates",
+    "../../packages/database/src/**/__tests__/**",
+    "../../packages/database/src/**/*.test.ts",
+    "../../packages/database/src/testing/**",
     "../../packages/utils/src/performance-monitor.ts",
     "../../packages/utils/src/error-tracking.ts",
     "../../packages/utils/**/*"

@@ -29,10 +29,12 @@ export * from "./platform-webhook-logs";
 export * from "./forecast";
 export * from "./discovery";
 export * from "./ai-analytics";
+export * from "./payments";
 export * from "./backup";
 export * from "./feedback";
 export * from "./subscriptions";
 export * from "./idempotency-keys";
+export * from "./data-integrity-audit";
 
 // 匯出所有關聯定義
 export { restaurantRelations } from "./restaurants";
@@ -110,6 +112,10 @@ export {
   aiUsageLogsRelations,
 } from "./ai-analytics";
 export {
+  paymentTransactionsRelations,
+  refundTransactionsRelations,
+} from "./payments";
+export {
   backupRecordsRelations,
   backupSchedulesRelations,
   backupConfigurationsRelations,
@@ -179,6 +185,14 @@ export { MODULES, PLAN_TIERS, PLAN_DEFAULT_MODULES } from "./subscriptions";
 export type { ModuleKey, ModuleMap, PlanTier } from "./subscriptions";
 export { IDEMPOTENCY_SCOPES } from "./idempotency-keys";
 export type { IdempotencyScope } from "./idempotency-keys";
+export {
+  PAYMENT_TRANSACTION_STATUS,
+  REFUND_TRANSACTION_STATUS,
+} from "./payments";
+export type {
+  PaymentTransactionStatus,
+  RefundTransactionStatus,
+} from "./payments";
 export type { PlatformType, MenuSyncStatus } from "./platform-integrations";
 export { MENU_MAPPING_SYNC_STATUS } from "./platform-menu-mappings";
 export type { MenuMappingSyncStatus } from "./platform-menu-mappings";

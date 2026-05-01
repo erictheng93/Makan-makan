@@ -10,6 +10,7 @@ import type {
   CashMovementRequest,
 } from "../types";
 import { cashMovementSchema } from "../schemas";
+import { toRequiredCents } from "../../../shared/utils/money";
 
 export class CashMovementService {
   private db;
@@ -206,6 +207,7 @@ export class CashMovementService {
       registerId,
       type: movement.type,
       amount: movement.amount,
+      amountCents: toRequiredCents(movement.amount),
       description: movement.description,
       referenceId: movement.referenceId || null,
       referenceType: movement.referenceType || null,

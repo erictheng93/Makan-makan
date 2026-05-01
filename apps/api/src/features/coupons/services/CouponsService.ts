@@ -6,6 +6,11 @@
 
 import { CouponService as BaseCouponService } from "@makanmakan/database";
 import { badRequest } from "../../../shared/utils/api-error";
+import {
+  fromCents,
+  toCents,
+  toRequiredCents,
+} from "../../../shared/utils/money";
 import type {
   CreateCouponData,
   CouponFilters,
@@ -229,21 +234,25 @@ export class CouponsService extends BaseCouponService {
     orderAmount: number,
   ): Promise<Array<{ couponId: number; saving: number }>> {
     const savings = [];
+    const orderAmountCents = toRequiredCents(orderAmount);
 
     for (const coupon of coupons) {
-      let saving = 0;
+      let savingCents = 0;
 
       if (coupon.discountType === "percentage") {
-        saving = Math.round(orderAmount * (coupon.discountValue / 100));
-        if (coupon.maxDiscountAmount && saving > coupon.maxDiscountAmount) {
-          saving = coupon.maxDiscountAmount;
+        savingCents = Math.round(
+          orderAmountCents * (coupon.discountValue / 100),
+        );
+        const maxDiscountAmountCents = toCents(coupon.maxDiscountAmount);
+        if (maxDiscountAmountCents && savingCents > maxDiscountAmountCents) {
+          savingCents = maxDiscountAmountCents;
         }
       } else {
-        saving = coupon.discountValue;
+        savingCents = toRequiredCents(coupon.discountValue);
       }
 
-      saving = Math.min(saving, orderAmount);
-      savings.push({ couponId: coupon.id, saving });
+      savingCents = Math.min(savingCents, orderAmountCents);
+      savings.push({ couponId: coupon.id, saving: fromCents(savingCents) });
     }
 
     return savings;

@@ -12,6 +12,7 @@ import {
 } from "@makanmakan/database";
 import type { Refund, ProcessRefundRequest } from "../types";
 import { processRefundSchema } from "../schemas";
+import { toRequiredCents } from "../../../shared/utils/money";
 
 // K6 release gate: refunds issued while a shift is already closed must not
 // mutate the closed ledger totals or post a live cash movement. Instead the
@@ -120,6 +121,8 @@ export class RefundService {
         refundType: validatedData.refundType,
         originalAmount: orderTotalAmount,
         refundAmount: validatedData.refundAmount,
+        originalAmountCents: toRequiredCents(orderTotalAmount),
+        refundAmountCents: toRequiredCents(validatedData.refundAmount),
         refundMethod: validatedData.refundMethod,
         reasonCode: validatedData.reasonCode,
         reasonDescription: validatedData.reasonDescription || null,
@@ -432,6 +435,7 @@ export class RefundService {
       registerId,
       type: movement.type,
       amount: movement.amount,
+      amountCents: toRequiredCents(movement.amount),
       description: movement.description,
       referenceId: movement.referenceId || null,
       referenceType: movement.referenceType || null,

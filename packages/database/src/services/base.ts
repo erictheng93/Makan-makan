@@ -11,6 +11,7 @@ import {
   type ConnectionManager,
 } from "../utils/connection-manager";
 import { SoftDeleteService } from "../utils/soft-delete";
+import { fromCents, toRequiredCents } from "../utils/money";
 
 /**
  * Deployment mode type
@@ -285,16 +286,24 @@ export class BaseService {
     serviceChargeRate: number = 0,
     discountAmount: number = 0,
   ) {
-    const taxAmount = subtotal * taxRate;
-    const serviceCharge = subtotal * serviceChargeRate;
-    const totalAmount = subtotal + taxAmount + serviceCharge - discountAmount;
+    const subtotalCents = toRequiredCents(subtotal);
+    const discountAmountCents = toRequiredCents(discountAmount);
+    const taxAmountCents = Math.round(subtotalCents * taxRate);
+    const serviceChargeCents = Math.round(subtotalCents * serviceChargeRate);
+    const totalAmountCents =
+      subtotalCents + taxAmountCents + serviceChargeCents - discountAmountCents;
 
     return {
-      subtotal,
-      taxAmount,
-      serviceCharge,
-      discountAmount,
-      totalAmount,
+      subtotal: fromCents(subtotalCents),
+      taxAmount: fromCents(taxAmountCents),
+      serviceCharge: fromCents(serviceChargeCents),
+      discountAmount: fromCents(discountAmountCents),
+      totalAmount: fromCents(totalAmountCents),
+      subtotalCents,
+      taxAmountCents,
+      serviceChargeCents,
+      discountAmountCents,
+      totalAmountCents,
     };
   }
 }

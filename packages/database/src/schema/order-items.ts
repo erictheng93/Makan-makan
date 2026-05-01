@@ -29,6 +29,8 @@ export const orderItems = sqliteTable(
     // 價格資訊
     unitPrice: real("unit_price").notNull(), // 單價（快照，避免菜單價格變動影響）
     totalPrice: real("total_price").notNull(), // 總價
+    unitPriceCents: integer("unit_price_cents"),
+    totalPriceCents: integer("total_price_cents"),
 
     // 菜品資訊快照（防止菜單變更影響歷史訂單）
     itemSnapshot: text("item_snapshot", { mode: "json" }).$type<{

@@ -6,6 +6,7 @@ import type {
   MenuItem,
   Category,
 } from "@makanmakan/shared-types";
+import { amountFromCents, toCents, toRequiredCents } from "../utils/money";
 
 export interface CreateMenuItemData {
   restaurantId: string;
@@ -59,7 +60,9 @@ const menuItemSelectColumns = {
   description: menuItems.description,
   ingredients: menuItems.ingredients,
   price: menuItems.price,
+  priceCents: menuItems.priceCents,
   originalPrice: menuItems.originalPrice,
+  originalPriceCents: menuItems.originalPriceCents,
   imageUrl: menuItems.imageUrl,
   isAvailable: menuItems.isAvailable,
   isFeatured: menuItems.isFeatured,
@@ -311,6 +314,8 @@ export class MenuService extends BaseService {
         .insert(menuItems)
         .values({
           ...data,
+          priceCents: toRequiredCents(data.price),
+          originalPriceCents: toCents(data.originalPrice),
           isAvailable: data.isAvailable !== undefined ? data.isAvailable : true, // Default: available
           isFeatured: data.isFeatured !== undefined ? data.isFeatured : false,
           isPopular: data.isPopular !== undefined ? data.isPopular : false,
@@ -342,6 +347,12 @@ export class MenuService extends BaseService {
         .update(menuItems)
         .set({
           ...data,
+          ...(data.price !== undefined
+            ? { priceCents: toRequiredCents(data.price) }
+            : {}),
+          ...(data.originalPrice !== undefined
+            ? { originalPriceCents: toCents(data.originalPrice) }
+            : {}),
           updatedAt: new Date(),
         })
         .where(eq(menuItems.id, id))
@@ -594,8 +605,11 @@ export class MenuService extends BaseService {
       name: item.name,
       description: item.description,
       ingredients: item.ingredients,
-      price: item.price,
-      originalPrice: item.originalPrice,
+      price: amountFromCents(item.priceCents, item.price),
+      originalPrice: amountFromCents(
+        item.originalPriceCents,
+        item.originalPrice,
+      ),
       imageUrl: item.imageUrl,
       imageVariants: item.imageVariants,
       isAvailable: item.isAvailable,

@@ -56,6 +56,10 @@ export const groupOrders = sqliteTable(
     taxAmount: real("tax_amount").notNull().default(0),
     serviceCharge: real("service_charge").notNull().default(0),
     finalAmount: real("final_amount").notNull().default(0),
+    totalAmountCents: integer("total_amount_cents"),
+    taxAmountCents: integer("tax_amount_cents"),
+    serviceChargeCents: integer("service_charge_cents"),
+    finalAmountCents: integer("final_amount_cents"),
 
     // 時間資訊 (milliseconds)
     expiresAt: integer("expires_at_ms", { mode: "timestamp_ms" }).notNull(),
@@ -157,6 +161,8 @@ export const groupCartItems = sqliteTable(
     quantity: integer("quantity").notNull(),
     unitPrice: real("unit_price").notNull(),
     totalPrice: real("total_price").notNull(),
+    unitPriceCents: integer("unit_price_cents"),
+    totalPriceCents: integer("total_price_cents"),
 
     // 客製化
     customizations: text("customizations", { mode: "json" })
@@ -206,6 +212,12 @@ export const splitBills = sqliteTable(
     discountAmount: real("discount_amount").notNull().default(0),
     tipAmount: real("tip_amount").notNull().default(0),
     totalAmount: real("total_amount").notNull(),
+    subtotalCents: integer("subtotal_cents"),
+    taxAmountCents: integer("tax_amount_cents"),
+    serviceChargeCents: integer("service_charge_cents"),
+    discountAmountCents: integer("discount_amount_cents"),
+    tipAmountCents: integer("tip_amount_cents"),
+    totalAmountCents: integer("total_amount_cents"),
 
     // 項目清單
     items: text("items", { mode: "json" })
