@@ -14,8 +14,9 @@ PRs.
   including a legacy REAL precision check.
 - 2026-05-01: added physical `restaurant_id` FK rebuild migrations `0028`
   and `0029` plus the D1-safe `0030` coupons and `0031` scheduling rules
-  component rebuilds. Core parent tables remain tracked as pending by the
-  migration inventory test.
+  component rebuilds. Added `0032` partnership plans, `0033` leave types, and
+  `0034` workforce scheduling components. Core parent tables remain tracked as
+  pending by the migration inventory test.
 - 2026-04-21: `rtk pnpm typecheck` passed.
 - 2026-04-21: `rtk pnpm lint` timed out after 120s, so lint status is unknown.
 - Existing untracked file was left untouched:
@@ -300,17 +301,20 @@ late during release.
 - `packages/database/migrations_fresh/0029_restaurant_fk_rebuild_leaf_dependents.sql`
 - `packages/database/migrations_fresh/0030_restaurant_fk_rebuild_coupons_component.sql`
 - `packages/database/migrations_fresh/0031_restaurant_fk_rebuild_scheduling_rules_component.sql`
+- `packages/database/migrations_fresh/0032_restaurant_fk_rebuild_partnership_plans_component.sql`
+- `packages/database/migrations_fresh/0033_restaurant_fk_rebuild_leave_types_component.sql`
+- `packages/database/migrations_fresh/0034_restaurant_fk_rebuild_workforce_scheduling_component.sql`
 - `packages/database/src/testing/__tests__/migration-inventory.test.ts`
 
 **Evidence:**
 
 - Migration inventory now confirms physical `restaurant_id` FKs for the
   operational support, leaf dependent, waiting list, payment, subscription, and
-  coupons and scheduling rules component tables.
+  coupons, scheduling rules, partnership plans, leave types, and workforce
+  scheduling component tables.
 - The remaining `restaurant_id` tables without physical FKs are core parent or
   highly connected tables: `cash_registers`, `categories`,
-  `employee_schedules`, `group_orders`, `leave_types`, `menu_items`, `orders`,
-  `partnership_plans`, `shift_templates`, `tables`, and `users`.
+  `group_orders`, `menu_items`, `orders`, `tables`, and `users`.
 - These tables have inbound foreign keys, so D1-safe rebuilds must stage and
   rebuild each connected component instead of relying on
   `PRAGMA foreign_keys=OFF`.
