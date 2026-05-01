@@ -16,6 +16,10 @@
  *   Layer 3 (skipped unless SMOKE_RESTAURANT_ID + SMOKE_MENU_ITEM_ID set)
  *     - Guest order create + guest-token read round-trip + cancel cleanup
  *
+ *   Admin realtime WebSocket coverage lives in
+ *     tests/e2e/smoke/admin-realtime-websocket.spec.ts and is skipped unless
+ *     SMOKE_ADMIN_URL + Layer 2 credentials + SMOKE_RESTAURANT_ID are set.
+ *
  * Production smoke (deploy-production.yml) runs Layer 1 only — no
  * credentials configured, no test data created in prod. Staging smoke runs
  * all three layers because staging has seeded fixtures.
@@ -27,6 +31,9 @@
  *   SMOKE_AUTH_PASSWORD    — password for SMOKE_AUTH_USERNAME
  *   SMOKE_RESTAURANT_ID    — seeded restaurant UUID for Layer 3
  *   SMOKE_MENU_ITEM_ID     — seeded menu item id for Layer 3
+ *   SMOKE_ADMIN_URL        — admin dashboard base for admin realtime smoke
+ *   SMOKE_REALTIME_URL     — optional realtime HTTP base; derived from wsUrl
+ *                            by the realtime smoke when omitted
  */
 
 import { test, expect } from "@playwright/test";

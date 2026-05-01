@@ -11,10 +11,13 @@ import { defineConfig, devices } from "@playwright/test";
  * Required env vars (provided by CI secrets):
  *   STAGING_API_URL       — staging API base URL
  *   STAGING_CUSTOMER_URL  — staging customer app base URL
+ *   STAGING_ADMIN_URL     — staging admin dashboard base URL
  *   STAGING_AUTH_USERNAME — seeded smoke user on staging
  *   STAGING_AUTH_PASSWORD — password for STAGING_AUTH_USERNAME
  *   STAGING_RESTAURANT_ID — seeded restaurant UUID on staging
  *   STAGING_MENU_ITEM_ID  — seeded menu item id on staging
+ *   STAGING_REALTIME_URL  — optional realtime HTTP base URL; derived from
+ *                           issued wsUrl when omitted
  *
  * The smoke spec itself reads SMOKE_* env vars; this config maps the
  * STAGING_* secrets onto SMOKE_* so the same spec works against any env.
@@ -37,10 +40,12 @@ setSmokeEnv(
   "SMOKE_CUSTOMER_URL",
   process.env.STAGING_CUSTOMER_URL ?? process.env.STAGING_URL,
 );
+setSmokeEnv("SMOKE_ADMIN_URL", process.env.STAGING_ADMIN_URL);
 setSmokeEnv("SMOKE_AUTH_USERNAME", process.env.STAGING_AUTH_USERNAME);
 setSmokeEnv("SMOKE_AUTH_PASSWORD", process.env.STAGING_AUTH_PASSWORD);
 setSmokeEnv("SMOKE_RESTAURANT_ID", process.env.STAGING_RESTAURANT_ID);
 setSmokeEnv("SMOKE_MENU_ITEM_ID", process.env.STAGING_MENU_ITEM_ID);
+setSmokeEnv("SMOKE_REALTIME_URL", process.env.STAGING_REALTIME_URL);
 
 export default defineConfig({
   testDir: "./tests/e2e/smoke",

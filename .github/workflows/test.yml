@@ -1016,6 +1016,7 @@ jobs:
           # STAGING_API_URL + STAGING_CUSTOMER_URL drive Layer 1 (liveness).
           # STAGING_AUTH_USERNAME + STAGING_AUTH_PASSWORD enable Layer 2.
           # STAGING_RESTAURANT_ID + STAGING_MENU_ITEM_ID enable Layer 3.
+          # STAGING_ADMIN_URL enables the admin Realtime DO WebSocket gate.
           # Layers without their secrets get test.skip()'d, so missing
           # secrets degrade coverage rather than fail the smoke gate.
           # Keep STAGING_URL for backwards compatibility — config falls back
@@ -1023,6 +1024,8 @@ jobs:
           STAGING_URL: ${{ secrets.STAGING_URL }}
           STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
           STAGING_CUSTOMER_URL: ${{ secrets.STAGING_CUSTOMER_URL }}
+          STAGING_ADMIN_URL: ${{ secrets.STAGING_ADMIN_URL }}
+          STAGING_REALTIME_URL: ${{ secrets.STAGING_REALTIME_URL }}
           STAGING_AUTH_USERNAME: ${{ secrets.STAGING_AUTH_USERNAME }}
           STAGING_AUTH_PASSWORD: ${{ secrets.STAGING_AUTH_PASSWORD }}
           STAGING_RESTAURANT_ID: ${{ secrets.STAGING_RESTAURANT_ID }}

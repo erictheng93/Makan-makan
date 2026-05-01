@@ -343,6 +343,11 @@
   ```bash
   pnpm run test:smoke:staging  □
   ```
+  - [ ] 若要覆蓋 Admin Realtime DO WebSocket，CI secrets 需包含
+        `STAGING_ADMIN_URL`、`STAGING_AUTH_USERNAME`、
+        `STAGING_AUTH_PASSWORD`、`STAGING_RESTAURANT_ID`；測試會登入
+        admin dashboard、建立真實 WebSocket，並透過 Realtime DO broadcast
+        驗證瀏覽器收到事件。
 
 ---
 
