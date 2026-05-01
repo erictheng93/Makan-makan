@@ -10,9 +10,15 @@ PRs.
 ## Review Notes
 
 - 2026-05-01 follow-up scan: current working tree still has 65 unchecked
-  backlog items in this document, 40 active `TODO` comments in `apps/`,
+  backlog items in this document, 37 active `TODO` comments in `apps/`,
   `packages/`, and `scripts/`, 16 production `REPLACE_ME__PRODUCTION`
   Cloudflare placeholders, and 14 E2E `test.skip` / `fixme` markers.
+- 2026-05-01 follow-up verification: analytics export generation is no longer
+  a placeholder after `fix(api): implement analytics export generation`; it now
+  builds JSON/CSV export payloads and returns metadata plus a data URL. QR scan
+  recent-restaurant storage is also no longer using mocked restaurant name or
+  address data after `fix(customer): load restaurant info after QR scan`; it
+  calls `menuApi.getRestaurant()` for real restaurant details.
 - 2026-05-01 follow-up scan: earlier CI blocker notes are partially stale:
   `.github/workflows/test.yml` now has push / pull request triggers restored,
   `tests/e2e/smoke/` exists, and production smoke probes now use `/info`.
@@ -599,17 +605,30 @@ Drizzle queries, middleware order, or cross-service behavior.
       imports are ready.
 - [ ] Implement queue capacity forecast once the API exists.
 
-### Analytics Export Is A Placeholder
+### Analytics Export Placeholder Was Replaced
 
-**Priority:** P3
+**Priority:** P3 - completed 2026-05-01 for inline export generation; durable
+artifact storage remains a product decision
 
 **File:** `apps/api/src/features/analytics/services/AnalyticsService.ts`
 
+**Evidence:**
+
+- `generateExport()` now fetches real analytics data for dashboard, revenue,
+  products, customers, and performance exports.
+- JSON exports include metadata and data. CSV exports are generated from the
+  selected analytics data.
+- The response includes filename, content type, size, period, expiry metadata,
+  and a `data:` download URL.
+
 **TODO:**
 
-- [ ] Implement export generation and storage.
-- [ ] Define export formats, retention, permissions, and download endpoint.
-- [ ] Add tests for export lifecycle and permission boundaries.
+- [x] Implement export generation for JSON/CSV payloads.
+- [x] Define basic export formats and response metadata.
+- [ ] Decide whether exports should remain inline `data:` URLs or move to
+      durable object/R2-backed file storage.
+- [ ] Add tests for export lifecycle, permission boundaries, and large payload
+      behavior.
 
 ### AI Analytics Repeat Customer Rate Is Hardcoded
 
