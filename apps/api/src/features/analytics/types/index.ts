@@ -156,6 +156,9 @@ export interface ExportResponse {
   data: {
     type: string;
     format: string;
+    filename: string;
+    content_type: string;
+    size_bytes: number;
     period: {
       from?: string;
       to?: string;

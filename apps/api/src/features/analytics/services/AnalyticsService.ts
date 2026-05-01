@@ -41,6 +41,106 @@ function toDbFilters(filters: AnalyticsFilters): {
   };
 }
 
+function flattenForCsv(
+  value: unknown,
+  prefix = "",
+): Record<string, string | number | boolean | null> {
+  if (value == null) {
+    return prefix ? { [prefix]: null } : {};
+  }
+
+  if (value instanceof Date) {
+    return { [prefix]: value.toISOString() };
+  }
+
+  if (Array.isArray(value)) {
+    return {
+      [prefix]: JSON.stringify(value),
+    };
+  }
+
+  if (typeof value !== "object") {
+    return {
+      [prefix]: value as string | number | boolean,
+    };
+  }
+
+  return Object.entries(value as Record<string, unknown>).reduce<
+    Record<string, string | number | boolean | null>
+  >((row, [key, nestedValue]) => {
+    const nextPrefix = prefix ? `${prefix}.${key}` : key;
+
+    return {
+      ...row,
+      ...flattenForCsv(nestedValue, nextPrefix),
+    };
+  }, {});
+}
+
+function normalizeCsvRows(data: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(data)) {
+    return data.map((item) => flattenForCsv(item));
+  }
+
+  if (data && typeof data === "object") {
+    const sections = Object.entries(data as Record<string, unknown>);
+    const sectionRows = sections.flatMap(([section, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((item) => ({
+          section,
+          ...flattenForCsv(item),
+        }));
+      }
+
+      return [
+        {
+          section,
+          ...flattenForCsv(value),
+        },
+      ];
+    });
+
+    return sectionRows.length > 0 ? sectionRows : [flattenForCsv(data)];
+  }
+
+  return [{ value: data }];
+}
+
+function escapeCsvValue(value: unknown): string {
+  if (value == null) {
+    return "";
+  }
+
+  const text = value instanceof Date ? value.toISOString() : String(value);
+
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
+}
+
+function toCsv(data: unknown): string {
+  const rows = normalizeCsvRows(data);
+  const headers = Array.from(
+    rows.reduce<Set<string>>((keys, row) => {
+      Object.keys(row).forEach((key) => keys.add(key));
+      return keys;
+    }, new Set()),
+  );
+
+  if (headers.length === 0) {
+    return "";
+  }
+
+  return [
+    headers.map(escapeCsvValue).join(","),
+    ...rows.map((row) =>
+      headers.map((header) => escapeCsvValue(row[header])).join(","),
+    ),
+  ].join("\n");
+}
+
 export class AnalyticsService implements IAnalyticsService {
   private databaseService: DatabaseAnalyticsService;
   private cache: CacheService;
@@ -362,20 +462,43 @@ export class AnalyticsService implements IAnalyticsService {
     try {
       this.logger.debug("Generating analytics export", request);
 
-      // Create unique filename
       const timestamp = Date.now();
       const filename = `${request.type}_${timestamp}.${request.format}`;
-      const downloadUrl = `https://api.example.com/exports/${filename}`;
       const expiresAt = new Date(
         Date.now() + 24 * 60 * 60 * 1000,
       ).toISOString();
-
-      // TODO: Implement actual export generation and storage
-      // This would typically involve:
-      // 1. Generating the requested data
-      // 2. Converting to the requested format (CSV/JSON)
-      // 3. Storing in R2 or similar storage
-      // 4. Returning download URL
+      const filters: AnalyticsFilters = {
+        restaurantId: request.restaurantId,
+        dateFrom: request.dateFrom,
+        dateTo: request.dateTo,
+        groupBy: request.groupBy,
+        limit: request.limit,
+      };
+      const data = await this.getExportData(request, filters);
+      const generatedAt = new Date(timestamp).toISOString();
+      const payload =
+        request.format === "json"
+          ? JSON.stringify(
+              {
+                metadata: {
+                  type: request.type,
+                  restaurantId: request.restaurantId,
+                  dateFrom: request.dateFrom,
+                  dateTo: request.dateTo,
+                  groupBy: request.groupBy,
+                  generatedAt,
+                },
+                data,
+              },
+              null,
+              2,
+            )
+          : toCsv(data);
+      const contentType =
+        request.format === "json" ? "application/json" : "text/csv";
+      const downloadUrl = `data:${contentType};charset=utf-8,${encodeURIComponent(
+        payload,
+      )}`;
 
       const response: ExportResponse = {
         success: true,
@@ -383,6 +506,9 @@ export class AnalyticsService implements IAnalyticsService {
         data: {
           type: request.type,
           format: request.format,
+          filename,
+          content_type: contentType,
+          size_bytes: new TextEncoder().encode(payload).byteLength,
           period: {
             from: request.dateFrom,
             to: request.dateTo,
@@ -396,6 +522,7 @@ export class AnalyticsService implements IAnalyticsService {
         type: request.type,
         format: request.format,
         downloadUrl,
+        sizeBytes: response.data.size_bytes,
       });
 
       return response;
@@ -406,6 +533,29 @@ export class AnalyticsService implements IAnalyticsService {
         request,
       );
       throw new Error("Failed to generate export");
+    }
+  }
+
+  private async getExportData(
+    request: ExportRequest,
+    filters: AnalyticsFilters,
+  ): Promise<unknown> {
+    switch (request.type) {
+      case "dashboard":
+        return this.getDashboardData(
+          request.restaurantId,
+          typeof request.period === "string" ? request.period : undefined,
+        );
+      case "revenue":
+        return this.getRevenueAnalytics(filters);
+      case "products":
+        return this.getProductAnalytics(filters);
+      case "customers":
+        return this.getCustomerAnalytics(filters);
+      case "performance":
+        return this.getPerformanceAnalytics(filters);
+      default:
+        throw new Error(`Unsupported export type: ${request.type}`);
     }
   }
 

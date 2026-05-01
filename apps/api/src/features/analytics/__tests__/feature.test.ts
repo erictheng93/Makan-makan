@@ -25,6 +25,7 @@ const mockDatabaseAnalyticsService = {
   getMenuAnalytics: vi.fn(),
   getCustomerAnalytics: vi.fn(),
   getOrderAnalytics: vi.fn(),
+  generateExport: vi.fn(),
   getFinancialReport: vi.fn(),
   getRealtimeDashboard: vi.fn(),
 };
@@ -96,6 +97,71 @@ describe("Analytics Feature Tests", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockCacheService.get.mockResolvedValue(null); // Default: no cache
+    mockDatabaseAnalyticsService.getDashboardData.mockResolvedValue({
+      summary: {
+        todayRevenue: 0,
+        todayOrders: 0,
+        monthRevenue: 0,
+        monthOrders: 0,
+        growthRates: {
+          revenueGrowth: 0,
+          orderGrowth: 0,
+        },
+      },
+      recentOrders: [],
+      topSellingItems: [],
+      tableStatus: {
+        occupied: 0,
+        available: 0,
+        total: 0,
+      },
+    });
+    mockDatabaseAnalyticsService.getRevenueAnalytics.mockResolvedValue([]);
+    mockDatabaseAnalyticsService.getMenuAnalytics.mockResolvedValue({
+      popularItems: [],
+      categoryPerformance: [],
+      lowPerformingItems: [],
+    });
+    mockDatabaseAnalyticsService.getCustomerAnalytics.mockResolvedValue({
+      totalCustomers: 0,
+      newCustomers: 0,
+      returningCustomers: 0,
+      averageOrdersPerCustomer: 0,
+      customerLifetimeValue: 0,
+      topCustomers: [],
+    });
+    mockDatabaseAnalyticsService.getOrderAnalytics.mockResolvedValue({
+      totalOrders: 0,
+      completedOrders: 0,
+      cancelledOrders: 0,
+      averageOrderValue: 0,
+      totalRevenue: 0,
+      conversionRate: 0,
+      averagePreparationTime: 0,
+      popularTimeSlots: [],
+    });
+    mockDatabaseAnalyticsService.generateExport.mockImplementation(
+      async (request) => ({
+        success: true,
+        message: `${request.type} export generated successfully`,
+        data: {
+          type: request.type,
+          format: request.format,
+          filename: `${request.type}_123.${request.format}`,
+          content_type:
+            request.format === "csv" ? "text/csv" : "application/json",
+          size_bytes: 2,
+          period: {
+            from: request.dateFrom,
+            to: request.dateTo,
+          },
+          download_url: `data:${
+            request.format === "csv" ? "text/csv" : "application/json"
+          };charset=utf-8,%7B%7D`,
+          expires_at: "2024-01-02T00:00:00.000Z",
+        },
+      }),
+    );
 
     // Default mock for getRealtimeDashboard (used by getRealtimeData)
     mockDatabaseAnalyticsService.getRealtimeDashboard.mockResolvedValue({
