@@ -151,7 +151,7 @@ export class WaitingListService extends BaseService {
       // 1. 驗證輸入
       this.validateWaitingListData(data);
 
-      // 2. 檢查是否已在候位中（防止重複排隊）
+      // 2. 檢查是否已在候位中——idempotent: 同手機同餐廳同日已有 active 票就回傳現有票
       const existingEntry = await this.db.get<{ id: string }>(sql`
         SELECT id FROM waiting_list
         WHERE restaurant_id = ${data.restaurantId}
@@ -161,7 +161,16 @@ export class WaitingListService extends BaseService {
       `);
 
       if (existingEntry) {
-        throw new Error("您已在候位列表中");
+        const existing = await this.getWaitingListEntryById(existingEntry.id);
+        if (existing) {
+          // G4: don't reject — let the client see the ticket they already
+          // own. `alreadyJoined: true` lets the UI distinguish "first
+          // time" from "you already had a ticket open".
+          return { ...existing, alreadyJoined: true };
+        }
+        // Race: dedup query saw it but full lookup didn't (cancelled/
+        // expired between the two reads). Fall through and create a
+        // fresh ticket.
       }
 
       // 3. 生成排隊號碼

@@ -227,6 +227,13 @@ export interface WaitingListResponse extends WaitingListEntry {
     number: string;
     capacity: number;
   };
+  /**
+   * G4 idempotency marker. Set to `true` when joinWaitingList detects
+   * the same customer (restaurant + phone, same local day) already has
+   * an active ticket and returns it instead of creating a new one.
+   * Absent / undefined for fresh joins.
+   */
+  alreadyJoined?: boolean;
 }
 
 /**

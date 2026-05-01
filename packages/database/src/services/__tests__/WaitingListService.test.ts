@@ -82,7 +82,7 @@ describe("WaitingListService", () => {
       await expect(service.joinWaitingList(request)).rejects.toThrow();
     });
 
-    it("應該防止重複排隊", async () => {
+    it("G4: 重複登記時回傳現有票 + alreadyJoined=true（不再 throw）", async () => {
       const request = {
         restaurantId: "R-001",
         customerName: "張三",
@@ -90,16 +90,27 @@ describe("WaitingListService", () => {
         partySize: 4,
       };
 
-      // 設置已存在的記錄
+      // 既有 active 票
       mockDB._mockData.waitingList.set("existing", {
+        id: "existing",
         restaurant_id: "R-001",
         customer_phone: "0912345678",
+        customer_name: "張三",
+        party_size: 4,
+        queue_number: 5,
+        queue_letter: "B",
         status: "waiting",
+        created_at: Date.now(),
+        updated_at: Date.now(),
       });
 
-      await expect(service.joinWaitingList(request)).rejects.toThrow(
-        "您已在候位列表中",
-      );
+      const result = await service.joinWaitingList(request);
+
+      expect(result.alreadyJoined).toBe(true);
+      expect(result.id).toBe("existing");
+      expect(result.queueNumber).toBe(5);
+      expect(result.queueLetter).toBe("B");
+      expect(result.partiesAhead).toBeDefined();
     });
 
     it("應該生成正確的排隊號碼", async () => {
@@ -123,6 +134,117 @@ describe("WaitingListService", () => {
       expect(result2.queueNumber).toBeGreaterThan(result1.queueNumber);
       expect(result1.queueLetter).toBe("A"); // 2人桌
       expect(result2.queueLetter).toBe("A");
+    });
+
+    it("G4: 同手機已 cancelled → 視為新票（無 alreadyJoined）", async () => {
+      mockDB._mockData.waitingList.set("old-cancelled", {
+        id: "old-cancelled",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "cancelled",
+        queue_number: 3,
+        queue_letter: "A",
+      });
+
+      const result = await service.joinWaitingList({
+        restaurantId: "R-001",
+        customerName: "張三",
+        customerPhone: "0912345678",
+        partySize: 2,
+      });
+
+      expect(result.alreadyJoined).toBeUndefined();
+      expect(result.id).not.toBe("old-cancelled");
+      expect(result.status).toBe("waiting");
+    });
+
+    it("G4: 同手機已 seated → 視為新票", async () => {
+      mockDB._mockData.waitingList.set("old-seated", {
+        id: "old-seated",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "seated",
+      });
+
+      const result = await service.joinWaitingList({
+        restaurantId: "R-001",
+        customerName: "張三",
+        customerPhone: "0912345678",
+        partySize: 2,
+      });
+
+      expect(result.alreadyJoined).toBeUndefined();
+      expect(result.id).not.toBe("old-seated");
+    });
+
+    it("G4: 同手機已 expired → 視為新票", async () => {
+      mockDB._mockData.waitingList.set("old-expired", {
+        id: "old-expired",
+        restaurant_id: "R-001",
+        customer_phone: "0912345678",
+        status: "expired",
+      });
+
+      const result = await service.joinWaitingList({
+        restaurantId: "R-001",
+        customerName: "張三",
+        customerPhone: "0912345678",
+        partySize: 2,
+      });
+
+      expect(result.alreadyJoined).toBeUndefined();
+      expect(result.id).not.toBe("old-expired");
+    });
+
+    it("G4: 不同餐廳同手機 → 各自獨立票（不冪等）", async () => {
+      mockDB._mockData.waitingList.set("other-restaurant", {
+        id: "other-restaurant",
+        restaurant_id: "R-002",
+        customer_phone: "0912345678",
+        status: "waiting",
+      });
+
+      const result = await service.joinWaitingList({
+        restaurantId: "R-001",
+        customerName: "張三",
+        customerPhone: "0912345678",
+        partySize: 2,
+      });
+
+      expect(result.alreadyJoined).toBeUndefined();
+      expect(result.id).not.toBe("other-restaurant");
+      expect(result.restaurantId).toBe("R-001");
+    });
+
+    it("G4: race condition — dedup 查到但 full lookup 找不到時，視為新票", async () => {
+      // 模擬：dedup 查詢 (db.get) 回傳 { id }，但 getWaitingListEntryById 回 null
+      // 透過 mock 安排：waitingList map 沒有此 id，但 dedup query 能命中
+      const originalGet = mockDB.get;
+      let callCount = 0;
+      mockDB.get = vi.fn(async (...args: unknown[]) => {
+        callCount++;
+        // 第一次呼叫（dedup query）回傳一個假 id
+        if (callCount === 1) {
+          return { id: "ghost-id" };
+        }
+        // 後續呼叫沿用既有 mock 行為
+        return originalGet.apply(mockDB, args);
+      });
+
+      const result = await service.joinWaitingList({
+        restaurantId: "R-001",
+        customerName: "張三",
+        customerPhone: "0912345678",
+        partySize: 2,
+      });
+
+      // ghost-id 在 waitingList map 裡不存在 → getWaitingListEntryById 回 null
+      // → 程式碼 fall through，建立新票
+      expect(result.alreadyJoined).toBeUndefined();
+      expect(result.id).not.toBe("ghost-id");
+      expect(result.status).toBe("waiting");
+
+      mockDB.get = originalGet;
     });
   });
 
