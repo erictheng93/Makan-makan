@@ -6,6 +6,7 @@ import type {
   CreateIngredientRequest,
   UpdateIngredientRequest,
 } from "../types";
+import { toCents } from "../../../shared/utils/money";
 
 export class IngredientService {
   private db;
@@ -96,6 +97,7 @@ export class IngredientService {
         unit: data.unit,
         category: data.category ?? null,
         costPerUnit: data.costPerUnit ?? null,
+        costPerUnitCents: toCents(data.costPerUnit),
         supplier: data.supplier ?? null,
         minStockLevel: data.minStockLevel ?? null,
         currentStock: data.currentStock ?? null,
@@ -121,8 +123,10 @@ export class IngredientService {
     if (data.name !== undefined) updates.name = data.name;
     if (data.unit !== undefined) updates.unit = data.unit;
     if (data.category !== undefined) updates.category = data.category ?? null;
-    if (data.costPerUnit !== undefined)
+    if (data.costPerUnit !== undefined) {
       updates.costPerUnit = data.costPerUnit ?? null;
+      updates.costPerUnitCents = toCents(data.costPerUnit);
+    }
     if (data.supplier !== undefined) updates.supplier = data.supplier ?? null;
     if (data.minStockLevel !== undefined)
       updates.minStockLevel = data.minStockLevel ?? null;
@@ -174,6 +178,7 @@ export class IngredientService {
         unit: data.unit,
         category: data.category ?? null,
         costPerUnit: data.costPerUnit ?? null,
+        costPerUnitCents: toCents(data.costPerUnit),
         supplier: data.supplier ?? null,
         minStockLevel: data.minStockLevel ?? null,
         currentStock: data.currentStock ?? null,

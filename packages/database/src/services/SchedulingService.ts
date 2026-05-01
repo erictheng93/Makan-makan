@@ -29,6 +29,7 @@ import {
   NotificationService,
   type NotificationCategory,
 } from "./NotificationService";
+import { toCents } from "../utils/money";
 
 // ========================================
 // Types
@@ -51,6 +52,7 @@ export interface ShiftTemplate {
   minEmployees: number;
   maxEmployees: number;
   hourlyRate: number | null;
+  hourlyRateCents: number | null;
   overtimeMultiplier: number;
   colorCode: string;
   icon: string | null;
@@ -227,6 +229,7 @@ export class SchedulingService extends BaseService {
       .insert(shiftTemplates)
       .values({
         ...data,
+        hourlyRateCents: toCents(data.hourlyRate),
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -239,9 +242,17 @@ export class SchedulingService extends BaseService {
     id: number,
     data: Partial<ShiftTemplate>,
   ): Promise<ShiftTemplate> {
+    const updates = {
+      ...data,
+      ...(data.hourlyRate !== undefined && {
+        hourlyRateCents: toCents(data.hourlyRate),
+      }),
+      updatedAt: new Date(),
+    };
+
     const [updated] = await this.db
       .update(shiftTemplates)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updates)
       .where(eq(shiftTemplates.id, id))
       .returning();
 

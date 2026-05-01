@@ -19,6 +19,7 @@ export const dishSearchIndex = sqliteTable(
     dishNameNormalized: text("dish_name_normalized").notNull(),
     categoryName: text("category_name"),
     price: real("price"),
+    priceCents: integer("price_cents"),
     isAvailable: integer("is_available", { mode: "boolean" })
       .notNull()
       .default(true),

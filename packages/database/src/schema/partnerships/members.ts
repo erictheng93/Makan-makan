@@ -90,6 +90,8 @@ export const verifiedMembers = sqliteTable(
     totalUsageCount: integer("total_usage_count").default(0),
     totalDiscountReceived: real("total_discount_received").default(0),
     totalSpending: real("total_spending").default(0),
+    totalDiscountReceivedCents: integer("total_discount_received_cents"),
+    totalSpendingCents: integer("total_spending_cents"),
     lastUsedAt: integer("last_used_at_ms", { mode: "timestamp_ms" }),
 
     // 額外資訊

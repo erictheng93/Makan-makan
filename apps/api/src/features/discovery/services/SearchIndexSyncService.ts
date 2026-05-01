@@ -6,6 +6,7 @@ import {
   categories,
   restaurants,
 } from "@makanmakan/database";
+import { toCents } from "../../../shared/utils/money";
 
 export class SearchIndexSyncService {
   private db;
@@ -23,6 +24,7 @@ export class SearchIndexSyncService {
         id: menuItems.id,
         name: menuItems.name,
         price: menuItems.price,
+        priceCents: menuItems.priceCents,
         isAvailable: menuItems.isAvailable,
         tags: menuItems.tags,
         keywords: menuItems.keywords,
@@ -72,6 +74,7 @@ export class SearchIndexSyncService {
       dishNameNormalized: normalized,
       categoryName: item.categoryName,
       price: item.price,
+      priceCents: item.priceCents ?? toCents(item.price),
       isAvailable,
       tags,
       district: item.district,

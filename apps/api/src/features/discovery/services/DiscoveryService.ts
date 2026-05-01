@@ -1,16 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import {
-  eq,
-  and,
-  like,
-  gte,
-  lte,
-  inArray,
-  isNull,
-  desc,
-  asc,
-  sql,
-} from "drizzle-orm";
+import { eq, and, like, inArray, isNull, desc, asc, sql } from "drizzle-orm";
 import {
   dishSearchIndex,
   restaurants,
@@ -24,6 +13,11 @@ import type {
   SearchResponse,
 } from "../types";
 import { isOpenNow } from "../utils/isOpenNow";
+import {
+  fromCents,
+  toCents,
+  toRequiredCents,
+} from "../../../shared/utils/money";
 
 const KV_SEARCH_TTL = 15 * 60; // 15 minutes
 const KV_RESTAURANT_TTL = 30 * 60; // 30 minutes
@@ -69,10 +63,14 @@ export class DiscoveryService {
       conditions.push(eq(dishSearchIndex.district, filters.district));
     }
     if (filters.priceMin !== undefined) {
-      conditions.push(gte(dishSearchIndex.price, filters.priceMin));
+      conditions.push(
+        sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) >= ${toRequiredCents(filters.priceMin)}`,
+      );
     }
     if (filters.priceMax !== undefined) {
-      conditions.push(lte(dishSearchIndex.price, filters.priceMax));
+      conditions.push(
+        sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) <= ${toRequiredCents(filters.priceMax)}`,
+      );
     }
     if (filters.takeaway) {
       conditions.push(eq(dishSearchIndex.supportsTakeaway, true));
@@ -88,6 +86,7 @@ export class DiscoveryService {
           menuItemId: dishSearchIndex.menuItemId,
           dishName: dishSearchIndex.dishName,
           price: dishSearchIndex.price,
+          priceCents: dishSearchIndex.priceCents,
           categoryName: dishSearchIndex.categoryName,
           restaurantId: dishSearchIndex.restaurantId,
           restaurantName: restaurants.name,
@@ -103,7 +102,11 @@ export class DiscoveryService {
           eq(dishSearchIndex.restaurantId, restaurants.id),
         )
         .where(whereClause)
-        .orderBy(asc(dishSearchIndex.price))
+        .orderBy(
+          asc(
+            sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer))`,
+          ),
+        )
         .limit(limit)
         .offset(offset),
       this.db
@@ -143,6 +146,7 @@ export class DiscoveryService {
             menuItemId: dishSearchIndex.menuItemId,
             dishName: dishSearchIndex.dishName,
             price: dishSearchIndex.price,
+            priceCents: dishSearchIndex.priceCents,
             categoryName: dishSearchIndex.categoryName,
             restaurantId: dishSearchIndex.restaurantId,
             restaurantName: restaurants.name,
@@ -172,7 +176,8 @@ export class DiscoveryService {
     let results: DishSearchResult[] = allRows.map((row) => ({
       menuItemId: row.menuItemId,
       dishName: row.dishName,
-      price: row.price ?? 0,
+      price:
+        row.priceCents != null ? fromCents(row.priceCents) : (row.price ?? 0),
       categoryName: row.categoryName,
       restaurantId: row.restaurantId,
       restaurantName: row.restaurantName,
@@ -333,6 +338,7 @@ export class DiscoveryService {
         menuItemId: dishSearchIndex.menuItemId,
         dishName: dishSearchIndex.dishName,
         price: dishSearchIndex.price,
+        priceCents: dishSearchIndex.priceCents,
         categoryName: dishSearchIndex.categoryName,
         restaurantId: dishSearchIndex.restaurantId,
         restaurantName: restaurants.name,
@@ -353,7 +359,8 @@ export class DiscoveryService {
     const dishes: DishSearchResult[] = topDishes.map((row) => ({
       menuItemId: row.menuItemId,
       dishName: row.dishName,
-      price: row.price ?? 0,
+      price:
+        row.priceCents != null ? fromCents(row.priceCents) : (row.price ?? 0),
       categoryName: row.categoryName,
       restaurantId: row.restaurantId,
       restaurantName: row.restaurantName,
@@ -378,7 +385,7 @@ export class DiscoveryService {
         id: menuItems.id,
         name: menuItems.name,
         description: menuItems.description,
-        price: menuItems.price,
+        price: sql<number>`COALESCE(${menuItems.priceCents}, CAST(round(${menuItems.price} * 100) AS integer)) / 100.0`,
         is_available: menuItems.isAvailable,
         image_url: menuItems.imageUrl,
         category_name: categories.name,
@@ -407,6 +414,7 @@ export class DiscoveryService {
         menuItemId: menuItems.id,
         name: menuItems.name,
         price: menuItems.price,
+        priceCents: menuItems.priceCents,
         isAvailable: menuItems.isAvailable,
         tags: menuItems.tags,
         keywords: menuItems.keywords,
@@ -441,8 +449,8 @@ export class DiscoveryService {
         this.d1
           .prepare(
             `INSERT OR REPLACE INTO dish_search_index
-             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, updated_at_ms)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, price_cents, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, updated_at_ms)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             item.menuItemId,
@@ -451,6 +459,7 @@ export class DiscoveryService {
             normalized,
             item.categoryName,
             item.price,
+            item.priceCents ?? toCents(item.price),
             isAvailable ? 1 : 0,
             JSON.stringify(itemTags),
             item.district,
@@ -482,6 +491,7 @@ export class DiscoveryService {
         restaurantId: dishSearchIndex.restaurantId,
         dishName: dishSearchIndex.dishName,
         price: dishSearchIndex.price,
+        priceCents: dishSearchIndex.priceCents,
         tags: dishSearchIndex.tags,
       })
       .from(dishSearchIndex)
@@ -505,7 +515,10 @@ export class DiscoveryService {
           menuItemId: row.menuItemId,
           restaurantId: row.restaurantId,
           dishName: row.dishName,
-          price: row.price ?? 0,
+          price:
+            row.priceCents != null
+              ? fromCents(row.priceCents)
+              : (row.price ?? 0),
         });
       }
     }

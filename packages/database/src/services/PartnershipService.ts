@@ -7,6 +7,7 @@ import { eq, and, gte, lte, sql, desc, or, like } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { BaseService } from "./base";
 import { paginateWithCursor } from "../utils/pagination-helpers";
+import { fromCents, toCents, toRequiredCents } from "../utils/money";
 import {
   partnerships,
   partnershipPlans,
@@ -113,6 +114,17 @@ export interface UsageStatistics {
 // ================================================
 
 export class PartnershipService extends BaseService {
+  private discountValueCents(
+    discountType: string | null | undefined,
+    discountValue: number | null | undefined,
+  ): number | null {
+    if (discountValue == null || discountType === "percentage") {
+      return null;
+    }
+
+    return toRequiredCents(discountValue);
+  }
+
   // ================================================
   // PARTNERSHIP MANAGEMENT (合作夥伴管理)
   // ================================================
@@ -123,7 +135,15 @@ export class PartnershipService extends BaseService {
   async createPartnership(data: NewPartnership): Promise<Partnership> {
     const [result] = await this.db
       .insert(partnerships)
-      .values(data)
+      .values({
+        ...data,
+        defaultDiscountValueCents: this.discountValueCents(
+          data.defaultDiscountType,
+          data.defaultDiscountValue,
+        ),
+        totalDiscountGivenCents: toRequiredCents(data.totalDiscountGiven ?? 0),
+        totalRevenueCents: toRequiredCents(data.totalRevenue ?? 0),
+      })
       .returning();
     return result;
   }
@@ -222,9 +242,34 @@ export class PartnershipService extends BaseService {
     id: string,
     data: Partial<NewPartnership>,
   ): Promise<Partnership> {
+    const updates: Partial<NewPartnership> = { ...data, updatedAt: new Date() };
+
+    if (
+      data.defaultDiscountType !== undefined ||
+      data.defaultDiscountValue !== undefined
+    ) {
+      const current =
+        data.defaultDiscountType === undefined ||
+        data.defaultDiscountValue === undefined
+          ? await this.getPartnership(id)
+          : undefined;
+      updates.defaultDiscountValueCents = this.discountValueCents(
+        data.defaultDiscountType ?? current?.defaultDiscountType,
+        data.defaultDiscountValue ?? current?.defaultDiscountValue,
+      );
+    }
+
+    if (data.totalDiscountGiven !== undefined) {
+      updates.totalDiscountGivenCents = toCents(data.totalDiscountGiven);
+    }
+
+    if (data.totalRevenue !== undefined) {
+      updates.totalRevenueCents = toCents(data.totalRevenue);
+    }
+
     const [result] = await this.db
       .update(partnerships)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updates)
       .where(eq(partnerships.id, id))
       .returning();
 
@@ -247,8 +292,8 @@ export class PartnershipService extends BaseService {
     const stats = await this.db
       .select({
         totalUsageCount: sql<number>`COUNT(${partnershipUsageLogs.id})`,
-        totalDiscountGiven: sql<number>`COALESCE(SUM(${partnershipUsageLogs.discountAmount}), 0)`,
-        totalRevenue: sql<number>`COALESCE(SUM(${partnershipUsageLogs.finalAmount}), 0)`,
+        totalDiscountGiven: sql<number>`COALESCE(SUM(COALESCE(${partnershipUsageLogs.discountAmountCents}, CAST(round(${partnershipUsageLogs.discountAmount} * 100) AS integer))), 0) / 100.0`,
+        totalRevenue: sql<number>`COALESCE(SUM(COALESCE(${partnershipUsageLogs.finalAmountCents}, CAST(round(${partnershipUsageLogs.finalAmount} * 100) AS integer))), 0) / 100.0`,
         uniqueMembers: sql<number>`COUNT(DISTINCT ${partnershipUsageLogs.memberId})`,
       })
       .from(partnershipUsageLogs)
@@ -289,7 +334,18 @@ export class PartnershipService extends BaseService {
   async createPlan(data: NewPartnershipPlan): Promise<PartnershipPlan> {
     const [result] = await this.db
       .insert(partnershipPlans)
-      .values(data)
+      .values({
+        ...data,
+        discountValueCents: this.discountValueCents(
+          data.discountType,
+          data.discountValue,
+        ),
+        maxDiscountAmountCents: toCents(data.maxDiscountAmount),
+        minOrderAmountCents: toRequiredCents(data.minOrderAmount ?? 0),
+        maxOrderAmountCents: toCents(data.maxOrderAmount),
+        totalDiscountGivenCents: toRequiredCents(data.totalDiscountGiven ?? 0),
+        totalRevenueCents: toRequiredCents(data.totalRevenue ?? 0),
+      })
       .returning();
     return result;
   }
@@ -379,9 +435,47 @@ export class PartnershipService extends BaseService {
     id: string,
     data: Partial<NewPartnershipPlan>,
   ): Promise<PartnershipPlan> {
+    const updates: Partial<NewPartnershipPlan> = {
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    if (data.discountType !== undefined || data.discountValue !== undefined) {
+      const current =
+        data.discountType === undefined || data.discountValue === undefined
+          ? await this.db.query.partnershipPlans.findFirst({
+              where: eq(partnershipPlans.id, id),
+            })
+          : undefined;
+      updates.discountValueCents = this.discountValueCents(
+        data.discountType ?? current?.discountType,
+        data.discountValue ?? current?.discountValue,
+      );
+    }
+
+    if (data.maxDiscountAmount !== undefined) {
+      updates.maxDiscountAmountCents = toCents(data.maxDiscountAmount);
+    }
+
+    if (data.minOrderAmount !== undefined) {
+      updates.minOrderAmountCents = toRequiredCents(data.minOrderAmount ?? 0);
+    }
+
+    if (data.maxOrderAmount !== undefined) {
+      updates.maxOrderAmountCents = toCents(data.maxOrderAmount);
+    }
+
+    if (data.totalDiscountGiven !== undefined) {
+      updates.totalDiscountGivenCents = toCents(data.totalDiscountGiven);
+    }
+
+    if (data.totalRevenue !== undefined) {
+      updates.totalRevenueCents = toCents(data.totalRevenue);
+    }
+
     const [result] = await this.db
       .update(partnershipPlans)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updates)
       .where(eq(partnershipPlans.id, id))
       .returning();
 
@@ -460,14 +554,28 @@ export class PartnershipService extends BaseService {
         }
       }
 
+      const orderAmountCents = toRequiredCents(orderAmount);
+      const minOrderAmountCents =
+        plan.minOrderAmountCents ?? toRequiredCents(plan.minOrderAmount ?? 0);
+      const maxOrderAmountCents = toCents(plan.maxOrderAmount);
+
       // 檢查最低消費金額
-      if (plan.minOrderAmount && orderAmount < plan.minOrderAmount) {
-        return { valid: false, error: `最低消費金額為 ${plan.minOrderAmount}` };
+      if (minOrderAmountCents > 0 && orderAmountCents < minOrderAmountCents) {
+        return {
+          valid: false,
+          error: `最低消費金額為 ${fromCents(minOrderAmountCents)}`,
+        };
       }
 
       // 檢查最高消費金額
-      if (plan.maxOrderAmount && orderAmount > plan.maxOrderAmount) {
-        return { valid: false, error: `最高消費金額為 ${plan.maxOrderAmount}` };
+      if (
+        maxOrderAmountCents !== null &&
+        orderAmountCents > maxOrderAmountCents
+      ) {
+        return {
+          valid: false,
+          error: `最高消費金額為 ${fromCents(maxOrderAmountCents)}`,
+        };
       }
 
       // 檢查時間限制（星期幾）
@@ -491,37 +599,48 @@ export class PartnershipService extends BaseService {
       }
 
       // 計算折扣金額
-      let discountAmount = 0;
+      let discountAmountCents = 0;
 
       switch (plan.discountType) {
         case "percentage":
-          discountAmount = orderAmount * (plan.discountValue / 100);
-          if (
-            plan.maxDiscountAmount &&
-            discountAmount > plan.maxDiscountAmount
-          ) {
-            discountAmount = plan.maxDiscountAmount;
+          discountAmountCents = Math.round(
+            orderAmountCents * (plan.discountValue / 100),
+          );
+          if (plan.maxDiscountAmount || plan.maxDiscountAmountCents != null) {
+            const maxDiscountAmountCents =
+              plan.maxDiscountAmountCents ??
+              toRequiredCents(plan.maxDiscountAmount ?? 0);
+            if (discountAmountCents > maxDiscountAmountCents) {
+              discountAmountCents = maxDiscountAmountCents;
+            }
           }
           break;
 
         case "fixed":
-          discountAmount = plan.discountValue;
+          discountAmountCents =
+            plan.discountValueCents ?? toRequiredCents(plan.discountValue);
           break;
 
         case "special_price":
           // 特價模式：折扣金額 = 原價 - 特價
-          discountAmount = orderAmount - plan.discountValue;
-          if (discountAmount < 0) discountAmount = 0;
+          discountAmountCents =
+            orderAmountCents -
+            (plan.discountValueCents ?? toRequiredCents(plan.discountValue));
+          if (discountAmountCents < 0) discountAmountCents = 0;
           break;
       }
 
-      const finalAmount = orderAmount - discountAmount;
+      discountAmountCents = Math.min(discountAmountCents, orderAmountCents);
+      const finalAmountCents = Math.max(
+        0,
+        orderAmountCents - discountAmountCents,
+      );
 
       return {
         valid: true,
         plan,
-        discountAmount,
-        finalAmount,
+        discountAmount: fromCents(discountAmountCents),
+        finalAmount: fromCents(finalAmountCents),
         canCombineWithOthers: {
           coupons: !!plan.canCombineWithCoupons,
           promotions: !!plan.canCombineWithPromotions,
@@ -706,9 +825,22 @@ export class PartnershipService extends BaseService {
     id: string,
     data: Partial<NewVerifiedMember>,
   ): Promise<VerifiedMember> {
+    const updates: Partial<NewVerifiedMember> = {
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    if (data.totalDiscountReceived !== undefined) {
+      updates.totalDiscountReceivedCents = toCents(data.totalDiscountReceived);
+    }
+
+    if (data.totalSpending !== undefined) {
+      updates.totalSpendingCents = toCents(data.totalSpending);
+    }
+
     const [result] = await this.db
       .update(verifiedMembers)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updates)
       .where(eq(verifiedMembers.id, id))
       .returning();
 
@@ -732,7 +864,16 @@ export class PartnershipService extends BaseService {
   async logUsage(data: NewPartnershipUsageLog): Promise<PartnershipUsageLog> {
     const [result] = await this.db
       .insert(partnershipUsageLogs)
-      .values(data)
+      .values({
+        ...data,
+        discountValueCents: this.discountValueCents(
+          data.discountType,
+          data.discountValue,
+        ),
+        discountAmountCents: toRequiredCents(data.discountAmount),
+        originalAmountCents: toRequiredCents(data.originalAmount),
+        finalAmountCents: toRequiredCents(data.finalAmount),
+      })
       .returning();
     return result;
   }

@@ -55,6 +55,7 @@ export const shiftTemplates = sqliteTable(
 
     // Compensation
     hourlyRate: real("hourly_rate"),
+    hourlyRateCents: integer("hourly_rate_cents"),
     overtimeMultiplier: real("overtime_multiplier").default(1.5),
 
     // Visual Settings

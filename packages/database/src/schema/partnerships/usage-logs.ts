@@ -75,10 +75,14 @@ export const partnershipUsageLogs = sqliteTable(
     discountType: text("discount_type").notNull(),
     discountValue: real("discount_value").notNull(),
     discountAmount: real("discount_amount").notNull(),
+    discountValueCents: integer("discount_value_cents"),
+    discountAmountCents: integer("discount_amount_cents"),
 
     // 訂單資訊
     originalAmount: real("original_amount").notNull(),
     finalAmount: real("final_amount").notNull(),
+    originalAmountCents: integer("original_amount_cents"),
+    finalAmountCents: integer("final_amount_cents"),
     orderItems: text("order_items", { mode: "json" })
       .$type<any[]>()
       .default([]),
