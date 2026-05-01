@@ -749,7 +749,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
 import {
   Dialog,
   DialogPanel,
@@ -782,8 +782,10 @@ import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { WaitingListService } from "@/services/waitingListService";
+import { useWebSocketService } from "@/services/websocketService";
 import { format } from "date-fns";
 import {
+  RealtimeEventType,
   WaitingStatus,
   type WaitingListEntry,
   type JoinWaitingListRequest,
@@ -807,8 +809,18 @@ interface WaitingListResponseWithPagination {
 
 const toast = useToast();
 const authStore = useAuthStore();
+const wsService = useWebSocketService();
 const { t } = useI18n();
 const { confirm: confirmModal } = useConfirmModal();
+
+const WAITING_LIST_REALTIME_EVENTS: RealtimeEventType[] = [
+  RealtimeEventType.WAITING_LIST_JOINED,
+  RealtimeEventType.WAITING_LIST_CALLED,
+  RealtimeEventType.WAITING_LIST_CONFIRMED,
+  RealtimeEventType.WAITING_LIST_SEATED,
+  RealtimeEventType.WAITING_LIST_CANCELLED,
+  RealtimeEventType.WAITING_LIST_EXPIRED,
+];
 
 // State
 const loading = ref(false);
@@ -851,6 +863,10 @@ const callForm = reactive({
   notificationMethod: "both" as "sms" | "display" | "both",
 });
 
+let waitingRealtimeSubscriptionId: string | null = null;
+let waitingRealtimeRefreshTimer: number | null = null;
+let waitingRealtimeActive = false;
+
 // Restaurant ID — use authStore.restaurantId which handles admin managing other restaurants
 const restaurantId = computed(() => authStore.restaurantId || "");
 
@@ -889,6 +905,62 @@ async function loadQueueStatus() {
       (await WaitingListService.getQueueStatus(restaurantId.value)) ?? null;
   } catch (error) {
     console.error("Load queue status error:", error);
+  }
+}
+
+async function refreshWaitingData() {
+  await Promise.all([loadWaitingList(), loadQueueStatus()]);
+}
+
+function scheduleRealtimeRefresh() {
+  if (waitingRealtimeRefreshTimer !== null) return;
+
+  waitingRealtimeRefreshTimer = window.setTimeout(() => {
+    waitingRealtimeRefreshTimer = null;
+    void refreshWaitingData();
+  }, 250);
+}
+
+async function startWaitingRealtime() {
+  const currentRestaurantId = restaurantId.value;
+  if (!currentRestaurantId || waitingRealtimeSubscriptionId) return;
+
+  waitingRealtimeActive = true;
+
+  try {
+    await wsService.connect(currentRestaurantId);
+
+    if (
+      !waitingRealtimeActive ||
+      waitingRealtimeSubscriptionId ||
+      restaurantId.value !== currentRestaurantId
+    ) {
+      return;
+    }
+
+    waitingRealtimeSubscriptionId = wsService.subscribe(
+      WAITING_LIST_REALTIME_EVENTS,
+      (event) => {
+        if (event.restaurantId !== restaurantId.value) return;
+        scheduleRealtimeRefresh();
+      },
+    );
+  } catch (error) {
+    console.error("Waiting list realtime connect error:", error);
+  }
+}
+
+function stopWaitingRealtime() {
+  waitingRealtimeActive = false;
+
+  if (waitingRealtimeSubscriptionId) {
+    wsService.unsubscribe(waitingRealtimeSubscriptionId);
+    waitingRealtimeSubscriptionId = null;
+  }
+
+  if (waitingRealtimeRefreshTimer !== null) {
+    window.clearTimeout(waitingRealtimeRefreshTimer);
+    waitingRealtimeRefreshTimer = null;
   }
 }
 
@@ -1106,5 +1178,10 @@ function getStatusBadgeClass(status: string): string {
 onMounted(async () => {
   await loadWaitingList();
   await loadQueueStatus();
+  await startWaitingRealtime();
+});
+
+onUnmounted(() => {
+  stopWaitingRealtime();
 });
 </script>

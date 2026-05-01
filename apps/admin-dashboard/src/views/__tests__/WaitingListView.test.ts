@@ -100,6 +100,22 @@ vi.mock("@/services/waitingListService", () => ({
   WaitingListService: mockWaitingListService,
 }));
 
+const mockWebSocketService = vi.hoisted(() => {
+  const state: any = {
+    waitingCallback: undefined,
+  };
+  state.connect = vi.fn().mockResolvedValue(undefined);
+  state.subscribe = vi.fn((_eventTypes: unknown, callback: unknown) => {
+    state.waitingCallback = callback;
+    return "waiting-list-subscription";
+  });
+  state.unsubscribe = vi.fn();
+  return state;
+});
+vi.mock("@/services/websocketService", () => ({
+  useWebSocketService: () => mockWebSocketService,
+}));
+
 // Mock useConfirmModal — auto-resolves to true by default
 const mockWaitingConfirmModalFn = vi.fn().mockResolvedValue(true);
 vi.mock("@/composables/useConfirmModal", () => ({
@@ -237,6 +253,14 @@ describe("WaitingListView Component", () => {
     setActivePinia(createPinia());
     // Restore default confirm modal behavior after clearAllMocks
     mockWaitingConfirmModalFn.mockResolvedValue(true);
+    mockWebSocketService.waitingCallback = undefined;
+    mockWebSocketService.connect.mockResolvedValue(undefined);
+    mockWebSocketService.subscribe.mockImplementation(
+      (_eventTypes: unknown, callback: unknown) => {
+        mockWebSocketService.waitingCallback = callback;
+        return "waiting-list-subscription";
+      },
+    );
     setupServiceMocks();
   });
 
@@ -264,6 +288,69 @@ describe("WaitingListView Component", () => {
       );
       expect(mockWaitingListService.getQueueStatus).toHaveBeenCalledWith(
         "R-001",
+      );
+    });
+
+    it("should subscribe to waiting list realtime lifecycle events", async () => {
+      mountComponent();
+      await flushPromises();
+
+      expect(mockWebSocketService.connect).toHaveBeenCalledWith("R-001");
+      expect(mockWebSocketService.subscribe).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          "waiting_list_joined",
+          "waiting_list_called",
+          "waiting_list_confirmed",
+          "waiting_list_seated",
+          "waiting_list_cancelled",
+          "waiting_list_expired",
+        ]),
+        expect.any(Function),
+      );
+    });
+
+    it("should refresh queue data when a waiting realtime event arrives", async () => {
+      const wrapper = mountComponent();
+      await flushPromises();
+
+      expect(mockWebSocketService.waitingCallback).toEqual(
+        expect.any(Function),
+      );
+
+      vi.useFakeTimers();
+      vi.clearAllMocks();
+      setupServiceMocks();
+
+      mockWebSocketService.waitingCallback({
+        type: "waiting_list_joined",
+        eventId: "evt-001",
+        timestamp: Date.now(),
+        restaurantId: "R-001",
+        data: {
+          entryId: "wl-004",
+          queueDisplay: "A004",
+          status: "waiting",
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(250);
+      vi.useRealTimers();
+      await flushPromises();
+
+      expect(mockWaitingListService.listWaitingList).toHaveBeenCalledTimes(1);
+      expect(mockWaitingListService.getQueueStatus).toHaveBeenCalledTimes(1);
+
+      wrapper.unmount();
+    });
+
+    it("should unsubscribe from waiting realtime events on unmount", async () => {
+      const wrapper = mountComponent();
+      await flushPromises();
+
+      wrapper.unmount();
+
+      expect(mockWebSocketService.unsubscribe).toHaveBeenCalledWith(
+        "waiting-list-subscription",
       );
     });
   });
