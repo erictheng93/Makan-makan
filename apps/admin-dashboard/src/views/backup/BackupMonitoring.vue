@@ -459,7 +459,7 @@ const loadPerformanceData = async () => {
     // Group by day and compute success rates
     const dayMap = new Map<string, { total: number; success: number }>();
     for (const backup of allBackups) {
-      const day = new Date(backup.created_at).toISOString().split("T")[0];
+      const day = new Date(backup.started_at).toISOString().split("T")[0];
       const entry = dayMap.get(day) || { total: 0, success: 0 };
       entry.total++;
       if (backup.status === "completed") entry.success++;

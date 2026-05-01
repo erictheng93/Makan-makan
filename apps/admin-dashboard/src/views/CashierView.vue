@@ -934,6 +934,8 @@ interface ShiftReportPayload {
   avgOrderValue?: number;
   refundCount?: number;
   systemCashAmount?: number;
+  orders?: number;
+  refunds?: number;
 }
 
 // 響應式數據
@@ -1343,9 +1345,10 @@ const openShiftReport = async () => {
         totalRevenue: report.sales?.total ?? report.totalRevenue ?? 0,
         totalOrders: report.orders ?? 0,
         avgOrderValue:
-          report.orders > 0
-            ? Math.round(((report.sales?.total ?? 0) / report.orders) * 100) /
-              100
+          (report.orders ?? 0) > 0
+            ? Math.round(
+                ((report.sales?.total ?? 0) / (report.orders ?? 1)) * 100,
+              ) / 100
             : 0,
         refundCount: report.refunds ?? 0,
         systemCashAmount: report.sales?.cash ?? 0,

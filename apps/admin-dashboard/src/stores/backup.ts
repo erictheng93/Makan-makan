@@ -26,6 +26,19 @@ export type {
 // Import the actual API client
 import { apiClient, unwrapApiData } from "@/services/api";
 
+// Shape returned by GET /backup/restaurants/:id/metrics. Defined locally
+// because the shared-types BackupMetrics interface is a richer KPI model that
+// the current API does not yet populate. last_backup_at is reserved for a
+// future API enhancement; today the response omits it.
+export interface RestaurantBackupMetrics {
+  total_backups: number;
+  successful_backups: number;
+  failed_backups: number;
+  avg_backup_size: number;
+  total_storage_used: number;
+  last_backup_at?: string;
+}
+
 export const useBackupStore = defineStore("backup", () => {
   // State
   const isLoading = ref(false);
@@ -193,7 +206,7 @@ export const useBackupStore = defineStore("backup", () => {
           params: { period },
         },
       );
-      return unwrapApiData<Record<string, unknown>>(response);
+      return unwrapApiData<RestaurantBackupMetrics>(response);
     } catch (error) {
       console.error("Error getting restaurant metrics:", error);
       throw error;
