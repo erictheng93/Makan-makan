@@ -1,6 +1,6 @@
 # Technical Debt & TODO Backlog
 
-Last reviewed: 2026-05-01
+Last reviewed: 2026-05-02
 
 This backlog is based on a repository-wide scan of code, tests, docs, and
 Cloudflare configuration. It focuses on unresolved implementation work,
@@ -9,10 +9,17 @@ PRs.
 
 ## Review Notes
 
-- 2026-05-01 follow-up scan: current working tree still has 65 unchecked
-  backlog items in this document, 37 active `TODO` comments in `apps/`,
-  `packages/`, and `scripts/`, 16 production `REPLACE_ME__PRODUCTION`
-  Cloudflare placeholders, and 14 E2E `test.skip` / `fixme` markers.
+- 2026-05-02 follow-up scan: current working tree still has 65 unchecked
+  backlog items in this document, **35 source files** containing `// TODO`
+  comments (172 total `// TODO` lines) under `apps/`, `packages/`, and
+  `scripts/`, 16 production `REPLACE_ME__PRODUCTION` Cloudflare placeholders,
+  and 14 E2E `test.skip` / `fixme` markers.
+  - Counting rule for the TODO scan (reproducible): `grep -rE "//[[:space:]]*TODO"
+    apps packages scripts --include="*.ts" --include="*.tsx" --include="*.js"
+    --include="*.cjs" --include="*.vue"`, excluding `node_modules`, `*.disabled`,
+    `*.old`, and `*.backup` paths. Use `-l` for the file count and the bare form
+    for the line count. Earlier "37 active TODO" notes were a file count, not a
+    line count — recording both here removes the ambiguity.
 - 2026-05-01 follow-up verification: analytics export generation is no longer
   a placeholder after `fix(api): implement analytics export generation`; it now
   builds JSON/CSV export payloads and returns metadata plus a data URL. QR scan
