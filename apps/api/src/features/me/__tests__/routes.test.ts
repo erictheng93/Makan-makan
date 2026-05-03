@@ -51,6 +51,22 @@ vi.mock("../../subscriptions/services/SubscriptionService", () => ({
   },
 }));
 
+const mockUsageService = {
+  getCurrentUsage: vi.fn().mockResolvedValue({
+    cycleStartAt: 100,
+    cycleEndAt: 200,
+    meters: [{ meterKey: "orders.created", total: 2 }],
+  }),
+};
+
+vi.mock("../../billing/services/UsageService", () => ({
+  UsageService: class MockUsageService {
+    constructor() {
+      Object.assign(this, mockUsageService);
+    }
+  },
+}));
+
 import meRoutes from "../routes";
 
 function createMockKV(cached: unknown = null) {
@@ -99,6 +115,11 @@ describe("me modules routes", () => {
     mockUser = { id: 1, username: "staff", role: 1, restaurantId: "rest-1" };
     mockService.getByRestaurantId.mockResolvedValue(mockSubRow);
     mockService.getEffectiveModules.mockReturnValue(mockEffectiveModules);
+    mockUsageService.getCurrentUsage.mockResolvedValue({
+      cycleStartAt: 100,
+      cycleEndAt: 200,
+      meters: [{ meterKey: "orders.created", total: 2 }],
+    });
   });
 
   it("returns effective modules for staff restaurant subscriptions", async () => {
@@ -173,5 +194,31 @@ describe("me modules routes", () => {
     expect(body.data.restaurantId).toBe("rest-1");
     expect(body.data.planTier).toBeNull();
     expect(body.data.effectiveModules).toEqual({});
+  });
+
+  it("returns current usage for staff restaurant subscriptions", async () => {
+    const { app } = buildApp();
+
+    const res = await app.request("http://localhost/me/usage");
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data).toMatchObject({
+      cycleStartAt: 100,
+      cycleEndAt: 200,
+    });
+    expect(mockUsageService.getCurrentUsage).toHaveBeenCalledWith("rest-1");
+  });
+
+  it("returns empty usage for customers", async () => {
+    mockUser = { id: 5, username: "customer", role: 5, restaurantId: "rest-1" };
+    const { app } = buildApp();
+
+    const res = await app.request("http://localhost/me/usage");
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data.meters).toEqual([]);
+    expect(mockUsageService.getCurrentUsage).not.toHaveBeenCalled();
   });
 });

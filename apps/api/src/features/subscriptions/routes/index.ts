@@ -10,6 +10,8 @@ import { zValidator } from "@hono/zod-validator";
 import type { Env } from "../../../types/env";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { invalidateSubscriptionCache } from "../../../middleware/moduleGate";
+import { badRequest } from "../../../shared/utils/api-error";
+import { UsageService } from "../../billing/services/UsageService";
 import { SubscriptionService } from "../services/SubscriptionService";
 import {
   createSubscriptionSchema,
@@ -23,6 +25,39 @@ const router = new Hono<{ Bindings: Env }>();
 // All subscription management routes require admin access
 router.use("*", authMiddleware, requireRole([0]));
 
+router.get("/:restaurantId/usage", async (c) => {
+  const { from, to } = parseDateRange(c.req.query("from"), c.req.query("to"));
+  const service = new UsageService(c.env.DB);
+  const restaurantId = c.req.param("restaurantId");
+
+  return c.json({
+    success: true,
+    data: {
+      restaurantId,
+      current: await service.getCurrentUsage(restaurantId),
+      cycles: await service.listCycleUsage(restaurantId, from, to),
+    },
+  });
+});
+
+router.get("/:restaurantId/usage/events", async (c) => {
+  const { from, to } = parseDateRange(c.req.query("from"), c.req.query("to"));
+  const limit = parsePositiveInt(c.req.query("limit"), 50, 200);
+  const page = parsePositiveInt(c.req.query("page"), 1, 10_000);
+  const service = new UsageService(c.env.DB);
+
+  return c.json({
+    success: true,
+    data: await service.listUsageEvents(c.req.param("restaurantId"), {
+      meterKey: c.req.query("meterKey") as never,
+      from,
+      to,
+      page,
+      limit,
+    }),
+  });
+});
+
 // ─── List all subscriptions ───────────────────────────────────────────────────
 router.get("/", async (c) => {
   const service = new SubscriptionService(c.env.DB);
@@ -35,6 +70,33 @@ router.get("/", async (c) => {
 
   return c.json({ success: true, data: withModules });
 });
+
+function parseDateRange(from?: string, to?: string) {
+  return {
+    from: parseIsoDate(from, "from"),
+    to: parseIsoDate(to, "to"),
+  };
+}
+
+function parseIsoDate(value: string | undefined, field: string) {
+  if (!value) return undefined;
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    throw badRequest(`Invalid ${field} date`, "INVALID_DATE");
+  }
+  return parsed;
+}
+
+function parsePositiveInt(
+  value: string | undefined,
+  fallback: number,
+  max: number,
+) {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
 
 // ─── Get single subscription ──────────────────────────────────────────────────
 router.get("/:restaurantId", async (c) => {

@@ -35,6 +35,7 @@ export * from "./feedback";
 export * from "./subscriptions";
 export * from "./usage-events";
 export * from "./usage-meters";
+export * from "./storage-counters";
 export * from "./idempotency-keys";
 export * from "./data-integrity-audit";
 
@@ -129,6 +130,7 @@ export { shopFeedbackRelations, feedbackResponsesRelations } from "./feedback";
 export { shopSubscriptionsRelations } from "./subscriptions";
 export { usageEventsRelations } from "./usage-events";
 export { usageMetersRelations } from "./usage-meters";
+export { storageCountersRelations } from "./storage-counters";
 
 // 重新匯出類型
 export type { UserRole } from "./users";

@@ -56,6 +56,7 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "shift_templates",
   "shop_feedback",
   "shop_subscriptions",
+  "storage_counters",
   "system_alerts",
   "tables",
   "usage_events",

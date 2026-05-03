@@ -85,6 +85,36 @@ vi.mock("../services/SubscriptionService", () => ({
   },
 }));
 
+const mockUsageService = {
+  getCurrentUsage: vi.fn().mockResolvedValue({
+    cycleStartAt: 100,
+    cycleEndAt: 200,
+    meters: [{ meterKey: "orders.created", total: 3 }],
+  }),
+  listCycleUsage: vi.fn().mockResolvedValue([
+    {
+      cycleStartAt: 100,
+      cycleEndAt: 200,
+      meters: { "orders.created": 3 },
+      lastAggregatedAt: 150,
+    },
+  ]),
+  listUsageEvents: vi.fn().mockResolvedValue({
+    page: 1,
+    limit: 50,
+    total: 1,
+    events: [{ id: "evt-1", meterKey: "orders.created", quantity: 1 }],
+  }),
+};
+
+vi.mock("../../billing/services/UsageService", () => ({
+  UsageService: class MockUsageService {
+    constructor() {
+      Object.assign(this, mockUsageService);
+    }
+  },
+}));
+
 // ---------------------------------------------------------------------------
 // App under test
 // ---------------------------------------------------------------------------
@@ -143,8 +173,71 @@ describe("Admin Subscription Routes", () => {
     mockService.changePlan.mockResolvedValue(mockSubRow);
     mockService.setActive.mockResolvedValue(mockSubRow);
     mockService.getEffectiveModules.mockReturnValue(mockEffectiveModules);
+    mockUsageService.getCurrentUsage.mockResolvedValue({
+      cycleStartAt: 100,
+      cycleEndAt: 200,
+      meters: [{ meterKey: "orders.created", total: 3 }],
+    });
+    mockUsageService.listCycleUsage.mockResolvedValue([
+      {
+        cycleStartAt: 100,
+        cycleEndAt: 200,
+        meters: { "orders.created": 3 },
+        lastAggregatedAt: 150,
+      },
+    ]);
+    mockUsageService.listUsageEvents.mockResolvedValue({
+      page: 1,
+      limit: 50,
+      total: 1,
+      events: [{ id: "evt-1", meterKey: "orders.created", quantity: 1 }],
+    });
     mockInvalidateCache.mockResolvedValue(undefined);
     app = buildApp();
+  });
+
+  describe("GET /:restaurantId/usage", () => {
+    it("returns current and cycle usage", async () => {
+      const res = await app.request("http://localhost/rest-1/usage");
+      const body = (await res.json()) as {
+        success: true;
+        data: {
+          current: { cycleStartAt: number };
+          cycles: unknown[];
+        };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.current.cycleStartAt).toBe(100);
+      expect(body.data.cycles).toHaveLength(1);
+      expect(mockUsageService.getCurrentUsage).toHaveBeenCalledWith("rest-1");
+      expect(mockUsageService.listCycleUsage).toHaveBeenCalledWith(
+        "rest-1",
+        undefined,
+        undefined,
+      );
+    });
+  });
+
+  describe("GET /:restaurantId/usage/events", () => {
+    it("returns paginated usage events", async () => {
+      const res = await app.request(
+        "http://localhost/rest-1/usage/events?limit=20&page=2&meterKey=orders.created",
+      );
+      const body = (await res.json()) as ApiTestResponse;
+
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.events).toHaveLength(1);
+      expect(mockUsageService.listUsageEvents).toHaveBeenCalledWith("rest-1", {
+        meterKey: "orders.created",
+        from: undefined,
+        to: undefined,
+        page: 2,
+        limit: 20,
+      });
+    });
   });
 
   // ── GET / — list all ────────────────────────────────────────────────────────

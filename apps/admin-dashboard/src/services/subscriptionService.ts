@@ -21,6 +21,37 @@ export interface Subscription {
 }
 
 export type PlanTier = Subscription["planTier"];
+export type MeterKey =
+  | "orders.created"
+  | "api.requests"
+  | "print.jobs"
+  | "ai.requests"
+  | "storage.bytes";
+
+export interface UsageMeterProgress {
+  meterKey: MeterKey;
+  total: number;
+  softLimit: number | null;
+  hardLimit: number | null;
+  percentage: number | null;
+}
+
+export interface UsageCycle {
+  cycleStartAt: number;
+  cycleEndAt: number;
+  meters: Record<string, number>;
+  lastAggregatedAt: number | null;
+}
+
+export interface UsageEvent {
+  id: string;
+  restaurantId: string;
+  meterKey: MeterKey;
+  quantity: number;
+  metadata: Record<string, unknown>;
+  aggregatedAt: number | null;
+  occurredAt: number;
+}
 
 class SubscriptionService {
   private api: typeof api;
@@ -103,6 +134,49 @@ class SubscriptionService {
       { isActive },
     );
     return response.data.data!;
+  }
+
+  async getUsage(restaurantId: string): Promise<{
+    current: {
+      cycleStartAt: number;
+      cycleEndAt: number;
+      meters: UsageMeterProgress[];
+    };
+    cycles: UsageCycle[];
+  }> {
+    const response = await this.api.get<{
+      current: {
+        cycleStartAt: number;
+        cycleEndAt: number;
+        meters: UsageMeterProgress[];
+      };
+      cycles: UsageCycle[];
+    }>(`/admin/subscriptions/${restaurantId}/usage`);
+    return (
+      response.data.data ?? {
+        current: { cycleStartAt: 0, cycleEndAt: 0, meters: [] },
+        cycles: [],
+      }
+    );
+  }
+
+  async getUsageEvents(
+    restaurantId: string,
+    params: { page?: number; limit?: number; meterKey?: MeterKey } = {},
+  ): Promise<{
+    events: UsageEvent[];
+    page: number;
+    limit: number;
+    total: number;
+  }> {
+    const response = await this.api.get<{
+      events: UsageEvent[];
+      page: number;
+      limit: number;
+      total: number;
+    }>(`/admin/subscriptions/${restaurantId}/usage/events`, params);
+
+    return response.data.data ?? { events: [], page: 1, limit: 50, total: 0 };
   }
 }
 

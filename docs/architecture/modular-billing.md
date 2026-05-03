@@ -1,7 +1,7 @@
 # Modular Billing
 
-This document captures the Phase 1 billing gates implemented for the API and
-admin dashboard.
+This document captures the modular billing gates, usage meters, and quota
+controls implemented for the API and admin dashboard.
 
 ## Plan Defaults
 
@@ -50,3 +50,45 @@ Use `packages/shared/components/ModuleGate.vue` around paid UI surfaces:
 `packages/shared/stores/moduleAccess.ts`. Apps should fetch module access after
 auth is available; admin-dashboard does this during bootstrap and each gate can
 render a loading slot while the store is empty.
+
+## Usage Metering
+
+Usage writes are append-only in `usage_events`, then the scheduled
+`usage-aggregator` worker rolls them up into per-cycle `usage_meters` rows every
+five minutes.
+
+| Meter key | Source | Unit |
+| --- | --- | --- |
+| `orders.created` | order creation routes | count |
+| `api.requests` | global API middleware | count |
+| `print.jobs` | receipt generation route | count |
+| `ai.requests` | AI analytics routes | count |
+| `storage.bytes` | daily storage snapshot from `storage_counters` | bytes |
+
+`storage_counters` tracks the current R2 byte total and image count per
+restaurant. The daily `storage-snapshot` worker emits a `storage.bytes` usage
+event for each non-empty counter row.
+
+## Quotas
+
+Plan quotas live in `packages/database/src/utils/plan-quotas.ts`. Undefined
+means unlimited. `quotaGate()` applies only to request-scoped paid meters:
+`orders.created`, `print.jobs`, and `ai.requests`. `api.requests` and
+`storage.bytes` are visible in reporting but are not request-blocking gates.
+
+`QUOTA_ENFORCEMENT_MODE` controls behavior:
+
+- `disabled`: bypass quota checks.
+- `warn`: return `X-Quota-Warning` after the soft limit.
+- `enforce`: return `429 QUOTA_EXCEEDED` at the hard limit.
+
+## Usage APIs
+
+- `GET /api/v1/me/usage` returns the current restaurant cycle and meter
+  progress for the authenticated staff user.
+- `GET /api/v1/admin/subscriptions/:restaurantId/usage` returns current usage
+  plus recent cycle aggregates.
+- `GET /api/v1/admin/subscriptions/:restaurantId/usage/events` returns paged
+  raw events for debugging and billing disputes.
+
+The admin dashboard exposes this data from the Subscriptions page's Usage tab.

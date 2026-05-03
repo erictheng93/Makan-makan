@@ -19,8 +19,35 @@
       </button>
     </div>
 
+    <div class="inline-flex rounded-full bg-white p-1 shadow-sm">
+      <button
+        class="rounded-full px-4 py-2 text-sm font-semibold transition"
+        :class="
+          activeTab === 'subscriptions'
+            ? 'bg-[#007AFF] text-white'
+            : 'text-[#3C3C43] hover:bg-[#F2F2F7]'
+        "
+        @click="activeTab = 'subscriptions'"
+      >
+        訂閱
+      </button>
+      <button
+        class="rounded-full px-4 py-2 text-sm font-semibold transition"
+        :class="
+          activeTab === 'usage'
+            ? 'bg-[#007AFF] text-white'
+            : 'text-[#3C3C43] hover:bg-[#F2F2F7]'
+        "
+        @click="activeTab = 'usage'"
+      >
+        用量
+      </button>
+    </div>
+
+    <UsageTab v-if="activeTab === 'usage'" :subscriptions="subscriptions" />
+
     <!-- Loading state -->
-    <div v-if="isLoading" class="flex items-center justify-center py-16">
+    <div v-else-if="isLoading" class="flex items-center justify-center py-16">
       <div
         class="w-8 h-8 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
       />
@@ -356,6 +383,7 @@ import {
   type Subscription,
   type PlanTier,
 } from "@/services/subscriptionService";
+import UsageTab from "@/components/billing/UsageTab.vue";
 
 const { t } = useI18n();
 
@@ -364,6 +392,7 @@ const { t } = useI18n();
 const subscriptions = ref<Subscription[]>([]);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
+const activeTab = ref<"subscriptions" | "usage">("subscriptions");
 
 // Per-row updating states (keyed by restaurantId)
 const updatingModules = reactive<Record<string, string | false>>({});

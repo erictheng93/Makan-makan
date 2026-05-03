@@ -75,6 +75,13 @@ export default {
           await import("./workers/usage-aggregator");
         await aggregateUsageMeters(env);
       }
+
+      if (event.cron === "0 2 * * *") {
+        console.log("[Cron] Running storage usage snapshot...");
+        const { snapshotStorageUsage } =
+          await import("./workers/storage-snapshot");
+        await snapshotStorageUsage(env);
+      }
     } catch (error) {
       console.error("[Cron] Scheduled task error:", error);
 
