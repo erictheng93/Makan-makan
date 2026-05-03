@@ -40,6 +40,7 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "orders",
   "partnership_plans",
   "partnership_usage_logs",
+  "payment_audit_log",
   "payment_transactions",
   "platform_integrations",
   "platform_menu_mappings",
@@ -182,6 +183,16 @@ type IntegrityAuditRow = {
   scope: string;
   checks: number;
   violations: number;
+};
+
+type IndexRow = {
+  name: string;
+  unique: number;
+  partial: number;
+};
+
+type IndexColumnRow = {
+  name: string;
 };
 
 function migrationStatements(fileName: string): string[] {
@@ -342,6 +353,26 @@ describe("migration inventory", () => {
     expect(columns.get("deployment_mode")?.type.toUpperCase()).toContain(
       "TEXT",
     );
+  });
+
+  it("keeps payment audit webhook provider events idempotent", () => {
+    const indexes = db!
+      .prepare(`PRAGMA index_list(payment_audit_log)`)
+      .all() as IndexRow[];
+    const providerEventIndex = indexes.find(
+      (index) => index.name === "payment_audit_provider_event_idx",
+    );
+
+    expect(providerEventIndex).toMatchObject({ unique: 1, partial: 1 });
+
+    const indexColumns = db!
+      .prepare(`PRAGMA index_info(payment_audit_provider_event_idx)`)
+      .all() as IndexColumnRow[];
+
+    expect(indexColumns.map((column) => column.name)).toEqual([
+      "provider",
+      "provider_event_id",
+    ]);
   });
 
   it("keeps integrity audit scopes clean on a fresh database", () => {

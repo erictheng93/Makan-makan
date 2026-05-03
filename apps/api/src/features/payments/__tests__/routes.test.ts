@@ -241,18 +241,21 @@ describe("Payments Routes", () => {
     const orderRun = vi.fn().mockResolvedValue({ success: true });
     const paymentRun = vi.fn().mockResolvedValue({ success: true });
     const refundRun = vi.fn().mockResolvedValue({ success: true });
+    const auditRun = vi.fn().mockResolvedValue({ success: true });
     const selectBind = vi.fn(() => ({ first }));
     const ledgerBind = vi.fn(() => ({ run: ledgerRun }));
     const updateBind = vi.fn(() => ({ run: orderRun }));
     const paymentBind = vi.fn(() => ({ run: paymentRun }));
     const refundBind = vi.fn(() => ({ run: refundRun }));
+    const auditBind = vi.fn(() => ({ run: auditRun }));
     const prepare = vi
       .fn()
       .mockReturnValueOnce({ bind: selectBind })
       .mockReturnValueOnce({ bind: ledgerBind })
       .mockReturnValueOnce({ bind: updateBind })
       .mockReturnValueOnce({ bind: paymentBind })
-      .mockReturnValueOnce({ bind: refundBind });
+      .mockReturnValueOnce({ bind: refundBind })
+      .mockReturnValueOnce({ bind: auditBind });
     const { app, env } = buildApp({ DB: { prepare } });
 
     const response = await app.request(
@@ -313,6 +316,22 @@ describe("Payments Routes", () => {
       "Customer request",
       expect.any(Number),
       expect.any(Number),
+      expect.any(Number),
+    );
+    expect(auditBind).toHaveBeenCalledWith(
+      expect.any(String),
+      "rest-1",
+      "pay_42_1",
+      null,
+      "refund",
+      "credit_card",
+      null,
+      null,
+      5000,
+      null,
+      expect.stringContaining('"reason":"Customer request"'),
+      null,
+      null,
       expect.any(Number),
     );
   });

@@ -38,6 +38,7 @@ export * from "./usage-meters";
 export * from "./storage-counters";
 export * from "./idempotency-keys";
 export * from "./data-integrity-audit";
+export * from "./payment-audit-log";
 
 // 匯出所有關聯定義
 export { restaurantRelations } from "./restaurants";
@@ -131,6 +132,7 @@ export { shopSubscriptionsRelations } from "./subscriptions";
 export { usageEventsRelations } from "./usage-events";
 export { usageMetersRelations } from "./usage-meters";
 export { storageCountersRelations } from "./storage-counters";
+export { paymentAuditLogRelations } from "./payment-audit-log";
 
 // 重新匯出類型
 export type { UserRole } from "./users";
@@ -197,10 +199,12 @@ export {
   PAYMENT_TRANSACTION_STATUS,
   REFUND_TRANSACTION_STATUS,
 } from "./payments";
+export { PAYMENT_AUDIT_EVENT_TYPES } from "./payment-audit-log";
 export type {
   PaymentTransactionStatus,
   RefundTransactionStatus,
 } from "./payments";
+export type { PaymentAuditEventType } from "./payment-audit-log";
 export type { PlatformType, MenuSyncStatus } from "./platform-integrations";
 export { MENU_MAPPING_SYNC_STATUS } from "./platform-menu-mappings";
 export type { MenuMappingSyncStatus } from "./platform-menu-mappings";

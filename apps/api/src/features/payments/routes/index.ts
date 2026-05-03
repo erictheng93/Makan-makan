@@ -7,6 +7,10 @@ import { idempotencyMiddleware } from "../../../middleware/idempotency";
 import { PaymentService } from "../services/PaymentService";
 import { ApiError } from "../../../shared/utils/api-error";
 import { amountFromCents } from "@makanmakan/database";
+import {
+  PAYMENT_AUDIT_EVENT_TYPES,
+  PaymentAuditService,
+} from "../../billing/services/PaymentAuditService";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -281,6 +285,20 @@ app.post("/refund", validateBody(refundSchema), async (c) => {
       now,
     )
     .run();
+
+  await new PaymentAuditService(c.env.DB).append({
+    restaurantId: row.restaurant_id,
+    paymentTransactionId: input.transactionId,
+    eventType: PAYMENT_AUDIT_EVENT_TYPES.REFUND,
+    provider: row.payment_method ?? "internal",
+    amount: cents(refundAmount),
+    rawPayload: {
+      refundId,
+      orderId: row.id,
+      reason: input.reason ?? null,
+      paymentStatus,
+    },
+  });
 
   return c.json({
     success: true,

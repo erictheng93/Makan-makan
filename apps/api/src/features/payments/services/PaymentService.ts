@@ -5,6 +5,10 @@ import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 import type { PaymentRequestInput } from "../schemas/validation";
+import {
+  PAYMENT_AUDIT_EVENT_TYPES,
+  PaymentAuditService,
+} from "../../billing/services/PaymentAuditService";
 
 export interface ProcessPaymentOptions {
   gatewayFixture?: string | null;
@@ -51,9 +55,11 @@ function assertSameAmount(
 
 export class PaymentService {
   private db;
+  private paymentAudit: PaymentAuditService;
 
   constructor(private readonly env: Env) {
     this.db = drizzle(env.DB);
+    this.paymentAudit = new PaymentAuditService(env.DB);
   }
 
   async processPayment(
@@ -133,6 +139,22 @@ export class PaymentService {
         gatewayFixture: options.gatewayFixture ?? null,
       }),
     });
+    await this.paymentAudit.append({
+      restaurantId: existing.restaurantId,
+      paymentTransactionId: paymentId,
+      eventType: PAYMENT_AUDIT_EVENT_TYPES.ATTEMPT,
+      provider: input.gateway ?? input.method ?? "internal",
+      amount: cents(serverTotal),
+      currency: options.currency ?? null,
+      rawPayload: {
+        orderId: input.orderId,
+        paymentMode: input.paymentMode,
+        paymentMethod: method,
+        gateway: input.gateway ?? input.method ?? null,
+        idempotencyKey: options.idempotencyKey ?? null,
+        closeOrder: input.closeOrder ?? true,
+      },
+    });
 
     if (options.gatewayFixture === "timeout") {
       await this.db
@@ -144,6 +166,13 @@ export class PaymentService {
           updatedAt: new Date(),
         })
         .where(eq(orders.id, input.orderId));
+
+      await this.updatePaymentTransactionStatus(paymentId, "failed", {
+        restaurantId: existing.restaurantId,
+        amountCents: cents(serverTotal),
+        currency: options.currency ?? null,
+        provider: input.gateway ?? input.method ?? "internal",
+      });
 
       return {
         status: 202,
@@ -173,7 +202,12 @@ export class PaymentService {
         paymentStatus: orders.paymentStatus,
       });
 
-    await this.updatePaymentTransactionStatus(paymentId, "paid");
+    await this.updatePaymentTransactionStatus(paymentId, "paid", {
+      restaurantId: existing.restaurantId,
+      amountCents: cents(serverTotal),
+      currency: options.currency ?? null,
+      provider: input.gateway ?? input.method ?? "internal",
+    });
 
     return {
       status: 200,
@@ -231,6 +265,12 @@ export class PaymentService {
   private async updatePaymentTransactionStatus(
     transactionId: string,
     status: "paid" | "failed" | "cancelled",
+    audit: {
+      restaurantId: string;
+      amountCents: number;
+      currency: string | null;
+      provider: string | null;
+    },
   ) {
     const now = Date.now();
 
@@ -244,5 +284,18 @@ export class PaymentService {
     )
       .bind(status, now, status, now, status, now, transactionId)
       .run();
+
+    await this.paymentAudit.append({
+      restaurantId: audit.restaurantId,
+      paymentTransactionId: transactionId,
+      eventType:
+        status === "paid"
+          ? PAYMENT_AUDIT_EVENT_TYPES.SUCCESS
+          : PAYMENT_AUDIT_EVENT_TYPES.FAILURE,
+      provider: audit.provider ?? "internal",
+      amount: audit.amountCents,
+      currency: audit.currency,
+      rawPayload: { status },
+    });
   }
 }
