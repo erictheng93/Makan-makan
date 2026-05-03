@@ -34,6 +34,7 @@ import {
   monitoringStatsMiddleware,
 } from "./middleware/monitoring";
 import { tenantContextMiddleware } from "./middleware/tenantContext";
+import { moduleGate } from "./middleware/moduleGate";
 // import restaurantsRouter from './routes/restaurants' // Replaced with modular Restaurants feature
 import restaurantsFeature from "./features/restaurants";
 // import menuRouter from './routes/menu' // Replaced with modular Menu feature
@@ -477,7 +478,9 @@ export function createApp(
   // Authorization headers). All /kitchen/* routes have per-route authMiddleware.
   apiV1.use("/orders/*", customerAuthMiddleware);
   apiV1.use("/pos/*", authMiddleware);
+  apiV1.use("/pos/*", moduleGate("pos"));
   apiV1.use("/payments/*", authMiddleware);
+  apiV1.use("/payments/*", moduleGate("online_ordering"));
   // apiV1.use('/print/*', authMiddleware) // Disabled - incomplete feature
   // Tables routes handle auth at the route level so public QR lookups
   // (`GET /tables/qr/:qrCode`) remain reachable without a bearer token.
@@ -492,9 +495,15 @@ export function createApp(
   apiV1.use("/backup/*", authMiddleware);
   apiV1.use("/customers/*", customerAuthMiddleware);
   apiV1.use("/leaves/*", authMiddleware);
+  apiV1.use("/leaves/*", moduleGate("staff_management"));
   apiV1.use("/scheduling/*", authMiddleware);
+  apiV1.use("/scheduling/*", moduleGate("staff_management"));
   apiV1.use("/forecast/*", authMiddleware);
+  apiV1.use("/forecast/*", moduleGate("analytics"));
   apiV1.use("/ingredients/*", authMiddleware);
+  apiV1.use("/ingredients/*", moduleGate("inventory"));
+  apiV1.use("/feedback/*", authMiddleware);
+  apiV1.use("/feedback/*", moduleGate("analytics"));
   apiV1.use("/notifications/*", authMiddleware);
   apiV1.use("/partnerships/*", authMiddleware);
   // Note: /integrations/* auth is handled internally (webhooks are public with HMAC, admin routes use authMiddleware)
