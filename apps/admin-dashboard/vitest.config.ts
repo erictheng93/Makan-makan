@@ -38,6 +38,7 @@ export default defineConfig({
         __dirname,
         "../../packages/shared-types/src",
       ),
+      "@makanmakan/shared": resolve(__dirname, "../../packages/shared"),
       "@makanmakan/database": resolve(__dirname, "../../packages/database/src"),
       "@makanmakan/utils": resolve(__dirname, "../../packages/utils/src"),
       pinia: resolve(__dirname, "./node_modules/pinia"),

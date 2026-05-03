@@ -18,6 +18,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@makanmakan/shared": ["../../packages/shared"],
+      "@makanmakan/shared/*": ["../../packages/shared/*"],
+      "@makanmakan/database": ["../../packages/database/src"],
+      "@makanmakan/database/*": ["../../packages/database/src/*"],
+      "pinia": ["./node_modules/pinia"],
+      "vue": ["./node_modules/vue"],
       "@shared/*": ["../../packages/shared-types/src/*"],
       "@makanmakan/shared-types": ["../../packages/shared-types/src"],
       "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
@@ -30,6 +36,10 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
+    "../../packages/shared/components/ModuleGate.vue",
+    "../../packages/shared/composables/useModuleAccess.ts",
+    "../../packages/shared/stores/moduleAccess.ts",
+    "../../packages/shared/types/module-access.ts",
     "../../packages/shared-types/src/**/*",
     "../../packages/utils/src/**/*"
   ],

@@ -86,6 +86,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "kitchen",
+        name: "Kitchen",
+        component: () => import("@/views/KitchenView.vue"),
+        meta: {
+          titleKey: "pages.kitchen",
+          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CHEF],
+        },
+      },
+      {
         path: "menu",
         name: "Menu",
         component: () => import("@/views/MenuView.vue"),

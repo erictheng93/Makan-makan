@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import type { ModuleKey } from "@makanmakan/database";
+import type { ModuleKey } from "../types/module-access";
 import { useModuleAccessStore } from "../stores/moduleAccess";
 
 export function useModuleAccess() {

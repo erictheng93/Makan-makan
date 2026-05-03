@@ -25,7 +25,30 @@
       <!-- Navigation -->
       <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         <template v-for="item in navigationItems" :key="item.name">
+          <ModuleGate v-if="item.module" :module="item.module">
+            <component
+              :is="item.disabled ? 'div' : 'router-link'"
+              v-show="item.visible"
+              :to="item.disabled ? undefined : item.path"
+              class="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              :class="[
+                item.disabled
+                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                  : isActiveRoute(item.path)
+                    ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+              ]"
+              :title="item.disabled ? t('nav.selectRestaurantFirst') : ''"
+              @click="!item.disabled && emit('navigate')"
+            >
+              <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
+              <span v-if="!isCollapsed" class="ml-3">{{ item.label }}</span>
+            </component>
+            <template #fallback><span /></template>
+            <template #loading><span /></template>
+          </ModuleGate>
           <component
+            v-else
             :is="item.disabled ? 'div' : 'router-link'"
             v-show="item.visible"
             :to="item.disabled ? undefined : item.path"
@@ -69,11 +92,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, type Component } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { useI18n } from "@/i18n";
+import ModuleGate from "@makanmakan/shared/components/ModuleGate.vue";
+import type { ModuleKey } from "@makanmakan/shared/types/module-access";
 import {
   Home,
   ShoppingCart,
@@ -124,7 +149,14 @@ const needsRestaurantContext = computed(
 );
 
 const navigationItems = computed(() => {
-  const items = [
+  const items: Array<{
+    name: string;
+    path: string;
+    label: string;
+    icon: Component;
+    visible: boolean;
+    module?: ModuleKey;
+  }> = [
     // Platform Overview (admin-only, always at top)
     {
       name: "platform",
@@ -197,6 +229,7 @@ const navigationItems = computed(() => {
       label: t("nav.coupons"),
       icon: TicketIcon,
       visible: authStore.canAccessAdminFeatures,
+      module: "coupons",
     },
     {
       name: "analytics",
@@ -204,6 +237,7 @@ const navigationItems = computed(() => {
       label: t("nav.analytics"),
       icon: BarChart3,
       visible: authStore.canAccessAdminFeatures,
+      module: "analytics",
     },
     {
       name: "ai-analytics",
@@ -211,6 +245,7 @@ const navigationItems = computed(() => {
       label: t("nav.aiInsights"),
       icon: Sparkles,
       visible: authStore.canAccessAdminFeatures,
+      module: "ai_analytics",
     },
     {
       name: "group-orders",
