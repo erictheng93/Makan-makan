@@ -328,6 +328,19 @@ describe("migration inventory", () => {
     expect(violations).toEqual([]);
   });
 
+  it("includes the shop subscription deployment mode column", () => {
+    const columns = new Map(
+      listTableColumns(db!, "shop_subscriptions").map((column) => [
+        column.name,
+        column,
+      ]),
+    );
+
+    expect(columns.get("deployment_mode")?.type.toUpperCase()).toContain(
+      "TEXT",
+    );
+  });
+
   it("keeps integrity audit scopes clean on a fresh database", () => {
     const rows = db!
       .prepare(

@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { ApiError } from "../../shared/utils/api-error";
 import { moduleGate, invalidateSubscriptionCache } from "../moduleGate";
 import type { AuthUser } from "../auth";
+import { MODULES, PLAN_DEFAULT_MODULES } from "@makanmakan/database";
 
 // ---------------------------------------------------------------------------
 // Mock drizzle-orm/d1 so we can control DB query results per test.
@@ -222,11 +223,38 @@ describe("moduleGate", () => {
   // ── Module resolution — plan defaults ─────────────────────────────────────
 
   describe("Plan default resolution", () => {
+    it("keeps P1-a module keys aligned with plan defaults", () => {
+      expect(Object.values(MODULES)).toHaveLength(15);
+
+      expect(PLAN_DEFAULT_MODULES.basic.pos).toBeUndefined();
+      expect(PLAN_DEFAULT_MODULES.basic.inventory).toBeUndefined();
+      expect(PLAN_DEFAULT_MODULES.basic.staff_management).toBeUndefined();
+
+      expect(PLAN_DEFAULT_MODULES.pro.pos).toBe(true);
+      expect(PLAN_DEFAULT_MODULES.pro.inventory).toBeUndefined();
+      expect(PLAN_DEFAULT_MODULES.pro.staff_management).toBeUndefined();
+
+      expect(PLAN_DEFAULT_MODULES.enterprise.pos).toBe(true);
+      expect(PLAN_DEFAULT_MODULES.enterprise.inventory).toBe(true);
+      expect(PLAN_DEFAULT_MODULES.enterprise.staff_management).toBe(true);
+
+      expect(PLAN_DEFAULT_MODULES.trial.pos).toBe(true);
+      expect(PLAN_DEFAULT_MODULES.trial.inventory).toBe(true);
+      expect(PLAN_DEFAULT_MODULES.trial.staff_management).toBe(true);
+    });
+
     it.each([
+      ["basic", "pos", false],
       ["basic", "kitchen_display", false],
       ["basic", "menu_management", true],
+      ["pro", "pos", true],
+      ["pro", "inventory", false],
+      ["pro", "staff_management", false],
       ["pro", "kitchen_display", true],
       ["pro", "ai_analytics", false],
+      ["enterprise", "pos", true],
+      ["enterprise", "inventory", true],
+      ["enterprise", "staff_management", true],
       ["enterprise", "ai_analytics", true],
     ])("plan=%s module=%s → allowed=%s", async (planTier, module, allowed) => {
       const { app } = buildApp({ cachedSub: makeSub({ planTier }), module });

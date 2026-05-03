@@ -16,6 +16,7 @@ export const MODULES = {
   ONLINE_ORDERING: "online_ordering",
 
   // Pro
+  POS: "pos",
   KITCHEN_DISPLAY: "kitchen_display",
   RECEIPT_PRINTING: "receipt_printing",
   COUPONS: "coupons",
@@ -27,6 +28,8 @@ export const MODULES = {
   AI_ANALYTICS: "ai_analytics",
   PLATFORM_INTEGRATION: "platform_integration", // Uber Eats, Foodpanda, etc.
   LOYALTY: "loyalty",
+  INVENTORY: "inventory",
+  STAFF_MANAGEMENT: "staff_management",
 } as const;
 
 export type ModuleKey = (typeof MODULES)[keyof typeof MODULES];
@@ -59,6 +62,9 @@ export const PLAN_DEFAULT_MODULES: Record<PlanTier, ModuleMap> = {
     ai_analytics: true,
     platform_integration: true,
     loyalty: true,
+    pos: true,
+    inventory: true,
+    staff_management: true,
   },
   basic: {
     menu_management: true,
@@ -69,6 +75,7 @@ export const PLAN_DEFAULT_MODULES: Record<PlanTier, ModuleMap> = {
     menu_management: true,
     table_management: true,
     online_ordering: true,
+    pos: true,
     kitchen_display: true,
     receipt_printing: true,
     coupons: true,
@@ -88,6 +95,9 @@ export const PLAN_DEFAULT_MODULES: Record<PlanTier, ModuleMap> = {
     ai_analytics: true,
     platform_integration: true,
     loyalty: true,
+    pos: true,
+    inventory: true,
+    staff_management: true,
   },
 };
 
@@ -119,6 +129,12 @@ export const shopSubscriptions = sqliteTable("shop_subscriptions", {
   moduleOverrides: text("module_overrides", { mode: "json" })
     .$type<ModuleMap>()
     .default(sql`'{}'`),
+
+  // Deployment mode reserved for future BYOC license-token verification.
+  deploymentMode: text("deployment_mode")
+    .notNull()
+    .$type<"managed" | "byoc">()
+    .default("managed"),
 
   // Master kill switch — set false to immediately lock out the shop
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),

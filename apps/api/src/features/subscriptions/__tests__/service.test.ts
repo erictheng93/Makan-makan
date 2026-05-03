@@ -21,6 +21,7 @@ const mockSubRow = {
   restaurantId: "rest-1",
   planTier: "pro" as const,
   moduleOverrides: {},
+  deploymentMode: "managed" as const,
   isActive: true,
   trialEndsAt: null,
   billingCycleStartAt: null,
@@ -328,6 +329,39 @@ describe("SubscriptionService", () => {
       expect(result.ai_analytics).toBe(true);
       expect(result.platform_integration).toBe(true);
       expect(result.loyalty).toBe(true);
+      expect(result.pos).toBe(true);
+      expect(result.inventory).toBe(true);
+      expect(result.staff_management).toBe(true);
+    });
+
+    it("resolves P1-a module defaults by plan tier", () => {
+      const basic = service.getEffectiveModules({
+        ...mockSubRow,
+        planTier: "basic",
+        moduleOverrides: {},
+      });
+      const pro = service.getEffectiveModules({
+        ...mockSubRow,
+        planTier: "pro",
+        moduleOverrides: {},
+      });
+      const trial = service.getEffectiveModules({
+        ...mockSubRow,
+        planTier: "trial",
+        moduleOverrides: {},
+      });
+
+      expect(basic.pos).toBeUndefined();
+      expect(basic.inventory).toBeUndefined();
+      expect(basic.staff_management).toBeUndefined();
+
+      expect(pro.pos).toBe(true);
+      expect(pro.inventory).toBeUndefined();
+      expect(pro.staff_management).toBeUndefined();
+
+      expect(trial.pos).toBe(true);
+      expect(trial.inventory).toBe(true);
+      expect(trial.staff_management).toBe(true);
     });
   });
 });
