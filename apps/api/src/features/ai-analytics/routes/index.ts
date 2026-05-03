@@ -4,6 +4,7 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { Env } from "../../../types/env";
 import { AIAnalyticsService } from "../services/AIAnalyticsService";
 import {
@@ -15,6 +16,7 @@ import {
 } from "../schemas/validation";
 import { validateBody, validateQuery } from "../../../middleware/validation";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { meterEmit } from "../../../shared/utils/meter";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
 const routes = new Hono<{
@@ -24,11 +26,18 @@ const routes = new Hono<{
   };
 }>();
 
+async function trackAiRequest(c: Context<any>) {
+  await meterEmit(c, "ai.requests", {
+    metadata: { endpoint: c.req.path },
+  });
+}
+
 /**
  * GET /config/:restaurantId
  * Get AI configuration for a restaurant
  */
 routes.get("/config/:restaurantId", moduleGate("ai_analytics"), async (c) => {
+  await trackAiRequest(c);
   const restaurantId = c.req.param("restaurantId");
   if (!restaurantId)
     throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
@@ -75,6 +84,7 @@ routes.post(
   moduleGate("ai_analytics"),
   validateBody(configureAISchema),
   async (c) => {
+    await trackAiRequest(c);
     const data = c.get("validatedBody");
     const user = c.get("user");
     const userRole = user.role;
@@ -120,6 +130,7 @@ routes.post(
   moduleGate("ai_analytics"),
   validateBody(testProviderSchema),
   async (c) => {
+    await trackAiRequest(c);
     const data = c.get("validatedBody");
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
     const result = await service.testProvider(data);
@@ -153,6 +164,7 @@ routes.post(
   moduleGate("ai_analytics"),
   validateBody(generateAnalyticsSchema),
   async (c) => {
+    await trackAiRequest(c);
     const data = c.get("validatedBody");
     const user = c.get("user");
     const userRole = user.role;
@@ -189,6 +201,7 @@ routes.get(
   moduleGate("ai_analytics"),
   validateQuery(productQuerySchema),
   async (c) => {
+    await trackAiRequest(c);
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
@@ -223,6 +236,7 @@ routes.get(
   moduleGate("ai_analytics"),
   validateQuery(productQuerySchema),
   async (c) => {
+    await trackAiRequest(c);
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
@@ -257,6 +271,7 @@ routes.get(
   moduleGate("ai_analytics"),
   validateQuery(productQuerySchema),
   async (c) => {
+    await trackAiRequest(c);
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
@@ -291,6 +306,7 @@ routes.get(
   moduleGate("ai_analytics"),
   validateQuery(productQuerySchema),
   async (c) => {
+    await trackAiRequest(c);
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
@@ -321,6 +337,7 @@ routes.get(
   moduleGate("ai_analytics"),
   validateQuery(usageQuerySchema),
   async (c) => {
+    await trackAiRequest(c);
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");

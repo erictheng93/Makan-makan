@@ -36,18 +36,20 @@ export async function insertUsageEvent(
 }
 
 export async function meterEmit(
-  c: Context<{ Bindings: Env }>,
+  c: Context<any>,
   meterKey: MeterKey,
   options: MeterEmitOptions = {},
 ): Promise<void> {
-  const user = c.get("user");
+  const user = c.get("user") as
+    | { restaurantId?: string | number | null }
+    | undefined;
   const restaurantId =
     options.restaurantId ??
     (user?.restaurantId == null ? undefined : String(user.restaurantId));
 
   if (!restaurantId) return;
 
-  const insertOp = insertUsageEvent(c.env.DB, {
+  const insertOp = insertUsageEvent((c.env as Env).DB, {
     restaurantId,
     meterKey,
     quantity: options.quantity ?? 1,

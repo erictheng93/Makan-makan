@@ -35,6 +35,7 @@ import {
   badRequest,
 } from "../../../shared/utils/api-error";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { meterEmit } from "../../../shared/utils/meter";
 import type { CallerContext } from "../types";
 import { ROLE_STATUS_PERMISSIONS } from "../types";
 
@@ -257,6 +258,10 @@ app.post(
     };
 
     const order = await ordersService.createOrder(createOrderData);
+    await meterEmit(c, "orders.created", {
+      restaurantId: data.restaurantId,
+      metadata: { orderId: order.id, source: "guest" },
+    });
 
     // Update KV token to include orderId for tracking
     const authHeader = c.req.header("Authorization")!;
@@ -443,6 +448,10 @@ app.post(
     };
 
     const order = await ordersService.createOrder(createOrderData, user.id);
+    await meterEmit(c, "orders.created", {
+      restaurantId: data.restaurantId,
+      metadata: { orderId: order.id },
+    });
 
     // Broadcast new order to kitchen and management
     c.executionCtx?.waitUntil(
@@ -1004,6 +1013,10 @@ app.get(
     }
 
     const receipt = await ordersService.generateReceipt(id);
+    await meterEmit(c, "print.jobs", {
+      restaurantId: String(order.restaurantId),
+      metadata: { orderId: id },
+    });
 
     return c.json({
       success: true,

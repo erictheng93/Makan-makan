@@ -68,6 +68,13 @@ export default {
           `[Cron] Forecast warmup complete: ${successCount}/${restaurants.results.length} restaurants`,
         );
       }
+
+      if (event.cron === "*/5 * * * *") {
+        console.log("[Cron] Running usage aggregation...");
+        const { aggregateUsageMeters } =
+          await import("./workers/usage-aggregator");
+        await aggregateUsageMeters(env);
+      }
     } catch (error) {
       console.error("[Cron] Scheduled task error:", error);
 
