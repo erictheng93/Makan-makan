@@ -4,6 +4,7 @@ pnpm lint-staged
 # 視覺回歸 baseline 平台檢查：拒絕 *-darwin.png / *-win32.png
 # CI 只接受 *-linux.png，詳見 scripts/update-visual-baselines.sh
 node scripts/check-visual-baselines.cjs
+node scripts/audit-module-gates.cjs
 
 # Factory 使用快速檢查（僅針對測試文件）
 # Use --diff-filter=ACM here too, otherwise a commit that only DELETES a

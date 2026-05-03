@@ -33,6 +33,14 @@ export default {
         await cleanupOldLogs(env);
       }
 
+      if (event.cron === "0 3 * * *") {
+        console.log("[Cron] Running usage events TTL cleanup...");
+        const { cleanupExpiredUsageEvents } =
+          await import("./workers/usage-events-ttl");
+        const result = await cleanupExpiredUsageEvents(env);
+        console.log("[Cron] Usage events TTL result:", result);
+      }
+
       // Daily forecast warmup at 2:30 AM UTC
       if (event.cron === "30 2 * * *") {
         console.log("[Cron] Running daily forecast warmup...");

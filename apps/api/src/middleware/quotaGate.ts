@@ -23,6 +23,18 @@ interface QuotaCheckOptions {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CACHE_TTL_SECONDS = 30;
 
+export function quotaExceeded(
+  meterKey: MeterKey,
+  hardLimit: number,
+  current: number,
+) {
+  return new ApiError("QUOTA_EXCEEDED", `Quota exceeded for ${meterKey}`, 429, {
+    meterKey,
+    hardLimit,
+    current,
+  });
+}
+
 function getMode(env: Env): "disabled" | "warn" | "enforce" {
   return env.QUOTA_ENFORCEMENT_MODE ?? "disabled";
 }
@@ -170,12 +182,7 @@ export async function enforceQuota(
   if (effectiveCount >= quota.hard) {
     setQuotaWarning(c, meterKey, effectiveCount, quota);
     if (mode === "enforce") {
-      throw new ApiError(
-        "QUOTA_EXCEEDED",
-        `Quota exceeded for ${meterKey}`,
-        429,
-        { meterKey, limit: quota.hard, current: effectiveCount },
-      );
+      throw quotaExceeded(meterKey, quota.hard, effectiveCount);
     }
     return;
   }

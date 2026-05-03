@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **狀態** | Ready for Implementation |
+| **狀態** | P1/P2/P3 已合併，§0.4 audit gaps 已補齊 |
 | **建立日期** | 2026-05-03 |
-| **最後更新** | 2026-05-03 |
+| **最後更新** | 2026-05-03（含 §0.4 驗證快照與 follow-up 補齊）|
 | **作者** | Eric + Claude（驗證），Codex（實作） |
 | **影響範圍** | `apps/api`、`apps/management-api`、`apps/admin-dashboard`、`apps/customer-app`、`apps/kitchen-display`、`apps/onboarding-app`、`packages/database`、`packages/shared` |
 | **預計分階段** | 3 階段 / 13 個 PR（P1: 5 / P2: 4 / P3: 4） |
@@ -24,6 +24,59 @@
 | **P3 — Billing Lifecycle** | 「自動化收費」：cycle 邊界自動結算、trial 自動降級、payment audit log、外部金流串接 | 不做客製定價、proration |
 
 每個階段都對應明確的客戶承諾，內部實作可以並行 review，但**不可跳階段**：P2 依賴 P1 的 gating 已套滿，P3 依賴 P2 的 usage events 表存在。
+
+---
+
+## 0.4 Verification Snapshot（2026-05-03，逐條對照 acceptance）
+
+> 這節為 audit 結果——讀過 `git log` + 實際 grep/read 程式碼後對照 §2.5 / §3.7 / §4.6 acceptance 逐項確認。各 PR 的最終實作位置與 SPEC 草稿略有偏離（多處從獨立 worker 檔案改成 `apps/api/src/index.ts` 內 scheduled handler 派發），列在「偏離」欄位。
+
+### P1 — Gating Coverage（9/9 ✅）
+
+| § | Acceptance | 狀態 | 證據 / 偏離 |
+|---|---|---|---|
+| 2.5#1 | A.2 ⚠️ 路由全部掛 `moduleGate` | ✅ | `apps/api/src/app-factory.ts:483/485/500/504/506/508` 等掛點全在 |
+| 2.5#2 | `module-gating-coverage.test.ts` 對所有 PROTECTED_PREFIXES 通過 | ✅ | `apps/api/src/__tests__/module-gate-coverage.test.ts` 已覆蓋 20 個 prefix |
+| 2.5#3 | `scripts/audit-module-gates.cjs` + pre-commit | ✅ | `scripts/audit-module-gates.cjs` 已加入，`.husky/pre-commit` 會執行 |
+| 2.5#4 | `GET /me/modules` 形狀正確 | ✅ | `apps/api/src/features/me/routes/index.ts:24-98`（customer 回 `restaurantId: null`）|
+| 2.5#5 | `useModuleAccess` + `<ModuleGate>` | ✅ | `packages/shared/src/composables/useModuleAccess.ts`、`packages/shared/src/components/ModuleGate.vue` |
+| 2.5#6 | 3 處 frontend 接入點 | ✅ | KitchenView.vue / Sidebar.vue（coupons、analytics、ai_analytics）/ AIInsightsDashboard.vue |
+| 2.5#7 | onboarding 4 路徑 + `db.batch` | ✅ | `apps/management-api/src/services/OnboardingService.ts:425-443`，`planIdToTier()` 對應 |
+| 2.5#8 | backfill migration 對既存 restaurant 建 enterprise 訂閱 | ✅ | `migrations/0065_backfill_enterprise_subscriptions.sql` + `migrations_fresh/0046_backfill-enterprise-subscriptions.sql` |
+| 2.5#9 | `docs/architecture/modular-billing.md` | ✅ | 存在（94 行）|
+
+### P2 — Usage Metering（10/10 ✅）
+
+| § | Acceptance | 狀態 | 證據 / 偏離 |
+|---|---|---|---|
+| 3.7#1 | `usage_events` + `usage_meters` migrated | ✅ | `migrations_fresh/0041_usage-metering.sql` |
+| 3.7#2 | 5 meter 計量點接通 | ✅ | `usageTracker.ts` 全域、orders 路由（成單 + print 第 1022 行）、ai-analytics:31、storage-snapshot worker（含 `0042_storage-counters.sql`）|
+| 3.7#3 | `quotaGate` 套用 | ✅ | orders POST、group-orders、guest-orders、ai-analytics POST、print（第 992 行）皆掛 |
+| 3.7#4 | `PLAN_QUOTAS` | ✅ | `packages/database/src/utils/plan-quotas.ts`（trial/basic/pro/enterprise）|
+| 3.7#5 | `usage-aggregator.ts` | ✅ | `apps/api/src/workers/usage-aggregator.ts`（cron `*/5 * * * *` 由 `apps/api/src/index.ts` 派發）|
+| 3.7#6 | `usage-events-ttl.ts`（90 天清理）| ✅ | `apps/api/src/workers/usage-events-ttl.ts`，cron `0 3 * * *` 由 `apps/api/src/index.ts` 派發 |
+| 3.7#7 | 3 個 usage GET API | ✅ | `/me/usage`（me/routes:100-120）、`/admin/subscriptions/:id/usage` + `/usage/events`（subscriptions/routes:28,43）|
+| 3.7#8 | admin-dashboard 用量頁籤 | ✅ | `apps/admin-dashboard/src/components/billing/UsageTab.vue` |
+| §9.3 | `quotaExceeded(meterKey, hardLimit)` factory | ✅ | `apps/api/src/middleware/quotaGate.ts` 匯出 `quotaExceeded()`，details 含 `{ meterKey, hardLimit, current }` |
+| 3.4.4 | `QUOTA_ENFORCEMENT_MODE` 三模式 | ✅ | `quotaGate.ts:26` 讀取，預設 `disabled` |
+
+### P3 — Billing Lifecycle（7/7 ✅）
+
+| § | Acceptance | 狀態 | 證據 / 偏離 |
+|---|---|---|---|
+| 4.6#1 | `payment_audit_log` + `cycle_snapshots` migrated | ✅ | `0043_payment-audit-log.sql` + `0044_cycle-snapshots.sql` + `0045_notification-dispatch-log.sql` 順序正確 |
+| 4.6#2 | cycle closer cron 端到端結算 | ✅ | `BillingCycleService.closeDueCycles()` 由 `apps/api/src/index.ts:86-99` cron `15 2 * * *` 派發。**偏離**：SPEC §4.2 寫每小時 `0 * * * *`，實作為每日 02:15 |
+| 4.6#3 | trial reaper | ✅ | `TrialReaperService.downgradeExpiredTrials()` 同上；**偏離**：未獨立成 `workers/trial-reaper.ts`，併入 `BillingCycleService.ts` |
+| 4.6#4 | webhook 端點對至少一家 provider 驗簽 | ✅ | Stripe + LINE Pay 已實作；`STRIPE_WEBHOOK_SECRET` 與 `LINEPAY_WEBHOOK_SECRET` 驗簽測試覆蓋 |
+| 4.6#5 | 5 種通知送達 | ✅ | `BillingNotificationService` dispatch test 覆蓋 trial-3d、trial-0d、payment-failed、grace-period-start、account-suspended，並額外覆蓋 cycle-closed |
+| 4.6#6 | `payment_audit_log` 對所有 payment 事件 append-only | ✅ | payment attempt/success/failure/refund、webhook_received、cycle_close、trial_downgrade、grace_period_start 均已寫入與測試覆蓋 |
+| 4.6#7 | `docs/runbooks/billing-incident-response.md` | ✅ | 存在（22+ 行 SOP）|
+
+### 結論：SPEC 與實作的最大偏離
+
+1. **PR 拆分順序與 SPEC 不符**：SPEC §4.7 的 P3 順序是 a → b → c → d；實作 commit 順序曾偏離，但 migration filename 順序已正確。
+2. **Cron 頻率偏離**：cycle closer 由 SPEC 的 hourly 改成 daily 02:15。是否符合「7 天 grace period sweep」（§4.4.3）需確認 — 24h cron 仍可在 7±1 天精度滿足。
+3. **已補齊 gap**：P1 backfill/gate audit、P2 TTL/quota factory、P3 LINE Pay provider、billing notification kind tests 均已落地。
 
 ---
 

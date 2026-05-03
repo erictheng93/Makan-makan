@@ -31,19 +31,26 @@
 
 ---
 
-## 進度
+## 進度（2026-05-03 audit）
 
-13 個 PR 分 3 階段。**P2 依賴 P1 完成、P3 依賴 P2 完成**——不可亂跳。
+| Phase | PR | 狀態 | 備註 |
+|---|---|---|---|
+| **P1 Gating Coverage** | a–e + follow-up | ✅ 已合併 | follow-up 已補 backfill migration、20-prefix coverage、`audit-module-gates.cjs` + pre-commit |
+| **P2 Usage Metering** | a–d + follow-up | ✅ 已合併 | follow-up 已補 `usage-events-ttl.ts` cron 與 `quotaExceeded` factory |
+| **P3 Billing Lifecycle** | b/c/d | ✅ 已合併（位置與 SPEC 略偏）| `BillingCycleService` / `BillingWebhookService` / `BillingNotificationService` 在 `apps/api/src/features/billing/services/`；cron 由 `apps/api/src/index.ts:86-99` 派發（每日 02:15，非 SPEC 的 hourly）|
+| **P3-a payment audit** | a | ✅ 已合併 | `0043_payment-audit-log.sql` + schema + `PaymentAuditService` + `PaymentService.ts/payments/routes/index.ts` 寫入 ATTEMPT/SUCCESS/FAILURE/REFUND |
 
-| Phase | PR | 狀態 |
-|---|---|---|
-| **P1 Gating Coverage** | a / b / c / d / e | ← 從 P1-a 開始 |
-| P2 Usage Metering | a / b / c / d | 等 P1 完成 |
-| P3 Billing Lifecycle | a / b / c / d | 等 P2 完成 |
+**本次 follow-up 已補齊**（依 audit gap）：
+1. **P3-a 收尾 commit**：payment audit 已提交，migration ID 0043 早於 0044/0045。
+2. **P1 follow-up**：backfill migration + 20-prefix coverage test + `audit-module-gates.cjs`。
+3. **P2 follow-up**：`usage-events-ttl.ts`（90 天清理）+ `quotaExceeded` factory。
+4. **P3 follow-up**：第二家 webhook provider（LINE Pay）+ billing notification kinds dispatch 測試。
+
+詳細 audit 結果見 `modular-billing-and-usage-metering.md` §0.4。
 
 ---
 
-## 起手 PR：P1-a
+## 起手 PR：P1-a（已完成；保留歷史紀錄，現階段請看上方「接下來該做的 PR」）
 
 > **範圍極小**——故意設計成 30 分鐘可完成、零外部依賴的暖身 PR，讓你熟悉 review 流程。
 

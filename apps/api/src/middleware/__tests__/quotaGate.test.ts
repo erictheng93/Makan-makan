@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
 import { ApiError } from "../../shared/utils/api-error";
-import { quotaGate } from "../quotaGate";
+import { quotaExceeded, quotaGate } from "../quotaGate";
 
 function statement(result: unknown) {
   const run = vi.fn().mockResolvedValue(result);
@@ -120,5 +120,17 @@ describe("quotaGate", () => {
 
     expect(response.status).toBe(429);
     expect(body.error.code).toBe("QUOTA_EXCEEDED");
+  });
+
+  it("creates quota exceeded errors with canonical details", () => {
+    const error = quotaExceeded("orders.created", 1000, 1001);
+
+    expect(error.status).toBe(429);
+    expect(error.code).toBe("QUOTA_EXCEEDED");
+    expect(error.details).toEqual({
+      meterKey: "orders.created",
+      hardLimit: 1000,
+      current: 1001,
+    });
   });
 });

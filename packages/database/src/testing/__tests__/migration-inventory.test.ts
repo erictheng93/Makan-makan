@@ -420,6 +420,17 @@ describe("migration inventory", () => {
     ]);
   });
 
+  it("keeps enterprise subscription backfill in the fresh migration chain", () => {
+    const sql = fs.readFileSync(
+      path.join(MIGRATIONS_DIR, "0046_backfill-enterprise-subscriptions.sql"),
+      "utf-8",
+    );
+
+    expect(sql).toContain("INSERT INTO shop_subscriptions");
+    expect(sql).toContain("'enterprise'");
+    expect(sql).toContain("WHERE NOT EXISTS");
+  });
+
   it("keeps integrity audit scopes clean on a fresh database", () => {
     const rows = db!
       .prepare(

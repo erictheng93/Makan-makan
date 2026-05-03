@@ -52,6 +52,48 @@ describe("BillingNotificationService", () => {
     );
   });
 
+  it.each([
+    BILLING_NOTIFICATION_KINDS.TRIAL_3D,
+    BILLING_NOTIFICATION_KINDS.TRIAL_0D,
+    BILLING_NOTIFICATION_KINDS.PAYMENT_FAILED,
+    BILLING_NOTIFICATION_KINDS.GRACE_PERIOD_START,
+    BILLING_NOTIFICATION_KINDS.ACCOUNT_SUSPENDED,
+    BILLING_NOTIFICATION_KINDS.CYCLE_CLOSED,
+  ])("records %s notification dispatches end to end", async (kind) => {
+    const { db, bind } = createDb();
+    const service = new BillingNotificationService({
+      DB: db,
+    } as unknown as Env);
+
+    const result = await service.send({
+      restaurantId: "rest-1",
+      kind,
+      dedupKey: `${kind}:rest-1`,
+      channel: NOTIFICATION_CHANNELS.EMAIL,
+      recipient: "owner@example.com",
+      text: `${kind} notice`,
+      payload: { kind },
+    });
+
+    expect(result).toMatchObject({
+      status: "skipped_provider_unconfigured",
+      duplicate: false,
+    });
+    expect(bind).toHaveBeenLastCalledWith(
+      expect.any(String),
+      "rest-1",
+      kind,
+      `${kind}:rest-1`,
+      "email",
+      "skipped_provider_unconfigured",
+      "owner@example.com",
+      null,
+      null,
+      JSON.stringify({ kind }),
+      expect.any(Number),
+    );
+  });
+
   it("sends configured Slack notifications once per dedup key", async () => {
     const { db, bind } = createDb();
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });

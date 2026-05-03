@@ -200,4 +200,93 @@ describe("Billing webhook routes", () => {
     expect(response.status).toBe(401);
     expect(json.error.code).toBe("WEBHOOK_SIGNATURE_INVALID");
   });
+
+  it("accepts signed LINE Pay webhooks as a second provider", async () => {
+    const rawBody = JSON.stringify({
+      id: "line_evt_1",
+      type: "invoice.paid",
+      data: {
+        object: {
+          metadata: { restaurantId: "rest-1" },
+        },
+      },
+    });
+    const nonce = "nonce-1";
+    const secret = "linepay-secret";
+    const signature = await hmacSha256Base64(
+      secret,
+      `${secret}${rawBody}${nonce}`,
+    );
+    const auditRun = vi.fn().mockResolvedValue({ meta: { changes: 1 } });
+    const auditBind = vi.fn(() => ({ run: auditRun }));
+    const prepare = vi.fn((sql: string) => {
+      if (sql.includes("INSERT OR IGNORE INTO payment_audit_log")) {
+        return { bind: auditBind };
+      }
+      return { bind: vi.fn(() => ({})) };
+    });
+    const batch = vi.fn().mockResolvedValue([]);
+    const { app, env } = buildApp({
+      DB: { prepare, batch },
+      LINEPAY_WEBHOOK_SECRET: secret,
+    });
+
+    const response = await app.request(
+      "/billing/webhooks/linepay",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-linepay-nonce": nonce,
+          "x-linepay-signature": signature,
+        },
+        body: rawBody,
+      },
+      env,
+    );
+    const json = (await response.json()) as {
+      data: { provider: string; reconciled: boolean };
+    };
+
+    expect(response.status).toBe(200);
+    expect(json.data).toMatchObject({ provider: "linepay", reconciled: true });
+    expect(auditBind).toHaveBeenCalledWith(
+      expect.any(String),
+      "rest-1",
+      null,
+      null,
+      "webhook_received",
+      "linepay",
+      "line_evt_1",
+      "invoice.paid",
+      null,
+      null,
+      expect.stringContaining('"type":"invoice.paid"'),
+      null,
+      null,
+      expect.any(Number),
+    );
+  });
 });
+
+async function hmacSha256Base64(secret: string, value: string) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(value),
+  );
+  const bytes = new Uint8Array(signature);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}

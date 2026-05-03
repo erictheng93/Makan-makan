@@ -150,6 +150,11 @@ export class BillingWebhookService {
     rawBody: string,
     headers: Headers,
   ) {
+    if (provider === "linepay") {
+      await this.verifyLinePaySignature(rawBody, headers);
+      return;
+    }
+
     if (provider !== "stripe" || !this.env.STRIPE_WEBHOOK_SECRET) return;
 
     const stripeSignature = headers.get("stripe-signature");
@@ -171,6 +176,24 @@ export class BillingWebhookService {
 
     if (signature !== expected) {
       throw new Error("Invalid webhook signature");
+    }
+  }
+
+  private async verifyLinePaySignature(rawBody: string, headers: Headers) {
+    if (!this.env.LINEPAY_WEBHOOK_SECRET) return;
+
+    const nonce = headers.get("x-linepay-nonce");
+    const signature = headers.get("x-linepay-signature");
+    if (!nonce || !signature) {
+      throw new Error("Missing LINE Pay webhook signature");
+    }
+
+    const expected = await hmacSha256Base64(
+      this.env.LINEPAY_WEBHOOK_SECRET,
+      `${this.env.LINEPAY_WEBHOOK_SECRET}${rawBody}${nonce}`,
+    );
+    if (signature !== expected) {
+      throw new Error("Invalid LINE Pay webhook signature");
     }
   }
 }
@@ -208,4 +231,26 @@ async function hmacSha256Hex(secret: string, value: string) {
   return [...new Uint8Array(signature)]
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
+}
+
+async function hmacSha256Base64(secret: string, value: string) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(value),
+  );
+  const bytes = new Uint8Array(signature);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
 }

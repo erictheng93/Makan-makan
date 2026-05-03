@@ -135,6 +135,7 @@ export interface Env {
   RESEND_API_KEY?: string;
   BILLING_EMAIL_FROM?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  LINEPAY_WEBHOOK_SECRET?: string;
   NOTIFICATION_FROM_EMAIL?: string;
 
   // AI and machine learning
