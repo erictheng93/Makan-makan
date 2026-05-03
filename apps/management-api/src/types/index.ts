@@ -58,6 +58,7 @@ export type TenantStatus =
  * License tier
  */
 export type LicenseTier = "standard" | "professional" | "enterprise";
+export type OnboardingPlanId = LicenseTier | "trial";
 
 /**
  * Tenant record in database
@@ -383,7 +384,7 @@ export interface OnboardingApplication {
   contactName: string;
   contactEmail: string;
   contactPhone: string;
-  planId: LicenseTier;
+  planId: OnboardingPlanId | null;
   requestedSubdomain?: string;
   assignedSubdomain?: string;
   cfAccountId?: string;
@@ -406,7 +407,7 @@ export interface CreateApplicationRequest {
   contactName: string;
   contactEmail: string;
   contactPhone: string;
-  planId: LicenseTier;
+  planId?: OnboardingPlanId | null;
   subdomain?: string;
 }
 

@@ -20,7 +20,10 @@ const createApplicationSchema = z.object({
   contactName: z.string().min(2).max(100),
   contactEmail: z.string().email(),
   contactPhone: z.string().min(8).max(20),
-  planId: z.enum(["standard", "professional", "enterprise"]),
+  planId: z
+    .enum(["standard", "professional", "enterprise", "trial"])
+    .nullable()
+    .optional(),
   subdomain: z
     .string()
     .regex(

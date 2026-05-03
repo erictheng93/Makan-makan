@@ -146,6 +146,36 @@ describe("Onboarding Routes", () => {
       expect(body.data.status).toBe("submitted");
     });
 
+    it("should default missing planId to trial", async () => {
+      const db = mockDb();
+      const appRow = createTestApplicationRow({ plan_id: "trial" });
+
+      const stmt = createMockD1Statement();
+      stmt.first
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue(appRow);
+      stmt.run.mockResolvedValue({ success: true });
+      db.prepare.mockReturnValue(stmt);
+
+      const res = await fetchApp(
+        "/api/v1/onboarding/applications",
+        jsonBody({
+          businessName: "Trial Restaurant",
+          contactName: "Jane Doe",
+          contactEmail: "jane@example.com",
+          contactPhone: "+60123456789",
+          subdomain: "trial-restaurant",
+        }),
+      );
+
+      expect(res.status).toBe(201);
+      const insertBind = stmt.bind.mock.calls.find(
+        (call) => call.length === 14,
+      );
+      expect(insertBind?.[5]).toBe("trial");
+    });
+
     it("should return 400 for invalid email", async () => {
       const res = await fetchApp(
         "/api/v1/onboarding/applications",

@@ -11,10 +11,16 @@ import type {
   CreateApplicationRequest,
   LicenseTier,
   CloudflareVerificationResult,
+  OnboardingPlanId,
 } from "../types";
 import { encrypt, decrypt } from "@makanmakan/utils";
 import { TenantService } from "./TenantService";
 import { CloudflareApiClient } from "./CloudflareApiClient";
+import {
+  DEFAULT_BILLING_CYCLE_MS,
+  planIdToTier,
+  TRIAL_DURATION_MS,
+} from "@makanmakan/database";
 
 export class OnboardingService {
   private env: ManagementEnv;
@@ -113,7 +119,7 @@ export class OnboardingService {
         data.contactName,
         data.contactEmail,
         data.contactPhone,
-        data.planId,
+        data.planId ?? "trial",
         data.subdomain || null,
         assignedSubdomain,
         "submitted",
@@ -268,14 +274,7 @@ export class OnboardingService {
       // Update status to provisioning
       await this.updateApplicationStatus(applicationId, "provisioning");
 
-      // Create tenant using TenantService
-      const tenant = await this.tenantService.createTenant({
-        businessName: application.businessName,
-        contactEmail: application.contactEmail,
-        contactPhone: application.contactPhone,
-        subdomain: application.assignedSubdomain,
-        licenseTier: application.planId as LicenseTier,
-      });
+      const tenant = await this.createTenantWithSubscription(application, now);
 
       // Get the encrypted token from the application
       const appRow = await this.env.MANAGEMENT_DB.prepare(
@@ -389,6 +388,100 @@ export class OnboardingService {
     return decrypt(encrypted, this.env.ENCRYPTION_KEY);
   }
 
+  private async createTenantWithSubscription(
+    application: OnboardingApplication,
+    nowIso: string,
+  ) {
+    const tenantId = this.generateTenantId();
+    const tenantLicenseTier = this.toTenantLicenseTier(application.planId);
+    const licenseKey = this.generateLicenseKey(tenantLicenseTier, tenantId);
+    const planTier = planIdToTier(application.planId);
+    const nowMs = Date.now();
+    const isTrial = planTier === "trial";
+    const trialEndsAt = isTrial ? nowMs + TRIAL_DURATION_MS : null;
+    const billingCycleStartAt = isTrial ? null : nowMs;
+    const billingCycleEndAt = isTrial ? null : nowMs + DEFAULT_BILLING_CYCLE_MS;
+
+    const tenantInsert = this.env.MANAGEMENT_DB.prepare(
+      `INSERT INTO tenants (
+        id, business_name, contact_email, contact_phone,
+        subdomain, custom_domain, license_tier, license_key,
+        status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      tenantId,
+      application.businessName,
+      application.contactEmail,
+      application.contactPhone || null,
+      application.assignedSubdomain!,
+      null,
+      tenantLicenseTier,
+      licenseKey,
+      "pending",
+      nowIso,
+      nowIso,
+    );
+
+    const subscriptionInsert = this.env.MANAGEMENT_DB.prepare(
+      `INSERT INTO shop_subscriptions (
+        id, restaurant_id, plan_tier, module_overrides, deployment_mode,
+        is_active, trial_ends_at_ms, billing_cycle_start_at_ms,
+        billing_cycle_end_at_ms, created_at_ms, updated_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      this.generateSubscriptionId(),
+      tenantId,
+      planTier,
+      "{}",
+      "managed",
+      1,
+      trialEndsAt,
+      billingCycleStartAt,
+      billingCycleEndAt,
+      nowMs,
+      nowMs,
+    );
+
+    await this.env.MANAGEMENT_DB.batch([tenantInsert, subscriptionInsert]);
+
+    const tenant = await this.tenantService.getTenantById(tenantId);
+    if (!tenant) {
+      throw new Error("Tenant creation failed");
+    }
+
+    return tenant;
+  }
+
+  private toTenantLicenseTier(planId: string | null | undefined): LicenseTier {
+    if (planId === "professional" || planId === "enterprise") {
+      return planId;
+    }
+
+    return "standard";
+  }
+
+  private generateTenantId(): string {
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
+    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    return `T-${dateStr}-${random}`;
+  }
+
+  private generateSubscriptionId(): string {
+    return crypto.randomUUID();
+  }
+
+  private generateLicenseKey(tier: LicenseTier, tenantId: string): string {
+    const tierCode =
+      tier === "standard" ? "STD" : tier === "professional" ? "PRO" : "ENT";
+    const code = tenantId
+      .replace(/[^A-Za-z0-9]/g, "")
+      .slice(-6)
+      .toUpperCase();
+    const check = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `MKM-${tierCode}-${code}-${check}`;
+  }
+
   private mapRowToApplication(
     row: Record<string, unknown>,
   ): OnboardingApplication {
@@ -398,7 +491,7 @@ export class OnboardingService {
       contactName: row.contact_name as string,
       contactEmail: row.contact_email as string,
       contactPhone: row.contact_phone as string,
-      planId: row.plan_id as LicenseTier,
+      planId: row.plan_id as OnboardingPlanId | null,
       requestedSubdomain: row.requested_subdomain as string | undefined,
       assignedSubdomain: row.assigned_subdomain as string | undefined,
       cfAccountId: row.cf_account_id as string | undefined,
