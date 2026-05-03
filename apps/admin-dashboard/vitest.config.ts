@@ -38,7 +38,10 @@ export default defineConfig({
         __dirname,
         "../../packages/shared-types/src",
       ),
+      "@makanmakan/database": resolve(__dirname, "../../packages/database/src"),
       "@makanmakan/utils": resolve(__dirname, "../../packages/utils/src"),
+      pinia: resolve(__dirname, "./node_modules/pinia"),
+      vue: resolve(__dirname, "./node_modules/vue"),
     },
   },
   define: {

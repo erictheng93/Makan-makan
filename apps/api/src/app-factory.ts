@@ -107,6 +107,7 @@ import ingredientsFeature from "./features/ingredients";
 import discoveryFeature from "./features/discovery";
 import feedbackFeature from "./features/feedback";
 import subscriptionsFeature from "./features/subscriptions";
+import meFeature from "./features/me";
 import { ErrorSanitizer } from "./utils/errorSanitizer";
 import { ApiError } from "./shared/utils/api-error";
 import type { Env } from "./types/env";
@@ -437,6 +438,7 @@ export function createApp(
         guestOrders: "/api/v1/guest-orders",
         integrations: "/api/v1/integrations",
         ingredients: "/api/v1/ingredients",
+        me: "/api/v1/me",
         health: "/health",
         docs: "/docs",
       },
@@ -551,6 +553,7 @@ export function createApp(
   apiV1.route("/ingredients", ingredientsFeature.routes);
   apiV1.route("/discovery", discoveryFeature.routes);
   apiV1.route("/feedback", feedbackFeature.routes);
+  apiV1.route("/me", meFeature.routes);
   apiV1.route("/notifications", notificationsRoutes);
   apiV1.route("/push", pushRoutes);
   apiV1.route("/audit", auditRoutes);
