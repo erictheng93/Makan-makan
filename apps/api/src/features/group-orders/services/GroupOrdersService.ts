@@ -1087,8 +1087,7 @@ export class GroupOrdersService implements IGroupOrderService {
       const now = new Date();
       for (const bill of splitBillsData) {
         const billId = randomUUID();
-        await this.db.insert(splitBills).values({
-          id: billId,
+        const billPayload = {
           groupOrderId,
           memberId: bill.memberId,
           subtotal: bill.subtotal,
@@ -1105,9 +1104,31 @@ export class GroupOrdersService implements IGroupOrderService {
           totalAmountCents: toRequiredCents(bill.totalAmount),
           items: bill.items,
           paymentStatus: "pending",
-          createdAt: now,
           updatedAt: now,
-        });
+        } satisfies Partial<typeof splitBills.$inferInsert>;
+
+        const existingRows = await this.db
+          .select()
+          .from(splitBills)
+          .where(
+            and(
+              eq(splitBills.groupOrderId, groupOrderId),
+              eq(splitBills.memberId, bill.memberId),
+            ),
+          );
+
+        if (existingRows.length > 0) {
+          await this.db
+            .update(splitBills)
+            .set(billPayload)
+            .where(eq(splitBills.id, existingRows[0].id));
+        } else {
+          await this.db.insert(splitBills).values({
+            id: billId,
+            ...billPayload,
+            createdAt: now,
+          } as typeof splitBills.$inferInsert);
+        }
       }
 
       // Calculate final amounts for group order
@@ -1396,11 +1417,111 @@ export class GroupOrdersService implements IGroupOrderService {
    * Leave group
    */
   async leaveGroup(
-    _groupOrderId: string,
-    _memberId: string,
+    groupOrderId: string,
+    memberId: string,
   ): Promise<{ success: boolean; error?: string }> {
-    // Implementation for leaving group logic
-    return { success: true };
+    const timer = this.performance.startTimer("leaveGroup");
+
+    try {
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId));
+      const groupOrder = groupOrderRows[0];
+
+      if (!groupOrder) {
+        return { success: false, error: "Group order not found" };
+      }
+
+      if (groupOrder.status !== "active" && groupOrder.status !== "ordering") {
+        return {
+          success: false,
+          error: "Cannot leave a group order after checkout has started",
+        };
+      }
+
+      const memberRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.id, memberId),
+            eq(groupMembers.groupOrderId, groupOrderId),
+            isNull(groupMembers.leftAt),
+          ),
+        );
+      const member = memberRows[0];
+
+      if (!member) {
+        return { success: false, error: "Member not found in group" };
+      }
+
+      const activeMemberRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            isNull(groupMembers.leftAt),
+          ),
+        );
+
+      if (member.role === "creator" && activeMemberRows.length > 1) {
+        return {
+          success: false,
+          error: "Host cannot leave while other members are still active",
+        };
+      }
+
+      const now = new Date();
+      await this.db
+        .update(groupMembers)
+        .set({
+          isActive: false,
+          leftAt: now,
+          lastActiveAt: now,
+        })
+        .where(eq(groupMembers.id, memberId));
+
+      await this.db
+        .update(groupCartItems)
+        .set({
+          status: "removed",
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(groupCartItems.groupOrderId, groupOrderId),
+            eq(groupCartItems.memberId, memberId),
+            eq(groupCartItems.status, "active"),
+          ),
+        );
+
+      await this.updateMemberTotal(groupOrderId, memberId);
+      await this.updateGroupOrderTotal(groupOrderId);
+
+      await this.logActivity(
+        groupOrderId,
+        memberId,
+        "member_left",
+        `${member.name} left the group`,
+        { memberName: member.name },
+      );
+
+      await this.cache.delete(`group_order:${groupOrderId}`);
+      await this.cache.delete(`group_order_summary:${groupOrderId}`);
+
+      return { success: true };
+    } catch (error) {
+      this.errorTracker.logError("leaveGroup", error as Error, {
+        groupOrderId,
+        memberId,
+      });
+      this.logger.error("Failed to leave group", error);
+      return { success: false, error: "Failed to leave group" };
+    } finally {
+      this.performance.endTimer(timer);
+    }
   }
 
   /**
@@ -1421,8 +1542,60 @@ export class GroupOrdersService implements IGroupOrderService {
    * Cleanup expired groups
    */
   async cleanupExpiredGroups(): Promise<{ cleaned: number; errors: string[] }> {
-    // Implementation for cleanup logic
-    return { cleaned: 0, errors: [] };
+    const timer = this.performance.startTimer("cleanupExpiredGroups");
+    const errors: string[] = [];
+    const nowMs = Date.now();
+    const now = new Date(nowMs);
+
+    try {
+      const expiredGroups = await this.db
+        .select()
+        .from(groupOrders)
+        .where(
+          and(
+            inArray(groupOrders.status, ["active", "ordering", "checkout"]),
+            sql`${groupOrders.expiresAt} < ${nowMs}`,
+          ),
+        )
+        .limit(500);
+
+      let cleaned = 0;
+
+      for (const groupOrder of expiredGroups) {
+        try {
+          await this.db
+            .update(groupOrders)
+            .set({
+              status: "cancelled",
+              updatedAt: now,
+            })
+            .where(eq(groupOrders.id, groupOrder.id));
+
+          await this.logActivity(
+            groupOrder.id,
+            null,
+            "group_expired",
+            "Group order expired and was cancelled",
+            { expiredAt: groupOrder.expiresAt },
+          );
+
+          await this.cache.delete(`group_order:${groupOrder.id}`);
+          await this.cache.delete(`group_order_summary:${groupOrder.id}`);
+          await this.cache.delete(`share_code:${groupOrder.shareCode}`);
+          cleaned++;
+        } catch (error) {
+          errors.push(`${groupOrder.id}: ${(error as Error).message}`);
+        }
+      }
+
+      return { cleaned, errors };
+    } catch (error) {
+      this.errorTracker.logError("cleanupExpiredGroups", error as Error);
+      this.logger.error("Failed to cleanup expired groups", error);
+      return { cleaned: 0, errors: [(error as Error).message] };
+    } finally {
+      this.performance.endTimer(timer);
+    }
   }
 
   /**

@@ -43,6 +43,8 @@ export interface GroupOrderCartItem extends BaseEntity {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  unitPriceCents?: number | null;
+  totalPriceCents?: number | null;
   customizations: Record<string, unknown>;
   specialInstructions?: string;
 }
@@ -174,7 +176,8 @@ export type ActivityType =
   | "bill_split"
   | "payment_made"
   | "order_finalized"
-  | "order_cancelled";
+  | "order_cancelled"
+  | "group_expired";
 
 // Statistics and Analytics
 export interface GroupOrderStatistics {

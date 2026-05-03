@@ -200,6 +200,7 @@ class SharedDataStore {
         description TEXT,
         ingredients TEXT,
         price REAL NOT NULL,
+        price_cents INTEGER,
         original_price REAL,
         cost_price REAL,
         image_url TEXT,
@@ -472,6 +473,33 @@ class SharedDataStore {
       )
     `);
 
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS usage_events (
+        id TEXT PRIMARY KEY,
+        restaurant_id TEXT NOT NULL,
+        meter_key TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        metadata TEXT,
+        aggregated_at_ms INTEGER,
+        occurred_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS usage_meters (
+        id TEXT PRIMARY KEY,
+        restaurant_id TEXT NOT NULL,
+        meter_key TEXT NOT NULL,
+        cycle_start_at_ms INTEGER NOT NULL,
+        cycle_end_at_ms INTEGER NOT NULL,
+        total_quantity INTEGER NOT NULL DEFAULT 0,
+        last_aggregated_at_ms INTEGER,
+        created_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+        updated_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+        UNIQUE(restaurant_id, meter_key, cycle_start_at_ms)
+      )
+    `);
+
     console.log("[SharedDataStore] Tables created successfully");
   }
 
@@ -580,6 +608,9 @@ class SharedDataStore {
       // Convert boolean to integer for SQLite
       if (typeof value === "boolean") {
         return value ? 1 : 0;
+      }
+      if (value instanceof Date && k.endsWith("_ms")) {
+        return value.getTime();
       }
       // Convert Date to ISO string
       if (value instanceof Date) {
@@ -1422,6 +1453,10 @@ async function runMigrations(db: TestDB) {
       tax_amount REAL DEFAULT 0,
       service_charge REAL DEFAULT 0,
       final_amount REAL DEFAULT 0,
+      total_amount_cents INTEGER,
+      tax_amount_cents INTEGER,
+      service_charge_cents INTEGER,
+      final_amount_cents INTEGER,
       expires_at_ms INTEGER NOT NULL,
       locked_at_ms INTEGER,
       completed_at_ms INTEGER,
@@ -1468,6 +1503,8 @@ async function runMigrations(db: TestDB) {
       quantity INTEGER NOT NULL DEFAULT 1,
       unit_price REAL NOT NULL,
       total_price REAL NOT NULL,
+      unit_price_cents INTEGER,
+      total_price_cents INTEGER,
       customizations TEXT DEFAULT '{}',
       special_instructions TEXT,
       status TEXT DEFAULT 'active' CHECK (status IN ('active', 'removed', 'ordered')),
@@ -1491,6 +1528,12 @@ async function runMigrations(db: TestDB) {
       discount_amount REAL NOT NULL DEFAULT 0,
       tip_amount REAL NOT NULL DEFAULT 0,
       total_amount REAL NOT NULL,
+      subtotal_cents INTEGER,
+      tax_amount_cents INTEGER,
+      service_charge_cents INTEGER,
+      discount_amount_cents INTEGER,
+      tip_amount_cents INTEGER,
+      total_amount_cents INTEGER,
       items TEXT DEFAULT '[]',
       payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'processing', 'paid', 'failed', 'refunded')),
       payment_method TEXT,
@@ -1751,13 +1794,113 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
   const getTableName = (table: any): string => {
     if (table?.[Symbol.for("drizzle:Name")])
       return table[Symbol.for("drizzle:Name")];
+    if (table?.shareCode && table?.splitType) return "group_orders";
+    if (table?.groupOrderId && table?.sessionId) return "group_members";
+    if (table?.groupOrderId && table?.menuItemId && table?.unitPrice)
+      return "group_cart_items";
+    if (table?.groupOrderId && table?.paymentStatus) return "split_bills";
+    if (table?.groupOrderId && table?.action) return "group_activity_logs";
+    if (table?.categoryId && table?.preparationTime) return "menu_items";
     if (table?.toString().includes("restaurants")) return "restaurants";
     if (table?.toString().includes("categories")) return "categories";
     if (table?.toString().includes("menu_items")) return "menu_items";
+    if (table?.toString().includes("group_orders")) return "group_orders";
+    if (table?.toString().includes("group_members")) return "group_members";
+    if (table?.toString().includes("group_cart_items"))
+      return "group_cart_items";
+    if (table?.toString().includes("split_bills")) return "split_bills";
+    if (table?.toString().includes("group_activity_logs"))
+      return "group_activity_logs";
     if (table?.toString().includes("tables")) return "tables";
     if (table?.toString().includes("users")) return "users";
     if (table?.toString().includes("orders")) return "orders";
     return "unknown";
+  };
+
+  const toSnakeCase = (str: string): string =>
+    str
+      .replace(/([A-Z])/g, "_$1")
+      .toLowerCase()
+      .replace(/^_/, "");
+
+  const toCamelCase = (str: string): string =>
+    str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+
+  const convertKeysToCamelCase = (obj: any): any => {
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) return obj.map(convertKeysToCamelCase);
+    if (typeof obj !== "object") return obj;
+
+    const result: any = {};
+    for (const key of Object.keys(obj)) {
+      result[toCamelCase(key)] = obj[key];
+    }
+    return result;
+  };
+
+  const extractEqualities = (
+    condition: any,
+  ): Array<{ column: string; value: any }> => {
+    const chunks =
+      condition?.queryChunks ??
+      condition?.sql?.queryChunks ??
+      condition?.decoder?.queryChunks;
+
+    if (!Array.isArray(chunks)) return [];
+
+    const equalities: Array<{ column: string; value: any }> = [];
+    let pendingColumn: string | null = null;
+    let sawEquals = false;
+
+    for (const chunk of chunks) {
+      if (!chunk || typeof chunk !== "object") continue;
+
+      const chunkText = Array.isArray(chunk.value)
+        ? chunk.value.join("")
+        : undefined;
+      if (chunkText?.includes("=")) {
+        sawEquals = true;
+        continue;
+      }
+
+      const columnName =
+        typeof chunk.name === "string"
+          ? chunk.name
+          : typeof chunk.column?.name === "string"
+            ? chunk.column.name
+            : null;
+      if (columnName) {
+        pendingColumn = columnName;
+        sawEquals = false;
+        continue;
+      }
+
+      if (
+        pendingColumn &&
+        sawEquals &&
+        chunk.value !== undefined &&
+        !Array.isArray(chunk.value)
+      ) {
+        equalities.push({ column: pendingColumn, value: chunk.value });
+        pendingColumn = null;
+        sawEquals = false;
+      }
+    }
+
+    return equalities;
+  };
+
+  const applyWhere = (rows: any[], condition: any): any[] => {
+    const equalities = extractEqualities(condition);
+    if (equalities.length === 0) return rows;
+
+    return rows.filter((row) =>
+      equalities.every(({ column, value }) => {
+        const snakeColumn = toSnakeCase(column);
+        const rowValue = row[snakeColumn] ?? row[column];
+        return rowValue == value;
+      }),
+    );
   };
 
   return {
@@ -1769,37 +1912,41 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
         values: (data: any) => {
           console.log("[MockDrizzle] values():", data);
 
+          const executeInsert = async () => {
+            console.log("[MockDrizzle] returning() called");
+
+            const now = new Date().toISOString();
+
+            // Handle array of records (bulk insert)
+            if (Array.isArray(data)) {
+              const results = data.map((item) => {
+                if (!item.createdAt) item.createdAt = now;
+                if (!item.updatedAt) item.updatedAt = now;
+                const inserted = dataStore.insert(tableName, item);
+                console.log("[MockDrizzle] Stored record ID:", inserted.id);
+                return { ...inserted };
+              });
+              console.log("[MockDrizzle] Returning:", results);
+              return results;
+            }
+
+            // Handle single record
+            if (!data.createdAt) data.createdAt = now;
+            if (!data.updatedAt) data.updatedAt = now;
+
+            // Insert into shared data store
+            const inserted = dataStore.insert(tableName, data);
+            console.log("[MockDrizzle] Stored record ID:", inserted.id);
+
+            const result = [{ ...inserted }];
+            console.log("[MockDrizzle] Returning:", result);
+            return result;
+          };
+
           return {
-            returning: () => {
-              console.log("[MockDrizzle] returning() called");
-
-              const now = new Date().toISOString();
-
-              // Handle array of records (bulk insert)
-              if (Array.isArray(data)) {
-                const results = data.map((item) => {
-                  if (!item.createdAt) item.createdAt = now;
-                  if (!item.updatedAt) item.updatedAt = now;
-                  const inserted = dataStore.insert(tableName, item);
-                  console.log("[MockDrizzle] Stored record ID:", inserted.id);
-                  return { ...inserted };
-                });
-                console.log("[MockDrizzle] Returning:", results);
-                return Promise.resolve(results);
-              }
-
-              // Handle single record
-              if (!data.createdAt) data.createdAt = now;
-              if (!data.updatedAt) data.updatedAt = now;
-
-              // Insert into shared data store
-              const inserted = dataStore.insert(tableName, data);
-              console.log("[MockDrizzle] Stored record ID:", inserted.id);
-
-              const result = [{ ...inserted }];
-              console.log("[MockDrizzle] Returning:", result);
-              return Promise.resolve(result);
-            },
+            then: (resolve: any, reject: any) =>
+              executeInsert().then(resolve, reject),
+            returning: executeInsert,
           };
         },
       };
@@ -1878,16 +2025,23 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
         // Create chainable query methods
         const createQueryChain = () => {
           const getData = () => {
-            return dataStore.select(tableName);
+            return dataStore.select(tableName).map(convertKeysToCamelCase);
           };
 
           return {
             where: (condition: any) => {
-              const query = createAwaitableQuery(getData);
+              const getFilteredData = () =>
+                applyWhere(dataStore.select(tableName), condition).map(
+                  convertKeysToCamelCase,
+                );
+              const query = createAwaitableQuery(getFilteredData);
 
               // Add .get() method for single record queries
               query.get = async () => {
-                const allData = dataStore.select(tableName);
+                const allData = applyWhere(
+                  dataStore.select(tableName),
+                  condition,
+                ).map(convertKeysToCamelCase);
                 console.log(
                   "[MockDrizzle] where().get() - tableName:",
                   tableName,
@@ -2138,38 +2292,10 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
                 );
                 if (allRecords.length === 0) return [];
 
-                // Extract filter value from WHERE condition (similar to where().get() logic)
-                let filterValue: any = null;
-                if (condition && condition.queryChunks) {
-                  // Find the Param chunk with the filter value
-                  for (const chunk of condition.queryChunks) {
-                    if (
-                      chunk &&
-                      typeof chunk === "object" &&
-                      chunk.value !== undefined
-                    ) {
-                      if (
-                        typeof chunk.value === "number" ||
-                        (typeof chunk.value === "string" &&
-                          !Array.isArray(chunk.value))
-                      ) {
-                        filterValue = chunk.value;
-                        break;
-                      }
-                    }
-                  }
-                }
-
-                // Filter records to update based on WHERE condition
-                const recordsToUpdate =
-                  filterValue !== null
-                    ? allRecords.filter(
-                        (record: any) => record.id === filterValue,
-                      )
-                    : allRecords; // If no filter, update all (fallback)
+                const recordsToUpdate = applyWhere(allRecords, condition);
 
                 console.log(
-                  `[MockDrizzle] UPDATE ${normalizedTableName} WHERE id = ${filterValue}, found ${recordsToUpdate.length} records`,
+                  `[MockDrizzle] UPDATE ${normalizedTableName}, found ${recordsToUpdate.length} records`,
                 );
 
                 const updatedRecords: any[] = [];
@@ -2214,8 +2340,14 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
                     ([_, v]) => v !== undefined,
                   );
                   const keys = entries.map(([k]) => k); // Already snake_case
-                  const values = entries.map(([_, v]) =>
-                    v instanceof Date ? v.toISOString() : v === null ? null : v,
+                  const values = entries.map(([key, v]) =>
+                    v instanceof Date && key.endsWith("_ms")
+                      ? v.getTime()
+                      : v instanceof Date
+                        ? v.toISOString()
+                        : v === null
+                          ? null
+                          : v,
                   );
                   if (keys.length > 0) {
                     dataStore.run(
@@ -2248,6 +2380,21 @@ function createInlineMockDrizzle(dataStore: SharedDataStore) {
               return updateQuery;
             },
           };
+        },
+      };
+    },
+
+    delete: (table: any) => {
+      const tableName = getTableName(table);
+      console.log("[MockDrizzle] delete() called for table:", tableName);
+
+      return {
+        where: async (condition: any) => {
+          const rows = applyWhere(dataStore.select(tableName), condition);
+          for (const row of rows) {
+            dataStore.run(`DELETE FROM ${tableName} WHERE id = ?`, [row.id]);
+          }
+          return { changes: rows.length, lastInsertRowid: 0 };
         },
       };
     },

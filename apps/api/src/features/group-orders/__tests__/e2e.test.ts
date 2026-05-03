@@ -15,6 +15,7 @@
  * - POST /api/v1/orders/group/:groupOrderId/split - Split bill
  * - POST /api/v1/orders/group/:groupOrderId/payment/:memberId - Process payment
  * - POST /api/v1/orders/group/:groupOrderId/leave/:memberId - Leave group
+ * - POST /api/v1/orders/group/cleanup/expired - Cleanup expired groups
  * - GET /api/v1/orders/group/statistics - Get statistics
  */
 
@@ -1363,6 +1364,55 @@ describe("Group Orders E2E Tests", () => {
       expect(response.status).toBe(400);
       const data = (await response.json()) as ApiTestResponse;
       expect(data.success).toBe(false);
+    });
+  });
+
+  describe("POST /api/v1/orders/group/cleanup/expired - Cleanup Expired Groups", () => {
+    it("should cancel expired active groups for admins", async () => {
+      const createResponse = await app.request("/api/v1/orders/group/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${ownerToken}`,
+        },
+        body: JSON.stringify({
+          restaurantId: Number(testRestaurantId),
+          tableId: testTableId,
+        }),
+      });
+
+      const createData = (await createResponse.json()) as ApiTestResponse;
+      const groupOrderId = createData.data.groupOrderId;
+
+      await db
+        .prepare(
+          "UPDATE group_orders SET expires_at_ms = ?, status = ? WHERE id = ?",
+        )
+        .bind(Date.now() - 60_000, "active", groupOrderId)
+        .run();
+
+      const response = await app.request(
+        "/api/v1/orders/group/cleanup/expired",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminToken}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as ApiTestResponse;
+      expect(data.success).toBe(true);
+      expect(data.data.cleaned).toBeGreaterThanOrEqual(1);
+
+      const row = await db
+        .prepare("SELECT status FROM group_orders WHERE id = ?")
+        .bind(groupOrderId)
+        .first();
+
+      expect((row as { status?: string } | null)?.status).toBe("cancelled");
     });
   });
 
