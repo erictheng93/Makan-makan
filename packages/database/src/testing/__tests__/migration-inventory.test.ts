@@ -58,6 +58,8 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "shop_subscriptions",
   "system_alerts",
   "tables",
+  "usage_events",
+  "usage_meters",
   "users",
   "waiting_list",
 ];

@@ -33,6 +33,8 @@ export * from "./payments";
 export * from "./backup";
 export * from "./feedback";
 export * from "./subscriptions";
+export * from "./usage-events";
+export * from "./usage-meters";
 export * from "./idempotency-keys";
 export * from "./data-integrity-audit";
 
@@ -125,6 +127,8 @@ export {
 } from "./backup";
 export { shopFeedbackRelations, feedbackResponsesRelations } from "./feedback";
 export { shopSubscriptionsRelations } from "./subscriptions";
+export { usageEventsRelations } from "./usage-events";
+export { usageMetersRelations } from "./usage-meters";
 
 // 重新匯出類型
 export type { UserRole } from "./users";
@@ -183,6 +187,8 @@ export {
 export { PLATFORM_TYPES, MENU_SYNC_STATUS } from "./platform-integrations";
 export { MODULES, PLAN_TIERS, PLAN_DEFAULT_MODULES } from "./subscriptions";
 export type { ModuleKey, ModuleMap, PlanTier } from "./subscriptions";
+export { METER_KEYS } from "./usage-events";
+export type { MeterKey } from "./usage-events";
 export { IDEMPOTENCY_SCOPES } from "./idempotency-keys";
 export type { IdempotencyScope } from "./idempotency-keys";
 export {

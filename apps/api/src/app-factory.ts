@@ -35,6 +35,7 @@ import {
 } from "./middleware/monitoring";
 import { tenantContextMiddleware } from "./middleware/tenantContext";
 import { moduleGate } from "./middleware/moduleGate";
+import { usageTracker } from "./middleware/usageTracker";
 // import restaurantsRouter from './routes/restaurants' // Replaced with modular Restaurants feature
 import restaurantsFeature from "./features/restaurants";
 // import menuRouter from './routes/menu' // Replaced with modular Menu feature
@@ -507,6 +508,8 @@ export function createApp(
   apiV1.use("/notifications/*", authMiddleware);
   apiV1.use("/partnerships/*", authMiddleware);
   // Note: /integrations/* auth is handled internally (webhooks are public with HMAC, admin routes use authMiddleware)
+
+  apiV1.use("*", usageTracker);
 
   // Apply CSRF protection to state-changing operations after authentication
   apiV1.use(
