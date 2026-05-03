@@ -90,6 +90,55 @@ describe("BillingNotificationService", () => {
     );
   });
 
+  it("sends configured email notifications through Resend", async () => {
+    const { db, bind } = createDb();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ id: "email_1" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const service = new BillingNotificationService({
+      DB: db,
+      RESEND_API_KEY: "resend-key",
+      BILLING_EMAIL_FROM: "billing@makanmasak.app",
+    } as unknown as Env);
+
+    const result = await service.send({
+      restaurantId: "rest-1",
+      kind: BILLING_NOTIFICATION_KINDS.PAYMENT_FAILED,
+      dedupKey: "payment_failed:event-1",
+      channel: NOTIFICATION_CHANNELS.EMAIL,
+      recipient: "owner@example.com",
+      subject: "Payment failed",
+      text: "Payment failed",
+    });
+
+    expect(result).toEqual({ status: "sent", duplicate: false });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.resend.com/emails",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer resend-key",
+        }),
+      }),
+    );
+    expect(bind).toHaveBeenLastCalledWith(
+      expect.any(String),
+      "rest-1",
+      "payment_failed",
+      "payment_failed:event-1",
+      "email",
+      "sent",
+      "owner@example.com",
+      "email_1",
+      null,
+      null,
+      expect.any(Number),
+    );
+  });
+
   it("dispatches trial ending reminders through the email channel", async () => {
     const first = vi.fn().mockResolvedValue(null);
     const all = vi.fn().mockResolvedValue({
