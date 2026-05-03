@@ -16,6 +16,7 @@ import {
 } from "../schemas/validation";
 import { validateBody, validateQuery } from "../../../middleware/validation";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { quotaGate } from "../../../middleware/quotaGate";
 import { meterEmit } from "../../../shared/utils/meter";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
@@ -36,44 +37,49 @@ async function trackAiRequest(c: Context<any>) {
  * GET /config/:restaurantId
  * Get AI configuration for a restaurant
  */
-routes.get("/config/:restaurantId", moduleGate("ai_analytics"), async (c) => {
-  await trackAiRequest(c);
-  const restaurantId = c.req.param("restaurantId");
-  if (!restaurantId)
-    throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
-  const user = c.get("user");
-  const userRole = user.role;
+routes.get(
+  "/config/:restaurantId",
+  moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
+  async (c) => {
+    await trackAiRequest(c);
+    const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
+    const user = c.get("user");
+    const userRole = user.role;
 
-  // Check permissions (Admin or Owner only)
-  if (userRole !== 0 && userRole !== 1) {
-    throw forbidden("Unauthorized");
-  }
+    // Check permissions (Admin or Owner only)
+    if (userRole !== 0 && userRole !== 1) {
+      throw forbidden("Unauthorized");
+    }
 
-  const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
-  const config = await service.getConfig(restaurantId);
+    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const config = await service.getConfig(restaurantId);
 
-  if (!config) {
+    if (!config) {
+      return c.json({
+        success: true,
+        config: null,
+        availableProviders: [
+          "anthropic",
+          "openai",
+          "google",
+          "deepseek",
+          "custom",
+        ],
+      });
+    }
+
     return c.json({
       success: true,
-      config: null,
-      availableProviders: [
-        "anthropic",
-        "openai",
-        "google",
-        "deepseek",
-        "custom",
-      ],
+      config: {
+        ...config,
+        apiKeyEncrypted: "***", // Never return actual API key
+      },
     });
-  }
-
-  return c.json({
-    success: true,
-    config: {
-      ...config,
-      apiKeyEncrypted: "***", // Never return actual API key
-    },
-  });
-});
+  },
+);
 
 /**
  * POST /config
@@ -82,6 +88,7 @@ routes.get("/config/:restaurantId", moduleGate("ai_analytics"), async (c) => {
 routes.post(
   "/config",
   moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
   validateBody(configureAISchema),
   async (c) => {
     await trackAiRequest(c);
@@ -128,6 +135,7 @@ routes.post(
 routes.post(
   "/test-provider",
   moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
   validateBody(testProviderSchema),
   async (c) => {
     await trackAiRequest(c);
@@ -162,6 +170,7 @@ routes.get("/models/:provider", (c) => {
 routes.post(
   "/generate",
   moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
   validateBody(generateAnalyticsSchema),
   async (c) => {
     await trackAiRequest(c);
@@ -199,6 +208,7 @@ routes.post(
 routes.get(
   "/products/traffic-drivers/:restaurantId",
   moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
   validateQuery(productQuerySchema),
   async (c) => {
     await trackAiRequest(c);
@@ -234,6 +244,7 @@ routes.get(
 routes.get(
   "/products/bestsellers/:restaurantId",
   moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
   validateQuery(productQuerySchema),
   async (c) => {
     await trackAiRequest(c);
@@ -269,6 +280,7 @@ routes.get(
 routes.get(
   "/products/profit-leaders/:restaurantId",
   moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
   validateQuery(productQuerySchema),
   async (c) => {
     await trackAiRequest(c);
@@ -304,6 +316,7 @@ routes.get(
 routes.get(
   "/products/analysis/:restaurantId",
   moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
   validateQuery(productQuerySchema),
   async (c) => {
     await trackAiRequest(c);
@@ -335,6 +348,7 @@ routes.get(
 routes.get(
   "/usage/:restaurantId",
   moduleGate("ai_analytics"),
+  quotaGate("ai.requests"),
   validateQuery(usageQuerySchema),
   async (c) => {
     await trackAiRequest(c);

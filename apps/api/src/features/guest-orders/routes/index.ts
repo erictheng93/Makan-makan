@@ -30,6 +30,8 @@ import {
   badRequest,
   conflict,
 } from "../../../shared/utils/api-error";
+import { enforceQuota } from "../../../middleware/quotaGate";
+import { meterEmit } from "../../../shared/utils/meter";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -50,6 +52,9 @@ app.post("/", async (c) => {
   }
 
   const data = parsed.data;
+  await enforceQuota(c, "orders.created", {
+    restaurantId: data.restaurantId,
+  });
 
   const db = createDatabase(c.env.DB);
 
@@ -222,6 +227,10 @@ app.post("/", async (c) => {
   // original phoneLastDigits + restaurantId combo.
   await c.env.CACHE_KV.put(`guest_active_lookup:${order.id}`, activeOrderKey, {
     expirationTtl: twoHoursInSeconds,
+  });
+  await meterEmit(c, "orders.created", {
+    restaurantId: data.restaurantId,
+    metadata: { orderId: order.id, source: "guest-orders" },
   });
 
   // 7. Return order + guestToken

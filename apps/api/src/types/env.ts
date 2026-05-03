@@ -72,6 +72,7 @@ export interface Env {
   RATE_LIMIT_MULTIPLIER?: string;
   SECURITY_THREAT_THRESHOLD?: string;
   PRELOAD_POPULAR_QUERIES?: string;
+  QUOTA_ENFORCEMENT_MODE?: "disabled" | "warn" | "enforce";
   PREFERRED_REGION?: string;
 
   // Cloudflare bindings - Core

@@ -6,6 +6,8 @@
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { quotaGate } from "../../../middleware/quotaGate";
+import { meterEmit } from "../../../shared/utils/meter";
 import {
   validateBody,
   validateQuery,
@@ -69,6 +71,7 @@ app.post(
   authMiddleware,
   requireRole([0, 1, 2, 3, 4]),
   moduleGate("online_ordering"),
+  quotaGate("orders.created"),
   async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const user = c.get("user");
@@ -83,6 +86,13 @@ app.post(
     if (!result.success || !result.data) {
       throw badRequest(result.error ?? "Failed to generate share code");
     }
+    await meterEmit(c, "orders.created", {
+      restaurantId,
+      metadata: {
+        groupOrderId: result.data.groupOrderId,
+        source: "group-generate-code",
+      },
+    });
 
     return c.json({
       success: true,
@@ -162,6 +172,7 @@ app.post(
   authMiddleware,
   requireRole([0, 1, 2, 3, 4]), // All authenticated users can create group orders
   moduleGate("online_ordering"),
+  quotaGate("orders.created"),
   validateBody(groupOrderSchemas.createGroupOrder),
   async (c) => {
     const data = c.get("validatedBody");
@@ -173,6 +184,10 @@ app.post(
     if (!result.success) {
       throw badRequest(result.error ?? "Failed to create group order");
     }
+    await meterEmit(c, "orders.created", {
+      restaurantId: data.restaurantId,
+      metadata: { groupOrderId: result.data?.groupOrderId, source: "group" },
+    });
 
     // Trigger real-time event
     try {

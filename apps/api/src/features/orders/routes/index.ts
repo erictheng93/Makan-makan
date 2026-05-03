@@ -35,6 +35,7 @@ import {
   badRequest,
 } from "../../../shared/utils/api-error";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { enforceQuota, quotaGate } from "../../../middleware/quotaGate";
 import { meterEmit } from "../../../shared/utils/meter";
 import type { CallerContext } from "../types";
 import { ROLE_STATUS_PERMISSIONS } from "../types";
@@ -236,6 +237,9 @@ app.post(
     if (data.restaurantId !== guestSession.restaurantId) {
       throw forbidden("Restaurant mismatch");
     }
+    await enforceQuota(c, "orders.created", {
+      restaurantId: data.restaurantId,
+    });
 
     // Build order data (no customerId for guests)
     const createOrderData: import("../types").CreateOrderData = {
@@ -404,6 +408,7 @@ app.post(
   "/",
   customerAuthMiddleware,
   moduleGate("online_ordering"),
+  quotaGate("orders.created"),
   validateBody(orderSchemas.createOrder),
   async (c) => {
     const data: CreateOrderInput = c.get("validatedBody");
@@ -984,6 +989,7 @@ app.get(
   customerAuthMiddleware,
   requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
   moduleGate("receipt_printing"),
+  quotaGate("print.jobs"),
   validateParams(orderSchemas.params),
   async (c) => {
     const { id } = c.get("validatedParams");

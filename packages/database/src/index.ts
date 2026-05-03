@@ -10,6 +10,7 @@ export * from "./utils/soft-delete";
 export * from "./utils/money";
 export * from "./utils/money-sql";
 export * from "./utils/plan-mapping";
+export * from "./utils/plan-quotas";
 
 // 匯出 Drizzle 相關
 export { drizzle } from "drizzle-orm/d1";
