@@ -23,6 +23,7 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "categories",
   "coupon_templates",
   "coupons",
+  "cycle_snapshots",
   "dish_search_index",
   "employee_availability",
   "employee_leave_balances",
@@ -37,6 +38,7 @@ const EXPECTED_RESTAURANT_ID_FK_TABLES = [
   "leave_requests",
   "leave_types",
   "menu_items",
+  "notification_dispatch_log",
   "orders",
   "partnership_plans",
   "partnership_usage_logs",
@@ -160,6 +162,7 @@ const EXPECTED_MONEY_CENTS_COLUMNS = {
 } as const;
 
 const CENTS_NATIVE_COLUMNS = [
+  "cycle_snapshots.total_overage_cents",
   "payment_transactions.amount_cents",
   "refund_transactions.amount_cents",
 ] as const;
@@ -372,6 +375,48 @@ describe("migration inventory", () => {
     expect(indexColumns.map((column) => column.name)).toEqual([
       "provider",
       "provider_event_id",
+    ]);
+  });
+
+  it("keeps cycle snapshots idempotent per restaurant cycle", () => {
+    const indexes = db!
+      .prepare(`PRAGMA index_list(cycle_snapshots)`)
+      .all() as IndexRow[];
+    const cycleIndex = indexes.find(
+      (index) => index.name === "cycle_snapshots_restaurant_cycle_idx",
+    );
+
+    expect(cycleIndex).toMatchObject({ unique: 1 });
+
+    const indexColumns = db!
+      .prepare(`PRAGMA index_info(cycle_snapshots_restaurant_cycle_idx)`)
+      .all() as IndexColumnRow[];
+
+    expect(indexColumns.map((column) => column.name)).toEqual([
+      "restaurant_id",
+      "cycle_start_at_ms",
+    ]);
+  });
+
+  it("keeps billing notifications deduplicated by channel", () => {
+    const indexes = db!
+      .prepare(`PRAGMA index_list(notification_dispatch_log)`)
+      .all() as IndexRow[];
+    const dedupIndex = indexes.find(
+      (index) => index.name === "notification_dispatch_dedup_idx",
+    );
+
+    expect(dedupIndex).toMatchObject({ unique: 1 });
+
+    const indexColumns = db!
+      .prepare(`PRAGMA index_info(notification_dispatch_dedup_idx)`)
+      .all() as IndexColumnRow[];
+
+    expect(indexColumns.map((column) => column.name)).toEqual([
+      "restaurant_id",
+      "kind",
+      "dedup_key",
+      "channel",
     ]);
   });
 

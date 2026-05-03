@@ -6,7 +6,9 @@ import {
 import type { Env } from "../../../../types/env";
 
 function createDbMock() {
-  const run = vi.fn().mockResolvedValue({ success: true });
+  const run = vi
+    .fn()
+    .mockResolvedValue({ success: true, meta: { changes: 1 } });
   const bind = vi.fn(() => ({ run }));
   const prepare = vi.fn(() => ({ bind }));
   return { db: { prepare } as unknown as Env["DB"], prepare, bind, run };
@@ -17,7 +19,7 @@ describe("PaymentAuditService", () => {
     const { db, bind, run } = createDbMock();
     const service = new PaymentAuditService(db);
 
-    await service.append({
+    const result = await service.append({
       restaurantId: "rest-1",
       paymentTransactionId: "pay_1",
       eventType: PAYMENT_AUDIT_EVENT_TYPES.SUCCESS,
@@ -28,6 +30,7 @@ describe("PaymentAuditService", () => {
       occurredAtMs: 1_700_000_000_000,
     });
 
+    expect(result).toEqual({ inserted: true });
     expect(run).toHaveBeenCalledOnce();
     expect(bind).toHaveBeenCalledWith(
       expect.any(String),

@@ -82,6 +82,27 @@ export default {
           await import("./workers/storage-snapshot");
         await snapshotStorageUsage(env);
       }
+
+      if (event.cron === "15 2 * * *") {
+        console.log("[Cron] Running billing cycle closer...");
+        const { BillingCycleService, TrialReaperService } =
+          await import("./features/billing/services/BillingCycleService");
+        const { BillingReminderService } =
+          await import("./features/billing/services/BillingNotificationService");
+        const cycleCloser = new BillingCycleService(env);
+        const trialReaper = new TrialReaperService(env);
+        const reminderService = new BillingReminderService(env);
+        const [cycleResult, trialResult, reminderResult] = await Promise.all([
+          cycleCloser.closeDueCycles(),
+          trialReaper.downgradeExpiredTrials(),
+          reminderService.sendTrialEndingReminders(),
+        ]);
+        console.log("[Cron] Billing lifecycle result:", {
+          ...cycleResult,
+          ...trialResult,
+          ...reminderResult,
+        });
+      }
     } catch (error) {
       console.error("[Cron] Scheduled task error:", error);
 

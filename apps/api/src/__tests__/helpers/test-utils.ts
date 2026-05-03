@@ -519,6 +519,38 @@ class SharedDataStore {
       )
     `);
 
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS cycle_snapshots (
+        id TEXT PRIMARY KEY,
+        restaurant_id TEXT NOT NULL,
+        subscription_id TEXT,
+        plan_tier TEXT NOT NULL,
+        cycle_start_at_ms INTEGER NOT NULL,
+        cycle_end_at_ms INTEGER NOT NULL,
+        modules TEXT NOT NULL,
+        usage TEXT NOT NULL,
+        total_overage_cents INTEGER NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'TWD',
+        created_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS notification_dispatch_log (
+        id TEXT PRIMARY KEY,
+        restaurant_id TEXT,
+        kind TEXT NOT NULL,
+        dedup_key TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        status TEXT NOT NULL,
+        recipient TEXT,
+        provider_message_id TEXT,
+        error_message TEXT,
+        payload TEXT,
+        created_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+      )
+    `);
+
     console.log("[SharedDataStore] Tables created successfully");
   }
 

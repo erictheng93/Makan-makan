@@ -108,6 +108,7 @@ import forecastFeature from "./features/forecast";
 import ingredientsFeature from "./features/ingredients";
 import discoveryFeature from "./features/discovery";
 import feedbackFeature from "./features/feedback";
+import billingFeature from "./features/billing";
 import subscriptionsFeature from "./features/subscriptions";
 import meFeature from "./features/me";
 import { ErrorSanitizer } from "./utils/errorSanitizer";
@@ -529,6 +530,7 @@ export function createApp(
         "/api/v1/guest-orders", // Guest ordering (no session, uses KV tokens)
         "/api/v1/realtime/auth", // Public WebSocket token exchange; uses scoped tokens instead of session cookies
         "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
+        "/api/v1/billing/webhooks", // Billing provider webhooks (HMAC/idempotency verified)
         "/api/v1/payments", // Payment requests are protected by auth + idempotency
         // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
       ],
@@ -565,6 +567,7 @@ export function createApp(
   apiV1.route("/ingredients", ingredientsFeature.routes);
   apiV1.route("/discovery", discoveryFeature.routes);
   apiV1.route("/feedback", feedbackFeature.routes);
+  apiV1.route("/billing", billingFeature.routes);
   apiV1.route("/me", meFeature.routes);
   apiV1.route("/notifications", notificationsRoutes);
   apiV1.route("/push", pushRoutes);

@@ -26,10 +26,10 @@ function encodePayload(payload: unknown): string | null {
 export class PaymentAuditService {
   constructor(private readonly db: Env["DB"]) {}
 
-  async append(event: PaymentAuditEventInput): Promise<void> {
+  async append(event: PaymentAuditEventInput): Promise<{ inserted: boolean }> {
     const occurredAtMs = event.occurredAtMs ?? Date.now();
 
-    await this.db
+    const result = await this.db
       .prepare(
         `INSERT OR IGNORE INTO payment_audit_log (
             id, restaurant_id, payment_transaction_id, subscription_id,
@@ -55,6 +55,8 @@ export class PaymentAuditService {
         occurredAtMs,
       )
       .run();
+
+    return { inserted: (result.meta?.changes ?? 0) > 0 };
   }
 }
 

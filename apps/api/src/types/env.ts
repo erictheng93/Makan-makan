@@ -133,6 +133,8 @@ export interface Env {
   TWILIO_PHONE_NUMBER?: string;
   SENDGRID_API_KEY?: string;
   RESEND_API_KEY?: string;
+  BILLING_EMAIL_FROM?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
   NOTIFICATION_FROM_EMAIL?: string;
 
   // AI and machine learning
