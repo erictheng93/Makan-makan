@@ -11,7 +11,15 @@ INSERT INTO shop_subscriptions (
   updated_at_ms
 )
 SELECT
-  lower(hex(randomblob(16))),
+  printf(
+    '%08x-%04x-7%03x-%1x%03x-%012x',
+    ((unixepoch('now') * 1000) >> 16) & 4294967295,
+    (unixepoch('now') * 1000) & 65535,
+    abs(random()) % 4096,
+    8 + (abs(random()) % 4),
+    abs(random()) % 4096,
+    abs(random()) % 281474976710656
+  ),
   r.id,
   'enterprise',
   '{}',

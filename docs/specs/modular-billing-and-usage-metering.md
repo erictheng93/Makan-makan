@@ -36,7 +36,7 @@
 | § | Acceptance | 狀態 | 證據 / 偏離 |
 |---|---|---|---|
 | 2.5#1 | A.2 ⚠️ 路由全部掛 `moduleGate` | ✅ | `apps/api/src/app-factory.ts:483/485/500/504/506/508` 等掛點全在 |
-| 2.5#2 | `module-gating-coverage.test.ts` 對所有 PROTECTED_PREFIXES 通過 | ✅ | `apps/api/src/__tests__/module-gate-coverage.test.ts` 已覆蓋 20 個 prefix |
+| 2.5#2 | `module-gating-coverage.test.ts` 對所有 PROTECTED_PREFIXES 通過 | ✅ | `apps/api/src/__tests__/module-gate-coverage.test.ts` 雙層覆蓋：(a) 21 個 static wiring 斷言（grep app-factory + feature routers）、(b) 22 個 runtime 斷言（對每個 prefix 真的 `app.request()` 並驗 basic plan→403 `MODULE_NOT_ENABLED` / kill switch→403 / trial expired→403 `TRIAL_EXPIRED`）|
 | 2.5#3 | `scripts/audit-module-gates.cjs` + pre-commit | ✅ | `scripts/audit-module-gates.cjs` 已加入，`.husky/pre-commit` 會執行 |
 | 2.5#4 | `GET /me/modules` 形狀正確 | ✅ | `apps/api/src/features/me/routes/index.ts:24-98`（customer 回 `restaurantId: null`）|
 | 2.5#5 | `useModuleAccess` + `<ModuleGate>` | ✅ | `packages/shared/composables/useModuleAccess.ts`、`packages/shared/components/ModuleGate.vue` |
@@ -954,7 +954,7 @@ P1 上線時 `shopSubscriptions` 沒有 row 的既有 restaurant：
 - 寫 backfill migration：所有現存 restaurant 自動建立 `planTier = 'enterprise'` + `isActive = true` 訂閱（避免破壞既有客戶）
 - 之後再依商務決策手動降級
 
-Backfill migration 是一次性資料修補，允許使用 SQLite `lower(hex(randomblob(16)))` 產生既有資料的 primary key；runtime application writes 仍必須使用 UUID v7（schema `$defaultFn(() => uuidv7())` 或 `@makanmakan/utils.generateUUID()`）。
+Backfill migration 與 runtime writes 一律產出 UUID v7：runtime 走 schema `$defaultFn(() => uuidv7())` 或 `@makanmakan/utils.generateUUID()`；migration SQL 用 `printf('%08x-%04x-7%03x-%1x%03x-%012x', ...)` 加 `unixepoch('now')*1000` + `random()` 在 SQLite 內合成 v7（見 `migrations_fresh/0046_backfill-enterprise-subscriptions.sql`）。不再允許 `lower(hex(randomblob(16)))` 等非 v7 形式。
 
 ### 6.2 Feature flag
 
@@ -1075,7 +1075,7 @@ Cache invalidation hook：subscription 變更走既有 `invalidateSubscriptionCa
 - 大量 INSERT（聚合、TTL 清理）每批 ≤ 5000 rows
 - 一般 feature 的 INSERT/UPSERT 用 Drizzle Layer 1/2（query builder 或 `sql` template + schema refs），不寫 raw string SQL
 - Billing/usage metering 的 cron worker、metering hot path、D1 `batch`、idempotent UPSERT 暫時允許使用參數化 D1 prepared statements；禁止字串拼接 SQL，動態條件必須白名單組合並只用 bound parameters
-- 新增 runtime row id 必須使用 UUID v7；一次性 backfill migration 可依 §6.1 使用 SQLite random hex 例外
+- 所有新增 row id 一律 UUID v7：runtime 走 `generateUUID()` / schema `$defaultFn(() => uuidv7())`；migration SQL 走 §6.1 的 `printf` 合成式
 
 ### 9.6 環境變數
 
