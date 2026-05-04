@@ -186,15 +186,15 @@ Migrations:
 ```bash
 # 1. 執行到 staging 環境
 cd apps/api
-npx wrangler d1 migrations apply makanmakan-staging --env staging \
+npx wrangler d1 migrations apply makanmasak-staging --env staging \
   --migrations-dir=../../packages/database/migrations_v2
 
 # 2. 驗證結構
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --command="SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
 
 # 3. 執行完整性測試
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --file=../../scripts/test-data-integrity.sql
 
 # 4. 驗證應用程式連接
@@ -215,7 +215,7 @@ npm run dev  # 測試 API 連接
 
 ```bash
 # 方法 A: 使用 Wrangler Local (推薦)
-npx wrangler d1 create makanmakan-test-v2
+npx wrangler d1 create makanmasak-test-v2
 .\scripts\test-migrations-v2.ps1
 
 # 方法 B: 使用 SQLite CLI
@@ -327,7 +327,7 @@ node scripts/run-test.js
 
 ```
 ┌─────────────────────────────────────────────────┐
-│     MakanMakan Migrations v2.0 總進度           │
+│     MakanMasak Migrations v2.0 總進度           │
 └─────────────────────────────────────────────────┘
 
 Phase 1: Migrations 開發
@@ -377,18 +377,18 @@ Phase 5: Production 部署
 ```bash
 # Step 1: 部署到 staging
 cd apps/api
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # Step 2: 驗證結構
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --command="SELECT name FROM sqlite_master WHERE type='table'"
 
 # Step 3: 測試完整性
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --file=../../scripts/test-data-integrity.sql
 
 # Step 4: 測試效能
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --file=../../scripts/test-performance.sql
 ```
 

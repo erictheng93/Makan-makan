@@ -171,7 +171,7 @@ Admin Dashboard
 
 ```
 ┌──────────────────┐
-│ M  MakanMakan    │ ← Logo
+│ M  MakanMasak    │ ← Logo
 ├──────────────────┤
 │ 🏠 儀表板        │
 │ 🛒 訂單管理      │

@@ -307,7 +307,7 @@ import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import OrderCard from "@/components/OrderCard.vue";
-import type { Order } from "@makanmakan/shared-types";
+import type { Order } from "@makanmasak/shared-types";
 
 describe("OrderCard.vue", () => {
   const createWrapper = (order: Partial<Order> = {}) => {
@@ -449,7 +449,7 @@ describe("OrderCard.vue", () => {
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useOrdersStore } from "@/stores/orders";
-import type { Order } from "@makanmakan/shared-types";
+import type { Order } from "@makanmasak/shared-types";
 
 describe("Orders Store", () => {
   beforeEach(() => {
@@ -593,13 +593,13 @@ export const createOpenAPIApp = () => {
   app.doc("/openapi.json", {
     openapi: "3.1.0",
     info: {
-      title: "MakanMakan API",
+      title: "MakanMasak API",
       version: "2.0.0",
       description:
         "Modern restaurant management system API built on Cloudflare Workers",
       contact: {
-        name: "MakanMakan Team",
-        url: "https://github.com/makanmakan/platform",
+        name: "MakanMasak Team",
+        url: "https://github.com/makanmasak/platform",
       },
       license: {
         name: "MIT",
@@ -608,11 +608,11 @@ export const createOpenAPIApp = () => {
     },
     servers: [
       {
-        url: "https://api.makanmakan.com",
+        url: "https://api.makanmasak.com",
         description: "Production",
       },
       {
-        url: "https://api-staging.makanmakan.com",
+        url: "https://api-staging.makanmasak.com",
         description: "Staging",
       },
       {
@@ -783,7 +783,7 @@ app.get("/redoc", (c) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>MakanMakan API Documentation</title>
+          <title>MakanMasak API Documentation</title>
           <meta charset="utf-8"/>
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">

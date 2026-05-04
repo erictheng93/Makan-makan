@@ -317,7 +317,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb29tVHlwZSI6ImtpdGNoZW4i...
 **WebSocket URL**:
 
 ```
-wss://realtime.makanmakan.workers.dev/kitchen/kitchen_1?token=eyJhbGc...
+wss://realtime.makanmasak.workers.dev/kitchen/kitchen_1?token=eyJhbGc...
 ```
 
 **驗證點**:
@@ -367,7 +367,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb29tVHlwZSI6ImFkbWluIi...
 **WebSocket URL**:
 
 ```
-wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc...
+wss://realtime.makanmasak.workers.dev/admin/admin_1?token=eyJhbGc...
 ```
 
 **驗證點**:
@@ -898,8 +898,8 @@ npm install -g wscat
 wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 
 # === 資料庫操作 ===
-npx wrangler d1 migrations apply makanmakan-local --local
-npx wrangler d1 execute makanmakan-local --local --command "SELECT * FROM tables"
+npx wrangler d1 migrations apply makanmasak-local --local
+npx wrangler d1 execute makanmasak-local --local --command "SELECT * FROM tables"
 ```
 
 ---
@@ -972,7 +972,7 @@ A: 測試腳本在短時間內發送多個請求觸發了速率限制。解決�
 
 A: OrdersService 整合測試的 mock 配置需要調整。這是已知問題，不影響核心功能。解決方案：
 
-- 修復 `@makanmakan/database` 的 mock 導出
+- 修復 `@makanmasak/database` 的 mock 導出
 - 正確配置 BaseOrderService mock
 - 參考已通過的測試範例
 

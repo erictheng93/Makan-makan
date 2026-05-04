@@ -2,7 +2,7 @@
 
 ## 🎯 實施概覽
 
-本文檔總結了 MakanMakan 平台支付系統後端整合的完整實施，包括 Cloudflare Workers API 路由、Stripe Webhook 處理、以及本地支付閘道（ECPay/iPay88/VNPay）的整合。
+本文檔總結了 MakanMasak 平台支付系統後端整合的完整實施，包括 Cloudflare Workers API 路由、Stripe Webhook 處理、以及本地支付閘道（ECPay/iPay88/VNPay）的整合。
 
 ## ✅ 完成的功能
 
@@ -298,10 +298,10 @@ VNPAY_HASH_SECRET=test_secret
 
 ```bash
 # 應用基礎架構遷移
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-prod --env production
 
 # 應用種子數據遷移
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --file packages/database/migrations/0022_payment_system_seed_data.sql
 ```
 
@@ -336,7 +336,7 @@ npx wrangler d1 execute makanmakan-prod --env production \
 - ✅ **穩健的資料庫設計**和遷移策略
 - ✅ **全面的測試覆蓋**和品質保證
 
-系統現在已經準備好支援 MakanMakan 平台的多國支付需求，具備高可用性、安全性和擴展性。
+系統現在已經準備好支援 MakanMasak 平台的多國支付需求，具備高可用性、安全性和擴展性。
 
 ---
 

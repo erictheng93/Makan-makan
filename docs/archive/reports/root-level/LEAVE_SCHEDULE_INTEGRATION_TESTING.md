@@ -36,7 +36,7 @@ $LOGIN_RESPONSE = Invoke-RestMethod -Uri "$API_BASE/auth/login" `
   -Method POST `
   -ContentType "application/json" `
   -Body (@{
-    email = "admin@makanmakan.com"
+    email = "admin@makanmasak.com"
     password = "admin123"
   } | ConvertTo-Json)
 

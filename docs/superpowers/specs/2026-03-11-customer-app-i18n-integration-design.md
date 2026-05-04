@@ -253,7 +253,7 @@ Console messages (console.error, console.warn) are NOT translated — they stay 
 | —                  | `ms-MY` (new)        |
 | —                  | `id-ID` (new)        |
 
-localStorage key changes from `makanmakan_language` to `makanmakan_locale`.
+localStorage key changes from `makanmasak_language` to `makanmasak_locale`.
 
 ## Translation Strategy for New Languages
 

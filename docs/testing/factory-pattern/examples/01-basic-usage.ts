@@ -11,7 +11,7 @@ import {
   orderFactory,
   resetAllFactories,
   UserRoles,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("範例 1: 基本使用", () => {
   // 每個測試前重置序列號

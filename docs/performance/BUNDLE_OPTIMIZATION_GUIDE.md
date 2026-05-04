@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide documents the bundle size optimization strategies implemented in MakanMakan to improve initial load performance and reduce bandwidth usage.
+This guide documents the bundle size optimization strategies implemented in MakanMasak to improve initial load performance and reduce bandwidth usage.
 
 **Implementation Date**: 2025-10-02
 **Phase**: Week 3 - Medium Priority (Performance & Scalability)
@@ -578,4 +578,4 @@ const HeavyComponent = useLazyComponent(() => import("@/components/Heavy.vue"));
 ---
 
 **Last Updated**: 2025-10-02
-**Maintained By**: MakanMakan Development Team
+**Maintained By**: MakanMasak Development Team

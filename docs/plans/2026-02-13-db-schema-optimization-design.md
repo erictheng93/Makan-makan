@@ -5,7 +5,7 @@
 
 ## Problem Statement
 
-Database schema evaluation identified 5 areas for improvement across the MakanMakan database layer (69 tables, 22 schema files, 37 service classes).
+Database schema evaluation identified 5 areas for improvement across the MakanMasak database layer (69 tables, 22 schema files, 37 service classes).
 
 ## Scope
 
@@ -112,7 +112,7 @@ Only affects new records. Existing CUID2 IDs remain valid TEXT primary keys.
 ### Import Changes
 
 - Remove `createId` import from `@paralleldrive/cuid2`
-- Add `generateUUID` import from `@makanmakan/utils`
+- Add `generateUUID` import from `@makanmasak/utils`
 
 ---
 

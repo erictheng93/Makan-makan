@@ -319,7 +319,7 @@ Expected: All tests PASS
 
 - [ ] **Step 4: Run full utils typecheck**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=@makanmakan/utils`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=@makanmasak/utils`
 Expected: 0 errors
 
 - [ ] **Step 5: Commit**
@@ -546,7 +546,7 @@ export const apiClient = api;
 
 - [ ] **Step 2: Typecheck admin-dashboard**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmakan-admin-dashboard`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmasak-admin-dashboard`
 Expected: 0 errors
 
 - [ ] **Step 3: Commit**
@@ -579,7 +579,7 @@ Key changes:
 Add to imports at top:
 
 ```typescript
-import { isTokenExpired, getRefreshDelay } from "@makanmakan/utils";
+import { isTokenExpired, getRefreshDelay } from "@makanmasak/utils";
 ```
 
 Add after line 29 (`const token = ref...`):
@@ -704,7 +704,7 @@ if (response.data.success && response.data.data) {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmakan-admin-dashboard`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmasak-admin-dashboard`
 Expected: 0 errors
 
 - [ ] **Step 3: Commit**
@@ -727,7 +727,7 @@ git commit -m "fix(admin): store refresh token, add proactive timer, fix refresh
 Add import:
 
 ```typescript
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 ```
 
 Replace `connect()`:
@@ -825,7 +825,7 @@ const handleReconnect = () => {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmakan-admin-dashboard`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmasak-admin-dashboard`
 Expected: 0 errors
 
 - [ ] **Step 3: Commit**
@@ -848,7 +848,7 @@ git commit -m "fix(admin): refresh token before SSE connect/reconnect"
 Add import at top of file:
 
 ```typescript
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 ```
 
 In `router.beforeEach`, after the `if (!authStore.isAuthenticated)` block (after line 386), add:
@@ -867,7 +867,7 @@ Note: The `beforeEach` callback is already `async` (line 371: `router.beforeEach
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmakan-admin-dashboard`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmasak-admin-dashboard`
 Expected: 0 errors
 
 - [ ] **Step 3: Commit**
@@ -897,7 +897,7 @@ Key changes:
 Add import at top:
 
 ```typescript
-import { getRefreshDelay, isTokenExpired } from "@makanmakan/utils";
+import { getRefreshDelay, isTokenExpired } from "@makanmasak/utils";
 ```
 
 Add before `return {` block (around line 236):
@@ -1018,7 +1018,7 @@ const checkAuth = async () => {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmakan-customer-app`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmasak-customer-app`
 Expected: 0 errors (note: customer-app may not have typecheck script — verify)
 
 - [ ] **Step 3: Commit**
@@ -1160,7 +1160,7 @@ async refreshToken(): Promise<ApiResponse<LoginResponse>> {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmakan-kitchen-display`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmasak-kitchen-display`
 Expected: 0 errors
 
 - [ ] **Step 3: Commit**
@@ -1183,7 +1183,7 @@ git commit -m "fix(kitchen): fix refreshToken with X-Refresh-Token header, add r
 Add import:
 
 ```typescript
-import { isTokenExpired, getRefreshDelay } from "@makanmakan/utils";
+import { isTokenExpired, getRefreshDelay } from "@makanmasak/utils";
 ```
 
 Add `refreshTokenRef` after token ref (after line 9):
@@ -1293,7 +1293,7 @@ const checkAuth = async () => {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmakan-kitchen-display`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmasak-kitchen-display`
 Expected: 0 errors
 
 - [ ] **Step 3: Commit**
@@ -1316,7 +1316,7 @@ git commit -m "fix(kitchen): store refresh token, add proactive timer, fix check
 Add import:
 
 ```typescript
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 ```
 
 Update `connect()` method — change the EventSource URL to include token (replace lines 47-58):
@@ -1344,7 +1344,7 @@ Note: Remove `{ withCredentials: true }` from EventSource since we're now using 
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmakan-kitchen-display`
+Run: `cd /Users/eric/Documents/Code/Makan-makan && pnpm turbo run typecheck --filter=makanmasak-kitchen-display`
 Expected: 0 errors
 
 - [ ] **Step 3: Commit**

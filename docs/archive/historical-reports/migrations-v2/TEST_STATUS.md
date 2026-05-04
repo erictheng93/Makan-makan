@@ -1,4 +1,4 @@
-# 🧪 MakanMakan Migrations v2.0 - 測試狀態報告
+# 🧪 MakanMasak Migrations v2.0 - 測試狀態報告
 
 > **狀態**: 測試準備完成，等待執行
 > **日期**: 2025-10-30
@@ -144,12 +144,12 @@
 
 # Option 3: 資料完整性測試
 # (需先完成 Option 2)
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --file=scripts\test-data-integrity.sql
 
 # Option 4: 效能測試
 # (需先完成 Option 2)
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --file=scripts\test-performance.sql
 ```
 
@@ -271,7 +271,7 @@ chmod +x scripts/test-migrations-v2.sh
 
 ## 📞 聯絡資訊
 
-**專案**: MakanMakan Database Migrations v2.0
+**專案**: MakanMasak Database Migrations v2.0
 **文檔位置**: `docs/migrations_v2/`
 **測試腳本**: `scripts/`
 **Migrations**: `packages/database/migrations_v2/`

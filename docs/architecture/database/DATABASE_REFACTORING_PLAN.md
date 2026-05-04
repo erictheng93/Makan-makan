@@ -1,4 +1,4 @@
-# 🔄 MakanMakan 資料庫重構計劃
+# 🔄 MakanMasak 資料庫重構計劃
 
 ## 執行摘要
 
@@ -457,7 +457,7 @@ CREATE INDEX idx_sessions_expires ON sessions(expires_at);
 
 ```bash
 # 完整備份
-npx wrangler d1 export makanmakan-staging --output backup_$(date +%Y%m%d).sql
+npx wrangler d1 export makanmasak-staging --output backup_$(date +%Y%m%d).sql
 
 # 驗證備份
 sqlite3 backup_*.sql ".tables"
@@ -477,12 +477,12 @@ mkdir -p packages/database/migrations_v2
 
 ```bash
 # 創建測試資料庫
-npx wrangler d1 create makanmakan-test-v2
+npx wrangler d1 create makanmasak-test-v2
 
 # 更新 wrangler.toml
 [[d1_databases]]
 binding = "DB_V2"
-database_name = "makanmakan-test-v2"
+database_name = "makanmasak-test-v2"
 database_id = "xxx"
 ```
 

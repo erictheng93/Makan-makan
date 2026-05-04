@@ -1,4 +1,4 @@
-# MakanMakan 技術文件
+# MakanMasak 技術文件
 
 ## 基於 Cloudflare 生態系統的架構設計
 
@@ -255,7 +255,7 @@ CREATE INDEX idx_audit_logs_restaurant_created ON audit_logs(restaurant_id, crea
 ```sql
 -- 預設管理員用戶
 INSERT INTO users (email, password_hash, name, role) VALUES
-('admin@makanmakan.com', '$argon2id$v=19$m=65536,t=3,p=4$hash', 'System Admin', 0);
+('admin@makanmasak.com', '$argon2id$v=19$m=65536,t=3,p=4$hash', 'System Admin', 0);
 
 -- 示例餐廳資料
 INSERT INTO restaurants (name, address, phone, business_hours) VALUES
@@ -736,7 +736,7 @@ const cached = (ttl: number = 300) => {
 ### 專案結構設計
 
 ```
-makanmakan/
+makanmasak/
 ├── apps/
 │   ├── customer-app/          # 消費者前端 (Cloudflare Pages)
 │   ├── admin-dashboard/       # 管理後台 (Cloudflare Pages)
@@ -759,22 +759,22 @@ makanmakan/
 
 ```toml
 # apps/api/wrangler.toml
-name = "makanmakan-api"
+name = "makanmasak-api"
 main = "src/index.ts"
 compatibility_date = "2024-10-01"
 node_compat = true
 
 [env.production]
-name = "makanmakan-api-prod"
+name = "makanmasak-api-prod"
 vars = { ENVIRONMENT = "production" }
 
 [env.staging]
-name = "makanmakan-api-staging"
+name = "makanmasak-api-staging"
 vars = { ENVIRONMENT = "staging" }
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-prod"
+database_name = "makanmasak-prod"
 database_id = "xxx"
 
 [[env.production.kv_namespaces]]
@@ -783,7 +783,7 @@ id = "xxx"
 
 [[env.production.r2_buckets]]
 binding = "IMAGES"
-bucket_name = "makanmakan-images-prod"
+bucket_name = "makanmasak-images-prod"
 
 [env.production.durable_objects]
 bindings = [
@@ -792,7 +792,7 @@ bindings = [
 
 [[env.production.queues.producers]]
 binding = "TASK_QUEUE"
-queue = "makanmakan-tasks-prod"
+queue = "makanmasak-tasks-prod"
 
 [env.production.vars]
 JWT_SECRET = "xxx"
@@ -837,7 +837,7 @@ jobs:
 
       - name: Run D1 migrations (staging)
         if: github.ref == 'refs/heads/develop'
-        run: npx wrangler d1 migrations apply makanmakan-staging --env staging
+        run: npx wrangler d1 migrations apply makanmasak-staging --env staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
@@ -865,13 +865,13 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Deploy Customer App to staging
-        run: npx wrangler pages deploy dist --project-name=makanmakan-customer-staging
+        run: npx wrangler pages deploy dist --project-name=makanmasak-customer-staging
         working-directory: apps/customer-app
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Deploy Admin Dashboard to staging
-        run: npx wrangler pages deploy dist --project-name=makanmakan-admin-staging
+        run: npx wrangler pages deploy dist --project-name=makanmasak-admin-staging
         working-directory: apps/admin-dashboard
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -894,7 +894,7 @@ jobs:
         run: npm run build
 
       - name: Run D1 migrations (production)
-        run: npx wrangler d1 migrations apply makanmakan-prod --env production
+        run: npx wrangler d1 migrations apply makanmasak-prod --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
@@ -905,13 +905,13 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Deploy Customer App to production
-        run: npx wrangler pages deploy dist --project-name=makanmakan-customer
+        run: npx wrangler pages deploy dist --project-name=makanmasak-customer
         working-directory: apps/customer-app
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Deploy Admin Dashboard to production
-        run: npx wrangler pages deploy dist --project-name=makanmakan-admin
+        run: npx wrangler pages deploy dist --project-name=makanmasak-admin
         working-directory: apps/admin-dashboard
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -960,7 +960,7 @@ export async function runMigrations(environment: string) {
     console.log(`Applying migration: ${file}`);
 
     const sqlContent = readFileSync(join(MIGRATIONS_DIR, file), "utf-8");
-    const command = `echo "${sqlContent}" | npx wrangler d1 execute makanmakan-${environment} --env ${environment}`;
+    const command = `echo "${sqlContent}" | npx wrangler d1 execute makanmasak-${environment} --env ${environment}`;
 
     try {
       execSync(command, { stdio: "inherit" });
@@ -1196,7 +1196,7 @@ export class ErrorLogger {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: `🚨 Critical Error in MakanMakan API`,
+          text: `🚨 Critical Error in MakanMasak API`,
           blocks: [
             {
               type: "section",
@@ -1871,7 +1871,7 @@ QA測試工程師         1      功能測試、自動化測試
 3. **採用敏捷開發方法**，快速迭代優化
 4. **重視用戶回饋**，持續改進產品體驗
 
-這套架構設計不僅滿足當前需求，更為未來擴展奠定了堅實基礎。透過 Cloudflare 生態系統的強大能力，MakanMakan 將能夠快速成長為市場領導者。
+這套架構設計不僅滿足當前需求，更為未來擴展奠定了堅實基礎。透過 Cloudflare 生態系統的強大能力，MakanMasak 將能夠快速成長為市場領導者。
 
 ---
 

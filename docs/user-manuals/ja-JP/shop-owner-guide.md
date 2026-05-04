@@ -1,4 +1,4 @@
-# 🏪 MakanMakan 店舗オーナーマニュアル
+# 🏪 MakanMasak 店舗オーナーマニュアル
 
 > **バージョン**: 2.0
 > **更新日**: 2025-10-26
@@ -393,7 +393,7 @@
 
 ### 座席管理（デュアルモード）
 
-MakanMakanは2種類の座席管理モードをサポートしています：
+MakanMasakは2種類の座席管理モードをサポートしています：
 
 #### モード1：テーブルレベルQRコード
 
@@ -461,7 +461,7 @@ MakanMakanは2種類の座席管理モードをサポートしています：
 
 ### 3種類のQRコードモード
 
-MakanMakanは、異なる経営シナリオに適応する3種類のQRコード使用モードを提供します：
+MakanMasakは、異なる経営シナリオに適応する3種類のQRコード使用モードを提供します：
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1188,7 +1188,7 @@ ZIPファイルをダウンロード
 
 ### シフト管理概要
 
-MakanMakanは柔軟なシフト管理システムを提供し、スタッフのスケジュール調整を効率化します。
+MakanMasakは柔軟なシフト管理システムを提供し、スタッフのスケジュール調整を効率化します。
 
 ```
 ┌─────────────────────────────────────────┐
@@ -1488,7 +1488,7 @@ MakanMakanは柔軟なシフト管理システムを提供し、スタッフの�
 
 ### AI分析機能概要
 
-MakanMakanは4つのLLMプロバイダーを統合し、強力なAI分析機能を提供します。
+MakanMasakは4つのLLMプロバイダーを統合し、強力なAI分析機能を提供します。
 
 ```
 ┌─────────────────────────────────────────┐
@@ -1819,10 +1819,10 @@ A: いいえ、停止しません：
 
 A: サポートチャンネル：
 
-- **メール**: support@makanmakan.com
+- **メール**: support@makanmasak.com
 - **ライブチャット**: ダッシュボード右下のアイコン
 - **電話**: 営業時間内（月-金 9:00-18:00）
-- **ヘルプセンター**: https://help.makanmakan.com
+- **ヘルプセンター**: https://help.makanmasak.com
 
 **Q20: 新機能のリクエストを送信できますか？**
 
@@ -1845,33 +1845,33 @@ A: はい、歓迎します：
 
 **連絡方法**:
 
-- 📧 **メール**: support@makanmakan.com
+- 📧 **メール**: support@makanmasak.com
 - 💬 **ライブチャット**: ダッシュボード内
 - 📞 **電話**: +81-3-XXXX-XXXX
-- 🌐 **ヘルプセンター**: https://help.makanmakan.com
+- 🌐 **ヘルプセンター**: https://help.makanmasak.com
 
 ### 緊急サポート
 
 システムダウンや緊急の問題の場合：
 
 - 🚨 **緊急ホットライン**: +81-90-XXXX-XXXX (24/7)
-- ⚡ **緊急メール**: emergency@makanmakan.com
+- ⚡ **緊急メール**: emergency@makanmasak.com
 
 ### フィードバックと提案
 
 ご意見やご提案をお待ちしております：
 
-- 💡 **機能リクエスト**: features@makanmakan.com
-- ⭐ **満足度調査**: feedback@makanmakan.com
+- 💡 **機能リクエスト**: features@makanmasak.com
+- ⭐ **満足度調査**: feedback@makanmasak.com
 
 ### ソーシャルメディア
 
 最新情報やアップデートをフォロー：
 
-- 📱 Facebook: @MakanMakanJP
-- 🐦 Twitter: @MakanMakan_JP
-- 📷 Instagram: @makanmakan.jp
-- 💼 LinkedIn: MakanMakan Japan
+- 📱 Facebook: @MakanMasakJP
+- 🐦 Twitter: @MakanMasak_JP
+- 📷 Instagram: @makanmasak.jp
+- 💼 LinkedIn: MakanMasak Japan
 
 ---
 
@@ -1879,28 +1879,28 @@ A: はい、歓迎します：
 
 ### オンラインリソース
 
-- 📚 **完全ドキュメント**: https://docs.makanmakan.com
-- 🎥 **ビデオチュートリアル**: https://videos.makanmakan.com
+- 📚 **完全ドキュメント**: https://docs.makanmasak.com
+- 🎥 **ビデオチュートリアル**: https://videos.makanmasak.com
 - 📖 **ユーザーガイド**: 本マニュアル
-- 🔧 **API ドキュメント**: https://api.makanmakan.com
+- 🔧 **API ドキュメント**: https://api.makanmasak.com
 
 ### コミュニティ
 
-- 👥 **ユーザーフォーラム**: https://community.makanmakan.com
-- 💬 **Discord チャンネル**: https://discord.gg/makanmakan
-- 📢 **アナウンスメント**: https://updates.makanmakan.com
+- 👥 **ユーザーフォーラム**: https://community.makanmasak.com
+- 💬 **Discord チャンネル**: https://discord.gg/makanmasak
+- 📢 **アナウンスメント**: https://updates.makanmasak.com
 
 ### 学習リソース
 
-- 🎓 **オンライントレーニング**: https://training.makanmakan.com
-- 📝 **ベストプラクティス**: https://best-practices.makanmakan.com
-- 🏆 **成功事例**: https://success-stories.makanmakan.com
+- 🎓 **オンライントレーニング**: https://training.makanmasak.com
+- 📝 **ベストプラクティス**: https://best-practices.makanmasak.com
+- 🏆 **成功事例**: https://success-stories.makanmasak.com
 
 ---
 
 <div align="center">
 
-**🏪 MakanMakan 店舗オーナーマニュアル**
+**🏪 MakanMasak 店舗オーナーマニュアル**
 
 あなたのレストラン経営を成功に導くために
 
@@ -1908,7 +1908,7 @@ A: はい、歓迎します：
 
 ---
 
-**MakanMakanをご利用いただきありがとうございます！**
+**MakanMasakをご利用いただきありがとうございます！**
 
 ご質問やサポートが必要な場合は、いつでもお気軽にお問い合わせください。
 

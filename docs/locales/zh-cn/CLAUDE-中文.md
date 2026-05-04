@@ -4,7 +4,7 @@
 
 ## 專案概述
 
-MakanMakan 是一個基於 Cloudflare 邊緣運算平台構建的現代化無伺服器餐廳管理系統。該系統提供線上點餐、菜單管理、桌台管理和多角色用戶存取，具備即時功能。支援多家餐廳/商店擁有各自的菜單、桌台和員工，透過可擴展、具成本效益的 SaaS 架構交付。
+MakanMasak 是一個基於 Cloudflare 邊緣運算平台構建的現代化無伺服器餐廳管理系統。該系統提供線上點餐、菜單管理、桌台管理和多角色用戶存取，具備即時功能。支援多家餐廳/商店擁有各自的菜單、桌台和員工，透過可擴展、具成本效益的 SaaS 架構交付。
 
 ## 架構遷移狀態
 
@@ -31,7 +31,7 @@ MakanMakan 是一個基於 Cloudflare 邊緣運算平台構建的現代化無伺
 ### 專案結構
 
 ```
-makanmakan/
+makanmasak/
 ├── apps/
 │   ├── customer-app/          # 消費者點餐應用程式（Cloudflare Pages）
 │   ├── admin-dashboard/       # 餐廳管理儀表板
@@ -52,8 +52,8 @@ makanmakan/
 
 ### 資料庫設定
 
-- **生產環境**: `makanmakan-prod`（Cloudflare D1）
-- **測試環境**: `makanmakan-staging`（Cloudflare D1）
+- **生產環境**: `makanmasak-prod`（Cloudflare D1）
+- **測試環境**: `makanmasak-staging`（Cloudflare D1）
 - **本機開發**: 本機 SQLite 資料庫
 
 ### 關鍵資料表（生產架構）
@@ -87,13 +87,13 @@ makanmakan/
 
 ```bash
 # 應用遷移到測試環境
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # 應用遷移到生產環境
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-prod --env production
 
 # 在本機執行 SQL 查詢
-npx wrangler d1 execute makanmakan-staging --local --command "SELECT * FROM users LIMIT 5"
+npx wrangler d1 execute makanmasak-staging --local --command "SELECT * FROM users LIMIT 5"
 ```
 
 ## 開發工作流程
@@ -117,7 +117,7 @@ cp .env.example .env.local
 npx wrangler login
 
 # 4. 建立本機 D1 資料庫
-npx wrangler d1 create makanmakan-local --local
+npx wrangler d1 create makanmasak-local --local
 
 # 5. 執行資料庫遷移
 npm run db:migrate:local
@@ -237,10 +237,10 @@ npm run build && npm run deploy
 
 ```bash
 # 檢視特定 worker 的日誌
-npx wrangler tail makanmakan-api-prod
+npx wrangler tail makanmasak-api-prod
 
 # 檢視 D1 資料庫
-npx wrangler d1 execute makanmakan-prod --command "SELECT COUNT(*) FROM orders"
+npx wrangler d1 execute makanmasak-prod --command "SELECT COUNT(*) FROM orders"
 
 # 監控 KV 使用狀況
 npx wrangler kv:key list --binding CACHE_KV
@@ -282,7 +282,7 @@ npx wrangler kv:key list --binding CACHE_KV
 #### 實施的關鍵修復:
 
 1. **D1Database 匯入解決（3 個錯誤）**:
-   - 將匯入路徑從 `@cloudflare/workers-types` 修正為 `@makanmakan/database`
+   - 將匯入路徑從 `@cloudflare/workers-types` 修正為 `@makanmasak/database`
    - 更新型別別名和匯出模式
    - 解決 `packages/database/src/index.ts` 和 `packages/database/src/services/base.ts`
 
@@ -298,7 +298,7 @@ npx wrangler kv:key list --binding CACHE_KV
    - 與 `QRCodeService.createAuditLog()` 介面需求對齊
 
 4. **系統路由匯入修復（1 個錯誤）**:
-   - 透過從 `@makanmakan/database` 匯入來修復 drizzle-orm 匯入
+   - 透過從 `@makanmasak/database` 匯入來修復 drizzle-orm 匯入
    - 更新 `apps/api/src/routes/system.ts`
 
 #### 技術影響:

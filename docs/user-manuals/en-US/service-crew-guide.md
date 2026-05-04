@@ -1,4 +1,4 @@
-# 🚀 MakanMakan Service Crew Manual
+# 🚀 MakanMasak Service Crew Manual
 
 > **Version**: 2.0
 > **Last Updated**: 2025-10-26
@@ -23,7 +23,7 @@
 
 ## 🚀 Quick Start
 
-### Welcome to the MakanMakan Team!
+### Welcome to the MakanMasak Team!
 
 As a service crew member, you are the vital bridge between the restaurant and customers. Your main responsibilities are:
 
@@ -121,7 +121,7 @@ As a service crew member, you are the vital bridge between the restaurant and cu
 │ Login Steps                              │
 ├──────────────────────────────────────────┤
 │                                          │
-│  1️⃣ Open MakanMakan Service Crew App    │
+│  1️⃣ Open MakanMasak Service Crew App    │
 │      ↓                                   │
 │  2️⃣ Enter credentials from owner        │
 │      ↓                                   │
@@ -636,7 +636,7 @@ Delivery Record List
    ├─ Manager/Supervisor: [Extension] or [Mobile]
    ├─ Head Chef: [Extension]
    ├─ Cashier: [Extension]
-   └─ Tech Support: support@makanmakan.com
+   └─ Tech Support: support@makanmasak.com
 ```
 
 ### Incident Reporting
@@ -752,7 +752,7 @@ A: Depends on restaurant policy
 
   ✅ If restaurant provides mobile app:
      • Can use your own phone
-     • Download MakanMakan Service Crew App
+     • Download MakanMasak Service Crew App
      • Login with employee credentials
      • Ensure stable internet connection
 
@@ -823,7 +823,7 @@ A: Efficiency Improvement Tips
 A: Follow restaurant rules
 
   ✅ Allowed Uses:
-     • Check orders on MakanMakan app
+     • Check orders on MakanMasak app
      • Emergency family contact
      • Answer supervisor calls
      • Work-related matters
@@ -976,7 +976,7 @@ Service Crew Career Ladder
 
 ### Contact Information
 
-- **System/Tech Issues**: support@makanmakan.com
+- **System/Tech Issues**: support@makanmasak.com
 - **App Usage Issues**: In-system "Help Center"
 - **Work-related Issues**: Contact your supervisor directly
 
@@ -984,7 +984,7 @@ Service Crew Career Ladder
 
 ## 🌟 Conclusion
 
-Thank you for joining the MakanMakan team!
+Thank you for joining the MakanMasak team!
 
 As service crew, you are the vital bridge connecting kitchen and customers. Every smile, every on-time delivery creates wonderful dining experiences.
 
@@ -1001,7 +1001,7 @@ Wish you success and become the best service crew!
 
 <div align="center">
 
-**MakanMakan Service Crew Manual**
+**MakanMasak Service Crew Manual**
 
 Making every service a wonderful experience
 

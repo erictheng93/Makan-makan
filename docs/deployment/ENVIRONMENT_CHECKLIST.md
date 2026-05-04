@@ -1,8 +1,8 @@
-# ✅ MakanMakan 環境配置檢查清單
+# ✅ MakanMasak 環境配置檢查清單
 
 > **Complete Environment Setup Checklist for All Deployment Stages**
 
-本檢查清單用於確保 MakanMakan 系統在所有環境（Development、Staging、Production）中正確配置，涵蓋基礎設施、安全性、性能和監控等各個方面。
+本檢查清單用於確保 MakanMasak 系統在所有環境（Development、Staging、Production）中正確配置，涵蓋基礎設施、安全性、性能和監控等各個方面。
 
 ---
 
@@ -49,7 +49,7 @@
 ### API Token 配置
 
 - [ ] ✅ Cloudflare API Token 已創建
-  - Token Name: `makanmakan-deployment`
+  - Token Name: `makanmasak-deployment`
   - 權限包含：
     - [ ] Workers Scripts - Edit
     - [ ] Workers KV Storage - Edit
@@ -119,7 +119,7 @@
 - [ ] ✅ 本地 D1 數據庫已初始化
 
   ```bash
-  wrangler d1 migrations apply makanmakan-local --local  □
+  wrangler d1 migrations apply makanmasak-local --local  □
   ```
 
 - [ ] 🔸 測試數據已填充
@@ -130,7 +130,7 @@
 
 - [ ] ✅ 數據庫連接測試
   ```bash
-  wrangler d1 execute makanmakan-local --local --command "SELECT COUNT(*) FROM users;"  □
+  wrangler d1 execute makanmasak-local --local --command "SELECT COUNT(*) FROM users;"  □
   ```
 
 ### 本地服務啟動
@@ -151,9 +151,9 @@
 
 - [ ] ✅ Frontend Apps 可以啟動
   ```bash
-  cd apps/customer-app && pnpm run dev      # localhost:5173 □
-  cd apps/admin-dashboard && pnpm run dev   # localhost:5174 □
-  cd apps/kitchen-display && pnpm run dev   # localhost:5175 □
+  cd apps/customer-app && pnpm run dev      # localhost:3000 □
+  cd apps/admin-dashboard && pnpm run dev   # localhost:3001 □
+  cd apps/kitchen-display && pnpm run dev   # localhost:3002 □
   ```
 
 ### 開發工具
@@ -181,10 +181,10 @@
 - [ ] ✅ Staging 數據庫已創建
 
   ```bash
-  wrangler d1 create makanmakan-staging
+  wrangler d1 create makanmasak-staging
   ```
 
-  - Database Name: `makanmakan-staging`
+  - Database Name: `makanmasak-staging`
   - Database ID: `_____________________________`
 
 - [ ] ✅ Database ID 已更新到配置文件
@@ -195,7 +195,7 @@
 - [ ] ✅ 數據庫遷移已應用
 
   ```bash
-  wrangler d1 migrations apply makanmakan-staging --env staging  □
+  wrangler d1 migrations apply makanmasak-staging --env staging  □
   ```
 
 - [ ] 🔸 測試數據已填充
@@ -251,13 +251,13 @@
 - [ ] ✅ Backup Storage Bucket 已創建
 
   ```bash
-  wrangler r2 bucket create makanmakan-backups-staging  □
+  wrangler r2 bucket create makanmasak-backups-staging  □
   ```
 
 - [ ] 🔸 Image Storage Bucket 已創建
 
   ```bash
-  wrangler r2 bucket create makanmakan-images-staging  □
+  wrangler r2 bucket create makanmasak-images-staging  □
   ```
 
 - [ ] ✅ Bucket 名稱已更新到 wrangler.toml
@@ -291,12 +291,12 @@
 ### DNS 配置 (Staging)
 
 - [ ] ✅ Staging 子域名 DNS 記錄已添加
-  - [ ] `api-staging.makanmakan.com` → API Service
-  - [ ] `realtime-staging.makanmakan.com` → Realtime Service
-  - [ ] `images-staging.makanmakan.com` → Image Processor
-  - [ ] `staging.makanmakan.com` → Customer App (Pages)
-  - [ ] `admin-staging.makanmakan.com` → Admin Dashboard (Pages)
-  - [ ] `kitchen-staging.makanmakan.com` → Kitchen Display (Pages)
+  - [ ] `api-staging.makanmasak.com` → API Service
+  - [ ] `realtime-staging.makanmasak.com` → Realtime Service
+  - [ ] `images-staging.makanmasak.com` → Image Processor
+  - [ ] `staging.makanmasak.com` → Customer App (Pages)
+  - [ ] `admin-staging.makanmasak.com` → Admin Dashboard (Pages)
+  - [ ] `kitchen-staging.makanmasak.com` → Kitchen Display (Pages)
 
 ### 部署 (Staging)
 
@@ -317,9 +317,9 @@
 
 - [ ] ✅ Frontend Apps 已部署到 Pages
   ```bash
-  cd apps/customer-app && pnpm run build && wrangler pages deploy dist --project-name makanmakan-customer-staging     □
-  cd apps/admin-dashboard && pnpm run build && wrangler pages deploy dist --project-name makanmakan-admin-staging    □
-  cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --project-name makanmakan-kitchen-staging  □
+  cd apps/customer-app && pnpm run build && wrangler pages deploy dist --project-name makanmasak-customer-staging     □
+  cd apps/admin-dashboard && pnpm run build && wrangler pages deploy dist --project-name makanmasak-admin-staging    □
+  cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --project-name makanmasak-kitchen-staging  □
   ```
 
 ### 驗證測試 (Staging)
@@ -327,9 +327,9 @@
 - [ ] ✅ Health Checks 通過
 
   ```bash
-  curl https://api-staging.makanmakan.com/api/v1/health        □
-  curl https://realtime-staging.makanmakan.com/health          □
-  curl https://staging.makanmakan.com                          □
+  curl https://api-staging.makanmasak.com/api/v1/health        □
+  curl https://realtime-staging.makanmasak.com/health          □
+  curl https://staging.makanmasak.com                          □
   ```
 
 - [ ] ✅ 功能測試通過
@@ -369,10 +369,10 @@
 - [ ] ✅ Production 數據庫已創建
 
   ```bash
-  wrangler d1 create makanmakan-prod
+  wrangler d1 create makanmasak-prod
   ```
 
-  - Database Name: `makanmakan-prod`
+  - Database Name: `makanmasak-prod`
   - Database ID: `_____________________________`
 
 - [ ] ✅ Database ID 已更新到配置文件
@@ -383,13 +383,13 @@
 - [ ] ✅ 數據庫遷移已應用
 
   ```bash
-  wrangler d1 migrations apply makanmakan-prod --env production  □
+  wrangler d1 migrations apply makanmasak-prod --env production  □
   ```
 
 - [ ] 🚀 數據庫備份已配置
   - 自動備份頻率: `每日 2:00 AM UTC`
   - 備份保留期: `30 天`
-  - 備份位置: `R2 Bucket: makanmakan-backups-prod`
+  - 備份位置: `R2 Bucket: makanmasak-backups-prod`
 
 ### KV Namespaces (Production)
 
@@ -439,13 +439,13 @@
 - [ ] ✅ Backup Storage Bucket 已創建
 
   ```bash
-  wrangler r2 bucket create makanmakan-backups-prod  □
+  wrangler r2 bucket create makanmasak-backups-prod  □
   ```
 
 - [ ] 🚀 Image Storage Bucket 已創建
 
   ```bash
-  wrangler r2 bucket create makanmakan-images-prod  □
+  wrangler r2 bucket create makanmasak-images-prod  □
   ```
 
 - [ ] ✅ Bucket 名稱已更新到 wrangler.toml
@@ -498,20 +498,20 @@
   # Dashboard → Analytics → Analytics Engine → Create Dataset
   ```
 
-  - Dataset Name: `makanmakan-metrics-prod`
+  - Dataset Name: `makanmasak-metrics-prod`
   - 已添加到 `apps/api/wrangler.toml`: `□`
 
 ### DNS 配置 (Production)
 
 - [ ] ✅ 主域名 DNS 記錄已添加
-  - [ ] `api.makanmakan.com` → API Service (CNAME, Proxied)
-  - [ ] `realtime.makanmakan.com` → Realtime Service (CNAME, Proxied)
-  - [ ] `images.makanmakan.com` → Image Processor (CNAME, Proxied)
+  - [ ] `api.makanmasak.com` → API Service (CNAME, Proxied)
+  - [ ] `realtime.makanmasak.com` → Realtime Service (CNAME, Proxied)
+  - [ ] `images.makanmasak.com` → Image Processor (CNAME, Proxied)
 
 - [ ] ✅ Pages Custom Domains 已配置
-  - [ ] `makanmakan.com` → Customer App
-  - [ ] `admin.makanmakan.com` → Admin Dashboard
-  - [ ] `kitchen.makanmakan.com` → Kitchen Display
+  - [ ] `makanmasak.com` → Customer App
+  - [ ] `admin.makanmasak.com` → Admin Dashboard
+  - [ ] `kitchen.makanmasak.com` → Kitchen Display
 
 - [ ] ✅ SSL/TLS 配置
   - SSL/TLS 加密模式: `□ Full (strict)`
@@ -571,7 +571,7 @@
 
 - [ ] 🚀 健康檢查監控
   - 配置外部監控服務（如 UptimeRobot, Pingdom）
-  - 監控端點: `https://api.makanmakan.com/api/v1/health`
+  - 監控端點: `https://api.makanmasak.com/api/v1/health`
   - 檢查頻率: `□ 每 5 分鐘`
   - 告警接收人: `_____________________________`
 
@@ -601,9 +601,9 @@
 
 - [ ] ✅ Frontend Apps 部署
   ```bash
-  cd apps/customer-app && pnpm run build && wrangler pages deploy dist --project-name makanmakan-customer-prod     □
-  cd apps/admin-dashboard && pnpm run build && wrangler pages deploy dist --project-name makanmakan-admin-prod    □
-  cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --project-name makanmakan-kitchen-prod  □
+  cd apps/customer-app && pnpm run build && wrangler pages deploy dist --project-name makanmasak-customer-prod     □
+  cd apps/admin-dashboard && pnpm run build && wrangler pages deploy dist --project-name makanmasak-admin-prod    □
+  cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --project-name makanmasak-kitchen-prod  □
   ```
 
 ### 部署後驗證 (Production)
@@ -611,9 +611,9 @@
 - [ ] ✅ Health Checks 通過
 
   ```bash
-  curl https://api.makanmakan.com/api/v1/health        # 應返回 200 □
-  curl https://realtime.makanmakan.com/health          # 應返回 200 □
-  curl https://makanmakan.com                          # 應返回 200 □
+  curl https://api.makanmasak.com/api/v1/health        # 應返回 200 □
+  curl https://realtime.makanmasak.com/health          # 應返回 200 □
+  curl https://makanmasak.com                          # 應返回 200 □
   ```
 
 - [ ] ✅ 功能測試（關鍵路徑）
@@ -639,7 +639,7 @@
 - [ ] 🚀 監控就緒
   - [ ] 實時日誌可查看
     ```bash
-    wrangler tail makanmakan-api-prod  □
+    wrangler tail makanmasak-api-prod  □
     ```
   - [ ] 錯誤告警正常發送
   - [ ] Analytics 數據正在收集
@@ -757,12 +757,12 @@ echo "=== Verifying $ENVIRONMENT Environment ==="
 
 # 1. Health Checks
 echo "1. Health Checks..."
-curl -sf https://api-${ENVIRONMENT}.makanmakan.com/api/v1/health || echo "❌ API Health Check Failed"
-curl -sf https://realtime-${ENVIRONMENT}.makanmakan.com/health || echo "❌ Realtime Health Check Failed"
+curl -sf https://api-${ENVIRONMENT}.makanmasak.com/api/v1/health || echo "❌ API Health Check Failed"
+curl -sf https://realtime-${ENVIRONMENT}.makanmasak.com/health || echo "❌ Realtime Health Check Failed"
 
 # 2. Database Connection
 echo "2. Database Connection..."
-wrangler d1 execute makanmakan-${ENVIRONMENT} --command "SELECT 1" > /dev/null 2>&1 || echo "❌ Database Connection Failed"
+wrangler d1 execute makanmasak-${ENVIRONMENT} --command "SELECT 1" > /dev/null 2>&1 || echo "❌ Database Connection Failed"
 
 # 3. Secrets
 echo "3. Checking Secrets..."
@@ -770,7 +770,7 @@ wrangler secret list --env ${ENVIRONMENT} | grep "JWT_SECRET" || echo "❌ JWT_S
 
 # 4. DNS
 echo "4. DNS Configuration..."
-nslookup api-${ENVIRONMENT}.makanmakan.com || echo "❌ DNS not configured"
+nslookup api-${ENVIRONMENT}.makanmasak.com || echo "❌ DNS not configured"
 
 echo "=== Verification Complete ==="
 ```
@@ -830,10 +830,10 @@ _______________________________________________
 
 1. **故障排除指南**: [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 2. **部署指南**: [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
-3. **團隊支持**: Slack #makanmakan-ops
+3. **團隊支持**: Slack #makanmasak-ops
 
 ---
 
 **最後更新**: 2025-11-11
-**維護者**: MakanMakan DevOps Team
+**維護者**: MakanMasak DevOps Team
 **版本**: 2.0.0

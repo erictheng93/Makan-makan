@@ -1,4 +1,4 @@
-# MakanMakan 測試指南
+# MakanMasak 測試指南
 
 ## 目錄
 
@@ -12,7 +12,7 @@
 
 ## 測試架構概覽
 
-MakanMakan 使用多層測試策略，確保系統的可靠性和穩定性：
+MakanMasak 使用多層測試策略，確保系統的可靠性和穩定性：
 
 ```
 測試金字塔
@@ -35,7 +35,7 @@ Unit Tests     ← 單元測試 (大量，快速)
 ### 測試檔案結構
 
 ```
-makanmakan/
+makanmasak/
 ├── tests/
 │   ├── unit/                    # 單元測試
 │   │   ├── components/          # Vue 組件測試
@@ -448,7 +448,7 @@ export default defineConfig({
   reporter: "html",
 
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -474,7 +474,7 @@ export default defineConfig({
 
   webServer: {
     command: "pnpm run dev",
-    url: "http://localhost:5173",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
 });
@@ -949,7 +949,7 @@ jobs:
         run: pnpm run dev &
 
       - name: 等待服務啟動
-        run: npx wait-on http://localhost:5173
+        run: npx wait-on http://localhost:3000
 
       - name: 執行 E2E 測試
         run: pnpm run test:e2e
@@ -1104,7 +1104,7 @@ test("頁面可訪問性", async ({ page }) => {
 
 ## 總結
 
-這份測試指南涵蓋了 MakanMakan 專案的完整測試策略，包括：
+這份測試指南涵蓋了 MakanMasak 專案的完整測試策略，包括：
 
 1. **完整的測試金字塔** - 從單元測試到端到端測試
 2. **實用的範例程式碼** - 可直接應用到專案中

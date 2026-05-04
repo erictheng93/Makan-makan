@@ -1,4 +1,4 @@
-# MakanMakan Documentation Hub
+# MakanMasak Documentation Hub
 
 > **New here?** Start with [CLAUDE.md](../CLAUDE.md) for a complete project overview and development guide.
 

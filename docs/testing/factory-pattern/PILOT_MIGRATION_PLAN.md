@@ -121,7 +121,7 @@ import {
   userFactory,
   resetAllFactories,
   UserRoles,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 ```
 
 **步驟 2: 添加 beforeEach 重置** (5 分鐘)

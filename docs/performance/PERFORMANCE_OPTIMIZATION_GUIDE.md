@@ -1,6 +1,6 @@
 # Performance Optimization Implementation Guide
 
-**Quick Start Guide for MakanMakan Performance Improvements**
+**Quick Start Guide for MakanMasak Performance Improvements**
 
 This guide provides step-by-step instructions to implement the performance optimizations identified in the analysis. Each optimization is designed to be implemented independently without breaking existing functionality.
 
@@ -29,16 +29,16 @@ Before starting, ensure you have:
 cd packages/database/migrations
 
 # 2. Apply migration to staging
-npx wrangler d1 migrations apply makanmakan-staging \
+npx wrangler d1 migrations apply makanmasak-staging \
   --env staging \
   --file 20251001_performance_indexes.sql
 
 # 3. Verify indexes were created
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --command "SELECT name, tbl_name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY tbl_name;"
 
 # 4. Test query performance on staging
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --command "EXPLAIN QUERY PLAN SELECT * FROM menu_items WHERE restaurant_id = 1 AND is_available = true ORDER BY sort_order;"
 
 # Expected output should show: "USING INDEX idx_menu_items_restaurant_available"
@@ -48,7 +48,7 @@ npx wrangler d1 execute makanmakan-staging --env staging \
 
 ```bash
 # Before optimization - should be slow (500-800ms)
-time npx wrangler d1 execute makanmakan-staging --env staging \
+time npx wrangler d1 execute makanmasak-staging --env staging \
   --command "SELECT * FROM menu_items WHERE restaurant_id = 1 AND is_available = true ORDER BY sort_order LIMIT 50;"
 
 # After optimization - should be fast (20-40ms)
@@ -59,12 +59,12 @@ time npx wrangler d1 execute makanmakan-staging --env staging \
 
 ```bash
 # Production deployment
-npx wrangler d1 migrations apply makanmakan-prod \
+npx wrangler d1 migrations apply makanmasak-prod \
   --env production \
   --file 20251001_performance_indexes.sql
 
 # Verify
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --command "SELECT COUNT(*) as index_count FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%';"
 ```
 
@@ -72,16 +72,16 @@ npx wrangler d1 execute makanmakan-prod --env production \
 
 ```bash
 # Analyze tables to update query planner statistics
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --command "ANALYZE menu_items;"
 
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --command "ANALYZE orders;"
 
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --command "ANALYZE order_items;"
 
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --command "ANALYZE categories;"
 ```
 
@@ -142,7 +142,7 @@ cd ../../apps/api
 pnpm test:integration -- --grep "Order"
 
 # Test on staging
-curl https://api-staging.makanmakan.app/api/v1/orders \
+curl https://api-staging.makanmasak.app/api/v1/orders \
   -H "Authorization: Bearer $STAGING_TOKEN" \
   -w "\nTime: %{time_total}s\n"
 
@@ -156,7 +156,7 @@ curl https://api-staging.makanmakan.app/api/v1/orders \
 export DEBUG_QUERIES=true
 
 # Check Cloudflare Workers logs
-npx wrangler tail makanmakan-api-staging
+npx wrangler tail makanmasak-api-staging
 
 # Look for: "Queries executed: 1" (should not be > 5)
 ```
@@ -375,7 +375,7 @@ export class MenuService extends BaseService {
 
 ```bash
 # Test cache hit rate
-curl https://api-staging.makanmakan.app/api/v1/menu/1 \
+curl https://api-staging.makanmasak.app/api/v1/menu/1 \
   -H "Authorization: Bearer $TOKEN" \
   -I | grep "X-Cache"
 
@@ -383,12 +383,12 @@ curl https://api-staging.makanmakan.app/api/v1/menu/1 \
 # Second request: X-Cache: HIT
 
 # Verify cache TTL
-curl https://api-staging.makanmakan.app/api/v1/menu/1 \
+curl https://api-staging.makanmasak.app/api/v1/menu/1 \
   -H "Authorization: Bearer $TOKEN" \
   -I | grep -E "X-Cache|Age"
 
 # Monitor cache hit rate
-npx wrangler tail makanmakan-api-staging | grep "Cache"
+npx wrangler tail makanmasak-api-staging | grep "Cache"
 
 # Target metrics:
 # - Menu endpoints: > 90% hit rate
@@ -534,11 +534,11 @@ npx wrangler deploy --env staging
 
 # Deploy customer app to staging
 cd ../customer-app
-npx wrangler pages deploy dist --project-name makanmakan-customer-staging
+npx wrangler pages deploy dist --project-name makanmasak-customer-staging
 
 # Deploy admin dashboard
 cd ../admin-dashboard
-npx wrangler pages deploy dist --project-name makanmakan-admin-staging
+npx wrangler pages deploy dist --project-name makanmasak-admin-staging
 ```
 
 ### Step 6.2: Performance Testing
@@ -546,7 +546,7 @@ npx wrangler pages deploy dist --project-name makanmakan-admin-staging
 ```bash
 # Load testing with autocannon
 npx autocannon -c 100 -d 30 \
-  https://api-staging.makanmakan.app/api/v1/menu/1
+  https://api-staging.makanmasak.app/api/v1/menu/1
 
 # Expected results:
 # - Latency P95: < 200ms
@@ -554,7 +554,7 @@ npx autocannon -c 100 -d 30 \
 # - Error rate: < 0.1%
 
 # Lighthouse performance test
-npx lighthouse https://staging.makanmakan.app \
+npx lighthouse https://staging.makanmasak.app \
   --only-categories=performance \
   --chrome-flags="--headless"
 
@@ -569,7 +569,7 @@ npx lighthouse https://staging.makanmakan.app \
 
 ```bash
 # Setup monitoring endpoint
-curl https://api.makanmakan.app/api/v1/monitoring/performance
+curl https://api.makanmasak.app/api/v1/monitoring/performance
 
 # Expected response:
 {
@@ -594,7 +594,7 @@ curl https://api.makanmakan.app/api/v1/monitoring/performance
 
 ```bash
 # View Workers analytics
-npx wrangler tail makanmakan-api-prod --format pretty
+npx wrangler tail makanmasak-api-prod --format pretty
 
 # Key metrics to monitor:
 # - CPU time: < 50ms per request
@@ -611,11 +611,11 @@ npx wrangler tail makanmakan-api-prod --format pretty
 
 ```bash
 # Remove indexes
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --file packages/database/migrations/rollback_indexes.sql
 
 # Or selectively remove specific index:
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --command "DROP INDEX idx_menu_items_restaurant_available;"
 ```
 
@@ -748,7 +748,7 @@ After implementing all optimizations:
 
 ```bash
 # Solution: Analyze tables
-npx wrangler d1 execute makanmakan-prod --env production \
+npx wrangler d1 execute makanmasak-prod --env production \
   --command "ANALYZE;"
 ```
 
@@ -756,7 +756,7 @@ npx wrangler d1 execute makanmakan-prod --env production \
 
 ```bash
 # Solution: Check cache configuration
-curl -I https://api.makanmakan.app/api/v1/menu/1 | grep Cache
+curl -I https://api.makanmasak.app/api/v1/menu/1 | grep Cache
 
 # Verify invalidation isn't too aggressive
 ```

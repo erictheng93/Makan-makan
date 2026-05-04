@@ -7,7 +7,7 @@
 ## 🎯 5 秒快速開始
 
 ```typescript
-import { buildCompleteRestaurantData } from "@makanmakan/testing-utils";
+import { buildCompleteRestaurantData } from "@makanmasak/testing-utils";
 
 const testData = buildCompleteRestaurantData();
 // 一鍵生成: 餐廳、員工、菜單、訂單，所有測試數據！
@@ -36,7 +36,7 @@ import {
   UserRoles,
   RestaurantTypes,
   OrderStatus,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 ```
 
 ---
@@ -423,7 +423,7 @@ import {
   orderFactory,
   resetAllFactories,
   UserRoles,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("Order Service", () => {
   beforeEach(() => {

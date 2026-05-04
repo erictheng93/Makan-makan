@@ -433,7 +433,7 @@ modulePriorities: {
 
    ```bash
    # 驗證 factory 是否已安裝
-   pnpm list @makanmakan/testing-utils
+   pnpm list @makanmasak/testing-utils
    ```
 
 2. 掃描路徑配置錯誤
@@ -453,7 +453,7 @@ modulePriorities: {
    const user = userFactory.build(); // 會報錯
 
    // ✅ 正確導入
-   import { userFactory } from "@makanmakan/testing-utils";
+   import { userFactory } from "@makanmasak/testing-utils";
    const user = userFactory.build();
    ```
 
@@ -596,4 +596,4 @@ Factory 總調用次數: 487
 
 **最後更新**: 2025-11-15
 **版本**: 1.0.0
-**維護者**: MakanMakan Testing Team
+**維護者**: MakanMasak Testing Team

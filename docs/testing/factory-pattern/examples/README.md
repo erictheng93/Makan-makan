@@ -1,6 +1,6 @@
 # Testing Utils 範例代碼 | Example Code
 
-本目錄包含 `@makanmakan/testing-utils` 的實際使用範例，可以直接執行學習。
+本目錄包含 `@makanmasak/testing-utils` 的實際使用範例，可以直接執行學習。
 
 ---
 
@@ -182,7 +182,7 @@ it("練習 3: 完整點餐流程", () => {
 ### 場景 1: 單元測試 - 測試服務層
 
 ```typescript
-import { userFactory } from "@makanmakan/testing-utils";
+import { userFactory } from "@makanmasak/testing-utils";
 
 it("should validate user email", () => {
   const user = userFactory.build({
@@ -196,7 +196,7 @@ it("should validate user email", () => {
 ### 場景 2: 整合測試 - 測試 API
 
 ```typescript
-import { buildCompleteRestaurantData } from "@makanmakan/testing-utils";
+import { buildCompleteRestaurantData } from "@makanmasak/testing-utils";
 
 it("should create order via API", async () => {
   const testData = buildCompleteRestaurantData();
@@ -216,7 +216,7 @@ it("should create order via API", async () => {
 ### 場景 3: E2E 測試 - 完整流程
 
 ```typescript
-import { buildCompleteRestaurantData } from "@makanmakan/testing-utils";
+import { buildCompleteRestaurantData } from "@makanmasak/testing-utils";
 
 it("should complete order flow", async () => {
   const testData = buildCompleteRestaurantData({
@@ -263,4 +263,4 @@ it("should complete order flow", async () => {
 ---
 
 **最後更新**: 2025-11-15
-**維護者**: MakanMakan Testing Team
+**維護者**: MakanMasak Testing Team

@@ -1,6 +1,6 @@
 # 請假管理操作手冊 / Leave Management Manual
 
-**MakanMakan 餐廳管理系統 / MakanMakan Restaurant Management System**
+**MakanMasak 餐廳管理系統 / MakanMasak Restaurant Management System**
 
 ---
 
@@ -26,7 +26,7 @@
 
 ### 中文說明
 
-請假管理系統是 MakanMakan 員工管理模組的核心功能之一，提供完整的員工請假申請、審批、餘額追蹤和分析功能。系統支援多種請假類型，自動計算請假天數，並提供智慧化的審批工作流程。
+請假管理系統是 MakanMasak 員工管理模組的核心功能之一，提供完整的員工請假申請、審批、餘額追蹤和分析功能。系統支援多種請假類型，自動計算請假天數，並提供智慧化的審批工作流程。
 
 **核心功能：**
 
@@ -42,7 +42,7 @@
 
 ### English Description
 
-The Leave Management System is one of the core features of MakanMakan's employee management module, providing complete leave request, approval, balance tracking, and analytics capabilities. The system supports multiple leave types, automatically calculates leave days, and offers intelligent approval workflows.
+The Leave Management System is one of the core features of MakanMasak's employee management module, providing complete leave request, approval, balance tracking, and analytics capabilities. The system supports multiple leave types, automatically calculates leave days, and offers intelligent approval workflows.
 
 **Core Features:**
 
@@ -2096,7 +2096,7 @@ Negotiate with employee:
 
 **技術支援團隊 / Technical Support Team:**
 
-- 📧 Email: support@makanmakan.com
+- 📧 Email: support@makanmasak.com
 - 📱 電話 / Phone: +886-2-1234-5678
 - 💬 線上客服 / Live Chat: 週一至週五 09:00-18:00
 
@@ -2124,10 +2124,10 @@ Negotiate with employee:
 
 **線上文檔 / Online Documentation:**
 
-- 📖 使用手冊 / User Manual: docs.makanmakan.com/manual
-- 🎥 影片教學 / Video Tutorials: docs.makanmakan.com/videos
-- 📚 API文檔 / API Documentation: api.makanmakan.com/docs
-- 📝 更新日誌 / Changelog: docs.makanmakan.com/changelog
+- 📖 使用手冊 / User Manual: docs.makanmasak.com/manual
+- 🎥 影片教學 / Video Tutorials: docs.makanmasak.com/videos
+- 📚 API文檔 / API Documentation: api.makanmasak.com/docs
+- 📝 更新日誌 / Changelog: docs.makanmasak.com/changelog
 
 ### 培訓資源 / Training Resources
 
@@ -2187,6 +2187,6 @@ Negotiate with employee:
 
 **文檔版本 / Document Version: 1.0**
 **最後更新 / Last Updated: 2025-11-06**
-**編寫者 / Author: MakanMakan Development Team**
+**編寫者 / Author: MakanMasak Development Team**
 
-© 2025 MakanMakan Restaurant Management System. All rights reserved.
+© 2025 MakanMasak Restaurant Management System. All rights reserved.

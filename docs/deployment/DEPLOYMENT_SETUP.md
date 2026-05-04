@@ -1,4 +1,4 @@
-# 🚀 MakanMakan Deployment Setup Guide
+# 🚀 MakanMasak Deployment Setup Guide
 
 ## 🔐 **SECURITY CRITICAL**: Complete These Steps Before Deployment
 
@@ -32,10 +32,10 @@ wrangler secret put SLACK_WEBHOOK_URL --env production
 
 ```bash
 # Create staging database
-wrangler d1 create makanmakan-staging
+wrangler d1 create makanmasak-staging
 
 # Create production database
-wrangler d1 create makanmakan-prod
+wrangler d1 create makanmasak-prod
 
 # Copy the database IDs from output and update wrangler.toml files
 ```
@@ -44,10 +44,10 @@ wrangler d1 create makanmakan-prod
 
 ```bash
 # Apply to staging
-wrangler d1 migrations apply makanmakan-staging --env staging
+wrangler d1 migrations apply makanmasak-staging --env staging
 
 # Apply to production
-wrangler d1 migrations apply makanmakan-prod --env production
+wrangler d1 migrations apply makanmasak-prod --env production
 ```
 
 ### 3. **KV Namespace Setup**
@@ -131,15 +131,15 @@ npm run deploy:prod
 
 ```bash
 # Test JWT secret is working
-curl -X POST https://api.makanmakan.app/api/v1/auth/login \\
+curl -X POST https://api.makanmasak.app/api/v1/auth/login \\
   -H "Content-Type: application/json" \\
   -d '{"username":"test","password":"test"}'
 
 # Verify rate limiting
-for i in {1..10}; do curl https://api.makanmakan.app/api/v1/health; done
+for i in {1..10}; do curl https://api.makanmasak.app/api/v1/health; done
 
 # Test CORS headers
-curl -I https://api.makanmakan.app/api/v1/health
+curl -I https://api.makanmasak.app/api/v1/health
 ```
 
 ## 🚨 **CRITICAL SECURITY WARNINGS**
@@ -197,10 +197,10 @@ curl -I https://api.makanmakan.app/api/v1/health
 wrangler secret list --env production
 
 # View deployment logs
-wrangler tail makanmakan-api-prod
+wrangler tail makanmasak-api-prod
 
 # Test database connection
-wrangler d1 execute makanmakan-prod --command "SELECT COUNT(*) FROM users"
+wrangler d1 execute makanmasak-prod --command "SELECT COUNT(*) FROM users"
 ```
 
 ---

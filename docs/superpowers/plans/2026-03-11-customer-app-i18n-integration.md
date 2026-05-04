@@ -4,7 +4,7 @@
 
 **Goal:** Integrate customer-app with the shared i18n package and eliminate all hardcoded Chinese strings (~270 strings across 20 files).
 
-**Architecture:** Migrate customer-app from its standalone i18n system to the shared `@makanmakan/i18n` package. All translations move to `packages/shared/src/i18n/src/locales/` with static imports. Customer-app's `useI18n` composable API is preserved.
+**Architecture:** Migrate customer-app from its standalone i18n system to the shared `@makanmasak/i18n` package. All translations move to `packages/shared/src/i18n/src/locales/` with static imports. Customer-app's `useI18n` composable API is preserved.
 
 **Tech Stack:** vue-i18n 9, TypeScript, pnpm monorepo
 
@@ -1352,8 +1352,8 @@ import {
   SUPPORTED_LOCALES,
   type SupportedLocale,
   type LocaleInfo,
-} from "@makanmakan/i18n";
-import { getCustomerMessages } from "@makanmakan/i18n/static-messages";
+} from "@makanmasak/i18n";
+import { getCustomerMessages } from "@makanmasak/i18n/static-messages";
 
 // Load all translations statically
 const messages = getCustomerMessages();
@@ -1403,7 +1403,7 @@ import {
   SUPPORTED_LANGUAGES,
   type SupportedLanguage,
 } from "@/i18n";
-import type { LocaleInfo } from "@makanmakan/i18n";
+import type { LocaleInfo } from "@makanmasak/i18n";
 
 interface UseI18nReturn {
   t: (key: string) => string;

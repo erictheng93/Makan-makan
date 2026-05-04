@@ -1,4 +1,4 @@
-# MakanMakan Performance Analysis & Optimization Report
+# MakanMasak Performance Analysis & Optimization Report
 
 **Analysis Date**: 2025-10-01
 **Architecture**: Cloudflare Workers + Vue.js 3 Serverless
@@ -501,10 +501,10 @@ CREATE INDEX IF NOT EXISTS idx_categories_visible
 
 ```bash
 # Staging
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # Production (during low-traffic hours)
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-prod --env production
 ```
 
 **Expected Performance**:
@@ -1208,7 +1208,7 @@ User Experience Impact: Poor → Excellent
 
 ## 9. Conclusion
 
-This performance analysis identifies critical optimization opportunities across the entire MakanMakan stack. The recommended optimizations are prioritized by impact and effort, with the highest ROI improvements deliverable within 1-2 weeks.
+This performance analysis identifies critical optimization opportunities across the entire MakanMasak stack. The recommended optimizations are prioritized by impact and effort, with the highest ROI improvements deliverable within 1-2 weeks.
 
 **Critical Actions** (Immediate):
 

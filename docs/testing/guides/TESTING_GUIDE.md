@@ -1,6 +1,6 @@
-# MakanMakan 測試指南
+# MakanMasak 測試指南
 
-本文檔提供 MakanMakan 平台完整的測試策略、測試類型和執行指南。
+本文檔提供 MakanMasak 平台完整的測試策略、測試類型和執行指南。
 
 ## 📋 目錄
 
@@ -93,7 +93,7 @@ pnpm test:coverage
 pnpm test
 
 # Workers 整合測試（apps/api）
-pnpm --filter @makanmakan/api test
+pnpm --filter @makanmasak/api test
 ```
 
 ### 2.5 API Contract 測試
@@ -168,7 +168,7 @@ pnpm test:performance:report
 
 所有新寫的測試必須遵守以下四條，舊測試漸進式遷移：
 
-### 1. 使用 `@makanmakan/testing-utils` 的 Factory（禁止手寫 mock 物件）
+### 1. 使用 `@makanmasak/testing-utils` 的 Factory（禁止手寫 mock 物件）
 
 ```typescript
 import {
@@ -177,7 +177,7 @@ import {
   orderFactory,
   envFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 beforeEach(() => {
   resetAllFactories();
@@ -638,7 +638,7 @@ Allocation failed - JavaScript heap out of memory
 
 **原因**:
 
-- 測試套件規模大（MakanMakan 單元 / 整合測試 8,000+ 項）
+- 測試套件規模大（MakanMasak 單元 / 整合測試 8,000+ 項）
 - Node.js 預設 heap size 不足
 - 覆蓋率分析需要額外記憶體
 
@@ -835,14 +835,14 @@ Error: connect ECONNREFUSED
 ---
 
 **最後更新**: 2026-04-13
-**維護者**: MakanMakan Dev Team
+**維護者**: MakanMasak Dev Team
 
 ## 最近更新
 
 ### 2026-04-13
 
 - ✅ 新增「強制測試規範」章節，對齊 `CLAUDE.md` → Testing Standards
-- ✅ 新增 `@makanmakan/testing-utils` Factory 使用示例（`userFactory.buildShopOwner` 等）
+- ✅ 新增 `@makanmasak/testing-utils` Factory 使用示例（`userFactory.buildShopOwner` 等）
 - ✅ 補上 API Contract 測試章節（`pnpm contract:check` / `update` / `report`）
 - ✅ 更新 `tests/e2e/` 目錄結構：補上 `journeys/`、`integration/`、`helpers/`
 - ✅ 修正 Admin E2E 數字為 15 specs / ~236 tests（舊數字 44 tests 已過時）

@@ -1,4 +1,4 @@
-# 🎉 MakanMakan Database Migrations v2.0 - 最終完成報告
+# 🎉 MakanMasak Database Migrations v2.0 - 最終完成報告
 
 > **專案狀態**: ✅ 100% COMPLETED
 > **完成日期**: 2025-10-30 22:00
@@ -10,7 +10,7 @@
 
 ### 專案目標 ✅
 
-將 MakanMakan 的資料庫從混亂的 46+ migrations 重構為**清晰、模組化的 16 個 migrations**，採用 6 層架構設計。
+將 MakanMasak 的資料庫從混亂的 46+ migrations 重構為**清晰、模組化的 16 個 migrations**，採用 6 層架構設計。
 
 ### 最終成果
 
@@ -29,7 +29,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              MakanMakan v2.0 完整架構                        │
+│              MakanMasak v2.0 完整架構                        │
 └─────────────────────────────────────────────────────────────┘
 
 Layer 6: 進階功能層 ✅
@@ -419,7 +419,7 @@ employee_schedules (1)
 
 ```
 1. 建立測試環境
-   □ 創建測試資料庫 (makanmakan-test-v2)
+   □ 創建測試資料庫 (makanmasak-test-v2)
    □ 執行所有 16 個 migrations
    □ 驗證表結構正確性
 
@@ -516,7 +516,7 @@ employee_schedules (1)
 
 ## 📞 聯絡資訊
 
-**專案負責人**: MakanMakan 開發團隊
+**專案負責人**: MakanMasak 開發團隊
 **文檔位置**: `docs/migrations_v2/`
 **Migration 位置**: `packages/database/migrations_v2/`
 

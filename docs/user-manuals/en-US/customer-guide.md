@@ -1,14 +1,14 @@
-# MakanMakan Customer Guide
+# MakanMasak Customer Guide
 
 > **Version**: 2.0
 > **Last Updated**: 2025-10-26
-> **Target Audience**: All MakanMakan customers
+> **Target Audience**: All MakanMasak customers
 
 ---
 
 ## 📖 Table of Contents
 
-1. [Welcome to MakanMakan](#-welcome-to-makanmakan)
+1. [Welcome to MakanMasak](#-welcome-to-makanmasak)
 2. [Quick Start](#-quick-start)
 3. [Ordering Methods](#-ordering-methods)
    - [Method 1: Table QR Code Ordering](#method-1-table-qr-code-ordering)
@@ -27,9 +27,9 @@
 
 ---
 
-## 🎉 Welcome to MakanMakan
+## 🎉 Welcome to MakanMasak
 
-MakanMakan is a modern smart ordering platform that allows you to browse menus, place orders, and track order status in real-time using your smartphone. No app download required - just scan the QR code to get started!
+MakanMasak is a modern smart ordering platform that allows you to browse menus, place orders, and track order status in real-time using your smartphone. No app download required - just scan the QR code to get started!
 
 ### ✨ Key Features
 
@@ -64,7 +64,7 @@ MakanMakan is a modern smart ordering platform that allows you to browse menus, 
 
 ## 🍽️ Ordering Methods
 
-MakanMakan offers two ordering methods, depending on the restaurant's setup:
+MakanMasak offers two ordering methods, depending on the restaurant's setup:
 
 ### Method 1: Table QR Code Ordering
 
@@ -823,15 +823,15 @@ If this guide doesn't solve your problem, contact us via:
 
 ### 💬 Online Support
 
-- **Email**: support@makanmakan.com
+- **Email**: support@makanmasak.com
 - **Response time**: 1-2 business days
 - Good for: Account issues, technical problems, feedback
 
 ### 📱 Social Media
 
-- **Facebook**: MakanMakan Taiwan
-- **Instagram**: @makanmakan_tw
-- **LINE**: @makanmakan
+- **Facebook**: MakanMasak Taiwan
+- **Instagram**: @makanmasak_tw
+- **LINE**: @makanmasak
 
 ### 🐛 Report Issues
 
@@ -846,7 +846,7 @@ Found a bug or have suggestions? We welcome your feedback!
 
 ---
 
-## 🎉 Thank You for Using MakanMakan!
+## 🎉 Thank You for Using MakanMasak!
 
 We are committed to providing the best ordering experience. Your suggestions and feedback are very important to us.
 

@@ -300,10 +300,10 @@ Total                             🚧          43%
 
 ```bash
 # Apply scheduling system migration
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # Verify tables created
-npx wrangler d1 execute makanmakan-staging --local \
+npx wrangler d1 execute makanmasak-staging --local \
   --command "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%shift%' OR name LIKE '%schedul%'"
 ```
 

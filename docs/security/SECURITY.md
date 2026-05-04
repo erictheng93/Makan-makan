@@ -78,8 +78,8 @@ openssl rand -base64 48
 1. Create dedicated database user with minimal permissions:
 
 ```sql
-CREATE USER 'makanmakan_app'@'localhost' IDENTIFIED BY 'your-secure-password';
-GRANT SELECT, INSERT, UPDATE, DELETE ON makanmakan.* TO 'makanmakan_app'@'localhost';
+CREATE USER 'makanmasak_app'@'localhost' IDENTIFIED BY 'your-secure-password';
+GRANT SELECT, INSERT, UPDATE, DELETE ON makanmasak.* TO 'makanmasak_app'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -92,7 +92,7 @@ FLUSH PRIVILEGES;
 
 ```toml
 [env.production]
-name = "makanmakan-api-prod"
+name = "makanmasak-api-prod"
 vars = { NODE_ENV = "production" }
 
 [[env.production.kv_namespaces]]
@@ -101,7 +101,7 @@ id = "your-kv-namespace-id"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-prod"
+database_name = "makanmasak-prod"
 database_id = "your-d1-database-id"
 ```
 

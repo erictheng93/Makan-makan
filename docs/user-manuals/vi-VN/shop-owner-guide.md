@@ -1,4 +1,4 @@
-# 🏪 Hướng Dẫn Sử Dụng MakanMakan Cho Chủ Nhà Hàng
+# 🏪 Hướng Dẫn Sử Dụng MakanMasak Cho Chủ Nhà Hàng
 
 > **Phiên bản**: 2.0
 > **Cập nhật**: 2025-10-26
@@ -397,7 +397,7 @@ Thao tác nhanh:
 
 ### Quản Lý Ghế (Chế Độ Kép)
 
-MakanMakan hỗ trợ hai chế độ quản lý ghế:
+MakanMasak hỗ trợ hai chế độ quản lý ghế:
 
 #### Chế Độ 1: Mã QR Cấp Bàn
 
@@ -465,7 +465,7 @@ Chọn Bàn → Đặt Số Ghế → Tự Động Tạo Số
 
 ### Ba Chế Độ Mã QR
 
-MakanMakan cung cấp ba chế độ mã QR cho các tình huống kinh doanh khác nhau:
+MakanMasak cung cấp ba chế độ mã QR cho các tình huống kinh doanh khác nhau:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1129,7 +1129,7 @@ Có thể tùy chỉnh thời gian ca
 
 ### Chế Độ Đăng Ký Khách Hàng
 
-MakanMakan hỗ trợ hai chế độ sử dụng cho khách hàng:
+MakanMasak hỗ trợ hai chế độ sử dụng cho khách hàng:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -2098,7 +2098,7 @@ A: Hiện tại chưa hỗ trợ chức năng này, nhưng có thể thông qua 
 
 **Q: Làm sao xử lý thanh toán?**
 
-MakanMakan hiện hỗ trợ thanh toán offline:
+MakanMasak hiện hỗ trợ thanh toán offline:
 
 ```
 Khách dùng bữa xong
@@ -2156,7 +2156,7 @@ A: Được. Tại trang thanh toán:
 
 **Q: Có cần cài phần mềm không?**
 
-A: Không cần. MakanMakan là hệ thống web, chỉ cần có trình duyệt và mạng là có thể sử dụng.
+A: Không cần. MakanMasak là hệ thống web, chỉ cần có trình duyệt và mạng là có thể sử dụng.
 
 Trình duyệt khuyến nghị:
 
@@ -2179,7 +2179,7 @@ Sau khi mạng phục hồi:
 
 **Q: Dữ liệu có bị mất không?**
 
-A: Không. MakanMakan dùng kiến trúc đám mây, tất cả dữ liệu lưu thời gian thực trên mạng toàn cầu Cloudflare, có cơ chế backup nhiều lớp, đảm bảo an toàn dữ liệu.
+A: Không. MakanMasak dùng kiến trúc đám mây, tất cả dữ liệu lưu thời gian thực trên mạng toàn cầu Cloudflare, có cơ chế backup nhiều lớp, đảm bảo an toàn dữ liệu.
 
 ---
 
@@ -2224,7 +2224,7 @@ A: Được. Đi tới **Quản Lý Thực Đơn → Danh Sách Món → Phân T
 ├─────────────────────────────────────────┤
 │                                         │
 │  📧 Hỗ Trợ Email                        │
-│  support@makanmakan.com                │
+│  support@makanmasak.com                │
 │  (Phản hồi trong 24-48 giờ)            │
 │                                         │
 │  💬 Chat Trực Tuyến                     │
@@ -2236,14 +2236,14 @@ A: Được. Đi tới **Quản Lý Thực Đơn → Danh Sách Món → Phân T
 │  Phục vụ 24 giờ                         │
 │                                         │
 │  📚 Tài Liệu Trực Tuyến                 │
-│  docs.makanmakan.com                   │
+│  docs.makanmasak.com                   │
 │                                         │
 └─────────────────────────────────────────┘
 ```
 
 ### Giám Sát Trạng Thái Hệ Thống
 
-Xem trạng thái hệ thống thời gian thực: `status.makanmakan.com`
+Xem trạng thái hệ thống thời gian thực: `status.makanmasak.com`
 
 ```
 Bảng Điều Khiển Giám Sát Trạng Thái Hệ Thống
@@ -2326,7 +2326,7 @@ Khi bạn đã quen với thao tác cơ bản, có thể khám phá các chức 
 
 ### 1.0.0 (2025-09-01)
 
-- 🎉 MakanMakan chính thức ra mắt
+- 🎉 MakanMasak chính thức ra mắt
 - ✨ Chức năng quản lý nhà hàng cơ bản
 - ✨ Hệ thống đặt món QR Code
 - ✨ Hệ thống quản lý đơn hàng
@@ -2349,7 +2349,7 @@ Kiểm tra tiến độ học tập:
 □ Biết xem báo cáo phân tích kinh doanh
 □ Hiểu chức năng phân tích AI
 
-Sẵn sàng bắt đầu sử dụng MakanMakan chưa? 🚀
+Sẵn sàng bắt đầu sử dụng MakanMasak chưa? 🚀
 ```
 
 ---

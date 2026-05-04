@@ -29,7 +29,7 @@ cd apps/api
 npm run dev  # 在另一個終端運行
 
 # 執行測試腳本
-cd C:\Users\minim\OneDrive\文档\Code\platform\makanmakan
+cd C:\Users\minim\OneDrive\文档\Code\platform\makanmasak
 .\test-leave-schedule-integration.ps1
 ```
 

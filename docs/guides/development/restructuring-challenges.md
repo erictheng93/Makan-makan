@@ -1,4 +1,4 @@
-# MakanMakan 重構專案主要挑戰與解決方案
+# MakanMasak 重構專案主要挑戰與解決方案
 
 ## 🎯 重構挑戰總覽
 
@@ -233,7 +233,7 @@ $menu = getMenuByShop($shop_id);
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useMenuStore } from "@/stores/menu";
-import type { MenuItem } from "@makanmakan/shared-types";
+import type { MenuItem } from "@makanmasak/shared-types";
 
 const menuStore = useMenuStore();
 const menuItems = ref<MenuItem[]>([]);
@@ -574,7 +574,7 @@ describe("Menu API", () => {
 ### 📅 時間軸與里程碑
 
 ```gantt
-title MakanMakan 重構時間軸
+title MakanMasak 重構時間軸
 dateFormat YYYY-MM-DD
 section 基礎建設
 Cloudflare設置         :done, setup, 2025-08-23, 1d

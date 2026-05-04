@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Seat Management System extends MakanMakan's table management capabilities to support **individual seat tracking** with unique QR codes per seat. This enables restaurants to support both traditional "one table one QR" and advanced "one seat one QR" ordering modes.
+The Seat Management System extends MakanMasak's table management capabilities to support **individual seat tracking** with unique QR codes per seat. This enables restaurants to support both traditional "one table one QR" and advanced "one seat one QR" ordering modes.
 
 ### Key Features
 
@@ -159,7 +159,7 @@ Response:
       "seatNumber": "01",
       "seatName": "Window Seat",
       "position": "North side, window",
-      "qrCode": "https://makanmakan.com/order?data=...",
+      "qrCode": "https://makanmasak.com/order?data=...",
       "qrCodeImageUrl": "https://...",
       "qrCodeVersion": 1,
       "isOccupied": false,
@@ -302,7 +302,7 @@ Response:
 {
   "success": true,
   "data": {
-    "qrCode": "https://makanmakan.com/order?data=..."
+    "qrCode": "https://makanmasak.com/order?data=..."
   },
   "message": "Seat QR code regenerated successfully"
 }
@@ -412,7 +412,7 @@ Response:
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import type { Seat } from "@makanmakan/shared-types";
+import type { Seat } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   tableId: number;
@@ -451,7 +451,7 @@ function selectSeat(seat: Seat) {
 
 <script setup lang="ts">
 import { ref } from "vue";
-import type { QRMode } from "@makanmakan/shared-types";
+import type { QRMode } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   tableId: number;
@@ -549,7 +549,7 @@ async function switchMode(newMode: QRMode) {
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import SeatGrid from "./SeatGrid.vue";
-import type { SeatStats } from "@makanmakan/shared-types";
+import type { SeatStats } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   tableId: number;

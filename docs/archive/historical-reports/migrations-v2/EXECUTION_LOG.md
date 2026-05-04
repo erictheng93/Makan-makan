@@ -2,7 +2,7 @@
 
 ## 專案資訊
 
-**專案名稱**: MakanMakan Database Refactoring v2.0
+**專案名稱**: MakanMasak Database Refactoring v2.0
 **批准日期**: 2025-10-28
 **開始日期**: 2025-10-28
 **預計完成**: 2025-11-15 (2-3 週)

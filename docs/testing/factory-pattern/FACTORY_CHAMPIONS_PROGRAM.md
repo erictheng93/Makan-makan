@@ -269,13 +269,13 @@ interface ChampionRequirements {
 
 ```
 代碼庫權限：
-├─ @makanmakan/testing-utils 維護權限
+├─ @makanmasak/testing-utils 維護權限
 ├─ 文檔倉庫寫入權限
 └─ CI/CD 配置修改權限
 
 群組權限：
 ├─ #factory-champions Slack 頻道（私有）
-├─ champions@makanmakan.com 郵件列表
+├─ champions@makanmasak.com 郵件列表
 └─ Factory Champions GitHub 團隊
 
 決策權限：
@@ -477,7 +477,7 @@ interface ChampionRequirements {
 主要渠道：
 ├─ #factory-champions（Champions 私有）
 ├─ #testing（全員可見，Champions 監控）
-└─ champions@makanmakan.com
+└─ champions@makanmasak.com
 
 問題追蹤：
 ├─ GitHub Issues（功能請求）
@@ -576,7 +576,7 @@ Champions 覆蓋：
 
 **申請方式**：
 
-- 📧 發送郵件至：champions@makanmakan.com
+- 📧 發送郵件至：champions@makanmasak.com
 - 💬 Slack 私訊：@factory-champion-lead
 - 🎫 提交 GitHub Issue：[申請成為 Champion]
 
@@ -686,7 +686,7 @@ Champions 覆蓋：
 ## 📞 聯繫我們
 
 - 💬 Slack: #factory-champions
-- 📧 Email: champions@makanmakan.com
+- 📧 Email: champions@makanmasak.com
 - 🐛 Issues: GitHub Issues
 - 📅 會議: 每月第一個週三
 

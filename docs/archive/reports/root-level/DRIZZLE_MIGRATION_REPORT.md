@@ -1,6 +1,6 @@
 # Drizzle ORM 完整迁移报告
 
-**项目**: MakanMakan Restaurant Management System
+**项目**: MakanMasak Restaurant Management System
 **迁移日期**: 2025-11-10
 **迁移状态**: ✅ **100% 完成**
 
@@ -535,8 +535,8 @@ cd packages/database
 npx drizzle-kit generate:sqlite
 
 # 应用迁移
-npx wrangler d1 migrations apply makanmakan-staging --env staging
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-staging --env staging
+npx wrangler d1 migrations apply makanmasak-prod --env production
 ```
 
 ### 2. 测试覆盖 (Priority: High)
@@ -615,4 +615,4 @@ npx wrangler d1 migrations apply makanmakan-prod --env production
 ---
 
 _此报告由 Claude Code 自动生成_
-_MakanMakan Platform - Cloudflare Workers + D1 + Drizzle ORM_
+_MakanMasak Platform - Cloudflare Workers + D1 + Drizzle ORM_

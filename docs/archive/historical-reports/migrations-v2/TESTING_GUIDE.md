@@ -1,4 +1,4 @@
-# 🧪 MakanMakan Migrations v2.0 - 測試指南
+# 🧪 MakanMasak Migrations v2.0 - 測試指南
 
 > 完整的測試流程與驗證步驟
 
@@ -117,23 +117,23 @@ chmod +x scripts/test-migrations-v2.sh
 
 ```bash
 # 創建本地測試資料庫
-npx wrangler d1 create makanmakan-test-v2
+npx wrangler d1 create makanmasak-test-v2
 
 # 或使用遠端資料庫 (可選)
-npx wrangler d1 create makanmakan-test-v2 --env staging
+npx wrangler d1 create makanmasak-test-v2 --env staging
 ```
 
 #### Step 2: 執行 Migrations
 
 ```bash
 # 執行單一 migration
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --file=packages/database/migrations_v2/01_tenants_and_settings.sql
 
 # 或執行所有 migrations (循環)
 for file in packages/database/migrations_v2/*.sql; do
   echo "Executing $file..."
-  npx wrangler d1 execute makanmakan-test-v2 --local --file="$file"
+  npx wrangler d1 execute makanmasak-test-v2 --local --file="$file"
 done
 ```
 
@@ -141,19 +141,19 @@ done
 
 ```bash
 # 檢查表數量 (預期: 67)
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --command="SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
 
 # 檢查索引數量 (預期: 461)
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --command="SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'"
 
 # 檢查視圖數量 (預期: 60)
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --command="SELECT COUNT(*) FROM sqlite_master WHERE type='view'"
 
 # 檢查觸發器數量 (預期: 108)
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --command="SELECT COUNT(*) FROM sqlite_master WHERE type='trigger'"
 ```
 
@@ -161,7 +161,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 
 ```bash
 # 執行完整性測試 SQL
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --file=scripts/test-data-integrity.sql
 ```
 
@@ -169,7 +169,7 @@ npx wrangler d1 execute makanmakan-test-v2 --local \
 
 ```bash
 # 執行效能測試 SQL
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --file=scripts/test-performance.sql
 ```
 
@@ -314,10 +314,10 @@ Error: table "xxx" already exists
 
 ```bash
 # 刪除測試資料庫重新開始
-npx wrangler d1 delete makanmakan-test-v2
+npx wrangler d1 delete makanmasak-test-v2
 
 # 或使用新的資料庫名稱
-npx wrangler d1 create makanmakan-test-v2-new
+npx wrangler d1 create makanmasak-test-v2-new
 ```
 
 ---
@@ -339,7 +339,7 @@ npx wrangler d1 create makanmakan-test-v2-new
 
 ```bash
 # 查看詳細錯誤
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --file=packages/database/migrations_v2/XX_failed_migration.sql
 ```
 
@@ -425,7 +425,7 @@ sqlite3 .wrangler/state/v3/d1/<database-id>.sqlite
 
 ```bash
 # 1. 刪除測試資料庫
-npx wrangler d1 delete makanmakan-test-v2
+npx wrangler d1 delete makanmasak-test-v2
 
 # 2. 清除 .wrangler 緩存
 rm -rf .wrangler/state  # Linux/Mac
@@ -442,10 +442,10 @@ Remove-Item -Recurse -Force .wrangler\state  # Windows
 ### 報告結構
 
 ```markdown
-# MakanMakan Migrations v2.0 - 測試報告
+# MakanMasak Migrations v2.0 - 測試報告
 
 **測試日期**: 2025-10-30 22:00:00
-**測試資料庫**: makanmakan-test-v2
+**測試資料庫**: makanmasak-test-v2
 
 ## 測試結果總覽
 

@@ -376,7 +376,7 @@ export interface ApiResponse<T = any> {
 
 - [ ] **Step 2: Build shared-types to verify**
 
-Run: `pnpm --filter @makanmakan/shared-types run build`
+Run: `pnpm --filter @makanmasak/shared-types run build`
 Expected: Build succeeds with no errors
 
 - [ ] **Step 3: Commit**
@@ -990,7 +990,7 @@ With:
 
 - [ ] **Step 2: Run admin-dashboard typecheck**
 
-Run: `pnpm --filter makanmakan-admin-dashboard run typecheck`
+Run: `pnpm --filter makanmasak-admin-dashboard run typecheck`
 Expected: PASS (0 errors)
 
 - [ ] **Step 3: Commit**
@@ -1023,10 +1023,10 @@ Expected: All PASS
 
 - [ ] **Step 4: Run shared-types build**
 
-Run: `pnpm --filter @makanmakan/shared-types run build`
+Run: `pnpm --filter @makanmasak/shared-types run build`
 Expected: Build succeeds
 
 - [ ] **Step 5: Run admin-dashboard typecheck**
 
-Run: `pnpm --filter makanmakan-admin-dashboard run typecheck`
+Run: `pnpm --filter makanmasak-admin-dashboard run typecheck`
 Expected: 0 errors

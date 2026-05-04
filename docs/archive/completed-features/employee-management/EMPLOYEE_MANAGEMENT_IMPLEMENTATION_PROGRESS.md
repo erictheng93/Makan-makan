@@ -337,7 +337,7 @@ apps/api/src/features/scheduling/
 ## 📁 File Structure
 
 ```
-makanmakan/
+makanmasak/
 ├── packages/database/
 │   ├── migrations/
 │   │   ├── 0034_employee_scheduling_system.sql     ✅ Ready

@@ -1,8 +1,8 @@
 # 測試文檔維護指南 | Test Documentation Maintenance Guide
 
-本指南說明如何維護 MakanMakan 專案的測試文檔，確保測試代碼與文檔保持同步。
+本指南說明如何維護 MakanMasak 專案的測試文檔，確保測試代碼與文檔保持同步。
 
-This guide explains how to maintain test documentation in the MakanMakan project to ensure test code and documentation stay in sync.
+This guide explains how to maintain test documentation in the MakanMasak project to ensure test code and documentation stay in sync.
 
 ---
 
@@ -230,7 +230,7 @@ describe("Order Service", () => {
 **使用範例**:
 
 \`\`\`typescript
-import { buildCompleteRestaurantData } from '@makanmakan/testing-utils'
+import { buildCompleteRestaurantData } from '@makanmasak/testing-utils'
 
 const testData = buildCompleteRestaurantData({
 enableShopMode: true,
@@ -503,7 +503,7 @@ cashiers: UserTestData[] // 2 位收銀員
 **使用範例**：
 
 \`\`\`typescript
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from '@makanmasak/testing-utils'
 
 const team = userFactory.buildRestaurantTeam(1)
 
@@ -646,7 +646,7 @@ createUser(data: CreateUserInput): Promise<User>
 
 ```typescript
 import { describe, it, expect, beforeEach } from "vitest";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("User Service", () => {
   beforeEach(() => {
@@ -769,4 +769,4 @@ describe("Documentation Examples", () => {
 
 **最後更新**: 2025-11-15
 **版本**: 1.0.0
-**維護者**: MakanMakan Development Team
+**維護者**: MakanMasak Development Team

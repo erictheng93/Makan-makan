@@ -2,7 +2,7 @@
 
 ## 📋 Migration Overview
 
-The users functionality has been successfully migrated from a monolithic route file (`routes/users.ts` - 653 lines) to a modular architecture following the established patterns in the MakanMakan project.
+The users functionality has been successfully migrated from a monolithic route file (`routes/users.ts` - 653 lines) to a modular architecture following the established patterns in the MakanMasak project.
 
 ## 🏗️ New Module Structure
 

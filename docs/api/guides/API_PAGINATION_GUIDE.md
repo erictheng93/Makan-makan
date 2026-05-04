@@ -71,7 +71,7 @@ Standardized pagination implementation across all API endpoints for consistent d
 #### Example 1: Basic Pagination
 
 ```typescript
-import { paginateQuery } from "@makanmakan/database/utils/pagination-helpers";
+import { paginateQuery } from "@makanmasak/database/utils/pagination-helpers";
 
 app.get("/orders", async (c) => {
   const db = c.env.DB;
@@ -121,7 +121,7 @@ app.get("/orders", async (c) => {
 #### Example 2: Search with Pagination
 
 ```typescript
-import { searchWithPagination } from "@makanmakan/database/utils/pagination-helpers";
+import { searchWithPagination } from "@makanmasak/database/utils/pagination-helpers";
 
 app.get("/menu/search", async (c) => {
   const db = c.env.DB;
@@ -143,7 +143,7 @@ app.get("/menu/search", async (c) => {
 #### Example 3: Cursor-Based Pagination
 
 ```typescript
-import { paginateWithCursor } from "@makanmakan/database/utils/pagination-helpers";
+import { paginateWithCursor } from "@makanmasak/database/utils/pagination-helpers";
 
 app.get("/messages", async (c) => {
   const cursor = c.req.query("cursor");
@@ -491,7 +491,7 @@ import { describe, it, expect } from "vitest";
 import {
   calculatePaginationMeta,
   validatePaginationParams,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 describe("Pagination", () => {
   it("should calculate correct pagination metadata", () => {
@@ -635,4 +635,4 @@ if (duration > 1000) {
 ---
 
 **Last Updated**: 2025-10-02
-**Maintained By**: MakanMakan Development Team
+**Maintained By**: MakanMasak Development Team

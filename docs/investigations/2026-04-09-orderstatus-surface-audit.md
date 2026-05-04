@@ -6,7 +6,7 @@
 **Status:** Historical audit — implementation mostly complete as of 2026-04-29
 
 > Current note (2026-04-29): the major migration described here has already
-> landed. `@makanmakan/shared-types` now exports `OrderStatus` as a canonical
+> landed. `@makanmasak/shared-types` now exports `OrderStatus` as a canonical
 > string union derived from `ORDER_STATUSES`, API validation/OpenAPI contracts
 > use the same runtime tuple, and DB/query/status-transition code is string
 > based. Treat the numeric-enum sections below as historical context, not as a
@@ -158,7 +158,7 @@ enum OrderLifecycleState {
 
 | File | Import source | Usage pattern | Migration risk |
 |------|---------------|---------------|----------------|
-| `src/features/orders/types/index.ts` | **dual import** — `DbOrderStatus` from `@makanmakan/database` AND `OrderStatus` from `@makanmakan/shared-types` (lines 14, 20) | PR #7 partial-fix workaround: query filters use `DbOrderStatus[]` (line 142), everything else still on numeric `OrderStatus` | 🔴 high — must collapse to single canonical type when shared-types is rewritten in Phase 2 (Task 13) |
+| `src/features/orders/types/index.ts` | **dual import** — `DbOrderStatus` from `@makanmasak/database` AND `OrderStatus` from `@makanmasak/shared-types` (lines 14, 20) | PR #7 partial-fix workaround: query filters use `DbOrderStatus[]` (line 142), everything else still on numeric `OrderStatus` | 🔴 high — must collapse to single canonical type when shared-types is rewritten in Phase 2 (Task 13) |
 | `src/features/orders/services/OrdersService.ts` | shared-types numeric `OrderStatus` | 31 refs; `normalizeStatus()` (line 1227-1243), `validateStatusTransition()` (1245-1269), `getAllowedStatusTransitions()` (1271-1285), `broadcastOrderStatusUpdate(prev, new: OrderStatus)` (1033-1042) | 🔴 high — Phase 2 Tasks 14-16 directly target this file |
 | `src/features/orders/routes/index.ts` | mixed | 24 refs; 2 `typeof status === "string"` guards (lines 75, 95) for query parsing | 🔴 high — Phase 3 cleanup |
 | `src/features/orders/schemas/validation.ts` | inline Zod | **6th OrderStatus definition** — `orderStatusSchema = z.enum([7 strings])` (lines 23-31), missing `refunded` | 🔴 high — Phase 2 must add `refunded` |
@@ -321,7 +321,7 @@ Both (4) and (5) must be deleted and replaced by the canonical shared-types stri
 **Risk buckets (flagged for Section 4):** 0 runtime `typeof status === 'number'` guards in admin-dashboard.
 
 **Net admin-dashboard work for Phase 3:**
-1. Delete the local `OrderStatus` enum in `src/types/index.ts`; re-export from `@makanmakan/shared-types`.
+1. Delete the local `OrderStatus` enum in `src/types/index.ts`; re-export from `@makanmasak/shared-types`.
 2. Delete the local `type OrderStatus` in `src/components/dashboard/RecentOrders.vue`; import from shared-types.
 3. Delete the inline 6-member union in `src/composables/useRealtimeOrderStatus.ts`; reuse `OrderStatusUpdateEvent['data']['status']` from shared-types.
 4. Rewrite filter buckets in `OrdersView.vue:659-669` and `stores/order.ts:15-43` to match the canonical 8-state set (collapse `[COMPLETED, PAID]` → `[PAID]`, convert `COMPLETED` → `DELIVERED`).
@@ -882,8 +882,8 @@ This decision is a Phase 0.5 hard gate item — the user should approve before P
 **Customer-app (`apps/customer-app/vite.config.ts`):**
 - **VitePWA `registerType: 'autoUpdate'`** (line 23). The service worker auto-updates the cached bundle when a new build ships. Existing tabs continue running the old bundle until they reload.
 - **Workbox runtime caching:**
-  - `^https://api.makanmakan.app/` → `NetworkFirst`, 24h, max 100 entries (line 28-37). Wire-format change: ✅ safe — new responses always go to network first.
-  - `^https://images.makanmakan.app/` → `CacheFirst`, 7 days. Not status-relevant.
+  - `^https://api.makanmasak.app/` → `NetworkFirst`, 24h, max 100 entries (line 28-37). Wire-format change: ✅ safe — new responses always go to network first.
+  - `^https://images.makanmasak.app/` → `CacheFirst`, 7 days. Not status-relevant.
 - **Bundle hash:** Vite default — yes, content-hashed filenames. Old bundle stays cached until SW activates new version.
 - **`__APP_VERSION__: "1.0.0"`** (line 109) is **hardcoded** in `vite.config.ts`. There is NO build-time version stamp that the frontend could read to detect "I'm running an old bundle vs new bundle." This is a gap for Phase 6.3 forced reload — the plan needs to add a build-time version injection BEFORE it can implement bundle-version detection.
 - **Customer-app IndexedDB (`apps/customer-app/src/utils/offline-storage.ts`):** Has `offlineOrders` and `cachedMenuItems` stores. The `OfflineOrder` interface (lines 6-24) **does NOT include a `status` field** — these are customer-created draft orders pending sync, not server-side order records. ✅ No migration risk in customer-app's IndexedDB.

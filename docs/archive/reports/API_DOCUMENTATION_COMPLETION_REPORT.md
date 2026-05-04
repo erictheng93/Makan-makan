@@ -487,14 +487,14 @@ Development:
   - OpenAPI Spec: http://localhost:8787/openapi.json
 
 Staging:
-  - API Base URL: https://staging-api.makanmakan.com
-  - Swagger UI: https://staging-api.makanmakan.com/docs
-  - OpenAPI Spec: https://staging-api.makanmakan.com/openapi.json
+  - API Base URL: https://staging-api.makanmasak.com
+  - Swagger UI: https://staging-api.makanmasak.com/docs
+  - OpenAPI Spec: https://staging-api.makanmasak.com/openapi.json
 
 Production:
-  - API Base URL: https://api.makanmakan.com
-  - Swagger UI: https://api.makanmakan.com/docs
-  - OpenAPI Spec: https://api.makanmakan.com/openapi.json
+  - API Base URL: https://api.makanmasak.com
+  - Swagger UI: https://api.makanmasak.com/docs
+  - OpenAPI Spec: https://api.makanmasak.com/openapi.json
 ```
 
 ### Verification Checklist
@@ -750,8 +750,8 @@ meta: z.object({
    npm run deploy:staging
 
    # Verify deployment
-   curl https://staging-api.makanmakan.com/docs
-   curl https://staging-api.makanmakan.com/openapi.json
+   curl https://staging-api.makanmasak.com/docs
+   curl https://staging-api.makanmasak.com/openapi.json
    ```
 
 2. **Share with Frontend Team** ✅ Ready

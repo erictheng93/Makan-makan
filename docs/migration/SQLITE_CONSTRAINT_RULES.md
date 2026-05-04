@@ -273,7 +273,7 @@ sqlite3 test.db < your_migration.sql
 sqlite3 test.db "SELECT name, tbl_name, sql FROM sqlite_master WHERE type='index';"
 
 # 4. Test with Cloudflare D1 local
-npx wrangler d1 migrations apply makanmakan-local --local
+npx wrangler d1 migrations apply makanmasak-local --local
 
 # 5. Clean up test
 rm test.db

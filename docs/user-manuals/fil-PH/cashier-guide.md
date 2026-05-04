@@ -1,4 +1,4 @@
-# 💰 MakanMakan Gabay para sa Cashier
+# 💰 MakanMasak Gabay para sa Cashier
 
 > **Bersyon**: 2.0
 > **Huling Nag-update**: 2025-10-26
@@ -320,7 +320,7 @@
 
 ```
 ┌────────────────────────────────────────┐
-│          MakanMakan Restaurant         │
+│          MakanMasak Restaurant         │
 │       Tax ID: 12345678                 │
 │   Address: No. 7, Xinyi Rd., Taipei   │
 │       Phone: (02) 2345-6789            │
@@ -353,7 +353,7 @@
 │                                        │
 │    Salamat, bumalik kayo!              │
 │                                        │
-│         MakanMakan.com                 │
+│         MakanMasak.com                 │
 │                                        │
 └────────────────────────────────────────┘
 ```
@@ -487,7 +487,7 @@
 
 ```
 ┌─────────────────────────────────────────┐
-│ MakanMakan Suportadong Mobile Payments  │
+│ MakanMasak Suportadong Mobile Payments  │
 ├─────────────────────────────────────────┤
 │                                         │
 │  📱 LINE Pay          ✅ Suportado      │
@@ -686,7 +686,7 @@ Opsyon C: I-print ang papel
 
 ```
 ┌─────────────────────────────────────────────┐
-│ Patakaran sa Refund ng MakanMakan           │
+│ Patakaran sa Refund ng MakanMasak           │
 ├─────────────────────────────────────────────┤
 │                                             │
 │  ✅ Mga Kaso ng Buong Refund:               │
@@ -795,7 +795,7 @@ Opsyon C: I-print ang papel
 
 ```
 ┌────────────────────────────────────────┐
-│         Resibo ng Refund ng MakanMakan │
+│         Resibo ng Refund ng MakanMasak │
 ├────────────────────────────────────────┤
 │                                        │
 │ Petsa: 2025/10/26    Oras: 14:30       │
@@ -883,7 +883,7 @@ Opsyon C: I-print ang papel
 
 ```
 ┌────────────────────────────────────────────────────┐
-│           Arawang Ulat ng MakanMakan               │
+│           Arawang Ulat ng MakanMasak               │
 │           Petsa: 2025/10/26                        │
 ├────────────────────────────────────────────────────┤
 │                                                    │
@@ -1899,7 +1899,7 @@ Kung talagang may emergency na bagay:
 │                                         │
 │  📊 Accounting Department               │
 │     Extension: 102                      │
-│     Email: accounting@makanmakan.com    │
+│     Email: accounting@makanmasak.com    │
 │     Hawak: Accounting, mga isyu sa invoice │
 │                                         │
 └─────────────────────────────────────────┘
@@ -2070,7 +2070,7 @@ Mga Kailangang Pagpapahusay sa Kasanayan:
 
 ## 🙏 Konklusyon
 
-Salamat sa pagpili na maging cashier ng MakanMakan!
+Salamat sa pagpili na maging cashier ng MakanMasak!
 
 Ang trabaho ng cashier ay mukhang simple pero may malaking responsibilidad. Kayo ang huling punto ng pakikipag-ugnayan ng mga customer sa tindahan, at ang pangunahing tao na nag-iiwan ng huling impresyon.
 
@@ -2089,12 +2089,12 @@ Para sa anumang mga tanong o mungkahi, huwag mag-atubiling makipag-ugnayan sa am
 
 <div align="center">
 
-**Gabay para sa Cashier ng MakanMakan**
+**Gabay para sa Cashier ng MakanMasak**
 
 Ginawa with ❤️ para sa aming mga cashier
 
 **Bersyon 2.0** | **2025-10-26**
 
-© 2025 MakanMakan. Lahat ng karapatan ay nakalaan.
+© 2025 MakanMasak. Lahat ng karapatan ay nakalaan.
 
 </div>

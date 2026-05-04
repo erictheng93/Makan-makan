@@ -8,7 +8,7 @@
 
 ## Overview
 
-Successfully migrated MakanMakan user authentication from plaintext passwords to industry-standard bcrypt hashing, significantly improving system security.
+Successfully migrated MakanMasak user authentication from plaintext passwords to industry-standard bcrypt hashing, significantly improving system security.
 
 ---
 
@@ -589,13 +589,13 @@ CREATE TABLE user_mfa (
 
 ```bash
 # Local development
-npx wrangler d1 migrations apply makanmakan-local --local
+npx wrangler d1 migrations apply makanmasak-local --local
 
 # Staging
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # Production
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-prod --env production
 ```
 
 ---

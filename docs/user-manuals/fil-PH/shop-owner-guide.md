@@ -1,4 +1,4 @@
-# 🏪 Gabay sa Paggamit ng MakanMakan para sa May-ari ng Restaurant
+# 🏪 Gabay sa Paggamit ng MakanMasak para sa May-ari ng Restaurant
 
 > **Bersyon**: 2.0
 > **Huling Na-update**: 2025-10-26
@@ -397,7 +397,7 @@ Pagpangalan base sa function:
 
 ### Pamamahala ng Upuan (Dual Mode)
 
-Sinusuportahan ng MakanMakan ang dalawang mode ng pamamahala ng upuan:
+Sinusuportahan ng MakanMasak ang dalawang mode ng pamamahala ng upuan:
 
 #### Mode 1: Table-Level QR Code
 
@@ -451,7 +451,7 @@ Sinusuportahan ng MakanMakan ang dalawang mode ng pamamahala ng upuan:
 
 ### Tatlong Mode ng QR Code
 
-Nag-aalok ang MakanMakan ng tatlong mode ng QR code para sa iba't ibang sitwasyon ng negosyo:
+Nag-aalok ang MakanMasak ng tatlong mode ng QR code para sa iba't ibang sitwasyon ng negosyo:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1130,7 +1130,7 @@ Pumunta sa: **Pamamahala ng Staff → Performance Report**
 
 ### Mga Mode ng Customer Registration
 
-Sinusuportahan ng MakanMakan ang dalawang mode ng paggamit para sa mga customer:
+Sinusuportahan ng MakanMasak ang dalawang mode ng paggamit para sa mga customer:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -2109,7 +2109,7 @@ A: Hindi pa supported ang feature na ito, pero pwedeng gamitin ang "Schedule Man
 
 **Q: Paano mag-process ng checkout?**
 
-MakanMakan currently supports offline payment:
+MakanMasak currently supports offline payment:
 
 ```
 Customer finished dining
@@ -2167,7 +2167,7 @@ A: Oo, pwede. Sa checkout page:
 
 **Q: Kailangan ba ng software installation?**
 
-A: Hindi. MakanMakan ay web-based system, kailangan lang ng browser at internet connection.
+A: Hindi. MakanMasak ay web-based system, kailangan lang ng browser at internet connection.
 
 Recommended browsers:
 
@@ -2190,7 +2190,7 @@ Pag bumalik internet:
 
 **Q: Mawawala ba ang data?**
 
-A: Hindi. MakanMakan uses cloud architecture, lahat ng data ay real-time saved sa Cloudflare global network, with multiple backup mechanisms para ensure data security.
+A: Hindi. MakanMasak uses cloud architecture, lahat ng data ay real-time saved sa Cloudflare global network, with multiple backup mechanisms para ensure data security.
 
 ---
 
@@ -2235,7 +2235,7 @@ A: Oo. Pumunta sa **Menu Management → Menu List → Cost Analysis**, pwedeng m
 ├─────────────────────────────────────────┤
 │                                         │
 │  📧 Email Support                       │
-│  support@makanmakan.com                │
+│  support@makanmasak.com                │
 │  (24-48 hours response time)           │
 │                                         │
 │  💬 Online Customer Service             │
@@ -2247,14 +2247,14 @@ A: Oo. Pumunta sa **Menu Management → Menu List → Cost Analysis**, pwedeng m
 │  24 hours service                       │
 │                                         │
 │  📚 Online Documentation                │
-│  docs.makanmakan.com                   │
+│  docs.makanmasak.com                   │
 │                                         │
 └─────────────────────────────────────────┘
 ```
 
 ### System Status Monitoring
 
-Real-time view ng system status: `status.makanmakan.com`
+Real-time view ng system status: `status.makanmasak.com`
 
 ```
 System Status Monitoring Dashboard
@@ -2337,7 +2337,7 @@ Pag familiar ka na sa basic operations, pwede mong i-explore ang advanced featur
 
 ### 1.0.0 (2025-09-01)
 
-- 🎉 MakanMakan official launch
+- 🎉 MakanMasak official launch
 - ✨ Basic restaurant management features
 - ✨ QR code ordering system
 - ✨ Order management system
@@ -2360,7 +2360,7 @@ Learning Progress Check:
 □ Alam ko na paano mag-view ng business analytics reports
 □ Naiintindihan ko na ang AI analysis features
 
-Handa ka na bang gumamit ng MakanMakan? 🚀
+Handa ka na bang gumamit ng MakanMasak? 🚀
 ```
 
 ---

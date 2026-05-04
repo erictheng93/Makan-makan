@@ -1,4 +1,4 @@
-# 🏪 MakanMakan Shop Owner User Guide
+# 🏪 MakanMasak Shop Owner User Guide
 
 > **Version**: 2.0
 > **Last Updated**: 2025-10-26
@@ -397,7 +397,7 @@ Function-based naming:
 
 ### Seat Management (Dual Mode)
 
-MakanMakan supports two seat management modes:
+MakanMasak supports two seat management modes:
 
 #### Mode 1: Table-Level QR Code
 
@@ -465,7 +465,7 @@ Select Table → Set Seat Count → Auto-Generate Numbers
 
 ### Three QR Code Modes
 
-MakanMakan offers three QR code modes for different business scenarios:
+MakanMasak offers three QR code modes for different business scenarios:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1127,7 +1127,7 @@ Navigate to: **Staff Management → Performance Reports**
 
 ### Customer Registration Modes
 
-MakanMakan supports two customer modes:
+MakanMasak supports two customer modes:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -2099,7 +2099,7 @@ A: Currently not supported, but can monitor staff login times via "Schedule Mana
 
 **Q: How to process checkout?**
 
-MakanMakan currently supports offline payment:
+MakanMasak currently supports offline payment:
 
 ```
 Customer finishes dining
@@ -2157,7 +2157,7 @@ A: Yes. On checkout page:
 
 **Q: Need to install software?**
 
-A: No. MakanMakan is web-based, only needs browser and internet.
+A: No. MakanMasak is web-based, only needs browser and internet.
 
 Recommended browsers:
 
@@ -2180,7 +2180,7 @@ When reconnected:
 
 **Q: Will data be lost?**
 
-A: No. MakanMakan uses cloud architecture, all data saved in real-time to Cloudflare global network with multiple backups, ensuring data security.
+A: No. MakanMasak uses cloud architecture, all data saved in real-time to Cloudflare global network with multiple backups, ensuring data security.
 
 ---
 
@@ -2225,7 +2225,7 @@ A: Yes. Navigate to **Menu Management → Item List → Cost Analysis**, view:
 ├─────────────────────────────────────────┤
 │                                         │
 │  📧 Email Support                       │
-│  support@makanmakan.com                │
+│  support@makanmasak.com                │
 │  (Reply within 24-48 hours)            │
 │                                         │
 │  💬 Live Chat                           │
@@ -2237,14 +2237,14 @@ A: Yes. Navigate to **Menu Management → Item List → Cost Analysis**, view:
 │  24-hour service                        │
 │                                         │
 │  📚 Online Documentation                │
-│  docs.makanmakan.com                   │
+│  docs.makanmasak.com                   │
 │                                         │
 └─────────────────────────────────────────┘
 ```
 
 ### System Status Monitor
 
-Real-time system status: `status.makanmakan.com`
+Real-time system status: `status.makanmasak.com`
 
 ```
 System Status Dashboard
@@ -2327,7 +2327,7 @@ When familiar with basic operations, explore these advanced features:
 
 ### 1.0.0 (2025-09-01)
 
-- 🎉 MakanMakan officially launched
+- 🎉 MakanMasak officially launched
 - ✨ Basic restaurant management features
 - ✨ QR code ordering system
 - ✨ Order management system
@@ -2350,7 +2350,7 @@ Learning Progress Check:
 □ Know how to view business analytics reports
 □ Understand AI analytics features
 
-Ready to start using MakanMakan? 🚀
+Ready to start using MakanMasak? 🚀
 ```
 
 ---

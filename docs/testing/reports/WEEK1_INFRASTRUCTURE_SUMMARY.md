@@ -578,7 +578,7 @@ ESLint   Pre-commit  GitHub   Dashboard
 
 - 🐛 技術問題：GitHub Issues
 - 💡 改進建議：Slack #testing
-- 📧 重要事項：champions@makanmakan.com
+- 📧 重要事項：champions@makanmasak.com
 
 ---
 

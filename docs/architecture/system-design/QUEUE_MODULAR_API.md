@@ -2,7 +2,7 @@
 
 ## 概述
 
-Queue Modular API 是 MakanMakan 平台的新一代排隊管理系統，採用模組化設計，提供完整的餐廳排隊功能，包括加入排隊、位置查詢、呼叫客戶、座位安排等功能。
+Queue Modular API 是 MakanMasak 平台的新一代排隊管理系統，採用模組化設計，提供完整的餐廳排隊功能，包括加入排隊、位置查詢、呼叫客戶、座位安排等功能。
 
 ## 基本資訊
 
@@ -725,4 +725,4 @@ curl -X POST http://localhost:8787/api/v1/queue/call-next \
 
 **文檔更新**: 2025-09-28
 **API 版本**: 2.0.0
-**維護團隊**: MakanMakan Development Team
+**維護團隊**: MakanMasak Development Team

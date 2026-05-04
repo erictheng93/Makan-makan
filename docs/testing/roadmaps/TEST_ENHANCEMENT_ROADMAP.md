@@ -1,6 +1,6 @@
 # 測試增強路線圖
 
-## MakanMakan Testing Enhancement Roadmap
+## MakanMasak Testing Enhancement Roadmap
 
 > **當前狀態**: Phase 1 已啟動 - POSService 測試套件已完成
 > **目標**: 將整體測試覆蓋率從 9.8% 提升至 40%+
@@ -578,5 +578,5 @@ Phase 4: ░░░░░░░░░░░░░░░░░░░░  0% (0/3 �
 ---
 
 **最後更新**: 2025-11-13
-**作者**: Claude Code + MakanMakan Team
+**作者**: Claude Code + MakanMasak Team
 **狀態**: Phase 1 進行中

@@ -1,14 +1,14 @@
-# MakanMakan 顧客使用指南
+# MakanMasak 顧客使用指南
 
 > **版本**: 2.0
 > **最後更新**: 2025-10-26
-> **適用對象**: 所有使用 MakanMakan 點餐的顧客
+> **適用對象**: 所有使用 MakanMasak 點餐的顧客
 
 ---
 
 ## 📖 目錄
 
-1. [歡迎使用 MakanMakan](#-歡迎使用-makanmakan)
+1. [歡迎使用 MakanMasak](#-歡迎使用-makanmasak)
 2. [快速開始](#-快速開始)
 3. [點餐方式](#-點餐方式)
    - [方式一：桌台掃碼點餐](#方式一桌台掃碼點餐)
@@ -27,9 +27,9 @@
 
 ---
 
-## 🎉 歡迎使用 MakanMakan
+## 🎉 歡迎使用 MakanMasak
 
-MakanMakan 是一個現代化的智慧點餐平台，讓您可以透過手機輕鬆瀏覽菜單、下單，並即時追蹤訂單狀態。無需下載 APP，只要掃描 QR Code 即可開始使用！
+MakanMasak 是一個現代化的智慧點餐平台，讓您可以透過手機輕鬆瀏覽菜單、下單，並即時追蹤訂單狀態。無需下載 APP，只要掃描 QR Code 即可開始使用！
 
 ### ✨ 主要特色
 
@@ -64,7 +64,7 @@ MakanMakan 是一個現代化的智慧點餐平台，讓您可以透過手機輕
 
 ## 🍽️ 點餐方式
 
-MakanMakan 提供兩種點餐方式，根據餐廳的設定而有所不同：
+MakanMasak 提供兩種點餐方式，根據餐廳的設定而有所不同：
 
 ### 方式一：桌台掃碼點餐
 
@@ -823,15 +823,15 @@ A: 請聯絡客服申請刪除帳號。
 
 ### 💬 線上客服
 
-- **Email**：support@makanmakan.com
+- **Email**：support@makanmasak.com
 - **回應時間**：1-2 個工作天
 - 適合處理：帳號問題、技術問題、建議回饋
 
 ### 📱 社群媒體
 
-- **Facebook**：MakanMakan Taiwan
-- **Instagram**：@makanmakan_tw
-- **LINE**：@makanmakan
+- **Facebook**：MakanMasak Taiwan
+- **Instagram**：@makanmasak_tw
+- **LINE**：@makanmasak
 
 ### 🐛 回報問題
 
@@ -846,7 +846,7 @@ A: 請聯絡客服申請刪除帳號。
 
 ---
 
-## 🎉 感謝使用 MakanMakan！
+## 🎉 感謝使用 MakanMasak！
 
 我們致力於提供最佳的點餐體驗，您的建議和回饋對我們非常重要。
 

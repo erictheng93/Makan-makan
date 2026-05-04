@@ -1,8 +1,8 @@
-# 📦 MakanMakan 完整部署指南
+# 📦 MakanMasak 完整部署指南
 
 > **Production-Ready Deployment Guide for Cloudflare Workers + D1**
 
-本指南提供 MakanMakan 系統從零到生產環境的完整部署流程，包含環境配置、資源創建、部署步驟及驗證測試。
+本指南提供 MakanMasak 系統從零到生產環境的完整部署流程，包含環境配置、資源創建、部署步驟及驗證測試。
 
 ---
 
@@ -31,14 +31,14 @@
 ├────────────────────────────────────────────────────────┤
 │                                                        │
 │  Frontend Apps (Cloudflare Pages)                     │
-│  ├─ Customer App       (customer.makanmakan.com)      │
-│  ├─ Admin Dashboard    (admin.makanmakan.com)         │
-│  └─ Kitchen Display    (kitchen.makanmakan.com)       │
+│  ├─ Customer App       (customer.makanmasak.com)      │
+│  ├─ Admin Dashboard    (admin.makanmasak.com)         │
+│  └─ Kitchen Display    (kitchen.makanmasak.com)       │
 │                                                        │
 │  Backend Services (Cloudflare Workers)                │
-│  ├─ API Service        (api.makanmakan.com)           │
-│  ├─ Realtime Service   (realtime.makanmakan.com)      │
-│  ├─ Image Processor    (images.makanmakan.com)        │
+│  ├─ API Service        (api.makanmasak.com)           │
+│  ├─ Realtime Service   (realtime.makanmasak.com)      │
+│  ├─ Image Processor    (images.makanmasak.com)        │
 │  └─ Backup Scheduler   (scheduled, no domain)         │
 │                                                        │
 │  Data Layer                                           │
@@ -55,8 +55,8 @@
 | 環境            | 用途       | 域名範例               | 資料庫        | 說明       |
 | --------------- | ---------- | ---------------------- | ------------- | ---------- |
 | **Development** | 本地開發   | localhost:\*           | Local SQLite  | 開發測試用 |
-| **Staging**     | 預生產測試 | staging.makanmakan.com | D1 Staging    | 功能驗證   |
-| **Production**  | 正式環境   | makanmakan.com         | D1 Production | 線上服務   |
+| **Staging**     | 預生產測試 | staging.makanmasak.com | D1 Staging    | 功能驗證   |
+| **Production**  | 正式環境   | makanmasak.com         | D1 Production | 線上服務   |
 
 ---
 
@@ -120,8 +120,8 @@ wrangler login
 
 ```bash
 # 克隆倉庫
-git clone https://github.com/your-org/makanmakan.git
-cd makanmakan
+git clone https://github.com/your-org/makanmasak.git
+cd makanmasak
 
 # 安裝依賴
 pnpm install
@@ -217,18 +217,18 @@ wrangler secret list --env production
 
 ```bash
 # Staging 數據庫
-wrangler d1 create makanmakan-staging
+wrangler d1 create makanmasak-staging
 
 # 輸出範例：
-# ✅ Successfully created DB 'makanmakan-staging'
+# ✅ Successfully created DB 'makanmasak-staging'
 #
 # [[d1_databases]]
 # binding = "DB"
-# database_name = "makanmakan-staging"
+# database_name = "makanmasak-staging"
 # database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 # Production 數據庫
-wrangler d1 create makanmakan-prod
+wrangler d1 create makanmasak-prod
 ```
 
 #### 更新 Database ID
@@ -240,12 +240,12 @@ wrangler d1 create makanmakan-prod
 ```toml
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-staging"
+database_name = "makanmasak-staging"
 database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # 替換這裡
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-prod"
+database_name = "makanmasak-prod"
 database_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"  # 替換這裡
 ```
 
@@ -258,13 +258,13 @@ database_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"  # 替換這裡
 
 ```bash
 # 應用到 Staging
-wrangler d1 migrations apply makanmakan-staging --env staging
+wrangler d1 migrations apply makanmasak-staging --env staging
 
 # 應用到 Production
-wrangler d1 migrations apply makanmakan-prod --env production
+wrangler d1 migrations apply makanmasak-prod --env production
 
 # 驗證遷移
-wrangler d1 execute makanmakan-staging --command "SELECT name FROM sqlite_master WHERE type='table';"
+wrangler d1 execute makanmasak-staging --command "SELECT name FROM sqlite_master WHERE type='table';"
 ```
 
 ### 2. KV Namespaces
@@ -331,12 +331,12 @@ id = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"  # 替換
 
 ```bash
 # Backup Storage
-wrangler r2 bucket create makanmakan-backups-staging
-wrangler r2 bucket create makanmakan-backups-prod
+wrangler r2 bucket create makanmasak-backups-staging
+wrangler r2 bucket create makanmasak-backups-prod
 
 # Image Storage (如需要)
-wrangler r2 bucket create makanmakan-images-staging
-wrangler r2 bucket create makanmakan-images-prod
+wrangler r2 bucket create makanmasak-images-staging
+wrangler r2 bucket create makanmasak-images-prod
 ```
 
 #### 更新 Wrangler 配置
@@ -346,18 +346,18 @@ wrangler r2 bucket create makanmakan-images-prod
 ```toml
 [[env.staging.r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-staging"
+bucket_name = "makanmasak-backups-staging"
 
 [[env.production.r2_buckets]]
 binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-prod"
+bucket_name = "makanmasak-backups-prod"
 ```
 
 ### 4. Analytics Engine (Production Only)
 
 ```bash
 # 創建 Analytics Dataset
-wrangler analytics-engine create makanmakan-metrics-prod
+wrangler analytics-engine create makanmasak-metrics-prod
 ```
 
 **apps/api/wrangler.toml** (production only):
@@ -365,7 +365,7 @@ wrangler analytics-engine create makanmakan-metrics-prod
 ```toml
 [[env.production.analytics_engine_datasets]]
 binding = "ANALYTICS"
-dataset = "makanmakan-metrics-prod"
+dataset = "makanmasak-metrics-prod"
 ```
 
 ---
@@ -415,13 +415,13 @@ pnpm run deploy:staging
 
 ```bash
 # 查看 Workers 列表
-wrangler deployments list --name makanmakan-api-staging
+wrangler deployments list --name makanmasak-api-staging
 
 # 查看實時日誌
-wrangler tail makanmakan-api-staging
+wrangler tail makanmasak-api-staging
 
 # 測試 API Health Endpoint
-curl https://api-staging.makanmakan.com/api/v1/health
+curl https://api-staging.makanmasak.com/api/v1/health
 ```
 
 ### 2. 部署 Frontend Apps (Staging)
@@ -440,15 +440,15 @@ curl https://api-staging.makanmakan.com/api/v1/health
 # === 方法 2: 透過 Wrangler 手動部署 ===
 cd apps/customer-app
 pnpm run build
-wrangler pages deploy dist --project-name makanmakan-customer-staging
+wrangler pages deploy dist --project-name makanmasak-customer-staging
 
 cd apps/admin-dashboard
 pnpm run build
-wrangler pages deploy dist --project-name makanmakan-admin-staging
+wrangler pages deploy dist --project-name makanmasak-admin-staging
 
 cd apps/kitchen-display
 pnpm run build
-wrangler pages deploy dist --project-name makanmakan-kitchen-staging
+wrangler pages deploy dist --project-name makanmasak-kitchen-staging
 ```
 
 ### 3. 部署到 Production
@@ -469,9 +469,9 @@ wrangler pages deploy dist --project-name makanmakan-kitchen-staging
 pnpm run deploy:prod
 
 # 部署 Frontend Apps
-cd apps/customer-app && pnpm run build && wrangler pages deploy dist --project-name makanmakan-customer-prod
-cd apps/admin-dashboard && pnpm run build && wrangler pages deploy dist --project-name makanmakan-admin-prod
-cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --project-name makanmakan-kitchen-prod
+cd apps/customer-app && pnpm run build && wrangler pages deploy dist --project-name makanmasak-customer-prod
+cd apps/admin-dashboard && pnpm run build && wrangler pages deploy dist --project-name makanmasak-admin-prod
+cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --project-name makanmasak-kitchen-prod
 ```
 
 ---
@@ -482,7 +482,7 @@ cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --projec
 
 1. 登入 Cloudflare Dashboard
 2. 點擊 **Add a Site**
-3. 輸入域名：`makanmakan.com`
+3. 輸入域名：`makanmasak.com`
 4. 選擇方案（Free 或 Pro）
 5. 按照指示更新 Nameservers
 
@@ -494,20 +494,20 @@ cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --projec
 
 | Type  | Name        | Target                                      | Proxy      |
 | ----- | ----------- | ------------------------------------------- | ---------- |
-| CNAME | api         | makanmakan-api-prod.workers.dev             | ✅ Proxied |
-| CNAME | realtime    | makanmakan-realtime-prod.workers.dev        | ✅ Proxied |
-| CNAME | images      | makanmakan-image-processor-prod.workers.dev | ✅ Proxied |
-| CNAME | api-staging | makanmakan-api-staging.workers.dev          | ✅ Proxied |
+| CNAME | api         | makanmasak-api-prod.workers.dev             | ✅ Proxied |
+| CNAME | realtime    | makanmasak-realtime-prod.workers.dev        | ✅ Proxied |
+| CNAME | images      | makanmasak-image-processor-prod.workers.dev | ✅ Proxied |
+| CNAME | api-staging | makanmasak-api-staging.workers.dev          | ✅ Proxied |
 
 #### Pages 域名
 
 在 Cloudflare Dashboard → Pages → Custom Domains 添加：
 
-- `makanmakan.com` → Customer App (Production)
-- `admin.makanmakan.com` → Admin Dashboard (Production)
-- `kitchen.makanmakan.com` → Kitchen Display (Production)
-- `staging.makanmakan.com` → Customer App (Staging)
-- `admin-staging.makanmakan.com` → Admin Dashboard (Staging)
+- `makanmasak.com` → Customer App (Production)
+- `admin.makanmasak.com` → Admin Dashboard (Production)
+- `kitchen.makanmasak.com` → Kitchen Display (Production)
+- `staging.makanmasak.com` → Customer App (Staging)
+- `admin-staging.makanmasak.com` → Admin Dashboard (Staging)
 
 ### 3. SSL/TLS 配置
 
@@ -525,15 +525,15 @@ cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --projec
 
 ```bash
 # API Service
-curl https://api.makanmakan.com/api/v1/health
+curl https://api.makanmasak.com/api/v1/health
 # 預期: {"status":"healthy","timestamp":"...","version":"v1"}
 
 # Realtime Service
-curl https://realtime.makanmakan.com/health
+curl https://realtime.makanmasak.com/health
 # 預期: {"status":"ok","connections":0}
 
 # Image Processor
-curl https://images.makanmakan.com/health
+curl https://images.makanmasak.com/health
 # 預期: {"status":"ok"}
 ```
 
@@ -543,7 +543,7 @@ curl https://images.makanmakan.com/health
 
 ```bash
 # 登入測試
-curl -X POST https://api.makanmakan.com/api/v1/auth/login \
+curl -X POST https://api.makanmasak.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "test@example.com",
@@ -557,7 +557,7 @@ curl -X POST https://api.makanmakan.com/api/v1/auth/login \
 
 ```bash
 # 查詢數據庫
-wrangler d1 execute makanmakan-prod --command "SELECT COUNT(*) as count FROM users;"
+wrangler d1 execute makanmasak-prod --command "SELECT COUNT(*) as count FROM users;"
 ```
 
 #### 測試 WebSocket
@@ -565,7 +565,7 @@ wrangler d1 execute makanmakan-prod --command "SELECT COUNT(*) as count FROM use
 使用瀏覽器開發者工具或 WebSocket 客戶端：
 
 ```javascript
-const ws = new WebSocket("wss://realtime.makanmakan.com/customer/table-123");
+const ws = new WebSocket("wss://realtime.makanmasak.com/customer/table-123");
 ws.onopen = () => console.log("Connected");
 ws.onmessage = (msg) => console.log("Message:", msg.data);
 ```
@@ -579,7 +579,7 @@ npm install -g artillery
 # 創建測試配置 load-test.yml
 cat > load-test.yml << EOF
 config:
-  target: "https://api.makanmakan.com"
+  target: "https://api.makanmasak.com"
   phases:
     - duration: 60
       arrivalRate: 10
@@ -597,17 +597,17 @@ artillery run load-test.yml
 
 ```bash
 # HTTPS 強制重定向
-curl -I http://api.makanmakan.com
+curl -I http://api.makanmasak.com
 # 預期: 301 或 302 重定向到 https://
 
 # CORS Headers
-curl -I https://api.makanmakan.com/api/v1/health \
-  -H "Origin: https://makanmakan.com"
+curl -I https://api.makanmasak.com/api/v1/health \
+  -H "Origin: https://makanmasak.com"
 # 預期: Access-Control-Allow-Origin 正確
 
 # Rate Limiting
 for i in {1..150}; do
-  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/api/v1/health
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmasak.com/api/v1/health
 done
 # 預期: 前 100 個請求返回 200，之後返回 429
 ```
@@ -625,13 +625,13 @@ done
 
 ```bash
 # 查看 API Service 日誌
-wrangler tail makanmakan-api-prod
+wrangler tail makanmasak-api-prod
 
 # 過濾錯誤
-wrangler tail makanmakan-api-prod --status error
+wrangler tail makanmasak-api-prod --status error
 
 # 查看 Realtime Service 日誌
-wrangler tail makanmakan-realtime-prod
+wrangler tail makanmasak-realtime-prod
 ```
 
 ### 3. 錯誤追蹤
@@ -656,7 +656,7 @@ wrangler tail makanmakan-realtime-prod
 # 使用 GraphQL API 查詢 Analytics Engine
 curl https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engine/sql \
   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-  -d "SELECT timestamp, blob1 as endpoint, double1 as duration FROM makanmakan-metrics-prod WHERE timestamp > NOW() - INTERVAL '1' HOUR"
+  -d "SELECT timestamp, blob1 as endpoint, double1 as duration FROM makanmasak-metrics-prod WHERE timestamp > NOW() - INTERVAL '1' HOUR"
 ```
 
 ---
@@ -669,27 +669,27 @@ curl https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engine
 
 - **頻率**: 每日 2:00 AM UTC
 - **保留**: 30 天
-- **存儲**: R2 Bucket (`makanmakan-backups-prod`)
+- **存儲**: R2 Bucket (`makanmasak-backups-prod`)
 
 ### 2. 手動備份
 
 ```bash
 # 導出數據庫
-wrangler d1 export makanmakan-prod --output backup-$(date +%Y%m%d).sql
+wrangler d1 export makanmasak-prod --output backup-$(date +%Y%m%d).sql
 
 # 上傳到 R2
-wrangler r2 object put makanmakan-backups-prod/manual/backup-$(date +%Y%m%d).sql --file backup-$(date +%Y%m%d).sql
+wrangler r2 object put makanmasak-backups-prod/manual/backup-$(date +%Y%m%d).sql --file backup-$(date +%Y%m%d).sql
 ```
 
 ### 3. 數據恢復
 
 ```bash
 # 下載備份
-wrangler r2 object get makanmakan-backups-prod/manual/backup-20250101.sql --file restore.sql
+wrangler r2 object get makanmasak-backups-prod/manual/backup-20250101.sql --file restore.sql
 
 # 恢復到數據庫（需先創建新數據庫）
-wrangler d1 create makanmakan-restore
-wrangler d1 execute makanmakan-restore --file restore.sql
+wrangler d1 create makanmasak-restore
+wrangler d1 execute makanmasak-restore --file restore.sql
 ```
 
 ### 4. 災難恢復計劃
@@ -814,7 +814,7 @@ jobs:
 wrangler deploy --env production-green
 
 # 測試 green 環境
-curl https://api-green.makanmakan.com/api/v1/health
+curl https://api-green.makanmasak.com/api/v1/health
 
 # 切換流量到 green (透過 DNS 或 Workers 路由)
 # 如果有問題，立即切換回 blue
@@ -829,9 +829,9 @@ curl https://api-green.makanmakan.com/api/v1/health
 const shouldUseCanary = Math.random() < 0.1; // 10% 流量
 
 if (shouldUseCanary) {
-  return fetch("https://api-canary.makanmakan.com" + url);
+  return fetch("https://api-canary.makanmasak.com" + url);
 } else {
-  return fetch("https://api.makanmakan.com" + url);
+  return fetch("https://api.makanmasak.com" + url);
 }
 ```
 
@@ -873,14 +873,14 @@ if (shouldUseCanary) {
 
 ```bash
 # 查看部署歷史
-wrangler deployments list --name makanmakan-api-prod
+wrangler deployments list --name makanmasak-api-prod
 
 # 回滾到上一版本
-wrangler rollback --name makanmakan-api-prod --message "Rollback due to critical issue"
+wrangler rollback --name makanmasak-api-prod --message "Rollback due to critical issue"
 
 # 驗證回滾
-curl https://api.makanmakan.com/api/v1/health
-wrangler tail makanmakan-api-prod
+curl https://api.makanmasak.com/api/v1/health
+wrangler tail makanmasak-api-prod
 ```
 
 ---
@@ -901,11 +901,11 @@ wrangler tail makanmakan-api-prod
 
 1. **故障排除文檔**: [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 2. **Cloudflare 文檔**: https://developers.cloudflare.com/workers/
-3. **Issue Tracker**: https://github.com/your-org/makanmakan/issues
-4. **團隊 Slack**: #makanmakan-ops
+3. **Issue Tracker**: https://github.com/your-org/makanmasak/issues
+4. **團隊 Slack**: #makanmasak-ops
 
 ---
 
 **最後更新**: 2025-11-11
-**維護者**: MakanMakan DevOps Team
+**維護者**: MakanMasak DevOps Team
 **版本**: 2.0.0

@@ -1,8 +1,8 @@
-# MakanMakan 數據庫優化實施指南
+# MakanMasak 數據庫優化實施指南
 
 ## 概述
 
-本指南詳細說明了 MakanMakan 餐廳管理系統數據庫的優化實施方案，涵蓋索引優化、數據結構改進、性能提升視圖、統計快取機制、自動清理系統、數據完整性約束以及分析友好的索引設計。
+本指南詳細說明了 MakanMasak 餐廳管理系統數據庫的優化實施方案，涵蓋索引優化、數據結構改進、性能提升視圖、統計快取機制、自動清理系統、數據完整性約束以及分析友好的索引設計。
 
 ## 🚀 已完成的優化項目
 
@@ -155,13 +155,13 @@
 
 ```bash
 # 檢查數據庫連接
-npx wrangler d1 execute makanmakan-staging --local --command "SELECT 1"
+npx wrangler d1 execute makanmasak-staging --local --command "SELECT 1"
 
 # 檢查現有表結構
-npx wrangler d1 execute makanmakan-staging --local --command "SELECT name FROM sqlite_master WHERE type='table'"
+npx wrangler d1 execute makanmasak-staging --local --command "SELECT name FROM sqlite_master WHERE type='table'"
 
 # 檢查數據量
-npx wrangler d1 execute makanmakan-staging --local --command "
+npx wrangler d1 execute makanmasak-staging --local --command "
 SELECT
     name as table_name,
     (SELECT COUNT(*) FROM sqlite_master WHERE tbl_name = name AND type = 'index') as index_count
@@ -174,32 +174,32 @@ WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
 
 ```bash
 # 1. 索引優化
-npx wrangler d1 migrations apply makanmakan-staging --env staging --file 0010_index_optimization.sql
+npx wrangler d1 migrations apply makanmasak-staging --env staging --file 0010_index_optimization.sql
 
 # 2. 數據結構優化
-npx wrangler d1 migrations apply makanmakan-staging --env staging --file 0011_restaurant_business_hours.sql
+npx wrangler d1 migrations apply makanmasak-staging --env staging --file 0011_restaurant_business_hours.sql
 
 # 3. 性能視圖
-npx wrangler d1 migrations apply makanmakan-staging --env staging --file 0012_performance_views.sql
+npx wrangler d1 migrations apply makanmasak-staging --env staging --file 0012_performance_views.sql
 
 # 4. 統計快取
-npx wrangler d1 migrations apply makanmakan-staging --env staging --file 0013_daily_statistics_cache.sql
+npx wrangler d1 migrations apply makanmasak-staging --env staging --file 0013_daily_statistics_cache.sql
 
 # 5. 清理機制
-npx wrangler d1 migrations apply makanmakan-staging --env staging --file 0014_auto_cleanup_mechanisms.sql
+npx wrangler d1 migrations apply makanmasak-staging --env staging --file 0014_auto_cleanup_mechanisms.sql
 
 # 6. 完整性約束
-npx wrangler d1 migrations apply makanmakan-staging --env staging --file 0015_data_integrity_constraints.sql
+npx wrangler d1 migrations apply makanmasak-staging --env staging --file 0015_data_integrity_constraints.sql
 
 # 7. 分析索引
-npx wrangler d1 migrations apply makanmakan-staging --env staging --file 0016_analytics_friendly_indexes.sql
+npx wrangler d1 migrations apply makanmasak-staging --env staging --file 0016_analytics_friendly_indexes.sql
 ```
 
 ### 3. 部署驗證
 
 ```bash
 # 檢查索引創建情況
-npx wrangler d1 execute makanmakan-staging --env staging --command "
+npx wrangler d1 execute makanmasak-staging --env staging --command "
 SELECT name, tbl, sql
 FROM sqlite_master
 WHERE type = 'index' AND name LIKE 'idx_%'
@@ -207,7 +207,7 @@ ORDER BY tbl, name
 "
 
 # 檢查視圖創建情況
-npx wrangler d1 execute makanmakan-staging --env staging --command "
+npx wrangler d1 execute makanmasak-staging --env staging --command "
 SELECT name, sql
 FROM sqlite_master
 WHERE type = 'view'
@@ -215,7 +215,7 @@ ORDER BY name
 "
 
 # 測試核心視圖查詢
-npx wrangler d1 execute makanmakan-staging --env staging --command "
+npx wrangler d1 execute makanmasak-staging --env staging --command "
 SELECT * FROM restaurant_dashboard_stats LIMIT 5
 "
 ```
@@ -226,15 +226,15 @@ SELECT * FROM restaurant_dashboard_stats LIMIT 5
 
 ```bash
 # 每週執行一次統計信息更新
-npx wrangler d1 execute makanmakan-prod --env production --command "ANALYZE"
+npx wrangler d1 execute makanmasak-prod --env production --command "ANALYZE"
 
 # 每月檢查數據完整性
-npx wrangler d1 execute makanmakan-prod --env production --command "
+npx wrangler d1 execute makanmasak-prod --env production --command "
 SELECT * FROM data_integrity_report WHERE issues_count > 0
 "
 
 # 每季檢查索引使用情況
-npx wrangler d1 execute makanmakan-prod --env production --command "
+npx wrangler d1 execute makanmasak-prod --env production --command "
 SELECT * FROM index_performance_monitor ORDER BY avg_query_time_ms DESC
 "
 ```

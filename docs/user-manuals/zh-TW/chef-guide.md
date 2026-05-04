@@ -1,4 +1,4 @@
-# 👨‍🍳 MakanMakan 廚師操作手冊
+# 👨‍🍳 MakanMasak 廚師操作手冊
 
 > **版本**: 2.0
 > **更新日期**: 2025-10-26
@@ -82,7 +82,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ MakanMakan 廚房生態系統                                 │
+│ MakanMasak 廚房生態系統                                 │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  顧客下單 ───→ 訂單系統 ───→ 廚房顯示 ───→ 送菜確認   │
@@ -233,9 +233,9 @@
 
 ```
 網址範例:
-https://kitchen.makanmakan.com
+https://kitchen.makanmasak.com
 或
-https://your-restaurant.makanmakan.com/kitchen
+https://your-restaurant.makanmasak.com/kitchen
 ```
 
 **步驟 2：輸入廚師帳號**
@@ -1313,7 +1313,7 @@ A: 設備故障處理
 │ 第二線: 技術支援            │
 │ ├─ 電話: 0800-xxx-xxx      │
 │ ├─ Email: support@xxx.com  │
-│ └─ LINE: @makanmakan       │
+│ └─ LINE: @makanmasak       │
 │                             │
 │ 緊急狀況: 系統管理員        │
 │ └─ 24小時值班電話          │
@@ -1506,7 +1506,7 @@ A: 設備故障處理
 
 ## 🌟 結語
 
-感謝您使用 MakanMakan 廚房顯示系統！
+感謝您使用 MakanMasak 廚房顯示系統！
 
 ```
 ┌─────────────────────────────────────────┐
@@ -1533,16 +1533,16 @@ A: 設備故障處理
 
 ## 📞 需要協助？
 
-**技術支援**: support@makanmakan.com
+**技術支援**: support@makanmasak.com
 **客服專線**: 0800-123-456
-**線上文檔**: docs.makanmakan.com
+**線上文檔**: docs.makanmasak.com
 **社群支援**: Facebook / LINE 官方帳號
 
 ---
 
 <div align="center">
 
-**MakanMakan 廚師操作手冊**
+**MakanMasak 廚師操作手冊**
 
 讓廚房管理更智能，讓烹飪更專注
 

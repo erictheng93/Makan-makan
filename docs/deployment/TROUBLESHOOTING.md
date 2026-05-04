@@ -1,8 +1,8 @@
-# 🔧 MakanMakan 故障排除指南
+# 🔧 MakanMasak 故障排除指南
 
 > **Comprehensive Troubleshooting Guide for Common Issues**
 
-本文檔提供 MakanMakan 系統常見問題的診斷步驟和解決方案，涵蓋部署、運行時、數據庫、網絡等各個方面。
+本文檔提供 MakanMasak 系統常見問題的診斷步驟和解決方案，涵蓋部署、運行時、數據庫、網絡等各個方面。
 
 ---
 
@@ -70,11 +70,11 @@
 #!/bin/bash
 # health-check.sh - 快速系統健康檢查腳本
 
-echo "=== MakanMakan System Health Check ==="
+echo "=== MakanMasak System Health Check ==="
 
 # 1. API Service
 echo -n "API Service: "
-if curl -s -f https://api.makanmakan.com/api/v1/health > /dev/null 2>&1; then
+if curl -s -f https://api.makanmasak.com/api/v1/health > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -82,7 +82,7 @@ fi
 
 # 2. Realtime Service
 echo -n "Realtime Service: "
-if curl -s -f https://realtime.makanmakan.com/health > /dev/null 2>&1; then
+if curl -s -f https://realtime.makanmasak.com/health > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -90,7 +90,7 @@ fi
 
 # 3. Database
 echo -n "Database: "
-if wrangler d1 execute makanmakan-prod --command "SELECT 1" > /dev/null 2>&1; then
+if wrangler d1 execute makanmasak-prod --command "SELECT 1" > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -98,7 +98,7 @@ fi
 
 # 4. Customer App
 echo -n "Customer App: "
-if curl -s -f https://makanmakan.com > /dev/null 2>&1; then
+if curl -s -f https://makanmasak.com > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -106,7 +106,7 @@ fi
 
 # 5. Admin Dashboard
 echo -n "Admin Dashboard: "
-if curl -s -f https://admin.makanmakan.com > /dev/null 2>&1; then
+if curl -s -f https://admin.makanmasak.com > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -140,13 +140,13 @@ Error: D1_ERROR: Database not found: database_id 'xxxxxxxx'
 wrangler d1 list
 
 # 2. 如果數據庫不存在，創建它
-wrangler d1 create makanmakan-prod
+wrangler d1 create makanmasak-prod
 
 # 3. 複製輸出中的 database_id，更新 wrangler.toml
 # apps/api/wrangler.toml
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-prod"
+database_name = "makanmasak-prod"
 database_id = "正確的-database-id-在這裡"
 
 # 4. 重新部署
@@ -273,20 +273,20 @@ Error: Migration failed: table 'users' already exists
 
 ```bash
 # 1. 檢查數據庫當前狀態
-wrangler d1 execute makanmakan-prod --command "SELECT name FROM sqlite_master WHERE type='table';"
+wrangler d1 execute makanmasak-prod --command "SELECT name FROM sqlite_master WHERE type='table';"
 
 # 2. 查看已應用的遷移
-wrangler d1 migrations list makanmakan-prod
+wrangler d1 migrations list makanmasak-prod
 
 # 3. 如果需要，回滾到特定遷移
 # ⚠️ 危險操作！僅在測試環境使用
-wrangler d1 execute makanmakan-staging --command "DELETE FROM d1_migrations WHERE name='0002_add_new_table.sql';"
+wrangler d1 execute makanmasak-staging --command "DELETE FROM d1_migrations WHERE name='0002_add_new_table.sql';"
 
 # 4. 創建修復遷移而不是直接修改舊遷移
 wrangler d1 migrations create fix-table-issue
 
 # 5. 重新應用遷移
-wrangler d1 migrations apply makanmakan-prod
+wrangler d1 migrations apply makanmasak-prod
 ```
 
 ---
@@ -304,13 +304,13 @@ wrangler d1 migrations apply makanmakan-prod
 
 ```bash
 # 1. 查看實時日誌
-wrangler tail makanmakan-api-prod
+wrangler tail makanmasak-api-prod
 
 # 2. 過濾錯誤日誌
-wrangler tail makanmakan-api-prod --status error
+wrangler tail makanmasak-api-prod --status error
 
 # 3. 搜索特定端點的錯誤
-wrangler tail makanmakan-api-prod | grep "/api/v1/orders"
+wrangler tail makanmasak-api-prod | grep "/api/v1/orders"
 
 # 4. 檢查 Slack 錯誤通知
 # 查看 #errors 頻道
@@ -381,7 +381,7 @@ export default {
 
 ```bash
 # 測試登入端點
-curl -v -X POST https://api.makanmakan.com/api/v1/auth/login \
+curl -v -X POST https://api.makanmasak.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"test@example.com","password":"test123"}'
 
@@ -449,7 +449,7 @@ if (request.method === "OPTIONS") {
 
 ```javascript
 // 在瀏覽器控制台測試
-const ws = new WebSocket("wss://realtime.makanmakan.com/customer/table-123");
+const ws = new WebSocket("wss://realtime.makanmasak.com/customer/table-123");
 
 ws.onopen = () => console.log("✅ Connected");
 ws.onerror = (error) => console.error("❌ Error:", error);
@@ -597,7 +597,7 @@ try {
 
 ```bash
 # 1. 查看查詢執行計劃
-wrangler d1 execute makanmakan-prod --command "EXPLAIN QUERY PLAN SELECT * FROM orders WHERE restaurant_id = 1;"
+wrangler d1 execute makanmasak-prod --command "EXPLAIN QUERY PLAN SELECT * FROM orders WHERE restaurant_id = 1;"
 
 # 2. 檢查是否使用索引
 # 輸出應該顯示 "USING INDEX" 而不是 "SCAN TABLE"
@@ -740,7 +740,7 @@ async function checkDataIntegrity(db) {
 **症狀**:
 
 ```
-Access to fetch at 'https://api.makanmakan.com' from origin 'https://makanmakan.com'
+Access to fetch at 'https://api.makanmasak.com' from origin 'https://makanmasak.com'
 has been blocked by CORS policy
 ```
 
@@ -751,9 +751,9 @@ has been blocked by CORS policy
 function handleCORS(request, response) {
   const origin = request.headers.get("Origin");
   const allowedOrigins = [
-    "https://makanmakan.com",
-    "https://admin.makanmakan.com",
-    "https://kitchen.makanmakan.com",
+    "https://makanmasak.com",
+    "https://admin.makanmasak.com",
+    "https://kitchen.makanmasak.com",
   ];
 
   if (allowedOrigins.includes(origin)) {
@@ -793,7 +793,7 @@ if (request.method === "OPTIONS") {
 const corsHeaders =
   env.NODE_ENV === "development"
     ? { "Access-Control-Allow-Origin": "*" }
-    : { "Access-Control-Allow-Origin": "https://makanmakan.com" };
+    : { "Access-Control-Allow-Origin": "https://makanmasak.com" };
 ```
 
 ---
@@ -814,7 +814,7 @@ cat apps/api/wrangler.toml | grep RATE_LIMIT
 # 測試 rate limit
 for i in {1..110}; do
   echo -n "$i: "
-  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/api/v1/health
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmasak.com/api/v1/health
 done
 ```
 
@@ -929,7 +929,7 @@ await stub.fetch(request);
 
 ```bash
 # 1. 使用 curl 測量響應時間
-curl -w "\nTime: %{time_total}s\n" https://api.makanmakan.com/api/v1/menu/1
+curl -w "\nTime: %{time_total}s\n" https://api.makanmasak.com/api/v1/menu/1
 
 # 2. 查看 Cloudflare Analytics
 # Dashboard → Workers & Pages → Analytics → Performance
@@ -1191,14 +1191,14 @@ npm install -g pnpm@latest
 **症狀**:
 
 ```
-error TS2307: Cannot find module '@makanmakan/shared-types'
+error TS2307: Cannot find module '@makanmasak/shared-types'
 ```
 
 **解決方案**:
 
 ```bash
 # 1. 構建依賴的 packages
-pnpm run build --filter @makanmakan/shared-types
+pnpm run build --filter @makanmasak/shared-types
 
 # 2. 或構建所有 packages
 pnpm run build
@@ -1253,18 +1253,18 @@ port = 8788  # 改為其他端口
 # analyze-logs.sh - 分析 Worker 日誌
 
 # 查看最近 100 條日誌
-wrangler tail makanmakan-api-prod --format=pretty | head -n 100
+wrangler tail makanmasak-api-prod --format=pretty | head -n 100
 
 # 只看錯誤
-wrangler tail makanmakan-api-prod --status=error
+wrangler tail makanmasak-api-prod --status=error
 
 # 統計錯誤類型
-wrangler tail makanmakan-api-prod --status=error | \
+wrangler tail makanmasak-api-prod --status=error | \
   grep -oP '"message":"[^"]*"' | \
   sort | uniq -c | sort -rn
 
 # 監控特定端點
-wrangler tail makanmakan-api-prod | grep "/api/v1/orders"
+wrangler tail makanmasak-api-prod | grep "/api/v1/orders"
 ```
 
 ---
@@ -1299,7 +1299,7 @@ SELECT * FROM sqlite_stat1;
 
 ```bash
 # 運行檢查
-wrangler d1 execute makanmakan-prod --file=db-health-check.sql
+wrangler d1 execute makanmasak-prod --file=db-health-check.sql
 ```
 
 ---
@@ -1310,7 +1310,7 @@ wrangler d1 execute makanmakan-prod --file=db-health-check.sql
 #!/bin/bash
 # benchmark.sh - API 性能基準測試
 
-API_URL="https://api.makanmakan.com"
+API_URL="https://api.makanmasak.com"
 ENDPOINTS=(
   "/api/v1/health"
   "/api/v1/restaurants/1/menu"
@@ -1345,7 +1345,7 @@ done
 #!/bin/bash
 # auto-troubleshoot.sh - 自動診斷常見問題
 
-echo "=== MakanMakan Auto Troubleshoot ==="
+echo "=== MakanMasak Auto Troubleshoot ==="
 
 # 1. 檢查 API 健康
 echo -n "API Health: "
@@ -1354,12 +1354,12 @@ if curl -sf "$API_URL/api/v1/health" > /dev/null; then
 else
   echo "❌ FAILED"
   echo "Checking logs..."
-  wrangler tail makanmakan-api-prod --status=error | head -n 20
+  wrangler tail makanmasak-api-prod --status=error | head -n 20
 fi
 
 # 2. 檢查數據庫連接
 echo -n "Database: "
-if wrangler d1 execute makanmakan-prod --command "SELECT 1" > /dev/null 2>&1; then
+if wrangler d1 execute makanmasak-prod --command "SELECT 1" > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -1372,7 +1372,7 @@ wrangler secret list --env production
 
 # 4. 檢查最近部署
 echo "Recent deployments:"
-wrangler deployments list --name makanmakan-api-prod | head -n 5
+wrangler deployments list --name makanmasak-api-prod | head -n 5
 
 echo ""
 echo "=== Troubleshooting Complete ==="
@@ -1389,13 +1389,13 @@ echo "=== Troubleshooting Complete ==="
    - [架構文檔](../architecture/technical-documentation.md)
 
 2. **開發團隊**:
-   - Slack: #makanmakan-support
-   - Email: dev@makanmakan.com
+   - Slack: #makanmasak-support
+   - Email: dev@makanmasak.com
 
 3. **外部資源**:
    - Cloudflare Workers 文檔: https://developers.cloudflare.com/workers/
    - Cloudflare Community: https://community.cloudflare.com/
-   - GitHub Issues: https://github.com/your-org/makanmakan/issues
+   - GitHub Issues: https://github.com/your-org/makanmasak/issues
 
 ### 報告問題模板
 
@@ -1439,5 +1439,5 @@ echo "=== Troubleshooting Complete ==="
 ---
 
 **最後更新**: 2025-11-11
-**維護者**: MakanMakan DevOps Team
+**維護者**: MakanMasak DevOps Team
 **版本**: 2.0.0

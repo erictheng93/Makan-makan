@@ -1,14 +1,14 @@
-# Panduan Pengguna MakanMakan
+# Panduan Pengguna MakanMasak
 
 > **Versi**: 2.0
 > **Terakhir Diperbarui**: 2025-10-26
-> **Untuk**: Semua pelanggan pengguna MakanMakan
+> **Untuk**: Semua pelanggan pengguna MakanMasak
 
 ---
 
 ## 📖 Daftar Isi
 
-1. [Selamat Datang di MakanMakan](#-selamat-datang-di-makanmakan)
+1. [Selamat Datang di MakanMasak](#-selamat-datang-di-makanmasak)
 2. [Mulai Cepat](#-mulai-cepat)
 3. [Cara Memesan](#-cara-memesan)
    - [Cara 1: Pindai QR Code Meja](#cara-1-pindai-qr-code-meja)
@@ -27,9 +27,9 @@
 
 ---
 
-## 🎉 Selamat Datang di MakanMakan
+## 🎉 Selamat Datang di MakanMasak
 
-MakanMakan adalah platform pemesanan pintar modern yang memungkinkan Anda melihat menu, memesan, dan melacak status pesanan secara real-time menggunakan smartphone. Tidak perlu unduh aplikasi - cukup pindai QR code untuk memulai!
+MakanMasak adalah platform pemesanan pintar modern yang memungkinkan Anda melihat menu, memesan, dan melacak status pesanan secara real-time menggunakan smartphone. Tidak perlu unduh aplikasi - cukup pindai QR code untuk memulai!
 
 ### ✨ Fitur Utama
 
@@ -64,7 +64,7 @@ MakanMakan adalah platform pemesanan pintar modern yang memungkinkan Anda meliha
 
 ## 🍽️ Cara Memesan
 
-MakanMakan menyediakan dua cara memesan, tergantung pengaturan restoran:
+MakanMasak menyediakan dua cara memesan, tergantung pengaturan restoran:
 
 ### Cara 1: Pindai QR Code Meja
 
@@ -823,15 +823,15 @@ Jika panduan ini tidak membantu, hubungi via:
 
 ### 💬 Dukungan Online
 
-- **Email**: support@makanmakan.com
+- **Email**: support@makanmasak.com
 - **Waktu respons**: 1-2 hari kerja
 - Cocok untuk: Masalah akun, teknis, feedback
 
 ### 📱 Media Sosial
 
-- **Facebook**: MakanMakan Taiwan
-- **Instagram**: @makanmakan_tw
-- **LINE**: @makanmakan
+- **Facebook**: MakanMasak Taiwan
+- **Instagram**: @makanmasak_tw
+- **LINE**: @makanmasak
 
 ### 🐛 Laporkan Masalah
 
@@ -846,7 +846,7 @@ Temukan bug atau punya saran? Kami terima feedback Anda!
 
 ---
 
-## 🎉 Terima Kasih Menggunakan MakanMakan!
+## 🎉 Terima Kasih Menggunakan MakanMasak!
 
 Kami berkomitmen memberikan pengalaman pemesanan terbaik. Saran dan feedback Anda sangat penting bagi kami.
 

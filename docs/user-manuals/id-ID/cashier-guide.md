@@ -1,4 +1,4 @@
-# 💰 Manual Kasir MakanMakan
+# 💰 Manual Kasir MakanMasak
 
 > **Versi**: 2.0
 > **Terakhir Diperbarui**: 2025-10-26
@@ -320,7 +320,7 @@
 
 ```
 ┌────────────────────────────────────────┐
-│          Restoran MakanMakan           │
+│          Restoran MakanMasak           │
 │       NPWP: 12345678                   │
 │   Alamat: Jl. Xinyi No. 7, Taipei     │
 │       Telepon: (02) 2345-6789          │
@@ -353,7 +353,7 @@
 │                                        │
 │    Terima kasih, sampai jumpa lagi!    │
 │                                        │
-│         MakanMakan.com                 │
+│         MakanMasak.com                 │
 │                                        │
 └────────────────────────────────────────┘
 ```
@@ -487,7 +487,7 @@
 
 ```
 ┌─────────────────────────────────────────┐
-│ Pembayaran Mobile Didukung MakanMakan   │
+│ Pembayaran Mobile Didukung MakanMasak   │
 ├─────────────────────────────────────────┤
 │                                         │
 │  📱 LINE Pay          ✅ Didukung       │
@@ -685,7 +685,7 @@ Opsi C: Cetak kertas
 
 ```
 ┌─────────────────────────────────────────────┐
-│ Kebijakan Pengembalian Dana MakanMakan      │
+│ Kebijakan Pengembalian Dana MakanMasak      │
 ├─────────────────────────────────────────────┤
 │                                             │
 │  ✅ Kasus Pengembalian Dana Penuh:          │
@@ -792,7 +792,7 @@ Opsi C: Cetak kertas
 
 ```
 ┌────────────────────────────────────────┐
-│      Struk Pengembalian Dana MakanMakan│
+│      Struk Pengembalian Dana MakanMasak│
 ├────────────────────────────────────────┤
 │                                        │
 │ Tanggal: 2025/10/26    Waktu: 14:30    │
@@ -878,7 +878,7 @@ Opsi C: Cetak kertas
 
 ```
 ┌────────────────────────────────────────────────────┐
-│           Laporan Harian MakanMakan                │
+│           Laporan Harian MakanMasak                │
 │           Tanggal: 2025/10/26                      │
 ├────────────────────────────────────────────────────┤
 │                                                    │
@@ -1893,7 +1893,7 @@ Jika benar-benar ada urusan mendesak:
 │                                         │
 │  📊 Departemen Akuntansi                │
 │     Ekstensi: 102                       │
-│     Email: accounting@makanmakan.com    │
+│     Email: accounting@makanmasak.com    │
 │     Tangani: Akuntansi, masalah faktur  │
 │                                         │
 └─────────────────────────────────────────┘
@@ -2064,7 +2064,7 @@ Peningkatan Keterampilan yang Diperlukan:
 
 ## 🙏 Kesimpulan
 
-Terima kasih telah memilih menjadi kasir MakanMakan!
+Terima kasih telah memilih menjadi kasir MakanMasak!
 
 Pekerjaan kasir tampak sederhana tetapi membawa tanggung jawab besar. Anda adalah titik kontak terakhir yang dimiliki pelanggan di toko, dan orang kunci yang meninggalkan kesan akhir.
 
@@ -2083,12 +2083,12 @@ Untuk pertanyaan atau saran, silakan hubungi kami kapan saja.
 
 <div align="center">
 
-**Manual Kasir MakanMakan**
+**Manual Kasir MakanMasak**
 
 Dibuat dengan ❤️ untuk kasir kami
 
 **Versi 2.0** | **2025-10-26**
 
-© 2025 MakanMakan. Semua hak dilindungi undang-undang.
+© 2025 MakanMasak. Semua hak dilindungi undang-undang.
 
 </div>

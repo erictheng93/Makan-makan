@@ -27,7 +27,7 @@
 
 ```typescript
 // 1️⃣ 導入 factory 和 reset 函數
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // 2️⃣ 在 beforeEach 調用 reset
 beforeEach(() => {
@@ -572,16 +572,16 @@ test("formats user", () => {
 
 ```typescript
 // ❌ 錯誤：忘記添加依賴
-// package.json 缺少 @makanmakan/testing-utils
+// package.json 缺少 @makanmasak/testing-utils
 
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from '@makanmasak/testing-utils'
 // Error: Cannot find package
 
 // ✅ 正確：聲明依賴
 // package.json
 {
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*"
+    "@makanmasak/testing-utils": "workspace:*"
   }
 }
 ```
@@ -615,7 +615,7 @@ beforeEach(() => {
 **症狀**:
 
 ```
-Error: Cannot find package '@makanmakan/testing-utils'
+Error: Cannot find package '@makanmasak/testing-utils'
 ```
 
 **原因**: 未聲明依賴
@@ -626,7 +626,7 @@ Error: Cannot find package '@makanmakan/testing-utils'
 // package.json
 {
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*"
+    "@makanmasak/testing-utils": "workspace:*"
   }
 }
 ```
@@ -677,7 +677,7 @@ Property 'buildChef' does not exist on type 'UserFactory'
 
 ```typescript
 // 確保正確導入
-import { userFactory, resetAllFactories } from '@makanmakan/testing-utils'
+import { userFactory, resetAllFactories } from '@makanmasak/testing-utils'
 
 // 運行類型檢查
 pnpm run typecheck
@@ -833,14 +833,14 @@ import {
   orderItemFactory,
   resetAllFactories,
   buildCompleteRestaurantData,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 ```
 
 ### Setup 模板
 
 ```typescript
 import { describe, test, expect, beforeEach } from "vitest";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("Feature Name", () => {
   beforeEach(() => {

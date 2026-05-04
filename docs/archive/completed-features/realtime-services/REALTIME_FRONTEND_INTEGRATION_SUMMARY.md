@@ -725,7 +725,7 @@ WebSocket Token 有效期為 5 分鐘，系統會在 Token 即將過期時自動
 確保設置正確的 API URL：
 
 ```env
-VITE_API_URL=https://api.makanmakan.com
+VITE_API_URL=https://api.makanmasak.com
 ```
 
 ---

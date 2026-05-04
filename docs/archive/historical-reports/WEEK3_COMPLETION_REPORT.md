@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully completed **all Week 3 tasks** (Medium Priority - Performance & Scalability) for the MakanMakan platform. This report documents the comprehensive implementation of performance optimizations, monitoring systems, and scalability improvements.
+Successfully completed **all Week 3 tasks** (Medium Priority - Performance & Scalability) for the MakanMasak platform. This report documents the comprehensive implementation of performance optimizations, monitoring systems, and scalability improvements.
 
 **Completion Date**: 2025-10-02
 **Total Tasks Completed**: 12/12 (100%)
@@ -170,7 +170,7 @@ const { items, isLoading, hasMore, containerRef, sentinelRef, loadMore } =
 **Database Helper Example**:
 
 ```typescript
-import { paginateQuery } from "@makanmakan/database/utils/pagination-helpers";
+import { paginateQuery } from "@makanmasak/database/utils/pagination-helpers";
 
 const response = await paginateQuery(
   db,
@@ -663,19 +663,19 @@ console.log("Performance Score:", getPerformanceScore());
 
 ```bash
 # Basic health check
-curl https://api.makanmakan.com/api/v1/health
+curl https://api.makanmasak.com/api/v1/health
 
 # Detailed system status
-curl https://api.makanmakan.com/api/v1/health/detailed
+curl https://api.makanmasak.com/api/v1/health/detailed
 
 # Database health
-curl https://api.makanmakan.com/api/v1/health/database
+curl https://api.makanmasak.com/api/v1/health/database
 
 # Kubernetes liveness probe
-curl https://api.makanmakan.com/api/v1/health/live
+curl https://api.makanmasak.com/api/v1/health/live
 
 # Kubernetes readiness probe
-curl https://api.makanmakan.com/api/v1/health/ready
+curl https://api.makanmasak.com/api/v1/health/ready
 ```
 
 ---
@@ -698,10 +698,10 @@ ANALYZE=true npm run build
 
 ```bash
 # Test API pagination
-curl "https://api.makanmakan.com/api/v1/orders?page=1&pageSize=20&sortBy=createdAt&sortOrder=desc"
+curl "https://api.makanmasak.com/api/v1/orders?page=1&pageSize=20&sortBy=createdAt&sortOrder=desc"
 
 # Test search with pagination
-curl "https://api.makanmakan.com/api/v1/menu/search?q=pizza&page=1&pageSize=10"
+curl "https://api.makanmasak.com/api/v1/menu/search?q=pizza&page=1&pageSize=10"
 ```
 
 ### Error Tracking Testing
@@ -735,7 +735,7 @@ console.log("Web Vitals:", monitor.getWebVitals());
 # Test all health endpoints
 for endpoint in "" "/detailed" "/live" "/ready" "/startup" "/database" "/cache" "/metrics"; do
   echo "Testing /api/v1/health$endpoint"
-  curl "https://api.makanmakan.com/api/v1/health$endpoint"
+  curl "https://api.makanmasak.com/api/v1/health$endpoint"
   echo ""
 done
 ```
@@ -754,7 +754,7 @@ Both admin-dashboard and customer-app vite.config.ts files have been enhanced. I
 
 ```bash
 # Install new dependencies
-pnpm add -D rollup-plugin-visualizer --filter makanmakan-admin-dashboard --filter makanmakan-customer-app
+pnpm add -D rollup-plugin-visualizer --filter makanmasak-admin-dashboard --filter makanmasak-customer-app
 ```
 
 #### 3. Update API Routes

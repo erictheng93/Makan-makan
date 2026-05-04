@@ -1,4 +1,4 @@
-# 🚀 Panduan Operasional Server MakanMakan
+# 🚀 Panduan Operasional Server MakanMasak
 
 > **Versi**: 2.0
 > **Terakhir Diperbarui**: 2025-10-26
@@ -23,7 +23,7 @@
 
 ## 🚀 Mulai Cepat
 
-### Selamat Bergabung dengan Tim MakanMakan!
+### Selamat Bergabung dengan Tim MakanMasak!
 
 Sebagai server, Anda adalah jembatan penting antara restoran dan pelanggan. Tanggung jawab utama Anda adalah:
 
@@ -121,7 +121,7 @@ Sebagai server, Anda adalah jembatan penting antara restoran dan pelanggan. Tang
 │ Langkah Login                            │
 ├──────────────────────────────────────────┤
 │                                          │
-│  1️⃣ Buka App Server MakanMakan          │
+│  1️⃣ Buka App Server MakanMasak          │
 │      ↓                                   │
 │  2️⃣ Masukkan username & password        │
 │      dari pemilik                        │
@@ -643,7 +643,7 @@ Daftar Catatan Pengiriman
    ├─ Manager/Supervisor: [Extension] atau [HP]
    ├─ Head Chef: [Extension]
    ├─ Kasir: [Extension]
-   └─ Dukungan Teknis: support@makanmakan.com
+   └─ Dukungan Teknis: support@makanmasak.com
 ```
 
 ### Laporan Kejadian
@@ -759,7 +759,7 @@ A: Tergantung kebijakan restoran
 
   ✅ Jika restoran sediakan app mobile:
      • Boleh pakai HP sendiri
-     • Download App Server MakanMakan
+     • Download App Server MakanMasak
      • Login dengan akun karyawan
      • Pastikan koneksi internet stabil
 
@@ -830,7 +830,7 @@ A: Tips Peningkatan Efisiensi
 A: Ikuti aturan restoran
 
   ✅ Boleh Digunakan:
-     • Pakai App MakanMakan cek pesanan
+     • Pakai App MakanMasak cek pesanan
      • Kontak darurat keluarga
      • Terima telepon atasan
      • Hal terkait pekerjaan
@@ -993,7 +993,7 @@ Tangga Karir Server
 
 ### Informasi Kontak
 
-- **Masalah Teknis Sistem**: support@makanmakan.com
+- **Masalah Teknis Sistem**: support@makanmasak.com
 - **Masalah Penggunaan App**: "Pusat Bantuan" di dalam sistem
 - **Masalah Terkait Pekerjaan**: Hubungi atasan langsung
 
@@ -1001,7 +1001,7 @@ Tangga Karir Server
 
 ## 🌟 Penutup
 
-Terima kasih telah memilih menjadi bagian dari tim MakanMakan!
+Terima kasih telah memilih menjadi bagian dari tim MakanMasak!
 
 Sebagai server, Anda adalah jembatan penting yang menghubungkan dapur dengan pelanggan. Setiap senyum Anda, setiap pengiriman tepat waktu, menciptakan pengalaman makan yang indah bagi pelanggan.
 
@@ -1018,7 +1018,7 @@ Semoga sukses dalam pekerjaan, menjadi server terbaik!
 
 <div align="center">
 
-**Panduan Operasional Server MakanMakan**
+**Panduan Operasional Server MakanMasak**
 
 Buat setiap layanan menjadi pengalaman yang indah
 

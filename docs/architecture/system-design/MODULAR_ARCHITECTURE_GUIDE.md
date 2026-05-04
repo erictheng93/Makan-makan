@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the new modular architecture implemented for the MakanMakan API, following Domain-Driven Design (DDD) principles. The architecture provides better organization, maintainability, and scalability for our growing feature set.
+This document describes the new modular architecture implemented for the MakanMasak API, following Domain-Driven Design (DDD) principles. The architecture provides better organization, maintainability, and scalability for our growing feature set.
 
 ## 📁 Directory Structure
 

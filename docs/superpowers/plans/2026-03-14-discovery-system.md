@@ -122,7 +122,7 @@ UPDATE restaurants SET
 WHERE settings IS NOT NULL;
 ```
 
-Run: `npx wrangler d1 execute makanmakan-local --local --file=./scripts/backfill-discovery-columns.sql --config=./apps/api/wrangler.toml`
+Run: `npx wrangler d1 execute makanmasak-local --local --file=./scripts/backfill-discovery-columns.sql --config=./apps/api/wrangler.toml`
 
 - [ ] **Step 4: Commit schema change**
 
@@ -230,7 +230,7 @@ Expected: Migration applied with new table + columns
 
 - [ ] **Step 4: Verify**
 
-Run: `npx wrangler d1 execute makanmakan-local --local --command "PRAGMA table_info(dish_search_index)" --config=./apps/api/wrangler.toml`
+Run: `npx wrangler d1 execute makanmasak-local --local --command "PRAGMA table_info(dish_search_index)" --config=./apps/api/wrangler.toml`
 Expected: All columns listed
 
 - [ ] **Step 5: Commit**
@@ -1336,7 +1336,7 @@ Add rate limit configs (differentiated per endpoint group):
 
 - [ ] **Step 3: Run typecheck**
 
-Run: `pnpm typecheck --filter=@makanmakan/api`
+Run: `pnpm typecheck --filter=@makanmasak/api`
 Expected: No TypeScript errors
 
 - [ ] **Step 4: Commit**

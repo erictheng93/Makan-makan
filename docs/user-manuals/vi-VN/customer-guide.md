@@ -1,14 +1,14 @@
-# Hướng Dẫn Sử Dụng MakanMakan Dành Cho Khách Hàng
+# Hướng Dẫn Sử Dụng MakanMasak Dành Cho Khách Hàng
 
 > **Phiên bản**: 2.0
 > **Cập nhật lần cuối**: 2025-10-26
-> **Đối tượng**: Tất cả khách hàng sử dụng MakanMakan
+> **Đối tượng**: Tất cả khách hàng sử dụng MakanMasak
 
 ---
 
 ## 📖 Mục Lục
 
-1. [Chào Mừng Đến MakanMakan](#-chào-mừng-đến-makanmakan)
+1. [Chào Mừng Đến MakanMasak](#-chào-mừng-đến-makanmasak)
 2. [Bắt Đầu Nhanh](#-bắt-đầu-nhanh)
 3. [Cách Đặt Món](#-cách-đặt-món)
    - [Cách 1: Quét Mã QR Bàn](#cách-1-quét-mã-qr-bàn)
@@ -27,9 +27,9 @@
 
 ---
 
-## 🎉 Chào Mừng Đến MakanMakan
+## 🎉 Chào Mừng Đến MakanMasak
 
-MakanMakan là nền tảng đặt món thông minh hiện đại, cho phép bạn xem thực đơn, đặt món và theo dõi tình trạng đơn hàng theo thời gian thực bằng điện thoại di động. Không cần tải ứng dụng - chỉ cần quét mã QR là có thể bắt đầu!
+MakanMasak là nền tảng đặt món thông minh hiện đại, cho phép bạn xem thực đơn, đặt món và theo dõi tình trạng đơn hàng theo thời gian thực bằng điện thoại di động. Không cần tải ứng dụng - chỉ cần quét mã QR là có thể bắt đầu!
 
 ### ✨ Tính Năng Chính
 
@@ -64,7 +64,7 @@ MakanMakan là nền tảng đặt món thông minh hiện đại, cho phép b�
 
 ## 🍽️ Cách Đặt Món
 
-MakanMakan cung cấp hai cách đặt món, tùy thuộc vào cài đặt của nhà hàng:
+MakanMasak cung cấp hai cách đặt món, tùy thuộc vào cài đặt của nhà hàng:
 
 ### Cách 1: Quét Mã QR Bàn
 
@@ -823,15 +823,15 @@ Nếu hướng dẫn này không giải quyết được, liên hệ qua:
 
 ### 💬 Hỗ Trợ Trực Tuyến
 
-- **Email**: support@makanmakan.com
+- **Email**: support@makanmasak.com
 - **Thời gian phản hồi**: 1-2 ngày làm việc
 - Phù hợp: Vấn đề tài khoản, kỹ thuật, góp ý
 
 ### 📱 Mạng Xã Hội
 
-- **Facebook**: MakanMakan Taiwan
-- **Instagram**: @makanmakan_tw
-- **LINE**: @makanmakan
+- **Facebook**: MakanMasak Taiwan
+- **Instagram**: @makanmasak_tw
+- **LINE**: @makanmasak
 
 ### 🐛 Báo Lỗi
 
@@ -846,7 +846,7 @@ Phát hiện lỗi hoặc có đề xuất? Hoan nghênh phản hồi!
 
 ---
 
-## 🎉 Cảm Ơn Đã Sử Dụng MakanMakan!
+## 🎉 Cảm Ơn Đã Sử Dụng MakanMasak!
 
 Chúng tôi cam kết mang đến trải nghiệm đặt món tốt nhất. Ý kiến và phản hồi của bạn rất quan trọng với chúng tôi.
 

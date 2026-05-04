@@ -177,13 +177,13 @@ Confirmed these valid uses remain intact:
 2. **Test in Development First**
 
    ```bash
-   npx wrangler d1 migrations apply makanmakan-local --local
+   npx wrangler d1 migrations apply makanmasak-local --local
    ```
 
 3. **Verify Schema**
 
    ```bash
-   npx wrangler d1 execute makanmakan-local --local --command ".schema"
+   npx wrangler d1 execute makanmasak-local --local --command ".schema"
    ```
 
 4. **Test Application Logic**
@@ -267,10 +267,10 @@ const peakHours = await db
 
 ## Files Modified
 
-1. **C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\database\migrations\0020_restaurant_id_to_text.sql**
+1. **C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\packages\database\migrations\0020_restaurant_id_to_text.sql**
    - Removed `DATE()` expression from UNIQUE constraint (line 297)
 
-2. **C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\packages\database\migrations\0026_week3_additional_indexes.sql**
+2. **C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\packages\database\migrations\0026_week3_additional_indexes.sql**
    - Replaced `strftime()` expressions in index definition with simple `created_at` column (lines 47-58)
 
 ---
@@ -293,4 +293,4 @@ const peakHours = await db
 ---
 
 _Generated: 2025-10-09_
-_Platform: MakanMakan - Cloudflare D1 SQLite Database_
+_Platform: MakanMasak - Cloudflare D1 SQLite Database_

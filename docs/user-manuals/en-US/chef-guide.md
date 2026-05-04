@@ -1,4 +1,4 @@
-# 👨‍🍳 MakanMakan Chef Operations Manual
+# 👨‍🍳 MakanMasak Chef Operations Manual
 
 > **Version**: 2.0
 > **Last Updated**: 2025-10-26
@@ -82,7 +82,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ MakanMakan Kitchen Ecosystem                            │
+│ MakanMasak Kitchen Ecosystem                            │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  Customer Order ───→ Order System ───→ Kitchen Display │
@@ -233,9 +233,9 @@ Navigate to: Kitchen tablet or display system URL
 
 ```
 Example URL:
-https://kitchen.makanmakan.com
+https://kitchen.makanmasak.com
 or
-https://your-restaurant.makanmakan.com/kitchen
+https://your-restaurant.makanmasak.com/kitchen
 ```
 
 **Step 2: Enter Chef Credentials**
@@ -1315,7 +1315,7 @@ A: Equipment Failure Handling
 │ Second Line: Tech Support   │
 │ ├─ Phone: 0800-xxx-xxx     │
 │ ├─ Email: support@xxx.com  │
-│ └─ LINE: @makanmakan       │
+│ └─ LINE: @makanmasak       │
 │                             │
 │ Emergency: System Admin     │
 │ └─ 24/7 hotline            │
@@ -1508,7 +1508,7 @@ Performance Enhancement Areas:
 
 ## 🌟 Conclusion
 
-Thank you for using the MakanMakan Kitchen Display System!
+Thank you for using the MakanMasak Kitchen Display System!
 
 ```
 ┌─────────────────────────────────────────┐
@@ -1535,16 +1535,16 @@ Thank you for using the MakanMakan Kitchen Display System!
 
 ## 📞 Need Help?
 
-**Technical Support**: support@makanmakan.com
+**Technical Support**: support@makanmasak.com
 **Customer Service**: 0800-123-456
-**Online Docs**: docs.makanmakan.com
+**Online Docs**: docs.makanmasak.com
 **Community Support**: Facebook / LINE Official
 
 ---
 
 <div align="center">
 
-**MakanMakan Chef Operations Manual**
+**MakanMasak Chef Operations Manual**
 
 Making kitchen management smarter, cooking more focused
 

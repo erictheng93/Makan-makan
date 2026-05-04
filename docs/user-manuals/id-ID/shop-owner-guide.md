@@ -1,4 +1,4 @@
-# 🏪 Panduan Pemilik Restoran MakanMakan
+# 🏪 Panduan Pemilik Restoran MakanMasak
 
 > **Versi**: 2.0
 > **Terakhir Diperbarui**: 2025-10-26
@@ -397,7 +397,7 @@ Penamaan berbasis fungsi:
 
 ### Manajemen Kursi (Mode Ganda)
 
-MakanMakan mendukung dua mode manajemen kursi:
+MakanMasak mendukung dua mode manajemen kursi:
 
 #### Mode 1: QR Code Level Meja
 
@@ -465,7 +465,7 @@ Pilih Meja → Atur Jumlah Kursi → Auto-Generate Nomor
 
 ### Tiga Mode Kode QR
 
-MakanMakan menyediakan tiga mode QR code untuk skenario bisnis berbeda:
+MakanMasak menyediakan tiga mode QR code untuk skenario bisnis berbeda:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1144,7 +1144,7 @@ Navigasi: **Manajemen Staf → Laporan Performa**
 
 ### Mode Registrasi Pelanggan
 
-MakanMakan mendukung dua mode penggunaan untuk pelanggan:
+MakanMasak mendukung dua mode penggunaan untuk pelanggan:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -2094,7 +2094,7 @@ Ke **Manajemen Order → Riwayat Order**, bisa filter by tanggal, meja, status d
 
 **Q: Bagaimana handle pembayaran?**
 
-MakanMakan saat ini support pembayaran offline:
+MakanMasak saat ini support pembayaran offline:
 
 ```
 Pelanggan selesai makan
@@ -2178,7 +2178,7 @@ A: Saat ini belum support fitur ini, tapi bisa lewat "Manajemen Jadwal" dan "Cat
 
 **Q: Perlu install software?**
 
-A: Tidak perlu. MakanMakan adalah sistem web, cukup ada browser dan internet bisa digunakan.
+A: Tidak perlu. MakanMasak adalah sistem web, cukup ada browser dan internet bisa digunakan.
 
 Browser yang disarankan:
 
@@ -2201,7 +2201,7 @@ Setelah internet pulih:
 
 **Q: Data akan hilang tidak?**
 
-A: Tidak akan. MakanMakan menggunakan arsitektur cloud, semua data real-time tersimpan di jaringan global Cloudflare, dan ada mekanisme backup berlapis, pastikan data aman.
+A: Tidak akan. MakanMasak menggunakan arsitektur cloud, semua data real-time tersimpan di jaringan global Cloudflare, dan ada mekanisme backup berlapis, pastikan data aman.
 
 ---
 
@@ -2246,7 +2246,7 @@ A: Bisa. Ke **Manajemen Menu → Daftar Menu → Analisis Cost**, bisa lihat:
 ├─────────────────────────────────────────┤
 │                                         │
 │  📧 Dukungan Email                      │
-│  support@makanmakan.com                │
+│  support@makanmasak.com                │
 │  (Respon dalam 24-48 jam)              │
 │                                         │
 │  💬 Live Chat                           │
@@ -2258,14 +2258,14 @@ A: Bisa. Ke **Manajemen Menu → Daftar Menu → Analisis Cost**, bisa lihat:
 │  Layanan 24 jam                         │
 │                                         │
 │  📚 Dokumentasi Online                  │
-│  docs.makanmakan.com                   │
+│  docs.makanmasak.com                   │
 │                                         │
 └─────────────────────────────────────────┘
 ```
 
 ### Monitor Status Sistem
 
-Lihat status sistem real-time: `status.makanmakan.com`
+Lihat status sistem real-time: `status.makanmasak.com`
 
 ```
 Dashboard Monitor Status Sistem
@@ -2348,7 +2348,7 @@ Setelah Anda familiar dengan operasi dasar, bisa eksplorasi fitur advanced ini:
 
 ### 1.0.0 (2025-09-01)
 
-- 🎉 MakanMakan resmi launch
+- 🎉 MakanMasak resmi launch
 - ✨ Fitur manajemen restoran dasar
 - ✨ Sistem pesan QR Code
 - ✨ Sistem manajemen pesanan
@@ -2371,7 +2371,7 @@ Cek progress pembelajaran:
 □ Bisa lihat laporan analitik bisnis
 □ Paham fitur analitik AI
 
-Siap mulai gunakan MakanMakan? 🚀
+Siap mulai gunakan MakanMasak? 🚀
 ```
 
 ---

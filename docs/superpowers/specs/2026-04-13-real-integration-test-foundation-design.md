@@ -65,7 +65,7 @@ Path chosen: **Build real Drizzle + real D1 test foundation in the backend, then
 
 - ❌ Migrating any of the 13 existing legacy API integration tests to the new foundation (incident-driven only)
 - ❌ Queue consumer, Durable Object state machine, or Analytics Engine testing
-- ❌ Unifying `@makanmakan/testing-utils` factories with new seed helpers (seed helpers are thin wrappers over existing factories)
+- ❌ Unifying `@makanmasak/testing-utils` factories with new seed helpers (seed helpers are thin wrappers over existing factories)
 - ❌ Frontend integration tests in `customer-app`, `admin-dashboard`, `kitchen-display` (Phase 2 spec)
 - ❌ E2E test changes (Playwright lives at a different layer)
 - ❌ Migration guide for legacy tests (they coexist indefinitely)
@@ -257,7 +257,7 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 }
 ```
 
-Exported from `packages/database/src/testing/index.ts`. Not included in the default `@makanmakan/database` barrel export — consumers must `import { createTestDatabase } from "@makanmakan/database/testing"` to keep production bundles clean.
+Exported from `packages/database/src/testing/index.ts`. Not included in the default `@makanmasak/database` barrel export — consumers must `import { createTestDatabase } from "@makanmasak/database/testing"` to keep production bundles clean.
 
 ### C2 — `packages/database/src/testing/run-migrations.ts`
 
@@ -308,7 +308,7 @@ export async function listUserTables(db: D1Database): Promise<string[]> {
 
 ```ts
 import { createApp } from "../../../index"; // production factory
-import { createTestDatabase, type TestDatabase } from "@makanmakan/database/testing";
+import { createTestDatabase, type TestDatabase } from "@makanmasak/database/testing";
 import type { Env } from "../../../types/env";
 import { buildAuthHelper, type AuthHelper } from "./issue-test-jwt";
 
@@ -444,7 +444,7 @@ Shape matches the legacy `AuthHelper` deliberately, so migrating a test file fro
 import { serve } from "@hono/node-server";
 import { createRealIntegrationTestApp, type RealIntegrationTestApp } from "./real-test-app";
 import { buildSeedHelpers } from "./seed-helper";
-import type { TestDatabase } from "@makanmakan/database/testing";
+import type { TestDatabase } from "@makanmasak/database/testing";
 
 export interface TestApiServerHandle {
   url: string;
@@ -492,7 +492,7 @@ Four files, all following the skeleton below. Each file exercises a different Dr
 ```ts
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import { createRealIntegrationTestApp, type RealIntegrationTestApp } from "./helpers/real-test-app";
-import { restaurantFactory, orderFactory } from "@makanmakan/testing-utils";
+import { restaurantFactory, orderFactory } from "@makanmasak/testing-utils";
 
 describe("Orders API — real integration", () => {
   let testApp: RealIntegrationTestApp;
@@ -665,7 +665,7 @@ This section is load-bearing — it is the interface between this spec (Phase 1)
 
 ### Exported API surface (the only things Phase 2 may depend on)
 
-1. **`createTestDatabase()`** from `@makanmakan/database/testing` — shape defined in §C1
+1. **`createTestDatabase()`** from `@makanmasak/database/testing` — shape defined in §C1
 2. **`createRealIntegrationTestApp()`** from `apps/api/src/__tests__/integration/helpers/real-test-app.ts` — shape defined in §C3
 3. **`startTestApiServer(options?)`** from `apps/api/src/__tests__/integration/helpers/start-test-api-server.ts` — shape defined in §C5. This is the **only** way frontend tests obtain an HTTP origin URL
 4. **`issueTestJwt(role, claims?)`** + **`buildAuthHelper()`** from `apps/api/src/__tests__/integration/helpers/issue-test-jwt.ts` — shape defined in §C4
@@ -683,11 +683,11 @@ The `*.real.integration.test.ts` infix is the **canonical marker** and is hard-c
 
 Phase 2 spec authorship begins only when **all** of the following are true:
 
-1. ✅ `pnpm --filter @makanmakan/database test` is green on `main`
-2. ✅ `pnpm --filter makanmakan-api test:real-integration` is green on `main` (4 reference smokes all pass)
+1. ✅ `pnpm --filter @makanmasak/database test` is green on `main`
+2. ✅ `pnpm --filter makanmasak-api test:real-integration` is green on `main` (4 reference smokes all pass)
 3. ✅ Smoke tests pass 20 consecutive runs without flake:
    ```bash
-   for i in {1..20}; do pnpm --filter makanmakan-api test:real-integration || { echo "FLAKE on run $i"; exit 1; }; done
+   for i in {1..20}; do pnpm --filter makanmasak-api test:real-integration || { echo "FLAKE on run $i"; exit 1; }; done
    ```
    This MUST be run on CI, not only locally. The result is pasted as a comment on the Phase 2 kickoff issue.
 4. ✅ `scripts/check-integration-allowlist.cjs` is a required CI check on `main`
@@ -740,7 +740,7 @@ If criterion 5 cannot be met within two weeks of Phase 1 merge, the foundation i
 - [ ] Write `packages/database/src/testing/index.ts` barrel
 - [ ] Write `create-test-database.test.ts` foundation tests
 - [ ] Update `packages/database/package.json` `exports` field to include `./testing`
-- [ ] `pnpm --filter @makanmakan/database test` green
+- [ ] `pnpm --filter @makanmasak/database test` green
 
 ### Step 2: `createRealIntegrationTestApp`
 
@@ -750,7 +750,7 @@ If criterion 5 cannot be met within two weeks of Phase 1 merge, the foundation i
 - [ ] Write `issue-test-jwt.ts` (C4)
 - [ ] Write `real-test-app.ts` (C3)
 - [ ] Write `start-test-api-server.ts` (C5) — implemented now, validated in Phase 2
-- [ ] Write `seed-helper.ts` — thin wrapper over `@makanmakan/testing-utils` factories
+- [ ] Write `seed-helper.ts` — thin wrapper over `@makanmasak/testing-utils` factories
 - [ ] Add `apps/api/vitest.real-integration.config.ts` with `include: ["src/__tests__/integration/**/*.real.integration.test.ts"]`
 - [ ] Add `test:real-integration` script to `apps/api/package.json`
 - [ ] Add root-level `test:real-integration` turbo task
@@ -761,7 +761,7 @@ If criterion 5 cannot be met within two weeks of Phase 1 merge, the foundation i
 - [ ] `menu.real.integration.test.ts` — verifies JOINs
 - [ ] `customer-orders.real.integration.test.ts` — verifies auth + RBAC + scope
 - [ ] `discovery.real.integration.test.ts` — verifies aggregate SQL + pagination
-- [ ] All four green on `pnpm --filter makanmakan-api test:real-integration`
+- [ ] All four green on `pnpm --filter makanmasak-api test:real-integration`
 - [ ] Run 20× flake check locally before merging
 
 ### Step 4: Annotate legacy + freeze enforcement

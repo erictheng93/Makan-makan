@@ -192,7 +192,7 @@ No test logic changes; verified via pnpm test:integration."
 - [ ] **Step 1: Install miniflare and workers-types in the database package**
 
 ```bash
-pnpm --filter @makanmakan/database add -D miniflare@^3.0.0 @cloudflare/workers-types@^4.20250826.0
+pnpm --filter @makanmasak/database add -D miniflare@^3.0.0 @cloudflare/workers-types@^4.20250826.0
 ```
 
 Note: `@cloudflare/workers-types` is already in devDeps per `packages/database/package.json:36`; pnpm will no-op that one and add miniflare only.
@@ -263,7 +263,7 @@ export {};
 
 - [ ] **Step 7: Verify the build succeeds**
 
-Run: `pnpm --filter @makanmakan/database build`
+Run: `pnpm --filter @makanmasak/database build`
 Expected: `dist/index.js`, `dist/index.d.ts`, `dist/testing/index.js`, `dist/testing/index.d.ts` all produced.
 
 - [ ] **Step 8: Commit**
@@ -272,7 +272,7 @@ Expected: `dist/index.js`, `dist/index.d.ts`, `dist/testing/index.js`, `dist/tes
 git add packages/database/package.json packages/database/tsup.config.ts packages/database/src/testing pnpm-lock.yaml
 git commit -m "chore(database): add miniflare devDep + testing subpath export
 
-Prepares @makanmakan/database for the real integration test foundation by
+Prepares @makanmasak/database for the real integration test foundation by
 adding miniflare and exposing a ./testing subpath. No runtime code yet."
 ```
 
@@ -330,7 +330,7 @@ describe("listUserTables", () => {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `pnpm --filter @makanmakan/database test run-migrations`
+Run: `pnpm --filter @makanmasak/database test run-migrations`
 Expected: FAIL with `Cannot find module '../run-migrations'` or similar.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -352,7 +352,7 @@ export async function listUserTables(db: D1Database): Promise<string[]> {
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `pnpm --filter @makanmakan/database test run-migrations`
+Run: `pnpm --filter @makanmasak/database test run-migrations`
 Expected: PASS (2 tests).
 
 - [ ] **Step 5: Commit**
@@ -416,7 +416,7 @@ describe("runMigrations", () => {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `pnpm --filter @makanmakan/database test run-migrations`
+Run: `pnpm --filter @makanmasak/database test run-migrations`
 Expected: FAIL with `runMigrations is not a function` or missing export.
 
 - [ ] **Step 3: Implement `runMigrations`**
@@ -460,7 +460,7 @@ export async function runMigrations(db: D1Database): Promise<void> {
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `pnpm --filter @makanmakan/database test run-migrations`
+Run: `pnpm --filter @makanmasak/database test run-migrations`
 Expected: PASS.
 
 - [ ] **Step 5: Instrument timing for the migration run**
@@ -501,7 +501,7 @@ export async function runMigrations(db: D1Database): Promise<void> {
 
 - [ ] **Step 6: Re-run tests**
 
-Run: `pnpm --filter @makanmakan/database test run-migrations`
+Run: `pnpm --filter @makanmasak/database test run-migrations`
 Expected: PASS with a `[runMigrations]: 42.xx ms` line in output.
 
 - [ ] **Step 7: Commit**
@@ -582,7 +582,7 @@ describe("createTestDatabase", () => {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `pnpm --filter @makanmakan/database test create-test-database`
+Run: `pnpm --filter @makanmasak/database test create-test-database`
 Expected: FAIL with `Cannot find module '../create-test-database'`.
 
 - [ ] **Step 3: Implement `createTestDatabase`**
@@ -660,12 +660,12 @@ export { runMigrations, listUserTables } from "./run-migrations";
 
 - [ ] **Step 5: Run the test and verify it passes**
 
-Run: `pnpm --filter @makanmakan/database test create-test-database`
+Run: `pnpm --filter @makanmasak/database test create-test-database`
 Expected: PASS (4 tests).
 
 - [ ] **Step 6: Build the package to verify subpath export works**
 
-Run: `pnpm --filter @makanmakan/database build`
+Run: `pnpm --filter @makanmasak/database build`
 Expected: no errors; `dist/testing/index.js` and `dist/testing/index.d.ts` exist.
 
 - [ ] **Step 7: Commit**
@@ -765,12 +765,12 @@ Keep any `scheduled`, `queue`, or `email` handlers from the original default exp
 
 - [ ] **Step 4: Run typecheck**
 
-Run: `pnpm --filter makanmakan-api typecheck`
+Run: `pnpm --filter makanmasak-api typecheck`
 Expected: zero errors. If errors, fix imports.
 
 - [ ] **Step 5: Run the full test suite**
 
-Run: `pnpm --filter makanmakan-api test`
+Run: `pnpm --filter makanmasak-api test`
 Expected: all tests pass (same count as before refactor).
 
 Run: `pnpm test:integration`
@@ -801,7 +801,7 @@ identical app against a test-built Env."
 - [ ] **Step 1: Install the dep**
 
 ```bash
-pnpm --filter makanmakan-api add -D @hono/node-server@^1.11.0
+pnpm --filter makanmasak-api add -D @hono/node-server@^1.11.0
 ```
 
 - [ ] **Step 2: Verify install**
@@ -892,7 +892,7 @@ describe("buildAuthHelper", () => {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `pnpm --filter makanmakan-api test issue-test-jwt`
+Run: `pnpm --filter makanmasak-api test issue-test-jwt`
 Expected: FAIL with module-not-found.
 
 - [ ] **Step 3: Implement `issue-test-jwt.ts`**
@@ -952,7 +952,7 @@ Because `issueTestJwt` and every helper method return `Promise<string>`, the tes
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `pnpm --filter makanmakan-api test issue-test-jwt`
+Run: `pnpm --filter makanmasak-api test issue-test-jwt`
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
@@ -1007,7 +1007,7 @@ describe("createDurableObjectStub", () => {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `pnpm --filter makanmakan-api test durable-object-stub`
+Run: `pnpm --filter makanmasak-api test durable-object-stub`
 Expected: FAIL with module-not-found.
 
 - [ ] **Step 3: Implement the stub**
@@ -1051,7 +1051,7 @@ export function createDurableObjectStub(): DurableObjectNamespace {
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `pnpm --filter makanmakan-api test durable-object-stub`
+Run: `pnpm --filter makanmasak-api test durable-object-stub`
 Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
@@ -1116,7 +1116,7 @@ describe("createRealIntegrationTestApp", () => {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `pnpm --filter makanmakan-api test real-test-app`
+Run: `pnpm --filter makanmasak-api test real-test-app`
 Expected: FAIL with module-not-found.
 
 - [ ] **Step 3: Implement `real-test-app.ts`**
@@ -1128,7 +1128,7 @@ import { createApp } from "../../../app-factory";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import type { Env } from "../../../types/env";
 import { buildAuthHelper, type AuthHelper } from "./issue-test-jwt";
 import { createDurableObjectStub } from "./durable-object-stub";
@@ -1183,7 +1183,7 @@ function buildTestEnv(testDb: TestDatabase): Env {
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `pnpm --filter makanmakan-api test real-test-app`
+Run: `pnpm --filter makanmasak-api test real-test-app`
 Expected: PASS (4 tests).
 
 **If the `/health` test fails with 500,** inspect the error message. Likely cause: a middleware that reads a binding we didn't set. Fix: add the minimum required binding to `buildTestEnv`, or set the value to a safe default. Iterate until green.
@@ -1209,7 +1209,7 @@ real Drizzle + D1 binding for the first time in the codebase."
 - Create: `apps/api/src/__tests__/integration/helpers/seed-helper.ts`
 - Create: `apps/api/src/__tests__/integration/helpers/__tests__/seed-helper.test.ts`
 
-The seed helpers are thin wrappers that use `@makanmakan/testing-utils` factories to produce fixture rows, then insert them via the TestDatabase's Drizzle instance.
+The seed helpers are thin wrappers that use `@makanmasak/testing-utils` factories to produce fixture rows, then insert them via the TestDatabase's Drizzle instance.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1217,7 +1217,7 @@ Create `apps/api/src/__tests__/integration/helpers/__tests__/seed-helper.test.ts
 
 ```ts
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { createTestDatabase, type TestDatabase } from "@makanmakan/database/testing";
+import { createTestDatabase, type TestDatabase } from "@makanmasak/database/testing";
 import { buildSeedHelpers } from "../seed-helper";
 
 describe("buildSeedHelpers", () => {
@@ -1269,7 +1269,7 @@ describe("buildSeedHelpers", () => {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `pnpm --filter makanmakan-api test seed-helper`
+Run: `pnpm --filter makanmasak-api test seed-helper`
 Expected: FAIL with module-not-found.
 
 - [ ] **Step 3: Implement `seed-helper.ts`**
@@ -1277,17 +1277,17 @@ Expected: FAIL with module-not-found.
 Create `apps/api/src/__tests__/integration/helpers/seed-helper.ts`:
 
 ```ts
-import type { TestDatabase } from "@makanmakan/database/testing";
+import type { TestDatabase } from "@makanmasak/database/testing";
 import {
   restaurantFactory,
   menuItemFactory,
   orderFactory,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 import {
   restaurants,
   menuItems,
   orders,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 export interface SeedHelpers {
   restaurant(overrides?: Record<string, unknown>): Promise<{ id: string | number }>;
@@ -1339,7 +1339,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `pnpm --filter makanmakan-api test seed-helper`
+Run: `pnpm --filter makanmasak-api test seed-helper`
 Expected: PASS (3 tests).
 
 **If a factory's default values fail NOT NULL constraints,** inspect the failing field and either (a) override it in the test call, or (b) update the factory's defaults in `packages/testing-utils`. Prefer (a) for speed; only (b) if the failing field is a universal requirement.
@@ -1401,7 +1401,7 @@ describe("startTestApiServer", () => {
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `pnpm --filter makanmakan-api test start-test-api-server`
+Run: `pnpm --filter makanmasak-api test start-test-api-server`
 Expected: FAIL with module-not-found.
 
 - [ ] **Step 3: Implement `start-test-api-server.ts`**
@@ -1416,7 +1416,7 @@ import {
   type RealIntegrationTestApp,
 } from "./real-test-app";
 import { buildSeedHelpers, type SeedHelpers } from "./seed-helper";
-import type { TestDatabase } from "@makanmakan/database/testing";
+import type { TestDatabase } from "@makanmasak/database/testing";
 
 export interface TestApiServerHandle {
   url: string;
@@ -1465,7 +1465,7 @@ export async function startTestApiServer(
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `pnpm --filter makanmakan-api test start-test-api-server`
+Run: `pnpm --filter makanmasak-api test start-test-api-server`
 Expected: PASS (3 tests).
 
 **If port binding fails on CI,** it's because `port: 0` isn't yielding a usable port. Fix: explicitly call `server.listen(0)` and read `server.address()` after the 'listening' event.
@@ -1517,10 +1517,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
-      "@makanmakan/shared-types": resolve(__dirname, "../../packages/shared-types/src"),
-      "@makanmakan/database": resolve(__dirname, "../../packages/database/src"),
-      "@makanmakan/database/testing": resolve(__dirname, "../../packages/database/src/testing"),
-      "@makanmakan/testing-utils": resolve(__dirname, "../../packages/testing-utils/src"),
+      "@makanmasak/shared-types": resolve(__dirname, "../../packages/shared-types/src"),
+      "@makanmasak/database": resolve(__dirname, "../../packages/database/src"),
+      "@makanmasak/database/testing": resolve(__dirname, "../../packages/database/src/testing"),
+      "@makanmasak/testing-utils": resolve(__dirname, "../../packages/testing-utils/src"),
     },
   },
   define: {
@@ -1542,7 +1542,7 @@ Open `apps/api/package.json`. Add to the `scripts` block:
 Open root `package.json`. Add to `scripts`:
 
 ```json
-    "test:real-integration": "turbo run test:real-integration --filter=makanmakan-api"
+    "test:real-integration": "turbo run test:real-integration --filter=makanmasak-api"
 ```
 
 - [ ] **Step 4: Register the task in `turbo.json`**
@@ -1653,7 +1653,7 @@ describe("Orders API — real integration", () => {
 
 - [ ] **Step 2: Run the test**
 
-Run: `pnpm --filter makanmakan-api test:real-integration`
+Run: `pnpm --filter makanmasak-api test:real-integration`
 Expected: the test runs and either passes or surfaces real Drizzle/route errors.
 
 - [ ] **Step 3: Iterate until green**
@@ -1690,7 +1690,7 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-import { categories } from "@makanmakan/database";
+import { categories } from "@makanmasak/database";
 
 describe("Menu API — real integration", () => {
   let testApp: RealIntegrationTestApp;
@@ -1746,7 +1746,7 @@ describe("Menu API — real integration", () => {
 
 - [ ] **Step 2: Run the test and iterate until green**
 
-Run: `pnpm --filter makanmakan-api test:real-integration menu`
+Run: `pnpm --filter makanmasak-api test:real-integration menu`
 
 Fix: adjust payload/response shape to match the actual `GET /api/v1/menu/:restaurantId` contract. Check `apps/api/src/features/menu/` for the service response shape.
 
@@ -1836,7 +1836,7 @@ describe("Customer Orders API — real integration", () => {
 
 - [ ] **Step 2: Run and iterate until green**
 
-Run: `pnpm --filter makanmakan-api test:real-integration customer-orders`
+Run: `pnpm --filter makanmasak-api test:real-integration customer-orders`
 
 - [ ] **Step 3: Commit**
 
@@ -1901,7 +1901,7 @@ describe("Discovery API — real integration", () => {
 
 - [ ] **Step 2: Run and iterate until green**
 
-Run: `pnpm --filter makanmakan-api test:real-integration discovery`
+Run: `pnpm --filter makanmasak-api test:real-integration discovery`
 
 - [ ] **Step 3: Commit**
 
@@ -2415,8 +2415,8 @@ git commit -m "chore(tests): final Phase 1 verification tweaks"
 
 Per the spec §Handoff Contract, Phase 2 (frontend integration tests) begins **only** when all of these are true:
 
-1. ✅ `pnpm --filter @makanmakan/database test` green on `main`
-2. ✅ `pnpm --filter makanmakan-api test:real-integration` green on `main`
+1. ✅ `pnpm --filter @makanmasak/database test` green on `main`
+2. ✅ `pnpm --filter makanmasak-api test:real-integration` green on `main`
 3. ✅ 20× consecutive `test:real-integration` green on CI
 4. ✅ `scripts/check-integration-allowlist.cjs` is a required CI check
 5. ✅ Dogfood gate: a 5th real smoke test is added by an engineer who did NOT author `createRealIntegrationTestApp`

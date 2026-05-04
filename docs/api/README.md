@@ -1,6 +1,6 @@
 # API Documentation / API 文檔
 
-MakanMakan REST API 文檔與使用指南。
+MakanMasak REST API 文檔與使用指南。
 
 ## 文件夾結構
 
@@ -17,8 +17,8 @@ API 使用指南
 ### Base URL
 
 ```
-Production:  https://api.makanmakan.com/v1
-Staging:     https://staging-api.makanmakan.com/v1
+Production:  https://api.makanmasak.com/v1
+Staging:     https://staging-api.makanmasak.com/v1
 Local:       http://localhost:8787/api/v1
 ```
 

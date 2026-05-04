@@ -1,4 +1,4 @@
-# 👨‍🍳 Panduan Operasional Koki MakanMakan
+# 👨‍🍳 Panduan Operasional Koki MakanMasak
 
 > **Versi**: 2.0
 > **Tanggal Pembaruan**: 2025-10-26
@@ -82,7 +82,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Ekosistem Dapur MakanMakan                              │
+│ Ekosistem Dapur MakanMasak                              │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  Pelanggan Pesan ───→ Sistem Pesanan ───→ Tampilan Dapur ───→ Konfirmasi Pelayan   │
@@ -235,9 +235,9 @@ Buka: URL sistem di tablet atau monitor dapur
 
 ```
 Contoh URL:
-https://kitchen.makanmakan.com
+https://kitchen.makanmasak.com
 atau
-https://your-restaurant.makanmakan.com/kitchen
+https://your-restaurant.makanmasak.com/kitchen
 ```
 
 **Langkah 2: Masukkan Akun Koki**
@@ -1317,7 +1317,7 @@ A: Penanganan kerusakan perangkat
 │ Lini Kedua: Dukungan Teknis │
 │ ├─ Telepon: 0800-xxx-xxx    │
 │ ├─ Email: support@xxx.com   │
-│ └─ LINE: @makanmakan        │
+│ └─ LINE: @makanmasak        │
 │                             │
 │ Darurat: Admin Sistem       │
 │ └─ Telepon on-call 24 jam   │
@@ -1510,7 +1510,7 @@ Arah peningkatan kinerja:
 
 ## 🌟 Penutup
 
-Terima kasih telah menggunakan Sistem Tampilan Dapur MakanMakan!
+Terima kasih telah menggunakan Sistem Tampilan Dapur MakanMasak!
 
 ```
 ┌─────────────────────────────────────────┐
@@ -1537,16 +1537,16 @@ Terima kasih telah menggunakan Sistem Tampilan Dapur MakanMakan!
 
 ## 📞 Perlu Bantuan?
 
-**Dukungan Teknis**: support@makanmakan.com
+**Dukungan Teknis**: support@makanmasak.com
 **Hotline Layanan**: 0800-123-456
-**Dokumentasi Online**: docs.makanmakan.com
+**Dokumentasi Online**: docs.makanmasak.com
 **Dukungan Komunitas**: Facebook / LINE Official Account
 
 ---
 
 <div align="center">
 
-**Panduan Operasional Koki MakanMakan**
+**Panduan Operasional Koki MakanMasak**
 
 Buat manajemen dapur lebih cerdas, memasak lebih fokus
 

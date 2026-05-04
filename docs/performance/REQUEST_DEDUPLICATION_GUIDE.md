@@ -75,7 +75,7 @@ Request deduplication prevents duplicate API requests by caching in-flight reque
 
 ```typescript
 import axios from "axios";
-import { installAxiosDeduplication } from "@makanmakan/utils";
+import { installAxiosDeduplication } from "@makanmasak/utils";
 
 const api = axios.create({
   baseURL: "/api/v1",
@@ -106,7 +106,7 @@ const user = await api.get("/users/123"); // NO network request!
 **Custom Cache Duration**:
 
 ```typescript
-import { withDedupTTL } from "@makanmakan/utils";
+import { withDedupTTL } from "@makanmasak/utils";
 
 // Cache menu data for 30 seconds
 const menu = await api.get("/menu", withDedupTTL(30000));
@@ -115,7 +115,7 @@ const menu = await api.get("/menu", withDedupTTL(30000));
 **Skip Deduplication**:
 
 ```typescript
-import { skipDedup } from "@makanmakan/utils";
+import { skipDedup } from "@makanmasak/utils";
 
 // Always fetch fresh data (e.g., for POST/PUT/DELETE)
 const order = await api.post("/orders", orderData, skipDedup());
@@ -124,7 +124,7 @@ const order = await api.post("/orders", orderData, skipDedup());
 **Combine Options**:
 
 ```typescript
-import { combineConfigs, withDedupTTL } from "@makanmakan/utils";
+import { combineConfigs, withDedupTTL } from "@makanmasak/utils";
 
 const data = await api.get(
   "/analytics",
@@ -232,7 +232,7 @@ const { user, menu, orders } = await execute();
 ### 4. Direct Usage (Without Axios)
 
 ```typescript
-import { RequestDeduplicator } from "@makanmakan/utils";
+import { RequestDeduplicator } from "@makanmasak/utils";
 
 const deduplicator = new RequestDeduplicator({
   cacheDuration: 5000,
@@ -474,7 +474,7 @@ onUnmounted(() => {
 
 ## Integration Checklist
 
-- [ ] Install `@makanmakan/utils` package
+- [ ] Install `@makanmasak/utils` package
 - [ ] Set up Axios interceptor in API service
 - [ ] Configure appropriate TTLs for different endpoints
 - [ ] Add Vue composables where needed
@@ -495,4 +495,4 @@ onUnmounted(() => {
 ---
 
 **Last Updated**: 2025-10-02
-**Maintained By**: MakanMakan Development Team
+**Maintained By**: MakanMasak Development Team

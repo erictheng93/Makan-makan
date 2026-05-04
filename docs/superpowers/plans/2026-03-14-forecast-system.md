@@ -240,7 +240,7 @@ Expected: Migration applied successfully
 
 - [ ] **Step 5: Verify tables exist**
 
-Run: `npx wrangler d1 execute makanmakan-local --local --command "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'forecast%' OR name LIKE 'ingredient%' OR name LIKE 'menu_item_ing%'" --config=./apps/api/wrangler.toml`
+Run: `npx wrangler d1 execute makanmasak-local --local --command "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'forecast%' OR name LIKE 'ingredient%' OR name LIKE 'menu_item_ing%'" --config=./apps/api/wrangler.toml`
 Expected: `forecast_cache`, `ingredient_definitions`, `menu_item_ingredients`
 
 - [ ] **Step 6: Commit**
@@ -1668,7 +1668,7 @@ apiV1.route("/forecast", forecastFeature.routes);
 
 - [ ] **Step 3: Run typecheck**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: No TypeScript errors
 
 - [ ] **Step 4: Commit**

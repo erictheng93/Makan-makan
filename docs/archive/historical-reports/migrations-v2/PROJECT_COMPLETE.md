@@ -1,4 +1,4 @@
-# 🎊 MakanMakan Database Migrations v2.0 - 專案完成報告
+# 🎊 MakanMasak Database Migrations v2.0 - 專案完成報告
 
 > **專案狀態**: ✅ 開發完成，待部署
 > **完成日期**: 2025-10-30
@@ -9,7 +9,7 @@
 
 ## 🎯 執行摘要
 
-MakanMakan Database Migrations v2.0 專案已成功完成所有開發與驗證工作。我們將原本混亂的 46+ migrations 重構為清晰、模組化的 16 個 migrations，建立了一個可維護、可擴展、高效能的資料庫架構。
+MakanMasak Database Migrations v2.0 專案已成功完成所有開發與驗證工作。我們將原本混亂的 46+ migrations 重構為清晰、模組化的 16 個 migrations，建立了一個可維護、可擴展、高效能的資料庫架構。
 
 ### 核心成就
 
@@ -396,19 +396,19 @@ Step 3: Production 部署 (1 天)
 ```bash
 # Staging 部署
 cd apps/api
-npx wrangler d1 migrations apply makanmakan-staging \
+npx wrangler d1 migrations apply makanmasak-staging \
   --env staging --migrations-dir=../../packages/database/migrations_v2
 
 # 驗證結構
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --command="SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
 
 # 完整性測試
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --file=../../scripts/test-data-integrity.sql
 
 # 效能測試
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmasak-staging --env staging \
   --file=../../scripts/test-performance.sql
 ```
 
@@ -576,7 +576,7 @@ Phase 3 (驗證):          1 天
 
 **報告生成時間**: 2025-10-30
 **專案週期**: 2025-10-26 至 2025-10-30 (5 天)
-**團隊**: MakanMakan 開發團隊
+**團隊**: MakanMasak 開發團隊
 **版本**: v2.0 Final
 
 ---
@@ -585,4 +585,4 @@ Phase 3 (驗證):          1 天
 
 感謝所有參與此專案的團隊成員，你們的專業與努力讓這個專案得以成功完成！
 
-**MakanMakan Database Migrations v2.0 - 專案圓滿完成！** 🎉✨
+**MakanMasak Database Migrations v2.0 - 專案圓滿完成！** 🎉✨

@@ -1,4 +1,4 @@
-# MakanMakan 商業計劃書
+# MakanMasak 商業計劃書
 
 **公司**: 普惠科技(暫定)
 **版本**: 1.0  
@@ -28,7 +28,7 @@
 
 ### 1.1 公司願景
 
-MakanMakan 致力於成為亞太地區領先的雲端餐廳管理平台，透過創新的邊緣運算技術，為餐飲業者提供高效、低成本、易用的數位化解決方案。
+MakanMasak 致力於成為亞太地區領先的雲端餐廳管理平台，透過創新的邊緣運算技術，為餐飲業者提供高效、低成本、易用的數位化解決方案。
 
 ### 1.2 核心價值主張
 
@@ -54,7 +54,7 @@ MakanMakan 致力於成為亞太地區領先的雲端餐廳管理平台，透過
 
 ### 2.1 公司簡介
 
-**公司名稱**：MakanMakan（馬來語「吃吃」之意）  
+**公司名稱**：MakanMasak（馬來語「吃吃」之意）  
 **成立時間**：2025年  
 **公司類型**：科技新創公司  
 **總部位置**：台灣  
@@ -68,7 +68,7 @@ MakanMakan 致力於成為亞太地區領先的雲端餐廳管理平台，透過
 
 ### 2.3 核心競爭優勢
 
-| 優勢領域   | MakanMakan       | 傳統競爭者    |
+| 優勢領域   | MakanMasak       | 傳統競爭者    |
 | ---------- | ---------------- | ------------- |
 | 部署成本   | 零前期成本       | $5,000-50,000 |
 | 月營運成本 | < $10 USD        | $100-500 USD  |
@@ -157,7 +157,7 @@ MakanMakan 致力於成為亞太地區領先的雲端餐廳管理平台，透過
 | **Square**  | 國際品牌、支付整合         | 本地化不足         | 交易抽成  |
 | **Toast**   | 功能完整                   | 價格高、需硬體     | $200+/月  |
 
-#### MakanMakan 差異化定位
+#### MakanMasak 差異化定位
 
 ```
                     高價格
@@ -166,7 +166,7 @@ MakanMakan 致力於成為亞太地區領先的雲端餐廳管理平台，透過
                        │
     ───────────────────┼───────────────────
                        │
-         Square ●      │    ● MakanMakan
+         Square ●      │    ● MakanMasak
                        │      (高功能、低價格)
                     低價格
 
@@ -197,11 +197,11 @@ MakanMakan 致力於成為亞太地區領先的雲端餐廳管理平台，透過
 
 ### 4.1 產品架構
 
-MakanMakan 提供完整的餐廳管理生態系統，包含三大前端應用與強大的後端服務：
+MakanMasak 提供完整的餐廳管理生態系統，包含三大前端應用與強大的後端服務：
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    MakanMakan 產品生態系統                    │
+│                    MakanMasak 產品生態系統                    │
 ├─────────────────┬─────────────────┬─────────────────────────┤
 │   顧客點餐 App   │   管理後台      │   廚房顯示系統           │
 │   (Customer)    │   (Admin)       │   (Kitchen Display)     │
@@ -312,7 +312,7 @@ MakanMakan 提供完整的餐廳管理生態系統，包含三大前端應用與
 
 ### 5.1 收入模式
 
-MakanMakan 採用 **SaaS 訂閱制** 為主要收入來源，輔以增值服務收入：
+MakanMasak 採用 **SaaS 訂閱制** 為主要收入來源，輔以增值服務收入：
 
 #### 5.1.1 訂閱方案
 
@@ -1088,22 +1088,22 @@ Staging Deploy → E2E Tests → Production Deploy
 
 ## 聯絡資訊
 
-**MakanMakan**
+**MakanMasak**
 
 - **網站**：[待上線]
-- **Email**：contact@makanmakan.com
+- **Email**：contact@makanmasak.com
 - **GitHub**：[Repository Link]
 
 **投資洽詢**：
 
-- **Email**：invest@makanmakan.com
+- **Email**：invest@makanmasak.com
 - **聯絡人**：[創辦人姓名]
 
 ---
 
 <div align="center">
 
-**MakanMakan**  
+**MakanMasak**  
 _讓點餐更簡單，讓管理更聰明_
 
 Built with ❤️ using Cloudflare Edge Computing
@@ -1119,7 +1119,7 @@ Built with ❤️ using Cloudflare Edge Computing
 
 | 版本 | 日期    | 修改內容 | 作者            |
 | ---- | ------- | -------- | --------------- |
-| 1.0  | 2025-12 | 初版發布 | MakanMakan Team |
+| 1.0  | 2025-12 | 初版發布 | MakanMasak Team |
 
 ---
 

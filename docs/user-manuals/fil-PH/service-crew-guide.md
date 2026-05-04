@@ -1,4 +1,4 @@
-# 🚀 Gabay sa Paggamit ng MakanMakan para sa Service Crew
+# 🚀 Gabay sa Paggamit ng MakanMasak para sa Service Crew
 
 > **Bersyon**: 2.0
 > **Huling Na-update**: 2025-10-26
@@ -23,7 +23,7 @@
 
 ## 🚀 Mabilis na Pagsisimula
 
-### Maligayang Pagdating sa MakanMakan Team!
+### Maligayang Pagdating sa MakanMasak Team!
 
 Bilang service crew, ikaw ang mahalagang tulay sa pagitan ng restaurant at mga customer. Ang iyong pangunahing responsibilidad ay:
 
@@ -128,7 +128,7 @@ Bilang service crew, ikaw ang mahalagang tulay sa pagitan ng restaurant at mga c
 │ Mga Hakbang sa Pag-login                 │
 ├──────────────────────────────────────────┤
 │                                          │
-│  1️⃣ Buksan ang MakanMakan Service Crew  │
+│  1️⃣ Buksan ang MakanMasak Service Crew  │
 │      App                                 │
 │      ↓                                   │
 │  2️⃣ Ilagay ang username at password na  │
@@ -690,7 +690,7 @@ Listahan ng Tala ng Delivery
    ├─ Manager/Supervisor: [Extension] o [Mobile]
    ├─ Head Chef: [Extension]
    ├─ Cashier: [Extension]
-   └─ Tech Support: support@makanmakan.com
+   └─ Tech Support: support@makanmasak.com
 ```
 
 ### Pag-report ng Insidente
@@ -819,7 +819,7 @@ A: Nakadepende sa patakaran ng restaurant
 
   ✅ Kung nagbibigay ang restaurant ng mobile app:
      • Pwedeng gamitin ang sariling phone
-     • I-download ang MakanMakan Service Crew App
+     • I-download ang MakanMasak Service Crew App
      • Mag-login gamit ang employee credentials
      • Siguruhing stable ang internet connection
 
@@ -893,7 +893,7 @@ A: Mga Tip sa Pagpapahusay ng Efficiency
 A: Sundin ang mga patakaran ng restaurant
 
   ✅ Mga Pinapayagang Gamit:
-     • Tingnan ang mga order sa MakanMakan app
+     • Tingnan ang mga order sa MakanMasak app
      • Emergency contact sa pamilya
      • Sagutin ang tawag ng supervisor
      • Mga bagay na may kinalaman sa trabaho
@@ -1062,7 +1062,7 @@ Hagdan ng Career ng Service Crew
 
 ### Impormasyon sa Pakikipag-ugnayan
 
-- **Mga Isyu sa Sistema/Teknikal**: support@makanmakan.com
+- **Mga Isyu sa Sistema/Teknikal**: support@makanmasak.com
 - **Mga Isyu sa Paggamit ng App**: In-system "Help Center"
 - **Mga Isyu na May Kinalaman sa Trabaho**: Makipag-ugnayan direkta sa supervisor
 
@@ -1070,7 +1070,7 @@ Hagdan ng Career ng Service Crew
 
 ## 🌟 Konklusyon
 
-Salamat sa pagpili mong maging bahagi ng MakanMakan team!
+Salamat sa pagpili mong maging bahagi ng MakanMasak team!
 
 Bilang service crew, ikaw ang mahalagang tulay na nag-uugnay sa kusina at mga customer. Bawat ngiti, bawat on-time na paghahatid ay lumilikha ng magandang karanasan sa pagkain.
 
@@ -1087,7 +1087,7 @@ Nawa'y magtagumpay ka at maging pinakamahusay na service crew!
 
 <div align="center">
 
-**Gabay sa Paggamit ng MakanMakan para sa Service Crew**
+**Gabay sa Paggamit ng MakanMasak para sa Service Crew**
 
 Ginagawang magandang karanasan ang bawat serbisyo
 

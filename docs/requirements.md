@@ -1,6 +1,6 @@
 # 產品需求文檔 (PRD)
 
-## MakanMakan 智慧雲端點餐平台
+## MakanMasak 智慧雲端點餐平台
 
 **版本**: v1.0  
 **最後更新**: 2025年8月  
@@ -174,7 +174,7 @@
 ### 4.1 功能架構圖
 
 ```
-MakanMakan 平台
+MakanMasak 平台
 ├── 消費者端 (Customer App)
 │   ├── 掃碼點餐
 │   ├── 菜單瀏覽
@@ -438,7 +438,7 @@ MakanMakan 平台
 ### 7.1 開發時程
 
 ```gantt
-title MakanMakan 開發時程
+title MakanMasak 開發時程
 dateFormat  YYYY-MM-DD
 section MVP階段
 需求確認           :done, des1, 2025-08-01, 2025-08-07

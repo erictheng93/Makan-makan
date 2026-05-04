@@ -204,7 +204,7 @@ const rawUser = userFactory.buildChef(1, {
 
 ```typescript
 import { describe, test, expect, beforeEach } from "vitest";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("User Roles", () => {
   beforeEach(() => {
@@ -302,7 +302,7 @@ test("owner can manage staff", () => {
 **Step 1**: 導入 factory
 
 ```typescript
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 ```
 
 **Step 2**: 添加 reset

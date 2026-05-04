@@ -8,7 +8,7 @@
 
 ## Overview
 
-Two new subsystems for MakanMakan:
+Two new subsystems for MakanMasak:
 
 1. **Forecast System** — Lets shop owners predict ingredient/dish demand based on historical orders, with optional AI-enhanced insights. MVP operates at item level; data model supports future ingredient-level expansion.
 2. **Discovery System** — Lets customers search dishes across all restaurants with filters (keyword, open now, district, price, takeaway/delivery). Introduces a new exploration flow independent of QR code scanning.

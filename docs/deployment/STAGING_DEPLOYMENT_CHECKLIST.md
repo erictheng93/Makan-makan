@@ -1,6 +1,6 @@
 # Staging 環境部署清單
 
-> 本文檔說明如何將 MakanMakan 即時服務部署到 Cloudflare Staging 環境
+> 本文檔說明如何將 MakanMasak 即時服務部署到 Cloudflare Staging 環境
 
 ## 部署架構
 
@@ -10,7 +10,7 @@
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌─────────────────┐      ┌─────────────────┐                      │
-│  │ makanmakan-api- │      │ makanmakan-     │                      │
+│  │ makanmasak-api- │      │ makanmasak-     │                      │
 │  │ staging         │◄────►│ realtime-staging│                      │
 │  │ (Cloudflare     │      │ (Durable Objects)                      │
 │  │  Worker)        │      │                 │                      │
@@ -20,11 +20,11 @@
 │  ┌─────────────────────────────────────────────────────────────┐   │
 │  │                   Cloudflare Resources                       │   │
 │  ├─────────────────────────────────────────────────────────────┤   │
-│  │ D1: makanmakan-staging                                       │   │
-│  │ KV: makanmakan-cache-staging                                 │   │
-│  │ KV: makanmakan-ratelimit-staging                             │   │
-│  │ KV: makanmakan-token-blacklist-staging  ← 新增: Token 撤銷   │   │
-│  │ R2: makanmakan-backups-staging                               │   │
+│  │ D1: makanmasak-staging                                       │   │
+│  │ KV: makanmasak-cache-staging                                 │   │
+│  │ KV: makanmasak-ratelimit-staging                             │   │
+│  │ KV: makanmasak-token-blacklist-staging  ← 新增: Token 撤銷   │   │
+│  │ R2: makanmasak-backups-staging                               │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -48,7 +48,7 @@ npx wrangler whoami
 
 ```bash
 # 創建 D1 數據庫
-npx wrangler d1 create makanmakan-staging
+npx wrangler d1 create makanmasak-staging
 
 # 創建 KV 命名空間
 npx wrangler kv:namespace create "CACHE" --env staging
@@ -57,7 +57,7 @@ npx wrangler kv:namespace create "BACKUP" --env staging
 npx wrangler kv:namespace create "TOKEN_BLACKLIST" --env staging
 
 # 創建 R2 存儲桶
-npx wrangler r2 bucket create makanmakan-backups-staging
+npx wrangler r2 bucket create makanmasak-backups-staging
 ```
 
 ### 3. 更新 wrangler.toml 配置
@@ -68,7 +68,7 @@ npx wrangler r2 bucket create makanmakan-backups-staging
 # apps/api/wrangler.toml
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-staging"
+database_name = "makanmasak-staging"
 database_id = "<YOUR_ACTUAL_D1_ID>"  # 替換為實際 ID
 
 [[env.staging.kv_namespaces]]
@@ -115,7 +115,7 @@ pnpm run typecheck
 
 # 3. 執行數據庫遷移
 cd packages/database
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # 4. 部署 API
 cd apps/api
@@ -131,7 +131,7 @@ npx wrangler deploy --env staging
 ### 1. API 健康檢查
 
 ```bash
-curl https://api-staging.makanmakan.com/api/v1/health
+curl https://api-staging.makanmasak.com/api/v1/health
 ```
 
 預期回應：
@@ -147,7 +147,7 @@ curl https://api-staging.makanmakan.com/api/v1/health
 ### 2. Realtime 服務健康檢查
 
 ```bash
-curl https://api-staging.makanmakan.com/api/v1/realtime/health
+curl https://api-staging.makanmasak.com/api/v1/realtime/health
 ```
 
 預期回應：
@@ -166,7 +166,7 @@ curl https://api-staging.makanmakan.com/api/v1/realtime/health
 
 ```bash
 # 1. 獲取 WebSocket Token
-curl -X POST https://api-staging.makanmakan.com/api/v1/realtime/auth/token \
+curl -X POST https://api-staging.makanmasak.com/api/v1/realtime/auth/token \
   -H "Content-Type: application/json" \
   -d '{
     "roomType": "customer",
@@ -175,12 +175,12 @@ curl -X POST https://api-staging.makanmakan.com/api/v1/realtime/auth/token \
   }'
 
 # 2. 驗證 Token
-curl -X POST https://api-staging.makanmakan.com/api/v1/realtime/auth/verify \
+curl -X POST https://api-staging.makanmasak.com/api/v1/realtime/auth/verify \
   -H "Content-Type: application/json" \
   -d '{"token": "<YOUR_TOKEN>"}'
 
 # 3. 撤銷 Token
-curl -X POST https://api-staging.makanmakan.com/api/v1/realtime/auth/revoke \
+curl -X POST https://api-staging.makanmasak.com/api/v1/realtime/auth/revoke \
   -H "Content-Type: application/json" \
   -d '{
     "token": "<YOUR_TOKEN>",
@@ -188,7 +188,7 @@ curl -X POST https://api-staging.makanmakan.com/api/v1/realtime/auth/revoke \
   }'
 
 # 4. 確認 Token 已被撤銷
-curl -X POST https://api-staging.makanmakan.com/api/v1/realtime/auth/verify \
+curl -X POST https://api-staging.makanmasak.com/api/v1/realtime/auth/verify \
   -H "Content-Type: application/json" \
   -d '{"token": "<YOUR_TOKEN>"}'
 # 預期回應: {"success": false, "error": {"code": "TOKEN_BLACKLISTED", "message": "Token has been invalidated"}}
@@ -208,10 +208,10 @@ npx artillery run artillery-realtime-v2.yml --environment staging
 
 ```bash
 # API 日誌
-npx wrangler tail makanmakan-api-staging
+npx wrangler tail makanmasak-api-staging
 
 # Realtime 日誌
-npx wrangler tail makanmakan-realtime-staging
+npx wrangler tail makanmasak-realtime-staging
 ```
 
 ### Cloudflare Dashboard

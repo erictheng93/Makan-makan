@@ -647,7 +647,7 @@ pnpm install
 #### 2. 運行數據庫遷移
 
 ```bash
-npx wrangler d1 migrations apply makanmakan-local --local
+npx wrangler d1 migrations apply makanmasak-local --local
 ```
 
 #### 3. 構建 AI Analytics Package
@@ -691,7 +691,7 @@ curl -X POST http://localhost:8787/api/v1/ai-analytics/test-provider \
 
 ```bash
 # 1. 運行數據庫遷移
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # 2. 部署 API
 cd apps/api
@@ -702,7 +702,7 @@ pnpm run deploy:staging
 
 ```bash
 # 1. 運行數據庫遷移
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-prod --env production
 
 # 2. 部署 API
 cd apps/api
@@ -725,7 +725,7 @@ pnpm run deploy:prod
 
 ```bash
 # 查看 API 日誌
-npx wrangler tail makanmakan-api-prod
+npx wrangler tail makanmasak-api-prod
 
 # 查看 AI 使用日誌
 SELECT * FROM ai_usage_logs
@@ -831,7 +831,7 @@ const expiresAt = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours
 ## 👥 貢獻者
 
 - **設計與實現**: Claude (AI Assistant)
-- **項目**: MakanMakan Restaurant Management System
+- **項目**: MakanMasak Restaurant Management System
 - **日期**: 2025-10-06
 
 ---

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Coupons functionality has been successfully migrated from the legacy route-based structure to the new modular feature architecture, following the established patterns used by other features in the MakanMakan system.
+The Coupons functionality has been successfully migrated from the legacy route-based structure to the new modular feature architecture, following the established patterns used by other features in the MakanMasak system.
 
 ## Migration Details
 
@@ -92,7 +92,7 @@ apps/api/src/features/coupons/
 ### Existing Database Schema
 
 - **Tables Used**: `coupons`, `coupon_usage`, `coupon_distributions`, `coupon_templates`
-- **Service Base**: Extends `@makanmakan/database/CouponService`
+- **Service Base**: Extends `@makanmasak/database/CouponService`
 - **Type Imports**: Uses database types for consistency
 
 ### Enhanced Functionality

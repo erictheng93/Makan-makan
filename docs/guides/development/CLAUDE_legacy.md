@@ -4,22 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MakanMakan is a PHP-based restaurant management system that provides online ordering, menu management, table management, and multi-role user access. The system supports multiple restaurants/shops with their own menus, tables, and staff.
+MakanMasak is a PHP-based restaurant management system that provides online ordering, menu management, table management, and multi-role user access. The system supports multiple restaurants/shops with their own menus, tables, and staff.
 
 ## Database Configuration
 
 The system uses MySQL/MariaDB with the following setup:
 
-- Database: `makanmakan`
+- Database: `makanmasak`
 - Configuration file: `config.php` (contains connection parameters)
-- SQL schema: `SQL/makanmakan.sql`
+- SQL schema: `SQL/makanmasak.sql`
 - Default credentials: root/12345 (localhost)
 
 To set up the database:
 
 ```bash
 # Import the schema
-mysql -u root -p makanmakan < SQL/makanmakan.sql
+mysql -u root -p makanmasak < SQL/makanmasak.sql
 ```
 
 ## Core System Architecture
@@ -90,9 +90,9 @@ No build process required - this is a standard PHP application that runs directl
 To run locally:
 
 1. Set up XAMPP/WAMP or similar PHP environment
-2. Import database from `SQL/makanmakan.sql`
+2. Import database from `SQL/makanmasak.sql`
 3. Update database credentials in `config.php`
-4. Access via `http://localhost/makanmakan/`
+4. Access via `http://localhost/makanmasak/`
 
 ### Testing
 

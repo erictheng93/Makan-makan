@@ -4,7 +4,7 @@
 
 **Version**: 1.0
 **Last Updated**: 2025-11-06
-**System**: MakanMakan Restaurant Management System
+**System**: MakanMasak Restaurant Management System
 
 ---
 
@@ -27,9 +27,9 @@
 
 ### 關於員工排班系統 About the Scheduling System
 
-員工排班系統是MakanMakan餐廳管理系統的核心模組之一，專為餐飲業設計，幫助管理者高效地安排員工工作時間，確保餐廳營運順暢。
+員工排班系統是MakanMasak餐廳管理系統的核心模組之一，專為餐飲業設計，幫助管理者高效地安排員工工作時間，確保餐廳營運順暢。
 
-The Employee Scheduling System is a core module of the MakanMakan Restaurant Management System, specifically designed for the food service industry to help managers efficiently arrange employee work schedules and ensure smooth restaurant operations.
+The Employee Scheduling System is a core module of the MakanMasak Restaurant Management System, specifically designed for the food service industry to help managers efficiently arrange employee work schedules and ensure smooth restaurant operations.
 
 ### 核心功能 Core Features
 
@@ -1571,23 +1571,23 @@ A: 完全支援多餐廳
 ```
 需要協助？ Need Help?
 
-📧 Email: support@makanmakan.com
+📧 Email: support@makanmasak.com
 📞 電話: +886-2-xxxx-xxxx
 💬 線上客服: 系統右下角聊天按鈕
-📚 知識庫: https://docs.makanmakan.com
-🎥 教學影片: https://youtube.com/makanmakan
+📚 知識庫: https://docs.makanmasak.com
+🎥 教學影片: https://youtube.com/makanmasak
 
 營業時間: 週一至週五 09:00-18:00
 緊急支援: 24/7 電話支援
 
 社群媒體:
-• Facebook: @MakanMakanSystem
-• Line 官方帳號: @makanmakan
+• Facebook: @MakanMasakSystem
+• Line 官方帳號: @makanmasak
 ```
 
 ---
 
 **文件結束 End of Document**
 
-© 2025 MakanMakan Restaurant Management System
+© 2025 MakanMasak Restaurant Management System
 Version 1.0 | Last Updated: 2025-11-06

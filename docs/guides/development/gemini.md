@@ -1,10 +1,10 @@
 # GEMINI.md - Project Context for AI Agent
 
-This document provides a comprehensive overview of the **MakanMakan** project to serve as a shared context for AI-assisted development.
+This document provides a comprehensive overview of the **MakanMasak** project to serve as a shared context for AI-assisted development.
 
 ## 1. Project Overview
 
-**MakanMakan** is a modern, serverless restaurant management platform built entirely on the **Cloudflare edge computing ecosystem**. Its purpose is to provide a full suite of solutions for restaurant operations, from ordering and menu management to employee scheduling and AI-powered business analytics.
+**MakanMasak** is a modern, serverless restaurant management platform built entirely on the **Cloudflare edge computing ecosystem**. Its purpose is to provide a full suite of solutions for restaurant operations, from ordering and menu management to employee scheduling and AI-powered business analytics.
 
 ### Core Technologies
 
@@ -46,7 +46,7 @@ The project uses `pnpm` as its package manager and `turbo` as its build system. 
   pnpm run dev
   ```
 
-  This command uses `turbo run dev` to start development servers for all workspaces concurrently. The running applications will be accessible at different local ports (e.g., `http://localhost:5173`, `http://localhost:5174`).
+  This command uses `turbo run dev` to start development servers for all workspaces concurrently. The running applications will be accessible at different local ports (e.g., `http://localhost:3000`, `http://localhost:3001`).
 
 - **Building:**
 

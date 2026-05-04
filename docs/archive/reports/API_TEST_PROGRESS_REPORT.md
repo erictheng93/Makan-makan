@@ -46,7 +46,7 @@
 
 ### 1. Mock 配置問題 (最多)
 
-**錯誤**: "No OrderService export is defined on @makanmakan/database mock"
+**錯誤**: "No OrderService export is defined on @makanmasak/database mock"
 
 **影響文件**:
 

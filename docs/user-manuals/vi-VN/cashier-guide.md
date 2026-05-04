@@ -1,4 +1,4 @@
-# 💰 Sổ Tay Thu Ngân MakanMakan
+# 💰 Sổ Tay Thu Ngân MakanMasak
 
 > **Phiên bản**: 2.0
 > **Cập nhật lần cuối**: 2025-10-26
@@ -322,7 +322,7 @@
 
 ```
 ┌────────────────────────────────────────┐
-│          Nhà Hàng MakanMakan           │
+│          Nhà Hàng MakanMasak           │
 │       MST: 12345678                    │
 │   Địa chỉ: Số 7, Đường Tín Nghĩa, TP  │
 │       Điện thoại: (02) 2345-6789       │
@@ -355,7 +355,7 @@
 │                                        │
 │    Cảm ơn, hẹn gặp lại quý khách!      │
 │                                        │
-│         MakanMakan.com                 │
+│         MakanMasak.com                 │
 │                                        │
 └────────────────────────────────────────┘
 ```
@@ -489,7 +489,7 @@
 
 ```
 ┌─────────────────────────────────────────┐
-│ Thanh Toán Di Động Hỗ Trợ MakanMakan    │
+│ Thanh Toán Di Động Hỗ Trợ MakanMasak    │
 ├─────────────────────────────────────────┤
 │                                         │
 │  📱 LINE Pay          ✅ Hỗ Trợ        │
@@ -687,7 +687,7 @@ Tùy Chọn C: In giấy
 
 ```
 ┌─────────────────────────────────────────────┐
-│ Chính Sách Hoàn Tiền MakanMakan             │
+│ Chính Sách Hoàn Tiền MakanMasak             │
 ├─────────────────────────────────────────────┤
 │                                             │
 │  ✅ Hoàn Tiền Toàn Bộ:                      │
@@ -794,7 +794,7 @@ Tùy Chọn C: In giấy
 
 ```
 ┌────────────────────────────────────────┐
-│         Biên Lai Hoàn Tiền MakanMakan  │
+│         Biên Lai Hoàn Tiền MakanMasak  │
 ├────────────────────────────────────────┤
 │                                        │
 │ Ngày: 2025/10/26    Giờ: 14:30        │
@@ -880,7 +880,7 @@ Tùy Chọn C: In giấy
 
 ```
 ┌────────────────────────────────────────────────────┐
-│           Báo Cáo Hàng Ngày MakanMakan             │
+│           Báo Cáo Hàng Ngày MakanMasak             │
 │           Ngày: 2025/10/26                         │
 ├────────────────────────────────────────────────────┤
 │                                                    │
@@ -1895,7 +1895,7 @@ Nếu thật sự có việc gấp:
 │                                         │
 │  📊 Phòng Kế Toán                       │
 │     Máy Lẻ: 102                         │
-│     Email: accounting@makanmakan.com    │
+│     Email: accounting@makanmasak.com    │
 │     Xử lý: Kế toán, vấn đề hóa đơn      │
 │                                         │
 └─────────────────────────────────────────┘
@@ -2066,7 +2066,7 @@ Kỹ Năng Cần Nâng Cao:
 
 ## 🙏 Kết Luận
 
-Cảm ơn bạn đã chọn trở thành thu ngân MakanMakan!
+Cảm ơn bạn đã chọn trở thành thu ngân MakanMasak!
 
 Công việc thu ngân có vẻ đơn giản nhưng mang trách nhiệm lớn. Bạn là điểm tiếp xúc cuối cùng khách hàng có ở cửa hàng, và là người chính để lại ấn tượng cuối cùng.
 
@@ -2085,12 +2085,12 @@ Hy vọng cuốn sổ tay này giúp bạn bắt đầu nhanh chóng và trở t
 
 <div align="center">
 
-**Sổ Tay Thu Ngân MakanMakan**
+**Sổ Tay Thu Ngân MakanMasak**
 
 Được xây dựng với ❤️ cho thu ngân của chúng tôi
 
 **Phiên Bản 2.0** | **2025-10-26**
 
-© 2025 MakanMakan. Bảo lưu mọi quyền.
+© 2025 MakanMasak. Bảo lưu mọi quyền.
 
 </div>

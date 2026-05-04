@@ -765,21 +765,21 @@ curl -X GET "http://localhost:8787/api/v1/scheduling/$RESTAURANT_ID/schedules" \
 ### Check Schedules in Database
 
 ```bash
-npx wrangler d1 execute makanmakan-staging --local \
+npx wrangler d1 execute makanmasak-staging --local \
   --command "SELECT * FROM employee_schedules LIMIT 5"
 ```
 
 ### Check Conflicts
 
 ```bash
-npx wrangler d1 execute makanmakan-staging --local \
+npx wrangler d1 execute makanmasak-staging --local \
   --command "SELECT * FROM scheduling_conflicts WHERE status='unresolved'"
 ```
 
 ### Check Swap Requests
 
 ```bash
-npx wrangler d1 execute makanmakan-staging --local \
+npx wrangler d1 execute makanmasak-staging --local \
   --command "SELECT * FROM schedule_swap_requests WHERE status='pending'"
 ```
 

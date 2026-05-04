@@ -91,7 +91,7 @@ pnpm run factory:check:ci
 ───────────────────────────────────────
 ❌ 發現 3 個錯誤，必須修復：
    1. 為使用 factory 的測試添加 resetAllFactories()
-   2. 確保正確導入 @makanmakan/testing-utils
+   2. 確保正確導入 @makanmasak/testing-utils
 
 ⚠️  發現 8 個警告，建議處理：
    1. 考慮使用 factory 替代手動數據創建
@@ -263,11 +263,11 @@ jobs:
 這些錯誤**必須修復**才能確保測試數據一致性：
 
 1. 為使用 factory 的測試添加 `resetAllFactories()`
-2. 確保正確導入 `@makanmakan/testing-utils`
+2. 確保正確導入 `@makanmasak/testing-utils`
 
 **修復範例**：
 \`\`\`typescript
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils"
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils"
 
 describe("Test Suite", () => {
 beforeEach(() => {
@@ -390,7 +390,7 @@ pnpm run factory:badges
 
 ```typescript
 // ❌ 錯誤
-import { userFactory } from "@makanmakan/testing-utils";
+import { userFactory } from "@makanmasak/testing-utils";
 
 describe("Test", () => {
   it("should work", () => {
@@ -399,7 +399,7 @@ describe("Test", () => {
 });
 
 // ✅ 正確
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("Test", () => {
   beforeEach(() => {
@@ -529,4 +529,4 @@ git diff --cached --name-only | grep '.test.ts$' | xargs node scripts/check-fact
 
 **最後更新**: 2025-11-15
 **版本**: 1.0.0
-**維護者**: MakanMakan Testing Team
+**維護者**: MakanMasak Testing Team

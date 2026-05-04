@@ -437,20 +437,20 @@ console.log(result.message); // "Usage logged successfully"
 
 ```bash
 # 本地環境
-npx wrangler d1 migrations apply makanmakan-staging --local
+npx wrangler d1 migrations apply makanmasak-staging --local
 
 # Staging 環境
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # Production 環境
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-prod --env production
 ```
 
 ### 2. 驗證遷移
 
 ```bash
 # 檢查資料表是否正確創建
-npx wrangler d1 execute makanmakan-staging --local \
+npx wrangler d1 execute makanmasak-staging --local \
   --command "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'partnership%'"
 ```
 
@@ -533,7 +533,7 @@ npm run deploy:prod
 ## 技術支援
 
 - **文檔**: `/docs/PARTNERSHIP_SYSTEM_IMPLEMENTATION.md`
-- **API 端點**: `https://api.makanmakan.com/api/v1/partnerships`
+- **API 端點**: `https://api.makanmasak.com/api/v1/partnerships`
 - **範例程式碼**: `/apps/api/src/features/partnerships`
 - **資料庫 Schema**: `/packages/database/migrations/0047_merchant_partnership_system.sql`
 

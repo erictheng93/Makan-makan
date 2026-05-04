@@ -3,7 +3,7 @@
 ## Test Fix Final Report
 
 **生成時間 / Generated**: 2025-11-07
-**專案 / Project**: MakanMakan Platform
+**專案 / Project**: MakanMasak Platform
 **執行者 / Executor**: Claude Code
 
 ---
@@ -58,7 +58,7 @@ packages/database/src/services/__tests__/paymentTransactions.test.ts
 
 ### ✅ 階段 2：Database Services 測試修復
 
-**任務**: 修復 @makanmakan/database 包中的所有測試
+**任務**: 修復 @makanmasak/database 包中的所有測試
 **進度**: 100% 完成
 **成果**: ✅ **47/47 tests passing (100%)**
 
@@ -72,9 +72,9 @@ packages/database/src/services/__tests__/paymentTransactions.test.ts
 #### 採用的修復策略
 
 ```typescript
-// 1. Mock @makanmakan/shared-types 的 Enum
-vi.mock("@makanmakan/shared-types", async () => {
-  const actual = await vi.importActual("@makanmakan/shared-types");
+// 1. Mock @makanmasak/shared-types 的 Enum
+vi.mock("@makanmasak/shared-types", async () => {
+  const actual = await vi.importActual("@makanmasak/shared-types");
   return {
     ...actual,
     OrderStatus: {
@@ -125,8 +125,8 @@ beforeEach(() => {
 - **問題**: `RealtimeEventType` enum 未定義
 - **修復**:
   ```typescript
-  vi.mock("@makanmakan/shared-types", async () => {
-    const actual = await vi.importActual("@makanmakan/shared-types");
+  vi.mock("@makanmasak/shared-types", async () => {
+    const actual = await vi.importActual("@makanmasak/shared-types");
     return {
       ...actual,
       RealtimeEventType: {
@@ -236,8 +236,8 @@ TypeError: Cannot read properties of undefined (reading 'DB')
 
 ```typescript
 // ✅ 正確做法：在 import 前 mock
-vi.mock("@makanmakan/shared-types", async () => {
-  const actual = await vi.importActual("@makanmakan/shared-types");
+vi.mock("@makanmasak/shared-types", async () => {
+  const actual = await vi.importActual("@makanmasak/shared-types");
   return {
     ...actual,
     OrderStatus: { PENDING: 0, CONFIRMED: 1 /* ... */ },
@@ -245,7 +245,7 @@ vi.mock("@makanmakan/shared-types", async () => {
 });
 
 // 然後才 import
-import { OrderStatus } from "@makanmakan/shared-types";
+import { OrderStatus } from "@makanmasak/shared-types";
 ```
 
 ### 技術 2: 三層 Mock 策略
@@ -361,7 +361,7 @@ expect(data.status).toBe(OrderStatus.PREPARING);
 ### Database 層 (100%)
 
 ```
-✅ @makanmakan/database: 47/47 tests passing
+✅ @makanmasak/database: 47/47 tests passing
    ├─ auth.test.ts: 39/39 ✅
    └─ base.test.ts: 8/8 ✅
 ```
@@ -369,7 +369,7 @@ expect(data.status).toBe(OrderStatus.PREPARING);
 ### API 層 (88.3%)
 
 ```
-@makanmakan/api: 273/309 tests passing (88.3%)
+@makanmasak/api: 273/309 tests passing (88.3%)
 
 ✅ 完全通過的模塊:
    ├─ orders/feature.test.ts: 29/29 ✅
@@ -510,17 +510,17 @@ expect(data.status).toBe(OrderStatus.PREPARING);
 
 ```typescript
 // ❌ 錯誤
-import { OrderStatus } from "@makanmakan/shared-types";
+import { OrderStatus } from "@makanmasak/shared-types";
 describe("tests", () => {
   /* OrderStatus is undefined */
 });
 
 // ✅ 正確
-vi.mock("@makanmakan/shared-types", async () => {
-  const actual = await vi.importActual("@makanmakan/shared-types");
+vi.mock("@makanmasak/shared-types", async () => {
+  const actual = await vi.importActual("@makanmasak/shared-types");
   return { ...actual, OrderStatus: { PENDING: 0 /* ... */ } };
 });
-import { OrderStatus } from "@makanmakan/shared-types";
+import { OrderStatus } from "@makanmasak/shared-types";
 ```
 
 ### Q2: Service mock 不生效

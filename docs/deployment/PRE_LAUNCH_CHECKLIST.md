@@ -1,4 +1,4 @@
-# MakanMakan 上線前 Checklist
+# MakanMasak 上線前 Checklist
 
 > 基於 2026-04-15 Production Readiness 審查結果。按優先順序處理，🔴 為 blocker，🟡 為高優先，🟢 可上線後補。
 
@@ -121,13 +121,13 @@
   ```
 - [ ] 確認 production D1 database 內**沒有** test 帳號
   ```bash
-  wrangler d1 execute makanmakan-prod --env production \
+  wrangler d1 execute makanmasak-prod --env production \
     --command "SELECT username, role FROM users WHERE username IN ('admin','owner1','chef1','chef2','service1','service2','cashier1','cashier2')"
   # 如有結果，立即執行 DELETE
   ```
 - [ ] 如果 production DB 已存在 test 帳號，立即清除：
   ```bash
-  wrangler d1 execute makanmakan-prod --env production \
+  wrangler d1 execute makanmasak-prod --env production \
     --command "DELETE FROM users WHERE username IN ('admin','owner1','chef1','chef2','service1','service2','cashier1','cashier2')"
   ```
 - [x] 永久防護：`0048_add_test_accounts.sql` 頂部已加上 `DEV ONLY` 警告（2026-04-15）

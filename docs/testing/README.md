@@ -101,7 +101,7 @@ pnpm contract:check
 pnpm contract:update
 ```
 
-### 使用 Factory Pattern（`@makanmakan/testing-utils`）
+### 使用 Factory Pattern（`@makanmasak/testing-utils`）
 
 ```typescript
 import {
@@ -110,7 +110,7 @@ import {
   orderFactory,
   envFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 beforeEach(() => {
   resetAllFactories();
@@ -134,7 +134,7 @@ const env = envFactory.build();
 
 新增測試必須遵守以下四條規則，舊測試以漸進方式遷移：
 
-1. **使用 `@makanmakan/testing-utils` 的 factory** — 禁止手寫 mock 物件；`beforeEach` 呼叫 `resetAllFactories()`。
+1. **使用 `@makanmasak/testing-utils` 的 factory** — 禁止手寫 mock 物件；`beforeEach` 呼叫 `resetAllFactories()`。
 2. **驗證 mock 呼叫，不只驗證回傳值** — 每個 `vi.fn()` 必須有 `toHaveBeenCalledWith(...)` 檢查；用 `expect.objectContaining()` 做結構比對，禁止精確比對 timestamp / UUID 等非確定性欄位。
 3. **禁止斷言 CSS class** — 改以 `data-testid`、`data-status`、`aria-*`、文字內容或 Vue computed 狀態驗證行為。
 4. **Pre-commit 檢查** — `scripts/check-factory-usage.cjs` 透過 lint-staged 在所有 `*.test.ts` 上執行，會警告缺少 factory、CSS class 斷言、以及未驗證的 mock。

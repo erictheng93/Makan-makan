@@ -246,7 +246,7 @@ Phase 2 總耗時: 2 天
 ### 新增的檔案
 
 ```
-makanmakan/
+makanmasak/
 ├── scripts/
 │   ├── test-migrations-v2.ps1           ← 主測試 (Windows)
 │   ├── test-migrations-v2.sh            ← 主測試 (Linux/Mac)
@@ -417,11 +417,11 @@ Phase 3: 1-2 天
 .\scripts\test-migrations-v2.ps1
 
 # Step 2: 完整性測試
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --file=scripts\test-data-integrity.sql
 
 # Step 3: 效能測試
-npx wrangler d1 execute makanmakan-test-v2 --local \
+npx wrangler d1 execute makanmasak-test-v2 --local \
   --file=scripts\test-performance.sql
 
 # Step 4: 查看報告

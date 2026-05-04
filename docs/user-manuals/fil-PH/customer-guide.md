@@ -1,14 +1,14 @@
-# Gabay sa Paggamit ng MakanMakan para sa Customer
+# Gabay sa Paggamit ng MakanMasak para sa Customer
 
 > **Bersyon**: 2.0
 > **Huling Na-update**: 2025-10-26
-> **Para sa**: Lahat ng customer na gumagamit ng MakanMakan
+> **Para sa**: Lahat ng customer na gumagamit ng MakanMasak
 
 ---
 
 ## 📖 Talaan ng Nilalaman
 
-1. [Maligayang Pagdating sa MakanMakan](#-maligayang-pagdating-sa-makanmakan)
+1. [Maligayang Pagdating sa MakanMasak](#-maligayang-pagdating-sa-makanmasak)
 2. [Mabilis na Pagsisimula](#-mabilis-na-pagsisimula)
 3. [Paraan ng Pag-order](#-paraan-ng-pag-order)
    - [Paraan 1: I-scan ang QR Code ng Mesa](#paraan-1-i-scan-ang-qr-code-ng-mesa)
@@ -27,9 +27,9 @@
 
 ---
 
-## 🎉 Maligayang Pagdating sa MakanMakan
+## 🎉 Maligayang Pagdating sa MakanMasak
 
-Ang MakanMakan ay isang modernong smart ordering platform na nagbibigay-daan sa iyo na tingnan ang menu, mag-order, at subaybayan ang status ng order nang real-time gamit ang iyong smartphone. Walang kailangang i-download na app - i-scan lang ang QR code para magsimula!
+Ang MakanMasak ay isang modernong smart ordering platform na nagbibigay-daan sa iyo na tingnan ang menu, mag-order, at subaybayan ang status ng order nang real-time gamit ang iyong smartphone. Walang kailangang i-download na app - i-scan lang ang QR code para magsimula!
 
 ### ✨ Pangunahing Features
 
@@ -64,7 +64,7 @@ Ang MakanMakan ay isang modernong smart ordering platform na nagbibigay-daan sa 
 
 ## 🍽️ Paraan ng Pag-order
 
-Ang MakanMakan ay nag-aalok ng dalawang paraan ng pag-order, depende sa setup ng restaurant:
+Ang MakanMasak ay nag-aalok ng dalawang paraan ng pag-order, depende sa setup ng restaurant:
 
 ### Paraan 1: I-scan ang QR Code ng Mesa
 
@@ -823,15 +823,15 @@ Kung hindi nakatulong ang gabay na ito, makipag-ugnayan sa:
 
 ### 💬 Online Support
 
-- **Email**: support@makanmakan.com
+- **Email**: support@makanmasak.com
 - **Response time**: 1-2 araw na trabaho
 - Angkop para sa: Account issues, technical problems, feedback
 
 ### 📱 Social Media
 
-- **Facebook**: MakanMakan Taiwan
-- **Instagram**: @makanmakan_tw
-- **LINE**: @makanmakan
+- **Facebook**: MakanMasak Taiwan
+- **Instagram**: @makanmasak_tw
+- **LINE**: @makanmasak
 
 ### 🐛 Mag-report ng Issues
 
@@ -846,7 +846,7 @@ Nakakita ng bug o may mga mungkahi? Malugod naming tinatanggap ang iyong feedbac
 
 ---
 
-## 🎉 Salamat sa Paggamit ng MakanMakan!
+## 🎉 Salamat sa Paggamit ng MakanMasak!
 
 Nakatuon kami sa pagbibigay ng pinakamahusay na ordering experience. Ang iyong mga mungkahi at feedback ay napakahalaga sa amin.
 

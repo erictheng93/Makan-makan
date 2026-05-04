@@ -34,10 +34,10 @@
 
   ```bash
   # Run migration script
-  sqlite3 makanmakan.db < SQL/migrate_passwords_security.sql
+  sqlite3 makanmasak.db < SQL/migrate_passwords_security.sql
 
   # Or for D1
-  npx wrangler d1 execute makanmakan-prod --file=packages/database/migrations/002_password_security_migration.sql
+  npx wrangler d1 execute makanmasak-prod --file=packages/database/migrations/002_password_security_migration.sql
   ```
 
 - [ ] **Password reset functionality implemented**
@@ -72,7 +72,7 @@
   curl -H "Origin: https://malicious-site.com" https://api.yourdomain.com/health
   # Should be blocked
 
-  curl -H "Origin: https://admin.makanmakan.app" https://api.yourdomain.com/health
+  curl -H "Origin: https://admin.makanmasak.app" https://api.yourdomain.com/health
   # Should be allowed
   ```
 
@@ -127,7 +127,7 @@ wrangler pages deploy --env staging
 
 ```bash
 # 1. Run database migration
-npx wrangler d1 execute makanmakan-prod --file=packages/database/migrations/002_password_security_migration.sql
+npx wrangler d1 execute makanmasak-prod --file=packages/database/migrations/002_password_security_migration.sql
 
 # 2. Set production secrets
 wrangler secret put JWT_SECRET --env production
@@ -176,7 +176,7 @@ curl -H "Origin: https://unauthorized-site.com" \
      -X OPTIONS https://api.yourdomain.com/auth/login
 # Should be rejected
 
-curl -H "Origin: https://admin.makanmakan.app" \
+curl -H "Origin: https://admin.makanmasak.app" \
      -H "Access-Control-Request-Method: POST" \
      -X OPTIONS https://api.yourdomain.com/auth/login
 # Should be allowed
@@ -255,7 +255,7 @@ If critical issues arise:
 
 ```bash
 # Emergency rollback for API
-wrangler rollback --name makanmakan-api-prod
+wrangler rollback --name makanmasak-api-prod
 
 # Database rollback (if needed)
 # Use backup created before migration

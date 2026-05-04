@@ -308,7 +308,7 @@ const initializeCart = (restId: number, phone: string) => {
 
 ```typescript
 const getCartStorageKey = () => {
-  return `makanmakan_shop_cart_${restaurantId.value}_${phoneLastDigits.value}`;
+  return `makanmasak_shop_cart_${restaurantId.value}_${phoneLastDigits.value}`;
 };
 ```
 
@@ -669,4 +669,4 @@ POST /api/v1/orders                 # 創建訂單
 
 **生成時間:** 2025-10-10
 **實施者:** Claude Code
-**項目:** MakanMakan Platform - Shop QR Feature Phase 2
+**項目:** MakanMasak Platform - Shop QR Feature Phase 2

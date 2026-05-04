@@ -2,9 +2,9 @@
 
 ## 概覽 (Overview)
 
-MakanMakan 通知系統提供自動化的員工通知功能，支持電子郵件和 SMS 兩種通道。系統已完全整合到請假管理和排班管理功能中，自動在關鍵事件發生時發送通知。
+MakanMasak 通知系統提供自動化的員工通知功能，支持電子郵件和 SMS 兩種通道。系統已完全整合到請假管理和排班管理功能中，自動在關鍵事件發生時發送通知。
 
-The MakanMakan Notification System provides automated employee notifications via email and SMS channels. It's fully integrated into leave management and scheduling features, automatically sending notifications when key events occur.
+The MakanMasak Notification System provides automated employee notifications via email and SMS channels. It's fully integrated into leave management and scheduling features, automatically sending notifications when key events occur.
 
 ## 系統架構 (System Architecture)
 
@@ -99,7 +99,7 @@ The MakanMakan Notification System provides automated employee notifications via
 
 ```bash
 # Email Provider (Resend)
-NOTIFICATION_FROM_EMAIL="notifications@makanmakan.com"
+NOTIFICATION_FROM_EMAIL="notifications@makanmasak.com"
 RESEND_API_KEY="re_xxxxxxxxxxxxx"  # 使用 wrangler secret 設置
 
 # SMS Provider (Twilio)
@@ -423,10 +423,10 @@ console.error("Failed to send schedule creation notification:", error);
 
 ```bash
 # 查看實時日誌
-wrangler tail makanmakan-api-prod
+wrangler tail makanmasak-api-prod
 
 # 過濾通知相關錯誤
-wrangler tail makanmakan-api-prod --format json | grep "notification"
+wrangler tail makanmasak-api-prod --format json | grep "notification"
 ```
 
 ## 測試指南 (Testing Guide)
@@ -602,8 +602,8 @@ const schedules = await bulkCreateSchedules(data);
 
 如有問題或建議，請聯繫：
 
-- 技術支援：tech@makanmakan.com
-- 文檔問題：docs@makanmakan.com
+- 技術支援：tech@makanmasak.com
+- 文檔問題：docs@makanmasak.com
 
 ---
 

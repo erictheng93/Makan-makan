@@ -1,4 +1,4 @@
-# 👨‍🍳 Sổ Tay Vận Hành MakanMakan Cho Đầu Bếp
+# 👨‍🍳 Sổ Tay Vận Hành MakanMasak Cho Đầu Bếp
 
 > **Phiên bản**: 2.0
 > **Cập nhật**: 2025-10-26
@@ -82,7 +82,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Hệ Sinh Thái Bếp MakanMakan                             │
+│ Hệ Sinh Thái Bếp MakanMasak                             │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  Khách đặt ───→ Hệ thống ───→ Màn hình bếp ───→ Phục vụ│
@@ -233,9 +233,9 @@ Truy cập: URL hệ thống trên máy tính bảng hoặc màn hình bếp
 
 ```
 Ví dụ URL:
-https://kitchen.makanmakan.com
+https://kitchen.makanmasak.com
 hoặc
-https://nha-hang-cua-ban.makanmakan.com/kitchen
+https://nha-hang-cua-ban.makanmasak.com/kitchen
 ```
 
 **Bước 2: Nhập Thông Tin Đầu Bếp**

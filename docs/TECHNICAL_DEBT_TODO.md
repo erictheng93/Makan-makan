@@ -312,7 +312,7 @@ and type safety can drift per app.
 **TODO:**
 
 - [ ] Finish replacing local `OrderStatus` definitions with canonical
-      `@makanmakan/shared-types`.
+      `@makanmasak/shared-types`.
 - [ ] Decide whether `OrdersService.checkOrderPermissions()` should be deleted
       or wired to a real production route.
 - [ ] Delete stale `.disabled` examples once the payment/order-status migration

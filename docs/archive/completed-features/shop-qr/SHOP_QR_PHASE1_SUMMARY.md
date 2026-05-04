@@ -437,4 +437,4 @@ curl -X PUT http://localhost:8787/api/v1/restaurants/1/shop-mode \
 
 **生成时间:** 2025-10-10
 **实施者:** Claude Code
-**项目:** MakanMakan Platform - Shop QR Feature
+**项目:** MakanMasak Platform - Shop QR Feature

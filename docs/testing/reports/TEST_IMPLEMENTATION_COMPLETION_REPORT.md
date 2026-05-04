@@ -8,7 +8,7 @@
 
 ## 📊 執行摘要 (Executive Summary)
 
-本報告記錄了 MakanMakan 平台測試套件的完整實施過程，包含三個優先級的測試檔案創建、測試執行結果分析、發現的問題以及建議的解決方案。
+本報告記錄了 MakanMasak 平台測試套件的完整實施過程，包含三個優先級的測試檔案創建、測試執行結果分析、發現的問題以及建議的解決方案。
 
 ### 關鍵成果
 
@@ -184,9 +184,9 @@ FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaS
 
 ```bash
 # 分別執行各個 package 的測試
-pnpm test --filter @makanmakan/database
-pnpm test --filter makanmakan-admin-dashboard
-pnpm test --filter makanmakan-kitchen-display
+pnpm test --filter @makanmasak/database
+pnpm test --filter makanmasak-admin-dashboard
+pnpm test --filter makanmasak-kitchen-display
 ```
 
 **方案 3: 配置 Vitest 執行選項**

@@ -4,7 +4,7 @@
 
 **Version**: 1.0
 **Last Updated**: 2025-11-06
-**System**: MakanMakan Restaurant Management System
+**System**: MakanMasak Restaurant Management System
 **Status**: ✅ Production Ready (100% Complete)
 
 ---
@@ -30,9 +30,9 @@
 
 ### 關於 AI 智能分析系統 About the AI Analytics System
 
-AI 智能分析系統是 MakanMakan 餐廳管理系統的高級功能模組，整合了多個領先的大型語言模型（LLM），為餐廳經營者提供基於數據的智能商業洞察和決策建議。
+AI 智能分析系統是 MakanMasak 餐廳管理系統的高級功能模組，整合了多個領先的大型語言模型（LLM），為餐廳經營者提供基於數據的智能商業洞察和決策建議。
 
-The AI Analytics System is an advanced feature module of the MakanMakan Restaurant Management System, integrating multiple leading Large Language Models (LLMs) to provide restaurant operators with data-driven intelligent business insights and decision recommendations.
+The AI Analytics System is an advanced feature module of the MakanMasak Restaurant Management System, integrating multiple leading Large Language Models (LLMs) to provide restaurant operators with data-driven intelligent business insights and decision recommendations.
 
 ### 核心功能 Core Features
 
@@ -254,7 +254,7 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 
 **系統需求 System Requirements**：
 
-- ✅ MakanMakan 管理後台帳號
+- ✅ MakanMasak 管理後台帳號
 - ✅ 角色為 Admin (0) 或 Owner (1)
 - ✅ 至少 7 天的營運數據
 - ✅ 至少 20 筆訂單記錄
@@ -306,7 +306,7 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 
 4️⃣ 創建新的 API Key
    • 點擊 "Create Key" 按鈕
-   • 輸入 Key 名稱（例如：MakanMakan）
+   • 輸入 Key 名稱（例如：MakanMasak）
    • 選擇權限（建議 Full Access）
 
 5️⃣ 複製 API Key
@@ -333,7 +333,7 @@ The AI Analytics System is an advanced feature module of the MakanMakan Restaura
 
 4️⃣ 創建新的 Secret Key
    • 點擊 "Create new secret key"
-   • 輸入名稱（例如：MakanMakan）
+   • 輸入名稱（例如：MakanMasak）
    • 選擇專案（如有）
 
 5️⃣ 複製 API Key
@@ -2490,7 +2490,7 @@ POST /api/v1/ai-analytics/config/test
 }
 
 完整 API 文檔：
-https://docs.makanmakan.com/api/ai-analytics
+https://docs.makanmasak.com/api/ai-analytics
 ```
 
 ### 資料匯出 Data Export
@@ -2596,7 +2596,7 @@ https://docs.makanmakan.com/api/ai-analytics
 
 實施流程：
   1. 累積至少 1 年歷史數據
-  2. 聯繫 MakanMakan 企業服務團隊
+  2. 聯繫 MakanMasak 企業服務團隊
   3. 評估微調可行性和成本
   4. 簽訂企業服務合約
   5. 開始模型訓練
@@ -2610,7 +2610,7 @@ https://docs.makanmakan.com/api/ai-analytics
   • 有專屬 AI 預算
 
 聯繫方式：
-  enterprise@makanmakan.com
+  enterprise@makanmasak.com
 ```
 
 ---
@@ -2675,18 +2675,18 @@ AI 洞察頁面：
 
 ```
 技術支援 Technical Support:
-  Email: support@makanmakan.com
+  Email: support@makanmasak.com
   電話: +1-XXX-XXX-XXXX
   工作時間: 週一至週五 9:00-18:00 (UTC+8)
 
 文檔中心 Documentation:
-  https://docs.makanmakan.com
+  https://docs.makanmasak.com
 
 社群論壇 Community Forum:
-  https://community.makanmakan.com
+  https://community.makanmasak.com
 
 功能建議 Feature Requests:
-  https://feedback.makanmakan.com
+  https://feedback.makanmasak.com
 
 緊急事件 Emergencies:
   急需請直接致電或發送緊急郵件
@@ -2721,13 +2721,13 @@ Version 1.0 (2025-11-06)
 
 ## 結語 Conclusion
 
-感謝您選擇 MakanMakan AI 智能分析系統！
+感謝您選擇 MakanMasak AI 智能分析系統！
 
 本手冊涵蓋了從基礎設定到進階使用的完整內容。如果您有任何問題或建議，請隨時聯繫我們的支援團隊。
 
 祝您使用愉快，業務蒸蒸日上！🚀
 
-Thank you for choosing MakanMakan AI Analytics System!
+Thank you for choosing MakanMasak AI Analytics System!
 
 This manual covers everything from basic setup to advanced usage. If you have any questions or suggestions, please feel free to contact our support team.
 
@@ -2735,7 +2735,7 @@ Happy analyzing, and may your business thrive! 🚀
 
 ---
 
-**© 2025 MakanMakan. All rights reserved.**
+**© 2025 MakanMasak. All rights reserved.**
 
 **Version**: 1.0
 **Last Updated**: 2025-11-06

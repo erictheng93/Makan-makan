@@ -678,4 +678,4 @@ console.log(tableQR);
 ---
 
 生成時間: 2025-10-10
-項目: MakanMakan Platform - Shop QR Feature Phase 2 & 3
+項目: MakanMasak Platform - Shop QR Feature Phase 2 & 3

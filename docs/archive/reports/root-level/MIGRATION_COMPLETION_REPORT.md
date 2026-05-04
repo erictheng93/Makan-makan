@@ -1,6 +1,6 @@
 # Drizzle ORM 迁移完成报告
 
-**项目**: MakanMakan Restaurant Management System
+**项目**: MakanMasak Restaurant Management System
 **完成日期**: 2025-11-10
 **状态**: ✅ **代码迁移 100% 完成** | ⚠️ **测试需要进一步调试**
 
@@ -375,4 +375,4 @@ this.db = drizzle(d1, {
 ---
 
 _此报告由 Claude Code 生成_
-_MakanMakan Platform - Cloudflare Workers + D1 + Drizzle ORM_
+_MakanMasak Platform - Cloudflare Workers + D1 + Drizzle ORM_

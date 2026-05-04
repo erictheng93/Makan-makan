@@ -2,7 +2,7 @@
 
 **最後更新**: 2025-11-11
 **版本**: 1.0.0
-**適用專案**: MakanMakan Platform
+**適用專案**: MakanMasak Platform
 
 ## 目錄
 
@@ -336,9 +336,9 @@ docker pull owasp/zap2docker-stable:2.14.0
 # 掃描上下文
 env:
   contexts:
-    - name: "MakanMakan Admin Dashboard"
+    - name: "MakanMasak Admin Dashboard"
       url: "http://localhost:4173"
-    - name: "MakanMakan API"
+    - name: "MakanMasak API"
       url: "http://localhost:8787"
 
 # 認證配置
@@ -580,7 +580,7 @@ security-tests:
 CI/CD 完成後，查看 **GitHub Actions Summary** 頁面：
 
 ```
-## 🧪 MakanMakan 測試結果完整摘要
+## 🧪 MakanMasak 測試結果完整摘要
 
 ### 🎯 核心測試
 - ✅ 單元測試: 通過
@@ -877,7 +877,7 @@ git push origin main
 
 ## 總結
 
-本指南涵蓋了 MakanMakan 專案的視覺回歸測試和安全性測試的完整流程。通過這些工具，我們能夠：
+本指南涵蓋了 MakanMasak 專案的視覺回歸測試和安全性測試的完整流程。通過這些工具，我們能夠：
 
 ### 視覺回歸測試
 
@@ -935,6 +935,6 @@ git push origin main
 
 ---
 
-**維護團隊**: MakanMakan DevOps Team
-**聯絡方式**: devops@makanmakan.com
+**維護團隊**: MakanMasak DevOps Team
+**聯絡方式**: devops@makanmasak.com
 **最後更新**: 2025-11-11

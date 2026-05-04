@@ -295,7 +295,7 @@ import type {
   ProductAnalysis,
   AIInsight,
   LLMProvider,
-} from "@makanmakan/ai-analytics";
+} from "@makanmasak/ai-analytics";
 ```
 
 ### 錯誤處理
@@ -391,7 +391,7 @@ pnpm run deploy
 1. **運行數據庫遷移**：
 
 ```bash
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-prod --env production
 ```
 
 2. **部署 API**：

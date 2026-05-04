@@ -1,6 +1,6 @@
 # Architecture Documentation / 架構文檔
 
-本文件夾包含 MakanMakan 系統的架構設計、技術規格和系統設計文檔。
+本文件夾包含 MakanMasak 系統的架構設計、技術規格和系統設計文檔。
 
 ## 📂 文件夾結構
 

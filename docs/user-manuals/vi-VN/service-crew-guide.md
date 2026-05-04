@@ -1,4 +1,4 @@
-# 🚀 Hướng Dẫn Nhân Viên Phục Vụ MakanMakan
+# 🚀 Hướng Dẫn Nhân Viên Phục Vụ MakanMasak
 
 > **Phiên bản**: 2.0
 > **Cập nhật**: 2025-10-26
@@ -23,7 +23,7 @@
 
 ## 🚀 Bắt Đầu Nhanh
 
-### Chào Mừng Bạn Đến Với Đội Ngũ MakanMakan!
+### Chào Mừng Bạn Đến Với Đội Ngũ MakanMasak!
 
 Là nhân viên phục vụ, bạn là cầu nối quan trọng giữa nhà hàng và khách hàng. Trách nhiệm chính của bạn là:
 
@@ -121,7 +121,7 @@ Là nhân viên phục vụ, bạn là cầu nối quan trọng giữa nhà hàn
 │ Các Bước Đăng Nhập                       │
 ├──────────────────────────────────────────┤
 │                                          │
-│  1️⃣ Mở App MakanMakan Nhân Viên        │
+│  1️⃣ Mở App MakanMasak Nhân Viên        │
 │      ↓                                   │
 │  2️⃣ Nhập tài khoản do chủ cung cấp     │
 │      ↓                                   │
@@ -636,7 +636,7 @@ Danh Sách Giao Món
    ├─ Quản Lý/Giám Sát: [Máy nội bộ] hoặc [Di động]
    ├─ Bếp Trưởng: [Máy nội bộ]
    ├─ Thu Ngân: [Máy nội bộ]
-   └─ Hỗ Trợ Kỹ Thuật: support@makanmakan.com
+   └─ Hỗ Trợ Kỹ Thuật: support@makanmasak.com
 ```
 
 ### Báo Cáo Sự Cố
@@ -752,7 +752,7 @@ A: Tùy chính sách nhà hàng
 
   ✅ Nếu nhà hàng có app di động:
      • Có thể dùng điện thoại riêng
-     • Tải MakanMakan App Nhân Viên
+     • Tải MakanMasak App Nhân Viên
      • Đăng nhập tài khoản nhân viên
      • Đảm bảo kết nối internet ổn định
 
@@ -823,7 +823,7 @@ A: Mẹo Nâng Cao Hiệu Quả
 A: Theo quy định nhà hàng
 
   ✅ Được Phép:
-     • Dùng app MakanMakan xem đơn
+     • Dùng app MakanMasak xem đơn
      • Liên lạc khẩn cấp gia đình
      • Nghe điện quản lý
      • Công việc liên quan
@@ -976,7 +976,7 @@ Thang Nghề Nghiệp Phục Vụ
 
 ### Thông Tin Liên Hệ
 
-- **Vấn Đề Kỹ Thuật/Hệ Thống**: support@makanmakan.com
+- **Vấn Đề Kỹ Thuật/Hệ Thống**: support@makanmasak.com
 - **Vấn Đề Sử Dụng App**: "Trung Tâm Trợ Giúp" trong hệ thống
 - **Vấn Đề Công Việc**: Liên hệ trực tiếp giám sát của bạn
 
@@ -984,7 +984,7 @@ Thang Nghề Nghiệp Phục Vụ
 
 ## 🌟 Kết Luận
 
-Cảm ơn bạn đã chọn trở thành thành viên của đội ngũ MakanMakan!
+Cảm ơn bạn đã chọn trở thành thành viên của đội ngũ MakanMasak!
 
 Là nhân viên phục vụ, bạn là cầu nối quan trọng giữa bếp và khách hàng. Mỗi nụ cười, mỗi lần giao đúng giờ của bạn đều tạo nên trải nghiệm ăn uống tuyệt vời.
 
@@ -1001,7 +1001,7 @@ Chúc bạn thành công và trở thành nhân viên phục vụ xuất sắc n
 
 <div align="center">
 
-**Hướng Dẫn Nhân Viên Phục Vụ MakanMakan**
+**Hướng Dẫn Nhân Viên Phục Vụ MakanMasak**
 
 Biến mỗi dịch vụ thành trải nghiệm tuyệt vời
 

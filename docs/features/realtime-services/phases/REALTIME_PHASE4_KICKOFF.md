@@ -172,7 +172,7 @@ Week 4: 運維準備 🟡 中優先度
 ## 📁 已創建文件結構
 
 ```
-makanmakan/
+makanmasak/
 ├── docs/
 │   ├── REALTIME_PHASE4_PLAN.md           (✅ 新增 - 15,000 字符)
 │   ├── REALTIME_PHASE4_KICKOFF.md        (✅ 新增 - 本文件)
@@ -437,4 +437,4 @@ Phase 4 已正式啟動，我們已經完成了：
 **文檔版本**: 1.0.0
 **創建日期**: 2025-11-03
 **下次更新**: Week 1 Day 2 (基準測試完成後)
-**負責人**: MakanMakan Dev Team
+**負責人**: MakanMasak Dev Team

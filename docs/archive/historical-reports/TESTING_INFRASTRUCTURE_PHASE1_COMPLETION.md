@@ -1,6 +1,6 @@
 # 測試基礎設施與 API 文檔化 - Phase 1 完成報告
 
-**項目**: MakanMakan 餐廳管理系統
+**項目**: MakanMasak 餐廳管理系統
 **階段**: Phase 1 - 基礎設施準備
 **狀態**: ✅ 100% 完成
 **完成日期**: 2025-11-15
@@ -10,7 +10,7 @@
 
 ## 📋 執行摘要
 
-本報告記錄了 MakanMakan 項目測試與 API 文檔化改進計劃的 **Phase 1（基礎設施準備）** 的完整執行情況。
+本報告記錄了 MakanMasak 項目測試與 API 文檔化改進計劃的 **Phase 1（基礎設施準備）** 的完整執行情況。
 
 ### 初始狀態評估
 
@@ -221,13 +221,13 @@ coverage: {
      app.doc("/openapi.json", {
        openapi: "3.1.0",
        info: {
-         title: "MakanMakan API",
+         title: "MakanMasak API",
          version: "2.0.0",
          description: "智慧雲端點餐平台 REST API",
          contact: {
-           name: "MakanMakan Development Team",
-           email: "api@makanmakan.com",
-           url: "https://github.com/makanmakan/platform",
+           name: "MakanMasak Development Team",
+           email: "api@makanmasak.com",
+           url: "https://github.com/makanmasak/platform",
          },
          license: {
            name: "MIT License",
@@ -243,8 +243,8 @@ coverage: {
 
    ```typescript
    servers: [
-     { url: 'https://api.makanmakan.com', description: 'Production Server' },
-     { url: 'https://api-staging.makanmakan.com', description: 'Staging Server' },
+     { url: 'https://api.makanmasak.com', description: 'Production Server' },
+     { url: 'https://api-staging.makanmasak.com', description: 'Staging Server' },
      { url: 'http://localhost:8787', description: 'Local Development' },
    ],
    ```
@@ -965,9 +965,9 @@ curl http://localhost:8787/openapi.json  # 下載 OpenAPI JSON
 
 ### C. 聯絡方式
 
-**項目負責人**：MakanMakan Development Team
-**技術支援**：api@makanmakan.com
-**GitHub**：https://github.com/makanmakan/platform
+**項目負責人**：MakanMasak Development Team
+**技術支援**：api@makanmasak.com
+**GitHub**：https://github.com/makanmasak/platform
 
 ---
 

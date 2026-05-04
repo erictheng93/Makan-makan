@@ -1,4 +1,4 @@
-# 👨‍🍳 MakanMakan Gabay sa Paggamit para sa Chef
+# 👨‍🍳 MakanMasak Gabay sa Paggamit para sa Chef
 
 > **Bersyon**: 2.0
 > **Petsa ng Update**: 2025-10-26
@@ -84,7 +84,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ MakanMakan Kitchen Ecosystem                            │
+│ MakanMasak Kitchen Ecosystem                            │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  Customer Order ───→ Order System ───→ Kitchen Display ───→ Delivery Confirmation   │
@@ -237,9 +237,9 @@ Pumunta sa: URL ng sistema sa kitchen tablet o display
 
 ```
 Halimbawa ng URL:
-https://kitchen.makanmakan.com
+https://kitchen.makanmasak.com
 o
-https://your-restaurant.makanmakan.com/kitchen
+https://your-restaurant.makanmasak.com/kitchen
 ```
 
 **Hakbang 2: Ilagay ang Chef Account**
@@ -1359,7 +1359,7 @@ A: Device Failure Handling
 │             support         │
 │ ├─ Phone: 0800-xxx-xxx      │
 │ ├─ Email: support@xxx.com   │
-│ └─ LINE: @makanmakan        │
+│ └─ LINE: @makanmasak        │
 │                             │
 │ Emergency: System admin     │
 │ └─ 24-hour hotline          │
@@ -1559,7 +1559,7 @@ Direksyon ng pagpapabuti ng performance:
 
 ## 🌟 Konklusyon
 
-Salamat sa paggamit ng MakanMakan Kitchen Display System!
+Salamat sa paggamit ng MakanMasak Kitchen Display System!
 
 ```
 ┌─────────────────────────────────────────┐
@@ -1588,16 +1588,16 @@ Salamat sa paggamit ng MakanMakan Kitchen Display System!
 
 ## 📞 Kailangan ng Tulong?
 
-**Technical Support**: support@makanmakan.com
+**Technical Support**: support@makanmasak.com
 **Customer Service Hotline**: 0800-123-456
-**Online Documentation**: docs.makanmakan.com
+**Online Documentation**: docs.makanmasak.com
 **Community Support**: Facebook / LINE Official Account
 
 ---
 
 <div align="center">
 
-**MakanMakan Chef Operations Manual**
+**MakanMasak Chef Operations Manual**
 
 Gawing mas matalino ang pamamahala ng kusina, gawing mas focused ang pagluluto
 

@@ -133,7 +133,7 @@ S-YYYYMMDD-NNN
 
 ```bash
 # 匯出當前數據庫
-npx wrangler d1 export makanmakan-local > backup_$(date +%Y%m%d_%H%M%S).sql
+npx wrangler d1 export makanmasak-local > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 #### 1.2 查看現有餐廳數據

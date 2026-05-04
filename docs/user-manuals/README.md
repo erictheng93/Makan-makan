@@ -1,4 +1,4 @@
-# MakanMakan 用戶手冊 / User Manuals
+# MakanMasak 用戶手冊 / User Manuals
 
 > **最後更新 / Last Updated**: 2025-11-06
 > **版本 / Version**: 3.0
@@ -7,7 +7,7 @@
 
 ## 📚 可用語言 / Available Languages
 
-MakanMakan 提供以下語言的完整用戶手冊：
+MakanMasak 提供以下語言的完整用戶手冊：
 
 ### 🌐 語言列表 / Language List
 
@@ -71,7 +71,7 @@ MakanMakan 提供以下語言的完整用戶手冊：
 
 ### 主要章節 / Main Sections
 
-1. **歡迎使用 MakanMakan**
+1. **歡迎使用 MakanMasak**
    - 平台介紹
    - 主要特色
    - 系統需求
@@ -134,7 +134,7 @@ MakanMakan 提供以下語言的完整用戶手冊：
 
 ### 顧客 (Customers)
 
-所有使用 MakanMakan 平台點餐的顧客，包括：
+所有使用 MakanMasak 平台點餐的顧客，包括：
 
 - ✅ **首次使用者** - 完整的入門指南
 - ✅ **一般使用者** - 詳細的操作說明
@@ -229,7 +229,7 @@ user-manuals/
 
 如果您在使用手冊時發現任何問題或有改進建議，請透過以下方式聯絡我們：
 
-**Email**: support@makanmakan.com
+**Email**: support@makanmasak.com
 
 **請提供 / Please Provide**:
 
@@ -246,7 +246,7 @@ user-manuals/
 
 - 📝 內容撰寫: Claude AI
 - 🌐 翻譯協助: Claude AI
-- 🎨 格式設計: MakanMakan Team
+- 🎨 格式設計: MakanMasak Team
 - ✅ 品質審核: Community Contributors
 
 ---
@@ -321,7 +321,7 @@ This user manual is licensed under **CC BY-NC-SA 4.0**.
 
 <div align="center">
 
-**MakanMakan User Manuals**
+**MakanMasak User Manuals**
 
 Built with ❤️ for our customers worldwide
 

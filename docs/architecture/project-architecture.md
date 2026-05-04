@@ -1,9 +1,9 @@
-# MakanMakan 項目架構文檔
+# MakanMasak 項目架構文檔
 
 ## 項目結構
 
 ```
-makanmakan/
+makanmasak/
 ├── apps/                          # 應用程式
 │   ├── api/                       # 核心 API (Cloudflare Workers + Hono)
 │   │   └── src/features/          # 功能模組 (41 modules)

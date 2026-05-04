@@ -458,7 +458,7 @@ export const PLAN_QUOTAS: Record<PlanTier, Partial<Record<MeterKey, {
 ```typescript
 import type { Context } from 'hono';
 import type { Env } from '../types/env';
-import type { MeterKey } from '@makanmakan/database';
+import type { MeterKey } from '@makanmasak/database';
 
 interface MeterEmitOptions {
   restaurantId?: string;       // 缺省從 c.get('user').restaurantId 推導
@@ -902,7 +902,7 @@ P3-c 上線時實作至少一個（取決於 §5 #1 決策後）。本 SPEC 寫�
 **Slack**：直接重用 `c.env.SLACK_WEBHOOK_URL`（既有 monitoring 模式，見 `MonitoringService.sendSlackAlert`）。`notification_dispatch_log.channel='slack'`。
 
 **Email**：選 **Resend** 為 provider（HTTP API、Cloudflare Workers 友善、有 zh-TW 模板支援）。
-- env 加 `RESEND_API_KEY`、`BILLING_EMAIL_FROM`（如 `billing@makanmakan.app`）
+- env 加 `RESEND_API_KEY`、`BILLING_EMAIL_FROM`（如 `billing@makanmasak.app`）
 - 若 env 未配置 → `notification_dispatch_log.status='skipped_provider_unconfigured'`，**不報錯**（讓 P3 在 email 設定就緒前可先上 Slack 通道）
 - 模板放 `packages/shared/src/email-templates/billing/`，採 MJML→HTML，i18n key 走既有 `apps/onboarding-app/src/i18n` 同套（zh-TW / zh-CN / en-US 三語版）
 
@@ -954,7 +954,7 @@ P1 上線時 `shopSubscriptions` 沒有 row 的既有 restaurant：
 - 寫 backfill migration：所有現存 restaurant 自動建立 `planTier = 'enterprise'` + `isActive = true` 訂閱（避免破壞既有客戶）
 - 之後再依商務決策手動降級
 
-Backfill migration 與 runtime writes 一律產出 UUID v7：runtime 走 schema `$defaultFn(() => uuidv7())` 或 `@makanmakan/utils.generateUUID()`；migration SQL 用 `printf('%08x-%04x-7%03x-%1x%03x-%012x', ...)` 加 `unixepoch('now')*1000` + `random()` 在 SQLite 內合成 v7（見 `migrations_fresh/0046_backfill-enterprise-subscriptions.sql`）。不再允許 `lower(hex(randomblob(16)))` 等非 v7 形式。
+Backfill migration 與 runtime writes 一律產出 UUID v7：runtime 走 schema `$defaultFn(() => uuidv7())` 或 `@makanmasak/utils.generateUUID()`；migration SQL 用 `printf('%08x-%04x-7%03x-%1x%03x-%012x', ...)` 加 `unixepoch('now')*1000` + `random()` 在 SQLite 內合成 v7（見 `migrations_fresh/0046_backfill-enterprise-subscriptions.sql`）。不再允許 `lower(hex(randomblob(16)))` 等非 v7 形式。
 
 ### 6.2 Feature flag
 
@@ -1109,7 +1109,7 @@ P2/P3 新增：
 | P3-c | `WebhookProvider.verify` mock + parse | webhook 端到端：post → audit log → cycle_snapshots 變更 | — |
 | P3-d | dedupKey 同 cycle 同 meter 第二次發 skip | Resend 失敗時 fallback Slack | — |
 
-**所有測試必用 `@makanmakan/testing-utils` factory**（CLAUDE.md 既有規範）。
+**所有測試必用 `@makanmasak/testing-utils` factory**（CLAUDE.md 既有規範）。
 
 ### 10.2 Observability
 

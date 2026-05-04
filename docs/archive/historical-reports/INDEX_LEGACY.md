@@ -1,4 +1,4 @@
-# MakanMakan 文檔索引
+# MakanMasak 文檔索引
 
 > **最後更新**: 2025-10-11
 > **專案版本**: 2.0 (Cloudflare Serverless)
@@ -136,8 +136,8 @@
 
 **部署環境**:
 
-- 生產環境: `makanmakan-prod` (Cloudflare)
-- 測試環境: `makanmakan-staging` (Cloudflare)
+- 生產環境: `makanmasak-prod` (Cloudflare)
+- 測試環境: `makanmasak-staging` (Cloudflare)
 - 本地開發: Local SQLite
 
 ---
@@ -293,7 +293,7 @@
 
 ## 📞 支援與問題回報
 
-- **GitHub Issues**: [專案 Issues](https://github.com/your-org/makanmakan/issues)
+- **GitHub Issues**: [專案 Issues](https://github.com/your-org/makanmasak/issues)
 - **技術文檔**: 參考 [CLAUDE.md](../CLAUDE.md)
 - **API 文檔**: 參考 [API 指南](./api/)
 

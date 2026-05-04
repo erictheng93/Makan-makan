@@ -178,7 +178,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/token \
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "expiresIn": 300,
-    "wsUrl": "wss://realtime.makanmakan.workers.dev/customer/room_test_1?token=..."
+    "wsUrl": "wss://realtime.makanmasak.workers.dev/customer/room_test_1?token=..."
   }
 }
 ```
@@ -250,7 +250,7 @@ curl -X POST http://localhost:8787/api/v1/realtime/auth/verify \
 npm install -g wscat
 
 # 連線到 WebSocket (使用上面取得的 token)
-wscat -c "wss://realtime.makanmakan.workers.dev/customer/room_test_1?token=<YOUR_TOKEN>"
+wscat -c "wss://realtime.makanmasak.workers.dev/customer/room_test_1?token=<YOUR_TOKEN>"
 ```
 
 **預期行為**:
@@ -401,7 +401,7 @@ curl -X PATCH http://localhost:8787/api/v1/orders/1/status \
 
 ```bash
 # 通過 HTTP 端點查詢歷史
-curl "https://realtime.makanmakan.workers.dev/history?since=<lastEventId>"
+curl "https://realtime.makanmasak.workers.dev/history?since=<lastEventId>"
 ```
 
 **預期結果**: 收到斷開期間錯過的所有事件
@@ -506,7 +506,7 @@ cd apps/api && npx wrangler tail
 
 ```bash
 # 查看連線統計
-curl https://realtime.makanmakan.workers.dev/stats
+curl https://realtime.makanmasak.workers.dev/stats
 ```
 
 **預期響應**:
@@ -537,10 +537,10 @@ curl https://realtime.makanmakan.workers.dev/stats
 
 ```bash
 # 查看事件歷史
-curl "https://realtime.makanmakan.workers.dev/history"
+curl "https://realtime.makanmasak.workers.dev/history"
 
 # 查看特定事件之後的歷史
-curl "https://realtime.makanmakan.workers.dev/history?since=evt_12345"
+curl "https://realtime.makanmasak.workers.dev/history?since=evt_12345"
 ```
 
 ---
@@ -578,5 +578,5 @@ curl "https://realtime.makanmakan.workers.dev/history?since=evt_12345"
 **文檔維護**:
 
 - **建立日期**: 2025-11-03
-- **維護者**: MakanMakan Tech Team
+- **維護者**: MakanMasak Tech Team
 - **審核週期**: 每月

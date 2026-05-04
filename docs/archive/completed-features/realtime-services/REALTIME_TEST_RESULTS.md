@@ -115,7 +115,7 @@ const token = sign(payload, this.jwtSecret);
 
 - **Token 長度**: 約 200+ 字符
 - **有效期**: 300 秒（5 分鐘）
-- **WebSocket URL**: `wss://realtime.makanmakan.workers.dev/kitchen/kitchen_1?token=...`
+- **WebSocket URL**: `wss://realtime.makanmasak.workers.dev/kitchen/kitchen_1?token=...`
 
 **Token Payload** (解碼後):
 
@@ -151,7 +151,7 @@ const token = sign(payload, this.jwtSecret);
 
 - **Token 長度**: 約 200+ 字符
 - **有效期**: 300 秒（5 分鐘）
-- **WebSocket URL**: `wss://realtime.makanmakan.workers.dev/admin/admin_1?token=...`
+- **WebSocket URL**: `wss://realtime.makanmasak.workers.dev/admin/admin_1?token=...`
 
 **Token Payload** (解碼後):
 
@@ -196,13 +196,13 @@ const token = sign(payload, this.jwtSecret);
 #### Kitchen WebSocket 連線
 
 ```bash
-wscat -c "wss://realtime.makanmakan.workers.dev/kitchen/kitchen_1?token=eyJhbGc..."
+wscat -c "wss://realtime.makanmasak.workers.dev/kitchen/kitchen_1?token=eyJhbGc..."
 ```
 
 #### Admin WebSocket 連線
 
 ```bash
-wscat -c "wss://realtime.makanmakan.workers.dev/admin/admin_1?token=eyJhbGc..."
+wscat -c "wss://realtime.makanmasak.workers.dev/admin/admin_1?token=eyJhbGc..."
 ```
 
 **預期測試步驟**:
@@ -617,7 +617,7 @@ npm install -g wscat
 wscat -c "ws://localhost:8788/kitchen/kitchen_1?token=YOUR_TOKEN"
 
 # 資料庫操作
-npx wrangler d1 execute makanmakan-local --local --command "SELECT * FROM tables"
+npx wrangler d1 execute makanmasak-local --local --command "SELECT * FROM tables"
 ```
 
 ---

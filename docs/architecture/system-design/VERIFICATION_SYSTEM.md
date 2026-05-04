@@ -199,10 +199,10 @@ API_BASE_URL = "https://yourdomain.com/api"
 
 ```bash
 # 應用驗證系統遷移
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 
 # 生產環境
-npx wrangler d1 migrations apply makanmakan-prod --env production
+npx wrangler d1 migrations apply makanmasak-prod --env production
 ```
 
 ### 3. 驗證設置
@@ -693,7 +693,7 @@ curl -X POST http://localhost:8787/api/v1/auth/reset-password \
 
 ```bash
 # 1. 檢查 MailChannels 配置
-wrangler tail makanmakan-api --env staging
+wrangler tail makanmasak-api --env staging
 
 # 2. 驗證 DNS 記錄
 dig TXT yourdomain.com  # 檢查 SPF
@@ -740,7 +740,7 @@ wrangler secret list --env staging
 # 必須包含國家代碼: +60123456789 (不是 0123456789)
 
 # 4. 檢查錯誤日誌
-wrangler tail makanmakan-api --env staging
+wrangler tail makanmasak-api --env staging
 ```
 
 #### 4. 驗證次數超限
@@ -940,7 +940,7 @@ app.post(
 
 ```env
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
-ALERT_EMAIL=security@makanmakan.com
+ALERT_EMAIL=security@makanmasak.com
 ```
 
 **文件**: `apps/api/src/services/AlertService.ts`
@@ -987,7 +987,7 @@ Email: test@example.com
 IP: 192.168.1.1
 Status: Failed - User not found
 ────────────────────────
-MakanMakan Security System
+MakanMasak Security System
 ```
 
 ### Email 通知格式
@@ -1054,9 +1054,9 @@ MakanMakan Security System
 
 如有問題或需要協助，請聯絡：
 
-- 技術支援: tech@makanmakan.com
-- 文檔: https://github.com/yourusername/makanmakan/docs
+- 技術支援: tech@makanmasak.com
+- 文檔: https://github.com/yourusername/makanmasak/docs
 
 ---
 
-**Built with ❤️ by MakanMakan Team**
+**Built with ❤️ by MakanMasak Team**

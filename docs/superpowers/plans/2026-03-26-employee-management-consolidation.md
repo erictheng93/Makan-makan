@@ -383,7 +383,7 @@ export default leavesService;
 
 - [ ] **Step 2: Verify TypeScript compiles**
 
-Run: `pnpm --filter makanmakan-admin-dashboard typecheck`
+Run: `pnpm --filter makanmasak-admin-dashboard typecheck`
 Expected: No errors from the new service file.
 
 - [ ] **Step 3: Commit**
@@ -849,7 +849,7 @@ Test in browser:
 
 - [ ] **Step 5: Run typecheck**
 
-Run: `pnpm --filter makanmakan-admin-dashboard typecheck`
+Run: `pnpm --filter makanmasak-admin-dashboard typecheck`
 Expected: No new TypeScript errors.
 
 - [ ] **Step 6: Commit**

@@ -1,4 +1,4 @@
-# MakanMakan PWA 功能測試與性能優化報告
+# MakanMasak PWA 功能測試與性能優化報告
 
 ## 📋 PWA 功能測試結果
 
@@ -20,19 +20,19 @@
 
 ```javascript
 // Customer App SW
-const CACHE_NAME = "makanmakan-customer-v1";
-const API_CACHE_NAME = "makanmakan-api-v1";
-const IMAGES_CACHE_NAME = "makanmakan-images-v1";
+const CACHE_NAME = "makanmasak-customer-v1";
+const API_CACHE_NAME = "makanmasak-api-v1";
+const IMAGES_CACHE_NAME = "makanmasak-images-v1";
 
 // Admin Dashboard SW
-const CACHE_NAME = "makanmakan-admin-v1";
-const API_CACHE_NAME = "makanmakan-admin-api-v1";
-const STATIC_CACHE_NAME = "makanmakan-admin-static-v1";
+const CACHE_NAME = "makanmasak-admin-v1";
+const API_CACHE_NAME = "makanmasak-admin-api-v1";
+const STATIC_CACHE_NAME = "makanmasak-admin-static-v1";
 
 // Kitchen Display SW
-const CACHE_NAME = "makanmakan-kitchen-v1";
-const API_CACHE_NAME = "makanmakan-kitchen-api-v1";
-const STATIC_CACHE_NAME = "makanmakan-kitchen-static-v1";
+const CACHE_NAME = "makanmasak-kitchen-v1";
+const API_CACHE_NAME = "makanmasak-kitchen-api-v1";
+const STATIC_CACHE_NAME = "makanmasak-kitchen-static-v1";
 ```
 
 #### 2. Web App Manifest 配置
@@ -449,7 +449,7 @@ class PWAPerformanceMonitor {
 
 ## 📝 總結
 
-MakanMakan PWA 已具備完整的核心功能，現在需要著重於性能優化和用戶體驗提升。通過實施上述優化建議，可以顯著提升 PWA 的性能和可靠性。
+MakanMasak PWA 已具備完整的核心功能，現在需要著重於性能優化和用戶體驗提升。通過實施上述優化建議，可以顯著提升 PWA 的性能和可靠性。
 
 **當前 PWA 評分**: 85/100
 **優化後預期評分**: 95/100

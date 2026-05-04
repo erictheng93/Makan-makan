@@ -19,7 +19,7 @@
 
 ## 系統概述
 
-MakanMakan 實時服務系統基於 **Cloudflare Durable Objects** 構建，提供低延遲、高可靠的 WebSocket 連接，支持訂單追蹤、廚房顯示、菜單更新等實時功能。
+MakanMasak 實時服務系統基於 **Cloudflare Durable Objects** 構建，提供低延遲、高可靠的 WebSocket 連接，支持訂單追蹤、廚房顯示、菜單更新等實時功能。
 
 ### 核心特性
 
@@ -418,7 +418,7 @@ const token = sign(payload, JWT_SECRET, { expiresIn: '5m' })
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "expiresIn": 300,
-  "wsUrl": "wss://realtime.makanmakan.workers.dev/customer/table1?token=xxx"
+  "wsUrl": "wss://realtime.makanmasak.workers.dev/customer/table1?token=xxx"
 }
 ```
 
@@ -842,7 +842,7 @@ export function useKitchenRealtime(restaurantId: number) {
 #### wrangler.toml (apps/realtime/)
 
 ```toml
-name = "makanmakan-realtime"
+name = "makanmasak-realtime"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
@@ -850,7 +850,7 @@ compatibility_date = "2024-01-01"
 [[durable_objects.bindings]]
 name = "REALTIME_SESSION"
 class_name = "RealtimeSession"
-script_name = "makanmakan-realtime"
+script_name = "makanmasak-realtime"
 
 # Environment variables
 [vars]
@@ -858,23 +858,23 @@ ENVIRONMENT = "development"
 
 # Staging environment
 [env.staging]
-name = "makanmakan-realtime-staging"
+name = "makanmasak-realtime-staging"
 vars = { ENVIRONMENT = "staging" }
 
 [[env.staging.durable_objects.bindings]]
 name = "REALTIME_SESSION"
 class_name = "RealtimeSession"
-script_name = "makanmakan-realtime-staging"
+script_name = "makanmasak-realtime-staging"
 
 # Production environment
 [env.production]
-name = "makanmakan-realtime-prod"
+name = "makanmasak-realtime-prod"
 vars = { ENVIRONMENT = "production" }
 
 [[env.production.durable_objects.bindings]]
 name = "REALTIME_SESSION"
 class_name = "RealtimeSession"
-script_name = "makanmakan-realtime-prod"
+script_name = "makanmasak-realtime-prod"
 ```
 
 ### 部署步驟
@@ -885,26 +885,26 @@ cd apps/realtime
 npx wrangler deploy --env staging
 
 # 2. 測試 Staging 環境
-curl https://makanmakan-realtime-staging.workers.dev/health
+curl https://makanmasak-realtime-staging.workers.dev/health
 
 # 3. 部署到 Production
 npx wrangler deploy --env production
 
 # 4. 驗證部署
-curl https://makanmakan-realtime-prod.workers.dev/health
+curl https://makanmasak-realtime-prod.workers.dev/health
 ```
 
 ### 監控與日誌
 
 ```bash
 # 查看實時日誌
-npx wrangler tail makanmakan-realtime-prod
+npx wrangler tail makanmasak-realtime-prod
 
 # 查看特定請求
-npx wrangler tail makanmakan-realtime-prod --format pretty
+npx wrangler tail makanmasak-realtime-prod --format pretty
 
 # 過濾錯誤
-npx wrangler tail makanmakan-realtime-prod | grep "ERROR"
+npx wrangler tail makanmasak-realtime-prod | grep "ERROR"
 ```
 
 ---
@@ -1057,15 +1057,15 @@ describe('End-to-End Realtime Tests', () => {
 
 ```bash
 # 1. 檢查 JWT Token 是否有效
-curl -X POST https://api.makanmakan.com/api/v1/realtime/auth/verify \
+curl -X POST https://api.makanmasak.com/api/v1/realtime/auth/verify \
   -H "Content-Type: application/json" \
   -d '{"token":"your_token_here"}'
 
 # 2. 檢查 Realtime 服務健康狀態
-curl https://realtime.makanmakan.workers.dev/health
+curl https://realtime.makanmasak.workers.dev/health
 
 # 3. 查看日誌
-npx wrangler tail makanmakan-realtime-prod
+npx wrangler tail makanmasak-realtime-prod
 ```
 
 **解決方案**:
@@ -1210,4 +1210,4 @@ npx wrangler tail | grep "hibernat"
 
 **最後更新**: 2025-11-03
 **文檔版本**: 1.0
-**維護者**: MakanMakan Development Team
+**維護者**: MakanMasak Development Team
