@@ -9,6 +9,10 @@ import {
 import { getCustomerMessages } from "@makanmakan/i18n/static-messages";
 import { waitingListEn } from "@/locales/en";
 import { waitingListZhTw } from "@/locales/zh-TW";
+import { waitingListZhCn } from "@/locales/zh-CN";
+import { waitingListMsMy } from "@/locales/ms-MY";
+import { waitingListIdId } from "@/locales/id-ID";
+import { waitingListViVn } from "@/locales/vi-VN";
 
 // Load all translations statically
 const messages = getCustomerMessages();
@@ -19,6 +23,22 @@ messages["en-US"] = {
 messages["zh-TW"] = {
   ...messages["zh-TW"],
   ...waitingListZhTw,
+};
+messages["zh-CN"] = {
+  ...messages["zh-CN"],
+  ...waitingListZhCn,
+};
+messages["ms-MY"] = {
+  ...messages["ms-MY"],
+  ...waitingListMsMy,
+};
+messages["id-ID"] = {
+  ...messages["id-ID"],
+  ...waitingListIdId,
+};
+messages["vi-VN"] = {
+  ...messages["vi-VN"],
+  ...waitingListViVn,
 };
 
 // Supported languages for this app

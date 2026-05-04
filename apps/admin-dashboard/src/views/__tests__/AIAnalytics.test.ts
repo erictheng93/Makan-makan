@@ -108,6 +108,14 @@ vi.mock("vue-toastification", () => ({
   }),
 }));
 
+// AIInsightsDashboard wraps its template in <ModuleGate module="ai_analytics">.
+// In real runtime, the dashboard fetches /me/modules and renders the slot only
+// when access is granted. Tests don't mount the auth/module-access stack, so
+// stub ModuleGate as a transparent passthrough that always renders the slot.
+vi.mock("@makanmakan/shared/components/ModuleGate.vue", () => ({
+  default: { template: "<div><slot /></div>" },
+}));
+
 // Import components AFTER mocks
 import AIInsightsDashboard from "../ai-analytics/AIInsightsDashboard.vue";
 import AIProviderConfig from "../ai-analytics/AIProviderConfig.vue";

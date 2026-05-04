@@ -50,8 +50,7 @@ import {
 
 describe("useInfiniteScroll", () => {
   let mockFetchFn: Mock<
-    [PaginationParams],
-    Promise<PaginatedResponse<unknown>>
+    (params: PaginationParams) => Promise<PaginatedResponse<unknown>>
   >;
 
   beforeEach(() => {
