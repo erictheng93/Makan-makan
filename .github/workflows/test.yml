@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v5
@@ -70,7 +70,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v5
@@ -127,7 +127,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v5
@@ -195,7 +195,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v5
@@ -247,7 +247,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 啟用 pnpm via corepack
         run: |
@@ -324,7 +324,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v5
@@ -441,7 +441,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # 需要完整歷史以獲取基準線
 
@@ -573,7 +573,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 啟用 pnpm via corepack
         run: |
@@ -654,7 +654,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v5
@@ -817,7 +817,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📥 下載測試結果
         uses: actions/download-artifact@v8
@@ -990,7 +990,7 @@ jobs:
 
     steps:
       - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v5
