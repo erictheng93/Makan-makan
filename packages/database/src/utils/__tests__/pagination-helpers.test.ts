@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock shared-types pagination utilities
-vi.mock("@makanmakan/shared-types", () => ({
+vi.mock("@makanmasak/shared-types", () => ({
   normalizePaginationParams: vi.fn((params: any) => ({
     page: params.page ?? 1,
     pageSize: params.pageSize ?? 20,

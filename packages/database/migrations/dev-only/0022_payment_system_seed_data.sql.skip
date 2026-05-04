@@ -24,7 +24,7 @@ UPDATE payment_providers SET
     "returnUrl": {"type": "string", "required": true, "description": "Return URL after payment"},
     "notifyUrl": {"type": "string", "required": true, "description": "Webhook notification URL"},
     "clientBackUrl": {"type": "string", "required": true, "description": "Client return URL"},
-    "itemName": {"type": "string", "default": "MakanMakan Order"}
+    "itemName": {"type": "string", "default": "MakanMasak Order"}
   }')
 WHERE name = 'ecpay';
 
@@ -88,7 +88,7 @@ UPDATE payment_providers SET
     "version": {"type": "string", "default": "1.0"},
     "notifyUrl": {"type": "string", "required": true, "description": "Webhook notification URL"},
     "returnUrl": {"type": "string", "required": true, "description": "Return URL after payment"},
-    "itemName": {"type": "string", "default": "MakanMakan Order"}
+    "itemName": {"type": "string", "default": "MakanMasak Order"}
   }')
 WHERE name = 'unipay';
 
@@ -236,7 +236,7 @@ SELECT
     "returnUrl": "https://your-domain.com/payment/ecpay/return",
     "notifyUrl": "https://your-domain.com/api/v1/payments/webhook/ecpay",
     "clientBackUrl": "https://your-domain.com/payment/result",
-    "itemName": "MakanMakan Order",
+    "itemName": "MakanMasak Order",
     "paymentTimeout": 1800
   }'),
   'test_config_hash_ecpay_tw'

@@ -15,7 +15,7 @@ import type {
   ReceiptItem,
   ReceiptSummary,
   ReceiptFooter,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // =============================================
 // 地區特定格式化器
@@ -208,14 +208,14 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
       thankYouMessageLocal: "謝謝光臨！",
       promotionalMessage: restaurant.promotionalMessage,
       qrCode: {
-        data: `https://makanmakan.com/receipt/${order.id}`,
+        data: `https://makanmasak.com/receipt/${order.id}`,
         size: "medium",
         label: "數位收據",
       },
       contactInfo: {
         supportPhone: restaurant.supportPhone || "+886-2-1234-5678",
-        supportEmail: restaurant.supportEmail || "support@makanmakan.com",
-        website: "https://makanmakan.com",
+        supportEmail: restaurant.supportEmail || "support@makanmasak.com",
+        website: "https://makanmasak.com",
       },
       legalNotice: "本收據為電腦統一發票，請妥善保管",
     };
@@ -245,7 +245,7 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
   private getRestaurantInfo(restaurantId: string): any {
     // 實際實作中會從資料庫獲取
     return {
-      name: "MakanMakan Restaurant",
+      name: "MakanMasak Restaurant",
       // nameLocal: '好呷餐廳',
       address: "台北市信義區信義路五段7號",
       addressLocal: "台北市信義區信義路五段7號",
@@ -357,13 +357,13 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
       thankYouMessage: "Thank you for dining with us!",
       thankYouMessageLocal: "Terima kasih kerana makan bersama kami!",
       qrCode: {
-        data: `https://makanmakan.com/receipt/${order.id}`,
+        data: `https://makanmasak.com/receipt/${order.id}`,
         size: "medium",
         label: "Digital Receipt / Resit Digital",
       },
       contactInfo: {
         supportPhone: restaurant.supportPhone || "+60-3-1234-5678",
-        website: "https://makanmakan.my",
+        website: "https://makanmasak.my",
       },
       legalNotice: "GST/SST No: 000123456789 | Company No: 123456-A",
     };
@@ -386,8 +386,8 @@ export class MalaysiaReceiptFormatter extends RegionReceiptFormatter {
 
   private getRestaurantInfo(restaurantId: string): any {
     return {
-      name: "MakanMakan Restaurant",
-      // nameLocal: 'Restoran MakanMakan',
+      name: "MakanMasak Restaurant",
+      // nameLocal: 'Restoran MakanMasak',
       address: "Lot 1-01, Jalan Bukit Bintang, 55100 Kuala Lumpur",
       addressLocal: "Lot 1-01, Jalan Bukit Bintang, 55100 Kuala Lumpur",
       phone: "+60-3-2141-8888",
@@ -498,13 +498,13 @@ export class VietnamReceiptFormatter extends RegionReceiptFormatter {
       thankYouMessage: "Thank you for your visit!",
       thankYouMessageLocal: "Cảm ơn bạn đã ghé thăm!",
       qrCode: {
-        data: `https://makanmakan.com/receipt/${order.id}`,
+        data: `https://makanmasak.com/receipt/${order.id}`,
         size: "medium",
         label: "Hóa đơn điện tử / Digital Receipt",
       },
       contactInfo: {
         supportPhone: restaurant.supportPhone || "+84-28-1234-5678",
-        website: "https://makanmakan.vn",
+        website: "https://makanmasak.vn",
       },
       legalNotice: "Mã số thuế: 0123456789",
     };
@@ -528,8 +528,8 @@ export class VietnamReceiptFormatter extends RegionReceiptFormatter {
 
   private getRestaurantInfo(restaurantId: string): any {
     return {
-      name: "MakanMakan Restaurant",
-      // nameLocal: 'Nhà Hàng MakanMakan',
+      name: "MakanMasak Restaurant",
+      // nameLocal: 'Nhà Hàng MakanMasak',
       address: "123 Nguyen Hue Street, District 1, Ho Chi Minh City",
       addressLocal: "123 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh",
       phone: "+84-28-3823-4567",

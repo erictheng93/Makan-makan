@@ -1,6 +1,6 @@
-# @makanmakan/database
+# @makanmasak/database
 
-Modern, type-safe database layer built with Drizzle ORM for MakanMakan restaurant management system.
+Modern, type-safe database layer built with Drizzle ORM for MakanMasak restaurant management system.
 
 ## Features
 
@@ -15,7 +15,7 @@ Modern, type-safe database layer built with Drizzle ORM for MakanMakan restauran
 
 ```bash
 # Install dependencies
-pnpm add @makanmakan/database
+pnpm add @makanmasak/database
 
 # Peer dependencies
 pnpm add drizzle-orm @cloudflare/d1
@@ -24,7 +24,7 @@ pnpm add drizzle-orm @cloudflare/d1
 ## Quick Start
 
 ```typescript
-import { createDatabase, RestaurantService } from "@makanmakan/database";
+import { createDatabase, RestaurantService } from "@makanmasak/database";
 
 // Initialize database
 const db = createDatabase(env.DB);
@@ -152,13 +152,13 @@ await orderService.updateOrderStatus(orderId, {
 
 ```bash
 # Apply the migration script to your D1 database
-npx wrangler d1 execute makanmakan-prod --file=./scripts/migrate-from-legacy.sql
+npx wrangler d1 execute makanmasak-prod --file=./scripts/migrate-from-legacy.sql
 ```
 
 ### Step 2: Data Validation
 
 ```typescript
-import { validateMigration } from "@makanmakan/database/scripts";
+import { validateMigration } from "@makanmasak/database/scripts";
 
 await validateMigration(env.DB);
 ```
@@ -211,7 +211,7 @@ pnpm db:seed
 
 ```bash
 # Create local D1 database
-npx wrangler d1 create makanmakan-local --local
+npx wrangler d1 create makanmasak-local --local
 
 # Run migrations
 pnpm db:migrate:local
@@ -221,10 +221,10 @@ pnpm db:migrate:local
 
 ```bash
 # Create D1 database
-npx wrangler d1 create makanmakan-staging
+npx wrangler d1 create makanmasak-staging
 
 # Apply migrations
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+npx wrangler d1 migrations apply makanmasak-staging --env staging
 ```
 
 ## Type Safety Examples
@@ -303,10 +303,10 @@ await menuService.batchUpdateAvailability(restaurantId, [
 
    ```bash
    # Check migration status
-   npx wrangler d1 migrations list makanmakan-prod
+   npx wrangler d1 migrations list makanmasak-prod
 
    # Rollback if needed
-   npx wrangler d1 execute makanmakan-prod --command "DROP TABLE IF EXISTS temp_table"
+   npx wrangler d1 execute makanmasak-prod --command "DROP TABLE IF EXISTS temp_table"
    ```
 
 2. **Type Errors**

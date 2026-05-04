@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { POSService } from "../POSService";
 import type { D1Database } from "@cloudflare/workers-types";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // ==========================================
 // Mock 設置

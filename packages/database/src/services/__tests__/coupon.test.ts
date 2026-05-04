@@ -5,7 +5,7 @@ import type {
   CreateCouponData,
   UseCouponData,
 } from "../coupon";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 type CouponMockDb = {
   query: {

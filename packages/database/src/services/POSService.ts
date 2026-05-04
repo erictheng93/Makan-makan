@@ -745,7 +745,7 @@ export class POSService extends BaseService {
       total: amountFromCents(order.totalAmountCents, order.totalAmount) ?? 0,
       paymentMethod: order.paymentMethod,
       timestamp: new Date().toISOString(),
-      footer: "謝謝光臨 MakanMakan",
+      footer: "謝謝光臨 MakanMasak",
     };
   }
 

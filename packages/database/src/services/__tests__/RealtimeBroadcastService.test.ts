@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("@makanmakan/shared-types", async () => {
+vi.mock("@makanmasak/shared-types", async () => {
   const actual = await vi.importActual<
-    typeof import("@makanmakan/shared-types")
-  >("@makanmakan/shared-types");
+    typeof import("@makanmasak/shared-types")
+  >("@makanmasak/shared-types");
   return {
     ...actual,
     RealtimeEventType: {
@@ -23,7 +23,7 @@ import {
   type OrderStatusUpdateEvent,
   type OrderStatus,
   RealtimeEventType,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 interface MockEnv {
   REALTIME_SESSION: {

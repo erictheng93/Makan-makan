@@ -560,7 +560,7 @@ export const createOptimizedMockDB = () => {
 export const createMockEnv = () => ({
   DB: {} as D1Database,
   JWT_SECRET: "test-secret",
-  CUSTOMER_APP_URL: "https://test.makanmakan.com",
+  CUSTOMER_APP_URL: "https://test.makanmasak.com",
 });
 
 // ==========================================

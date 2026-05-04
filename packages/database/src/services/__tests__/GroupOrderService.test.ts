@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { GroupOrderService } from "../GroupOrderService";
 import type { D1Database } from "@cloudflare/workers-types";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // ==========================================
 // Mock Database with basic filtering support
@@ -427,7 +427,7 @@ const createMockDB = () => {
 
 const createMockEnv = () =>
   envFactory.buildMinimal({
-    CUSTOMER_APP_URL: "https://test.makanmakan.com",
+    CUSTOMER_APP_URL: "https://test.makanmasak.com",
   });
 
 // ==========================================

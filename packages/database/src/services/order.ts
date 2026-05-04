@@ -23,7 +23,7 @@ import type {
   Order,
   OrderItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
 
 const cancellableOrderStatuses: readonly string[] = [

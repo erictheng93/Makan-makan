@@ -29,7 +29,7 @@ import {
   menuItemFactory,
   categoryFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("MenuService", () => {
   let menuService: MenuService;

@@ -20,7 +20,7 @@ import type {
   ReservationStats,
   TableAssignmentRequest,
   TableAssignmentResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 interface ReservationDbRow {
   id: string;

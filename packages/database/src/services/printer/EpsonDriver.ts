@@ -9,7 +9,7 @@ import type {
   PrinterDevice,
   PrintCommand,
   PrintContent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export interface EpsonDriverConfig {
   connection: {

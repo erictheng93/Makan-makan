@@ -59,7 +59,7 @@ import {
   setupMockDbResponses,
   createQueryChain,
 } from "./helpers/mockD1";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("SeatService", () => {
   let seatService: SeatService;
@@ -79,7 +79,7 @@ describe("SeatService", () => {
     seatNumber: "01",
     seatName: null,
     position: null,
-    qrCode: "https://makanmakan.com/order?data=eyJ0eXBlIjoic2VhdCJ9",
+    qrCode: "https://makanmasak.com/order?data=eyJ0eXBlIjoic2VhdCJ9",
     qrCodeImageUrl: null,
     qrCodeVersion: 1,
     isOccupied: false,
@@ -323,7 +323,7 @@ describe("SeatService", () => {
         seatNumber: "01",
         seatName: null,
         position: null,
-        qrCode: "https://makanmakan.com/order?data=abc123",
+        qrCode: "https://makanmasak.com/order?data=abc123",
         isOccupied: false,
         isActive: true,
         currentOrderId: null,
@@ -337,12 +337,12 @@ describe("SeatService", () => {
 
       // Act
       const result = await seatService.getSeatByQRCode(
-        "https://makanmakan.com/order?data=abc123",
+        "https://makanmasak.com/order?data=abc123",
       );
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.qrCode).toBe("https://makanmakan.com/order?data=abc123");
+      expect(result.qrCode).toBe("https://makanmasak.com/order?data=abc123");
       expect(result.tableNumber).toBe("T1");
       expect(result.restaurantName).toBe("Test Restaurant");
     });
@@ -731,7 +731,7 @@ describe("SeatService", () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.qrCode).toBeDefined();
-      expect(result.qrCode).toContain("makanmakan.com/order?t=seat&r=");
+      expect(result.qrCode).toContain("makanmasak.com/order?t=seat&r=");
     });
 
     it("should return error when seat not found", async () => {
@@ -815,7 +815,7 @@ describe("SeatService", () => {
       expect(result.qrCodes![0].seatId).toBe(1);
       expect(result.qrCodes![0].seatNumber).toBe("01");
       expect(result.qrCodes![0].qrCode).toContain(
-        "makanmakan.com/order?t=seat&r=",
+        "makanmasak.com/order?t=seat&r=",
       );
       expect(result.qrCodes![1].seatId).toBe(2);
       expect(result.qrCodes![1].seatNumber).toBe("02");

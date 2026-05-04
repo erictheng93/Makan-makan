@@ -26,7 +26,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "../../testing/create-test-database";
-import { ReservationStatus } from "@makanmakan/shared-types";
+import { ReservationStatus } from "@makanmasak/shared-types";
 import { ReservationService } from "../ReservationService";
 import type { CloudflareEnv } from "../base";
 

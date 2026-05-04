@@ -301,7 +301,7 @@ export class GroupOrderService extends BaseService {
       });
 
       const baseUrl =
-        this.env.CUSTOMER_APP_URL || "https://order.makanmakan.com";
+        this.env.CUSTOMER_APP_URL || "https://order.makanmasak.com";
       const shareUrl = `${baseUrl}/group/${shareCode}`;
       const qrCodeUrl = `${baseUrl}/qr/group/${shareCode}`;
 

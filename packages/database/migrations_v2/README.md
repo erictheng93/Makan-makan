@@ -1,4 +1,4 @@
-# 📚 MakanMakan Database Migrations v2.0
+# 📚 MakanMasak Database Migrations v2.0
 
 > 模組化、清晰、可維護的資料庫架構
 
@@ -6,7 +6,7 @@
 
 ## 🎯 總覽
 
-這是 MakanMakan 的全新模組化資料庫架構，採用分層設計，每個模組職責清晰，易於理解和維護。
+這是 MakanMasak 的全新模組化資料庫架構，採用分層設計，每個模組職責清晰，易於理解和維護。
 
 ### 架構設計原則
 
@@ -25,7 +25,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  MakanMakan v2.0 架構                    │
+│                  MakanMasak v2.0 架構                    │
 └─────────────────────────────────────────────────────────┘
 
 Layer 6 (進階功能) - 3 個 migrations
@@ -203,15 +203,15 @@ migrations_v2/
 
 ```bash
 # 1. 創建測試資料庫
-npx wrangler d1 create makanmakan-test-v2
+npx wrangler d1 create makanmasak-test-v2
 
 # 2. 執行 Layer 1 migrations
-npx wrangler d1 execute makanmakan-test-v2 --file=migrations_v2/01_tenants_and_settings.sql
-npx wrangler d1 execute makanmakan-test-v2 --file=migrations_v2/02_authentication.sql
-npx wrangler d1 execute makanmakan-test-v2 --file=migrations_v2/03_audit_system.sql
+npx wrangler d1 execute makanmasak-test-v2 --file=migrations_v2/01_tenants_and_settings.sql
+npx wrangler d1 execute makanmasak-test-v2 --file=migrations_v2/02_authentication.sql
+npx wrangler d1 execute makanmasak-test-v2 --file=migrations_v2/03_audit_system.sql
 
 # 3. 驗證
-npx wrangler d1 execute makanmakan-test-v2 --command="SELECT name FROM sqlite_master WHERE type='table'"
+npx wrangler d1 execute makanmasak-test-v2 --command="SELECT name FROM sqlite_master WHERE type='table'"
 ```
 
 ### Staging 部署
@@ -220,7 +220,7 @@ npx wrangler d1 execute makanmakan-test-v2 --command="SELECT name FROM sqlite_ma
 # 執行所有 migrations (按順序)
 for file in migrations_v2/*.sql; do
   echo "Executing $file..."
-  npx wrangler d1 execute makanmakan-staging --file="$file" --env staging
+  npx wrangler d1 execute makanmasak-staging --file="$file" --env staging
 done
 ```
 
@@ -231,7 +231,7 @@ done
 ./scripts/migration-v2/backup-database.sh production
 
 # 執行 migrations
-npx wrangler d1 execute makanmakan-prod --file=migrations_v2/01_tenants_and_settings.sql --env production
+npx wrangler d1 execute makanmasak-prod --file=migrations_v2/01_tenants_and_settings.sql --env production
 # ... 依次執行其他 migrations
 ```
 

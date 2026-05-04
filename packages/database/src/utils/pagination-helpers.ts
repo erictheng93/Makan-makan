@@ -10,14 +10,14 @@ import type {
   PaginatedResponse,
   PaginationMeta,
   CursorPaginatedResponse,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   calculatePaginationMeta,
   normalizePaginationParams,
   getPaginationOffsetLimit,
   encodeCursor,
   decodeCursor,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 /**
  * Apply pagination to Drizzle query

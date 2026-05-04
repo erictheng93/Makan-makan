@@ -406,7 +406,7 @@ export class ExportService {
   </table>
 
   <div class="footer">
-    <p>MakanMakan Restaurant Management System</p>
+    <p>MakanMasak Restaurant Management System</p>
     <p>&copy; ${new Date().getFullYear()} All rights reserved</p>
   </div>
 </body>

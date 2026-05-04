@@ -15,7 +15,7 @@ import {
 import { BaseService } from "./base";
 import { tables, restaurants, orders } from "../schema";
 import { SeatService } from "./seat";
-import { buildSignedQRUrl } from "@makanmakan/utils";
+import { buildSignedQRUrl } from "@makanmasak/utils";
 import { moneyAmountExpression } from "../utils/money-sql";
 
 export interface CreateTableData {
@@ -525,7 +525,7 @@ export class TableService extends BaseService {
     tableNumber: string,
     version: number = 1,
   ): Promise<string> {
-    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
+    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmasak.com";
     const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
     return buildSignedQRUrl(
       baseUrl,

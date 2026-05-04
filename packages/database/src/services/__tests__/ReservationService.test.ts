@@ -14,8 +14,8 @@ import {
   type CreateSlotRequest,
   type BatchCreateSlotsRequest,
   type TableAssignmentRequest,
-} from "@makanmakan/shared-types";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+} from "@makanmasak/shared-types";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 import type { CloudflareEnv } from "../base";
 
 type MockTableRecord = Record<string, unknown> & {

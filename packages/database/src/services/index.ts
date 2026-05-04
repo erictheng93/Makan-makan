@@ -34,7 +34,7 @@ export { WaitingListService } from "./WaitingListService";
 export { NotificationService } from "./NotificationService";
 export { ExportService } from "./ExportService";
 export { LeaveAnalyticsService } from "./LeaveAnalyticsService";
-// export { QueueService } from '@makanmakan/queue-service' // Temporarily disabled - using UnifiedQueueService
+// export { QueueService } from '@makanmasak/queue-service' // Temporarily disabled - using UnifiedQueueService
 export { PartnershipService } from "./PartnershipService";
 export { VerificationService } from "./VerificationService";
 export { FeedbackService } from "./FeedbackService";

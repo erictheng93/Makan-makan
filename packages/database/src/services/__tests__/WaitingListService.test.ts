@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { WaitingListService } from "../WaitingListService";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 type WaitingListMockRow = Record<string, unknown> & {
   status: string;

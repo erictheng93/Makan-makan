@@ -29,7 +29,7 @@ import type {
   SplitBillItem,
   ShareCodeMetadata,
   GroupActivityMetadata,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // ==========================================
 // 群組訂單表 (Group Orders)

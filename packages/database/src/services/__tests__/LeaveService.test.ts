@@ -11,7 +11,7 @@ import {
   createMockEnv,
   createQueryChain,
 } from "./helpers/mockD1";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("LeaveService", () => {
   let service: LeaveService;

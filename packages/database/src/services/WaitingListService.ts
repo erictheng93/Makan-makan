@@ -2,7 +2,7 @@ import { sql, type SQL } from "drizzle-orm";
 import { BaseService } from "./base";
 import { tables as restaurantTables } from "../schema/tables";
 import { waitingList } from "../schema/waiting-list";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { WaitingStatus } from "@makanmasak/shared-types";
 import type {
   WaitingListEntry,
   JoinWaitingListRequest,
@@ -16,7 +16,7 @@ import type {
   TableAssignmentRequest,
   TableAssignmentResult,
   WaitingListEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { ReservationService } from "./ReservationService";
 import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
 import { assertWaitingTransition } from "./ticket-primitives";

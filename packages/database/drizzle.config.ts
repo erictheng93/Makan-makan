@@ -9,6 +9,6 @@ export default {
   strict: true,
   dbCredentials: {
     wranglerConfigPath: "../../wrangler.toml",
-    dbName: "makanmakan-local",
+    dbName: "makanmasak-local",
   },
 } satisfies Config;

@@ -10,7 +10,7 @@ import {
   createMockEnv,
   setupMockDbResponses,
 } from "./helpers/mockD1";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock bcrypt and jwt modules
 vi.mock("bcryptjs", () => ({

@@ -11,7 +11,7 @@ import {
   envFactory,
   createMockD1Database,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("PartnershipService", () => {
   let service: PartnershipService;
@@ -22,7 +22,7 @@ describe("PartnershipService", () => {
     resetAllFactories();
     mockDb = createMockD1Database() as unknown as D1Database;
     mockEnv = envFactory.buildMinimal({
-      CUSTOMER_APP_URL: "https://test.makanmakan.com",
+      CUSTOMER_APP_URL: "https://test.makanmasak.com",
     }) as unknown as CloudflareEnv;
     service = new PartnershipService(mockDb, mockEnv);
   });

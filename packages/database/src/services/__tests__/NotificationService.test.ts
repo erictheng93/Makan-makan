@@ -14,7 +14,7 @@ import {
   type SMSProvider,
 } from "../NotificationService";
 import type { CloudflareEnv } from "../base";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 type NotificationServiceTestAccess = NotificationService & {
   emailProvider: EmailProvider | null;
@@ -129,7 +129,7 @@ describe("NotificationService", () => {
       TWILIO_ACCOUNT_SID: "test-twilio-sid",
       TWILIO_AUTH_TOKEN: "test-twilio-token",
       TWILIO_PHONE_NUMBER: "+1234567890",
-      NOTIFICATION_FROM_EMAIL: "test@makanmakan.com",
+      NOTIFICATION_FROM_EMAIL: "test@makanmasak.com",
     }) as unknown as CloudflareEnv;
 
     service = new NotificationService(mockDB, mockEnv);

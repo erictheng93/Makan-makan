@@ -11,7 +11,7 @@ import type {
   PrinterBrand,
   PrinterCapabilities,
   PrinterConnection,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export interface PrinterDriverFactory {
   createDriver(device: PrinterDevice, config?: any): Promise<any>;

@@ -86,7 +86,7 @@ import {
   restaurantFactory,
   menuItemFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("OrderService", () => {
   let orderService: OrderService;

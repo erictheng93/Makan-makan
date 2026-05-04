@@ -1,7 +1,7 @@
 import { eq, and, asc, count, inArray, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { seats, tables, restaurants } from "../schema";
-import { buildSignedQRUrl } from "@makanmakan/utils";
+import { buildSignedQRUrl } from "@makanmasak/utils";
 
 export interface CreateSeatData {
   tableId: number;
@@ -529,7 +529,7 @@ export class SeatService extends BaseService {
     seatNumber: string,
     version: number = 1,
   ): Promise<string> {
-    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
+    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmasak.com";
     const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
     return buildSignedQRUrl(
       baseUrl,

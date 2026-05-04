@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FeedbackService } from "../FeedbackService";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 // ─── Mock database helpers ────────────────────────────────────────────────
 function createMockDb() {

@@ -75,7 +75,7 @@ import type { CreateTableData, UpdateTableData, TableFilters } from "../table";
 import {
   restaurantFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("TableService", () => {
   let tableService: TableService;

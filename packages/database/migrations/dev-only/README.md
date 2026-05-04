@@ -20,7 +20,7 @@ Running them in production creates critical security vulnerabilities.
 
 ```bash
 # Apply to local dev DB only
-wrangler d1 execute makanmakan-local --local \
+wrangler d1 execute makanmasak-local --local \
   --file packages/database/migrations/dev-only/0048_add_test_accounts.sql
 ```
 

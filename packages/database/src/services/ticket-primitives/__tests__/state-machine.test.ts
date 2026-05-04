@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { ApiError } from "@makanmakan/utils";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { ApiError } from "@makanmasak/utils";
+import { WaitingStatus } from "@makanmasak/shared-types";
 import {
   WAITING_TRANSITIONS,
   assertWaitingTransition,

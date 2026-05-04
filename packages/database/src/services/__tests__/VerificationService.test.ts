@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { VerificationService } from "../VerificationService";
 import { NotificationService } from "../NotificationService";
 import { createMockDatabase, createMockEnv } from "./helpers/mockD1";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock bcrypt
 vi.mock("bcryptjs", () => ({
@@ -32,7 +32,7 @@ describe("VerificationService", () => {
     mockEnv = createMockEnv({
       JWT_SECRET: "test-jwt-secret-key",
       API_BASE_URL: "http://localhost:3000",
-      NOTIFICATION_FROM_EMAIL: "test@makanmakan.com",
+      NOTIFICATION_FROM_EMAIL: "test@makanmasak.com",
     });
 
     // Initialize service
