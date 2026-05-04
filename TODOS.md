@@ -56,6 +56,39 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 **Files:** OrderCard.vue, OrderDetailsModal.vue, ConnectionStatus.vue, HistoryView.vue, SystemHealthDashboard.vue, ErrorReportsDashboard.vue, EnhancedShortcutsPanel.vue, InteractiveAudioPanel.vue, InteractiveStatsPanel.vue, kitchenStatisticsService.ts
 
+## waiting-list (customer-side queue)
+
+### Wire push notification end-to-end on call/about-to-expire
+
+**Priority:** P2 **Spec:** `docs/specs/queue-and-waiting-list.md` **Context:** Phase 1 (commits `0ad8522f`, `309c3db6`, 2026-05-04) shipped the customer join/ticket/cancel/confirm UI. VAPID + Service Worker subscription already exist in `apps/customer-app/src/utils/push-notifications.ts`. The server-side trigger is not connected — `WaitingListService.callWaiting()` currently only broadcasts via SSE/WS to admin-dashboard, so customers don't get a phone notification when their turn nears.
+
+**Why deferred:** Phase 1 was scoped tightly to keep the PR reviewable. Push wiring crosses customer-app + apps/api + service worker and warranted its own phase.
+
+**Scope:**
+
+- Customer-app: call `customerPushService.requestPermission()` + `subscribe()` on join success in `JoinWaitingListView.vue`; persist returned subscription against the ticket
+- API: confirm or add an endpoint that accepts `{ subscription, ticketId }` (audit `apiClient.post("/push/subscribe", ...)` — route may already exist for orders)
+- WaitingListService: dispatch web-push when ticket flips to `called`; consider also firing on `waiting_about_to_expire` (5-min timeout window — `NotificationType` enum already has the slot)
+- Service Worker: handle `waiting_called` action click → deep-link back to `/r/:restaurantId/wait-list/:ticketId`
+
+### Customer waiting-list history page
+
+**Priority:** P3 **Context:** Phase 1 has no history view in customer-app. Useful for users to see prior visits without re-entering phone every time.
+
+**Scope:** New API (`GET /waiting-list/history?phone=` or `?customerId=`) + view at `/wait-list/history`. Phone-based lookup must be rate-limited to avoid enumeration.
+
+### Pre-order from menu while in waiting-list
+
+**Priority:** P3 **Context:** Customer is queued and could be browsing menu. Cross-system integration with existing menu/order flows so the order is bound to the ticket and fires to kitchen on `seated`.
+
+### Phase 1 small debt
+
+**Priority:** P4 **File:** `apps/customer-app/src/views/waiting-list/JoinWaitingListView.vue`, `apps/customer-app/src/locales/`
+
+- `JoinWaitingListView.vue:292-298`: `watch(partySize)` calls `estimateWait().then()` with no `.catch` — silent stale value on failure
+- `JoinWaitingListView.vue:300-303`: `restoreLastTicket()` and `loadQueueSnapshot()` race in parallel; if restore triggers `router.replace`, snapshot still completes (wasted request, no crash)
+- i18n keys live in a parallel `src/locales/` dir alongside `src/i18n/` — should consolidate into the existing customer-messages source
+
 ## Completed
 
 _None yet._
