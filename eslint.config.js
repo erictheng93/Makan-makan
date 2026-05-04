@@ -3,7 +3,7 @@ import tseslint from "typescript-eslint";
 import globals from "globals";
 
 /**
- * Root-level ESLint configuration for the MakanMakan monorepo.
+ * Root-level ESLint configuration for the MakanMasak monorepo.
  *
  * This config handles:
  * - JavaScript files at the root level
@@ -124,13 +124,13 @@ export default [
       "no-unreachable": "warn",
 
       // Prevent use of CURRENT_TIMESTAMP in SQL queries
-      // Use getCurrentTimestamp() from @makanmakan/database instead
+      // Use getCurrentTimestamp() from @makanmasak/database instead
       "no-restricted-syntax": [
         "error",
         {
           selector: "Literal[value=/CURRENT_TIMESTAMP/]",
           message:
-            "Use getCurrentTimestamp() from @makanmakan/database instead of CURRENT_TIMESTAMP in SQL queries. See docs/development/TIMESTAMP_BEST_PRACTICES.md for details.",
+            "Use getCurrentTimestamp() from @makanmasak/database instead of CURRENT_TIMESTAMP in SQL queries. See docs/development/TIMESTAMP_BEST_PRACTICES.md for details.",
         },
       ],
     },
