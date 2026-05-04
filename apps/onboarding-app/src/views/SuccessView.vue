@@ -148,13 +148,13 @@ const handleStartNew = () => {
             <dt class="text-gray-500">{{ t("success.summary.subdomain") }}</dt>
             <dd class="text-primary-600 font-medium flex items-center">
               <a
-                :href="`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app`"
+                :href="`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmasak.app`"
                 target="_blank"
                 class="hover:underline"
               >
                 {{
                   store.completionResult?.subdomain || store.assignedSubdomain
-                }}.makanmakan.app
+                }}.makanmasak.app
               </a>
               <button
                 v-if="
@@ -164,7 +164,7 @@ const handleStartNew = () => {
                 class="ml-2 text-gray-400 hover:text-gray-600"
                 @click="
                   copyToClipboard(
-                    `https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app`,
+                    `https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmasak.app`,
                   )
                 "
               >
@@ -236,7 +236,7 @@ const handleStartNew = () => {
       <!-- 按鈕 -->
       <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
         <a
-          :href="`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app/admin`"
+          :href="`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmasak.app/admin`"
           target="_blank"
           class="btn btn-primary"
         >
@@ -252,10 +252,10 @@ const handleStartNew = () => {
     <div class="mt-6 text-sm text-gray-500">
       {{ t("success.contact.prompt") }}
       <a
-        href="mailto:support@makanmakan.app"
+        href="mailto:support@makanmasak.app"
         class="text-primary-600 hover:underline"
       >
-        support@makanmakan.app
+        support@makanmasak.app
       </a>
     </div>
   </div>

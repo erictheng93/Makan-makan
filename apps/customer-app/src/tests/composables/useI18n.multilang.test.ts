@@ -207,7 +207,7 @@ describe("useI18n Composable with Multiple Languages", () => {
       component.changeLanguage("en-US");
       expect(component.t("common.confirm")).toBe("Confirm");
       expect(component.t("common.cancel")).toBe("Cancel");
-      expect(component.t("home.title")).toBe("Welcome to MakanMakan");
+      expect(component.t("home.title")).toBe("Welcome to MakanMasak");
     });
   });
 

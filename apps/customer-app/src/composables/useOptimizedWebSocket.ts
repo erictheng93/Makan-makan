@@ -11,7 +11,7 @@
  */
 
 import { ref, onMounted, onUnmounted, type Ref } from "vue";
-import type { WebSocketMessage } from "@makanmakan/shared-types";
+import type { WebSocketMessage } from "@makanmasak/shared-types";
 
 export interface OptimizedWSOptions {
   url: string;

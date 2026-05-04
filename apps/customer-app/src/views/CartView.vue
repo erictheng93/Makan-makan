@@ -630,7 +630,7 @@ import { apiClient } from "@/services/api";
 import type { CreateGuestOrderRequest } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
 import { useCurrency } from "@/composables/useCurrency";
-import type { CreateOrderRequest } from "@makanmakan/shared-types";
+import type { CreateOrderRequest } from "@makanmasak/shared-types";
 
 // Props
 const props = defineProps<{
@@ -1060,7 +1060,7 @@ const submitOrder = async () => {
 const saveCustomerInfo = () => {
   try {
     localStorage.setItem(
-      "makanmakan_customer_info",
+      "makanmasak_customer_info",
       JSON.stringify(customerInfo.value),
     );
   } catch (error) {
@@ -1071,7 +1071,7 @@ const saveCustomerInfo = () => {
 // 恢復顧客資訊
 const restoreCustomerInfo = () => {
   try {
-    const saved = localStorage.getItem("makanmakan_customer_info");
+    const saved = localStorage.getItem("makanmasak_customer_info");
     if (saved) {
       const parsed = JSON.parse(saved);
       customerInfo.value = {

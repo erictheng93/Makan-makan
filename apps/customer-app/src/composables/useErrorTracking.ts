@@ -5,7 +5,7 @@
  */
 
 import { ref, onMounted, onErrorCaptured, onBeforeUnmount } from "vue";
-import { getErrorTracker, type TrackedError } from "@makanmakan/utils";
+import { getErrorTracker, type TrackedError } from "@makanmasak/utils";
 import { apiClient } from "@/services/api";
 
 export function useErrorTracking() {

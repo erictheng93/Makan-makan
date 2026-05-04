@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import CartItemCard from "@/components/CartItemCard.vue";
-import type { CartItem, MenuItem } from "@makanmakan/shared-types";
-import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import type { CartItem, MenuItem } from "@makanmasak/shared-types";
+import { menuItemFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock formatPrice function
 vi.mock("@/utils/format", () => ({

@@ -268,7 +268,7 @@ const selectSuggestion = (suggestion: string) => {
             <span
               class="inline-flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-r-md"
             >
-              .makanmakan.app
+              .makanmasak.app
             </span>
           </div>
 
@@ -319,7 +319,7 @@ const selectSuggestion = (suggestion: string) => {
                 class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 transition-colors"
                 @click="selectSuggestion(suggestion)"
               >
-                {{ suggestion }}.makanmakan.app
+                {{ suggestion }}.makanmasak.app
               </button>
             </div>
           </div>

@@ -143,7 +143,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
         <p class="text-sm text-gray-600">
           {{ t("connect.assignedSubdomainLabel")
           }}<span class="font-mono font-medium text-gray-900"
-            >{{ store.assignedSubdomain }}.makanmakan.app</span
+            >{{ store.assignedSubdomain }}.makanmasak.app</span
           >
         </p>
       </div>
@@ -405,7 +405,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
     <div class="mt-6 text-center text-sm text-gray-500">
       {{ t("connect.help.prompt") }}
       <a
-        href="mailto:support@makanmakan.app"
+        href="mailto:support@makanmasak.app"
         class="text-primary-600 hover:underline"
       >
         {{ t("connect.help.linkText") }}

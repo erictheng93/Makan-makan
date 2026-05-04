@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useAppStore } from "@/stores/app";
-import { PlanType, Status } from "@makanmakan/shared-types";
-import type { Restaurant } from "@makanmakan/shared-types";
+import { PlanType, Status } from "@makanmasak/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 
 const buildRestaurant = (overrides: Partial<Restaurant> = {}): Restaurant => ({
   id: "rest-1",
@@ -97,13 +97,13 @@ describe("app store", () => {
       store.setRestaurantContext(restaurant, 3);
 
       expect(window.localStorage.setItem).toHaveBeenCalledWith(
-        "makanmakan_restaurant_context",
+        "makanmasak_restaurant_context",
         expect.any(String),
       );
       const calls = (window.localStorage.setItem as ReturnType<typeof vi.fn>)
         .mock.calls;
       const savedCall = calls.find(
-        (c: any) => c[0] === "makanmakan_restaurant_context",
+        (c: any) => c[0] === "makanmasak_restaurant_context",
       );
       const saved = JSON.parse(savedCall![1]);
       expect(saved.restaurant.id).toBe("rest-1");
@@ -121,7 +121,7 @@ describe("app store", () => {
       expect(store.currentRestaurant).toBeNull();
       expect(store.currentTableId).toBeNull();
       expect(window.localStorage.removeItem).toHaveBeenCalledWith(
-        "makanmakan_restaurant_context",
+        "makanmasak_restaurant_context",
       );
     });
   });
@@ -140,7 +140,7 @@ describe("app store", () => {
       (
         window.localStorage.getItem as ReturnType<typeof vi.fn>
       ).mockImplementation((key: string) =>
-        key === "makanmakan_restaurant_context" ? saved : null,
+        key === "makanmasak_restaurant_context" ? saved : null,
       );
 
       const store = useAppStore();
@@ -161,7 +161,7 @@ describe("app store", () => {
       (
         window.localStorage.getItem as ReturnType<typeof vi.fn>
       ).mockImplementation((key: string) =>
-        key === "makanmakan_restaurant_context" ? saved : null,
+        key === "makanmasak_restaurant_context" ? saved : null,
       );
 
       const store = useAppStore();
@@ -169,7 +169,7 @@ describe("app store", () => {
 
       expect(store.currentRestaurant).toBeNull();
       expect(window.localStorage.removeItem).toHaveBeenCalledWith(
-        "makanmakan_restaurant_context",
+        "makanmasak_restaurant_context",
       );
     });
 
@@ -177,7 +177,7 @@ describe("app store", () => {
       (
         window.localStorage.getItem as ReturnType<typeof vi.fn>
       ).mockImplementation((key: string) =>
-        key === "makanmakan_restaurant_context" ? "NOT JSON" : null,
+        key === "makanmasak_restaurant_context" ? "NOT JSON" : null,
       );
 
       const store = useAppStore();
@@ -185,7 +185,7 @@ describe("app store", () => {
 
       expect(store.currentRestaurant).toBeNull();
       expect(window.localStorage.removeItem).toHaveBeenCalledWith(
-        "makanmakan_restaurant_context",
+        "makanmasak_restaurant_context",
       );
     });
   });

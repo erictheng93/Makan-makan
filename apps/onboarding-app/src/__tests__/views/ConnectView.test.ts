@@ -126,7 +126,7 @@ describe("ConnectView", () => {
 
     it("should show the assigned subdomain", () => {
       const wrapper = mountComponent();
-      expect(wrapper.text()).toContain("myrestaurant.makanmakan.app");
+      expect(wrapper.text()).toContain("myrestaurant.makanmasak.app");
     });
 
     it("should render the info box explaining why Cloudflare is needed", () => {

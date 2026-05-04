@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useShopCartStore } from "@/stores/shopCart";
-import { SpiceLevel } from "@makanmakan/shared-types";
-import type { CartItem, MenuItem } from "@makanmakan/shared-types";
+import { SpiceLevel } from "@makanmasak/shared-types";
+import type { CartItem, MenuItem } from "@makanmasak/shared-types";
 
 // Helper: build a minimal valid cart data object for localStorage
 function buildCartData(overrides: Record<string, unknown> = {}) {
@@ -259,7 +259,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should restore fulfillmentType from localStorage on initializeCart", () => {
       const store = useShopCartStore();
-      const key = "makanmakan_shop_cart_rest-001_123";
+      const key = "makanmasak_shop_cart_rest-001_123";
       (
         window.localStorage.getItem as ReturnType<typeof vi.fn>
       ).mockImplementation((k: string) =>
@@ -272,7 +272,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should restore deliveryInfo from localStorage on initializeCart", () => {
       const store = useShopCartStore();
-      const key = "makanmakan_shop_cart_rest-001_123";
+      const key = "makanmasak_shop_cart_rest-001_123";
       const info = {
         address: "99 Test Rd",
         phone: "0122222222",
@@ -292,7 +292,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should restore deliveryFee from localStorage on initializeCart", () => {
       const store = useShopCartStore();
-      const key = "makanmakan_shop_cart_rest-001_123";
+      const key = "makanmasak_shop_cart_rest-001_123";
       (
         window.localStorage.getItem as ReturnType<typeof vi.fn>
       ).mockImplementation((k: string) =>
@@ -305,7 +305,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should default fulfillmentType to 'takeaway' when not in saved data", () => {
       const store = useShopCartStore();
-      const key = "makanmakan_shop_cart_rest-001_123";
+      const key = "makanmasak_shop_cart_rest-001_123";
       // Omit fulfillmentType — Zod schema defaults it to 'takeaway'
       const dataWithoutFulfillment = JSON.stringify({
         items: [],
@@ -328,7 +328,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should default deliveryInfo to null when not in saved data", () => {
       const store = useShopCartStore();
-      const key = "makanmakan_shop_cart_rest-001_123";
+      const key = "makanmasak_shop_cart_rest-001_123";
       const dataWithoutDeliveryInfo = JSON.stringify({
         items: [],
         restaurantId: "rest-001",
@@ -350,7 +350,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should reject corrupted localStorage data (invalid JSON)", () => {
       const store = useShopCartStore();
-      const key = "makanmakan_shop_cart_rest-001_123";
+      const key = "makanmasak_shop_cart_rest-001_123";
       (
         window.localStorage.getItem as ReturnType<typeof vi.fn>
       ).mockImplementation((k: string) =>
@@ -367,7 +367,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should reject tampered localStorage data (XSS attempt in deliveryInfo address)", () => {
       const store = useShopCartStore();
-      const key = "makanmakan_shop_cart_rest-001_123";
+      const key = "makanmasak_shop_cart_rest-001_123";
       // Inject an object with a script tag; Zod will accept it as a string (it IS a string),
       // but the store should still load without executing — the important assertion is that
       // Zod parses it (or rejects malformed structures) without crashing and that no script runs.
@@ -395,7 +395,7 @@ describe("shopCart store – delivery/takeaway features", () => {
 
     it("should not restore expired cart data (>2 hours old)", () => {
       const store = useShopCartStore();
-      const key = "makanmakan_shop_cart_rest-001_123";
+      const key = "makanmasak_shop_cart_rest-001_123";
       const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000 - 1; // 1ms past the limit
       const expiredData = buildCartData({
         timestamp: twoHoursAgo,
@@ -430,8 +430,8 @@ describe("shopCart store – delivery/takeaway features", () => {
     it("should clear delivery data when switching to different restaurant", () => {
       const store = useShopCartStore();
       // Seed localStorage with delivery data for rest-001 AND rest-002
-      const keyOld = "makanmakan_shop_cart_rest-001_123";
-      const keyNew = "makanmakan_shop_cart_rest-002_456";
+      const keyOld = "makanmasak_shop_cart_rest-001_123";
+      const keyNew = "makanmasak_shop_cart_rest-002_456";
       (
         window.localStorage.getItem as ReturnType<typeof vi.fn>
       ).mockImplementation((k: string) => {

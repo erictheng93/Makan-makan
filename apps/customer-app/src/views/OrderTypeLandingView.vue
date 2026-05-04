@@ -169,7 +169,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { useShopCartStore } from "@/stores/shopCart";
 import { menuApi } from "@/services/menuApi";
-import type { Restaurant } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 
 type FulfillmentType = "dine-in" | "takeaway" | "delivery";
 

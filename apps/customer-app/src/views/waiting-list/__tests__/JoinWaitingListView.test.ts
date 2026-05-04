@@ -1,6 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { WaitingStatus } from "@makanmasak/shared-types";
 import JoinWaitingListView from "@/views/waiting-list/JoinWaitingListView.vue";
 
 const routerMocks = vi.hoisted(() => ({

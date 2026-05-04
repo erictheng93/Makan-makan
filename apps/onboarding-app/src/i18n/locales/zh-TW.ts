@@ -16,7 +16,7 @@ const zhTW: Messages = {
       selfHosted: "獨立部署",
     },
     footer: {
-      copyright: "© 2024 MakanMakan. All rights reserved.",
+      copyright: "© 2024 MakanMasak. All rights reserved.",
     },
   },
 
@@ -102,7 +102,7 @@ const zhTW: Messages = {
     info: {
       title: "為什麼需要 Cloudflare 帳號？",
       description:
-        "MakanMakan 獨立部署使用您自己的 Cloudflare 帳號來運行，這確保您對所有資料擁有完整控制權。資源費用已包含在訂閱費中。",
+        "MakanMasak 獨立部署使用您自己的 Cloudflare 帳號來運行，這確保您對所有資料擁有完整控制權。資源費用已包含在訂閱費中。",
     },
     steps: {
       heading: "操作步驟：",
@@ -157,7 +157,7 @@ const zhTW: Messages = {
 
   success: {
     title: "申請已完成！",
-    subtitleLine1: "恭喜您！您的 MakanMakan 獨立部署已建立完成。",
+    subtitleLine1: "恭喜您！您的 MakanMasak 獨立部署已建立完成。",
     subtitleLine2: "系統正在為您準備專屬環境。",
     summary: {
       title: "申請摘要",

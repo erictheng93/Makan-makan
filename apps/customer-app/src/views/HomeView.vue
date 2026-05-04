@@ -11,7 +11,7 @@
               <span class="text-white font-bold text-lg">M</span>
             </div>
             <div>
-              <h1 class="text-xl font-bold text-ios-text">MakanMakan</h1>
+              <h1 class="text-xl font-bold text-ios-text">MakanMasak</h1>
               <p class="text-sm text-ios-secondary">
                 {{ t("home.subtitle") }}
               </p>
@@ -321,7 +321,7 @@ import { useI18n } from "@/composables/useI18n";
 import { useAppStore } from "@/stores/app";
 import ManualInputModal from "@/components/ManualInputModal.vue";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
-import type { Restaurant } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 
 const router = useRouter();
 const toast = useToast();
@@ -360,7 +360,7 @@ const handleRestaurantSelected = ({
 
 const loadRecentRestaurants = () => {
   try {
-    const saved = localStorage.getItem("makanmakan_recent_restaurants");
+    const saved = localStorage.getItem("makanmasak_recent_restaurants");
     if (saved) {
       const parsed = JSON.parse(saved);
       // 只保留最近7天內的記錄

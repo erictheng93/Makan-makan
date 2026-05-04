@@ -3,7 +3,7 @@ import type {
   ApiResponse,
   ApiErrorCode,
   PaginatedResponse,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { translate } from "@/utils/i18n";
 
 // API 配置
@@ -78,7 +78,7 @@ class ApiClient {
         config.headers["X-Request-ID"] = crypto.randomUUID();
 
         // 添加餐廳上下文
-        const context = localStorage.getItem("makanmakan_restaurant_context");
+        const context = localStorage.getItem("makanmasak_restaurant_context");
         if (context) {
           try {
             const { restaurant, tableId } = JSON.parse(context);

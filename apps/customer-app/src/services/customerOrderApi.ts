@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import type { Order, OrderStatus } from "@makanmakan/shared-types";
+import type { Order, OrderStatus } from "@makanmasak/shared-types";
 
 export interface CustomerOrdersResponse {
   orders: Order[];

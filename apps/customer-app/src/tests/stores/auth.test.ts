@@ -17,7 +17,7 @@ vi.mock("@/i18n", () => ({
 }));
 
 // Mock getRefreshDelay
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   getRefreshDelay: vi.fn(() => 300000), // 5 minutes
 }));
 

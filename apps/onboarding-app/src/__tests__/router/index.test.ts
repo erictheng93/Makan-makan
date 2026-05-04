@@ -122,7 +122,7 @@ describe("Router", () => {
       // Simulate navigation to Apply page
       guard({ meta: { title: "填寫申請" } }, { meta: {} }, mockNext);
 
-      expect(document.title).toBe("填寫申請 - MakanMakan");
+      expect(document.title).toBe("填寫申請 - MakanMasak");
       expect(mockNext).toHaveBeenCalled();
     });
 
@@ -134,7 +134,7 @@ describe("Router", () => {
 
       guard({ meta: {} }, { meta: {} }, mockNext);
 
-      expect(document.title).toBe("MakanMakan 獨立部署");
+      expect(document.title).toBe("MakanMasak 獨立部署");
       expect(mockNext).toHaveBeenCalled();
     });
   });

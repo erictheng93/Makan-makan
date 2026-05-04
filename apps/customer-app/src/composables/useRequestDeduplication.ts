@@ -8,7 +8,7 @@ import { ref, onUnmounted } from "vue";
 import {
   RequestDeduplicator,
   type RequestDeduplicationOptions,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";
 
 /**
  * Create a request deduplicator for a component (PWA-optimized)

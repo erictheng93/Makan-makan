@@ -200,7 +200,7 @@ describe("SuccessView", () => {
     it("should display assigned subdomain URL", () => {
       const wrapper = mountComponent();
       expect(wrapper.text()).toContain("專屬網址");
-      expect(wrapper.text()).toContain("myrestaurant.makanmakan.app");
+      expect(wrapper.text()).toContain("myrestaurant.makanmasak.app");
     });
 
     it("should display Cloudflare connection status", () => {
@@ -234,7 +234,7 @@ describe("SuccessView", () => {
     it("should render admin dashboard link", () => {
       const wrapper = mountComponent();
 
-      wrapper.find('a[href="https://myrestaurant.makanmakan.app/admin"]');
+      wrapper.find('a[href="https://myrestaurant.makanmasak.app/admin"]');
       // The link is constructed dynamically, let's check text
       expect(wrapper.text()).toContain("前往管理後台");
     });
@@ -261,7 +261,7 @@ describe("SuccessView", () => {
   describe("contact section", () => {
     it("should show support email", () => {
       const wrapper = mountComponent();
-      expect(wrapper.text()).toContain("support@makanmakan.app");
+      expect(wrapper.text()).toContain("support@makanmasak.app");
     });
   });
 

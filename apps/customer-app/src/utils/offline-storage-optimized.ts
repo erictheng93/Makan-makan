@@ -54,7 +54,7 @@ interface PerformanceMetric {
 }
 
 class OptimizedOfflineStorageManager {
-  private dbName = "MakanMakanCustomerOpt";
+  private dbName = "MakanMasakCustomerOpt";
   private dbVersion = 2;
   private db: IDBDatabase | null = null;
   private performanceLog: PerformanceMetric[] = [];

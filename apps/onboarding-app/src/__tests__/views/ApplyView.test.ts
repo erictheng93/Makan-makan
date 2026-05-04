@@ -87,7 +87,7 @@ describe("ApplyView", () => {
 
     it("should render subdomain suffix text", () => {
       const wrapper = mountComponent();
-      expect(wrapper.text()).toContain(".makanmakan.app");
+      expect(wrapper.text()).toContain(".makanmasak.app");
     });
   });
 
@@ -332,8 +332,8 @@ describe("ApplyView", () => {
       await flushPromises();
 
       expect(wrapper.text()).toContain("建議的替代網址");
-      expect(wrapper.text()).toContain("alt-1.makanmakan.app");
-      expect(wrapper.text()).toContain("alt-2.makanmakan.app");
+      expect(wrapper.text()).toContain("alt-1.makanmasak.app");
+      expect(wrapper.text()).toContain("alt-2.makanmasak.app");
     });
 
     it("should allow clicking suggestions to fill subdomain", async () => {

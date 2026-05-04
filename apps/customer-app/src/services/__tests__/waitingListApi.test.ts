@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { WaitingStatus } from "@makanmasak/shared-types";
 
 vi.mock("@/services/api", () => ({
   apiClient: {
@@ -11,7 +11,7 @@ vi.mock("@/services/api", () => ({
 
 import { apiClient } from "@/services/api";
 import { waitingListApi } from "@/services/waitingListApi";
-import type { JoinWaitingListRequest } from "@makanmakan/shared-types";
+import type { JoinWaitingListRequest } from "@makanmasak/shared-types";
 
 const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
 const mockPost = apiClient.post as ReturnType<typeof vi.fn>;

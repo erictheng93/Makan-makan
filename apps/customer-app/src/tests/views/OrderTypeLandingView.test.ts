@@ -7,9 +7,9 @@ import { useShopCartStore } from "@/stores/shopCart";
 import {
   restaurantFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
-import { PlanType, Status } from "@makanmakan/shared-types";
-import type { Restaurant } from "@makanmakan/shared-types";
+} from "@makanmasak/testing-utils";
+import { PlanType, Status } from "@makanmasak/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 
 // Mock menuApi
 vi.mock("@/services/menuApi", () => ({

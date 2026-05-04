@@ -18,7 +18,7 @@ vi.mock("@/i18n", () => ({
 
 import { orderApi } from "@/services/orderApi";
 import { apiClient } from "@/services/api";
-import type { CreateOrderRequest } from "@makanmakan/shared-types";
+import type { CreateOrderRequest } from "@makanmasak/shared-types";
 
 const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
 const mockPost = apiClient.post as ReturnType<typeof vi.fn>;

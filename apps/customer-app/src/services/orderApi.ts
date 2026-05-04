@@ -5,7 +5,7 @@ import type {
   OrderItem,
   CreateOrderRequest,
   OrderStatus,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export interface OrderSummary {
   subtotal: number;

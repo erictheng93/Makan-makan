@@ -5,7 +5,7 @@ import type {
   MenuItem,
   SelectedCustomizations,
   CartItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Zod schemas for localStorage validation (XSS prevention)
 const MenuItemSchema = z
@@ -279,7 +279,7 @@ export const useShopCartStore = defineStore("shopCart", () => {
   };
 
   const getCartStorageKey = () => {
-    return `makanmakan_shop_cart_${restaurantId.value}_${phoneLastDigits.value}`;
+    return `makanmasak_shop_cart_${restaurantId.value}_${phoneLastDigits.value}`;
   };
 
   const saveCart = () => {

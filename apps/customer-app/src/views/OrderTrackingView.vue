@@ -365,7 +365,7 @@ import {
   RealtimeEventType,
   type OrderStatus,
   type RealtimeEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const props = defineProps<{
   restaurantId: string;
@@ -380,8 +380,8 @@ const { formatPrice } = useCurrency();
 const queryClient = useQueryClient();
 
 const showCancelConfirmation = ref(false);
-const guestRealtimeCacheKey = `makanmakan_guest_realtime_token:${props.restaurantId}:${props.tableId}:${props.orderId}`;
-const guestQrCacheKey = `makanmakan_table_qr:${props.restaurantId}:${props.tableId}`;
+const guestRealtimeCacheKey = `makanmasak_guest_realtime_token:${props.restaurantId}:${props.tableId}:${props.orderId}`;
+const guestQrCacheKey = `makanmasak_table_qr:${props.restaurantId}:${props.tableId}`;
 const shouldUseGuestRealtime = computed(() => {
   const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
   const hasGuestToken = !!localStorage.getItem("guest_auth_token");

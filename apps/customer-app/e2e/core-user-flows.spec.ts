@@ -28,8 +28,8 @@ test.describe("核心用戶流程 E2E 測試", () => {
     await helpers.waitForPageLoad();
 
     // 檢查首頁標題
-    await expect(page).toHaveTitle(/MakanMakan/);
-    await expect(page.locator("h1")).toContainText("歡迎來到 MakanMakan");
+    await expect(page).toHaveTitle(/MakanMasak/);
+    await expect(page.locator("h1")).toContainText("歡迎來到 MakanMasak");
 
     // 2. 模擬 QR Code 掃描
     await helpers.clickElement('[data-testid="scan-qr-btn"]');

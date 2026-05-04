@@ -30,9 +30,9 @@ describe("App.vue", () => {
     });
   }
 
-  it("should render the header with MakanMakan branding", () => {
+  it("should render the header with MakanMasak branding", () => {
     const wrapper = mountComponent();
-    expect(wrapper.text()).toContain("MakanMakan");
+    expect(wrapper.text()).toContain("MakanMasak");
     expect(wrapper.text()).toContain("獨立部署");
   });
 
@@ -42,7 +42,7 @@ describe("App.vue", () => {
     // App.vue header uses a <span> for the brand name, not an external link
     const brandSpan = wrapper.find("header span");
     expect(brandSpan.exists()).toBe(true);
-    expect(brandSpan.text()).toContain("MakanMakan");
+    expect(brandSpan.text()).toContain("MakanMasak");
   });
 
   it("should have target=_blank on the home link", () => {
@@ -53,7 +53,7 @@ describe("App.vue", () => {
     // Verify the header contains the brand text without an external anchor.
     const header = wrapper.find("header");
     expect(header.exists()).toBe(true);
-    expect(header.text()).toContain("MakanMakan");
+    expect(header.text()).toContain("MakanMasak");
   });
 
   it("should render the router view for page content", () => {
@@ -65,7 +65,7 @@ describe("App.vue", () => {
 
   it("should render the footer with copyright", () => {
     const wrapper = mountComponent();
-    expect(wrapper.text()).toContain("2024 MakanMakan. All rights reserved.");
+    expect(wrapper.text()).toContain("2024 MakanMasak. All rights reserved.");
   });
 
   it("should have proper layout structure", () => {

@@ -4,7 +4,7 @@ import { createPinia } from "pinia";
 import { createRouter, createWebHistory } from "vue-router";
 import { ref } from "vue";
 import CartView from "../views/CartView.vue";
-import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { menuItemFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 const { mockApiClientPost, mockApiClientGet } = vi.hoisted(() => ({
   mockApiClientPost: vi.fn(),

@@ -47,7 +47,7 @@ export interface CachedRestaurant {
 }
 
 class OfflineStorageManager {
-  private dbName = "MakanMakanCustomer";
+  private dbName = "MakanMasakCustomer";
   private dbVersion = 1;
   private db: IDBDatabase | null = null;
 

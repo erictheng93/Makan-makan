@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useCartStore } from "@/stores/cart";
-import { SpiceLevel } from "@makanmakan/shared-types";
-import type { MenuItem } from "@makanmakan/shared-types";
+import { SpiceLevel } from "@makanmasak/shared-types";
+import type { MenuItem } from "@makanmasak/shared-types";
 
 // Helper: build a minimal MenuItem
 function buildMenuItem(overrides: Partial<MenuItem> = {}): MenuItem {
@@ -96,7 +96,7 @@ describe("cart store", () => {
     });
 
     it("should restore cart from localStorage on initialize", () => {
-      const key = "makanmakan_cart_rest-001_1";
+      const key = "makanmasak_cart_rest-001_1";
       const savedData = buildCartData({
         items: [
           {
@@ -350,7 +350,7 @@ describe("cart store", () => {
 
   describe("Zod validation on restore", () => {
     it("should reject cart data with invalid item id (XSS in id)", () => {
-      const key = "makanmakan_cart_rest-001_1";
+      const key = "makanmasak_cart_rest-001_1";
       const tampered = JSON.stringify({
         items: [
           {
@@ -378,7 +378,7 @@ describe("cart store", () => {
     });
 
     it("should reject cart data with negative quantity", () => {
-      const key = "makanmakan_cart_rest-001_1";
+      const key = "makanmasak_cart_rest-001_1";
       const tampered = JSON.stringify({
         items: [
           {
@@ -403,7 +403,7 @@ describe("cart store", () => {
     });
 
     it("should reject expired cart data (>2 hours old)", () => {
-      const key = "makanmakan_cart_rest-001_1";
+      const key = "makanmasak_cart_rest-001_1";
       const expired = buildCartData({
         timestamp: Date.now() - 2 * 60 * 60 * 1000 - 1,
         items: [
@@ -427,7 +427,7 @@ describe("cart store", () => {
     });
 
     it("should reject corrupted JSON", () => {
-      const key = "makanmakan_cart_rest-001_1";
+      const key = "makanmasak_cart_rest-001_1";
       (
         window.localStorage.getItem as ReturnType<typeof vi.fn>
       ).mockImplementation((k: string) =>
@@ -441,7 +441,7 @@ describe("cart store", () => {
     });
 
     it("should reject cart data with negative price in menuItem", () => {
-      const key = "makanmakan_cart_rest-001_1";
+      const key = "makanmasak_cart_rest-001_1";
       const tampered = JSON.stringify({
         items: [
           {

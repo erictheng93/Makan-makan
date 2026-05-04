@@ -72,7 +72,7 @@ describe("Comprehensive i18n Tests", () => {
       const mockSetItem = global.localStorageMock.setItem;
 
       switchLanguage("vi-VN");
-      expect(mockSetItem).toHaveBeenCalledWith("makanmakan_locale", "vi-VN");
+      expect(mockSetItem).toHaveBeenCalledWith("makanmasak_locale", "vi-VN");
     });
   });
 
@@ -146,16 +146,16 @@ describe("Comprehensive i18n Tests", () => {
 
     it("should have correct translations for home.title", () => {
       switchLanguage("zh-TW");
-      expect(t("home.title")).toBe("歡迎來到 MakanMakan");
+      expect(t("home.title")).toBe("歡迎來到 MakanMasak");
 
       switchLanguage("zh-CN");
-      expect(t("home.title")).toBe("欢迎来到 MakanMakan");
+      expect(t("home.title")).toBe("欢迎来到 MakanMasak");
 
       switchLanguage("en-US");
-      expect(t("home.title")).toBe("Welcome to MakanMakan");
+      expect(t("home.title")).toBe("Welcome to MakanMasak");
 
       switchLanguage("vi-VN");
-      expect(t("home.title")).toBe("Chào mừng đến với MakanMakan");
+      expect(t("home.title")).toBe("Chào mừng đến với MakanMasak");
     });
 
     it("should have correct translations for menu.addToCart", () => {

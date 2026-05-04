@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
-import { getRefreshDelay } from "@makanmakan/utils";
+import { getRefreshDelay } from "@makanmasak/utils";
 import { apiClient } from "@/services/api";
 import { translate as t } from "@/utils/i18n";
 

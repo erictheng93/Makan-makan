@@ -103,7 +103,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import type {
   CartItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 defineProps<{
   items: CartItem[];

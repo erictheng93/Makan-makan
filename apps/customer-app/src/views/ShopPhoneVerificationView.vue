@@ -253,7 +253,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { apiClient } from "@/services/api";
-import type { Restaurant } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   restaurantId: string;

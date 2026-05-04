@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import type { Restaurant } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 import { translate } from "@/utils/i18n";
 
 export const useAppStore = defineStore("app", () => {
@@ -53,7 +53,7 @@ export const useAppStore = defineStore("app", () => {
 
     // 保存到 localStorage 以便恢復
     localStorage.setItem(
-      "makanmakan_restaurant_context",
+      "makanmasak_restaurant_context",
       JSON.stringify({
         restaurant,
         tableId,
@@ -65,12 +65,12 @@ export const useAppStore = defineStore("app", () => {
   const clearRestaurantContext = () => {
     currentRestaurant.value = null;
     currentTableId.value = null;
-    localStorage.removeItem("makanmakan_restaurant_context");
+    localStorage.removeItem("makanmasak_restaurant_context");
   };
 
   const restoreContext = async () => {
     try {
-      const saved = localStorage.getItem("makanmakan_restaurant_context");
+      const saved = localStorage.getItem("makanmasak_restaurant_context");
       if (!saved) return;
 
       const { restaurant, tableId, timestamp } = JSON.parse(saved);

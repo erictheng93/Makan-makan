@@ -19,10 +19,10 @@ test.describe("多語言國際化 E2E 測試", () => {
   });
 
   const testLanguages = [
-    { code: "zh-TW", name: "繁體中文", welcome: "歡迎來到 MakanMakan" },
-    { code: "zh-CN", name: "简体中文", welcome: "欢迎来到 MakanMakan" },
-    { code: "en", name: "English", welcome: "Welcome to MakanMakan" },
-    { code: "vi", name: "Tiếng Việt", welcome: "Chào mừng đến với MakanMakan" },
+    { code: "zh-TW", name: "繁體中文", welcome: "歡迎來到 MakanMasak" },
+    { code: "zh-CN", name: "简体中文", welcome: "欢迎来到 MakanMasak" },
+    { code: "en", name: "English", welcome: "Welcome to MakanMasak" },
+    { code: "vi", name: "Tiếng Việt", welcome: "Chào mừng đến với MakanMasak" },
   ];
 
   testLanguages.forEach(({ code, name, welcome }) => {
@@ -142,7 +142,7 @@ test.describe("多語言國際化 E2E 測試", () => {
     await helpers.waitForPageLoad();
 
     // 3. 應該自動顯示簡體中文
-    await helpers.waitForText("欢迎来到 MakanMakan");
+    await helpers.waitForText("欢迎来到 MakanMasak");
 
     // 4. 檢查語言設置
     const currentLang = await page.evaluate(() => {
@@ -154,7 +154,7 @@ test.describe("多語言國際化 E2E 測試", () => {
   test("語言偏好本地存儲", async ({ page, context }) => {
     // 1. 設置本地存儲的語言偏好
     await context.addInitScript(() => {
-      localStorage.setItem("makanmakan_language", "vi");
+      localStorage.setItem("makanmasak_language", "vi");
     });
 
     // 2. 訪問頁面
@@ -162,13 +162,13 @@ test.describe("多語言國際化 E2E 測試", () => {
     await helpers.waitForPageLoad();
 
     // 3. 應該使用存儲的語言設置
-    await helpers.waitForText("Chào mừng đến với MakanMakan");
+    await helpers.waitForText("Chào mừng đến với MakanMasak");
 
     // 4. 切換語言並檢查存儲
     await helpers.switchLanguage("en");
 
     const storedLang = await page.evaluate(() => {
-      return localStorage.getItem("makanmakan_language");
+      return localStorage.getItem("makanmasak_language");
     });
     expect(storedLang).toBe("en");
   });
@@ -210,7 +210,7 @@ test.describe("多語言國際化 E2E 測試", () => {
     for (const { count, lang, expected } of testCases) {
       // 清空購物車
       await page.evaluate(() => {
-        localStorage.removeItem("makanmakan_cart_1_5");
+        localStorage.removeItem("makanmasak_cart_1_5");
       });
       await page.reload();
 

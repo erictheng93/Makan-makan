@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import OrderItemCard from "@/components/OrderItemCard.vue";
-import type { OrderItem, MenuItem } from "@makanmakan/shared-types";
-import { OrderItemStatus } from "@makanmakan/shared-types";
-import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import type { OrderItem, MenuItem } from "@makanmasak/shared-types";
+import { OrderItemStatus } from "@makanmasak/shared-types";
+import { menuItemFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock formatPrice function
 vi.mock("@/utils/format", () => ({

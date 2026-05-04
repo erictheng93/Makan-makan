@@ -38,7 +38,7 @@ export const router = createRouter({
 
 router.beforeEach((to, _from, next) => {
   const title = to.meta.title as string;
-  document.title = title ? `${title} - MakanMakan` : "MakanMakan 獨立部署";
+  document.title = title ? `${title} - MakanMasak` : "MakanMasak 獨立部署";
   next();
 });
 

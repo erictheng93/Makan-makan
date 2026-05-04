@@ -9,7 +9,7 @@ import {
   getPerformanceMonitor,
   type PerformanceReport,
   type WebVitals,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";
 import { apiClient } from "@/services/api";
 
 export function usePerformanceMonitor() {

@@ -30,7 +30,7 @@ test.describe("Forgot Password Flow", () => {
 
     // Verify we're on the forgot password page
     await expect(page).toHaveURL("/forgot-password");
-    await expect(page.locator("h2")).toContainText("MakanMakan");
+    await expect(page.locator("h2")).toContainText("MakanMasak");
     await expect(page.locator("p")).toContainText("忘記密碼");
   });
 

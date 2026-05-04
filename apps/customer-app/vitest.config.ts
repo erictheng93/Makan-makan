@@ -22,10 +22,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "@makanmakan/shared-types": fileURLToPath(
+      "@makanmasak/shared-types": fileURLToPath(
         new URL("../../packages/shared-types/src", import.meta.url),
       ),
-      "@makanmakan/i18n": fileURLToPath(
+      "@makanmasak/i18n": fileURLToPath(
         new URL("../../packages/shared/src/i18n/src", import.meta.url),
       ),
     },

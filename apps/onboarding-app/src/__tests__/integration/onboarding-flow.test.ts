@@ -293,7 +293,7 @@ describe("Onboarding Flow Integration", () => {
     it("should render ConnectView with application subdomain", () => {
       const wrapper = mountView(ConnectView);
 
-      expect(wrapper.text()).toContain("testrestaurant.makanmakan.app");
+      expect(wrapper.text()).toContain("testrestaurant.makanmasak.app");
     });
 
     it("should show validation error for short Account ID in ConnectView", async () => {
@@ -405,7 +405,7 @@ describe("Onboarding Flow Integration", () => {
       expect(wrapper.text()).toContain("Success Restaurant");
       expect(wrapper.text()).toContain("happy@example.com");
       expect(wrapper.text()).toContain("tenant-success");
-      expect(wrapper.text()).toContain("myrestaurant.makanmakan.app");
+      expect(wrapper.text()).toContain("myrestaurant.makanmasak.app");
     });
 
     it("should display the plan label correctly", () => {
@@ -425,7 +425,7 @@ describe("Onboarding Flow Integration", () => {
       const wrapper = mountView(SuccessView);
 
       const adminLink = wrapper.find(
-        'a[href="https://myrestaurant.makanmakan.app/admin"]',
+        'a[href="https://myrestaurant.makanmasak.app/admin"]',
       );
       expect(adminLink.exists()).toBe(true);
     });

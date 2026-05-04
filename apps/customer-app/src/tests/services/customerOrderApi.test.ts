@@ -13,7 +13,7 @@ vi.mock("@/i18n", () => ({
 
 import { customerOrderApi } from "@/services/customerOrderApi";
 import { apiClient } from "@/services/api";
-import type { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmasak/shared-types";
 
 const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
 const mockDelete = apiClient.delete as ReturnType<typeof vi.fn>;

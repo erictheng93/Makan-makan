@@ -58,7 +58,7 @@ describe("Basic i18n Configuration", () => {
     expect(tGlobal("common.confirm")).toBe("確認");
     expect(tGlobal("common.cancel")).toBe("取消");
     expect(tGlobal("common.loading")).toBe("載入中...");
-    expect(tGlobal("home.title")).toBe("歡迎來到 MakanMakan");
+    expect(tGlobal("home.title")).toBe("歡迎來到 MakanMasak");
     expect(tGlobal("menu.title")).toBe("菜單");
     expect(tGlobal("cart.title")).toBe("購物車");
   });
@@ -69,7 +69,7 @@ describe("Basic i18n Configuration", () => {
     expect(tGlobal("common.confirm")).toBe("确认");
     expect(tGlobal("common.cancel")).toBe("取消");
     expect(tGlobal("common.loading")).toBe("加载中...");
-    expect(tGlobal("home.title")).toBe("欢迎来到 MakanMakan");
+    expect(tGlobal("home.title")).toBe("欢迎来到 MakanMasak");
     expect(tGlobal("menu.title")).toBe("菜单");
     expect(tGlobal("cart.title")).toBe("购物车");
   });
@@ -80,7 +80,7 @@ describe("Basic i18n Configuration", () => {
     expect(tGlobal("common.confirm")).toBe("Confirm");
     expect(tGlobal("common.cancel")).toBe("Cancel");
     expect(tGlobal("common.loading")).toBe("Loading...");
-    expect(tGlobal("home.title")).toBe("Welcome to MakanMakan");
+    expect(tGlobal("home.title")).toBe("Welcome to MakanMasak");
     expect(tGlobal("menu.title")).toBe("Menu");
     expect(tGlobal("cart.title")).toBe("Shopping Cart");
   });
@@ -91,7 +91,7 @@ describe("Basic i18n Configuration", () => {
     expect(tGlobal("common.confirm")).toBe("Xác nhận");
     expect(tGlobal("common.cancel")).toBe("Hủy");
     expect(tGlobal("common.loading")).toBe("Đang tải...");
-    expect(tGlobal("home.title")).toBe("Chào mừng đến với MakanMakan");
+    expect(tGlobal("home.title")).toBe("Chào mừng đến với MakanMasak");
     expect(tGlobal("menu.title")).toBe("Thực đơn");
     expect(tGlobal("cart.title")).toBe("Giỏ hàng");
   });

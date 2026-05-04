@@ -180,7 +180,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
-import type { CartItem } from "@makanmakan/shared-types";
+import type { CartItem } from "@makanmasak/shared-types";
 import { useI18n } from "@/composables/useI18n";
 
 // Props

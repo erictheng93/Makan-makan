@@ -5,7 +5,7 @@ import {
   SUPPORTED_LANGUAGES,
   type SupportedLanguage,
 } from "@/i18n";
-import type { LocaleInfo } from "@makanmakan/i18n";
+import type { LocaleInfo } from "@makanmasak/i18n";
 
 interface UseI18nReturn {
   t: (key: string) => string;

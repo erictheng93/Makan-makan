@@ -3,9 +3,9 @@ import { mount } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { useShopCartStore } from "@/stores/shopCart";
 import ShopCartModal from "@/components/ShopCartModal.vue";
-import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
-import { SpiceLevel } from "@makanmakan/shared-types";
-import type { MenuItem } from "@makanmakan/shared-types";
+import { menuItemFactory, resetAllFactories } from "@makanmasak/testing-utils";
+import { SpiceLevel } from "@makanmasak/shared-types";
+import type { MenuItem } from "@makanmasak/shared-types";
 
 // ── Mock dependencies ────────────────────────────────────────────────────────
 

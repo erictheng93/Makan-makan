@@ -4,7 +4,7 @@ import type {
   OrderUpdateData,
   RestaurantStatusData,
   WebSocketMessage,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 interface UseWebSocketOptions {
   url?: string;

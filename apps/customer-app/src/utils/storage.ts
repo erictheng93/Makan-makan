@@ -90,7 +90,7 @@ export interface StorageItem<T = unknown> {
 export class StorageManager {
   private prefix: string;
 
-  constructor(prefix: string = "makanmakan_") {
+  constructor(prefix: string = "makanmasak_") {
     this.prefix = prefix;
   }
 
@@ -339,9 +339,9 @@ export const hasItem = storage.has.bind(storage);
 export const clearStorage = storage.clear.bind(storage);
 
 // 專用存儲管理器
-export const cartStorage = new StorageManager("makanmakan_cart_");
-export const userStorage = new StorageManager("makanmakan_user_");
-export const cacheStorage = new StorageManager("makanmakan_cache_");
+export const cartStorage = new StorageManager("makanmasak_cart_");
+export const userStorage = new StorageManager("makanmasak_user_");
+export const cacheStorage = new StorageManager("makanmasak_cache_");
 
 /**
  * 購物車存儲助手

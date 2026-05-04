@@ -16,7 +16,7 @@ const enUS: Messages = {
       selfHosted: "Self-Hosted",
     },
     footer: {
-      copyright: "© 2024 MakanMakan. All rights reserved.",
+      copyright: "© 2024 MakanMasak. All rights reserved.",
     },
   },
 
@@ -106,7 +106,7 @@ const enUS: Messages = {
     info: {
       title: "Why do you need a Cloudflare account?",
       description:
-        "MakanMakan runs on your own Cloudflare account, ensuring you have full control over your data. Resource costs are included in your subscription.",
+        "MakanMasak runs on your own Cloudflare account, ensuring you have full control over your data. Resource costs are included in your subscription.",
     },
     steps: {
       heading: "Steps:",
@@ -163,7 +163,7 @@ const enUS: Messages = {
   success: {
     title: "Application Complete!",
     subtitleLine1:
-      "Congratulations! Your MakanMakan deployment has been created.",
+      "Congratulations! Your MakanMasak deployment has been created.",
     subtitleLine2: "The system is preparing your dedicated environment.",
     summary: {
       title: "Application Summary",

@@ -229,7 +229,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import type {
   MenuItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import CustomizationOptions from "./CustomizationOptions.vue";
 import { useI18n } from "@/composables/useI18n";
 

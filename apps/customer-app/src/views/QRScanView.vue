@@ -343,7 +343,7 @@ const handleQRCodeDetected = async (qrContent: string) => {
 
       case "table":
         localStorage.setItem(
-          `makanmakan_table_qr:${qrData.restaurantId}:${qrData.tableId}`,
+          `makanmasak_table_qr:${qrData.restaurantId}:${qrData.tableId}`,
           qrContent,
         );
         // 桌台 QR - 導航到菜單頁面
@@ -363,7 +363,7 @@ const handleQRCodeDetected = async (qrContent: string) => {
 
       case "seat":
         localStorage.setItem(
-          `makanmakan_table_qr:${qrData.restaurantId}:${qrData.tableId}`,
+          `makanmasak_table_qr:${qrData.restaurantId}:${qrData.tableId}`,
           qrContent,
         );
         // 座位 QR - 導航到菜單頁面（未來可能需要座位專用頁面）
@@ -415,7 +415,7 @@ const addToRecentRestaurants = async (qrData: {
       lastVisit: Date.now(),
     };
 
-    const saved = localStorage.getItem("makanmakan_recent_restaurants");
+    const saved = localStorage.getItem("makanmasak_recent_restaurants");
     const parsed = saved ? JSON.parse(saved) : [];
     let recent: RecentRestaurant[] = Array.isArray(parsed) ? parsed : [];
 
@@ -429,7 +429,7 @@ const addToRecentRestaurants = async (qrData: {
     recent = recent.slice(0, 10);
 
     localStorage.setItem(
-      "makanmakan_recent_restaurants",
+      "makanmasak_recent_restaurants",
       JSON.stringify(recent),
     );
   } catch (error) {

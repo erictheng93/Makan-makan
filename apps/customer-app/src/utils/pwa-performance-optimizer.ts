@@ -136,9 +136,9 @@ export class ServiceWorkerOptimizer {
   async cleanupExpiredCaches(): Promise<void> {
     const cacheNames = await caches.keys();
     const currentCacheNames = [
-      "makanmakan-customer-v1",
-      "makanmakan-api-v1",
-      "makanmakan-images-v1",
+      "makanmasak-customer-v1",
+      "makanmasak-api-v1",
+      "makanmasak-images-v1",
       "preload-cache-v1",
     ];
 
@@ -233,7 +233,7 @@ export class IndexedDBOptimizer {
 
   async initialize(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open("MakanMakanCustomerOptimized", 2);
+      const request = indexedDB.open("MakanMasakCustomerOptimized", 2);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {

@@ -14,7 +14,7 @@ const mockMonitor = {
   trackMetric: vi.fn(),
 };
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   getPerformanceMonitor: vi.fn(() => mockMonitor),
 }));
 

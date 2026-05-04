@@ -131,7 +131,7 @@ function parseJSONFormat(content: string): QRData | null {
 
 /**
  * 解析 URL 格式 QR Code
- * 格式: https://makanmakan.app/restaurant/123/table/5
+ * 格式: https://makanmasak.app/restaurant/123/table/5
  * 格式: https://domain.com/r/123/t/5
  * 格式: https://domain.com/menu?restaurant=123&table=5
  */
@@ -362,7 +362,7 @@ export function generateQRContent(
         case "json":
           return JSON.stringify({ type: "table", restaurantId, tableId });
         case "url":
-          return `https://makanmakan.app/restaurant/${restaurantId}/table/${tableId}`;
+          return `https://makanmasak.app/restaurant/${restaurantId}/table/${tableId}`;
         case "simple":
           return `${restaurantId}:${tableId}`;
         default:

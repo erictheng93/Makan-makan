@@ -4,7 +4,7 @@ import type {
   PaginationParams,
   PaginatedResponse,
   PaginationMeta,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const mockMeta = (hasNextPage: boolean): PaginationMeta => ({
   currentPage: 1,

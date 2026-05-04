@@ -155,7 +155,7 @@ import type {
   QueueStatus,
   WaitingListResponse,
   WaitTimeEstimateResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const props = defineProps<{
   restaurantId: string;

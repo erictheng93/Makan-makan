@@ -26,7 +26,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff2}"],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\.makanmakan\.app\//,
+            urlPattern: /^https:\/\/api\.makanmasak\.app\//,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
@@ -37,7 +37,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/images\.makanmakan\.app\//,
+            urlPattern: /^https:\/\/images\.makanmasak\.app\//,
             handler: "CacheFirst",
             options: {
               cacheName: "image-cache",
@@ -51,8 +51,8 @@ export default defineConfig({
       },
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
-        name: "MakanMakan - 點餐系統",
-        short_name: "MakanMakan",
+        name: "MakanMasak - 點餐系統",
+        short_name: "MakanMasak",
         description: "便捷的餐廳點餐系統，掃描 QR Code 即可開始點餐",
         theme_color: "#3b82f6",
         background_color: "#ffffff",
@@ -101,7 +101,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "@makanmakan/shared-types": fileURLToPath(
+      "@makanmasak/shared-types": fileURLToPath(
         new URL("../../packages/shared-types/src", import.meta.url),
       ),
     },

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { ApiErrorCode } from "@makanmakan/shared-types";
+import { ApiErrorCode } from "@makanmasak/shared-types";
 
 // Mock i18n before importing api module
 vi.mock("@/i18n", () => ({
