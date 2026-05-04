@@ -61,7 +61,7 @@ jobs:
           ref: main
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
