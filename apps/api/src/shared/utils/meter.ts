@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import type { MeterKey } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../types/env";
 
 export interface MeterEmitOptions {
@@ -26,7 +27,7 @@ export async function insertUsageEvent(
       ) VALUES (?, ?, ?, ?, ?)`,
     )
     .bind(
-      crypto.randomUUID(),
+      generateUUID(),
       input.restaurantId,
       input.meterKey,
       input.quantity,

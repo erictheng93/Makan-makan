@@ -1,4 +1,5 @@
 import type { D1Database } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../types/env";
 
 interface PendingUsageGroup {
@@ -130,7 +131,7 @@ export async function aggregateUsageMeters(env: Env) {
           updated_at_ms = excluded.updated_at_ms`,
     )
       .bind(
-        crypto.randomUUID(),
+        generateUUID(),
         group.restaurant_id,
         group.meter_key,
         cycle.startAt,
