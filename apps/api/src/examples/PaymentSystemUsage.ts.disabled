@@ -14,7 +14,7 @@ import {
   RefundRequest,
   CountryCode,
   PaymentMethod
-} from '@makanmakan/shared-types'
+} from '@makanmasak/shared-types'
 
 // =============================================
 // 1. 基本支付流程範例

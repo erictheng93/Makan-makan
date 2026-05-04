@@ -402,7 +402,7 @@ describe("Generate CSRF Token Handler", () => {
   it("should include Secure flag in production mode", async () => {
     const prodEnv = {
       ...mockEnv,
-      API_BASE_URL: "https://api.makanmakan.com",
+      API_BASE_URL: "https://api.makanmasak.com",
       NODE_ENV: "production",
     };
 
@@ -414,7 +414,7 @@ describe("Generate CSRF Token Handler", () => {
     });
     prodApp.get("/csrf-token", generateCSRFTokenHandler as never);
 
-    const req = new Request("http://api.makanmakan.com/csrf-token");
+    const req = new Request("http://api.makanmasak.com/csrf-token");
     const res = await prodApp.request(req, { env: prodEnv } as never);
 
     const setCookie = res.headers.get("Set-Cookie");

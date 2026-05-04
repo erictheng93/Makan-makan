@@ -4,7 +4,7 @@ import {
   QRCodeService as DatabaseQRCodeService,
   type CreateQRCodeData,
   type QRStyleData,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 export interface QRCodeStyle {
   // 基本樣式

@@ -8,8 +8,8 @@ import {
   PaymentResult,
   RefundRequest,
   PaymentProviderConfig
-} from '@makanmakan/shared-types'
-import { StripeConfig } from '@makanmakan/shared-types'
+} from '@makanmasak/shared-types'
+import { StripeConfig } from '@makanmasak/shared-types'
 
 type StripeProviderTestAccess = StripeProvider & {
   convertToStripeAmount(amount: number, currency: string): number

@@ -12,9 +12,9 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Mock @makanmakan/shared-types to ensure enums are available
-vi.mock("@makanmakan/shared-types", async () => {
-  const actual = await vi.importActual("@makanmakan/shared-types");
+// Mock @makanmasak/shared-types to ensure enums are available
+vi.mock("@makanmasak/shared-types", async () => {
+  const actual = await vi.importActual("@makanmasak/shared-types");
   return {
     ...actual,
     RealtimeEventType: {
@@ -28,14 +28,14 @@ vi.mock("@makanmakan/shared-types", async () => {
 });
 
 // Import after mocking
-import { RealtimeEventType } from "@makanmakan/shared-types";
-import type { OrderStatus } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
+import type { OrderStatus } from "@makanmasak/shared-types";
 import type {
   NewOrderEvent,
   OrderStatusUpdateEvent,
   KitchenItemStatusEvent,
   MenuAvailabilityUpdateEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Mock Durable Object Stub
 class MockDurableObjectStub {

@@ -8,7 +8,7 @@ import {
   type DatabaseConnection,
   type SqlValue,
 } from "./PaymentConfigManager";
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { getCurrentTimestamp } from "@makanmasak/database";
 import { notFound, conflict } from "../shared/utils/api-error";
 // import { StripeProvider } from './providers/StripeProvider' // Temporarily disabled
 // import { ECPayProvider } from './providers/ECPayProvider' // Disabled
@@ -26,7 +26,7 @@ import {
   PaymentStatus,
   WebhookResult,
   CountryCode,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 interface PaymentServiceConfig {
   database: DatabaseConnection;
@@ -209,7 +209,7 @@ export class PaymentService {
           returnUrl: config.returnUrl,
           notifyUrl: config.notifyUrl,
           clientBackUrl: config.clientBackUrl,
-          itemName: config.itemName || 'MakanMakan Order',
+          itemName: config.itemName || 'MakanMasak Order',
           paymentTimeout: config.paymentTimeout || 1800
         }
       })
@@ -359,7 +359,7 @@ export class PaymentService {
           testMode: providerConfig.testMode,
           clientBackUrl: config.clientBackUrl || config.returnUrl,
           paymentTimeout: config.paymentTimeout || 1800,
-          itemName: config.itemName || 'MakanMakan Order'
+          itemName: config.itemName || 'MakanMasak Order'
         }
       })
 

@@ -16,7 +16,7 @@ import {
   PaymentResult,
   PaymentMethod,
   CountryCode
-} from '@makanmakan/shared-types';
+} from '@makanmasak/shared-types';
 
 // 完整的 Stripe 整合範例
 export class StripeIntegrationExample {

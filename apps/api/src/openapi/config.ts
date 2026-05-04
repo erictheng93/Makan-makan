@@ -14,10 +14,10 @@ export const createOpenAPIApp = () => {
   app.doc("/openapi.json", {
     openapi: "3.1.0",
     info: {
-      title: "MakanMakan API",
+      title: "MakanMasak API",
       version: "2.0.0",
       description: `
-# MakanMakan API Documentation
+# MakanMasak API Documentation
 
 智慧雲端點餐平台 REST API
 
@@ -69,9 +69,9 @@ API 使用標準 HTTP 狀態碼：
 \`\`\`
       `,
       contact: {
-        name: "MakanMakan Development Team",
-        email: "api@makanmakan.com",
-        url: "https://github.com/makanmakan/platform",
+        name: "MakanMasak Development Team",
+        email: "api@makanmasak.com",
+        url: "https://github.com/makanmasak/platform",
       },
       license: {
         name: "MIT License",
@@ -80,11 +80,11 @@ API 使用標準 HTTP 狀態碼：
     },
     servers: [
       {
-        url: "https://api.makanmakan.com",
+        url: "https://api.makanmasak.com",
         description: "Production Server",
       },
       {
-        url: "https://api-staging.makanmakan.com",
+        url: "https://api-staging.makanmasak.com",
         description: "Staging Server",
       },
       {

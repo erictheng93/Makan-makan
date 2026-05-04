@@ -16,7 +16,7 @@ import type {
   BackupAlert,
   BackupAuditLog,
   BackupStatus,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type {
   D1Database,
   R2Bucket,

@@ -108,7 +108,7 @@ export const corsMiddleware = async (
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob:",
     "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https: wss: https://*.makanmakan.app https://api.cloudflare.com",
+    "connect-src 'self' https: wss: https://*.makanmasak.app https://api.cloudflare.com",
     "media-src 'self' data: blob:",
     "object-src 'none'",
     "base-uri 'self'",

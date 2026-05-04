@@ -281,10 +281,10 @@ export class EdgeCacheManager {
 
   // Private helper methods
   private buildCacheKey(key: string, vary?: string[]): string {
-    if (!vary?.length) return `https://cache.makanmakan.app/${key}`;
+    if (!vary?.length) return `https://cache.makanmasak.app/${key}`;
 
     const varyString = vary.join("-");
-    return `https://cache.makanmakan.app/${key}?vary=${varyString}`;
+    return `https://cache.makanmasak.app/${key}?vary=${varyString}`;
   }
 
   private isExpired(metadata: CacheMetadata): boolean {
@@ -521,7 +521,7 @@ export function smartCacheMiddleware(
                 kv.delete(key),
                 // Cache API delete uses the same URL the cache writer built
                 // via EdgeCacheManager.buildCacheKey — must match exactly.
-                caches.default.delete(`https://cache.makanmakan.app/${key}`),
+                caches.default.delete(`https://cache.makanmasak.app/${key}`),
               ]),
             );
           }

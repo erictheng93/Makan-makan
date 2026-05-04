@@ -6,7 +6,7 @@ import {
   type MeterKey,
   type MeterQuota,
   type PlanTier,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import {
   BILLING_NOTIFICATION_KINDS,
   BillingNotificationService,

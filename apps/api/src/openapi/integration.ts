@@ -4,7 +4,7 @@
  */
 
 import { swaggerUI } from "@hono/swagger-ui";
-import { ORDER_STATUSES } from "@makanmakan/shared-types";
+import { ORDER_STATUSES } from "@makanmasak/shared-types";
 import { createOpenAPIApp, errorResponses } from "./config";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { Hono } from "hono";
@@ -182,7 +182,7 @@ export function integrateOpenAPI(app: Hono) {
     return c.json(
       openApiApp.getOpenAPI31Document({
         openapi: "3.1.0",
-        info: { title: "MakanMakan API", version: "2.0.0" },
+        info: { title: "MakanMasak API", version: "2.0.0" },
         servers: [{ url: "/" }],
       }),
     );

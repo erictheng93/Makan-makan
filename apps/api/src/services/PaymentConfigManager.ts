@@ -3,8 +3,8 @@ import {
   CountryPaymentConfig,
   CountryCode,
   PaymentMethod,
-} from "@makanmakan/shared-types";
-import { getCurrentTimestamp } from "@makanmakan/database";
+} from "@makanmasak/shared-types";
+import { getCurrentTimestamp } from "@makanmasak/database";
 
 export type SqlValue = string | number | boolean | Date | null | undefined;
 
@@ -97,7 +97,7 @@ async function deriveKey(keyString: string): Promise<CryptoKey> {
     ["deriveKey"],
   );
 
-  const salt = stringToUint8Array("makanmakan-payment-config-salt");
+  const salt = stringToUint8Array("makanmasak-payment-config-salt");
 
   return crypto.subtle.deriveKey(
     {

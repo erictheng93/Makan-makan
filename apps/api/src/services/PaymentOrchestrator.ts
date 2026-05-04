@@ -9,7 +9,7 @@ import {
   CountryCode,
   PaymentMethod,
   CountryPaymentConfig,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export interface PaymentOrchestratorConfig {
   defaultTimeout: number;

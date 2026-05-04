@@ -446,7 +446,7 @@ describe("Cache Key Building", () => {
     await cacheManager.get("test-key");
 
     expect(mockCacheAPI.default.match).toHaveBeenCalledWith(
-      "https://cache.makanmakan.app/test-key",
+      "https://cache.makanmasak.app/test-key",
     );
   });
 

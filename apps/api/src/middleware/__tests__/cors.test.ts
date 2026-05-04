@@ -21,10 +21,10 @@ describe("CORS Middleware", () => {
 
   describe("Allowed Origins", () => {
     const allowedOrigins = [
-      "https://customer.makanmakan.app",
-      "https://admin.makanmakan.app",
-      "https://kitchen.makanmakan.app",
-      "https://makanmakan.app",
+      "https://customer.makanmasak.app",
+      "https://admin.makanmasak.app",
+      "https://kitchen.makanmasak.app",
+      "https://makanmasak.app",
       "http://localhost:3000",
       "http://localhost:5173",
       "http://127.0.0.1:3000",

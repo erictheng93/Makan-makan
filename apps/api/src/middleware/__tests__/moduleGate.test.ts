@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { ApiError } from "../../shared/utils/api-error";
 import { moduleGate, invalidateSubscriptionCache } from "../moduleGate";
 import type { AuthUser } from "../auth";
-import { MODULES, PLAN_DEFAULT_MODULES } from "@makanmakan/database";
+import { MODULES, PLAN_DEFAULT_MODULES } from "@makanmasak/database";
 
 // ---------------------------------------------------------------------------
 // Mock drizzle-orm/d1 so we can control DB query results per test.
