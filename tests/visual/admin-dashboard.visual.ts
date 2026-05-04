@@ -18,7 +18,7 @@ test.describe("Admin Dashboard — Visual Regression", () => {
     test("login page", async ({ page }) => {
       await page.goto(`${APP_URLS.admin}/login`);
       await waitForPageStable(page);
-      await expectPageRendered(page, { mustContain: /MakanMakan/ });
+      await expectPageRendered(page, { mustContain: /MakanMasak/ });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("admin-login.png");
     });
@@ -26,7 +26,7 @@ test.describe("Admin Dashboard — Visual Regression", () => {
     test("forgot password page", async ({ page }) => {
       await page.goto(`${APP_URLS.admin}/forgot-password`);
       await waitForPageStable(page);
-      await expectPageRendered(page, { mustContain: /MakanMakan/ });
+      await expectPageRendered(page, { mustContain: /MakanMasak/ });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("admin-forgot-password.png");
     });

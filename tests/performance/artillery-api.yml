@@ -1,5 +1,5 @@
 # Artillery REST API Performance Test Configuration
-# MakanMakan API 負載測試配置
+# MakanMasak API 負載測試配置
 
 config:
   target: "http://localhost:8787"

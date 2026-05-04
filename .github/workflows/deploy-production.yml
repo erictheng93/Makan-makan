@@ -20,7 +20,7 @@ on:
   # block below once HB-2 + HB-3 land and the production environment exists with
   # required reviewers + branch restriction `main` only.
   # workflow_run:
-  #   workflows: ["🧪 MakanMakan 測試流水線"]
+  #   workflows: ["🧪 MakanMasak 測試流水線"]
   #   types: [completed]
   #   branches: [main]
   workflow_dispatch:

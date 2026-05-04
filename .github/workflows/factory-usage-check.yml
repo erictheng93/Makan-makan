@@ -77,10 +77,10 @@ jobs:
               message += `### ❌ 發現 ${errors} 個錯誤\n\n`
               message += '這些錯誤**必須修復**才能確保測試數據一致性：\n\n'
               message += '1. 為使用 factory 的測試添加 `resetAllFactories()`\n'
-              message += '2. 確保正確導入 `@makanmakan/testing-utils`\n\n'
+              message += '2. 確保正確導入 `@makanmasak/testing-utils`\n\n'
               message += '**修復範例**：\n'
               message += '```typescript\n'
-              message += 'import { userFactory, resetAllFactories } from "@makanmakan/testing-utils"\n\n'
+              message += 'import { userFactory, resetAllFactories } from "@makanmasak/testing-utils"\n\n'
               message += 'describe("Test Suite", () => {\n'
               message += '  beforeEach(() => {\n'
               message += '    resetAllFactories() // 添加這一行\n'

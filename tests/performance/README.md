@@ -1,6 +1,6 @@
-# MakanMakan 性能測試
+# MakanMasak 性能測試
 
-本目錄包含 MakanMakan 平台的性能測試腳本和配置，包括 REST API 和 WebSocket 即時通訊系統的負載測試。
+本目錄包含 MakanMasak 平台的性能測試腳本和配置，包括 REST API 和 WebSocket 即時通訊系統的負載測試。
 
 ## 📋 測試工具
 
@@ -394,7 +394,7 @@ lsof -i :8788
 
 ```bash
 # 創建測試數據
-npx wrangler d1 execute makanmakan-local --local --file=./scripts/seed-realtime-test.sql
+npx wrangler d1 execute makanmasak-local --local --file=./scripts/seed-realtime-test.sql
 ```
 
 ## 📚 進階測試
@@ -468,4 +468,4 @@ phases:
 ---
 
 **最後更新**: 2025-11-03
-**維護者**: MakanMakan Dev Team
+**維護者**: MakanMasak Dev Team

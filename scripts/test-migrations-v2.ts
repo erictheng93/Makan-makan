@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * MakanMakan Database Migrations v2.0 - Test Execution Script
+ * MakanMasak Database Migrations v2.0 - Test Execution Script
  * Cross-platform TypeScript version
  *
  * Usage: npx tsx scripts/test-migrations-v2.ts
@@ -20,7 +20,7 @@ const colors = {
 };
 
 // Configuration
-const DB_NAME = "makanmakan-test-v2";
+const DB_NAME = "makanmasak-test-v2";
 const MIGRATIONS_DIR = "packages/database/migrations_v2";
 const LOG_DIR = "logs";
 const TIMESTAMP = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -99,7 +99,7 @@ function getCount(query: string): number {
 
 async function main() {
   log(colors.blue("════════════════════════════════════════════════════════"));
-  log(colors.blue("  MakanMakan Database Migrations v2.0 - Test Execution"));
+  log(colors.blue("  MakanMasak Database Migrations v2.0 - Test Execution"));
   log(colors.blue("════════════════════════════════════════════════════════"));
   log("");
 
@@ -247,7 +247,7 @@ async function main() {
   const allPassed =
     failedMigrations.length === 0 && tableOk && indexOk && viewOk && triggerOk;
 
-  const reportContent = `# MakanMakan Migrations v2.0 - Test Report
+  const reportContent = `# MakanMasak Migrations v2.0 - Test Report
 
 **Test Date**: ${new Date().toISOString()}
 **Test Database**: ${DB_NAME}

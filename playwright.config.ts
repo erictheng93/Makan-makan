@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * MakanMakan E2E 測試配置
+ * MakanMasak E2E 測試配置
  */
 export default defineConfig({
   testDir: "./tests/e2e",

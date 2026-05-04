@@ -17,7 +17,7 @@ test.describe("Onboarding App — Visual Regression", () => {
   test("home page", async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
     await waitForPageStable(page);
-    await expectPageRendered(page, { mustContain: /MakanMakan/ });
+    await expectPageRendered(page, { mustContain: /MakanMasak/ });
     await mockDynamicContent(page);
     await expect(page).toHaveScreenshot("onboarding-home.png");
   });

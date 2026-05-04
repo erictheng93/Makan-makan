@@ -18,7 +18,7 @@ test.describe("Customer App — Visual Regression", () => {
     test("home page", async ({ page }) => {
       await page.goto(`${APP_URLS.customer}/`);
       await waitForPageStable(page);
-      await expectPageRendered(page, { mustContain: /MakanMakan/ });
+      await expectPageRendered(page, { mustContain: /MakanMasak/ });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("customer-home.png");
     });
@@ -26,7 +26,7 @@ test.describe("Customer App — Visual Regression", () => {
     test("menu browsing", async ({ page }) => {
       await page.goto(`${APP_URLS.customer}/menu`);
       await waitForPageStable(page);
-      await expectPageRendered(page, { mustContain: /MakanMakan/ });
+      await expectPageRendered(page, { mustContain: /MakanMasak/ });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("customer-menu.png");
     });
@@ -61,7 +61,7 @@ test.describe("Customer App — Visual Regression", () => {
         urlContains: "/restaurant/test-restaurant-1/table/1",
         // Mock menu includes this item — proves the full menu payload
         // (not just a stub) was fetched and rendered.
-        mustContain: /海南雞飯|MakanMakan 測試餐廳/,
+        mustContain: /海南雞飯|MakanMasak 測試餐廳/,
       });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("customer-table-menu.png");
@@ -75,7 +75,7 @@ test.describe("Customer App — Visual Regression", () => {
       // The schema is in apps/customer-app/src/stores/cart.ts (CartDataSchema).
       const restaurantId = "test-restaurant-1";
       const tableId = 1;
-      const storageKey = `makanmakan_cart_${restaurantId}_${tableId}`;
+      const storageKey = `makanmasak_cart_${restaurantId}_${tableId}`;
       await page.addInitScript(
         ({ key, data }) => {
           localStorage.setItem(key, JSON.stringify(data));

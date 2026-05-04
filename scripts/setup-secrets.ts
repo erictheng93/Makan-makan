@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * MakanMakan Security Setup Script
+ * MakanMasak Security Setup Script
  * Cross-platform TypeScript version
  *
  * Usage: npx tsx scripts/setup-secrets.ts [--kv-only] [--help]
@@ -168,7 +168,7 @@ async function createKvNamespaces(): Promise<void> {
 }
 
 async function mainSetup(): Promise<void> {
-  console.log(colors.blue("🛡️  MakanMakan Security Setup"));
+  console.log(colors.blue("🛡️  MakanMasak Security Setup"));
   console.log("================================================");
   console.log();
 
@@ -203,7 +203,7 @@ async function mainSetup(): Promise<void> {
       copyFileSync(".env.example", ".env.local");
       console.log(colors.green("✅ Created .env.local from template"));
     } else {
-      writeFileSync(".env.local", "# MakanMakan Local Environment\n");
+      writeFileSync(".env.local", "# MakanMasak Local Environment\n");
       console.log(colors.green("✅ Created new .env.local"));
     }
   }
@@ -269,7 +269,7 @@ async function mainSetup(): Promise<void> {
   console.log("3. Update wrangler.toml with the KV namespace IDs");
   console.log("4. Run database migrations:");
   console.log(
-    "   npx wrangler d1 migrations apply makanmakan-staging --env staging",
+    "   npx wrangler d1 migrations apply makanmasak-staging --env staging",
   );
   console.log("5. Test your setup with: pnpm run dev");
 
@@ -292,7 +292,7 @@ async function mainSetup(): Promise<void> {
   console.log();
   console.log(
     colors.green(
-      "🔒 Setup complete! Your MakanMakan application is now secured.",
+      "🔒 Setup complete! Your MakanMasak application is now secured.",
     ),
   );
 }

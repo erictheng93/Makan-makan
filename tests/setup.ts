@@ -91,7 +91,7 @@ config.global.mocks = {
 // 環境變數設置
 process.env.NODE_ENV = "test";
 process.env.VITE_API_BASE_URL = "http://localhost:3000";
-process.env.VITE_APP_TITLE = "MakanMakan Test";
+process.env.VITE_APP_TITLE = "MakanMasak Test";
 
 // 測試前後清理
 beforeEach(() => {

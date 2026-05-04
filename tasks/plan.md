@@ -113,29 +113,29 @@
   - `import type { Env } from "../shared/types"` → 改為內部宣告 `interface BroadcastEnv { REALTIME_SESSION?: DurableObjectNamespace }`
   - `import { ConsoleLogger } from "../core/monitoring"` → 移除，改用 `console.warn` / `console.error`（primitives 層不依賴 apps logger）
 - 修改 `packages/database/src/services/index.ts`：re-export `RealtimeBroadcastService`、`BroadcastResult` 等
-- 確認 `packages/database/package.json` 已依賴 `@makanmakan/shared-types`（應已存在，因 `WaitingListService` 已用）
+- 確認 `packages/database/package.json` 已依賴 `@makanmasak/shared-types`（應已存在，因 `WaitingListService` 已用）
 - 刪除 `apps/api/src/services/RealtimeBroadcastService.ts`
 - 更新所有 `apps/api/src/...` import path：
-  - `OrdersService.ts`、`KitchenService.ts`：`from "../../../services/RealtimeBroadcastService"` → `from "@makanmakan/database"`
+  - `OrdersService.ts`、`KitchenService.ts`：`from "../../../services/RealtimeBroadcastService"` → `from "@makanmasak/database"`
   - 6 個測試檔案的 import 同步更新（`apps/api/src/__tests__/security/business-logic-security.test.ts`、`features/orders/__tests__/*.test.ts` 共 5 檔、`services/__tests__/RealtimeBroadcastService.test.ts`）
 - 把 `services/__tests__/RealtimeBroadcastService.test.ts` 一併搬到 `packages/database/src/services/__tests__/`
 - `apps/api/src/services/__tests__/broadcast.test.ts` 中對 `RealtimeBroadcastService` 的依賴更新
 
 **驗收條件：**
 
-- [ ] `pnpm --filter @makanmakan/database typecheck` 全綠
-- [ ] `pnpm --filter @makanmakan/api typecheck` 全綠
-- [ ] `pnpm --filter @makanmakan/database test RealtimeBroadcast` 既有測試全綠（搬遷不改行為）
+- [ ] `pnpm --filter @makanmasak/database typecheck` 全綠
+- [ ] `pnpm --filter @makanmasak/api typecheck` 全綠
+- [ ] `pnpm --filter @makanmasak/database test RealtimeBroadcast` 既有測試全綠（搬遷不改行為）
 - [ ] `apps/api/src` 下 grep 無剩餘 `from "../services/RealtimeBroadcastService"` 或類似舊路徑
 - [ ] 可選：在 `RealtimeEvent` union type 新增 `waiting_list_*` 事件類型（也可延到 T3，但建議在這裡一起加，避免 T3 還要回 packages/shared-types）
 
 **驗證指令：**
 
 ```bash
-pnpm --filter @makanmakan/database typecheck
-pnpm --filter @makanmakan/api typecheck
-pnpm --filter @makanmakan/database test
-pnpm --filter @makanmakan/api test
+pnpm --filter @makanmasak/database typecheck
+pnpm --filter @makanmasak/api typecheck
+pnpm --filter @makanmasak/database test
+pnpm --filter @makanmasak/api test
 rg "services/RealtimeBroadcastService" apps/  # 預期 0 命中（除了已刪檔案）
 ```
 
@@ -156,7 +156,7 @@ rg "services/RealtimeBroadcastService" apps/  # 預期 0 命中（除了已刪�
 
 ```ts
 import { ApiError } from "..."; // 看 packages/database 既有錯誤型別位置
-import type { WaitingStatus } from "@makanmakan/shared-types";
+import type { WaitingStatus } from "@makanmasak/shared-types";
 
 export const WAITING_TRANSITIONS = {
   waiting: ["called", "cancelled", "expired"],
@@ -188,8 +188,8 @@ export function assertWaitingTransition(
 
 - [ ] 6 個 from-state × 各自 allowed 路徑全 pass
 - [ ] 非法跳轉測試（至少 5 個）：`seated → called`、`cancelled → seated`、`waiting → seated`（跳 call/confirm）、`expired → 任何`、`no_show → 任何`
-- [ ] `pnpm --filter @makanmakan/database typecheck` 全綠
-- [ ] `pnpm --filter @makanmakan/database test ticket-primitives` 全綠
+- [ ] `pnpm --filter @makanmasak/database typecheck` 全綠
+- [ ] `pnpm --filter @makanmasak/database test ticket-primitives` 全綠
 
 ---
 
@@ -254,7 +254,7 @@ script_name = "makanmasak-realtime"  # 注意：dev 用 dev name，staging/prod 
 **驗證指令：**
 
 ```bash
-pnpm --filter @makanmakan/database test WaitingListService
+pnpm --filter @makanmasak/database test WaitingListService
 ```
 
 **已知風險：**
@@ -301,8 +301,8 @@ pnpm --filter @makanmakan/database test WaitingListService
 **驗證指令：**
 
 ```bash
-pnpm --filter @makanmakan/database test WaitingListService
-pnpm --filter @makanmakan/api test waiting-list
+pnpm --filter @makanmasak/database test WaitingListService
+pnpm --filter @makanmasak/api test waiting-list
 ```
 
 **手動驗證：**
@@ -359,8 +359,8 @@ if (existingEntry) {
 **驗證指令：**
 
 ```bash
-pnpm --filter @makanmakan/database test WaitingListService
-pnpm --filter @makanmakan/shared-types typecheck
+pnpm --filter @makanmasak/database test WaitingListService
+pnpm --filter @makanmasak/shared-types typecheck
 pnpm --filter admin-dashboard typecheck
 ```
 
@@ -416,8 +416,8 @@ async findActiveTicketByPhone(restaurantId: string, phone: string) {
 **驗證指令：**
 
 ```bash
-pnpm --filter @makanmakan/database test WaitingListService
-pnpm --filter @makanmakan/api test waiting-list
+pnpm --filter @makanmasak/database test WaitingListService
+pnpm --filter @makanmasak/api test waiting-list
 ```
 
 ---
@@ -467,7 +467,7 @@ app.post("/:id/confirm", async (c) => {
 **驗證指令：**
 
 ```bash
-pnpm --filter @makanmakan/api test waiting-list
+pnpm --filter @makanmasak/api test waiting-list
 ```
 
 **Phone 比對策略：** 沿用 cancel handler 的既有比對方式（直接 string equality）。**不**做格式 normalize（剝 `-`/空白）——避免引入新的歧義。如果客戶端傳的 phone 與 DB 不匹配，視為驗證失敗。
@@ -499,7 +499,7 @@ pnpm --filter @makanmakan/api test waiting-list
 - [ ] `pnpm typecheck`（整個 monorepo）全綠
 - [ ] `pnpm lint` 全綠
 - [ ] `pnpm test`（整個 monorepo）全綠
-- [ ] `pnpm --filter @makanmakan/api test waiting-list` 覆蓋率不低於修改前
+- [ ] `pnpm --filter @makanmasak/api test waiting-list` 覆蓋率不低於修改前
 - [ ] 手動 wrangler dev 走完完整流程一次（curl 紀錄附在 PR 描述）
 
 **驗證指令：**
@@ -508,7 +508,7 @@ pnpm --filter @makanmakan/api test waiting-list
 pnpm typecheck
 pnpm lint
 pnpm test
-pnpm --filter @makanmakan/api test:coverage waiting-list
+pnpm --filter @makanmasak/api test:coverage waiting-list
 ```
 
 ---
@@ -562,7 +562,7 @@ await broadcaster.broadcastEvent("admin", this.restaurantId, {
 
 `broadcastEvent` 自帶失敗 swallow（`RealtimeBroadcastService.ts:107-118` 已 `try/catch + return error`），不需另包一層。
 
-> **注意：** `RealtimeEvent` type 目前在 `@makanmakan/shared-types`，T1a 搬遷時需確認該 union type 是否需要新增 `waiting_list_*` 變體。預期需要——P1 內處理。
+> **注意：** `RealtimeEvent` type 目前在 `@makanmasak/shared-types`，T1a 搬遷時需確認該 union type 是否需要新增 `waiting_list_*` 變體。預期需要——P1 內處理。
 
 ---
 

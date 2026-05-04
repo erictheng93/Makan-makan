@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * MakanMakan Visual Regression Testing 配置
+ * MakanMasak Visual Regression Testing 配置
  *
  * 使用 Playwright 原生 toHaveScreenshot() 進行視覺回歸測試
  * 只用 Chromium 系列（跨瀏覽器渲染差異由 E2E tests 涵蓋）

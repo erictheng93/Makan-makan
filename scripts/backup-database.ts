@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * MakanMakan Database Backup Script
+ * MakanMasak Database Backup Script
  * Cross-platform TypeScript version
  *
  * Usage: npx tsx scripts/backup-database.ts [environment]
@@ -32,9 +32,9 @@ interface DatabaseConfig {
 
 function getDatabaseConfig(env: Environment): DatabaseConfig {
   const configs: Record<Environment, DatabaseConfig> = {
-    staging: { name: "makanmakan-staging", isLocal: false },
-    production: { name: "makanmakan-prod", isLocal: false },
-    local: { name: "makanmakan-local", isLocal: true },
+    staging: { name: "makanmasak-staging", isLocal: false },
+    production: { name: "makanmasak-prod", isLocal: false },
+    local: { name: "makanmasak-local", isLocal: true },
   };
   return configs[env];
 }
@@ -100,7 +100,7 @@ async function main() {
       "============================================================================",
     ),
   );
-  console.log(colors.blue("  MakanMakan Database Backup"));
+  console.log(colors.blue("  MakanMasak Database Backup"));
   console.log(
     colors.blue(
       "============================================================================",

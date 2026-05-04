@@ -5,7 +5,7 @@
 env:
   # Application URLs to scan
   contexts:
-    - name: "MakanMakan Admin Dashboard"
+    - name: "MakanMasak Admin Dashboard"
       url: "http://localhost:4173"
       includePaths:
         - "http://localhost:4173/dashboard.*"
@@ -16,7 +16,7 @@ env:
         - "http://localhost:4173/.*\\.png"
         - "http://localhost:4173/.*\\.jpg"
 
-    - name: "MakanMakan API"
+    - name: "MakanMasak API"
       url: "http://localhost:8787"
       includePaths:
         - "http://localhost:8787/api/v1.*"
@@ -140,7 +140,7 @@ report:
   format: "html"
   template: "traditional-html"
   theme: "light"
-  title: "MakanMakan Security Scan Report"
+  title: "MakanMasak Security Scan Report"
   description: "Automated security testing with OWASP ZAP"
 
   # Report includes

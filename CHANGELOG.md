@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - **Real integration test foundation (Phase 1):** backend can now exercise the full Hono pipeline against a real miniflare `D1Database` binding with real Drizzle SQL, so tests catch schema drift and driver divergence that the previous `MockDrizzle` proxy silently hid.
-- `@makanmakan/database/testing` subpath now exports `createTestDatabase()`, which spins up a miniflare instance, runs every migration in `packages/database/migrations_fresh/` via `db.batch()`, and returns a `TestDatabase` with real Drizzle, `truncateAll()`, and `dispose()`.
+- `@makanmasak/database/testing` subpath now exports `createTestDatabase()`, which spins up a miniflare instance, runs every migration in `packages/database/migrations_fresh/` via `db.batch()`, and returns a `TestDatabase` with real Drizzle, `truncateAll()`, and `dispose()`.
 - `createRealIntegrationTestApp()` composes the production `createApp(env)` factory with the new test database, in-memory Durable Object stubs, and a deterministic `issueTestJwt()` helper so every smoke test runs through the real middleware stack.
 - `startTestApiServer()` wraps the real test app with `@hono/node-server` and listens on a random port, giving the forthcoming frontend integration suite a stable HTTP seam to target without touching production deployment infrastructure.
 - Four reference smoke tests under `apps/api/src/__tests__/integration/*.real.integration.test.ts` cover the four Drizzle hazard areas — `timestamp_ms` round-trip (orders), JOINs (menu), auth + RBAC + scope (customer-orders), and aggregate SQL + pagination (discovery).

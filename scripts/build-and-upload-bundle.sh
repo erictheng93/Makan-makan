@@ -8,7 +8,7 @@ set -euo pipefail
 VERSION="${1:?Usage: $0 <version> [environment]}"
 ENVIRONMENT="${2:-production}"
 
-echo "=== Building MakanMakan API bundle v${VERSION} ==="
+echo "=== Building MakanMasak API bundle v${VERSION} ==="
 
 # 1. Build the API worker
 echo "Building API worker..."
@@ -48,7 +48,7 @@ MIGRATION_COUNT=$(echo "$MIGRATIONS_JSON" | node -e "process.stdin.on('data',d=>
 echo "Found $MIGRATION_COUNT migration files"
 
 # 4. Upload to R2 via wrangler
-BUCKET="makanmakan-management-bundles-${ENVIRONMENT}"
+BUCKET="makanmasak-management-bundles-${ENVIRONMENT}"
 echo "Uploading to R2 bucket: $BUCKET"
 
 # Upload worker script

@@ -271,7 +271,7 @@ test.describe("Delivery zone validation", () => {
         localStorage.setItem(key, JSON.stringify(data));
       },
       {
-        key: `makanmakan_shop_cart_${RESTAURANT.id}_678`,
+        key: `makanmasak_shop_cart_${RESTAURANT.id}_678`,
         data: {
           items: [
             {

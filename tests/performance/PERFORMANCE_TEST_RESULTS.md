@@ -211,7 +211,7 @@ async function getKitchenToken(context, events) {
 在 `apps/api/wrangler.toml` 中添加:
 \`\`\`toml
 [env.test]
-name = "makanmakan-api-test"
+name = "makanmasak-api-test"
 
 [env.test.vars]
 RATE_LIMIT_ENABLED = "false"

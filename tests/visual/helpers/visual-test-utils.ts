@@ -482,7 +482,7 @@ export async function mockAllAPIs(page: Page): Promise<void> {
   // --- Shared mock data ---------------------------------------------------
   const mockRestaurant = {
     id: "test-restaurant-1",
-    name: "MakanMakan 測試餐廳",
+    name: "MakanMasak 測試餐廳",
     description: "視覺測試用餐廳",
     address: "台北市信義區",
     phone: "+886-2-0000-0000",

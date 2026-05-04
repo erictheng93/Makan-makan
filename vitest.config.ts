@@ -93,31 +93,31 @@ export default defineConfig({
     alias: {
       "@tests": path.resolve(__dirname, "./tests"),
       "@": path.resolve(__dirname, "./src"),
-      "@makanmakan/ai-analytics": path.resolve(
+      "@makanmasak/ai-analytics": path.resolve(
         __dirname,
         "./packages/ai-analytics/src/index.ts",
       ),
-      "@makanmakan/database": path.resolve(
+      "@makanmasak/database": path.resolve(
         __dirname,
         "./packages/database/src/index.ts",
       ),
-      "@makanmakan/queue-core": path.resolve(
+      "@makanmasak/queue-core": path.resolve(
         __dirname,
         "./packages/queue-core/src/index.ts",
       ),
-      "@makanmakan/queue-service": path.resolve(
+      "@makanmasak/queue-service": path.resolve(
         __dirname,
         "./packages/queue-service/src/index.ts",
       ),
-      "@makanmakan/shared": path.resolve(
+      "@makanmasak/shared": path.resolve(
         __dirname,
         "./packages/shared/src/index.ts",
       ),
-      "@makanmakan/shared-types": path.resolve(
+      "@makanmasak/shared-types": path.resolve(
         __dirname,
         "./packages/shared-types/src/index.ts",
       ),
-      "@makanmakan/utils": path.resolve(
+      "@makanmasak/utils": path.resolve(
         __dirname,
         "./packages/utils/src/index.ts",
       ),

@@ -78,7 +78,7 @@ Always structure your response using this exact format:
 ## Guidelines for Analysis
 
 - If no code is provided, ask the user to share the specific code they want reviewed
-- Consider the MakanMakan project context (Cloudflare Workers, TypeScript, D1 database) when making recommendations
+- Consider the MakanMasak project context (Cloudflare Workers, TypeScript, D1 database) when making recommendations
 - Prioritize issues by severity: Critical security issues > Major bugs > Code quality > Minor optimizations
 - Provide code examples in your suggestions when helpful
 - Be constructive and educational in your feedback

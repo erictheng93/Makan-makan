@@ -161,7 +161,7 @@ function analyzeDeveloperUsage() {
     const stats = developerStats[author];
     stats.totalFiles++;
 
-    const hasFactory = /@makanmakan\/testing-utils/.test(content);
+    const hasFactory = /@makanmasak\/testing-utils/.test(content);
     const hasReset = /resetAllFactories/.test(content);
     const hasCompleteData = /buildCompleteRestaurantData/.test(content);
 

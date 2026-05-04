@@ -25,8 +25,8 @@
  * all three layers because staging has seeded fixtures.
  *
  * Env vars (with localhost fallbacks for the local dev project):
- *   SMOKE_API_URL          — API base, e.g. https://api.staging.makanmakan.app
- *   SMOKE_CUSTOMER_URL     — customer app base, e.g. https://staging.makanmakan.app
+ *   SMOKE_API_URL          — API base, e.g. https://api.staging.makanmasak.app
+ *   SMOKE_CUSTOMER_URL     — customer app base, e.g. https://staging.makanmasak.app
  *   SMOKE_AUTH_USERNAME    — seeded user for Layer 2 (e.g. admin in staging)
  *   SMOKE_AUTH_PASSWORD    — password for SMOKE_AUTH_USERNAME
  *   SMOKE_RESTAURANT_ID    — seeded restaurant UUID for Layer 3

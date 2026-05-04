@@ -89,12 +89,12 @@ jobs:
       # state path that `pnpm dev` will later read from.
       - name: 🗄️ 初始化本地 D1 (migrations_fresh)
         working-directory: apps/api
-        run: pnpm wrangler d1 migrations apply makanmakan-local --local
+        run: pnpm wrangler d1 migrations apply makanmasak-local --local
 
       - name: 🌱 Seed mock data (seed-mock-data.sql)
         working-directory: apps/api
         run: |
-          pnpm wrangler d1 execute makanmakan-local --local \
+          pnpm wrangler d1 execute makanmasak-local --local \
             --file=../../scripts/seed-mock-data.sql
 
       # 0048_add_test_accounts.sql is intentionally NOT applied:
@@ -109,7 +109,7 @@ jobs:
       - name: 🎯 Apply dev-only P0 gate seed (0049)
         working-directory: apps/api
         run: |
-          pnpm wrangler d1 execute makanmakan-local --local \
+          pnpm wrangler d1 execute makanmasak-local --local \
             --file=../../packages/database/migrations/dev-only/0049_p0_gate_seed.sql
 
       # NOTE: the orphan packages/database/src/migrations/005_backup_system.sql

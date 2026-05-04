@@ -127,7 +127,7 @@ rm -rf node_modules/.cache/turbo .turbo || true
 
 echo "[container] Building 5 frontend apps (and their deps via turbo graph)..."
 # Scoped build: visual regression only needs the 5 frontend preview servers.
-# Avoids a pre-existing fresh-install TS error in @makanmakan/realtime that
+# Avoids a pre-existing fresh-install TS error in @makanmasak/realtime that
 # is unrelated to visual tests.
 # --force: bypass any remaining turbo cache since we need a real fresh build
 # (shared-types must actually emit dist/ so downstream tsc can resolve it).
@@ -136,17 +136,17 @@ echo "[container] Building 5 frontend apps (and their deps via turbo graph)..."
 # if this env var is unset. We use a relative "/api/v1" so requests go to the
 # same origin as the preview server — this is important because the
 # customer-app ships a strict CSP meta tag with
-# `connect-src 'self' https: wss: https://*.makanmakan.app`. An absolute URL
+# `connect-src 'self' https: wss: https://*.makanmasak.app`. An absolute URL
 # like `http://mock.local/api/v1` would be blocked by CSP BEFORE Playwright
 # can intercept it, so the mock would never fire and every page would render
 # "Loading failed" no matter how the mocks are configured.
 VITE_API_BASE_URL="/api/v1" \
 pnpm build --force \
-  --filter=makanmakan-customer-app \
-  --filter=makanmakan-admin-dashboard \
-  --filter=makanmakan-kitchen-display \
-  --filter=makanmakan-management-portal \
-  --filter=makanmakan-onboarding-app
+  --filter=makanmasak-customer-app \
+  --filter=makanmasak-admin-dashboard \
+  --filter=makanmasak-kitchen-display \
+  --filter=makanmasak-management-portal \
+  --filter=makanmasak-onboarding-app
 
 echo "[container] Starting preview servers..."
 mkdir -p /tmp/preview-logs

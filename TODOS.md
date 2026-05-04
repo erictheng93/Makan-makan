@@ -4,9 +4,9 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ## i18n
 
-### Consolidate 3 duplicate i18n runtimes into @makanmakan/i18n shared package
+### Consolidate 3 duplicate i18n runtimes into @makanmasak/i18n shared package
 
-**Priority:** P2 **Noticed on branch:** `feat/i18n-coverage-all-apps` **Context:** v2.1.0 adds i18n to kitchen-display, onboarding-app, and management-portal. Each app has its own ~200-line copy of `src/i18n/index.ts` (identical except for a doc-comment line). The shared package `@makanmakan/i18n` at `packages/shared/src/i18n/` already exists and is used by customer-app. The deferred work is to migrate all 4 apps (admin-dashboard, kitchen-display, onboarding-app, management-portal) to the shared package, resolving the API difference (custom composable vs vue-i18n).
+**Priority:** P2 **Noticed on branch:** `feat/i18n-coverage-all-apps` **Context:** v2.1.0 adds i18n to kitchen-display, onboarding-app, and management-portal. Each app has its own ~200-line copy of `src/i18n/index.ts` (identical except for a doc-comment line). The shared package `@makanmasak/i18n` at `packages/shared/src/i18n/` already exists and is used by customer-app. The deferred work is to migrate all 4 apps (admin-dashboard, kitchen-display, onboarding-app, management-portal) to the shared package, resolving the API difference (custom composable vs vue-i18n).
 
 **Why deferred:** Browser-verified and test-verified functional behavior in v2.1.0 matches admin-dashboard's existing duplicate-per-app pattern. Consolidation is a follow-up architectural refactor, not a blocker.
 
@@ -14,7 +14,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 - Extract runtime (ref state, `t()`, `deepMerge`, `setLocale`, `loadLocaleMessages`, `initI18n`, `useI18n`) into `packages/shared/src/i18n` as a `createI18n(appMessages)` factory
 - Each app owns only its `Messages` type and locale files
-- Standardize on `makanmakan_locale` localStorage key (currently `locale` in 3 apps, `makanmakan_locale` in shared package)
+- Standardize on `makanmasak_locale` localStorage key (currently `locale` in 3 apps, `makanmasak_locale` in shared package)
 - Standardize type safety: derive `Messages` type from zh-TW.ts instead of open recursive map
 
 ### Fill stub locale translations (zh-CN, vi-VN, ms-MY, id-ID)

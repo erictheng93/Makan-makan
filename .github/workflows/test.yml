@@ -1,4 +1,4 @@
-name: 🧪 MakanMakan 測試流水線
+name: 🧪 MakanMasak 測試流水線
 
 on:
   # Auto-trigger restored 2026-04-24 after the perf wins from commit 83b7b6c1
@@ -210,7 +210,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🏗️ 建置內部套件
-        run: pnpm --filter @makanmakan/api^... build
+        run: pnpm --filter @makanmasak/api^... build
 
       - name: 🗄️ 執行 real-integration 測試
         run: pnpm test:real-integration
@@ -591,7 +591,7 @@ jobs:
         # VITE_API_BASE_URL: customer-app's api.ts throws at module init if
         # unset. Use a relative `/api/v1` so requests go to the same origin —
         # customer-app's CSP meta tag only allows `connect-src 'self' https:
-        # wss: https://*.makanmakan.app`, so an absolute http://mock.local URL
+        # wss: https://*.makanmasak.app`, so an absolute http://mock.local URL
         # would be blocked by CSP before Playwright can intercept it.
         env:
           VITE_API_BASE_URL: /api/v1
@@ -823,7 +823,7 @@ jobs:
 
       - name: 📊 產生測試報告
         run: |
-          echo "## 🧪 MakanMakan 測試結果完整摘要" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 MakanMasak 測試結果完整摘要" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**提交**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**分支**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

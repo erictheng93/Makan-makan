@@ -23,7 +23,7 @@
 
 ```bash
 # 在專案根目錄執行
-npx wrangler d1 execute makanmakan-staging --local \
+npx wrangler d1 execute makanmasak-staging --local \
   --file=./tests/performance/seed-realtime-test.sql
 ```
 
@@ -183,7 +183,7 @@ cd apps/realtime && pnpm dev
 
 ```bash
 # 重新執行數據種子腳本
-npx wrangler d1 execute makanmakan-staging --local \
+npx wrangler d1 execute makanmasak-staging --local \
   --file=./tests/performance/seed-realtime-test.sql
 ```
 

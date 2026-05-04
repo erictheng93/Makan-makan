@@ -78,7 +78,7 @@ function analyzeFile(filePath) {
   };
 
   // 檢查是否導入 factory
-  stats.hasFactoryImport = /@makanmakan\/testing-utils/.test(content);
+  stats.hasFactoryImport = /@makanmasak\/testing-utils/.test(content);
 
   // 統計每個 factory 的使用次數
   Object.entries(CONFIG.factoryPatterns).forEach(([name, pattern]) => {

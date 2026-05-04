@@ -1,5 +1,5 @@
 -- ============================================================================
--- MakanMakan Mock Data Seed Script
+-- MakanMasak Mock Data Seed Script
 -- ============================================================================
 -- 此腳本為本地開發環境植入完整的測試數據
 -- 創建日期: 2025-01-24
@@ -51,7 +51,7 @@ INSERT OR REPLACE INTO restaurants (
 ('019469a0-0001-7000-8000-000000000001', '阿嬤的味道', '中式', '台式小吃',
   '傳承三代的古早味小吃，使用在地食材，堅持手工製作',
   '台中市西屯區文心路100號', '西屯區', '台中市',
-  '04-2234-5678', 'grandma@makanmakan.com', 'https://grandma-taste.com',
+  '04-2234-5678', 'grandma@makanmasak.com', 'https://grandma-taste.com',
   '{"monday":{"open":"11:00","close":"21:00"},"tuesday":{"open":"11:00","close":"21:00"},"wednesday":{"open":"11:00","close":"21:00"},"thursday":{"open":"11:00","close":"21:00"},"friday":{"open":"11:00","close":"22:00"},"saturday":{"open":"10:00","close":"22:00"},"sunday":{"open":"10:00","close":"21:00"}}',
   1, 1,
   1, 'SHOP-GRANDMA-001', '{"displayName":"阿嬤的味道 - 外帶","instructions":"請掃描此 QR Code 進行外帶點餐","requirePhone":true}',
@@ -64,7 +64,7 @@ INSERT OR REPLACE INTO restaurants (
 ('019469a0-0002-7000-8000-000000000002', '櫻花亭', '日式', '日式料理',
   '正宗日本料理，師傅來自東京，提供新鮮刺身與各式定食',
   '台中市南屯區公益路200號', '南屯區', '台中市',
-  '04-2345-6789', 'sakura@makanmakan.com', 'https://sakura-tei.com',
+  '04-2345-6789', 'sakura@makanmasak.com', 'https://sakura-tei.com',
   '{"monday":{"open":"11:30","close":"14:00"},"tuesday":{"open":"11:30","close":"14:00"},"wednesday":{"open":"11:30","close":"14:00"},"thursday":{"open":"11:30","close":"14:00"},"friday":{"open":"11:30","close":"14:00"},"saturday":{"open":"11:00","close":"21:00"},"sunday":{"open":"11:00","close":"21:00"}}',
   1, 1,
   0, NULL, NULL,
@@ -77,7 +77,7 @@ INSERT OR REPLACE INTO restaurants (
 ('019469a0-0003-7000-8000-000000000003', '暹羅風味', '泰式', '東南亞料理',
   '道地泰國風味，辣度可調整，提供各式泰式經典料理',
   '台中市北區三民路300號', '北區', '台中市',
-  '04-2456-7890', 'siam@makanmakan.com', NULL,
+  '04-2456-7890', 'siam@makanmasak.com', NULL,
   '{"monday":{"open":"11:00","close":"21:00"},"tuesday":{"closed":true},"wednesday":{"open":"11:00","close":"21:00"},"thursday":{"open":"11:00","close":"21:00"},"friday":{"open":"11:00","close":"22:00"},"saturday":{"open":"11:00","close":"22:00"},"sunday":{"open":"11:00","close":"21:00"}}',
   1, 1,
   1, 'SHOP-SIAM-001', '{"displayName":"暹羅風味 - 外帶","instructions":"掃碼點餐，15分鐘後取餐","requirePhone":true}',
@@ -99,7 +99,7 @@ INSERT OR REPLACE INTO users (
   created_at_ms, updated_at_ms
 ) VALUES
 -- 系統管理員
-(1, 'admin', 'admin@makanmakan.com', '0912345678', '系統管理員',
+(1, 'admin', 'admin@makanmasak.com', '0912345678', '系統管理員',
   '$2a$10$8ili9ArBs0badNWhKDhFmON5K1KQxi0SfClvbPs9LRt1x03UpRtCi',
   0, NULL, 1, 1, unixepoch('now') * 1000, unixepoch('now') * 1000),
 
@@ -670,13 +670,13 @@ INSERT OR REPLACE INTO restaurants (
   cuisine_tags, price_range, supports_takeaway, supports_delivery,
   created_at_ms, updated_at_ms
 ) VALUES
-('019469a0-0099-7000-8000-000000000099', 'MakanMakan Demo', '複合式', '亞洲融合料理',
-  '歡迎體驗 MakanMakan 點餐系統！這是一間展示用的虛擬餐廳，您可以瀏覽菜單、加入購物車、體驗完整的點餐流程。',
+('019469a0-0099-7000-8000-000000000099', 'MakanMasak Demo', '複合式', '亞洲融合料理',
+  '歡迎體驗 MakanMasak 點餐系統！這是一間展示用的虛擬餐廳，您可以瀏覽菜單、加入購物車、體驗完整的點餐流程。',
   '台北市信義區松仁路100號', '信義區', '台北市',
-  '02-2700-0000', 'demo@makanmakan.com', 'https://makanmakan.app',
+  '02-2700-0000', 'demo@makanmasak.com', 'https://makanmasak.app',
   '{"monday":{"open":"10:00","close":"22:00"},"tuesday":{"open":"10:00","close":"22:00"},"wednesday":{"open":"10:00","close":"22:00"},"thursday":{"open":"10:00","close":"22:00"},"friday":{"open":"10:00","close":"23:00"},"saturday":{"open":"09:00","close":"23:00"},"sunday":{"open":"09:00","close":"22:00"}}',
   1, 1,
-  1, 'SHOP-DEMO-001', '{"displayName":"MakanMakan Demo - 體驗點餐","instructions":"歡迎體驗！請選擇外帶或外送，輸入任意 3 位數字即可開始瀏覽菜單。","requirePhone":true}',
+  1, 'SHOP-DEMO-001', '{"displayName":"MakanMasak Demo - 體驗點餐","instructions":"歡迎體驗！請選擇外帶或外送，輸入任意 3 位數字即可開始瀏覽菜單。","requirePhone":true}',
   '{"currency":"TWD","taxRate":0.05,"serviceChargeRate":0.1,"allowOnlineOrdering":true,"allowGuestOrders":true,"autoConfirmOrders":true,"enableTakeaway":true,"enableDelivery":true,"deliveryFee":60,"estimatedPrepTimeMin":10,"estimatedPrepTimeMax":25}',
   4.9, 520, 8800,
   '["台式","日式","泰式","義式"]', 2, 1, 1,
@@ -827,12 +827,12 @@ SELECT status, COUNT(*) as count FROM orders GROUP BY status;
 -- $ pnpm run db:seed:mock
 --
 -- 或手動執行:
--- $ npx wrangler d1 execute makanmakan-local --local \
+-- $ npx wrangler d1 execute makanmasak-local --local \
 --   --file=./scripts/seed-mock-data.sql \
 --   --config=./apps/api/wrangler.toml
 --
 -- 驗證數據:
--- $ npx wrangler d1 execute makanmakan-local --local \
+-- $ npx wrangler d1 execute makanmasak-local --local \
 --   --command="SELECT * FROM restaurants" \
 --   --config=./apps/api/wrangler.toml
 --

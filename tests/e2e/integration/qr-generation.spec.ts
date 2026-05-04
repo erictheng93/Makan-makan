@@ -66,7 +66,7 @@ test.describe("QR Code Generation", () => {
         method: "POST",
         headers: authHeaders(auth),
         body: JSON.stringify({
-          content: `https://app.makanmakan.com/restaurant/${RESTAURANT_ID}/table/1`,
+          content: `https://app.makanmasak.com/restaurant/${RESTAURANT_ID}/table/1`,
           format: "png",
           style: { size: 256 },
         }),
@@ -91,7 +91,7 @@ test.describe("QR Code Generation", () => {
         method: "POST",
         headers: authHeaders(auth),
         body: JSON.stringify({
-          content: `https://app.makanmakan.com/restaurant/${RESTAURANT_ID}`,
+          content: `https://app.makanmasak.com/restaurant/${RESTAURANT_ID}`,
           format: "png",
         }),
       });
@@ -108,7 +108,7 @@ test.describe("QR Code Generation", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: "https://app.makanmakan.com/test",
+          content: "https://app.makanmasak.com/test",
           format: "png",
         }),
       });
@@ -145,7 +145,7 @@ test.describe("QR Code Generation", () => {
       const tables = [1, 2, 3].map((tableId) => ({
         id: tableId,
         name: `Table ${tableId}`,
-        content: `https://app.makanmakan.com/restaurant/${RESTAURANT_ID}/table/${tableId}`,
+        content: `https://app.makanmasak.com/restaurant/${RESTAURANT_ID}/table/${tableId}`,
       }));
 
       const res = await fetch(`${API_URL}/api/v1/qr/bulk`, {

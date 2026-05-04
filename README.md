@@ -1,11 +1,11 @@
-# MakanMakan - Modern Serverless Restaurant Management Platform
+# MakanMasak - Modern Serverless Restaurant Management Platform
 
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
 ![PWA](https://img.shields.io/badge/PWA-95%2F100-green)
-[![codecov](https://codecov.io/gh/makanmakan/makanmakan/graph/badge.svg)](https://codecov.io/gh/makanmakan/makanmakan)
+[![codecov](https://codecov.io/gh/makanmasak/makanmasak/graph/badge.svg)](https://codecov.io/gh/makanmasak/makanmasak)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 **A modern restaurant management system built on Cloudflare's edge computing platform**
@@ -22,7 +22,7 @@
 
 ## About
 
-MakanMakan is a fully serverless, multi-tenant restaurant management SaaS platform built on the **Cloudflare ecosystem**. It provides online ordering, menu management, table/seat management, POS, employee scheduling, and multi-role access with real-time functionality.
+MakanMasak is a fully serverless, multi-tenant restaurant management SaaS platform built on the **Cloudflare ecosystem**. It provides online ordering, menu management, table/seat management, POS, employee scheduling, and multi-role access with real-time functionality.
 
 ### Highlights
 
@@ -88,8 +88,8 @@ MakanMakan is a fully serverless, multi-tenant restaurant management SaaS platfo
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/your-org/makanmakan.git
-cd makanmakan
+git clone https://github.com/your-org/makanmasak.git
+cd makanmasak
 pnpm install
 
 # 2. Authenticate with Cloudflare
@@ -105,10 +105,15 @@ pnpm dev
 ### Development URLs
 
 ```
-Customer App:       http://localhost:5173
-Admin Dashboard:    http://localhost:5174
-Kitchen Display:    http://localhost:5175
+Customer App:       http://localhost:3000
+Admin Dashboard:    http://localhost:3001
+Kitchen Display:    http://localhost:3002
+Management Portal:  http://localhost:3010
+Onboarding App:     http://localhost:3011
 API (Workers):      http://localhost:8787
+Realtime (WS):      http://localhost:8788
+Management API:     http://localhost:8789
+Image Processor:    http://localhost:8790
 ```
 
 ### Common Commands
@@ -143,7 +148,7 @@ pnpm deploy:prod      # Deploy to production
 ### Project Structure
 
 ```
-makanmakan/
+makanmasak/
 ├── apps/
 │   ├── customer-app/          # Consumer ordering PWA (Vue 3)
 │   ├── admin-dashboard/       # Restaurant management dashboard (Vue 3)
@@ -172,7 +177,7 @@ makanmakan/
 
 - **69 tables** across 21 schema files (Drizzle ORM)
 - **UUID v7** primary keys (time-sortable, globally unique)
-- **Environments**: Production (`makanmakan-prod`), Staging (`makanmakan-staging`), Local SQLite
+- **Environments**: Production (`makanmasak-prod`), Staging (`makanmasak-staging`), Local SQLite
 
 ---
 

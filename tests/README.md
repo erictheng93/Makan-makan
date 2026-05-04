@@ -1,4 +1,4 @@
-# MakanMakan 測試套件
+# MakanMasak 測試套件
 
 > 測試規範以 `CLAUDE.md` → **Testing Standards (Enforced)** 為準。
 > 進度與覆蓋請看 [`docs/testing/TEST_PROGRESS.md`](../docs/testing/TEST_PROGRESS.md)。
@@ -94,7 +94,7 @@ pnpm playwright test tests/e2e/journeys/cashier/pos-shift.spec.ts
 
 ## 🏭 Factory 使用（強制）
 
-所有新測試必須透過 `@makanmakan/testing-utils` 建立資料，禁止手寫 mock 物件：
+所有新測試必須透過 `@makanmasak/testing-utils` 建立資料，禁止手寫 mock 物件：
 
 ```typescript
 import {
@@ -103,7 +103,7 @@ import {
   orderFactory,
   envFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 beforeEach(() => {
   resetAllFactories();

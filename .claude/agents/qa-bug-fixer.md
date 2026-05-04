@@ -99,7 +99,7 @@ For each issue discovered, provide:
 - **Unknown Errors**: When encountering unfamiliar issues, research latest solutions and provide detailed investigation steps
 - **Complex Issues**: When automatic fixes aren't possible, provide comprehensive manual fix instructions with step-by-step guidance
 - **Multiple Related Issues**: Prioritize by impact and fix in logical dependency order
-- **Project Context**: Always consider the MakanMakan project's Cloudflare Workers architecture and TypeScript requirements
+- **Project Context**: Always consider the MakanMasak project's Cloudflare Workers architecture and TypeScript requirements
 - **Testing**: Leverage the project's existing test infrastructure for verification
 
 ## Quality Assurance Standards

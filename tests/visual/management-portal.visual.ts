@@ -17,7 +17,7 @@ test.describe("Management Portal — Visual Regression", () => {
   test("dashboard", async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
     await waitForPageStable(page);
-    await expectPageRendered(page, { mustContain: /MakanMakan|總覽/ });
+    await expectPageRendered(page, { mustContain: /MakanMasak|總覽/ });
     await mockDynamicContent(page);
     await expect(page).toHaveScreenshot("management-dashboard.png");
   });

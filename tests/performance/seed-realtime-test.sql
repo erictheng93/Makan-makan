@@ -38,8 +38,8 @@ INSERT INTO restaurants (
   'Test District',
   'Test City',
   '+886-2-1234-5678',
-  'test@makanmakan.com',
-  'https://makanmakan.com',
+  'test@makanmasak.com',
+  'https://makanmasak.com',
   'https://example.com/logo.png',
   1,
   unixepoch('now'),
@@ -125,15 +125,15 @@ ORDER BY id;
 -- 執行此腳本:
 --
 -- Local D1 Database:
--- $ npx wrangler d1 execute makanmakan-staging --local \
+-- $ npx wrangler d1 execute makanmasak-staging --local \
 --   --file=./tests/performance/seed-realtime-test.sql
 --
 -- Staging D1 Database:
--- $ npx wrangler d1 execute makanmakan-staging \
+-- $ npx wrangler d1 execute makanmasak-staging \
 --   --file=./tests/performance/seed-realtime-test.sql
 --
 -- 驗證數據:
--- $ npx wrangler d1 execute makanmakan-staging --local \
+-- $ npx wrangler d1 execute makanmasak-staging --local \
 --   --command="SELECT * FROM tables WHERE restaurant_id = 1"
 --
 -- 環境變數設定 (用於 Artillery 測試):

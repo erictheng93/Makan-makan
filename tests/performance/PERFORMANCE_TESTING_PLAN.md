@@ -109,8 +109,8 @@ INSERT INTO restaurants (
   '12345',
   'Taiwan',
   '+886-2-1234-5678',
-  'test@makanmakan.com',
-  'https://makanmakan.com',
+  'test@makanmasak.com',
+  'https://makanmasak.com',
   'https://example.com/logo.png',
   1,
   datetime('now'),
@@ -143,7 +143,7 @@ SELECT 'Tables created' as status, COUNT(*) as count FROM tables WHERE restauran
 
 ```bash
 # Local D1 database
-npx wrangler d1 execute makanmakan-staging --local --file=./tests/performance/seed-realtime-test.sql
+npx wrangler d1 execute makanmasak-staging --local --file=./tests/performance/seed-realtime-test.sql
 
 # 或者直接在 API dev 環境中執行
 ```

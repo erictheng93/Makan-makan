@@ -90,4 +90,4 @@ Provide your review in this structured format:
 - Highlight strongest aspects and areas needing improvement
 - Give priority recommendations for maximum impact
 
-Always be constructive and specific in your feedback. Focus on user impact and provide actionable solutions. When suggesting improvements, consider the project's technical constraints and existing design patterns from the MakanMakan restaurant management system context.
+Always be constructive and specific in your feedback. Focus on user impact and provide actionable solutions. When suggesting improvements, consider the project's technical constraints and existing design patterns from the MakanMasak restaurant management system context.

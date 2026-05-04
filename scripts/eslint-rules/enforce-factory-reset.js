@@ -54,8 +54,8 @@ module.exports = {
       ImportDeclaration(node) {
         lastImportNode = node;
 
-        // 檢查是否從 @makanmakan/testing-utils 導入
-        if (node.source.value === "@makanmakan/testing-utils") {
+        // 檢查是否從 @makanmasak/testing-utils 導入
+        if (node.source.value === "@makanmasak/testing-utils") {
           hasFactoryImport = true;
           factoryImportNode = node;
 
@@ -115,7 +115,7 @@ module.exports = {
 
                 return fixer.replaceText(
                   factoryImportNode,
-                  `import { ${importSpecifiers} } from '@makanmakan/testing-utils'`,
+                  `import { ${importSpecifiers} } from '@makanmasak/testing-utils'`,
                 );
               },
             });

@@ -133,7 +133,7 @@ run_active_scan() {
 
 # Load ZAP configuration
 echo "⚙️  Loading ZAP configuration..."
-curl -s "http://localhost:$ZAP_PORT/JSON/core/action/loadSession/?name=makanmakan_session" > /dev/null || true
+curl -s "http://localhost:$ZAP_PORT/JSON/core/action/loadSession/?name=makanmasak_session" > /dev/null || true
 
 # Define contexts
 echo "📋 Configuring contexts..."

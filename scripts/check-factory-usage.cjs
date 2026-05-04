@@ -106,7 +106,7 @@ function analyzeFile(filePath) {
   const stats = {
     file: relativePath,
     lineCount: content.split('\n').length,
-    hasFactoryImport: /@makanmakan\/testing-utils/.test(content),
+    hasFactoryImport: /@makanmasak\/testing-utils/.test(content),
     hasFactoryUsage:
       /userFactory|restaurantFactory|menuItemFactory|orderFactory|categoryFactory|envFactory|printJobFactory|printerDeviceFactory|printRequestFactory|realtimeAuthFactory|buildCompleteRestaurantData/.test(
         content
@@ -249,7 +249,7 @@ function outputConsoleReport(report) {
   if (report.summary.totalErrors > 0) {
     console.log('❌ 發現 ' + report.summary.totalErrors + ' 個錯誤，必須修復：')
     console.log('   1. 為使用 factory 的測試添加 resetAllFactories()')
-    console.log('   2. 確保正確導入 @makanmakan/testing-utils\n')
+    console.log('   2. 確保正確導入 @makanmasak/testing-utils\n')
   }
 
   if (report.summary.totalWarnings > 0) {
