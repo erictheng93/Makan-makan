@@ -139,6 +139,70 @@ describe("Payments Routes", () => {
     );
   });
 
+  it("maps root payment requests to the payment service with Taiwan defaults", async () => {
+    mockProcessPayment.mockResolvedValue({
+      status: 200,
+      data: {
+        paymentId: "pay_42_1",
+        orderId: 42,
+        orderStatus: "paid",
+        paymentStatus: "paid",
+        authorizedTotal: 100,
+      },
+    });
+    const { app, env } = buildApp();
+
+    const response = await app.request(
+      "/payments",
+      {
+        method: "POST",
+        headers: idempotencyHeaders("test-key-root-payment"),
+        body: JSON.stringify({
+          orderId: 42,
+          amount: 100,
+          method: "card",
+        }),
+      },
+      env,
+    );
+    const json = (await response.json()) as ApiTestResponse;
+
+    expect(response.status).toBe(200);
+    expect(json).toMatchObject({
+      success: true,
+      data: {
+        id: "pay_42_1",
+        paymentId: "pay_42_1",
+        transactionId: "pay_42_1",
+        status: "completed",
+        metadata: {
+          orderId: 42,
+          paymentStatus: "paid",
+          country: "TW",
+          currency: "TWD",
+          method: "card",
+        },
+      },
+    });
+    expect(mockProcessPayment).toHaveBeenCalledWith(
+      {
+        orderId: 42,
+        paymentMode: "full",
+        amount: 100,
+        expectedTotal: 100,
+        closeOrder: true,
+        method: "card",
+        gateway: "card",
+      },
+      expect.objectContaining({
+        country: "TW",
+        currency: "TWD",
+        idempotencyKey: "test-key-root-payment",
+        user: expect.objectContaining({ id: 7, restaurantId: "rest-1" }),
+      }),
+    );
+  });
+
   it("resolves string order ids (order_number / client_mutation_id) before creating payments", async () => {
     mockProcessPayment.mockResolvedValue({
       status: 200,
