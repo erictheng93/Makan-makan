@@ -5,7 +5,7 @@ import {
   type RealIntegrationTestApp,
 } from "./real-test-app";
 import { buildSeedHelpers, type SeedHelpers } from "./seed-helper";
-import type { TestDatabase } from "@makanmakan/database/testing";
+import type { TestDatabase } from "@makanmasak/database/testing";
 
 type TestNodeServer = {
   address(): AddressInfo | string | null;

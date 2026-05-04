@@ -8,8 +8,8 @@ import { mockEnv } from "./setup";
 // Use the feature routes
 const authRouter = authFeature.routes;
 
-// Mock @makanmakan/database to provide AuthService
-vi.mock("@makanmakan/database", async (importOriginal) => {
+// Mock @makanmasak/database to provide AuthService
+vi.mock("@makanmasak/database", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
@@ -34,7 +34,7 @@ vi.mock("bcryptjs", () => ({
 }));
 
 // Import after mocking
-import { AuthService } from "@makanmakan/database";
+import { AuthService } from "@makanmasak/database";
 
 describe("Auth Routes", () => {
   let app: Hono<{ Bindings: typeof mockEnv }>;

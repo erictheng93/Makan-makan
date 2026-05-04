@@ -5,7 +5,7 @@ import { validateBody, validateQuery } from "../../middleware/validation";
 import { ApiError } from "../../shared/utils/api-error";
 import { ErrorSanitizer } from "../../utils/errorSanitizer";
 import { z } from "zod";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 // ---------------------------------------------------------------------------
 // 測試用 Zod schemas — 模擬項目中常見的驗證規則

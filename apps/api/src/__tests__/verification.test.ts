@@ -21,8 +21,8 @@ interface VerificationResponse {
 // Use the feature routes
 const verificationRouter = verificationFeature.routes;
 
-// Mock @makanmakan/database to provide VerificationService
-vi.mock("@makanmakan/database", () => {
+// Mock @makanmasak/database to provide VerificationService
+vi.mock("@makanmasak/database", () => {
   return {
     VerificationService: vi.fn(function () {
       return {
@@ -63,7 +63,7 @@ vi.mock("../services/AlertService", () => {
 });
 
 // Import after mocking
-import { VerificationService } from "@makanmakan/database";
+import { VerificationService } from "@makanmasak/database";
 import { AlertService } from "../services/AlertService";
 
 describe("Verification Routes", () => {

@@ -30,7 +30,7 @@ describe("createRealIntegrationTestApp", () => {
     const res = await testApp.app.fetch(new Request("https://test/info"));
     expect(res.status).toBe(200);
     const body = (await res.json()) as { name: string };
-    expect(body.name).toBe("MakanMakan API");
+    expect(body.name).toBe("MakanMasak API");
   });
 
   it("rejects unauthenticated requests to protected endpoints", async () => {

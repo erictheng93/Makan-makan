@@ -30,7 +30,7 @@ import {
   userFactory,
   restaurantFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 type MockedServiceConstructor = {
   mockImplementation(implementation: () => unknown): void;
@@ -76,7 +76,7 @@ vi.mock("../../core/monitoring", () => ({
   }),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   OrderService: vi.fn(function () {
     return {
       createOrder: vi.fn(),
@@ -697,7 +697,7 @@ describe("Cross-Tenant Order Access — Service Level (跨租戶訂單存取)", 
     mockEnv = createMockEnv();
 
     const { OrderService, CouponService } =
-      await import("@makanmakan/database");
+      await import("@makanmasak/database");
 
     mockBaseOrderService = {
       createOrder: vi.fn(),

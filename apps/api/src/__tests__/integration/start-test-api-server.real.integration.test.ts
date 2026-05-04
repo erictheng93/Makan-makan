@@ -21,7 +21,7 @@ describe("startTestApiServer", () => {
     const res = await fetch(`${handle.url}/info`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { name: string };
-    expect(body.name).toBe("MakanMakan API");
+    expect(body.name).toBe("MakanMasak API");
   });
 
   it("exposes seed.restaurant", async () => {

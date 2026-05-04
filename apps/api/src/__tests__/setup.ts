@@ -3,7 +3,7 @@ import {
   createMockD1Database,
   createMockKV,
   envFactory,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // Re-export factory helpers for backward compatibility
 export { createMockD1Database, createMockKV };

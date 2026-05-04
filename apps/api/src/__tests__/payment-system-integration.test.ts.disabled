@@ -17,7 +17,7 @@ import { PaymentConfigManager } from '../services/PaymentConfigManager'
 import { ECPayProvider } from '../services/providers/ECPayProvider'
 import { iPay88Provider } from '../services/providers/iPay88Provider'
 import { VNPayProvider } from '../services/providers/VNPayProvider'
-import type { PaymentRequest, CountryCode } from '@makanmakan/shared-types'
+import type { PaymentRequest, CountryCode } from '@makanmasak/shared-types'
 
 // 模擬資料庫
 const mockDB = {

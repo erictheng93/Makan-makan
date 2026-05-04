@@ -12,7 +12,7 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-import { dishSearchIndex } from "@makanmakan/database";
+import { dishSearchIndex } from "@makanmasak/database";
 
 // Undo the global vi.mock("drizzle-orm/d1") so this test uses the real drizzle.
 vi.unmock("drizzle-orm/d1");

@@ -19,7 +19,7 @@ vi.mock("drizzle-orm/d1", () => ({
 }));
 
 import { moduleGate } from "../middleware/moduleGate";
-import type { ModuleKey } from "@makanmakan/database";
+import type { ModuleKey } from "@makanmasak/database";
 
 const appFactorySource = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), "../app-factory.ts"),

@@ -15,7 +15,7 @@ import {
   orderItemFactory,
   resetAllFactories,
   buildCompleteRestaurantData,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

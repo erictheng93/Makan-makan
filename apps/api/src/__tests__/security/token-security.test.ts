@@ -19,7 +19,7 @@ import {
   envFactory,
   userFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // ─── Mock Environment ────────────────────────────────────────────────────────
 
