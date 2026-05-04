@@ -65,7 +65,7 @@ jobs:
 
       - name: 評論 PR（如有問題）
         if: steps.check.outputs.errors > 0 || steps.check.outputs.warnings > 0
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const errors = parseInt('${{ steps.check.outputs.errors }}')
@@ -111,7 +111,7 @@ jobs:
 
       - name: 添加標籤（如有錯誤）
         if: steps.check.outputs.errors > 0
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             github.rest.issues.addLabels({
@@ -123,7 +123,7 @@ jobs:
 
       - name: 添加標籤（如有警告）
         if: steps.check.outputs.warnings > 0 && steps.check.outputs.errors == 0
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             github.rest.issues.addLabels({
@@ -135,7 +135,7 @@ jobs:
 
       - name: 完美狀態評論
         if: steps.check.outputs.errors == 0 && steps.check.outputs.warnings == 0
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             github.rest.issues.createComment({
