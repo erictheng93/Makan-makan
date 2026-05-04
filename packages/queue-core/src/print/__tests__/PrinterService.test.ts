@@ -7,7 +7,7 @@ import { PrinterService } from "../services/PrinterService";
 import {
   printRequestFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("PrinterService", () => {
   let printerService: PrinterService;

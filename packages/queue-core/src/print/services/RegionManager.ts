@@ -3,7 +3,7 @@
  * 負責管理不同地區的格式化配置和多國語言支持
  */
 
-import type { CountryCode, RegionConfig } from "@makanmakan/shared-types";
+import type { CountryCode, RegionConfig } from "@makanmasak/shared-types";
 import { REGION_CONFIGS } from "../config/regions";
 
 export class RegionManager {

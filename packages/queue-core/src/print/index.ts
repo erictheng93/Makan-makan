@@ -51,7 +51,7 @@ export type {
   ReceiptTemplate,
   PrinterCapabilities,
   PrintOptions,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // 常數和配置
 export { DEFAULT_PRINT_CONFIG } from "./config/defaults";

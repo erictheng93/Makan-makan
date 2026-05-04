@@ -43,7 +43,7 @@ import {
   validateSeatCustomer,
   validateCancelQueue,
   validateUpdateQueueSettings,
-} from "@makanmakan/queue-core";
+} from "@makanmasak/queue-core";
 
 export class QueueService implements IQueueService {
   constructor(

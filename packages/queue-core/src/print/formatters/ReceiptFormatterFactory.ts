@@ -7,7 +7,7 @@ import type {
   CountryCode,
   PrintContent,
   RegionConfig,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export interface IReceiptFormatter {
   formatReceipt(data: any): PrintContent;

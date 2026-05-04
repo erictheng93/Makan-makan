@@ -8,7 +8,7 @@ import type {
   PrinterBrand,
   PrinterCapabilities,
   PrinterConnection,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 import { PrinterDriver } from "./PrinterDriver";
 import { EpsonDriver } from "./EpsonDriver";

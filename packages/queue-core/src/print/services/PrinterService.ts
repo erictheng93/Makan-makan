@@ -12,7 +12,7 @@ import type {
   PrintStatistics,
   CountryCode,
   PrinterBrand,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 import { PrintJobManager } from "./PrintJobManager";
 import { RegionManager } from "./RegionManager";

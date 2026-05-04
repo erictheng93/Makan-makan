@@ -12,7 +12,7 @@ import {
   QueueStatus,
   QueueType,
   NotificationType,
-} from "@makanmakan/queue-core";
+} from "@makanmasak/queue-core";
 
 // Mock QueueRepository with proper vi.fn() mocks
 const mockQueueRepository = {

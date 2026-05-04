@@ -1,7 +1,7 @@
 {
-  "name": "@makanmakan/queue-service",
+  "name": "@makanmasak/queue-service",
   "version": "1.0.0",
-  "description": "MakanMakan Queue System - Service Layer Implementation",
+  "description": "MakanMasak Queue System - Service Layer Implementation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -15,14 +15,14 @@
     "restaurant",
     "service"
   ],
-  "author": "MakanMakan Team",
+  "author": "MakanMasak Team",
   "license": "MIT",
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*",
+    "@makanmasak/testing-utils": "workspace:*",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@makanmakan/queue-core": "workspace:*",
+    "@makanmasak/queue-core": "workspace:*",
     "zod": "^3.22.0"
   },
   "exports": {

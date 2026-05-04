@@ -3,7 +3,7 @@
  * Utility classes for formatting data according to regional standards
  */
 
-import type { CountryCode, RegionConfig } from "@makanmakan/shared-types";
+import type { CountryCode, RegionConfig } from "@makanmasak/shared-types";
 
 export interface IRegionFormatter {
   formatCurrency(amount: number): string;

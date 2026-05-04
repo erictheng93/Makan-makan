@@ -3,7 +3,7 @@
  * 不同國家的稅務、法規和收據格式配置
  */
 
-import type { CountryCode, RegionConfig } from "@makanmakan/shared-types";
+import type { CountryCode, RegionConfig } from "@makanmasak/shared-types";
 
 export const REGION_CONFIGS: Record<CountryCode, RegionConfig> = {
   TW: {

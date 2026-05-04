@@ -3,7 +3,7 @@
  * Validates print content and data
  */
 
-import type { PrintContent } from "@makanmakan/shared-types";
+import type { PrintContent } from "@makanmasak/shared-types";
 
 export interface ValidationResult {
   isValid: boolean;

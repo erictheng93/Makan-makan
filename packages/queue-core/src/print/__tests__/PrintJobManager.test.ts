@@ -8,7 +8,7 @@ import type {
   PrintContent,
   PrintRequest,
   OrderData,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 describe("PrintJobManager", () => {
   let jobManager: PrintJobManager;

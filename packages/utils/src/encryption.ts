@@ -41,7 +41,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-const DEFAULT_SALT = "makanmakan-encryption-salt";
+const DEFAULT_SALT = "makanmasak-encryption-salt";
 
 // Derive a 256-bit key from the encryption key string
 async function deriveKey(
@@ -75,7 +75,7 @@ async function deriveKey(
  *
  * @param plaintext - The string to encrypt
  * @param encryptionKey - The encryption key (will be derived via PBKDF2)
- * @param salt - Optional salt for key derivation (default: "makanmakan-encryption-salt")
+ * @param salt - Optional salt for key derivation (default: "makanmasak-encryption-salt")
  * @returns Encrypted string in format: base64(iv):base64(encryptedWithTag)
  */
 export async function encrypt(
@@ -110,7 +110,7 @@ export async function encrypt(
  *
  * @param ciphertext - The encrypted string (format: base64(iv):base64(encryptedWithTag))
  * @param encryptionKey - The encryption key (will be derived via PBKDF2)
- * @param salt - Optional salt for key derivation (default: "makanmakan-encryption-salt")
+ * @param salt - Optional salt for key derivation (default: "makanmasak-encryption-salt")
  * @returns Decrypted plaintext string
  */
 export async function decrypt(

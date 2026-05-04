@@ -1,5 +1,5 @@
 /**
- * Currency formatting utilities for MakanMakan platform
+ * Currency formatting utilities for MakanMasak platform
  *
  * Provides a shared currency configuration and formatting functions
  * that all apps (admin dashboard, customer app, etc.) can use.

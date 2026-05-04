@@ -120,7 +120,7 @@ describe("qr-signing", () => {
   describe("buildSignedQRUrl", () => {
     it("should produce a valid URL with all query params", async () => {
       const urlStr = await buildSignedQRUrl(
-        "https://app.makanmakan.com",
+        "https://app.makanmasak.com",
         baseParams,
         TEST_KEY,
       );
@@ -137,7 +137,7 @@ describe("qr-signing", () => {
 
     it("should produce a verifiable signature in the URL", async () => {
       const urlStr = await buildSignedQRUrl(
-        "https://app.makanmakan.com",
+        "https://app.makanmasak.com",
         baseParams,
         TEST_KEY,
       );
@@ -164,7 +164,7 @@ describe("qr-signing", () => {
         identifier: "01",
       };
       const urlStr = await buildSignedQRUrl(
-        "https://app.makanmakan.com",
+        "https://app.makanmasak.com",
         seatParams,
         TEST_KEY,
       );
@@ -177,7 +177,7 @@ describe("qr-signing", () => {
   describe("parseSignedQRUrl", () => {
     it("should roundtrip with buildSignedQRUrl", async () => {
       const urlStr = await buildSignedQRUrl(
-        "https://app.makanmakan.com",
+        "https://app.makanmasak.com",
         baseParams,
         TEST_KEY,
       );
@@ -194,28 +194,28 @@ describe("qr-signing", () => {
 
     it("should return null for missing type param", () => {
       const result = parseSignedQRUrl(
-        "https://app.makanmakan.com/order?r=uuid&n=A1&v=1&sig=abc123",
+        "https://app.makanmasak.com/order?r=uuid&n=A1&v=1&sig=abc123",
       );
       expect(result).toBeNull();
     });
 
     it("should return null for invalid type param", () => {
       const result = parseSignedQRUrl(
-        "https://app.makanmakan.com/order?t=invalid&r=uuid&n=A1&v=1&sig=abc123",
+        "https://app.makanmasak.com/order?t=invalid&r=uuid&n=A1&v=1&sig=abc123",
       );
       expect(result).toBeNull();
     });
 
     it("should return null for missing signature", () => {
       const result = parseSignedQRUrl(
-        "https://app.makanmakan.com/order?t=table&r=uuid&n=A1&v=1",
+        "https://app.makanmasak.com/order?t=table&r=uuid&n=A1&v=1",
       );
       expect(result).toBeNull();
     });
 
     it("should return null for missing restaurant ID", () => {
       const result = parseSignedQRUrl(
-        "https://app.makanmakan.com/order?t=table&n=A1&v=1&sig=abc123",
+        "https://app.makanmasak.com/order?t=table&n=A1&v=1&sig=abc123",
       );
       expect(result).toBeNull();
     });
@@ -227,7 +227,7 @@ describe("qr-signing", () => {
 
     it("should default timestamp to 0 when missing", () => {
       const result = parseSignedQRUrl(
-        "https://app.makanmakan.com/order?t=table&r=uuid&n=A1&v=1&sig=a1b2c3d4e5f6a7b8",
+        "https://app.makanmasak.com/order?t=table&r=uuid&n=A1&v=1&sig=a1b2c3d4e5f6a7b8",
       );
       expect(result).not.toBeNull();
       expect(result!.timestamp).toBe(0);

@@ -1,7 +1,7 @@
 /**
- * @makanmakan/utils
+ * @makanmasak/utils
  *
- * Shared utilities for MakanMakan platform
+ * Shared utilities for MakanMasak platform
  */
 
 // Request deduplication

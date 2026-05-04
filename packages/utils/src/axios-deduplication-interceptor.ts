@@ -64,7 +64,7 @@ function generateRequestKey(config: AxiosRequestConfig): string {
  *
  * @example
  * import axios from 'axios'
- * import { installAxiosDeduplication } from '@makanmakan/utils'
+ * import { installAxiosDeduplication } from '@makanmasak/utils'
  *
  * const api = axios.create({ baseURL: '/api' })
  * installAxiosDeduplication(api, {

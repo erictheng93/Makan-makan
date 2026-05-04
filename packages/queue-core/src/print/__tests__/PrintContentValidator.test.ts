@@ -5,8 +5,8 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { PrintContentValidator } from "../utils/PrintContentValidator";
-import type { PrintContent } from "@makanmakan/shared-types";
-import { printJobFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import type { PrintContent } from "@makanmasak/shared-types";
+import { printJobFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 /**
  * 從 printJobFactory 取得基礎 PrintContent

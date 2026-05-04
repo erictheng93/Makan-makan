@@ -4,7 +4,7 @@
  */
 
 import { ESCPOSCommands } from "./ESCPOSCommands";
-import type { PrintContent } from "@makanmakan/shared-types";
+import type { PrintContent } from "@makanmasak/shared-types";
 
 export interface PrintCommand {
   type: "text" | "image" | "barcode" | "qr" | "cut" | "feed";

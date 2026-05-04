@@ -1,7 +1,7 @@
 {
-  "name": "@makanmakan/queue-core",
+  "name": "@makanmasak/queue-core",
   "version": "1.0.0",
-  "description": "MakanMakan Queue System - Core Types and Interfaces",
+  "description": "MakanMasak Queue System - Core Types and Interfaces",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -18,17 +18,17 @@
     "restaurant",
     "types"
   ],
-  "author": "MakanMakan Team",
+  "author": "MakanMasak Team",
   "license": "MIT",
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*",
+    "@makanmasak/testing-utils": "workspace:*",
     "typescript": "^5.0.0",
     "vitest": "^3.2.4",
     "@vitest/coverage-v8": "^3.2.4"
   },
   "dependencies": {
     "zod": "^3.22.0",
-    "@makanmakan/shared-types": "workspace:*"
+    "@makanmasak/shared-types": "workspace:*"
   },
   "exports": {
     ".": {

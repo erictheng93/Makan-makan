@@ -10,7 +10,7 @@ import type {
   PrintRequest,
   PrintContent,
   PrintServiceConfig,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 import { PrintJobError } from "../errors/PrintErrors";
 
