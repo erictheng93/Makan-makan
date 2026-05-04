@@ -5,6 +5,7 @@ import {
   type PlanTier,
 } from "@makanmakan/database";
 import type { D1Database } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 
 interface SubscriptionRow {
   plan_tier: PlanTier;
@@ -209,7 +210,7 @@ export class UsageService {
            VALUES (?, ?, ?, ?, ?, ?)`,
         )
         .bind(
-          crypto.randomUUID(),
+          generateUUID(),
           row.restaurant_id,
           METER_KEYS.STORAGE_BYTES,
           row.r2_bytes,

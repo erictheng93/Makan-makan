@@ -1,5 +1,6 @@
 import { PAYMENT_AUDIT_EVENT_TYPES } from "@makanmakan/database";
 import type { PaymentAuditEventType } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../../types/env";
 
 export interface PaymentAuditEventInput {
@@ -39,7 +40,7 @@ export class PaymentAuditService {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
-        crypto.randomUUID(),
+        generateUUID(),
         event.restaurantId ?? null,
         event.paymentTransactionId ?? null,
         event.subscriptionId ?? null,

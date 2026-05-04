@@ -6,6 +6,7 @@ import {
   type NotificationChannel,
   type NotificationDispatchStatus,
 } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../../types/env";
 
 interface DispatchInput {
@@ -176,7 +177,7 @@ export class BillingNotificationService {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
       .bind(
-        crypto.randomUUID(),
+        generateUUID(),
         input.restaurantId ?? null,
         input.kind,
         input.dedupKey,

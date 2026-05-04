@@ -5,6 +5,7 @@ import {
   type ModuleMap,
   type PlanTier,
 } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../../types/env";
 import {
   BILLING_NOTIFICATION_KINDS,
@@ -134,7 +135,7 @@ export class BillingCycleService {
             created_at_ms
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'TWD', ?)`,
       ).bind(
-        crypto.randomUUID(),
+        generateUUID(),
         row.restaurant_id,
         row.id,
         row.plan_tier,
@@ -157,7 +158,7 @@ export class BillingCycleService {
             occurred_at_ms
           ) VALUES (?, ?, ?, ?, ?, ?)`,
       ).bind(
-        crypto.randomUUID(),
+        generateUUID(),
         row.restaurant_id,
         row.id,
         PAYMENT_AUDIT_EVENT_TYPES.CYCLE_CLOSE,
@@ -209,7 +210,7 @@ export class TrialReaperService {
               occurred_at_ms
             ) VALUES (?, ?, ?, ?, ?, ?)`,
         ).bind(
-          crypto.randomUUID(),
+          generateUUID(),
           row.restaurant_id,
           row.id,
           PAYMENT_AUDIT_EVENT_TYPES.TRIAL_DOWNGRADE,
