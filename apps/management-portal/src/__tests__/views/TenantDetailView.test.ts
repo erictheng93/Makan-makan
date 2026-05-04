@@ -142,7 +142,7 @@ describe("TenantDetailView", () => {
   it("renders subdomain info", async () => {
     const wrapper = mountView();
     await flushPromises();
-    expect(wrapper.text()).toContain("test.makanmakan.app");
+    expect(wrapper.text()).toContain("test.makanmasak.app");
   });
 
   it("renders first letter avatar", async () => {

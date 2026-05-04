@@ -2,7 +2,7 @@ import type { Messages } from "../types";
 
 const enUS: Messages = {
   common: {
-    appName: "MakanMakan",
+    appName: "MakanMasak",
     loading: "Loading...",
     view: "View",
     viewAll: "View All",
@@ -100,7 +100,7 @@ const enUS: Messages = {
         contactPhonePlaceholder: "+1-234-567-8900",
         subdomain: "Subdomain",
         subdomainPlaceholder: "royalkitchen",
-        subdomainSuffix: ".makanmakan.app",
+        subdomainSuffix: ".makanmasak.app",
         subdomainHint: "Leave blank to auto-generate",
         selectPlan: "Select Plan",
       },

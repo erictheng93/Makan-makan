@@ -66,7 +66,7 @@ describe("KitchenHeader Component", () => {
     it("should display the kitchen board title", () => {
       const wrapper = mount(KitchenHeader, {
         props: {
-          restaurantName: "MakanMakan Restaurant",
+          restaurantName: "MakanMasak Restaurant",
           currentTime: new Date(),
           stats: mockStats,
         },

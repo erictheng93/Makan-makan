@@ -8,7 +8,7 @@ import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import OrderCard from "../OrderCard.vue";
 import type { KitchenOrder, KitchenOrderItem } from "@/types";
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock icons
 vi.mock("@heroicons/vue/24/outline", () => ({

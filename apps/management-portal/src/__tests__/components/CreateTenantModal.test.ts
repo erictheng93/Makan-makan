@@ -94,7 +94,7 @@ describe("CreateTenantModal", () => {
 
   it("shows subdomain suffix", () => {
     const wrapper = mountModal();
-    expect(wrapper.text()).toContain(".makanmakan.app");
+    expect(wrapper.text()).toContain(".makanmasak.app");
   });
 
   it("emits close when cancel is clicked", async () => {

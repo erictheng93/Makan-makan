@@ -12,7 +12,7 @@ import type {
   KitchenSSEEvent,
   ItemStatus,
 } from "@/types";
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Helper function to create order items with required fields
 function createMockItem(

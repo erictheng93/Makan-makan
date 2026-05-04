@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useOrdersStore } from "../orders";
 import type { KitchenOrder, OrderStatus, KitchenSSEEvent } from "@/types";
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock kitchen API - inline definition to avoid hoisting issues
 vi.mock("@/services/kitchenApi", () => ({

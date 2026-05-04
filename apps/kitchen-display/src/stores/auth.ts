@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { User } from "@/types";
 import { authApi, apiClient } from "@/services/authApi";
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 
 export const useAuthStore = defineStore("auth", () => {
   // State

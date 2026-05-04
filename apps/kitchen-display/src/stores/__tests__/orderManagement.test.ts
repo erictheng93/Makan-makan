@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useOrderManagementStore } from "../orderManagement";
 import type { KitchenOrder, OrderStatus, ItemStatus } from "@/types";
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 function createMockOrder(
   id: number,

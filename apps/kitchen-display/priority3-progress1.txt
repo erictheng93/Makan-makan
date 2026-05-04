@@ -1,9 +1,9 @@
 
-> makanmakan-kitchen-display@1.0.0 test C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display
+> makanmasak-kitchen-display@1.0.0 test C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display
 > vitest
 
 
-[7m[1m[34m DEV [39m[22m[27m [34mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/kitchen-display[39m
+[7m[1m[34m DEV [39m[22m[27m [34mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmasak/apps/kitchen-display[39m
 
  [32m✓[39m src/stores/__tests__/orderManagement.test.ts [2m ([22m[2m56 tests[22m[2m)[22m[90m 239[2mms[22m[39m
  [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts [2m ([22m[2m36 tests[22m[2m)[22m[33m 1318[2mms[22m[39m
@@ -174,16 +174,16 @@
 [Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
 [Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
 Failed to play new order sound: Error: Audio error
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\composables\__tests__\useAudioNotifications.test.ts:173:59
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
-    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
-    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\composables\__tests__\useAudioNotifications.test.ts:173:59
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
+    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
+    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
 
 [90mstderr[2m | src/composables/__tests__/useAudioNotifications.test.ts[2m > [22m[2museAudioNotifications[2m > [22m[2mConfiguration Management[2m > [22m[2mshould update configuration[22m[39m
 [Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
@@ -332,15 +332,15 @@ Testing: 新訂單
 [90mstderr[2m | src/__tests__/unit/composables/useWebSocket.test.ts[2m > [22m[2museWebSocket Composable[2m > [22m[2m邊界情況[2m > [22m[2m應該處理空消息[22m[39m
 Failed to parse message: SyntaxError: Unexpected end of JSON input
     at JSON.parse (<anonymous>)
-    at ws.onmessage [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\__tests__\unit\composables\useWebSocket.test.ts:54:50[90m)[39m
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\__tests__\unit\composables\useWebSocket.test.ts:494:7
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
-    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
+    at ws.onmessage [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\__tests__\unit\composables\useWebSocket.test.ts:54:50[90m)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\__tests__\unit\composables\useWebSocket.test.ts:494:7
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
+    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
 
  [32m✓[39m src/__tests__/unit/composables/useWebSocket.test.ts [2m ([22m[2m26 tests[22m[2m)[22m[90m 140[2mms[22m[39m
 [90mstderr[2m | src/composables/__tests__/useAudioNotifications.test.ts[2m > [22m[2museAudioNotifications[2m > [22m[2mComputed Properties[2m > [22m[2mshould compute isEnabled correctly[22m[39m
@@ -529,12 +529,12 @@ Loaded 0 orders for restaurant 1
 [Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
 [Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
 
-[90mstderr[2m | VirtualConsole.<anonymous> (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\virtual-console.js:29:45)[22m[39m
+[90mstderr[2m | VirtualConsole.<anonymous> (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\virtual-console.js:29:45)[22m[39m
 Error: Not implemented: navigation (except hash changes)
-    at module.exports (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
-    at navigateFetch (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
-    at exports.navigate (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
-    at Timeout._onTimeout (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\living\nodes\HTMLHyperlinkElementUtils-impl.js:81:7)
+    at module.exports (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+    at navigateFetch (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+    at exports.navigate (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+    at Timeout._onTimeout (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\.pnpm\jsdom@23.2.0\node_modules\jsdom\lib\jsdom\living\nodes\HTMLHyperlinkElementUtils-impl.js:81:7)
     at listOnTimeout (node:internal/timers:588:17)
     at processTimers (node:internal/timers:523:7) [90mundefined[39m
 
@@ -557,16 +557,16 @@ Error: Not implemented: navigation (except hash changes)
 [31m     → expected [ { id: 'ord-1', …(8) } ] to have a length of +0 but got 1[39m
 [90mstderr[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mError Recovery[2m > [22m[2mshould handle network errors during fetch[22m[39m
 Failed to fetch orders: Error: Network error
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\__tests__\integration\order-workflow.test.ts:229:50
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
-    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
-    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\__tests__\integration\order-workflow.test.ts:229:50
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
+    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
+    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
 
 [90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mPerformance Metrics[2m > [22m[2mshould track average cooking time[22m[39m
 Loaded 0 orders for restaurant 1
@@ -1390,29 +1390,29 @@ Simulating API call for action start_cooking
 
 [90mstderr[2m | tests/integration/offline-sync-integration.test.ts[2m > [22m[2mOffline Sync Integration Tests[2m > [22m[2mError Handling and Edge Cases[2m > [22m[2mshould handle localStorage quota exceeded[22m[39m
 Failed to save offline data: Error: QuotaExceededError
-    at Object.<anonymous> [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39mtests\integration\offline-sync-integration.test.ts:371:15[90m)[39m
-    at Object.mockCall (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+spy@1.6.1/node_modules/[4m@vitest[24m/spy/dist/index.js:50:17)
-    at Object.spy [as setItem] (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/tinyspy@2.2.1/node_modules/[4mtinyspy[24m/dist/index.js:42:80)
-    at OfflineService.saveOfflineData [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\services\offlineService.ts:119:20[90m)[39m
-    at OfflineService.queueAction [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\services\offlineService.ts:182:10[90m)[39m
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39mtests\integration\offline-sync-integration.test.ts:376:24
-    at Proxy.assertThrows (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\core\assertions.js:2644:7)
-    at Proxy.methodWrapper (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\utils\addMethod.js:57:25)
-    at Proxy.<anonymous> (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+expect@1.6.1/node_modules/[4m@vitest[24m/expect/dist/index.js:850:16)
-    at Proxy.overwritingMethodWrapper (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\utils\overwriteMethod.js:78:33)
+    at Object.<anonymous> [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39mtests\integration\offline-sync-integration.test.ts:371:15[90m)[39m
+    at Object.mockCall (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+spy@1.6.1/node_modules/[4m@vitest[24m/spy/dist/index.js:50:17)
+    at Object.spy [as setItem] (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/tinyspy@2.2.1/node_modules/[4mtinyspy[24m/dist/index.js:42:80)
+    at OfflineService.saveOfflineData [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\services\offlineService.ts:119:20[90m)[39m
+    at OfflineService.queueAction [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\services\offlineService.ts:182:10[90m)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39mtests\integration\offline-sync-integration.test.ts:376:24
+    at Proxy.assertThrows (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\core\assertions.js:2644:7)
+    at Proxy.methodWrapper (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\utils\addMethod.js:57:25)
+    at Proxy.<anonymous> (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+expect@1.6.1/node_modules/[4m@vitest[24m/expect/dist/index.js:850:16)
+    at Proxy.overwritingMethodWrapper (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\utils\overwriteMethod.js:78:33)
 
 [90mstderr[2m | tests/integration/offline-sync-integration.test.ts[2m > [22m[2mOffline Sync Integration Tests[2m > [22m[2mError Handling and Edge Cases[2m > [22m[2mshould handle corrupted localStorage data[22m[39m
 Failed to load offline data: SyntaxError: Unexpected token 'i', "invalid json" is not valid JSON
     at JSON.parse (<anonymous>)
-    at OfflineService.loadOfflineData [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\services\offlineService.ts:129:42[90m)[39m
-    at new OfflineService [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\services\offlineService.ts:55:10[90m)[39m
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39mtests\integration\offline-sync-integration.test.ts:387:9
-    at Proxy.assertThrows (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\core\assertions.js:2644:7)
-    at Proxy.methodWrapper (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\utils\addMethod.js:57:25)
-    at Proxy.<anonymous> (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+expect@1.6.1/node_modules/[4m@vitest[24m/expect/dist/index.js:850:16)
-    at Proxy.overwritingMethodWrapper (C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\utils\overwriteMethod.js:78:33)
-    at Proxy.<anonymous> (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+expect@1.6.1/node_modules/[4m@vitest[24m/expect/dist/index.js:1324:19)
-    at Proxy.<anonymous> (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+expect@1.6.1/node_modules/[4m@vitest[24m/expect/dist/index.js:800:17)
+    at OfflineService.loadOfflineData [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\services\offlineService.ts:129:42[90m)[39m
+    at new OfflineService [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\services\offlineService.ts:55:10[90m)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39mtests\integration\offline-sync-integration.test.ts:387:9
+    at Proxy.assertThrows (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\core\assertions.js:2644:7)
+    at Proxy.methodWrapper (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\utils\addMethod.js:57:25)
+    at Proxy.<anonymous> (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+expect@1.6.1/node_modules/[4m@vitest[24m/expect/dist/index.js:850:16)
+    at Proxy.overwritingMethodWrapper (C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\node_modules\[4m.pnpm[24m\chai@4.5.0\node_modules\[4mchai[24m\lib\chai\utils\overwriteMethod.js:78:33)
+    at Proxy.<anonymous> (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+expect@1.6.1/node_modules/[4m@vitest[24m/expect/dist/index.js:1324:19)
+    at Proxy.<anonymous> (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+expect@1.6.1/node_modules/[4m@vitest[24m/expect/dist/index.js:800:17)
 
  [33m❯[39m tests/integration/offline-sync-integration.test.ts [2m ([22m[2m22 tests[22m [2m|[22m [31m12 failed[39m[2m)[22m[33m 22977[2mms[22m[39m
 [31m   [33m❯[31m tests/integration/offline-sync-integration.test.ts[2m > [22mOffline Sync Integration Tests[2m > [22mOffline Service Integration[2m > [22mshould handle going offline[39m
@@ -1521,57 +1521,57 @@ Loaded 2 orders for restaurant 1
 [Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
 [Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
 Failed to play new order sound: Error: Audio error
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\__tests__\integration\notification-system.test.ts:216:59
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
-    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
-    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\__tests__\integration\notification-system.test.ts:216:59
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
+    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
+    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
 
 [90mstderr[2m | src/__tests__/integration/notification-system.test.ts[2m > [22m[2mNotification System Integration[2m > [22m[2mError Handling[2m > [22m[2mshould continue processing after failed notification[22m[39m
 [Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
 [Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
 Failed to play new order sound: Error: Failed
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\__tests__\integration\notification-system.test.ts:224:59
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
-    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
-    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\__tests__\integration\notification-system.test.ts:224:59
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
+    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
+    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
 
 [90mstderr[2m | src/stores/__tests__/orders.test.ts[2m > [22m[2mOrders Store[2m > [22m[2mFetch Orders[2m > [22m[2mshould set loading state during fetch[22m[39m
 Failed to fetch orders: TypeError: Cannot read properties of undefined (reading 'success')
-    at Proxy.fetchOrders [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\stores\orders.ts:52:20[90m)[39m
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\stores\__tests__\orders.test.ts:122:7
-    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:11)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
-    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
-    at withEnv (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at Proxy.fetchOrders [90m(C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\stores\orders.ts:52:20[90m)[39m
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\stores\__tests__\orders.test.ts:122:7
+    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:11)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
+    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
 
 [90mstderr[2m | src/stores/__tests__/orders.test.ts[2m > [22m[2mOrders Store[2m > [22m[2mFetch Orders[2m > [22m[2mshould handle fetch errors[22m[39m
 Failed to fetch orders: Error: Network error
-    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display\[39msrc\stores\__tests__\orders.test.ts:126:50
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
-    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
-    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
-    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
-    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmakan/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at [90mC:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display\[39msrc\stores\__tests__\orders.test.ts:126:50
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:135:14
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:60:26
+    at runTest (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:781:17)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runSuite (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:909:15)
+    at runFiles (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:958:5)
+    at startTests (file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest[24m/runner/dist/index.js:967:3)
+    at file:///C:/Users/minim/OneDrive/%E6%96%87%E6%A1%A3/Code/platform/makanmasak/node_modules/[4m.pnpm[24m/vitest@1.6.1_@types+node@20_a05fbfcde6e75372324388c75e88dea2/node_modules/[4mvitest[24m/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
 
  [33m❯[39m src/stores/__tests__/orders.test.ts [2m ([22m[2m19 tests[22m [2m|[22m [31m6 failed[39m[2m)[22m[90m 233[2mms[22m[39m
 [31m   [33m❯[31m src/stores/__tests__/orders.test.ts[2m > [22mOrders Store[2m > [22mOrder Updates[2m > [22mshould update order status[39m

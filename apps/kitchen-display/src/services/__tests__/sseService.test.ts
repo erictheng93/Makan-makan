@@ -7,10 +7,10 @@ type ConnectionChangeMock = ReturnType<typeof vi.fn> &
   ((status: ConnectionStatus) => void);
 type ErrorMock = ReturnType<typeof vi.fn> & ((error: Event) => void);
 
-// Mock @makanmakan/utils so isTokenExpired always returns false
+// Mock @makanmasak/utils so isTokenExpired always returns false
 // (the test token "test-token-abc" is not a real JWT, so without this mock
 //  the service treats it as expired and never creates an EventSource)
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   isTokenExpired: vi.fn(() => false),
 }));
 

@@ -63,7 +63,7 @@ const zhTW: Messages = {
     loggingIn: "登入中...",
     loginButton: "登入",
     roleNote: "僅限廚師角色登入",
-    systemInfo: "MakanMakan 廚房顯示系統 v1.0",
+    systemInfo: "MakanMasak 廚房顯示系統 v1.0",
     helpNote: "需要協助？請聯繫系統管理員",
     loginSuccess: "登入成功！",
     fetchRestaurantError: "無法獲取餐廳資訊",

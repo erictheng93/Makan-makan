@@ -1,9 +1,9 @@
 
-> makanmakan-kitchen-display@1.0.0 test C:\Users\minim\OneDrive\文档\Code\platform\makanmakan\apps\kitchen-display
+> makanmasak-kitchen-display@1.0.0 test C:\Users\minim\OneDrive\文档\Code\platform\makanmasak\apps\kitchen-display
 > vitest
 
 
-[7m[1m[34m DEV [39m[22m[27m [34mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/kitchen-display[39m
+[7m[1m[34m DEV [39m[22m[27m [34mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmasak/apps/kitchen-display[39m
 
  [32m✓[39m src/stores/__tests__/orderManagement.test.ts [2m ([22m[2m56 tests[22m[2m)[22m[90m 167[2mms[22m[39m
  [32m✓[39m src/components/common/__tests__/ConnectionStatus.test.ts [2m ([22m[2m36 tests[22m[2m)[22m[33m 787[2mms[22m[39m

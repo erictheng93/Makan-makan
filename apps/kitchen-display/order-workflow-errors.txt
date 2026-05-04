@@ -1,5 +1,5 @@
 
-[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmakan/apps/kitchen-display[39m
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/minim/OneDrive/文档/Code/platform/makanmasak/apps/kitchen-display[39m
 
 [90mstdout[2m | src/__tests__/integration/order-workflow.test.ts[2m > [22m[2mOrder Workflow Integration[2m > [22m[2mReal-time Updates[2m > [22m[2mshould add new order from SSE event[22m[39m
 New order added: ORD-NEW

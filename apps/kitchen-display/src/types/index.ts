@@ -1,6 +1,6 @@
 // 廚房專用類型定義
 
-import type { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmasak/shared-types";
 export type { OrderStatus };
 
 export type ItemStatus = "pending" | "preparing" | "ready" | "completed";

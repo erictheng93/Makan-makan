@@ -215,7 +215,7 @@ const tabs = computed(() => [
                   {{ getStatusLabel(tenant.status) }}
                 </span>
                 <span v-if="tenant.subdomain" class="text-sm text-gray-500">
-                  {{ tenant.subdomain }}.makanmakan.app
+                  {{ tenant.subdomain }}.makanmasak.app
                 </span>
               </div>
             </div>
@@ -315,7 +315,7 @@ const tabs = computed(() => [
               </dt>
               <dd class="text-sm font-medium text-gray-900">
                 {{
-                  tenant.subdomain ? `${tenant.subdomain}.makanmakan.app` : "-"
+                  tenant.subdomain ? `${tenant.subdomain}.makanmasak.app` : "-"
                 }}
               </dd>
             </div>

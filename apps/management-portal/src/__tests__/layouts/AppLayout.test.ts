@@ -17,7 +17,7 @@ describe("AppLayout", () => {
 
   it("renders the brand name", () => {
     const wrapper = mountLayout();
-    expect(wrapper.text()).toContain("MakanMakan");
+    expect(wrapper.text()).toContain("MakanMasak");
   });
 
   it("renders the portal label", () => {

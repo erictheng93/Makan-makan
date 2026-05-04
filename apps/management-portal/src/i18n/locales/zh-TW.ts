@@ -2,7 +2,7 @@ import type { Messages } from "../types";
 
 const zhTW: Messages = {
   common: {
-    appName: "MakanMakan",
+    appName: "MakanMasak",
     loading: "載入中...",
     view: "查看",
     viewAll: "查看全部",
@@ -100,7 +100,7 @@ const zhTW: Messages = {
         contactPhonePlaceholder: "02-1234-5678",
         subdomain: "子域名",
         subdomainPlaceholder: "yushenfang",
-        subdomainSuffix: ".makanmakan.app",
+        subdomainSuffix: ".makanmasak.app",
         subdomainHint: "留空將自動生成",
         selectPlan: "選擇方案",
       },

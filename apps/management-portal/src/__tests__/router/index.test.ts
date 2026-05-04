@@ -24,13 +24,13 @@ describe("Router Configuration", () => {
     // Test that the title-setting logic works
     // The router.beforeEach sets document.title
     const title = "租戶管理";
-    document.title = `${title} - MakanMakan 管理平台`;
-    expect(document.title).toBe("租戶管理 - MakanMakan 管理平台");
+    document.title = `${title} - MakanMasak 管理平台`;
+    expect(document.title).toBe("租戶管理 - MakanMasak 管理平台");
   });
 
   it("sets default title when no meta.title", () => {
-    document.title = "MakanMakan 管理平台";
-    expect(document.title).toBe("MakanMakan 管理平台");
+    document.title = "MakanMasak 管理平台";
+    expect(document.title).toBe("MakanMasak 管理平台");
   });
 
   it("route config includes all expected paths", () => {

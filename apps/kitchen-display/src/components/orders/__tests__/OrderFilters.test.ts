@@ -9,7 +9,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { nextTick } from "vue";
 import OrderFilters from "../OrderFilters.vue";
 import type { KitchenOrder } from "@/types";
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock icons - 必須包含 template 屬性
 vi.mock("@heroicons/vue/24/outline", () => ({

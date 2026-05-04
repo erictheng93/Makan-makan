@@ -15,7 +15,7 @@ import { setActivePinia, createPinia } from "pinia";
 import { useOrdersStore } from "@/stores/orders";
 import { useAudioNotifications } from "@/composables/useAudioNotifications";
 import type { KitchenSSEEvent, KitchenOrder, OrderStatus } from "@/types";
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock services - inline definitions to avoid hoisting issues
 vi.mock("@/services/kitchenApi", () => ({

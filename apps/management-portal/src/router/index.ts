@@ -58,8 +58,8 @@ export const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const title = to.meta.title as string;
   document.title = title
-    ? `${title} - MakanMakan 管理平台`
-    : "MakanMakan 管理平台";
+    ? `${title} - MakanMasak 管理平台`
+    : "MakanMasak 管理平台";
   next();
 });
 

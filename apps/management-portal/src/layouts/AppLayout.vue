@@ -53,7 +53,7 @@ const isCurrentRoute = (href: string) => {
         <div
           class="flex h-16 items-center justify-between px-4 border-b border-gray-200"
         >
-          <span class="text-xl font-bold text-primary-600">MakanMakan</span>
+          <span class="text-xl font-bold text-primary-600">MakanMasak</span>
           <button
             type="button"
             class="text-gray-500 hover:text-gray-700"
@@ -95,7 +95,7 @@ const isCurrentRoute = (href: string) => {
       <div class="flex flex-col flex-grow bg-white border-r border-gray-200">
         <!-- Logo -->
         <div class="flex h-16 items-center px-6 border-b border-gray-200">
-          <span class="text-xl font-bold text-primary-600">MakanMakan</span>
+          <span class="text-xl font-bold text-primary-600">MakanMasak</span>
           <span class="ml-2 text-sm text-gray-500">{{
             t("layout.managementPortal")
           }}</span>
@@ -194,7 +194,7 @@ const isCurrentRoute = (href: string) => {
           <Bars3Icon class="h-6 w-6" />
         </button>
         <div class="flex items-center px-4">
-          <span class="text-lg font-bold text-primary-600">MakanMakan</span>
+          <span class="text-lg font-bold text-primary-600">MakanMasak</span>
         </div>
       </div>
 

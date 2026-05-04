@@ -126,7 +126,7 @@ describe("TenantsView", () => {
     const wrapper = mountView();
     expect(wrapper.text()).toContain("Alpha Restaurant");
     expect(wrapper.text()).toContain("alpha@test.com");
-    expect(wrapper.text()).toContain("alpha.makanmakan.app");
+    expect(wrapper.text()).toContain("alpha.makanmasak.app");
   });
 
   it("displays deployed version", () => {

@@ -1,5 +1,5 @@
 import type { KitchenSSEEvent, ConnectionStatus } from "@/types";
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 
 export interface SSEOptions {
   restaurantId: string | number;
