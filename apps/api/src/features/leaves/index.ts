@@ -186,7 +186,7 @@ class LeavesModule implements FeatureModule {
         supportedLanguages: ["zh-TW", "en"],
       },
       dependencies: {
-        database: "@makanmakan/database - LeaveService",
+        database: "@makanmasak/database - LeaveService",
         validation: "Zod schemas with Taiwan labor law rules",
         authentication: "Shared middleware with role-based access",
         monitoring: "ConsoleLogger",
@@ -302,7 +302,7 @@ export type {
 } from "./types";
 
 // Re-export service for direct use
-export { LeaveService } from "@makanmakan/database";
+export { LeaveService } from "@makanmasak/database";
 
 // Re-export schemas for external validation
 export { leaveSchemas } from "./schemas/validation";

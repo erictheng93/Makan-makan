@@ -1,12 +1,12 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and } from "drizzle-orm";
-import { platformIntegrations } from "@makanmakan/database";
+import { platformIntegrations } from "@makanmasak/database";
 import type {
   PlatformType,
   PlatformCredentials,
   ConnectPlatformRequest,
   UpdatePlatformConfigRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 
 export class PlatformIntegrationService {

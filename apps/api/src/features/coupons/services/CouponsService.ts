@@ -4,7 +4,7 @@
  * Business logic for coupon management and operations
  */
 
-import { CouponService as BaseCouponService } from "@makanmakan/database";
+import { CouponService as BaseCouponService } from "@makanmasak/database";
 import { badRequest } from "../../../shared/utils/api-error";
 import {
   fromCents,

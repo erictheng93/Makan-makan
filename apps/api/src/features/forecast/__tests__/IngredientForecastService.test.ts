@@ -22,7 +22,7 @@ vi.mock("drizzle-orm", () => ({
   isNull: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   forecastCache: {
     restaurantId: {},
     forecastDate: {},

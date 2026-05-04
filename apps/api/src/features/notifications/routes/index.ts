@@ -13,7 +13,7 @@ import { createSuccessResponse } from "../../../shared/utils";
 import { z } from "zod";
 
 // Import service
-import { NotificationService } from "@makanmakan/database";
+import { NotificationService } from "@makanmasak/database";
 
 const app = new Hono<{ Bindings: Env }>();
 

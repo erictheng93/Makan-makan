@@ -24,7 +24,7 @@ vi.mock("drizzle-orm", () => ({
   notInArray: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   menuItemIngredients: { menuItemId: "menuItemId" },
   ingredientDefinitions: { name: "name" },
   menuItems: { name: "name" },

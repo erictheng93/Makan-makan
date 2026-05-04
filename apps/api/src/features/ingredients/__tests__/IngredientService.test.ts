@@ -25,7 +25,7 @@ vi.mock("drizzle-orm", () => ({
   count: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   ingredientDefinitions: { name: "name", category: "category" },
 }));
 

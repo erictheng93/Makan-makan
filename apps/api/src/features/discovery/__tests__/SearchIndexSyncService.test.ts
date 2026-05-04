@@ -18,7 +18,7 @@ vi.mock("drizzle-orm", () => ({
   eq: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   dishSearchIndex: { menuItemId: "menuItemId", restaurantId: "restaurantId" },
   menuItems: { id: "id" },
   categories: {},

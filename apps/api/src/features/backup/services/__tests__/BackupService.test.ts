@@ -12,7 +12,7 @@ import type {
   RestoreBackupRequest,
   BackupRecord,
   BackupConfiguration,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // ========================================
 // Mock Drizzle ORM and database module
@@ -150,7 +150,7 @@ vi.mock("drizzle-orm", () => ({
   isNotNull: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   backupRecords: {
     id: "id",
     restaurantId: "restaurant_id",

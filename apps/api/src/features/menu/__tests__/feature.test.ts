@@ -9,7 +9,7 @@ import {
   envFactory,
   createMockKV,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 import type { Env } from "../../../shared/types";
 import { MenuService } from "../services/MenuService";
 import routes from "../routes";
@@ -64,7 +64,7 @@ const mockDatabaseMenuServiceInstance = vi.hoisted(() => ({
 // =============================================================================
 
 // Mock the database-layer MenuService so HTTP route tests use our controlled mock
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   MenuService: class MockDatabaseMenuService {
     constructor() {
       Object.assign(this, mockDatabaseMenuServiceInstance);

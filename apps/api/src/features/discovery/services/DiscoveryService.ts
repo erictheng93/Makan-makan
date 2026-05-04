@@ -5,7 +5,7 @@ import {
   restaurants,
   menuItems,
   categories,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type {
   DishSearchResult,
   RestaurantListItem,

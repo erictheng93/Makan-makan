@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 import { assertMatchesSchema } from "../../../contracts/helpers";
 import {
   ListIntegrationsResponse,
@@ -88,7 +88,7 @@ describe("Integrations API Response Contracts", () => {
           config: {
             apiKey: "***",
             storeId: "GF-12345",
-            webhookUrl: "https://api.makanmakan.com/webhooks/grabfood",
+            webhookUrl: "https://api.makanmasak.com/webhooks/grabfood",
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, like, isNull, sql, count } from "drizzle-orm";
-import { ingredientDefinitions } from "@makanmakan/database";
+import { ingredientDefinitions } from "@makanmasak/database";
 import type {
   IngredientDefinitionResponse,
   CreateIngredientRequest,

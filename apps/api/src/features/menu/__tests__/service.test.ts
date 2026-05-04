@@ -9,7 +9,7 @@ import {
   envFactory,
   createMockKV,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 import { MenuService } from "../services/MenuService";
 import type { Env } from "../../../shared/types";
 import type {
@@ -71,7 +71,7 @@ vi.mock("../../../core/monitoring", () => {
 });
 
 // Mock the database service - use class-based mock for vitest 4 compatibility
-vi.mock("@makanmakan/database", () => {
+vi.mock("@makanmasak/database", () => {
   return {
     MenuService: class MockMenuService {
       constructor() {

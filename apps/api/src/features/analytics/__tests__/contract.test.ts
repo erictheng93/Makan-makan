@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 import { assertMatchesSchema } from "../../../contracts/helpers";
 import {
   DashboardResponse,
@@ -226,8 +226,8 @@ describe("Analytics API Response Contracts", () => {
         success: true as const,
         data: {
           restaurants: [
-            { id: "rest-001", name: "MakanMakan KL", todayRevenue: 3500 },
-            { id: "rest-002", name: "MakanMakan PJ", todayRevenue: 2800 },
+            { id: "rest-001", name: "MakanMasak KL", todayRevenue: 3500 },
+            { id: "rest-002", name: "MakanMasak PJ", todayRevenue: 2800 },
           ],
           totalRevenue: 6300,
           totalOrders: 180,

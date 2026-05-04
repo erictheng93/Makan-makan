@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PlatformIntegrationService } from "../services/PlatformIntegrationService";
-import type { PlatformCredentials } from "@makanmakan/shared-types";
+import type { PlatformCredentials } from "@makanmasak/shared-types";
 
 // ─── Mock drizzle-orm/d1 ───────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ vi.mock("drizzle-orm", () => ({
   and: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   platformIntegrations: {},
 }));
 

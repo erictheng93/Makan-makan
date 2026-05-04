@@ -1,7 +1,7 @@
 // apps/api/src/features/forecast/__tests__/AIForecastEnhancer.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AIForecastEnhancer } from "../services/AIForecastEnhancer";
-import type { IngredientForecastItem } from "@makanmakan/shared-types";
+import type { IngredientForecastItem } from "@makanmasak/shared-types";
 
 interface TestLLMAdjustment {
   ingredientId: number;
@@ -251,7 +251,7 @@ describe("AIForecastEnhancer", () => {
       });
 
       // Mock createProvider to return a provider that throws
-      vi.mock("@makanmakan/ai-analytics", () => ({
+      vi.mock("@makanmasak/ai-analytics", () => ({
         createProvider: vi.fn(() => ({
           chat: vi.fn().mockRejectedValue(new Error("Provider timeout")),
         })),

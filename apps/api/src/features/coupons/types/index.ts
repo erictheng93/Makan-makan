@@ -9,7 +9,7 @@ import type {
   DistributionType,
   TargetType,
   UsageStatus,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 // 優惠券驗證結果接口
 export interface CouponValidationResult {

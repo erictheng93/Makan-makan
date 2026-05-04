@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { KitchenService } from "../services/KitchenService";
 import type { OrderItemStatusUpdate } from "../types";
-import type { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmasak/shared-types";
 
 // Mock OrdersService with hoisted mock for flexibility
 const mockGetOrders = vi.hoisted(() => vi.fn());

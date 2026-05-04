@@ -3,7 +3,7 @@ import { FoodpandaAdapter } from "../FoodpandaAdapter";
 import type {
   PlatformCredentials,
   MenuSyncPayload,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 describe("FoodpandaAdapter", () => {
   let adapter: FoodpandaAdapter;

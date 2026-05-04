@@ -1,6 +1,6 @@
-import { createProvider } from "@makanmakan/ai-analytics";
-import type { LLMConfig } from "@makanmakan/ai-analytics";
-import type { IngredientForecastItem } from "@makanmakan/shared-types";
+import { createProvider } from "@makanmasak/ai-analytics";
+import type { LLMConfig } from "@makanmasak/ai-analytics";
+import type { IngredientForecastItem } from "@makanmasak/shared-types";
 
 // Reuse encryption utilities (same pattern as AIAnalyticsService)
 function stringToUint8Array(str: string): Uint8Array {
@@ -31,7 +31,7 @@ async function deriveKey(keyString: string): Promise<CryptoKey> {
     ["deriveKey"],
   );
 
-  const salt = stringToUint8Array("makanmakan-api-key-encryption-salt");
+  const salt = stringToUint8Array("makanmasak-api-key-encryption-salt");
 
   return crypto.subtle.deriveKey(
     {

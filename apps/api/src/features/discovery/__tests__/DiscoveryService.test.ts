@@ -28,7 +28,7 @@ vi.mock("drizzle-orm", () => ({
 }));
 
 // Mock database tables
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   dishSearchIndex: {
     menuItemId: "dsi.menuItemId",
     dishName: "dsi.dishName",

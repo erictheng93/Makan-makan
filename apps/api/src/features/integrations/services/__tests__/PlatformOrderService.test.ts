@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PlatformOrderService } from "../PlatformOrderService";
-import type { ParsedPlatformOrder } from "@makanmakan/shared-types";
+import type { ParsedPlatformOrder } from "@makanmasak/shared-types";
 
 // ─── Mock drizzle-orm/d1 ───────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ vi.mock("drizzle-orm", () => ({
   desc: vi.fn((col: unknown) => ({ _type: "desc", col })),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   platformOrders: {
     orderId: "orderId",
     restaurantId: "restaurantId",

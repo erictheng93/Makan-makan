@@ -59,8 +59,8 @@ const mockService = vi.hoisted(() => ({
   deleteResponse: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@makanmakan/database")>();
+vi.mock("@makanmasak/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@makanmasak/database")>();
   return {
     ...actual,
     FeedbackService: vi.fn(function () {

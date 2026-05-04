@@ -11,7 +11,7 @@ const mockDatabaseAnalyticsService = {
   getRealtimeDashboard: vi.fn(),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   AnalyticsService: vi.fn(function () {
     return mockDatabaseAnalyticsService;
   }),

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PlatformMenuSyncService } from "../PlatformMenuSyncService";
-import type { MenuSyncResult } from "@makanmakan/shared-types";
+import type { MenuSyncResult } from "@makanmasak/shared-types";
 
 // ─── Mock drizzle-orm/d1 ───────────────────────────────────────────────────
 
@@ -23,7 +23,7 @@ vi.mock("drizzle-orm", () => ({
   and: vi.fn((...args: unknown[]) => ({ _type: "and", args })),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   platformIntegrations: { restaurantId: "restaurantId", platform: "platform" },
   platformMenuMappings: {
     restaurantId: "restaurantId",

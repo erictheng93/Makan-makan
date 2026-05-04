@@ -5,8 +5,8 @@ import {
   type BillingNotificationKind,
   type NotificationChannel,
   type NotificationDispatchStatus,
-} from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+} from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 import type { Env } from "../../../types/env";
 
 interface DispatchInput {

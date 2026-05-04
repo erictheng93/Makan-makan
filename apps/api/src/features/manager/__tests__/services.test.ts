@@ -21,7 +21,7 @@ vi.mock("drizzle-orm", () => ({
   desc: vi.fn((col: any) => ({ type: "desc", col })),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   auditLogs: {
     id: "id",
     userId: "user_id",

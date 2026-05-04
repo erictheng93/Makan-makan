@@ -22,7 +22,7 @@ const mockAuthUser = vi.hoisted(() => ({
   value: { id: 1, role: 0, restaurantId: 1 as string | number },
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   NotificationService: vi.fn(function () {
     return mockNotificationService;
   }),

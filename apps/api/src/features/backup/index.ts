@@ -1,6 +1,6 @@
 /**
  * Backup Feature Module Entry Point
- * Modular backup system following MakanMakan architecture patterns
+ * Modular backup system following MakanMasak architecture patterns
  */
 
 export { BackupController } from "./controllers/BackupController";
@@ -21,4 +21,4 @@ export type {
   CreateBackupResponse,
   ListBackupsQuery,
   RestoreBackupRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";

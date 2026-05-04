@@ -4,7 +4,7 @@ import {
   FEEDBACK_PRIORITIES,
   FEEDBACK_STATUSES,
   FEEDBACK_MODULES,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 export const createFeedbackSchema = z.object({
   subject: z

@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc } from "drizzle-orm";
-import { auditLogs } from "@makanmakan/database";
+import { auditLogs } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import type { AuditLogQuery } from "../schemas/validation";
 

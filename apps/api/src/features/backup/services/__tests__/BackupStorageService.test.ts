@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { BackupStorageService } from "../BackupStorageService";
-import type { BackupRecord } from "@makanmakan/shared-types";
+import type { BackupRecord } from "@makanmasak/shared-types";
 
 // ========================================
 // Mock crypto.subtle for checksum calculation

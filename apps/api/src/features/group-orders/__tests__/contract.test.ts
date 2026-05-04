@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 import { assertMatchesSchema } from "../../../contracts/helpers";
 import {
   CreateGroupOrderResponse,
@@ -191,7 +191,7 @@ describe("Group Orders API Response Contracts", () => {
         success: true as const,
         data: {
           shareCode: "NEW456",
-          shareUrl: "https://app.makanmakan.com/group/NEW456",
+          shareUrl: "https://app.makanmasak.com/group/NEW456",
           expiresAt: new Date(Date.now() + 3600000).toISOString(),
         },
       };

@@ -5,7 +5,7 @@ import {
   menuItems,
   categories,
   restaurants,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { toCents } from "../../../shared/utils/money";
 
 export class SearchIndexSyncService {

@@ -3,7 +3,7 @@ import type { Env } from "../../../types/env";
 import { customerAuthMiddleware } from "../../../middleware/auth";
 import { SubscriptionService } from "../../subscriptions/services/SubscriptionService";
 import { UsageService } from "../../billing/services/UsageService";
-import type { ModuleKey, ModuleMap, PlanTier } from "@makanmakan/database";
+import type { ModuleKey, ModuleMap, PlanTier } from "@makanmasak/database";
 
 type DeploymentMode = "managed" | "byoc";
 

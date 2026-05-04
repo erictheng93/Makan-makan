@@ -22,7 +22,7 @@ import {
   backupAuditLogs,
   backupConfigurations,
   restoreOperations,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { notFound, conflict } from "../../../shared/utils/api-error";
 import { BackupStorageService } from "./BackupStorageService";
 import { BackupConfigService } from "./BackupConfigService";
@@ -37,7 +37,7 @@ import type {
   BackupAlert,
   BackupAuditLog,
   BackupStatus,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 type BackupManifest = {
   rowCounts: Record<string, number>;
@@ -1113,7 +1113,7 @@ export class BackupService {
       details: log.details as Record<string, unknown>,
       performedBy: log.performed_by,
       ipAddress: this.requestContext?.ipAddress ?? "0.0.0.0",
-      userAgent: this.requestContext?.userAgent ?? "MakanMakan-API",
+      userAgent: this.requestContext?.userAgent ?? "MakanMasak-API",
       timestamp: new Date().toISOString(),
     });
   }

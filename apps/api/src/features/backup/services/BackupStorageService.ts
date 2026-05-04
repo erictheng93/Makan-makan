@@ -3,7 +3,7 @@
  */
 
 import type { R2Bucket, KVNamespace } from "@cloudflare/workers-types";
-import type { BackupRecord, StorageProvider } from "@makanmakan/shared-types";
+import type { BackupRecord, StorageProvider } from "@makanmasak/shared-types";
 
 export interface StorageMetadata {
   backup_id: string;
@@ -449,7 +449,7 @@ export class BackupStorageService {
     return await crypto.subtle.deriveKey(
       {
         name: "PBKDF2",
-        salt: encoder.encode("makanmakan-backup-salt-v1"),
+        salt: encoder.encode("makanmasak-backup-salt-v1"),
         iterations: 100000,
         hash: "SHA-256",
       },

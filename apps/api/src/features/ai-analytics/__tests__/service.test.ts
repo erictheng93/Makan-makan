@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AIAnalyticsService } from "../services/AIAnalyticsService";
 
 // Mock the external ai-analytics package
-vi.mock("@makanmakan/ai-analytics", () => ({
+vi.mock("@makanmasak/ai-analytics", () => ({
   AIInsightsService: vi.fn(function () {
     return {
       generateReport: vi.fn().mockResolvedValue({
@@ -57,7 +57,7 @@ vi.mock("drizzle-orm", () => ({
   sql: vi.fn((...args: any[]) => args),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   aiConfigurations: {
     restaurantId: "restaurantId",
     provider: "provider",
@@ -290,7 +290,7 @@ describe("AIAnalyticsService", () => {
 
   describe("saveConfig", () => {
     it("should call testProvider before saving", async () => {
-      const { testProvider } = await import("@makanmakan/ai-analytics");
+      const { testProvider } = await import("@makanmasak/ai-analytics");
       mockDb.insert.mockReturnValue(makeInsertChain());
 
       await service.saveConfig({
@@ -308,7 +308,7 @@ describe("AIAnalyticsService", () => {
     });
 
     it("should throw when testProvider returns failure", async () => {
-      const { testProvider } = await import("@makanmakan/ai-analytics");
+      const { testProvider } = await import("@makanmasak/ai-analytics");
       vi.mocked(testProvider).mockResolvedValueOnce({
         success: false,
         provider: "openai",
@@ -354,7 +354,7 @@ describe("AIAnalyticsService", () => {
     });
 
     it("should return failure result when external provider throws", async () => {
-      const { testProvider } = await import("@makanmakan/ai-analytics");
+      const { testProvider } = await import("@makanmasak/ai-analytics");
       vi.mocked(testProvider).mockRejectedValueOnce(
         new Error("Connection refused"),
       );
@@ -369,7 +369,7 @@ describe("AIAnalyticsService", () => {
     });
 
     it("should handle non-Error exception as generic message", async () => {
-      const { testProvider } = await import("@makanmakan/ai-analytics");
+      const { testProvider } = await import("@makanmasak/ai-analytics");
       vi.mocked(testProvider).mockRejectedValueOnce("string error");
 
       const result = await service.testProvider({
@@ -458,7 +458,7 @@ describe("AIAnalyticsService", () => {
       );
       mockDb.insert.mockReturnValue(makeSimpleInsertChain());
 
-      const { AIInsightsService } = await import("@makanmakan/ai-analytics");
+      const { AIInsightsService } = await import("@makanmasak/ai-analytics");
       const generateReportMock = vi.fn().mockResolvedValue({
         summary: "Test",
         insights: [],
@@ -497,7 +497,7 @@ describe("AIAnalyticsService", () => {
   describe("getTrafficDrivers / getBestsellers / getProfitLeaders / analyzeProducts", () => {
     it("should call ProductAnalysisService.getTrafficDrivers", async () => {
       const { ProductAnalysisService } =
-        await import("@makanmakan/ai-analytics");
+        await import("@makanmasak/ai-analytics");
       const getTrafficDriversMock = vi.fn().mockResolvedValue([]);
       vi.mocked(ProductAnalysisService).mockImplementationOnce(function () {
         return { getTrafficDrivers: getTrafficDriversMock } as never;
@@ -514,7 +514,7 @@ describe("AIAnalyticsService", () => {
 
     it("should call ProductAnalysisService.getBestsellers", async () => {
       const { ProductAnalysisService } =
-        await import("@makanmakan/ai-analytics");
+        await import("@makanmasak/ai-analytics");
       const getBestsellersMock = vi.fn().mockResolvedValue([]);
       vi.mocked(ProductAnalysisService).mockImplementationOnce(function () {
         return { getBestsellers: getBestsellersMock } as never;
@@ -531,7 +531,7 @@ describe("AIAnalyticsService", () => {
 
     it("should call ProductAnalysisService.getProfitLeaders", async () => {
       const { ProductAnalysisService } =
-        await import("@makanmakan/ai-analytics");
+        await import("@makanmasak/ai-analytics");
       const getProfitLeadersMock = vi.fn().mockResolvedValue([]);
       vi.mocked(ProductAnalysisService).mockImplementationOnce(function () {
         return { getProfitLeaders: getProfitLeadersMock } as never;
@@ -548,7 +548,7 @@ describe("AIAnalyticsService", () => {
 
     it("should call ProductAnalysisService.analyzeProducts", async () => {
       const { ProductAnalysisService } =
-        await import("@makanmakan/ai-analytics");
+        await import("@makanmasak/ai-analytics");
       const analyzeProductsMock = vi.fn().mockResolvedValue([]);
       vi.mocked(ProductAnalysisService).mockImplementationOnce(function () {
         return { analyzeProducts: analyzeProductsMock } as never;

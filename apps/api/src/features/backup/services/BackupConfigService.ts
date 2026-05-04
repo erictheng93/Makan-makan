@@ -6,8 +6,8 @@
 import type { D1Database } from "@cloudflare/workers-types";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, count, isNotNull, desc } from "drizzle-orm";
-import { backupConfigurations, backupRecords } from "@makanmakan/database";
-import type { BackupConfiguration } from "@makanmakan/shared-types";
+import { backupConfigurations, backupRecords } from "@makanmasak/database";
+import type { BackupConfiguration } from "@makanmasak/shared-types";
 
 export class BackupConfigService {
   private db;

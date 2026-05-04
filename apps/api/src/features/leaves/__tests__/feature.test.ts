@@ -49,7 +49,7 @@ const mockLeaveService = {
   isWorkingDay: vi.fn(),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   LeaveService: vi.fn(function () {
     return mockLeaveService;
   }),

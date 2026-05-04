@@ -9,7 +9,7 @@ import type {
   CreateBackupRequest,
   RestoreBackupRequest,
   BackupConfiguration,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // ========================================
 // Mock Drizzle ORM
@@ -50,7 +50,7 @@ vi.mock("drizzle-orm", () => ({
   inArray: vi.fn((...args: any[]) => args),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   backupRecords: {
     restaurantId: "restaurantId",
     status: "status",

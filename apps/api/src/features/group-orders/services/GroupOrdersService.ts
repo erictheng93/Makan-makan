@@ -15,14 +15,14 @@ import {
   groupCartItems,
   splitBills,
   groupActivityLogs,
-} from "@makanmakan/database";
-import { menuItems } from "@makanmakan/database";
+} from "@makanmasak/database";
+import { menuItems } from "@makanmasak/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
   GroupOrderSettings,
   SplitBillItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { fromCents, toRequiredCents } from "../../../shared/utils/money";
 
 // Mock shared utilities - will be replaced with actual implementations

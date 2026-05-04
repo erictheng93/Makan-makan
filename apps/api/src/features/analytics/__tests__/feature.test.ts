@@ -37,7 +37,7 @@ const mockCacheService = {
   clear: vi.fn(),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   AnalyticsService: vi.fn(function () {
     return mockDatabaseAnalyticsService;
   }),

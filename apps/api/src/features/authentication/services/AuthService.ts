@@ -21,7 +21,7 @@ import {
   sessions,
   sql,
   users,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { gt } from "drizzle-orm";
 
 // Import types

@@ -5,10 +5,10 @@ export type {
   FeedbackPriority,
   FeedbackStatus,
   FeedbackModule,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 export type {
   CreateFeedbackData,
   FeedbackFilters,
   FeedbackStats,
-} from "@makanmakan/database";
+} from "@makanmasak/database";

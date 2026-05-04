@@ -3,9 +3,9 @@ import {
   PLAN_QUOTAS,
   type MeterKey,
   type PlanTier,
-} from "@makanmakan/database";
-import type { D1Database } from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+} from "@makanmasak/database";
+import type { D1Database } from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 
 interface SubscriptionRow {
   plan_tier: PlanTier;

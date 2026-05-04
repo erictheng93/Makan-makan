@@ -9,13 +9,13 @@ import type {
 } from "@cloudflare/workers-types";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, sql, isNotNull } from "drizzle-orm";
-import { backupConfigurations, backupSchedules } from "@makanmakan/database";
+import { backupConfigurations, backupSchedules } from "@makanmasak/database";
 import { BackupService } from "./BackupService";
 import { BackupConfigService } from "./BackupConfigService";
 import type {
   BackupConfiguration,
   CreateBackupRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export interface ScheduleInfo {
   id: string;

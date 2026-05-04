@@ -5,12 +5,12 @@ import {
   menuItems,
   menuItemIngredients,
   ingredientDefinitions,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type {
   IngredientForecastItem,
   IngredientForecastResult,
   IngredientForecastContributingItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type { ForecastService } from "./ForecastService";
 import { AIForecastEnhancer } from "./AIForecastEnhancer";
 

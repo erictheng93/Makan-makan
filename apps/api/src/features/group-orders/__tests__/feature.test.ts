@@ -33,7 +33,7 @@ vi.mock("drizzle-orm", () => ({
   gte: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   groupOrders: {},
   groupMembers: {},
   groupCartItems: {},

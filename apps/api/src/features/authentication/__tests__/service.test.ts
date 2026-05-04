@@ -7,13 +7,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Env } from "../../../shared/types";
 import { AuthService } from "../services/AuthService";
 import type { LoginData, RegisterData, SecurityEvent } from "../types";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock dependencies
 vi.mock("../../../core/database");
 vi.mock("../../../core/cache");
 vi.mock("../../../core/monitoring");
-vi.mock("@makanmakan/database", () => {
+vi.mock("@makanmasak/database", () => {
   const users = {
     id: "users.id",
     username: "users.username",
@@ -56,7 +56,7 @@ vi.mock("@makanmakan/database", () => {
 import * as databaseModule from "../../../core/database";
 import * as cacheModule from "../../../core/cache";
 import * as monitoringModule from "../../../core/monitoring";
-import * as dbModule from "@makanmakan/database";
+import * as dbModule from "@makanmasak/database";
 
 // Mock implementations
 const mockDbAuthService = {

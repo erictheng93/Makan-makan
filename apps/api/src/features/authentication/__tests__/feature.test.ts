@@ -15,20 +15,20 @@ import type {
   UserProfile,
   SessionSummary,
 } from "../types";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock dependencies
 vi.mock("../../../core/database");
 vi.mock("../../../core/cache");
 vi.mock("../../../core/monitoring");
-vi.mock("@makanmakan/database");
+vi.mock("@makanmasak/database");
 vi.mock("../../../utils/errorSanitizer");
 
 // Import mocked modules for type safety
 import * as databaseModule from "../../../core/database";
 import * as cacheModule from "../../../core/cache";
 import * as monitoringModule from "../../../core/monitoring";
-import * as dbModule from "@makanmakan/database";
+import * as dbModule from "@makanmasak/database";
 
 // Mock implementations
 const mockDbAuthService = {

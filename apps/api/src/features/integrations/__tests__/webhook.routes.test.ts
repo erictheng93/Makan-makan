@@ -18,7 +18,7 @@ const mockDrizzleDb: any = {
   update: vi.fn(),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   platformIntegrations: {},
   platformWebhookLogs: {},
 }));

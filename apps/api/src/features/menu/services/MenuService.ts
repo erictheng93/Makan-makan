@@ -6,7 +6,7 @@
 import type { Env } from "../../../shared/types";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { notFound, forbidden, conflict } from "../../../shared/utils/api-error";
-import { MenuService as DatabaseMenuService } from "@makanmakan/database";
+import { MenuService as DatabaseMenuService } from "@makanmasak/database";
 import type {
   MenuItem,
   Category,

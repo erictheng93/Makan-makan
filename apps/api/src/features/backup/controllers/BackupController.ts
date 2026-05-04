@@ -12,7 +12,7 @@ import type {
   ListBackupsQuery,
   RestoreBackupRequest,
   BackupConfiguration,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export class BackupController {
   constructor(

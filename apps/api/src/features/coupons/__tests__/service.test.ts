@@ -16,7 +16,7 @@ import {
 } from "vitest";
 
 // Mock the database module FIRST before importing anything else
-vi.mock("@makanmakan/database", () => {
+vi.mock("@makanmasak/database", () => {
   // Create a base class that CouponsService can extend
   // Real CouponService extends BaseCouponService which requires (d1, env, mockDb?)
   class MockCouponService {
@@ -60,7 +60,7 @@ const asCouponsServiceTest = (
 // Mock environment
 const mockEnv = {
   JWT_SECRET: "test-secret",
-  CUSTOMER_APP_URL: "https://test.makanmakan.com",
+  CUSTOMER_APP_URL: "https://test.makanmasak.com",
 };
 
 /**

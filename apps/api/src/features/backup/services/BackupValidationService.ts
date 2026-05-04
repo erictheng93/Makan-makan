@@ -7,12 +7,12 @@ import { Context } from "hono";
 import type { D1Database } from "@cloudflare/workers-types";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, sql, count, inArray } from "drizzle-orm";
-import { backupRecords } from "@makanmakan/database";
+import { backupRecords } from "@makanmasak/database";
 import type {
   CreateBackupRequest,
   RestoreBackupRequest,
   BackupConfiguration,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export class BackupValidationService {
   private db;

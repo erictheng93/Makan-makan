@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { BackupSchedulerService } from "../BackupSchedulerService";
-import type { BackupConfiguration } from "@makanmakan/shared-types";
+import type { BackupConfiguration } from "@makanmasak/shared-types";
 
 // ========================================
 // Mock Dependencies
@@ -63,7 +63,7 @@ vi.mock("drizzle-orm", () => ({
   isNotNull: vi.fn((col: any) => col),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   backupConfigurations: {
     id: "id",
     restaurantId: "restaurantId",

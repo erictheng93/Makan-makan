@@ -12,7 +12,7 @@ import {
   restaurants,
   tables,
   seats,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import {
   guestTokenAuth,
