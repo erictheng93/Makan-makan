@@ -20,6 +20,16 @@ function buildApp(env: Record<string, unknown>) {
 
 describe("Billing webhook routes", () => {
   it("records provider webhooks and reconciles invoice.paid", async () => {
+    const rawBody = JSON.stringify({
+      id: "evt_1",
+      type: "invoice.paid",
+      data: {
+        object: {
+          metadata: { restaurantId: "rest-1" },
+        },
+      },
+    });
+    const secret = "whsec_test";
     const auditRun = vi.fn().mockResolvedValue({ meta: { changes: 1 } });
     const auditBind = vi.fn(() => ({ run: auditRun }));
     const reconcileStatements: Array<{ args: unknown[] }> = [];
@@ -36,22 +46,20 @@ describe("Billing webhook routes", () => {
       };
     });
     const batch = vi.fn().mockResolvedValue([]);
-    const { app, env } = buildApp({ DB: { prepare, batch } });
+    const { app, env } = buildApp({
+      DB: { prepare, batch },
+      STRIPE_WEBHOOK_SECRET: secret,
+    });
 
     const response = await app.request(
       "/billing/webhooks/stripe",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "evt_1",
-          type: "invoice.paid",
-          data: {
-            object: {
-              metadata: { restaurantId: "rest-1" },
-            },
-          },
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-webhook-signature": await hmacSha256Hex(secret, rawBody),
+        },
+        body: rawBody,
       },
       env,
     );
@@ -83,18 +91,26 @@ describe("Billing webhook routes", () => {
   });
 
   it("does not reconcile duplicate provider events", async () => {
+    const rawBody = JSON.stringify({ id: "evt_1", type: "invoice.paid" });
+    const secret = "whsec_test";
     const auditRun = vi.fn().mockResolvedValue({ meta: { changes: 0 } });
     const auditBind = vi.fn(() => ({ run: auditRun }));
     const prepare = vi.fn(() => ({ bind: auditBind }));
     const batch = vi.fn();
-    const { app, env } = buildApp({ DB: { prepare, batch } });
+    const { app, env } = buildApp({
+      DB: { prepare, batch },
+      STRIPE_WEBHOOK_SECRET: secret,
+    });
 
     const response = await app.request(
       "/billing/webhooks/stripe",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "evt_1", type: "invoice.paid" }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-webhook-signature": await hmacSha256Hex(secret, rawBody),
+        },
+        body: rawBody,
       },
       env,
     );
@@ -108,6 +124,16 @@ describe("Billing webhook routes", () => {
   });
 
   it("records payment failed webhooks and dispatches a billing alert", async () => {
+    const rawBody = JSON.stringify({
+      id: "evt_failed",
+      type: "invoice.payment_failed",
+      data: {
+        object: {
+          metadata: { restaurantId: "rest-1" },
+        },
+      },
+    });
+    const secret = "whsec_test";
     const auditRun = vi.fn().mockResolvedValue({ meta: { changes: 1 } });
     const graceRun = vi.fn().mockResolvedValue({ meta: { changes: 1 } });
     const notificationFirst = vi.fn().mockResolvedValue(null);
@@ -122,22 +148,20 @@ describe("Billing webhook routes", () => {
       .mockReturnValueOnce({ bind: graceBind })
       .mockReturnValueOnce({ bind: notificationLookupBind })
       .mockReturnValueOnce({ bind: notificationInsertBind });
-    const { app, env } = buildApp({ DB: { prepare } });
+    const { app, env } = buildApp({
+      DB: { prepare },
+      STRIPE_WEBHOOK_SECRET: secret,
+    });
 
     const response = await app.request(
       "/billing/webhooks/stripe",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "evt_failed",
-          type: "invoice.payment_failed",
-          data: {
-            object: {
-              metadata: { restaurantId: "rest-1" },
-            },
-          },
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-webhook-signature": await hmacSha256Hex(secret, rawBody),
+        },
+        body: rawBody,
       },
       env,
     );
@@ -199,6 +223,54 @@ describe("Billing webhook routes", () => {
 
     expect(response.status).toBe(401);
     expect(json.error.code).toBe("WEBHOOK_SIGNATURE_INVALID");
+  });
+
+  it("rejects Stripe webhooks when the signing secret is not configured", async () => {
+    const prepare = vi.fn();
+    const rawBody = JSON.stringify({ id: "evt_1", type: "invoice.paid" });
+    const { app, env } = buildApp({
+      DB: { prepare },
+    });
+    const response = await app.request(
+      "/billing/webhooks/stripe",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-webhook-signature": await hmacSha256Hex("whsec_test", rawBody),
+        },
+        body: rawBody,
+      },
+      env,
+    );
+    const json = (await response.json()) as {
+      error: { code: string };
+    };
+
+    expect(response.status).toBe(401);
+    expect(json.error.code).toBe("WEBHOOK_SIGNATURE_INVALID");
+    expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it("rejects unsupported billing webhook providers", async () => {
+    const prepare = vi.fn();
+    const { app, env } = buildApp({
+      DB: { prepare },
+      STRIPE_WEBHOOK_SECRET: "whsec_test",
+    });
+
+    const response = await app.request(
+      "/billing/webhooks/unknown",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: "evt_1", type: "invoice.paid" }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(401);
+    expect(prepare).not.toHaveBeenCalled();
   });
 
   it("accepts signed LINE Pay webhooks as a second provider", async () => {
@@ -268,6 +340,25 @@ describe("Billing webhook routes", () => {
     );
   });
 });
+
+async function hmacSha256Hex(secret: string, value: string) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(value),
+  );
+  return [...new Uint8Array(signature)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 async function hmacSha256Base64(secret: string, value: string) {
   const encoder = new TextEncoder();

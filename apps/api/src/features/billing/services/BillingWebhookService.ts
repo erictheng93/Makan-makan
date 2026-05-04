@@ -1,4 +1,5 @@
 import { PAYMENT_AUDIT_EVENT_TYPES } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../../types/env";
 import { PaymentAuditService } from "./PaymentAuditService";
 import {
@@ -108,7 +109,7 @@ export class BillingWebhookService {
               raw_payload, occurred_at_ms
             ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ).bind(
-          crypto.randomUUID(),
+          generateUUID(),
           restaurantId,
           PAYMENT_AUDIT_EVENT_TYPES.SUCCESS,
           provider,
@@ -155,7 +156,13 @@ export class BillingWebhookService {
       return;
     }
 
-    if (provider !== "stripe" || !this.env.STRIPE_WEBHOOK_SECRET) return;
+    if (provider !== "stripe") {
+      throw new Error("Unsupported billing webhook provider");
+    }
+
+    if (!this.env.STRIPE_WEBHOOK_SECRET) {
+      throw new Error("Stripe webhook secret is not configured");
+    }
 
     const stripeSignature = headers.get("stripe-signature");
     const signature = stripeSignature
@@ -180,7 +187,9 @@ export class BillingWebhookService {
   }
 
   private async verifyLinePaySignature(rawBody: string, headers: Headers) {
-    if (!this.env.LINEPAY_WEBHOOK_SECRET) return;
+    if (!this.env.LINEPAY_WEBHOOK_SECRET) {
+      throw new Error("LINE Pay webhook secret is not configured");
+    }
 
     const nonce = headers.get("x-linepay-nonce");
     const signature = headers.get("x-linepay-signature");
