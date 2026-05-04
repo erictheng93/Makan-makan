@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
@@ -73,7 +73,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
@@ -130,7 +130,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
@@ -198,7 +198,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
@@ -327,7 +327,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
@@ -446,7 +446,7 @@ jobs:
           fetch-depth: 0 # 需要完整歷史以獲取基準線
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
@@ -657,7 +657,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6
@@ -990,7 +990,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 📦 安裝 pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: 🔧 設置 Node.js
         uses: actions/setup-node@v6

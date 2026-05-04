@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0 # 需要完整歷史以比對變更
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
