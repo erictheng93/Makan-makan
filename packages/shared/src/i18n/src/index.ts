@@ -1,5 +1,5 @@
 /**
- * MakanMakan Shared i18n System
+ * MakanMasak Shared i18n System
  * Type-safe, multi-app internationalization
  */
 
@@ -21,7 +21,7 @@ export * from "./types";
  * Locale detection and storage utilities
  */
 export class LocaleManager {
-  private static readonly STORAGE_KEY = "makanmakan_locale";
+  private static readonly STORAGE_KEY = "makanmasak_locale";
   private static readonly DEFAULT_LOCALE: SupportedLocale = "en-US";
 
   /**

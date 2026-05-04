@@ -1,5 +1,5 @@
 /**
- * Shared i18n types for MakanMakan platform
+ * Shared i18n types for MakanMasak platform
  * Type-safe internationalization system
  */
 

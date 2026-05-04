@@ -10,7 +10,7 @@
     "terms": "Terms of Service",
     "contact": "Contact",
     "help": "Help Center",
-    "appTitle": "MakanMakan - Smart Ordering",
+    "appTitle": "MakanMasak - Smart Ordering",
     "login": "Member Login",
     "register": "Member Registration",
     "forgotPassword": "Forgot Password",
@@ -31,7 +31,7 @@
     "discover": "Discover Food"
   },
   "home": {
-    "title": "Welcome to MakanMakan",
+    "title": "Welcome to MakanMasak",
     "subtitle": "Scan QR Code to Start Ordering",
     "scanQR": "Scan QR Code",
     "manualInput": "Manual Input",
@@ -313,7 +313,7 @@
   },
   "about": {
     "title": "About Us",
-    "description": "MakanMakan is a modern restaurant management system dedicated to providing the best dining experience. We use advanced technology to create seamless service experiences for restaurants and customers.",
+    "description": "MakanMasak is a modern restaurant management system dedicated to providing the best dining experience. We use advanced technology to create seamless service experiences for restaurants and customers.",
     "features": {
       "title": "Our Services",
       "qrOrder": "QR Code Ordering",

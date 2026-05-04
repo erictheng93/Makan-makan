@@ -11,7 +11,7 @@ module.exports = {
       {
         allowlist: [
           // Allow single characters and numbers
-          /^[0-9\s\-\+\*\/\(\)\[\]]+$/,
+          /^[0-9\s\-+*/()[\]]+$/,
           // Allow common symbols
           ":",
           "|",
@@ -83,7 +83,7 @@ module.exports = {
         function isAllowedString(str) {
           return (
             // Numbers and symbols only
-            /^[0-9\s\-\+\*\/\(\)\[\]:.]+$/.test(str) ||
+            /^[0-9\s\-+*/()[\]:.]+$/.test(str) ||
             // Single characters
             str.length === 1 ||
             // URLs
@@ -117,16 +117,16 @@ module.exports = {
     },
   },
 
-  // Configuration preset for MakanMakan projects
+  // Configuration preset for MakanMasak projects
   configs: {
-    "makanmakan-i18n": {
+    "makanmasak-i18n": {
       plugins: ["vue"],
       rules: {
         "vue/no-bare-strings-in-template": [
           "error",
           {
             allowlist: [
-              /^[0-9\s\-\+\*\/\(\)\[\]]+$/,
+              /^[0-9\s\-+*/()[\]]+$/,
               ":",
               "|",
               "—",

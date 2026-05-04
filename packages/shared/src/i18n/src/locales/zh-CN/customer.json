@@ -10,7 +10,7 @@
     "terms": "服务条款",
     "contact": "联系我们",
     "help": "帮助中心",
-    "appTitle": "MakanMakan - 智慧点餐",
+    "appTitle": "MakanMasak - 智慧点餐",
     "login": "会员登入",
     "register": "会员注册",
     "forgotPassword": "忘记密码",
@@ -31,7 +31,7 @@
     "discover": "探索美食"
   },
   "home": {
-    "title": "欢迎来到 MakanMakan",
+    "title": "欢迎来到 MakanMasak",
     "subtitle": "扫描二维码开始点餐",
     "scanQR": "扫描二维码",
     "manualInput": "手动输入",
@@ -313,7 +313,7 @@
   },
   "about": {
     "title": "关于我们",
-    "description": "MakanMakan 是一个现代化的餐厅管理系统，致力于提供最佳的点餐体验。我们利用先进的技术，为餐厅和顾客打造无缝的服务体验。",
+    "description": "MakanMasak 是一个现代化的餐厅管理系统，致力于提供最佳的点餐体验。我们利用先进的技术，为餐厅和顾客打造无缝的服务体验。",
     "features": {
       "title": "我们的服务",
       "qrOrder": "二维码扫码点餐",

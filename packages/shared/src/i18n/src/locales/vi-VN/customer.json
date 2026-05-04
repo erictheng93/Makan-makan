@@ -10,7 +10,7 @@
     "terms": "Điều khoản dịch vụ",
     "contact": "Liên hệ",
     "help": "Trung tâm trợ giúp",
-    "appTitle": "MakanMakan - Đặt Món Thông Minh",
+    "appTitle": "MakanMasak - Đặt Món Thông Minh",
     "login": "Đăng Nhập Thành Viên",
     "register": "Đăng Ký Thành Viên",
     "forgotPassword": "Quên Mật Khẩu",
@@ -31,7 +31,7 @@
     "discover": "Khám Phá Món Ăn"
   },
   "home": {
-    "title": "Chào mừng đến với MakanMakan",
+    "title": "Chào mừng đến với MakanMasak",
     "subtitle": "Quét mã QR để bắt đầu đặt món",
     "scanQR": "Quét mã QR",
     "manualInput": "Nhập thủ công",
@@ -313,7 +313,7 @@
   },
   "about": {
     "title": "Về chúng tôi",
-    "description": "MakanMakan là một hệ thống quản lý nhà hàng hiện đại, cam kết mang đến trải nghiệm ăn uống tốt nhất. Chúng tôi sử dụng công nghệ tiên tiến để tạo ra trải nghiệm dịch vụ liền mạch cho nhà hàng và khách hàng.",
+    "description": "MakanMasak là một hệ thống quản lý nhà hàng hiện đại, cam kết mang đến trải nghiệm ăn uống tốt nhất. Chúng tôi sử dụng công nghệ tiên tiến để tạo ra trải nghiệm dịch vụ liền mạch cho nhà hàng và khách hàng.",
     "features": {
       "title": "Dịch vụ của chúng tôi",
       "qrOrder": "Đặt món bằng mã QR",
