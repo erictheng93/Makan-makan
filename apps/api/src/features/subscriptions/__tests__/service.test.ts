@@ -8,9 +8,9 @@ import {
   envFactory,
   resetAllFactories,
   createMockD1Database,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 import { SubscriptionService } from "../services/SubscriptionService";
-import type { D1Database } from "@makanmakan/database";
+import type { D1Database } from "@makanmasak/database";
 
 // ---------------------------------------------------------------------------
 // Shared mock subscription row (mirrors shopSubscriptions schema)

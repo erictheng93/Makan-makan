@@ -71,7 +71,7 @@ vi.mock("../../../middleware/validation", () => ({
   }),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   PartnershipService: vi.fn(function () {
     return mockService;
   }),

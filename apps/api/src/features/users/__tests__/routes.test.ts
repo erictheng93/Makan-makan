@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { USER_ROLES } from "@makanmakan/database";
+import { USER_ROLES } from "@makanmasak/database";
 
 // Mock UsersService
 const mockUsersService = {

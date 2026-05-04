@@ -32,7 +32,7 @@ const mockServiceInstance = {
   batchCallNext: vi.fn(),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   WaitingListService: vi.fn(function () {
     return mockServiceInstance;
   }),

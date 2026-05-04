@@ -14,11 +14,11 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Env } from "../../../shared/types";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
-// Mock @makanmakan/shared-types to ensure enums are available
-vi.mock("@makanmakan/shared-types", async () => {
-  const actual = await vi.importActual("@makanmakan/shared-types");
+// Mock @makanmasak/shared-types to ensure enums are available
+vi.mock("@makanmasak/shared-types", async () => {
+  const actual = await vi.importActual("@makanmasak/shared-types");
   return {
     ...actual,
     OrderStatus: {
@@ -42,7 +42,7 @@ vi.mock("@makanmakan/shared-types", async () => {
 
 // Import after mocking
 import { OrdersService } from "../services/OrdersService";
-import type { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmasak/shared-types";
 
 // RealtimeEventType for assertions
 const RealtimeEventType = {

@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { RealtimeAuthService } from "../services/RealtimeAuthService";
 import type { Env } from "../../../shared/types";
-import type { RealtimeAuthTokenRequest } from "@makanmakan/shared-types";
+import type { RealtimeAuthTokenRequest } from "@makanmasak/shared-types";
 import * as jwt from "jsonwebtoken";
 
 type RealtimeAuthServiceTestAccess = {
@@ -43,7 +43,7 @@ vi.mock("drizzle-orm", () => ({
   or: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   tables: {
     id: "id",
     qrCode: "qrCode",

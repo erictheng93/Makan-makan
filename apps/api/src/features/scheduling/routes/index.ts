@@ -23,7 +23,7 @@ import { notFound, forbidden } from "../../../shared/utils/api-error";
 import { schedulingSchemas } from "../schemas/validation";
 
 // Import service
-import { SchedulingService } from "@makanmakan/database";
+import { SchedulingService } from "@makanmasak/database";
 
 const app = new Hono<{ Bindings: Env }>();
 

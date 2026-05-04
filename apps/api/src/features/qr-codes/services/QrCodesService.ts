@@ -11,7 +11,7 @@ import {
   SimplePerformanceTracker,
 } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
-import { QRCodeService } from "@makanmakan/database";
+import { QRCodeService } from "@makanmasak/database";
 import * as QRCode from "qrcode";
 import { strToU8, zipSync } from "fflate";
 
@@ -417,7 +417,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
     };
 
     for (let index = 1; index <= totalCodes; index += 1) {
-      const content = `makanmakan://restaurant/${restaurantId}/qr-batch/${batchId}/code/${index}`;
+      const content = `makanmasak://restaurant/${restaurantId}/qr-batch/${batchId}/code/${index}`;
       const svg = await QRCode.toString(content, {
         type: "svg",
         errorCorrectionLevel: "M",

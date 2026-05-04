@@ -4,7 +4,7 @@
  * Business logic service for table management operations
  */
 
-import { TableService } from "@makanmakan/database";
+import { TableService } from "@makanmasak/database";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { Env } from "../../../types/env";
 import type {

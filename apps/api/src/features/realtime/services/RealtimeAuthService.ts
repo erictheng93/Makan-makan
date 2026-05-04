@@ -1,8 +1,8 @@
 import { sign, verify } from "jsonwebtoken";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, or } from "drizzle-orm";
-import { orders, restaurants, seats, tables } from "@makanmakan/database";
-import { parseSignedQRUrl, verifyQRSignature } from "@makanmakan/utils";
+import { orders, restaurants, seats, tables } from "@makanmasak/database";
+import { parseSignedQRUrl, verifyQRSignature } from "@makanmasak/utils";
 import type { Env } from "../../../shared/types";
 import type { GuestTokenData } from "../../../middleware/guestAuth";
 import { ConsoleLogger } from "../../../core/monitoring";
@@ -13,7 +13,7 @@ import type {
   RealtimeAuthTokenRequest,
   RealtimeAuthTokenResponse,
   RoomType,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   TokenBlacklistService,
   type RevokeReason,
@@ -651,7 +651,7 @@ export class RealtimeAuthService {
     token: string,
   ): string {
     const baseUrl =
-      this.env.REALTIME_WS_URL || "wss://realtime.makanmakan.workers.dev";
+      this.env.REALTIME_WS_URL || "wss://realtime.makanmasak.workers.dev";
     return `${baseUrl}/${roomType}/${roomId}?token=${token}`;
   }
 

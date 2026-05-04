@@ -25,7 +25,7 @@ vi.mock("../../../middleware/auth", () => ({
     }),
 }));
 
-// Mock ReservationService from @makanmakan/database
+// Mock ReservationService from @makanmasak/database
 const mockServiceInstance = {
   createReservation: vi.fn(),
   getReservationByCode: vi.fn(),
@@ -44,7 +44,7 @@ const mockServiceInstance = {
   batchCreateSlots: vi.fn(),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   ReservationService: vi.fn(function () {
     return mockServiceInstance;
   }),

@@ -4,7 +4,7 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, sql } from "drizzle-orm";
-import { cashShifts, cashRegisters, cashMovements } from "@makanmakan/database";
+import { cashShifts, cashRegisters, cashMovements } from "@makanmasak/database";
 import type { CashShift, StartShiftRequest, EndShiftRequest } from "../types";
 import { startShiftSchema, endShiftSchema } from "../schemas";
 import { toRequiredCents } from "../../../shared/utils/money";

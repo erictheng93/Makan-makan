@@ -18,7 +18,7 @@ import {
   avgAbsMoneyAmount,
   avgMoneyAmount,
   sumMoneyAmount,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 export class ReportService {
   private db;

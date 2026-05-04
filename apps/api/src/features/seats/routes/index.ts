@@ -4,7 +4,7 @@
  */
 
 import { Hono } from "hono";
-import { SeatService, USER_ROLES } from "@makanmakan/database";
+import { SeatService, USER_ROLES } from "@makanmasak/database";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
 import {

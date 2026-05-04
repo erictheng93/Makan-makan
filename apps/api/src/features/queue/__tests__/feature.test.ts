@@ -3,7 +3,7 @@
  *
  * Verifies the queue routes correctly delegate to WaitingListService
  * (the production backing service). Each test mocks the service at the
- * @makanmakan/database boundary so route behaviour is exercised against
+ * @makanmasak/database boundary so route behaviour is exercised against
  * deterministic fakes without touching D1.
  */
 
@@ -31,7 +31,7 @@ const mockService = {
   cancelWaiting: vi.fn(),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   WaitingListService: vi.fn(function (this: any) {
     Object.assign(this, mockService);
   }),

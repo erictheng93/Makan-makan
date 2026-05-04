@@ -1,4 +1,4 @@
-import { USER_ROLES } from "@makanmakan/database";
+import { USER_ROLES } from "@makanmasak/database";
 
 /**
  * User role names mapping for display purposes

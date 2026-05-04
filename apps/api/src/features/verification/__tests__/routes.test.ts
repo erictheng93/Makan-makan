@@ -2,8 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 
-// Mock @makanmakan/database before importing routes
-vi.mock("@makanmakan/database", () => ({
+// Mock @makanmasak/database before importing routes
+vi.mock("@makanmasak/database", () => ({
   VerificationService: vi.fn(function () {
     return mockServiceInstance;
   }),

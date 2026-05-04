@@ -1,13 +1,13 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
-import type { D1Database } from "@makanmakan/database";
+import type { D1Database } from "@makanmasak/database";
 import {
   shopSubscriptions,
   PLAN_DEFAULT_MODULES,
   type ModuleKey,
   type ModuleMap,
   type PlanTier,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { notFound, conflict } from "../../../shared/utils/api-error";
 
 export interface CreateSubscriptionInput {

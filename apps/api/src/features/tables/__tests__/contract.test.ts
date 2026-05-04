@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 import type { Env } from "../../../types/env";
 import type { Table } from "../types";
 
@@ -34,7 +34,7 @@ const { mockTableService } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   TableService: class MockTableService {
     constructor() {
       Object.assign(this, mockTableService);

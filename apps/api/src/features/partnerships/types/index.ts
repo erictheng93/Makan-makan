@@ -16,7 +16,7 @@ import type {
   PlanDiscountType,
   UsageLogStatus,
   UsageChannel,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 // 重新導出資料庫類型
 export type {

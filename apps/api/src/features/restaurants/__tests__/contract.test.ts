@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 import {
   assertMatchesSchema,
   assertNoExtraFields,
@@ -65,7 +65,7 @@ const mockRestaurant = {
 const mockShopQR = {
   id: "qr-001",
   restaurantId: "rest-001",
-  qrCode: "https://app.makanmakan.com/shop/rest-001",
+  qrCode: "https://app.makanmasak.com/shop/rest-001",
   qrCodeUrl: "https://cdn.example.com/qr/shop-rest-001.png",
   shortUrl: "https://mkn.my/r001",
   isActive: true,

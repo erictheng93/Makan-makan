@@ -6,7 +6,7 @@ import { validateBody } from "../../../shared/middleware";
 import { idempotencyMiddleware } from "../../../middleware/idempotency";
 import { PaymentService } from "../services/PaymentService";
 import { ApiError } from "../../../shared/utils/api-error";
-import { amountFromCents } from "@makanmakan/database";
+import { amountFromCents } from "@makanmasak/database";
 import {
   PAYMENT_AUDIT_EVENT_TYPES,
   PaymentAuditService,

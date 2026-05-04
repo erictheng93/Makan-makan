@@ -205,7 +205,7 @@ class SchedulingModule implements FeatureModule {
         supportedConflictTypes: 7,
       },
       dependencies: {
-        database: "@makanmakan/database - SchedulingService",
+        database: "@makanmasak/database - SchedulingService",
         validation: "Zod schemas with Taiwan labor law rules",
         authentication: "Shared middleware with role-based access",
         monitoring: "ConsoleLogger",
@@ -338,7 +338,7 @@ export default {
 export type * from "./types";
 
 // Re-export service for direct use
-export { SchedulingService } from "@makanmakan/database";
+export { SchedulingService } from "@makanmasak/database";
 
 // Re-export schemas for external validation
 export { schedulingSchemas } from "./schemas/validation";

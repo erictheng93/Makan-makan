@@ -14,12 +14,12 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OrdersService } from "../services/OrdersService";
-import type { OrderStatus } from "@makanmakan/shared-types";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import type { OrderStatus } from "@makanmasak/shared-types";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 // ── Mock dependencies ──────────────────────────────────────────────────
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   OrderService: vi.fn(function () {
     return {
       createOrder: vi.fn(),
@@ -116,7 +116,7 @@ describe("OrdersService — Multi-Tenant Data Isolation", () => {
     mockEnv = createMockEnv();
 
     const { OrderService, CouponService } =
-      await import("@makanmakan/database");
+      await import("@makanmasak/database");
 
     mockBaseOrderService = {
       createOrder: vi.fn(),

@@ -13,7 +13,7 @@ import {
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
-import { USER_ROLES } from "@makanmakan/database";
+import { USER_ROLES } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import {
   notFound,

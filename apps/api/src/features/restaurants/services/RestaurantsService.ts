@@ -3,7 +3,7 @@
  * Business logic for restaurant operations within the feature module
  */
 
-import { RestaurantService as DatabaseRestaurantService } from "@makanmakan/database";
+import { RestaurantService as DatabaseRestaurantService } from "@makanmasak/database";
 import { KVCacheService, type CacheService } from "../../../core/cache";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";

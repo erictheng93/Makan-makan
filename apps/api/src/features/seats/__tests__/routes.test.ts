@@ -120,7 +120,7 @@ const mockSeatService = {
   }),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   SeatService: vi.fn(function () {
     return mockSeatService;
   }),

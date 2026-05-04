@@ -62,7 +62,7 @@ vi.mock("drizzle-orm", () => ({
   count: vi.fn(() => ({ type: "count" })),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   cashRegisters: {
     id: "id",
     name: "name",

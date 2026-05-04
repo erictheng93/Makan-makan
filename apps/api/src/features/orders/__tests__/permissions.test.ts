@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Env } from "../../../shared/types";
 import { OrdersService } from "../services/OrdersService";
 import type { UserRole } from "../../../shared/constants";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock services
 const mockOrderServiceInstance = {

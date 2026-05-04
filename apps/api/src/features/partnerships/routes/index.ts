@@ -11,7 +11,7 @@ import {
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
-import { PartnershipService } from "@makanmakan/database";
+import { PartnershipService } from "@makanmasak/database";
 import {
   createPartnershipSchema,
   updatePartnershipSchema,

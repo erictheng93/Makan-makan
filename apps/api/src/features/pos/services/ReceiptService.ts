@@ -9,7 +9,7 @@ import {
   receipts,
   orders,
   orderItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 type OrderRow = typeof orders.$inferSelect;
 type ReceiptRow = typeof receipts.$inferSelect;
@@ -303,7 +303,7 @@ export class ReceiptService {
         amountFromCents(order.totalAmountCents, order.totalAmount) ?? 0,
       paymentMethod: order.paymentMethod,
       timestamp: new Date().toISOString(),
-      footer: "謝謝光臨 MakanMakan",
+      footer: "謝謝光臨 MakanMasak",
     };
   }
 

@@ -44,7 +44,7 @@ const mockSchedulingService = {
   getWeeklySummary: vi.fn(),
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   SchedulingService: vi.fn(function () {
     return mockSchedulingService;
   }),

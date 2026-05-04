@@ -322,7 +322,7 @@ routes.get("/health", async (c) => {
   let dbStatus: ServiceCheck;
   try {
     // Use Drizzle ORM for health check
-    const { createDatabase, sql, users } = await import("@makanmakan/database");
+    const { createDatabase, sql, users } = await import("@makanmasak/database");
     const db = createDatabase(c.env.DB);
     const result = await db
       .select({ test: sql<number>`1` })
@@ -512,7 +512,7 @@ routes.get(
       auditLogs,
       avgMoneyAmount,
       sql,
-    } = await import("@makanmakan/database");
+    } = await import("@makanmasak/database");
     const db = createDatabase(c.env.DB);
 
     // 獲取表統計
@@ -669,7 +669,7 @@ routes.get(
     const metrics = getSystemMetrics();
 
     const { createDatabase, count, gte, orders, sql } =
-      await import("@makanmakan/database");
+      await import("@makanmasak/database");
     const db = createDatabase(c.env.DB);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -694,33 +694,33 @@ routes.get(
     if (format === "prometheus") {
       // Prometheus格式輸出
       const prometheusMetrics = `
-# HELP makanmakan_orders_total Total number of orders
-# TYPE makanmakan_orders_total counter
-makanmakan_orders_total ${businessMetrics?.total_orders || 0}
+# HELP makanmasak_orders_total Total number of orders
+# TYPE makanmasak_orders_total counter
+makanmasak_orders_total ${businessMetrics?.total_orders || 0}
 
-# HELP makanmakan_orders_pending Number of pending orders
-# TYPE makanmakan_orders_pending gauge
-makanmakan_orders_pending ${businessMetrics?.pending_orders || 0}
+# HELP makanmasak_orders_pending Number of pending orders
+# TYPE makanmasak_orders_pending gauge
+makanmasak_orders_pending ${businessMetrics?.pending_orders || 0}
 
-# HELP makanmakan_orders_preparing Number of orders being prepared
-# TYPE makanmakan_orders_preparing gauge
-makanmakan_orders_preparing ${businessMetrics?.preparing_orders || 0}
+# HELP makanmasak_orders_preparing Number of orders being prepared
+# TYPE makanmasak_orders_preparing gauge
+makanmasak_orders_preparing ${businessMetrics?.preparing_orders || 0}
 
-# HELP makanmakan_memory_usage_percent Memory usage percentage
-# TYPE makanmakan_memory_usage_percent gauge
-makanmakan_memory_usage_percent ${metrics.memory?.percentage || 0}
+# HELP makanmasak_memory_usage_percent Memory usage percentage
+# TYPE makanmasak_memory_usage_percent gauge
+makanmasak_memory_usage_percent ${metrics.memory?.percentage || 0}
 
-# HELP makanmakan_cpu_usage_percent CPU usage percentage
-# TYPE makanmakan_cpu_usage_percent gauge
-makanmakan_cpu_usage_percent ${metrics.cpu?.usage || 0}
+# HELP makanmasak_cpu_usage_percent CPU usage percentage
+# TYPE makanmasak_cpu_usage_percent gauge
+makanmasak_cpu_usage_percent ${metrics.cpu?.usage || 0}
 
-# HELP makanmakan_requests_per_second Current requests per second
-# TYPE makanmakan_requests_per_second gauge
-makanmakan_requests_per_second ${metrics.requests?.rps || 0}
+# HELP makanmasak_requests_per_second Current requests per second
+# TYPE makanmasak_requests_per_second gauge
+makanmasak_requests_per_second ${metrics.requests?.rps || 0}
 
-# HELP makanmakan_error_rate_percent Current error rate percentage
-# TYPE makanmakan_error_rate_percent gauge
-makanmakan_error_rate_percent ${metrics.requests?.errorRate || 0}
+# HELP makanmasak_error_rate_percent Current error rate percentage
+# TYPE makanmasak_error_rate_percent gauge
+makanmasak_error_rate_percent ${metrics.requests?.errorRate || 0}
       `.trim();
 
       c.header("Content-Type", "text/plain; charset=utf-8");
@@ -754,7 +754,7 @@ makanmakan_error_rate_percent ${metrics.requests?.errorRate || 0}
 routes.get("/health/ready", async (c) => {
   try {
     // 檢查關鍵服務是否就緒
-    const { createDatabase, sql, users } = await import("@makanmakan/database");
+    const { createDatabase, sql, users } = await import("@makanmasak/database");
     const db = createDatabase(c.env.DB);
     const readyResult = await db
       .select({ test: sql<number>`1` })

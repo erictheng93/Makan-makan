@@ -8,7 +8,7 @@ import {
   envFactory,
   createMockKV,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 import { RestaurantsService } from "../services/RestaurantsService";
 import type { Env } from "../../../shared/types";
 import type {

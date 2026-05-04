@@ -28,7 +28,7 @@ import {
   OrderPaymentStatus,
   OrderPaymentMethod,
   UserRole,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   notFound,
   forbidden,

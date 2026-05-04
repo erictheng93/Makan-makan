@@ -35,7 +35,7 @@ vi.mock("drizzle-orm", () => ({
   or: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   orders: {
     id: "id",
     restaurantId: "restaurantId",
@@ -741,7 +741,7 @@ describe("Realtime Routes", () => {
         json: () =>
           Promise.resolve({
             status: "healthy",
-            service: "makanmakan-realtime",
+            service: "makanmasak-realtime",
             version: "1.0.0",
           }),
       });

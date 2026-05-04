@@ -4,7 +4,7 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, sql, type SQL } from "drizzle-orm";
-import { cashMovements, cashShifts } from "@makanmakan/database";
+import { cashMovements, cashShifts } from "@makanmasak/database";
 import type {
   CashMovement as _CashMovement,
   CashMovementRequest,

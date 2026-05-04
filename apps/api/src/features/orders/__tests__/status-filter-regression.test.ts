@@ -28,9 +28,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ORDER_STATUS } from "@makanmakan/database";
-import { ORDER_STATUSES } from "@makanmakan/shared-types";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { ORDER_STATUS } from "@makanmasak/database";
+import { ORDER_STATUSES } from "@makanmasak/shared-types";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 import { OrdersService } from "../services/OrdersService";
 
 // ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ const CANONICAL_ORDER_STATUSES = [
 // Mocks — same pattern as service.test.ts so we don't touch the real DB
 // ---------------------------------------------------------------------------
 
-vi.mock("@makanmakan/database", async (importOriginal) => {
+vi.mock("@makanmasak/database", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
@@ -140,7 +140,7 @@ describe("OrdersService.getOrders — status filter regression (PR #7 lock-in)",
     const env = envFactory.build();
 
     const { OrderService, CouponService } =
-      await import("@makanmakan/database");
+      await import("@makanmasak/database");
     mockBaseOrderService = {
       createOrder: vi.fn(),
       getOrder: vi.fn(),

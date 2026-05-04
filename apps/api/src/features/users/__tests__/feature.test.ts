@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { UsersService } from "../services/UsersService";
-import { USER_ROLES } from "@makanmakan/database";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { USER_ROLES } from "@makanmasak/database";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock environment for testing
 const mockEnv = {

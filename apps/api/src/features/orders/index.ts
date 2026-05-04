@@ -1,6 +1,6 @@
 /**
  * Orders Feature Module
- * Complete order management functionality for the MakanMakan platform
+ * Complete order management functionality for the MakanMasak platform
  */
 
 import { Hono } from "hono";

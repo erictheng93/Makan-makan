@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { Env } from "../../../types/env";
 import type { CreateUserData, UpdateUserData, UserFilters } from "../types";
-import { envFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { envFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // Use vi.hoisted to define mocks BEFORE vi.mock is executed
 // This ensures the mock objects are available when the mock factory runs
@@ -38,7 +38,7 @@ const { mockUserService, mockAuthService, USER_ROLES } = vi.hoisted(() => ({
 
 // Mock the database service - uses the hoisted mocks
 // Use class-based mock for vitest 4 compatibility
-vi.mock("@makanmakan/database", () => {
+vi.mock("@makanmasak/database", () => {
   return {
     UserService: class MockUserService {
       constructor() {

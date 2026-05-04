@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 import { assertMatchesSchema } from "../../../contracts/helpers";
 import {
   GenerateQRResponse,
@@ -27,8 +27,8 @@ function buildMockQRCode(overrides: Record<string, unknown> = {}) {
     targetType: "table",
     targetId: 42,
     code: "qr-abc123",
-    url: "https://app.makanmakan.com/qr/abc123",
-    imageUrl: "https://cdn.makanmakan.com/qr/abc123.png",
+    url: "https://app.makanmasak.com/qr/abc123",
+    imageUrl: "https://cdn.makanmasak.com/qr/abc123.png",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,

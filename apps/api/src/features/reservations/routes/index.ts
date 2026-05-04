@@ -6,7 +6,7 @@
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
-import { ReservationService } from "@makanmakan/database";
+import { ReservationService } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import {
@@ -14,7 +14,7 @@ import {
   type CreateReservationRequest,
   type UpdateReservationRequest,
   type ReservationFilters,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   notFound,
   forbidden,
