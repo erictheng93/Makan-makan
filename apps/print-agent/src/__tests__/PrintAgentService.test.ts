@@ -10,11 +10,11 @@ import {
   printJobFactory,
   printerDeviceFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 import type { LocalPrintServiceConfig } from "../LocalPrintService";
 
 // -------------------------------------------------------------------
-// Mock @makanmakan/queue-core/print
+// Mock @makanmasak/queue-core/print
 // -------------------------------------------------------------------
 
 const mockPrinterService = {
@@ -38,7 +38,7 @@ const mockDriverFactory = {
   detectPrinter: vi.fn().mockResolvedValue(null),
 };
 
-vi.mock("@makanmakan/queue-core/print", () => {
+vi.mock("@makanmasak/queue-core/print", () => {
   function MockPrinterService() {
     return mockPrinterService;
   }

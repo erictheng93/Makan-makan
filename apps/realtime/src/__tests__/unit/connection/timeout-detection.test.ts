@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
+import type { RealtimeAuthPayload } from "@makanmasak/shared-types";
 
 // Connection info structure
 interface ConnectionInfo {

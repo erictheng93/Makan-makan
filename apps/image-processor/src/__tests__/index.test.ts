@@ -61,7 +61,7 @@ function buildTestApp() {
   // Root
   app.get("/", (c) => {
     return c.json({
-      name: "MakanMakan Image Processing Service",
+      name: "MakanMasak Image Processing Service",
       version: c.env.API_VERSION || "v1",
       features: [
         "Image upload and storage",
@@ -87,7 +87,7 @@ function buildTestApp() {
   // Info
   app.get("/info", (c) => {
     return c.json({
-      service: "MakanMakan Image Processor",
+      service: "MakanMasak Image Processor",
       version: c.env.API_VERSION || "v1",
       capabilities: {
         upload: true,
@@ -133,7 +133,7 @@ describe("Main App (index.ts)", () => {
 
       expect(res.status).toBe(200);
       const body = (await res.json()) as IndexTestResponse;
-      expect(body.name).toBe("MakanMakan Image Processing Service");
+      expect(body.name).toBe("MakanMasak Image Processing Service");
       expect(body.version).toBe("v1");
     });
 
@@ -168,7 +168,7 @@ describe("Main App (index.ts)", () => {
 
       expect(res.status).toBe(200);
       const body = (await res.json()) as IndexTestResponse;
-      expect(body.service).toBe("MakanMakan Image Processor");
+      expect(body.service).toBe("MakanMasak Image Processor");
       expect(body.capabilities.upload).toBe(true);
       expect(body.capabilities.transformation).toBe(true);
     });

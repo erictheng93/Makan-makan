@@ -117,7 +117,7 @@ async function main(): Promise<void> {
 
   if (values.help) {
     console.log(`
-🏥 MakanMakan Health Check Script
+🏥 MakanMasak Health Check Script
 
 Usage:
   npx tsx scripts/health-check.ts [options]

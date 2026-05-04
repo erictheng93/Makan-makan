@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
+import type { RealtimeAuthPayload } from "@makanmasak/shared-types";
 import { createTestAuthPayload, getStringRole } from "../../helpers/test-utils";
 
 // ---------------------------------------------------------------------------

@@ -27,7 +27,7 @@ new_classes = ["RealtimeSession"]
 # admin/kitchen WS upgrade fails. Same shape as apps/api/wrangler.toml.
 [[d1_databases]]
 binding = "DB"
-database_name = "makanmakan-local"
+database_name = "makanmasak-local"
 database_id = "local"
 migrations_dir = "../../packages/database/migrations_fresh"
 

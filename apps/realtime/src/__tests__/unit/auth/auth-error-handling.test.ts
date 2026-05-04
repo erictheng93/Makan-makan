@@ -6,7 +6,7 @@ import {
   isTokenRevoked,
   extractTokenFromUrl,
 } from "../../../utils/jwtVerifier";
-import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
+import type { RealtimeAuthPayload } from "@makanmasak/shared-types";
 
 /**
  * Auth Error Handling 測試

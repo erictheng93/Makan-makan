@@ -1,4 +1,4 @@
-import type { D1Database } from "@makanmakan/database";
+import type { D1Database } from "@makanmasak/database";
 
 export interface Env {
   // Cloudflare bindings

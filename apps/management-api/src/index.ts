@@ -1,5 +1,5 @@
 /**
- * MakanMakan Management API
+ * MakanMasak Management API
  *
  * Central management platform for hybrid deployment strategy.
  * Handles tenant management, resource provisioning, and health monitoring.
@@ -10,7 +10,7 @@ import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { cors } from "hono/cors";
 import { timing } from "hono/timing";
-import { ApiError } from "@makanmakan/utils";
+import { ApiError } from "@makanmasak/utils";
 
 import type { ManagementEnv } from "./types";
 import { managementAuthMiddleware } from "./middleware/auth";
@@ -127,9 +127,9 @@ app.get("/health", (c) => {
 // API info (public)
 app.get("/info", (c) => {
   return c.json({
-    name: "MakanMakan Management API",
+    name: "MakanMasak Management API",
     version: c.env.API_VERSION || "v1",
-    description: "Central management platform for MakanMakan hybrid deployment",
+    description: "Central management platform for MakanMasak hybrid deployment",
     environment: c.env.NODE_ENV || "development",
     features: [
       "Tenant management",

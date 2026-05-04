@@ -9,8 +9,8 @@ import type {
   RealtimeAuthPayload,
   NewOrderEvent,
   OrderStatusUpdateEvent,
-} from "@makanmakan/shared-types";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 
 // Connection states
 enum ConnectionState {

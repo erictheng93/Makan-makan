@@ -24,15 +24,15 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@makanmakan/shared-types": path.resolve(
+      "@makanmasak/shared-types": path.resolve(
         __dirname,
         "../../packages/shared-types/src/index.ts",
       ),
-      "@makanmakan/database": path.resolve(
+      "@makanmasak/database": path.resolve(
         __dirname,
         "../../packages/database/src/index.ts",
       ),
-      "@makanmakan/utils": path.resolve(
+      "@makanmasak/utils": path.resolve(
         __dirname,
         "../../packages/utils/src/index.ts",
       ),

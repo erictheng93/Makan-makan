@@ -1,4 +1,4 @@
-# MakanMakan Management API - Cloudflare Workers Configuration
+# MakanMasak Management API - Cloudflare Workers Configuration
 # Central management platform for hybrid deployment strategy
 
 name = "makanmasak-management-api"
@@ -25,7 +25,7 @@ LOG_LEVEL = "debug"
 # D1 Database binding (management database)
 [[d1_databases]]
 binding = "MANAGEMENT_DB"
-database_name = "makanmakan-management-local"
+database_name = "makanmasak-management-local"
 database_id = "local"
 migrations_dir = "migrations"
 

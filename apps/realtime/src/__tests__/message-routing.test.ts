@@ -4,16 +4,16 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import type {
   RealtimeEvent,
   RealtimeAuthPayload,
   NewOrderEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   realtimeAuthFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 type UnknownRealtimeEvent = Omit<RealtimeEvent, "type"> & {
   type: "UNKNOWN_EVENT_TYPE";

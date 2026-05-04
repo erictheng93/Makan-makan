@@ -4,7 +4,7 @@
  * Provides helper functions to create properly typed test data
  */
 
-import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
+import type { RealtimeAuthPayload } from "@makanmasak/shared-types";
 
 /**
  * Convert numeric role (UserRole enum) to string role for RealtimeAuthPayload

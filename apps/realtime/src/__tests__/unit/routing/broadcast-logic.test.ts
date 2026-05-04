@@ -4,12 +4,12 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import type {
   RealtimeEvent,
   NewOrderEvent,
   OrderStatusUpdateEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Mock WebSocket
 class MockWebSocket extends EventTarget {

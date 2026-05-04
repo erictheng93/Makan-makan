@@ -6,7 +6,7 @@ import {
   managementAuthMiddleware,
   type ManagementUser,
 } from "../../middleware/auth";
-import { ApiError } from "@makanmakan/utils";
+import { ApiError } from "@makanmasak/utils";
 
 const JWT_SECRET = "test-jwt-secret-for-auth-middleware-tests";
 const testEnv = { JWT_SECRET } as ManagementEnv;
@@ -27,7 +27,7 @@ async function createTestToken(
   return sign(
     {
       id: "admin-001",
-      email: "admin@makanmakan.app",
+      email: "admin@makanmasak.app",
       iat: now,
       exp: now + 3600,
       ...payload,
@@ -104,7 +104,7 @@ describe("managementAuthMiddleware", () => {
     const expiredToken = await sign(
       {
         id: "admin-001",
-        email: "admin@makanmakan.app",
+        email: "admin@makanmasak.app",
         iat: Math.floor(Date.now() / 1000) - 7200,
         exp: Math.floor(Date.now() / 1000) - 3600,
       },
@@ -148,7 +148,7 @@ describe("managementAuthMiddleware", () => {
     expect(body.success).toBe(true);
     expect(body.user).toEqual({
       id: "admin-001",
-      email: "admin@makanmakan.app",
+      email: "admin@makanmasak.app",
       role: "admin",
     });
   });

@@ -1,7 +1,7 @@
 {
-  "name": "@makanmakan/management-api",
+  "name": "@makanmasak/management-api",
   "version": "1.0.0",
-  "description": "Central management API for MakanMakan hybrid deployment",
+  "description": "Central management API for MakanMasak hybrid deployment",
   "private": true,
   "type": "module",
   "scripts": {
@@ -18,15 +18,15 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.5.0",
-    "@makanmakan/utils": "workspace:*",
+    "@makanmasak/utils": "workspace:*",
     "hono": "^4.12.15",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241230.0",
-    "@makanmakan/database": "workspace:*",
-    "@makanmakan/shared-types": "workspace:*",
-    "@makanmakan/testing-utils": "workspace:*",
+    "@makanmasak/database": "workspace:*",
+    "@makanmasak/shared-types": "workspace:*",
+    "@makanmasak/testing-utils": "workspace:*",
     "@types/node": "^22.15.29",
     "typescript": "^5.8.3",
     "vitest": "^3.1.4",

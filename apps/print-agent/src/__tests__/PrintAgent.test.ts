@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import { LocalPrintService } from "../LocalPrintService";
 import { createDefaultConfig } from "../config/defaults";
-import type { PrintRequest } from "@makanmakan/shared-types";
+import type { PrintRequest } from "@makanmasak/shared-types";
 
 describe("Print Agent Integration Tests", () => {
   let printService: LocalPrintService;

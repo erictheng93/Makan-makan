@@ -6,7 +6,7 @@
  * migrations have been applied and executes pending ones.
  */
 
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 import type { ManagementEnv } from "../types";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/backup-scheduler",
+  "name": "@makanmasak/backup-scheduler",
   "version": "1.0.0",
   "description": "Cloudflare Workers cron entry for scheduled backups (worker code lives in apps/api)",
   "private": true,

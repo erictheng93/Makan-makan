@@ -9,7 +9,7 @@ import {
 import {
   DEFAULT_BILLING_CYCLE_MS,
   TRIAL_DURATION_MS,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { ManagementEnv } from "../../types";
 
 let env: ManagementEnv;

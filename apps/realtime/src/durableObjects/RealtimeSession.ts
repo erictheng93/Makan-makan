@@ -6,8 +6,8 @@ import type {
   ConnectionAckEvent,
   HeartbeatEvent,
   ErrorEvent,
-} from "@makanmakan/shared-types";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import {
   verifyWebSocketToken,
   extractTokenFromUrl,

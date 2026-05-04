@@ -230,7 +230,7 @@ describe("validateConfig", () => {
 
     it("有效 HTTPS URL 應通過", () => {
       const config = buildValidConfig({
-        cloudEndpoint: "https://api.makanmakan.com/v1",
+        cloudEndpoint: "https://api.makanmasak.com/v1",
       });
       const result = validateConfig(config);
       expect(result.success).toBe(true);

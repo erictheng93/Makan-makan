@@ -12,7 +12,7 @@ import type {
   UpdateTenantRequest,
   TenantStatus,
 } from "../types";
-import { encrypt } from "@makanmakan/utils";
+import { encrypt } from "@makanmasak/utils";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 
 export class TenantService {

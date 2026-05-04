@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/realtime",
+  "name": "@makanmasak/realtime",
   "version": "1.0.0",
   "description": "Real-time communication service using Durable Objects",
   "private": true,
@@ -14,13 +14,13 @@
     "lint:fix": "eslint src --fix"
   },
   "dependencies": {
-    "@makanmakan/shared-types": "workspace:*",
+    "@makanmasak/shared-types": "workspace:*",
     "hono": "^4.12.15",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231218.0",
-    "@makanmakan/testing-utils": "workspace:*",
+    "@makanmasak/testing-utils": "workspace:*",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/ws": "^8.5.10",
     "typescript": "^5.0.0",

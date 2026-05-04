@@ -355,7 +355,7 @@ describe("Health Routes", () => {
       // Mock fetch for health check (the external call)
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes("api.test-shop.makanmakan.app")) {
+        if (url.includes("api.test-shop.makanmasak.app")) {
           return Promise.resolve(
             new Response(JSON.stringify({ status: "ok" }), {
               status: 200,
@@ -402,7 +402,7 @@ describe("Health Routes", () => {
       // Mock fetch to fail
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes("makanmakan.app")) {
+        if (url.includes("makanmasak.app")) {
           return Promise.reject(new Error("Connection refused"));
         }
         return originalFetch(url);

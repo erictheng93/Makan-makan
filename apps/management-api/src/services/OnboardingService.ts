@@ -13,14 +13,14 @@ import type {
   CloudflareVerificationResult,
   OnboardingPlanId,
 } from "../types";
-import { encrypt, decrypt } from "@makanmakan/utils";
+import { encrypt, decrypt } from "@makanmasak/utils";
 import { TenantService } from "./TenantService";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 import {
   DEFAULT_BILLING_CYCLE_MS,
   planIdToTier,
   TRIAL_DURATION_MS,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 export class OnboardingService {
   private env: ManagementEnv;

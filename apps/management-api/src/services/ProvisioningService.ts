@@ -12,7 +12,7 @@ import type {
   DeploymentType,
   DeploymentStatus,
 } from "../types";
-import { decrypt } from "@makanmakan/utils";
+import { decrypt } from "@makanmasak/utils";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 import { BundleService } from "./BundleService";
 import { MigrationService } from "./MigrationService";
@@ -80,7 +80,7 @@ export class ProvisioningService {
     // Decrypt API token
     const apiToken = await this.decryptToken(tenant.cf_api_token_enc);
     const accountId = tenant.cf_account_id;
-    const prefix = `makanmakan-${tenant.subdomain}`;
+    const prefix = `makanmasak-${tenant.subdomain}`;
 
     // Default resource types if not specified
     const types = resourceTypes || ["d1", "kv", "r2"];
@@ -347,7 +347,7 @@ export class ProvisioningService {
       );
 
       // 6. Deploy worker to tenant's Cloudflare account
-      const scriptName = `makanmakan-${tenant.subdomain}-api`;
+      const scriptName = `makanmasak-${tenant.subdomain}-api`;
       const deployResult = await this.cfClient.deployWorker(
         apiToken,
         accountId,

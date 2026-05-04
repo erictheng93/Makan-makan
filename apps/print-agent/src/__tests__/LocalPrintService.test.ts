@@ -10,7 +10,7 @@ import {
   printRequestFactory,
   printerDeviceFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 import type { LocalPrintServiceConfig } from "../LocalPrintService";
 
 // -------------------------------------------------------------------
@@ -55,7 +55,7 @@ vi.mock("../services/PrintAgentService", () => {
   return { PrintAgentService: MockPrintAgentService };
 });
 
-vi.mock("@makanmakan/queue-core/print", () => {
+vi.mock("@makanmasak/queue-core/print", () => {
   function MockPrinterService() {
     return {};
   }

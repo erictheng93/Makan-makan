@@ -1,4 +1,4 @@
-# MakanMakan Image Processor
+# MakanMasak Image Processor
 
 A powerful, serverless image processing service built on Cloudflare Workers, featuring automatic optimization, variant generation, and advanced analytics.
 
@@ -104,13 +104,13 @@ ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
 wrangler kv:namespace create IMAGE_CACHE
 
 # Create R2 bucket for storage
-wrangler r2 bucket create makanmakan-images
+wrangler r2 bucket create makanmasak-images
 
 # Create D1 database
-wrangler d1 create makanmakan-images-db
+wrangler d1 create makanmasak-images-db
 
 # Apply database schema
-wrangler d1 execute makanmakan-images-db --file=schema.sql
+wrangler d1 execute makanmasak-images-db --file=schema.sql
 ```
 
 4. **Update wrangler.toml with resource IDs**
@@ -357,7 +357,7 @@ See `schema.sql` for complete database structure.
 
 ### With Main API
 
-The image processor integrates seamlessly with the main MakanMakan API:
+The image processor integrates seamlessly with the main MakanMasak API:
 
 - Menu item images
 - Restaurant photos
@@ -421,4 +421,4 @@ Configure webhooks to receive notifications for:
 
 Complete API documentation available at `/docs` endpoint when deployed.
 
-For support and questions, refer to the main MakanMakan documentation or contact the development team.
+For support and questions, refer to the main MakanMasak documentation or contact the development team.

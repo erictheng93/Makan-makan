@@ -296,7 +296,7 @@ function buildMockAnalyticsApp(
           type,
           format,
           message: "Export functionality would generate downloadable file here",
-          download_url: `https://api.makanmakan.com/images/analytics/exports/${Date.now()}.${format}`,
+          download_url: `https://api.makanmasak.com/images/analytics/exports/${Date.now()}.${format}`,
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         },
       });

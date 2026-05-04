@@ -1,4 +1,4 @@
-# MakanMakan Backup Scheduler - Cloudflare Workers Configuration
+# MakanMasak Backup Scheduler - Cloudflare Workers Configuration
 # Automated backup scheduling and system monitoring
 
 name = "makanmasak-backup-scheduler"
@@ -23,7 +23,7 @@ LOG_LEVEL = "debug"
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
-database_name = "makanmakan-local"
+database_name = "makanmasak-local"
 database_id = "local"
 
 # KV namespace for backup metadata
@@ -50,7 +50,7 @@ LOG_LEVEL = "debug"
 
 [[env.development.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-local"
+database_name = "makanmasak-local"
 database_id = "local"
 
 [[env.development.kv_namespaces]]

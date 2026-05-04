@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import type {
   RealtimeEvent,
   RealtimeAuthPayload,
@@ -12,7 +12,7 @@ import type {
   OrderStatusUpdateEvent,
   MenuItemUpdateEvent,
   TableStatusUpdateEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { createTestAuthPayload, getStringRole } from "../../helpers/test-utils";
 
 // Connection info structure

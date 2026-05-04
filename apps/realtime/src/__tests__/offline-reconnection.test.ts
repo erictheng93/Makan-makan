@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { RealtimeEventType } from "@makanmakan/shared-types";
-import type { RealtimeEvent } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
+import type { RealtimeEvent } from "@makanmasak/shared-types";
 
 // Mock CloseEvent for Node.js environment
 if (typeof CloseEvent === "undefined") {

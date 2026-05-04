@@ -13,8 +13,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import type {
   RealtimeEvent,
   OrderStatusUpdateEvent,
-} from "@makanmakan/shared-types";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 
 // Use mapping for event types to match actual enum values
 const EventTypes = {

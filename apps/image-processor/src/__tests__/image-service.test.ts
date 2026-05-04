@@ -28,8 +28,8 @@ const mockDbService = {
   getPerformanceAnalytics: vi.fn(async () => ({})),
 };
 
-// Mock the @makanmakan/database module
-vi.mock("@makanmakan/database", () => {
+// Mock the @makanmasak/database module
+vi.mock("@makanmasak/database", () => {
   // Use a class so it can be used with `new`
   class MockImageService {
     constructor(..._args: unknown[]) {

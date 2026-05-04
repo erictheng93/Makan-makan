@@ -81,6 +81,6 @@ bucket_name = "makanmasak-images-dev"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "makanmakan-local"
-# Provision with: wrangler d1 create makanmakan-local --local
+database_name = "makanmasak-local"
+# Provision with: wrangler d1 create makanmasak-local --local
 database_id = "local"

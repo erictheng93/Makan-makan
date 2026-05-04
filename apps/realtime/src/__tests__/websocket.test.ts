@@ -12,11 +12,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import type {
   RealtimeEvent,
   RealtimeAuthPayload,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Mock WebSocket
 class MockWebSocket {

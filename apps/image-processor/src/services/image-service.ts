@@ -9,7 +9,7 @@ import {
   ImageService as DatabaseImageService,
   type CreateImageData,
   type D1Database,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 type DatabaseImageListRow = {
   id: string;

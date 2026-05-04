@@ -236,7 +236,7 @@ export async function createTestAuthHeader(
   const token = await sign(
     {
       id: "admin-001",
-      email: "admin@makanmakan.app",
+      email: "admin@makanmasak.app",
       iat: now,
       exp: now + 3600,
       ...overrides,

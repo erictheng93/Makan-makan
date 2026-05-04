@@ -486,7 +486,7 @@ describe("Tenant Routes", () => {
           id: "res-1",
           tenant_id: "T-20240101-ABC",
           resource_type: "d1",
-          resource_name: "makanmakan-test-db",
+          resource_name: "makanmasak-test-db",
           resource_id: "d1-uuid-123",
           status: "ready",
           error_message: null,

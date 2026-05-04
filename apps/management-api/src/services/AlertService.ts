@@ -179,7 +179,7 @@ export class AlertService {
               short: true,
             },
           ],
-          footer: "MakanMakan 監控系統",
+          footer: "MakanMasak 監控系統",
           ts: Math.floor(Date.now() / 1000),
         },
       ],

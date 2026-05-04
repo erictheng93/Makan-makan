@@ -12,9 +12,9 @@ app.use(
   "*",
   cors({
     origin: [
-      "https://customer.makanmakan.com",
-      "https://admin.makanmakan.com",
-      "https://kitchen.makanmakan.com",
+      "https://customer.makanmasak.com",
+      "https://admin.makanmasak.com",
+      "https://kitchen.makanmasak.com",
     ],
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: [
@@ -33,7 +33,7 @@ app.use(
 app.get("/health", (c: Context<{ Bindings: Env }>) => {
   return c.json({
     status: "healthy",
-    service: "makanmakan-realtime",
+    service: "makanmasak-realtime",
     version: "1.0.0",
     timestamp: new Date().toISOString(),
     environment: c.env.ENVIRONMENT || "development",

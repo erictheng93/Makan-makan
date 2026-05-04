@@ -8,8 +8,8 @@ import type { IncomingMessage } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import cors from "cors";
 import { PrintAgentService } from "./services/PrintAgentService";
-import { PrinterDriverFactory } from "@makanmakan/queue-core/print";
-import type { PrintRequest, PrinterEvent } from "@makanmakan/shared-types";
+import { PrinterDriverFactory } from "@makanmasak/queue-core/print";
+import type { PrintRequest, PrinterEvent } from "@makanmasak/shared-types";
 
 type WebSocketClientInfo = {
   origin: string;
