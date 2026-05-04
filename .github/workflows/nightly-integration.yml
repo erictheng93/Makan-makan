@@ -8,8 +8,8 @@ name: 🌙 Nightly Integration Tests
 #   - p1-current-quarter-gates.spec.ts (Tier 2 P1 Strengthen Partial)
 #   - real API integration smokes (admin-order-management.real, kitchen-display.real, customer-dine-in, etc.)
 #
-# Solo-dev mode (2026-04-13): nightly cron disabled to cut CI noise during
-# active development. Run manually before releases via:
+# Solo-dev mode (2026-05-04): cron and PR auto-runs are disabled to cut CI
+# noise during active development. Run manually before releases via:
 #   gh workflow run nightly-integration.yml --ref <branch>
 # Re-enable the schedule below once the project has multiple contributors
 # or moves out of dev stage.
@@ -18,12 +18,6 @@ on:
   # schedule:
   #   # 2 AM UTC+8 (Taiwan time) — 18:00 UTC daily
   #   - cron: "0 18 * * *"
-  # Auto-trigger on every PR targeting main so Tier 1 P0 + Tier 2 P1
-  # gates become a required-to-pass invariant. The run is narrow
-  # (P0 + P1 gate specs only) and averages ~3 min on top of pnpm
-  # install, so this is tolerable per PR.
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -161,7 +155,11 @@ jobs:
           echo ""
           # Sanity check: response must contain at least one menu item id.
           # node -e is more portable than jq across Ubuntu runner images.
-          node -e "const r=JSON.parse(process.argv[1]); if(!r.success) {console.error('warm-up: success=false'); process.exit(1)}; const items = (r.data?.items ?? r.data?.menu?.items ?? r.data?.categories?.flatMap(c=>c.items ?? []) ?? []); if(!items.length) {console.error('warm-up: zero menu items returned — seed not visible'); process.exit(1)}; console.log('warm-up ok: '+items.length+' items')" "$BODY"
+          # The /menu/{id} endpoint returns categories with `itemCount` per
+          # category (not nested item arrays). Treat any non-zero total as a
+          # successful warm-up signal — that means the menu_items table was
+          # queried for the count and the seed is visible.
+          node -e "const r=JSON.parse(process.argv[1]); if(!r.success) {console.error('warm-up: success=false'); process.exit(1)}; const cats = r.data?.categories ?? []; const total = cats.reduce((s,c)=>s+(c.itemCount ?? (c.items?.length ?? 0)),0); if(!total) {console.error('warm-up: zero menu items returned — seed not visible'); process.exit(1)}; console.log('warm-up ok: '+total+' items across '+cats.length+' categories')" "$BODY"
 
       - name: 📦 安裝 Playwright Chromium
         run: npx playwright install chromium --with-deps

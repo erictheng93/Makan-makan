@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
@@ -14,7 +15,7 @@ import {
 
 const app = new Hono<{ Bindings: Env }>();
 
-const paymentRequestSchema = z
+const createPaymentRequestSchema = z
   .object({
     orderId: z.union([z.string().min(1), z.number().int().positive()]),
     restaurantId: z.string().min(1),
@@ -35,6 +36,56 @@ const paymentRequestSchema = z
   })
   .passthrough();
 
+const rootPaymentRequestSchema = z
+  .object({
+    orderId: z.union([z.string().min(1), z.number().int().positive()]),
+    restaurantId: z.string().min(1).optional(),
+    country: z.enum(["TW", "MY", "VN"]).optional().default("TW"),
+    currency: z.enum(["TWD", "MYR", "VND"]).optional().default("TWD"),
+    paymentMode: z.enum(["full", "partial"]).optional().default("full"),
+    expectedTotal: z.number().finite().nonnegative().optional(),
+    payments: z
+      .array(
+        z.object({
+          method: z.string().min(1).max(50),
+          amount: z.number().finite().nonnegative(),
+        }),
+      )
+      .min(1)
+      .max(20)
+      .optional(),
+    closeOrder: z.boolean().optional(),
+    method: z.string().min(1).max(50).optional(),
+    amount: z.number().finite().nonnegative().optional(),
+    gateway: z.string().min(1).max(50).optional(),
+    customerInfo: z
+      .object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+      })
+      .optional(),
+    metadata: z.record(z.unknown()).optional(),
+  })
+  .passthrough()
+  .superRefine((value, ctx) => {
+    if (value.paymentMode === "partial" && !value.payments?.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["payments"],
+        message: "payments are required for partial payment mode",
+      });
+    }
+
+    if (value.paymentMode === "full" && value.amount === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["amount"],
+        message: "amount is required for full payment mode",
+      });
+    }
+  });
+
 const refundSchema = z.object({
   transactionId: z.string().min(1),
   amount: z.number().finite().positive().optional(),
@@ -46,6 +97,102 @@ const paymentMethodsByCountry: Record<string, string[]> = {
   MY: ["credit_card", "debit_card", "fpx", "touch_n_go", "grab_pay"],
   VN: ["credit_card", "debit_card", "momo", "zalo_pay", "viet_qr", "vnpay"],
 };
+
+const paymentEffectId = async (_c: unknown, response: Response) => {
+  const body = (await response.clone().json()) as {
+    data?: { transactionId?: string; paymentId?: string; id?: string };
+  };
+  return (
+    body.data?.transactionId ?? body.data?.paymentId ?? body.data?.id ?? null
+  );
+};
+
+interface PaymentRouteInput {
+  orderId: string | number;
+  restaurantId?: string;
+  country?: "TW" | "MY" | "VN";
+  currency?: "TWD" | "MYR" | "VND";
+  paymentMode?: "full" | "partial";
+  expectedTotal?: number;
+  payments?: Array<{ method: string; amount: number }>;
+  closeOrder?: boolean;
+  method?: string;
+  amount?: number;
+  gateway?: string;
+  customerInfo?: unknown;
+  metadata?: unknown;
+}
+
+type PaymentContext = Context<{
+  Bindings: Env;
+  Variables: { validatedBody: PaymentRouteInput; user: AuthUser };
+}>;
+
+async function handlePayment(c: PaymentContext) {
+  const input = c.get("validatedBody") as PaymentRouteInput;
+  const orderId =
+    input.restaurantId !== undefined
+      ? await resolveOrderId(c.env.DB, input.orderId, input.restaurantId)
+      : (toNumericOrderId(input.orderId) ??
+        (() => {
+          throw new ApiError(
+            "RESTAURANT_ID_REQUIRED",
+            "restaurantId is required for non-numeric payment orderId",
+            400,
+          );
+        })());
+  const service = new PaymentService(c.env);
+  const user: AuthUser | undefined = c.get("user");
+  // Gateway fixture headers bypass real gateway calls and are only honored
+  // outside production. In prod, any forged header is ignored so callers
+  // cannot fake a timeout/pending payment state.
+  const fixtureAllowed = c.env.NODE_ENV !== "production";
+  const result = await service.processPayment(
+    {
+      orderId,
+      paymentMode: input.paymentMode ?? "full",
+      amount: input.amount,
+      expectedTotal: input.expectedTotal ?? input.amount,
+      payments: input.payments,
+      closeOrder: input.closeOrder ?? true,
+      method: input.method,
+      gateway: input.gateway ?? input.method,
+    },
+    {
+      user,
+      country: input.country,
+      currency: input.currency,
+      idempotencyKey: c.req.header("Idempotency-Key") ?? undefined,
+      customerInfo: input.customerInfo,
+      metadata: input.metadata,
+      gatewayFixture: fixtureAllowed
+        ? (c.req.header("X-Payment-Gateway-Fixture") ?? null)
+        : null,
+    },
+  );
+
+  return c.json(
+    {
+      success: true,
+      data: {
+        id: result.data.paymentId,
+        paymentId: result.data.paymentId,
+        transactionId: result.data.paymentId,
+        status: toExternalPaymentStatus(result.data.paymentStatus),
+        metadata: {
+          orderId: result.data.orderId,
+          orderStatus: result.data.orderStatus,
+          paymentStatus: result.data.paymentStatus,
+          authorizedTotal: result.data.authorizedTotal,
+          country: input.country,
+          currency: input.currency,
+          method: input.method,
+        },
+      },
+    },
+    result.status,
+  );
+}
 
 /**
  * POST /api/v1/payments/create
@@ -62,70 +209,21 @@ app.post(
   idempotencyMiddleware({
     scope: "payment",
     requireKey: false,
-    effectId: async (_c, response) => {
-      const body = (await response.clone().json()) as {
-        data?: { transactionId?: string };
-      };
-      return body.data?.transactionId ?? null;
-    },
+    effectId: paymentEffectId,
   }),
-  validateBody(paymentRequestSchema),
-  async (c) => {
-    const input = c.get("validatedBody");
-    const orderId = await resolveOrderId(
-      c.env.DB,
-      input.orderId,
-      input.restaurantId,
-    );
-    const service = new PaymentService(c.env);
-    const user: AuthUser | undefined = c.get("user");
-    // Gateway fixture headers bypass real gateway calls and are only honored
-    // outside production. In prod, any forged header is ignored so callers
-    // cannot fake a timeout/pending payment state.
-    const fixtureAllowed = c.env.NODE_ENV !== "production";
-    const result = await service.processPayment(
-      {
-        orderId,
-        paymentMode: "full",
-        amount: input.amount,
-        expectedTotal: input.amount,
-        closeOrder: true,
-        method: input.method,
-        gateway: input.method,
-      },
-      {
-        user,
-        country: input.country,
-        currency: input.currency,
-        idempotencyKey: c.req.header("Idempotency-Key") ?? undefined,
-        customerInfo: input.customerInfo,
-        metadata: input.metadata,
-        gatewayFixture: fixtureAllowed
-          ? (c.req.header("X-Payment-Gateway-Fixture") ?? null)
-          : null,
-      },
-    );
+  validateBody(createPaymentRequestSchema),
+  handlePayment,
+);
 
-    return c.json(
-      {
-        success: true,
-        data: {
-          transactionId: result.data.paymentId,
-          status: toExternalPaymentStatus(result.data.paymentStatus),
-          metadata: {
-            orderId: result.data.orderId,
-            orderStatus: result.data.orderStatus,
-            paymentStatus: result.data.paymentStatus,
-            authorizedTotal: result.data.authorizedTotal,
-            country: input.country,
-            currency: input.currency,
-            method: input.method,
-          },
-        },
-      },
-      result.status,
-    );
-  },
+app.post(
+  "/",
+  idempotencyMiddleware({
+    scope: "payment",
+    requireKey: false,
+    effectId: paymentEffectId,
+  }),
+  validateBody(rootPaymentRequestSchema),
+  handlePayment,
 );
 
 app.get("/status/:transactionId", async (c) => {

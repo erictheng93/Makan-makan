@@ -147,10 +147,24 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
         ...rest
       } = data;
 
+      // Factory defaults `restaurantId: 1` (legacy integer) for non-customer
+      // roles. Real schema column is TEXT (UUID) referencing restaurants.id,
+      // so the integer 1 has no FK target and the insert fails. Drop the
+      // factory default unless the caller explicitly provided one — caller
+      // is expected to pass `restaurantId: String(restaurant.id)` after
+      // seeding a restaurant when they actually need the link.
+      const overrideRecord = overrides as Record<string, unknown> | undefined;
+      const hasExplicitRestaurantId =
+        overrideRecord !== undefined && "restaurantId" in overrideRecord;
+      const restaurantIdValue = hasExplicitRestaurantId
+        ? overrideRecord!.restaurantId
+        : null;
+
       const [row] = await testDb.drizzle
         .insert(users)
         .values({
           ...rest,
+          restaurantId: restaurantIdValue,
           // Preserve explicit id if caller asked for one (e.g. match JWT claim)
           ...(overrides?.id !== undefined ? { id: overrides.id } : {}),
           createdAt: toDate(createdAt),

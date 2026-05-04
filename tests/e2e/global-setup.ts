@@ -1,7 +1,9 @@
 import { FullConfig } from "@playwright/test";
+import { clearLoginCache } from "./integration/helpers";
 
 async function globalSetup(config: FullConfig) {
   const { baseURL } = config.projects[0].use;
+  clearLoginCache();
 
   console.log(`🚀 正在設置 E2E 測試環境...`);
   console.log(`📍 Base URL: ${baseURL}`);
