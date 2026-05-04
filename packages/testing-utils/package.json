@@ -1,7 +1,7 @@
 {
-  "name": "@makanmakan/testing-utils",
+  "name": "@makanmasak/testing-utils",
   "version": "1.0.0",
-  "description": "Unified test data factories and testing utilities for MakanMakan platform",
+  "description": "Unified test data factories and testing utilities for MakanMasak platform",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@makanmakan/shared-types": "workspace:*"
+    "@makanmasak/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@pinia/testing": "^0.1.7",

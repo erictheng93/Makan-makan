@@ -6,8 +6,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AIInsightsService } from "../services/AIInsightsService";
 import type { LLMConfig, TimeRangeParams, BusinessMetrics } from "../types";
 
-// Mock @makanmakan/database — keep real schema exports for ProductAnalysisService
-vi.mock("@makanmakan/database", async (importOriginal) => {
+// Mock @makanmasak/database — keep real schema exports for ProductAnalysisService
+vi.mock("@makanmasak/database", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as Record<string, unknown>),

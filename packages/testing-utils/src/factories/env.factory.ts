@@ -123,7 +123,7 @@ export const envFactory = {
       CLOUDFLARE_IMAGES_KEY: "test-images-key",
       REALTIME_SERVICE_URL: "http://localhost:8788",
       DEV_CORS_ORIGINS:
-        "https://customer.makanmakan.app,https://admin.makanmakan.app,https://kitchen.makanmakan.app,https://makanmakan.app",
+        "https://customer.makanmasak.app,https://admin.makanmasak.app,https://kitchen.makanmasak.app,https://makanmasak.app",
       ...overrides,
     };
   },

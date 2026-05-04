@@ -59,7 +59,7 @@ export class UserFactory extends BaseFactory<UserTestData> {
     const baseData: UserTestData = {
       id: sequence + 1,
       username: `user_${randomString(8, `test_${sequence}_`)}`,
-      email: randomEmail("makanmakan-test.com"),
+      email: randomEmail("makanmasak-test.com"),
       phone: randomPhone(),
       fullName: `測試用戶 ${sequence + 1}`,
       passwordHash: "$2a$10$test.hash.for.testing.only", // bcrypt hash for 'password'

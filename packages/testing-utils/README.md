@@ -1,6 +1,6 @@
-# @makanmakan/testing-utils
+# @makanmasak/testing-utils
 
-統一的測試數據工廠和測試工具,用於 MakanMakan 平台的所有測試場景。
+統一的測試數據工廠和測試工具,用於 MakanMasak 平台的所有測試場景。
 
 ## 📦 安裝
 
@@ -12,7 +12,7 @@ import {
   menuItemFactory,
   orderFactory,
   buildCompleteRestaurantData
-} from '@makanmakan/testing-utils'
+} from '@makanmasak/testing-utils'
 ```
 
 ## 🎯 核心概念
@@ -49,7 +49,7 @@ userFactory.resetSequence();
 **基本使用**:
 
 ```typescript
-import { userFactory, UserRoles } from "@makanmakan/testing-utils";
+import { userFactory, UserRoles } from "@makanmasak/testing-utils";
 
 // 生成隨機用戶
 const user = userFactory.build();
@@ -92,7 +92,7 @@ UserRoles.CUSTOMER; // 5 - 顧客
 **基本使用**:
 
 ```typescript
-import { restaurantFactory, RestaurantTypes } from "@makanmakan/testing-utils";
+import { restaurantFactory, RestaurantTypes } from "@makanmasak/testing-utils";
 
 // 生成隨機餐廳
 const restaurant = restaurantFactory.build();
@@ -124,7 +124,7 @@ RestaurantTypes.ALL; // 全部
 **Category Factory**:
 
 ```typescript
-import { categoryFactory } from "@makanmakan/testing-utils";
+import { categoryFactory } from "@makanmasak/testing-utils";
 
 // 生成單個分類
 const category = categoryFactory.build({
@@ -138,7 +138,7 @@ const categories = categoryFactory.buildRestaurantCategories(restaurantId);
 **MenuItem Factory**:
 
 ```typescript
-import { menuItemFactory } from "@makanmakan/testing-utils";
+import { menuItemFactory } from "@makanmasak/testing-utils";
 
 // 生成單個菜單項目
 const menuItem = menuItemFactory.build({
@@ -176,7 +176,7 @@ import {
   orderFactory,
   OrderStatus,
   OrderType,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // 生成隨機訂單
 const order = orderFactory.build({
@@ -200,7 +200,7 @@ const deliveryOrder = orderFactory.buildDelivery();
 **OrderItem Factory**:
 
 ```typescript
-import { orderItemFactory } from "@makanmakan/testing-utils";
+import { orderItemFactory } from "@makanmasak/testing-utils";
 
 // 為訂單生成項目
 const items = orderItemFactory.buildForOrder(orderId, 3);
@@ -217,7 +217,7 @@ const servedItem = orderItemFactory.buildServed();
 使用 `buildCompleteRestaurantData()` 一次生成完整的測試環境:
 
 ```typescript
-import { buildCompleteRestaurantData } from "@makanmakan/testing-utils";
+import { buildCompleteRestaurantData } from "@makanmasak/testing-utils";
 
 const testData = buildCompleteRestaurantData({
   enableShopMode: true, // 是否啟用 Shop QR 模式
@@ -252,7 +252,7 @@ import {
   currentTimestamp,
   pastTimestamp,
   futureTimestamp,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // 生成隨機字串
 const str = randomString(8, "prefix_"); // 'prefix_abc12345'
@@ -290,7 +290,7 @@ const future = futureTimestamp(7); // 7 天後
 
 ```typescript
 import { describe, it, expect, beforeEach } from "vitest";
-import { userFactory, UserRoles } from "@makanmakan/testing-utils";
+import { userFactory, UserRoles } from "@makanmasak/testing-utils";
 
 describe("User Service", () => {
   beforeEach(() => {
@@ -322,7 +322,7 @@ import { describe, it, beforeEach } from "vitest";
 import {
   buildCompleteRestaurantData,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("Restaurant Integration Tests", () => {
   let testData: ReturnType<typeof buildCompleteRestaurantData>;
@@ -349,7 +349,7 @@ describe("Restaurant Integration Tests", () => {
 
 ```typescript
 import { describe, it } from "vitest";
-import { userFactory, orderFactory } from "@makanmakan/testing-utils";
+import { userFactory, orderFactory } from "@makanmasak/testing-utils";
 
 describe("Order API", () => {
   it("should create order for authenticated user", async () => {
@@ -446,4 +446,4 @@ const admin = userFactory.buildAdmin();
 
 ## 📄 授權
 
-MIT License - MakanMakan Platform
+MIT License - MakanMasak Platform

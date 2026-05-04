@@ -4,7 +4,7 @@
  * 從 packages/database/src/services/__tests__/test-helpers.ts 提取的
  * Drizzle ORM 模擬基礎設施，供所有需要 Mock DB 操作的測試使用。
  *
- * 使用方式：import { createOptimizedMockDB, cleanupMockDB } from "@makanmakan/testing-utils/mocks/mock-drizzle-db"
+ * 使用方式：import { createOptimizedMockDB, cleanupMockDB } from "@makanmasak/testing-utils/mocks/mock-drizzle-db"
  */
 
 import { vi } from "vitest";

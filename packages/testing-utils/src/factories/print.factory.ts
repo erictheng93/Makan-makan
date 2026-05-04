@@ -22,7 +22,7 @@ import type {
   PrintOptions,
   PrintError,
   PrinterCapabilities,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // =============================================
 // PrintJob 工廠

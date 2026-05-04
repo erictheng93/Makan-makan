@@ -17,7 +17,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "paths": {
-      "@makanmakan/shared-types": ["../shared-types/src"]
+      "@makanmasak/shared-types": ["../shared-types/src"]
     }
   },
   "include": ["src/**/*"],

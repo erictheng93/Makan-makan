@@ -4,7 +4,7 @@
  * 提供 Vue 組件測試的共享工具函數
  * 獨立導出路徑，避免非 Vue 套件拉入 Vue 依賴
  *
- * 使用方式：import { mountWithPlugins, createAuthState } from "@makanmakan/testing-utils/vue-helpers"
+ * 使用方式：import { mountWithPlugins, createAuthState } from "@makanmasak/testing-utils/vue-helpers"
  */
 
 import { mount, type VueWrapper } from "@vue/test-utils";

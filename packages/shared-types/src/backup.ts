@@ -1,6 +1,6 @@
 /**
  * Multi-tenant Backup System Types
- * Enterprise-grade backup for MakanMakan platform
+ * Enterprise-grade backup for MakanMasak platform
  */
 
 export type BackupStatus =
