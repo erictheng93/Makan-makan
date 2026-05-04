@@ -9,12 +9,10 @@ Module access starts with `PLAN_DEFAULT_MODULES` in
 `packages/database/src/schema/subscriptions.ts`, then applies per-shop
 `shop_subscriptions.module_overrides`.
 
-- `basic`: menu, orders, tables, and coupons.
-- `pro`: basic modules plus kitchen display, analytics, reservations, waiting
-  list, integrations, online ordering, and POS.
-- `enterprise`: all current modules, including AI analytics, inventory, and
-  staff management.
-- `trial`: all current modules until `trial_ends_at_ms`.
+- `basic`: `menu_management`, `table_management`, `online_ordering` (the 3 core modules; no POS, kitchen display, coupons, analytics, reservations, etc.).
+- `pro`: `basic` modules plus `pos`, `kitchen_display`, `receipt_printing`, `coupons`, `reservations`, `analytics`. Waiting-list shares the `reservations` module.
+- `enterprise`: every module — `pro` plus `multi_branch`, `ai_analytics`, `platform_integration`, `loyalty`, `inventory`, `staff_management`.
+- `trial`: all 15 modules until `trial_ends_at_ms`, after which `TrialReaperService` downgrades the subscription to `basic`.
 
 `shop_subscriptions.deployment_mode` records whether a shop is platform-managed
 or BYOC-hosted. Phase 1 only stores and returns it; later license verification
