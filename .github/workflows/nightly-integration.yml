@@ -161,7 +161,11 @@ jobs:
           echo ""
           # Sanity check: response must contain at least one menu item id.
           # node -e is more portable than jq across Ubuntu runner images.
-          node -e "const r=JSON.parse(process.argv[1]); if(!r.success) {console.error('warm-up: success=false'); process.exit(1)}; const items = (r.data?.items ?? r.data?.menu?.items ?? r.data?.categories?.flatMap(c=>c.items ?? []) ?? []); if(!items.length) {console.error('warm-up: zero menu items returned — seed not visible'); process.exit(1)}; console.log('warm-up ok: '+items.length+' items')" "$BODY"
+          # The /menu/{id} endpoint returns categories with `itemCount` per
+          # category (not nested item arrays). Treat any non-zero total as a
+          # successful warm-up signal — that means the menu_items table was
+          # queried for the count and the seed is visible.
+          node -e "const r=JSON.parse(process.argv[1]); if(!r.success) {console.error('warm-up: success=false'); process.exit(1)}; const cats = r.data?.categories ?? []; const total = cats.reduce((s,c)=>s+(c.itemCount ?? (c.items?.length ?? 0)),0); if(!total) {console.error('warm-up: zero menu items returned — seed not visible'); process.exit(1)}; console.log('warm-up ok: '+total+' items across '+cats.length+' categories')" "$BODY"
 
       - name: 📦 安裝 Playwright Chromium
         run: npx playwright install chromium --with-deps
