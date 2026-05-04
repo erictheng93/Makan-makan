@@ -1,5 +1,5 @@
 # Cloudflare Workers configuration - Simplified for development
-name = "makanmakan-api"
+name = "makanmasak-api"
 main = "src/index.ts"
 compatibility_date = "2024-08-01"
 compatibility_flags = ["nodejs_compat", "streams_enable_constructors"]
@@ -13,17 +13,17 @@ API_BASE_URL = "http://localhost:8787"
 # D1 Database bindings
 [[d1_databases]]
 binding = "DB"
-database_name = "makanmakan-local"
+database_name = "makanmasak-local"
 database_id = "local"
 
 # KV namespace for caching
 [[kv_namespaces]]
 binding = "CACHE_KV"
-id = "makanmakan-cache-dev"
-preview_id = "makanmakan-cache-preview"
+id = "makanmasak-cache-dev"
+preview_id = "makanmasak-cache-preview"
 
 # Rate limiting KV namespace
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "makanmakan-ratelimit-dev"
-preview_id = "makanmakan-ratelimit-preview"
+id = "makanmasak-ratelimit-dev"
+preview_id = "makanmasak-ratelimit-preview"

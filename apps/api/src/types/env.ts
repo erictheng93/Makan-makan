@@ -10,7 +10,7 @@ interface AnalyticsEngine {
   }): void;
 }
 
-import type { D1Database } from "@makanmakan/database";
+import type { D1Database } from "@makanmasak/database";
 
 /**
  * Enhanced Environment Interface for 100/100 Score
@@ -55,7 +55,7 @@ export interface Env {
 
   /**
    * Central management API URL for license validation and updates
-   * Example: https://manage.makanmakan.app
+   * Example: https://manage.makanmasak.app
    */
   CENTRAL_API_URL?: string;
 

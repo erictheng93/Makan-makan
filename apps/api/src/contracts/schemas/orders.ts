@@ -5,7 +5,7 @@
  * Customer app and admin dashboard depend on these shapes.
  */
 
-import { ORDER_STATUSES } from "@makanmakan/shared-types";
+import { ORDER_STATUSES } from "@makanmasak/shared-types";
 import { z } from "zod";
 import {
   successEnvelope,

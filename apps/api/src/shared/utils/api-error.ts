@@ -9,4 +9,4 @@ export {
   unauthorized,
   forbidden,
   conflict,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";

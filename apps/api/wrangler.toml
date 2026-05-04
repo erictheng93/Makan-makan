@@ -1,4 +1,4 @@
-# MakanMakan API - Cloudflare Workers Configuration
+# MakanMasak API - Cloudflare Workers Configuration
 # Updated to use latest wrangler 4.35.0
 
 name = "makanmasak-api"
@@ -51,7 +51,7 @@ TWILIO_PHONE_NUMBER = "+1234567890"  # Update with actual number
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
-database_name = "makanmakan-local"
+database_name = "makanmasak-local"
 database_id = "local"
 migrations_dir = "../../packages/database/migrations_fresh"
 
@@ -106,7 +106,7 @@ TWILIO_PHONE_NUMBER = "+1234567890"
 
 [[env.development.d1_databases]]
 binding = "DB"
-database_name = "makanmakan-local"
+database_name = "makanmasak-local"
 database_id = "local"
 
 [[env.development.kv_namespaces]]

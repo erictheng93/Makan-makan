@@ -41,12 +41,12 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
-      "@makanmakan/shared-types": resolve(
+      "@makanmasak/shared-types": resolve(
         __dirname,
         "../../packages/shared-types/src",
       ),
-      "@makanmakan/database": resolve(__dirname, "../../packages/database/src"),
-      "@makanmakan/utils": resolve(
+      "@makanmasak/database": resolve(__dirname, "../../packages/database/src"),
+      "@makanmasak/utils": resolve(
         __dirname,
         "../../packages/utils/src/index.ts",
       ),

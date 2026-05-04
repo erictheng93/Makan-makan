@@ -16,7 +16,7 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
-// User Roles — mirrors the canonical @makanmakan/shared-types UserRole enum.
+// User Roles — mirrors the canonical @makanmasak/shared-types UserRole enum.
 export const USER_ROLES = {
   ADMIN: 0,
   OWNER: 1,

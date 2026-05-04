@@ -16,7 +16,7 @@ const mockCouponService = {
 }
 
 // Mock database
-vi.mock('@makanmakan/database', () => ({
+vi.mock('@makanmasak/database', () => ({
   createDatabase: vi.fn(),
   CouponService: vi.fn().mockImplementation(() => mockCouponService),
 }))
