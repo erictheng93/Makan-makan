@@ -8,7 +8,7 @@ import {
   categoryFactory,
   menuItemFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // ── Module mocks ───────────────────────────────────────────────────────────
 

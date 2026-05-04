@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 // Mock @heroicons/vue — the component imports CheckCircleIcon
 vi.mock("@heroicons/vue/24/outline", () => ({

@@ -1283,7 +1283,7 @@ const viVN: Messages = {
 
   // Tiêu đề trang và điều hướng
   header: {
-    title: "Trang Quản Trị MakanMakan",
+    title: "Trang Quản Trị MakanMasak",
     home: "Trang chủ",
     realtime: {
       connected: "Kết nối trực tiếp",

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // ── Module mocks ────────────────────────────────────────────────────────────
 
@@ -239,7 +239,7 @@ describe("UnauthorizedView", () => {
   it("shows contact admin link", () => {
     const wrapper = mount(UnauthorizedView);
     expect(wrapper.text()).toContain("聯繫管理員");
-    const mailto = wrapper.find('a[href="mailto:admin@makanmakan.com"]');
+    const mailto = wrapper.find('a[href="mailto:admin@makanmasak.com"]');
     expect(mailto.exists()).toBe(true);
   });
 

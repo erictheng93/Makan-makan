@@ -9,7 +9,7 @@ import type {
   PaymentStatus,
   CountryCode,
   CurrencyCode,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 interface PaymentState {
   // 當前支付流程

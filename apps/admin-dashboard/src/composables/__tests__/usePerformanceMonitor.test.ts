@@ -47,7 +47,7 @@ const { mockApiClient } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   getPerformanceMonitor: vi.fn().mockReturnValue(mockMonitor),
 }));
 

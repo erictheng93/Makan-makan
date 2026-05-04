@@ -5,7 +5,7 @@
 
 import { defineStore } from "pinia";
 import { ref } from "vue";
-// Import from @makanmakan/shared-types
+// Import from @makanmasak/shared-types
 import type {
   BackupConfiguration,
   BackupRecord,
@@ -15,14 +15,14 @@ import type {
   CreateBackupResponse,
   ListBackupsQuery,
   RestoreBackupRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Re-export types from shared-types for convenience
 export type {
   BackupStatus,
   BackupType,
   StorageProvider,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 // Import the actual API client
 import { apiClient, unwrapApiData } from "@/services/api";
 

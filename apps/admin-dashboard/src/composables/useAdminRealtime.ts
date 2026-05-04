@@ -16,7 +16,7 @@ import {
   type SystemNotificationEvent,
   type TableCallServiceEvent,
   type RestaurantStatusUpdateEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // ============================================================================
 // 類型定義

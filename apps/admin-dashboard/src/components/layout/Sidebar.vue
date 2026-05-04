@@ -17,7 +17,7 @@
             <span class="text-white font-bold text-sm">M</span>
           </div>
           <div v-if="!isCollapsed" class="font-semibold text-gray-900">
-            MakanMakan
+            MakanMasak
           </div>
         </div>
       </div>
@@ -97,8 +97,8 @@ import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { useI18n } from "@/i18n";
-import ModuleGate from "@makanmakan/shared/components/ModuleGate.vue";
-import type { ModuleKey } from "@makanmakan/shared/types/module-access";
+import ModuleGate from "@makanmasak/shared/components/ModuleGate.vue";
+import type { ModuleKey } from "@makanmasak/shared/types/module-access";
 import {
   Home,
   ShoppingCart,

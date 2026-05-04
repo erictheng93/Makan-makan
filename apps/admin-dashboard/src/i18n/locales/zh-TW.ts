@@ -1473,7 +1473,7 @@ const zhTW: Messages = {
 
   // 頁面標題與導航
   header: {
-    title: "MakanMakan 管理後台",
+    title: "MakanMasak 管理後台",
     home: "首頁",
     realtime: {
       connected: "即時連線",

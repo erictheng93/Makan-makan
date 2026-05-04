@@ -4,7 +4,7 @@
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
-import { menuItemFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { menuItemFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // ── Module mocks ───────────────────────────────────────────────────────────
 

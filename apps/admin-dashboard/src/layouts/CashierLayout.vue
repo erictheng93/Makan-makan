@@ -64,7 +64,7 @@ const currentDate = ref("");
 const isOnline = ref(navigator.onLine);
 
 const userName = computed(() => authStore.user?.username || "");
-const restaurantName = computed(() => "MakanMakan Restaurant");
+const restaurantName = computed(() => "MakanMasak Restaurant");
 const todayRevenue = computed(
   () => `$${dashboardStore.todayRevenue?.toFixed(2) || "0.00"}`,
 );

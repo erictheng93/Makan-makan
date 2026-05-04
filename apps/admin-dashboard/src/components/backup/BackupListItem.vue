@@ -194,7 +194,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import type { BackupRecord } from "@makanmakan/shared-types";
+import type { BackupRecord } from "@makanmasak/shared-types";
 
 // Icons (using placeholder components - replace with actual icons)
 import {

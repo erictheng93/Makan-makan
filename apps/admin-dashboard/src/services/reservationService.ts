@@ -16,7 +16,7 @@ import {
   type CreateSlotRequest,
   type BatchCreateSlotsRequest,
   type ReservationStats,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export class ReservationService {
   /**

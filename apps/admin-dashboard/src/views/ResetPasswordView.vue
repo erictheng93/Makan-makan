@@ -10,7 +10,7 @@
         >
           <span class="text-white font-bold text-2xl">M</span>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900">MakanMakan</h2>
+        <h2 class="text-3xl font-bold text-gray-900">MakanMasak</h2>
         <p class="mt-2 text-sm text-gray-600">
           {{ t("auth.resetPasswordSubtitle") }}
         </p>
@@ -326,7 +326,7 @@
       <!-- Footer -->
       <div class="text-center">
         <p class="text-xs text-gray-500">
-          © 2025 MakanMakan. All rights reserved.
+          © 2025 MakanMasak. All rights reserved.
         </p>
       </div>
     </div>

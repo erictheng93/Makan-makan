@@ -147,7 +147,7 @@ import type {
   ForecastAccuracyItem,
   ForecastAlert,
   IngredientForecastItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const authStore = useAuthStore();

@@ -6,7 +6,7 @@ import { setupGlobalErrorHandler, errorHandler } from "@/utils/errorHandler";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
 import { initI18n } from "./i18n";
 import { useAuthStore } from "@/stores/auth";
-import { useModuleAccessStore } from "@makanmakan/shared/stores/moduleAccess";
+import { useModuleAccessStore } from "@makanmasak/shared/stores/moduleAccess";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 import "./assets/css/main.css";

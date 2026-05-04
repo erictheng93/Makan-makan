@@ -9,7 +9,7 @@ import { setActivePinia, createPinia } from "pinia";
 import DashboardView from "../DashboardView.vue";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useAuthStore } from "@/stores/auth";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 // useOrderStore available if needed for future tests
 
 // Mock child components

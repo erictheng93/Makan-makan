@@ -261,7 +261,7 @@ import {
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
 
-import type { Coupon, CouponDetailStats } from "@makanmakan/shared-types";
+import type { Coupon, CouponDetailStats } from "@makanmasak/shared-types";
 
 interface Props {
   coupon: Coupon;

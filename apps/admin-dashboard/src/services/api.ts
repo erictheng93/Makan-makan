@@ -3,7 +3,7 @@ import {
   type AxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
-import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
+import { createAuthenticatedApiClient } from "@makanmasak/auth-client";
 import type { ApiResponse } from "@/types";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
 

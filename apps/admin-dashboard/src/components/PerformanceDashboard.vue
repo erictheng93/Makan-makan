@@ -161,7 +161,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { usePerformanceMonitor } from "../composables/usePerformanceMonitor";
-import type { PerformanceMetric, ResourceTiming } from "@makanmakan/utils";
+import type { PerformanceMetric, ResourceTiming } from "@makanmasak/utils";
 
 const {
   webVitals,

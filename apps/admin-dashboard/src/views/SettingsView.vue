@@ -1270,7 +1270,7 @@ import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
-import type { CurrencyCode } from "@makanmakan/shared-types";
+import type { CurrencyCode } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const toast = useToast();

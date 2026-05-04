@@ -20,7 +20,7 @@ import { setActivePinia, createPinia } from "pinia";
 import {
   restaurantFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // ──── Mocks ────
 

@@ -1284,7 +1284,7 @@ const jaJP: Messages = {
 
   // ページタイトルとナビゲーション
   header: {
-    title: "MakanMakan 管理ダッシュボード",
+    title: "MakanMasak 管理ダッシュボード",
     home: "ホーム",
     realtime: {
       connected: "リアルタイム接続中",

@@ -72,7 +72,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
-import type { ForecastAccuracyItem } from "@makanmakan/shared-types";
+import type { ForecastAccuracyItem } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 

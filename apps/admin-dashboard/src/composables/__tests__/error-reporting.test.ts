@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { TrackedError } from "@makanmakan/utils";
+import type { TrackedError } from "@makanmasak/utils";
 
 const mockApiPost = vi.hoisted(() => vi.fn());
 

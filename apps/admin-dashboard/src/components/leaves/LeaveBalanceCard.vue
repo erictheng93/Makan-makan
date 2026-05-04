@@ -87,7 +87,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
-import type { LeaveBalance } from "@makanmakan/shared-types";
+import type { LeaveBalance } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 

@@ -3,8 +3,8 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
-import ModuleGate from "@makanmakan/shared/components/ModuleGate.vue";
-import type { AIAnalyticsReport, AIInsight } from "@makanmakan/ai-analytics";
+import ModuleGate from "@makanmasak/shared/components/ModuleGate.vue";
+import type { AIAnalyticsReport, AIInsight } from "@makanmasak/ai-analytics";
 
 // Icons
 import {

@@ -505,7 +505,7 @@ import type {
   Coupon,
   CouponsSummary,
   CouponDetailStats,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Reactive state
 const showCreateModal = ref(false);

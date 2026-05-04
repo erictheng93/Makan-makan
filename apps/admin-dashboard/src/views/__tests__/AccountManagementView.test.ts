@@ -23,7 +23,7 @@ import {
   userFactory,
   restaurantFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // ──── Mocks ────
 

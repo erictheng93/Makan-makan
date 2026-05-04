@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
-import type { LLMProvider } from "@makanmakan/ai-analytics";
+import type { LLMProvider } from "@makanmasak/ai-analytics";
 
 // Icons (using heroicons)
 import {

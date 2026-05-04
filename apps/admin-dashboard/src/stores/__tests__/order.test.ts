@@ -8,7 +8,7 @@ import { setActivePinia, createPinia } from "pinia";
 import { useOrderStore } from "../order";
 import type { OrderStatus } from "@/types";
 import type { Order } from "@/types";
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 vi.mock("@/services/api", () => {
   const unwrapApiPayload = (payload: unknown) =>

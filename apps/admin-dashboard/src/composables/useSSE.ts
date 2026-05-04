@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notification";
 import { useOrderStore } from "@/stores/order";
 import type { SSEEvent } from "@/types";
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 import { apiPath } from "@/services/api-url";
 
 const eventSource = ref<EventSource | null>(null);

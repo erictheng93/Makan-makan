@@ -19,7 +19,7 @@ import {
   userFactory,
   orderFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // Mock API
 vi.mock("@/services/api", () => {

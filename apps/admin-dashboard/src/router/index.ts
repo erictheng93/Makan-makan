@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { t } from "@/i18n";
 import type { RouteRecordRaw } from "vue-router";
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -487,7 +487,7 @@ router.beforeEach(async (to, _, next) => {
 
   // Set page title using i18n
   const titleKey = to.meta.titleKey as string | undefined;
-  const pageTitle = titleKey ? t(titleKey) : "MakanMakan";
+  const pageTitle = titleKey ? t(titleKey) : "MakanMasak";
   document.title = `${pageTitle} - ${t("pages.adminSuffix")}`;
 
   next();

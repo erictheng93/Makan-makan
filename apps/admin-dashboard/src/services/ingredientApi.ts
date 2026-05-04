@@ -5,7 +5,7 @@ import type {
   UpdateIngredientRequest,
   RecipeEntryResponse,
   SetRecipeRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export const ingredientApi = {
   // --- Ingredient CRUD ---

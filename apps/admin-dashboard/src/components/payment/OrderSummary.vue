@@ -230,7 +230,7 @@ import type {
   PaymentMethod,
   CountryCode,
   CurrencyCode,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Types
 interface OrderItem {

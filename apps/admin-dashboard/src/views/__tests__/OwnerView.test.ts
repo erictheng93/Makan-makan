@@ -32,7 +32,7 @@ import {
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 import { useAuthStore } from "@/stores/auth";
 
 // ──── Mocks ────

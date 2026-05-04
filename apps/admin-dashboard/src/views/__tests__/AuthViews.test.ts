@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { nextTick } from "vue";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 // ──── Mocks (must precede component imports) ────
 
@@ -75,7 +75,7 @@ vi.mock("@/services/api", () => ({
   },
 }));
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   getRefreshDelay: () => null,
 }));
 
@@ -113,9 +113,9 @@ describe("LoginView", () => {
     expect(wrapper.find("#password").exists()).toBe(true);
   });
 
-  it('should render "MakanMakan" heading', () => {
+  it('should render "MakanMasak" heading', () => {
     const wrapper = mountLogin();
-    expect(wrapper.text()).toContain("MakanMakan");
+    expect(wrapper.text()).toContain("MakanMasak");
   });
 
   it('should render admin login subtitle via i18n key "auth.adminLogin"', () => {

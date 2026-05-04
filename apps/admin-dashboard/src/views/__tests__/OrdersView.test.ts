@@ -10,7 +10,7 @@ import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick, reactive } from "vue";
 import OrdersView from "../OrdersView.vue";
 import type { Order } from "@/types";
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // ──── Mock data ────
 

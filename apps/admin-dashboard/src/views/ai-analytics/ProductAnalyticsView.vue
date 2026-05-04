@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
-import type { ProductAnalysis } from "@makanmakan/ai-analytics";
+import type { ProductAnalysis } from "@makanmasak/ai-analytics";
 
 // Icons
 import {

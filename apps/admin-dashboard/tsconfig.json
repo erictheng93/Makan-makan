@@ -18,17 +18,17 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@makanmakan/shared": ["../../packages/shared"],
-      "@makanmakan/shared/*": ["../../packages/shared/*"],
-      "@makanmakan/database": ["../../packages/database/src"],
-      "@makanmakan/database/*": ["../../packages/database/src/*"],
+      "@makanmasak/shared": ["../../packages/shared"],
+      "@makanmasak/shared/*": ["../../packages/shared/*"],
+      "@makanmasak/database": ["../../packages/database/src"],
+      "@makanmasak/database/*": ["../../packages/database/src/*"],
       "pinia": ["./node_modules/pinia"],
       "vue": ["./node_modules/vue"],
       "@shared/*": ["../../packages/shared-types/src/*"],
-      "@makanmakan/shared-types": ["../../packages/shared-types/src"],
-      "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
-      "@makanmakan/utils": ["../../packages/utils/src"],
-      "@makanmakan/utils/*": ["../../packages/utils/src/*"]
+      "@makanmasak/shared-types": ["../../packages/shared-types/src"],
+      "@makanmasak/shared-types/*": ["../../packages/shared-types/src/*"],
+      "@makanmasak/utils": ["../../packages/utils/src"],
+      "@makanmasak/utils/*": ["../../packages/utils/src/*"]
     }
   },
   "include": [

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import { ref, computed, nextTick } from "vue";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 
 // ──── Mock data ────
 

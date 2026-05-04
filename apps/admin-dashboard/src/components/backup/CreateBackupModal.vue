@@ -256,8 +256,8 @@ import { ref, reactive, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBackupStore } from "@/stores/backup";
 import { useAuthStore } from "@/stores/auth";
-// TODO: Import from @makanmakan/shared-types when workspace is configured
-// import type { BackupConfiguration, CreateBackupRequest } from '@makanmakan/shared-types'
+// TODO: Import from @makanmasak/shared-types when workspace is configured
+// import type { BackupConfiguration, CreateBackupRequest } from '@makanmasak/shared-types'
 
 // Temporary type definitions
 type BackupType = "full" | "incremental" | "differential";

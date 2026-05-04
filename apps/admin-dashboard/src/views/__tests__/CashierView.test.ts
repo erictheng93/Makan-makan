@@ -27,7 +27,7 @@ import {
   orderFactory,
   orderItemFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 // ──── Mock data ────
 

@@ -79,7 +79,7 @@ describe("Sidebar Component", () => {
 
     it("should display brand name when not collapsed", () => {
       const wrapper = createWrapper({ isCollapsed: false });
-      expect(wrapper.text()).toContain("MakanMakan");
+      expect(wrapper.text()).toContain("MakanMasak");
     });
 
     it("should have navigation section", () => {
@@ -108,12 +108,12 @@ describe("Sidebar Component", () => {
 
     it("should hide brand name when collapsed", () => {
       const wrapper = createWrapper({ isCollapsed: true });
-      expect(wrapper.text()).not.toContain("MakanMakan");
+      expect(wrapper.text()).not.toContain("MakanMasak");
     });
 
     it("should show brand name when expanded", () => {
       const wrapper = createWrapper({ isCollapsed: false });
-      expect(wrapper.text()).toContain("MakanMakan");
+      expect(wrapper.text()).toContain("MakanMasak");
     });
 
     it("should always show logo initial regardless of collapse state", () => {

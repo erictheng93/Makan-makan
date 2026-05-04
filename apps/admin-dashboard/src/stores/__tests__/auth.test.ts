@@ -46,7 +46,7 @@ vi.mock("@/i18n", () => ({
   t: (key: string) => key,
 }));
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   getRefreshDelay: vi.fn(() => null),
 }));
 

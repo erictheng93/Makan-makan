@@ -94,7 +94,7 @@
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
 import { getInitials } from "@/composables/useEmployeeDisplay";
-import type { LeaveRequest } from "@makanmakan/shared-types";
+import type { LeaveRequest } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 

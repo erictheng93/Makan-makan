@@ -12,7 +12,7 @@ import type {
   TimeRangeParams,
   ConfigureAIRequest,
   TestAIProviderRequest,
-} from "@makanmakan/ai-analytics";
+} from "@makanmasak/ai-analytics";
 import { api } from "@/services/api";
 
 interface AIAnalyticsErrorResponse {

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
-import { resetAllFactories } from "@makanmakan/testing-utils";
+import { resetAllFactories } from "@makanmasak/testing-utils";
 import { useAuthStore } from "@/stores/auth";
 
 // ── Mocks (before component import) ──────────────────────────────────────────

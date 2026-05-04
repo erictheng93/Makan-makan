@@ -158,7 +158,7 @@ import {
   BuildingLibraryIcon,
 } from "@heroicons/vue/24/solid";
 import QrCodeIcon from "@heroicons/vue/24/solid/QrCodeIcon";
-import type { PaymentMethod, CountryCode } from "@makanmakan/shared-types";
+import type { PaymentMethod, CountryCode } from "@makanmasak/shared-types";
 
 // Props
 interface Props {
