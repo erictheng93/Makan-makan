@@ -65,9 +65,13 @@ function sourceFor(path: string): string {
   );
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function middlewareCall(prefix: string, middleware: string): RegExp {
   return new RegExp(
-    `apiV1\\.use\\(\\s*["']${prefix.replace(/\*/g, "\\*")}["']\\s*,\\s*${middleware}`,
+    `apiV1\\.use\\(\\s*["']${escapeRegExp(prefix)}["']\\s*,\\s*${middleware}`,
   );
 }
 

@@ -360,6 +360,12 @@ importers:
         specifier: ^4.85.0
         version: 4.85.0(@cloudflare/workers-types@4.20260113.0)
 
+  apps/backup-scheduler:
+    devDependencies:
+      wrangler:
+        specifier: ^4.85.0
+        version: 4.85.0(@cloudflare/workers-types@4.20260113.0)
+
   apps/customer-app:
     dependencies:
       '@chenfengyuan/vue-qrcode':
@@ -12283,7 +12289,7 @@ snapshots:
       std-env: 3.10.0
       strip-literal: 2.1.1
       test-exclude: 6.0.0
-      vitest: 1.6.1(@types/node@20.19.28)(@vitest/ui@1.6.1)(jiti@1.21.7)(jsdom@23.2.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      vitest: 1.6.1(@types/node@20.19.28)(@vitest/ui@1.6.1)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -12464,7 +12470,7 @@ snapshots:
       pathe: 1.1.2
       picocolors: 1.1.1
       sirv: 2.0.4
-      vitest: 1.6.1(@types/node@25.0.7)(@vitest/ui@1.6.1)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      vitest: 1.6.1(@types/node@25.0.7)(@vitest/ui@1.6.1)(jiti@1.21.7)(jsdom@23.2.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
 
   '@vitest/ui@3.2.4(vitest@3.2.4)':
     dependencies:
