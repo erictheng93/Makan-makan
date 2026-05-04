@@ -4,7 +4,7 @@
 |---|---|
 | **狀態** | P1/P2/P3 已合併，§0.4 audit gaps 已補齊 |
 | **建立日期** | 2026-05-03 |
-| **最後更新** | 2026-05-03（含 §0.4 驗證快照與 follow-up 補齊）|
+| **最後更新** | 2026-05-04（含 §0.4 驗證快照與 production cron / webhook fail-closed 補齊）|
 | **作者** | Eric + Claude（驗證），Codex（實作） |
 | **影響範圍** | `apps/api`、`apps/management-api`、`apps/admin-dashboard`、`apps/customer-app`、`apps/kitchen-display`、`apps/onboarding-app`、`packages/database`、`packages/shared` |
 | **預計分階段** | 3 階段 / 13 個 PR（P1: 5 / P2: 4 / P3: 4） |
@@ -39,7 +39,7 @@
 | 2.5#2 | `module-gating-coverage.test.ts` 對所有 PROTECTED_PREFIXES 通過 | ✅ | `apps/api/src/__tests__/module-gate-coverage.test.ts` 已覆蓋 20 個 prefix |
 | 2.5#3 | `scripts/audit-module-gates.cjs` + pre-commit | ✅ | `scripts/audit-module-gates.cjs` 已加入，`.husky/pre-commit` 會執行 |
 | 2.5#4 | `GET /me/modules` 形狀正確 | ✅ | `apps/api/src/features/me/routes/index.ts:24-98`（customer 回 `restaurantId: null`）|
-| 2.5#5 | `useModuleAccess` + `<ModuleGate>` | ✅ | `packages/shared/src/composables/useModuleAccess.ts`、`packages/shared/src/components/ModuleGate.vue` |
+| 2.5#5 | `useModuleAccess` + `<ModuleGate>` | ✅ | `packages/shared/composables/useModuleAccess.ts`、`packages/shared/components/ModuleGate.vue` |
 | 2.5#6 | 3 處 frontend 接入點 | ✅ | KitchenView.vue / Sidebar.vue（coupons、analytics、ai_analytics）/ AIInsightsDashboard.vue |
 | 2.5#7 | onboarding 4 路徑 + `db.batch` | ✅ | `apps/management-api/src/services/OnboardingService.ts:425-443`，`planIdToTier()` 對應 |
 | 2.5#8 | backfill migration 對既存 restaurant 建 enterprise 訂閱 | ✅ | `migrations/0065_backfill_enterprise_subscriptions.sql` + `migrations_fresh/0046_backfill-enterprise-subscriptions.sql` |
@@ -54,20 +54,20 @@
 | 3.7#3 | `quotaGate` 套用 | ✅ | orders POST、group-orders、guest-orders、ai-analytics POST、print（第 992 行）皆掛 |
 | 3.7#4 | `PLAN_QUOTAS` | ✅ | `packages/database/src/utils/plan-quotas.ts`（trial/basic/pro/enterprise）|
 | 3.7#5 | `usage-aggregator.ts` | ✅ | `apps/api/src/workers/usage-aggregator.ts`（cron `*/5 * * * *` 由 `apps/api/src/index.ts` 派發）|
-| 3.7#6 | `usage-events-ttl.ts`（90 天清理）| ✅ | `apps/api/src/workers/usage-events-ttl.ts`，cron `0 3 * * *` 由 `apps/api/src/index.ts` 派發 |
+| 3.7#6 | `usage-events-ttl.ts`（90 天清理）| ✅ | `apps/api/src/workers/usage-events-ttl.ts`，cron `0 3 * * *` 由 `apps/api/src/index.ts` 派發，`apps/api/wrangler.toml` 已註冊 |
 | 3.7#7 | 3 個 usage GET API | ✅ | `/me/usage`（me/routes:100-120）、`/admin/subscriptions/:id/usage` + `/usage/events`（subscriptions/routes:28,43）|
 | 3.7#8 | admin-dashboard 用量頁籤 | ✅ | `apps/admin-dashboard/src/components/billing/UsageTab.vue` |
 | §9.3 | `quotaExceeded(meterKey, hardLimit)` factory | ✅ | `apps/api/src/middleware/quotaGate.ts` 匯出 `quotaExceeded()`，details 含 `{ meterKey, hardLimit, current }` |
 | 3.4.4 | `QUOTA_ENFORCEMENT_MODE` 三模式 | ✅ | `quotaGate.ts:26` 讀取，預設 `disabled` |
 
-### P3 — Billing Lifecycle（6/7 ✅、1/7 🟡）
+### P3 — Billing Lifecycle（7/7 ✅）
 
 | § | Acceptance | 狀態 | 證據 / 偏離 |
 |---|---|---|---|
 | 4.6#1 | `payment_audit_log` + `cycle_snapshots` migrated | ✅ | `0043_payment-audit-log.sql` + `0044_cycle-snapshots.sql` + `0045_notification-dispatch-log.sql` 順序正確 |
-| 4.6#2 | cycle closer cron 端到端結算 | ✅ | `BillingCycleService.closeDueCycles()` 由 `apps/api/src/index.ts:86-99` cron `15 2 * * *` 派發。**偏離**：SPEC §4.2 寫每小時 `0 * * * *`，實作為每日 02:15 |
+| 4.6#2 | cycle closer cron 端到端結算 | ✅ | `BillingCycleService.closeDueCycles()` 由 `apps/api/src/index.ts:86-99` cron `15 2 * * *` 派發，`apps/api/wrangler.toml` 已註冊。**偏離**：SPEC §4.2 寫每小時 `0 * * * *`，實作為每日 02:15 |
 | 4.6#3 | trial reaper | ✅ | `TrialReaperService.downgradeExpiredTrials()` 同上；**偏離**：未獨立成 `workers/trial-reaper.ts`，併入 `BillingCycleService.ts` |
-| 4.6#4 | webhook 端點對至少一家 provider 驗簽 | ✅ | Stripe + LINE Pay 兩家已實作；`STRIPE_WEBHOOK_SECRET` 與 `LINEPAY_WEBHOOK_SECRET` 驗簽測試覆蓋（`BillingWebhookService.ts:148-198`）|
+| 4.6#4 | webhook 端點對至少一家 provider 驗簽 | ✅ | Stripe + LINE Pay 兩家已實作且 fail-closed；secret 未配置、簽章缺失/錯誤、未知 provider 皆 401。`STRIPE_WEBHOOK_SECRET` 與 `LINEPAY_WEBHOOK_SECRET` 驗簽測試覆蓋（`BillingWebhookService.ts:148-204`）|
 | 4.6#5 | 5 種通知送達（硬/trial-3d/trial-1d/trial-0d/payment-failed） | ✅ | **採選項 C 設計**：`quota_soft` 維持 `X-Quota-Warning` header-only；`quota_hard` 發 Slack 並寫 `notification_dispatch_log`。實作 kinds：QUOTA_HARD / TRIAL_3D / TRIAL_1D / TRIAL_0D / PAYMENT_FAILED / GRACE_PERIOD_START / ACCOUNT_SUSPENDED / CYCLE_CLOSED。 |
 | 4.6#6 | `payment_audit_log` 對所有 payment 事件 append-only | ✅ | payment attempt/success/failure/refund、webhook_received、cycle_close、trial_downgrade、grace_period_start 均已寫入與測試覆蓋 |
 | 4.6#7 | `docs/runbooks/billing-incident-response.md` | ✅ | 存在（22+ 行 SOP）|
@@ -75,7 +75,7 @@
 ### 結論：SPEC 與實作的最大偏離
 
 1. **PR 拆分順序與 SPEC 不符**：SPEC §4.7 的 P3 順序是 a → b → c → d；實作 commit 順序曾偏離，但 migration filename 順序已正確。
-2. **Cron 頻率偏離**：cycle closer 由 SPEC 的 hourly 改成 daily 02:15。是否符合「7 天 grace period sweep」（§4.4.3）需確認 — 24h cron 仍可在 7±1 天精度滿足。
+2. **Cron 頻率偏離**：cycle closer 由 SPEC 的 hourly 改成 daily 02:15；`apps/api/wrangler.toml` 已註冊 `0 3 * * *` 與 `15 2 * * *`，production 會觸發 P2 TTL 與 P3 lifecycle。24h cron 可在 7±1 天精度滿足 grace period sweep。
 3. **Notification kinds 集合已依選項 C 收斂**：保留 `GRACE_PERIOD_START` / `ACCOUNT_SUSPENDED`（合理擴充），補齊 `QUOTA_HARD` / `TRIAL_1D`；`QUOTA_SOFT` 正式改為 header-only，不推 Slack/email。
 4. **已補齊 gap**：P1 backfill/gate audit、P2 TTL/quota factory、P3 LINE Pay provider、billing notification kind tests 均已落地。
 
@@ -211,7 +211,7 @@ type MeModulesResponse = {
 
 #### 2.2.2 前端 composable
 
-**新增** `packages/shared/src/composables/useModuleAccess.ts`：
+**新增** `packages/shared/composables/useModuleAccess.ts`：
 
 ```typescript
 export function useModuleAccess() {
@@ -233,7 +233,7 @@ export function useModuleAccess() {
 }
 ```
 
-**Pinia store** `packages/shared/src/stores/moduleAccess.ts`：
+**Pinia store** `packages/shared/stores/moduleAccess.ts`：
 - 登入後 `app.beforeMount()` 觸發第一次 fetch
 - 5 分鐘 TTL，過期下次讀取時 stale-while-revalidate（先回舊值、背景 refetch）
 - 401/403 → 清空 store、不 retry
@@ -241,7 +241,7 @@ export function useModuleAccess() {
 
 #### 2.2.3 `<ModuleGate>` 元件
 
-**新增** `packages/shared/src/components/ModuleGate.vue`：
+**新增** `packages/shared/components/ModuleGate.vue`：
 
 ```vue
 <!-- 用法 -->
@@ -962,6 +962,7 @@ P2 的 `quotaGate` middleware 上線時用環境變數 `QUOTA_ENFORCEMENT_MODE`�
 - `enforce`：完整擋下（最終態）
 
 逐 restaurant 切換到 `enforce`，避免大爆炸。
+目前 production 不在 `wrangler.toml` 強制設定 `enforce`；維持預設 `disabled` 是 rollout 決策，等 §5 #6 quota 數字用真實客戶 30 天用量校準後再切換。
 
 ### 6.3 觀測
 
@@ -1037,11 +1038,11 @@ export interface UsageReporter {
 | API middleware | `apps/api/src/middleware/{camelName}.ts` | `quotaGate.ts`、`usageTracker.ts` |
 | API helper utils | `apps/api/src/shared/utils/{camelName}.ts` | `meter.ts` |
 | API feature | `apps/api/src/features/{kebab-name}/{routes,services,schemas,__tests__}/` | `features/billing/` |
-| 共用 composable | `packages/shared/src/composables/{useCamelName}.ts` | `useModuleAccess.ts` |
-| 共用元件 | `packages/shared/src/components/{PascalName}.vue` | `ModuleGate.vue` |
-| 共用 store | `packages/shared/src/stores/{camelName}.ts` | `moduleAccess.ts` |
+| 共用 composable | `packages/shared/composables/{useCamelName}.ts` | `useModuleAccess.ts` |
+| 共用元件 | `packages/shared/components/{PascalName}.vue` | `ModuleGate.vue` |
+| 共用 store | `packages/shared/stores/{camelName}.ts` | `moduleAccess.ts` |
 | Email templates | `packages/shared/src/email-templates/billing/{kebab-name}.{mjml,ts}` | `quota-soft.mjml` |
-| Cron worker | `apps/api/src/workers/{kebab-name}.ts`（mount 在 `apps/backup-scheduler/wrangler.toml`） | `usage-aggregator.ts` |
+| Cron worker | `apps/api/src/workers/{kebab-name}.ts`（mount 在 `apps/api/wrangler.toml` triggers） | `usage-aggregator.ts` |
 
 ### 9.2 命名慣例
 
