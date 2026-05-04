@@ -954,6 +954,8 @@ P1 上線時 `shopSubscriptions` 沒有 row 的既有 restaurant：
 - 寫 backfill migration：所有現存 restaurant 自動建立 `planTier = 'enterprise'` + `isActive = true` 訂閱（避免破壞既有客戶）
 - 之後再依商務決策手動降級
 
+Backfill migration 是一次性資料修補，允許使用 SQLite `lower(hex(randomblob(16)))` 產生既有資料的 primary key；runtime application writes 仍必須使用 UUID v7（schema `$defaultFn(() => uuidv7())` 或 `@makanmakan/utils.generateUUID()`）。
+
 ### 6.2 Feature flag
 
 P2 的 `quotaGate` middleware 上線時用環境變數 `QUOTA_ENFORCEMENT_MODE`：
@@ -1071,7 +1073,9 @@ Cache invalidation hook：subscription 變更走既有 `invalidateSubscriptionCa
 
 - 所有跨表原子寫入用 `db.batch([...])`（D1 不支援多語句 transaction）
 - 大量 INSERT（聚合、TTL 清理）每批 ≤ 5000 rows
-- INSERT/UPSERT 用 Drizzle `onConflictDoUpdate`，不寫 raw SQL
+- 一般 feature 的 INSERT/UPSERT 用 Drizzle Layer 1/2（query builder 或 `sql` template + schema refs），不寫 raw string SQL
+- Billing/usage metering 的 cron worker、metering hot path、D1 `batch`、idempotent UPSERT 暫時允許使用參數化 D1 prepared statements；禁止字串拼接 SQL，動態條件必須白名單組合並只用 bound parameters
+- 新增 runtime row id 必須使用 UUID v7；一次性 backfill migration 可依 §6.1 使用 SQLite random hex 例外
 
 ### 9.6 環境變數
 
