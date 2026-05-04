@@ -30,3 +30,15 @@ Recent history follows Conventional Commits, for example `feat(tests): ...`, `fi
 ## Agent-Specific Notes
 
 Per local tooling rules, prefix shell commands with `rtk` when running repo commands (for example `rtk git status`, `rtk pnpm test`).
+
+## RTK Command Preference
+
+When invoking external CLI commands from Codex for this repository, prefer the `rtk` prefix for tools such as `git`, `pnpm`, `npm`, `node`, `php`, `composer`, `pytest`, `python`, `cargo`, `bash`, and `sh`.
+
+Examples:
+
+- `rtk git status`
+- `rtk pnpm test`
+- `rtk node scripts/check-production-config.cjs`
+
+PowerShell builtins and simple read-only inspection commands do not need the `rtk` prefix.

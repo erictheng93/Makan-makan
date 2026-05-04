@@ -46,6 +46,10 @@ export default defineConfig({
         "../../packages/shared-types/src",
       ),
       "@makanmakan/database": resolve(__dirname, "../../packages/database/src"),
+      "@makanmakan/utils": resolve(
+        __dirname,
+        "../../packages/utils/src/index.ts",
+      ),
     },
   },
   define: {

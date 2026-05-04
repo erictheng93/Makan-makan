@@ -53,7 +53,9 @@ describe("BillingNotificationService", () => {
   });
 
   it.each([
+    BILLING_NOTIFICATION_KINDS.QUOTA_HARD,
     BILLING_NOTIFICATION_KINDS.TRIAL_3D,
+    BILLING_NOTIFICATION_KINDS.TRIAL_1D,
     BILLING_NOTIFICATION_KINDS.TRIAL_0D,
     BILLING_NOTIFICATION_KINDS.PAYMENT_FAILED,
     BILLING_NOTIFICATION_KINDS.GRACE_PERIOD_START,
@@ -202,12 +204,25 @@ describe("BillingNotificationService", () => {
       env,
     ).sendTrialEndingReminders(1_000 - 3 * 24 * 60 * 60 * 1000);
 
-    expect(result).toEqual({ attempted: 1 });
-    expect(bind).toHaveBeenLastCalledWith(
+    expect(result).toEqual({ attempted: 2 });
+    expect(bind).toHaveBeenCalledWith(
       expect.any(String),
       "rest-1",
       "trial_3d",
       "trial_3d:rest-1:4000",
+      "email",
+      "skipped_provider_unconfigured",
+      "owner@example.com",
+      null,
+      null,
+      expect.stringContaining('"trialEndsAt":4000'),
+      expect.any(Number),
+    );
+    expect(bind).toHaveBeenLastCalledWith(
+      expect.any(String),
+      "rest-1",
+      "trial_1d",
+      "trial_1d:rest-1:4000",
       "email",
       "skipped_provider_unconfigured",
       "owner@example.com",

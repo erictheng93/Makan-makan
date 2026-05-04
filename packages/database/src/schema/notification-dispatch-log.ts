@@ -10,7 +10,9 @@ import { v7 as uuidv7 } from "uuid";
 import { restaurants } from "./restaurants";
 
 export const BILLING_NOTIFICATION_KINDS = {
+  QUOTA_HARD: "quota_hard",
   TRIAL_3D: "trial_3d",
+  TRIAL_1D: "trial_1d",
   TRIAL_0D: "trial_0d",
   PAYMENT_FAILED: "payment_failed",
   GRACE_PERIOD_START: "grace_period_start",

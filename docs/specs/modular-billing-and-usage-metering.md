@@ -68,7 +68,7 @@
 | 4.6#2 | cycle closer cron 端到端結算 | ✅ | `BillingCycleService.closeDueCycles()` 由 `apps/api/src/index.ts:86-99` cron `15 2 * * *` 派發。**偏離**：SPEC §4.2 寫每小時 `0 * * * *`，實作為每日 02:15 |
 | 4.6#3 | trial reaper | ✅ | `TrialReaperService.downgradeExpiredTrials()` 同上；**偏離**：未獨立成 `workers/trial-reaper.ts`，併入 `BillingCycleService.ts` |
 | 4.6#4 | webhook 端點對至少一家 provider 驗簽 | ✅ | Stripe + LINE Pay 兩家已實作；`STRIPE_WEBHOOK_SECRET` 與 `LINEPAY_WEBHOOK_SECRET` 驗簽測試覆蓋（`BillingWebhookService.ts:148-198`）|
-| 4.6#5 | 5 種通知送達（軟/硬/trial-3d/trial-0d/payment-failed） | 🟡 | **實作 6 kinds**：TRIAL_3D / TRIAL_0D / PAYMENT_FAILED / GRACE_PERIOD_START / ACCOUNT_SUSPENDED / CYCLE_CLOSED。**SPEC §4.1.3 列出但未實作**：`QUOTA_SOFT` / `QUOTA_HARD` / `TRIAL_1D`（quotaGate 只回 `X-Quota-Warning` header，未推 Slack/email；trial 提醒只有 3d 與 0d 兩階段）。若採嚴格 SPEC §4.6#5「軟/硬」字面義 → 未滿足；若採商務解讀（quota header 已給用戶 buffer，無需另發通知） → 可視為設計變更 |
+| 4.6#5 | 5 種通知送達（硬/trial-3d/trial-1d/trial-0d/payment-failed） | ✅ | **採選項 C 設計**：`quota_soft` 維持 `X-Quota-Warning` header-only；`quota_hard` 發 Slack 並寫 `notification_dispatch_log`。實作 kinds：QUOTA_HARD / TRIAL_3D / TRIAL_1D / TRIAL_0D / PAYMENT_FAILED / GRACE_PERIOD_START / ACCOUNT_SUSPENDED / CYCLE_CLOSED。 |
 | 4.6#6 | `payment_audit_log` 對所有 payment 事件 append-only | ✅ | payment attempt/success/failure/refund、webhook_received、cycle_close、trial_downgrade、grace_period_start 均已寫入與測試覆蓋 |
 | 4.6#7 | `docs/runbooks/billing-incident-response.md` | ✅ | 存在（22+ 行 SOP）|
 
@@ -76,7 +76,7 @@
 
 1. **PR 拆分順序與 SPEC 不符**：SPEC §4.7 的 P3 順序是 a → b → c → d；實作 commit 順序曾偏離，但 migration filename 順序已正確。
 2. **Cron 頻率偏離**：cycle closer 由 SPEC 的 hourly 改成 daily 02:15。是否符合「7 天 grace period sweep」（§4.4.3）需確認 — 24h cron 仍可在 7±1 天精度滿足。
-3. **Notification kinds 集合與 SPEC 略偏**：實作多了 `GRACE_PERIOD_START` / `ACCOUNT_SUSPENDED`（合理擴充），但少了 `QUOTA_SOFT` / `QUOTA_HARD` / `TRIAL_1D`。建議 PM 拍板是否補做 quota 推播通知，或正式更新 SPEC §4.1.3 與 §4.6#5 acceptance 將其移除。
+3. **Notification kinds 集合已依選項 C 收斂**：保留 `GRACE_PERIOD_START` / `ACCOUNT_SUSPENDED`（合理擴充），補齊 `QUOTA_HARD` / `TRIAL_1D`；`QUOTA_SOFT` 正式改為 header-only，不推 Slack/email。
 4. **已補齊 gap**：P1 backfill/gate audit、P2 TTL/quota factory、P3 LINE Pay provider、billing notification kind tests 均已落地。
 
 ---
@@ -771,7 +771,6 @@ export const cycleSnapshots = sqliteTable("cycle_snapshots", {
 ```typescript
 // packages/database/src/schema/notification-dispatch-log.ts
 export const NOTIFICATION_KINDS = {
-  QUOTA_SOFT: "quota_soft",
   QUOTA_HARD: "quota_hard",
   TRIAL_3D: "trial_3d",
   TRIAL_1D: "trial_1d",
@@ -787,7 +786,7 @@ export const notificationDispatchLog = sqliteTable("notification_dispatch_log", 
   restaurantId: text("restaurant_id").notNull().references(() => restaurants.id),
   kind: text("kind").notNull().$type<NotificationKind>(),
 
-  // dedupKey 範例："quota_soft:orders.created:cycle:1714579200000"
+  // dedupKey 範例："orders.created:cycle:1714579200000"
   // 同 kind 同 cycle 同 meter 只發一次靠這個 unique 擋
   dedupKey: text("dedup_key").notNull(),
 
@@ -891,7 +890,6 @@ P3-c 上線時實作至少一個（取決於 §5 #1 決策後）。本 SPEC 寫�
 
 | `kind` | 觸發來源 | dedupKey 形式 |
 |---|---|---|
-| `quota_soft` | `quotaGate` 軟限制命中 | `${meterKey}:cycle:${cycleStartAt}` |
 | `quota_hard` | `quotaGate` 硬限制命中 | `${meterKey}:cycle:${cycleStartAt}` |
 | `trial_3d` / `trial_1d` / `trial_0d` | 既有 backup-scheduler 加 schedule `0 9 * * *`（每日 UTC 09:00 = 台灣 17:00）掃 trial 到期 | `trial:${trialEndsAt}` |
 | `payment_failed` | §4.4.3 grace period 進入時 | `payment:${providerEventId}` |
@@ -919,7 +917,7 @@ P3-c 上線時實作至少一個（取決於 §5 #1 決策後）。本 SPEC 寫�
 - [ ] cycle closer cron 每小時跑，至少一個 cycle 端到端結算成功
 - [ ] trial reaper cron 證明可降級（測試環境模擬時間）
 - [ ] webhook 端點對至少一家金流商驗簽通過、處理 invoice.paid 事件
-- [ ] 5 種通知（軟/硬/trial-3d/trial-0d/payment-failed）全部送達
+- [ ] 5 種通知（硬/trial-3d/trial-1d/trial-0d/payment-failed）全部送達；soft quota 只回 `X-Quota-Warning`
 - [ ] `payment_audit_log` 對所有 payment 事件 append-only 留痕
 - [ ] 文件 `docs/runbooks/billing-incident-response.md` 完成（重複收費／漏收費／webhook 漏接 SOP）
 

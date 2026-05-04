@@ -205,7 +205,26 @@ export class BillingReminderService {
   constructor(private readonly env: Env) {}
 
   async sendTrialEndingReminders(now = Date.now()) {
-    const from = now + 3 * DAY_MS;
+    const trial3d = await this.sendTrialReminderWindow(
+      now,
+      3,
+      BILLING_NOTIFICATION_KINDS.TRIAL_3D,
+    );
+    const trial1d = await this.sendTrialReminderWindow(
+      now,
+      1,
+      BILLING_NOTIFICATION_KINDS.TRIAL_1D,
+    );
+
+    return { attempted: trial3d.attempted + trial1d.attempted };
+  }
+
+  private async sendTrialReminderWindow(
+    now: number,
+    daysBeforeEnd: 1 | 3,
+    kind: BillingNotificationKind,
+  ) {
+    const from = now + daysBeforeEnd * DAY_MS;
     const to = from + DAY_MS;
     const rows = await this.env.DB.prepare(
       `SELECT s.restaurant_id, r.name AS restaurant_name, r.email,
@@ -226,12 +245,12 @@ export class BillingReminderService {
       attempted++;
       await new BillingNotificationService(this.env).send({
         restaurantId: row.restaurant_id,
-        kind: BILLING_NOTIFICATION_KINDS.TRIAL_3D,
-        dedupKey: `trial_3d:${row.restaurant_id}:${row.trial_ends_at_ms}`,
+        kind,
+        dedupKey: `${kind}:${row.restaurant_id}:${row.trial_ends_at_ms}`,
         channel: NOTIFICATION_CHANNELS.EMAIL,
         recipient: row.email,
-        subject: "Your MakanMasak trial ends in 3 days",
-        text: `The MakanMasak trial for ${row.restaurant_name} ends in 3 days.`,
+        subject: `Your MakanMasak trial ends in ${daysBeforeEnd} day${daysBeforeEnd === 1 ? "" : "s"}`,
+        text: `The MakanMasak trial for ${row.restaurant_name} ends in ${daysBeforeEnd} day${daysBeforeEnd === 1 ? "" : "s"}.`,
         payload: { trialEndsAt: row.trial_ends_at_ms },
       });
     }

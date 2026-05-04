@@ -22,7 +22,9 @@ function buildApp(options: {
 }) {
   const app = new Hono<any>();
   const statements = options.statements ?? [];
-  const prepare = vi.fn(() => statements.shift() ?? statement(null));
+  const prepare = vi.fn(
+    (_query: string) => statements.shift() ?? statement(null),
+  );
   const kv = {
     get: vi.fn().mockResolvedValue(null),
     put: vi.fn().mockResolvedValue(undefined),
@@ -78,7 +80,7 @@ describe("quotaGate", () => {
   });
 
   it("adds a warning header after the soft limit", async () => {
-    const { app, env } = buildApp({
+    const { app, env, prepare } = buildApp({
       mode: "warn",
       statements: [
         statement({
@@ -97,10 +99,15 @@ describe("quotaGate", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("X-Quota-Warning")).toBe("orders.created 80%");
+    expect(
+      prepare.mock.calls.some(([query]) =>
+        String(query).includes("notification_dispatch_log"),
+      ),
+    ).toBe(false);
   });
 
   it("blocks requests at the hard limit in enforce mode", async () => {
-    const { app, env } = buildApp({
+    const { app, env, prepare } = buildApp({
       mode: "enforce",
       statements: [
         statement({
@@ -120,6 +127,11 @@ describe("quotaGate", () => {
 
     expect(response.status).toBe(429);
     expect(body.error.code).toBe("QUOTA_EXCEEDED");
+    expect(
+      prepare.mock.calls.some(([query]) =>
+        String(query).includes("notification_dispatch_log"),
+      ),
+    ).toBe(true);
   });
 
   it("creates quota exceeded errors with canonical details", () => {

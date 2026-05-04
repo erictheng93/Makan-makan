@@ -7,6 +7,11 @@ import {
   type MeterQuota,
   type PlanTier,
 } from "@makanmakan/database";
+import {
+  BILLING_NOTIFICATION_KINDS,
+  BillingNotificationService,
+  NOTIFICATION_CHANNELS,
+} from "../features/billing/services/BillingNotificationService";
 
 interface SubscriptionRow {
   plan_tier: PlanTier;
@@ -145,6 +150,45 @@ function setQuotaWarning(
   c.header("X-Quota-Warning", `${meterKey} ${pct}%`);
 }
 
+async function notifyHardQuotaExceeded(
+  c: Context<any>,
+  restaurantId: string,
+  meterKey: MeterKey,
+  cycleStartAt: number,
+  hardLimit: number,
+  current: number,
+) {
+  const sendOp = new BillingNotificationService(c.env as Env)
+    .send({
+      restaurantId,
+      kind: BILLING_NOTIFICATION_KINDS.QUOTA_HARD,
+      dedupKey: `${meterKey}:cycle:${cycleStartAt}`,
+      channel: NOTIFICATION_CHANNELS.SLACK,
+      text: `Quota hard limit reached for restaurant ${restaurantId}: ${meterKey} ${current}/${hardLimit}`,
+      payload: { meterKey, cycleStartAt, hardLimit, current },
+    })
+    .catch((error) => {
+      console.error("quotaGate.notification.failed", {
+        restaurantId,
+        meterKey,
+        error,
+      });
+    });
+
+  let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
+  try {
+    waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+  } catch {
+    waitUntil = undefined;
+  }
+
+  if (waitUntil) {
+    waitUntil(sendOp);
+  } else {
+    await sendOp;
+  }
+}
+
 export async function enforceQuota(
   c: Context<any>,
   meterKey: MeterKey,
@@ -181,6 +225,14 @@ export async function enforceQuota(
 
   if (effectiveCount >= quota.hard) {
     setQuotaWarning(c, meterKey, effectiveCount, quota);
+    await notifyHardQuotaExceeded(
+      c,
+      restaurantId,
+      meterKey,
+      cycle.startAt,
+      quota.hard,
+      effectiveCount,
+    );
     if (mode === "enforce") {
       throw quotaExceeded(meterKey, quota.hard, effectiveCount);
     }
