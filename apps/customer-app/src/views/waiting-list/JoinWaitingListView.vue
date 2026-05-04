@@ -1,0 +1,304 @@
+<template>
+  <div class="min-h-screen bg-ios-bg text-ios-text">
+    <main class="max-w-md mx-auto px-4 py-8 space-y-5">
+      <section class="bg-white rounded-2xl shadow-card p-6 animate-slide-up">
+        <div class="flex items-center gap-3 mb-6">
+          <div
+            class="w-11 h-11 rounded-full bg-ios-blue/10 flex items-center justify-center text-ios-blue"
+          >
+            <QueueListIcon class="w-6 h-6" />
+          </div>
+          <div>
+            <h1 class="text-2xl font-semibold text-ios-text">
+              {{ t("waitingList.join.title") }}
+            </h1>
+            <p class="text-sm text-ios-secondary">
+              {{ t("waitingList.join.subtitle") }}
+            </p>
+          </div>
+        </div>
+
+        <form class="space-y-4" @submit.prevent="handleJoin">
+          <label class="block">
+            <span class="text-sm font-medium text-ios-text">{{
+              t("waitingList.form.name")
+            }}</span>
+            <input
+              v-model.trim="customerName"
+              data-testid="customer-name-input"
+              class="mt-2 w-full rounded-2xl border-0 bg-ios-bg px-4 py-3 text-ios-text placeholder:text-ios-tertiary focus:ring-2 focus:ring-ios-blue transition-shadow duration-200 ease-out"
+              autocomplete="name"
+              :placeholder="t('waitingList.form.namePlaceholder')"
+              required
+            />
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-medium text-ios-text">{{
+              t("waitingList.form.phone")
+            }}</span>
+            <input
+              v-model.trim="customerPhone"
+              data-testid="customer-phone-input"
+              class="mt-2 w-full rounded-2xl border-0 bg-ios-bg px-4 py-3 text-ios-text placeholder:text-ios-tertiary focus:ring-2 focus:ring-ios-blue transition-shadow duration-200 ease-out"
+              inputmode="tel"
+              autocomplete="tel"
+              :placeholder="t('waitingList.form.phonePlaceholder')"
+              required
+            />
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-medium text-ios-text">{{
+              t("waitingList.form.partySize")
+            }}</span>
+            <select
+              v-model.number="partySize"
+              data-testid="party-size-select"
+              class="mt-2 w-full rounded-2xl border-0 bg-ios-bg px-4 py-3 text-ios-text focus:ring-2 focus:ring-ios-blue transition-shadow duration-200 ease-out"
+            >
+              <option v-for="size in partySizes" :key="size" :value="size">
+                {{ tWithParams("waitingList.form.partySizeOption", { size }) }}
+              </option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-medium text-ios-text">{{
+              t("waitingList.form.notes")
+            }}</span>
+            <textarea
+              v-model.trim="notes"
+              data-testid="notes-input"
+              class="mt-2 w-full rounded-2xl border-0 bg-ios-bg px-4 py-3 text-ios-text placeholder:text-ios-tertiary focus:ring-2 focus:ring-ios-blue transition-shadow duration-200 ease-out"
+              rows="3"
+              :placeholder="t('waitingList.form.notesPlaceholder')"
+            />
+          </label>
+
+          <p
+            v-if="formMessage"
+            data-testid="form-message"
+            class="text-sm text-ios-red"
+          >
+            {{ formMessage }}
+          </p>
+
+          <div class="space-y-3 pt-2">
+            <button
+              data-testid="join-button"
+              class="w-full rounded-full bg-ios-blue px-5 py-3.5 font-semibold text-white active:scale-[0.98] transition-transform duration-200 ease-out disabled:opacity-60"
+              type="submit"
+              :disabled="isSubmitting"
+            >
+              {{ t("waitingList.join.submit") }}
+            </button>
+            <button
+              data-testid="lookup-button"
+              class="w-full rounded-full bg-white px-5 py-3.5 font-semibold text-ios-blue shadow-card-sm active:scale-[0.98] transition-transform duration-200 ease-out disabled:opacity-60"
+              type="button"
+              :disabled="isSubmitting"
+              @click="handleLookup"
+            >
+              {{ t("waitingList.join.lookup") }}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section
+        v-if="queueStatus || waitEstimate"
+        data-testid="queue-summary"
+        class="bg-white rounded-2xl shadow-card p-5 grid grid-cols-2 gap-4 animate-slide-up"
+      >
+        <div>
+          <p class="text-xs text-ios-secondary">
+            {{ t("waitingList.join.nowWaiting") }}
+          </p>
+          <p class="mt-1 text-2xl font-semibold text-ios-text">
+            {{ queueStatus?.totalWaiting ?? "-" }}
+          </p>
+        </div>
+        <div>
+          <p class="text-xs text-ios-secondary">
+            {{ t("waitingList.join.estimatedWait") }}
+          </p>
+          <p class="mt-1 text-2xl font-semibold text-ios-text">
+            {{
+              tWithParams("waitingList.minutesShort", {
+                minutes:
+                  waitEstimate?.estimatedWaitMinutes ??
+                  queueStatus?.averageWaitMinutes ??
+                  "-",
+              })
+            }}
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import { QueueListIcon } from "@heroicons/vue/24/outline";
+import { useI18n } from "@/composables/useI18n";
+import {
+  isTerminalWaitingStatus,
+  WAITING_LIST_LAST_TICKET_KEY,
+  type LastWaitingTicket,
+} from "@/composables/useWaitingTicket";
+import { waitingListApi } from "@/services/waitingListApi";
+import type {
+  JoinWaitingListRequest,
+  QueueStatus,
+  WaitingListResponse,
+  WaitTimeEstimateResult,
+} from "@makanmakan/shared-types";
+
+const props = defineProps<{
+  restaurantId: string;
+}>();
+
+const router = useRouter();
+const { t, tWithParams } = useI18n();
+
+const customerName = ref("");
+const customerPhone = ref("");
+const partySize = ref(2);
+const notes = ref("");
+const queueStatus = ref<QueueStatus | null>(null);
+const waitEstimate = ref<WaitTimeEstimateResult | null>(null);
+const formMessage = ref("");
+const isSubmitting = ref(false);
+
+const partySizes = [1, 2, 3, 4, 5, 6, 7, 8];
+
+const normalizedPhone = computed(() =>
+  customerPhone.value.replace(/[-\s]/g, ""),
+);
+
+const isValidPhone = () => /^09\d{8}$/.test(normalizedPhone.value);
+
+const ticketPath = (ticketId: string) =>
+  `/r/${props.restaurantId}/wait-list/${ticketId}`;
+
+const persistTicket = (ticket: WaitingListResponse) => {
+  const lastTicket: LastWaitingTicket = {
+    ticketId: ticket.id,
+    restaurantId: ticket.restaurantId,
+    customerPhone: ticket.customerPhone,
+  };
+  localStorage.setItem(
+    WAITING_LIST_LAST_TICKET_KEY,
+    JSON.stringify(lastTicket),
+  );
+};
+
+const routeToTicket = (ticket: WaitingListResponse) => {
+  persistTicket(ticket);
+  void router.push(ticketPath(ticket.id));
+};
+
+const validatePhoneOrMessage = () => {
+  if (isValidPhone()) {
+    formMessage.value = "";
+    return true;
+  }
+
+  formMessage.value = t("waitingList.errors.invalidPhone");
+  return false;
+};
+
+const handleJoin = async () => {
+  if (!validatePhoneOrMessage()) {
+    return;
+  }
+
+  isSubmitting.value = true;
+  formMessage.value = "";
+
+  try {
+    const request: JoinWaitingListRequest = {
+      restaurantId: props.restaurantId,
+      customerName: customerName.value,
+      customerPhone: normalizedPhone.value,
+      partySize: partySize.value,
+      notes: notes.value || undefined,
+    };
+    const ticket = await waitingListApi.join(request);
+    routeToTicket(ticket);
+  } catch {
+    formMessage.value = t("waitingList.errors.joinFailed");
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const handleLookup = async () => {
+  if (!validatePhoneOrMessage()) {
+    return;
+  }
+
+  isSubmitting.value = true;
+  formMessage.value = "";
+
+  try {
+    const ticket = await waitingListApi.lookup(
+      props.restaurantId,
+      normalizedPhone.value,
+    );
+    routeToTicket(ticket);
+  } catch {
+    formMessage.value = t("waitingList.errors.lookupFailed");
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const loadQueueSnapshot = async () => {
+  queueStatus.value = await waitingListApi.getQueueStatus(props.restaurantId);
+  waitEstimate.value = await waitingListApi.estimateWait(
+    props.restaurantId,
+    partySize.value,
+  );
+};
+
+const restoreLastTicket = async () => {
+  const raw = localStorage.getItem(WAITING_LIST_LAST_TICKET_KEY);
+  if (!raw) {
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as LastWaitingTicket;
+    if (parsed.restaurantId !== props.restaurantId) {
+      return;
+    }
+
+    const ticket = await waitingListApi.getById(parsed.ticketId);
+    if (isTerminalWaitingStatus(ticket.status)) {
+      localStorage.removeItem(WAITING_LIST_LAST_TICKET_KEY);
+      return;
+    }
+
+    void router.replace(ticketPath(ticket.id));
+  } catch {
+    localStorage.removeItem(WAITING_LIST_LAST_TICKET_KEY);
+  }
+};
+
+watch(partySize, () => {
+  void waitingListApi
+    .estimateWait(props.restaurantId, partySize.value)
+    .then((estimate) => {
+      waitEstimate.value = estimate;
+    });
+});
+
+onMounted(() => {
+  void restoreLastTicket();
+  void loadQueueSnapshot();
+});
+</script>

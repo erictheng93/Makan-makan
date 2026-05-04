@@ -171,6 +171,24 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/r/:restaurantId/wait-list",
+    name: "JoinWaitingList",
+    component: () => import("@/views/waiting-list/JoinWaitingListView.vue"),
+    props: true,
+    meta: {
+      titleKey: "waitingList.join.title",
+    },
+  },
+  {
+    path: "/r/:restaurantId/wait-list/:ticketId",
+    name: "MyWaitingTicket",
+    component: () => import("@/views/waiting-list/MyWaitingTicketView.vue"),
+    props: true,
+    meta: {
+      titleKey: "waitingList.ticket.title",
+    },
+  },
+  {
     path: "/restaurant/:restaurantId/table/:tableId/order/:orderId",
     name: "OrderTracking",
     component: () => import("@/views/OrderTrackingView.vue"),

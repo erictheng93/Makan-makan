@@ -7,9 +7,19 @@ import {
   type LocaleInfo,
 } from "@makanmakan/i18n";
 import { getCustomerMessages } from "@makanmakan/i18n/static-messages";
+import { waitingListEn } from "@/locales/en";
+import { waitingListZhTw } from "@/locales/zh-TW";
 
 // Load all translations statically
 const messages = getCustomerMessages();
+messages["en-US"] = {
+  ...messages["en-US"],
+  ...waitingListEn,
+};
+messages["zh-TW"] = {
+  ...messages["zh-TW"],
+  ...waitingListZhTw,
+};
 
 // Supported languages for this app
 export const SUPPORTED_LANGUAGES = SUPPORTED_LOCALES;
