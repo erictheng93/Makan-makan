@@ -42,15 +42,28 @@ config.global.directives = {
 // Browser API Mocks
 // ============================================================
 
-// Mock localStorage with proper implementation
+// Mock localStorage with a backing store so setItem/getItem round-trip.
+// The previous version had setItem as a no-op vi.fn(), which silently
+// dropped writes — any test exercising real storage behavior (e.g. the
+// waiting-list lastTicket flow) would see null on read.
+//
+// Default seed: makanmasak_locale = "zh-TW" so i18n tests don't need to
+// pre-set it. Tests can call localStorage.clear() to wipe (the seed is
+// re-applied on each test via beforeEach below if needed, but most tests
+// only read the locale once at i18n init time).
+const localStorageStore = new Map<string, string>();
+localStorageStore.set("makanmasak_locale", "zh-TW");
 const localStorageMock = {
-  getItem: vi.fn((key: string) => {
-    if (key === "makanmakan_locale") return "zh-TW";
-    return null;
+  getItem: vi.fn((key: string) => localStorageStore.get(key) ?? null),
+  setItem: vi.fn((key: string, value: string) => {
+    localStorageStore.set(key, String(value));
   }),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+  removeItem: vi.fn((key: string) => {
+    localStorageStore.delete(key);
+  }),
+  clear: vi.fn(() => {
+    localStorageStore.clear();
+  }),
 };
 
 Object.defineProperty(window, "localStorage", {
