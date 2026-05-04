@@ -809,7 +809,10 @@ jobs:
         database-performance-tests,
         performance-tests,
       ]
-    if: always()
+    # Keep PR feedback focused on the actual required gates. The summary job is
+    # still useful for main/develop pushes and manual full-suite runs, where
+    # skipped/manual heavy jobs need one consolidated report.
+    if: always() && github.event_name != 'pull_request'
     timeout-minutes: 5
 
     steps:

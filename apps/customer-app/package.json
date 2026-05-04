@@ -58,7 +58,7 @@
     "vite": "^5.2.11",
     "vite-plugin-compression2": "^2.2.1",
     "vite-plugin-pwa": "^0.17.0",
-    "vitest": "^1.0.0",
+    "vitest": "^3.2.4",
     "vue-tsc": "^3.0.6",
     "wrangler": "^4.85.0"
   }

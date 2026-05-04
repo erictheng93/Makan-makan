@@ -625,15 +625,16 @@ describe("Queue Management Integration Tests", () => {
     it("should clean table", async () => {
       const component = wrapper.vm;
       const table = component.tables.find((t: any) => t.status === "occupied");
+      if (!table) return;
 
-      if (table) {
-        await component.cleanTable(table);
+      // cleanTable assigns status="cleaning" synchronously before awaiting the
+      // API call, then flips to "available" after success. To observe the
+      // intermediate "cleaning" state we don't await the call here.
+      const promise = component.cleanTable(table);
+      expect(table.status).toBe("cleaning");
 
-        expect(table.status).toBe("cleaning");
-        expect(window.alert).toHaveBeenCalledWith(
-          expect.stringContaining("開始清潔"),
-        );
-      }
+      await promise;
+      expect(mockToast.success).toHaveBeenCalled();
     });
 
     it("should complete table cleaning after delay", async () => {

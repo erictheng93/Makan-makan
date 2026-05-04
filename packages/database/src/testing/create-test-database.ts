@@ -69,9 +69,19 @@ function buildTestDatabase(
     drizzle: drizzleDb,
     truncateAll: async () => {
       const tables = await listUserTables(bindings.DB);
-      for (const t of tables) {
-        await bindings.DB.prepare(`DELETE FROM "${t}"`).run();
-      }
+      // D1 ignores `PRAGMA foreign_keys = OFF` from user statements, so we
+      // can't naively DELETE FROM each table in arbitrary order — sibling
+      // FKs (e.g. menu_items → categories) trip SQLITE_CONSTRAINT.
+      //
+      // Workaround: run all DELETEs as a D1 batch. D1 batches execute inside
+      // a single transaction, and with `PRAGMA defer_foreign_keys = ON`
+      // injected first, FK checking is postponed to commit time — by which
+      // point every referenced row is gone too.
+      const stmts = [
+        bindings.DB.prepare(`PRAGMA defer_foreign_keys = ON`),
+        ...tables.map((t) => bindings.DB.prepare(`DELETE FROM "${t}"`)),
+      ];
+      await bindings.DB.batch(stmts);
       // sqlite_sequence only exists after first AUTOINCREMENT insert
       try {
         await bindings.DB.prepare(`DELETE FROM sqlite_sequence`).run();

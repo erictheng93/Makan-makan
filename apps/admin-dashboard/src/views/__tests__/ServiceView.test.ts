@@ -65,6 +65,19 @@ vi.mock("@/services/api", () => ({
     get: (...args: any[]) => mockApiGet(...args),
     put: (...args: any[]) => mockApiPut(...args),
   },
+  // ServiceView also imports unwrapApiData from this module. Mirror the real
+  // helper's contract: unwrap { data: { data: T } } → T (or { data: T } → T).
+  unwrapApiData: <T>(response: { data: unknown }): T => {
+    const payload = response?.data as { data?: T } | T | undefined;
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "data" in (payload as object)
+    ) {
+      return (payload as { data: T }).data;
+    }
+    return payload as T;
+  },
 }));
 
 // ──── Component import ────
