@@ -80,6 +80,28 @@ const ORDER_SORT_COLUMNS = {
   updatedAt: orders.updatedAt,
 } as const;
 
+function toFiniteNumber(value: number | string): number {
+  const amount = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(amount)) {
+    throw new Error("Money amount must be finite");
+  }
+  return amount;
+}
+
+function resolveMoneyCents(
+  cents: number | string | null | undefined,
+  amount: number | string,
+): number {
+  if (cents != null) {
+    const normalizedCents = typeof cents === "string" ? Number(cents) : cents;
+    if (Number.isFinite(normalizedCents)) {
+      return Math.round(normalizedCents);
+    }
+  }
+
+  return toRequiredCents(toFiniteNumber(amount));
+}
+
 // Drizzle's `timestamp_ms` mode returns `Date` objects. The wire contract for
 // orders is Unix-ms integers, so convert before leaving the service boundary —
 // otherwise `JSON.stringify` silently turns Dates into ISO strings and
@@ -203,8 +225,10 @@ export class OrderService extends BaseService {
         }
 
         // 計算單價（含客製化選項）
-        let unitPriceCents =
-          menuItem.priceCents ?? toRequiredCents(menuItem.price);
+        let unitPriceCents = resolveMoneyCents(
+          menuItem.priceCents,
+          menuItem.price,
+        );
 
         if (item.customizations?.size?.priceAdjustment) {
           unitPriceCents += toRequiredCents(
@@ -334,7 +358,9 @@ export class OrderService extends BaseService {
           customerInfo: data.customerInfo,
           notes: data.notes,
           couponCode: data.couponCode,
-          clientMutationId: data.clientMutationId,
+          ...(data.clientMutationId
+            ? { clientMutationId: data.clientMutationId }
+            : {}),
           orderSource: data.orderSource || "direct",
           deliveryInfo: data.deliveryInfo,
           estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData),
@@ -410,7 +436,10 @@ export class OrderService extends BaseService {
       // Match on the column name alone so both formats map to the
       // same CLIENT_MUTATION_DUPLICATE path that the route translates
       // to 409.
-      if (message.includes("client_mutation_id")) {
+      if (
+        message.includes("UNIQUE constraint failed") &&
+        message.includes("client_mutation_id")
+      ) {
         throw new Error("CLIENT_MUTATION_DUPLICATE");
       }
 

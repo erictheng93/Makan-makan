@@ -354,9 +354,11 @@ test.describe("Chef kitchen shift flow", () => {
     ).toBeVisible({ timeout: 10000 });
 
     // Look for elapsed time display (could be "5m", "5:00", "5 min", etc.)
-    const elapsedTime = page.locator(
-      '[data-testid="elapsed-time"], [data-testid="timer"], [class*="timer"], [class*="elapsed"], text=/\\d+:\\d+|\\d+\\s*m|\\d+\\s*min/i',
-    );
+    const elapsedTime = page
+      .locator(
+        '[data-testid="elapsed-time"], [data-testid="timer"], [class*="timer"], [class*="elapsed"]',
+      )
+      .or(page.locator("text=/\\d+:\\d+|\\d+\\s*m|\\d+\\s*min/i"));
     await expect(elapsedTime.first()).toBeVisible({ timeout: 5000 });
   });
 
@@ -529,9 +531,9 @@ test.describe("Chef kitchen shift flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Look for font size setting
-    const fontSizeSetting = page.locator(
-      '[data-testid="font-size-toggle"], [data-testid="font-size"], text=/font size|字型大小|字體|文字大小/i',
-    );
+    const fontSizeSetting = page
+      .locator('[data-testid="font-size-toggle"], [data-testid="font-size"]')
+      .or(page.locator("text=/font size|字型大小|字體|文字大小/i"));
 
     if (
       await fontSizeSetting

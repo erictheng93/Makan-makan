@@ -9,6 +9,7 @@ import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import cors from "cors";
 import { PrintAgentService } from "./services/PrintAgentService";
+import { validateConfig } from "./config/validation";
 import { PrinterDriverFactory } from "@makanmakan/queue-core/print";
 import type { PrintRequest, PrinterEvent } from "@makanmakan/shared-types";
 
@@ -92,6 +93,13 @@ export class LocalPrintService {
       console.log(
         `🖨️  Starting Local Print Service for Restaurant ${this.config.restaurantId}`,
       );
+
+      const validation = validateConfig(this.config);
+      if (!validation.success) {
+        throw new Error(
+          `Invalid print agent configuration: ${validation.errors.join("; ")}`,
+        );
+      }
 
       // 啟動 HTTP 伺服器
       await this.startHttpServer();

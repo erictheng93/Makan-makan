@@ -40,6 +40,21 @@ interface AuthTokenPayload extends JwtPayload {
   tv?: number;
 }
 
+function normalizeTokenVersion(value: unknown): number {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return 1;
+}
+
 const verifyAuthToken = (token: string, secret: string): AuthTokenPayload => {
   const decoded = verify(token, secret);
   if (typeof decoded === "string") {
@@ -166,6 +181,7 @@ export class AuthService extends BaseService {
         );
       }
       const accessTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24小時
+      const tokenVersion = normalizeTokenVersion(user.tokenVersion);
 
       const accessToken = sign(
         {
@@ -173,7 +189,7 @@ export class AuthService extends BaseService {
           username: user.username,
           role: user.role,
           restaurantId: user.restaurantId,
-          tv: user.tokenVersion,
+          tv: tokenVersion,
         },
         jwtSecret,
         { expiresIn: "24h" },
@@ -388,13 +404,14 @@ export class AuthService extends BaseService {
 
       // 生成新的 access token
       const accessTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const tokenVersion = normalizeTokenVersion(user.tokenVersion);
       const accessToken = sign(
         {
           id: user.id,
           username: user.username,
           role: user.role,
           restaurantId: user.restaurantId,
-          tv: user.tokenVersion,
+          tv: tokenVersion,
         },
         jwtSecret,
         { expiresIn: "24h" },
@@ -539,7 +556,7 @@ export class AuthService extends BaseService {
       }
 
       const tokenVersion = typeof decoded.tv === "number" ? decoded.tv : 1;
-      if (tokenVersion !== user.tokenVersion) {
+      if (tokenVersion !== normalizeTokenVersion(user.tokenVersion)) {
         return { valid: false, error: "Token invalidated" };
       }
 

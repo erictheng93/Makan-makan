@@ -124,6 +124,29 @@ describe("AuthService", () => {
       );
     });
 
+    it("should normalize legacy token versions before signing access tokens", async () => {
+      // Arrange
+      setupMockDbResponses(mockDb, {
+        select: [{ ...mockUser, tokenVersion: "token_version" }],
+      });
+
+      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+      vi.mocked(jwt.sign).mockReturnValue("mock-token" as never);
+      vi.spyOn(authService, "logout").mockResolvedValue(true);
+      vi.spyOn(authService, "createSession").mockResolvedValue(undefined);
+
+      // Act
+      await authService.login(validLoginData);
+
+      // Assert
+      expect(jwt.sign).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ tv: 1 }),
+        mockEnv.JWT_SECRET,
+        { expiresIn: "24h" },
+      );
+    });
+
     it("should fail login with invalid username", async () => {
       // Arrange
       setupMockDbResponses(mockDb, {

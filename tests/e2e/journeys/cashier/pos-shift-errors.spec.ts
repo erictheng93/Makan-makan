@@ -24,6 +24,7 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 const ADMIN_APP = process.env.E2E_ADMIN_URL || "http://localhost:3001";
 const posCheckoutUrl = `${ADMIN_APP}/dashboard/pos/checkout`;
+const paymentStatusEndpoint = new RegExp("/api/v1/orders/.+/status$");
 
 const testOrder = createMockOrder({
   id: "order-err-001",
@@ -68,13 +69,22 @@ test.describe("Cashier POS — payment error handling", () => {
   // Helper: navigate to POS, select the test order, and return the pay button locator
   async function openOrderInPOS(page: any) {
     await page.goto(posCheckoutUrl);
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(
       page.locator(`text=${testOrder.orderNumber}`).first(),
     ).toBeVisible({
       timeout: 10000,
     });
     await page.locator(`text=${testOrder.orderNumber}`).first().click();
+    const amountInput = page.locator('[data-testid="received-amount"]');
+    if (
+      await amountInput
+        .first()
+        .isVisible({ timeout: 3000 })
+        .catch(() => false)
+    ) {
+      await amountInput.first().fill("30000");
+    }
     return page.locator('[data-testid="pay-btn"], button:has-text("收款")');
   }
 
@@ -85,22 +95,19 @@ test.describe("Cashier POS — payment error handling", () => {
   test("should show error and re-enable Pay when card is declined", async ({
     page,
   }) => {
-    await page.route(
-      new RegExp("/api/v1/(pos/payments|orders/.+/pay|payments)"),
-      (route) => {
-        if (route.request().method() === "POST") {
-          fulfillJson(route, 402, {
-            success: false,
-            error: {
-              code: "CARD_DECLINED",
-              message: "Card declined by issuer",
-            },
-          });
-        } else {
-          route.continue();
-        }
-      },
-    );
+    await page.route(paymentStatusEndpoint, (route) => {
+      if (route.request().method() === "PUT") {
+        fulfillJson(route, 402, {
+          success: false,
+          error: {
+            code: "CARD_DECLINED",
+            message: "Card declined by issuer",
+          },
+        });
+      } else {
+        route.continue();
+      }
+    });
 
     const payBtn = await openOrderInPOS(page);
     await expect(payBtn.first()).toBeVisible({ timeout: 5000 });
@@ -129,27 +136,24 @@ test.describe("Cashier POS — payment error handling", () => {
   }) => {
     let callCount = 0;
 
-    await page.route(
-      new RegExp("/api/v1/(pos/payments|orders/.+/pay|payments)"),
-      (route) => {
-        if (route.request().method() !== "POST") {
-          route.continue();
-          return;
-        }
-        callCount++;
-        if (callCount === 1) {
-          fulfillJson(route, 200, {
-            success: true,
-            data: { id: "pmt-001", status: "completed", receiptId: "rcpt-001" },
-          });
-        } else {
-          fulfillJson(route, 409, {
-            success: false,
-            error: { code: "DUPLICATE_PAYMENT", message: "Order already paid" },
-          });
-        }
-      },
-    );
+    await page.route(paymentStatusEndpoint, (route) => {
+      if (route.request().method() !== "PUT") {
+        route.continue();
+        return;
+      }
+      callCount++;
+      if (callCount === 1) {
+        fulfillJson(route, 200, {
+          success: true,
+          data: { id: "pmt-001", status: "completed", receiptId: "rcpt-001" },
+        });
+      } else {
+        fulfillJson(route, 409, {
+          success: false,
+          error: { code: "DUPLICATE_PAYMENT", message: "Order already paid" },
+        });
+      }
+    });
 
     const payBtn = await openOrderInPOS(page);
     await expect(payBtn.first()).toBeVisible({ timeout: 5000 });
@@ -183,23 +187,20 @@ test.describe("Cashier POS — payment error handling", () => {
   test("should show amount mismatch error with correct amount", async ({
     page,
   }) => {
-    await page.route(
-      new RegExp("/api/v1/(pos/payments|orders/.+/pay|payments)"),
-      (route) => {
-        if (route.request().method() === "POST") {
-          fulfillJson(route, 400, {
-            success: false,
-            error: {
-              code: "AMOUNT_MISMATCH",
-              message: "Amount does not match order total",
-              details: { expected: 30000, received: 20000 },
-            },
-          });
-        } else {
-          route.continue();
-        }
-      },
-    );
+    await page.route(paymentStatusEndpoint, (route) => {
+      if (route.request().method() === "PUT") {
+        fulfillJson(route, 400, {
+          success: false,
+          error: {
+            code: "AMOUNT_MISMATCH",
+            message: "Amount does not match order total",
+            details: { expected: 30000, received: 20000 },
+          },
+        });
+      } else {
+        route.continue();
+      }
+    });
 
     const payBtn = await openOrderInPOS(page);
     await expect(payBtn.first()).toBeVisible({ timeout: 5000 });
@@ -223,19 +224,16 @@ test.describe("Cashier POS — payment error handling", () => {
     let receiptCallCount = 0;
 
     // Payment succeeds
-    await page.route(
-      new RegExp("/api/v1/(pos/payments|orders/.+/pay|payments)"),
-      (route) => {
-        if (route.request().method() === "POST") {
-          fulfillJson(route, 200, {
-            success: true,
-            data: { id: "pmt-002", status: "completed", receiptId: "rcpt-002" },
-          });
-        } else {
-          route.continue();
-        }
-      },
-    );
+    await page.route(paymentStatusEndpoint, (route) => {
+      if (route.request().method() === "PUT") {
+        fulfillJson(route, 200, {
+          success: true,
+          data: { id: "pmt-002", status: "completed", receiptId: "rcpt-002" },
+        });
+      } else {
+        route.continue();
+      }
+    });
 
     // Receipt/print endpoint fails
     await page.route(new RegExp("/api/v1/pos/receipts"), (route) => {
@@ -257,7 +255,8 @@ test.describe("Cashier POS — payment error handling", () => {
     // Payment success indicator must appear
     await expect(
       page
-        .locator('[data-testid="payment-success"], text=/success|成功|已完成/i')
+        .locator('[data-testid="payment-success"]')
+        .or(page.locator("text=/success|成功|已完成/i"))
         .first(),
     ).toBeVisible({ timeout: 5000 });
 
@@ -276,22 +275,19 @@ test.describe("Cashier POS — payment error handling", () => {
   test("should show timeout error and keep order unpaid on 504", async ({
     page,
   }) => {
-    await page.route(
-      new RegExp("/api/v1/(pos/payments|orders/.+/pay|payments)"),
-      (route) => {
-        if (route.request().method() === "POST") {
-          fulfillJson(route, 504, {
-            success: false,
-            error: {
-              code: "GATEWAY_TIMEOUT",
-              message: "Payment gateway timed out",
-            },
-          });
-        } else {
-          route.continue();
-        }
-      },
-    );
+    await page.route(paymentStatusEndpoint, (route) => {
+      if (route.request().method() === "PUT") {
+        fulfillJson(route, 504, {
+          success: false,
+          error: {
+            code: "GATEWAY_TIMEOUT",
+            message: "Payment gateway timed out",
+          },
+        });
+      } else {
+        route.continue();
+      }
+    });
 
     const payBtn = await openOrderInPOS(page);
     await expect(payBtn.first()).toBeVisible({ timeout: 5000 });

@@ -353,6 +353,78 @@ describe("OrderService", () => {
       expect(result.totalAmount).toBe(34.8);
     });
 
+    it("should create order with legacy string price fallback", async () => {
+      // Arrange
+      mockDb.query = {
+        restaurants: {
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
+        },
+        tables: {
+          findFirst: vi.fn().mockResolvedValue(mockTable),
+        },
+        menuItems: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              ...mockMenuItem,
+              price: "15.00",
+              priceCents: null,
+            },
+          ]),
+        },
+      };
+
+      setupMockDbResponses(mockDb, {
+        insert: [mockOrder, mockOrder.items],
+      });
+
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue(createQueryChain([])),
+      });
+
+      // Act
+      const result = await orderService.createOrder(validOrderData);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.id).toBe(1);
+    });
+
+    it("should ignore invalid legacy cents values when creating order", async () => {
+      // Arrange
+      mockDb.query = {
+        restaurants: {
+          findFirst: vi.fn().mockResolvedValue(mockRestaurant),
+        },
+        tables: {
+          findFirst: vi.fn().mockResolvedValue(mockTable),
+        },
+        menuItems: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              ...mockMenuItem,
+              price: "15.00",
+              priceCents: "price_cents",
+            },
+          ]),
+        },
+      };
+
+      setupMockDbResponses(mockDb, {
+        insert: [mockOrder, mockOrder.items],
+      });
+
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue(createQueryChain([])),
+      });
+
+      // Act
+      const result = await orderService.createOrder(validOrderData);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.id).toBe(1);
+    });
+
     it("should throw error when restaurant not available", async () => {
       // Arrange
       mockDb.query = {
