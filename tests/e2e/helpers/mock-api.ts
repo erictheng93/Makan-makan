@@ -290,6 +290,17 @@ export async function mockOrderAPI(page: Page) {
     }
   });
 
+  // Order status update
+  await page.route(new RegExp(`${API_RE}/orders/[^/]+/status$`), (route) => {
+    if (route.request().method() === "PUT") {
+      route.fulfill(
+        json({ success: true, data: { ...order, status: "paid" } }),
+      );
+    } else {
+      route.continue();
+    }
+  });
+
   // Order stats
   await page.route(`${API}/orders/stats`, (route) =>
     route.fulfill(

@@ -66,6 +66,8 @@ export default [
 
       // Legacy/backup files
       "Backup/**",
+      "**/.backup/**",
+      "**/*.backup",
       "legacy/**",
       "js/**",
       "login/**",

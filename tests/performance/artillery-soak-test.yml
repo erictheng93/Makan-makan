@@ -51,7 +51,7 @@ config:
     testPassword: "{{ $processEnvironment.PERF_TEST_PASSWORD }}"
     restaurantId: "{{ $processEnvironment.PERF_TEST_RESTAURANT_ID }}"
 
-  processor: "./artillery-api-processor.js"
+  processor: "./artillery-api-processor.cjs"
 
 scenarios:
   # 模擬正常營業混合流量，權重反映真實使用比例

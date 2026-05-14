@@ -65,6 +65,9 @@ jobs:
       - name: 🔒 整合測試白名單檢查
         run: node scripts/check-integration-allowlist.cjs
 
+      - name: 🚦 Production config 檢查
+        run: pnpm run check:prod-config
+
   # 單元測試
   unit-tests:
     name: 🧪 單元測試
@@ -146,6 +149,9 @@ jobs:
 
       - name: 🔧 安裝 Wrangler CLI
         run: pnpm add -g wrangler
+
+      - name: 🏗️ Workers dry-run build gate
+        run: pnpm run check:workers
 
       - name: ⚡ 測試 Cloudflare Workers
         # Existence check (not `||`) so the step distinguishes "no tests in

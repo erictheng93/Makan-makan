@@ -47,7 +47,11 @@ config:
 
   http:
     timeout: 10
-    pool: 100  # 匹配 100 concurrent users
+    pool: 100 # 匹配 100 concurrent users
+    headers:
+      Origin: "http://localhost:8787"
+      X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
   plugins:
     expect: {}
@@ -59,7 +63,11 @@ config:
     testPassword: "{{ $processEnvironment.PERF_TEST_PASSWORD }}"
     restaurantId: "{{ $processEnvironment.PERF_TEST_RESTAURANT_ID }}"
 
-  processor: "./artillery-api-processor.js"
+  processor: "./artillery-api-processor.cjs"
+
+before:
+  flow:
+    - function: "ensurePerformanceFixtures"
 
 scenarios:
   # === 讀取場景（80% 總流量）===
@@ -69,29 +77,18 @@ scenarios:
     weight: 35
     flow:
       - function: "authenticateUser"
-      # 獲取分類
+      # 獲取完整菜單
       - get:
-          url: "/api/v1/menu/{{ restaurantId }}/categories"
-          headers:
-            Authorization: "Bearer {{ authToken }}"
-          expect:
-            - statusCode: 200
-      # 獲取菜品列表
-      - get:
-          url: "/api/v1/menu/{{ restaurantId }}/items"
-          qs:
-            page: 1
-            pageSize: 20
-            status: "available"
+          url: "/api/v1/menu/{{ restaurantId }}"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
             - statusCode: 200
       # 搜尋菜品
       - get:
-          url: "/api/v1/menu/{{ restaurantId }}/items/search"
+          url: "/api/v1/menu/{{ restaurantId }}/search"
           qs:
-            q: "雞"
+            search: "Performance"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
@@ -145,16 +142,16 @@ scenarios:
       - function: "authenticateAdmin"
       - parallel:
           - get:
-              url: "/api/v1/analytics/summary"
+              url: "/api/v1/orders/stats"
               qs:
                 restaurantId: "{{ restaurantId }}"
+                timeRange: "today"
               headers:
                 Authorization: "Bearer {{ authToken }}"
           - get:
               url: "/api/v1/orders"
               qs:
                 restaurantId: "{{ restaurantId }}"
-                status: "all"
                 page: 1
                 pageSize: 10
               headers:
@@ -169,10 +166,7 @@ scenarios:
       - function: "authenticateUser"
       # 先瀏覽菜單
       - get:
-          url: "/api/v1/menu/{{ restaurantId }}/items"
-          qs:
-            status: "available"
-            pageSize: 50
+          url: "/api/v1/menu/{{ restaurantId }}"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
@@ -182,14 +176,17 @@ scenarios:
           url: "/api/v1/orders"
           headers:
             Authorization: "Bearer {{ authToken }}"
+            Origin: "http://localhost:8787"
+            X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           json:
             restaurantId: "{{ restaurantId }}"
-            tableId: 1
+            tableId: "{{ tableId }}"
             items:
-              - menuItemId: 1
+              - menuItemId: "{{ menuItemId }}"
                 quantity: 2
                 notes: "少辣"
-              - menuItemId: 2
+              - menuItemId: "{{ secondaryMenuItemId }}"
                 quantity: 1
           capture:
             - json: "$.data.id"
@@ -197,32 +194,40 @@ scenarios:
           expect:
             - statusCode: 201
 
-  # 場景 6: 廚房更新訂單狀態
-  - name: "Kitchen Update Order Status"
+  # 場景 6: 接單狀態更新
+  - name: "Order Confirmation Status Update"
     weight: 8
     flow:
-      - function: "authenticateChef"
-      # 取得待處理訂單
-      - get:
+      - function: "authenticateUser"
+      # 建立此虛擬使用者自己的訂單，避免高並發下多個使用者搶同一筆 fixture。
+      - post:
           url: "/api/v1/orders"
-          qs:
-            restaurantId: "{{ restaurantId }}"
-            status: "confirmed"
-            pageSize: 5
           headers:
             Authorization: "Bearer {{ authToken }}"
+            Origin: "http://localhost:8787"
+            X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          json:
+            restaurantId: "{{ restaurantId }}"
+            tableId: "{{ tableId }}"
+            items:
+              - menuItemId: "{{ menuItemId }}"
+                quantity: 1
           capture:
-            - json: "$.data.orders[0].id"
+            - json: "$.data.id"
               as: "orderId"
           expect:
-            - statusCode: 200
-      # 更新狀態為準備中
+            - statusCode: 201
+      # 更新狀態為已確認。Owner 角色只能把 pending 訂單推進到 confirmed。
       - put:
           url: "/api/v1/orders/{{ orderId }}/status"
           headers:
             Authorization: "Bearer {{ authToken }}"
+            Origin: "http://localhost:8787"
+            X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           json:
-            status: "preparing"
+            status: "confirmed"
           expect:
             - statusCode: 200
 

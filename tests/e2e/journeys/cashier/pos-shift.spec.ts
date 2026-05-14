@@ -242,9 +242,11 @@ test.describe("Cashier POS shift flow", () => {
     }
 
     // Verify shift badge or indicator appears
-    const shiftBadge = page.locator(
-      '[data-testid="shift-badge"], [data-testid="shift-status"], [class*="shift"], text=/Shift|班次|開班/i',
-    );
+    const shiftBadge = page
+      .locator(
+        '[data-testid="shift-badge"], [data-testid="shift-status"], [class*="shift"]',
+      )
+      .or(page.locator("text=/Shift|班次|開班/i"));
     await expect(shiftBadge.first()).toBeVisible({ timeout: 5000 });
   });
 
@@ -456,9 +458,9 @@ test.describe("Cashier POS shift flow", () => {
       await amountInput.first().fill("500");
 
       // Verify change is calculated (500 - 300 = 200)
-      const change = page.locator(
-        'text=/change|找零|200/i, [data-testid="change-amount"]',
-      );
+      const change = page
+        .locator('[data-testid="change-amount"]')
+        .or(page.locator("text=/change|找零|200/i"));
       await expect(change.first()).toBeVisible({ timeout: 5000 });
     }
   });
@@ -533,9 +535,9 @@ test.describe("Cashier POS shift flow", () => {
     await payBtn.first().click();
 
     // Verify success confirmation (toast, modal, or status change)
-    const success = page.locator(
-      '[role="alert"], [data-testid="payment-success"], text=/success|成功|已完成|completed/i',
-    );
+    const success = page
+      .locator('[role="alert"], [data-testid="payment-success"]')
+      .or(page.locator("text=/success|成功|已完成|completed/i"));
     await expect(success.first()).toBeVisible({ timeout: 5000 });
   });
 
@@ -601,9 +603,9 @@ test.describe("Cashier POS shift flow", () => {
     await printBtn.first().click();
 
     // Verify print confirmation
-    const printConfirm = page.locator(
-      '[role="alert"], text=/printed|已列印|列印成功|success/i, [data-testid="print-success"]',
-    );
+    const printConfirm = page
+      .locator('[role="alert"], [data-testid="print-success"]')
+      .or(page.locator("text=/printed|已列印|列印成功|success/i"));
     await expect(printConfirm.first()).toBeVisible({ timeout: 5000 });
 
     // Verify the receipt API was called
@@ -619,9 +621,11 @@ test.describe("Cashier POS shift flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Verify shift management page loaded with report data
-    const reportContent = page.locator(
-      '[data-testid="shift-report"], [data-testid="shift-summary"], [class*="shift"], [class*="report"], text=/Shift|班次|Report|報表/i',
-    );
+    const reportContent = page
+      .locator(
+        '[data-testid="shift-report"], [data-testid="shift-summary"], [class*="shift"], [class*="report"]',
+      )
+      .or(page.locator("text=/Shift|班次|Report|報表/i"));
     await expect(reportContent.first()).toBeVisible({ timeout: 10000 });
 
     // Verify key metrics are displayed
@@ -710,9 +714,9 @@ test.describe("Cashier POS shift flow", () => {
     }
 
     // Verify reconciliation summary appears
-    const reconciliation = page.locator(
-      '[data-testid="reconciliation"], [data-testid="shift-summary"], text=/reconciliation|結算|對帳|結班/i',
-    );
+    const reconciliation = page
+      .locator('[data-testid="reconciliation"], [data-testid="shift-summary"]')
+      .or(page.locator("text=/reconciliation|結算|對帳|結班/i"));
     await expect(reconciliation.first()).toBeVisible({ timeout: 5000 });
 
     // Verify the shift was ended via API

@@ -294,6 +294,7 @@
                 }}</span>
                 <input
                   v-model.number="cashReceived"
+                  data-testid="received-amount"
                   type="number"
                   step="0.01"
                   min="0"
@@ -332,8 +333,18 @@
 
             <!-- 結帳按鈕 -->
             <div class="space-y-3">
+              <div
+                v-if="paymentError"
+                data-testid="payment-error"
+                role="alert"
+                class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {{ paymentError }}
+              </div>
+
               <button
                 :disabled="!canProcessPayment"
+                data-testid="pay-btn"
                 class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
                 @click="processPayment"
               >
@@ -693,7 +704,11 @@
     </div>
 
     <!-- 收款成功模態框 -->
-    <div v-if="showPaymentSuccess" class="fixed inset-0 z-50 overflow-y-auto">
+    <div
+      v-if="showPaymentSuccess"
+      data-testid="payment-success"
+      class="fixed inset-0 z-50 overflow-y-auto"
+    >
       <div class="flex items-center justify-center min-h-screen px-4">
         <div class="fixed inset-0 bg-black opacity-30" />
         <div
@@ -943,6 +958,7 @@ const searchQuery = ref("");
 const selectedOrder = ref<CashierOrder | null>(null);
 const selectedPaymentMethod = ref("cash");
 const cashReceived = ref(0);
+const paymentError = ref("");
 const showPaymentSuccess = ref(false);
 const completedOrder = ref<CashierOrder | null>(null);
 
@@ -1085,11 +1101,11 @@ const loadOrders = async () => {
           status: o.status,
           paymentStatus: o.paymentStatus || "unpaid",
           createdAt: o.createdAt,
-          subtotal: o.subtotal ?? o.totalAmount ?? 0,
+          subtotal: o.subtotal ?? o.totalAmount ?? o.total ?? 0,
           serviceCharge: o.serviceCharge ?? 0,
-          taxAmount: o.taxAmount ?? 0,
+          taxAmount: o.taxAmount ?? o.tax ?? 0,
           discountAmount: o.discountAmount ?? 0,
-          totalAmount: o.totalAmount ?? 0,
+          totalAmount: o.totalAmount ?? o.total ?? o.subtotal ?? 0,
           paymentMethod: o.paymentMethod,
           couponCode: o.couponCode,
           items: (o.items || []).map((item: any) => ({
@@ -1097,7 +1113,9 @@ const loadOrders = async () => {
             menuItemName: item.menuItemName || item.name || "",
             quantity: item.quantity || 1,
             unitPrice: item.unitPrice ?? item.price ?? 0,
-            totalPrice: item.totalPrice ?? 0,
+            totalPrice:
+              item.totalPrice ??
+              (item.unitPrice ?? item.price ?? 0) * (item.quantity || 1),
           })),
         })) as CashierOrder[];
     }
@@ -1166,6 +1184,7 @@ const refreshOrders = async () => {
 
 const selectOrder = (order: CashierOrder) => {
   selectedOrder.value = order;
+  paymentError.value = "";
   cashReceived.value = 0;
   selectedPaymentMethod.value = "cash";
 };
@@ -1202,6 +1221,7 @@ const getOrderStatusText = (status: string) => {
 const processPayment = async () => {
   if (!canProcessPayment.value || !selectedOrder.value) return;
 
+  paymentError.value = "";
   isProcessing.value = true;
   try {
     // Update order status to paid via API
@@ -1245,6 +1265,10 @@ const processPayment = async () => {
     }
   } catch (error) {
     console.error("Payment processing error:", error);
+    paymentError.value =
+      error instanceof Error
+        ? error.message
+        : t("cashier.paymentFailed") || "Payment failed";
   } finally {
     isProcessing.value = false;
   }

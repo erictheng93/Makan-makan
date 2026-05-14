@@ -6,10 +6,10 @@ on:
   # so the cost is negligible and catches factory-usage drift on the spot.
   pull_request:
     paths:
-      - '**/__tests__/**'
-      - '**/*.test.ts'
-      - '**/*.spec.ts'
-      - 'packages/testing-utils/**'
+      - "**/__tests__/**"
+      - "**/*.test.ts"
+      - "**/*.spec.ts"
+      - "packages/testing-utils/**"
 
   # 允許手動觸發
   workflow_dispatch:
@@ -41,8 +41,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

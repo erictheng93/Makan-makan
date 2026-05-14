@@ -48,7 +48,7 @@ config:
       name: "Recovery observation"
 
   http:
-    timeout: 30  # 壓力測試用更長 timeout
+    timeout: 30 # 壓力測試用更長 timeout
     pool: 200
 
   plugins:
@@ -61,7 +61,7 @@ config:
     testPassword: "{{ $processEnvironment.PERF_TEST_PASSWORD }}"
     restaurantId: "{{ $processEnvironment.PERF_TEST_RESTAURANT_ID }}"
 
-  processor: "./artillery-api-processor.js"
+  processor: "./artillery-api-processor.cjs"
 
 scenarios:
   # 壓力測試聚焦在最常見的讀寫混合操作

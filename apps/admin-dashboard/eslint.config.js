@@ -16,6 +16,8 @@ export default [
       "coverage/**",
       "test-results/**",
       "**/*.vue.js",
+      "**/.backup/**",
+      "**/*.backup",
       "*.config.js",
       "src/components/charts/**",
     ],

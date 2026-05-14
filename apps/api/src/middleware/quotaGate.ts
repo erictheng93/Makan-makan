@@ -25,6 +25,8 @@ interface QuotaCheckOptions {
   restaurantId?: string;
 }
 
+type QuotaContext = Context<{ Bindings: Env }>;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CACHE_TTL_SECONDS = 30;
 
@@ -77,10 +79,10 @@ function resolveCycle(subscription: SubscriptionRow, now: number) {
 }
 
 async function getSubscription(
-  c: Context<any>,
+  c: QuotaContext,
   restaurantId: string,
 ): Promise<SubscriptionRow | null> {
-  return await (c.env as Env).DB.prepare(
+  return await c.env.DB.prepare(
     `SELECT plan_tier, trial_ends_at_ms, billing_cycle_start_at_ms,
             billing_cycle_end_at_ms, created_at_ms
        FROM shop_subscriptions
@@ -92,17 +94,17 @@ async function getSubscription(
 }
 
 async function getAggregatedCount(
-  c: Context<any>,
+  c: QuotaContext,
   restaurantId: string,
   meterKey: MeterKey,
   cycleStartAt: number,
 ): Promise<number> {
   const cacheKey = `quota:${restaurantId}:${meterKey}:${cycleStartAt}`;
-  const kv = (c.env as Env).CACHE_KV;
+  const kv = c.env.CACHE_KV;
   const cached = await kv.get<number>(cacheKey, "json").catch(() => null);
   if (typeof cached === "number") return cached;
 
-  const row = await (c.env as Env).DB.prepare(
+  const row = await c.env.DB.prepare(
     `SELECT total_quantity
        FROM usage_meters
       WHERE restaurant_id = ?
@@ -123,11 +125,11 @@ async function getAggregatedCount(
 }
 
 async function getPendingCount(
-  c: Context<any>,
+  c: QuotaContext,
   restaurantId: string,
   meterKey: MeterKey,
 ): Promise<number> {
-  const row = await (c.env as Env).DB.prepare(
+  const row = await c.env.DB.prepare(
     `SELECT COALESCE(SUM(quantity), 0) AS total
        FROM usage_events
       WHERE aggregated_at_ms IS NULL
@@ -141,7 +143,7 @@ async function getPendingCount(
 }
 
 function setQuotaWarning(
-  c: Context<any>,
+  c: QuotaContext,
   meterKey: MeterKey,
   count: number,
   quota: MeterQuota,
@@ -151,14 +153,14 @@ function setQuotaWarning(
 }
 
 async function notifyHardQuotaExceeded(
-  c: Context<any>,
+  c: QuotaContext,
   restaurantId: string,
   meterKey: MeterKey,
   cycleStartAt: number,
   hardLimit: number,
   current: number,
 ) {
-  const sendOp = new BillingNotificationService(c.env as Env)
+  const sendOp = new BillingNotificationService(c.env)
     .send({
       restaurantId,
       kind: BILLING_NOTIFICATION_KINDS.QUOTA_HARD,
@@ -190,16 +192,14 @@ async function notifyHardQuotaExceeded(
 }
 
 export async function enforceQuota(
-  c: Context<any>,
+  c: QuotaContext,
   meterKey: MeterKey,
   options: QuotaCheckOptions = {},
 ): Promise<void> {
-  const mode = getMode(c.env as Env);
+  const mode = getMode(c.env);
   if (mode === "disabled") return;
 
-  const user = c.get("user") as
-    | { role?: number; restaurantId?: string | number | null }
-    | undefined;
+  const user = c.get("user");
   if (user?.role === 0) return;
 
   const restaurantId =
@@ -245,7 +245,7 @@ export async function enforceQuota(
 }
 
 export function quotaGate(meterKey: MeterKey) {
-  return async (c: Context<any>, next: Next) => {
+  return async (c: QuotaContext, next: Next) => {
     await enforceQuota(c, meterKey);
     await next();
   };

@@ -48,8 +48,8 @@
             <template #loading><span /></template>
           </ModuleGate>
           <component
-            v-else
             :is="item.disabled ? 'div' : 'router-link'"
+            v-else
             v-show="item.visible"
             :to="item.disabled ? undefined : item.path"
             class="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"

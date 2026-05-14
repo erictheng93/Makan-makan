@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-ZAP_VERSION="2.14.0"
+ZAP_IMAGE="${ZAP_IMAGE:-ghcr.io/zaproxy/zaproxy:stable}"
 ZAP_PORT="8090"
 TARGET_URL="${TARGET_URL:-http://localhost:4173}"
 API_URL="${API_URL:-http://localhost:8787}"
@@ -38,20 +38,31 @@ if ! curl -s "http://localhost:$ZAP_PORT" > /dev/null 2>&1; then
         docker run -d --name zap \
             -p $ZAP_PORT:$ZAP_PORT \
             -v "$(pwd)":/zap/wrk/:rw \
-            owasp/zap2docker-stable:$ZAP_VERSION \
+            "$ZAP_IMAGE" \
             zap.sh -daemon -host 0.0.0.0 -port $ZAP_PORT \
             -config api.addrs.addr.name=.* \
             -config api.addrs.addr.regex=true \
             -config api.disablekey=true
 
-        # Wait for ZAP to start
         echo "⏳ Waiting for ZAP to start..."
-        sleep 15
     else
         echo "${RED}❌ Docker not found. Please install Docker or ZAP manually.${NC}"
         exit 1
     fi
 fi
+
+for i in {1..60}; do
+    if curl -fsS "http://localhost:$ZAP_PORT/JSON/core/view/version/" > /dev/null 2>&1; then
+        break
+    fi
+
+    if [ "$i" -eq 60 ]; then
+        echo "${RED}❌ ZAP API did not become ready in time.${NC}"
+        exit 1
+    fi
+
+    sleep 2
+done
 
 echo "${GREEN}✅ ZAP is running${NC}"
 echo ""
@@ -64,7 +75,12 @@ run_spider() {
     echo "🕷️  Running Spider on $context..."
 
     # Start spider scan
-    SPIDER_SCAN_ID=$(curl -s "http://localhost:$ZAP_PORT/JSON/spider/action/scan/?url=$target&contextName=$context" | jq -r '.scan')
+    SPIDER_SCAN_ID=$(curl -G -s "http://localhost:$ZAP_PORT/JSON/spider/action/scan/" \
+        --data-urlencode "url=$target" | jq -r '.scan')
+    if [ -z "$SPIDER_SCAN_ID" ] || [ "$SPIDER_SCAN_ID" = "null" ]; then
+        echo "${RED}❌ Failed to start spider for $target${NC}"
+        exit 1
+    fi
 
     # Wait for spider to complete
     while true; do
@@ -89,7 +105,8 @@ run_ajax_spider() {
     echo "🌐 Running Ajax Spider on $context..."
 
     # Start Ajax spider
-    curl -s "http://localhost:$ZAP_PORT/JSON/ajaxSpider/action/scan/?url=$target&contextName=$context" > /dev/null
+    curl -G -s "http://localhost:$ZAP_PORT/JSON/ajaxSpider/action/scan/" \
+        --data-urlencode "url=$target" > /dev/null
 
     # Wait for Ajax spider to complete
     while true; do
@@ -114,7 +131,12 @@ run_active_scan() {
     echo "🔍 Running Active Scan on $context..."
 
     # Start active scan
-    SCAN_ID=$(curl -s "http://localhost:$ZAP_PORT/JSON/ascan/action/scan/?url=$target&contextName=$context" | jq -r '.scan')
+    SCAN_ID=$(curl -G -s "http://localhost:$ZAP_PORT/JSON/ascan/action/scan/" \
+        --data-urlencode "url=$target" | jq -r '.scan')
+    if [ -z "$SCAN_ID" ] || [ "$SCAN_ID" = "null" ]; then
+        echo "${RED}❌ Failed to start active scan for $target${NC}"
+        exit 1
+    fi
 
     # Wait for scan to complete
     while true; do

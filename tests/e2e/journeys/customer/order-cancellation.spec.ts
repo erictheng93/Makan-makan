@@ -123,7 +123,8 @@ test.describe("Customer order cancellation", () => {
       // Cancelled status must appear
       await expect(
         page
-          .locator('[data-testid="order-cancelled"], text=/已取消|Cancelled/i')
+          .locator('[data-testid="order-cancelled"]')
+          .or(page.locator("text=/已取消|Cancelled/i"))
           .first(),
       ).toBeVisible({ timeout: 6000 });
 
@@ -270,9 +271,8 @@ test("should reflect admin force-cancel on customer tracking page via SSE", asyn
   orderStatus = 6; // update for subsequent GET calls
   await expect(
     page
-      .locator(
-        '[data-testid="order-cancelled"], text=/已取消|Cancelled|訂單已取消/i',
-      )
+      .locator('[data-testid="order-cancelled"]')
+      .or(page.locator("text=/已取消|Cancelled|訂單已取消/i"))
       .first(),
   ).toBeVisible({ timeout: 10000 });
 });

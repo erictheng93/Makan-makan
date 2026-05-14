@@ -32,9 +32,29 @@ test.describe("Customer App — Visual Regression", () => {
     });
 
     test("QR scan page", async ({ page }) => {
+      await page.addInitScript(() => {
+        const mediaDevices = navigator.mediaDevices ?? {};
+        Object.defineProperty(navigator, "mediaDevices", {
+          value: {
+            ...mediaDevices,
+            getUserMedia: () =>
+              Promise.reject(
+                new DOMException(
+                  "No camera device available in visual tests",
+                  "NotFoundError",
+                ),
+              ),
+          },
+          configurable: true,
+        });
+      });
+
       await page.goto(`${APP_URLS.customer}/scan`);
       await waitForPageStable(page);
-      await expectPageRendered(page);
+      await expectPageRendered(page, {
+        urlContains: "/scan",
+        mustContain: /Scan QR Code|掃描 QR Code/,
+      });
       await mockDynamicContent(page);
       await expect(page).toHaveScreenshot("customer-scan.png");
     });

@@ -205,6 +205,21 @@ describe("LocalPrintService", () => {
         expect(service.isServiceRunning()).toBe(false);
       }
     });
+
+    it("should validate configuration before binding network servers", async () => {
+      const svc = new LocalPrintService(
+        buildTestConfig({
+          port: 4003,
+          wsPort: 4003,
+        }),
+      );
+
+      await expect(svc.start()).rejects.toThrow(
+        "HTTP port and WebSocket port cannot be the same",
+      );
+      expect(mockListen).not.toHaveBeenCalled();
+      expect(mockWsOn).not.toHaveBeenCalled();
+    });
   });
 
   // =============================================

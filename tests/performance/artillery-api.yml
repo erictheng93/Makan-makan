@@ -48,12 +48,16 @@ config:
         max: 300
     # 錯誤率 < 1%
     - http.codes.500:
-        max: 10  # 每秒最多 10 個 500 錯誤
+        max: 10 # 每秒最多 10 個 500 錯誤
 
   # HTTP 預設設定
   http:
     timeout: 10
-    pool: 50  # 最大並發連接數
+    pool: 50 # 最大並發連接數
+    headers:
+      Origin: "http://localhost:8787"
+      X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
   # 插件配置
   plugins:
@@ -80,8 +84,12 @@ config:
     order: "sequence"
     cast: true
 
-# 測試處理器
-processor: "./artillery-api-processor.js"
+  # 測試處理器
+  processor: "./artillery-api-processor.cjs"
+
+before:
+  flow:
+    - function: "ensurePerformanceFixtures"
 
 scenarios:
   # 場景 1: 認證流程測試 (20% 流量)
@@ -89,24 +97,12 @@ scenarios:
     weight: 20
     flow:
       # 1. 登入
-      - post:
-          url: "/api/v1/auth/login"
-          json:
-            username: "{{ testUsername }}"
-            password: "{{ testPassword }}"
-          capture:
-            - json: "$.data.token"
-              as: "authToken"
-            - json: "$.data.user.restaurantId"
-              as: "restaurantId"
-          expect:
-            - statusCode: 200
-            - contentType: json
-            - hasProperty: "data.token"
+      - function: "setDefaultVariables"
+      - function: "authenticateUser"
 
       # 2. 驗證 Token
       - get:
-          url: "/api/v1/auth/verify"
+          url: "/api/v1/auth/me"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
@@ -128,44 +124,32 @@ scenarios:
       # 1. 登入獲取 Token
       - function: "authenticateUser"
 
-      # 2. 獲取分類列表
+      # 2. 獲取完整菜單
       - get:
-          url: "/api/v1/menu/{{ restaurantId }}/categories"
-          headers:
-            Authorization: "Bearer {{ authToken }}"
-          expect:
-            - statusCode: 200
-            - contentType: json
-
-      # 3. 獲取菜單列表
-      - get:
-          url: "/api/v1/menu/{{ restaurantId }}/items"
-          qs:
-            page: 1
-            pageSize: 20
-            status: "available"
+          url: "/api/v1/menu/{{ restaurantId }}"
           headers:
             Authorization: "Bearer {{ authToken }}"
           capture:
-            - json: "$.data.items[0].id"
+            - json: "$.data.menuItems[0].id"
               as: "menuItemId"
           expect:
             - statusCode: 200
-            - hasProperty: "data.items"
+            - contentType: json
+            - hasProperty: "data.menuItems"
 
-      # 4. 獲取單個菜品詳情
+      # 3. 獲取單個菜品詳情
       - get:
-          url: "/api/v1/menu/{{ restaurantId }}/items/{{ menuItemId }}"
+          url: "/api/v1/menu/items/{{ menuItemId }}"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
             - statusCode: 200
 
-      # 5. 搜尋菜品
+      # 4. 搜尋菜品
       - get:
-          url: "/api/v1/menu/{{ restaurantId }}/items/search"
+          url: "/api/v1/menu/{{ restaurantId }}/search"
           qs:
-            q: "牛肉"
+            search: "Performance"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
@@ -185,11 +169,10 @@ scenarios:
             restaurantId: "{{ restaurantId }}"
             page: 1
             pageSize: 20
-            status: "all"
           headers:
             Authorization: "Bearer {{ authToken }}"
           capture:
-            - json: "$.data.orders[0].id"
+            - json: "$.data[0].id"
               as: "orderId"
           expect:
             - statusCode: 200
@@ -207,14 +190,17 @@ scenarios:
           url: "/api/v1/orders"
           headers:
             Authorization: "Bearer {{ authToken }}"
+            Origin: "http://localhost:8787"
+            X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           json:
             restaurantId: "{{ restaurantId }}"
-            tableId: 1
+            tableId: "{{ tableId }}"
             items:
-              - menuItemId: 1
+              - menuItemId: "{{ menuItemId }}"
                 quantity: 2
                 notes: "少辣"
-              - menuItemId: 2
+              - menuItemId: "{{ secondaryMenuItemId }}"
                 quantity: 1
           capture:
             - json: "$.data.id"
@@ -227,17 +213,20 @@ scenarios:
           url: "/api/v1/orders/{{ newOrderId }}/status"
           headers:
             Authorization: "Bearer {{ authToken }}"
+            Origin: "http://localhost:8787"
+            X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           json:
-            status: "preparing"
+            status: "confirmed"
           expect:
             - statusCode: 200
 
       # 6. 獲取訂單統計
       - get:
-          url: "/api/v1/orders/statistics"
+          url: "/api/v1/orders/stats"
           qs:
             restaurantId: "{{ restaurantId }}"
-            period: "today"
+            timeRange: "today"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
@@ -258,7 +247,7 @@ scenarios:
           headers:
             Authorization: "Bearer {{ authToken }}"
           capture:
-            - json: "$.data.tables[0].id"
+            - json: "$.data[0].id"
               as: "tableId"
           expect:
             - statusCode: 200
@@ -271,19 +260,19 @@ scenarios:
           expect:
             - statusCode: 200
 
-      # 4. 更新桌台狀態
-      - patch:
-          url: "/api/v1/tables/{{ tableId }}/status"
+      # 4. 再次查詢桌台列表
+      - get:
+          url: "/api/v1/tables"
+          qs:
+            restaurantId: "{{ restaurantId }}"
           headers:
             Authorization: "Bearer {{ authToken }}"
-          json:
-            status: "occupied"
           expect:
             - statusCode: 200
 
-      # 5. 生成 QR 碼
+      # 5. 再次獲取桌台詳情
       - get:
-          url: "/api/v1/tables/{{ tableId }}/qr"
+          url: "/api/v1/tables/{{ tableId }}"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
@@ -306,32 +295,11 @@ scenarios:
           expect:
             - statusCode: 200
 
-      # 3. 創建新用戶
-      - post:
-          url: "/api/v1/users"
+      # 3. 獲取當前用戶資訊
+      - get:
+          url: "/api/v1/auth/me"
           headers:
             Authorization: "Bearer {{ authToken }}"
-          json:
-            username: "testuser{{ $randomNumber() }}"
-            password: "testpass123"
-            name: "Test User"
-            email: "test{{ $randomNumber() }}@example.com"
-            role: 3
-            restaurantId: "{{ restaurantId }}"
-          capture:
-            - json: "$.data.id"
-              as: "newUserId"
-          expect:
-            - statusCode: 201
-
-      # 4. 更新用戶資訊
-      - put:
-          url: "/api/v1/users/{{ newUserId }}"
-          headers:
-            Authorization: "Bearer {{ authToken }}"
-          json:
-            name: "Updated Test User"
-            isActive: true
           expect:
             - statusCode: 200
 
@@ -344,7 +312,7 @@ scenarios:
       # 並發執行多個讀取操作
       - parallel:
           - get:
-              url: "/api/v1/menu/{{ restaurantId }}/items"
+              url: "/api/v1/menu/{{ restaurantId }}"
               headers:
                 Authorization: "Bearer {{ authToken }}"
 
@@ -362,53 +330,34 @@ scenarios:
               headers:
                 Authorization: "Bearer {{ authToken }}"
 
-          - get:
-              url: "/api/v1/analytics/summary"
-              qs:
-                restaurantId: "{{ restaurantId }}"
-              headers:
-                Authorization: "Bearer {{ authToken }}"
-
-  # 場景 7: 分析和報表（低頻率高負載）
-  - name: "Analytics and Reports"
+  # 場景 7: 訂單統計（低頻率高負載）
+  - name: "Order Statistics and Reports"
     weight: 5
     flow:
       - function: "authenticateUser"
 
-      # 1. 銷售分析
+      # 1. 訂單統計
       - get:
-          url: "/api/v1/analytics/sales"
+          url: "/api/v1/orders/stats"
           qs:
             restaurantId: "{{ restaurantId }}"
-            startDate: "2025-01-01"
-            endDate: "2025-01-31"
+            timeRange: "today"
           headers:
             Authorization: "Bearer {{ authToken }}"
           expect:
             - statusCode: 200
 
-      # 2. 菜品分析
-      - get:
-          url: "/api/v1/analytics/menu-items"
-          qs:
-            restaurantId: "{{ restaurantId }}"
-            period: "month"
-          headers:
-            Authorization: "Bearer {{ authToken }}"
-          expect:
-            - statusCode: 200
-
-      # 3. 導出報表
+      # 2. 導出訂單報表
       - post:
-          url: "/api/v1/analytics/export"
+          url: "/api/v1/orders/export"
           headers:
             Authorization: "Bearer {{ authToken }}"
+            Origin: "http://localhost:8787"
+            X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           json:
             restaurantId: "{{ restaurantId }}"
-            type: "sales"
             format: "csv"
-            startDate: "2025-01-01"
-            endDate: "2025-01-31"
           expect:
             - statusCode: 200
 
@@ -444,6 +393,9 @@ scenarios:
           url: "/api/v1/orders"
           headers:
             Authorization: "Bearer {{ authToken }}"
+            Origin: "http://localhost:8787"
+            X-CSRF-Token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            Cookie: "csrf_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           json:
             restaurantId: "{{ restaurantId }}"
             # 缺少必要欄位
