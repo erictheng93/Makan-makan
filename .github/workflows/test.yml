@@ -374,30 +374,17 @@ jobs:
           # WebSocket handshake, which is more reliable under CI startup timing.
           npx wait-on tcp:localhost:8788 --timeout 60000
 
-      - name: 📦 安裝 Artillery
-        run: pnpm add -g artillery@latest
-
       - name: 🔥 執行 REST API 負載測試
         run: |
-          artillery run tests/performance/artillery-api-ci.yml \
+          pnpm exec artillery run tests/performance/artillery-api-ci.yml \
             --output artillery-api-report.json \
             --quiet
 
       - name: 🌐 執行 Realtime Worker 負載煙霧測試
         run: |
-          artillery run tests/performance/artillery-realtime-ci.yml \
+          pnpm exec artillery run tests/performance/artillery-realtime-ci.yml \
             --output artillery-realtime-report.json \
             --quiet
-
-      - name: 📊 生成 Artillery 報告
-        if: always()
-        run: |
-          if [ -f artillery-api-report.json ]; then
-            artillery report artillery-api-report.json --output artillery-api-report.html
-          fi
-          if [ -f artillery-realtime-report.json ]; then
-            artillery report artillery-realtime-report.json --output artillery-realtime-report.html
-          fi
 
       - name: 📎 上傳性能測試報告
         uses: actions/upload-artifact@v7
@@ -406,9 +393,7 @@ jobs:
           name: performance-test-reports
           path: |
             artillery-api-report.json
-            artillery-api-report.html
             artillery-realtime-report.json
-            artillery-realtime-report.html
           retention-days: 30
 
       - name: 🛑 停止測試服務器
