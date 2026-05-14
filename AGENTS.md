@@ -27,9 +27,7 @@ Vitest is the primary test runner; Playwright covers end-to-end and visual flows
 
 Recent history follows Conventional Commits, for example `feat(tests): ...`, `fix(kitchen): ...`, and `docs(testing): ...`. Use `<type>(<scope>): <subject>` with clear scopes like `api`, `customer`, `kitchen`, `database`, or `tests`. PRs should include a short problem/solution summary, linked issues, screenshots for UI changes, and the exact verification commands you ran.
 
-Unless the user explicitly asks to create a new branch or open a pull request,
-make atomic commits for completed work and push them directly to `main`. Each
-commit should contain only the intended related changes.
+Unless the user explicitly asks to create a new branch or open a pull request, make atomic commits for completed work and push them directly to `main`. Each commit should contain only the intended related changes.
 
 ## Agent-Specific Notes
 
