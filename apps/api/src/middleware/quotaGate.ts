@@ -25,7 +25,12 @@ interface QuotaCheckOptions {
   restaurantId?: string;
 }
 
-type QuotaContext = Context<{ Bindings: Env }>;
+type QuotaContext<E extends { Bindings: Env } = { Bindings: Env }> = Context<E>;
+
+interface QuotaUser {
+  role?: number;
+  restaurantId?: string | number | null;
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CACHE_TTL_SECONDS = 30;
@@ -78,8 +83,8 @@ function resolveCycle(subscription: SubscriptionRow, now: number) {
   return fallbackMonthlyCycle(now);
 }
 
-async function getSubscription(
-  c: QuotaContext,
+async function getSubscription<E extends { Bindings: Env }>(
+  c: QuotaContext<E>,
   restaurantId: string,
 ): Promise<SubscriptionRow | null> {
   return await c.env.DB.prepare(
@@ -93,8 +98,8 @@ async function getSubscription(
     .first<SubscriptionRow>();
 }
 
-async function getAggregatedCount(
-  c: QuotaContext,
+async function getAggregatedCount<E extends { Bindings: Env }>(
+  c: QuotaContext<E>,
   restaurantId: string,
   meterKey: MeterKey,
   cycleStartAt: number,
@@ -124,8 +129,8 @@ async function getAggregatedCount(
   return total;
 }
 
-async function getPendingCount(
-  c: QuotaContext,
+async function getPendingCount<E extends { Bindings: Env }>(
+  c: QuotaContext<E>,
   restaurantId: string,
   meterKey: MeterKey,
 ): Promise<number> {
@@ -142,8 +147,8 @@ async function getPendingCount(
   return row?.total ?? 0;
 }
 
-function setQuotaWarning(
-  c: QuotaContext,
+function setQuotaWarning<E extends { Bindings: Env }>(
+  c: QuotaContext<E>,
   meterKey: MeterKey,
   count: number,
   quota: MeterQuota,
@@ -152,8 +157,8 @@ function setQuotaWarning(
   c.header("X-Quota-Warning", `${meterKey} ${pct}%`);
 }
 
-async function notifyHardQuotaExceeded(
-  c: QuotaContext,
+async function notifyHardQuotaExceeded<E extends { Bindings: Env }>(
+  c: QuotaContext<E>,
   restaurantId: string,
   meterKey: MeterKey,
   cycleStartAt: number,
@@ -191,15 +196,15 @@ async function notifyHardQuotaExceeded(
   }
 }
 
-export async function enforceQuota(
-  c: QuotaContext,
+export async function enforceQuota<E extends { Bindings: Env }>(
+  c: QuotaContext<E>,
   meterKey: MeterKey,
   options: QuotaCheckOptions = {},
 ): Promise<void> {
   const mode = getMode(c.env);
   if (mode === "disabled") return;
 
-  const user = c.get("user");
+  const user = c.get("user" as never) as QuotaUser | undefined;
   if (user?.role === 0) return;
 
   const restaurantId =
@@ -245,7 +250,10 @@ export async function enforceQuota(
 }
 
 export function quotaGate(meterKey: MeterKey) {
-  return async (c: QuotaContext, next: Next) => {
+  return async <E extends { Bindings: Env }>(
+    c: QuotaContext<E>,
+    next: Next,
+  ) => {
     await enforceQuota(c, meterKey);
     await next();
   };

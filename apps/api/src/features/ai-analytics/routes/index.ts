@@ -29,7 +29,7 @@ type AiAnalyticsEnv = {
 
 const routes = new Hono<AiAnalyticsEnv>();
 
-async function trackAiRequest(c: Context<AiAnalyticsEnv>) {
+async function trackAiRequest<E extends { Bindings: Env }>(c: Context<E>) {
   await meterEmit(c, "ai.requests", {
     metadata: { endpoint: c.req.path },
   });

@@ -85,7 +85,7 @@
     "test:security:snyk": "snyk test --all-projects --severity-threshold=high",
     "test:security:full": "pnpm run test:security:snyk && pnpm run test:security",
     "test:workspace-gates": "pnpm --filter @makanmakan/management-api exec vitest run --passWithNoTests && pnpm --filter @makanmakan/ai-analytics exec vitest run --passWithNoTests && pnpm --filter @makanmakan/testing-utils exec vitest run --passWithNoTests",
-    "check:workers": "pnpm --filter @makanmakan/api run build && pnpm --filter @makanmakan/management-api run build && pnpm --filter @makanmakan/image-processor run build && pnpm --filter @makanmakan/realtime run build && pnpm --filter @makanmakan/backup-scheduler run build",
+    "check:workers": "pnpm --filter @makanmakan/ai-analytics run build && pnpm --filter @makanmakan/api run build && pnpm --filter @makanmakan/management-api run build && pnpm --filter @makanmakan/image-processor run build && pnpm --filter @makanmakan/realtime run build && pnpm --filter @makanmakan/backup-scheduler run build",
     "factory:usage": "node scripts/factory-usage-tracker.js",
     "factory:report": "node scripts/factory-usage-tracker.js && echo '\n✅ 報告已生成在 reports/factory-usage/'",
     "migration:init": "node scripts/migration-progress-tracker.js init",
