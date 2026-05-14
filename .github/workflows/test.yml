@@ -609,7 +609,7 @@ jobs:
             --filter=makanmasak-customer-app \
             --filter=makanmasak-admin-dashboard \
             --filter=makanmasak-kitchen-display \
-            --filter=makanmasak-management-portal \
+            --filter=@makanmakan/management-portal \
             --filter=makanmasak-onboarding-app
 
       - name: 🚀 啟動 Preview Servers
