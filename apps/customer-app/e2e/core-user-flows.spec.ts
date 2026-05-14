@@ -16,6 +16,17 @@ test.describe("核心用戶流程 E2E 測試", () => {
       /\/restaurants\/1$/,
       TestDataGenerator.generateRestaurantData(),
     );
+    await helpers.mockAPIResponse(/\/discovery\/restaurants\?/, {
+      results: [
+        {
+          restaurantId: "1",
+          name: "Test Restaurant",
+          type: "Restaurant",
+          district: "Test District",
+          imageUrl: null,
+        },
+      ],
+    });
     await helpers.mockAPIResponse(
       /\/orders/,
       TestDataGenerator.generateOrderData(),
@@ -94,17 +105,17 @@ test.describe("核心用戶流程 E2E 測試", () => {
     // 2. 點擊手動輸入
     await helpers.clickElement('[data-testid="manual-input-btn"]');
 
-    // 3. 填寫餐廳資訊
-    await helpers.waitForText("輸入餐廳資訊");
-    await helpers.fillInput('[data-testid="restaurant-id-input"]', "1");
-    await helpers.fillInput('[data-testid="table-id-input"]', "5");
+    // 3. 搜尋並選擇餐廳
+    await helpers.fillInput('[data-testid="restaurant-search-input"]', "Test");
+    await helpers.clickElement(
+      page.locator('[data-testid="restaurant-search-result"]').first(),
+    );
 
     // 4. 提交
     await helpers.clickElement('[data-testid="confirm-manual-input-btn"]');
 
-    // 5. 驗證進入菜單頁面
-    await expect(page).toHaveURL(/\/restaurant\/1\/table\/5/);
-    await helpers.waitForText("Test Restaurant");
+    // 5. 驗證進入取餐方式選擇頁面
+    await expect(page).toHaveURL(/\/restaurant\/1\/shop\/order-type/);
   });
 
   test("購物車商品管理", async ({ page }) => {

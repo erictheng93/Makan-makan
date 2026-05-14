@@ -57,6 +57,7 @@
         <div class="lg:flex-1 lg:max-w-sm space-y-3 lg:space-y-4">
           <!-- 掃描QR碼按鈕 -->
           <button
+            data-testid="scan-qr-btn"
             class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3 shadow-lg"
             @click="startQRScan"
           >
@@ -78,6 +79,7 @@
 
           <!-- 手動輸入按鈕 -->
           <button
+            data-testid="manual-input-btn"
             class="w-full bg-gray-100 text-ios-text font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center space-x-3"
             @click="showManualInput = true"
           >

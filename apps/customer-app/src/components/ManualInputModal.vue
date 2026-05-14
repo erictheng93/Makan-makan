@@ -45,6 +45,7 @@
           <input
             id="restaurant-name"
             v-model="searchQuery"
+            data-testid="restaurant-search-input"
             type="text"
             :placeholder="t('manualInput.restaurantNamePlaceholder')"
             class="w-full px-3 py-2 bg-ios-bg rounded-xl focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
@@ -64,6 +65,7 @@
             <button
               v-for="restaurant in searchResults"
               :key="restaurant.restaurantId"
+              data-testid="restaurant-search-result"
               class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
               @click="selectRestaurant(restaurant)"
             >
@@ -213,6 +215,7 @@
       <!-- 按鈕區域 -->
       <div class="px-6 py-4 bg-gray-50 rounded-b-2xl space-y-3">
         <button
+          data-testid="confirm-manual-input-btn"
           :disabled="!selectedRestaurant || loading"
           class="w-full bg-ios-blue hover:bg-ios-blue/90 disabled:bg-ios-tertiary text-white font-semibold py-3.5 px-4 rounded-full transition-colors flex items-center justify-center"
           @click="handleConfirm"
