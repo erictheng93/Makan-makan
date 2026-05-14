@@ -34,6 +34,17 @@ vi.mock("@/services/api", () => ({
     patch: vi.fn().mockResolvedValue({ data: { success: true } }),
     delete: vi.fn().mockResolvedValue({ data: { success: true } }),
   },
+  unwrapApiData: <T>(response: { data: unknown }): T => {
+    const payload = response.data as { data?: T } | T | undefined;
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "data" in (payload as object)
+    ) {
+      return (payload as { data: T }).data;
+    }
+    return payload as T;
+  },
 }));
 
 // Mock services with proper factory functions

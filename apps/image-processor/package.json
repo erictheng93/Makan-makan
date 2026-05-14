@@ -8,9 +8,11 @@
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production",
-    "build": "tsc",
+    "build": "tsc && wrangler deploy --dry-run --env=\"\"",
+    "build:staging": "tsc && wrangler deploy --dry-run --env staging",
+    "build:prod": "tsc && wrangler deploy --dry-run --env production",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "vitest",
+    "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
   "keywords": [
@@ -34,10 +36,10 @@
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "4.0.17",
     "eslint": "^8.57.0",
     "typescript": "^5.3.0",
-    "vitest": "^3.2.4",
+    "vitest": "4.0.17",
     "wrangler": "^4.85.0"
   }
 }

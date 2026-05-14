@@ -9,7 +9,7 @@
     "build:analyze": "ANALYZE=true vue-tsc && vite build",
     "preview": "vite preview --host",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "eslint src --fix",
+    "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "test:unit": "vitest",
     "test:real-integration": "vitest --config vitest.real-integration.config.ts",

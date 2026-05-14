@@ -30,15 +30,15 @@ import idIDCustomer from "./locales/id-ID/customer.json";
 import type { SupportedLocale } from "./types";
 
 function mergeMessages(
-  common: Record<string, any>,
-  customer: Record<string, any>,
+  common: Record<string, unknown>,
+  customer: Record<string, unknown>,
 ) {
   return { ...common, ...customer };
 }
 
 export function getCustomerMessages(): Record<
   SupportedLocale,
-  Record<string, any>
+  Record<string, unknown>
 > {
   return {
     "en-US": mergeMessages(enUSCommon, enUSCustomer),
@@ -50,7 +50,7 @@ export function getCustomerMessages(): Record<
   };
 }
 
-export function getAdminMessages(): Record<string, Record<string, any>> {
+export function getAdminMessages(): Record<string, Record<string, unknown>> {
   // Placeholder for future admin-dashboard integration
   return {
     "en-US": enUSCommon,

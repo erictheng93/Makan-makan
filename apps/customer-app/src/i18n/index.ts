@@ -15,6 +15,12 @@ import { waitingListIdId } from "@/locales/id-ID";
 import { waitingListViVn } from "@/locales/vi-VN";
 
 // Load all translations statically
+type I18nInstance = ReturnType<typeof createI18n> & {
+  global: ReturnType<typeof createI18n>["global"] & {
+    locale: { value: SupportedLanguage };
+  };
+};
+
 const messages = getCustomerMessages();
 messages["en-US"] = {
   ...messages["en-US"],
@@ -54,8 +60,8 @@ export const i18n = createI18n({
   locale: LocaleManager.getStoredLocale(),
   fallbackLocale: "en-US",
   globalInjection: true,
-  messages,
-});
+  messages: messages as never,
+}) as I18nInstance;
 
 // Vue plugin install
 export function setupI18n(app: App) {

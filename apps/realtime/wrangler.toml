@@ -35,6 +35,16 @@ migrations_dir = "../../packages/database/migrations_fresh"
 [env.staging]
 name = "makanmasak-realtime-staging"
 
+[env.staging.vars]
+ENVIRONMENT = "staging"
+API_VERSION = "v1"
+RATE_LIMIT_ENABLED = "true"
+
+[env.staging.durable_objects]
+bindings = [
+  { name = "REALTIME_SESSION", class_name = "RealtimeSession" }
+]
+
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "makanmasak-staging"
@@ -62,28 +72,38 @@ id = "ece9224665004216babdeda97371fd6c"
 [env.production]
 name = "makanmasak-realtime-prod"
 
+[env.production.vars]
+ENVIRONMENT = "production"
+API_VERSION = "v1"
+RATE_LIMIT_ENABLED = "true"
+
+[env.production.durable_objects]
+bindings = [
+  { name = "REALTIME_SESSION", class_name = "RealtimeSession" }
+]
+
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmasak-prod"
 # TODO: Replace with actual D1 database ID from Cloudflare dashboard
 # Run: wrangler d1 create makanmasak-prod
-database_id = "REPLACE_ME__PRODUCTION__API_DB"
+database_id = "4e3c7ba8-5aa7-4652-bfea-a9c565b3a141"
 
 # Cache KV - aligned with API naming convention
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
 # Use same KV namespace as API for data consistency
-id = "REPLACE_ME__PRODUCTION__CACHE_KV"
+id = "5850dad46b684f2d8b69b3344d146a1d"
 
 # Token Blacklist KV - dedicated security namespace
 [[env.production.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "REPLACE_ME__PRODUCTION__TOKEN_BLACKLIST_KV"
+id = "30ba7daf1e4c41438233542de10dd02f"
 
 # Rate Limit KV - for WebSocket connection rate limiting
 [[env.production.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "REPLACE_ME__PRODUCTION__RATELIMIT_KV"
+id = "e442a551aa3f484db44fcdfa1084ff81"
 
 # Smart placement for production
 [env.production.placement]

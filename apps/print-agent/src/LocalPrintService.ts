@@ -5,6 +5,7 @@
 
 import express from "express";
 import type { IncomingMessage } from "http";
+import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import cors from "cors";
 import { PrintAgentService } from "./services/PrintAgentService";
@@ -61,7 +62,8 @@ export class LocalPrintService {
   private printAgentService: PrintAgentService;
   private driverFactory: PrinterDriverFactory;
   private expressApp!: express.Application;
-  private wsServer!: WebSocketServer;
+  private httpServer?: Server;
+  private wsServer?: WebSocketServer;
   private connectedClients: Set<WebSocket> = new Set();
   private isRunning = false;
   private discoveryTimer?: NodeJS.Timeout;
@@ -78,7 +80,6 @@ export class LocalPrintService {
     });
 
     this.setupExpressApp();
-    this.setupWebSocket();
     this.setupEventHandlers();
   }
 
@@ -114,6 +115,7 @@ export class LocalPrintService {
       console.log(`📡 HTTP API: http://localhost:${this.config.port}`);
       console.log(`🔗 WebSocket: ws://localhost:${this.config.wsPort}`);
     } catch (error) {
+      await this.stopNetworkServers();
       console.error("❌ Failed to start Local Print Service:", error);
       throw error;
     }
@@ -134,10 +136,8 @@ export class LocalPrintService {
 
     // 關閉 WebSocket 連線
     this.connectedClients.forEach((ws) => ws.close());
-    this.wsServer.close();
 
-    // 關閉 HTTP 伺服器
-    // expressApp.close() 會在實際實作中調用
+    await this.stopNetworkServers();
 
     console.log("✅ Local Print Service stopped");
   }
@@ -495,6 +495,10 @@ export class LocalPrintService {
   // =============================================
 
   private setupWebSocket(): void {
+    if (this.wsServer) {
+      return;
+    }
+
     this.wsServer = new WebSocketServer({
       port: this.config.wsPort,
       verifyClient: (info: WebSocketClientInfo) => {
@@ -643,12 +647,70 @@ export class LocalPrintService {
         resolve();
       });
 
+      this.httpServer = server;
       server.on("error", reject);
     });
   }
 
   private async startWebSocketServer(): Promise<void> {
-    // WebSocket 伺服器在 setupWebSocket 中已啟動
+    return new Promise((resolve, reject) => {
+      this.setupWebSocket();
+
+      const server = this.wsServer;
+      if (!server) {
+        reject(new Error("WebSocket server was not initialized"));
+        return;
+      }
+
+      const handleListening = () => {
+        server.off("error", handleError);
+        resolve();
+      };
+      const handleError = (error: Error) => {
+        server.off("listening", handleListening);
+        reject(error);
+      };
+
+      if (server.address()) {
+        resolve();
+        return;
+      }
+
+      server.once("listening", handleListening);
+      server.once("error", handleError);
+    });
+  }
+
+  private async stopNetworkServers(): Promise<void> {
+    const closeWebSocketServer = this.wsServer
+      ? new Promise<void>((resolve, reject) => {
+          this.wsServer!.close((error?: Error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve();
+          });
+        })
+      : Promise.resolve();
+
+    const closeHttpServer =
+      this.httpServer && typeof this.httpServer.close === "function"
+        ? new Promise<void>((resolve, reject) => {
+            this.httpServer!.close((error?: Error) => {
+              if (error) {
+                reject(error);
+                return;
+              }
+              resolve();
+            });
+          })
+        : Promise.resolve();
+
+    await Promise.all([closeWebSocketServer, closeHttpServer]);
+    this.wsServer = undefined;
+    this.httpServer = undefined;
+    this.connectedClients.clear();
   }
 
   private async startPrinterDiscovery(): Promise<void> {
@@ -774,6 +836,10 @@ export class LocalPrintService {
   }
 
   getPrintAgentService(): PrintAgentService {
+    return this.printAgentService;
+  }
+
+  getPrinterService(): PrintAgentService {
     return this.printAgentService;
   }
 

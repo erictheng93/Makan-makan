@@ -69,9 +69,10 @@ vi.mock("@makanmakan/queue-core/print", () => {
 });
 
 // Mock express to avoid actually starting HTTP servers
+const mockHttpClose = vi.fn((cb?: (error?: Error) => void) => cb?.());
 const mockListen = vi.fn((_port: number, cb: () => void) => {
   cb();
-  return { on: vi.fn() };
+  return { on: vi.fn(), close: mockHttpClose };
 });
 const mockUse = vi.fn();
 const mockExpressApp = {
@@ -94,14 +95,23 @@ vi.mock("cors", () => ({
 }));
 
 // Mock WebSocketServer to avoid actually binding ports
-const mockWsClose = vi.fn();
+const mockWsClose = vi.fn((cb?: (error?: Error) => void) => cb?.());
 const mockWsOn = vi.fn();
+const mockWsOnce = vi.fn();
+const mockWsOff = vi.fn();
+const mockWsAddress = vi.fn(() => ({ port: 4004 }));
 vi.mock("ws", () => {
   function MockWebSocket() {}
   MockWebSocket.OPEN = 1;
 
   function MockWebSocketServer() {
-    return { on: mockWsOn, close: mockWsClose };
+    return {
+      on: mockWsOn,
+      once: mockWsOnce,
+      off: mockWsOff,
+      close: mockWsClose,
+      address: mockWsAddress,
+    };
   }
 
   return {
@@ -299,14 +309,13 @@ describe("LocalPrintService", () => {
       expect(service.getConnectedClientsCount()).toBe(0);
     });
 
-    it("should set up WebSocket server on construction", () => {
-      // The WebSocketServer mock was used during construction,
-      // which sets up the wsServer with on/close methods.
-      // Verify the wsServer's on method was called (connection handler registered).
-      expect(mockWsOn).toHaveBeenCalled();
+    it("should not bind WebSocket server on construction", () => {
+      expect(mockWsOn).not.toHaveBeenCalled();
     });
 
-    it("should set up connection handler on WebSocket server", () => {
+    it("should set up connection handler on service start", async () => {
+      await service.start();
+
       // Check that wsServer.on('connection', ...) was registered
       const connectionCallArgs = mockWsOn.mock.calls.find(
         (c: any[]) => c[0] === "connection",

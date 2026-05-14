@@ -4,11 +4,11 @@ import { expect, type Page } from "@playwright/test";
  * App URL 對照表（對應各 app 的 vite dev/preview port）
  */
 export const APP_URLS = {
-  customer: "http://localhost:3000",
-  admin: "http://localhost:3001",
-  kitchen: "http://localhost:3002",
-  management: "http://localhost:3010",
-  onboarding: "http://localhost:3011",
+  customer: process.env.VISUAL_CUSTOMER_URL ?? "http://localhost:3000",
+  admin: process.env.VISUAL_ADMIN_URL ?? "http://localhost:3001",
+  kitchen: process.env.VISUAL_KITCHEN_URL ?? "http://localhost:3002",
+  management: process.env.VISUAL_MANAGEMENT_URL ?? "http://localhost:3010",
+  onboarding: process.env.VISUAL_ONBOARDING_URL ?? "http://localhost:3011",
 } as const;
 
 /**

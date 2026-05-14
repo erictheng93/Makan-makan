@@ -1,29 +1,28 @@
 name: 🚀 Production Deploy
 
-# Deploys to production after the test pipeline passes on main.
-# Uses workflow_run to chain after test.yml, so all tests (unit, E2E,
-# security, visual regression) must be green before deployment starts.
+# Deploys to production from main after explicit manual confirmation.
+# The auto workflow_run chain remains disabled until this repository has a
+# supported required-reviewer environment gate or an equivalent approval process.
 #
-# The GitHub 'production' environment should be configured with:
-# - Required reviewers (manual approval gate)
-# - Deployment branch restriction: main only
+# The GitHub 'production' environment is configured with a main-only deployment
+# branch policy. Required reviewers are not enabled because GitHub returned 422
+# for environment reviewer protection on the current repository plan.
 
 on:
   # Auto-deploy chain via workflow_run is temporarily DISABLED while:
-  #   - HB-2 (smoke endpoint /api/v1/health → /info) is unfixed
-  #   - HB-3 (tests/e2e/smoke/ suite missing) is unfixed
-  #   - GitHub `production` environment with required-reviewer gate is not yet
-  #     configured (`gh api repos/.../environments` returns total_count: 0)
-  # Without the smoke fix the deploy step succeeds but post-deploy verification
-  # would silently fail; without the environment gate there is no human approval
-  # before live traffic is affected. Re-enable by uncommenting the workflow_run
-  # block below once HB-2 + HB-3 land and the production environment exists with
-  # required reviewers + branch restriction `main` only.
+  #   - required-reviewer protection is unavailable on the current GitHub plan
+  #   - production deploys should remain an explicit operator action
+  # Re-enable only after the approval gate is enforceable.
   # workflow_run:
   #   workflows: ["🧪 MakanMakan 測試流水線"]
   #   types: [completed]
   #   branches: [main]
   workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: 'Type "DEPLOY PRODUCTION" to deploy main to production.'
+        required: true
+        type: string
 
 concurrency:
   group: production-deploy
@@ -42,10 +41,13 @@ jobs:
     name: ✅ 確認測試通過
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' &&
+        inputs.confirm_production == 'DEPLOY PRODUCTION') ||
       github.event.workflow_run.conclusion == 'success'
+
+
     steps:
-      - run: echo "Tests passed — proceeding to production deploy"
+      - run: echo "Production deploy gate passed."
 
   deploy-production:
     name: 🚀 部署到正式環境

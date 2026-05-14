@@ -99,11 +99,11 @@ LOG_LEVEL = "warn"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmasak-prod"
-database_id = "REPLACE_ME__PRODUCTION__API_DB"
+database_id = "4e3c7ba8-5aa7-4652-bfea-a9c565b3a141"
 
 [[env.production.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "REPLACE_ME__PRODUCTION__BACKUP_KV"
+id = "0f091e2ecc254832b824794e6d6912dc"
 
 [[env.production.r2_buckets]]
 binding = "BACKUP_STORAGE"

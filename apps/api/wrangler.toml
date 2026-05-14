@@ -205,25 +205,25 @@ TWILIO_PHONE_NUMBER = "+1234567890"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmasak-prod"
-database_id = "REPLACE_ME__PRODUCTION__API_DB"
+database_id = "4e3c7ba8-5aa7-4652-bfea-a9c565b3a141"
 migrations_dir = "../../packages/database/migrations_fresh"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
-id = "REPLACE_ME__PRODUCTION__CACHE_KV"
+id = "5850dad46b684f2d8b69b3344d146a1d"
 
 [[env.production.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "REPLACE_ME__PRODUCTION__RATELIMIT_KV"
+id = "e442a551aa3f484db44fcdfa1084ff81"
 
 [[env.production.kv_namespaces]]
 binding = "BACKUP_KV"
-id = "REPLACE_ME__PRODUCTION__BACKUP_KV"
+id = "0f091e2ecc254832b824794e6d6912dc"
 
 # Token Blacklist KV for WebSocket authentication security
 [[env.production.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
-id = "REPLACE_ME__PRODUCTION__TOKEN_BLACKLIST_KV"
+id = "30ba7daf1e4c41438233542de10dd02f"
 
 [[env.production.r2_buckets]]
 binding = "BACKUP_STORAGE"

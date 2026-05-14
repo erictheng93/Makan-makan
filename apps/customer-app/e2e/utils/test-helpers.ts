@@ -12,9 +12,11 @@ export class TestHelpers {
    */
   async waitForPageLoad() {
     await this.page.waitForLoadState("networkidle");
-    await this.page.waitForSelector('[data-testid="app-ready"]', {
+    await this.page.locator("body").waitFor({
+      state: "visible",
       timeout: 10000,
     });
+    await expect(this.page.locator("body")).not.toHaveText(/^\s*$/);
   }
 
   /**

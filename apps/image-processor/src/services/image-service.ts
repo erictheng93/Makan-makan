@@ -5,11 +5,13 @@ import type {
   ImageAnalytics,
   ImageTransformation,
 } from "../types/env";
-import {
-  ImageService as DatabaseImageService,
-  type CreateImageData,
-  type D1Database,
-} from "@makanmakan/database";
+import { ImageService as DatabaseImageService } from "@makanmakan/database";
+import type { D1Database } from "@cloudflare/workers-types";
+
+type DatabaseImageServiceInstance = InstanceType<typeof DatabaseImageService>;
+type CreateImageData = Parameters<
+  DatabaseImageServiceInstance["createImage"]
+>[0];
 
 type DatabaseImageListRow = {
   id: string;
@@ -57,7 +59,7 @@ const parseProcessingJobId = (jobId: string): number | null => {
 export class ImageService {
   private db: D1Database;
   private cache: KVNamespace;
-  private dbImageService: DatabaseImageService;
+  private dbImageService: DatabaseImageServiceInstance;
 
   constructor(env: Env) {
     this.db = env.DB;

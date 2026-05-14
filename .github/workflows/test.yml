@@ -53,6 +53,9 @@ jobs:
       - name: 🔍 ESLint 檢查
         run: pnpm run lint
 
+      - name: 🧼 確認 lint 沒有修改檔案
+        run: git diff --exit-code
+
       - name: 🎯 TypeScript 型別檢查
         run: pnpm run typecheck
 

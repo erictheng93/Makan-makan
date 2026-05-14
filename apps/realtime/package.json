@@ -6,12 +6,16 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "build": "tsc",
+    "build": "tsc && wrangler deploy --dry-run --env=\"\"",
+    "build:staging": "tsc && wrangler deploy --dry-run --env staging",
+    "build:prod": "tsc && wrangler deploy --dry-run --env production",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "lint:fix": "eslint src --fix"
+    "lint:fix": "eslint src --fix",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@makanmakan/shared-types": "workspace:*",
@@ -23,7 +27,9 @@
     "@makanmakan/testing-utils": "workspace:*",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/ws": "^8.5.10",
+    "@vitest/coverage-v8": "4.0.17",
     "typescript": "^5.0.0",
+    "vitest": "4.0.17",
     "wrangler": "^4.85.0"
   }
 }

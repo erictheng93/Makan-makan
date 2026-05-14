@@ -177,34 +177,34 @@ export interface AdminMessageSchema extends BaseMessageSchema {
  */
 export interface CustomerAppMessages extends BaseMessageSchema {
   navigation: Record<string, string>;
-  home: Record<string, any>;
+  home: Record<string, unknown>;
   qrScan: Record<string, string>;
   menu: Record<string, string>;
   menuItem: Record<string, string>;
   customization: Record<string, string>;
-  cart: Record<string, any>;
-  order: Record<string, any>;
-  service: Record<string, any>;
-  payment: Record<string, any>;
+  cart: Record<string, unknown>;
+  order: Record<string, unknown>;
+  service: Record<string, unknown>;
+  payment: Record<string, unknown>;
   profile: Record<string, string>;
   restaurant: Record<string, string>;
-  about: Record<string, any>;
-  privacy: Record<string, any>;
-  terms: Record<string, any>;
+  about: Record<string, unknown>;
+  privacy: Record<string, unknown>;
+  terms: Record<string, unknown>;
   errors: Record<string, string>;
   time: Record<string, string>;
-  auth: Record<string, any>;
+  auth: Record<string, unknown>;
   toast: Record<string, string>;
-  orderTracking: Record<string, any>;
-  orderHistory: Record<string, any>;
-  shopCart: Record<string, any>;
+  orderTracking: Record<string, unknown>;
+  orderHistory: Record<string, unknown>;
+  shopCart: Record<string, unknown>;
   errorBoundary: Record<string, string>;
   manualInput: Record<string, string>;
   qrScanView: Record<string, string>;
   shopMenu: Record<string, string>;
-  phoneVerification: Record<string, any>;
+  phoneVerification: Record<string, unknown>;
   menuItemCard: Record<string, string>;
-  menuItemModal: Record<string, any>;
+  menuItemModal: Record<string, unknown>;
   orderItem: Record<string, string>;
 }
 export type AdminDashboardMessages = AdminMessageSchema &

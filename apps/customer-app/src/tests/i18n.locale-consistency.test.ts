@@ -2,17 +2,26 @@ import { describe, it, expect } from "vitest";
 import { i18n, switchLanguage, SUPPORTED_LANGUAGES } from "@/i18n";
 import type { SupportedLanguage } from "@/i18n";
 
-const flattenKeys = (obj: any, prefix = ""): string[] => {
-  let keys: string[] = [];
+type FlattenedMessage = {
+  key: string;
+  value: unknown;
+};
+
+const flattenMessages = (obj: any, prefix = ""): FlattenedMessage[] => {
+  let messages: FlattenedMessage[] = [];
   Object.keys(obj).forEach((key) => {
     const newKey = prefix ? `${prefix}.${key}` : key;
     if (typeof obj[key] === "object" && obj[key] !== null) {
-      keys = keys.concat(flattenKeys(obj[key], newKey));
+      messages = messages.concat(flattenMessages(obj[key], newKey));
     } else {
-      keys.push(newKey);
+      messages.push({ key: newKey, value: obj[key] });
     }
   });
-  return keys;
+  return messages;
+};
+
+const flattenKeys = (obj: any, prefix = ""): string[] => {
+  return flattenMessages(obj, prefix).map(({ key }) => key);
 };
 
 type I18nGlobal = {
@@ -68,12 +77,10 @@ describe("Locale Consistency", () => {
 
   it("should have no empty translation values in any locale", () => {
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
-      switchLanguage(code as SupportedLanguage);
       const messages = i18n.global.getLocaleMessage(code);
-      const keys = flattenKeys(messages);
-      keys.forEach((key) => {
-        const val = testI18n.t(key);
-        expect(val, `Empty value for ${key} in ${code}`).toBeTruthy();
+      const flattened = flattenMessages(messages);
+      flattened.forEach(({ key, value }) => {
+        expect(value, `Empty value for ${key} in ${code}`).toBeTruthy();
       });
     });
   });

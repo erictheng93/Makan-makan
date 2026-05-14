@@ -1,5 +1,5 @@
 {
-  "name": "makanmasak-management-portal",
+  "name": "@makanmakan/management-portal",
   "version": "1.0.0",
   "description": "MakanMakan 多租戶管理後台 - 管理獨立部署租戶",
   "type": "module",
@@ -11,7 +11,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "lint": "eslint src --fix",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "deploy:staging": "wrangler pages deploy dist --project-name=makanmasak-management-staging --branch=staging --commit-dirty=true",
     "deploy:prod": "wrangler pages deploy dist --project-name=makanmasak-management"
   },

@@ -4,18 +4,13 @@
  */
 
 import { createI18n, type I18n, type I18nOptions } from "vue-i18n";
-import type {
-  SupportedLocale,
-  LocaleInfo,
-  AdminDashboardMessages,
-  CustomerAppMessages,
-  KitchenDisplayMessages,
-  TranslationCompletenessCheck,
-} from "./types";
+import type { SupportedLocale, LocaleInfo } from "./types";
 import { SUPPORTED_LOCALES } from "./types";
 
 // Import locale configurations
 export * from "./types";
+
+type LocaleMessages = Record<string, unknown>;
 
 /**
  * Locale detection and storage utilities
@@ -116,7 +111,7 @@ export class LocaleManager {
  * Dynamic message loader for lazy loading
  */
 export class MessageLoader {
-  private static cache = new Map<string, any>();
+  private static cache = new Map<string, LocaleMessages>();
 
   /**
    * Load messages for specific app and locale
@@ -124,11 +119,11 @@ export class MessageLoader {
   static async loadMessages(
     app: "admin" | "customer" | "kitchen",
     locale: SupportedLocale,
-  ): Promise<any> {
+  ): Promise<LocaleMessages> {
     const cacheKey = `${app}-${locale}`;
 
     if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey);
+      return this.cache.get(cacheKey)!;
     }
 
     try {

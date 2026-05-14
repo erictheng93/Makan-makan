@@ -8,6 +8,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -27,19 +29,14 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./services": {
+      "types": "./dist/services/index.d.ts",
       "import": "./dist/services/index.js",
-      "require": "./dist/services/index.js",
-      "types": "./dist/services/index.d.ts"
-    },
-    "./repositories": {
-      "import": "./dist/repositories/index.js",
-      "require": "./dist/repositories/index.js",
-      "types": "./dist/repositories/index.d.ts"
+      "require": "./dist/services/index.js"
     }
   }
 }

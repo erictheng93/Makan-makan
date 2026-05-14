@@ -88,16 +88,16 @@ LOG_LEVEL = "warn"
 [[env.production.d1_databases]]
 binding = "MANAGEMENT_DB"
 database_name = "makanmasak-management-prod"
-database_id = "REPLACE_ME__PRODUCTION__MGMT_DB"
+database_id = "0a1f532c-37b5-4b77-8e9f-403cfda307c4"
 migrations_dir = "migrations"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
-id = "REPLACE_ME__PRODUCTION__MGMT_CACHE_KV"
+id = "1af1bf5e5421413fbb6f2f31affc4ee8"
 
 [[env.production.kv_namespaces]]
 binding = "DEPLOYMENT_STATUS_KV"
-id = "REPLACE_ME__PRODUCTION__MGMT_DEPLOY_STATUS_KV"
+id = "e8da1ab3a04740e48c53a710494c31df"
 
 [[env.production.r2_buckets]]
 binding = "BUNDLE_STORAGE"
