@@ -20,14 +20,16 @@ import { quotaGate } from "../../../middleware/quotaGate";
 import { meterEmit } from "../../../shared/utils/meter";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
-const routes = new Hono<{
+type AiAnalyticsEnv = {
   Bindings: Env;
   Variables: {
     user: { id: number; username: string; role: number; restaurantId: string };
   };
-}>();
+};
 
-async function trackAiRequest(c: Context<any>) {
+const routes = new Hono<AiAnalyticsEnv>();
+
+async function trackAiRequest(c: Context<AiAnalyticsEnv>) {
   await meterEmit(c, "ai.requests", {
     metadata: { endpoint: c.req.path },
   });

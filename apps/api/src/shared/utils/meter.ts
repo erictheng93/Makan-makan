@@ -3,6 +3,8 @@ import type { MeterKey } from "@makanmakan/database";
 import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../types/env";
 
+type MeterContext = Context<{ Bindings: Env }>;
+
 export interface MeterEmitOptions {
   restaurantId?: string;
   quantity?: number;
@@ -37,20 +39,18 @@ export async function insertUsageEvent(
 }
 
 export async function meterEmit(
-  c: Context<any>,
+  c: MeterContext,
   meterKey: MeterKey,
   options: MeterEmitOptions = {},
 ): Promise<void> {
-  const user = c.get("user") as
-    | { restaurantId?: string | number | null }
-    | undefined;
+  const user = c.get("user");
   const restaurantId =
     options.restaurantId ??
     (user?.restaurantId == null ? undefined : String(user.restaurantId));
 
   if (!restaurantId) return;
 
-  const insertOp = insertUsageEvent((c.env as Env).DB, {
+  const insertOp = insertUsageEvent(c.env.DB, {
     restaurantId,
     meterKey,
     quantity: options.quantity ?? 1,
