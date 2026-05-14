@@ -16,6 +16,8 @@
     "paths": {
       "@makanmakan/database": ["../../packages/database/src"],
       "@makanmakan/database/*": ["../../packages/database/src/*"],
+      "@makanmakan/ai-analytics": ["../../packages/ai-analytics/src"],
+      "@makanmakan/ai-analytics/*": ["../../packages/ai-analytics/src/*"],
       "@makanmakan/shared-types": ["../../packages/shared-types/src"],
       "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
       "@makanmakan/utils": ["../../packages/utils/src"],
