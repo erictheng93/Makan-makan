@@ -21,7 +21,6 @@
   "author": "MakanMakan Team",
   "license": "MIT",
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*",
     "typescript": "^5.0.0",
     "vitest": "^3.2.4",
     "@vitest/coverage-v8": "^3.2.4"

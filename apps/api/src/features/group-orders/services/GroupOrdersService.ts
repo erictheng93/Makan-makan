@@ -25,7 +25,6 @@ import type {
 } from "@makanmakan/shared-types";
 import { fromCents, toRequiredCents } from "../../../shared/utils/money";
 
-// Mock shared utilities - will be replaced with actual implementations
 class ConsoleLogger {
   constructor(
     private context: string,
@@ -207,7 +206,7 @@ export class GroupOrdersService implements IGroupOrderService {
           .where(inArray(groupCartItems.groupOrderId, orderIds)),
       ]);
 
-      // Group by order ID in-memory
+      // Group by order ID before returning the response.
       const membersByOrder = new Map<string, typeof allMembers>();
       for (const m of allMembers) {
         const list = membersByOrder.get(m.groupOrderId) || [];

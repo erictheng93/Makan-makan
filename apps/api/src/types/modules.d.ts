@@ -162,10 +162,5 @@ type ApiTestContextWithTestData = ApiTestContextWithEnv & {
   testParams?: unknown;
 };
 type ApiTestAppWithEnv = {
-  env?: {
-    MOCK_DRIZZLE_DB?: unknown;
-  };
-};
-type ApiTestMockedConstructor = {
-  mockImplementation(implementation: () => unknown): void;
+  env?: {};
 };

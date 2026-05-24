@@ -1,9 +1,8 @@
 /**
  * Real-D1 tests for ReservationService methods that previously built SQL by
  * hand and substituted parameters as literal text via a `replaceParams`
- * helper. The main ReservationService.test.ts file stubs these methods via
- * vi.spyOn — so the actual SQL path is never exercised. This file runs the
- * real implementation against an in-memory D1 (via miniflare + Drizzle) so
+ * helper. This file runs the real implementation against a Miniflare D1
+ * database through Drizzle so
  * that any future regression to hand-rolled string SQL with manual
  * parameter substitution will be caught by CI.
  *
@@ -13,15 +12,7 @@
  *   - getReservationStats (Drizzle sql template + schema column refs)
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterAll,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
@@ -29,11 +20,6 @@ import {
 import { ReservationStatus } from "@makanmakan/shared-types";
 import { ReservationService } from "../ReservationService";
 import type { CloudflareEnv } from "../base";
-
-// Undo the global vi.mock("drizzle-orm/d1") from setup.ts so this file
-// uses the real Drizzle implementation, not the pass-through identity mock.
-vi.unmock("drizzle-orm/d1");
-
 const RESTAURANT_ID = "rest-real-1";
 const OTHER_RESTAURANT_ID = "rest-real-2";
 
@@ -81,7 +67,7 @@ async function seedReservation(
       opts.reservationTime ?? "18:30",
       opts.status ?? "pending",
       // Use full id as confirmation code so seed never collides on the
-      // UNIQUE constraint, regardless of how callers name their fixtures.
+      // UNIQUE constraint, regardless of how callers name their rows.
       id,
       opts.specialRequests ?? null,
       now,
@@ -101,15 +87,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await testDb?.dispose();
-  // Restore the global setup.ts mock for `drizzle-orm/d1`. With
-  // `isolate: false` in vitest.config.ts, modules are cached across files,
-  // so leaving the unmock in effect would cause subsequent service tests
-  // (which pass mockDB to BaseService) to construct against the real
-  // Drizzle and fail with `this.client.prepare is not a function`.
-  vi.doMock("drizzle-orm/d1", () => ({
-    drizzle: (d1: any) => d1,
-  }));
-  vi.resetModules();
 });
 
 beforeEach(async () => {

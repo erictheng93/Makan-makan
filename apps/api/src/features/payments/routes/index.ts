@@ -143,10 +143,6 @@ async function handlePayment(c: PaymentContext) {
         })());
   const service = new PaymentService(c.env);
   const user: AuthUser | undefined = c.get("user");
-  // Gateway fixture headers bypass real gateway calls and are only honored
-  // outside production. In prod, any forged header is ignored so callers
-  // cannot fake a timeout/pending payment state.
-  const fixtureAllowed = c.env.NODE_ENV !== "production";
   const result = await service.processPayment(
     {
       orderId,
@@ -165,9 +161,6 @@ async function handlePayment(c: PaymentContext) {
       idempotencyKey: c.req.header("Idempotency-Key") ?? undefined,
       customerInfo: input.customerInfo,
       metadata: input.metadata,
-      gatewayFixture: fixtureAllowed
-        ? (c.req.header("X-Payment-Gateway-Fixture") ?? null)
-        : null,
     },
   );
 

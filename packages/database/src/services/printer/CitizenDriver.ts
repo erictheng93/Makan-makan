@@ -209,15 +209,7 @@ export class CitizenDriver extends PrinterDriver {
   }
 
   private async connectUSB(devicePath: string): Promise<any> {
-    // Citizen USB 連線
-    const mockUSBConnection = {
-      write: (data: Buffer) => Promise.resolve(true),
-      read: () => Promise.resolve(Buffer.alloc(0)),
-      close: () => Promise.resolve(),
-    };
-
-    console.log(`Connecting to Citizen USB device: ${devicePath}`);
-    return mockUSBConnection;
+    throw new Error(`USB printer transport is not configured: `);
   }
 
   private async connectNetwork(host: string, port: number): Promise<any> {
@@ -252,16 +244,7 @@ export class CitizenDriver extends PrinterDriver {
   }
 
   private async connectSerial(port: string, baudRate: number): Promise<any> {
-    const mockSerialConnection = {
-      write: (data: Buffer) => Promise.resolve(true),
-      read: () => Promise.resolve(Buffer.alloc(0)),
-      close: () => Promise.resolve(),
-    };
-
-    console.log(
-      `Connecting to Citizen serial port: ${port} at ${baudRate} baud`,
-    );
-    return mockSerialConnection;
+    throw new Error(`Serial printer transport is not configured:  at  baud`);
   }
 
   private async closeConnection(): Promise<void> {

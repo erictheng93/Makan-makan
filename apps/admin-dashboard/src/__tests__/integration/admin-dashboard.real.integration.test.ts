@@ -9,26 +9,15 @@
  * Single file = single Miniflare boot — eliminates workerd IPC flake from
  * multiple sequential boots.
  *
- * No vi.mock on any service or DB layer.
+ * Uses the deployed service and database paths.
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterAll,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "../../../../api/src/__tests__/integration/helpers/real-test-app";
 import { buildSeedHelpers } from "../../../../api/src/__tests__/integration/helpers/seed-helper";
-
-vi.unmock("drizzle-orm/d1");
-
 // ── Shared Miniflare instance ────────────────────────────────────────────────
 let testApp: RealIntegrationTestApp;
 let seed: ReturnType<typeof buildSeedHelpers>;

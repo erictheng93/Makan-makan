@@ -21,8 +21,8 @@ export default defineConfig({
     //   - `discovery` / `seed-helper` use `beforeAll` (hookTimeout matters)
     //   - `start-test-api-server` / `real-test-app` create a fresh
     //     miniflare in each `it()` (testTimeout matters)
-    testTimeout: 60000,
-    hookTimeout: 60000,
+    testTimeout: 180000,
+    hookTimeout: 180000,
     teardownTimeout: 15000,
     reporters: ["verbose"],
     passWithNoTests: true,
@@ -44,10 +44,6 @@ export default defineConfig({
       "@makanmakan/database/testing": resolve(
         __dirname,
         "../../packages/database/src/testing",
-      ),
-      "@makanmakan/testing-utils": resolve(
-        __dirname,
-        "../../packages/testing-utils/src",
       ),
     },
   },

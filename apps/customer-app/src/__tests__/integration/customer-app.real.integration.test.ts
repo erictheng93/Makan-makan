@@ -11,28 +11,16 @@
  * "fetch failed" flake that appears when multiple miniflare instances boot
  * sequentially in the same process (observed at attempt 3+ with 3 separate files).
  *
- * No vi.mock on any service or DB layer.
+ * Uses the deployed service and database paths.
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterAll,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "../../../../api/src/__tests__/integration/helpers/real-test-app";
 import { buildSeedHelpers } from "../../../../api/src/__tests__/integration/helpers/seed-helper";
 import { dishSearchIndex } from "@makanmakan/database";
-
-// Undo the global vi.mock("drizzle-orm/d1") so this suite uses real Drizzle.
-vi.unmock("drizzle-orm/d1");
-
 // ── Shared Miniflare instance (one boot for the entire file) ──────────────────
 let testApp: RealIntegrationTestApp;
 let seed: ReturnType<typeof buildSeedHelpers>;

@@ -184,15 +184,15 @@ console.log("4. Update imports and dependencies");
 console.log("5. Test the migrated functionality");
 console.log("6. Update main router to use new feature module");
 
-// Offer to generate stub files
+// Offer to generate scaffold files
 console.log(
-  "\n❓ Would you like to generate stub files? (Run with --generate-stubs)",
+  "\n❓ Would you like to generate scaffold files? (Run with --generate-scaffolds)",
 );
-if (process.argv.includes("--generate-stubs")) {
-  console.log("📄 Generating stub files...");
+if (process.argv.includes("--generate-scaffolds")) {
+  console.log("📄 Generating scaffold files...");
 
-  // Generate basic route stub
-  const routeStub = `/**
+  // Generate basic route scaffold
+  const routeScaffold = `/**
  * ${options.target.replace("features/", "").replace("/", "")} Routes
  * Migrated from ${options.source}
  */
@@ -215,6 +215,6 @@ ${routeAnalysis
 
 export default app`;
 
-  fs.writeFileSync(path.join(targetDir, "routes", "index.ts"), routeStub);
-  console.log("✅ Generated routes/index.ts stub");
+  fs.writeFileSync(path.join(targetDir, "routes", "index.ts"), routeScaffold);
+  console.log("✅ Generated routes/index.ts scaffold");
 }

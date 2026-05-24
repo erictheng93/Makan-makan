@@ -5,6 +5,8 @@
  */
 
 import { CouponService as BaseCouponService } from "@makanmakan/database";
+import { coupons, couponUsage } from "@makanmakan/database";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { badRequest } from "../../../shared/utils/api-error";
 import {
   fromCents,
@@ -300,9 +302,9 @@ export class CouponsService extends BaseCouponService {
    * Get coupon usage trends
    */
   async getCouponUsageTrends(
-    _restaurantId?: string,
-    _startDate?: string,
-    _endDate?: string,
+    restaurantId?: string,
+    startDate?: string,
+    endDate?: string,
   ): Promise<{
     totalCoupons: number;
     activeCoupons: number;
@@ -310,16 +312,95 @@ export class CouponsService extends BaseCouponService {
     totalSavings: number;
     usageByPeriod: CouponUsageTrendPoint[];
   }> {
-    // This would require more complex database queries
-    // For now, return mock data structure
+    const now = new Date().toISOString();
+    const couponWhere = restaurantId
+      ? sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`
+      : undefined;
+    const usageWhere = this.buildCouponUsageTrendWhere(
+      restaurantId,
+      startDate,
+      endDate,
+    );
+
+    const [couponCounts, usageTotals, usageByPeriod] = await Promise.all([
+      this.db
+        .select({
+          totalCoupons: sql<number>`count(*)`,
+          activeCoupons: sql<number>`coalesce(sum(CASE
+            WHEN ${coupons.isActive} = 1
+              AND ${coupons.isVisible} = 1
+              AND ${coupons.validFrom} <= ${now}
+              AND ${coupons.validTo} >= ${now}
+              AND (${coupons.usageLimit} IS NULL OR coalesce(${coupons.usedCount}, 0) < ${coupons.usageLimit})
+            THEN 1 ELSE 0 END), 0)`,
+        })
+        .from(coupons)
+        .where(couponWhere),
+      this.db
+        .select({
+          totalUsage: sql<number>`count(${couponUsage.id})`,
+          totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))), 0) / 100.0`,
+        })
+        .from(couponUsage)
+        .innerJoin(coupons, eq(couponUsage.couponId, coupons.id))
+        .where(usageWhere),
+      this.db
+        .select({
+          period: sql<string>`date(${couponUsage.usedAt} / 1000, 'unixepoch')`,
+          totalUsage: sql<number>`count(${couponUsage.id})`,
+          totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))), 0) / 100.0`,
+        })
+        .from(couponUsage)
+        .innerJoin(coupons, eq(couponUsage.couponId, coupons.id))
+        .where(usageWhere)
+        .groupBy(sql`date(${couponUsage.usedAt} / 1000, 'unixepoch')`)
+        .orderBy(sql`date(${couponUsage.usedAt} / 1000, 'unixepoch') ASC`),
+    ]);
+
     return {
-      totalCoupons: 0,
-      activeCoupons: 0,
-      totalUsage: 0,
-      totalSavings: 0,
-      usageByPeriod: [],
+      totalCoupons: couponCounts[0]?.totalCoupons ?? 0,
+      activeCoupons: couponCounts[0]?.activeCoupons ?? 0,
+      totalUsage: usageTotals[0]?.totalUsage ?? 0,
+      totalSavings: usageTotals[0]?.totalSavings ?? 0,
+      usageByPeriod,
     };
   }
+
+  private buildCouponUsageTrendWhere(
+    restaurantId?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const conditions = [eq(couponUsage.status, "active")];
+
+    if (restaurantId) {
+      conditions.push(
+        sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`,
+      );
+    }
+
+    const start = parseDateFilter(startDate);
+    if (start) {
+      conditions.push(gte(couponUsage.usedAt, start));
+    }
+
+    const end = parseDateFilter(endDate);
+    if (end) {
+      conditions.push(lte(couponUsage.usedAt, end));
+    }
+
+    let where = conditions[0];
+    for (const condition of conditions.slice(1)) {
+      where = and(where, condition)!;
+    }
+    return where;
+  }
+}
+
+function parseDateFilter(value: string | undefined): Date | undefined {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 function amountFromCents(

@@ -385,10 +385,7 @@ class RealtimeService {
     },
   ): Promise<boolean> {
     try {
-      await apiClient.post("/sse/broadcast/group", {
-        groupOrderId,
-        event,
-      });
+      await this.postRealtimeRoom("group_order", groupOrderId, event);
       return true;
     } catch (error) {
       console.error("Failed to broadcast to group:", error);
@@ -408,10 +405,11 @@ class RealtimeService {
     },
   ): Promise<boolean> {
     try {
-      await apiClient.post("/sse/notify/group", {
-        groupOrderId,
-        notification: {
+      await this.postRealtimeRoom("group_order", groupOrderId, {
+        type: "group_notification",
+        data: {
           ...notification,
+          groupOrderId,
           timestamp: Date.now(),
           id: crypto.randomUUID(),
         },
@@ -420,6 +418,42 @@ class RealtimeService {
     } catch (error) {
       console.error("Failed to send group notification:", error);
       return false;
+    }
+  }
+
+  private async postRealtimeRoom(
+    roomType: string,
+    roomId: string,
+    payload: unknown,
+  ): Promise<void> {
+    const realtimeBase =
+      import.meta.env.VITE_REALTIME_HTTP_URL ||
+      import.meta.env.VITE_REALTIME_URL ||
+      import.meta.env.VITE_REALTIME_WS_URL;
+
+    if (!realtimeBase) {
+      throw new Error("Realtime service URL is not configured");
+    }
+
+    const httpBase = String(realtimeBase)
+      .replace(/^wss:/, "https:")
+      .replace(/^ws:/, "http:")
+      .replace(/\/$/, "");
+    const token = localStorage.getItem("auth_token");
+    const response = await fetch(
+      `${httpBase}/broadcast/${encodeURIComponent(roomType)}/${encodeURIComponent(roomId)}`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Realtime broadcast failed with ${response.status}`);
     }
   }
 

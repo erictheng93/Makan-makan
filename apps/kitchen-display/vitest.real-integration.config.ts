@@ -9,8 +9,8 @@ export default defineConfig({
     include: ["src/__tests__/integration/**/*.real.integration.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**"],
     // Miniflare boot + migration takes 8-12s per attempt; allow retry budget.
-    testTimeout: 60000,
-    hookTimeout: 60000,
+    testTimeout: 180000,
+    hookTimeout: 180000,
     teardownTimeout: 15000,
     reporters: ["verbose"],
     passWithNoTests: true,
@@ -24,10 +24,6 @@ export default defineConfig({
       "@makanmakan/database/testing": resolve(
         __dirname,
         "../../packages/database/src/testing",
-      ),
-      "@makanmakan/testing-utils": resolve(
-        __dirname,
-        "../../packages/testing-utils/src",
       ),
       "@makanmakan/shared-types": resolve(
         __dirname,

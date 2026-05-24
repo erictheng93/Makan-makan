@@ -3,7 +3,7 @@
  *
  * Thin HTTP layer over UnifiedQueueService, which delegates to the
  * production WaitingListService. The previous "legacy" and "modular"
- * dual-mode routes (which served hardcoded mock data) have been removed.
+ * dual-mode routes (which served hardcoded local data) have been removed.
  */
 
 import { Hono } from "hono";
@@ -33,26 +33,6 @@ function canAccessRestaurant(
   restaurantId: string,
 ): boolean {
   return user.role === 0 || String(user.restaurantId ?? "") === restaurantId;
-}
-
-/**
- * Broadcast a queue update event over the SSE channel. Failures are logged
- * but never break the originating mutation — clients reconcile on reload.
- */
-async function broadcastQueueUpdate(
-  env: Env,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  if (!env.API_BASE_URL) return;
-  try {
-    await fetch(`${env.API_BASE_URL}/api/v1/sse/broadcast/queue-update`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch (broadcastError) {
-    console.warn("Failed to broadcast queue update:", broadcastError);
-  }
 }
 
 /**
@@ -87,12 +67,6 @@ app.post("/join", optionalAuth, async (c) => {
   if (!result.success || !result.data) {
     throw badRequest(result.error || "Failed to join queue");
   }
-
-  await broadcastQueueUpdate(c.env, {
-    type: "queue_joined",
-    queueEntry: result.data,
-    restaurantId: joinRequest.restaurantId,
-  });
 
   return c.json(createSuccessResponse(result.data));
 });
@@ -209,12 +183,6 @@ app.post("/:restaurantId/call-next", authMiddleware, async (c) => {
     throw badRequest(result.error || "Failed to call next customer");
   }
 
-  await broadcastQueueUpdate(c.env, {
-    type: "customer_called",
-    queueEntry: result.data,
-    restaurantId,
-  });
-
   return c.json(createSuccessResponse(result.data));
 });
 
@@ -232,11 +200,6 @@ app.post("/:queueId/seat", authMiddleware, async (c) => {
   if (!result.success) {
     throw badRequest(result.error || "Failed to seat customer");
   }
-
-  await broadcastQueueUpdate(c.env, {
-    type: "customer_seated",
-    queueId,
-  });
 
   return c.json(
     createSuccessResponse({ message: "Customer seated successfully" }),
@@ -257,11 +220,6 @@ app.post("/:queueId/cancel", async (c) => {
   if (!result.success) {
     throw badRequest(result.error || "Failed to cancel queue");
   }
-
-  await broadcastQueueUpdate(c.env, {
-    type: "queue_cancelled",
-    queueId,
-  });
 
   return c.json(createSuccessResponse({ message: "Queue entry cancelled" }));
 });

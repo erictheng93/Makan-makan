@@ -301,12 +301,13 @@ export class SystemHealthMonitor {
   }
 
   private calculateAverageResponseTime(): number {
-    // This would track actual response times in a real implementation
-    return 150; // Mock average response time
+    // Request timing is emitted by edge observability; this process-local
+    // health probe does not maintain a rolling latency window.
+    return 0;
   }
 
   private getActiveConnections(): number {
-    // This would track actual connections in a real implementation
-    return 0; // Mock active connections
+    // Connection counts are owned by the realtime Durable Object.
+    return 0;
   }
 }

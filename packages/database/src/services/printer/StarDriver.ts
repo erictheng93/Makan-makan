@@ -258,15 +258,7 @@ export class StarDriver extends PrinterDriver {
   }
 
   private async connectUSB(devicePath: string): Promise<any> {
-    // Star USB 連線 (類似 Epson 但可能有不同的初始化)
-    const mockUSBConnection = {
-      write: (data: Buffer) => Promise.resolve(true),
-      read: () => Promise.resolve(Buffer.alloc(0)),
-      close: () => Promise.resolve(),
-    };
-
-    console.log(`Connecting to Star USB device: ${devicePath}`);
-    return mockUSBConnection;
+    throw new Error(`USB printer transport is not configured: `);
   }
 
   private async connectNetwork(host: string, port: number): Promise<any> {
@@ -301,26 +293,11 @@ export class StarDriver extends PrinterDriver {
   }
 
   private async connectSerial(port: string, baudRate: number): Promise<any> {
-    const mockSerialConnection = {
-      write: (data: Buffer) => Promise.resolve(true),
-      read: () => Promise.resolve(Buffer.alloc(0)),
-      close: () => Promise.resolve(),
-    };
-
-    console.log(`Connecting to Star serial port: ${port} at ${baudRate} baud`);
-    return mockSerialConnection;
+    throw new Error(`Serial printer transport is not configured:  at  baud`);
   }
 
   private async connectBluetooth(address: string): Promise<any> {
-    // Star 藍牙連線實作
-    const mockBluetoothConnection = {
-      write: (data: Buffer) => Promise.resolve(true),
-      read: () => Promise.resolve(Buffer.alloc(0)),
-      close: () => Promise.resolve(),
-    };
-
-    console.log(`Connecting to Star Bluetooth device: ${address}`);
-    return mockBluetoothConnection;
+    throw new Error(`Bluetooth printer transport is not configured: `);
   }
 
   private async closeConnection(): Promise<void> {

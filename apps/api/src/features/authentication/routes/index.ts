@@ -2,9 +2,7 @@
  * Authentication Routes
  * HTTP routes for authentication feature
  *
- * Uses factory pattern to allow dependency injection for testing.
- * The factory pattern solves the Vitest mock hoisting issue where
- * middleware is bound at module load time before mocks are applied.
+ * Uses factory pattern to allow dependency injection for isolated tests.
  */
 
 import { Hono } from "hono";
@@ -98,7 +96,7 @@ function extractRequestInfo<V extends Record<string, unknown>>(
 
 /**
  * Factory function to create auth routes with injectable dependencies.
- * This allows tests to inject mock middleware and services.
+ * This allows tests to inject middleware and services.
  *
  * @param deps - Optional dependencies to inject (middleware, services)
  * @returns Configured Hono router for authentication routes

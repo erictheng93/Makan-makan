@@ -11,7 +11,6 @@ import {
 } from "../../billing/services/PaymentAuditService";
 
 export interface ProcessPaymentOptions {
-  gatewayFixture?: string | null;
   user?: AuthUser;
   country?: string;
   currency?: string;
@@ -136,7 +135,6 @@ export class PaymentService {
         ...((options.metadata as Record<string, unknown> | undefined) ?? {}),
         paymentMode: input.paymentMode,
         closeOrder: input.closeOrder ?? true,
-        gatewayFixture: options.gatewayFixture ?? null,
       }),
     });
     await this.paymentAudit.append({
@@ -155,36 +153,6 @@ export class PaymentService {
         closeOrder: input.closeOrder ?? true,
       },
     });
-
-    if (options.gatewayFixture === "timeout") {
-      await this.db
-        .update(orders)
-        .set({
-          paymentStatus: "pending",
-          paymentMethod: method,
-          paymentTransactionId: paymentId,
-          updatedAt: new Date(),
-        })
-        .where(eq(orders.id, input.orderId));
-
-      await this.updatePaymentTransactionStatus(paymentId, "failed", {
-        restaurantId: existing.restaurantId,
-        amountCents: cents(serverTotal),
-        currency: options.currency ?? null,
-        provider: input.gateway ?? input.method ?? "internal",
-      });
-
-      return {
-        status: 202,
-        data: {
-          paymentId,
-          orderId: input.orderId,
-          orderStatus: existing.status,
-          paymentStatus: "pending",
-          authorizedTotal: serverTotal,
-        },
-      };
-    }
 
     const shouldCloseOrder = input.closeOrder ?? true;
     const [updated] = await this.db

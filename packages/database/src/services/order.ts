@@ -421,7 +421,7 @@ export class OrderService extends BaseService {
         const fullOrder = await this.getOrder(order.id);
         if (fullOrder) return fullOrder;
       } catch {
-        // Unit-test mocks and some legacy adapters do not expose query.orders;
+        // Some legacy adapters do not expose query.orders;
         // fall back to the inserted rows instead of failing order creation.
       }
 

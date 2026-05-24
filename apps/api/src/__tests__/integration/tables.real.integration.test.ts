@@ -1,20 +1,9 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterAll,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-
-vi.unmock("drizzle-orm/d1");
-
 function withCsrf(
   headers: Record<string, string> = {},
 ): Record<string, string> {

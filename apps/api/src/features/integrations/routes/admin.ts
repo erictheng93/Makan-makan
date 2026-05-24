@@ -132,32 +132,6 @@ adminRoutes.post("/:restaurantId/:platform/menu-sync", async (c) => {
     );
   }
 
-  // Test fixture for E3 P1 gate: simulate an upstream platform timeout
-  // without actually invoking the adapter. Local menu must remain
-  // authoritative and untouched (the gate asserts menu_items.updatedAt
-  // is unchanged after the failure). Gated on NODE_ENV !== "production"
-  // mirroring the X-Payment-Gateway-Fixture pattern in
-  // apps/api/src/features/payments/routes/index.ts.
-  const fixtureAllowed = c.env.NODE_ENV !== "production";
-  const integrationFixture = fixtureAllowed
-    ? (c.req.header("X-Integration-Fixture") ?? null)
-    : null;
-  if (integrationFixture === "upstream_timeout") {
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: "PLATFORM_SYNC_FAILED",
-          message:
-            "Upstream platform menu sync failed (fixture: upstream_timeout); local menu remains authoritative and a retry will be scheduled.",
-          fixture: "upstream_timeout",
-          willRetry: true,
-        },
-      },
-      503,
-    );
-  }
-
   const service = new PlatformMenuSyncService(c.env);
   await service.syncMenu(restaurantId, platform);
   return c.json({ success: true, message: "Menu sync completed" });

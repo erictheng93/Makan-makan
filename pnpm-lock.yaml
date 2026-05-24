@@ -208,9 +208,6 @@ importers:
         specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
         version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@pinia/testing':
         specifier: ^0.1.0
         version: 0.1.7(pinia@2.3.1(typescript@5.9.3)(vue@3.5.26(typescript@5.9.3)))(vue@3.5.26(typescript@5.9.3))
@@ -329,9 +326,6 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.14
         version: 1.19.14(hono@4.12.15)
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
@@ -447,9 +441,6 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@playwright/test':
         specifier: ^1.40.0
         version: 1.57.0
@@ -514,9 +505,6 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20230518.0
         version: 4.20260113.0
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.28
@@ -587,9 +575,6 @@ importers:
         specifier: ^2.0.0-rc.5
         version: 2.0.0-rc.5(vue@3.5.26(typescript@5.9.3))
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@types/howler':
         specifier: ^2.2.11
         version: 2.2.12
@@ -660,9 +645,6 @@ importers:
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@types/node':
         specifier: ^22.15.29
         version: 22.19.5
@@ -721,9 +703,6 @@ importers:
         specifier: ^2.0.0-rc.5
         version: 2.0.0-rc.5(vue@3.5.26(typescript@5.9.3))
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@pinia/testing':
         specifier: ^0.1.0
         version: 0.1.7(pinia@2.3.1(typescript@5.9.3)(vue@3.5.26(typescript@5.9.3)))(vue@3.5.26(typescript@5.9.3))
@@ -800,9 +779,6 @@ importers:
         specifier: ^2.0.0-rc.5
         version: 2.0.0-rc.5(vue@3.5.26(typescript@5.9.3))
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.28
@@ -858,9 +834,6 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@types/cors':
         specifier: ^2.8.13
         version: 2.8.19
@@ -910,9 +883,6 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20231218.0
         version: 4.20260113.0
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../../packages/testing-utils
       '@types/jsonwebtoken':
         specifier: ^9.0.5
         version: 9.0.10
@@ -941,9 +911,6 @@ importers:
         specifier: workspace:*
         version: link:../shared-types
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../testing-utils
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
@@ -1000,9 +967,6 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20250826.0
         version: 4.20260113.0
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../testing-utils
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
@@ -1043,9 +1007,6 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../testing-utils
       '@vitest/coverage-v8':
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4)
@@ -1065,9 +1026,6 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
-      '@makanmakan/testing-utils':
-        specifier: workspace:*
-        version: link:../testing-utils
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -1093,37 +1051,6 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
-
-  packages/testing-utils:
-    dependencies:
-      '@makanmakan/shared-types':
-        specifier: workspace:*
-        version: link:../shared-types
-    devDependencies:
-      '@pinia/testing':
-        specifier: ^0.1.7
-        version: 0.1.7(pinia@2.3.1(typescript@5.9.3)(vue@3.5.26(typescript@5.9.3)))(vue@3.5.26(typescript@5.9.3))
-      '@vitest/ui':
-        specifier: ^3.2.4
-        version: 3.2.4(vitest@3.2.4)
-      '@vue/test-utils':
-        specifier: ^2.4.0
-        version: 2.4.6
-      pinia:
-        specifier: ^2.1.0
-        version: 2.3.1(typescript@5.9.3)(vue@3.5.26(typescript@5.9.3))
-      typescript:
-        specifier: ^5.3.0
-        version: 5.9.3
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.4(@types/node@25.0.7)(@vitest/ui@3.2.4)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
-      vue:
-        specifier: ^3.4.0
-        version: 3.5.26(typescript@5.9.3)
-      vue-router:
-        specifier: ^4.3.0
-        version: 4.6.4(vue@3.5.26(typescript@5.9.3))
 
   packages/utils:
     dependencies:
@@ -6155,6 +6082,7 @@ packages:
 
   lucide-vue-next@0.344.0:
     resolution: {integrity: sha512-YvexWTTzcRScmOKUvbQvexDmIK63x6NT8lV3Cot9TShQyy3PpFxfx5i2wZNhaZfV8bKqTMRXgCs372rnrtPYKQ==}
+    deprecated: Package deprecated. Please use @lucide/vue instead.
     peerDependencies:
       vue: '>=3.0.1'
 
@@ -16692,7 +16620,7 @@ snapshots:
   vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@20.19.28)(@vitest/ui@4.0.17)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3):
     dependencies:
       '@vitest/expect': 4.0.17
-      '@vitest/mocker': 4.0.17(vite@7.3.2(@types/node@20.19.28)(jiti@1.21.7)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      '@vitest/mocker': 4.0.17(vite@7.3.2(@types/node@25.0.7)(jiti@1.21.7)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
       '@vitest/pretty-format': 4.0.17
       '@vitest/runner': 4.0.17
       '@vitest/snapshot': 4.0.17

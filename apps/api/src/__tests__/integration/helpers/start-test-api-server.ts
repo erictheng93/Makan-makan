@@ -25,9 +25,6 @@ export async function startTestApiServer(
 ): Promise<TestApiServerHandle> {
   const testApp = await createRealIntegrationTestApp();
 
-  // @hono/node-server's `serve` returns a Node http.Server immediately but
-  // doesn't emit the 'listening' event synchronously. Wait for the server to
-  // actually bind to the port before reading its address.
   const server = await new Promise<ReturnType<typeof serve>>((resolve) => {
     const s = serve(
       {

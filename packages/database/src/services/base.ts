@@ -37,8 +37,6 @@ export interface CloudflareEnv {
   LICENSE_KEY?: string;
   CENTRAL_API_URL?: string;
   PLATFORM_VERSION?: string;
-  // Test support
-  MOCK_DRIZZLE_DB?: any;
   [key: string]: any;
 }
 
@@ -56,7 +54,7 @@ export class BaseService {
   protected tenantId?: string;
   protected tenantName?: string;
 
-  constructor(d1: D1Database, env: CloudflareEnv, mockDb?: any) {
+  constructor(d1: D1Database, env: CloudflareEnv) {
     this.d1 = d1;
     this.env = env;
 
@@ -65,20 +63,10 @@ export class BaseService {
     this.tenantId = env.TENANT_ID;
     this.tenantName = env.TENANT_NAME;
 
-    // In test environment, allow injecting a mock Drizzle instance
-    // Priority: mockDb parameter > env.MOCK_DRIZZLE_DB > real drizzle
-    if (mockDb && env.NODE_ENV === "test") {
-      console.log("[BaseService] Using mock Drizzle instance (from parameter)");
-      this.db = mockDb;
-    } else if (env.MOCK_DRIZZLE_DB && env.NODE_ENV === "test") {
-      console.log("[BaseService] Using mock Drizzle instance (from env)");
-      this.db = env.MOCK_DRIZZLE_DB;
-    } else {
-      this.db = drizzle(d1, {
-        schema,
-        logger: env.NODE_ENV === "development",
-      });
-    }
+    this.db = drizzle(d1, {
+      schema,
+      logger: env.NODE_ENV === "development",
+    });
 
     this.queryCache = new QueryCache(env.CACHE_KV);
     this.connectionManager = getConnectionManager();

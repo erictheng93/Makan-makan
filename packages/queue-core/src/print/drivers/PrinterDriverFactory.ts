@@ -324,7 +324,7 @@ export class PrinterDriverFactory {
 
   private async queryDeviceInfo(connectionInfo: any): Promise<string | null> {
     // 實際實作中會嘗試連接並發送設備查詢命令
-    // 這裡回傳模擬的設備資訊用於測試
+    // 這裡回傳根據連線位址推斷設備資訊
 
     const address = this.formatConnectionAddress(connectionInfo);
 
@@ -394,26 +394,7 @@ export class PrinterDriverFactory {
   }
 
   private async scanUSBPrinters(): Promise<PrinterDevice[]> {
-    // 模擬 USB 掃描結果
-    const mockUSBPrinters = [
-      {
-        type: "usb" as PrinterConnection,
-        path: "/dev/usb/lp0",
-        vendorId: "04b8", // Epson
-        productId: "0202",
-      },
-    ];
-
-    const devices: PrinterDevice[] = [];
-
-    for (const usbInfo of mockUSBPrinters) {
-      const device = await this.detectPrinter(usbInfo);
-      if (device) {
-        devices.push(device);
-      }
-    }
-
-    return devices;
+    return [];
   }
 
   private async scanNetworkPrinters(

@@ -46,7 +46,6 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*",
     "@pinia/testing": "^0.1.0",
     "@types/lodash-es": "^4.17.0",
     "@types/node": "^20.0.0",

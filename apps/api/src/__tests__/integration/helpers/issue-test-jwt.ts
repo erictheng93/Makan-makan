@@ -12,15 +12,12 @@ export interface IssueTestJwtClaims {
   expiresInSeconds?: number;
 }
 
-// hono/jwt `sign` is async, so this function is async too.
 export async function issueTestJwt(
   role: UserRole,
   claims?: IssueTestJwtClaims,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const userId = claims?.userId ?? 1;
-  // `username` is required by the production authMiddleware (apps/api/src/middleware/auth.ts),
-  // so every test token must carry it. Default to `test-user-<id>` for determinism.
   const username = claims?.username ?? `test-user-${userId}`;
   return sign(
     {

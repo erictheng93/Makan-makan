@@ -110,18 +110,7 @@ export class EpsonDriver extends PrinterDriver {
   }
 
   private async connectUSB(devicePath: string): Promise<any> {
-    // Node.js USB 連線實作
-    // 這裡會使用 node-usb 或類似函式庫
-
-    // 模擬實作 - 實際需要使用 USB 函式庫
-    const mockUSBConnection = {
-      write: (data: Buffer) => Promise.resolve(true),
-      read: () => Promise.resolve(Buffer.alloc(0)),
-      close: () => Promise.resolve(),
-    };
-
-    console.log(`Connecting to USB device: ${devicePath}`);
-    return mockUSBConnection;
+    throw new Error(`USB printer transport is not configured: `);
   }
 
   private async connectNetwork(host: string, port: number): Promise<any> {
@@ -156,18 +145,7 @@ export class EpsonDriver extends PrinterDriver {
   }
 
   private async connectSerial(port: string, baudRate: number): Promise<any> {
-    // 序列埠連線實作
-    // 這裡會使用 serialport 函式庫
-
-    // 模擬實作
-    const mockSerialConnection = {
-      write: (data: Buffer) => Promise.resolve(true),
-      read: () => Promise.resolve(Buffer.alloc(0)),
-      close: () => Promise.resolve(),
-    };
-
-    console.log(`Connecting to serial port: ${port} at ${baudRate} baud`);
-    return mockSerialConnection;
+    throw new Error(`Serial printer transport is not configured:  at  baud`);
   }
 
   private async closeConnection(): Promise<void> {

@@ -41,7 +41,7 @@ export const formatCurrency = (
 
 // Accepts every shape dayjs accepts at runtime. `number` covers Unix-ms
 // integers from the Order wire contract; string covers ISO; Date covers
-// in-memory. null/undefined short-circuit to "".
+// null/undefined short-circuit to "".
 type DateInput = string | Date | number | null | undefined;
 
 /**

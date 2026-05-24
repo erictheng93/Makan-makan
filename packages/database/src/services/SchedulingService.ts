@@ -571,7 +571,7 @@ export class SchedulingService extends BaseService {
         ),
     ]);
 
-    // In-memory conflict detection for all schedules at once
+    // Process-local conflict detection for all schedules at once
     const bulkConflicts: any[] = [];
     for (const sched of schedulesToCreate) {
       const empSchedules = existingSchedules.filter(

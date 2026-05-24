@@ -13,10 +13,6 @@ import { idempotencyMiddleware } from "../../../middleware/idempotency";
 
 const webhookRoutes = new Hono<{ Bindings: Env }>();
 
-function isTestSignatureAllowed(env: Env): boolean {
-  return env.ALLOW_TEST_SIGNATURE === "true" || env.NODE_ENV === "test";
-}
-
 webhookRoutes.post(
   "/uber-eats",
   idempotencyMiddleware({
@@ -87,17 +83,9 @@ webhookRoutes.post(
     const integrationService = new PlatformIntegrationService(c.env);
 
     const config = integration.config as { webhookSecret?: string } | null;
-    const isTestFixtureSignature =
-      c.req.header("X-Uber-Signature") === "test-fixture-signature";
-    const shouldBypassSignature =
-      isTestFixtureSignature && isTestSignatureAllowed(c.env);
-
-    // Only decrypt credentials when we actually need them. The test-signature
-    // bypass skips HMAC entirely, and a config.webhookSecret already covers
-    // the real-signature path — so skipping decryption there avoids a 500 on
-    // plaintext seed credentials used for the E2 release gate.
+    // Only decrypt credentials when config.webhookSecret is not available.
     let webhookSecret = config?.webhookSecret ?? "";
-    if (!shouldBypassSignature && !webhookSecret) {
+    if (!webhookSecret) {
       const creds = await integrationService.getDecryptedCredentials(
         integration.restaurantId,
         "uber_eats",
@@ -111,9 +99,7 @@ webhookRoutes.post(
       body,
     });
 
-    const isValid = shouldBypassSignature
-      ? true
-      : await adapter.verifyWebhook(clonedRequest, webhookSecret);
+    const isValid = await adapter.verifyWebhook(clonedRequest, webhookSecret);
     if (!isValid) {
       return c.json({ error: "Invalid signature" }, 401);
     }

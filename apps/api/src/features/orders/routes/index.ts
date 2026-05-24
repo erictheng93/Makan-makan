@@ -168,53 +168,6 @@ function createBatchSyncId(payload: Record<string, unknown>): string {
   return `${Date.now()}`;
 }
 
-// Helper function for broadcasting order updates
-async function broadcastOrderUpdate(
-  env: Env,
-  orderId: number,
-  orderData: unknown,
-  restaurantId: string,
-  targetRoles?: number[],
-): Promise<void> {
-  try {
-    const apiBaseUrl = env.API_BASE_URL || "http://localhost:8787";
-    const internalToken = env.INTERNAL_API_TOKEN || "internal";
-
-    const response = await fetch(
-      `${apiBaseUrl}/api/v1/sse/broadcast/order-update`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${internalToken}`,
-        },
-        body: JSON.stringify({
-          orderId,
-          orderData,
-          restaurantId,
-          targetRoles,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`SSE broadcast failed: ${response.status}`);
-    }
-
-    logger.debug("Order update broadcasted successfully", {
-      orderId,
-      targetRoles,
-    });
-  } catch (error) {
-    logger.error(
-      "Failed to broadcast order update via SSE",
-      error instanceof Error ? error : undefined,
-      {},
-    );
-    // Don't throw error as this is non-critical functionality
-  }
-}
-
 /**
  * Create guest order (no JWT required, uses guest token)
  * POST /api/v1/orders/guest
@@ -277,17 +230,6 @@ app.post(
         orderId: String(order.id),
       }),
       { expirationTtl: 14400 },
-    );
-
-    // Broadcast new order to kitchen and management
-    c.executionCtx?.waitUntil(
-      broadcastOrderUpdate(
-        c.env,
-        order.id,
-        order,
-        data.restaurantId,
-        [0, 1, 2], // Admin, Owner, Chef
-      ),
     );
 
     return c.json(
@@ -457,17 +399,6 @@ app.post(
       restaurantId: data.restaurantId,
       metadata: { orderId: order.id },
     });
-
-    // Broadcast new order to kitchen and management
-    c.executionCtx?.waitUntil(
-      broadcastOrderUpdate(
-        c.env,
-        order.id,
-        order,
-        data.restaurantId,
-        [0, 1, 2], // Admin, Owner, Chef
-      ),
-    );
 
     return c.json(
       {
@@ -750,39 +681,6 @@ app.put(
       throw badRequest("Failed to update order status");
     }
 
-    // Determine target roles for broadcast
-    let targetRoles: number[] = [];
-    switch (data.status) {
-      case "confirmed":
-        targetRoles = [0, 1, 2];
-        break;
-      case "preparing":
-        targetRoles = [0, 1, 3];
-        break;
-      case "ready":
-        targetRoles = [0, 1, 3];
-        break;
-      case "delivered":
-        targetRoles = [0, 1];
-        break;
-      case "cancelled":
-        targetRoles = [0, 1, 2, 3];
-        break;
-      default:
-        targetRoles = [0, 1];
-    }
-
-    // Broadcast status update
-    c.executionCtx?.waitUntil(
-      broadcastOrderUpdate(
-        c.env,
-        id,
-        updatedOrder,
-        existingOrder.restaurantId,
-        targetRoles,
-      ),
-    );
-
     // Sync status to external platform if this is a platform order
     if (existingOrder.orderSource && existingOrder.orderSource !== "direct") {
       c.executionCtx?.waitUntil(
@@ -869,17 +767,6 @@ app.delete(
         error: err instanceof Error ? err.message : String(err),
       });
     }
-
-    // Broadcast cancellation
-    c.executionCtx?.waitUntil(
-      broadcastOrderUpdate(
-        c.env,
-        id,
-        cancelledOrder,
-        order.restaurantId,
-        [0, 1, 2, 3], // All relevant staff
-      ),
-    );
 
     return c.json({
       success: true,

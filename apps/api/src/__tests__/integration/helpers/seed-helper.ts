@@ -1,12 +1,5 @@
 import type { TestDatabase } from "@makanmakan/database/testing";
 import {
-  restaurantFactory,
-  menuItemFactory,
-  orderFactory,
-  categoryFactory,
-  userFactory,
-} from "@makanmakan/testing-utils";
-import {
   restaurants,
   menuItems,
   orders,
@@ -15,33 +8,29 @@ import {
   coupons,
 } from "@makanmakan/database";
 
+type SeedRecord = Record<string, unknown>;
+
 export interface SeedHelpers {
-  restaurant(
-    overrides?: Record<string, unknown>,
-  ): Promise<{ id: string | number }>;
+  restaurant(overrides?: SeedRecord): Promise<{ id: string | number }>;
   menuItem(
     restaurantId: string | number,
-    overrides?: Record<string, unknown>,
+    overrides?: SeedRecord,
   ): Promise<{ id: number }>;
   order(
     restaurantId: string | number,
-    overrides?: Record<string, unknown>,
+    overrides?: SeedRecord,
   ): Promise<{ id: number }>;
-  user(
-    overrides?: Record<string, unknown>,
-  ): Promise<{ id: number; username: string }>;
+  user(overrides?: SeedRecord): Promise<{ id: number; username: string }>;
   coupon(
     restaurantId: string | number,
-    overrides?: Record<string, unknown>,
+    overrides?: SeedRecord,
   ): Promise<{ id: number; code: string }>;
 }
 
-/**
- * Generate a YYYY-MM-DD string for a date `daysOffset` days from `base`.
- * Matches the `text("valid_from" / "valid_to")` column format in the
- * coupons schema. Use integer math, never Intl/toLocaleDateString, so
- * the output is timezone-stable across CI runners.
- */
+function uniqueSuffix(): string {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function formatYMD(base: Date, daysOffset: number): string {
   const d = new Date(base.getTime() + daysOffset * 24 * 60 * 60 * 1000);
   const yyyy = d.getUTCFullYear();
@@ -50,219 +39,188 @@ function formatYMD(base: Date, daysOffset: number): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-/**
- * Convert a Unix-ms timestamp number to a Date, or return as-is if already a Date.
- * Required because factory produces number timestamps but Drizzle's timestamp_ms
- * mode expects Date objects.
- */
-function toDate(value: unknown): Date | undefined {
+function maybeDate(value: unknown): Date | undefined {
   if (value instanceof Date) return value;
   if (typeof value === "number") return new Date(value);
   return undefined;
 }
 
-type SeedRecord = Record<string, unknown>;
-
 export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
   return {
-    restaurant: async (overrides) => {
-      const data = restaurantFactory.build({
-        overrides: overrides as never,
-      }) as unknown as SeedRecord;
-
-      // Strip fields not present in the schema and convert timestamps.
-      // The factory includes `id` (integer) and `status` which are not schema columns.
-      const { id: _id, status: _status, createdAt, updatedAt, ...rest } = data;
-
+    restaurant: async (overrides = {}) => {
+      const suffix = uniqueSuffix();
+      const now = new Date();
       const [row] = await testDb.drizzle
         .insert(restaurants)
         .values({
-          ...rest,
-          createdAt: toDate(createdAt),
-          updatedAt: toDate(updatedAt),
+          name: `Test Restaurant ${suffix}`,
+          type: "cafe",
+          category: "food",
+          description: "Real integration restaurant",
+          address: "1 Integration Street",
+          district: "Central",
+          city: "Taipei",
+          phone: "0200000000",
+          email: `restaurant-${suffix}@example.com`,
+          businessHours: {},
+          settings: {
+            allowOnlineOrdering: true,
+            allowGuestOrders: true,
+            currency: "TWD",
+          },
+          isAvailable: true,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+          ...overrides,
         } as never)
         .returning();
       return { id: row.id };
     },
 
-    menuItem: async (restaurantId, overrides) => {
-      // menuItems.categoryId has a real FK to categories.id.
-      // Seed a throwaway category for this restaurant first.
-      // categoryFactory's type expects `restaurantId: number`, but the real
-      // schema uses TEXT UUID. Cast to `any` to bypass the stale factory type.
-      const catData = categoryFactory.build({
-        overrides: { restaurantId: String(restaurantId) } as never,
-      }) as unknown as SeedRecord;
-      const {
-        id: _catId,
-        createdAt: catCa,
-        updatedAt: catUa,
-        ...catRest
-      } = catData;
-
-      const [catRow] = await testDb.drizzle
+    menuItem: async (restaurantId, overrides = {}) => {
+      const now = new Date();
+      const [category] = await testDb.drizzle
         .insert(categories)
         .values({
-          ...catRest,
           restaurantId: String(restaurantId),
-          createdAt: toDate(catCa),
-          updatedAt: toDate(catUa),
+          name: `Category ${uniqueSuffix()}`,
+          description: "Real integration category",
+          sortOrder: 0,
+          isActive: true,
+          isVisible: true,
+          createdAt: now,
+          updatedAt: now,
         } as never)
         .returning();
-
-      const data = menuItemFactory.build({
-        overrides: {
-          restaurantId: String(restaurantId),
-          categoryId: catRow.id,
-          ...overrides,
-        } as never,
-      }) as unknown as SeedRecord;
-
-      const { id: _id, createdAt, updatedAt, ...rest } = data;
 
       const [row] = await testDb.drizzle
         .insert(menuItems)
         .values({
-          ...rest,
+          name: `Menu Item ${uniqueSuffix()}`,
+          description: "Real integration menu item",
+          ingredients: "salt",
+          price: 120,
+          priceCents: 12000,
+          isAvailable: true,
+          isFeatured: false,
+          isPopular: false,
+          sortOrder: 0,
+          spiceLevel: 0,
+          preparationTime: 15,
+          dietaryInfo: {},
+          allergens: [],
+          tags: [],
+          createdAt: now,
+          updatedAt: now,
           restaurantId: String(restaurantId),
-          categoryId: catRow.id,
-          createdAt: toDate(createdAt),
-          updatedAt: toDate(updatedAt),
+          categoryId: category.id,
+          ...overrides,
         } as never)
         .returning();
       return { id: row.id as number };
     },
 
-    user: async (overrides) => {
-      const data = userFactory.build({
-        overrides: overrides as never,
-      }) as unknown as SeedRecord;
-
-      // Factory produces camelCase; strip fields not in schema and convert timestamps.
-      const {
-        id: rawId,
-        createdAt,
-        updatedAt,
-        status: _status, // not a schema column on users
-        ...rest
-      } = data;
-
-      // Factory defaults `restaurantId: 1` (legacy integer) for non-customer
-      // roles. Real schema column is TEXT (UUID) referencing restaurants.id,
-      // so the integer 1 has no FK target and the insert fails. Drop the
-      // factory default unless the caller explicitly provided one — caller
-      // is expected to pass `restaurantId: String(restaurant.id)` after
-      // seeding a restaurant when they actually need the link.
-      const overrideRecord = overrides as Record<string, unknown> | undefined;
-      const hasExplicitRestaurantId =
-        overrideRecord !== undefined && "restaurantId" in overrideRecord;
-      const restaurantIdValue = hasExplicitRestaurantId
-        ? overrideRecord!.restaurantId
-        : null;
-
+    user: async (overrides = {}) => {
+      const suffix = uniqueSuffix();
+      const now = new Date();
+      const restaurantId =
+        "restaurantId" in overrides ? overrides.restaurantId : null;
       const [row] = await testDb.drizzle
         .insert(users)
         .values({
-          ...rest,
-          restaurantId: restaurantIdValue,
-          // Preserve explicit id if caller asked for one (e.g. match JWT claim)
-          ...(overrides?.id !== undefined ? { id: overrides.id } : {}),
-          createdAt: toDate(createdAt),
-          updatedAt: toDate(updatedAt),
-          // Factory may emit ms for these optional timestamps too
-          lastLoginAt: rest.lastLoginAt ? toDate(rest.lastLoginAt) : null,
-          passwordChangedAt: rest.passwordChangedAt
-            ? toDate(rest.passwordChangedAt)
-            : null,
+          username: `user-${suffix}`,
+          email: `user-${suffix}@example.com`,
+          phone: "0912345678",
+          fullName: "Integration User",
+          passwordHash:
+            "$2a$10$wLQYkZtHPzOVvvEVdW/PGe0IzS5gYejVGKj.mJ/.SmdO1sAgG4Y/S",
+          role: 4,
+          isActive: true,
+          isVerified: true,
+          preferences: {},
+          tokenVersion: 1,
+          restaurantId,
+          createdAt: maybeDate(overrides.createdAt) ?? now,
+          updatedAt: maybeDate(overrides.updatedAt) ?? now,
+          lastLoginAt: maybeDate(overrides.lastLoginAt),
+          passwordChangedAt: maybeDate(overrides.passwordChangedAt),
+          ...overrides,
         } as never)
         .returning();
       return { id: row.id as number, username: row.username as string };
     },
 
-    coupon: async (restaurantId, overrides) => {
-      // No couponFactory exists in testing-utils — hand-roll defaults so
-      // this helper stays self-contained. Callers override whatever they
-      // need via the standard overrides object.
-      //
-      // `code` is the one field that MUST be unique per row (the column
-      // has a UNIQUE index). Use a random suffix so multiple rows seeded
-      // in the same test don't collide.
-      const uniqueSuffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+    coupon: async (restaurantId, overrides = {}) => {
       const now = new Date();
-
-      const defaults = {
-        restaurantId: String(restaurantId),
-        code: `TEST-${uniqueSuffix}`,
-        name: "Test Coupon",
-        description: null,
-        discountType: "percentage" as const,
-        discountValue: 10,
-        maxDiscountAmount: null,
-        minOrderAmount: 0,
-        applicableMenuItems: null,
-        applicableCategories: null,
-        usageLimit: null,
-        usageLimitPerUser: null,
-        usedCount: 0,
-        validFrom: formatYMD(now, -1), // yesterday — active window
-        validTo: formatYMD(now, 30), // 30 days out
-        isActive: true,
-        isVisible: true,
-        createdBy: null,
-        deletedAt: null,
-      };
-
-      const merged = { ...defaults, ...(overrides as Record<string, unknown>) };
-
+      const suffix = uniqueSuffix().toUpperCase();
       const [row] = await testDb.drizzle
         .insert(coupons)
         .values({
-          ...merged,
+          code: `TEST-${suffix}`,
+          name: "Test Coupon",
+          description: null,
+          discountType: "percentage",
+          discountValue: 10,
+          maxDiscountAmount: null,
+          minOrderAmount: 0,
+          applicableMenuItems: null,
+          applicableCategories: null,
+          usageLimit: null,
+          usageLimitPerUser: null,
+          usedCount: 0,
+          validFrom: formatYMD(now, -1),
+          validTo: formatYMD(now, 30),
+          isActive: true,
+          isVisible: true,
+          createdBy: null,
+          deletedAt: null,
           restaurantId: String(restaurantId),
+          ...overrides,
         } as never)
         .returning();
       return { id: row.id as number, code: row.code as string };
     },
 
-    order: async (restaurantId, overrides) => {
-      const orderOverrides = overrides as Record<string, unknown> | undefined;
-      const tableId =
-        orderOverrides?.tableId !== undefined ? orderOverrides.tableId : null;
+    order: async (restaurantId, overrides = {}) => {
+      const now = new Date();
+      const tableId = "tableId" in overrides ? overrides.tableId : null;
       const customerId =
-        orderOverrides?.customerId !== undefined
-          ? orderOverrides.customerId
-          : null;
-
-      const data = orderFactory.build({
-        overrides: {
-          restaurantId: String(restaurantId),
-          // tableId and customerId default to random integers in the factory
-          // which would violate FK constraints — override to null (both are nullable).
-          tableId: null,
-          customerId: null,
-          ...overrides,
-        } as never,
-      }) as unknown as SeedRecord;
-
-      const { id: _id, createdAt, updatedAt, ...rest } = data;
-
+        "customerId" in overrides ? overrides.customerId : null;
       const [row] = await testDb.drizzle
         .insert(orders)
         .values({
-          ...rest,
+          orderNumber: `ORD-${uniqueSuffix().toUpperCase()}`,
+          status: "pending",
+          version: 0,
+          orderType: "table",
+          orderSource: "direct",
+          subtotal: 120,
+          taxAmount: 0,
+          serviceCharge: 0,
+          discountAmount: 0,
+          totalAmount: 120,
+          subtotalCents: 12000,
+          taxAmountCents: 0,
+          serviceChargeCents: 0,
+          discountAmountCents: 0,
+          totalAmountCents: 12000,
+          customerInfo: {},
+          paymentStatus: "pending",
+          promotionIds: [],
           restaurantId: String(restaurantId),
           tableId,
           customerId,
-          createdAt: toDate(createdAt),
-          updatedAt: toDate(updatedAt),
-          // Status timestamps also need Date conversion
-          confirmedAt: rest.confirmedAt ? toDate(rest.confirmedAt) : null,
-          preparingAt: rest.preparingAt ? toDate(rest.preparingAt) : null,
-          readyAt: rest.readyAt ? toDate(rest.readyAt) : null,
-          deliveredAt: rest.deliveredAt ? toDate(rest.deliveredAt) : null,
-          paidAt: rest.paidAt ? toDate(rest.paidAt) : null,
-          cancelledAt: rest.cancelledAt ? toDate(rest.cancelledAt) : null,
-          reviewedAt: rest.reviewedAt ? toDate(rest.reviewedAt) : null,
+          createdAt: maybeDate(overrides.createdAt) ?? now,
+          updatedAt: maybeDate(overrides.updatedAt) ?? now,
+          confirmedAt: maybeDate(overrides.confirmedAt),
+          preparingAt: maybeDate(overrides.preparingAt),
+          readyAt: maybeDate(overrides.readyAt),
+          deliveredAt: maybeDate(overrides.deliveredAt),
+          paidAt: maybeDate(overrides.paidAt),
+          cancelledAt: maybeDate(overrides.cancelledAt),
+          reviewedAt: maybeDate(overrides.reviewedAt),
+          ...overrides,
         } as never)
         .returning();
       return { id: row.id as number };

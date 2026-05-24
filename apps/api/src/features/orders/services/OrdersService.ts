@@ -25,6 +25,7 @@ import type { UserRole } from "../../../shared/constants";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { RealtimeBroadcastService } from "@makanmakan/database";
 import type {
+  OrderCancelledEvent,
   OrderStatusUpdateEvent,
   NewOrderEvent,
 } from "@makanmakan/shared-types";
@@ -49,8 +50,7 @@ import type {
   SelectedCustomizations,
 } from "../types";
 
-// Minimal KV surface used by this service. Both the real KVNamespace and the
-// vitest fakes used in tests are compatible with this — see notes on cacheKV.
+// Minimal KV surface used by this service.
 interface KVLike {
   get(key: string, type?: "json"): Promise<unknown>;
   put(
@@ -65,8 +65,7 @@ export class OrdersService implements IOrdersService {
   private baseOrderService: BaseOrderService;
   private couponService: CouponService;
   private realtimeBroadcastService: RealtimeBroadcastService;
-  // Loose KV interface — accepts both the real KVNamespace and vitest fakes.
-  // Only the methods we actually call are typed.
+  // Loose KV interface; only the methods we actually call are typed.
   private cacheKV: KVLike;
   private logger: ConsoleLogger;
   private env: Env;
@@ -278,7 +277,7 @@ export class OrdersService implements IOrdersService {
       let orders = result.orders;
 
       // Defence-in-depth: strip any orders that don't match the requested restaurant
-      // Only filter orders that have a restaurantId field (some mock/legacy data may not)
+      // Only filter orders that have a restaurantId field.
       if (permissionFilters.restaurantId) {
         orders = orders.filter(
           (o) =>
@@ -505,6 +504,7 @@ export class OrdersService implements IOrdersService {
         await Promise.all([
           this.invalidateOrderCache(id),
           this.logOrderActivity(id, "ORDER_CANCELLED", userId, { reason }),
+          this.broadcastOrderCancelled(cancelledOrder, reason, userId || 0),
         ]);
       }
 
@@ -1095,6 +1095,56 @@ export class OrdersService implements IOrdersService {
     } catch (error) {
       this.logger.error(
         "Failed to broadcast order update",
+        error instanceof Error ? error : undefined,
+        { orderId: order.id },
+      );
+    }
+  }
+
+  private async broadcastOrderCancelled(
+    order: Order,
+    reason: string,
+    cancelledBy: number,
+  ): Promise<void> {
+    try {
+      const realtimeEvent: OrderCancelledEvent = {
+        type: RealtimeEventType.ORDER_CANCELLED,
+        eventId: this.realtimeBroadcastService.generateEventId(),
+        timestamp: Date.now(),
+        restaurantId: String(order.restaurantId),
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber || `#${order.id}`,
+          reason,
+          cancelledBy: {
+            userId: cancelledBy,
+            userName: "System",
+            role: "admin",
+          },
+        },
+      };
+
+      const result =
+        await this.realtimeBroadcastService.broadcastOrderCancelled(
+          realtimeEvent,
+        );
+
+      if (result.success) {
+        this.logger.info("Order cancellation broadcasted successfully", {
+          orderId: order.id,
+          eventId: result.eventId,
+          recipientCount: result.recipientCount,
+        });
+      } else {
+        this.logger.error(
+          "Failed to broadcast order cancellation",
+          new Error(result.error),
+          { orderId: order.id },
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        "Failed to broadcast order cancellation",
         error instanceof Error ? error : undefined,
         { orderId: order.id },
       );

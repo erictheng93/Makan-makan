@@ -16,6 +16,8 @@ import {
 import { GroupOrdersService } from "../services/GroupOrdersService";
 import { groupOrderSchemas } from "../schemas/validation";
 import type { Env } from "../../../types/env";
+import { RealtimeBroadcastService } from "@makanmakan/database";
+import type { RealtimeEvent } from "@makanmakan/shared-types";
 import {
   notFound,
   forbidden,
@@ -23,6 +25,35 @@ import {
 } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
+
+type GroupOrderRealtimePayload = Record<string, unknown> & {
+  groupOrderId?: string;
+  restaurantId?: string;
+};
+
+async function broadcastGroupOrderEvent(
+  env: Env,
+  eventType: string,
+  payload: GroupOrderRealtimePayload,
+): Promise<void> {
+  const groupOrderId = payload.groupOrderId;
+  if (!groupOrderId) return;
+
+  try {
+    const broadcaster = new RealtimeBroadcastService(env);
+    const event = {
+      type: eventType,
+      eventId: broadcaster.generateEventId(),
+      timestamp: Date.now(),
+      restaurantId: String(payload.restaurantId ?? ""),
+      data: payload,
+    } as unknown as RealtimeEvent;
+
+    await broadcaster.broadcastEvent("group_order", groupOrderId, event);
+  } catch (broadcastError) {
+    console.warn(`Failed to broadcast ${eventType}:`, broadcastError);
+  }
+}
 
 /**
  * List group orders
@@ -189,24 +220,12 @@ app.post(
       metadata: { groupOrderId: result.data?.groupOrderId, source: "group" },
     });
 
-    // Trigger real-time event
-    try {
-      await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/group-created`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          groupOrderId: result.data?.groupOrderId,
-          restaurantId: data.restaurantId,
-          tableId: data.tableId,
-          shareCode: result.data?.shareCode,
-        }),
-      });
-    } catch (broadcastError) {
-      console.warn("Failed to broadcast group creation:", broadcastError);
-    }
+    await broadcastGroupOrderEvent(c.env, "group_order_created", {
+      groupOrderId: result.data?.groupOrderId,
+      restaurantId: data.restaurantId,
+      tableId: data.tableId,
+      shareCode: result.data?.shareCode,
+    });
 
     return c.json({
       success: true,
@@ -234,22 +253,11 @@ app.post(
       throw badRequest(result.error ?? "Failed to join group");
     }
 
-    // Trigger real-time event
-    try {
-      await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/member-joined`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          groupOrderId: result.data?.groupOrder.groupOrderId,
-          member: result.data?.member,
-        }),
-      });
-    } catch (broadcastError) {
-      console.warn("Failed to broadcast member join:", broadcastError);
-    }
+    await broadcastGroupOrderEvent(c.env, "group_member_joined", {
+      groupOrderId: result.data?.groupOrder.groupOrderId,
+      restaurantId: result.data?.groupOrder.restaurantId,
+      member: result.data?.member,
+    });
 
     return c.json({
       success: true,
@@ -338,23 +346,11 @@ app.post(
       throw badRequest(result.error ?? "Failed to add cart item");
     }
 
-    // Trigger real-time event
-    try {
-      await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/cart-updated`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          groupOrderId,
-          action: "added",
-          item: result.data,
-        }),
-      });
-    } catch (broadcastError) {
-      console.warn("Failed to broadcast cart update:", broadcastError);
-    }
+    await broadcastGroupOrderEvent(c.env, "group_cart_item_added", {
+      groupOrderId,
+      action: "added",
+      item: result.data,
+    });
 
     return c.json({
       success: true,
@@ -388,23 +384,11 @@ app.put(
       throw badRequest(result.error ?? "Failed to update cart item");
     }
 
-    // Trigger real-time event
-    try {
-      await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/cart-updated`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          groupOrderId,
-          action: "updated",
-          item: result.data,
-        }),
-      });
-    } catch (broadcastError) {
-      console.warn("Failed to broadcast cart update:", broadcastError);
-    }
+    await broadcastGroupOrderEvent(c.env, "group_cart_item_updated", {
+      groupOrderId,
+      action: "updated",
+      item: result.data,
+    });
 
     return c.json({
       success: true,
@@ -438,23 +422,11 @@ app.delete(
       throw badRequest(result.error ?? "Failed to remove cart item");
     }
 
-    // Trigger real-time event
-    try {
-      await fetch(`${c.env.API_BASE_URL}/api/v1/sse/broadcast/cart-updated`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${c.env.INTERNAL_API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          groupOrderId,
-          action: "removed",
-          itemId,
-        }),
-      });
-    } catch (broadcastError) {
-      console.warn("Failed to broadcast cart update:", broadcastError);
-    }
+    await broadcastGroupOrderEvent(c.env, "group_cart_item_removed", {
+      groupOrderId,
+      action: "removed",
+      itemId,
+    });
 
     return c.json({
       success: true,

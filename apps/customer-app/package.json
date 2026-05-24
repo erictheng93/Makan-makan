@@ -46,7 +46,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*",
     "@playwright/test": "^1.40.0",
     "@types/lodash-es": "^4.17.0",
     "@vitejs/plugin-vue": "^5.0.0",

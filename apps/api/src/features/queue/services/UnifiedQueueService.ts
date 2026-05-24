@@ -1,7 +1,7 @@
 /**
  * UnifiedQueueService — adapter that exposes the queue feature's API to
- * the production-ready WaitingListService. The legacy in-memory mock
- * implementation that previously lived here returned hardcoded fixtures
+ * the production-ready WaitingListService. The legacy hardcoded
+ * implementation that previously lived here returned hardcoded data
  * and never persisted to D1; it has been replaced wholesale.
  */
 

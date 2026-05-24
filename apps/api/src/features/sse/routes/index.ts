@@ -1,6 +1,9 @@
 /**
- * SSE Routes
- * Real-time event streaming endpoints
+ * Legacy SSE compatibility routes.
+ *
+ * Runtime realtime delivery is handled by the realtime worker Durable Object.
+ * These HTTP SSE endpoints are intentionally not backed by in-process
+ * connection state.
  */
 
 import { Hono } from "hono";
@@ -9,7 +12,6 @@ import { verify } from "hono/jwt";
 import { authMiddleware } from "../../../middleware/auth";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError, unauthorized } from "../../../shared/utils/api-error";
-import { SSEController } from "../controllers/SSEController";
 import type { Env } from "../../../types/env";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -24,26 +26,11 @@ type SseJwtPayload = {
   phone?: string;
 };
 
-// Create controller instance for each request
-function createController(c: Context<{ Bindings: Env }>) {
-  return new SSEController(c.env);
-}
-
-/**
- * SSE auth middleware — accepts JWT from Authorization header OR ?token= query param.
- * Browser's EventSource API cannot send custom headers, so SSE clients
- * must pass the token via query parameter.
- */
 const sseAuthMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) => {
-  // Try Authorization header first, then query param
   const authHeader = c.req.header("Authorization");
-  let token: string | undefined;
-
-  if (authHeader?.startsWith("Bearer ")) {
-    token = authHeader.substring(7);
-  } else {
-    token = c.req.query("token");
-  }
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.substring(7)
+    : c.req.query("token");
 
   if (!token) {
     throw unauthorized("Missing authentication token", "MISSING_AUTH_TOKEN");
@@ -84,139 +71,47 @@ const sseAuthMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) => {
   await next();
 };
 
-/**
- * SSE connection endpoint - Restaurant event stream
- * GET /api/v1/sse/events
- */
-app.get("/events", sseAuthMiddleware, async (c) => {
-  const controller = createController(c);
-  return await controller.connect(c);
-});
+function realtimeGone(c: Context) {
+  return c.json(
+    {
+      success: false,
+      error:
+        "Legacy SSE endpoints have been retired. Use the realtime WebSocket service.",
+      data: {
+        realtimeWsUrl: c.env.REALTIME_WS_URL,
+      },
+    },
+    410,
+  );
+}
 
-/**
- * Test broadcast endpoint
- * POST /api/v1/sse/test
- */
-app.post("/test", authMiddleware, async (c) => {
-  const controller = createController(c);
-  return await controller.broadcastTest(c);
-});
+app.get("/events", sseAuthMiddleware, realtimeGone);
+app.get("/connections", authMiddleware, realtimeGone);
+app.post("/test", authMiddleware, realtimeGone);
+app.post("/broadcast/*", authMiddleware, realtimeGone);
+app.post("/notify/group", authMiddleware, realtimeGone);
+app.get("/group/:groupOrderId/health", authMiddleware, realtimeGone);
+app.get("/group/:groupOrderId/sync", authMiddleware, realtimeGone);
 
-/**
- * Connection status endpoint
- * GET /api/v1/sse/connections
- */
-app.get("/connections", authMiddleware, async (c) => {
-  const controller = createController(c);
-  return await controller.getConnections(c);
-});
-
-/**
- * Lightweight compatibility ping
- * GET /api/v1/sse/ping
- */
 app.get("/ping", authMiddleware, (c) => {
-  const controller = createController(c);
-  return controller.ping(c);
+  return c.json({
+    success: true,
+    data: {
+      pong: true,
+      timestamp: new Date().toISOString(),
+      realtime: "websocket",
+    },
+  });
 });
 
-/**
- * Server time for client clock alignment
- * GET /api/v1/sse/time
- */
 app.get("/time", authMiddleware, (c) => {
-  const controller = createController(c);
-  return controller.getServerTime(c);
-});
-
-/**
- * Broadcast order update event
- * POST /api/v1/sse/broadcast/order-update
- */
-app.post("/broadcast/order-update", authMiddleware, async (c) => {
-  const controller = createController(c);
-  return await controller.broadcastOrderUpdate(c);
-});
-
-/**
- * Broadcast menu update event
- * POST /api/v1/sse/broadcast/menu-update
- */
-app.post("/broadcast/menu-update", authMiddleware, async (c) => {
-  const controller = createController(c);
-  return await controller.broadcastMenuUpdate(c);
-});
-
-/**
- * Broadcast system notification
- * POST /api/v1/sse/broadcast/system-notification
- */
-app.post("/broadcast/system-notification", authMiddleware, async (c) => {
-  const controller = createController(c);
-  return await controller.broadcastSystemNotification(c);
-});
-
-/**
- * Generic group broadcast compatibility endpoint
- * POST /api/v1/sse/broadcast/group
- */
-app.post("/broadcast/group", authMiddleware, async (c) => {
-  const controller = createController(c);
-  return await controller.broadcastToGroup(c);
-});
-
-/**
- * Group notification compatibility endpoint
- * POST /api/v1/sse/notify/group
- */
-app.post("/notify/group", authMiddleware, async (c) => {
-  const controller = createController(c);
-  return await controller.notifyGroup(c);
-});
-
-/**
- * Group connection health compatibility endpoint
- * GET /api/v1/sse/group/:groupOrderId/health
- */
-app.get("/group/:groupOrderId/health", authMiddleware, (c) => {
-  const controller = createController(c);
-  return controller.getGroupHealth(c);
-});
-
-/**
- * Group state sync compatibility endpoint
- * GET /api/v1/sse/group/:groupOrderId/sync
- */
-app.get("/group/:groupOrderId/sync", authMiddleware, (c) => {
-  const controller = createController(c);
-  return controller.syncGroupState(c);
-});
-
-/**
- * GROUP ORDERS - Broadcast group order created
- * POST /api/v1/sse/broadcast/group-created
- */
-app.post("/broadcast/group-created", async (c) => {
-  const controller = createController(c);
-  return await controller.broadcastGroupCreated(c);
-});
-
-/**
- * GROUP ORDERS - Broadcast member joined
- * POST /api/v1/sse/broadcast/member-joined
- */
-app.post("/broadcast/member-joined", async (c) => {
-  const controller = createController(c);
-  return await controller.broadcastMemberJoined(c);
-});
-
-/**
- * GROUP ORDERS - Broadcast cart updated
- * POST /api/v1/sse/broadcast/cart-updated
- */
-app.post("/broadcast/cart-updated", async (c) => {
-  const controller = createController(c);
-  return await controller.broadcastCartUpdated(c);
+  return c.json({
+    success: true,
+    data: {
+      timestamp: Date.now(),
+      iso: new Date().toISOString(),
+    },
+  });
 });
 
 export const sseRoutes = app;

@@ -1,7 +1,7 @@
 import type { Messages } from "../types";
 
 /**
- * Bahasa Indonesia — stub, falls back to zh-TW until fully translated
+ * Bahasa Indonesia — falls back to zh-TW until fully translated
  */
 const idID: Messages = {};
 

@@ -13,6 +13,7 @@ import type {
   NewOrderEvent,
   OrderStatusUpdateEvent,
   OrderItemStatusUpdateEvent,
+  OrderCancelledEvent,
   KitchenItemStatusEvent,
   MenuAvailabilityUpdateEvent,
 } from "@makanmakan/shared-types";
@@ -61,9 +62,10 @@ export class RealtimeBroadcastService {
       const durableObjectId = this.env.REALTIME_SESSION.idFromName(
         `${roomType}:${roomId}`,
       );
-      const durableObjectStub = this.env.REALTIME_SESSION.get(durableObjectId);
+      const durableObjectHandle =
+        this.env.REALTIME_SESSION.get(durableObjectId);
 
-      const response = await durableObjectStub.fetch(
+      const response = await durableObjectHandle.fetch(
         `https://realtime-internal/broadcast`,
         {
           method: "POST",
@@ -124,6 +126,12 @@ export class RealtimeBroadcastService {
 
   async broadcastOrderItemStatusUpdate(
     event: OrderItemStatusUpdateEvent,
+  ): Promise<BroadcastResult> {
+    return this.broadcastEvent("restaurant", event.restaurantId, event);
+  }
+
+  async broadcastOrderCancelled(
+    event: OrderCancelledEvent,
   ): Promise<BroadcastResult> {
     return this.broadcastEvent("restaurant", event.restaurantId, event);
   }

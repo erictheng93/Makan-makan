@@ -197,7 +197,7 @@ export class ReceiptFormattingService {
     request: PrintRequest,
     options?: {
       templateId?: string;
-      mockData?: boolean;
+      sampleData?: boolean;
     },
   ): Promise<{
     content: PrintContent;
@@ -209,9 +209,9 @@ export class ReceiptFormattingService {
       estimatedWidth: number;
     };
   }> {
-    // 如果需要模擬數據，生成測試數據
-    if (options?.mockData) {
-      request = this.generateMockRequest(request.country, request.type);
+    // 如果需要示例資料，生成預覽資料
+    if (options?.sampleData) {
+      request = this.generateSampleRequest(request.country, request.type);
     }
 
     // 如果指定了模板，暫時替換
@@ -345,7 +345,7 @@ export class ReceiptFormattingService {
   // 工具方法
   // =============================================
 
-  private generateMockRequest(
+  private generateSampleRequest(
     country: CountryCode,
     type: PrintJobType,
   ): PrintRequest {

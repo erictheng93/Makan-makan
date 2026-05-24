@@ -21,24 +21,12 @@
  *     to land a staff row whose login will succeed under real bcrypt
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterAll,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-
-// Undo the global vi.mock("drizzle-orm/d1") so this test uses the real drizzle.
-vi.unmock("drizzle-orm/d1");
-
 describe("Auth API — real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;

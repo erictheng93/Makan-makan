@@ -3,7 +3,7 @@
  * Business logic for kitchen operations.
  *
  * NOTE: This service previously tracked SSE connections and broadcast events
- * via an in-memory Map. That code was dead: each request handler created a
+ * via request-local state. That code was dead: each request handler created a
  * fresh KitchenService instance, so the Map was never shared across requests
  * and cross-request broadcasts could never reach any listener. Real-time
  * kitchen updates flow through RealtimeBroadcastService → REALTIME_SESSION

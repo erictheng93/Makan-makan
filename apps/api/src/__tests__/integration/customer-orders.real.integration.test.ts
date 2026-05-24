@@ -12,24 +12,12 @@
  * `requireRole([5])`.
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterAll,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-
-// Undo the global vi.mock("drizzle-orm/d1") so this test uses the real drizzle.
-vi.unmock("drizzle-orm/d1");
-
 const ENDPOINT = "https://test/api/v1/customers/me/orders";
 
 describe("Customer Orders API - real integration", () => {

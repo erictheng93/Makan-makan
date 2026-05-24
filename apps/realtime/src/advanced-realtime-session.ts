@@ -606,7 +606,7 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
         totalMessages: this.sessionState.totalMessages,
       });
 
-      // Clear in-memory state
+      // Clear process-local state
       this.sessionState.activeConnections.clear();
       this.sessionState.hibernated = true;
 
@@ -644,7 +644,7 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
         const groupOrderId = key.replace("group_order:", "");
 
         // Deserialize group order: Maps were stored as Records on write,
-        // rebuild them here so the in-memory type matches GroupOrderState.
+        // rebuild them here so the restored type matches GroupOrderState.
         const serialized = groupOrderData as SerializedGroupOrder;
         const groupOrder: GroupOrderState = {
           ...serialized,

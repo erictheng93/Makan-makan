@@ -4,9 +4,7 @@
  * Pilot migration (full port). Started life in commit 1 as a 2-test
  * smoke that proved the new `seed.coupon()` helper inserts a valid
  * row through real Drizzle + miniflare D1. This file now covers the
- * same surface area as the legacy
- * `integration-legacy-mockdrizzle/coupons.integration.test.ts`
- * (7 tests) so the legacy file can be deleted in commit 5.
+ * same surface area as the legacy coupon integration coverage.
  *
  * Infrastructure notes (learned during port):
  *   - POST /coupons requires CSRF (double-submit cookie pattern).
@@ -28,24 +26,12 @@
  *     happy. See `apps/api/src/__tests__/integration/helpers/issue-test-jwt.ts`.
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterAll,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-
-// Undo the global vi.mock("drizzle-orm/d1") so this test uses the real drizzle.
-vi.unmock("drizzle-orm/d1");
-
 /**
  * Build the header + cookie pair the CSRF middleware expects for a
  * mutating request. 64-hex matches the length check in
@@ -281,5 +267,63 @@ describe("Coupons API — real integration", () => {
     const body: any = await res.json();
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
+  });
+
+  it("GET /coupons/analytics/trends returns real coupon usage aggregates", async () => {
+    const coupon = await seed.coupon(restaurantId, {
+      code: "TREND25",
+      discountType: "fixed",
+      discountValue: 25,
+      discountValueCents: 2500,
+    });
+    const order = await seed.order(restaurantId, {
+      subtotal: 100,
+      subtotalCents: 10000,
+      discountAmount: 25,
+      discountAmountCents: 2500,
+      totalAmount: 75,
+      totalAmountCents: 7500,
+    });
+
+    const useRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/coupons/use", {
+        method: "POST",
+        headers: csrfHeaders(adminToken),
+        body: JSON.stringify({
+          couponId: coupon.id,
+          orderId: order.id,
+          discountAmount: 25,
+          originalAmount: 100,
+          finalAmount: 75,
+        }),
+      }),
+    );
+
+    expect(useRes.status).toBe(200);
+
+    const trendsRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/coupons/analytics/trends?restaurantId=${restaurantId}`,
+        {
+          headers: { authorization: `Bearer ${adminToken}` },
+        },
+      ),
+    );
+
+    expect(trendsRes.status).toBe(200);
+    const body: any = await trendsRes.json();
+    expect(body.success).toBe(true);
+    expect(body.data).toMatchObject({
+      totalCoupons: 1,
+      activeCoupons: 1,
+      totalUsage: 1,
+      totalSavings: 25,
+    });
+    expect(body.data.usageByPeriod).toEqual([
+      expect.objectContaining({
+        totalUsage: 1,
+        totalSavings: 25,
+      }),
+    ]);
   });
 });
