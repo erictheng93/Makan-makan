@@ -4,6 +4,10 @@ import { sign, verify } from "hono/jwt";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { generateUUID, normalizeE164Phone } from "@makanmakan/utils";
+import {
+  CUSTOMER_CONSENT_TYPES,
+  isCustomerConsentVersion,
+} from "@makanmakan/shared-types";
 import type { Env } from "../../../types/env";
 import { canonicalCustomerAuthMiddleware } from "../../../middleware/auth";
 import { validateBody, validateQuery } from "../../../middleware/validation";
@@ -87,21 +91,24 @@ const favoriteSchema = z.object({
   targetId: z.string().trim().min(1).max(128),
 });
 
-const consentSchema = z.object({
-  consentType: z.enum([
-    "marketing",
-    "analytics",
-    "location",
-    "data_share",
-    "terms_of_service",
-    "privacy_policy",
-  ]),
-  version: z.string().trim().min(1).max(100),
-  granted: z.boolean(),
-  source: z
-    .enum(["onboarding", "settings", "inline_prompt"])
-    .default("settings"),
-});
+const consentSchema = z
+  .object({
+    consentType: z.enum(CUSTOMER_CONSENT_TYPES),
+    version: z.string().trim().min(1).max(100),
+    granted: z.boolean(),
+    source: z
+      .enum(["onboarding", "settings", "inline_prompt"])
+      .default("settings"),
+  })
+  .superRefine((value, ctx) => {
+    if (!isCustomerConsentVersion(value.consentType, value.version)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["version"],
+        message: "Unsupported customer consent version",
+      });
+    }
+  });
 
 type CustomerRow = {
   id: string;
@@ -729,6 +736,16 @@ async function findOrCreateCustomerByPhone(
 
   if (existing) return existing;
 
+  await env.DB.prepare(
+    `UPDATE customers
+        SET primary_phone = NULL,
+            updated_at_ms = ?
+      WHERE primary_phone = ?
+        AND status = 'deleted'`,
+  )
+    .bind(now, phone)
+    .run();
+
   const id = generateUUID();
   await env.DB.prepare(
     `INSERT INTO customers
@@ -739,6 +756,22 @@ async function findOrCreateCustomerByPhone(
     .run();
 
   return requireCustomer(env, id);
+}
+
+export async function pruneStaleCustomerPushSubscriptions(
+  env: Env,
+  nowMs = Date.now(),
+): Promise<{ deleted: number }> {
+  const staleBeforeMs = nowMs - 90 * 24 * 60 * 60 * 1000;
+  const result = await env.DB.prepare(
+    `DELETE FROM customer_push_subscriptions
+      WHERE last_used_at_ms < ?
+        AND failure_count >= 3`,
+  )
+    .bind(staleBeforeMs)
+    .run();
+
+  return { deleted: result.meta.changes ?? 0 };
 }
 
 async function loadCustomer(

@@ -42,9 +42,9 @@ DROP TABLE `customers`;
 ALTER TABLE `customers__identity_rebuild` RENAME TO `customers`;
 --> statement-breakpoint
 
-CREATE UNIQUE INDEX `idx_customers_primary_phone` ON `customers` (`primary_phone`);
+CREATE UNIQUE INDEX `idx_customers_primary_phone` ON `customers` (`primary_phone`) WHERE `primary_phone` IS NOT NULL AND `status` = 'active';
 --> statement-breakpoint
-CREATE UNIQUE INDEX `idx_customers_primary_email` ON `customers` (`primary_email`);
+CREATE UNIQUE INDEX `idx_customers_primary_email` ON `customers` (`primary_email`) WHERE `primary_email` IS NOT NULL AND `status` = 'active';
 --> statement-breakpoint
 CREATE INDEX `idx_customers_status_last_seen` ON `customers` (`status`, `last_seen_at_ms`);
 --> statement-breakpoint

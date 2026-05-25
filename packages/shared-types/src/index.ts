@@ -23,3 +23,4 @@ export * from "./platform";
 export * from "./forecast";
 export * from "./ingredient";
 export * from "./coupon";
+export * from "./consents";

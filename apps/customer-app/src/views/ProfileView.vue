@@ -317,6 +317,7 @@ import { customerIdentityApi } from "@/services/customerIdentityApi";
 import customerPushService from "@/utils/push-notifications";
 import { useI18n } from "@/composables/useI18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import { CUSTOMER_CONSENT_VERSIONS } from "@makanmakan/shared-types";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -381,7 +382,7 @@ const savePreferences = async () => {
     );
     await customerIdentityApi.grantConsent({
       consentType: "marketing",
-      version: "2026-05-25-v1",
+      version: CUSTOMER_CONSENT_VERSIONS.marketing,
       granted: preferences.value.marketingOptIn,
       source: "settings",
     });

@@ -91,6 +91,14 @@ export default {
         await snapshotStorageUsage(env);
       }
 
+      if (event.cron === "0 2 * * *") {
+        console.log("[Cron] Running customer push subscription pruning...");
+        const { pruneStaleCustomerPushSubscriptions } =
+          await import("./features/customer/routes");
+        const result = await pruneStaleCustomerPushSubscriptions(env);
+        console.log("[Cron] Customer push pruning result:", result);
+      }
+
       if (event.cron === "15 2 * * *") {
         console.log("[Cron] Running billing cycle closer...");
         const { BillingCycleService, TrialReaperService } =

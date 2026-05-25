@@ -4,6 +4,7 @@
  */
 
 import { customerIdentityApi } from "@/services/customerIdentityApi";
+import { CUSTOMER_CONSENT_VERSIONS } from "@makanmakan/shared-types";
 
 export interface NotificationSubscription {
   endpoint: string;
@@ -390,7 +391,7 @@ class CustomerPushNotificationService {
       });
       await customerIdentityApi.grantConsent({
         consentType: "marketing",
-        version: "2026-05-25-v1",
+        version: CUSTOMER_CONSENT_VERSIONS.marketing,
         granted: settings.promotions,
         source: "settings",
       });

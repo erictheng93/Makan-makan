@@ -99,7 +99,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 **Priority:** P2 **Spec:** `docs/superpowers/specs/2026-05-25-customer-identity-and-profile-design.md` **Context:** `orders.customerId`, `waiting_list.customerId`, `reservations.customerId` are all `INTEGER` FK to `users.id` (the staff table), while a `customers` table (TEXT/UUID) exists but is functionally orphaned (only `verified_members` references it). `users.ts` even comments "顧客應使用 customers 表" — the refactor was started but never finished. Until this is resolved, every customer-facing feature has to pick a side and the inconsistency multiplies.
 
-**Why deferred:** Spec drafted 2026-05-25; awaiting review. Block on Q-1 (phone uniqueness reassignment policy), Q-3 (SMS-only vs. with email fallback), Q-5 (anonymous order claiming), Q-6 (cleanup of `users.role = 5` rows), Q-8 (PDPA processing logs).
+**Status:** Phase 1 implementation landed. Open Questions Q-1 through Q-8 were closed on 2026-05-25 in the spec: phone numbers are current bindings, Phase 1 uses SMS-only OTP, anonymous order claiming is deferred, legacy `users.role = 5` rows are preserved, consent versions are managed in a shared catalog, stale failed push subscriptions are pruned daily, and PDPA records of processing are a legal/application-logging follow-up that does not block Customer Identity or Marketplace Phase 4.
 
 **Scope (Phase 1, ~30 dev-days estimated in spec §15):**
 

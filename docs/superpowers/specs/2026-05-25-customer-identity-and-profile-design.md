@@ -1,7 +1,7 @@
-# Customer Identity Consolidation & Profile Depth — Design (Draft)
+# Customer Identity Consolidation & Profile Depth — Design (Closed)
 
 **Date**: 2026-05-25
-**Status**: Draft — awaiting review
+**Status**: Closed — Open Questions resolved 2026-05-25
 **Author**: Eric
 **Phase 1 scope**: Resolve identity fork, promote `customers` to authoritative customer table, ship 5 supporting tables (preferences, favorites, push, consents, phone verification)
 **Companion spec**: [`2026-05-25-night-market-discovery-design.md`](./2026-05-25-night-market-discovery-design.md) — markets/discovery work depends on this landing first for follow / broadcast features
@@ -477,16 +477,19 @@ A note on `users.preferences`: since the new `customer_preferences` table covers
 
 ## 12. Open Questions
 
-| ID | Question | Notes |
-|----|----------|-------|
-| Q-1 | Phone uniqueness across countries — what if a number is reused after years? | Recommendation: treat current `primary_phone` as "currently bound". On re-verification, soft-delete the prior `customers` row (status=`deleted`), claim the phone for the new row. Lose history per privacy norms. |
-| Q-2 | Should `customer_preferences` row be created eagerly on customer creation, or lazily on first preference write? | Recommendation: lazy. Avoids empty rows for users who never adjust preferences. |
-| Q-3 | OTP delivery provider — SMS only, or also email fallback? | Phase 1: SMS only. Email later. |
-| Q-4 | `consent.version` — who manages the version catalog? | Recommendation: hardcode in a constants file (`packages/shared/src/consents/versions.ts`), bump per policy change. Auditors want version strings, not Git SHAs. |
-| Q-5 | Anonymous order claiming — required for Phase 1, or deferred? | Recommendation: deferred. See §6.3. Open it as a Phase 2 ticket. |
-| Q-6 | Should `users.role = 5` rows be **deleted** after migration, or just left untouched? | Recommendation: leave untouched in Phase 1 (data preservation), schedule cleanup in a follow-up PR after confirming nothing reads them. |
-| Q-7 | Push subscription pruning cadence | Recommendation: cron job, daily. Drop `lastUsedAt_ms < now - 90d` AND `failureCount >= 3`. |
-| Q-8 | PDPA: do we need DPA records of *processing*, not just *consent*? | Out of scope for schema; would be implemented at application logging layer. Flag for legal review. |
+Closed 2026-05-25. These are no longer blockers for Customer Identity Phase 1 or
+Marketplace Phase 4.
+
+| ID | Question | Decision |
+|----|----------|----------|
+| Q-1 | Phone uniqueness across countries — what if a number is reused after years? | `primary_phone` is a current binding only. Active customers keep the phone. Deleted customers release it on re-verification by clearing the deleted row's `primary_phone`; the new active customer can claim the number. Unique indexes only enforce non-null active customer phone/email bindings. |
+| Q-2 | Should `customer_preferences` row be created eagerly on customer creation, or lazily on first preference write? | Lazy. Reads return default preferences; writes upsert `customer_preferences`. Migration only backfills rows with valid legacy `users.preferences`. |
+| Q-3 | OTP delivery provider — SMS only, or also email fallback? | Phase 1 is phone/SMS OTP only. Email fallback is deferred. |
+| Q-4 | `consent.version` — who manages the version catalog? | Shared catalog in `packages/shared-types/src/consents.ts`. API rejects ad-hoc versions; customer-app imports the catalog instead of hardcoding version strings. |
+| Q-5 | Anonymous order claiming — required for Phase 1, or deferred? | Deferred to Phase 2. Phase 1 does not claim anonymous/guest orders into a customer identity. |
+| Q-6 | Should `users.role = 5` rows be **deleted** after migration, or just left untouched? | Leave untouched in Phase 1 for data preservation. Cleanup can happen in a later PR after confirming no reads remain. |
+| Q-7 | Push subscription pruning cadence | Daily cron. Delete rows with `last_used_at_ms < now - 90d` and `failure_count >= 3`. |
+| Q-8 | PDPA: do we need DPA records of *processing*, not just *consent*? | Out of scope for Customer Identity schema. Consent is handled by `customer_consents`; records of processing are a legal/application-logging follow-up and do not block Phase 1. |
 
 ---
 
@@ -535,10 +538,10 @@ Roughly **6 weeks for one engineer**, or **4 weeks for two engineers** (one on a
 
 ## 16. Review Checklist
 
-- [ ] Consolidate to `customers` (Option B) — agreed?
-- [ ] FK migration of orders/waiting_list/reservations is acceptable risk given current data volume — agreed?
-- [ ] Phone-OTP auth only in Phase 1, OAuth deferred — agreed?
-- [ ] `customer_phone_verification_tokens` is a separate table from staff `phone_verification_tokens` — agreed?
-- [ ] `customer_consents` append-only model is the right shape for PDPA — agreed?
-- [ ] Open questions Q-1, Q-3, Q-5, Q-6, Q-8 have decisions before implementation starts.
-- [ ] This spec lands **before** Markets Phase 4 begins implementation.
+- [x] Consolidate to `customers` (Option B) — agreed.
+- [x] FK migration of orders/waiting_list/reservations is acceptable risk given current data volume — agreed.
+- [x] Phone-OTP auth only in Phase 1, OAuth deferred — agreed.
+- [x] `customer_phone_verification_tokens` is a separate table from staff `phone_verification_tokens` — agreed.
+- [x] `customer_consents` append-only model is the right shape for PDPA Phase 1 — agreed; records of processing are a legal/application-logging follow-up.
+- [x] Open questions Q-1 through Q-8 have decisions and are closed for Phase 1.
+- [x] This spec lands **before** Markets Phase 4 begins implementation.

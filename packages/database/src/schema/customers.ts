@@ -42,12 +42,16 @@ export const customers = sqliteTable(
     deletedAt: integer("deleted_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
-    primaryPhoneIdx: uniqueIndex("idx_customers_primary_phone").on(
-      table.primaryPhone,
-    ),
-    primaryEmailIdx: uniqueIndex("idx_customers_primary_email").on(
-      table.primaryEmail,
-    ),
+    primaryPhoneIdx: uniqueIndex("idx_customers_primary_phone")
+      .on(table.primaryPhone)
+      .where(
+        sql`${table.primaryPhone} IS NOT NULL AND ${table.status} = 'active'`,
+      ),
+    primaryEmailIdx: uniqueIndex("idx_customers_primary_email")
+      .on(table.primaryEmail)
+      .where(
+        sql`${table.primaryEmail} IS NOT NULL AND ${table.status} = 'active'`,
+      ),
     statusLastSeenIdx: index("idx_customers_status_last_seen").on(
       table.status,
       table.lastSeenAt,
