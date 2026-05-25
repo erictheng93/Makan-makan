@@ -3,10 +3,10 @@ import type { Context } from "hono";
 import { sign, verify } from "hono/jwt";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID, normalizeE164Phone } from "@makanmakan/utils";
 import type { Env } from "../../../types/env";
 import { canonicalCustomerAuthMiddleware } from "../../../middleware/auth";
-import { validateBody } from "../../../middleware/validation";
+import { validateBody, validateQuery } from "../../../middleware/validation";
 import { badRequest, unauthorized } from "../../../shared/utils/api-error";
 
 const ACCESS_TOKEN_SECONDS = 15 * 60;
@@ -14,7 +14,13 @@ const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
 
-const phoneSchema = z.string().trim().min(7).max(20).transform(normalizePhone);
+const phoneSchema = z
+  .string()
+  .trim()
+  .min(7)
+  .max(20)
+  .transform(normalizeE164Phone)
+  .pipe(z.string().regex(/^\+[1-9]\d{6,14}$/));
 
 const requestOtpSchema = z.object({
   phone: phoneSchema,
@@ -68,6 +74,17 @@ const pushSubscriptionSchema = z.object({
   auth: z.string().min(1).max(2048),
   userAgent: z.string().max(1024).optional(),
   deviceLabel: z.string().max(100).optional(),
+});
+
+const favoriteTargetTypeSchema = z.enum(["market", "restaurant", "dish"]);
+
+const favoriteQuerySchema = z.object({
+  targetType: favoriteTargetTypeSchema.optional(),
+});
+
+const favoriteSchema = z.object({
+  targetType: favoriteTargetTypeSchema,
+  targetId: z.string().trim().min(1).max(128),
 });
 
 const consentSchema = z.object({
@@ -207,11 +224,18 @@ routes.post("/auth/logout", canonicalCustomerAuthMiddleware, async (c) => {
   const token = authHeader?.startsWith("Bearer ")
     ? authHeader.substring(7)
     : undefined;
+  const body = await readOptionalJson(c);
+  const refreshToken =
+    typeof body?.refreshToken === "string" ? body.refreshToken : undefined;
 
   if (token) {
     await c.env.TOKEN_BLACKLIST.put(`token:${token}`, "blacklisted", {
       expirationTtl: ACCESS_TOKEN_SECONDS,
     });
+  }
+
+  if (refreshToken) {
+    await revokeCustomerRefreshToken(c.env, refreshToken);
   }
 
   return c.json({ success: true, data: { loggedOut: true } });
@@ -333,6 +357,93 @@ routes.patch(
     });
   },
 );
+
+routes.get(
+  "/favorites",
+  canonicalCustomerAuthMiddleware,
+  validateQuery(favoriteQuerySchema),
+  async (c) => {
+    const customerId = c.get("customer").id;
+    const { targetType } = c.get("validatedQuery");
+    const result = targetType
+      ? await c.env.DB.prepare(
+          `SELECT id, target_type, target_id, created_at_ms
+             FROM customer_favorites
+            WHERE customer_id = ? AND target_type = ?
+            ORDER BY created_at_ms DESC`,
+        )
+          .bind(customerId, targetType)
+          .all()
+      : await c.env.DB.prepare(
+          `SELECT id, target_type, target_id, created_at_ms
+             FROM customer_favorites
+            WHERE customer_id = ?
+            ORDER BY created_at_ms DESC`,
+        )
+          .bind(customerId)
+          .all();
+
+    return c.json({
+      success: true,
+      data: (result.results ?? []).map(toFavoriteSummary),
+    });
+  },
+);
+
+routes.post(
+  "/favorites",
+  canonicalCustomerAuthMiddleware,
+  validateBody(favoriteSchema),
+  async (c) => {
+    const customerId = c.get("customer").id;
+    const body = c.get("validatedBody");
+    const now = Date.now();
+
+    await validateFavoriteTarget(c.env, body.targetType, body.targetId);
+
+    const existing = await c.env.DB.prepare(
+      `SELECT id, target_type, target_id, created_at_ms
+         FROM customer_favorites
+        WHERE customer_id = ? AND target_type = ? AND target_id = ?
+        LIMIT 1`,
+    )
+      .bind(customerId, body.targetType, body.targetId)
+      .first();
+
+    if (existing) {
+      return c.json({ success: true, data: toFavoriteSummary(existing) });
+    }
+
+    await c.env.DB.prepare(
+      `INSERT INTO customer_favorites
+        (customer_id, target_type, target_id, created_at_ms)
+       VALUES (?, ?, ?, ?)`,
+    )
+      .bind(customerId, body.targetType, body.targetId, now)
+      .run();
+
+    const row = await c.env.DB.prepare(
+      `SELECT id, target_type, target_id, created_at_ms
+         FROM customer_favorites
+        WHERE customer_id = ? AND target_type = ? AND target_id = ?
+        LIMIT 1`,
+    )
+      .bind(customerId, body.targetType, body.targetId)
+      .first();
+
+    return c.json({ success: true, data: toFavoriteSummary(row) }, 201);
+  },
+);
+
+routes.delete("/favorites/:id", canonicalCustomerAuthMiddleware, async (c) => {
+  await c.env.DB.prepare(
+    `DELETE FROM customer_favorites
+        WHERE id = ? AND customer_id = ?`,
+  )
+    .bind(c.req.param("id"), c.get("customer").id)
+    .run();
+  return c.json({ success: true, data: { deleted: true } });
+});
 
 routes.get(
   "/push-subscriptions",
@@ -516,6 +627,93 @@ async function enforceOtpRateLimit(
   ]);
 }
 
+async function readOptionalJson(
+  c: Context,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const parsed = await c.req.json();
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function revokeCustomerRefreshToken(
+  env: Env,
+  refreshToken: string,
+): Promise<void> {
+  try {
+    const decoded = await verify(refreshToken, env.JWT_SECRET, "HS256");
+    if (isRefreshPayload(decoded)) {
+      await env.TOKEN_BLACKLIST.delete(`customer_refresh:${decoded.jti}`);
+    }
+  } catch {
+    // Logout is best-effort: an invalid refresh token should not prevent
+    // the access token from being invalidated.
+  }
+}
+
+async function validateFavoriteTarget(
+  env: Env,
+  targetType: z.infer<typeof favoriteTargetTypeSchema>,
+  targetId: string,
+): Promise<void> {
+  if (targetType === "restaurant") {
+    const row = await env.DB.prepare(
+      `SELECT id
+         FROM restaurants
+        WHERE id = ? AND deleted_at_ms IS NULL
+        LIMIT 1`,
+    )
+      .bind(targetId)
+      .first();
+    if (!row) throw badRequest("Favorite target not found", "TARGET_NOT_FOUND");
+    return;
+  }
+
+  if (targetType === "dish") {
+    const numericTargetId = Number(targetId);
+    if (!Number.isInteger(numericTargetId) || numericTargetId <= 0) {
+      throw badRequest("Favorite target not found", "TARGET_NOT_FOUND");
+    }
+    const row = await env.DB.prepare(
+      `SELECT id
+         FROM menu_items
+        WHERE id = ? AND deleted_at_ms IS NULL
+        LIMIT 1`,
+    )
+      .bind(numericTargetId)
+      .first();
+    if (!row) throw badRequest("Favorite target not found", "TARGET_NOT_FOUND");
+    return;
+  }
+
+  const marketsTable = await env.DB.prepare(
+    `SELECT name
+       FROM sqlite_master
+      WHERE type = 'table' AND name = 'markets'
+      LIMIT 1`,
+  ).first();
+  if (!marketsTable) {
+    throw badRequest(
+      "Market favorites are not available yet",
+      "TARGET_NOT_FOUND",
+    );
+  }
+
+  const row = await env.DB.prepare(
+    `SELECT id
+       FROM markets
+      WHERE id = ? AND deleted_at_ms IS NULL
+      LIMIT 1`,
+  )
+    .bind(targetId)
+    .first();
+  if (!row) throw badRequest("Favorite target not found", "TARGET_NOT_FOUND");
+}
+
 async function findOrCreateCustomerByPhone(
   env: Env,
   phone: string,
@@ -651,11 +849,22 @@ function toCustomerSummary(customer: CustomerRow) {
   };
 }
 
-function normalizePhone(value: string): string {
-  const compact = value.replace(/[\s\-()]/g, "");
-  if (compact.startsWith("+")) return compact;
-  if (compact.startsWith("00")) return `+${compact.slice(2)}`;
-  return `+${compact}`;
+function toFavoriteSummary(row: unknown) {
+  const favorite = row as {
+    id: number;
+    target_type: string;
+    target_id: string;
+    created_at_ms: number;
+  } | null;
+
+  if (!favorite) return null;
+
+  return {
+    id: favorite.id,
+    targetType: favorite.target_type,
+    targetId: favorite.target_id,
+    createdAtMs: favorite.created_at_ms,
+  };
 }
 
 function decodeHtmlEntities(value: string): string {

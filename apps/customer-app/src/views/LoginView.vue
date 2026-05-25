@@ -19,102 +19,54 @@
         class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
       >
         <form class="space-y-6" @submit.prevent="handleSubmit">
-          <!-- 帳號輸入 -->
+          <!-- 手機輸入 -->
           <div>
             <label
-              for="username"
+              for="phone"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              {{ t("auth.username") }}
+              {{ t("auth.phone") }}
             </label>
             <input
-              id="username"
-              v-model="form.username"
-              type="text"
+              id="phone"
+              v-model="form.phone"
+              type="tel"
               required
-              autocomplete="username"
+              autocomplete="tel"
               class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
-              :class="{ 'ring-2 ring-ios-red': errors.username }"
-              :placeholder="t('auth.usernamePlaceholder')"
+              :class="{ 'ring-2 ring-ios-red': errors.phone }"
+              placeholder="0912 345 678"
             />
-            <p v-if="errors.username" class="mt-1 text-sm text-red-600">
-              {{ errors.username }}
+            <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
+              {{ errors.phone }}
             </p>
           </div>
 
-          <!-- 密碼輸入 -->
-          <div>
+          <div v-if="otpRequested">
             <label
-              for="password"
+              for="otp"
               class="block text-sm font-medium text-gray-700 mb-2"
             >
-              {{ t("auth.password") }}
+              驗證碼
             </label>
-            <div class="relative">
-              <input
-                id="password"
-                v-model="form.password"
-                :type="showPassword ? 'text' : 'password'"
-                required
-                autocomplete="current-password"
-                class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition pr-12"
-                :class="{ 'ring-2 ring-ios-red': errors.password }"
-                :placeholder="t('auth.passwordPlaceholder')"
-              />
-              <button
-                type="button"
-                class="absolute inset-y-0 right-0 pr-4 flex items-center"
-                @click="showPassword = !showPassword"
-              >
-                <svg
-                  v-if="showPassword"
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                <svg
-                  v-else
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                  />
-                </svg>
-              </button>
-            </div>
-            <p v-if="errors.password" class="mt-1 text-sm text-red-600">
-              {{ errors.password }}
+            <input
+              id="otp"
+              v-model="form.otp"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              required
+              autocomplete="one-time-code"
+              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+              :class="{ 'ring-2 ring-ios-red': errors.otp }"
+              placeholder="123456"
+            />
+            <p v-if="errors.otp" class="mt-1 text-sm text-red-600">
+              {{ errors.otp }}
             </p>
-          </div>
-
-          <!-- 忘記密碼連結 -->
-          <div class="flex items-center justify-end">
-            <router-link
-              to="/forgot-password"
-              class="text-sm font-medium text-orange-600 hover:text-orange-500"
-            >
-              {{ t("auth.forgotPassword") }}
-            </router-link>
+            <p v-if="devOtp" class="mt-2 text-xs text-gray-500">
+              Dev OTP: {{ devOtp }}
+            </p>
           </div>
 
           <!-- 錯誤提示 -->
@@ -149,7 +101,9 @@
               />
               {{ t("auth.loggingIn") }}
             </span>
-            <span v-else>{{ t("auth.login") }}</span>
+            <span v-else>{{
+              otpRequested ? t("auth.login") : "取得驗證碼"
+            }}</span>
           </button>
         </form>
 
@@ -197,36 +151,32 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { t } = useI18n();
 
-const showPassword = ref(false);
 const isLoading = ref(false);
 const error = ref("");
+const otpRequested = ref(false);
+const devOtp = ref("");
 
 const form = reactive({
-  username: "",
-  password: "",
+  phone: "",
+  otp: "",
 });
 
 const errors = reactive({
-  username: "",
-  password: "",
+  phone: "",
+  otp: "",
 });
 
 const validateForm = () => {
-  errors.username = "";
-  errors.password = "";
+  errors.phone = "";
+  errors.otp = "";
 
-  if (!form.username.trim()) {
-    errors.username = t("auth.usernameRequired");
+  if (!form.phone.trim()) {
+    errors.phone = "請輸入手機號碼";
     return false;
   }
 
-  if (!form.password) {
-    errors.password = t("auth.passwordRequired");
-    return false;
-  }
-
-  if (form.password.length < 6) {
-    errors.password = t("auth.passwordMinLength");
+  if (otpRequested.value && !/^\d{6}$/.test(form.otp)) {
+    errors.otp = "請輸入 6 位數驗證碼";
     return false;
   }
 
@@ -240,7 +190,18 @@ const handleSubmit = async () => {
   error.value = "";
 
   try {
-    const result = await authStore.login(form.username, form.password);
+    if (!otpRequested.value) {
+      const result = await authStore.requestOtp(form.phone);
+      if (result.success) {
+        otpRequested.value = true;
+        devOtp.value = result.data?.devOtp ?? "";
+        return;
+      }
+      error.value = result.error || t("auth.loginFailed");
+      return;
+    }
+
+    const result = await authStore.verifyOtp(form.phone, form.otp);
 
     if (result.success) {
       // 檢查是否有重定向路徑
@@ -248,7 +209,7 @@ const handleSubmit = async () => {
       if (redirect) {
         router.push(redirect);
       } else {
-        router.push("/orders");
+        router.push("/profile");
       }
     } else {
       error.value = result.error || t("auth.loginFailed");

@@ -163,6 +163,57 @@
           </div>
         </div>
 
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            通知與同意設定
+          </h3>
+          <div class="space-y-4">
+            <label class="flex items-center justify-between gap-4">
+              <span class="text-sm font-medium text-gray-700">候位通知</span>
+              <input
+                v-model="preferences.waitingListOptIn"
+                type="checkbox"
+                class="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+              />
+            </label>
+            <label class="flex items-center justify-between gap-4">
+              <span class="text-sm font-medium text-gray-700">行銷通知</span>
+              <input
+                v-model="preferences.marketingOptIn"
+                type="checkbox"
+                class="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+              />
+            </label>
+            <label class="flex items-center justify-between gap-4">
+              <span class="text-sm font-medium text-gray-700">
+                只接收收藏店家的優惠
+              </span>
+              <input
+                v-model="preferences.promoFromFavoritesOptIn"
+                type="checkbox"
+                class="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+              />
+            </label>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button
+                class="flex-1 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                @click="savePreferences"
+              >
+                儲存設定
+              </button>
+              <button
+                class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                @click="enablePush"
+              >
+                啟用推播
+              </button>
+            </div>
+            <p v-if="settingsMessage" class="text-sm text-gray-600">
+              {{ settingsMessage }}
+            </p>
+          </div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="bg-white rounded-lg shadow p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">
@@ -262,6 +313,8 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { customerOrderApi } from "@/services/customerOrderApi";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
+import customerPushService from "@/utils/push-notifications";
 import { useI18n } from "@/composables/useI18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 
@@ -271,13 +324,25 @@ const { t } = useI18n();
 const { confirm: confirmModal } = useConfirmModal();
 
 const isLoading = ref(false);
+const settingsMessage = ref("");
 const profile = ref({
-  id: 0,
+  id: "",
   username: "",
   fullName: "",
   email: "",
   phone: "",
   role: 5,
+});
+const preferences = ref({
+  dietaryTags: [] as string[],
+  allergens: [] as string[],
+  defaultPartySize: null as number | null,
+  marketingOptIn: false,
+  waitingListOptIn: true,
+  promoFromFavoritesOptIn: false,
+  quietHoursStart: null as string | null,
+  quietHoursEnd: null as string | null,
+  updatedAtMs: null as number | null,
 });
 
 // 獲取姓名首字母
@@ -291,6 +356,7 @@ const loadProfile = async () => {
 
   try {
     const data = await customerOrderApi.getMyProfile();
+    const identity = await customerIdentityApi.getMe();
     profile.value = {
       id: data.id,
       username: data.username,
@@ -299,10 +365,46 @@ const loadProfile = async () => {
       phone: data.phone || "",
       role: data.role,
     };
+    preferences.value = identity.preferences;
   } catch (error) {
     console.error("Failed to load profile:", error);
   } finally {
     isLoading.value = false;
+  }
+};
+
+const savePreferences = async () => {
+  settingsMessage.value = "";
+  try {
+    preferences.value = await customerIdentityApi.updatePreferences(
+      preferences.value,
+    );
+    await customerIdentityApi.grantConsent({
+      consentType: "marketing",
+      version: "2026-05-25-v1",
+      granted: preferences.value.marketingOptIn,
+      source: "settings",
+    });
+    settingsMessage.value = "設定已儲存";
+  } catch (error) {
+    console.error("Failed to save preferences:", error);
+    settingsMessage.value = "設定儲存失敗";
+  }
+};
+
+const enablePush = async () => {
+  settingsMessage.value = "";
+  try {
+    const permission = await customerPushService.requestPermission();
+    if (permission !== "granted") {
+      settingsMessage.value = "推播權限未開啟";
+      return;
+    }
+    const subscription = await customerPushService.subscribe();
+    settingsMessage.value = subscription ? "推播已啟用" : "推播啟用失敗";
+  } catch (error) {
+    console.error("Failed to enable push:", error);
+    settingsMessage.value = "推播啟用失敗";
   }
 };
 

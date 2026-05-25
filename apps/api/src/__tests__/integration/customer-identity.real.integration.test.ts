@@ -4,15 +4,18 @@ import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
+import { buildSeedHelpers, type SeedHelpers } from "./helpers/seed-helper";
 
 const BASE = "https://test/api/v1/customer";
 const CSRF = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 describe("Customer Identity API - real integration", () => {
   let testApp: RealIntegrationTestApp;
+  let seed: SeedHelpers;
 
   beforeAll(async () => {
     testApp = await createRealIntegrationTestApp();
+    seed = buildSeedHelpers(testApp.testDb);
   });
 
   afterAll(async () => {
@@ -64,6 +67,56 @@ describe("Customer Identity API - real integration", () => {
     expect(meJson.data.preferences.waitingListOptIn).toBe(true);
   });
 
+  it("normalizes Taiwan local phone numbers to E.164", async () => {
+    const otpRes = await testApp.app.fetch(
+      new Request(`${BASE}/auth/request-otp`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ phone: "0912-345-678" }),
+      }),
+    );
+
+    expect(otpRes.status).toBe(200);
+    const otpJson: any = await otpRes.json();
+
+    const verifyRes = await testApp.app.fetch(
+      new Request(`${BASE}/auth/verify-otp`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          phone: "0912345678",
+          otp: otpJson.data.devOtp,
+        }),
+      }),
+    );
+
+    expect(verifyRes.status).toBe(200);
+    const verifyJson: any = await verifyRes.json();
+    expect(verifyJson.data.customer.primaryPhone).toBe("+886912345678");
+  });
+
+  it("revokes refresh tokens on logout", async () => {
+    const session = await loginCustomerSession("+886945678901");
+
+    const logoutRes = await authedPost(
+      session.accessToken,
+      `${BASE}/auth/logout`,
+      {
+        refreshToken: session.refreshToken,
+      },
+    );
+    expect(logoutRes.status).toBe(200);
+
+    const refreshRes = await testApp.app.fetch(
+      new Request(`${BASE}/auth/refresh`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ refreshToken: session.refreshToken }),
+      }),
+    );
+    expect(refreshRes.status).toBe(401);
+  });
+
   it("rejects staff JWTs on canonical customer endpoints", async () => {
     const staffToken = await sign(
       {
@@ -105,6 +158,57 @@ describe("Customer Identity API - real integration", () => {
     const listJson: any = await listRes.json();
     expect(listJson.data).toHaveLength(1);
     expect(listJson.data[0].endpoint).toBe("https://push.example.test/abc");
+  });
+
+  it("creates idempotent favorites only for valid targets", async () => {
+    const accessToken = await loginCustomer("+886956789012");
+    const restaurant = await seed.restaurant();
+
+    const createRes = await authedPost(accessToken, `${BASE}/favorites`, {
+      targetType: "restaurant",
+      targetId: String(restaurant.id),
+    });
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+    expect(createJson.data.targetType).toBe("restaurant");
+    expect(createJson.data.targetId).toBe(String(restaurant.id));
+
+    const duplicateRes = await authedPost(accessToken, `${BASE}/favorites`, {
+      targetType: "restaurant",
+      targetId: String(restaurant.id),
+    });
+    expect(duplicateRes.status).toBe(200);
+    const duplicateJson: any = await duplicateRes.json();
+    expect(duplicateJson.data.id).toBe(createJson.data.id);
+
+    const invalidRes = await authedPost(accessToken, `${BASE}/favorites`, {
+      targetType: "restaurant",
+      targetId: "missing-restaurant",
+    });
+    expect(invalidRes.status).toBe(400);
+
+    const listRes = await testApp.app.fetch(
+      new Request(`${BASE}/favorites?targetType=restaurant`, {
+        headers: { authorization: `Bearer ${accessToken}` },
+      }),
+    );
+    expect(listRes.status).toBe(200);
+    const listJson: any = await listRes.json();
+    expect(listJson.data).toHaveLength(1);
+
+    const deleteRes = await testApp.app.fetch(
+      new Request(`${BASE}/favorites/${createJson.data.id}`, {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          host: "test",
+          origin: "https://test",
+          "x-csrf-token": CSRF,
+          cookie: `csrf_token=${CSRF}`,
+        },
+      }),
+    );
+    expect(deleteRes.status).toBe(200);
   });
 
   it("records consent grants and revokes previous active grants", async () => {
@@ -155,6 +259,13 @@ describe("Customer Identity API - real integration", () => {
   });
 
   async function loginCustomer(phone: string): Promise<string> {
+    const session = await loginCustomerSession(phone);
+    return session.accessToken;
+  }
+
+  async function loginCustomerSession(
+    phone: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const otpRes = await testApp.app.fetch(
       new Request(`${BASE}/auth/request-otp`, {
         method: "POST",
@@ -172,7 +283,10 @@ describe("Customer Identity API - real integration", () => {
       }),
     );
     const verifyJson: any = await verifyRes.json();
-    return verifyJson.data.accessToken;
+    return {
+      accessToken: verifyJson.data.accessToken,
+      refreshToken: verifyJson.data.refreshToken,
+    };
   }
 
   function authedPost(accessToken: string, url: string, body: unknown) {

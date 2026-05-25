@@ -3,7 +3,7 @@
  * Handles push notification registration, management, and customer-specific notifications
  */
 
-import { apiClient } from "@/services/api";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
 
 export interface NotificationSubscription {
   endpoint: string;
@@ -151,10 +151,12 @@ class CustomerPushNotificationService {
     subscription: NotificationSubscription,
   ): Promise<void> {
     try {
-      await apiClient.post("/push/subscribe", {
-        subscription,
-        user_type: "customer",
-        device_info: this.getDeviceInfo(),
+      await customerIdentityApi.addPushSubscription({
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+        userAgent: navigator.userAgent,
+        deviceLabel: this.getDeviceInfo().platform,
       });
 
       console.log("Push subscription registered on server");
@@ -166,9 +168,11 @@ class CustomerPushNotificationService {
 
   async removeSubscriptionFromServer(): Promise<void> {
     try {
-      await apiClient.post("/push/unsubscribe", {
-        endpoint: this.subscription?.endpoint,
-      });
+      const endpoint = this.subscription?.endpoint;
+      if (!endpoint) return;
+      const subscriptions = await customerIdentityApi.listPushSubscriptions();
+      const match = subscriptions.find((item) => item.endpoint === endpoint);
+      if (match) await customerIdentityApi.removePushSubscription(match.id);
 
       console.log("Push subscription removed from server");
     } catch (error) {
@@ -379,7 +383,17 @@ class CustomerPushNotificationService {
     vibration: boolean;
   }): Promise<void> {
     try {
-      await apiClient.put("/users/notification-settings", settings);
+      await customerIdentityApi.updatePreferences({
+        waitingListOptIn: settings.tableAlerts || settings.orderUpdates,
+        marketingOptIn: settings.promotions,
+        promoFromFavoritesOptIn: settings.promotions,
+      });
+      await customerIdentityApi.grantConsent({
+        consentType: "marketing",
+        version: "2026-05-25-v1",
+        granted: settings.promotions,
+        source: "settings",
+      });
 
       // Store locally for offline access
       localStorage.setItem("notification_settings", JSON.stringify(settings));

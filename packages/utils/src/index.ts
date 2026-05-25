@@ -52,6 +52,9 @@ export {
 // UUID utilities
 export { generateUUID, isValidUUID, extractUUIDTimestamp } from "./uuid";
 
+// Phone utilities
+export { normalizeE164Phone } from "./phone";
+
 // Validation schemas
 export {
   uuidSchema,

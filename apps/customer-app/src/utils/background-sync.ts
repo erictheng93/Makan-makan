@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from "@/services/api";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { offlineStorage, type OfflineOrder } from "./offline-storage";
 
 export interface SyncEvent {
@@ -179,7 +180,14 @@ class CustomerBackgroundSyncService {
         return;
       }
 
-      await apiClient.post("/users/favorites/sync", { favorites });
+      await Promise.all(
+        favorites.map((favorite) =>
+          customerIdentityApi.addFavorite({
+            targetType: favorite.type === "menu_item" ? "dish" : "restaurant",
+            targetId: String(favorite.data?.id ?? favorite.id),
+          }),
+        ),
+      );
 
       console.log("[Background Sync] Favorites synced successfully");
       this.removeSyncEvent("favorite_sync");
@@ -213,7 +221,21 @@ class CustomerBackgroundSyncService {
         theme: await offlineStorage.getSetting("theme"),
       };
 
-      await apiClient.post("/users/settings/sync", { settings });
+      await customerIdentityApi.updatePreferences({
+        ...(settings.preferences && typeof settings.preferences === "object"
+          ? settings.preferences
+          : {}),
+        ...(settings.notifications && typeof settings.notifications === "object"
+          ? {
+              marketingOptIn: Boolean(
+                (settings.notifications as { marketing?: unknown }).marketing,
+              ),
+              waitingListOptIn:
+                (settings.notifications as { waitingList?: unknown })
+                  .waitingList !== false,
+            }
+          : {}),
+      });
 
       console.log("[Background Sync] Settings synced successfully");
       this.removeSyncEvent("settings_sync");

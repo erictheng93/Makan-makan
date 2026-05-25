@@ -1,4 +1,5 @@
 import { apiClient } from "./api";
+import { customerIdentityApi } from "./customerIdentityApi";
 import type { Order, OrderStatus } from "@makanmakan/shared-types";
 
 export interface CustomerOrdersResponse {
@@ -125,15 +126,25 @@ export const customerOrderApi = {
    * 獲取客戶個人資料
    */
   async getMyProfile(): Promise<{
-    id: number;
+    id: string;
     username: string;
     fullName: string;
     email?: string;
     phone?: string;
     role: number;
   }> {
-    const response = await apiClient.get("/customers/me");
-    return response;
+    const response = await customerIdentityApi.getMe();
+    return {
+      id: response.customer.id,
+      username:
+        response.customer.primaryPhone ||
+        response.customer.primaryEmail ||
+        response.customer.id,
+      fullName: response.customer.displayName,
+      email: response.customer.primaryEmail || undefined,
+      phone: response.customer.primaryPhone || undefined,
+      role: 5,
+    };
   },
 };
 

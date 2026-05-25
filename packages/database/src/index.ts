@@ -11,6 +11,7 @@ export * from "./utils/money";
 export * from "./utils/money-sql";
 export * from "./utils/plan-mapping";
 export * from "./utils/plan-quotas";
+export * from "./customer-identity-preflight";
 
 // 匯出 Drizzle 相關
 export { drizzle } from "drizzle-orm/d1";

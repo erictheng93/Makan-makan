@@ -181,6 +181,43 @@ WHERE NOT EXISTS (
 );
 --> statement-breakpoint
 
+INSERT OR IGNORE INTO `customer_preferences` (
+  `customer_id`,
+  `dietary_tags`,
+  `allergens`,
+  `marketing_opt_in`,
+  `waiting_list_opt_in`,
+  `updated_at_ms`
+)
+SELECT
+  `customer_id_mapping__customer_identity`.`new_customer_id`,
+  json_array(
+    CASE WHEN json_extract(`users`.`preferences`, '$.dietary.vegetarian') = 1 THEN 'vegetarian' END,
+    CASE WHEN json_extract(`users`.`preferences`, '$.dietary.vegan') = 1 THEN 'vegan' END,
+    CASE WHEN json_extract(`users`.`preferences`, '$.dietary.halal') = 1 THEN 'halal' END,
+    CASE WHEN json_extract(`users`.`preferences`, '$.dietary.glutenFree') = 1 THEN 'gluten_free' END
+  ),
+  COALESCE(json_extract(`users`.`preferences`, '$.dietary.allergies'), '[]'),
+  CASE
+    WHEN json_extract(`users`.`preferences`, '$.notifications.email') = 1
+      OR json_extract(`users`.`preferences`, '$.notifications.sms') = 1
+      OR json_extract(`users`.`preferences`, '$.notifications.push') = 1
+    THEN 1
+    ELSE 0
+  END,
+  CASE
+    WHEN json_extract(`users`.`preferences`, '$.notifications.sms') = 0
+      AND json_extract(`users`.`preferences`, '$.notifications.push') = 0
+    THEN 0
+    ELSE 1
+  END,
+  `users`.`updated_at_ms`
+FROM `customer_id_mapping__customer_identity`
+JOIN `users` ON `users`.`id` = `customer_id_mapping__customer_identity`.`old_user_id`
+WHERE `users`.`preferences` IS NOT NULL
+  AND json_valid(`users`.`preferences`);
+--> statement-breakpoint
+
 CREATE TABLE `orders__customer_identity_rebuild` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `restaurant_id` text NOT NULL,

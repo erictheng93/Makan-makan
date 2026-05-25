@@ -2,22 +2,20 @@ import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import { getRefreshDelay } from "@makanmakan/utils";
 import { apiClient } from "@/services/api";
+import {
+  customerIdentityApi,
+  type CustomerSummary,
+} from "@/services/customerIdentityApi";
 import { translate as t } from "@/utils/i18n";
 
 // 定義客戶用戶類型
 export interface CustomerUser {
-  id: number;
+  id: string;
   username: string;
   fullName: string;
   email?: string;
   phone?: string;
-  role: number; // 5 for customer
-}
-
-interface LoginResponse {
-  token?: string;
-  refreshToken?: string;
-  user?: CustomerUser;
+  role: number;
 }
 
 interface RegisterResponse {
@@ -49,6 +47,15 @@ const persistUser = (u: CustomerUser | null): void => {
     localStorage.removeItem("customer_user");
   }
 };
+
+const toCustomerUser = (customer: CustomerSummary): CustomerUser => ({
+  id: customer.id,
+  username: customer.primaryPhone || customer.primaryEmail || customer.id,
+  fullName: customer.displayName,
+  email: customer.primaryEmail || undefined,
+  phone: customer.primaryPhone || undefined,
+  role: 5,
+});
 
 export const useAuthStore = defineStore("auth", () => {
   // 狀態
@@ -88,24 +95,33 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
-  // 登入
-  const login = async (username: string, password: string) => {
+  const requestOtp = async (phone: string) => {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const data = await apiClient.post<LoginResponse>("/auth/login", {
-        username,
-        password,
-      });
+      const data = await customerIdentityApi.requestOtp(phone);
+      return { success: true, data };
+    } catch (err: any) {
+      error.value = err.message || t("messages.networkError");
+      return { success: false, error: error.value };
+    } finally {
+      isLoading.value = false;
+    }
+  };
 
-      if (data.token && data.user) {
-        // 保存 token 和用戶信息
-        token.value = data.token;
+  const verifyOtp = async (phone: string, otp: string) => {
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const data = await customerIdentityApi.verifyOtp(phone, otp);
+
+      if (data.accessToken && data.customer) {
+        token.value = data.accessToken;
         refreshToken.value = data.refreshToken ?? null;
-        user.value = data.user;
+        user.value = toCustomerUser(data.customer);
 
-        // 存儲到 localStorage
         localStorage.setItem("customer_auth_token", token.value!);
         if (refreshToken.value) {
           localStorage.setItem("customer_refresh_token", refreshToken.value);
@@ -126,6 +142,11 @@ export const useAuthStore = defineStore("auth", () => {
       isLoading.value = false;
     }
   };
+
+  // Legacy username/password login is intentionally no longer used by the
+  // customer app. Keep the method name as a compatibility wrapper for callers
+  // that still submit a phone + OTP pair.
+  const login = async (phone: string, otp: string) => verifyOtp(phone, otp);
 
   // 註冊
   const register = async (data: {
@@ -175,7 +196,7 @@ export const useAuthStore = defineStore("auth", () => {
   const logout = async () => {
     try {
       if (token.value) {
-        await apiClient.post("/auth/logout");
+        await customerIdentityApi.logout(refreshToken.value ?? undefined);
       }
     } catch (err) {
       console.warn("Logout request failed:", err);
@@ -198,18 +219,10 @@ export const useAuthStore = defineStore("auth", () => {
     if (!refreshToken.value) return false;
 
     try {
-      const data = await apiClient.post<LoginResponse>(
-        "/auth/refresh",
-        undefined,
-        {
-          headers: {
-            "X-Refresh-Token": refreshToken.value,
-          },
-        },
-      );
+      const data = await customerIdentityApi.refresh(refreshToken.value);
 
-      if (data.token) {
-        token.value = data.token;
+      if ("accessToken" in data && data.accessToken) {
+        token.value = data.accessToken;
         refreshToken.value = data.refreshToken ?? null;
 
         localStorage.setItem("customer_auth_token", token.value!);
@@ -233,10 +246,10 @@ export const useAuthStore = defineStore("auth", () => {
     if (!token.value) return false;
 
     try {
-      const data = await apiClient.get<CustomerUser>("/auth/me");
+      const data = await customerIdentityApi.getMe();
 
-      if (data) {
-        user.value = data;
+      if (data.customer) {
+        user.value = toCustomerUser(data.customer);
         persistUser(user.value);
         if (token.value) scheduleProactiveRefresh(token.value);
         return true;
@@ -260,10 +273,11 @@ export const useAuthStore = defineStore("auth", () => {
     if (!token.value) return null;
 
     try {
-      const data = await apiClient.get<CustomerUser>("/customers/me");
+      const data = await customerIdentityApi.getMe();
 
-      if (data) {
-        user.value = data;
+      if (data.customer) {
+        user.value = toCustomerUser(data.customer);
+        persistUser(user.value);
         return data;
       }
     } catch (err) {
@@ -287,6 +301,8 @@ export const useAuthStore = defineStore("auth", () => {
 
     // 方法
     login,
+    requestOtp,
+    verifyOtp,
     register,
     logout,
     checkAuth,
