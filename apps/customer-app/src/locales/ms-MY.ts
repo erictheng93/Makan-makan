@@ -26,8 +26,19 @@ export const waitingListMsMy = {
       subtitle: "Ambil nombor dan jejaki status meja anda.",
       submit: "Sertai giliran",
       lookup: "Cari tiket saya",
+      history: "Lihat sejarah",
       nowWaiting: "Sedang menunggu",
       estimatedWait: "Anggaran menunggu",
+    },
+    history: {
+      title: "Sejarah giliran",
+      subtitle: "Cari tiket giliran terkini dengan nombor telefon.",
+      submit: "Muat sejarah",
+      loading: "Memuatkan...",
+      empty: "Tiada sejarah giliran dijumpai.",
+      loadFailed: "Tidak dapat memuatkan sejarah giliran.",
+      partySummary: "{size} tetamu",
+      openTicket: "Buka tiket",
     },
     ticket: {
       title: "Tiket menunggu saya",
@@ -47,6 +58,7 @@ export const waitingListMsMy = {
       ticketLoadFailed: "Tidak dapat memuat tiket ini.",
       cancelFailed: "Tidak dapat membatalkan tiket ini.",
       confirmFailed: "Tidak dapat mengesahkan ketibaan.",
+      estimateFailed: "Tidak dapat mengemas kini anggaran masa menunggu.",
     },
   },
 };

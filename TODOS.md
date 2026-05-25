@@ -19,7 +19,9 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Fill stub locale translations (zh-CN, vi-VN, ms-MY, id-ID)
 
-**Priority:** P3 **Context:** 4 out of 6 locales per app are empty-object stubs that fall back to zh-TW. Users who select these locales currently see zh-TW text. Needs translator handoff.
+**Priority:** P3 **Status:** Blocked **Context:** 4 out of 6 locales per app are empty-object stubs that fall back to zh-TW. Users who select these locales currently see zh-TW text. Needs translator handoff.
+
+**Blocker:** Translator-approved copy is not available for kitchen-display, onboarding-app, and management-portal. The customer waiting-list keys added in this pass are filled in all 6 locales, but replacing full app locale stubs with machine-generated copy would create product-quality risk.
 
 **Scope:**
 
@@ -30,7 +32,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### i18n performance: convert HistoryView status/type helpers to computed maps
 
-**Priority:** P3 **File:** `apps/kitchen-display/src/views/HistoryView.vue` **Context:** `statusLabel()` and `typeLabel()` are plain functions called per row in a v-for. Each call rebuilds a Record of 8+ `t()` calls, so rendering N orders triggers ~10N `t()` invocations per render. Not a visible regression yet (history page is not a hot path) but worth cleaning up.
+**Priority:** P3 **Status:** Completed 2026-05-25 **File:** `apps/kitchen-display/src/views/HistoryView.vue` **Context:** `statusLabel()` and `typeLabel()` are plain functions called per row in a v-for. Each call rebuilds a Record of 8+ `t()` calls, so rendering N orders triggers ~10N `t()` invocations per render. Not a visible regression yet (history page is not a hot path) but worth cleaning up.
 
 **Fix:** Convert to computed maps keyed on locale so Vue only rebuilds the map when the locale changes.
 
@@ -46,13 +48,13 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Harden deepMerge against prototype pollution
 
-**Priority:** P4 **File:** `apps/kitchen-display/src/i18n/index.ts` (+ onboarding-app, management-portal) **Context:** `setLocaleMessages` uses `deepMerge` which uses `instanceof Object` and `key in target`. Today only static imports flow through this path so it's safe. If future work loads locales from a remote source (A/B tests, CMS-driven translations), a malicious JSON payload with `__proto__` / `constructor.prototype` keys could pollute `Object.prototype`.
+**Priority:** P4 **Status:** Completed 2026-05-25 **File:** `apps/kitchen-display/src/i18n/index.ts` (+ onboarding-app, management-portal) **Context:** `setLocaleMessages` uses `deepMerge` which uses `instanceof Object` and `key in target`. Today only static imports flow through this path so it's safe. If future work loads locales from a remote source (A/B tests, CMS-driven translations), a malicious JSON payload with `__proto__` / `constructor.prototype` keys could pollute `Object.prototype`.
 
 **Fix:** Replace `instanceof Object` with `Object.prototype.toString.call(v) === '[object Object]'`. Use `Object.prototype.hasOwnProperty.call(target, key)`. Explicitly skip `__proto__`, `constructor`, `prototype`. Or just drop `deepMerge` entirely since locale files are static — a straight assignment works.
 
 ### Standardize toLocaleTimeString/DateString to use active locale
 
-**Priority:** P4 **Context:** 10 kitchen-display files still pass hardcoded `"zh-TW"` to `toLocaleTimeString`/`toLocaleDateString`. Most use 24-hour format which renders identically across locales, so the bug is invisible today. Should be cleaned up so future changes (e.g. adding seconds or switching to 12-hour) stay locale-aware.
+**Priority:** P4 **Status:** Completed 2026-05-25 **Context:** 10 kitchen-display files still pass hardcoded `"zh-TW"` to `toLocaleTimeString`/`toLocaleDateString`. Most use 24-hour format which renders identically across locales, so the bug is invisible today. Should be cleaned up so future changes (e.g. adding seconds or switching to 12-hour) stay locale-aware.
 
 **Files:** OrderCard.vue, OrderDetailsModal.vue, ConnectionStatus.vue, HistoryView.vue, SystemHealthDashboard.vue, ErrorReportsDashboard.vue, EnhancedShortcutsPanel.vue, InteractiveAudioPanel.vue, InteractiveStatsPanel.vue, kitchenStatisticsService.ts
 
@@ -73,17 +75,19 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Customer waiting-list history page
 
-**Priority:** P3 **Context:** Phase 1 has no history view in customer-app. Useful for users to see prior visits without re-entering phone every time.
+**Priority:** P3 **Status:** Completed 2026-05-25 **Context:** Phase 1 has no history view in customer-app. Useful for users to see prior visits without re-entering phone every time.
 
 **Scope:** New API (`GET /waiting-list/history?phone=` or `?customerId=`) + view at `/wait-list/history`. Phone-based lookup must be rate-limited to avoid enumeration.
 
 ### Pre-order from menu while in waiting-list
 
-**Priority:** P3 **Context:** Customer is queued and could be browsing menu. Cross-system integration with existing menu/order flows so the order is bound to the ticket and fires to kitchen on `seated`.
+**Priority:** P3 **Status:** Blocked **Context:** Customer is queued and could be browsing menu. Cross-system integration with existing menu/order flows so the order is bound to the ticket and fires to kitchen on `seated`.
+
+**Blocker:** Current order schema/API has no waiting-list ticket binding or "held until seated" order state. Implementing this safely needs a small spec for order lifecycle, kitchen dispatch timing, and table assignment behavior.
 
 ### Phase 1 small debt
 
-**Priority:** P4 **File:** `apps/customer-app/src/views/waiting-list/JoinWaitingListView.vue`, `apps/customer-app/src/locales/`
+**Priority:** P4 **Status:** Completed 2026-05-25 **File:** `apps/customer-app/src/views/waiting-list/JoinWaitingListView.vue`, `apps/customer-app/src/locales/`
 
 - `JoinWaitingListView.vue:292-298`: `watch(partySize)` calls `estimateWait().then()` with no `.catch` — silent stale value on failure
 - `JoinWaitingListView.vue:300-303`: `restoreLastTicket()` and `loadQueueSnapshot()` race in parallel; if restore triggers `router.replace`, snapshot still completes (wasted request, no crash)

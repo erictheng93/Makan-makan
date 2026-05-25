@@ -334,7 +334,7 @@ import { useToast } from "vue-toastification";
 import { enhancedAudioService } from "@/services/enhancedAudioService";
 import type { SoundType } from "@/services/enhancedAudioService";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const toast = useToast();
 const audioService = enhancedAudioService;
 
@@ -453,7 +453,7 @@ const getSoundDisplayName = (type: SoundType): string => {
 
 const formatTime = (timestamp: number): string => {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString("zh-TW", {
+  return date.toLocaleTimeString(locale.value, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

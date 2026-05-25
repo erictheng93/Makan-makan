@@ -26,8 +26,19 @@ export const waitingListZhCn = {
       subtitle: "先取号，随时查看排队状态。",
       submit: "加入排队",
       lookup: "用手机查询号码",
+      history: "查看历史记录",
       nowWaiting: "当前排队",
       estimatedWait: "预计等待",
+    },
+    history: {
+      title: "排队历史记录",
+      subtitle: "用手机号码查询近期排队记录。",
+      submit: "载入历史记录",
+      loading: "载入中...",
+      empty: "找不到排队历史记录。",
+      loadFailed: "无法载入排队历史记录。",
+      partySummary: "{size} 人",
+      openTicket: "查看号码",
     },
     ticket: {
       title: "我的排队号码",
@@ -47,6 +58,7 @@ export const waitingListZhCn = {
       ticketLoadFailed: "无法载入排队号码。",
       cancelFailed: "无法取消排队。",
       confirmFailed: "无法确认到店。",
+      estimateFailed: "无法更新预计等待时间。",
     },
   },
 };

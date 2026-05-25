@@ -20,6 +20,7 @@ import {
   forbidden,
   badRequest,
 } from "../../../shared/utils/api-error";
+import { strictRateLimit } from "../../../middleware/rateLimit";
 
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
@@ -103,6 +104,40 @@ app.get("/lookup", async (c) => {
   return c.json({
     success: true,
     data: entry,
+  });
+});
+
+/**
+ * GET /waiting-list/history?restaurantId=&phone=&limit=
+ * 顧客依手機查詢候位歷史。公開端點必須限流，避免手機號碼枚舉。
+ */
+app.get("/history", strictRateLimit, async (c) => {
+  const restaurantId = c.req.query("restaurantId");
+  const phoneRaw = c.req.query("phone");
+  const limit = Number.parseInt(c.req.query("limit") || "20", 10);
+
+  if (!restaurantId) {
+    throw badRequest("缺少 restaurantId 參數", "MISSING_RESTAURANT_ID");
+  }
+  if (!phoneRaw) {
+    throw badRequest("缺少 phone 參數", "MISSING_PHONE");
+  }
+
+  const phone = phoneRaw.replace(/[-\s]/g, "");
+  if (!/^09\d{8}$/.test(phone)) {
+    throw badRequest("電話格式錯誤", "INVALID_PHONE_FORMAT");
+  }
+
+  const service = new WaitingListService(c.env.DB, c.env);
+  const history = await service.listWaitingListHistoryByPhone(
+    restaurantId,
+    phone,
+    Number.isFinite(limit) ? limit : 20,
+  );
+
+  return c.json({
+    success: true,
+    data: history,
   });
 });
 

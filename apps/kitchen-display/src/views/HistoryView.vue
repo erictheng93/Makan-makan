@@ -153,7 +153,7 @@ import type { KitchenOrder, OrderStatus } from "@/types";
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 const authStore = useAuthStore();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 // ── Tab state ─────────────────────────────────────────────────────────────────
 type TabKey = "today" | "yesterday" | "week";
@@ -288,18 +288,19 @@ function orderCookingTime(order: KitchenOrder): number {
 
 // ── Badge helpers ─────────────────────────────────────────────────────────────
 function statusLabel(status: OrderStatus): string {
-  const map: Record<OrderStatus, string> = {
-    pending: t("orderStatus.pending"),
-    confirmed: t("orderStatus.confirmed"),
-    preparing: t("orderStatus.preparing"),
-    ready: t("orderStatus.ready"),
-    delivered: t("orderStatus.served"),
-    paid: t("orderStatus.paid"),
-    cancelled: t("orderStatus.cancelled"),
-    refunded: t("orderStatus.refunded"),
-  };
-  return map[status] ?? t("orderStatus.unknown");
+  return statusLabels.value[status] ?? t("orderStatus.unknown");
 }
+
+const statusLabels = computed<Record<OrderStatus, string>>(() => ({
+  pending: t("orderStatus.pending"),
+  confirmed: t("orderStatus.confirmed"),
+  preparing: t("orderStatus.preparing"),
+  ready: t("orderStatus.ready"),
+  delivered: t("orderStatus.served"),
+  paid: t("orderStatus.paid"),
+  cancelled: t("orderStatus.cancelled"),
+  refunded: t("orderStatus.refunded"),
+}));
 
 function statusBadgeClass(status: OrderStatus): string {
   if (status === "cancelled" || status === "refunded")
@@ -311,19 +312,20 @@ function statusBadgeClass(status: OrderStatus): string {
 }
 
 function typeLabel(type: string): string {
-  const map: Record<string, string> = {
-    dine_in: t("orderType.dineIn"),
-    takeaway: t("orderType.takeaway"),
-    delivery: t("orderType.delivery"),
-  };
-  return map[type] ?? type;
+  return orderTypeLabels.value[type] ?? type;
 }
+
+const orderTypeLabels = computed<Record<string, string>>(() => ({
+  dine_in: t("orderType.dineIn"),
+  takeaway: t("orderType.takeaway"),
+  delivery: t("orderType.delivery"),
+}));
 
 // ── Time formatter ────────────────────────────────────────────────────────────
 function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
-    return date.toLocaleTimeString("zh-TW", {
+    return date.toLocaleTimeString(locale.value, {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,

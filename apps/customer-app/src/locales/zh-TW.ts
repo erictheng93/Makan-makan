@@ -26,8 +26,19 @@ export const waitingListZhTw = {
       subtitle: "先取號，隨時查看候位狀態。",
       submit: "加入排隊",
       lookup: "用手機查詢號碼",
+      history: "查看歷史紀錄",
       nowWaiting: "目前候位",
       estimatedWait: "預估等待",
+    },
+    history: {
+      title: "候位歷史紀錄",
+      subtitle: "用手機號碼查詢近期候位紀錄。",
+      submit: "載入歷史紀錄",
+      loading: "載入中...",
+      empty: "查無候位歷史紀錄。",
+      loadFailed: "無法載入候位歷史紀錄。",
+      partySummary: "{size} 位",
+      openTicket: "查看號碼",
     },
     ticket: {
       title: "我的候位號碼",
@@ -47,6 +58,7 @@ export const waitingListZhTw = {
       ticketLoadFailed: "無法載入候位號碼。",
       cancelFailed: "無法取消候位。",
       confirmFailed: "無法確認抵達。",
+      estimateFailed: "無法更新預估等待時間。",
     },
   },
 };

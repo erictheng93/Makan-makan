@@ -628,7 +628,7 @@ import {
 import { useToast } from "vue-toastification";
 import { kitchenStatisticsService } from "@/services/kitchenStatisticsService";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const toast = useToast();
 const statsService = kitchenStatisticsService;
 
@@ -738,7 +738,7 @@ const formatLastUpdate = (date: Date): string => {
   } else if (diff < 3600000) {
     return `${Math.floor(diff / 60000)}分鐘前`;
   } else {
-    return date.toLocaleTimeString("zh-TW", {
+    return date.toLocaleTimeString(locale.value, {
       hour: "2-digit",
       minute: "2-digit",
     });

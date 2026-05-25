@@ -28,6 +28,21 @@ export const waitingListApi = {
     return response;
   },
 
+  async history(
+    restaurantId: string,
+    phone: string,
+  ): Promise<WaitingListResponse[]> {
+    const queryParams = new URLSearchParams({
+      restaurantId,
+      phone,
+      limit: "20",
+    });
+    const response = await apiClient.get<WaitingListResponse[]>(
+      `${BASE_URL}/history?${queryParams.toString()}`,
+    );
+    return response;
+  },
+
   async getById(id: string): Promise<WaitingListResponse> {
     const response = await apiClient.get<WaitingListResponse>(
       `${BASE_URL}/${id}`,

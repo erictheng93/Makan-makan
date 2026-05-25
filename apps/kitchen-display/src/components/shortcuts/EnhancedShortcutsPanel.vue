@@ -376,7 +376,7 @@ import { useToast } from "vue-toastification";
 import { useEnhancedKeyboardShortcuts } from "@/composables/useEnhancedKeyboardShortcuts";
 import type { KeyboardShortcut } from "@/composables/useEnhancedKeyboardShortcuts";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const toast = useToast();
 const shortcuts = useEnhancedKeyboardShortcuts();
 
@@ -473,7 +473,7 @@ const getShortcutName = (shortcutId: string): string => {
 
 const formatTime = (timestamp: number): string => {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString("zh-TW", {
+  return date.toLocaleTimeString(locale.value, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

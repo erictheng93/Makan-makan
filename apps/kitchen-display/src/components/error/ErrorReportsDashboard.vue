@@ -473,7 +473,7 @@ import {
   type ErrorReport,
 } from "@/services/errorReportingService";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const toast = useToast();
 
 // State
@@ -577,7 +577,7 @@ const formatDate = (timestamp: string): string => {
   } else if (diff < 86400000) {
     return `${Math.floor(diff / 3600000)}小時前`;
   } else {
-    return date.toLocaleDateString("zh-TW");
+    return date.toLocaleDateString(locale.value);
   }
 };
 

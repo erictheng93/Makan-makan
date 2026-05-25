@@ -26,8 +26,19 @@ export const waitingListViVn = {
       subtitle: "Lấy số và theo dõi trạng thái bàn của bạn.",
       submit: "Vào hàng chờ",
       lookup: "Tra cứu vé của tôi",
+      history: "Xem lịch sử",
       nowWaiting: "Đang chờ",
       estimatedWait: "Thời gian chờ ước tính",
+    },
+    history: {
+      title: "Lịch sử chờ",
+      subtitle: "Tra cứu các vé chờ gần đây bằng số điện thoại.",
+      submit: "Tải lịch sử",
+      loading: "Đang tải...",
+      empty: "Không tìm thấy lịch sử chờ.",
+      loadFailed: "Không thể tải lịch sử chờ.",
+      partySummary: "{size} khách",
+      openTicket: "Mở vé",
     },
     ticket: {
       title: "Vé chờ của tôi",
@@ -47,6 +58,7 @@ export const waitingListViVn = {
       ticketLoadFailed: "Không thể tải vé này.",
       cancelFailed: "Không thể hủy vé này.",
       confirmFailed: "Không thể xác nhận đã đến.",
+      estimateFailed: "Không thể cập nhật thời gian chờ dự kiến.",
     },
   },
 };

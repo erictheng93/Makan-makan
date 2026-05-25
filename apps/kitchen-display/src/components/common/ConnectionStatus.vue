@@ -16,7 +16,7 @@ import { ref, watch, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import type { ConnectionStatus } from "@/types";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 // Props
 interface Props {
@@ -103,7 +103,7 @@ const formatLastHeartbeat = () => {
   } else if (diff < 3600000) {
     return `${Math.floor(diff / 60000)}${t("connection.minutesAgo")}`;
   } else {
-    return props.lastHeartbeat.toLocaleTimeString("zh-TW", {
+    return props.lastHeartbeat.toLocaleTimeString(locale.value, {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -111,7 +111,7 @@ const formatLastHeartbeat = () => {
 };
 
 const formatTime = (date: Date) => {
-  return date.toLocaleTimeString("zh-TW", {
+  return date.toLocaleTimeString(locale.value, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

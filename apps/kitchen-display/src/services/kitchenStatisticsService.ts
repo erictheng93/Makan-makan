@@ -1,5 +1,6 @@
 // Comprehensive kitchen statistics and analytics service
 import { ref, reactive } from "vue";
+import { getCurrentLocaleConfig } from "@/i18n";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useOrdersStore } from "@/stores/orders";
 import type { KitchenOrder, OrderStatus } from "@/types";
@@ -524,7 +525,7 @@ class KitchenStatisticsService {
       const completed = hourOrders.filter((o) => isCompleted(o.status)).length;
 
       trends.push({
-        time: hourStart.toLocaleTimeString("zh-TW", {
+        time: hourStart.toLocaleTimeString(getCurrentLocaleConfig().code, {
           hour: "2-digit",
           minute: "2-digit",
         }),
@@ -634,7 +635,7 @@ class KitchenStatisticsService {
       const rating = 4.2 + Math.random() * 0.6; // Random satisfaction between 4.2-4.8
 
       trends.push({
-        date: date.toLocaleDateString("zh-TW"),
+        date: date.toLocaleDateString(getCurrentLocaleConfig().code),
         rating: Math.round(rating * 100) / 100,
       });
     }

@@ -464,7 +464,7 @@ import { useToast } from "vue-toastification";
 import { systemHealthService } from "@/services/systemHealthService";
 import type { SystemHealthReport } from "@/services/systemHealthService";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const toast = useToast();
 
 // State
@@ -665,7 +665,7 @@ const formatLastUpdate = (timestamp: number) => {
   } else if (diff < 3600000) {
     return `${Math.floor(diff / 60000)}分鐘前`;
   } else {
-    return new Date(timestamp).toLocaleTimeString("zh-TW", {
+    return new Date(timestamp).toLocaleTimeString(locale.value, {
       hour: "2-digit",
       minute: "2-digit",
     });

@@ -26,8 +26,19 @@ export const waitingListIdId = {
       subtitle: "Ambil nomor dan pantau status meja Anda.",
       submit: "Gabung antrian",
       lookup: "Cari tiket saya",
+      history: "Lihat riwayat",
       nowWaiting: "Sedang menunggu",
       estimatedWait: "Perkiraan tunggu",
+    },
+    history: {
+      title: "Riwayat antrian",
+      subtitle: "Cari tiket antrian terbaru dengan nomor telepon.",
+      submit: "Muat riwayat",
+      loading: "Memuat...",
+      empty: "Riwayat antrian tidak ditemukan.",
+      loadFailed: "Tidak dapat memuat riwayat antrian.",
+      partySummary: "{size} tamu",
+      openTicket: "Buka tiket",
     },
     ticket: {
       title: "Tiket tunggu saya",
@@ -47,6 +58,7 @@ export const waitingListIdId = {
       ticketLoadFailed: "Tidak dapat memuat tiket ini.",
       cancelFailed: "Tidak dapat membatalkan tiket ini.",
       confirmFailed: "Tidak dapat mengonfirmasi kedatangan.",
+      estimateFailed: "Tidak dapat memperbarui estimasi waktu tunggu.",
     },
   },
 };

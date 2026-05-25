@@ -166,7 +166,7 @@ import { XIcon, ZapIcon } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
 import type { KitchenOrder, ItemStatus } from "@/types";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 interface Props {
   order: KitchenOrder;
@@ -190,7 +190,7 @@ const hasUncompletedItems = computed(() => {
 // Methods
 const formatTime = (dateString: string) => {
   const date = new Date(dateString);
-  return date.toLocaleTimeString("zh-TW", {
+  return date.toLocaleTimeString(locale.value, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

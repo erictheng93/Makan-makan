@@ -280,7 +280,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 // Emits
 const emit = defineEmits<{
@@ -442,7 +442,7 @@ const formatElapsedTime = (minutes: number) => {
 
 const formatOrderTime = (dateString: string) => {
   const date = new Date(dateString);
-  return date.toLocaleTimeString("zh-TW", {
+  return date.toLocaleTimeString(locale.value, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

@@ -180,6 +180,15 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/r/:restaurantId/wait-list/history",
+    name: "WaitingListHistory",
+    component: () => import("@/views/waiting-list/WaitingListHistoryView.vue"),
+    props: true,
+    meta: {
+      titleKey: "waitingList.history.title",
+    },
+  },
+  {
     path: "/r/:restaurantId/wait-list/:ticketId",
     name: "MyWaitingTicket",
     component: () => import("@/views/waiting-list/MyWaitingTicketView.vue"),

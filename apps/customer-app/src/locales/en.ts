@@ -26,8 +26,19 @@ export const waitingListEn = {
       subtitle: "Take a number and track your table status.",
       submit: "Join queue",
       lookup: "Look up my ticket",
+      history: "View history",
       nowWaiting: "Now waiting",
       estimatedWait: "Estimated wait",
+    },
+    history: {
+      title: "Waiting history",
+      subtitle: "Look up recent waiting tickets by phone.",
+      submit: "Load history",
+      loading: "Loading...",
+      empty: "No waiting history found.",
+      loadFailed: "Unable to load waiting history.",
+      partySummary: "{size} guests",
+      openTicket: "Open ticket",
     },
     ticket: {
       title: "My waiting ticket",
@@ -47,6 +58,7 @@ export const waitingListEn = {
       ticketLoadFailed: "Unable to load this ticket.",
       cancelFailed: "Unable to cancel this ticket.",
       confirmFailed: "Unable to confirm arrival.",
+      estimateFailed: "Unable to refresh the wait estimate.",
     },
   },
 };

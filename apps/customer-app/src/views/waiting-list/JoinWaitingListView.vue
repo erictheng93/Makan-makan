@@ -102,6 +102,15 @@
             >
               {{ t("waitingList.join.lookup") }}
             </button>
+            <button
+              data-testid="history-button"
+              class="w-full rounded-full bg-white px-5 py-3.5 font-semibold text-ios-text shadow-card-sm active:scale-[0.98] transition-transform duration-200 ease-out disabled:opacity-60"
+              type="button"
+              :disabled="isSubmitting"
+              @click="handleHistory"
+            >
+              {{ t("waitingList.join.history") }}
+            </button>
           </div>
         </form>
       </section>
@@ -257,6 +266,10 @@ const handleLookup = async () => {
   }
 };
 
+const handleHistory = () => {
+  void router.push(`/r/${props.restaurantId}/wait-list/history`);
+};
+
 const loadQueueSnapshot = async () => {
   queueStatus.value = await waitingListApi.getQueueStatus(props.restaurantId);
   waitEstimate.value = await waitingListApi.estimateWait(
@@ -265,27 +278,29 @@ const loadQueueSnapshot = async () => {
   );
 };
 
-const restoreLastTicket = async () => {
+const restoreLastTicket = async (): Promise<boolean> => {
   const raw = localStorage.getItem(WAITING_LIST_LAST_TICKET_KEY);
   if (!raw) {
-    return;
+    return false;
   }
 
   try {
     const parsed = JSON.parse(raw) as LastWaitingTicket;
     if (parsed.restaurantId !== props.restaurantId) {
-      return;
+      return false;
     }
 
     const ticket = await waitingListApi.getById(parsed.ticketId);
     if (isTerminalWaitingStatus(ticket.status)) {
       localStorage.removeItem(WAITING_LIST_LAST_TICKET_KEY);
-      return;
+      return false;
     }
 
-    void router.replace(ticketPath(ticket.id));
+    await router.replace(ticketPath(ticket.id));
+    return true;
   } catch {
     localStorage.removeItem(WAITING_LIST_LAST_TICKET_KEY);
+    return false;
   }
 };
 
@@ -294,11 +309,18 @@ watch(partySize, () => {
     .estimateWait(props.restaurantId, partySize.value)
     .then((estimate) => {
       waitEstimate.value = estimate;
+      formMessage.value = "";
+    })
+    .catch(() => {
+      waitEstimate.value = null;
+      formMessage.value = t("waitingList.errors.estimateFailed");
     });
 });
 
-onMounted(() => {
-  void restoreLastTicket();
-  void loadQueueSnapshot();
+onMounted(async () => {
+  const restored = await restoreLastTicket();
+  if (!restored) {
+    await loadQueueSnapshot();
+  }
 });
 </script>

@@ -65,6 +65,12 @@ export function setLocaleMessages(locale: Locale, newMessages: Messages): void {
   messages.value[locale] = deepMerge(messages.value[locale], newMessages);
 }
 
+const UNSAFE_MESSAGE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function isPlainObject(value: unknown): value is Messages {
+  return Object.prototype.toString.call(value) === "[object Object]";
+}
+
 function deepMerge(target: Messages, source: Messages): Messages {
   if (!source) return target;
   if (!target) return source;
@@ -72,7 +78,15 @@ function deepMerge(target: Messages, source: Messages): Messages {
   const result = { ...target };
 
   Object.keys(source).forEach((key) => {
-    if (source[key] instanceof Object && key in target) {
+    if (UNSAFE_MESSAGE_KEYS.has(key)) {
+      return;
+    }
+
+    if (
+      isPlainObject(source[key]) &&
+      Object.prototype.hasOwnProperty.call(target, key) &&
+      isPlainObject(target[key])
+    ) {
       result[key] = deepMerge(target[key] as Messages, source[key] as Messages);
     } else {
       result[key] = source[key];

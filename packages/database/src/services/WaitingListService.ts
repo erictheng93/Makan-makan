@@ -359,6 +359,48 @@ export class WaitingListService extends BaseService {
     }
   }
 
+  async listWaitingListHistoryByPhone(
+    restaurantId: string,
+    customerPhone: string,
+    limit = 20,
+  ): Promise<WaitingListResponse[]> {
+    try {
+      const safeLimit = Math.min(Math.max(limit, 1), 50);
+      const results = await this.db.all<WaitingListDbRow>(sql`
+        SELECT
+          w.*,
+          json_object(
+            'id', t.id,
+            'number', t.number,
+            'capacity', t.capacity
+          ) as table
+        FROM waiting_list w
+        LEFT JOIN tables t ON w.table_id = t.id
+        WHERE w.restaurant_id = ${restaurantId}
+          AND w.customer_phone = ${customerPhone}
+        ORDER BY w.created_at DESC
+        LIMIT ${safeLimit}
+      `);
+
+      return Promise.all(
+        results.map(async (result) => {
+          const partiesAhead =
+            result.status === WaitingStatus.WAITING
+              ? await this.getPartiesAhead(
+                  result.restaurant_id,
+                  result.queue_number,
+                  result.party_size,
+                )
+              : 0;
+          return this.formatWaitingListResponse(result, partiesAhead);
+        }),
+      );
+    } catch (error) {
+      console.error("Error listing waiting list history by phone:", error);
+      throw error;
+    }
+  }
+
   /**
    * 根據 ID 查詢候位記錄
    */
