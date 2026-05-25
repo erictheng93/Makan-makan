@@ -4,6 +4,121 @@ Complete development history and achievement details for the MakanMakan restaura
 
 ---
 
+## 2026-05-25: Test Quality & CI Worker Gate Hardening
+
+**Status**: ✅ Complete
+
+Closed the long-running gap between "tests pass locally" and "CI is trustworthy". Removed remaining mock-based test doubles in favor of the real-integration foundation laid in April, and locked down worker build/typecheck gates so a broken worker can no longer slip through.
+
+### Test Quality
+
+- Removed mock-based test doubles across the suite (`b936600f`) — assertions now run against real D1 / real WaitingListService / real broadcast paths instead of in-memory fakes.
+- Added customer-app coverage for manual restaurant selection (`4b1491c7`).
+- Stabilized worker gates and pre-existing lint warnings (`03a4b102`, `340eba85`).
+
+### CI Worker Gates
+
+- Restored explicit worker + typecheck gates (`5d124140`, `8eabf2b7`, `1cad05fb`).
+- Built worker dependencies with turbo so cross-package types resolve in CI (`d76f09b7`).
+- Fixed ai-analytics worker alias and visual-build workspace filter (`e751a4d0`, `cef06706`).
+- Pinned artillery in the performance job to prevent transitive-version flakes (`1b633ba3`).
+
+---
+
+## 2026-05-04: Customer Waiting-List Phase 1 & Modular Billing Hardening
+
+**Status**: ✅ Phase 1 Shipped — Phase 2-4 tracked in [`TODOS.md`](../../TODOS.md)
+
+Two parallel tracks landed on the same day: the customer-facing entry to the waiting-list system, and the audit-driven hardening of modular billing.
+
+### Customer Waiting-List Phase 1 (Customer-Facing)
+
+- Customer-side join / ticket / cancel / confirm UI in customer-app (`309c3db6`).
+- Tailwind config converted to ESM to fix dev build (`0ad8522f`).
+- Phase 2-4 backlog (push notifications, history page, pre-order from queue) recorded in [`TODOS.md`](../../TODOS.md) (`a9093421`).
+
+> Server-side state machine + lifecycle broadcasting + phone-match confirm were already in place from the 2026-03 hardening pass — Phase 1 is the customer-app frontend.
+
+### Modular Billing Hardening
+
+- UUID v7 for all billing writes (subscriptions, usage events, audit log) replacing CUID2 (`a8725f6e`, `e042997f`, `d934fc9d`).
+- Registered billing cron triggers (`16cca906`) — `BillingLifecycleCron`, `TrialReaperService`, usage rollups.
+- Plan-tier doc aligned with schema; missing email notification kinds added (`860d7c8c`).
+- Raw SQL and migration exceptions documented (`00109151`).
+- Billing audit log status refreshed after hardening (`59ee1c61`).
+
+---
+
+## 2026-04: Modular Billing System (Full Rollout) & Real Integration Test Foundation
+
+**Status**: ✅ Complete
+
+The two largest pieces of work in this period: shipping modular billing end-to-end, and rebuilding the test foundation on real D1 / real Workers instead of mocks.
+
+### Modular Billing & Usage Metering (Full-Stack)
+
+Spec → implementation → hardening across ~25 commits.
+
+- **Spec**: `docs/specs/modular-billing-and-usage-metering.md` + `docs/specs/modular-billing-codex-briefing.md` (`76d0e9ea`, `80681e4b`).
+- **Foundation**: per-shop module gates, billing tier admin UI, billing module defaults, subscription creation during onboarding (`ad458f06`, `5b8323f2`, `2e432431`, `be3f58ca`).
+- **Metering**: usage metering foundation → aggregate → enforce quotas → expose reporting API (`b5c4f427`, `f2d2655a`, `34c45d11`, `e89104b2`).
+- **Lifecycle**: payment audit log, lifecycle cron + webhook handling, hard quota + trial reminders (`b45290c7`, `843c2a2f`, `a44c3841`).
+- **Hardening**: fail-closed webhook verification, audit gap closure, webhook + email dispatch test coverage (`45eeb208`, `80d90043`, `ace88871`).
+- **Operations**: `docs/runbooks/billing-incident-response.md` runbook published.
+
+### Real Integration Test Foundation
+
+Replaced "mocked integration tests" (which gave false confidence — passed against fakes that drifted from prod) with a foundation that runs real D1 + real Workers locally and in CI.
+
+- **Phase 1 foundation** (`72881c3b`) — real D1, real Hono app, real migrations applied per test run.
+- **Phase 2 multi-app** (`fcee9a9c`) — customer-app, admin-dashboard, kitchen-display integration tests.
+- **CI nightly workflow** (`ead51ce9`) + P0/P1 release gate pipeline on nightly (`e78aed0b`).
+- **Pilot migration** of auth + coupons legacy integration tests onto the new foundation (`381e8f89`).
+- **Mock cleanup**: reclassified mis-named "integration" tests and deleted fakes (`06f26dea`).
+- **CI stabilization**: worker scoping, playwright `--workers=1` to stop cross-file state pollution, geo rate limiter bypass for `NODE_ENV=test`, schema-drift fixmes (`dd2d5f27`, `c0804011`, `6f1ed73b`, `0c4b4a54`).
+- **Bugs surfaced**: 4 real API bugs caught by the integration test audit (`ff51b0f4`), order `createdAt` Unix-ms wiring (`a999e171`).
+- **Test infrastructure**: 43 new test files added; 24 pre-existing test failures fixed; 8,247 tests passing (`4b8b17fe`).
+
+### Order Status Unification & Deploy Runbook
+
+- Order status enum unified across api, admin-dashboard, customer-app, kitchen-display.
+- `docs/runbooks/orderstatus-migration-deploy.md` published for the cutover.
+
+### Other April Work
+
+- Feedback owner isolation by userId + priority presets (`7a2ba89e`, `2c68016f`, `67d07c5a`).
+- System monitoring module completed — alert rules, polling, real API integration (`51a0e395`).
+- Employee management consolidation plan documented (`099c08c3`).
+
+---
+
+## 2026-03-25: Waiting-List Backend Hardening & Seating Management Unification
+
+**Status**: ✅ Complete
+
+Server-side waiting-list work that landed before the customer-app Phase 1.
+
+### Waiting-List State Machine & Lifecycle
+
+- State machine primitive + service guard (`bd638f40`, `8f90bd57`) — illegal transitions now rejected before broadcast.
+- Lifecycle event broadcast to admin Durable Object (G1) (`00ae607f`) + realtime broadcast coverage tests (`281dd8eb`).
+- Phone-match required on customer confirm (G5) (`b9439362`); lookup-by-phone fallback (G3) (`5f2fd412`).
+- Idempotent join — duplicate joins return existing ticket instead of erroring (`970c136f`).
+- Waiting-list table rebuilt with restaurant FK (`e27f0287`); RealtimeBroadcastService moved into `packages/database` for shared use (`80462b77`).
+
+### Seating Management Unification
+
+- Reservation + waitlist merged into a single "seating management" admin surface (`df4a7123`).
+- Waiting-list and queue unified into a single waiting-management code path (`6cd2a389`).
+- Queue routes wired through real WaitingListService instead of legacy stubs (`e3d02a23`); dashboard client aligned with the unified API (`d4dc6402`).
+
+### Hono 4.12 & Security Patches
+
+- Patched security advisories and adapted to Hono 4.12 param typing (`173bd87e`).
+- Dropped duplicate `BaseService`; resolved service-level TODOs (`9efd677f`).
+
+---
+
 ## 2026-03-16: Unified Error Response & Drizzle ORM Migration
 
 **Status**: ✅ Complete
@@ -930,6 +1045,6 @@ tests/e2e/                              # End-to-end tests
 
 ---
 
-**Last Updated**: 2026-03-16
-**Total Achievements**: 25+ major milestones
-**Current Focus**: Realtime Services (final 10%), POS Frontend, Reservations
+**Last Updated**: 2026-05-25
+**Total Achievements**: 29+ major milestones
+**Current Focus**: Waiting-List Phase 2 (push notifications), Realtime Phase 4 (production readiness)

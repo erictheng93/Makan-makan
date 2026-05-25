@@ -16,11 +16,31 @@
 
 ### Architecture & Technical
 
-| Directory                                                    | Contents                                                |
-| ------------------------------------------------------------ | ------------------------------------------------------- |
-| [architecture/](./architecture/)                             | System architecture, technical specs                    |
-| [architecture/database/](./architecture/database/)           | D1 database design and optimization                     |
-| [architecture/system-design/](./architecture/system-design/) | Modular architecture, notification system, queue design |
+| Directory / Document                                                 | Contents                                                          |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [architecture/](./architecture/)                                     | System architecture, technical specs                              |
+| [architecture/database/](./architecture/database/)                   | D1 database design and optimization                               |
+| [architecture/system-design/](./architecture/system-design/)         | Modular architecture, notification system, queue design           |
+| [architecture/modular-billing.md](./architecture/modular-billing.md) | Module gates, usage meters, quota controls (basic/pro/enterprise) |
+
+### Specifications
+
+Authoritative product/system specs for shipped or in-flight features. These are the source of truth for feature behavior — separate from the dated design drafts in [superpowers/specs/](./superpowers/specs/).
+
+| Document                                                                                       | Description                                                |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [specs/queue-and-waiting-list.md](./specs/queue-and-waiting-list.md)                           | Queue + customer waiting-list system spec                  |
+| [specs/modular-billing-and-usage-metering.md](./specs/modular-billing-and-usage-metering.md)   | Modular billing plans, metered usage, quota enforcement    |
+| [specs/modular-billing-codex-briefing.md](./specs/modular-billing-codex-briefing.md)           | Codex implementation briefing for the billing rollout      |
+
+### Runbooks
+
+Operational playbooks for production incidents and migrations.
+
+| Document                                                                       | Description                                            |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| [runbooks/billing-incident-response.md](./runbooks/billing-incident-response.md) | Billing webhook / quota / trial-reaper incident triage |
+| [runbooks/orderstatus-migration-deploy.md](./runbooks/orderstatus-migration-deploy.md) | Order-status unification deploy steps                  |
 
 ### Feature Documentation
 
@@ -30,6 +50,8 @@ Active feature docs for in-progress or reference-worthy features:
 | ------------------------------------------------------------ | ------------------------------------------------------------------- |
 | [features/realtime-services/](./features/realtime-services/) | WebSocket/Durable Objects implementation (active — Phase 4 pending) |
 
+> Customer waiting-list Phase 1 shipped 2026-05-04 (see [specs/queue-and-waiting-list.md](./specs/queue-and-waiting-list.md) for the canonical spec; Phase 2-4 backlog in root [`TODOS.md`](../TODOS.md)).
+>
 > Completed feature docs (employee management, partnership, AI analytics, shop QR, seat management, security) have been moved to [archive/completed-features/](./archive/completed-features/).
 
 ### Guides
@@ -127,4 +149,4 @@ Role-based guides in 7 languages (zh-TW, en-US, ja-JP, vi-VN, id-ID, fil-PH):
 
 ---
 
-**Last Updated**: 2026-03-16
+**Last Updated**: 2026-05-25
