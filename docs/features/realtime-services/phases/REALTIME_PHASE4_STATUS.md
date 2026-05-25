@@ -12,10 +12,12 @@ The original 4-week timeline is 6 months past its paper deadline, but substantia
 
 **2026-05-25 correction**: commit `b936600f chore(tests): remove mock-based test doubles` deleted the `tests/performance/`, `tests/e2e/smoke/`, and `tests/security/` inputs that `.github/workflows/test.yml` still referenced. Those CI inputs have now been restored in the current working tree, and the DB perf regression script is ESM-safe with a committed baseline at `tests/performance/baselines/db-baseline.json`.
 
+**2026-05-25 DAST note**: the local `security-reports/` ZAP output from `20260514_110659` only showed Low/Informational alerts for an external Mozilla CDN and had weak app/API coverage. Treat it as historical evidence only, not a security pass. `security-reports/` is now ignored, and the ZAP wrapper creates a fresh session, strips out-of-scope sites before reporting, pins dashboard/API scope, and supports authenticated API scans via `ZAP_AUTH_USERNAME`/`ZAP_AUTH_PASSWORD`. A clean rerun with seeded credentials is still required before calling DAST coverage complete.
+
 | Pillar          | Status      | Notes                                                                 |
 | --------------- | ----------- | --------------------------------------------------------------------- |
 | Performance     | ✅ ~70%     | Artillery CI smoke + DB perf regression gate restored after `b936600f` deletion regression |
-| Security        | ✅ ~75%     | Token blacklist, realtime upgrade rate limiting, and Zod message validation shipped |
+| Security        | ✅ ~75%     | Token blacklist, realtime upgrade rate limiting, and Zod message validation shipped; DAST wrapper hardened but authenticated rerun pending |
 | Observability   | ❌ ~10%     | Metrics scaffolding only; no Prometheus / structured logging / Sentry |
 | Operations      | ⚠️ ~55%     | CI/CD live, staging provisioned; minimum rollback/backup/incident runbooks added |
 | Reliability     | ❓ unknown  | No SLA measurements published yet (no metrics → no numbers)           |
@@ -85,8 +87,9 @@ In rough priority order for whoever picks this up:
 
 1. **Prometheus / Analytics Engine metrics + structured logging.** Without these, the SLA/MTTR/uptime targets in the plan can't even be measured — every "未測量 → < Xms" row in the plan stays at "未測量".
 2. **Realtime security audit log.** Token blacklist, rate limiting, and payload validation exist; security events still need durable audit records.
-3. **Formal DR exercise + full ops manuals.** Minimum runbooks exist, but the backup/restore path still needs a timed staging drill and the remaining operations manuals.
-4. **Production cutover + 7-day stability soak.** Final gate.
+3. **Authenticated ZAP rerun with real coverage.** The wrapper now filters scope and can inject an API bearer token, but the previous local report is not enough evidence.
+4. **Formal DR exercise + full ops manuals.** Minimum runbooks exist, but the backup/restore path still needs a timed staging drill and the remaining operations manuals.
+5. **Production cutover + 7-day stability soak.** Final gate.
 
 The original plan estimated 160 hours total. The remaining work is probably ~45-65 hours given the restored CI/perf gates, realtime rate limiting, Zod validation, and minimum runbooks.
 

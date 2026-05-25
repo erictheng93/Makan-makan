@@ -137,6 +137,7 @@ temp/
 # Test results
 test-results/
 playwright-report/
+security-reports/
 
 # Test output files (temporary debugging and verification files)
 test-*.txt

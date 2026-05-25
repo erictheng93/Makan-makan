@@ -708,7 +708,7 @@ jobs:
         continue-on-error: true
         run: |
           # 啟動 Admin Dashboard
-          cd apps/admin-dashboard && pnpm preview &
+          cd apps/admin-dashboard && pnpm preview -- --host 0.0.0.0 --port 4173 &
           echo $! > dashboard-server.pid
 
           # 啟動 API
@@ -730,8 +730,13 @@ jobs:
           # 執行 ZAP 掃描
           TARGET_URL=http://localhost:4173 \
           API_URL=http://localhost:8787 \
+          ZAP_AUTH_USERNAME="$ZAP_AUTH_USERNAME" \
+          ZAP_AUTH_PASSWORD="$ZAP_AUTH_PASSWORD" \
           ZAP_CLEANUP=true \
           ./tests/security/run-zap-scan.sh
+        env:
+          ZAP_AUTH_USERNAME: ${{ secrets.ZAP_AUTH_USERNAME || secrets.SMOKE_AUTH_USERNAME }}
+          ZAP_AUTH_PASSWORD: ${{ secrets.ZAP_AUTH_PASSWORD || secrets.SMOKE_AUTH_PASSWORD }}
         continue-on-error: true
 
       - name: 🛑 停止測試服務器
