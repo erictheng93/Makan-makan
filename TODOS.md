@@ -89,6 +89,90 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 - `JoinWaitingListView.vue:300-303`: `restoreLastTicket()` and `loadQueueSnapshot()` race in parallel; if restore triggers `router.replace`, snapshot still completes (wasted request, no crash)
 - i18n keys live in a parallel `src/locales/` dir alongside `src/i18n/` — should consolidate into the existing customer-messages source
 
+## customer-identity
+
+### Resolve customer/user identity fork (FK migration + 5 satellite tables)
+
+**Priority:** P2 **Spec:** `docs/superpowers/specs/2026-05-25-customer-identity-and-profile-design.md` **Context:** `orders.customerId`, `waiting_list.customerId`, `reservations.customerId` are all `INTEGER` FK to `users.id` (the staff table), while a `customers` table (TEXT/UUID) exists but is functionally orphaned (only `verified_members` references it). `users.ts` even comments "顧客應使用 customers 表" — the refactor was started but never finished. Until this is resolved, every customer-facing feature has to pick a side and the inconsistency multiplies.
+
+**Why deferred:** Spec drafted 2026-05-25; awaiting review. Block on Q-1 (phone uniqueness reassignment policy), Q-3 (SMS-only vs. with email fallback), Q-5 (anonymous order claiming), Q-6 (cleanup of `users.role = 5` rows), Q-8 (PDPA processing logs).
+
+**Scope (Phase 1, ~30 dev-days estimated in spec §15):**
+
+- Create 5 new tables: `customer_preferences`, `customer_favorites` (polymorphic), `customer_push_subscriptions`, `customer_consents` (append-only), `customer_phone_verification_tokens`
+- Rebuild `customers` table: rename `full_name → display_name`, `phone → primary_phone`, `email → primary_email`; add `avatarUrl`, `locale`, `status`, `lastSeenAt_ms`; switch ID generator from `crypto.randomUUID().replace(/-/g, "")` to `uuidv7()`
+- Table-rebuild FK migration on `orders` / `waiting_list` / `reservations` (`customer_id INTEGER → TEXT`, FK → `customers.id`); requires temp `customer_id_mapping` from `users WHERE role IS NULL OR role = 5`
+- Customer auth service: phone-OTP flow + JWT (15 min access / 30 day refresh) with `type: "customer"` discriminator
+- New `customerAuthMiddleware` in `apps/api/src/middleware/auth.ts`
+- New feature folder `apps/api/src/features/customer/` with 17 endpoints (auth, me, preferences, favorites, push, consents)
+- Backfill `customer_preferences` from `users.preferences` JSON for migrated rows; deprecate `USER_ROLES.CUSTOMER = 5`
+- customer-app: login screen, favorites UI, push enrollment flow, settings/consent UI
+
+**Hard prerequisite for:** marketplace Phase 4 (follow & broadcast) and waiting-list Phase 2 push (reuses `customer_push_subscriptions`).
+
+## marketplace (night market / 商圈)
+
+### Phase 1 — Markets entity + GPS discovery + takeaway bridge
+
+**Priority:** P2 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` **Context:** Today's Discovery system treats every shop as an island; `restaurants.district` is a free-text label and `latitude / longitude` columns are reserved-but-unused. To serve night markets and commercial districts, "market" needs to become a first-class entity, GPS search needs to be activated, and Discovery needs to bridge into checkout without a QR scan.
+
+**Why deferred:** Spec drafted 2026-05-25; awaiting review. Five locked decisions captured in §11 (platform-owned in Phase 1, free pricing, no native DM, deep-link contact MVP, list-only without map). Block on Q-1 (D1 partial unique index for `(restaurantId, marketId)` re-join behavior).
+
+**Scope (Phase 1, ~27 dev-days estimated in spec §14):**
+
+- New tables: `markets`, `restaurant_market_memberships`
+- Modify `dish_search_index`: add `primaryMarketId`, `marketIds` (JSON), `latitude`, `longitude`
+- New `apps/api/src/features/markets/` with public + admin endpoints (`/markets`, `/markets/:slug`, `/markets/:slug/vendors`, `/markets/nearby`, admin CRUD in `apps/management-api`)
+- Extend `DiscoveryService`: `marketId` and `lat/lng/radiusKm` filters; bounding-box + Haversine `findNearby`
+- New `takeaway-eligibility` endpoint that returns existing `shopQrCode` as the entry token (bridges Discovery → existing shop-mode order flow)
+- Extend `SearchIndexSyncService` to subscribe to membership and market changes
+- KV cache: `market:detail:{slug}`, `market:list:...`, `market:vendors:{id}`, `market:nearby:{geohash5}`
+- customer-app: `/markets`, `/markets/:slug` routes; `MarketCard`, `MarketDetailHero`, `VendorListInMarket`; "立即外帶" button on `DishResultCard` / `RestaurantCard`
+- management-portal: `MarketsView.vue` (admin CRUD, attach vendors)
+- onboarding-app: mandatory "Pick location on map" step capturing `latitude / longitude`
+- admin-dashboard: read-only "Markets I belong to" section + "request to join" form
+
+### Phase 3 — Vendor contact via deep links + FAQ (no native DM)
+
+**Priority:** P3 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` §10 Phase 3 **Context:** Native customer↔vendor DM was rejected (decided 2026-05-25): small vendors won't staff a real-time inbox, and forcing them onto a platform DM creates ignored-message friction. Customer contact in MVP routes to wherever vendors already work (LINE / IG / WhatsApp / Telegram) and offers a per-restaurant FAQ auto-suggest for the common questions.
+
+**Why deferred:** Phase 1 ships the markets entity first. Phase 3 is small but waits on Phase 1 schema. Re-evaluate native DM only after ≥50 vendors actively use the deep-link path and survey data justifies the build.
+
+**Scope:**
+
+- Add `messagingChannels` JSON column to `restaurants`: `{ line?, whatsapp?, instagram?, telegram? }` (each entry a public deep-link URL)
+- New table `restaurant_faqs`: `restaurantId`, `question`, `answer`, `keywords` (JSON), `displayOrder`, `isActive`
+- Admin-dashboard: "Contact channels" + "FAQs" tabs on restaurant settings
+- customer-app: "聯絡店家" button on vendor detail page → opens platform native app via `line.me` / `wa.me` / `ig.me`
+- customer-app: "常見問題" accordion above the contact buttons; keyword search across FAQs
+
+### Phase 4 — Customer follow + broadcast push (depends on customer-identity)
+
+**Priority:** P3 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` §10 Phase 4 **Context:** Customer can follow markets and vendors; vendors and market operators can broadcast push notifications to followers, gated by `customer_consents WHERE consentType='marketing'`. Reuses VAPID infra from waiting-list Phase 2.
+
+**Why deferred:** Hard prerequisite — customer-identity work above must land first because "follow" rows live in `customer_favorites` and "broadcast targets" live in `customer_push_subscriptions`. Without those tables, this feature has nowhere to attach.
+
+**Scope:**
+
+- "Follow" UI on `MarketDetailHero` / `RestaurantCard` → writes `customer_favorites(targetType='market' | 'restaurant')`
+- New `BroadcastService` in `apps/api`: fans out push via `customer_push_subscriptions` filtered by `customer_consents`
+- New admin endpoints: `POST /api/v1/markets/:id/broadcasts`, `POST /api/v1/restaurants/:id/broadcasts` (rate-limited, per-restaurant audit)
+- customer-app: "Following" tab in profile view; opt-in / opt-out granular controls (overall marketing, favorites-only, quiet hours)
+
+### Phase 5 — Operator role + portal
+
+**Priority:** P4 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` §10 Phase 2 **Context:** Promote `market_operator` to a first-class role (separate from existing 0–4 restaurant roles) with self-service market editing, vendor approval queue, and per-market analytics.
+
+**Why deferred:** Phase 1 markets are platform-admin-owned, which is sufficient for MVP. Operator self-service is a scaling tool, not a launch requirement.
+
+**Scope:**
+
+- New role: `market_operator` in `USER_ROLES`
+- New table or column linking operators to markets (operator can manage 1+ markets)
+- Self-service market metadata editing (subset of admin endpoints)
+- Vendor membership approval queue (vendor requests → operator approves/rejects)
+- Per-market analytics dashboard in management-portal
+
 ## Completed
 
 _None yet._
