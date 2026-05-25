@@ -1,3 +1,4 @@
 import routes from "./routes";
+import adminRoutes from "./routes/admin";
 
-export default { routes };
+export default { routes, adminRoutes };

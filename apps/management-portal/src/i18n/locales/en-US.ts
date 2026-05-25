@@ -23,6 +23,7 @@ const enUS: Messages = {
     deployments: "Deployments",
     health: "Health",
     licenses: "Licenses",
+    markets: "Markets",
   },
 
   layout: {

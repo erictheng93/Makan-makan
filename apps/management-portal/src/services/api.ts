@@ -20,14 +20,38 @@ import type {
   DeployRequest,
   BatchDeployRequest,
   GenerateLicenseRequest,
+  Market,
+  MarketVendorMembership,
+  CreateMarketRequest,
+  UpdateMarketRequest,
 } from "@/types";
 
 const API_BASE = import.meta.env.VITE_MANAGEMENT_API_URL || "/api/v1";
+const CSRF_COOKIE_NAME = "csrf_token";
+const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const cookie = document.cookie
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(`${name}=`));
+
+  return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
+}
+
+function isMutatingMethod(method?: string): boolean {
+  return MUTATING_METHODS.has((method || "get").toLowerCase());
+}
 
 // 創建 axios 實例
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -41,6 +65,14 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (isMutatingMethod(config.method)) {
+      const csrfToken = readCookie(CSRF_COOKIE_NAME);
+      if (csrfToken) {
+        config.headers["X-CSRF-Token"] = csrfToken;
+      }
+    }
+
     return config;
   },
   (error) => Promise.reject(error),
@@ -247,9 +279,75 @@ export const licensesApi = {
   },
 };
 
+export const marketsApi = {
+  async list(params?: {
+    city?: string;
+    district?: string;
+    type?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    markets: Market[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { data } = await apiClient.get<
+      ApiResponse<{
+        markets: Market[];
+        total: number;
+        page: number;
+        limit: number;
+      }>
+    >("/markets", { params });
+    return data.data!;
+  },
+
+  async create(request: CreateMarketRequest): Promise<Market> {
+    const { data } = await apiClient.post<ApiResponse<{ market: Market }>>(
+      "/admin/markets",
+      request,
+    );
+    return data.data!.market;
+  },
+
+  async update(id: string, request: UpdateMarketRequest): Promise<Market> {
+    const { data } = await apiClient.put<ApiResponse<{ market: Market }>>(
+      `/admin/markets/${id}`,
+      request,
+    );
+    return data.data!.market;
+  },
+
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/admin/markets/${id}`);
+  },
+
+  async addVendor(
+    marketId: string,
+    request: {
+      restaurantId: string;
+      stallNumber?: string | null;
+      isPrimary?: boolean;
+    },
+  ): Promise<MarketVendorMembership> {
+    const { data } = await apiClient.post<
+      ApiResponse<{ membership: MarketVendorMembership }>
+    >(`/admin/markets/${marketId}/vendors`, request);
+    return data.data!.membership;
+  },
+
+  async removeVendor(marketId: string, restaurantId: string): Promise<void> {
+    await apiClient.delete(
+      `/admin/markets/${marketId}/vendors/${restaurantId}`,
+    );
+  },
+};
+
 export default {
   tenants: tenantsApi,
   deployments: deploymentsApi,
   health: healthApi,
   licenses: licensesApi,
+  markets: marketsApi,
 };

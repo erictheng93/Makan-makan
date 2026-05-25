@@ -26,6 +26,9 @@ export interface VendorFilters {
   limit?: number;
 }
 
+export type CreateMarketInput = typeof markets.$inferInsert;
+export type UpdateMarketInput = Partial<typeof markets.$inferInsert>;
+
 export class MarketsService {
   private db;
 
@@ -240,5 +243,109 @@ export class MarketsService {
       .slice(0, cappedLimit);
 
     return { markets: withDistance };
+  }
+
+  async getMarketById(id: string) {
+    const [market] = await this.db
+      .select()
+      .from(markets)
+      .where(eq(markets.id, id))
+      .limit(1);
+    return market ?? null;
+  }
+
+  async createMarket(input: CreateMarketInput) {
+    const now = new Date();
+    const [market] = await this.db
+      .insert(markets)
+      .values({
+        ...input,
+        isActive: input.isActive ?? true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    return market;
+  }
+
+  async updateMarket(id: string, input: UpdateMarketInput) {
+    const existing = await this.getMarketById(id);
+    if (!existing) return null;
+
+    const [market] = await this.db
+      .update(markets)
+      .set({
+        ...input,
+        updatedAt: new Date(),
+      })
+      .where(eq(markets.id, id))
+      .returning();
+    return market ?? null;
+  }
+
+  async softDeleteMarket(id: string) {
+    const existing = await this.getMarketById(id);
+    if (!existing) return false;
+
+    await this.db
+      .update(markets)
+      .set({
+        isActive: false,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(markets.id, id));
+    return true;
+  }
+
+  async addVendor(
+    marketId: string,
+    input: {
+      restaurantId: string;
+      stallNumber?: string | null;
+      isPrimary?: boolean;
+    },
+  ) {
+    const market = await this.getMarketById(marketId);
+    if (!market || market.deletedAt) return null;
+
+    if (input.isPrimary) {
+      await this.db
+        .update(restaurantMarketMemberships)
+        .set({ isPrimary: false })
+        .where(
+          and(
+            eq(restaurantMarketMemberships.restaurantId, input.restaurantId),
+            isNull(restaurantMarketMemberships.leftAt),
+          ),
+        );
+    }
+
+    const [membership] = await this.db
+      .insert(restaurantMarketMemberships)
+      .values({
+        marketId,
+        restaurantId: input.restaurantId,
+        stallNumber: input.stallNumber ?? null,
+        isPrimary: input.isPrimary ?? false,
+        joinedAt: new Date(),
+      })
+      .returning();
+    return membership;
+  }
+
+  async removeVendor(marketId: string, restaurantId: string) {
+    const result = await this.db
+      .update(restaurantMarketMemberships)
+      .set({ leftAt: new Date() })
+      .where(
+        and(
+          eq(restaurantMarketMemberships.marketId, marketId),
+          eq(restaurantMarketMemberships.restaurantId, restaurantId),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      )
+      .returning();
+    return result.length > 0;
   }
 }

@@ -580,6 +580,7 @@ export function createApp(
   // Admin-only routes — auth + role=0 enforced inside the feature module itself
   apiV1.use("/admin/*", authMiddleware);
   apiV1.route("/admin", adminSettingsRoutes);
+  apiV1.route("/admin/markets", marketsFeature.adminRoutes);
   apiV1.route("/admin/subscriptions", subscriptionsFeature.routes);
 
   // 掛載 API 路由

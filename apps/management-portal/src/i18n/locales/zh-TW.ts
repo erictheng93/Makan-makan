@@ -23,6 +23,7 @@ const zhTW: Messages = {
     deployments: "部署管理",
     health: "健康監控",
     licenses: "授權管理",
+    markets: "市場管理",
   },
 
   layout: {

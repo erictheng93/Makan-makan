@@ -10,6 +10,13 @@ import {
   restaurantMarketMemberships,
 } from "@makanmakan/database";
 
+const CSRF_HEADERS = {
+  host: "test",
+  origin: "https://test",
+  cookie: `csrf_token=${"a".repeat(64)}`,
+  "x-csrf-token": "a".repeat(64),
+};
+
 function openAllWeek() {
   const day = { open: "00:00", close: "23:59" };
   return {
@@ -327,5 +334,125 @@ describe("Markets API — real integration", () => {
         joinedAt: new Date(),
       }),
     ).rejects.toThrow();
+  });
+
+  it("lets platform admins create, update, soft delete markets, and manage vendors", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Admin Market Vendor",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 1,
+      username: "market-admin",
+      role: 0,
+      restaurantId: String(restaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+
+    const createRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/admin/markets", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          slug: "admin-created-market",
+          name: "管理新增夜市",
+          type: "night_market",
+          description: "Created by admin API",
+          city: "台中市",
+          district: "中區",
+          address: "台中市中區測試路",
+          latitude: 24.141,
+          longitude: 120.683,
+          tags: ["夜市"],
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createdJson: any = await createRes.json();
+    expect(createdJson.data.market).toMatchObject({
+      slug: "admin-created-market",
+      name: "管理新增夜市",
+      isActive: true,
+    });
+
+    const marketId = createdJson.data.market.id as string;
+    const updateRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/admin/markets/${marketId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          name: "更新後夜市",
+          district: "西區",
+        }),
+      }),
+    );
+    expect(updateRes.status).toBe(200);
+    const updatedJson: any = await updateRes.json();
+    expect(updatedJson.data.market).toMatchObject({
+      id: marketId,
+      name: "更新後夜市",
+      district: "西區",
+    });
+
+    const addVendorRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/admin/markets/${marketId}/vendors`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          restaurantId: String(restaurant.id),
+          stallNumber: "A-01",
+          isPrimary: true,
+        }),
+      }),
+    );
+    expect(addVendorRes.status).toBe(201);
+    const vendorJson: any = await addVendorRes.json();
+    expect(vendorJson.data.membership).toMatchObject({
+      restaurantId: String(restaurant.id),
+      marketId,
+      stallNumber: "A-01",
+      isPrimary: true,
+    });
+
+    const publicVendorsRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/admin-created-market/vendors"),
+    );
+    expect(publicVendorsRes.status).toBe(200);
+    const publicVendorsJson: any = await publicVendorsRes.json();
+    expect(publicVendorsJson.data.total).toBe(1);
+
+    const removeVendorRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/${marketId}/vendors/${restaurant.id}`,
+        {
+          method: "DELETE",
+          headers,
+        },
+      ),
+    );
+    expect(removeVendorRes.status).toBe(200);
+    expect(((await removeVendorRes.json()) as any).data.removed).toBe(true);
+
+    const deleteRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/admin/markets/${marketId}`, {
+        method: "DELETE",
+        headers,
+      }),
+    );
+    expect(deleteRes.status).toBe(200);
+    expect(((await deleteRes.json()) as any).data.deleted).toBe(true);
+
+    const publicDetailRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/admin-created-market"),
+    );
+    expect(publicDetailRes.status).toBe(404);
   });
 });

@@ -207,3 +207,51 @@ export interface GenerateLicenseRequest {
   tier: LicenseTier;
   expiresAt?: string;
 }
+
+export interface Market {
+  id: string;
+  slug: string;
+  name: string;
+  type: "night_market" | "commercial_district" | "food_court" | "event_venue";
+  description?: string | null;
+  city: string;
+  district: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  openingHours?: Record<string, unknown> | null;
+  bannerUrl?: string | null;
+  logoUrl?: string | null;
+  imageUrls?: string[] | null;
+  tags?: string[] | null;
+  isActive?: boolean;
+}
+
+export interface MarketVendorMembership {
+  id: number;
+  restaurantId: string;
+  marketId: string;
+  stallNumber?: string | null;
+  isPrimary: boolean;
+  joinedAt: string | number;
+  leftAt?: string | number | null;
+}
+
+export interface CreateMarketRequest {
+  slug: string;
+  name: string;
+  type: Market["type"];
+  description?: string | null;
+  city: string;
+  district: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  bannerUrl?: string | null;
+  logoUrl?: string | null;
+  imageUrls?: string[] | null;
+  tags?: string[] | null;
+  isActive?: boolean;
+}
+
+export type UpdateMarketRequest = Partial<CreateMarketRequest>;
