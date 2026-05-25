@@ -68,6 +68,8 @@ export interface Tenant {
   businessName: string;
   contactEmail: string;
   contactPhone?: string;
+  latitude?: number;
+  longitude?: number;
 
   // Cloudflare account info
   cfAccountId?: string;
@@ -385,6 +387,8 @@ export interface OnboardingApplication {
   contactEmail: string;
   contactPhone: string;
   planId: OnboardingPlanId | null;
+  latitude?: number;
+  longitude?: number;
   requestedSubdomain?: string;
   assignedSubdomain?: string;
   cfAccountId?: string;
@@ -409,6 +413,8 @@ export interface CreateApplicationRequest {
   contactPhone: string;
   planId?: OnboardingPlanId | null;
   subdomain?: string;
+  latitude: number;
+  longitude: number;
 }
 
 /**

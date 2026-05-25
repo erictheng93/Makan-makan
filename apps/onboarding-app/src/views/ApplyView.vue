@@ -7,6 +7,7 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ArrowPathIcon,
+  MapPinIcon,
 } from "@heroicons/vue/24/outline";
 import { useI18n } from "@/i18n";
 
@@ -20,14 +21,26 @@ const form = ref({
   contactName: "",
   contactEmail: "",
   contactPhone: "",
+  latitude: null as number | null,
+  longitude: null as number | null,
   planId: "standard" as const,
   subdomain: "",
 });
 
 const errors = ref<Record<string, string>>({});
+const isLocating = ref(false);
 
 // Debounce timer for subdomain check
 let subdomainCheckTimer: ReturnType<typeof setTimeout> | null = null;
+
+const parseCoordinate = (value: number | string | null): number | null => {
+  if (value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 // Watch subdomain input for debounced availability check
 watch(
@@ -82,6 +95,21 @@ const validate = (): boolean => {
     errors.value.contactPhone = t("apply.validation.phoneRequired");
   }
 
+  const latitude = parseCoordinate(form.value.latitude);
+  const longitude = parseCoordinate(form.value.longitude);
+
+  if (latitude === null) {
+    errors.value.latitude = t("apply.validation.latitudeRequired");
+  } else if (latitude < -90 || latitude > 90) {
+    errors.value.latitude = t("apply.validation.latitudeInvalid");
+  }
+
+  if (longitude === null) {
+    errors.value.longitude = t("apply.validation.longitudeRequired");
+  } else if (longitude < -180 || longitude > 180) {
+    errors.value.longitude = t("apply.validation.longitudeInvalid");
+  }
+
   if (form.value.subdomain) {
     if (!/^[a-z0-9-]+$/.test(form.value.subdomain)) {
       errors.value.subdomain = t("apply.validation.subdomainInvalidFormat");
@@ -99,12 +127,18 @@ const handleSubmit = async () => {
   if (!validate()) return;
 
   store.clearError();
+  const latitude = parseCoordinate(form.value.latitude);
+  const longitude = parseCoordinate(form.value.longitude);
+
+  if (latitude === null || longitude === null) return;
 
   const success = await store.submitApplication({
     businessName: form.value.businessName,
     contactName: form.value.contactName,
     contactEmail: form.value.contactEmail,
     contactPhone: form.value.contactPhone,
+    latitude,
+    longitude,
     planId: form.value.planId,
     subdomain: form.value.subdomain || undefined,
   });
@@ -119,6 +153,29 @@ const handleSubmit = async () => {
 
 const selectSuggestion = (suggestion: string) => {
   form.value.subdomain = suggestion;
+};
+
+const useCurrentLocation = () => {
+  if (!navigator.geolocation) {
+    toast.error(t("apply.form.location.unsupported"));
+    return;
+  }
+
+  isLocating.value = true;
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      form.value.latitude = Number(position.coords.latitude.toFixed(6));
+      form.value.longitude = Number(position.coords.longitude.toFixed(6));
+      errors.value.latitude = "";
+      errors.value.longitude = "";
+      isLocating.value = false;
+    },
+    () => {
+      toast.error(t("apply.form.location.failure"));
+      isLocating.value = false;
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+  );
 };
 </script>
 
@@ -227,6 +284,72 @@ const selectSuggestion = (suggestion: string) => {
           <p v-if="errors.contactPhone" class="mt-1 text-sm text-red-600">
             {{ errors.contactPhone }}
           </p>
+        </div>
+
+        <!-- 餐廳位置 -->
+        <div class="space-y-3">
+          <div
+            class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+          >
+            <div>
+              <label class="label"
+                >{{ t("apply.form.location.label") }} *</label
+              >
+              <p class="mt-1 text-sm text-gray-500">
+                {{ t("apply.form.location.help") }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-secondary shrink-0"
+              :disabled="isLocating"
+              @click="useCurrentLocation"
+            >
+              <ArrowPathIcon
+                v-if="isLocating"
+                class="h-4 w-4 mr-2 animate-spin"
+              />
+              <MapPinIcon v-else class="h-4 w-4 mr-2" />
+              {{
+                isLocating
+                  ? t("apply.form.location.locating")
+                  : t("apply.form.location.useCurrent")
+              }}
+            </button>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <input
+                v-model.number="form.latitude"
+                type="number"
+                step="0.000001"
+                min="-90"
+                max="90"
+                class="input"
+                :class="{ 'input-error': errors.latitude }"
+                :placeholder="t('apply.form.location.latitudePlaceholder')"
+              />
+              <p v-if="errors.latitude" class="mt-1 text-sm text-red-600">
+                {{ errors.latitude }}
+              </p>
+            </div>
+            <div>
+              <input
+                v-model.number="form.longitude"
+                type="number"
+                step="0.000001"
+                min="-180"
+                max="180"
+                class="input"
+                :class="{ 'input-error': errors.longitude }"
+                :placeholder="t('apply.form.location.longitudePlaceholder')"
+              />
+              <p v-if="errors.longitude" class="mt-1 text-sm text-red-600">
+                {{ errors.longitude }}
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- 子域名 -->

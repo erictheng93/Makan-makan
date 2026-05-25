@@ -24,6 +24,8 @@ const createApplicationSchema = z.object({
     .enum(["standard", "professional", "enterprise", "trial"])
     .nullable()
     .optional(),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
   subdomain: z
     .string()
     .regex(
@@ -193,6 +195,8 @@ router.get("/applications/:id", async (c) => {
         businessName: application.businessName,
         contactName: application.contactName,
         contactEmail: application.contactEmail,
+        latitude: application.latitude,
+        longitude: application.longitude,
         planId: application.planId,
         assignedSubdomain: application.assignedSubdomain,
         status: application.status,

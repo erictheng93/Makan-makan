@@ -71,6 +71,18 @@ const enUS: Messages = {
         label: "Phone",
         placeholder: "+1-234-567-8900",
       },
+      location: {
+        label: "Restaurant Location",
+        help: "Used for night market / district discovery and nearby search. Use the actual storefront or stall coordinates.",
+        useCurrent: "Use Current Location",
+        locating: "Locating...",
+        unsupported:
+          "This browser does not support geolocation. Enter coordinates manually.",
+        failure:
+          "Unable to get your current location. Check location permission or enter coordinates manually.",
+        latitudePlaceholder: "Latitude, e.g. 24.147736",
+        longitudePlaceholder: "Longitude, e.g. 120.673648",
+      },
       subdomain: {
         label: "Desired URL (Optional)",
         placeholder: "yourrestaurant",
@@ -89,6 +101,10 @@ const enUS: Messages = {
       emailRequired: "Please enter an email",
       emailInvalid: "Please enter a valid email",
       phoneRequired: "Please enter a phone number",
+      latitudeRequired: "Please enter the restaurant latitude",
+      latitudeInvalid: "Latitude must be between -90 and 90",
+      longitudeRequired: "Please enter the restaurant longitude",
+      longitudeInvalid: "Longitude must be between -180 and 180",
       subdomainInvalidFormat:
         "Only lowercase letters, numbers, and hyphens allowed",
       subdomainTooShort: "Must be at least 3 characters",

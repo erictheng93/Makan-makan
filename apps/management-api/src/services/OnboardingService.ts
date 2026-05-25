@@ -109,9 +109,9 @@ export class OnboardingService {
     await this.env.MANAGEMENT_DB.prepare(
       `INSERT INTO onboarding_applications (
         id, business_name, contact_name, contact_email, contact_phone,
-        plan_id, requested_subdomain, assigned_subdomain, status,
+        plan_id, latitude, longitude, requested_subdomain, assigned_subdomain, status,
         ip_address, user_agent, created_at, submitted_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
       .bind(
         id,
@@ -120,6 +120,8 @@ export class OnboardingService {
         data.contactEmail,
         data.contactPhone,
         data.planId ?? "trial",
+        data.latitude,
+        data.longitude,
         data.subdomain || null,
         assignedSubdomain,
         "submitted",
@@ -404,15 +406,17 @@ export class OnboardingService {
 
     const tenantInsert = this.env.MANAGEMENT_DB.prepare(
       `INSERT INTO tenants (
-        id, business_name, contact_email, contact_phone,
+        id, business_name, contact_email, contact_phone, latitude, longitude,
         subdomain, custom_domain, license_tier, license_key,
         status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       tenantId,
       application.businessName,
       application.contactEmail,
       application.contactPhone || null,
+      application.latitude ?? null,
+      application.longitude ?? null,
       application.assignedSubdomain!,
       null,
       tenantLicenseTier,
@@ -492,6 +496,8 @@ export class OnboardingService {
       contactEmail: row.contact_email as string,
       contactPhone: row.contact_phone as string,
       planId: row.plan_id as OnboardingPlanId | null,
+      latitude: row.latitude as number | undefined,
+      longitude: row.longitude as number | undefined,
       requestedSubdomain: row.requested_subdomain as string | undefined,
       assignedSubdomain: row.assigned_subdomain as string | undefined,
       cfAccountId: row.cf_account_id as string | undefined,

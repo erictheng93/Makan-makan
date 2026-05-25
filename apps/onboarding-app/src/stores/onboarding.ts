@@ -17,6 +17,8 @@ export interface ApplicationData {
   contactName: string;
   contactEmail: string;
   contactPhone: string;
+  latitude: number;
+  longitude: number;
   planId: "standard" | "professional" | "enterprise";
   subdomain?: string;
   status:

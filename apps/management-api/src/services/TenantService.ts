@@ -71,6 +71,8 @@ export class TenantService {
         business_name: string;
         contact_email: string;
         contact_phone: string;
+        latitude: number | null;
+        longitude: number | null;
         cf_account_id: string;
         subdomain: string;
         custom_domain: string;
@@ -135,10 +137,10 @@ export class TenantService {
     await this.env.MANAGEMENT_DB.prepare(
       `
       INSERT INTO tenants (
-        id, business_name, contact_email, contact_phone,
+        id, business_name, contact_email, contact_phone, latitude, longitude,
         subdomain, custom_domain, license_tier, license_key,
         status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     )
       .bind(
@@ -146,6 +148,8 @@ export class TenantService {
         data.businessName,
         data.contactEmail,
         data.contactPhone || null,
+        null,
+        null,
         data.subdomain,
         data.customDomain || null,
         data.licenseTier,
@@ -344,6 +348,8 @@ export class TenantService {
       businessName: row.business_name as string,
       contactEmail: row.contact_email as string,
       contactPhone: row.contact_phone as string | undefined,
+      latitude: row.latitude as number | undefined,
+      longitude: row.longitude as number | undefined,
       cfAccountId: row.cf_account_id as string | undefined,
       cfApiTokenEnc: row.cf_api_token_enc as string | undefined,
       subdomain: row.subdomain as string,

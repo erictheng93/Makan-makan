@@ -35,6 +35,8 @@ export interface CreateApplicationData {
   contactPhone: string;
   planId: "standard" | "professional" | "enterprise";
   subdomain?: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface ApplicationResponse {
@@ -73,6 +75,8 @@ export interface ApplicationDetails {
   businessName: string;
   contactName: string;
   contactEmail: string;
+  latitude: number;
+  longitude: number;
   planId: string;
   assignedSubdomain: string;
   status: string;
