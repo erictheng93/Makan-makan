@@ -302,11 +302,11 @@ const {
 const isUrgent = computed(() => props.order.priority === "urgent");
 const isCancelled = computed(() => props.order.status === "cancelled");
 
-// Strip "Table ", "桌 ", "Table-", "桌-" prefixes so the localized t('orders.table') prefix
-// doesn't end up duplicated (e.g. "Table Table 4" in English mode).
+// Strip translated table prefixes only when they are followed by a separator,
+// so names like "Tabletop" or "桌子" remain intact.
 const displayTableName = computed(() => {
   const name = props.order.tableName ?? "";
-  return name.replace(/^(Table|桌)[\s-]*/i, "");
+  return name.replace(/^(Table|桌)[\s-]+/i, "");
 });
 
 const statusBorderClass = computed(() => {

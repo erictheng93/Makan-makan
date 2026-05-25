@@ -38,13 +38,13 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### i18n edge cases in displayTableName regex
 
-**Priority:** P4 **File:** `apps/kitchen-display/src/components/orders/OrderCard.vue` **Context:** `displayTableName` strips `^(Table|桌)[\s-]*` to prevent prefix duplication. Edge cases not currently in production data:
+**Priority:** P4 **Status:** Completed 2026-05-25 **File:** `apps/kitchen-display/src/components/orders/OrderCard.vue` **Context:** `displayTableName` stripped `^(Table|桌)[\s-]*` to prevent prefix duplication. Edge cases were not currently in production data:
 
 - Vietnamese `Bàn 4` → would not be stripped (expected Vietnamese locale also translates `orders.table` → `Bàn`)
 - Malay `Meja 4` → same
 - Edge: table name starting with `桌子` (Chinese "table" noun) would lose `桌` — requires word boundary
 
-**Fix:** Require a trailing separator in the regex: `^(Table|桌)[\s-]+`. Extend prefix list when Vietnamese/Malay translations land.
+**Fix:** Require a trailing separator in the regex: `^(Table|桌)[\s-]+`, with regression coverage for `Table 4`, `Table-4`, `桌 4`, `桌-4`, `桌子 4`, and `Tabletop 4`. Extend prefix list when Vietnamese/Malay translations land.
 
 ### Harden deepMerge against prototype pollution
 
