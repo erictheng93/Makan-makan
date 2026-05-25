@@ -244,6 +244,23 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/markets",
+    name: "Markets",
+    component: () => import("@/views/MarketsView.vue"),
+    meta: {
+      titleKey: "navigation.discover",
+    },
+  },
+  {
+    path: "/markets/:slug",
+    name: "MarketDetail",
+    component: () => import("@/views/MarketDetailView.vue"),
+    props: true,
+    meta: {
+      titleKey: "navigation.discover",
+    },
+  },
+  {
     path: "/error",
     name: "Error",
     component: () => import("@/views/ErrorView.vue"),

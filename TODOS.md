@@ -120,7 +120,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 **Priority:** P2 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` **Context:** Today's Discovery system treats every shop as an island; `restaurants.district` is a free-text label and `latitude / longitude` columns are reserved-but-unused. To serve night markets and commercial districts, "market" needs to become a first-class entity, GPS search needs to be activated, and Discovery needs to bridge into checkout without a QR scan.
 
-**Why deferred:** Spec drafted 2026-05-25. Phase 1 backend core is approved to start. Six locked decisions are captured in §11 (platform-owned in Phase 1, free pricing, no native DM, deep-link contact MVP, list-only without map, and DB-level partial unique active memberships).
+**Status:** In progress. Backend core landed in commit `89147020`; customer-app market browse/detail routes and the Discovery → takeaway button bridge are in progress. Six locked decisions are captured in §11 (platform-owned in Phase 1, free pricing, no native DM, deep-link contact MVP, list-only without map, and DB-level partial unique active memberships).
 
 **Scope (Phase 1, ~27 dev-days estimated in spec §14):**
 

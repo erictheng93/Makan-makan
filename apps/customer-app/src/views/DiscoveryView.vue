@@ -64,6 +64,7 @@
             :key="dish.menuItemId"
             :dish="dish"
             @select="onDishSelect"
+            @takeaway="onDishTakeaway"
           />
         </div>
 
@@ -80,6 +81,7 @@
                 :key="dish.menuItemId"
                 :dish="dish"
                 @select="onDishSelect"
+                @takeaway="onDishTakeaway"
               />
             </div>
           </div>
@@ -95,6 +97,7 @@
                 :key="r.restaurantId"
                 :restaurant="r"
                 @select="onRestaurantSelect"
+                @takeaway="onRestaurantTakeaway"
               />
             </div>
           </div>
@@ -112,6 +115,7 @@
                 :key="r.restaurantId"
                 :restaurant="r"
                 @select="onRestaurantSelect"
+                @takeaway="onRestaurantTakeaway"
               />
             </div>
           </div>
@@ -146,6 +150,7 @@ import type {
   DishSearchResult,
   RestaurantListItem,
 } from "@/services/discoveryApi";
+import { discoveryApi } from "@/services/discoveryApi";
 
 const { t, tWithParams } = useI18n();
 const router = useRouter();
@@ -172,6 +177,27 @@ function onDishSelect(dish: DishSearchResult) {
 
 function onRestaurantSelect(restaurant: RestaurantListItem) {
   router.push(`/restaurant/${restaurant.restaurantId}/shop/menu`);
+}
+
+async function startTakeaway(restaurantId: string) {
+  const result = await discoveryApi.getTakeawayEligibility(restaurantId);
+  if (!result.eligible) {
+    store.error = "目前無法從 Discovery 直接外帶。";
+    return;
+  }
+  router.push({
+    name: "OrderTypeLanding",
+    params: { restaurantId },
+    query: { qr: result.shopQrCode },
+  });
+}
+
+function onDishTakeaway(dish: DishSearchResult) {
+  startTakeaway(dish.restaurantId);
+}
+
+function onRestaurantTakeaway(restaurant: RestaurantListItem) {
+  startTakeaway(restaurant.restaurantId);
 }
 
 onMounted(() => {

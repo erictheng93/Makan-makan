@@ -30,6 +30,10 @@ export interface RestaurantListItem {
 export interface SearchFilters {
   q?: string;
   district?: string;
+  marketId?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
   priceMin?: number;
   priceMax?: number;
   openNow?: boolean;
@@ -56,6 +60,16 @@ export const discoveryApi = {
 
   async getRestaurantMenu(restaurantId: string) {
     return apiClient.get<any[]>(`/discovery/restaurants/${restaurantId}/menu`);
+  },
+
+  async getTakeawayEligibility(restaurantId: string) {
+    return apiClient.get<
+      | { eligible: true; shopQrCode: string }
+      | {
+          eligible: false;
+          reason: "restaurant_disabled" | "takeaway_disabled" | "closed_now";
+        }
+    >(`/discovery/restaurants/${restaurantId}/takeaway-eligibility`);
   },
 
   async getPopular() {

@@ -1,0 +1,86 @@
+import { apiClient } from "./api";
+import type { RestaurantListItem } from "./discoveryApi";
+
+export interface MarketListItem {
+  id: string;
+  slug: string;
+  name: string;
+  type: string;
+  description: string | null;
+  city: string;
+  district: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  bannerUrl: string | null;
+  logoUrl: string | null;
+  tags: string[] | null;
+  vendorCount: number;
+}
+
+export interface MarketDetail extends MarketListItem {
+  openingHours?: Record<string, { open: string; close: string }> | null;
+  imageUrls?: string[] | null;
+}
+
+export interface MarketVendor extends RestaurantListItem {
+  stallNumber: string | null;
+  isPrimary: boolean;
+}
+
+export interface ListMarketsParams {
+  city?: string;
+  district?: string;
+  type?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface NearbyMarketsParams {
+  lat: number;
+  lng: number;
+  radiusKm?: number;
+  limit?: number;
+}
+
+export interface VendorFilters {
+  openNow?: boolean;
+  takeaway?: boolean;
+  delivery?: boolean;
+  q?: string;
+  sortBy?: "rating" | "popular";
+  page?: number;
+  limit?: number;
+}
+
+export const marketsApi = {
+  async listMarkets(params: ListMarketsParams = {}) {
+    return apiClient.get<{
+      markets: MarketListItem[];
+      total: number;
+      page: number;
+      limit: number;
+    }>("/markets", params);
+  },
+
+  async getMarket(slug: string) {
+    return apiClient.get<{ market: MarketDetail; vendorCount: number }>(
+      `/markets/${slug}`,
+    );
+  },
+
+  async listVendors(slug: string, params: VendorFilters = {}) {
+    return apiClient.get<{
+      vendors: MarketVendor[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`/markets/${slug}/vendors`, params);
+  },
+
+  async findNearby(params: NearbyMarketsParams) {
+    return apiClient.get<{
+      markets: Array<MarketListItem & { distanceKm: number }>;
+    }>("/markets/nearby", params);
+  },
+};
