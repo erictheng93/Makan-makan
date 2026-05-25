@@ -1,0 +1,90 @@
+{
+  "version": "v1.0.0",
+  "timestamp": 1779681894519,
+  "queries": {
+    "menu_items_by_restaurant": {
+      "avgTime": 0.44,
+      "p95Time": 1.25,
+      "p99Time": 1.25,
+      "indexUsed": true,
+      "category": "menu"
+    },
+    "menu_items_with_category": {
+      "avgTime": 0.48,
+      "p95Time": 1.43,
+      "p99Time": 1.43,
+      "indexUsed": true,
+      "category": "menu"
+    },
+    "menu_search": {
+      "avgTime": 0.17,
+      "p95Time": 0.22,
+      "p99Time": 0.22,
+      "indexUsed": true,
+      "category": "menu"
+    },
+    "orders_list": {
+      "avgTime": 0.33,
+      "p95Time": 1.32,
+      "p99Time": 1.32,
+      "indexUsed": true,
+      "category": "orders"
+    },
+    "orders_by_status": {
+      "avgTime": 0.4,
+      "p95Time": 1.53,
+      "p99Time": 1.53,
+      "indexUsed": true,
+      "category": "orders"
+    },
+    "order_with_items": {
+      "avgTime": 0.18,
+      "p95Time": 0.22,
+      "p99Time": 0.22,
+      "indexUsed": true,
+      "category": "orders"
+    },
+    "tables_list": {
+      "avgTime": 0.14,
+      "p95Time": 0.21,
+      "p99Time": 0.21,
+      "indexUsed": true,
+      "category": "tables"
+    },
+    "table_availability": {
+      "avgTime": 0.29,
+      "p95Time": 0.44,
+      "p99Time": 0.44,
+      "indexUsed": true,
+      "category": "tables"
+    },
+    "user_by_username": {
+      "avgTime": 0.08,
+      "p95Time": 0.09,
+      "p99Time": 0.09,
+      "indexUsed": true,
+      "category": "users"
+    },
+    "users_by_restaurant": {
+      "avgTime": 0.13,
+      "p95Time": 0.16,
+      "p99Time": 0.16,
+      "indexUsed": true,
+      "category": "users"
+    },
+    "daily_revenue": {
+      "avgTime": 0.11,
+      "p95Time": 0.11,
+      "p99Time": 0.11,
+      "indexUsed": true,
+      "category": "analytics"
+    },
+    "popular_items": {
+      "avgTime": 0.15,
+      "p95Time": 0.32,
+      "p99Time": 0.32,
+      "indexUsed": true,
+      "category": "analytics"
+    }
+  }
+}

@@ -1,6 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./types";
 import type { OrderStatus } from "@makanmakan/shared-types";
+import {
+  formatValidationError,
+  parseJsonMessage,
+  validateAdvancedClientMessage,
+} from "./utils/messageValidation";
 
 /**
  * Advanced Durable Object with Enterprise-Grade Features:
@@ -311,12 +316,29 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
         this.sessionState.lastActivity = Date.now();
         this.sessionState.totalMessages++;
 
-        const message = JSON.parse(event.data as string);
+        const parsedMessage = parseJsonMessage(
+          event.data as string | ArrayBuffer,
+        );
+        const validation = validateAdvancedClientMessage(parsedMessage);
+        if (!validation.success) {
+          const validationError = formatValidationError(validation.error);
+          this.recordError(new Error(validationError), {
+            connectionId: connectionInfo.id,
+            message: event.data,
+          });
+          await this.sendMessage(connectionInfo, {
+            type: "error",
+            error: "Invalid message payload",
+            details: validationError,
+          });
+          return;
+        }
+        const message = validation.data;
 
         // Handle different message types
         switch (message.type) {
           case "subscribe":
-            await this.handleSubscription(connectionInfo, message.data);
+            await this.handleSubscription(connectionInfo, message.data ?? {});
             break;
 
           case "order_state_change":
@@ -332,7 +354,10 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
             break;
 
           case "request_state_sync":
-            await this.handleStateSyncRequest(connectionInfo, message.data);
+            await this.handleStateSyncRequest(
+              connectionInfo,
+              message.data ?? {},
+            );
             break;
 
           // Group order specific messages
@@ -363,13 +388,6 @@ export class AdvancedRealtimeSession extends DurableObject<Env> {
           case "process_payment":
             await this.handleProcessPayment(connectionInfo, message.data);
             break;
-
-          default:
-            await this.sendMessage(connectionInfo, {
-              type: "error",
-              error: "Unknown message type",
-              originalMessage: message,
-            });
         }
 
         // Record message analytics

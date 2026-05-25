@@ -2,7 +2,6 @@ import type { Env } from "../types/env";
 import type {
   RealtimeAuthPayload,
   RealtimeEvent,
-  ClientMessage,
   ConnectionAckEvent,
   HeartbeatEvent,
   ErrorEvent,
@@ -12,6 +11,11 @@ import {
   verifyWebSocketToken,
   extractTokenFromUrl,
 } from "../utils/jwtVerifier";
+import {
+  formatValidationError,
+  parseJsonMessage,
+  validateBasicClientMessage,
+} from "../utils/messageValidation";
 
 interface ConnectionInfo {
   id: string;
@@ -258,10 +262,18 @@ export class RealtimeSession implements DurableObject {
     connectionInfo: ConnectionInfo,
   ): Promise<void> {
     try {
-      const message: ClientMessage =
-        typeof data === "string"
-          ? JSON.parse(data)
-          : JSON.parse(new TextDecoder().decode(data));
+      const parsedMessage = parseJsonMessage(data);
+      const validation = validateBasicClientMessage(parsedMessage);
+      if (!validation.success) {
+        this.sendErrorEvent(
+          socket,
+          connectionInfo,
+          "INVALID_MESSAGE",
+          formatValidationError(validation.error),
+        );
+        return;
+      }
+      const message = validation.data;
 
       // Update last activity
       connectionInfo.lastActivity = Date.now();
@@ -293,15 +305,6 @@ export class RealtimeSession implements DurableObject {
           // 取消訂閱（未來擴展）
           // Unsubscription processed
           break;
-
-        default:
-          console.warn(`Unknown message type: ${message.type}`);
-          this.sendErrorEvent(
-            socket,
-            connectionInfo,
-            "UNKNOWN_MESSAGE_TYPE",
-            `Unknown message type: ${message.type}`,
-          );
       }
     } catch (error) {
       console.error(`Error handling message from ${connectionInfo.id}:`, error);

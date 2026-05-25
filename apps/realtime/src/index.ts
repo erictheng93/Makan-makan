@@ -1,11 +1,39 @@
 import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import type { Env } from "./types/env";
+import {
+  checkRealtimeRateLimit,
+  rateLimitResponse,
+  type RealtimeRateLimitSubject,
+} from "./utils/rateLimiter";
 
 // Import Durable Objects
 export { RealtimeSession } from "./durableObjects/RealtimeSession";
 
 const app = new Hono<{ Bindings: Env }>();
+
+async function enforceWebSocketRateLimit(
+  c: Context<{ Bindings: Env }>,
+  subject: RealtimeRateLimitSubject,
+): Promise<Response | null> {
+  if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {
+    return null;
+  }
+
+  try {
+    const decision = await checkRealtimeRateLimit(c.req.raw, c.env, subject);
+    return decision.allowed ? null : rateLimitResponse(decision);
+  } catch (error) {
+    console.error("Realtime rate limit check failed:", error);
+    return c.json(
+      {
+        error: "Realtime rate limit unavailable",
+        code: "REALTIME_RATE_LIMIT_UNAVAILABLE",
+      },
+      503,
+    );
+  }
+}
 
 // CORS configuration
 app.use(
@@ -48,6 +76,12 @@ app.get("/customer/:tableId", async (c: Context<{ Bindings: Env }>) => {
     return c.json({ error: "Table ID is required" }, 400);
   }
 
+  const rateLimit = await enforceWebSocketRateLimit(c, {
+    roomType: "customer",
+    roomId: tableId,
+  });
+  if (rateLimit) return rateLimit;
+
   // Get Durable Object instance
   const id = c.env.REALTIME_SESSION.idFromName(`customer:${tableId}`);
   const durableObject = c.env.REALTIME_SESSION.get(id);
@@ -64,6 +98,12 @@ app.get("/admin/:restaurantId", async (c: Context<{ Bindings: Env }>) => {
     return c.json({ error: "Restaurant ID is required" }, 400);
   }
 
+  const rateLimit = await enforceWebSocketRateLimit(c, {
+    roomType: "admin",
+    roomId: restaurantId,
+  });
+  if (rateLimit) return rateLimit;
+
   // Get Durable Object instance
   const id = c.env.REALTIME_SESSION.idFromName(`admin:${restaurantId}`);
   const durableObject = c.env.REALTIME_SESSION.get(id);
@@ -78,6 +118,12 @@ app.get("/kitchen/:restaurantId", async (c: Context<{ Bindings: Env }>) => {
   if (!restaurantId) {
     return c.json({ error: "Restaurant ID is required" }, 400);
   }
+
+  const rateLimit = await enforceWebSocketRateLimit(c, {
+    roomType: "kitchen",
+    roomId: restaurantId,
+  });
+  if (rateLimit) return rateLimit;
 
   // Get Durable Object instance
   const id = c.env.REALTIME_SESSION.idFromName(`kitchen:${restaurantId}`);

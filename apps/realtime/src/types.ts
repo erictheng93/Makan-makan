@@ -5,6 +5,8 @@ export interface Env {
   DB: D1Database;
   JWT_SECRET: string;
   TOKEN_BLACKLIST?: KVNamespace;
+  RATE_LIMIT_KV?: KVNamespace;
+  RATE_LIMIT_ENABLED?: string;
 }
 
 export interface RealtimeMessage {

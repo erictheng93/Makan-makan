@@ -1,0 +1,190 @@
+# OWASP ZAP Security Scanning Configuration
+# Automated security testing for web applications
+
+# Environment Configuration
+env:
+  # Application URLs to scan
+  contexts:
+    - name: "MakanMakan Admin Dashboard"
+      url: "http://localhost:4173"
+      includePaths:
+        - "http://localhost:4173/dashboard.*"
+      excludePaths:
+        - "http://localhost:4173/static.*"
+        - "http://localhost:4173/.*\\.js"
+        - "http://localhost:4173/.*\\.css"
+        - "http://localhost:4173/.*\\.png"
+        - "http://localhost:4173/.*\\.jpg"
+
+    - name: "MakanMakan API"
+      url: "http://localhost:8787"
+      includePaths:
+        - "http://localhost:8787/api/v1.*"
+      excludePaths:
+        - "http://localhost:8787/api/v1/health"
+
+  # Parameters to scan
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+# Authentication Configuration
+authentication:
+  - name: "Admin Authentication"
+    type: "form"
+    loginUrl: "http://localhost:4173/login"
+    loginRequestData: "username=admin&password=testpass123"
+    usernameParameter: "username"
+    passwordParameter: "password"
+    loggedInIndicator: "\\Q/dashboard\\E"
+    loggedOutIndicator: "\\Qlogin\\E"
+
+# Session Management
+sessionManagement:
+  - name: "JWT Token"
+    type: "cookie"
+    sessionTokens:
+      - "auth_token"
+      - "session_id"
+
+# Spider Configuration
+spider:
+  maxDuration: 10
+  maxDepth: 5
+  maxChildren: 10
+  acceptCookies: true
+  handleODataParametersVisited: false
+
+# Ajax Spider Configuration
+ajaxSpider:
+  maxDuration: 10
+  maxCrawlDepth: 5
+  maxCrawlStates: 10
+  numberOfBrowsers: 1
+  inScopeOnly: true
+  clickDefaultElems: true
+  eventWait: 1000
+  reloadWait: 1000
+
+# Passive Scanning
+passiveScan:
+  enableTags: false
+  maxAlertsPerRule: 10
+
+# Active Scanning
+activeScan:
+  policy: "Default Policy"
+  maxRuleDurationInMins: 5
+  maxScanDurationInMins: 30
+  delayInMs: 0
+  threadPerHost: 2
+
+  # Scan policies
+  policyDefinition:
+    rules:
+      # High priority vulnerabilities
+      - id: 40012 # Cross Site Scripting (Reflected)
+        name: "Cross Site Scripting (Reflected)"
+        threshold: "medium"
+        strength: "high"
+
+      - id: 40014 # Cross Site Scripting (Persistent)
+        name: "Cross Site Scripting (Persistent)"
+        threshold: "medium"
+        strength: "high"
+
+      - id: 40018 # SQL Injection
+        name: "SQL Injection"
+        threshold: "medium"
+        strength: "high"
+
+      - id: 90020 # Remote OS Command Injection
+        name: "Remote OS Command Injection"
+        threshold: "medium"
+        strength: "high"
+
+      - id: 7 # Remote File Inclusion
+        name: "Remote File Inclusion"
+        threshold: "medium"
+        strength: "high"
+
+      # Medium priority vulnerabilities
+      - id: 10202 # Absence of Anti-CSRF Tokens
+        name: "Absence of Anti-CSRF Tokens"
+        threshold: "low"
+        strength: "medium"
+
+      - id: 10010 # Cookie No HttpOnly Flag
+        name: "Cookie No HttpOnly Flag"
+        threshold: "low"
+        strength: "medium"
+
+      - id: 10011 # Cookie Without Secure Flag
+        name: "Cookie Without Secure Flag"
+        threshold: "low"
+        strength: "medium"
+
+      - id: 10021 # X-Content-Type-Options Header Missing
+        name: "X-Content-Type-Options Header Missing"
+        threshold: "low"
+        strength: "low"
+
+      - id: 10020 # X-Frame-Options Header Not Set
+        name: "X-Frame-Options Header Not Set"
+        threshold: "low"
+        strength: "low"
+
+# Report Configuration
+report:
+  format: "html"
+  template: "traditional-html"
+  theme: "light"
+  title: "MakanMakan Security Scan Report"
+  description: "Automated security testing with OWASP ZAP"
+
+  # Report includes
+  sections:
+    - "chart"
+    - "passingrules"
+    - "statistics"
+
+  # Risk levels to include
+  risks:
+    - "High"
+    - "Medium"
+    - "Low"
+    - "Informational"
+
+  # Confidence levels to include
+  confidences:
+    - "High"
+    - "Medium"
+    - "Low"
+    - "Falsepositive"
+
+# Alert Filters
+alertFilters:
+  # Ignore false positives
+  - ruleId: 10021
+    url: ".*\\.js"
+    enabled: false
+
+  - ruleId: 10021
+    url: ".*\\.css"
+    enabled: false
+
+# Verification Configuration
+verification:
+  # Fail build on these alert types
+  rules:
+    - riskRating: "High"
+      action: "fail"
+
+    - riskRating: "Medium"
+      action: "fail"
+      threshold: 10
+
+    - riskRating: "Low"
+      action: "warn"
+      threshold: 20

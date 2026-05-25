@@ -10,12 +10,14 @@ This document records **actual** progress against the original Phase 4 plan. The
 
 The original 4-week timeline is 6 months past its paper deadline, but substantial progress has shipped — just not in the order or scope the plan predicted. Roughly **half** of Phase 4 is done. The kickoff doc's "Phase 4 完成度: 5%" dashboard is stale and should not be quoted; use this file instead.
 
+**2026-05-25 correction**: commit `b936600f chore(tests): remove mock-based test doubles` deleted the `tests/performance/`, `tests/e2e/smoke/`, and `tests/security/` inputs that `.github/workflows/test.yml` still referenced. Those CI inputs have now been restored in the current working tree, and the DB perf regression script is ESM-safe with a committed baseline at `tests/performance/baselines/db-baseline.json`.
+
 | Pillar          | Status      | Notes                                                                 |
 | --------------- | ----------- | --------------------------------------------------------------------- |
-| Performance     | ✅ ~70%     | Artillery framework + CI perf gate live, DB perf regression detection |
-| Security        | ✅ ~60%     | Token blacklist shipped; rate limit + message-schema validation gap   |
+| Performance     | ✅ ~70%     | Artillery CI smoke + DB perf regression gate restored after `b936600f` deletion regression |
+| Security        | ✅ ~75%     | Token blacklist, realtime upgrade rate limiting, and Zod message validation shipped |
 | Observability   | ❌ ~10%     | Metrics scaffolding only; no Prometheus / structured logging / Sentry |
-| Operations      | ⚠️ ~40%     | CI/CD live, staging provisioned; DR plan and ops manuals missing      |
+| Operations      | ⚠️ ~55%     | CI/CD live, staging provisioned; minimum rollback/backup/incident runbooks added |
 | Reliability     | ❓ unknown  | No SLA measurements published yet (no metrics → no numbers)           |
 | Production      | ❌ not done | Staging green; production cutover + 7-day stability still pending     |
 
@@ -25,8 +27,8 @@ The original 4-week timeline is 6 months past its paper deadline, but substantia
 
 | Task                              | Original | 2026-05-25 Actual                                                                                                              |
 | --------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Artillery performance framework   | ⏳       | ✅ Done. `tests/performance/artillery-api-ci.yml`, `artillery-realtime-ci.yml` (`1b633ba3`, `2a55bb32`, `ecd62f89`)             |
-| Performance baseline tests        | ⏳       | ✅ Done. CI runs Artillery + DB perf regression with `--fail-on-regression --warning-threshold 20 --failure-threshold 50`      |
+| Artillery performance framework   | ⏳       | ✅ Restored. `tests/performance/artillery-api-ci.yml`, `artillery-realtime-ci.yml`; these were deleted by `b936600f` and restored 2026-05-25 |
+| Performance baseline tests        | ⏳       | ✅ Restored. CI runs Artillery + DB perf regression with `--fail-on-regression --warning-threshold 20 --failure-threshold 50`; baseline at `tests/performance/baselines/db-baseline.json` |
 | Connection pool optimization      | ⏳       | ⚠️ Partial. KV usage parallelized + hardened (`bf128da5`); no dedicated WebSocket connection-pool refactor surfaced            |
 | Batch message processing          | ⏳       | ❌ Not found in current realtime code                                                                                          |
 
@@ -35,8 +37,8 @@ The original 4-week timeline is 6 months past its paper deadline, but substantia
 | Task                       | Original | 2026-05-25 Actual                                                                                                                |
 | -------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Token blacklist            | ⏳       | ✅ Done. `TOKEN_BLACKLIST` KV namespace + `verifyWebSocketToken(token, jwt, TOKEN_BLACKLIST)` in `RealtimeSession.ts:79-87` (`1c5b4b7b`) |
-| Connection rate limiting   | ⏳       | ❌ Not in realtime worker. API has Cloudflare geo rate limiter but realtime entry points (`/customer/:tableId` etc.) do not     |
-| WebSocket message validation | ⏳     | ⚠️ Partial. Room-access mismatch + guest-flag checks exist; no Zod-schema validation of message payloads                         |
+| Connection rate limiting   | ⏳       | ✅ Added. `/customer/:tableId`, `/admin/:restaurantId`, and `/kitchen/:restaurantId` websocket upgrades check `RATE_LIMIT_KV` before DO forwarding |
+| WebSocket message validation | ⏳     | ✅ Added. `ping`/`subscribe`/`unsubscribe` and advanced group-order messages now pass Zod `safeParse()` before dispatch |
 | Security audit log         | ⏳       | ❌ Not implemented for realtime (api-side audit log exists separately)                                                            |
 | Admin WS session validation | not in plan | ✅ Added (`b4ff11b4 fix(realtime): validate admin websocket sessions`)                                                       |
 
@@ -56,8 +58,8 @@ The original 4-week timeline is 6 months past its paper deadline, but substantia
 | ---------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
 | CI/CD Pipeline               | ⏳       | ✅ Done. `.github/workflows/test.yml` (lint → typecheck → test → perf → worker-gates → deploy) + `deploy-production.yml` |
 | Auto rollback                | ⏳       | ⚠️ Partial. Worker gates can fail the deploy; no explicit auto-rollback mechanism documented                            |
-| Disaster recovery plan       | ⏳       | ❌ Not written                                                                                                           |
-| Operations manuals (5 docs)  | ⏳       | ⚠️ Partial. `docs/deployment/DEPLOYMENT_GUIDE.md` + `docs/deployment/TROUBLESHOOTING.md` exist; no `OPERATIONS_MANUAL.md`, `PERFORMANCE_TUNING.md`, or `SECURITY_OPERATIONS.md` |
+| Disaster recovery plan       | ⏳       | ⚠️ Minimum runbooks added: rollback, backup/restore, incident triage; formal DR exercise still pending                  |
+| Operations manuals (5 docs)  | ⏳       | ⚠️ Partial. `DEPLOYMENT_GUIDE`, `TROUBLESHOOTING`, and 3 runbooks exist; full `OPERATIONS_MANUAL.md`, `PERFORMANCE_TUNING.md`, and `SECURITY_OPERATIONS.md` still pending |
 | Staging environment provision | ⏳      | ✅ Done. `65204ceb feat(deploy): provision staging Cloudflare resources + fill IDs`                                      |
 | Staging validation           | ⏳       | ✅ Smoke probes via `/info` per `CLAUDE.md`; CI promotes to staging on green                                             |
 
@@ -82,18 +84,17 @@ These shipped but weren't in the original Phase 4 plan — worth recording so fu
 In rough priority order for whoever picks this up:
 
 1. **Prometheus / Analytics Engine metrics + structured logging.** Without these, the SLA/MTTR/uptime targets in the plan can't even be measured — every "未測量 → < Xms" row in the plan stays at "未測量".
-2. **Rate limiting on realtime endpoints.** API has it; realtime worker entry points do not. This is the most exploitable gap.
-3. **WebSocket message schema validation (Zod).** Room-access checks exist but payload validation is implicit.
-4. **Disaster recovery plan + ops manuals.** Won't block code but will block on-call training.
-5. **Production cutover + 7-day stability soak.** Final gate.
+2. **Realtime security audit log.** Token blacklist, rate limiting, and payload validation exist; security events still need durable audit records.
+3. **Formal DR exercise + full ops manuals.** Minimum runbooks exist, but the backup/restore path still needs a timed staging drill and the remaining operations manuals.
+4. **Production cutover + 7-day stability soak.** Final gate.
 
-The original plan estimated 160 hours total. The remaining work is probably ~60-80 hours given how much foundation has shipped (perf framework, CI gates, blacklist, staging).
+The original plan estimated 160 hours total. The remaining work is probably ~45-65 hours given the restored CI/perf gates, realtime rate limiting, Zod validation, and minimum runbooks.
 
 ## Next review
 
 Refresh this file when any of:
 - Prometheus / metrics get wired.
-- Realtime rate limiter ships.
+- Realtime security audit logging ships.
 - Production cutover completes.
 - The plan's success criteria checklist (`REALTIME_PHASE4_PLAN.md` § 成功標準) hits >80%.
 
