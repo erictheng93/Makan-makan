@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import { getRefreshDelay } from "@makanmakan/utils";
-import { apiClient } from "@/services/api";
 import {
   customerIdentityApi,
   type CustomerSummary,
@@ -16,14 +15,6 @@ export interface CustomerUser {
   email?: string;
   phone?: string;
   role: number;
-}
-
-interface RegisterResponse {
-  tokens?: {
-    accessToken?: string;
-    refreshToken?: string;
-  };
-  user?: CustomerUser;
 }
 
 // Hydrate user from localStorage for instant restore on page refresh.
@@ -148,48 +139,17 @@ export const useAuthStore = defineStore("auth", () => {
   // that still submit a phone + OTP pair.
   const login = async (phone: string, otp: string) => verifyOtp(phone, otp);
 
-  // 註冊
-  const register = async (data: {
+  // Legacy password registration is retired in favor of phone OTP sign-in.
+  const register = async (_data: {
     username: string;
     password: string;
     fullName: string;
     email?: string;
     phone?: string;
   }) => {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const result = await apiClient.post<RegisterResponse>("/auth/register", {
-        ...data,
-        role: 5, // Customer role
-      });
-
-      if (result.tokens?.accessToken && result.user) {
-        // 註冊成功後自動登入
-        token.value = result.tokens.accessToken;
-        refreshToken.value = result.tokens.refreshToken ?? null;
-        user.value = result.user;
-
-        localStorage.setItem("customer_auth_token", token.value!);
-        if (refreshToken.value) {
-          localStorage.setItem("customer_refresh_token", refreshToken.value);
-        }
-        persistUser(user.value);
-
-        if (token.value) scheduleProactiveRefresh(token.value);
-
-        return { success: true };
-      }
-
-      error.value = t("auth.registerFailed");
-      return { success: false, error: error.value };
-    } catch (err: any) {
-      error.value = err.message || t("messages.networkError");
-      return { success: false, error: error.value };
-    } finally {
-      isLoading.value = false;
-    }
+    error.value =
+      "Customer password registration is retired. Use phone OTP login.";
+    return { success: false, error: error.value };
   };
 
   // 登出

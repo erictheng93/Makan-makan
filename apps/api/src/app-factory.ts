@@ -496,7 +496,6 @@ export function createApp(
   apiV1.use("/cache/*", authMiddleware);
   apiV1.use("/monitoring/*", authMiddleware);
   apiV1.use("/backup/*", authMiddleware);
-  apiV1.use("/customers/*", staffOrUserCustomerAuthMiddleware);
   apiV1.use("/leaves/*", authMiddleware);
   apiV1.use("/leaves/*", moduleGate("staff_management"));
   apiV1.use("/scheduling/*", authMiddleware);

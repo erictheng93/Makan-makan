@@ -82,13 +82,14 @@ const phoneSchema = z
     `Phone must be less than ${VALIDATION_LIMITS.PHONE_MAX_LENGTH} characters`,
   );
 
-// Role validation schema (support customer role 5)
+// Staff user role validation. Customer identity now lives in `customers`, so
+// new `users.role = 5` rows are not accepted by staff/user creation flows.
 const roleSchema = z
   .number()
   .int("Role must be an integer")
   .min(0, "Role must be 0 or greater")
-  .max(5, "Role must be 5 or less")
-  .refine((role) => [0, 1, 2, 3, 4, 5].includes(role), {
+  .max(4, "Role must be 4 or less")
+  .refine((role) => [0, 1, 2, 3, 4].includes(role), {
     message: "Invalid role value",
   });
 
@@ -155,7 +156,7 @@ const customerRegisterSchema = z.object({
       `Password must be at least ${VALIDATION_LIMITS.MIN_PASSWORD_LENGTH} characters`,
     )
     .max(100, "Password must be less than 100 characters"),
-  role: z.literal(5).optional(), // Only allow customer role
+  role: z.literal(5).optional(), // Retired endpoint only accepts legacy shape.
 });
 
 const refreshTokenSchema = z.object({

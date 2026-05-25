@@ -23,7 +23,7 @@ export const AuthUserSchema = z.object({
   fullName: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional().nullable(),
-  role: z.number().int().min(0).max(5),
+  role: z.number().int().min(0).max(4),
   restaurantId: z.string().optional().nullable(),
   isActive: z.union([z.boolean(), z.number()]).optional(),
   ...TimestampFields,

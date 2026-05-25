@@ -25,7 +25,7 @@ export const createUserSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().max(20).optional(),
   password: strongPasswordSchema,
-  role: z.number().int().min(0).max(5),
+  role: z.number().int().min(0).max(4),
   restaurantId: z.number().int().positive().optional(),
   address: z.string().max(200).optional(),
   dateOfBirth: z.string().optional(),

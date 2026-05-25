@@ -4,12 +4,12 @@
  *
  * This suite verifies the customer-facing orders path now works end-to-end.
  *
- * The endpoint `GET /api/v1/customers/me/orders` must accept customer
- * tokens and scope results to the authenticated customer.
+ * The endpoint `GET /api/v1/customers/me/orders` must accept canonical
+ * customer tokens and scope results to the authenticated customer.
  *
- * The tests below assert the fixed behavior: customers should receive
- * 200 and only see their own orders, while staff/owners remain blocked by
- * `requireRole([5])`.
+ * The tests below assert the identity-cleanup behavior: customers should
+ * receive 200 and only see their own orders by `customers.id`, while
+ * staff/owners are not accepted as customers.
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
@@ -46,32 +46,17 @@ describe("Customer Orders API - real integration", () => {
     expect(json.error?.code).toBeDefined();
   });
 
-  // Customer token (role=5) should now be accepted and scoped to the
-  // authenticated customer only.
-  it("returns 200 for a customer token (role=5) and scopes orders to that customer", async () => {
+  it("returns 200 for a canonical customer token and scopes orders to that customer", async () => {
     const restaurant = await seed.restaurant();
+    const customer100 = await loginCustomerSession("+886911111100");
+    const customer200 = await loginCustomerSession("+886922222200");
 
-    const customer100 = await seed.user({
-      id: 100,
-      role: 5,
-      username: "customer-100",
-    });
-    const customer200 = await seed.user({
-      id: 200,
-      role: 5,
-      username: "customer-200",
-    });
-
-    await seed.order(restaurant.id, { customerId: customer100.id });
-    await seed.order(restaurant.id, { customerId: customer200.id });
-
-    const customerToken = await testApp.authHelper.customerToken(
-      customer100.id,
-    );
+    await seed.order(restaurant.id, { customerId: customer100.customer.id });
+    await seed.order(restaurant.id, { customerId: customer200.customer.id });
 
     const res = await testApp.app.fetch(
       new Request(ENDPOINT, {
-        headers: { authorization: `Bearer ${customerToken}` },
+        headers: { authorization: `Bearer ${customer100.accessToken}` },
       }),
     );
 
@@ -80,13 +65,10 @@ describe("Customer Orders API - real integration", () => {
     expect(json.success).toBe(true);
     expect(Array.isArray(json.data)).toBe(true);
     expect(json.data).toHaveLength(1);
-    expect(json.data[0].customerId).toBe(customer100.id);
+    expect(json.data[0].customerId).toBe(customer100.customer.id);
   });
 
-  // Staff/owner token documents the route-level scope gate.
-  // A staff/owner token passes the customer-auth middleware but is
-  // rejected by the per-route `requireRole([5])` guard.
-  it("returns 403 for a staff/owner token (role=1) because requireRole([5]) rejects non-customers", async () => {
+  it("returns 401 for a staff/owner token because customers routes require canonical customer auth", async () => {
     const restaurant = await seed.restaurant();
 
     const owner = await seed.user({
@@ -106,10 +88,37 @@ describe("Customer Orders API - real integration", () => {
       }),
     );
 
-    // Owner passes customer-auth middleware but fails requireRole([5]).
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     const json: any = await res.json();
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
+
+  async function loginCustomerSession(phone: string): Promise<{
+    accessToken: string;
+    customer: { id: string };
+  }> {
+    const otpRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/customer/auth/request-otp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ phone }),
+      }),
+    );
+    const otpJson: any = await otpRes.json();
+
+    const verifyRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/customer/auth/verify-otp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ phone, otp: otpJson.data.devOtp }),
+      }),
+    );
+    const verifyJson: any = await verifyRes.json();
+
+    return {
+      accessToken: verifyJson.data.accessToken,
+      customer: { id: verifyJson.data.customer.id },
+    };
+  }
 });

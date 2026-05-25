@@ -21,7 +21,7 @@ export const UserSchema = z
     username: z.string().optional(),
     name: z.string().optional(),
     fullName: z.string().optional(),
-    role: z.number().int().min(0).max(5),
+    role: z.number().int().min(0).max(4),
     restaurantId: z.string().optional().nullable(),
     phone: z.string().optional().nullable(),
     avatar: z.string().optional().nullable(),

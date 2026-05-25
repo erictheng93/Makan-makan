@@ -60,7 +60,7 @@ export class UsersService {
     if (currentUser.role === USER_ROLES.OWNER) {
       return (
         targetRole >= USER_ROLES.CHEF &&
-        targetRole <= USER_ROLES.CUSTOMER &&
+        targetRole <= USER_ROLES.CASHIER &&
         targetRestaurantId === currentUser.restaurantId
       );
     }

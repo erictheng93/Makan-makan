@@ -107,21 +107,8 @@
           </button>
         </form>
 
-        <!-- 註冊連結 -->
-        <div class="mt-6 text-center">
-          <p class="text-sm text-gray-600">
-            {{ t("auth.noAccount") }}
-            <router-link
-              to="/register"
-              class="font-medium text-orange-600 hover:text-orange-500"
-            >
-              {{ t("auth.registerNow") }}
-            </router-link>
-          </p>
-        </div>
-
         <!-- 訪客繼續 -->
-        <div class="mt-4 text-center">
+        <div class="mt-6 text-center">
           <router-link
             to="/menu"
             class="text-sm text-gray-500 hover:text-gray-700"

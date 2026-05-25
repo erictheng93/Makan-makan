@@ -13,7 +13,6 @@ import { HTTP_STATUS } from "../../../shared/constants";
 import type { UserRole } from "../../../shared/constants";
 import {
   authMiddleware as defaultAuthMiddleware,
-  customerAuthMiddleware,
   blacklistToken as defaultBlacklistToken,
   requireRole as defaultRequireRole,
 } from "../../../shared/middleware";
@@ -153,52 +152,23 @@ export function createAuthRoutes(
     );
   });
 
-  // Public Customer Registration - POST /register (for customers only)
+  // Public customer password registration is retired. Customers now use
+  // /api/v1/customer/auth/request-otp + verify-otp so new identity rows are
+  // created in customers, not users(role=5).
   authRoutes.post(
     "/register",
     validateBody(authSchemas.customerRegister),
     async (c) => {
-      const requestData = c.get("validatedBody");
-      // Device info and location tracking can be added in future if needed
-
-      // Transform request data to RegisterData format
-      const registerData: RegisterData = {
-        username: requestData.username,
-        fullName: requestData.fullName,
-        email: requestData.email,
-        phone: requestData.phone,
-        password: requestData.password,
-        role: 5 as UserRole, // Always customer role for public registration
-        restaurantId: undefined, // Customers are not associated with specific restaurants
-      };
-
-      // Initialize auth service
-      const authService = AuthService(c.env);
-      const result = await authService.register(registerData, undefined);
-
-      if (!result.success) {
-        const statusCode = result.error?.includes("already exists")
-          ? HTTP_STATUS.CONFLICT
-          : HTTP_STATUS.BAD_REQUEST;
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          statusCode,
-        );
-      }
-
-      // Auto-login after registration
       return c.json(
         {
-          success: true,
-          data: {
-            user: result.user,
-            tokens: result.tokens,
+          success: false,
+          error: {
+            code: "CUSTOMER_PASSWORD_REGISTRATION_RETIRED",
+            message:
+              "Customer password registration is retired. Use phone OTP customer authentication.",
           },
         },
-        HTTP_STATUS.CREATED,
+        HTTP_STATUS.GONE,
       );
     },
   );
@@ -776,5 +746,4 @@ export function createAuthRoutes(
   return authRoutes;
 }
 
-// Export default routes using customer-aware auth for customer-facing endpoints.
-export default createAuthRoutes({ authMiddleware: customerAuthMiddleware });
+export default createAuthRoutes();

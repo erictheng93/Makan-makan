@@ -24,7 +24,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/register",
     name: "Register",
-    component: () => import("@/views/RegisterView.vue"),
+    redirect: "/login",
     meta: {
       titleKey: "navigation.register",
       requiresGuest: true,

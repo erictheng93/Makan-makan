@@ -52,7 +52,7 @@ describe("Auth API — real integration", () => {
   // ── POST /api/v1/auth/register ────────────────────────────────────────────
 
   describe("POST /api/v1/auth/register", () => {
-    it("creates a new customer user and returns 201", async () => {
+    it("rejects legacy customer password registration", async () => {
       const res = await testApp.app.fetch(
         new Request("https://test/api/v1/auth/register", {
           method: "POST",
@@ -66,21 +66,22 @@ describe("Auth API — real integration", () => {
         }),
       );
 
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(410);
       const body: any = await res.json();
-      expect(body.success).toBe(true);
-      expect(body.data?.user?.username).toBe("newcustomer");
-      expect(body.data?.user?.fullName).toBe("New Customer");
-      // Public registration always assigns role 5 (customer)
-      expect(body.data?.user?.role).toBe(5);
+      expect(body.success).toBe(false);
+      expect(body.error?.code).toBe("CUSTOMER_PASSWORD_REGISTRATION_RETIRED");
+
+      const row = await testApp.env.DB.prepare(
+        `SELECT id FROM users WHERE username = 'newcustomer'`,
+      ).first();
+      expect(row).toBeNull();
     });
 
-    it("rejects registration with a duplicate username", async () => {
-      // Seed a user directly so the username already exists in the DB.
+    it("does not leak duplicate username state after customer registration retirement", async () => {
       await seed.user({
         username: "existinguser",
         restaurantId,
-        role: 5,
+        role: 4,
       });
 
       const res = await testApp.app.fetch(
@@ -96,11 +97,10 @@ describe("Auth API — real integration", () => {
         }),
       );
 
-      // DatabaseAuthService.register returns success=false + error
-      // "Username already exists"; the route maps that to 409 CONFLICT.
-      expect(res.status).not.toBe(201);
+      expect(res.status).toBe(410);
       const body: any = await res.json();
       expect(body.success).toBe(false);
+      expect(body.error?.code).toBe("CUSTOMER_PASSWORD_REGISTRATION_RETIRED");
     });
 
     it("rejects registration when fullName is missing (400)", async () => {
@@ -126,20 +126,17 @@ describe("Auth API — real integration", () => {
   // ── POST /api/v1/auth/login ───────────────────────────────────────────────
 
   describe("POST /api/v1/auth/login", () => {
-    it("logs in with valid credentials after registration", async () => {
-      const registerRes = await testApp.app.fetch(
-        new Request("https://test/api/v1/auth/register", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            username: "logintest",
-            fullName: "Login Test User",
-            email: "logintest@example.com",
-            password: "Test@12345",
-          }),
-        }),
-      );
-      expect(registerRes.status).toBe(201);
+    it("logs in a staff user with valid credentials", async () => {
+      const bcrypt = (await import("bcryptjs")).default;
+      const password = "Test@12345";
+      await seed.user({
+        username: "logintest",
+        fullName: "Login Test User",
+        email: "logintest@example.com",
+        role: 1,
+        restaurantId,
+        passwordHash: await bcrypt.hash(password, 10),
+      });
 
       const loginRes = await testApp.app.fetch(
         new Request("https://test/api/v1/auth/login", {
@@ -147,7 +144,7 @@ describe("Auth API — real integration", () => {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             username: "logintest",
-            password: "Test@12345",
+            password,
           }),
         }),
       );
@@ -161,18 +158,15 @@ describe("Auth API — real integration", () => {
     });
 
     it("returns 401 for an invalid password", async () => {
-      await testApp.app.fetch(
-        new Request("https://test/api/v1/auth/register", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            username: "wrongpwduser",
-            fullName: "Wrong Password User",
-            email: "wrongpwd@example.com",
-            password: "Correct@123",
-          }),
-        }),
-      );
+      const bcrypt = (await import("bcryptjs")).default;
+      await seed.user({
+        username: "wrongpwduser",
+        fullName: "Wrong Password User",
+        email: "wrongpwd@example.com",
+        role: 1,
+        restaurantId,
+        passwordHash: await bcrypt.hash("Correct@123", 10),
+      });
 
       const res = await testApp.app.fetch(
         new Request("https://test/api/v1/auth/login", {
@@ -181,6 +175,32 @@ describe("Auth API — real integration", () => {
           body: JSON.stringify({
             username: "wrongpwduser",
             password: "WrongPassword@999",
+          }),
+        }),
+      );
+
+      expect(res.status).toBe(401);
+      const body: any = await res.json();
+      expect(body.success).toBe(false);
+    });
+
+    it("returns 401 for a legacy customer user password login", async () => {
+      const bcrypt = (await import("bcryptjs")).default;
+      await seed.user({
+        username: "legacycustomer",
+        fullName: "Legacy Customer",
+        role: 5,
+        restaurantId: null,
+        passwordHash: await bcrypt.hash("Customer@123", 10),
+      });
+
+      const res = await testApp.app.fetch(
+        new Request("https://test/api/v1/auth/login", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            username: "legacycustomer",
+            password: "Customer@123",
           }),
         }),
       );

@@ -4,17 +4,12 @@
  */
 
 import { Hono } from "hono";
-import {
-  requireRole,
-  staffOrUserCustomerAuthMiddleware,
-} from "../../../shared/middleware";
 import { validateQuery } from "../../../shared/middleware";
 import { OrdersService } from "../../orders/services/OrdersService";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type { Env } from "../../../shared/types";
-import type { AuthUser } from "../../../middleware/auth";
+import { canonicalCustomerAuthMiddleware } from "../../../middleware/auth";
 import { z } from "zod";
-import type { UserRole } from "../../../shared/constants";
 import type { OrderQueryFilters } from "../../orders/types";
 import type { OrderStatus as DbOrderStatus } from "@makanmakan/database";
 
@@ -48,19 +43,18 @@ function toOrderStatuses(status: MyOrdersQuery["status"]): DbOrderStatus[] {
  */
 app.get(
   "/me/orders",
-  staffOrUserCustomerAuthMiddleware,
-  requireRole([5]), // Customers only
+  canonicalCustomerAuthMiddleware,
   validateQuery(myOrdersSchema),
   async (c) => {
     const query = c.get("validatedQuery");
-    const user: AuthUser = c.get("user");
+    const customer = c.get("customer");
     const ordersService = new OrdersService(c.env);
 
-    logger.debug("Getting customer orders", { customerId: user.id, query });
+    logger.debug("Getting customer orders", { customerId: customer.id, query });
 
     // Build filters - always filter by current customer
     const filters: OrderQueryFilters = {
-      customerId: String(user.id),
+      customerId: customer.id,
       page: query.page || 1,
       limit: query.limit || 20,
     };
@@ -77,11 +71,7 @@ app.get(
       filters.dateTo = new Date(query.dateTo);
     }
 
-    const result = await ordersService.getOrders(
-      filters,
-      user.id,
-      user.role as UserRole,
-    );
+    const result = await ordersService.getOrders(filters);
 
     return c.json({
       success: true,
@@ -95,28 +85,23 @@ app.get(
  * Get current customer's profile
  * GET /api/v1/customers/me
  */
-app.get(
-  "/me",
-  staffOrUserCustomerAuthMiddleware,
-  requireRole([5]), // Customers only
-  async (c) => {
-    const user: AuthUser = c.get("user");
+app.get("/me", canonicalCustomerAuthMiddleware, async (c) => {
+  const customer = c.get("customer");
 
-    logger.debug("Getting customer profile", { customerId: user.id });
+  logger.debug("Getting customer profile", { customerId: customer.id });
 
-    // Return user profile
-    return c.json({
-      success: true,
-      data: {
-        id: user.id,
-        username: user.username,
-        fullName: user.fullName,
-        email: user.email || undefined,
-        phone: user.phone || undefined,
-        role: user.role,
-      },
-    });
-  },
-);
+  // Return user profile
+  return c.json({
+    success: true,
+    data: {
+      id: customer.id,
+      username: customer.primaryPhone || customer.primaryEmail || customer.id,
+      fullName: customer.displayName,
+      email: customer.primaryEmail || undefined,
+      phone: customer.primaryPhone || undefined,
+      role: 5,
+    },
+  });
+});
 
 export default app;

@@ -148,6 +148,14 @@ export class AuthService extends BaseService {
         };
       }
 
+      if (user.role === 5) {
+        return {
+          success: false,
+          error:
+            "Customer password login is retired. Use phone OTP customer authentication.",
+        };
+      }
+
       // 驗證密碼
       const isPasswordValid = await bcrypt.compare(
         data.password,
@@ -258,6 +266,14 @@ export class AuthService extends BaseService {
   // 用戶註冊
   async register(data: RegisterData): Promise<AuthResult> {
     try {
+      if (data.role === 5) {
+        return {
+          success: false,
+          error:
+            "Customer password registration is retired. Use phone OTP customer authentication.",
+        };
+      }
+
       // 檢查用戶名是否已存在
       const existingUser = await this.db
         .select({ id: users.id })
