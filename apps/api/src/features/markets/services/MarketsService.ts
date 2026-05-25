@@ -1,13 +1,22 @@
 import { drizzle } from "drizzle-orm/d1";
 import { and, asc, desc, eq, gte, isNull, like, lte, sql } from "drizzle-orm";
+import type { KVNamespace } from "@cloudflare/workers-types";
 import {
   marketJoinRequests,
   markets,
   restaurantMarketMemberships,
   restaurants,
 } from "@makanmakan/database";
+import {
+  KVCacheService,
+  NoopCacheService,
+  type CacheService,
+} from "../../../core/cache";
+import { CACHE_TTL } from "../../../shared/constants";
 import { isOpenNow } from "../../discovery/utils/isOpenNow";
 import { boundingBoxFromCircle, distanceKm } from "./geo";
+
+const MARKET_CACHE_VERSION_KEY = "markets:version";
 
 export interface MarketFilters {
   city?: string;
@@ -32,12 +41,29 @@ export type UpdateMarketInput = Partial<typeof markets.$inferInsert>;
 
 export class MarketsService {
   private db;
+  private cache: CacheService;
+  private kv?: KVNamespace;
 
-  constructor(d1: D1Database) {
+  constructor(d1: D1Database, kv?: KVNamespace) {
     this.db = drizzle(d1);
+    this.kv = kv;
+    this.cache = kv ? new KVCacheService(kv) : new NoopCacheService();
   }
 
   async listMarkets(filters: MarketFilters) {
+    const cacheKey = await this.publicCacheKey("list", filters);
+    const cached =
+      await this.cache.get<Awaited<ReturnType<MarketsService["queryMarkets"]>>>(
+        cacheKey,
+      );
+    if (cached) return cached;
+
+    const data = await this.queryMarkets(filters);
+    await this.cache.set(cacheKey, data, CACHE_TTL.SHORT);
+    return data;
+  }
+
+  private async queryMarkets(filters: MarketFilters) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const offset = (page - 1) * limit;
@@ -97,6 +123,19 @@ export class MarketsService {
   }
 
   async getMarketBySlug(slug: string) {
+    const cacheKey = await this.publicCacheKey("detail", slug);
+    const cached =
+      await this.cache.get<
+        Awaited<ReturnType<MarketsService["queryMarketBySlug"]>>
+      >(cacheKey);
+    if (cached) return cached;
+
+    const data = await this.queryMarketBySlug(slug);
+    if (data) await this.cache.set(cacheKey, data, CACHE_TTL.SHORT);
+    return data;
+  }
+
+  private async queryMarketBySlug(slug: string) {
     const [market] = await this.db
       .select()
       .from(markets)
@@ -125,6 +164,22 @@ export class MarketsService {
   }
 
   async listVendors(slug: string, filters: VendorFilters) {
+    const cacheKey = await this.publicCacheKey("vendors", {
+      slug,
+      ...filters,
+    });
+    const cached =
+      await this.cache.get<Awaited<ReturnType<MarketsService["queryVendors"]>>>(
+        cacheKey,
+      );
+    if (cached) return cached;
+
+    const data = await this.queryVendors(slug, filters);
+    if (data) await this.cache.set(cacheKey, data, CACHE_TTL.SHORT);
+    return data;
+  }
+
+  private async queryVendors(slug: string, filters: VendorFilters) {
     const marketDetail = await this.getMarketBySlug(slug);
     if (!marketDetail) return null;
 
@@ -200,6 +255,29 @@ export class MarketsService {
   }
 
   async findNearby(lat: number, lng: number, radiusKm = 2, limit = 20) {
+    const cacheKey = await this.publicCacheKey("nearby", {
+      lat: Number(lat.toFixed(3)),
+      lng: Number(lng.toFixed(3)),
+      radiusKm,
+      limit,
+    });
+    const cached =
+      await this.cache.get<Awaited<ReturnType<MarketsService["queryNearby"]>>>(
+        cacheKey,
+      );
+    if (cached) return cached;
+
+    const data = await this.queryNearby(lat, lng, radiusKm, limit);
+    await this.cache.set(cacheKey, data, CACHE_TTL.SHORT);
+    return data;
+  }
+
+  private async queryNearby(
+    lat: number,
+    lng: number,
+    radiusKm = 2,
+    limit = 20,
+  ) {
     const cappedRadius = Math.min(Math.max(radiusKm, 0.1), 10);
     const cappedLimit = Math.min(Math.max(limit, 1), 50);
     const box = boundingBoxFromCircle(lat, lng, cappedRadius);
@@ -266,6 +344,7 @@ export class MarketsService {
         updatedAt: now,
       })
       .returning();
+    await this.bumpPublicCacheVersion();
     return market;
   }
 
@@ -281,6 +360,7 @@ export class MarketsService {
       })
       .where(eq(markets.id, id))
       .returning();
+    if (market) await this.bumpPublicCacheVersion();
     return market ?? null;
   }
 
@@ -296,6 +376,7 @@ export class MarketsService {
         updatedAt: new Date(),
       })
       .where(eq(markets.id, id));
+    await this.bumpPublicCacheVersion();
     return true;
   }
 
@@ -332,6 +413,7 @@ export class MarketsService {
         joinedAt: new Date(),
       })
       .returning();
+    await this.bumpPublicCacheVersion();
     return membership;
   }
 
@@ -347,7 +429,9 @@ export class MarketsService {
         ),
       )
       .returning();
-    return result.length > 0;
+    const removed = result.length > 0;
+    if (removed) await this.bumpPublicCacheVersion();
+    return removed;
   }
 
   async listRestaurantMemberships(restaurantId: string) {
@@ -451,4 +535,40 @@ export class MarketsService {
 
     return { status: "created" as const, request };
   }
+
+  private async publicCacheKey(scope: string, value: unknown) {
+    const version = await this.getPublicCacheVersion();
+    return `markets:v${version}:${scope}:${stableCacheValue(value)}`;
+  }
+
+  private async getPublicCacheVersion() {
+    return (await this.kv?.get(MARKET_CACHE_VERSION_KEY)) ?? "1";
+  }
+
+  private async bumpPublicCacheVersion() {
+    if (!this.kv) return;
+    const current = Number(await this.getPublicCacheVersion());
+    const next = Number.isFinite(current) ? current + 1 : Date.now();
+    await this.kv.put(MARKET_CACHE_VERSION_KEY, String(next));
+  }
+}
+
+function stableCacheValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === null || typeof value !== "object") return String(value);
+
+  return JSON.stringify(sortCacheValue(value));
+}
+
+function sortCacheValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortCacheValue);
+  if (value === null || typeof value !== "object") return value;
+
+  return Object.entries(value as Record<string, unknown>)
+    .filter(([, entry]) => entry !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .reduce<Record<string, unknown>>((sorted, [key, entry]) => {
+      sorted[key] = sortCacheValue(entry);
+      return sorted;
+    }, {});
 }

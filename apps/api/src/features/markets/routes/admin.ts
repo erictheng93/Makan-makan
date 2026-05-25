@@ -18,7 +18,7 @@ routes.use("*", requireRole([0]));
 
 routes.post("/", validateBody(createMarketSchema), async (c) => {
   const body = c.get("validatedBody");
-  const service = new MarketsService(c.env.DB);
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
   const market = await service.createMarket(body);
   return c.json({ success: true, data: { market } }, 201);
 });
@@ -30,7 +30,7 @@ routes.put(
   async (c) => {
     const { id } = c.get("validatedParams");
     const body = c.get("validatedBody");
-    const service = new MarketsService(c.env.DB);
+    const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
     const market = await service.updateMarket(id, body);
 
     if (!market) {
@@ -49,7 +49,7 @@ routes.put(
 
 routes.delete("/:id", validateParams(marketIdParamSchema), async (c) => {
   const { id } = c.get("validatedParams");
-  const service = new MarketsService(c.env.DB);
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
   const deleted = await service.softDeleteMarket(id);
 
   if (!deleted) {
@@ -72,7 +72,7 @@ routes.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const body = c.get("validatedBody");
-    const service = new MarketsService(c.env.DB);
+    const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
     const membership = await service.addVendor(id, body);
 
     if (!membership) {
@@ -97,7 +97,7 @@ routes.delete(
   validateParams(marketVendorParamSchema),
   async (c) => {
     const { id, restaurantId } = c.get("validatedParams");
-    const service = new MarketsService(c.env.DB);
+    const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
     const removed = await service.removeVendor(id, restaurantId);
 
     if (removed) {

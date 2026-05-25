@@ -120,7 +120,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 **Priority:** P2 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` **Context:** Today's Discovery system treats every shop as an island; `restaurants.district` is a free-text label and `latitude / longitude` columns are reserved-but-unused. To serve night markets and commercial districts, "market" needs to become a first-class entity, GPS search needs to be activated, and Discovery needs to bridge into checkout without a QR scan.
 
-**Status:** In progress. Backend core landed in commit `89147020`; customer-app market browse/detail routes and the Discovery → takeaway button bridge landed in commit `8ae7ce3a`; admin market CRUD and vendor membership management landed in commit `c5f814c9`; onboarding now captures mandatory restaurant GPS coordinates for future market discovery; admin-dashboard has read-only market memberships plus join-request submission. Six locked decisions are captured in §11 (platform-owned in Phase 1, free pricing, no native DM, deep-link contact MVP, list-only without map, and DB-level partial unique active memberships). Remaining Phase 1 work: KV cache wiring.
+**Status:** Completed 2026-05-25. Backend core landed in commit `89147020`; customer-app market browse/detail routes and the Discovery → takeaway button bridge landed in commit `8ae7ce3a`; admin market CRUD and vendor membership management landed in commit `c5f814c9`; onboarding now captures mandatory restaurant GPS coordinates for future market discovery; admin-dashboard has read-only market memberships plus join-request submission; public market reads now use versioned KV cache keys invalidated by admin market/vendor mutations. Six locked decisions are captured in §11 (platform-owned in Phase 1, free pricing, no native DM, deep-link contact MVP, list-only without map, and DB-level partial unique active memberships).
 
 **Scope (Phase 1, ~27 dev-days estimated in spec §14):**
 
@@ -130,7 +130,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 - Extend `DiscoveryService`: `marketId` and `lat/lng/radiusKm` filters; bounding-box + Haversine `findNearby`
 - New `takeaway-eligibility` endpoint that returns existing `shopQrCode` as the entry token (bridges Discovery → existing shop-mode order flow)
 - Extend `SearchIndexSyncService` to subscribe to membership and market changes
-- KV cache: `market:detail:{slug}`, `market:list:...`, `market:vendors:{id}`, `market:nearby:{geohash5}`
+- KV cache: versioned `markets:v{version}:detail:{slug}`, `markets:v{version}:list:...`, `markets:v{version}:vendors:...`, and `markets:v{version}:nearby:...` keys with `markets:version` invalidation on admin market/vendor mutations
 - customer-app: `/markets`, `/markets/:slug` routes; `MarketCard`, `MarketDetailHero`, `VendorListInMarket`; "立即外帶" button on `DishResultCard` / `RestaurantCard`
 - management-portal: `MarketsView.vue` (admin CRUD, attach vendors)
 - onboarding-app: mandatory "Pick location on map" step capturing `latitude / longitude`

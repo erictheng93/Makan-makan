@@ -13,14 +13,14 @@ const routes = new Hono<{ Bindings: Env }>();
 
 routes.get("/", validateQuery(marketListQuerySchema), async (c) => {
   const query = c.get("validatedQuery");
-  const service = new MarketsService(c.env.DB);
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
   const data = await service.listMarkets(query);
   return c.json({ success: true, data });
 });
 
 routes.get("/nearby", validateQuery(nearbyMarketsQuerySchema), async (c) => {
   const { lat, lng, radiusKm, limit } = c.get("validatedQuery");
-  const service = new MarketsService(c.env.DB);
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
   const data = await service.findNearby(lat, lng, radiusKm, limit);
   return c.json({ success: true, data });
 });
@@ -32,7 +32,7 @@ routes.get(
   async (c) => {
     const { slug } = c.get("validatedParams");
     const query = c.get("validatedQuery");
-    const service = new MarketsService(c.env.DB);
+    const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
     const data = await service.listVendors(slug, query);
     if (!data) {
       return c.json(
@@ -49,7 +49,7 @@ routes.get(
 
 routes.get("/:slug", validateParams(marketSlugParamSchema), async (c) => {
   const { slug } = c.get("validatedParams");
-  const service = new MarketsService(c.env.DB);
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
   const data = await service.getMarketBySlug(slug);
   if (!data) {
     return c.json(

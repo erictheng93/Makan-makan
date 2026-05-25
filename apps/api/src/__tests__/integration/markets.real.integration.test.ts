@@ -123,6 +123,57 @@ describe("Markets API — real integration", () => {
     expect(detailJson.data.vendorCount).toBe(1);
   });
 
+  it("caches public market reads and invalidates them after admin changes", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Cached Market Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 10,
+      username: "market-cache-admin",
+      role: 0,
+      restaurantId: String(restaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    const market = await seedMarket(testApp, {
+      slug: "cached-night-market",
+    });
+
+    const detailRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/cached-night-market"),
+    );
+    expect(detailRes.status).toBe(200);
+
+    const cacheKey = "markets:v1:detail:cached-night-market";
+    const cachedDetail = await testApp.testDb.bindings.CACHE_KV.get(
+      cacheKey,
+      "json",
+    );
+    expect(cachedDetail).toMatchObject({
+      market: { id: market.id, slug: "cached-night-market" },
+      vendorCount: 0,
+    });
+
+    const updateRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/admin/markets/${market.id}`, {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+          ...CSRF_HEADERS,
+        },
+        body: JSON.stringify({ name: "Cached Market Updated" }),
+      }),
+    );
+    expect(updateRes.status).toBe(200);
+    await expect(
+      testApp.testDb.bindings.CACHE_KV.get("markets:version"),
+    ).resolves.toBe("2");
+  });
+
   it("lists vendors in a market and finds nearby markets by distance", async () => {
     const nearMarket = await seedMarket(testApp, {
       slug: "near-market",
