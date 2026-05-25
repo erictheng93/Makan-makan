@@ -47,6 +47,7 @@ export const waitingListIdId = {
       partiesAhead: "Kelompok di depan",
       estimatedWait: "Perkiraan tunggu",
       confirmArrival: "Konfirmasi kedatangan",
+      preOrder: "Pesan lebih dulu",
       cancel: "Batalkan tiket",
       rejoin: "Ambil nomor baru",
       backHome: "Kembali ke beranda",

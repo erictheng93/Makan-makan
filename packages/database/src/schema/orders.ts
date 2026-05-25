@@ -11,6 +11,7 @@ import { restaurants } from "./restaurants";
 import { tables } from "./tables";
 import { customers } from "./customers";
 import { orderItems } from "./order-items";
+import { waitingList } from "./waiting-list";
 
 // 訂單狀態定義
 export const ORDER_STATUS = {
@@ -51,6 +52,9 @@ export const orders = sqliteTable(
     customerId: text("customer_id").references(() => customers.id, {
       onDelete: "set null",
     }), // 可選：註冊顧客
+    waitingListId: text("waiting_list_id").references(() => waitingList.id, {
+      onDelete: "set null",
+    }), // 可選：候位預點餐綁定
 
     // 訂單基本資訊
     orderNumber: text("order_number").notNull().unique(), // 訂單編號
@@ -163,6 +167,12 @@ export const orders = sqliteTable(
       table.customerId,
       table.createdAt,
     ),
+    waitingListIdx: index("orders_waiting_list_idx").on(table.waitingListId),
+    waitingListUniqueIdx: uniqueIndex("orders_waiting_list_unique")
+      .on(table.waitingListId)
+      .where(
+        sql`${table.waitingListId} IS NOT NULL AND ${table.status} NOT IN ('cancelled', 'refunded')`,
+      ),
     statusTimeIdx: index("orders_status_time_idx").on(
       table.status,
       table.createdAt,
@@ -200,6 +210,10 @@ export const orderRelations = relations(orders, ({ one, many }) => ({
   customer: one(customers, {
     fields: [orders.customerId],
     references: [customers.id],
+  }),
+  waitingListEntry: one(waitingList, {
+    fields: [orders.waitingListId],
+    references: [waitingList.id],
   }),
   items: many(orderItems),
 }));

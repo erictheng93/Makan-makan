@@ -56,6 +56,8 @@ export interface CreateOrderData {
   restaurantId: string;
   tableId?: number;
   customerId?: string;
+  waitingListId?: string;
+  waitingListCustomerPhone?: string;
   customerInfo?: {
     name?: string;
     phone?: string;

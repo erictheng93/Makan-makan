@@ -59,9 +59,11 @@ export interface CustomerProfile {
 // for the enforcement point.
 export interface Order extends Omit<BaseEntity, "createdAt" | "updatedAt"> {
   restaurantId: string;
-  tableId: number;
+  tableId?: number;
   customerId?: string;
+  waitingListId?: string;
   orderNumber: string;
+  orderType?: "shop" | "table" | "seat";
   customerName?: string;
   customerPhone?: string;
   customerInfo?: CustomerInfo;
@@ -182,7 +184,8 @@ export interface SelectedCustomizations {
 
 export interface CreateOrderRequest {
   restaurantId: string;
-  tableId: number;
+  tableId?: number;
+  waitingListId?: string;
   customerName?: string;
   customerPhone?: string;
   items: CreateOrderItemRequest[];

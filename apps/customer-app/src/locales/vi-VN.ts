@@ -47,6 +47,7 @@ export const waitingListViVn = {
       partiesAhead: "Nhóm phía trước",
       estimatedWait: "Thời gian chờ ước tính",
       confirmArrival: "Xác nhận đã đến",
+      preOrder: "Đặt món trước",
       cancel: "Hủy vé",
       rejoin: "Lấy số mới",
       backHome: "Về trang chủ",

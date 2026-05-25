@@ -17,6 +17,7 @@ import {
   menuItems,
   restaurants,
   tables,
+  waitingList,
   ORDER_STATUS,
 } from "../schema";
 import type {
@@ -36,6 +37,9 @@ export interface CreateOrderData {
   tableId?: number;
   customerId?: string;
   customerInfo?: { name?: string; phone?: string; email?: string };
+  waitingListId?: string;
+  waitingListCustomerPhone?: string;
+  orderType?: "shop" | "table" | "seat";
   items: Array<{
     menuItemId: number;
     quantity: number;
@@ -194,6 +198,14 @@ export class OrderService extends BaseService {
         }
       }
 
+      if (data.waitingListId) {
+        await this.validateWaitingListPreOrder(
+          data.waitingListId,
+          data.restaurantId,
+          data.waitingListCustomerPhone,
+        );
+      }
+
       // 計算訂單總金額
       let subtotalCents = 0;
       const orderItemsData = [];
@@ -344,7 +356,9 @@ export class OrderService extends BaseService {
           restaurantId: data.restaurantId,
           tableId: data.tableId,
           customerId: data.customerId,
+          waitingListId: data.waitingListId,
           orderNumber,
+          orderType: data.orderType,
           subtotal,
           taxAmount,
           serviceCharge,
@@ -443,8 +457,99 @@ export class OrderService extends BaseService {
         throw new Error("CLIENT_MUTATION_DUPLICATE");
       }
 
+      if (
+        message.includes("UNIQUE constraint failed") &&
+        message.includes("waiting_list_id")
+      ) {
+        throw new Error("WAITING_LIST_PREORDER_EXISTS");
+      }
+
       this.handleError(error, "createOrder");
     }
+  }
+
+  private async validateWaitingListPreOrder(
+    waitingListId: string,
+    restaurantId: string,
+    customerPhone?: string,
+  ): Promise<void> {
+    const entry = await this.db.query.waitingList.findFirst({
+      where: eq(waitingList.id, waitingListId),
+    });
+
+    if (!entry || entry.restaurantId !== restaurantId) {
+      throw new Error("WAITING_LIST_TICKET_NOT_FOUND");
+    }
+
+    if (!["waiting", "called", "confirmed"].includes(entry.status)) {
+      throw new Error("WAITING_LIST_TICKET_NOT_ACTIVE");
+    }
+
+    if (!customerPhone || entry.customerPhone !== customerPhone) {
+      throw new Error("WAITING_LIST_PHONE_MISMATCH");
+    }
+  }
+
+  async confirmWaitingListPreOrders(
+    waitingListId: string,
+    tableId: number,
+  ): Promise<Order[]> {
+    const now = new Date();
+    await this.db
+      .update(orders)
+      .set({
+        tableId,
+        status: ORDER_STATUS.CONFIRMED,
+        confirmedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(orders.waitingListId, waitingListId),
+          eq(orders.status, ORDER_STATUS.PENDING),
+        ),
+      );
+
+    const confirmedOrders = await this.db.query.orders.findMany({
+      where: and(
+        eq(orders.waitingListId, waitingListId),
+        eq(orders.status, ORDER_STATUS.CONFIRMED),
+      ),
+      with: {
+        restaurant: {
+          columns: { id: true, name: true },
+        },
+        table: {
+          columns: { id: true, number: true },
+        },
+        items: {
+          with: {
+            menuItem: {
+              columns: { id: true, name: true, imageUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    return confirmedOrders.map((order) => this.mapToOrder(order));
+  }
+
+  async cancelWaitingListPreOrders(waitingListId: string): Promise<void> {
+    const now = new Date();
+    await this.db
+      .update(orders)
+      .set({
+        status: ORDER_STATUS.CANCELLED,
+        cancelledAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(orders.waitingListId, waitingListId),
+          eq(orders.status, ORDER_STATUS.PENDING),
+        ),
+      );
   }
 
   // 獲取訂單詳情
@@ -877,7 +982,9 @@ export class OrderService extends BaseService {
       restaurantId: order.restaurantId,
       tableId: order.tableId,
       customerId: order.customerId,
+      waitingListId: order.waitingListId,
       orderNumber: order.orderNumber,
+      orderType: order.orderType,
       status: order.status,
       version: order.version,
       orderSource: order.orderSource,

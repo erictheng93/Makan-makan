@@ -2,7 +2,7 @@ import { sql, type SQL } from "drizzle-orm";
 import { BaseService } from "./base";
 import { tables as restaurantTables } from "../schema/tables";
 import { waitingList } from "../schema/waiting-list";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { RealtimeEventType, WaitingStatus } from "@makanmakan/shared-types";
 import type {
   WaitingListEntry,
   JoinWaitingListRequest,
@@ -16,9 +16,12 @@ import type {
   TableAssignmentRequest,
   TableAssignmentResult,
   WaitingListEvent,
+  Order,
+  NewOrderEvent,
 } from "@makanmakan/shared-types";
 import { ReservationService } from "./ReservationService";
 import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
+import { OrderService } from "./order";
 import { assertWaitingTransition } from "./ticket-primitives";
 
 /** Call timeout: 5 minutes */
@@ -185,6 +188,52 @@ export class WaitingListService extends BaseService {
       },
     };
     await broadcaster.broadcastEvent("admin", entry.restaurantId, event);
+  }
+
+  private async broadcastSeatedPreOrders(orders: Order[]): Promise<void> {
+    if (orders.length === 0) {
+      return;
+    }
+
+    const broadcaster = new RealtimeBroadcastService(
+      this.env as unknown as ConstructorParameters<
+        typeof RealtimeBroadcastService
+      >[0],
+    );
+
+    await Promise.all(
+      orders.map((order) => {
+        const event: NewOrderEvent = {
+          type: RealtimeEventType.NEW_ORDER,
+          eventId: broadcaster.generateEventId(),
+          timestamp: Date.now(),
+          restaurantId: order.restaurantId,
+          data: {
+            orderId: order.id,
+            orderNumber: order.orderNumber || `#${order.id}`,
+            tableId: order.tableId ? String(order.tableId) : undefined,
+            items: (order.items || []).map((item) => ({
+              orderItemId: Number(item.id),
+              menuItemId: item.menuItemId,
+              menuItemName:
+                item.menuItem?.name || item.itemSnapshot?.name || "",
+              quantity: item.quantity,
+              price: item.unitPrice,
+              notes: item.notes,
+            })),
+            totalAmount: order.totalAmount,
+            notes: order.notes,
+            customer: order.customerInfo
+              ? {
+                  name: order.customerInfo.name,
+                  phone: order.customerInfo.phone,
+                }
+              : undefined,
+          },
+        };
+        return broadcaster.broadcastNewOrder(event);
+      }),
+    );
   }
 
   /**
@@ -685,9 +734,13 @@ export class WaitingListService extends BaseService {
       // 更新桌位狀態為佔用
       if (entry.tableId) {
         await this.updateTableStatus(entry.tableId, "occupied");
+        const orderService = new OrderService(this.d1, this.env);
+        const confirmedOrders = await orderService.confirmWaitingListPreOrders(
+          id,
+          entry.tableId,
+        );
+        await this.broadcastSeatedPreOrders(confirmedOrders);
       }
-
-      // TODO: 自動建立訂單記錄
 
       // 更新後續候位的等待時間
       await this.recalculateWaitTimes(entry.restaurantId);
@@ -735,6 +788,8 @@ export class WaitingListService extends BaseService {
       if (entry.tableId) {
         await this.updateTableStatus(entry.tableId, "available");
       }
+      const orderService = new OrderService(this.d1, this.env);
+      await orderService.cancelWaitingListPreOrders(id);
 
       // 更新後續候位的等待時間
       await this.recalculateWaitTimes(entry.restaurantId);
@@ -782,6 +837,8 @@ export class WaitingListService extends BaseService {
       if (entry.tableId) {
         await this.updateTableStatus(entry.tableId, "available");
       }
+      const orderService = new OrderService(this.d1, this.env);
+      await orderService.cancelWaitingListPreOrders(id);
 
       // 發送過號通知（非阻塞）
       if (entry.customerPhone) {

@@ -140,6 +140,7 @@ const routes: RouteRecordRaw[] = [
     props: (route) => ({
       restaurantId: route.params.restaurantId,
       phoneLastDigits: route.query.phone as string,
+      waitingTicketId: route.query.waitingTicketId as string | undefined,
     }),
     meta: {
       titleKey: "navigation.shopMenu",

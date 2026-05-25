@@ -375,6 +375,8 @@ app.post(
       restaurantId: data.restaurantId,
       tableId: data.tableId,
       customerId: String(user.id),
+      waitingListId: data.waitingListId,
+      waitingListCustomerPhone: data.customerPhone,
       customerName: data.customerName,
       customerPhone: data.customerPhone,
       customerEmail: data.customerEmail,

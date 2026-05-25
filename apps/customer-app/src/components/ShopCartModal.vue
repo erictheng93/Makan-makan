@@ -429,11 +429,13 @@ import { useShopCartStore } from "@/stores/shopCart";
 import { apiClient } from "@/services/api";
 import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { WAITING_LIST_LAST_TICKET_KEY } from "@/composables/useWaitingTicket";
 
 const props = defineProps<{
   show: boolean;
   restaurantId: string;
   phoneLastDigits?: string;
+  waitingTicketId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -452,12 +454,43 @@ const deliveryPhone = ref("");
 const deliveryInstructions = ref("");
 
 const deliveryEnabled = computed(() => {
+  if (props.waitingTicketId) {
+    return false;
+  }
   // If user got to delivery selection on landing page, delivery is enabled
   return (
     shopCartStore.fulfillmentType === "delivery" ||
     shopCartStore.deliveryFee >= 0
   );
 });
+
+const getWaitingListCustomerPhone = () => {
+  if (!props.waitingTicketId) {
+    return undefined;
+  }
+
+  try {
+    const raw = localStorage.getItem(WAITING_LIST_LAST_TICKET_KEY);
+    if (!raw) {
+      return undefined;
+    }
+    const parsed = JSON.parse(raw) as {
+      ticketId?: string;
+      restaurantId?: string;
+      customerPhone?: string;
+    };
+    if (
+      parsed.ticketId === props.waitingTicketId &&
+      parsed.restaurantId === props.restaurantId
+    ) {
+      return parsed.customerPhone;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+};
 
 const handleCheckout = async () => {
   // Validate delivery fields before submitting
@@ -484,9 +517,17 @@ const handleCheckout = async () => {
     isSubmitting.value = true;
 
     // 準備訂單資料
+    const waitingListCustomerPhone = getWaitingListCustomerPhone();
+    if (props.waitingTicketId && !waitingListCustomerPhone) {
+      toast.error(t("waitingList.errors.ticketLoadFailed"));
+      return;
+    }
+
     const orderData = {
       restaurantId: props.restaurantId,
       orderType: "shop",
+      waitingListId: props.waitingTicketId,
+      customerPhone: waitingListCustomerPhone,
       items: shopCartStore.items.map((item) => ({
         menuItemId: item.menuItem.id,
         quantity: item.quantity,
@@ -500,8 +541,9 @@ const handleCheckout = async () => {
       },
       totalAmount: shopCartStore.totalWithDelivery,
       deliveryInfo: {
-        type: shopCartStore.fulfillmentType,
-        ...(shopCartStore.fulfillmentType === "delivery"
+        type: props.waitingTicketId ? "dine_in" : shopCartStore.fulfillmentType,
+        ...(!props.waitingTicketId &&
+        shopCartStore.fulfillmentType === "delivery"
           ? {
               address: deliveryAddress.value,
               phone: deliveryPhone.value,
@@ -527,6 +569,8 @@ const handleCheckout = async () => {
           .slice(-3)
           .padStart(3, "0"),
         orderType: "shop" as const,
+        waitingListId: props.waitingTicketId,
+        customerPhone: waitingListCustomerPhone,
         items: shopCartStore.items.map((item) => ({
           menuItemId: item.menuItem.id,
           quantity: item.quantity,

@@ -94,6 +94,16 @@
 
           <div class="space-y-3">
             <button
+              v-if="canPreOrder"
+              data-testid="preorder-button"
+              class="w-full rounded-full bg-ios-blue px-5 py-3.5 font-semibold text-white active:scale-[0.98] transition-transform duration-200 ease-out disabled:opacity-60"
+              type="button"
+              :disabled="isActing"
+              @click="handlePreOrder"
+            >
+              {{ t("waitingList.ticket.preOrder") }}
+            </button>
+            <button
               v-if="canConfirmArrival"
               data-testid="confirm-arrival-button"
               class="w-full rounded-full bg-ios-green px-5 py-3.5 font-semibold text-white active:scale-[0.98] transition-transform duration-200 ease-out disabled:opacity-60"
@@ -193,6 +203,10 @@ const canConfirmArrival = computed(
   () => ticket.value?.status === WaitingStatus.CALLED,
 );
 
+const canPreOrder = computed(
+  () => !!ticket.value && !isTerminalWaitingStatus(ticket.value.status),
+);
+
 const handleCancel = async () => {
   if (!ticket.value) {
     return;
@@ -241,5 +255,20 @@ const handleRejoin = () => {
 
 const handleBackHome = () => {
   void router.push("/");
+};
+
+const handlePreOrder = () => {
+  if (!ticket.value) {
+    return;
+  }
+
+  void router.push({
+    name: "ShopMenu",
+    params: { restaurantId: props.restaurantId },
+    query: {
+      waitingTicketId: props.ticketId,
+      phone: ticket.value.customerPhone.slice(-3),
+    },
+  });
 };
 </script>

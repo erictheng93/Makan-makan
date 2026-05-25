@@ -343,6 +343,7 @@
       :show="showCart"
       :restaurant-id="restaurantId"
       :phone-last-digits="phoneLastDigits"
+      :waiting-ticket-id="waitingTicketId"
       @close="showCart = false"
     />
   </div>
@@ -373,6 +374,7 @@ import type {
 const props = defineProps<{
   restaurantId: string;
   phoneLastDigits?: string;
+  waitingTicketId?: string;
 }>();
 
 // Composables

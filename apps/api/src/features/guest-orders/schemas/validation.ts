@@ -83,6 +83,8 @@ export const createGuestOrderSchema = z
       .regex(/^\d{3}$/, "Must be exactly 3 digits")
       .default("000"),
     orderType: z.enum(["shop", "table", "seat"]),
+    waitingListId: z.string().min(1).max(100).optional(),
+    customerPhone: z.string().max(20).optional(),
     tableId: z.number().int().positive().optional(),
     seatId: z.number().int().positive().optional(),
     items: z.array(guestOrderItemSchema).min(1).max(20),
@@ -110,7 +112,11 @@ export const createGuestOrderSchema = z
       return true;
     },
     { message: "seatId is required for seat order type", path: ["seatId"] },
-  );
+  )
+  .refine((data) => !data.waitingListId || !!data.customerPhone, {
+    message: "customerPhone is required for waiting-list pre-orders",
+    path: ["customerPhone"],
+  });
 
 export const addGuestOrderItemsSchema = z.object({
   items: z.array(guestOrderItemSchema).min(1).max(20),

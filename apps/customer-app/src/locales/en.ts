@@ -47,6 +47,7 @@ export const waitingListEn = {
       partiesAhead: "Parties ahead",
       estimatedWait: "Estimated wait",
       confirmArrival: "Confirm arrival",
+      preOrder: "Order ahead",
       cancel: "Cancel ticket",
       rejoin: "Take a new number",
       backHome: "Back to home",

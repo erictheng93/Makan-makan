@@ -162,6 +162,9 @@ export class OrdersService implements IOrdersService {
         restaurantId: String(data.restaurantId),
         tableId: data.tableId ?? undefined, // undefined for shop/takeaway orders (no table needed)
         customerId: data.customerId, // Keep as number
+        waitingListId: data.waitingListId,
+        waitingListCustomerPhone: data.waitingListCustomerPhone,
+        orderType: data.orderType,
         customerInfo: data.customerInfo,
         items: data.items.map((item) => ({
           menuItemId: item.menuItemId, // Keep as number
@@ -189,7 +192,7 @@ export class OrdersService implements IOrdersService {
           itemCount: data.items.length,
           total: order.totalAmount,
         }),
-        this.broadcastNewOrder(order),
+        data.waitingListId ? Promise.resolve() : this.broadcastNewOrder(order),
       ]);
 
       this.logger.info("Order created successfully", {
@@ -198,6 +201,33 @@ export class OrdersService implements IOrdersService {
       });
       return order;
     } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "WAITING_LIST_PREORDER_EXISTS") {
+          throw conflict(
+            "A pre-order already exists for this waiting-list ticket",
+            "WAITING_LIST_PREORDER_EXISTS",
+          );
+        }
+        if (error.message === "WAITING_LIST_TICKET_NOT_FOUND") {
+          throw notFound(
+            "Waiting-list ticket not found",
+            "WAITING_LIST_TICKET_NOT_FOUND",
+          );
+        }
+        if (error.message === "WAITING_LIST_TICKET_NOT_ACTIVE") {
+          throw conflict(
+            "Waiting-list ticket is no longer active",
+            "WAITING_LIST_TICKET_NOT_ACTIVE",
+          );
+        }
+        if (error.message === "WAITING_LIST_PHONE_MISMATCH") {
+          throw forbidden(
+            "Waiting-list phone verification failed",
+            "WAITING_LIST_PHONE_MISMATCH",
+          );
+        }
+      }
+
       this.logger.error(
         "Failed to create order",
         error instanceof Error ? error : undefined,
@@ -918,7 +948,7 @@ export class OrdersService implements IOrdersService {
         customerInfo: order.customerInfo || {},
         tableInfo: order.table
           ? {
-              id: order.tableId,
+              id: order.tableId ?? order.table.id,
               number: order.table.number || "N/A",
               seats: order.table.seats || 0,
             }

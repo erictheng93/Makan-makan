@@ -47,6 +47,7 @@ export const waitingListZhTw = {
       partiesAhead: "前方組數",
       estimatedWait: "預估等待",
       confirmArrival: "確認已抵達",
+      preOrder: "先點餐",
       cancel: "取消候位",
       rejoin: "重新取號",
       backHome: "回首頁",

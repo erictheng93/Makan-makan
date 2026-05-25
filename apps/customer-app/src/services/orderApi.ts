@@ -33,6 +33,8 @@ export interface CreateGuestOrderRequest {
   guestName: string;
   phoneLastDigits: string;
   orderType: "shop" | "table" | "seat";
+  waitingListId?: string;
+  customerPhone?: string;
   tableId?: number;
   seatId?: number;
   items: Array<{

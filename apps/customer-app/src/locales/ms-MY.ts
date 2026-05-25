@@ -47,6 +47,7 @@ export const waitingListMsMy = {
       partiesAhead: "Kumpulan di hadapan",
       estimatedWait: "Anggaran menunggu",
       confirmArrival: "Sahkan ketibaan",
+      preOrder: "Pesan awal",
       cancel: "Batal tiket",
       rejoin: "Ambil nombor baru",
       backHome: "Kembali ke laman utama",

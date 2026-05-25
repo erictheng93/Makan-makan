@@ -47,6 +47,7 @@ export const waitingListZhCn = {
       partiesAhead: "前面组数",
       estimatedWait: "预计等待",
       confirmArrival: "确认到店",
+      preOrder: "先点餐",
       cancel: "取消排队",
       rejoin: "重新取号",
       backHome: "返回首页",

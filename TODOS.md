@@ -81,9 +81,9 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Pre-order from menu while in waiting-list
 
-**Priority:** P3 **Status:** Blocked **Context:** Customer is queued and could be browsing menu. Cross-system integration with existing menu/order flows so the order is bound to the ticket and fires to kitchen on `seated`.
+**Priority:** P3 **Status:** Completed 2026-05-25 **Spec:** `docs/superpowers/specs/2026-05-25-waiting-list-preorder-design.md` **Context:** Customer is queued and could be browsing menu. Cross-system integration with existing menu/order flows so the order is bound to the ticket and fires to kitchen on `seated`.
 
-**Blocker:** Current order schema/API has no waiting-list ticket binding or "held until seated" order state. Implementing this safely needs a small spec for order lifecycle, kitchen dispatch timing, and table assignment behavior.
+**Resolution:** Orders now support `waiting_list_id` binding. Waiting-list pre-orders are held as `pending` until staff seats the ticket, then `markSeated()` assigns the table and promotes them to `confirmed` so kitchen active-order queries receive them.
 
 ### Phase 1 small debt
 

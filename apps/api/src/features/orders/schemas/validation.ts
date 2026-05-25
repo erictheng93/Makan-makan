@@ -120,20 +120,26 @@ const createOrderItemSchema = z.object({
 });
 
 // Main order creation schema
-export const createOrderSchema = z.object({
-  restaurantId: z.string().min(1),
-  tableId: optionalIdSchema,
-  customerName: z.string().min(1).max(100).optional(),
-  customerPhone: phoneSchema,
-  customerEmail: emailSchema,
-  customerInfo: customerInfoSchema,
-  items: z.array(createOrderItemSchema).min(1).max(50),
-  notes: notesSchema(500).optional(),
-  orderType: orderTypeSchema.default("shop"),
-  deliveryInfo: deliveryInfoSchema.optional(),
-  scheduledTime: dateStringSchema,
-  couponCode: z.string().max(50).optional(),
-});
+export const createOrderSchema = z
+  .object({
+    restaurantId: z.string().min(1),
+    tableId: optionalIdSchema,
+    waitingListId: z.string().min(1).max(100).optional(),
+    customerName: z.string().min(1).max(100).optional(),
+    customerPhone: phoneSchema,
+    customerEmail: emailSchema,
+    customerInfo: customerInfoSchema,
+    items: z.array(createOrderItemSchema).min(1).max(50),
+    notes: notesSchema(500).optional(),
+    orderType: orderTypeSchema.default("shop"),
+    deliveryInfo: deliveryInfoSchema.optional(),
+    scheduledTime: dateStringSchema,
+    couponCode: z.string().max(50).optional(),
+  })
+  .refine((data) => !data.waitingListId || !!data.customerPhone, {
+    message: "customerPhone is required for waiting-list pre-orders",
+    path: ["customerPhone"],
+  });
 
 // Order update schemas
 export const updateOrderStatusSchema = z.object({

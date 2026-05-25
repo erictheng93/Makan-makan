@@ -156,6 +156,8 @@ app.post("/", async (c) => {
       restaurantId: data.restaurantId,
       // Only pass tableId for table/seat orders — shop orders don't need a table
       tableId: data.orderType === "shop" ? undefined : data.tableId,
+      waitingListId: data.waitingListId,
+      waitingListCustomerPhone: data.customerPhone,
       customerInfo: {
         name: data.guestName,
         // phoneLastDigits is only 3 digits (for order dedup), not a real phone number.
