@@ -19,16 +19,16 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Fill stub locale translations (zh-CN, vi-VN, ms-MY, id-ID)
 
-**Priority:** P3 **Status:** Blocked **Context:** 4 out of 6 locales per app are empty-object stubs that fall back to zh-TW. Users who select these locales currently see zh-TW text. Needs translator handoff.
+**Priority:** P3 **Status:** Blocked — handoff prepared 2026-05-25 **Context:** 4 out of 6 locales per app are empty-object stubs that fall back to zh-TW. Users who select these locales currently see zh-TW text. Needs translator-approved target copy.
 
 **Blocker:** Translator-approved copy is not available for kitchen-display, onboarding-app, and management-portal. The customer waiting-list keys added in this pass are filled in all 6 locales, but replacing full app locale stubs with machine-generated copy would create product-quality risk.
 
 **Scope:**
 
-- Extract all unique keys from kitchen-display/zh-TW.ts, onboarding-app/zh-TW.ts, management-portal/zh-TW.ts
-- Deliver to translator in a format they can fill in
+- Extract all unique keys from kitchen-display/zh-TW.ts, onboarding-app/zh-TW.ts, management-portal/zh-TW.ts — done in `scripts/i18n-locale-coverage.ts`
+- Deliver to translator in a format they can fill in — done in `docs/i18n/locale-translator-handoff.csv`
 - Import translations back into the respective locale files
-- Add CI check that warns when a non-zh-TW locale has fewer leaf keys than zh-TW
+- Add CI check that warns when a non-zh-TW locale has fewer leaf keys than zh-TW — done via `pnpm run check:i18n-locales`
 
 ### i18n performance: convert HistoryView status/type helpers to computed maps
 

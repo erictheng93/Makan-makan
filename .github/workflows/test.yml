@@ -59,6 +59,9 @@ jobs:
       - name: 🎯 TypeScript 型別檢查
         run: pnpm run typecheck
 
+      - name: 🌐 i18n locale coverage warning
+        run: pnpm run check:i18n-locales
+
       - name: 💅 Prettier 格式檢查
         run: pnpm exec prettier --check "**/*.{ts,js,vue,json,md}"
 

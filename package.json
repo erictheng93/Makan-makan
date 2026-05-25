@@ -58,6 +58,7 @@
     "script": "npx tsx",
     "check:prod-config": "node scripts/check-production-config.cjs",
     "check:no-test-doubles": "node scripts/check-no-test-doubles.cjs",
+    "check:i18n-locales": "tsx scripts/i18n-locale-coverage.ts",
     "deploy:staging": "pnpm run build && pnpm -r run deploy:staging",
     "deploy:prod": "pnpm run check:prod-config && pnpm run build && pnpm -r run deploy:prod",
     "feature:create": "node scripts/migration/create-feature.js",
