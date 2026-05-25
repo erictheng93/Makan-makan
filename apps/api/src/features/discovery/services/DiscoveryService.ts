@@ -1,11 +1,25 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, like, inArray, isNull, desc, asc, sql } from "drizzle-orm";
+import {
+  eq,
+  and,
+  like,
+  inArray,
+  isNull,
+  desc,
+  asc,
+  sql,
+  or,
+  gte,
+  lte,
+} from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import {
   dishSearchIndex,
   restaurants,
   menuItems,
   categories,
 } from "@makanmakan/database";
+import { boundingBoxFromCircle, distanceKm } from "../../markets/services/geo";
 import type {
   DishSearchResult,
   RestaurantListItem,
@@ -54,7 +68,7 @@ export class DiscoveryService {
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
 
-    const conditions = [
+    const conditions: SQL[] = [
       eq(dishSearchIndex.isAvailable, true),
       like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
     ];
@@ -78,6 +92,23 @@ export class DiscoveryService {
     if (filters.delivery) {
       conditions.push(eq(dishSearchIndex.supportsDelivery, true));
     }
+    if (filters.marketId) {
+      conditions.push(
+        or(
+          eq(dishSearchIndex.primaryMarketId, filters.marketId),
+          like(dishSearchIndex.marketIds, `%"${filters.marketId}"%`),
+        )!,
+      );
+    }
+    const geoFilter = this.getGeoFilter(filters);
+    if (geoFilter) {
+      conditions.push(
+        gte(dishSearchIndex.latitude, geoFilter.box.southLat),
+        lte(dishSearchIndex.latitude, geoFilter.box.northLat),
+        gte(dishSearchIndex.longitude, geoFilter.box.westLng),
+        lte(dishSearchIndex.longitude, geoFilter.box.eastLng),
+      );
+    }
 
     const whereClause = and(...conditions);
     const [queryResult, countRows] = await Promise.all([
@@ -95,6 +126,8 @@ export class DiscoveryService {
           supportsTakeaway: dishSearchIndex.supportsTakeaway,
           supportsDelivery: dishSearchIndex.supportsDelivery,
           tags: dishSearchIndex.tags,
+          latitude: dishSearchIndex.latitude,
+          longitude: dishSearchIndex.longitude,
         })
         .from(dishSearchIndex)
         .innerJoin(
@@ -155,6 +188,8 @@ export class DiscoveryService {
             supportsTakeaway: dishSearchIndex.supportsTakeaway,
             supportsDelivery: dishSearchIndex.supportsDelivery,
             tags: dishSearchIndex.tags,
+            latitude: dishSearchIndex.latitude,
+            longitude: dishSearchIndex.longitude,
           })
           .from(dishSearchIndex)
           .innerJoin(
@@ -187,6 +222,19 @@ export class DiscoveryService {
       supportsDelivery: row.supportsDelivery,
       tags: row.tags ?? [],
     }));
+
+    if (geoFilter) {
+      results = results.filter((result) => {
+        const row = allRows.find((r) => r.menuItemId === result.menuItemId);
+        if (row?.latitude == null || row.longitude == null) return false;
+        return (
+          distanceKm(
+            { lat: geoFilter.lat, lng: geoFilter.lng },
+            { lat: row.latitude, lng: row.longitude },
+          ) <= geoFilter.radiusKm
+        );
+      });
+    }
 
     if (filters.openNow) {
       results = results.filter((r) => r.isOpen);
@@ -234,7 +282,7 @@ export class DiscoveryService {
 
     const offset = (page - 1) * limit;
 
-    const conditions: ReturnType<typeof eq>[] = [
+    const conditions: SQL[] = [
       eq(restaurants.isActive, true),
       isNull(restaurants.deletedAt),
     ];
@@ -260,6 +308,24 @@ export class DiscoveryService {
     if (filters.delivery) {
       conditions.push(eq(restaurants.supportsDelivery, true));
     }
+    if (filters.marketId) {
+      conditions.push(sql`EXISTS (
+        SELECT 1
+        FROM restaurant_market_memberships rmm
+        WHERE rmm.restaurant_id = ${restaurants.id}
+          AND rmm.market_id = ${filters.marketId}
+          AND rmm.left_at_ms IS NULL
+      )`);
+    }
+    const geoFilter = this.getGeoFilter(filters);
+    if (geoFilter) {
+      conditions.push(
+        gte(restaurants.latitude, geoFilter.box.southLat),
+        lte(restaurants.latitude, geoFilter.box.northLat),
+        gte(restaurants.longitude, geoFilter.box.westLng),
+        lte(restaurants.longitude, geoFilter.box.eastLng),
+      );
+    }
 
     const orderByClause =
       filters.sortBy === "rating"
@@ -280,6 +346,8 @@ export class DiscoveryService {
         supportsTakeaway: restaurants.supportsTakeaway,
         supportsDelivery: restaurants.supportsDelivery,
         logoUrl: restaurants.logoUrl,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
       })
       .from(restaurants)
       .where(and(...conditions))
@@ -318,8 +386,22 @@ export class DiscoveryService {
     }
 
     let filtered = restaurantList;
+    if (geoFilter) {
+      filtered = result
+        .filter(
+          (row) =>
+            row.latitude != null &&
+            row.longitude != null &&
+            distanceKm(
+              { lat: geoFilter.lat, lng: geoFilter.lng },
+              { lat: row.latitude, lng: row.longitude },
+            ) <= geoFilter.radiusKm,
+        )
+        .map((row) => restaurantList.find((r) => r.restaurantId === row.id)!)
+        .filter(Boolean);
+    }
     if (filters.openNow) {
-      filtered = restaurantList.filter((r) => r.isOpen);
+      filtered = filtered.filter((r) => r.isOpen);
     }
 
     return { results: filtered, total: filtered.length, page, limit };
@@ -402,6 +484,42 @@ export class DiscoveryService {
       .orderBy(asc(categories.sortOrder), asc(menuItems.sortOrder));
   }
 
+  async getTakeawayEligibility(restaurantId: string): Promise<
+    | { eligible: true; shopQrCode: string }
+    | {
+        eligible: false;
+        reason: "restaurant_disabled" | "takeaway_disabled" | "closed_now";
+      }
+  > {
+    const [restaurant] = await this.db
+      .select({
+        isActive: restaurants.isActive,
+        deletedAt: restaurants.deletedAt,
+        supportsTakeaway: restaurants.supportsTakeaway,
+        enableShopMode: restaurants.enableShopMode,
+        shopQrCode: restaurants.shopQrCode,
+        businessHours: restaurants.businessHours,
+      })
+      .from(restaurants)
+      .where(eq(restaurants.id, restaurantId))
+      .limit(1);
+
+    if (!restaurant || !restaurant.isActive || restaurant.deletedAt) {
+      return { eligible: false, reason: "restaurant_disabled" };
+    }
+    if (
+      !restaurant.supportsTakeaway ||
+      !restaurant.enableShopMode ||
+      !restaurant.shopQrCode
+    ) {
+      return { eligible: false, reason: "takeaway_disabled" };
+    }
+    if (!isOpenNow(restaurant.businessHours ?? null)) {
+      return { eligible: false, reason: "closed_now" };
+    }
+    return { eligible: true, shopQrCode: restaurant.shopQrCode };
+  }
+
   async reindex(): Promise<{
     dishes: number;
     restaurants: number;
@@ -426,6 +544,22 @@ export class DiscoveryService {
         supportsTakeaway: restaurants.supportsTakeaway,
         supportsDelivery: restaurants.supportsDelivery,
         restaurantDeleted: restaurants.deletedAt,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
+        marketIds: sql<string | null>`(
+          SELECT json_group_array(rmm.market_id)
+          FROM restaurant_market_memberships rmm
+          WHERE rmm.restaurant_id = ${restaurants.id}
+            AND rmm.left_at_ms IS NULL
+        )`,
+        primaryMarketId: sql<string | null>`(
+          SELECT rmm.market_id
+          FROM restaurant_market_memberships rmm
+          WHERE rmm.restaurant_id = ${restaurants.id}
+            AND rmm.left_at_ms IS NULL
+            AND rmm.is_primary = 1
+          LIMIT 1
+        )`,
       })
       .from(menuItems)
       .leftJoin(categories, eq(menuItems.categoryId, categories.id))
@@ -449,8 +583,8 @@ export class DiscoveryService {
         this.d1
           .prepare(
             `INSERT OR REPLACE INTO dish_search_index
-             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, price_cents, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, updated_at_ms)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, price_cents, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, primary_market_id, market_ids, latitude, longitude, updated_at_ms)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             item.menuItemId,
@@ -466,6 +600,10 @@ export class DiscoveryService {
             item.restaurantType,
             item.supportsTakeaway ? 1 : 0,
             item.supportsDelivery ? 1 : 0,
+            item.primaryMarketId,
+            item.marketIds ?? "[]",
+            item.latitude,
+            item.longitude,
             Date.now(),
           ),
       );
@@ -549,8 +687,23 @@ export class DiscoveryService {
     if (filters.openNow) parts.push("open");
     if (filters.takeaway) parts.push("ta");
     if (filters.delivery) parts.push("dl");
+    if (filters.marketId) parts.push(`m:${filters.marketId}`);
+    if (filters.lat != null && filters.lng != null) {
+      parts.push(`geo:${filters.lat},${filters.lng},${filters.radiusKm ?? 2}`);
+    }
     parts.push(`p:${filters.page || 1}`);
     parts.push(`l:${filters.limit || 20}`);
     return parts.join(":");
+  }
+
+  private getGeoFilter(filters: SearchFilters) {
+    if (filters.lat == null || filters.lng == null) return null;
+    const radiusKm = Math.min(Math.max(filters.radiusKm ?? 2, 0.1), 10);
+    return {
+      lat: filters.lat,
+      lng: filters.lng,
+      radiusKm,
+      box: boundingBoxFromCircle(filters.lat, filters.lng, radiusKm),
+    };
   }
 }

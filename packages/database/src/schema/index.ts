@@ -17,6 +17,7 @@ export * from "./qr-codes";
 export * from "./images";
 export * from "./coupons";
 export * from "./leaves";
+export * from "./markets";
 export * from "./scheduling";
 export * from "./pos";
 export * from "./group-orders";
@@ -68,6 +69,10 @@ export {
   leaveApprovalRulesRelations,
   leaveCalendarEventsRelations,
 } from "./leaves";
+export {
+  marketsRelations,
+  restaurantMarketMembershipsRelations,
+} from "./markets";
 export {
   shiftTemplatesRelations,
   employeeSchedulesRelations,

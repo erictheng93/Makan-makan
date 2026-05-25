@@ -108,6 +108,7 @@ import integrationsFeature from "./features/integrations";
 import forecastFeature from "./features/forecast";
 import ingredientsFeature from "./features/ingredients";
 import discoveryFeature from "./features/discovery";
+import marketsFeature from "./features/markets";
 import feedbackFeature from "./features/feedback";
 import billingFeature from "./features/billing";
 import subscriptionsFeature from "./features/subscriptions";
@@ -568,6 +569,7 @@ export function createApp(
   apiV1.route("/forecast", forecastFeature.routes);
   apiV1.route("/ingredients", ingredientsFeature.routes);
   apiV1.route("/discovery", discoveryFeature.routes);
+  apiV1.route("/markets", marketsFeature.routes);
   apiV1.route("/feedback", feedbackFeature.routes);
   apiV1.route("/billing", billingFeature.routes);
   apiV1.route("/me", meFeature.routes);

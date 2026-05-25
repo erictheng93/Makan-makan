@@ -37,6 +37,20 @@ routes.get(
 
 // GET /api/v1/discovery/restaurants/:id/menu — public
 routes.get(
+  "/restaurants/:id/takeaway-eligibility",
+  validateParams(restaurantIdParamSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+
+    const result = await service.getTakeawayEligibility(id);
+
+    return c.json({ success: true, data: result });
+  },
+);
+
+// GET /api/v1/discovery/restaurants/:id/menu — public
+routes.get(
   "/restaurants/:id/menu",
   validateParams(restaurantIdParamSchema),
   async (c) => {

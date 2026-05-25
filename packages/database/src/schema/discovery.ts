@@ -32,6 +32,10 @@ export const dishSearchIndex = sqliteTable(
     supportsDelivery: integer("supports_delivery", { mode: "boolean" })
       .notNull()
       .default(false),
+    primaryMarketId: text("primary_market_id"),
+    marketIds: text("market_ids", { mode: "json" }).$type<string[]>(),
+    latitude: real("latitude"),
+    longitude: real("longitude"),
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -53,6 +57,9 @@ export const dishSearchIndex = sqliteTable(
       table.district,
       table.isAvailable,
     ),
+    primaryMarketAvailableIdx: index(
+      "dish_search_primary_market_available_idx",
+    ).on(table.primaryMarketId, table.isAvailable),
   }),
 );
 

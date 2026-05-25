@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   dishSearchIndex,
   menuItems,
@@ -36,6 +36,22 @@ export class SearchIndexSyncService {
         supportsTakeaway: restaurants.supportsTakeaway,
         supportsDelivery: restaurants.supportsDelivery,
         restaurantDeleted: restaurants.deletedAt,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
+        marketIds: sql<string | null>`(
+          SELECT json_group_array(rmm.market_id)
+          FROM restaurant_market_memberships rmm
+          WHERE rmm.restaurant_id = ${restaurants.id}
+            AND rmm.left_at_ms IS NULL
+        )`,
+        primaryMarketId: sql<string | null>`(
+          SELECT rmm.market_id
+          FROM restaurant_market_memberships rmm
+          WHERE rmm.restaurant_id = ${restaurants.id}
+            AND rmm.left_at_ms IS NULL
+            AND rmm.is_primary = 1
+          LIMIT 1
+        )`,
       })
       .from(menuItems)
       .leftJoin(categories, eq(menuItems.categoryId, categories.id))
@@ -81,6 +97,10 @@ export class SearchIndexSyncService {
       restaurantType: item.restaurantType,
       supportsTakeaway: item.supportsTakeaway,
       supportsDelivery: item.supportsDelivery,
+      primaryMarketId: item.primaryMarketId,
+      marketIds: item.marketIds ? JSON.parse(item.marketIds) : [],
+      latitude: item.latitude,
+      longitude: item.longitude,
       updatedAt: new Date(),
     });
   }
@@ -92,6 +112,22 @@ export class SearchIndexSyncService {
         type: restaurants.type,
         supportsTakeaway: restaurants.supportsTakeaway,
         supportsDelivery: restaurants.supportsDelivery,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
+        marketIds: sql<string | null>`(
+          SELECT json_group_array(rmm.market_id)
+          FROM restaurant_market_memberships rmm
+          WHERE rmm.restaurant_id = ${restaurants.id}
+            AND rmm.left_at_ms IS NULL
+        )`,
+        primaryMarketId: sql<string | null>`(
+          SELECT rmm.market_id
+          FROM restaurant_market_memberships rmm
+          WHERE rmm.restaurant_id = ${restaurants.id}
+            AND rmm.left_at_ms IS NULL
+            AND rmm.is_primary = 1
+          LIMIT 1
+        )`,
         deletedAt: restaurants.deletedAt,
       })
       .from(restaurants)
@@ -113,11 +149,21 @@ export class SearchIndexSyncService {
           restaurantType: restaurant.type,
           supportsTakeaway: restaurant.supportsTakeaway,
           supportsDelivery: restaurant.supportsDelivery,
+          primaryMarketId: restaurant.primaryMarketId,
+          marketIds: restaurant.marketIds
+            ? JSON.parse(restaurant.marketIds)
+            : [],
+          latitude: restaurant.latitude,
+          longitude: restaurant.longitude,
           updatedAt: new Date(),
         })
         .where(eq(dishSearchIndex.restaurantId, restaurantId));
     }
 
     await this.kv.delete(`search:restaurants:district:${restaurant.district}`);
+  }
+
+  async onMarketMembershipChanged(restaurantId: string): Promise<void> {
+    await this.onRestaurantChanged(restaurantId);
   }
 }

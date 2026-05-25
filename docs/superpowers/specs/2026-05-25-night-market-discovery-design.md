@@ -1,7 +1,7 @@
 # Night Market & Marketplace Discovery — Design (Draft)
 
 **Date**: 2026-05-25
-**Status**: Draft — awaiting review
+**Status**: Approved for Phase 1 backend core
 **Author**: Eric
 **Phase 1 scope**: Markets entity, GPS-based search, Discovery → takeaway order bridge
 **Future phases**: Operator portal, vendor contact via deep-link + FAQ (Phase 3), follow/broadcast (see §10)
@@ -111,7 +111,12 @@ Many-to-many join between restaurants and markets.
 - `marketId + leftAt_ms` (list vendors in a market, fast path)
 - `restaurantId + leftAt_ms` (list markets a vendor is in)
 
-**Open question (Q-1)**: should `(restaurantId, marketId)` UNIQUE include `leftAt_ms` to allow re-joining? Lean towards "yes, partial unique where `leftAt_ms IS NULL`" — but SQLite partial unique requires a filtered index. Need to confirm D1 supports it; otherwise we soft-leave by inserting a fresh row on re-join.
+**Decision (Q-1, 2026-05-25)**: use a database-level partial unique
+index: `UNIQUE (restaurantId, marketId) WHERE leftAt_ms IS NULL`. This
+allows historical soft-left rows while guaranteeing only one active membership
+per restaurant/market pair. The repository already uses Drizzle partial unique
+indexes and D1-compatible SQLite filtered indexes for this pattern, so this is
+implemented at the migration/schema layer rather than as an app-only check.
 
 ### 4.3 Modified table: `restaurants`
 
@@ -407,7 +412,7 @@ Decision rationale: small vendors won't staff a real-time inbox. Forcing them on
 
 | ID | Question | Notes |
 |----|----------|-------|
-| Q-1 | `(restaurantId, marketId)` UNIQUE — partial index with `leftAt_ms IS NULL` or app-layer constraint? | Confirm D1's SQLite version supports partial unique indexes. |
+| Q-1 | `(restaurantId, marketId)` UNIQUE — partial index with `leftAt_ms IS NULL` or app-layer constraint? | **Decided (2026-05-25)**: use DB-level partial unique index `WHERE leftAt_ms IS NULL`; soft-left rows preserve history and re-join creates a new active row. |
 | Q-2 | Should `markets` be platform-owned or tenant-owned in the data model? | **Decided (2026-05-25)**: Phase 1 = platform admin only. Market operator role promoted to Phase 2. |
 | Q-3 | How do we handle "店家在夜市內，但夜市未上架平台"? | MVP: shop just doesn't have a market membership, falls back to free-text district. No degraded UX. |
 | Q-4 | DM Phase 3 — native vs. deep-link MVP? | **Decided (2026-05-25)**: Deep-link only. `restaurants.messagingChannels` JSON column + FAQ table. Native DM revisited only after ≥50 vendors use the deep-link path and survey data justifies the build. |
@@ -474,4 +479,4 @@ Before approving this spec, confirm:
 - [ ] Discovery → takeaway uses existing `shopQrCode` as the entry token — agreed?
 - [x] Phase 3 contact = deep-link to LINE/IG/WhatsApp + FAQ table, **not** native DM — **decided 2026-05-25**
 - [x] Pricing — free in Phase 1, paid module reserved for future — **decided 2026-05-25**
-- [ ] Open question Q-1 (`(restaurantId, marketId)` UNIQUE strategy) needs decision before implementation starts.
+- [x] Open question Q-1 (`(restaurantId, marketId)` UNIQUE strategy) decided: partial unique index on active rows only.
