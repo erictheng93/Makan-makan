@@ -48,7 +48,7 @@ Active feature docs for in-progress or reference-worthy features:
 
 | Directory                                                    | Contents                                                            |
 | ------------------------------------------------------------ | ------------------------------------------------------------------- |
-| [features/realtime-services/](./features/realtime-services/) | WebSocket/Durable Objects implementation (active — Phase 4 pending) |
+| [features/realtime-services/](./features/realtime-services/) | WebSocket/Durable Objects implementation (Phase 4 ~50% — see [STATUS](./features/realtime-services/phases/REALTIME_PHASE4_STATUS.md)) |
 
 > Customer waiting-list Phase 1 shipped 2026-05-04 (see [specs/queue-and-waiting-list.md](./specs/queue-and-waiting-list.md) for the canonical spec; Phase 2-4 backlog in root [`TODOS.md`](../TODOS.md)).
 >
