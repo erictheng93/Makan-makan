@@ -21,6 +21,8 @@ import { notFound, forbidden } from "../../../shared/utils/api-error";
 
 import { RestaurantsService } from "../services/RestaurantsService";
 import { restaurantSchemas } from "../schemas/validation";
+import { MarketsService } from "../../markets/services/MarketsService";
+import { createMarketJoinRequestSchema } from "../../markets/schemas/validation";
 
 const app = new Hono<{ Bindings: Env }>();
 const logger = new ConsoleLogger("RestaurantsRoutes");
@@ -189,6 +191,87 @@ app.get("/:id", validateParams(commonSchemas.idParam), async (c) => {
     HTTP_STATUS.OK,
   );
 });
+
+/**
+ * GET /:id/markets - Get active market memberships for a restaurant
+ */
+app.get(
+  "/:id/markets",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const user = c.get("user");
+
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
+      throw forbidden("Access denied");
+    }
+
+    const service = new MarketsService(c.env.DB);
+    const data = await service.listRestaurantMemberships(id);
+
+    return c.json({ success: true, data }, HTTP_STATUS.OK);
+  },
+);
+
+/**
+ * POST /:id/market-join-requests - Request joining an existing market
+ */
+app.post(
+  "/:id/market-join-requests",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam),
+  validateBody(createMarketJoinRequestSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const body = c.get("validatedBody");
+    const user = c.get("user");
+
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
+      throw forbidden("Access denied");
+    }
+
+    const service = new MarketsService(c.env.DB);
+    const result = await service.createJoinRequest(id, body);
+
+    if (result.status === "not_found") {
+      throw notFound("Market not found");
+    }
+
+    if (result.status === "already_member") {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "ALREADY_MARKET_MEMBER",
+            message: "Restaurant already belongs to this market",
+          },
+        },
+        HTTP_STATUS.CONFLICT,
+      );
+    }
+
+    if (result.status === "already_pending") {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "MARKET_JOIN_REQUEST_PENDING",
+            message: "A pending join request already exists",
+          },
+        },
+        HTTP_STATUS.CONFLICT,
+      );
+    }
+
+    return c.json(
+      { success: true, data: { request: result.request } },
+      HTTP_STATUS.CREATED,
+    );
+  },
+);
 
 /**
  * PUT /:id - Update restaurant (admin and shop owner)

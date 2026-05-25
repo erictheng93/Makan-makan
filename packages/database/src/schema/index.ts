@@ -72,6 +72,7 @@ export {
 export {
   marketsRelations,
   restaurantMarketMembershipsRelations,
+  marketJoinRequestsRelations,
 } from "./markets";
 export {
   shiftTemplatesRelations,

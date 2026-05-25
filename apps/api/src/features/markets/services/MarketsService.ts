@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/d1";
 import { and, asc, desc, eq, gte, isNull, like, lte, sql } from "drizzle-orm";
 import {
+  marketJoinRequests,
   markets,
   restaurantMarketMemberships,
   restaurants,
@@ -347,5 +348,107 @@ export class MarketsService {
       )
       .returning();
     return result.length > 0;
+  }
+
+  async listRestaurantMemberships(restaurantId: string) {
+    const rows = await this.db
+      .select({
+        id: restaurantMarketMemberships.id,
+        restaurantId: restaurantMarketMemberships.restaurantId,
+        marketId: restaurantMarketMemberships.marketId,
+        stallNumber: restaurantMarketMemberships.stallNumber,
+        isPrimary: restaurantMarketMemberships.isPrimary,
+        joinedAt: restaurantMarketMemberships.joinedAt,
+        marketSlug: markets.slug,
+        marketName: markets.name,
+        marketType: markets.type,
+        city: markets.city,
+        district: markets.district,
+      })
+      .from(restaurantMarketMemberships)
+      .innerJoin(markets, eq(restaurantMarketMemberships.marketId, markets.id))
+      .where(
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurantId),
+          isNull(restaurantMarketMemberships.leftAt),
+          eq(markets.isActive, true),
+          isNull(markets.deletedAt),
+        ),
+      )
+      .orderBy(desc(restaurantMarketMemberships.isPrimary), asc(markets.name));
+
+    return {
+      memberships: rows.map((row) => ({
+        id: row.id,
+        restaurantId: row.restaurantId,
+        marketId: row.marketId,
+        stallNumber: row.stallNumber,
+        isPrimary: row.isPrimary,
+        joinedAt: row.joinedAt,
+        market: {
+          id: row.marketId,
+          slug: row.marketSlug,
+          name: row.marketName,
+          type: row.marketType,
+          city: row.city,
+          district: row.district,
+        },
+      })),
+    };
+  }
+
+  async createJoinRequest(
+    restaurantId: string,
+    input: { marketId: string; message?: string | null },
+  ) {
+    const market = await this.getMarketById(input.marketId);
+    if (!market || market.deletedAt || !market.isActive) {
+      return { status: "not_found" as const };
+    }
+
+    const [activeMembership] = await this.db
+      .select({ id: restaurantMarketMemberships.id })
+      .from(restaurantMarketMemberships)
+      .where(
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurantId),
+          eq(restaurantMarketMemberships.marketId, input.marketId),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      )
+      .limit(1);
+
+    if (activeMembership) {
+      return { status: "already_member" as const };
+    }
+
+    const [pendingRequest] = await this.db
+      .select({ id: marketJoinRequests.id })
+      .from(marketJoinRequests)
+      .where(
+        and(
+          eq(marketJoinRequests.restaurantId, restaurantId),
+          eq(marketJoinRequests.marketId, input.marketId),
+          eq(marketJoinRequests.status, "pending"),
+        ),
+      )
+      .limit(1);
+
+    if (pendingRequest) {
+      return { status: "already_pending" as const };
+    }
+
+    const [request] = await this.db
+      .insert(marketJoinRequests)
+      .values({
+        restaurantId,
+        marketId: input.marketId,
+        status: "pending",
+        message: input.message || null,
+        requestedAt: new Date(),
+      })
+      .returning();
+
+    return { status: "created" as const, request };
   }
 }

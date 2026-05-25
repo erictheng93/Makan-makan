@@ -455,4 +455,107 @@ describe("Markets API — real integration", () => {
     );
     expect(publicDetailRes.status).toBe(404);
   });
+
+  it("lets restaurant owners view memberships and request to join a market", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Owner Market Vendor",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    const activeMarket = await seedMarket(testApp, {
+      slug: "owner-active-market",
+      name: "Owner Active Market",
+    });
+    const requestedMarket = await seedMarket(testApp, {
+      slug: "owner-requested-market",
+      name: "Owner Requested Market",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: activeMarket.id,
+      stallNumber: "B-02",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    await seed.user({
+      id: 2,
+      username: "market-owner",
+      role: 1,
+      restaurantId: String(restaurant.id),
+    });
+    const ownerToken = await testApp.authHelper.ownerToken(
+      2,
+      String(restaurant.id),
+    );
+    const headers = {
+      authorization: `Bearer ${ownerToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+
+    const membershipsRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/restaurants/${restaurant.id}/markets`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+    expect(membershipsRes.status).toBe(200);
+    const membershipsJson: any = await membershipsRes.json();
+    expect(membershipsJson.data.memberships).toHaveLength(1);
+    expect(membershipsJson.data.memberships[0]).toMatchObject({
+      restaurantId: String(restaurant.id),
+      marketId: activeMarket.id,
+      stallNumber: "B-02",
+      isPrimary: true,
+      market: {
+        slug: "owner-active-market",
+        name: "Owner Active Market",
+      },
+    });
+
+    const requestRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            marketId: requestedMarket.id,
+            message: "We sell late-night dumplings.",
+          }),
+        },
+      ),
+    );
+    expect(requestRes.status).toBe(201);
+    const requestJson: any = await requestRes.json();
+    expect(requestJson.data.request).toMatchObject({
+      restaurantId: String(restaurant.id),
+      marketId: requestedMarket.id,
+      status: "pending",
+      message: "We sell late-night dumplings.",
+    });
+
+    const duplicateRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ marketId: requestedMarket.id }),
+        },
+      ),
+    );
+    expect(duplicateRes.status).toBe(409);
+
+    const activeMembershipRequestRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ marketId: activeMarket.id }),
+        },
+      ),
+    );
+    expect(activeMembershipRequestRes.status).toBe(409);
+  });
 });

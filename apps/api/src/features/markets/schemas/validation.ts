@@ -74,3 +74,8 @@ export const addMarketVendorSchema = z.object({
   stallNumber: z.string().max(80).nullable().optional(),
   isPrimary: z.boolean().optional(),
 });
+
+export const createMarketJoinRequestSchema = z.object({
+  marketId: z.string().min(1).max(120),
+  message: z.string().trim().max(500).nullable().optional(),
+});

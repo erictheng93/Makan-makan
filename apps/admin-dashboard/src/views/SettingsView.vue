@@ -214,6 +214,159 @@
       </div>
     </div>
 
+    <!-- 市場 / 商圈 -->
+    <div v-show="activeTab === 'markets'" class="space-y-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("settings.markets.title") }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500">
+              {{ t("settings.markets.subtitle") }}
+            </p>
+          </div>
+          <button
+            type="button"
+            class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+            :disabled="isLoadingMarkets"
+            @click="loadMarketSettings"
+          >
+            {{ t("settings.markets.refresh") }}
+          </button>
+        </div>
+
+        <div class="mt-6">
+          <div v-if="isLoadingMarkets" class="py-8 text-sm text-gray-500">
+            {{ t("settings.markets.loading") }}
+          </div>
+          <div
+            v-else-if="marketMemberships.length === 0"
+            class="rounded-lg border border-dashed border-gray-300 p-6 text-sm text-gray-500"
+          >
+            {{ t("settings.markets.empty") }}
+          </div>
+          <div v-else class="overflow-hidden rounded-lg border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                  >
+                    {{ t("settings.markets.market") }}
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                  >
+                    {{ t("settings.markets.area") }}
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                  >
+                    {{ t("settings.markets.stall") }}
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                  >
+                    {{ t("settings.markets.primary") }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 bg-white">
+                <tr
+                  v-for="membership in marketMemberships"
+                  :key="membership.id"
+                >
+                  <td class="px-4 py-3">
+                    <div class="font-medium text-gray-900">
+                      {{ membership.market.name }}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      /{{ membership.market.slug }}
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-sm text-gray-700">
+                    {{ membership.market.city }} ·
+                    {{ membership.market.district }}
+                  </td>
+                  <td class="px-4 py-3 text-sm text-gray-700">
+                    {{ membership.stallNumber || t("settings.markets.notSet") }}
+                  </td>
+                  <td class="px-4 py-3 text-sm text-gray-700">
+                    {{
+                      membership.isPrimary
+                        ? t("settings.markets.yes")
+                        : t("settings.markets.no")
+                    }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900">
+          {{ t("settings.markets.requestTitle") }}
+        </h3>
+        <p class="mt-1 text-sm text-gray-500">
+          {{ t("settings.markets.requestSubtitle") }}
+        </p>
+
+        <div class="mt-5 grid gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ t("settings.markets.selectMarket") }}
+            </label>
+            <select
+              v-model="marketJoinForm.marketId"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">
+                {{ t("settings.markets.selectPlaceholder") }}
+              </option>
+              <option
+                v-for="market in availableMarkets"
+                :key="market.id"
+                :value="market.id"
+              >
+                {{ market.name }} · {{ market.city }} {{ market.district }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ t("settings.markets.message") }}
+            </label>
+            <textarea
+              v-model="marketJoinForm.message"
+              rows="3"
+              maxlength="500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              :placeholder="t('settings.markets.messagePlaceholder')"
+            />
+          </div>
+          <div class="flex justify-end">
+            <button
+              type="button"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="isSubmittingMarketRequest || !marketJoinForm.marketId"
+              @click="submitMarketJoinRequest"
+            >
+              {{
+                isSubmittingMarketRequest
+                  ? t("settings.markets.submitting")
+                  : t("settings.markets.submit")
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 訂單設定 -->
     <div v-show="activeTab === 'orders'" class="space-y-8">
       <!-- 訂單流程 -->
@@ -1269,6 +1422,11 @@ import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
+import {
+  marketsService,
+  type MarketListItem,
+  type RestaurantMarketMembership,
+} from "@/services/marketsService";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
 import type { CurrencyCode } from "@makanmakan/shared-types";
 
@@ -1280,6 +1438,7 @@ const authStore = useAuthStore();
 // 分頁選項
 const tabs = [
   { id: "general", name: t("settings.tabs.general") },
+  { id: "markets", name: t("settings.tabs.markets") },
   { id: "orders", name: t("settings.tabs.orders") },
   { id: "qrcode", name: t("settings.tabs.qrcode") },
   { id: "notifications", name: t("settings.tabs.notifications") },
@@ -1306,6 +1465,14 @@ const shopQR = reactive({
 const isGeneratingQR = ref(false);
 const isRegeneratingQR = ref(false);
 const isSavingShopSettings = ref(false);
+const isLoadingMarkets = ref(false);
+const isSubmittingMarketRequest = ref(false);
+const availableMarkets = ref<MarketListItem[]>([]);
+const marketMemberships = ref<RestaurantMarketMembership[]>([]);
+const marketJoinForm = reactive({
+  marketId: "",
+  message: "",
+});
 
 // 設定數據
 const settings = reactive({
@@ -1472,6 +1639,47 @@ const loadSettings = async () => {
   }
 };
 
+const loadMarketSettings = async () => {
+  try {
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+
+    isLoadingMarkets.value = true;
+    const [markets, memberships] = await Promise.all([
+      marketsService.listMarkets(),
+      marketsService.listRestaurantMemberships(restaurantId),
+    ]);
+    availableMarkets.value = markets;
+    marketMemberships.value = memberships;
+  } catch (error) {
+    console.error("Failed to load market settings:", error);
+    toast.error(t("settings.markets.loadFailed"));
+  } finally {
+    isLoadingMarkets.value = false;
+  }
+};
+
+const submitMarketJoinRequest = async () => {
+  try {
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId || !marketJoinForm.marketId) return;
+
+    isSubmittingMarketRequest.value = true;
+    await marketsService.requestJoin(restaurantId, {
+      marketId: marketJoinForm.marketId,
+      message: marketJoinForm.message.trim() || null,
+    });
+    toast.success(t("settings.markets.requestSuccess"));
+    marketJoinForm.marketId = "";
+    marketJoinForm.message = "";
+  } catch (error) {
+    console.error("Failed to submit market join request:", error);
+    toast.error(t("settings.markets.requestFailed"));
+  } finally {
+    isSubmittingMarketRequest.value = false;
+  }
+};
+
 // Shop QR 方法
 const loadShopQRInfo = async () => {
   try {
@@ -1615,6 +1823,7 @@ const downloadQRCode = () => {
 onMounted(() => {
   loadSettings();
   loadShopQRInfo();
+  loadMarketSettings();
 });
 </script>
 

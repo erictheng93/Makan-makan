@@ -85,6 +85,38 @@ export const restaurantMarketMemberships = sqliteTable(
   }),
 );
 
+export const marketJoinRequests = sqliteTable(
+  "market_join_requests",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    restaurantId: text("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id, { onDelete: "cascade" }),
+    marketId: text("market_id")
+      .notNull()
+      .references(() => markets.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"),
+    message: text("message"),
+    requestedAt: integer("requested_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    resolvedAt: integer("resolved_at_ms", { mode: "timestamp_ms" }),
+  },
+  (table) => ({
+    pendingPairIdx: uniqueIndex("market_join_requests_pending_pair_idx")
+      .on(table.restaurantId, table.marketId)
+      .where(sql`${table.status} = 'pending'`),
+    restaurantStatusIdx: index("market_join_requests_restaurant_status_idx").on(
+      table.restaurantId,
+      table.status,
+    ),
+    marketStatusIdx: index("market_join_requests_market_status_idx").on(
+      table.marketId,
+      table.status,
+    ),
+  }),
+);
+
 export const marketsRelations = relations(markets, ({ many }) => ({
   memberships: many(restaurantMarketMemberships),
 }));
@@ -98,6 +130,20 @@ export const restaurantMarketMembershipsRelations = relations(
     }),
     restaurant: one(restaurants, {
       fields: [restaurantMarketMemberships.restaurantId],
+      references: [restaurants.id],
+    }),
+  }),
+);
+
+export const marketJoinRequestsRelations = relations(
+  marketJoinRequests,
+  ({ one }) => ({
+    market: one(markets, {
+      fields: [marketJoinRequests.marketId],
+      references: [markets.id],
+    }),
+    restaurant: one(restaurants, {
+      fields: [marketJoinRequests.restaurantId],
       references: [restaurants.id],
     }),
   }),
