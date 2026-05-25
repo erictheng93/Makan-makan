@@ -30,6 +30,12 @@ export const restaurants = sqliteTable(
     phone: text("phone").notNull(),
     email: text("email"),
     website: text("website"),
+    messagingChannels: text("messaging_channels", { mode: "json" }).$type<{
+      line?: string;
+      whatsapp?: string;
+      instagram?: string;
+      telegram?: string;
+    }>(),
 
     // 營業資訊
     businessHours: text("business_hours", { mode: "json" }).$type<{
@@ -129,4 +135,40 @@ export const restaurantRelations = relations(restaurants, ({ many }) => ({
   tables: many(tables),
   orders: many(orders),
   users: many(users), // 餐廳員工
+  faqs: many(restaurantFaqs),
+}));
+
+export const restaurantFaqs = sqliteTable(
+  "restaurant_faqs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    restaurantId: text("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    answer: text("answer").notNull(),
+    keywords: text("keywords", { mode: "json" }).$type<string[]>(),
+    displayOrder: integer("display_order").notNull().default(0),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    restaurantActiveOrderIdx: index("restaurant_faqs_restaurant_active_idx").on(
+      table.restaurantId,
+      table.isActive,
+      table.displayOrder,
+    ),
+  }),
+);
+
+export const restaurantFaqRelations = relations(restaurantFaqs, ({ one }) => ({
+  restaurant: one(restaurants, {
+    fields: [restaurantFaqs.restaurantId],
+    references: [restaurants.id],
+  }),
 }));

@@ -38,13 +38,27 @@
       目前沒有符合條件的攤位。
     </div>
     <div v-else class="space-y-2">
-      <RestaurantCard
+      <div
         v-for="vendor in vendors"
         :key="vendor.restaurantId"
-        :restaurant="vendor"
-        @select="$emit('selectVendor', vendor)"
-        @takeaway="$emit('takeaway', vendor)"
-      />
+        class="rounded-xl border border-gray-200 bg-white"
+      >
+        <RestaurantCard
+          :restaurant="vendor"
+          class="border-0"
+          @select="$emit('selectVendor', vendor)"
+          @takeaway="$emit('takeaway', vendor)"
+        />
+        <div class="border-t border-gray-100 px-4 py-3">
+          <button
+            type="button"
+            class="w-full rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
+            @click="$emit('contactVendor', vendor)"
+          >
+            聯絡店家
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -65,5 +79,6 @@ defineEmits<{
   "update:takeawayOnly": [value: boolean];
   selectVendor: [vendor: MarketVendor];
   takeaway: [vendor: MarketVendor];
+  contactVendor: [vendor: MarketVendor];
 }>();
 </script>

@@ -44,7 +44,7 @@ export * from "./cycle-snapshots";
 export * from "./notification-dispatch-log";
 
 // 匯出所有關聯定義
-export { restaurantRelations } from "./restaurants";
+export { restaurantFaqRelations, restaurantRelations } from "./restaurants";
 export { userRelations } from "./users";
 export { customersRelations } from "./customers";
 export { categoryRelations } from "./categories";

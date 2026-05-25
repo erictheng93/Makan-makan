@@ -609,4 +609,110 @@ describe("Markets API — real integration", () => {
     );
     expect(activeMembershipRequestRes.status).toBe(409);
   });
+
+  it("lets restaurant owners manage public contact channels and FAQs", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Deep Link Dumplings",
+    });
+    await seed.user({
+      id: 3,
+      username: "contact-owner",
+      role: 1,
+      restaurantId: String(restaurant.id),
+    });
+    const ownerToken = await testApp.authHelper.ownerToken(
+      3,
+      String(restaurant.id),
+    );
+
+    const updateRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/contact-profile`,
+        {
+          method: "PUT",
+          headers: {
+            authorization: `Bearer ${ownerToken}`,
+            "content-type": "application/json",
+            ...CSRF_HEADERS,
+          },
+          body: JSON.stringify({
+            messagingChannels: {
+              line: "https://line.me/ti/p/~deep-dumplings",
+              whatsapp: "https://wa.me/886912345678",
+              instagram: "https://ig.me/m/deepdumplings",
+            },
+            faqs: [
+              {
+                question: "可以先預訂嗎？",
+                answer: "可以，請透過 LINE 留下取餐時間。",
+                keywords: ["預訂", "取餐"],
+                displayOrder: 2,
+                isActive: true,
+              },
+              {
+                question: "有素食選項嗎？",
+                answer: "目前提供高麗菜素餃。",
+                keywords: ["素食"],
+                displayOrder: 1,
+                isActive: true,
+              },
+              {
+                question: "停賣品項",
+                answer: "這筆不應出現在公開 FAQ。",
+                keywords: ["隱藏"],
+                displayOrder: 3,
+                isActive: false,
+              },
+            ],
+          }),
+        },
+      ),
+    );
+    expect(updateRes.status).toBe(200);
+
+    const publicRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/contact-profile`,
+      ),
+    );
+    expect(publicRes.status).toBe(200);
+    const publicJson: any = await publicRes.json();
+    expect(publicJson.data.messagingChannels).toEqual({
+      line: "https://line.me/ti/p/~deep-dumplings",
+      whatsapp: "https://wa.me/886912345678",
+      instagram: "https://ig.me/m/deepdumplings",
+    });
+    expect(publicJson.data.faqs).toEqual([
+      expect.objectContaining({
+        question: "有素食選項嗎？",
+        answer: "目前提供高麗菜素餃。",
+        keywords: ["素食"],
+        displayOrder: 1,
+        isActive: true,
+      }),
+      expect.objectContaining({
+        question: "可以先預訂嗎？",
+        answer: "可以，請透過 LINE 留下取餐時間。",
+        keywords: ["預訂", "取餐"],
+        displayOrder: 2,
+        isActive: true,
+      }),
+    ]);
+
+    const ownerRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/contact-profile`,
+        {
+          headers: { authorization: `Bearer ${ownerToken}` },
+        },
+      ),
+    );
+    expect(ownerRes.status).toBe(200);
+    const ownerJson: any = await ownerRes.json();
+    expect(ownerJson.data.faqs).toHaveLength(3);
+    expect(ownerJson.data.faqs[2]).toMatchObject({
+      question: "停賣品項",
+      isActive: false,
+    });
+  });
 });

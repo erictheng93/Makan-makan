@@ -162,6 +162,84 @@ app.post(
 );
 
 /**
+ * GET /:id/contact-profile - Get public contact channels and active FAQs
+ * Parameters: id
+ */
+app.get(
+  "/:id/contact-profile",
+  optionalAuth,
+  validateParams(commonSchemas.idParam),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const user = c.get("user");
+    const canManage =
+      user?.role === USER_ROLES.ADMIN ||
+      (user?.role === USER_ROLES.OWNER && user.restaurantId === id);
+    const restaurantsService = new RestaurantsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+
+    const profile = await restaurantsService.getContactProfile(id, {
+      includeInactiveFaqs: canManage,
+    });
+
+    if (!profile) {
+      throw notFound("Restaurant not found");
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: profile,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
+ * PUT /:id/contact-profile - Update public contact channels and FAQs
+ * Parameters: id
+ */
+app.put(
+  "/:id/contact-profile",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam),
+  validateBody(restaurantSchemas.updateContactProfile),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const body = c.get("validatedBody");
+    const user = c.get("user");
+    const restaurantsService = new RestaurantsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
+      throw forbidden("Access denied");
+    }
+
+    const profile = await restaurantsService.updateContactProfile(id, body);
+
+    if (!profile) {
+      throw notFound("Restaurant not found");
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: profile,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
  * GET /:id - Get restaurant details (public API)
  * Parameters: id
  */

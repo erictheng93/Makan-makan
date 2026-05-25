@@ -3,7 +3,13 @@
  * Business logic for restaurant operations within the feature module
  */
 
-import { RestaurantService as DatabaseRestaurantService } from "@makanmakan/database";
+import { drizzle } from "drizzle-orm/d1";
+import { asc, eq, isNull, and } from "drizzle-orm";
+import {
+  RestaurantService as DatabaseRestaurantService,
+  restaurantFaqs,
+  restaurants,
+} from "@makanmakan/database";
 import { KVCacheService, type CacheService } from "../../../core/cache";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
@@ -44,6 +50,34 @@ interface ShopQrVerificationResult {
   restaurant?: Restaurant;
 }
 
+export interface MessagingChannels {
+  line?: string;
+  whatsapp?: string;
+  instagram?: string;
+  telegram?: string;
+}
+
+export interface RestaurantFaqInput {
+  question: string;
+  answer: string;
+  keywords?: string[];
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
+export interface RestaurantContactProfile {
+  restaurantId: string;
+  messagingChannels: MessagingChannels;
+  faqs: Array<{
+    id: number;
+    question: string;
+    answer: string;
+    keywords: string[];
+    displayOrder: number;
+    isActive: boolean;
+  }>;
+}
+
 class NoopCacheService implements CacheService {
   async get<T>(): Promise<T | null> {
     return null;
@@ -60,6 +94,7 @@ class NoopCacheService implements CacheService {
 
 export class RestaurantsService {
   private dbService: DatabaseRestaurantService;
+  private db;
   private subscriptionService: SubscriptionService;
   private cache: CacheService;
   private logger: ConsoleLogger;
@@ -67,6 +102,7 @@ export class RestaurantsService {
 
   constructor(db: Env["DB"], env: Env, kv?: Env["CACHE_KV"]) {
     this.dbService = new DatabaseRestaurantService(db, env);
+    this.db = drizzle(db);
     this.subscriptionService = new SubscriptionService(db);
     this.cache = kv ? new KVCacheService(kv) : new NoopCacheService();
     this.logger = new ConsoleLogger("RestaurantsService");
@@ -254,6 +290,108 @@ export class RestaurantsService {
       });
       throw new Error("Failed to update restaurant");
     }
+  }
+
+  async getContactProfile(
+    id: string,
+    options: { includeInactiveFaqs?: boolean } = {},
+  ): Promise<RestaurantContactProfile | null> {
+    const [restaurant] = await this.db
+      .select({
+        id: restaurants.id,
+        messagingChannels: restaurants.messagingChannels,
+      })
+      .from(restaurants)
+      .where(
+        and(
+          eq(restaurants.id, id),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!restaurant) return null;
+
+    const faqConditions = [eq(restaurantFaqs.restaurantId, id)];
+    if (!options.includeInactiveFaqs) {
+      faqConditions.push(eq(restaurantFaqs.isActive, true));
+    }
+
+    const faqs = await this.db
+      .select()
+      .from(restaurantFaqs)
+      .where(and(...faqConditions))
+      .orderBy(asc(restaurantFaqs.displayOrder), asc(restaurantFaqs.id));
+
+    return {
+      restaurantId: restaurant.id,
+      messagingChannels: restaurant.messagingChannels ?? {},
+      faqs: faqs.map((faq) => ({
+        id: faq.id,
+        question: faq.question,
+        answer: faq.answer,
+        keywords: faq.keywords ?? [],
+        displayOrder: faq.displayOrder,
+        isActive: faq.isActive,
+      })),
+    };
+  }
+
+  async updateContactProfile(
+    id: string,
+    input: {
+      messagingChannels: MessagingChannels;
+      faqs: RestaurantFaqInput[];
+    },
+  ): Promise<RestaurantContactProfile | null> {
+    const [existing] = await this.db
+      .select({ id: restaurants.id })
+      .from(restaurants)
+      .where(
+        and(
+          eq(restaurants.id, id),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!existing) return null;
+
+    const now = new Date();
+    await this.db
+      .update(restaurants)
+      .set({
+        messagingChannels: removeEmptyChannels(input.messagingChannels),
+        updatedAt: now,
+      })
+      .where(eq(restaurants.id, id));
+
+    await this.db
+      .delete(restaurantFaqs)
+      .where(eq(restaurantFaqs.restaurantId, id));
+
+    if (input.faqs.length > 0) {
+      await this.db.insert(restaurantFaqs).values(
+        input.faqs.map((faq, index) => ({
+          restaurantId: id,
+          question: faq.question,
+          answer: faq.answer,
+          keywords: faq.keywords ?? [],
+          displayOrder: faq.displayOrder ?? index,
+          isActive: faq.isActive ?? true,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      );
+    }
+
+    await this.cache.delete(`restaurant:${id}`);
+    await this.cache.delete(`restaurant:${id}:contact-profile`);
+    await this.invalidateListCaches();
+
+    return this.getContactProfile(id);
   }
 
   /**
@@ -627,4 +765,12 @@ export class RestaurantsService {
       throw new Error("Failed to verify shop QR code");
     }
   }
+}
+
+function removeEmptyChannels(channels: MessagingChannels): MessagingChannels {
+  return Object.fromEntries(
+    Object.entries(channels).filter(
+      ([, value]) => typeof value === "string" && value.length > 0,
+    ),
+  ) as MessagingChannels;
 }

@@ -367,6 +367,147 @@
       </div>
     </div>
 
+    <!-- 聯絡與 FAQ -->
+    <div v-show="activeTab === 'contact'" class="space-y-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("settings.contact.title") }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500">
+              {{ t("settings.contact.subtitle") }}
+            </p>
+          </div>
+          <button
+            type="button"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            :disabled="isSavingContactProfile"
+            @click="saveContactProfile"
+          >
+            {{
+              isSavingContactProfile
+                ? t("settings.contact.saving")
+                : t("settings.contact.save")
+            }}
+          </button>
+        </div>
+
+        <div v-if="isLoadingContactProfile" class="mt-6 text-sm text-gray-500">
+          {{ t("settings.contact.loading") }}
+        </div>
+        <div v-else class="mt-6 space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-for="channel in contactChannelFields" :key="channel.key">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                {{ channel.label }}
+              </label>
+              <input
+                v-model="contactProfile.messagingChannels[channel.key]"
+                type="url"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                :placeholder="channel.placeholder"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between gap-3">
+              <h4 class="font-medium text-gray-900">
+                {{ t("settings.contact.faqTitle") }}
+              </h4>
+              <button
+                type="button"
+                class="px-3 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                @click="addContactFaq"
+              >
+                {{ t("settings.contact.addFaq") }}
+              </button>
+            </div>
+
+            <div
+              v-if="contactProfile.faqs.length === 0"
+              class="mt-4 rounded-lg border border-dashed border-gray-300 p-5 text-sm text-gray-500"
+            >
+              {{ t("settings.contact.emptyFaq") }}
+            </div>
+            <div v-else class="mt-4 space-y-4">
+              <div
+                v-for="(faq, index) in contactProfile.faqs"
+                :key="faq.localId"
+                class="rounded-lg border border-gray-200 p-4"
+              >
+                <div class="flex justify-end">
+                  <button
+                    type="button"
+                    class="text-sm text-red-600 hover:text-red-700"
+                    @click="removeContactFaq(index)"
+                  >
+                    {{ t("settings.contact.removeFaq") }}
+                  </button>
+                </div>
+                <div class="mt-3 grid grid-cols-1 gap-4 md:grid-cols-4">
+                  <div class="md:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      {{ t("settings.contact.question") }}
+                    </label>
+                    <input
+                      v-model="faq.question"
+                      type="text"
+                      maxlength="200"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      {{ t("settings.contact.displayOrder") }}
+                    </label>
+                    <input
+                      v-model.number="faq.displayOrder"
+                      type="number"
+                      min="0"
+                      max="1000"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div class="md:col-span-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      {{ t("settings.contact.answer") }}
+                    </label>
+                    <textarea
+                      v-model="faq.answer"
+                      rows="3"
+                      maxlength="1000"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div class="md:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      {{ t("settings.contact.keywords") }}
+                    </label>
+                    <input
+                      v-model="faq.keywordsText"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      :placeholder="t('settings.contact.keywordsPlaceholder')"
+                    />
+                  </div>
+                  <label class="flex items-center gap-2 pt-7 text-sm">
+                    <input
+                      v-model="faq.isActive"
+                      type="checkbox"
+                      class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    {{ t("settings.contact.active") }}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 訂單設定 -->
     <div v-show="activeTab === 'orders'" class="space-y-8">
       <!-- 訂單流程 -->
@@ -1439,6 +1580,7 @@ const authStore = useAuthStore();
 const tabs = [
   { id: "general", name: t("settings.tabs.general") },
   { id: "markets", name: t("settings.tabs.markets") },
+  { id: "contact", name: t("settings.tabs.contact") },
   { id: "orders", name: t("settings.tabs.orders") },
   { id: "qrcode", name: t("settings.tabs.qrcode") },
   { id: "notifications", name: t("settings.tabs.notifications") },
@@ -1472,6 +1614,56 @@ const marketMemberships = ref<RestaurantMarketMembership[]>([]);
 const marketJoinForm = reactive({
   marketId: "",
   message: "",
+});
+const isLoadingContactProfile = ref(false);
+const isSavingContactProfile = ref(false);
+
+type ContactChannelKey = "line" | "whatsapp" | "instagram" | "telegram";
+
+interface ContactFaqForm {
+  localId: string;
+  question: string;
+  answer: string;
+  keywordsText: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+const contactChannelFields: Array<{
+  key: ContactChannelKey;
+  label: string;
+  placeholder: string;
+}> = [
+  {
+    key: "line",
+    label: "LINE",
+    placeholder: "https://line.me/ti/p/~your-shop",
+  },
+  {
+    key: "whatsapp",
+    label: "WhatsApp",
+    placeholder: "https://wa.me/886912345678",
+  },
+  {
+    key: "instagram",
+    label: "Instagram",
+    placeholder: "https://ig.me/m/your-shop",
+  },
+  {
+    key: "telegram",
+    label: "Telegram",
+    placeholder: "https://t.me/your-shop",
+  },
+];
+
+const contactProfile = reactive({
+  messagingChannels: {
+    line: "",
+    whatsapp: "",
+    instagram: "",
+    telegram: "",
+  } as Record<ContactChannelKey, string>,
+  faqs: [] as ContactFaqForm[],
 });
 
 // 設定數據
@@ -1680,6 +1872,98 @@ const submitMarketJoinRequest = async () => {
   }
 };
 
+const addContactFaq = () => {
+  contactProfile.faqs.push({
+    localId: crypto.randomUUID(),
+    question: "",
+    answer: "",
+    keywordsText: "",
+    displayOrder: contactProfile.faqs.length + 1,
+    isActive: true,
+  });
+};
+
+const removeContactFaq = (index: number) => {
+  contactProfile.faqs.splice(index, 1);
+};
+
+const loadContactProfile = async () => {
+  try {
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+
+    isLoadingContactProfile.value = true;
+    const response = await api.get<{
+      messagingChannels?: Partial<Record<ContactChannelKey, string>>;
+      faqs?: Array<{
+        id: number;
+        question: string;
+        answer: string;
+        keywords?: string[];
+        displayOrder: number;
+        isActive: boolean;
+      }>;
+    }>(`/restaurants/${restaurantId}/contact-profile`);
+    const data = response.data?.data;
+
+    contactChannelFields.forEach((field) => {
+      contactProfile.messagingChannels[field.key] =
+        data?.messagingChannels?.[field.key] ?? "";
+    });
+    contactProfile.faqs = (data?.faqs ?? []).map((faq) => ({
+      localId: String(faq.id),
+      question: faq.question,
+      answer: faq.answer,
+      keywordsText: (faq.keywords ?? []).join(", "),
+      displayOrder: faq.displayOrder,
+      isActive: faq.isActive,
+    }));
+  } catch (error) {
+    console.error("Failed to load contact profile:", error);
+    toast.error(t("settings.contact.loadFailed"));
+  } finally {
+    isLoadingContactProfile.value = false;
+  }
+};
+
+const saveContactProfile = async () => {
+  try {
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+
+    isSavingContactProfile.value = true;
+    await api.put(`/restaurants/${restaurantId}/contact-profile`, {
+      messagingChannels: Object.fromEntries(
+        contactChannelFields
+          .map((field) => [
+            field.key,
+            contactProfile.messagingChannels[field.key].trim(),
+          ])
+          .filter(([, value]) => value),
+      ),
+      faqs: contactProfile.faqs
+        .filter((faq) => faq.question.trim() && faq.answer.trim())
+        .map((faq) => ({
+          question: faq.question.trim(),
+          answer: faq.answer.trim(),
+          keywords: faq.keywordsText
+            .split(",")
+            .map((keyword) => keyword.trim())
+            .filter(Boolean),
+          displayOrder: faq.displayOrder,
+          isActive: faq.isActive,
+        })),
+    });
+    await loadContactProfile();
+    toast.success(t("settings.contact.saveSuccess"));
+  } catch (error) {
+    console.error("Failed to save contact profile:", error);
+    toast.error(t("settings.contact.saveFailed"));
+  } finally {
+    isSavingContactProfile.value = false;
+  }
+};
+
 // Shop QR 方法
 const loadShopQRInfo = async () => {
   try {
@@ -1824,6 +2108,7 @@ onMounted(() => {
   loadSettings();
   loadShopQRInfo();
   loadMarketSettings();
+  loadContactProfile();
 });
 </script>
 

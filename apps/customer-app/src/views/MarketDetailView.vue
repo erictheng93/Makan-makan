@@ -53,7 +53,86 @@
             @update:takeaway-only="onTakeawayOnlyChange"
             @select-vendor="openVendor"
             @takeaway="startTakeaway"
+            @contact-vendor="openContactProfile"
           />
+
+          <section
+            v-if="selectedContactVendor"
+            class="rounded-xl border border-gray-200 bg-white p-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-base font-semibold text-gray-900">
+                  {{ selectedContactVendor.name }}
+                </h2>
+                <p class="text-sm text-gray-500">常見問題與聯絡方式</p>
+              </div>
+              <button
+                type="button"
+                class="text-sm font-medium text-gray-500"
+                @click="closeContactProfile"
+              >
+                關閉
+              </button>
+            </div>
+
+            <div v-if="contactLoading" class="mt-4 text-sm text-gray-500">
+              載入聯絡資訊中...
+            </div>
+            <template v-else>
+              <div v-if="contactProfile?.faqs.length" class="mt-4 space-y-2">
+                <input
+                  v-model="faqQuery"
+                  type="search"
+                  class="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
+                  placeholder="搜尋常見問題"
+                />
+                <details
+                  v-for="faq in filteredFaqs"
+                  :key="faq.id"
+                  class="rounded-lg border border-gray-200 px-3 py-2"
+                >
+                  <summary class="cursor-pointer text-sm font-medium">
+                    {{ faq.question }}
+                  </summary>
+                  <p class="mt-2 text-sm leading-6 text-gray-600">
+                    {{ faq.answer }}
+                  </p>
+                </details>
+                <p
+                  v-if="filteredFaqs.length === 0"
+                  class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-500"
+                >
+                  沒有符合的常見問題。
+                </p>
+              </div>
+              <div
+                v-else
+                class="mt-4 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-500"
+              >
+                尚未提供常見問題。
+              </div>
+
+              <div class="mt-4 grid grid-cols-2 gap-2">
+                <a
+                  v-for="channel in availableContactChannels"
+                  :key="channel.key"
+                  :href="channel.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="rounded-lg bg-ios-blue px-3 py-2 text-center text-sm font-medium text-white"
+                >
+                  {{ channel.label }}
+                </a>
+              </div>
+              <p
+                v-if="availableContactChannels.length === 0"
+                class="mt-3 text-sm text-gray-500"
+              >
+                店家尚未設定公開聯絡方式。
+              </p>
+            </template>
+          </section>
         </section>
       </template>
     </main>
@@ -61,19 +140,27 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import MarketDetailHero from "@/components/markets/MarketDetailHero.vue";
 import VendorListInMarket from "@/components/markets/VendorListInMarket.vue";
 import { useMarketsStore } from "@/stores/markets";
 import { discoveryApi } from "@/services/discoveryApi";
 import type { MarketVendor } from "@/services/marketsApi";
+import {
+  restaurantContactApi,
+  type RestaurantContactProfile,
+} from "@/services/restaurantContactApi";
 
 const route = useRoute();
 const router = useRouter();
 const store = useMarketsStore();
 const vendorQuery = ref("");
 const takeawayOnly = ref(false);
+const selectedContactVendor = ref<MarketVendor | null>(null);
+const contactProfile = ref<RestaurantContactProfile | null>(null);
+const contactLoading = ref(false);
+const faqQuery = ref("");
 let queryTimer: ReturnType<typeof setTimeout> | undefined;
 
 const slug = () => String(route.params.slug);
@@ -116,6 +203,60 @@ async function startTakeaway(vendor: MarketVendor) {
   });
 }
 
+async function openContactProfile(vendor: MarketVendor) {
+  selectedContactVendor.value = vendor;
+  contactProfile.value = null;
+  faqQuery.value = "";
+  contactLoading.value = true;
+  try {
+    contactProfile.value = await restaurantContactApi.getContactProfile(
+      vendor.restaurantId,
+    );
+  } catch (error) {
+    console.error("Failed to load contact profile:", error);
+    store.error = "無法載入店家聯絡資訊。";
+  } finally {
+    contactLoading.value = false;
+  }
+}
+
+function closeContactProfile() {
+  selectedContactVendor.value = null;
+  contactProfile.value = null;
+  faqQuery.value = "";
+}
+
+const contactChannelLabels: Record<string, string> = {
+  line: "LINE",
+  whatsapp: "WhatsApp",
+  instagram: "Instagram",
+  telegram: "Telegram",
+};
+
+const availableContactChannels = computed(() => {
+  const channels = contactProfile.value?.messagingChannels ?? {};
+  return Object.entries(channels)
+    .filter(([, url]) => typeof url === "string" && url.length > 0)
+    .map(([key, url]) => ({
+      key,
+      label: contactChannelLabels[key] ?? key,
+      url,
+    }));
+});
+
+const filteredFaqs = computed(() => {
+  const query = faqQuery.value.trim().toLowerCase();
+  const faqs = contactProfile.value?.faqs ?? [];
+  if (!query) return faqs;
+
+  return faqs.filter((faq) => {
+    const haystack = [faq.question, faq.answer, ...faq.keywords]
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(query);
+  });
+});
+
 onMounted(async () => {
   await store.loadMarketDetail(slug());
   await store.loadVendors(slug());
@@ -123,6 +264,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (queryTimer) clearTimeout(queryTimer);
+  closeContactProfile();
   store.resetSelectedMarket();
 });
 </script>

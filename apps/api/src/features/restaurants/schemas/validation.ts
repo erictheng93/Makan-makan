@@ -6,6 +6,25 @@
 import { z } from "zod";
 import { VALIDATION_LIMITS } from "../../../shared/constants";
 
+const decodeHtmlEntities = (value: string): string =>
+  value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/")
+    .replace(/&#x60;/g, "`")
+    .replace(/&#x3D;/g, "=");
+
+const sanitizeFreeText = (value: string): string =>
+  decodeHtmlEntities(value).replace(/[<>"`=]/g, "");
+
+const contactUrlSchema = z
+  .string()
+  .transform(decodeHtmlEntities)
+  .pipe(z.string().url());
+
 // Business hours validation schema
 const businessHoursSchema = z
   .record(
@@ -49,6 +68,39 @@ const restaurantSettingsSchema = z
     estimatedPrepTimeMax: z.number().int().min(1).optional(),
   })
   .passthrough(); // Allow additional properties
+
+const messagingChannelsSchema = z
+  .object({
+    line: contactUrlSchema.optional(),
+    whatsapp: contactUrlSchema.optional(),
+    instagram: contactUrlSchema.optional(),
+    telegram: contactUrlSchema.optional(),
+  })
+  .strict();
+
+const restaurantFaqInputSchema = z.object({
+  question: z
+    .string()
+    .min(1, "Question is required")
+    .max(200)
+    .transform(sanitizeFreeText),
+  answer: z
+    .string()
+    .min(1, "Answer is required")
+    .max(1000)
+    .transform(sanitizeFreeText),
+  keywords: z
+    .array(z.string().min(1).max(50).transform(sanitizeFreeText))
+    .max(20)
+    .optional(),
+  displayOrder: z.number().int().min(0).max(1000).optional(),
+  isActive: z.boolean().optional(),
+});
+
+const updateContactProfileSchema = z.object({
+  messagingChannels: messagingChannelsSchema.optional().default({}),
+  faqs: z.array(restaurantFaqInputSchema).max(50).optional().default([]),
+});
 
 // Common parameter schemas
 const idParam = z.object({
@@ -224,8 +276,10 @@ export const restaurantSchemas = {
   updateShopMode: updateShopModeSchema,
   uploadQrImage: uploadQrImageSchema,
   shopQrSettings: shopQrSettingsSchema,
+  updateContactProfile: updateContactProfileSchema,
 
   // Component schemas (for reuse)
   businessHours: businessHoursSchema,
   settings: restaurantSettingsSchema,
+  messagingChannels: messagingChannelsSchema,
 } as const;

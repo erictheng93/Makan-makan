@@ -138,9 +138,9 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Phase 3 — Vendor contact via deep links + FAQ (no native DM)
 
-**Priority:** P3 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` §10 Phase 3 **Context:** Native customer↔vendor DM was rejected (decided 2026-05-25): small vendors won't staff a real-time inbox, and forcing them onto a platform DM creates ignored-message friction. Customer contact in MVP routes to wherever vendors already work (LINE / IG / WhatsApp / Telegram) and offers a per-restaurant FAQ auto-suggest for the common questions.
+**Priority:** P3 **Status:** Completed 2026-05-25. **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` §10 Phase 3 **Context:** Native customer↔vendor DM was rejected (decided 2026-05-25): small vendors won't staff a real-time inbox, and forcing them onto a platform DM creates ignored-message friction. Customer contact in MVP routes to wherever vendors already work (LINE / IG / WhatsApp / Telegram) and offers a per-restaurant FAQ auto-suggest for the common questions.
 
-**Why deferred:** Phase 1 ships the markets entity first. Phase 3 is small but waits on Phase 1 schema. Re-evaluate native DM only after ≥50 vendors actively use the deep-link path and survey data justifies the build.
+**Resolution:** Restaurants now have public `messagingChannels` deep links plus `restaurant_faqs`. Owners can manage contact channels and FAQs from admin-dashboard settings; customer-app market vendor cards expose "聯絡店家", searchable FAQ accordions, and native third-party deep-link buttons. Re-evaluate native DM only after ≥50 vendors actively use the deep-link path and survey data justifies the build.
 
 **Scope:**
 
