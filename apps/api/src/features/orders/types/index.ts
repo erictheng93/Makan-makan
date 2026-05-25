@@ -55,7 +55,7 @@ export type OrderItem = SharedOrderItem;
 export interface CreateOrderData {
   restaurantId: string;
   tableId?: number;
-  customerId?: number;
+  customerId?: string;
   customerInfo?: {
     name?: string;
     phone?: string;
@@ -140,7 +140,7 @@ export interface OrderQueryFilters {
   orderType?: "shop" | "table" | "seat";
   fulfillmentType?: "dine_in" | "takeaway" | "delivery";
   tableId?: number;
-  customerId?: number;
+  customerId?: string;
   customerName?: string;
   customerPhone?: string;
   dateFrom?: Date;

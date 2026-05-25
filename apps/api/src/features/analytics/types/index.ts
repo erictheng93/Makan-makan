@@ -109,7 +109,7 @@ export interface CustomerAnalytics {
   averageOrdersPerCustomer: number;
   customerLifetimeValue: number;
   topCustomers: Array<{
-    customerId: number;
+    customerId: string;
     customerName: string;
     totalOrders: number;
     totalSpent: number;

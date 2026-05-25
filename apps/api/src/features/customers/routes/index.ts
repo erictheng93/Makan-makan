@@ -5,8 +5,8 @@
 
 import { Hono } from "hono";
 import {
-  customerAuthMiddleware,
   requireRole,
+  staffOrUserCustomerAuthMiddleware,
 } from "../../../shared/middleware";
 import { validateQuery } from "../../../shared/middleware";
 import { OrdersService } from "../../orders/services/OrdersService";
@@ -48,7 +48,7 @@ function toOrderStatuses(status: MyOrdersQuery["status"]): DbOrderStatus[] {
  */
 app.get(
   "/me/orders",
-  customerAuthMiddleware,
+  staffOrUserCustomerAuthMiddleware,
   requireRole([5]), // Customers only
   validateQuery(myOrdersSchema),
   async (c) => {
@@ -60,7 +60,7 @@ app.get(
 
     // Build filters - always filter by current customer
     const filters: OrderQueryFilters = {
-      customerId: user.id,
+      customerId: String(user.id),
       page: query.page || 1,
       limit: query.limit || 20,
     };
@@ -97,7 +97,7 @@ app.get(
  */
 app.get(
   "/me",
-  customerAuthMiddleware,
+  staffOrUserCustomerAuthMiddleware,
   requireRole([5]), // Customers only
   async (c) => {
     const user: AuthUser = c.get("user");

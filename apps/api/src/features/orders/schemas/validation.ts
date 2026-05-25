@@ -189,7 +189,7 @@ export const orderFilterSchema = z.object({
   orderType: orderTypeSchema.optional(),
   fulfillmentType: fulfillmentTypeSchema.optional(),
   tableId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  customerId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  customerId: z.string().min(1).optional(),
   customerName: z.string().max(100).optional(),
   customerPhone: z.string().max(20).optional(),
   dateFrom: dateStringSchema,

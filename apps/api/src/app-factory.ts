@@ -8,8 +8,8 @@ import type {
 } from "hono/utils/http-status";
 import {
   authMiddleware,
-  customerAuthMiddleware,
   optionalAuth,
+  staffOrUserCustomerAuthMiddleware,
 } from "./middleware/auth";
 import { corsMiddleware } from "./middleware/cors";
 import { csrfProtection, attachCSRFToken } from "./middleware/csrf";
@@ -83,6 +83,7 @@ import aiAnalyticsFeature from "./features/ai-analytics";
 // import seatsRouter from './routes/seats' // Replaced with modular Seats feature
 import seatsFeature from "./features/seats";
 import customersRouter from "./features/customers/routes";
+import customerRouter from "./features/customer/routes";
 // import leavesRouter from './routes/leaves' // Replaced with modular Leaves feature
 import leavesFeature from "./features/leaves";
 // Employee scheduling and shift management feature
@@ -478,7 +479,7 @@ export function createApp(
   // Kitchen routes handle auth at the route level so the /events SSE endpoint
   // can use sseAuthMiddleware (token via query param — EventSource cannot send
   // Authorization headers). All /kitchen/* routes have per-route authMiddleware.
-  apiV1.use("/orders/*", customerAuthMiddleware);
+  apiV1.use("/orders/*", staffOrUserCustomerAuthMiddleware);
   apiV1.use("/pos/*", authMiddleware);
   apiV1.use("/pos/*", moduleGate("pos"));
   apiV1.use("/payments/*", authMiddleware);
@@ -495,7 +496,7 @@ export function createApp(
   apiV1.use("/cache/*", authMiddleware);
   apiV1.use("/monitoring/*", authMiddleware);
   apiV1.use("/backup/*", authMiddleware);
-  apiV1.use("/customers/*", customerAuthMiddleware);
+  apiV1.use("/customers/*", staffOrUserCustomerAuthMiddleware);
   apiV1.use("/leaves/*", authMiddleware);
   apiV1.use("/leaves/*", moduleGate("staff_management"));
   apiV1.use("/scheduling/*", authMiddleware);
@@ -519,6 +520,7 @@ export function createApp(
       excludePaths: [
         "/api/v1/auth/login",
         "/api/v1/auth/register",
+        "/api/v1/customer/auth",
         "/api/v1/health",
         "/api/v1/monitoring/health",
         "/api/v1/sse", // SSE connections should not be CSRF protected
@@ -560,6 +562,7 @@ export function createApp(
   apiV1.route("/cache", cacheFeature);
   apiV1.route("/monitoring", monitoringFeature.routes);
   apiV1.route("/backup", BackupRoutes);
+  apiV1.route("/customer", customerRouter);
   apiV1.route("/customers", customersRouter);
   apiV1.route("/leaves", leavesFeature.routes);
   apiV1.route("/scheduling", schedulingFeature.routes);

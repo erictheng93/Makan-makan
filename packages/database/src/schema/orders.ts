@@ -9,7 +9,7 @@ import {
 import { relations, sql } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 import { tables } from "./tables";
-import { users } from "./users";
+import { customers } from "./customers";
 import { orderItems } from "./order-items";
 
 // 訂單狀態定義
@@ -48,7 +48,9 @@ export const orders = sqliteTable(
     tableId: integer("table_id").references(() => tables.id, {
       onDelete: "restrict",
     }), // 可空：支援店家級別訂單
-    customerId: integer("customer_id").references(() => users.id), // 可選：註冊用戶
+    customerId: text("customer_id").references(() => customers.id, {
+      onDelete: "set null",
+    }), // 可選：註冊顧客
 
     // 訂單基本資訊
     orderNumber: text("order_number").notNull().unique(), // 訂單編號
@@ -195,9 +197,9 @@ export const orderRelations = relations(orders, ({ one, many }) => ({
     fields: [orders.tableId],
     references: [tables.id],
   }),
-  customer: one(users, {
+  customer: one(customers, {
     fields: [orders.customerId],
-    references: [users.id],
+    references: [customers.id],
   }),
   items: many(orderItems),
 }));

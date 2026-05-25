@@ -13,6 +13,14 @@ export interface AuthUser {
   phone?: string;
 }
 
+export interface AuthCustomer {
+  id: string;
+  displayName: string;
+  primaryPhone?: string;
+  primaryEmail?: string;
+  status: string;
+}
+
 interface TokenUserRecord {
   id: number;
   username: string;
@@ -33,9 +41,18 @@ interface AuthTokenPayload {
   restaurantId?: string | number;
 }
 
+interface CustomerAuthTokenPayload {
+  sub: string;
+  type: "customer";
+  exp: number;
+  iat?: number;
+  nbf?: number;
+}
+
 declare module "hono" {
   interface ContextVariableMap {
     user: AuthUser;
+    customer: AuthCustomer;
   }
 }
 
@@ -57,6 +74,22 @@ function isAuthTokenPayload(decoded: unknown): decoded is AuthTokenPayload {
     (payload.restaurantId === undefined ||
       typeof payload.restaurantId === "string" ||
       typeof payload.restaurantId === "number")
+  );
+}
+
+function isCustomerAuthTokenPayload(
+  decoded: unknown,
+): decoded is CustomerAuthTokenPayload {
+  if (!decoded || typeof decoded !== "object") return false;
+
+  const payload = decoded as Record<string, unknown>;
+  return (
+    typeof payload.sub === "string" &&
+    payload.sub.length > 0 &&
+    payload.type === "customer" &&
+    typeof payload.exp === "number" &&
+    (payload.iat === undefined || typeof payload.iat === "number") &&
+    (payload.nbf === undefined || typeof payload.nbf === "number")
   );
 }
 
@@ -188,8 +221,104 @@ function createAuthMiddleware(maxRole: number) {
 // Staff/admin 路由的 JWT 認證中間件（只接受 role 0-4）
 export const authMiddleware = createAuthMiddleware(4);
 
-// Customer-facing 路由的 JWT 認證中間件（接受 role 0-5，涵蓋顧客 role=5）
+// Customer-facing legacy routes still accept user-table JWTs, including role=5.
 export const customerAuthMiddleware = createAuthMiddleware(5);
+export const staffOrUserCustomerAuthMiddleware = customerAuthMiddleware;
+
+// Canonical customer JWT middleware. Accepts only tokens with
+// `{ sub: customers.id, type: "customer" }` and attaches `c.get("customer")`.
+export const canonicalCustomerAuthMiddleware = async (
+  c: Context<{ Bindings: Env }>,
+  next: Next,
+) => {
+  try {
+    const authHeader = c.req.header("Authorization");
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      throw unauthorized(
+        "Missing or invalid authorization header",
+        "MISSING_AUTH_HEADER",
+      );
+    }
+
+    const token = authHeader.substring(7);
+
+    if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
+      console.error(
+        "JWT_SECRET is not set or too short (minimum 32 characters required)",
+      );
+      throw new ApiError(
+        "SERVER_CONFIG_ERROR",
+        "Server configuration error",
+        500,
+      );
+    }
+
+    if (c.env.TOKEN_BLACKLIST) {
+      const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
+      if (blacklisted) {
+        throw unauthorized("Token has been invalidated", "TOKEN_BLACKLISTED");
+      }
+    }
+
+    const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
+
+    if (!isCustomerAuthTokenPayload(decoded)) {
+      throw unauthorized("Invalid customer token claims", "TOKEN_INVALID");
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+
+    if (decoded.exp <= now) {
+      throw unauthorized("Token has expired", "TOKEN_EXPIRED");
+    }
+
+    if (decoded.iat && decoded.iat > now + 60) {
+      throw unauthorized("Token issued in future", "TOKEN_FUTURE");
+    }
+
+    if (decoded.nbf && decoded.nbf > now + 60) {
+      throw unauthorized("Token not yet valid", "TOKEN_INVALID");
+    }
+
+    const customer = await loadTokenCustomer(c, decoded.sub);
+    if (!customer) {
+      throw unauthorized("Customer not found or inactive", "CUSTOMER_INACTIVE");
+    }
+
+    await c.env.DB.prepare(
+      `UPDATE customers
+          SET last_seen_at_ms = ?, updated_at_ms = ?
+        WHERE id = ?`,
+    )
+      .bind(Date.now(), Date.now(), customer.id)
+      .run();
+
+    c.set("customer", customer);
+
+    await next();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+
+    if (
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      error.name === "JwtTokenExpired"
+    ) {
+      throw unauthorized("Token has expired", "TOKEN_EXPIRED");
+    }
+    if (
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      error.name === "JwtTokenInvalid"
+    ) {
+      throw unauthorized("Invalid token format", "TOKEN_INVALID");
+    }
+    throw unauthorized("Authentication failed", "TOKEN_INVALID");
+  }
+};
 
 // SSE 認證中間件 — 接受 Authorization header 或 ?token= query param。
 // 瀏覽器原生 EventSource 無法帶自訂 header，因此 SSE 客戶端必須走 query param。
@@ -326,6 +455,50 @@ async function loadTokenUser(
     restaurantId: row.restaurant_id ?? undefined,
     isActive: row.is_active === true || Number(row.is_active) === 1,
     tokenVersion: Number(row.token_version ?? 1),
+  };
+}
+
+async function loadTokenCustomer(
+  c: Context<{ Bindings: Env }>,
+  customerId: string,
+): Promise<AuthCustomer | null> {
+  let row: {
+    id: string;
+    display_name: string;
+    primary_phone: string | null;
+    primary_email: string | null;
+    status: string;
+  } | null;
+
+  try {
+    row = await c.env.DB.prepare(
+      `SELECT id, display_name, primary_phone, primary_email, status
+         FROM customers
+        WHERE id = ?
+          AND status = 'active'
+        LIMIT 1`,
+    )
+      .bind(customerId)
+      .first<{
+        id: string;
+        display_name: string;
+        primary_phone: string | null;
+        primary_email: string | null;
+        status: string;
+      }>();
+  } catch (error) {
+    if (c.env.NODE_ENV !== "production") return null;
+    throw error;
+  }
+
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    displayName: row.display_name,
+    primaryPhone: row.primary_phone ?? undefined,
+    primaryEmail: row.primary_email ?? undefined,
+    status: row.status,
   };
 }
 

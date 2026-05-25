@@ -18,7 +18,7 @@ import {
   orders,
   orderItems,
   menuItems,
-  users,
+  customers,
   tables,
   categories,
 } from "../schema";
@@ -109,7 +109,7 @@ export interface CustomerAnalytics {
   averageOrdersPerCustomer: number;
   customerLifetimeValue: number;
   topCustomers: Array<{
-    customerId: number;
+    customerId: string;
     customerName: string;
     totalOrders: number;
     totalSpent: number;
@@ -492,7 +492,7 @@ export class AnalyticsService extends BaseService {
       const topCustomers = await this.db
         .select({
           customerId: orders.customerId,
-          customerName: users.fullName,
+          customerName: customers.displayName,
           totalOrders: count(),
           totalSpent: sumMoneyAmount(
             orders.totalAmountCents,
@@ -500,11 +500,11 @@ export class AnalyticsService extends BaseService {
           ),
         })
         .from(orders)
-        .innerJoin(users, eq(orders.customerId, users.id))
+        .innerJoin(customers, eq(orders.customerId, customers.id))
         .where(
           and(...conditions, inArray(orders.status, FULFILLED_ORDER_STATUSES)),
         )
-        .groupBy(orders.customerId, users.fullName)
+        .groupBy(orders.customerId, customers.displayName)
         .orderBy(
           desc(sumMoneyAmount(orders.totalAmountCents, orders.totalAmount)),
         )

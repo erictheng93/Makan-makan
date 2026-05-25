@@ -1264,7 +1264,7 @@ export class OrdersService implements IOrdersService {
       // Customers must only see their own orders.
       return {
         ...filters,
-        customerId: userId,
+        customerId: userId === undefined ? undefined : String(userId),
       };
     }
 

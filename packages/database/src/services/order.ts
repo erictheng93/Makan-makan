@@ -34,7 +34,7 @@ const cancellableOrderStatuses: readonly string[] = [
 export interface CreateOrderData {
   restaurantId: string;
   tableId?: number;
-  customerId?: number;
+  customerId?: string;
   customerInfo?: { name?: string; phone?: string; email?: string };
   items: Array<{
     menuItemId: number;
@@ -64,7 +64,7 @@ export interface UpdateOrderStatusData {
 export interface OrderFilters {
   restaurantId?: string;
   tableId?: number;
-  customerId?: number;
+  customerId?: string;
   status?: string | string[];
   dateRange?: [Date, Date];
   minAmount?: number;
@@ -292,7 +292,7 @@ export class OrderService extends BaseService {
           data.couponCode,
           data.restaurantId.toString(),
           subtotal,
-          data.customerId,
+          undefined,
           data.items,
         );
 
@@ -383,7 +383,7 @@ export class OrderService extends BaseService {
         await couponService.useCoupon({
           couponId: validatedCoupon.id,
           orderId: order.id,
-          userId: data.customerId,
+          userId: undefined,
           discountAmount,
           originalAmount: subtotal,
           finalAmount: totalAmount,
@@ -469,8 +469,8 @@ export class OrderService extends BaseService {
           customer: {
             columns: {
               id: true,
-              fullName: true,
-              phone: true,
+              displayName: true,
+              primaryPhone: true,
             },
           },
           items: {

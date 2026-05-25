@@ -1,7 +1,6 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurants";
-import { orders } from "./orders";
 
 // 用戶角色定義
 export const USER_ROLES = {
@@ -10,6 +9,7 @@ export const USER_ROLES = {
   CHEF: 2, // 廚師
   SERVICE: 3, // 送菜員
   CASHIER: 4, // 收銀員
+  /** @deprecated Customer identity now lives in the customers table. */
   CUSTOMER: 5, // 顧客（可選）
 } as const;
 
@@ -97,10 +97,9 @@ export const users = sqliteTable(
   }),
 );
 
-export const userRelations = relations(users, ({ one, many }) => ({
+export const userRelations = relations(users, ({ one }) => ({
   restaurant: one(restaurants, {
     fields: [users.restaurantId],
     references: [restaurants.id], // UUID v7 關聯
   }),
-  orders: many(orders),
 }));

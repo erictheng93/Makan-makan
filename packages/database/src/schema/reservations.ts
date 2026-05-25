@@ -8,7 +8,7 @@ import {
 import { relations, sql } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 import { tables } from "./tables";
-import { users } from "./users";
+import { customers } from "./customers";
 
 // ── Status Constants ───────────────────────────────────
 
@@ -33,7 +33,9 @@ export const reservations = sqliteTable(
   {
     id: text("id").primaryKey(),
     restaurantId: text("restaurant_id").notNull(),
-    customerId: integer("customer_id"),
+    customerId: text("customer_id").references(() => customers.id, {
+      onDelete: "set null",
+    }),
     customerName: text("customer_name").notNull(),
     customerPhone: text("customer_phone").notNull(),
     customerEmail: text("customer_email"),
@@ -88,9 +90,9 @@ export const reservationRelations = relations(reservations, ({ one }) => ({
     fields: [reservations.tableId],
     references: [tables.id],
   }),
-  customer: one(users, {
+  customer: one(customers, {
     fields: [reservations.customerId],
-    references: [users.id],
+    references: [customers.id],
   }),
 }));
 

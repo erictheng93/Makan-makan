@@ -44,8 +44,7 @@ export interface RestaurantInfo {
 
 // Customer profile interface
 export interface CustomerProfile {
-  id: number;
-  username: string;
+  id: string;
   email?: string;
   phone?: string;
   fullName: string;
@@ -61,7 +60,7 @@ export interface CustomerProfile {
 export interface Order extends Omit<BaseEntity, "createdAt" | "updatedAt"> {
   restaurantId: string;
   tableId: number;
-  customerId?: number;
+  customerId?: string;
   orderNumber: string;
   customerName?: string;
   customerPhone?: string;

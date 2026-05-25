@@ -374,7 +374,7 @@ app.post(
     const createOrderData = {
       restaurantId: data.restaurantId,
       tableId: data.tableId,
-      customerId: user.id,
+      customerId: String(user.id),
       customerName: data.customerName,
       customerPhone: data.customerPhone,
       customerEmail: data.customerEmail,
@@ -446,7 +446,7 @@ app.get(
     // Role-based filtering
     if (user.role === 5) {
       // Customers only see their own orders
-      filters.customerId = user.id;
+      filters.customerId = String(user.id);
     } else if (user.role !== 0) {
       // Non-admin staff only sees their restaurant's orders
       filters.restaurantId =
@@ -611,7 +611,7 @@ app.get(
     }
 
     // Additional customer-specific check (customers can only see their own orders)
-    if (user.role === 5 && order.customerId !== user.id) {
+    if (user.role === 5 && order.customerId !== String(user.id)) {
       throw forbidden("Access denied");
     }
 
@@ -897,7 +897,7 @@ app.get(
     // Permission check
     if (user.role === 5) {
       // Customers can only view receipt for their own orders
-      if (order.customerId !== user.id) {
+      if (order.customerId !== String(user.id)) {
         throw forbidden("Access denied");
       }
     } else if (user.role !== 0 && user.restaurantId !== order.restaurantId) {

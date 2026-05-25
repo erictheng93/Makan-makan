@@ -21,7 +21,7 @@ export enum ReservationStatus {
 export interface Reservation {
   id: string;
   restaurantId: string;
-  customerId?: number;
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -50,7 +50,7 @@ export interface Reservation {
  */
 export interface CreateReservationRequest {
   restaurantId: string;
-  customerId?: number;
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -82,7 +82,7 @@ export interface UpdateReservationRequest {
  */
 export interface ReservationFilters {
   restaurantId?: string;
-  customerId?: number;
+  customerId?: string;
   customerPhone?: string;
   status?: ReservationStatus | ReservationStatus[];
   reservationDate?: string;
@@ -107,7 +107,7 @@ export interface ReservationResponse extends Reservation {
     location?: string;
   };
   customer?: {
-    id: number;
+    id: string;
     fullName: string;
     email?: string;
     phone?: string;
@@ -168,7 +168,7 @@ export enum WaitingStatus {
 export interface WaitingListEntry {
   id: string;
   restaurantId: string;
-  customerId?: number;
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   partySize: number;
@@ -196,7 +196,7 @@ export interface WaitingListEntry {
  */
 export interface JoinWaitingListRequest {
   restaurantId: string;
-  customerId?: number;
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   partySize: number;

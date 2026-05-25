@@ -25,7 +25,7 @@ import type {
 interface ReservationDbRow {
   id: string;
   restaurant_id: string;
-  customer_id?: number | null;
+  customer_id?: string | null;
   customer_name: string;
   customer_phone: string;
   customer_email?: string | null;
