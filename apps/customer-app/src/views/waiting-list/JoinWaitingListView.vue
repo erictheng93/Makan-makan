@@ -159,6 +159,7 @@ import {
   type LastWaitingTicket,
 } from "@/composables/useWaitingTicket";
 import { waitingListApi } from "@/services/waitingListApi";
+import customerPushService from "@/utils/push-notifications";
 import type {
   JoinWaitingListRequest,
   QueueStatus,
@@ -210,6 +211,17 @@ const routeToTicket = (ticket: WaitingListResponse) => {
   void router.push(ticketPath(ticket.id));
 };
 
+const enrollWaitingListPush = async () => {
+  try {
+    const permission = await customerPushService.requestPermission();
+    if (permission === "granted") {
+      await customerPushService.subscribe();
+    }
+  } catch (error) {
+    console.warn("Waiting-list push enrollment failed:", error);
+  }
+};
+
 const validatePhoneOrMessage = () => {
   if (isValidPhone()) {
     formMessage.value = "";
@@ -237,6 +249,7 @@ const handleJoin = async () => {
       notes: notes.value || undefined,
     };
     const ticket = await waitingListApi.join(request);
+    await enrollWaitingListPush();
     routeToTicket(ticket);
   } catch {
     formMessage.value = t("waitingList.errors.joinFailed");

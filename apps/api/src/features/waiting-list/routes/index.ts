@@ -4,7 +4,11 @@
  */
 
 import { Hono } from "hono";
-import { authMiddleware, requireRole } from "../../../middleware/auth";
+import {
+  authMiddleware,
+  optionalCanonicalCustomerAuthMiddleware,
+  requireRole,
+} from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
 import { WaitingListService } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
@@ -42,8 +46,9 @@ async function requireEntryAccess(
  * POST /waiting-list
  * 加入候位列表
  */
-app.post("/", async (c) => {
+app.post("/", optionalCanonicalCustomerAuthMiddleware, async (c) => {
   const body = await c.req.json<JoinWaitingListRequest>();
+  const customer = c.get("customer");
   const service = new WaitingListService(c.env.DB, c.env);
 
   // 驗證必填欄位
@@ -56,7 +61,10 @@ app.post("/", async (c) => {
     throw badRequest("缺少必填欄位");
   }
 
-  const entry = await service.joinWaitingList(body);
+  const entry = await service.joinWaitingList({
+    ...body,
+    customerId: customer?.id,
+  });
 
   return c.json(
     {

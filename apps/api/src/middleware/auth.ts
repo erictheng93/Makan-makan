@@ -320,6 +320,54 @@ export const canonicalCustomerAuthMiddleware = async (
   }
 };
 
+export const optionalCanonicalCustomerAuthMiddleware = async (
+  c: Context<{ Bindings: Env }>,
+  next: Next,
+) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    await next();
+    return;
+  }
+
+  try {
+    const token = authHeader.substring(7);
+    if (c.env.TOKEN_BLACKLIST) {
+      const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
+      if (blacklisted) {
+        await next();
+        return;
+      }
+    }
+
+    const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
+    if (!isCustomerAuthTokenPayload(decoded)) {
+      await next();
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (
+      decoded.exp <= now ||
+      (decoded.iat && decoded.iat > now + 60) ||
+      (decoded.nbf && decoded.nbf > now + 60)
+    ) {
+      await next();
+      return;
+    }
+
+    const customer = await loadTokenCustomer(c, decoded.sub);
+    if (customer) {
+      c.set("customer", customer);
+    }
+  } catch {
+    // Public routes continue to work for anonymous, guest, staff, and invalid
+    // tokens. A valid canonical customer token only enriches the request.
+  }
+
+  await next();
+};
+
 // SSE 認證中間件 — 接受 Authorization header 或 ?token= query param。
 // 瀏覽器原生 EventSource 無法帶自訂 header，因此 SSE 客戶端必須走 query param。
 export const sseAuthMiddleware = async (

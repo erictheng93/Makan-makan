@@ -62,9 +62,9 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Wire push notification end-to-end on call/about-to-expire
 
-**Priority:** P2 **Spec:** `docs/specs/queue-and-waiting-list.md` **Context:** Phase 1 (commits `0ad8522f`, `309c3db6`, 2026-05-04) shipped the customer join/ticket/cancel/confirm UI. VAPID + Service Worker subscription already exist in `apps/customer-app/src/utils/push-notifications.ts`. The server-side trigger is not connected — `WaitingListService.callWaiting()` currently only broadcasts via SSE/WS to admin-dashboard, so customers don't get a phone notification when their turn nears.
+**Priority:** P2 **Status:** Completed 2026-05-25 for `waiting_called`; `waiting_about_to_expire` remains a future scheduler/alarm enhancement. **Spec:** `docs/specs/queue-and-waiting-list.md` **Context:** Phase 1 (commits `0ad8522f`, `309c3db6`, 2026-05-04) shipped the customer join/ticket/cancel/confirm UI. VAPID + Service Worker subscription already exist in `apps/customer-app/src/utils/push-notifications.ts`. Server-side `WaitingListService.callWaiting()` now dispatches customer web push for canonical customer-linked tickets and records `notified_at`.
 
-**Why deferred:** Phase 1 was scoped tightly to keep the PR reviewable. Push wiring crosses customer-app + apps/api + service worker and warranted its own phase.
+**Resolution:** Customer-app requests push permission and subscribes after a successful join. The public waiting-list join route links tickets to the authenticated canonical customer when a valid customer JWT is present. The API dispatches `waiting_called` through `customer_push_subscriptions`, updates push delivery health, and the customer service worker deep-links notification clicks back to `/r/:restaurantId/wait-list/:ticketId`.
 
 **Scope:**
 

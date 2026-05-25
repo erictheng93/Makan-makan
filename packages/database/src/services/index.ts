@@ -31,6 +31,10 @@ export type {
 } from "./SchedulingService";
 export { ReservationService } from "./ReservationService";
 export { WaitingListService } from "./WaitingListService";
+export {
+  CustomerWebPushService,
+  type CustomerPushDispatchResult,
+} from "./CustomerWebPushService";
 export { NotificationService } from "./NotificationService";
 export { ExportService } from "./ExportService";
 export { LeaveAnalyticsService } from "./LeaveAnalyticsService";

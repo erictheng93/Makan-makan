@@ -24,6 +24,18 @@ export interface CloudflareEnv {
   JWT_SECRET: string;
   NODE_ENV?: string;
   CACHE_KV?: KVNamespace;
+  WEB_PUSH_VAPID_PUBLIC_KEY?: string;
+  WEB_PUSH_VAPID_PRIVATE_KEY?: string;
+  WEB_PUSH_VAPID_SUBJECT?: string;
+  WEB_PUSH_DELIVERER?: (delivery: {
+    subscription: {
+      id: string;
+      endpoint: string;
+      p256dhKey: string;
+      authKey: string;
+    };
+    payload: Record<string, unknown>;
+  }) => Promise<{ ok: boolean; status: number }>;
   // Notification providers
   RESEND_API_KEY?: string;
   NOTIFICATION_FROM_EMAIL?: string;

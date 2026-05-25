@@ -22,6 +22,7 @@ import type {
 import { ReservationService } from "./ReservationService";
 import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
 import { OrderService } from "./order";
+import { CustomerWebPushService } from "./CustomerWebPushService";
 import { assertWaitingTransition } from "./ticket-primitives";
 
 /** Call timeout: 5 minutes */
@@ -47,7 +48,7 @@ type TableStatusAction = "reserved" | "occupied" | "available";
 interface WaitingListDbRow {
   id: string;
   restaurant_id: string;
-  customer_id?: number | null;
+  customer_id?: string | null;
   customer_name: string;
   customer_phone: string;
   party_size: number;
@@ -309,12 +310,12 @@ export class WaitingListService extends BaseService {
           queue_date, priority, estimated_wait_minutes, status, notes,
           created_at, updated_at
         ) VALUES (
-          ${entry.id}, ${entry.restaurantId}, ${entry.customerId}, ${entry.customerName},
-          ${entry.customerPhone}, ${entry.partySize}, ${entry.preferredTableType},
+          ${entry.id}, ${entry.restaurantId}, ${entry.customerId ?? null}, ${entry.customerName},
+          ${entry.customerPhone}, ${entry.partySize}, ${entry.preferredTableType ?? null},
           ${entry.queueNumber}, ${entry.queueLetter},
           DATE(${entry.createdAt} / 1000, 'unixepoch', 'localtime'),
           ${entry.priority},
-          ${entry.estimatedWaitMinutes}, ${entry.status}, ${entry.notes},
+          ${entry.estimatedWaitMinutes}, ${entry.status}, ${entry.notes ?? null},
           ${entry.createdAt}, ${entry.updatedAt}
         )
       `);
@@ -383,7 +384,7 @@ export class WaitingListService extends BaseService {
             'id', t.id,
             'number', t.number,
             'capacity', t.capacity
-          ) as table
+          ) as table_json
         FROM waiting_list w
         LEFT JOIN tables t ON w.table_id = t.id
         WHERE w.restaurant_id = ${restaurantId}
@@ -422,7 +423,7 @@ export class WaitingListService extends BaseService {
             'id', t.id,
             'number', t.number,
             'capacity', t.capacity
-          ) as table
+          ) as table_json
         FROM waiting_list w
         LEFT JOIN tables t ON w.table_id = t.id
         WHERE w.restaurant_id = ${restaurantId}
@@ -464,7 +465,7 @@ export class WaitingListService extends BaseService {
             'id', t.id,
             'number', t.number,
             'capacity', t.capacity
-          ) as table
+          ) as table_json
         FROM waiting_list w
         LEFT JOIN tables t ON w.table_id = t.id
         WHERE w.id = ${id}
@@ -650,6 +651,21 @@ export class WaitingListService extends BaseService {
       const updated = (await this.getWaitingListEntryById(
         id,
       )) as WaitingListResponse;
+      const pushResult = await new CustomerWebPushService(
+        this.d1,
+        this.env,
+      ).sendWaitingCalled(updated);
+      if (pushResult.sent > 0) {
+        const notifiedAt = Date.now();
+        await this.db.run(sql`
+          UPDATE waiting_list
+          SET notified_at = ${notifiedAt},
+              updated_at = ${notifiedAt}
+          WHERE id = ${id}
+        `);
+        updated.notifiedAt = notifiedAt;
+        updated.updatedAt = notifiedAt;
+      }
       await this.broadcastWaitingListEvent(
         WAITING_LIST_REALTIME_EVENT.CALLED,
         updated,
@@ -982,15 +998,16 @@ export class WaitingListService extends BaseService {
         this.db.get(sql`
             SELECT AVG(
               CASE
-                WHEN o.completed_at IS NOT NULL AND o.created_at IS NOT NULL
-                THEN (o.completed_at - o.created_at) / 60000.0
+                WHEN COALESCE(o.paid_at_ms, o.delivered_at_ms) IS NOT NULL
+                  AND o.created_at_ms IS NOT NULL
+                THEN (COALESCE(o.paid_at_ms, o.delivered_at_ms) - o.created_at_ms) / 60000.0
                 ELSE NULL
               END
             ) as avg_turnover_minutes
             FROM orders o
             WHERE o.restaurant_id = ${restaurantId}
-              AND o.completed_at > ${Date.now() - 2 * 60 * 60 * 1000}
-              AND o.status = 'completed'
+              AND COALESCE(o.paid_at_ms, o.delivered_at_ms) > ${Date.now() - 2 * 60 * 60 * 1000}
+              AND o.status IN ('delivered', 'paid')
           `) as Promise<any>,
         this.db.get(sql`
             SELECT COUNT(*) as count
@@ -1011,7 +1028,7 @@ export class WaitingListService extends BaseService {
         this.db.get(sql`
             SELECT
               COUNT(*) as occupied_count,
-              MIN(estimated_turnover_at) as earliest_available
+              MIN(estimated_free_at_ms) as earliest_available
             FROM tables
             WHERE restaurant_id = ${restaurantId}
               AND is_occupied = 1
@@ -1367,9 +1384,17 @@ export class WaitingListService extends BaseService {
   ): Promise<void> {
     try {
       const now = Date.now();
+      const hasReservationColumn = await this.tableHasColumn(
+        "tables",
+        "reservation_id",
+      );
+      const hasWaitingListColumn = await this.tableHasColumn(
+        "tables",
+        "waiting_list_id",
+      );
 
       if (status === "reserved") {
-        if (waitingListId) {
+        if (waitingListId && hasWaitingListColumn) {
           await this.db.run(sql`
             UPDATE tables
             SET is_occupied = 0,
@@ -1377,11 +1402,18 @@ export class WaitingListService extends BaseService {
                 updated_at_ms = ${now}
             WHERE id = ${tableId}
           `);
-        } else if (reservationId) {
+        } else if (reservationId && hasReservationColumn) {
           await this.db.run(sql`
             UPDATE tables
             SET is_occupied = 0,
                 reservation_id = ${reservationId},
+                updated_at_ms = ${now}
+            WHERE id = ${tableId}
+          `);
+        } else {
+          await this.db.run(sql`
+            UPDATE tables
+            SET is_occupied = 0,
                 updated_at_ms = ${now}
             WHERE id = ${tableId}
           `);
@@ -1396,11 +1428,23 @@ export class WaitingListService extends BaseService {
           WHERE id = ${tableId}
         `);
       } else if (status === "available") {
+        if (hasReservationColumn && hasWaitingListColumn) {
+          await this.db.run(sql`
+            UPDATE tables
+            SET is_occupied = 0,
+                reservation_id = NULL,
+                waiting_list_id = NULL,
+                occupied_at_ms = NULL,
+                estimated_free_at_ms = NULL,
+                updated_at_ms = ${now}
+            WHERE id = ${tableId}
+          `);
+          return;
+        }
+
         await this.db.run(sql`
           UPDATE tables
           SET is_occupied = 0,
-              reservation_id = NULL,
-              waiting_list_id = NULL,
               occupied_at_ms = NULL,
               estimated_free_at_ms = NULL,
               updated_at_ms = ${now}
@@ -1410,6 +1454,18 @@ export class WaitingListService extends BaseService {
     } catch (error) {
       console.error("Error updating table status:", error);
     }
+  }
+
+  private async tableHasColumn(
+    tableName: string,
+    columnName: string,
+  ): Promise<boolean> {
+    const result = await this.d1
+      .prepare(`PRAGMA table_info(${tableName})`)
+      .all<{
+        name: string;
+      }>();
+    return (result.results ?? []).some((column) => column.name === columnName);
   }
 
   /**
@@ -1456,7 +1512,7 @@ export class WaitingListService extends BaseService {
       timeoutAt: data.timeout_at,
       updatedAt: data.updated_at,
       partiesAhead,
-      table: data.table ? JSON.parse(data.table) : undefined,
+      table: data.table_json ? JSON.parse(data.table_json) : undefined,
     };
   }
 }

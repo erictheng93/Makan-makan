@@ -23,6 +23,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
+        importScripts: ["/sw-push.js"],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff2}"],
         runtimeCaching: [
           {
