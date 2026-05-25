@@ -538,6 +538,9 @@ importers:
       '@makanmakan/auth-client':
         specifier: workspace:*
         version: link:../../packages/auth-client
+      '@makanmakan/i18n':
+        specifier: workspace:*
+        version: link:../../packages/shared/src/i18n
       '@tanstack/vue-query':
         specifier: ^5.17.0
         version: 5.92.5(vue@3.5.26(typescript@5.9.3))
@@ -666,6 +669,9 @@ importers:
       '@heroicons/vue':
         specifier: ^2.0.0
         version: 2.2.0(vue@3.5.26(typescript@5.9.3))
+      '@makanmakan/i18n':
+        specifier: workspace:*
+        version: link:../../packages/shared/src/i18n
       '@tailwindcss/forms':
         specifier: ^0.5.0
         version: 0.5.11(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.3))
@@ -760,6 +766,9 @@ importers:
       '@heroicons/vue':
         specifier: ^2.0.0
         version: 2.2.0(vue@3.5.26(typescript@5.9.3))
+      '@makanmakan/i18n':
+        specifier: workspace:*
+        version: link:../../packages/shared/src/i18n
       '@tailwindcss/forms':
         specifier: ^0.5.0
         version: 0.5.11(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.3))

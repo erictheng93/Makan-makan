@@ -1,6 +1,4 @@
-import type { Messages } from "../types";
-
-const zhTW: Messages = {
+const zhTW = {
   common: {
     back: "返回",
     cancel: "取消",

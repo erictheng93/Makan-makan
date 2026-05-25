@@ -1,9 +1,7 @@
-import type { Messages } from "../types";
-
 /**
  * 繁體中文
  */
-const zhTW: Messages = {
+const zhTW = {
   // 通用詞彙
   common: {
     save: "儲存",

@@ -1,6 +1,4 @@
-import type { Messages } from "../types";
-
-const zhTW: Messages = {
+const zhTW = {
   common: {
     save: "儲存",
     cancel: "取消",

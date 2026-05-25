@@ -1,6 +1,4 @@
-import type { Messages } from "../types";
-
-const zhTW: Messages = {
+const zhTW = {
   common: {
     appName: "MakanMakan",
     loading: "載入中...",

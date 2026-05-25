@@ -1,20 +1,10 @@
-import { ref, computed } from "vue";
+import { createI18n, type AppLocaleConfig } from "@makanmakan/i18n";
 import type { Messages } from "./types";
 import zhTWMessages from "./locales/zh-TW";
 
-/**
- * i18n 多語言系統 — Onboarding App
- */
-
 export type Locale = "zh-TW" | "zh-CN" | "en-US" | "vi-VN" | "ms-MY" | "id-ID";
 
-export interface LocaleConfig {
-  code: Locale;
-  name: string;
-  nativeName: string;
-  flag: string;
-}
-
+export type LocaleConfig = AppLocaleConfig<Locale>;
 export type { Messages } from "./types";
 
 export const SUPPORTED_LOCALES: LocaleConfig[] = [
@@ -36,193 +26,20 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   },
 ];
 
-const currentLocale = ref<Locale>("zh-TW");
-
-const messages = ref<Record<Locale, Messages>>({
-  "zh-TW": zhTWMessages,
-  "zh-CN": {},
-  "en-US": {},
-  "vi-VN": {},
-  "ms-MY": {},
-  "id-ID": {},
+const runtime = createI18n<Locale, Messages>({
+  defaultLocale: "zh-TW",
+  fallbackLocale: "zh-TW",
+  supportedLocales: SUPPORTED_LOCALES,
+  initialMessages: { "zh-TW": zhTWMessages },
+  loadMessages: async (locale) =>
+    (await import(`./locales/${locale}.ts`)).default,
 });
 
-const loadedLocales = new Set<Locale>(["zh-TW"]);
-
-export function getCurrentLocaleConfig(): LocaleConfig {
-  return (
-    SUPPORTED_LOCALES.find((l) => l.code === currentLocale.value) ||
-    SUPPORTED_LOCALES[0]
-  );
-}
-
-export function isLocaleLoaded(locale: Locale): boolean {
-  return loadedLocales.has(locale);
-}
-
-export function setLocaleMessages(locale: Locale, newMessages: Messages): void {
-  messages.value[locale] = deepMerge(messages.value[locale], newMessages);
-}
-
-const UNSAFE_MESSAGE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
-
-function isPlainObject(value: unknown): value is Messages {
-  return Object.prototype.toString.call(value) === "[object Object]";
-}
-
-function deepMerge(target: Messages, source: Messages): Messages {
-  if (!source) return target;
-  if (!target) return source;
-
-  const result = { ...target };
-
-  Object.keys(source).forEach((key) => {
-    if (UNSAFE_MESSAGE_KEYS.has(key)) {
-      return;
-    }
-
-    if (
-      isPlainObject(source[key]) &&
-      Object.prototype.hasOwnProperty.call(target, key) &&
-      isPlainObject(target[key])
-    ) {
-      result[key] = deepMerge(target[key] as Messages, source[key] as Messages);
-    } else {
-      result[key] = source[key];
-    }
-  });
-
-  return result;
-}
-
-export function t(
-  key: string,
-  params?: Record<string, string | number>,
-): string {
-  const targetLocale = currentLocale.value;
-  const keys = key.split(".");
-
-  let value: Messages | string | undefined = messages.value[targetLocale];
-
-  for (const k of keys) {
-    if (value && typeof value === "object") {
-      value = value[k];
-    } else {
-      break;
-    }
-  }
-
-  if (typeof value !== "string" && targetLocale !== "zh-TW") {
-    value = messages.value["zh-TW"];
-    for (const k of keys) {
-      if (value && typeof value === "object") {
-        value = value[k];
-      } else {
-        break;
-      }
-    }
-  }
-
-  if (typeof value !== "string") {
-    console.warn(`Translation key not found: ${key}`);
-    return key;
-  }
-
-  if (params) {
-    return value.replace(/\{(\w+)\}/g, (match, paramKey) => {
-      return params[paramKey]?.toString() || match;
-    });
-  }
-
-  return value;
-}
-
-export function setLocale(locale: Locale): void {
-  if (!SUPPORTED_LOCALES.find((l) => l.code === locale)) {
-    console.error(`Unsupported locale: ${locale}`);
-    return;
-  }
-
-  currentLocale.value = locale;
-
-  try {
-    localStorage.setItem("locale", locale);
-  } catch (error) {
-    console.error("Failed to save locale to localStorage:", error);
-  }
-}
-
-export async function loadLocaleMessages(locale: Locale): Promise<void> {
-  if (loadedLocales.has(locale)) {
-    return;
-  }
-
-  try {
-    const module = await import(`./locales/${locale}.ts`);
-    setLocaleMessages(locale, module.default);
-    loadedLocales.add(locale);
-  } catch (error) {
-    console.error(`Failed to load locale messages for ${locale}:`, error);
-    throw error;
-  }
-}
-
-export async function initI18n(): Promise<void> {
-  let savedLocale: Locale | null = null;
-
-  try {
-    savedLocale = localStorage.getItem("locale") as Locale;
-  } catch (error) {
-    console.error("Failed to read locale from localStorage:", error);
-  }
-
-  const browserLocale = navigator.language;
-
-  let targetLocale: Locale = "zh-TW";
-
-  if (savedLocale && SUPPORTED_LOCALES.find((l) => l.code === savedLocale)) {
-    targetLocale = savedLocale;
-  } else if (
-    browserLocale.startsWith("zh-CN") ||
-    browserLocale.startsWith("zh-Hans")
-  ) {
-    targetLocale = "zh-CN";
-  } else if (browserLocale.startsWith("zh")) {
-    targetLocale = "zh-TW";
-  } else if (browserLocale.startsWith("en")) {
-    targetLocale = "en-US";
-  } else if (browserLocale.startsWith("vi")) {
-    targetLocale = "vi-VN";
-  } else if (browserLocale.startsWith("ms")) {
-    targetLocale = "ms-MY";
-  } else if (browserLocale.startsWith("id")) {
-    targetLocale = "id-ID";
-  }
-
-  if (targetLocale !== "zh-TW") {
-    await loadLocaleMessages(targetLocale);
-  }
-
-  setLocale(targetLocale);
-}
-
-export function useI18n() {
-  const locale = computed(() => currentLocale.value);
-  const localeConfig = computed(() => getCurrentLocaleConfig());
-
-  const switchLocale = async (newLocale: Locale) => {
-    if (!isLocaleLoaded(newLocale)) {
-      await loadLocaleMessages(newLocale);
-    }
-    setLocale(newLocale);
-  };
-
-  return {
-    locale,
-    localeConfig,
-    t,
-    setLocale,
-    switchLocale,
-    supportedLocales: SUPPORTED_LOCALES,
-  };
-}
+export const getCurrentLocaleConfig = runtime.getCurrentLocaleConfig;
+export const isLocaleLoaded = runtime.isLocaleLoaded;
+export const setLocaleMessages = runtime.setLocaleMessages;
+export const t = runtime.t;
+export const setLocale = runtime.setLocale;
+export const loadLocaleMessages = runtime.loadLocaleMessages;
+export const initI18n = runtime.initI18n;
+export const useI18n = runtime.useI18n;
