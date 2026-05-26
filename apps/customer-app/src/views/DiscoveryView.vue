@@ -44,12 +44,12 @@
             data-testid="discovery-market-chip"
             class="h-9 shrink-0 rounded-full border px-3 text-sm font-medium"
             :class="
-              selectedMarketId === market.id
+              isSelectedMarket(market)
                 ? 'border-ios-blue bg-ios-blue text-white'
                 : 'border-gray-300 bg-white text-gray-700'
             "
-            :aria-pressed="selectedMarketId === market.id"
-            @click="toggleMarketFilter(market.id)"
+            :aria-pressed="isSelectedMarket(market)"
+            @click="toggleMarketFilter(market)"
           >
             {{ market.name }}
           </button>
@@ -261,13 +261,16 @@ const marketAreas = ref<{ city: string; districts: string[] }[]>([]);
 const categoryOptions = ref<string[]>([]);
 const serviceTypeOptions = ref<ServiceTypeFacet[]>([]);
 
-const selectedMarketId = computed(() => store.filters.marketId);
-const selectedMarketName = computed(() => {
-  const marketId = selectedMarketId.value;
-  if (!marketId) return "";
-  return (
-    marketOptions.value.find((market) => market.id === marketId)?.name ?? ""
+const selectedMarket = computed(() => {
+  const { marketId, marketSlug } = store.filters;
+  return marketOptions.value.find(
+    (market) =>
+      (marketSlug && market.slug === marketSlug) ||
+      (marketId && market.id === marketId),
   );
+});
+const selectedMarketName = computed(() => {
+  return selectedMarket.value?.name ?? "";
 });
 const selectedCity = computed(() => store.filters.city);
 const cities = computed(() => marketAreas.value.map((area) => area.city));
@@ -362,10 +365,14 @@ function isServiceType(
 
 function filtersFromRouteQuery() {
   const serviceType = firstQueryString(route.query.serviceType);
+  const marketSlug = firstQueryString(route.query.marketSlug) || undefined;
   return {
     city: firstQueryString(route.query.city) || undefined,
     district: firstQueryString(route.query.district) || undefined,
-    marketId: firstQueryString(route.query.marketId) || undefined,
+    marketId: marketSlug
+      ? undefined
+      : firstQueryString(route.query.marketId) || undefined,
+    marketSlug,
     categoryName: firstQueryString(route.query.categoryName) || undefined,
     serviceType: isServiceType(serviceType) ? serviceType : undefined,
     takeaway: queryBoolean(route.query.takeaway),
@@ -377,7 +384,11 @@ function queryFromFilters(filters = store.filters, query = store.searchQuery) {
   return {
     ...(filters.city ? { city: filters.city } : {}),
     ...(filters.district ? { district: filters.district } : {}),
-    ...(filters.marketId ? { marketId: filters.marketId } : {}),
+    ...(filters.marketSlug
+      ? { marketSlug: filters.marketSlug }
+      : filters.marketId
+        ? { marketId: filters.marketId }
+        : {}),
     ...(filters.categoryName ? { categoryName: filters.categoryName } : {}),
     ...(filters.serviceType ? { serviceType: filters.serviceType } : {}),
     ...(filters.takeaway ? { takeaway: "true" } : {}),
@@ -394,6 +405,7 @@ function hasDiscoverySearchScope(filters: SearchFilters, query: string) {
   return Boolean(
     query.trim() ||
     filters.marketId ||
+    filters.marketSlug ||
     filters.categoryName ||
     filters.city ||
     filters.district ||
@@ -441,9 +453,17 @@ function onRestaurantTakeaway(restaurant: RestaurantListItem) {
   startTakeaway(restaurant.restaurantId);
 }
 
-function toggleMarketFilter(marketId: string) {
+function isSelectedMarket(market: MarketListItem) {
+  return store.filters.marketSlug
+    ? store.filters.marketSlug === market.slug
+    : store.filters.marketId === market.id;
+}
+
+function toggleMarketFilter(market: MarketListItem) {
+  const isSelected = isSelectedMarket(market);
   updateFiltersAndSync({
-    marketId: selectedMarketId.value === marketId ? undefined : marketId,
+    marketId: undefined,
+    marketSlug: isSelected ? undefined : market.slug,
   });
 }
 
@@ -468,7 +488,8 @@ async function loadCategoryOptions() {
     const response = await discoveryApi.listCategories({
       city: store.filters.city,
       district: store.filters.district,
-      marketId: store.filters.marketId,
+      marketId: store.filters.marketSlug ? undefined : store.filters.marketId,
+      marketSlug: store.filters.marketSlug,
       takeaway: store.filters.takeaway,
       delivery: store.filters.delivery,
     });
@@ -483,7 +504,8 @@ async function loadServiceTypeOptions() {
     const response = await discoveryApi.listServiceTypes({
       city: store.filters.city,
       district: store.filters.district,
-      marketId: store.filters.marketId,
+      marketId: store.filters.marketSlug ? undefined : store.filters.marketId,
+      marketSlug: store.filters.marketSlug,
       takeaway: store.filters.takeaway,
       delivery: store.filters.delivery,
     });
@@ -524,6 +546,7 @@ watch(
     store.filters.city,
     store.filters.district,
     store.filters.marketId,
+    store.filters.marketSlug,
     store.filters.takeaway,
     store.filters.delivery,
   ],

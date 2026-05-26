@@ -83,6 +83,33 @@ describe("useDiscoveryStore", () => {
     });
   });
 
+  it("browses market dishes by stable market slug", async () => {
+    setActivePinia(createPinia());
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+
+    const store = useDiscoveryStore();
+    store.updateFilters({ marketSlug: "fengjia" });
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+        marketSlug: "fengjia",
+        page: 1,
+      });
+    });
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+      marketSlug: "fengjia",
+      page: 1,
+    });
+    expect(discoveryApi.browseRestaurants).not.toHaveBeenCalled();
+  });
+
   it("searches matching services together with market dish results", async () => {
     setActivePinia(createPinia());
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({

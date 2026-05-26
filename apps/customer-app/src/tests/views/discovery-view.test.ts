@@ -212,6 +212,42 @@ describe("DiscoveryView", () => {
     });
   });
 
+  it("uses the selected market slug as shop menu return context", async () => {
+    vi.mocked(marketsApi.listMarkets).mockResolvedValueOnce({
+      markets: [
+        {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    } as never);
+    const store = discoveryStore({
+      filters: { marketSlug: "fengjia" },
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("逢甲夜市");
+    });
+    await wrapper.get('[data-testid="select-dish"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "restaurant-1" },
+      query: {
+        itemId: "42",
+        categoryName: "小吃",
+        returnPath: "/discover?q=%E5%A4%96%E9%80%81",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
   it("starts takeaway for a dish result with the item deep link preserved", async () => {
     vi.mocked(discoveryApi.getTakeawayEligibility).mockResolvedValueOnce({
       eligible: true,
@@ -328,7 +364,7 @@ describe("DiscoveryView", () => {
     });
   });
 
-  it("lets customers scope discovery searches to a market", async () => {
+  it("lets customers scope discovery searches to a market slug", async () => {
     vi.mocked(marketsApi.listMarkets).mockResolvedValueOnce({
       markets: [
         {
@@ -354,10 +390,11 @@ describe("DiscoveryView", () => {
     await wrapper.get('[data-testid="discovery-market-chip"]').trigger("click");
 
     expect(store.updateFilters).toHaveBeenCalledWith({
-      marketId: "market-1",
+      marketId: undefined,
+      marketSlug: "fengjia",
     });
     expect(routerReplace).toHaveBeenCalledWith({
-      query: { marketId: "market-1", q: "章魚燒" },
+      query: { marketSlug: "fengjia", q: "章魚燒" },
     });
   });
 
@@ -385,6 +422,41 @@ describe("DiscoveryView", () => {
     expect(store.searchQuery).toBe("外送");
     expect(store.searchDishes).toHaveBeenCalledWith("外送");
     expect(store.browseRestaurants).not.toHaveBeenCalled();
+  });
+
+  it("initializes a shareable search from a market slug URL query", async () => {
+    routeQuery.q = "外送";
+    routeQuery.marketSlug = "fengjia";
+    const store = discoveryStore({
+      searchQuery: "",
+      filters: {},
+      searchDishes: vi.fn(),
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    mountView();
+
+    expect(store.filters).toEqual({ marketSlug: "fengjia" });
+    expect(store.searchQuery).toBe("外送");
+    expect(store.searchDishes).toHaveBeenCalledWith("外送");
+    await vi.waitFor(() => {
+      expect(discoveryApi.listCategories).toHaveBeenCalledWith({
+        city: undefined,
+        district: undefined,
+        marketId: undefined,
+        marketSlug: "fengjia",
+        takeaway: undefined,
+        delivery: undefined,
+      });
+    });
+    expect(discoveryApi.listServiceTypes).toHaveBeenCalledWith({
+      city: undefined,
+      district: undefined,
+      marketId: undefined,
+      marketSlug: "fengjia",
+      takeaway: undefined,
+      delivery: undefined,
+    });
   });
 
   it("searches service results from a URL query that only has a service type", () => {
@@ -470,6 +542,32 @@ describe("DiscoveryView", () => {
       city: undefined,
       district: undefined,
       marketId: "market-1",
+      takeaway: undefined,
+      delivery: undefined,
+    });
+  });
+
+  it("loads category filters with the selected market slug scope", async () => {
+    vi.mocked(discoveryApi.listCategories).mockResolvedValueOnce({
+      categories: ["小吃", "飲品"],
+    } as never);
+    const store = discoveryStore({
+      filters: { marketSlug: "fengjia" },
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.get('[data-testid="category-filter-options"]').text(),
+      ).toContain("飲品");
+    });
+    expect(discoveryApi.listCategories).toHaveBeenCalledWith({
+      city: undefined,
+      district: undefined,
+      marketId: undefined,
+      marketSlug: "fengjia",
       takeaway: undefined,
       delivery: undefined,
     });

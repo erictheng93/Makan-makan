@@ -36,6 +36,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
   function hasDiscoverySearchScope(searchFilters: SearchFilters) {
     return Boolean(
       searchFilters.marketId ||
+      searchFilters.marketSlug ||
       searchFilters.categoryName ||
       searchFilters.city ||
       searchFilters.district ||
@@ -61,6 +62,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
       const canSearchDishes = Boolean(
         trimmedQuery ||
         filters.value.marketId ||
+        filters.value.marketSlug ||
         filters.value.categoryName ||
         filters.value.city ||
         filters.value.district,
@@ -68,6 +70,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
       const canSearchServices = Boolean(
         trimmedQuery ||
         filters.value.marketId ||
+        filters.value.marketSlug ||
         filters.value.city ||
         filters.value.district ||
         serviceType,
@@ -82,6 +85,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
               city: filters.value.city,
               district: filters.value.district,
               marketId: filters.value.marketId,
+              marketSlug: filters.value.marketSlug,
               serviceType,
               takeaway: filters.value.takeaway,
               delivery: filters.value.delivery,
