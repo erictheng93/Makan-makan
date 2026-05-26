@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { z } from "zod";
 import { requireRole } from "../../../middleware/auth";
 import {
   validateBody,
@@ -23,6 +24,174 @@ import { MarketsService } from "../services/MarketsService";
 import { RestaurantsService } from "../../restaurants/services/RestaurantsService";
 
 const routes = new Hono<{ Bindings: Env }>();
+
+type ImportMarketVendorInput = z.infer<
+  typeof importMarketVendorsSchema
+>["vendors"][number];
+
+type VendorImportIssue = {
+  index: number;
+  code:
+    | "already_attached"
+    | "city_defaulted"
+    | "duplicate_in_payload"
+    | "phone_defaulted"
+    | "restaurant_not_found";
+  severity: "blocking" | "warning";
+  message: string;
+  field?: "city" | "phone";
+  restaurantId?: string;
+  restaurantName?: string;
+};
+
+const newVendorDuplicateKey = (vendor: ImportMarketVendorInput) =>
+  vendor.restaurantId
+    ? `id:${vendor.restaurantId}`
+    : `new:${vendor.name?.trim().toLowerCase() ?? ""}\u0000${
+        vendor.address?.trim().toLowerCase() ?? ""
+      }`;
+
+async function dryRunVendorImport(input: {
+  vendors: ImportMarketVendorInput[];
+  marketId: string;
+  marketCity: string;
+  marketsService: MarketsService;
+  restaurantsService: RestaurantsService;
+}) {
+  const issues: VendorImportIssue[] = [];
+  const results = [];
+  const seen = new Set<string>();
+  let wouldCreateRestaurants = 0;
+  let wouldAttachVendors = 0;
+  let skipped = 0;
+
+  for (const [index, vendor] of input.vendors.entries()) {
+    const duplicateKey = newVendorDuplicateKey(vendor);
+    if (seen.has(duplicateKey)) {
+      skipped += 1;
+      issues.push({
+        index,
+        code: "duplicate_in_payload",
+        severity: "blocking",
+        message: "Vendor appears more than once in this import payload",
+        restaurantId: vendor.restaurantId,
+        restaurantName: vendor.name,
+      });
+      results.push({
+        status: "skipped",
+        reason: "duplicate_in_payload",
+        restaurantId: vendor.restaurantId,
+        restaurantName: vendor.name,
+        stallNumber: vendor.stallNumber ?? null,
+      });
+      continue;
+    }
+    seen.add(duplicateKey);
+
+    if (!vendor.restaurantId) {
+      wouldCreateRestaurants += 1;
+      wouldAttachVendors += 1;
+      if (!vendor.phone) {
+        issues.push({
+          index,
+          code: "phone_defaulted",
+          severity: "warning",
+          field: "phone",
+          message: "Phone is missing and would default to 00000000",
+          restaurantName: vendor.name,
+        });
+      }
+      if (!vendor.city) {
+        issues.push({
+          index,
+          code: "city_defaulted",
+          severity: "warning",
+          field: "city",
+          message: `City is missing and would default to ${input.marketCity}`,
+          restaurantName: vendor.name,
+        });
+      }
+      results.push({
+        status: "would_create",
+        restaurantName: vendor.name,
+        stallNumber: vendor.stallNumber ?? null,
+      });
+      continue;
+    }
+
+    const restaurant = await input.restaurantsService.getRestaurant(
+      vendor.restaurantId,
+    );
+    if (!restaurant || !restaurant.isActive) {
+      skipped += 1;
+      issues.push({
+        index,
+        code: "restaurant_not_found",
+        severity: "blocking",
+        message: "Restaurant was not found or is inactive",
+        restaurantId: vendor.restaurantId,
+        restaurantName: vendor.name,
+      });
+      results.push({
+        status: "skipped",
+        reason: "restaurant_not_found",
+        restaurantId: vendor.restaurantId,
+        restaurantName: vendor.name,
+        stallNumber: vendor.stallNumber ?? null,
+      });
+      continue;
+    }
+
+    const memberships = await input.marketsService.listRestaurantMemberships(
+      vendor.restaurantId,
+    );
+    if (
+      memberships.memberships.some(
+        (membership) => membership.marketId === input.marketId,
+      )
+    ) {
+      skipped += 1;
+      issues.push({
+        index,
+        code: "already_attached",
+        severity: "blocking",
+        message: "Restaurant already belongs to this market",
+        restaurantId: vendor.restaurantId,
+        restaurantName: restaurant.name,
+      });
+      results.push({
+        status: "skipped",
+        reason: "already_attached",
+        restaurantId: vendor.restaurantId,
+        restaurantName: restaurant.name,
+        stallNumber: vendor.stallNumber ?? null,
+      });
+      continue;
+    }
+
+    wouldAttachVendors += 1;
+    results.push({
+      status: "would_attach",
+      restaurantId: vendor.restaurantId,
+      restaurantName: restaurant.name,
+      stallNumber: vendor.stallNumber ?? null,
+    });
+  }
+
+  return {
+    dryRun: true,
+    wouldCreateRestaurants,
+    wouldAttachVendors,
+    skipped,
+    issueCount: issues.length,
+    blockingIssueCount: issues.filter((issue) => issue.severity === "blocking")
+      .length,
+    warningIssueCount: issues.filter((issue) => issue.severity === "warning")
+      .length,
+    issues,
+    results,
+  };
+}
 
 routes.use("*", requireRole([0]));
 
@@ -260,7 +429,7 @@ routes.post(
   validateBody(importMarketVendorsSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { vendors } = c.get("validatedBody");
+    const { dryRun = false, vendors } = c.get("validatedBody");
     const marketsService = new MarketsService(c.env.DB, c.env.CACHE_KV);
     const restaurantsService = new RestaurantsService(
       c.env.DB,
@@ -277,6 +446,17 @@ routes.post(
         },
         404,
       );
+    }
+
+    if (dryRun) {
+      const data = await dryRunVendorImport({
+        vendors,
+        marketId: id,
+        marketCity: market.city,
+        marketsService,
+        restaurantsService,
+      });
+      return c.json({ success: true, data });
     }
 
     const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);

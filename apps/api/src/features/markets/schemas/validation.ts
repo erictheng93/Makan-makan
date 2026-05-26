@@ -128,6 +128,7 @@ const importMarketVendorSchema = z
   });
 
 export const importMarketVendorsSchema = z.object({
+  dryRun: z.boolean().optional(),
   vendors: z.array(importMarketVendorSchema).min(1).max(50),
 });
 
