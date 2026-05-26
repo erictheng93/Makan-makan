@@ -14,8 +14,12 @@ export interface MarketCatalogCoverage {
   vendorsMissingSearchableProducts?: number;
   vendorsWithPublicServices?: number;
   vendorsMissingPublicServices?: number;
+  vendorsMissingStallNumbers?: number;
+  vendorsMissingSearchEntrypoints?: number;
   missingProductVendors?: MarketCatalogGapVendor[];
   missingServiceVendors?: MarketCatalogGapVendor[];
+  missingStallNumberVendors?: MarketCatalogGapVendor[];
+  missingSearchEntrypointVendors?: MarketCatalogGapVendor[];
 }
 
 export interface MarketListItem {

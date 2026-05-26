@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-9">
       <div
         v-for="metric in metrics"
         :key="metric.label"
@@ -252,7 +252,9 @@
               <div
                 v-if="
                   market.catalogCoverage?.vendorsMissingSearchableProducts ||
-                  market.catalogCoverage?.vendorsMissingPublicServices
+                  market.catalogCoverage?.vendorsMissingPublicServices ||
+                  market.catalogCoverage?.vendorsMissingStallNumbers ||
+                  market.catalogCoverage?.vendorsMissingSearchEntrypoints
                 "
                 class="mt-2 space-y-1 text-xs text-amber-700"
               >
@@ -267,6 +269,16 @@
                   缺服務店鋪
                   {{
                     market.catalogCoverage?.vendorsMissingPublicServices ?? 0
+                  }}
+                </div>
+                <div>
+                  缺攤位號
+                  {{ market.catalogCoverage?.vendorsMissingStallNumbers ?? 0 }}
+                </div>
+                <div>
+                  缺搜尋入口
+                  {{
+                    market.catalogCoverage?.vendorsMissingSearchEntrypoints ?? 0
                   }}
                 </div>
               </div>
@@ -301,10 +313,7 @@
                 </span>
               </div>
               <div
-                v-if="
-                  market.catalogCoverage?.missingProductVendors?.length ||
-                  market.catalogCoverage?.missingServiceVendors?.length
-                "
+                v-if="hasCatalogGapVendors(market)"
                 class="mt-3 max-w-md space-y-2 text-xs text-gray-600"
               >
                 <div
@@ -349,12 +358,49 @@
                     </button>
                   </div>
                 </div>
+                <div
+                  v-if="
+                    market.catalogCoverage?.missingStallNumberVendors?.length
+                  "
+                >
+                  <span class="font-medium text-gray-700">缺攤位號：</span>
+                  {{
+                    vendorGapNames(
+                      market.catalogCoverage.missingStallNumberVendors,
+                    )
+                  }}
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <button
+                      v-for="vendor in market.catalogCoverage
+                        .missingStallNumberVendors"
+                      :key="`stall-${vendor.restaurantId}`"
+                      type="button"
+                      class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                      :data-testid="`manage-stall-${vendor.restaurantId}`"
+                      @click="startEditing(market)"
+                    >
+                      補攤位號
+                    </button>
+                  </div>
+                </div>
+                <div
+                  v-if="
+                    market.catalogCoverage?.missingSearchEntrypointVendors
+                      ?.length
+                  "
+                >
+                  <span class="font-medium text-gray-700">缺搜尋入口：</span>
+                  {{
+                    vendorGapNames(
+                      market.catalogCoverage.missingSearchEntrypointVendors,
+                    )
+                  }}
+                </div>
               </div>
               <span
                 v-if="
                   !market.publicReadiness?.issues.length &&
-                  !market.catalogCoverage?.missingProductVendors?.length &&
-                  !market.catalogCoverage?.missingServiceVendors?.length
+                  !hasCatalogGapVendors(market)
                 "
                 class="text-sm text-gray-400"
               >
@@ -952,6 +998,8 @@ const filterOptions: Array<{ value: MarketReadinessFilter; label: string }> = [
   { value: "blocked", label: "需補齊" },
   { value: "missingProducts", label: "缺商品" },
   { value: "missingServices", label: "缺服務" },
+  { value: "missingStalls", label: "缺攤位號" },
+  { value: "missingEntrypoints", label: "缺入口" },
   { value: "unknown", label: "未知" },
 ];
 const vendorImportFormatOptions: Array<{
@@ -1001,13 +1049,25 @@ const metrics = computed(() => [
     value: stats.value.vendorsMissingServices,
     class: "text-amber-600",
   },
+  {
+    label: "缺攤位號",
+    value: stats.value.vendorsMissingStallNumbers,
+    class: "text-amber-600",
+  },
+  {
+    label: "缺搜尋入口",
+    value: stats.value.vendorsMissingSearchEntrypoints,
+    class: "text-amber-600",
+  },
 ]);
 const catalogGapRowCount = computed(() =>
   filteredMarkets.value.reduce(
     (total, market) =>
       total +
       (market.catalogCoverage?.missingProductVendors?.length ?? 0) +
-      (market.catalogCoverage?.missingServiceVendors?.length ?? 0),
+      (market.catalogCoverage?.missingServiceVendors?.length ?? 0) +
+      (market.catalogCoverage?.missingStallNumberVendors?.length ?? 0) +
+      (market.catalogCoverage?.missingSearchEntrypointVendors?.length ?? 0),
     0,
   ),
 );
@@ -1116,6 +1176,15 @@ function vendorGapNames(
         : vendor.name,
     )
     .join("、");
+}
+
+function hasCatalogGapVendors(market: MarketListItem) {
+  return (
+    Boolean(market.catalogCoverage?.missingProductVendors?.length) ||
+    Boolean(market.catalogCoverage?.missingServiceVendors?.length) ||
+    Boolean(market.catalogCoverage?.missingStallNumberVendors?.length) ||
+    Boolean(market.catalogCoverage?.missingSearchEntrypointVendors?.length)
+  );
 }
 
 function manageVendorGap(

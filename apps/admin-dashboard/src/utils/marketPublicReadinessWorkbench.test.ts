@@ -68,6 +68,8 @@ describe("market public readiness workbench", () => {
       averageScore: 72,
       vendorsMissingProducts: 6,
       vendorsMissingServices: 18,
+      vendorsMissingStallNumbers: 0,
+      vendorsMissingSearchEntrypoints: 0,
     });
   });
 
@@ -153,6 +155,50 @@ describe("market public readiness workbench", () => {
     );
   });
 
+  it("filters markets by stall number and search entrypoint gaps", () => {
+    const markets = [
+      market({
+        id: "market-stalls",
+        slug: "stalls-gap",
+        catalogCoverage: {
+          searchableProductCount: 10,
+          publicServiceCount: 3,
+          vendorsMissingSearchableProducts: 0,
+          vendorsMissingPublicServices: 0,
+          vendorsMissingStallNumbers: 2,
+          vendorsMissingSearchEntrypoints: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+          missingStallNumberVendors: [],
+          missingSearchEntrypointVendors: [],
+        },
+      }),
+      market({
+        id: "market-entrypoints",
+        slug: "entrypoints-gap",
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsMissingSearchableProducts: 3,
+          vendorsMissingPublicServices: 3,
+          vendorsMissingStallNumbers: 0,
+          vendorsMissingSearchEntrypoints: 3,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+          missingStallNumberVendors: [],
+          missingSearchEntrypointVendors: [],
+        },
+      }),
+    ];
+
+    expect(filterMarketsByReadiness(markets, "missingStalls")[0].slug).toBe(
+      "stalls-gap",
+    );
+    expect(
+      filterMarketsByReadiness(markets, "missingEntrypoints")[0].slug,
+    ).toBe("entrypoints-gap");
+  });
+
   it("summarizes vendor-level catalog readiness gaps", () => {
     const summary = marketReadinessStats([
       market(),
@@ -174,6 +220,8 @@ describe("market public readiness workbench", () => {
     expect(summary).toMatchObject({
       vendorsMissingProducts: 3,
       vendorsMissingServices: 10,
+      vendorsMissingStallNumbers: 0,
+      vendorsMissingSearchEntrypoints: 0,
     });
   });
 

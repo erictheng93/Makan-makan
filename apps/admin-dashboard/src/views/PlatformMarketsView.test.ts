@@ -73,6 +73,8 @@ describe("PlatformMarketsView", () => {
           vendorsMissingSearchableProducts: 1,
           vendorsWithPublicServices: 0,
           vendorsMissingPublicServices: 1,
+          vendorsMissingStallNumbers: 1,
+          vendorsMissingSearchEntrypoints: 1,
           missingProductVendors: [
             {
               restaurantId: "restaurant-1",
@@ -81,6 +83,20 @@ describe("PlatformMarketsView", () => {
             },
           ],
           missingServiceVendors: [
+            {
+              restaurantId: "restaurant-1",
+              name: "缺商品攤",
+              stallNumber: "A-01",
+            },
+          ],
+          missingStallNumberVendors: [
+            {
+              restaurantId: "restaurant-2",
+              name: "缺攤位號攤",
+              stallNumber: null,
+            },
+          ],
+          missingSearchEntrypointVendors: [
             {
               restaurantId: "restaurant-1",
               name: "缺商品攤",
@@ -184,6 +200,28 @@ describe("PlatformMarketsView", () => {
       name: "Settings",
       query: { tab: "contact" },
     });
+  });
+
+  it("shows stall number and search entrypoint gaps for operators", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("缺攤位號");
+    expect(wrapper.text()).toContain("缺搜尋入口");
+    expect(wrapper.text()).toContain("缺攤位號攤");
+
+    await wrapper
+      .get('[data-testid="manage-stall-restaurant-2"]')
+      .trigger("click");
+
+    expect(marketsService.listMarketVendors).toHaveBeenLastCalledWith(
+      "fengjia",
+      {
+        q: undefined,
+        page: 1,
+        limit: 10,
+      },
+    );
   });
 
   it("filters readiness rows by product or service catalog gaps", async () => {

@@ -72,8 +72,12 @@ export interface MarketCatalogCoverage {
   vendorsMissingSearchableProducts?: number;
   vendorsWithPublicServices?: number;
   vendorsMissingPublicServices?: number;
+  vendorsMissingStallNumbers?: number;
+  vendorsMissingSearchEntrypoints?: number;
   missingProductVendors?: MarketCatalogGapVendor[];
   missingServiceVendors?: MarketCatalogGapVendor[];
+  missingStallNumberVendors?: MarketCatalogGapVendor[];
+  missingSearchEntrypointVendors?: MarketCatalogGapVendor[];
 }
 
 export interface MarketCatalogGapVendor {
@@ -641,8 +645,12 @@ export class MarketsService {
         vendorsMissingSearchableProducts: 0,
         vendorsWithPublicServices: 0,
         vendorsMissingPublicServices: 0,
+        vendorsMissingStallNumbers: 0,
+        vendorsMissingSearchEntrypoints: 0,
         missingProductVendors: [],
         missingServiceVendors: [],
+        missingStallNumberVendors: [],
+        missingSearchEntrypointVendors: [],
       };
     }
 
@@ -693,6 +701,24 @@ export class MarketsService {
         name: vendor.name,
         stallNumber: vendor.stallNumber,
       }));
+    const missingStallNumberVendors = vendorRows
+      .filter((vendor) => !vendor.stallNumber?.trim())
+      .map((vendor) => ({
+        restaurantId: vendor.restaurantId,
+        name: vendor.name,
+        stallNumber: vendor.stallNumber,
+      }));
+    const missingSearchEntrypointVendors = vendorRows
+      .filter(
+        (vendor) =>
+          !vendorsWithProducts.has(vendor.restaurantId) &&
+          !vendorsWithServices.has(vendor.restaurantId),
+      )
+      .map((vendor) => ({
+        restaurantId: vendor.restaurantId,
+        name: vendor.name,
+        stallNumber: vendor.stallNumber,
+      }));
 
     return {
       ...coverage,
@@ -700,8 +726,12 @@ export class MarketsService {
       vendorsMissingSearchableProducts: missingProductVendors.length,
       vendorsWithPublicServices: vendorsWithPublicServicesCount,
       vendorsMissingPublicServices: missingServiceVendors.length,
+      vendorsMissingStallNumbers: missingStallNumberVendors.length,
+      vendorsMissingSearchEntrypoints: missingSearchEntrypointVendors.length,
       missingProductVendors,
       missingServiceVendors,
+      missingStallNumberVendors,
+      missingSearchEntrypointVendors,
     };
   }
 

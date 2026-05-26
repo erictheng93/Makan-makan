@@ -6,7 +6,9 @@ export type MarketReadinessFilter =
   | "blocked"
   | "unknown"
   | "missingProducts"
-  | "missingServices";
+  | "missingServices"
+  | "missingStalls"
+  | "missingEntrypoints";
 
 export function marketReadinessStats(markets: MarketListItem[]) {
   const ready = markets.filter(
@@ -36,6 +38,16 @@ export function marketReadinessStats(markets: MarketListItem[]) {
       total + (market.catalogCoverage?.vendorsMissingPublicServices ?? 0),
     0,
   );
+  const vendorsMissingStallNumbers = markets.reduce(
+    (total, market) =>
+      total + (market.catalogCoverage?.vendorsMissingStallNumbers ?? 0),
+    0,
+  );
+  const vendorsMissingSearchEntrypoints = markets.reduce(
+    (total, market) =>
+      total + (market.catalogCoverage?.vendorsMissingSearchEntrypoints ?? 0),
+    0,
+  );
 
   return {
     total: markets.length,
@@ -45,6 +57,8 @@ export function marketReadinessStats(markets: MarketListItem[]) {
     averageScore,
     vendorsMissingProducts,
     vendorsMissingServices,
+    vendorsMissingStallNumbers,
+    vendorsMissingSearchEntrypoints,
   };
 }
 
@@ -64,7 +78,11 @@ export function filterMarketsByReadiness(
       (filter === "missingProducts" &&
         (market.catalogCoverage?.vendorsMissingSearchableProducts ?? 0) > 0) ||
       (filter === "missingServices" &&
-        (market.catalogCoverage?.vendorsMissingPublicServices ?? 0) > 0);
+        (market.catalogCoverage?.vendorsMissingPublicServices ?? 0) > 0) ||
+      (filter === "missingStalls" &&
+        (market.catalogCoverage?.vendorsMissingStallNumbers ?? 0) > 0) ||
+      (filter === "missingEntrypoints" &&
+        (market.catalogCoverage?.vendorsMissingSearchEntrypoints ?? 0) > 0);
 
     if (!readinessMatches) return false;
     if (!normalizedQuery) return true;
@@ -80,11 +98,21 @@ export function marketCatalogGapPriority(market: MarketListItem) {
     market.catalogCoverage?.vendorsMissingSearchableProducts ?? 0;
   const missingServices =
     market.catalogCoverage?.vendorsMissingPublicServices ?? 0;
+  const missingStallNumbers =
+    market.catalogCoverage?.vendorsMissingStallNumbers ?? 0;
+  const missingSearchEntrypoints =
+    market.catalogCoverage?.vendorsMissingSearchEntrypoints ?? 0;
   const readinessGap = Math.ceil(
     Math.max(0, 100 - (market.publicReadiness?.score ?? 0)) / 10,
   );
 
-  return missingProducts * 3 + missingServices * 2 + readinessGap;
+  return (
+    missingProducts * 3 +
+    missingServices * 2 +
+    missingStallNumbers +
+    missingSearchEntrypoints * 4 +
+    readinessGap
+  );
 }
 
 export function sortMarketsByCatalogPriority(markets: MarketListItem[]) {

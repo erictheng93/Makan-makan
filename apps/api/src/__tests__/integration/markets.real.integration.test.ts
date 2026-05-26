@@ -609,6 +609,13 @@ describe("Markets API — real integration", () => {
       latitude: 24.1768,
       longitude: 120.6469,
     });
+    const missingStallVendor = await seed.restaurant({
+      name: "Missing Stall Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1771,
+      longitude: 120.6471,
+    });
 
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
       {
@@ -622,6 +629,13 @@ describe("Markets API — real integration", () => {
         restaurantId: String(missingVendor.id),
         marketId: market.id,
         stallNumber: "B-02",
+        isPrimary: false,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(missingStallVendor.id),
+        marketId: market.id,
+        stallNumber: null,
         isPrimary: false,
         joinedAt: new Date(),
       },
@@ -653,6 +667,36 @@ describe("Markets API — real integration", () => {
       isPublic: true,
       sortOrder: 1,
     });
+    const missingStallItem = await seed.menuItem(
+      String(missingStallVendor.id),
+      {
+        name: "No Stall Tea",
+        price: 45,
+      },
+    );
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: missingStallItem.id,
+      restaurantId: String(missingStallVendor.id),
+      dishName: "No Stall Tea",
+      dishNameNormalized: "nostalltea",
+      price: 45,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: 24.1771,
+      longitude: 120.6471,
+      updatedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(missingStallVendor.id),
+      name: "免攤位服務",
+      serviceType: "booking",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+    });
 
     const res = await testApp.app.fetch(
       new Request("https://test/api/v1/admin/markets/readiness", {
@@ -666,12 +710,14 @@ describe("Markets API — real integration", () => {
       (item: any) => item.id === market.id,
     );
     expect(readinessMarket.catalogCoverage).toMatchObject({
-      searchableProductCount: 1,
-      publicServiceCount: 1,
-      vendorsWithSearchableProducts: 1,
+      searchableProductCount: 2,
+      publicServiceCount: 2,
+      vendorsWithSearchableProducts: 2,
       vendorsMissingSearchableProducts: 1,
-      vendorsWithPublicServices: 1,
+      vendorsWithPublicServices: 2,
       vendorsMissingPublicServices: 1,
+      vendorsMissingStallNumbers: 1,
+      vendorsMissingSearchEntrypoints: 1,
     });
     expect(readinessMarket.catalogCoverage.missingProductVendors).toEqual([
       {
@@ -681,6 +727,22 @@ describe("Markets API — real integration", () => {
       },
     ]);
     expect(readinessMarket.catalogCoverage.missingServiceVendors).toEqual([
+      {
+        restaurantId: String(missingVendor.id),
+        name: "Missing Catalog Vendor",
+        stallNumber: "B-02",
+      },
+    ]);
+    expect(readinessMarket.catalogCoverage.missingStallNumberVendors).toEqual([
+      {
+        restaurantId: String(missingStallVendor.id),
+        name: "Missing Stall Vendor",
+        stallNumber: null,
+      },
+    ]);
+    expect(
+      readinessMarket.catalogCoverage.missingSearchEntrypointVendors,
+    ).toEqual([
       {
         restaurantId: String(missingVendor.id),
         name: "Missing Catalog Vendor",
@@ -746,6 +808,9 @@ describe("Markets API — real integration", () => {
     expect(readinessMarket.catalogCoverage.missingServiceVendors).toHaveLength(
       6,
     );
+    expect(
+      readinessMarket.catalogCoverage.missingSearchEntrypointVendors,
+    ).toHaveLength(6);
   });
 
   it("summarizes market catalog readiness gaps by area for platform admins", async () => {
@@ -1930,6 +1995,8 @@ describe("Markets API — real integration", () => {
         vendorsMissingSearchableProducts: 2,
         vendorsWithPublicServices: 0,
         vendorsMissingPublicServices: 2,
+        vendorsMissingStallNumbers: 0,
+        vendorsMissingSearchEntrypoints: 2,
       },
     });
     expect(importJson.data.results).toEqual([
@@ -1970,6 +2037,9 @@ describe("Markets API — real integration", () => {
         }),
       ]),
     );
+    expect(
+      importJson.data.catalogReadiness.missingSearchEntrypointVendors,
+    ).toHaveLength(2);
 
     const vendorsRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets/bulk-import-market/vendors"),

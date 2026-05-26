@@ -19,6 +19,8 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
       publicServiceCount: 0,
       vendorsMissingSearchableProducts: 1,
       vendorsMissingPublicServices: 1,
+      vendorsMissingStallNumbers: 1,
+      vendorsMissingSearchEntrypoints: 1,
       missingProductVendors: [
         {
           restaurantId: "restaurant-1",
@@ -33,6 +35,20 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
           stallNumber: null,
         },
       ],
+      missingStallNumberVendors: [
+        {
+          restaurantId: "restaurant-2",
+          name: "缺服務,攤",
+          stallNumber: null,
+        },
+      ],
+      missingSearchEntrypointVendors: [
+        {
+          restaurantId: "restaurant-1",
+          name: "缺商品攤",
+          stallNumber: "A-01",
+        },
+      ],
     },
     ...overrides,
   };
@@ -45,6 +61,8 @@ describe("market catalog gap export", () => {
         "marketId,marketSlug,marketName,city,district,gapType,action,restaurantId,vendorName,stallNumber",
         "market-1,fengjia,逢甲夜市,台中市,西屯區,products,補商品,restaurant-1,缺商品攤,A-01",
         'market-1,fengjia,逢甲夜市,台中市,西屯區,services,補服務,restaurant-2,"缺服務,攤",',
+        'market-1,fengjia,逢甲夜市,台中市,西屯區,stallNumbers,補攤位號,restaurant-2,"缺服務,攤",',
+        "market-1,fengjia,逢甲夜市,台中市,西屯區,searchEntrypoints,補商品或服務,restaurant-1,缺商品攤,A-01",
       ].join("\r\n"),
     );
   });
@@ -58,8 +76,12 @@ describe("market catalog gap export", () => {
             publicServiceCount: 1,
             vendorsMissingSearchableProducts: 0,
             vendorsMissingPublicServices: 0,
+            vendorsMissingStallNumbers: 0,
+            vendorsMissingSearchEntrypoints: 0,
             missingProductVendors: [],
             missingServiceVendors: [],
+            missingStallNumberVendors: [],
+            missingSearchEntrypointVendors: [],
           },
         }),
       ]),
