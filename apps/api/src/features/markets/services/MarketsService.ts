@@ -36,6 +36,10 @@ export interface VendorFilters {
   limit?: number;
 }
 
+export interface AdminJoinRequestFilters {
+  status?: "pending" | "approved" | "rejected";
+}
+
 export type CreateMarketInput = typeof markets.$inferInsert;
 export type UpdateMarketInput = Partial<typeof markets.$inferInsert>;
 
@@ -523,6 +527,110 @@ export class MarketsService {
     };
   }
 
+  async listJoinRequests(filters: AdminJoinRequestFilters = {}) {
+    const conditions = [];
+    if (filters.status) {
+      conditions.push(eq(marketJoinRequests.status, filters.status));
+    }
+
+    const rows = await this.db
+      .select({
+        id: marketJoinRequests.id,
+        restaurantId: marketJoinRequests.restaurantId,
+        marketId: marketJoinRequests.marketId,
+        status: marketJoinRequests.status,
+        message: marketJoinRequests.message,
+        requestedAt: marketJoinRequests.requestedAt,
+        resolvedAt: marketJoinRequests.resolvedAt,
+        marketSlug: markets.slug,
+        marketName: markets.name,
+        marketType: markets.type,
+        city: markets.city,
+        district: markets.district,
+        restaurantName: restaurants.name,
+        restaurantDistrict: restaurants.district,
+        restaurantCity: restaurants.city,
+      })
+      .from(marketJoinRequests)
+      .innerJoin(markets, eq(marketJoinRequests.marketId, markets.id))
+      .innerJoin(
+        restaurants,
+        eq(marketJoinRequests.restaurantId, restaurants.id),
+      )
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(marketJoinRequests.requestedAt));
+
+    return {
+      requests: rows.map((row) => ({
+        id: row.id,
+        restaurantId: row.restaurantId,
+        marketId: row.marketId,
+        status: row.status,
+        message: row.message,
+        requestedAt: row.requestedAt,
+        resolvedAt: row.resolvedAt,
+        market: {
+          id: row.marketId,
+          slug: row.marketSlug,
+          name: row.marketName,
+          type: row.marketType,
+          city: row.city,
+          district: row.district,
+        },
+        restaurant: {
+          id: row.restaurantId,
+          name: row.restaurantName,
+          city: row.restaurantCity,
+          district: row.restaurantDistrict,
+        },
+      })),
+    };
+  }
+
+  async approveJoinRequest(
+    requestId: number,
+    input: { stallNumber?: string | null; isPrimary?: boolean } = {},
+  ) {
+    const request = await this.getJoinRequestById(requestId);
+    if (!request) return { status: "not_found" as const };
+    if (request.status !== "pending") return { status: "not_pending" as const };
+
+    const membership = await this.addVendor(request.marketId, {
+      restaurantId: request.restaurantId,
+      stallNumber: input.stallNumber ?? null,
+      isPrimary: input.isPrimary ?? false,
+    });
+    if (!membership) return { status: "market_not_found" as const };
+
+    const [updated] = await this.db
+      .update(marketJoinRequests)
+      .set({
+        status: "approved",
+        resolvedAt: new Date(),
+      })
+      .where(eq(marketJoinRequests.id, requestId))
+      .returning();
+
+    return { status: "approved" as const, request: updated, membership };
+  }
+
+  async rejectJoinRequest(requestId: number) {
+    const request = await this.getJoinRequestById(requestId);
+    if (!request) return { status: "not_found" as const };
+    if (request.status !== "pending") return { status: "not_pending" as const };
+
+    const [updated] = await this.db
+      .update(marketJoinRequests)
+      .set({
+        status: "rejected",
+        resolvedAt: new Date(),
+      })
+      .where(eq(marketJoinRequests.id, requestId))
+      .returning();
+
+    return { status: "rejected" as const, request: updated };
+  }
+
   async createJoinRequest(
     restaurantId: string,
     input: { marketId: string; message?: string | null },
@@ -576,6 +684,16 @@ export class MarketsService {
       .returning();
 
     return { status: "created" as const, request };
+  }
+
+  private async getJoinRequestById(requestId: number) {
+    const [request] = await this.db
+      .select()
+      .from(marketJoinRequests)
+      .where(eq(marketJoinRequests.id, requestId))
+      .limit(1);
+
+    return request ?? null;
   }
 
   private async publicCacheKey(scope: string, value: unknown) {

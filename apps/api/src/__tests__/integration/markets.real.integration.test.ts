@@ -583,6 +583,146 @@ describe("Markets API — real integration", () => {
     expect(publicDetailRes.status).toBe(404);
   });
 
+  it("lets platform admins review, approve, and reject market join requests", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Join Review Vendor",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 21,
+      username: "join-review-admin",
+      role: 0,
+      restaurantId: String(restaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+    const approvedMarket = await seedMarket(testApp, {
+      slug: "approved-review-market",
+      name: "Approved Review Market",
+    });
+    const rejectedMarket = await seedMarket(testApp, {
+      slug: "rejected-review-market",
+      name: "Rejected Review Market",
+    });
+
+    const createApprovedRequest = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            marketId: approvedMarket.id,
+            message: "Please approve our stall.",
+          }),
+        },
+      ),
+    );
+    expect(createApprovedRequest.status).toBe(201);
+    const approvedRequestJson: any = await createApprovedRequest.json();
+
+    const createRejectedRequest = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            marketId: rejectedMarket.id,
+            message: "Please reject this test request.",
+          }),
+        },
+      ),
+    );
+    expect(createRejectedRequest.status).toBe(201);
+    const rejectedRequestJson: any = await createRejectedRequest.json();
+
+    const listRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/admin/markets/join-requests?status=pending",
+        {
+          headers: { authorization: `Bearer ${adminToken}` },
+        },
+      ),
+    );
+    expect(listRes.status).toBe(200);
+    const listJson: any = await listRes.json();
+    expect(listJson.data.requests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: approvedRequestJson.data.request.id,
+          status: "pending",
+          restaurant: expect.objectContaining({ name: "Join Review Vendor" }),
+          market: expect.objectContaining({ slug: "approved-review-market" }),
+        }),
+        expect.objectContaining({
+          id: rejectedRequestJson.data.request.id,
+          status: "pending",
+          market: expect.objectContaining({ slug: "rejected-review-market" }),
+        }),
+      ]),
+    );
+
+    const approveRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/join-requests/${approvedRequestJson.data.request.id}/approve`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            stallNumber: "C-09",
+            isPrimary: true,
+          }),
+        },
+      ),
+    );
+    expect(approveRes.status).toBe(200);
+    const approveJson: any = await approveRes.json();
+    expect(approveJson.data.request).toMatchObject({
+      id: approvedRequestJson.data.request.id,
+      status: "approved",
+    });
+    expect(approveJson.data.membership).toMatchObject({
+      restaurantId: String(restaurant.id),
+      marketId: approvedMarket.id,
+      stallNumber: "C-09",
+      isPrimary: true,
+    });
+
+    const vendorsRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/approved-review-market/vendors"),
+    );
+    expect(vendorsRes.status).toBe(200);
+    const vendorsJson: any = await vendorsRes.json();
+    expect(vendorsJson.data.vendors[0]).toMatchObject({
+      restaurantId: String(restaurant.id),
+      stallNumber: "C-09",
+    });
+
+    const rejectRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/join-requests/${rejectedRequestJson.data.request.id}/reject`,
+        {
+          method: "POST",
+          headers,
+        },
+      ),
+    );
+    expect(rejectRes.status).toBe(200);
+    const rejectJson: any = await rejectRes.json();
+    expect(rejectJson.data.request).toMatchObject({
+      id: rejectedRequestJson.data.request.id,
+      status: "rejected",
+    });
+  });
+
   it("lets restaurant owners view memberships and request to join a market", async () => {
     const restaurant = await seed.restaurant({
       name: "Owner Market Vendor",

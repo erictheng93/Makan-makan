@@ -21,6 +21,7 @@ import type {
   BatchDeployRequest,
   GenerateLicenseRequest,
   Market,
+  MarketJoinRequest,
   MarketVendorMembership,
   CreateMarketRequest,
   UpdateMarketRequest,
@@ -341,6 +342,41 @@ export const marketsApi = {
     await apiClient.delete(
       `/admin/markets/${marketId}/vendors/${restaurantId}`,
     );
+  },
+
+  async listJoinRequests(params?: {
+    status?: MarketJoinRequest["status"];
+  }): Promise<MarketJoinRequest[]> {
+    const { data } = await apiClient.get<
+      ApiResponse<{ requests: MarketJoinRequest[] }>
+    >("/admin/markets/join-requests", { params });
+    return data.data!.requests;
+  },
+
+  async approveJoinRequest(
+    requestId: number,
+    request: {
+      stallNumber?: string | null;
+      isPrimary?: boolean;
+    } = {},
+  ): Promise<{
+    request: MarketJoinRequest;
+    membership: MarketVendorMembership;
+  }> {
+    const { data } = await apiClient.post<
+      ApiResponse<{
+        request: MarketJoinRequest;
+        membership: MarketVendorMembership;
+      }>
+    >(`/admin/markets/join-requests/${requestId}/approve`, request);
+    return data.data!;
+  },
+
+  async rejectJoinRequest(requestId: number): Promise<MarketJoinRequest> {
+    const { data } = await apiClient.post<
+      ApiResponse<{ request: MarketJoinRequest }>
+    >(`/admin/markets/join-requests/${requestId}/reject`);
+    return data.data!.request;
   },
 };
 

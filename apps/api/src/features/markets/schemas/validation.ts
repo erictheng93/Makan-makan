@@ -79,3 +79,16 @@ export const createMarketJoinRequestSchema = z.object({
   marketId: z.string().min(1).max(120),
   message: z.string().trim().max(500).nullable().optional(),
 });
+
+export const adminMarketJoinRequestsQuerySchema = z.object({
+  status: z.enum(["pending", "approved", "rejected"]).optional(),
+});
+
+export const marketJoinRequestIdParamSchema = z.object({
+  requestId: z.coerce.number().int().min(1),
+});
+
+export const approveMarketJoinRequestSchema = z.object({
+  stallNumber: z.string().max(80).nullable().optional(),
+  isPrimary: z.boolean().optional(),
+});

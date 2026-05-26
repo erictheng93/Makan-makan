@@ -8,18 +8,23 @@ import {
   TrashIcon,
 } from "@heroicons/vue/24/outline";
 import { marketsApi } from "@/services/api";
-import type { CreateMarketRequest, Market } from "@/types";
+import type { CreateMarketRequest, Market, MarketJoinRequest } from "@/types";
 
 const toast = useToast();
 const markets = ref<Market[]>([]);
+const joinRequests = ref<MarketJoinRequest[]>([]);
 const loading = ref(false);
+const loadingJoinRequests = ref(false);
 const saving = ref(false);
+const reviewingRequestId = ref<number | null>(null);
 const selectedMarketId = ref<string | null>(null);
 const cityFilter = ref("台中市");
 const districtFilter = ref("");
 const vendorRestaurantId = ref("");
 const vendorStallNumber = ref("");
 const vendorIsPrimary = ref(false);
+const requestStallNumber = ref<Record<number, string>>({});
+const requestIsPrimary = ref<Record<number, boolean>>({});
 
 const form = reactive<CreateMarketRequest>({
   slug: "",
@@ -95,6 +100,21 @@ async function loadMarkets() {
   }
 }
 
+async function loadJoinRequests() {
+  loadingJoinRequests.value = true;
+  try {
+    joinRequests.value = await marketsApi.listJoinRequests({
+      status: "pending",
+    });
+  } finally {
+    loadingJoinRequests.value = false;
+  }
+}
+
+async function loadDashboard() {
+  await Promise.all([loadMarkets(), loadJoinRequests()]);
+}
+
 function normalizePayload(): CreateMarketRequest {
   return {
     ...form,
@@ -157,7 +177,36 @@ async function removeVendor() {
   await loadMarkets();
 }
 
-onMounted(loadMarkets);
+async function approveJoinRequest(request: MarketJoinRequest) {
+  reviewingRequestId.value = request.id;
+  try {
+    await marketsApi.approveJoinRequest(request.id, {
+      stallNumber: requestStallNumber.value[request.id]?.trim() || null,
+      isPrimary: requestIsPrimary.value[request.id] ?? false,
+    });
+    toast.success("Join request approved");
+    delete requestStallNumber.value[request.id];
+    delete requestIsPrimary.value[request.id];
+    await loadDashboard();
+  } finally {
+    reviewingRequestId.value = null;
+  }
+}
+
+async function rejectJoinRequest(request: MarketJoinRequest) {
+  reviewingRequestId.value = request.id;
+  try {
+    await marketsApi.rejectJoinRequest(request.id);
+    toast.success("Join request rejected");
+    delete requestStallNumber.value[request.id];
+    delete requestIsPrimary.value[request.id];
+    await loadJoinRequests();
+  } finally {
+    reviewingRequestId.value = null;
+  }
+}
+
+onMounted(loadDashboard);
 </script>
 
 <template>
@@ -252,6 +301,117 @@ onMounted(loadMarkets);
             </tbody>
           </table>
         </div>
+
+        <section class="card space-y-4">
+          <div
+            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">Join requests</h2>
+              <p class="mt-1 text-sm text-gray-500">
+                Review restaurants asking to join a market or district.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              :disabled="loadingJoinRequests"
+              @click="loadJoinRequests"
+            >
+              <ArrowPathIcon class="mr-2 h-5 w-5" />
+              Refresh
+            </button>
+          </div>
+
+          <div
+            v-if="loadingJoinRequests"
+            class="py-8 text-center text-sm text-gray-500"
+          >
+            Loading requests...
+          </div>
+          <div
+            v-else-if="joinRequests.length === 0"
+            class="py-8 text-center text-sm text-gray-500"
+          >
+            No pending join requests.
+          </div>
+          <div v-else class="divide-y divide-gray-200">
+            <article
+              v-for="request in joinRequests"
+              :key="request.id"
+              class="space-y-3 py-4 first:pt-0 last:pb-0"
+            >
+              <div
+                class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+              >
+                <div>
+                  <h3 class="font-medium text-gray-900">
+                    {{ request.restaurant.name }}
+                  </h3>
+                  <p class="text-sm text-gray-500">
+                    {{ request.market.name }} · {{ request.market.city }}
+                    {{ request.market.district }}
+                  </p>
+                </div>
+                <span
+                  class="inline-flex w-fit rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700"
+                >
+                  {{ request.status }}
+                </span>
+              </div>
+
+              <p
+                v-if="request.message"
+                class="rounded-md bg-gray-50 p-3 text-sm text-gray-600"
+              >
+                {{ request.message }}
+              </p>
+
+              <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <input
+                  v-model="requestStallNumber[request.id]"
+                  class="input"
+                  placeholder="Stall number"
+                  :disabled="reviewingRequestId === request.id"
+                />
+                <label
+                  class="flex min-h-10 items-center gap-2 text-sm text-gray-700"
+                >
+                  <input
+                    v-model="requestIsPrimary[request.id]"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    :disabled="reviewingRequestId === request.id"
+                  />
+                  Primary
+                </label>
+              </div>
+
+              <div class="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  :disabled="reviewingRequestId === request.id"
+                  @click="approveJoinRequest(request)"
+                >
+                  {{
+                    reviewingRequestId === request.id
+                      ? "Reviewing..."
+                      : "Approve"
+                  }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary text-red-600 hover:text-red-700"
+                  :disabled="reviewingRequestId === request.id"
+                  @click="rejectJoinRequest(request)"
+                >
+                  Reject
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
       </section>
 
       <aside class="space-y-4">

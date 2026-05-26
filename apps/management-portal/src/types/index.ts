@@ -237,6 +237,23 @@ export interface MarketVendorMembership {
   leftAt?: string | number | null;
 }
 
+export interface MarketJoinRequest {
+  id: number;
+  restaurantId: string;
+  marketId: string;
+  status: "pending" | "approved" | "rejected";
+  message?: string | null;
+  requestedAt: string | number | Date;
+  resolvedAt?: string | number | Date | null;
+  market: Pick<Market, "id" | "slug" | "name" | "type" | "city" | "district">;
+  restaurant: {
+    id: string;
+    name: string;
+    city?: string | null;
+    district?: string | null;
+  };
+}
+
 export interface CreateMarketRequest {
   slug: string;
   name: string;
