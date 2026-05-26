@@ -290,10 +290,11 @@ and type safety can drift per app.
 
 **TODO:**
 
-- [ ] Extract all leaf keys from each app's `zh-TW` locale.
-- [ ] Send untranslated keys to translators in a structured format.
-- [ ] Fill translated locale files.
-- [ ] Add CI warning/failure when a non-base locale has fewer leaf keys than the
+- [x] Extract all leaf keys from each app's `zh-TW` locale.
+- [x] Send untranslated keys to translators in a structured format.
+- [ ] Import translator-approved locale files from
+      `docs/i18n/locale-translator-handoff.csv`.
+- [x] Add CI warning/failure when a non-base locale has fewer leaf keys than the
       base locale.
 
 ### OrderStatus Unification Still Has Cleanup Work
