@@ -45,6 +45,22 @@ describe("market import parsing", () => {
     ]);
   });
 
+  it("rejects duplicate CSV slugs before import", () => {
+    const result = parseMarketImport(
+      "csv",
+      [
+        "slug,name,type,city,district,address,latitude,longitude",
+        '"fengjia","逢甲夜市","night_market","台中市","西屯區","文華路",24.176,120.646',
+        '"fengjia","逢甲商圈","commercial_district","台中市","西屯區","福星路",24.179,120.645',
+      ].join("\n"),
+    );
+
+    expect(result.markets).toEqual([]);
+    expect(result.errors).toEqual([
+      "第 3 列：slug 與第 2 列重複，請確認每個市場 slug 唯一。",
+    ]);
+  });
+
   it("accepts JSON arrays and markets envelopes", () => {
     expect(
       parseMarketImport(
@@ -86,6 +102,39 @@ describe("market import parsing", () => {
       markets: [],
       errors: ["每一筆市場資料都必須是 JSON 物件。"],
     });
+  });
+
+  it("rejects duplicate JSON slugs before import", () => {
+    const result = parseMarketImport(
+      "json",
+      JSON.stringify([
+        {
+          slug: "xinyi",
+          name: "信義商圈",
+          type: "commercial_district",
+          city: "台北市",
+          district: "信義區",
+          address: "市府路",
+          latitude: 25.033,
+          longitude: 121.565,
+        },
+        {
+          slug: "xinyi",
+          name: "信義夜生活商圈",
+          type: "commercial_district",
+          city: "台北市",
+          district: "信義區",
+          address: "松壽路",
+          latitude: 25.035,
+          longitude: 121.566,
+        },
+      ]),
+    );
+
+    expect(result.markets).toEqual([]);
+    expect(result.errors).toEqual([
+      "第 2 列：slug 與第 1 列重複，請確認每個市場 slug 唯一。",
+    ]);
   });
 
   it("builds a spreadsheet-friendly CSV template", () => {

@@ -98,10 +98,12 @@ function parseJsonImport(text: string): MarketImportParseResult {
 
     const errors: string[] = [];
     const inputs: CreateMarketInput[] = [];
+    const seenSlugs = new Map<string, number>();
     markets.forEach((market, index) => {
       const line = index + 1;
       const input = market as CreateMarketInput;
       const rowErrors = validateMarketImportRow(input, line);
+      rowErrors.push(...validateUniqueSlug(input.slug, line, seenSlugs));
       errors.push(...rowErrors);
       if (rowErrors.length === 0) {
         inputs.push(input);
@@ -141,11 +143,13 @@ function parseCsvImport(text: string): MarketImportParseResult {
       } 列：CSV 格式不正確 (${error.message})。`,
   );
   const markets: CreateMarketInput[] = [];
+  const seenSlugs = new Map<string, number>();
 
   parsed.data.forEach((row, index) => {
     const line = index + 2;
     const market = csvRowToMarket(row);
     const rowErrors = validateMarketImportRow(market, line);
+    rowErrors.push(...validateUniqueSlug(market.slug, line, seenSlugs));
     errors.push(...rowErrors);
     if (rowErrors.length === 0) {
       markets.push(market);
@@ -230,6 +234,26 @@ function validateMarketImportRow(market: CreateMarketInput, line: number) {
   }
 
   return errors;
+}
+
+function validateUniqueSlug(
+  slug: string | undefined,
+  line: number,
+  seenSlugs: Map<string, number>,
+) {
+  if (!slug || !slugPattern.test(slug)) {
+    return [];
+  }
+
+  const firstLine = seenSlugs.get(slug);
+  if (firstLine !== undefined) {
+    return [
+      `第 ${line} 列：slug 與第 ${firstLine} 列重複，請確認每個市場 slug 唯一。`,
+    ];
+  }
+
+  seenSlugs.set(slug, line);
+  return [];
 }
 
 function isCoordinate(value: unknown, min: number, max: number) {
