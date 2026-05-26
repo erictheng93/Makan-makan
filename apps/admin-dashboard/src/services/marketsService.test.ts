@@ -31,6 +31,8 @@ describe("marketsService", () => {
               publicServiceCount: 5,
               vendorsMissingSearchableProducts: 3,
               vendorsMissingPublicServices: 4,
+              marketsWithoutVendors: 1,
+              marketsWithoutSearchableCatalog: 2,
               totalCatalogGapVendors: 7,
               averageReadinessScore: 72,
             },
@@ -46,6 +48,8 @@ describe("marketsService", () => {
       city: "台中市",
       district: "西屯區",
       totalCatalogGapVendors: 7,
+      marketsWithoutVendors: 1,
+      marketsWithoutSearchableCatalog: 2,
     });
   });
 

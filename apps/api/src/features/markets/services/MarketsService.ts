@@ -95,6 +95,8 @@ export interface MarketAreaReadinessSummary {
   publicServiceCount: number;
   vendorsMissingSearchableProducts: number;
   vendorsMissingPublicServices: number;
+  marketsWithoutVendors: number;
+  marketsWithoutSearchableCatalog: number;
   totalCatalogGapVendors: number;
   averageReadinessScore: number;
 }
@@ -179,6 +181,8 @@ export class MarketsService {
           publicServiceCount: 0,
           vendorsMissingSearchableProducts: 0,
           vendorsMissingPublicServices: 0,
+          marketsWithoutVendors: 0,
+          marketsWithoutSearchableCatalog: 0,
           totalCatalogGapVendors: 0,
           averageReadinessScore: 0,
         } satisfies MarketAreaReadinessSummary);
@@ -191,6 +195,15 @@ export class MarketsService {
       summary.vendorCount += market.vendorCount;
       summary.searchableProductCount += coverage.searchableProductCount;
       summary.publicServiceCount += coverage.publicServiceCount;
+      if (market.vendorCount === 0) {
+        summary.marketsWithoutVendors += 1;
+      }
+      if (
+        coverage.searchableProductCount === 0 &&
+        coverage.publicServiceCount === 0
+      ) {
+        summary.marketsWithoutSearchableCatalog += 1;
+      }
       summary.vendorsMissingSearchableProducts +=
         coverage.vendorsMissingSearchableProducts ?? 0;
       summary.vendorsMissingPublicServices +=

@@ -833,6 +833,11 @@ describe("Markets API — real integration", () => {
       city: "台中市",
       district: "西屯區",
     });
+    await seedMarket(testApp, {
+      slug: "west-empty-area-market",
+      city: "台中市",
+      district: "西屯區",
+    });
     const northMarket = await seedMarket(testApp, {
       slug: "north-area-market",
       city: "台中市",
@@ -904,11 +909,13 @@ describe("Markets API — real integration", () => {
     expect(json.data.areas[0]).toMatchObject({
       city: "台中市",
       district: "西屯區",
-      marketCount: 1,
+      marketCount: 2,
       vendorCount: 2,
       vendorsMissingSearchableProducts: 2,
       vendorsMissingPublicServices: 2,
       totalCatalogGapVendors: 4,
+      marketsWithoutVendors: 1,
+      marketsWithoutSearchableCatalog: 2,
     });
     expect(json.data.areas[1]).toMatchObject({
       city: "台中市",
@@ -918,6 +925,8 @@ describe("Markets API — real integration", () => {
       vendorsMissingSearchableProducts: 0,
       vendorsMissingPublicServices: 1,
       totalCatalogGapVendors: 1,
+      marketsWithoutVendors: 0,
+      marketsWithoutSearchableCatalog: 0,
     });
   });
 

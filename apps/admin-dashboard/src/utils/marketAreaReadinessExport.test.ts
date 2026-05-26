@@ -17,6 +17,8 @@ function area(
     publicServiceCount: 4,
     vendorsMissingSearchableProducts: 3,
     vendorsMissingPublicServices: 4,
+    marketsWithoutVendors: 1,
+    marketsWithoutSearchableCatalog: 2,
     totalCatalogGapVendors: 7,
     averageReadinessScore: 72,
     ...overrides,
@@ -37,15 +39,17 @@ describe("market area readiness export", () => {
           publicServiceCount: 1,
           vendorsMissingSearchableProducts: 1,
           vendorsMissingPublicServices: 1,
+          marketsWithoutVendors: 0,
+          marketsWithoutSearchableCatalog: 0,
           totalCatalogGapVendors: 2,
           averageReadinessScore: 91,
         }),
       ]),
     ).toBe(
       [
-        "city,district,marketCount,vendorCount,searchableProductCount,publicServiceCount,vendorsMissingSearchableProducts,vendorsMissingPublicServices,totalCatalogGapVendors,averageReadinessScore",
-        "台中市,西屯區,2,8,20,4,3,4,7,72",
-        '台中市,"北區,一中",1,3,8,1,1,1,2,91',
+        "city,district,marketCount,vendorCount,searchableProductCount,publicServiceCount,vendorsMissingSearchableProducts,vendorsMissingPublicServices,marketsWithoutVendors,marketsWithoutSearchableCatalog,totalCatalogGapVendors,averageReadinessScore",
+        "台中市,西屯區,2,8,20,4,3,4,1,2,7,72",
+        '台中市,"北區,一中",1,3,8,1,1,1,0,0,2,91',
       ].join("\r\n"),
     );
   });

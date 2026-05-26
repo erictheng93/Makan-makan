@@ -120,6 +120,19 @@
             <span>缺商品 {{ area.vendorsMissingSearchableProducts }}</span>
             <span>缺服務 {{ area.vendorsMissingPublicServices }}</span>
           </div>
+          <div
+            v-if="
+              area.marketsWithoutVendors || area.marketsWithoutSearchableCatalog
+            "
+            class="mt-2 flex flex-wrap gap-2 text-xs text-red-700"
+          >
+            <span v-if="area.marketsWithoutVendors">
+              無店鋪 {{ area.marketsWithoutVendors }}
+            </span>
+            <span v-if="area.marketsWithoutSearchableCatalog">
+              無搜尋內容 {{ area.marketsWithoutSearchableCatalog }}
+            </span>
+          </div>
         </button>
       </div>
     </section>

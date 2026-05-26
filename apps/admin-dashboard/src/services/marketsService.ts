@@ -52,6 +52,8 @@ export interface MarketAreaReadinessSummary {
   publicServiceCount: number;
   vendorsMissingSearchableProducts: number;
   vendorsMissingPublicServices: number;
+  marketsWithoutVendors: number;
+  marketsWithoutSearchableCatalog: number;
   totalCatalogGapVendors: number;
   averageReadinessScore: number;
 }

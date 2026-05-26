@@ -10,6 +10,8 @@ const csvFields = [
   "publicServiceCount",
   "vendorsMissingSearchableProducts",
   "vendorsMissingPublicServices",
+  "marketsWithoutVendors",
+  "marketsWithoutSearchableCatalog",
   "totalCatalogGapVendors",
   "averageReadinessScore",
 ] as const;
@@ -43,6 +45,10 @@ function areaReadinessCsvRow(
       area.vendorsMissingSearchableProducts,
     ),
     vendorsMissingPublicServices: String(area.vendorsMissingPublicServices),
+    marketsWithoutVendors: String(area.marketsWithoutVendors),
+    marketsWithoutSearchableCatalog: String(
+      area.marketsWithoutSearchableCatalog,
+    ),
     totalCatalogGapVendors: String(area.totalCatalogGapVendors),
     averageReadinessScore: String(area.averageReadinessScore),
   };

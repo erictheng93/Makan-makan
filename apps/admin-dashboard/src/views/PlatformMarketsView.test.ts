@@ -149,6 +149,8 @@ describe("PlatformMarketsView", () => {
         publicServiceCount: 4,
         vendorsMissingSearchableProducts: 3,
         vendorsMissingPublicServices: 4,
+        marketsWithoutVendors: 1,
+        marketsWithoutSearchableCatalog: 2,
         totalCatalogGapVendors: 7,
         averageReadinessScore: 72,
       },
@@ -161,6 +163,8 @@ describe("PlatformMarketsView", () => {
         publicServiceCount: 1,
         vendorsMissingSearchableProducts: 1,
         vendorsMissingPublicServices: 1,
+        marketsWithoutVendors: 0,
+        marketsWithoutSearchableCatalog: 0,
         totalCatalogGapVendors: 2,
         averageReadinessScore: 91,
       },
@@ -456,6 +460,8 @@ describe("PlatformMarketsView", () => {
     expect(areaRows[0].text()).toContain("總缺口 7");
     expect(areaRows[0].text()).toContain("缺商品 3");
     expect(areaRows[0].text()).toContain("缺服務 4");
+    expect(areaRows[0].text()).toContain("無店鋪 1");
+    expect(areaRows[0].text()).toContain("無搜尋內容 2");
     expect(areaRows[1].text()).toContain("台中市 · 北區");
   });
 
