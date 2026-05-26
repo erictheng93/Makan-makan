@@ -85,12 +85,12 @@
         </div>
 
         <!-- 分類導航 -->
-        <div v-if="categories.length > 0" class="px-4 py-3">
+        <div v-if="visibleCategories.length > 0" class="px-4 py-3">
           <div
             class="flex space-x-2 overflow-x-auto scrollbar-hide md:flex-wrap md:overflow-x-visible md:gap-2 md:space-x-0"
           >
             <button
-              v-for="category in categories"
+              v-for="category in visibleCategories"
               :key="category.id"
               :class="[
                 'flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors',
@@ -317,6 +317,18 @@
               </article>
             </div>
           </section>
+          <section
+            v-else
+            data-testid="shop-empty-services"
+            class="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-5"
+          >
+            <h2 class="text-base font-semibold text-ios-text">
+              尚未提供公開服務
+            </h2>
+            <p class="mt-1 text-sm leading-6 text-ios-secondary">
+              這間店目前沒有公開的預約、外送或現場服務，仍可查看可點選的菜單商品。
+            </p>
+          </section>
 
           <!-- 推薦菜品 -->
           <section v-if="featuredItems.length > 0" class="mb-8">
@@ -352,7 +364,7 @@
           >
             <div
               class="sticky bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5"
-              :class="categories.length > 0 ? 'top-32' : 'top-16'"
+              :class="visibleCategories.length > 0 ? 'top-32' : 'top-16'"
             >
               <h2 class="text-xl font-semibold text-ios-text">
                 {{ category.name }}
@@ -390,6 +402,18 @@
             >
               <p>{{ t("shopMenu.noItemsInCategory") }}</p>
             </div>
+          </section>
+          <section
+            v-if="!hasAvailableMenuItems && !searchQuery"
+            data-testid="shop-empty-menu"
+            class="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-5"
+          >
+            <h2 class="text-base font-semibold text-ios-text">
+              尚未提供可點選的菜單商品
+            </h2>
+            <p class="mt-1 text-sm leading-6 text-ios-secondary">
+              這間店目前沒有上架中的商品，仍可查看店家服務或從所屬夜市與商圈返回探索其他店鋪。
+            </p>
           </section>
 
           <!-- 搜尋無結果 -->
@@ -604,6 +628,14 @@ const error = computed(() => menuError.value?.message || null);
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
 const serviceItems = computed(() => serviceItemsData.value || []);
+const hasAvailableMenuItems = computed(() =>
+  menuItems.value.some((item: any) => item.isAvailable),
+);
+const visibleCategories = computed(() =>
+  categories.value.filter(
+    (category) => getItemsByCategory(category.id).length > 0,
+  ),
+);
 const marketMemberships = computed(
   () => restaurantMarketsData.value?.memberships ?? [],
 );
@@ -633,9 +665,7 @@ const featuredItems = computed(() =>
 
 const filteredCategories = computed(() => {
   if (!searchQuery.value.trim()) {
-    return categories.value.filter(
-      (category) => getItemsByCategory(category.id).length > 0,
-    );
+    return visibleCategories.value;
   }
 
   const query = searchQuery.value.toLowerCase().trim();

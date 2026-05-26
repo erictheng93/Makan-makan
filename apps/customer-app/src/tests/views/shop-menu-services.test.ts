@@ -8,7 +8,10 @@ import { restaurantContactApi } from "@/services/restaurantContactApi";
 
 const routerPush = vi.hoisted(() => vi.fn());
 const menuItemsFixture = vi.hoisted(() => ({
-  items: [] as Array<Record<string, unknown>>,
+  items: null as Array<Record<string, unknown>> | null,
+}));
+const serviceItemsFixture = vi.hoisted(() => ({
+  items: null as Array<Record<string, unknown>> | null,
 }));
 
 vi.mock("vue-router", () => ({
@@ -114,7 +117,7 @@ vi.mock("@tanstack/vue-query", () => ({
             },
           ],
           menuItems:
-            menuItemsFixture.items.length > 0
+            menuItemsFixture.items !== null
               ? menuItemsFixture.items
               : [
                   {
@@ -167,22 +170,26 @@ vi.mock("@tanstack/vue-query", () => ({
     }
 
     return {
-      data: ref([
-        {
-          id: 1,
-          restaurantId: "restaurant-1",
-          name: "預約外送",
-          description: "滿額可預約外送",
-          serviceType: "delivery",
-          priceLabel: "依距離報價",
-          requiresBooking: true,
-          sortOrder: 0,
-          isActive: true,
-          isPublic: true,
-          createdAt: "",
-          updatedAt: "",
-        },
-      ]),
+      data: ref(
+        serviceItemsFixture.items !== null
+          ? serviceItemsFixture.items
+          : [
+              {
+                id: 1,
+                restaurantId: "restaurant-1",
+                name: "預約外送",
+                description: "滿額可預約外送",
+                serviceType: "delivery",
+                priceLabel: "依距離報價",
+                requiresBooking: true,
+                sortOrder: 0,
+                isActive: true,
+                isPublic: true,
+                createdAt: "",
+                updatedAt: "",
+              },
+            ],
+      ),
       isLoading: ref(false),
       error: ref(null),
       refetch: vi.fn(),
@@ -221,7 +228,8 @@ describe("ShopMenuView service items", () => {
 
   beforeEach(() => {
     routerPush.mockReset();
-    menuItemsFixture.items = [];
+    menuItemsFixture.items = null;
+    serviceItemsFixture.items = null;
     scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
@@ -232,7 +240,6 @@ describe("ShopMenuView service items", () => {
       props: { restaurantId: "restaurant-1" },
       global: {
         stubs: {
-          MenuItemCard: true,
           MenuItemModal: true,
           CustomizationModal: true,
           ShopCartModal: true,
@@ -260,7 +267,6 @@ describe("ShopMenuView service items", () => {
       attachTo: document.body,
       global: {
         stubs: {
-          MenuItemCard: true,
           MenuItemModal: true,
           CustomizationModal: true,
           ShopCartModal: true,
@@ -316,7 +322,6 @@ describe("ShopMenuView service items", () => {
       props: { restaurantId: "restaurant-1" },
       global: {
         stubs: {
-          MenuItemCard: true,
           MenuItemModal: true,
           CustomizationModal: true,
           ShopCartModal: true,
@@ -391,6 +396,57 @@ describe("ShopMenuView service items", () => {
     ).toBeUndefined();
     expect(wrapper.get('[data-testid="menu-card"]').attributes("id")).toBe(
       "menu-item-42",
+    );
+  });
+
+  it("keeps service-only shops usable when no menu items are published", () => {
+    menuItemsFixture.items = [];
+
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1" },
+      global: {
+        stubs: {
+          MenuItemCard: true,
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    expect(wrapper.get('[data-testid="shop-service-items"]').text()).toContain(
+      "預約外送",
+    );
+    expect(wrapper.get('[data-testid="shop-empty-menu"]').text()).toContain(
+      "尚未提供可點選的菜單商品",
+    );
+    expect(wrapper.find('[data-testid="shop-empty-services"]').exists()).toBe(
+      false,
+    );
+  });
+
+  it("keeps menu-only shops clear when no public services are published", () => {
+    serviceItemsFixture.items = [];
+
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1" },
+      global: {
+        stubs: {
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    expect(wrapper.get('[data-testid="menu-card"]').text()).toContain("章魚燒");
+    expect(wrapper.get('[data-testid="shop-empty-services"]').text()).toContain(
+      "尚未提供公開服務",
+    );
+    expect(wrapper.find('[data-testid="shop-empty-menu"]').exists()).toBe(
+      false,
     );
   });
 
