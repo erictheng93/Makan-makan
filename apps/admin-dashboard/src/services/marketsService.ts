@@ -6,10 +6,31 @@ export interface MarketListItem {
   slug: string;
   name: string;
   type: string;
+  description?: string | null;
   city: string;
   district: string;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  openingHours?: Record<string, unknown> | null;
+  bannerUrl?: string | null;
+  logoUrl?: string | null;
+  imageUrls?: string[] | null;
+  tags?: string[] | null;
   vendorCount?: number;
   publicReadiness?: MarketPublicReadiness;
+}
+
+export interface UpdateMarketPublicProfileInput {
+  description: string | null;
+  address: string;
+  latitude: number;
+  longitude: number;
+  openingHours: Record<string, unknown> | null;
+  bannerUrl: string | null;
+  logoUrl: string | null;
+  imageUrls: string[] | null;
+  tags: string[] | null;
 }
 
 export interface RestaurantMarketMembership {
@@ -88,5 +109,16 @@ export const marketsService = {
     }>(`/restaurants/${restaurantId}/market-join-requests`);
     return unwrapApiPayload<{ requests: MarketJoinRequest[] }>(response.data)
       .requests;
+  },
+
+  async updateMarketPublicProfile(
+    marketId: string,
+    input: UpdateMarketPublicProfileInput,
+  ): Promise<MarketListItem> {
+    const response = await api.put<{ market: MarketListItem }>(
+      `/admin/markets/${marketId}`,
+      input,
+    );
+    return unwrapApiPayload<{ market: MarketListItem }>(response.data).market;
   },
 };

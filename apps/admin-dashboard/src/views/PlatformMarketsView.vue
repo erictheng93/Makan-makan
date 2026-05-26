@@ -104,6 +104,11 @@
             >
               缺項
             </th>
+            <th
+              class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500"
+            >
+              操作
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
@@ -141,15 +146,151 @@
               </div>
               <span v-else class="text-sm text-gray-400">-</span>
             </td>
+            <td class="px-4 py-4 text-right">
+              <button
+                type="button"
+                class="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                @click="startEditing(market)"
+              >
+                編輯
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div
+      v-if="editingMarket"
+      class="rounded-lg border border-gray-200 bg-white p-5 shadow-ios-card"
+    >
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">
+            編輯公開資料：{{ editingMarket.name }}
+          </h2>
+          <p class="mt-1 text-sm text-gray-500">
+            這些欄位會影響市場公開頁、SEO 與可上架完整度。
+          </p>
+        </div>
+        <button
+          type="button"
+          class="text-sm font-medium text-gray-500 hover:text-gray-700"
+          @click="cancelEditing"
+        >
+          關閉
+        </button>
+      </div>
+
+      <div class="mt-5 grid gap-4 lg:grid-cols-2">
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">描述</span>
+          <textarea
+            v-model="editForm.description"
+            rows="4"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">地址</span>
+          <input
+            v-model="editForm.address"
+            type="text"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">緯度</span>
+          <input
+            v-model="editForm.latitude"
+            type="text"
+            inputmode="decimal"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">經度</span>
+          <input
+            v-model="editForm.longitude"
+            type="text"
+            inputmode="decimal"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">主圖 URL</span>
+          <input
+            v-model="editForm.bannerUrl"
+            type="url"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">Logo URL</span>
+          <input
+            v-model="editForm.logoUrl"
+            type="url"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block lg:col-span-2">
+          <span class="text-sm font-medium text-gray-700">圖庫 URL</span>
+          <textarea
+            v-model="editForm.imageUrlsText"
+            rows="3"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+            placeholder="每行一個 URL"
+          />
+        </label>
+        <label class="block lg:col-span-2">
+          <span class="text-sm font-medium text-gray-700">標籤</span>
+          <input
+            v-model="editForm.tagsText"
+            type="text"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+            placeholder="夜市, 小吃, 親子"
+          />
+        </label>
+        <label class="block lg:col-span-2">
+          <span class="text-sm font-medium text-gray-700">營業時間 JSON</span>
+          <textarea
+            v-model="editForm.openingHoursText"
+            rows="7"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+            placeholder='{"friday":{"open":"17:00","close":"23:30"}}'
+          />
+        </label>
+      </div>
+
+      <p v-if="formError" class="mt-4 text-sm text-red-600">
+        {{ formError }}
+      </p>
+
+      <div class="mt-5 flex justify-end gap-3">
+        <button
+          type="button"
+          class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+          @click="cancelEditing"
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+          :disabled="isSaving"
+          @click="saveMarketProfile"
+        >
+          {{ isSaving ? "儲存中..." : "儲存公開資料" }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { marketsService, type MarketListItem } from "@/services/marketsService";
 import {
   marketPublicReadinessSummary,
@@ -160,11 +301,30 @@ import {
   marketReadinessStats,
   type MarketReadinessFilter,
 } from "@/utils/marketPublicReadinessWorkbench";
+import {
+  buildMarketPublicProfilePayload,
+  marketPublicProfileFormFromMarket,
+  type MarketPublicProfileForm,
+} from "@/utils/marketPublicProfileForm";
 
 const markets = ref<MarketListItem[]>([]);
 const isLoading = ref(true);
+const isSaving = ref(false);
 const query = ref("");
 const readinessFilter = ref<MarketReadinessFilter>("all");
+const editingMarket = ref<MarketListItem | null>(null);
+const formError = ref("");
+const editForm = reactive<MarketPublicProfileForm>({
+  description: "",
+  address: "",
+  latitude: "",
+  longitude: "",
+  openingHoursText: "",
+  bannerUrl: "",
+  logoUrl: "",
+  imageUrlsText: "",
+  tagsText: "",
+});
 
 const filterOptions: Array<{ value: MarketReadinessFilter; label: string }> = [
   { value: "all", label: "全部" },
@@ -204,6 +364,46 @@ async function loadMarkets() {
     markets.value = [];
   } finally {
     isLoading.value = false;
+  }
+}
+
+function startEditing(market: MarketListItem) {
+  editingMarket.value = market;
+  formError.value = "";
+  Object.assign(editForm, marketPublicProfileFormFromMarket(market));
+}
+
+function cancelEditing() {
+  editingMarket.value = null;
+  formError.value = "";
+}
+
+async function saveMarketProfile() {
+  if (!editingMarket.value) return;
+
+  formError.value = "";
+  let payload;
+  try {
+    payload = buildMarketPublicProfilePayload(editForm);
+  } catch (error) {
+    formError.value =
+      error instanceof Error ? error.message : "公開資料格式不正確";
+    return;
+  }
+
+  isSaving.value = true;
+  try {
+    await marketsService.updateMarketPublicProfile(
+      editingMarket.value.id,
+      payload,
+    );
+    await loadMarkets();
+    cancelEditing();
+  } catch (error) {
+    console.error("Failed to update market public profile:", error);
+    formError.value = "儲存失敗，請確認 URL 與欄位格式。";
+  } finally {
+    isSaving.value = false;
   }
 }
 
