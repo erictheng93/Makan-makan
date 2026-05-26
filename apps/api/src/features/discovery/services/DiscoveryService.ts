@@ -16,6 +16,7 @@ import type { SQL } from "drizzle-orm";
 import {
   dishSearchIndex,
   restaurants,
+  markets,
   menuItems,
   categories,
   restaurantMarketMemberships,
@@ -971,6 +972,69 @@ export class DiscoveryService {
     return { eligible: true, shopQrCode: restaurant.shopQrCode };
   }
 
+  async getRestaurantMarkets(restaurantId: string): Promise<{
+    memberships: Array<{
+      marketId: string;
+      stallNumber: string | null;
+      isPrimary: boolean;
+      market: {
+        id: string;
+        slug: string;
+        name: string;
+        type: string;
+        city: string;
+        district: string;
+      };
+      marketUrl: string;
+    }>;
+  }> {
+    const rows = await this.db
+      .select({
+        marketId: restaurantMarketMemberships.marketId,
+        stallNumber: restaurantMarketMemberships.stallNumber,
+        isPrimary: restaurantMarketMemberships.isPrimary,
+        marketSlug: markets.slug,
+        marketName: markets.name,
+        marketType: markets.type,
+        city: markets.city,
+        district: markets.district,
+      })
+      .from(restaurantMarketMemberships)
+      .innerJoin(markets, eq(restaurantMarketMemberships.marketId, markets.id))
+      .innerJoin(
+        restaurants,
+        eq(restaurantMarketMemberships.restaurantId, restaurants.id),
+      )
+      .where(
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurantId),
+          isNull(restaurantMarketMemberships.leftAt),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+          eq(markets.isActive, true),
+          isNull(markets.deletedAt),
+        ),
+      )
+      .orderBy(desc(restaurantMarketMemberships.isPrimary), asc(markets.name));
+
+    return {
+      memberships: rows.map((row) => ({
+        marketId: row.marketId,
+        stallNumber: row.stallNumber,
+        isPrimary: row.isPrimary,
+        market: {
+          id: row.marketId,
+          slug: row.marketSlug,
+          name: row.marketName,
+          type: row.marketType,
+          city: row.city,
+          district: row.district,
+        },
+        marketUrl: this.marketDetailUrl(row.marketSlug),
+      })),
+    };
+  }
+
   async reindex(): Promise<{
     dishes: number;
     restaurants: number;
@@ -1155,6 +1219,10 @@ export class DiscoveryService {
 
   private restaurantServiceItemsUrl(restaurantId: string): string {
     return `/api/v1/restaurants/${restaurantId}/service-items`;
+  }
+
+  private marketDetailUrl(slug: string): string {
+    return `/markets/${slug}`;
   }
 
   private menuItemUrl(menuItemId: number): string {

@@ -50,6 +50,21 @@ export interface ServiceTypeFacet {
   count: number;
 }
 
+export interface RestaurantMarketMembership {
+  marketId: string;
+  stallNumber: string | null;
+  isPrimary: boolean;
+  market: {
+    id: string;
+    slug: string;
+    name: string;
+    type: string;
+    city: string;
+    district: string;
+  };
+  marketUrl: string;
+}
+
 export interface SearchFilters {
   q?: string;
   city?: string;
@@ -125,6 +140,12 @@ export const discoveryApi = {
           reason: "restaurant_disabled" | "takeaway_disabled" | "closed_now";
         }
     >(`/discovery/restaurants/${restaurantId}/takeaway-eligibility`);
+  },
+
+  async getRestaurantMarkets(restaurantId: string) {
+    return apiClient.get<{ memberships: RestaurantMarketMembership[] }>(
+      `/discovery/restaurants/${restaurantId}/markets`,
+    );
   },
 
   async getPopular() {

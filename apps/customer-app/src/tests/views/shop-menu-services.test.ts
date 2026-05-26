@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ShopMenuView from "@/views/ShopMenuView.vue";
 import { menuApi } from "@/services/menuApi";
+import { discoveryApi } from "@/services/discoveryApi";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 
 const routerPush = vi.hoisted(() => vi.fn());
@@ -139,6 +140,32 @@ vi.mock("@tanstack/vue-query", () => ({
       };
     }
 
+    if (options.queryKey[0] === "restaurant-markets") {
+      return {
+        data: ref({
+          memberships: [
+            {
+              marketId: "market-1",
+              stallNumber: "A-18",
+              isPrimary: true,
+              market: {
+                id: "market-1",
+                slug: "fengjia",
+                name: "逢甲夜市",
+                type: "night_market",
+                city: "台中市",
+                district: "西屯區",
+              },
+              marketUrl: "/markets/fengjia",
+            },
+          ],
+        }),
+        isLoading: ref(false),
+        error: ref(null),
+        refetch: vi.fn(),
+      };
+    }
+
     return {
       data: ref([
         {
@@ -167,6 +194,12 @@ vi.mock("@/services/menuApi", () => ({
   menuApi: {
     getRestaurant: vi.fn(),
     getMenu: vi.fn(),
+  },
+}));
+
+vi.mock("@/services/discoveryApi", () => ({
+  discoveryApi: {
+    getRestaurantMarkets: vi.fn(),
   },
 }));
 
@@ -276,6 +309,32 @@ describe("ShopMenuView service items", () => {
       .trigger("click");
 
     expect(routerPush).toHaveBeenCalledWith("/discover?q=%E5%A4%96%E9%80%81");
+  });
+
+  it("shows public market membership and opens the market page", async () => {
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1" },
+      global: {
+        stubs: {
+          MenuItemCard: true,
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    expect(discoveryApi.getRestaurantMarkets).toBeDefined();
+    const marketContext = wrapper.get('[data-testid="shop-market-context"]');
+    expect(marketContext.text()).toContain("逢甲夜市");
+    expect(marketContext.text()).toContain("A-18");
+
+    await wrapper
+      .get('[data-testid="shop-market-link-fengjia"]')
+      .trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith("/markets/fengjia");
   });
 
   it("shows the linked menu item target when opening from a dish result", () => {

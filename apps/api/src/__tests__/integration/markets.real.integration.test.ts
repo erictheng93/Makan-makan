@@ -1233,6 +1233,68 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("exposes public restaurant market memberships for shop context", async () => {
+    const activeMarket = await seedMarket(testApp, {
+      slug: "public-shop-context-market",
+      name: "Public Shop Context Market",
+      type: "commercial_district",
+      city: "台中市",
+      district: "北區",
+    });
+    const inactiveMarket = await seedMarket(testApp, {
+      slug: "hidden-shop-context-market",
+      name: "Hidden Shop Context Market",
+      isActive: false,
+    });
+    const restaurant = await seed.restaurant({
+      name: "Shop Context Vendor",
+      city: activeMarket.city,
+      district: activeMarket.district,
+      isActive: true,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(restaurant.id),
+        marketId: activeMarket.id,
+        stallNumber: "A-18",
+        isPrimary: true,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        marketId: inactiveMarket.id,
+        stallNumber: "H-01",
+        isPrimary: false,
+        joinedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants/${restaurant.id}/markets`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    expect(json.data.memberships).toEqual([
+      {
+        marketId: activeMarket.id,
+        stallNumber: "A-18",
+        isPrimary: true,
+        market: {
+          id: activeMarket.id,
+          slug: "public-shop-context-market",
+          name: "Public Shop Context Market",
+          type: "commercial_district",
+          city: "台中市",
+          district: "北區",
+        },
+        marketUrl: "/markets/public-shop-context-market",
+      },
+    ]);
+  });
+
   it("syncs discovery index when marketplace-critical restaurant data changes", async () => {
     const restaurant = await seed.restaurant({
       name: "Sync Vendor",

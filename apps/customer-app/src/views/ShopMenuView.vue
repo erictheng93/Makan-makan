@@ -203,6 +203,32 @@
             </button>
           </section>
 
+          <section
+            v-if="marketMemberships.length > 0"
+            data-testid="shop-market-context"
+            class="rounded-xl border border-gray-200 bg-white px-4 py-3"
+          >
+            <h2 class="text-sm font-semibold text-ios-text">所屬夜市與商圈</h2>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button
+                v-for="membership in marketMemberships"
+                :key="membership.marketId"
+                type="button"
+                :data-testid="`shop-market-link-${membership.market.slug}`"
+                class="rounded-full border border-ios-blue/20 bg-ios-blue/5 px-3 py-1.5 text-sm font-medium text-ios-blue"
+                @click="openMarketPage(membership.marketUrl)"
+              >
+                {{ membership.market.name }}
+                <span
+                  v-if="membership.stallNumber"
+                  class="ml-1 text-xs text-ios-blue/70"
+                >
+                  {{ membership.stallNumber }}
+                </span>
+              </button>
+            </div>
+          </section>
+
           <!-- 店家服務 -->
           <section
             v-if="serviceItems.length > 0"
@@ -481,6 +507,7 @@ import ShopCartModal from "@/components/ShopCartModal.vue";
 import DesktopCartPanel from "@/components/DesktopCartPanel.vue";
 import { useIsDesktop } from "@/composables/useBreakpoint";
 import { menuApi } from "@/services/menuApi";
+import { discoveryApi } from "@/services/discoveryApi";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 import { useCurrency } from "@/composables/useCurrency";
 import type {
@@ -562,6 +589,12 @@ const { data: serviceItemsData } = useQuery({
   staleTime: 5 * 60 * 1000,
 });
 
+const { data: restaurantMarketsData } = useQuery({
+  queryKey: ["restaurant-markets", props.restaurantId],
+  queryFn: () => discoveryApi.getRestaurantMarkets(props.restaurantId),
+  staleTime: 5 * 60 * 1000,
+});
+
 // Computed
 const isLoading = computed(
   () => isLoadingRestaurant.value || isLoadingMenu.value,
@@ -571,6 +604,9 @@ const error = computed(() => menuError.value?.message || null);
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
 const serviceItems = computed(() => serviceItemsData.value || []);
+const marketMemberships = computed(
+  () => restaurantMarketsData.value?.memberships ?? [],
+);
 const linkedMenuItem = computed(() =>
   findMenuItemByQuery(menuItems.value, props.linkedItemId),
 );
@@ -666,6 +702,10 @@ const scrollToCategory = (categoryId: number) => {
 const goToReturnContext = () => {
   if (!returnContext.value) return;
   router.push(returnContext.value.path);
+};
+
+const openMarketPage = (marketUrl: string) => {
+  router.push(marketUrl);
 };
 
 const goBack = () => {

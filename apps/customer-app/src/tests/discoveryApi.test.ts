@@ -50,4 +50,32 @@ describe("discoveryApi", () => {
     });
     expect(result.results[0].name).toBe("代客切水果");
   });
+
+  it("loads public restaurant market memberships for shop context", async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      memberships: [
+        {
+          marketId: "market-1",
+          stallNumber: "A-18",
+          isPrimary: true,
+          market: {
+            id: "market-1",
+            slug: "fengjia",
+            name: "逢甲夜市",
+            type: "night_market",
+            city: "台中市",
+            district: "西屯區",
+          },
+          marketUrl: "/markets/fengjia",
+        },
+      ],
+    });
+
+    const result = await discoveryApi.getRestaurantMarkets("restaurant-1");
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      "/discovery/restaurants/restaurant-1/markets",
+    );
+    expect(result.memberships[0].market.name).toBe("逢甲夜市");
+  });
 });
