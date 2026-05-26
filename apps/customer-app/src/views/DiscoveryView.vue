@@ -474,12 +474,30 @@ async function loadMarketOptions() {
   } catch (error) {
     console.error("Failed to load discovery markets:", error);
   }
+  await loadSelectedMarketOption();
 
   try {
     const response = await marketsApi.listAreas();
     marketAreas.value = response.areas;
   } catch (error) {
     console.error("Failed to load discovery market areas:", error);
+  }
+}
+
+async function loadSelectedMarketOption() {
+  const marketSlug = store.filters.marketSlug;
+  if (
+    !marketSlug ||
+    marketOptions.value.some((market) => market.slug === marketSlug)
+  ) {
+    return;
+  }
+
+  try {
+    const response = await marketsApi.getMarket(marketSlug);
+    marketOptions.value = [response.market, ...marketOptions.value];
+  } catch (error) {
+    console.error("Failed to load selected discovery market:", error);
   }
 }
 

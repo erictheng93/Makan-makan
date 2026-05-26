@@ -50,6 +50,7 @@ vi.mock("@/services/marketsApi", () => ({
   marketsApi: {
     listMarkets: vi.fn(),
     listAreas: vi.fn(),
+    getMarket: vi.fn(),
   },
 }));
 
@@ -150,6 +151,14 @@ describe("DiscoveryView", () => {
     vi.mocked(marketsApi.listAreas).mockResolvedValue({
       areas: [],
     } as never);
+    vi.mocked(marketsApi.getMarket).mockResolvedValue({
+      market: {
+        id: "market-1",
+        slug: "fengjia",
+        name: "逢甲夜市",
+      },
+      vendorCount: 1,
+    } as never);
     vi.mocked(discoveryApi.listCategories).mockResolvedValue({
       categories: [],
     } as never);
@@ -244,6 +253,48 @@ describe("DiscoveryView", () => {
         categoryName: "小吃",
         returnPath: "/discover?q=%E5%A4%96%E9%80%81",
         returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
+  it("loads a selected market slug that is outside the first market options", async () => {
+    routeQuery.marketSlug = "miaokou";
+    vi.mocked(marketsApi.listMarkets).mockResolvedValueOnce({
+      markets: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    } as never);
+    vi.mocked(marketsApi.getMarket).mockResolvedValueOnce({
+      market: {
+        id: "market-2",
+        slug: "miaokou",
+        name: "基隆廟口夜市",
+      },
+      vendorCount: 12,
+    } as never);
+    const store = discoveryStore({
+      searchQuery: "",
+      filters: {},
+      searchDishes: vi.fn(),
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(marketsApi.getMarket).toHaveBeenCalledWith("miaokou");
+      expect(wrapper.text()).toContain("基隆廟口夜市");
+    });
+    await wrapper.get('[data-testid="select-dish"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "restaurant-1" },
+      query: {
+        itemId: "42",
+        categoryName: "小吃",
+        returnPath: "/discover?q=%E5%A4%96%E9%80%81",
+        returnLabel: "基隆廟口夜市",
       },
     });
   });
