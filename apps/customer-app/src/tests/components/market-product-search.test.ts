@@ -503,7 +503,7 @@ describe("MarketProductSearch", () => {
     await wrapper.get('input[type="checkbox"]').setValue(true);
     await wrapper.get("form").trigger("submit.prevent");
 
-    expect(wrapper.text()).toContain("目前沒有符合條件的商品或服務。");
+    expect(wrapper.text()).toContain("沒有符合目前條件的商品或服務");
 
     await wrapper
       .get('[data-testid="market-product-clear-filters"]')
@@ -538,6 +538,63 @@ describe("MarketProductSearch", () => {
       sortBy: "price_asc",
     });
     expect(wrapper.text()).toContain("市場雞排");
+  });
+
+  it("explains empty market catalogs before filters are applied", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(
+      wrapper.get('[data-testid="market-product-empty-state"]').text(),
+    ).toContain("這個市場尚未上架可搜尋的商品或服務");
+    expect(
+      wrapper.find('[data-testid="market-product-clear-filters"]').exists(),
+    ).toBe(false);
+  });
+
+  it("explains filtered empty market catalog searches", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("不存在");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(
+      wrapper.get('[data-testid="market-product-empty-state"]').text(),
+    ).toContain("沒有符合目前條件的商品或服務");
+    expect(
+      wrapper.find('[data-testid="market-product-clear-filters"]').exists(),
+    ).toBe(true);
   });
 
   it("loads service type facets for the selected market", async () => {

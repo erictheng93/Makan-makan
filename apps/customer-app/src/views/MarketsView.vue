@@ -113,12 +113,35 @@
             :market="market"
             @select="openMarket"
           />
-          <p
+          <div
             v-if="!store.hasMarkets"
-            class="py-8 text-center text-sm text-gray-500"
+            data-testid="markets-empty-state"
+            class="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center"
           >
-            目前沒有符合條件的市場。
-          </p>
+            <span class="block text-sm font-medium text-gray-700">
+              {{
+                hasDirectoryFilters
+                  ? "沒有符合目前條件的夜市或商圈"
+                  : "尚未收錄可瀏覽的夜市或商圈"
+              }}
+            </span>
+            <span class="mt-1 block text-sm text-gray-500">
+              {{
+                hasDirectoryFilters
+                  ? "可清除搜尋條件，或改用城市、行政區重新查找。"
+                  : "資料上架後會在這裡顯示可搜尋的夜市、商圈與店鋪。"
+              }}
+            </span>
+            <button
+              v-if="hasDirectoryFilters"
+              type="button"
+              data-testid="markets-clear-filters"
+              class="mt-4 h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
+              @click="clearFilters"
+            >
+              清除條件
+            </button>
+          </div>
           <button
             v-if="store.hasMoreMarkets"
             type="button"
@@ -154,6 +177,12 @@ const city = ref(firstQueryString(route.query.city));
 const district = ref(firstQueryString(route.query.district));
 const locating = ref(false);
 const marketAreas = ref<MarketArea[]>([]);
+const hasDirectoryFilters = computed(
+  () =>
+    query.value.trim().length > 0 ||
+    city.value.length > 0 ||
+    district.value.length > 0,
+);
 
 const districts = computed(() => {
   const areas =
@@ -184,6 +213,13 @@ function loadMoreMarkets() {
 }
 
 function onCityChange() {
+  district.value = "";
+  reloadList();
+}
+
+function clearFilters() {
+  query.value = "";
+  city.value = "";
   district.value = "";
   reloadList();
 }

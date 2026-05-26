@@ -144,11 +144,22 @@
     </div>
     <div
       v-else-if="hasSearched && combinedResultCount === 0"
+      data-testid="market-product-empty-state"
       class="space-y-3 py-8 text-center text-sm text-gray-500"
     >
-      <p>目前沒有符合條件的商品或服務。</p>
-      <p v-if="hasActiveFilters" class="text-xs text-gray-400">
-        可清除條件或改用更寬的關鍵字。
+      <p class="font-medium text-gray-700">
+        {{
+          hasActiveFilters
+            ? "沒有符合目前條件的商品或服務"
+            : "這個市場尚未上架可搜尋的商品或服務"
+        }}
+      </p>
+      <p class="text-xs text-gray-400">
+        {{
+          hasActiveFilters
+            ? "可清除條件或改用更寬的關鍵字。"
+            : "店鋪補齊菜單或公開服務後，會在這裡顯示。"
+        }}
       </p>
     </div>
     <div v-else-if="combinedResultCount > 0" class="space-y-2">
