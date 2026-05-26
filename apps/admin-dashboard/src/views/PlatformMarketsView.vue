@@ -58,6 +58,42 @@
       >
         <div>
           <h2 class="text-base font-semibold text-gray-900">
+            Discovery 搜尋索引
+          </h2>
+          <p class="mt-1 text-sm text-gray-500">
+            大量匯入市場、店鋪或菜單後，可手動重建公開搜尋索引。
+          </p>
+        </div>
+        <button
+          type="button"
+          data-testid="discovery-reindex"
+          class="w-fit rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+          :disabled="isReindexingDiscovery"
+          @click="reindexDiscovery"
+        >
+          {{ isReindexingDiscovery ? "重建中..." : "重建索引" }}
+        </button>
+      </div>
+      <p v-if="discoveryReindexError" class="mt-3 text-sm text-red-600">
+        {{ discoveryReindexError }}
+      </p>
+      <p
+        v-if="discoveryReindexResult"
+        data-testid="discovery-reindex-result"
+        class="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800"
+      >
+        已重建 {{ discoveryReindexResult.dishes }} 筆商品索引，
+        {{ discoveryReindexResult.restaurants }} 間店鋪，耗時
+        {{ discoveryReindexResult.duration_ms }}ms。
+      </p>
+    </section>
+
+    <section class="rounded-lg bg-white p-4 shadow-ios-card">
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div>
+          <h2 class="text-base font-semibold text-gray-900">
             批次匯入市場 / 商圈
           </h2>
           <p class="mt-1 text-sm text-gray-500">
@@ -756,9 +792,7 @@
           <p class="font-medium">預檢結果</p>
           <p>
             會建立
-            {{
-              vendorImportDryRunResult.wouldCreateRestaurants ?? 0
-            }}
+            {{ vendorImportDryRunResult.wouldCreateRestaurants ?? 0 }}
             間，會加入
             {{ vendorImportDryRunResult.wouldAttachVendors ?? 0 }} 間，略過
             {{ vendorImportDryRunResult.skipped }} 筆；阻擋
@@ -1080,6 +1114,10 @@ import {
   type MarketVendor,
   type MarketVendorCandidate,
 } from "@/services/marketsService";
+import {
+  discoveryService,
+  type DiscoveryReindexResult,
+} from "@/services/discoveryService";
 import { useAuthStore } from "@/stores/auth";
 import {
   marketPublicReadinessSummary,
@@ -1134,6 +1172,9 @@ const areaReadiness = ref<MarketAreaReadinessSummary[]>([]);
 const selectedArea = ref<MarketAreaKey | null>(areaFromQuery());
 const isLoading = ref(true);
 const isSaving = ref(false);
+const isReindexingDiscovery = ref(false);
+const discoveryReindexResult = ref<DiscoveryReindexResult | null>(null);
+const discoveryReindexError = ref("");
 const query = ref("");
 const readinessFilter = ref<MarketReadinessFilter>("all");
 const editingMarket = ref<MarketListItem | null>(null);
@@ -1378,6 +1419,20 @@ async function loadMarkets() {
     areaReadiness.value = [];
   } finally {
     isLoading.value = false;
+  }
+}
+
+async function reindexDiscovery() {
+  discoveryReindexError.value = "";
+  discoveryReindexResult.value = null;
+  isReindexingDiscovery.value = true;
+  try {
+    discoveryReindexResult.value = await discoveryService.reindex();
+  } catch (error) {
+    console.error("Failed to reindex discovery:", error);
+    discoveryReindexError.value = "重建搜尋索引失敗，請稍後再試。";
+  } finally {
+    isReindexingDiscovery.value = false;
   }
 }
 

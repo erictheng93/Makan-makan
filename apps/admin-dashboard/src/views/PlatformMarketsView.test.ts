@@ -4,6 +4,7 @@ import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import PlatformMarketsView from "./PlatformMarketsView.vue";
 import { marketsService } from "@/services/marketsService";
+import { discoveryService } from "@/services/discoveryService";
 import { useAuthStore } from "@/stores/auth";
 import { useRoute, useRouter } from "vue-router";
 
@@ -19,6 +20,12 @@ vi.mock("@/services/marketsService", () => ({
     listMarketVendors: vi.fn(),
     updateVendor: vi.fn(),
     removeVendor: vi.fn(),
+  },
+}));
+
+vi.mock("@/services/discoveryService", () => ({
+  discoveryService: {
+    reindex: vi.fn(),
   },
 }));
 
@@ -179,6 +186,11 @@ describe("PlatformMarketsView", () => {
       total: 0,
       page: 1,
       limit: 10,
+    });
+    vi.mocked(discoveryService.reindex).mockResolvedValue({
+      dishes: 12,
+      restaurants: 4,
+      duration_ms: 250,
     });
   });
 
@@ -542,6 +554,19 @@ describe("PlatformMarketsView", () => {
     expect(blob.type).toBe("text/csv;charset=utf-8;");
     expect(click).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
+  });
+
+  it("rebuilds the discovery search index from platform operations", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper.get('[data-testid="discovery-reindex"]').trigger("click");
+    await flushPromises();
+
+    expect(discoveryService.reindex).toHaveBeenCalledOnce();
+    expect(wrapper.text()).toContain("已重建 12 筆商品索引");
+    expect(wrapper.text()).toContain("4 間店鋪");
+    expect(wrapper.text()).toContain("250ms");
   });
 
   it("imports vendors into the selected market from JSON", async () => {
