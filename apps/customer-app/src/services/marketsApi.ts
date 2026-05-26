@@ -12,8 +12,13 @@ export interface MarketListItem {
   address: string;
   latitude: number;
   longitude: number;
+  openingHours?: Record<
+    string,
+    { open: string; close: string; closed?: boolean }
+  > | null;
   bannerUrl: string | null;
   logoUrl: string | null;
+  imageUrls?: string[] | null;
   tags: string[] | null;
   vendorCount: number;
 }

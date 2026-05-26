@@ -93,6 +93,14 @@ describe("Markets API — real integration", () => {
     });
     const market = await seedMarket(testApp, {
       slug: "fengjia-night-market",
+      imageUrls: [
+        "https://example.com/fengjia-gallery-1.jpg",
+        "https://example.com/fengjia-gallery-2.jpg",
+      ],
+      openingHours: {
+        friday: { open: "17:00", close: "23:30" },
+        saturday: { open: "16:00", close: "23:59" },
+      },
     });
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
       restaurantId: String(restaurant.id),
@@ -113,6 +121,14 @@ describe("Markets API — real integration", () => {
       slug: "fengjia-night-market",
       name: "逢甲夜市",
       vendorCount: 1,
+      imageUrls: [
+        "https://example.com/fengjia-gallery-1.jpg",
+        "https://example.com/fengjia-gallery-2.jpg",
+      ],
+    });
+    expect(listJson.data.markets[0].openingHours).toMatchObject({
+      friday: { open: "17:00", close: "23:30" },
+      saturday: { open: "16:00", close: "23:59" },
     });
 
     const detailRes = await testApp.app.fetch(

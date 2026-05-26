@@ -9,10 +9,11 @@
     >
       <div class="h-32 bg-gray-100">
         <img
-          v-if="market.bannerUrl || market.logoUrl"
-          :src="market.bannerUrl || market.logoUrl || ''"
+          v-if="heroImageUrl"
+          :src="heroImageUrl"
           :alt="market.name"
           class="h-full w-full object-cover"
+          data-testid="market-card-image"
         />
         <div
           v-else
@@ -33,6 +34,22 @@
           </div>
           <span class="shrink-0 text-sm font-medium text-ios-blue">
             {{ vendorLabel }}
+          </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span
+            v-if="todayStatusLabel"
+            class="rounded-full px-2.5 py-1 text-xs font-medium"
+            :class="
+              isOpenToday
+                ? 'bg-green-50 text-green-700'
+                : 'bg-gray-100 text-gray-600'
+            "
+          >
+            {{ todayStatusLabel }}
+          </span>
+          <span v-if="todayHoursLabel" class="text-xs text-gray-500">
+            {{ todayHoursLabel }}
           </span>
         </div>
         <p
@@ -67,4 +84,58 @@ const distanceLabel = computed(() =>
     ? ""
     : `離你 ${props.market.distanceKm.toFixed(1)} km`,
 );
+const heroImageUrl = computed(
+  () =>
+    props.market.bannerUrl ||
+    props.market.logoUrl ||
+    props.market.imageUrls?.[0] ||
+    "",
+);
+
+const weekdayKeys = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+
+const todayHours = computed(() => {
+  const key = weekdayKeys[new Date().getDay()];
+  return props.market.openingHours?.[key] ?? null;
+});
+
+const isOpenToday = computed(() => {
+  const hours = todayHours.value;
+  if (!hours || hours.closed) return false;
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const [openHour, openMinute] = hours.open.split(":").map(Number);
+  const [closeHour, closeMinute] = hours.close.split(":").map(Number);
+  const openMinutes = openHour * 60 + openMinute;
+  const closeMinutes = closeHour * 60 + closeMinute;
+
+  if (closeMinutes < openMinutes) {
+    return nowMinutes >= openMinutes || nowMinutes <= closeMinutes;
+  }
+  return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
+});
+
+const todayStatusLabel = computed(() => {
+  const hours = todayHours.value;
+  if (!hours) return "";
+  if (hours.closed) return "今日休息";
+  return isOpenToday.value ? "營業中" : "未營業";
+});
+
+const todayHoursLabel = computed(() => {
+  const hours = todayHours.value;
+  if (!hours || hours.closed) return "";
+  return isOpenToday.value
+    ? `至 ${hours.close}`
+    : `${hours.open}-${hours.close}`;
+});
 </script>

@@ -108,8 +108,10 @@ export class MarketsService {
         address: markets.address,
         latitude: markets.latitude,
         longitude: markets.longitude,
+        openingHours: markets.openingHours,
         bannerUrl: markets.bannerUrl,
         logoUrl: markets.logoUrl,
+        imageUrls: markets.imageUrls,
         tags: markets.tags,
         vendorCount: sql<number>`count(${restaurantMarketMemberships.id})`,
       })
@@ -313,8 +315,10 @@ export class MarketsService {
         address: markets.address,
         latitude: markets.latitude,
         longitude: markets.longitude,
+        openingHours: markets.openingHours,
         bannerUrl: markets.bannerUrl,
         logoUrl: markets.logoUrl,
+        imageUrls: markets.imageUrls,
         tags: markets.tags,
       })
       .from(markets)
