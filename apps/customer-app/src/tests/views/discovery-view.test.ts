@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DiscoveryView from "@/views/DiscoveryView.vue";
 import { discoveryApi } from "@/services/discoveryApi";
+import { marketsApi } from "@/services/marketsApi";
 import { useDiscoveryStore } from "@/stores/discovery";
 
 const routerPush = vi.hoisted(() => vi.fn());
@@ -27,6 +28,12 @@ vi.mock("@/stores/discovery", () => ({
 vi.mock("@/services/discoveryApi", () => ({
   discoveryApi: {
     getTakeawayEligibility: vi.fn(),
+  },
+}));
+
+vi.mock("@/services/marketsApi", () => ({
+  marketsApi: {
+    listMarkets: vi.fn(),
   },
 }));
 
@@ -101,6 +108,12 @@ function mountView() {
 describe("DiscoveryView", () => {
   beforeEach(() => {
     routerPush.mockReset();
+    vi.mocked(marketsApi.listMarkets).mockResolvedValue({
+      markets: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    } as never);
     vi.mocked(useDiscoveryStore).mockReturnValue(discoveryStore() as never);
   });
 
@@ -132,6 +145,36 @@ describe("DiscoveryView", () => {
       name: "OrderTypeLanding",
       params: { restaurantId: "restaurant-1" },
       query: { qr: "SHOP-restaurant-1", itemId: "42" },
+    });
+  });
+
+  it("lets customers scope discovery searches to a market", async () => {
+    vi.mocked(marketsApi.listMarkets).mockResolvedValueOnce({
+      markets: [
+        {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    } as never);
+    const store = discoveryStore({
+      filters: {},
+      updateFilters: vi.fn(),
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("逢甲夜市");
+    });
+    await wrapper.get('[data-testid="discovery-market-chip"]').trigger("click");
+
+    expect(store.updateFilters).toHaveBeenCalledWith({
+      marketId: "market-1",
     });
   });
 });

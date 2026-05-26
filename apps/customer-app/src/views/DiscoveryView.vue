@@ -34,6 +34,28 @@
         @clear="store.clearSearch"
       />
 
+      <section v-if="marketOptions.length > 0" class="space-y-2">
+        <h2 class="text-sm font-medium text-gray-700">選擇夜市或商圈</h2>
+        <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          <button
+            v-for="market in marketOptions"
+            :key="market.id"
+            type="button"
+            data-testid="discovery-market-chip"
+            class="h-9 shrink-0 rounded-full border px-3 text-sm font-medium"
+            :class="
+              selectedMarketId === market.id
+                ? 'border-ios-blue bg-ios-blue text-white'
+                : 'border-gray-300 bg-white text-gray-700'
+            "
+            :aria-pressed="selectedMarketId === market.id"
+            @click="toggleMarketFilter(market.id)"
+          >
+            {{ market.name }}
+          </button>
+        </div>
+      </section>
+
       <FilterPanel
         :filters="store.filters"
         :districts="districts"
@@ -138,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { useDiscoveryStore } from "@/stores/discovery";
@@ -151,11 +173,15 @@ import type {
   RestaurantListItem,
 } from "@/services/discoveryApi";
 import { discoveryApi } from "@/services/discoveryApi";
+import { marketsApi, type MarketListItem } from "@/services/marketsApi";
 import { shopMenuItemQuery } from "@/utils/shopMenuDeepLink";
 
 const { t, tWithParams } = useI18n();
 const router = useRouter();
 const store = useDiscoveryStore();
+const marketOptions = ref<MarketListItem[]>([]);
+
+const selectedMarketId = computed(() => store.filters.marketId);
 
 // TODO: Load from API or config
 const districts = [
@@ -207,8 +233,24 @@ function onRestaurantTakeaway(restaurant: RestaurantListItem) {
   startTakeaway(restaurant.restaurantId);
 }
 
+function toggleMarketFilter(marketId: string) {
+  store.updateFilters({
+    marketId: selectedMarketId.value === marketId ? undefined : marketId,
+  });
+}
+
+async function loadMarketOptions() {
+  try {
+    const response = await marketsApi.listMarkets({ limit: 20 });
+    marketOptions.value = response.markets;
+  } catch (error) {
+    console.error("Failed to load discovery market filters:", error);
+  }
+}
+
 onMounted(() => {
   store.loadPopular();
   store.browseRestaurants();
+  loadMarketOptions();
 });
 </script>
