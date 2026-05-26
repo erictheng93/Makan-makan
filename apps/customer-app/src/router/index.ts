@@ -142,6 +142,7 @@ const routes: RouteRecordRaw[] = [
       phoneLastDigits: route.query.phone as string,
       waitingTicketId: route.query.waitingTicketId as string | undefined,
       linkedItemId: route.query.itemId,
+      linkedCategoryName: route.query.categoryName,
     }),
     meta: {
       titleKey: "navigation.shopMenu",

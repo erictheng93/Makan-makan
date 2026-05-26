@@ -204,7 +204,7 @@
           <!-- 分類菜單 -->
           <section
             v-for="category in filteredCategories"
-            :id="`category-${category.id}`"
+            :id="menuCategoryElementId(category.id)"
             :key="category.id"
             class="scroll-mt-32"
           >
@@ -371,7 +371,9 @@ import type {
 } from "@makanmakan/shared-types";
 import { applyShopMenuSeoMeta } from "@/utils/seoMeta";
 import {
+  findMenuCategoryByQuery,
   findMenuItemByQuery,
+  menuCategoryElementId,
   menuItemElementId,
 } from "@/utils/shopMenuDeepLink";
 
@@ -381,6 +383,7 @@ const props = defineProps<{
   phoneLastDigits?: string;
   waitingTicketId?: string;
   linkedItemId?: string | string[] | null;
+  linkedCategoryName?: string | string[] | null;
 }>();
 
 // Composables
@@ -402,6 +405,7 @@ const showItemModal = ref(false);
 const showCustomizationModal = ref(false);
 const showCart = ref(false);
 const openedLinkedItemId = ref<number | null>(null);
+const openedLinkedCategoryId = ref<number | null>(null);
 
 // 初始化店家購物車
 onMounted(() => {
@@ -478,7 +482,7 @@ const getItemsByCategory = (categoryId: number) => {
 
 const scrollToCategory = (categoryId: number) => {
   activeCategoryId.value = categoryId;
-  const element = document.getElementById(`category-${categoryId}`);
+  const element = document.getElementById(menuCategoryElementId(categoryId));
   if (element) {
     element.scrollIntoView({
       behavior: "smooth",
@@ -519,11 +523,33 @@ const handleViewDetails = (item: MenuItem) => {
   showItemModal.value = true;
 };
 
+const scrollToLinkedCategory = async () => {
+  const category = findMenuCategoryByQuery(
+    categories.value,
+    props.linkedCategoryName,
+  );
+  if (!category || openedLinkedCategoryId.value === category.id) return;
+
+  openedLinkedCategoryId.value = category.id;
+  activeCategoryId.value = category.id;
+  await nextTick();
+
+  document.getElementById(menuCategoryElementId(category.id))?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+};
+
 const openLinkedMenuItem = async () => {
   const item = findMenuItemByQuery(menuItems.value, props.linkedItemId);
-  if (!item || openedLinkedItemId.value === item.id) return;
+  if (!item) {
+    await scrollToLinkedCategory();
+    return;
+  }
+  if (openedLinkedItemId.value === item.id) return;
 
   openedLinkedItemId.value = item.id;
+  openedLinkedCategoryId.value = item.categoryId;
   activeCategoryId.value = item.categoryId;
   await nextTick();
 
@@ -538,7 +564,7 @@ const openLinkedMenuItem = async () => {
 const updateActiveCategoryOnScroll = () => {
   const sections = categories.value.map((category: any) => ({
     id: category.id,
-    element: document.getElementById(`category-${category.id}`),
+    element: document.getElementById(menuCategoryElementId(category.id)),
   }));
 
   const _scrollTop = window.pageYOffset;
@@ -592,7 +618,7 @@ watch(
 );
 
 watch(
-  [menuStructure, () => props.linkedItemId],
+  [menuStructure, () => props.linkedItemId, () => props.linkedCategoryName],
   () => {
     openLinkedMenuItem();
   },

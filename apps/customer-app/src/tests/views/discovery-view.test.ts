@@ -142,7 +142,7 @@ describe("DiscoveryView", () => {
     expect(routerPush).toHaveBeenCalledWith({
       name: "ShopMenu",
       params: { restaurantId: "restaurant-1" },
-      query: { itemId: "42" },
+      query: { itemId: "42", categoryName: "小吃" },
     });
   });
 
@@ -161,7 +161,7 @@ describe("DiscoveryView", () => {
     expect(routerPush).toHaveBeenCalledWith({
       name: "OrderTypeLanding",
       params: { restaurantId: "restaurant-1" },
-      query: { qr: "SHOP-restaurant-1", itemId: "42" },
+      query: { qr: "SHOP-restaurant-1", itemId: "42", categoryName: "小吃" },
     });
   });
 
