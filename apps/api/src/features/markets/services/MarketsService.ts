@@ -30,6 +30,7 @@ import { boundingBoxFromCircle, distanceKm } from "./geo";
 import { evaluateMarketPublicReadiness } from "../utils/publicReadiness";
 
 const MARKET_CACHE_VERSION_KEY = "markets:version";
+const OPEN_NOW_VENDOR_SCAN_LIMIT = 50000;
 
 export interface MarketFilters {
   q?: string;
@@ -606,6 +607,8 @@ export class MarketsService {
       conditions.push(eq(restaurants.supportsDelivery, true));
 
     const whereClause = and(...conditions);
+    const queryLimit = filters.openNow ? OPEN_NOW_VENDOR_SCAN_LIMIT : limit;
+    const queryOffset = filters.openNow ? 0 : offset;
     const rows = await this.db
       .select({
         restaurantId: restaurants.id,
@@ -634,14 +637,16 @@ export class MarketsService {
           ? desc(restaurants.rating)
           : desc(restaurants.totalOrders),
       )
-      .limit(limit)
-      .offset(offset);
+      .limit(queryLimit)
+      .offset(queryOffset);
 
     let vendors = rows.map((row) => ({
       ...row,
       isOpen: isOpenNow(row.businessHours ?? null),
     }));
-    if (filters.openNow) vendors = vendors.filter((row) => row.isOpen);
+    if (filters.openNow) {
+      vendors = vendors.filter((row) => row.isOpen);
+    }
 
     const [{ count = 0 } = { count: 0 }] = await this.db
       .select({ count: sql<number>`count(*)` })
@@ -652,9 +657,14 @@ export class MarketsService {
       )
       .where(whereClause);
 
+    const total = filters.openNow ? vendors.length : Number(count);
+    const pagedVendors = filters.openNow
+      ? vendors.slice(offset, offset + limit)
+      : vendors;
+
     return {
-      vendors,
-      total: filters.openNow ? vendors.length : Number(count),
+      vendors: pagedVendors,
+      total,
       page,
       limit,
     };

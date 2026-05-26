@@ -32,6 +32,19 @@ function openAllWeek() {
   };
 }
 
+function closedAllWeek() {
+  const day = { open: "00:00", close: "00:00", closed: true };
+  return {
+    monday: day,
+    tuesday: day,
+    wednesday: day,
+    thursday: day,
+    friday: day,
+    saturday: day,
+    sunday: day,
+  };
+}
+
 async function seedMarket(
   testApp: RealIntegrationTestApp,
   overrides: Partial<typeof markets.$inferInsert> = {},
@@ -725,6 +738,53 @@ describe("Markets API — real integration", () => {
       slug: "near-market",
     });
     expect(nearbyJson.data.markets[0].distanceKm).toBeLessThan(0.1);
+  });
+
+  it("filters open market vendors before pagination", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "open-vendor-pagination-market",
+    });
+    const closedVendor = await seed.restaurant({
+      name: "Closed Popular Stand",
+      businessHours: closedAllWeek(),
+      totalOrders: 50,
+    });
+    const openVendor = await seed.restaurant({
+      name: "Open Smaller Stand",
+      businessHours: openAllWeek(),
+      totalOrders: 10,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(closedVendor.id),
+        marketId: market.id,
+        stallNumber: "A-01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(openVendor.id),
+        marketId: market.id,
+        stallNumber: "A-02",
+        joinedAt: new Date(),
+      },
+    ]);
+
+    const vendorsRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/markets/open-vendor-pagination-market/vendors?openNow=true&limit=1&sortBy=popular",
+      ),
+    );
+
+    expect(vendorsRes.status).toBe(200);
+    const vendorsJson: any = await vendorsRes.json();
+    expect(vendorsJson.data.total).toBe(1);
+    expect(vendorsJson.data.vendors).toHaveLength(1);
+    expect(vendorsJson.data.vendors[0]).toMatchObject({
+      restaurantId: String(openVendor.id),
+      name: "Open Smaller Stand",
+      stallNumber: "A-02",
+      isOpen: true,
+    });
   });
 
   it("scopes dish search by market and GPS filters", async () => {
