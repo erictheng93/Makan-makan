@@ -28,6 +28,10 @@ export const useDiscoveryStore = defineStore("discovery", () => {
   );
   const isSearchMode = computed(() => mode.value === "search");
 
+  function hasProductBrowseScope(searchFilters: SearchFilters) {
+    return Boolean(searchFilters.marketId || searchFilters.categoryName);
+  }
+
   // Actions
   async function searchDishes(query: string) {
     searchQuery.value = query;
@@ -36,8 +40,9 @@ export const useDiscoveryStore = defineStore("discovery", () => {
     error.value = null;
 
     try {
+      const trimmedQuery = query.trim();
       const result = await discoveryApi.searchDishes({
-        q: query,
+        ...(trimmedQuery ? { q: trimmedQuery } : {}),
         ...filters.value,
         page: page.value,
       });
@@ -88,7 +93,10 @@ export const useDiscoveryStore = defineStore("discovery", () => {
   function updateFilters(newFilters: Partial<SearchFilters>) {
     filters.value = { ...filters.value, ...newFilters };
     page.value = 1;
-    if (mode.value === "search" && searchQuery.value) {
+    if (
+      (mode.value === "search" && searchQuery.value) ||
+      hasProductBrowseScope(filters.value)
+    ) {
       searchDishes(searchQuery.value);
     } else {
       browseRestaurants();
