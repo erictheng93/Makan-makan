@@ -43,15 +43,86 @@
           {{ tag }}
         </span>
       </div>
+
+      <div
+        v-if="galleryImages.length"
+        class="grid grid-cols-3 gap-2"
+        aria-label="市場圖片"
+      >
+        <img
+          v-for="imageUrl in galleryImages"
+          :key="imageUrl"
+          :src="imageUrl"
+          :alt="`${market.name} 圖片`"
+          class="aspect-square rounded-lg object-cover"
+          loading="lazy"
+          data-testid="market-gallery-image"
+        />
+      </div>
+
+      <section v-if="openingHoursRows.length" class="rounded-xl bg-gray-50 p-3">
+        <h2 class="text-sm font-semibold text-gray-900">營業時間</h2>
+        <dl class="mt-2 grid grid-cols-1 gap-1 text-sm text-gray-600">
+          <div
+            v-for="row in openingHoursRows"
+            :key="row.key"
+            class="flex justify-between gap-3"
+          >
+            <dt>{{ row.label }}</dt>
+            <dd class="font-medium text-gray-800">{{ row.value }}</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import type { MarketDetail } from "@/services/marketsApi";
 
-defineProps<{
+const props = defineProps<{
   market: MarketDetail;
   vendorCount: number;
 }>();
+
+const weekdayLabels: Record<string, string> = {
+  monday: "週一",
+  tuesday: "週二",
+  wednesday: "週三",
+  thursday: "週四",
+  friday: "週五",
+  saturday: "週六",
+  sunday: "週日",
+};
+
+const weekdayOrder = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
+
+const galleryImages = computed(() =>
+  (props.market.imageUrls ?? []).filter(Boolean).slice(0, 6),
+);
+
+const openingHoursRows = computed(() => {
+  const hours = props.market.openingHours;
+  if (!hours) return [];
+
+  return weekdayOrder
+    .filter((key) => hours[key])
+    .map((key) => {
+      const value = hours[key];
+      return {
+        key,
+        label: weekdayLabels[key],
+        value: value.closed ? "休息" : `${value.open}-${value.close}`,
+      };
+    });
+});
 </script>

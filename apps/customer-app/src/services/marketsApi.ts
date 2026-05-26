@@ -19,7 +19,10 @@ export interface MarketListItem {
 }
 
 export interface MarketDetail extends MarketListItem {
-  openingHours?: Record<string, { open: string; close: string }> | null;
+  openingHours?: Record<
+    string,
+    { open: string; close: string; closed?: boolean }
+  > | null;
   imageUrls?: string[] | null;
 }
 
