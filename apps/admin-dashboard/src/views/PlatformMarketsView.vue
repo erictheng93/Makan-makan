@@ -378,6 +378,59 @@
           {{ isSaving ? "儲存中..." : "儲存公開資料" }}
         </button>
       </div>
+
+      <section class="mt-6 border-t border-gray-200 pt-5">
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div>
+            <h3 class="text-base font-semibold text-gray-900">批次匯入店鋪</h3>
+            <p class="mt-1 text-sm text-gray-500">
+              貼上店鋪 JSON 陣列；既有店鋪填 restaurantId，新店鋪至少填
+              name、address、district。
+            </p>
+          </div>
+          <button
+            type="button"
+            class="w-fit rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+            @click="loadVendorImportExample"
+          >
+            載入範例
+          </button>
+        </div>
+
+        <textarea
+          v-model="vendorImportText"
+          rows="8"
+          data-testid="vendor-import-json"
+          class="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          placeholder='[{"restaurantId":"restaurant-1","stallNumber":"A-01"},{"name":"新店鋪","address":"台中市西屯區文華路","district":"西屯區","stallNumber":"B-02"}]'
+        />
+
+        <p v-if="vendorImportError" class="mt-3 text-sm text-red-600">
+          {{ vendorImportError }}
+        </p>
+        <div
+          v-if="vendorImportResult"
+          class="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800"
+        >
+          已建立 {{ vendorImportResult.createdRestaurants }} 間店鋪，加入
+          {{ vendorImportResult.attachedVendors }} 間，略過
+          {{ vendorImportResult.skipped }} 筆。
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button
+            type="button"
+            data-testid="vendor-import-submit"
+            class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            :disabled="isImportingVendors || !vendorImportText.trim()"
+            @click="importVendorsForMarket"
+          >
+            {{ isImportingVendors ? "匯入中..." : "匯入店鋪" }}
+          </button>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -387,6 +440,8 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   marketsService,
+  type ImportMarketVendorInput,
+  type ImportMarketVendorsResult,
   type MarketCatalogGapVendor,
   type MarketListItem,
 } from "@/services/marketsService";
@@ -415,6 +470,10 @@ const query = ref("");
 const readinessFilter = ref<MarketReadinessFilter>("all");
 const editingMarket = ref<MarketListItem | null>(null);
 const formError = ref("");
+const isImportingVendors = ref(false);
+const vendorImportText = ref("");
+const vendorImportError = ref("");
+const vendorImportResult = ref<ImportMarketVendorsResult | null>(null);
 const editForm = reactive<MarketPublicProfileForm>({
   description: "",
   address: "",
@@ -508,12 +567,18 @@ function manageVendorGap(
 function startEditing(market: MarketListItem) {
   editingMarket.value = market;
   formError.value = "";
+  vendorImportError.value = "";
+  vendorImportResult.value = null;
+  vendorImportText.value = "";
   Object.assign(editForm, marketPublicProfileFormFromMarket(market));
 }
 
 function cancelEditing() {
   editingMarket.value = null;
   formError.value = "";
+  vendorImportError.value = "";
+  vendorImportResult.value = null;
+  vendorImportText.value = "";
 }
 
 async function saveMarketProfile() {
@@ -542,6 +607,89 @@ async function saveMarketProfile() {
     formError.value = "儲存失敗，請確認 URL 與欄位格式。";
   } finally {
     isSaving.value = false;
+  }
+}
+
+function loadVendorImportExample() {
+  vendorImportError.value = "";
+  vendorImportText.value = JSON.stringify(
+    [
+      {
+        restaurantId: "restaurant-1",
+        stallNumber: "A-01",
+        isPrimary: true,
+      },
+      {
+        name: "新店鋪",
+        type: "market_stall",
+        category: "food",
+        address: "台中市西屯區文華路 100 號",
+        district: "西屯區",
+        stallNumber: "B-02",
+      },
+    ],
+    null,
+    2,
+  );
+}
+
+function isVendorImportEnvelope(
+  value: unknown,
+): value is { vendors: unknown[] } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { vendors?: unknown }).vendors)
+  );
+}
+
+function parseVendorImportText(): ImportMarketVendorInput[] {
+  const payload: unknown = JSON.parse(vendorImportText.value);
+  const vendors = Array.isArray(payload)
+    ? payload
+    : isVendorImportEnvelope(payload)
+      ? payload.vendors
+      : null;
+
+  if (!vendors?.length) {
+    throw new Error("請貼上至少一筆店鋪資料。");
+  }
+
+  if (vendors.some((vendor) => typeof vendor !== "object" || vendor === null)) {
+    throw new Error("每一筆店鋪資料都必須是 JSON 物件。");
+  }
+
+  return vendors as ImportMarketVendorInput[];
+}
+
+async function importVendorsForMarket() {
+  if (!editingMarket.value) return;
+
+  vendorImportError.value = "";
+  vendorImportResult.value = null;
+
+  let vendors: ImportMarketVendorInput[];
+  try {
+    vendors = parseVendorImportText();
+  } catch (error) {
+    vendorImportError.value =
+      error instanceof Error ? error.message : "店鋪 JSON 格式不正確。";
+    return;
+  }
+
+  isImportingVendors.value = true;
+  try {
+    vendorImportResult.value = await marketsService.importVendors(
+      editingMarket.value.id,
+      vendors,
+    );
+    vendorImportText.value = "";
+    await loadMarkets();
+  } catch (error) {
+    console.error("Failed to import market vendors:", error);
+    vendorImportError.value = "匯入失敗，請確認店鋪欄位與權限。";
+  } finally {
+    isImportingVendors.value = false;
   }
 }
 

@@ -13,12 +13,14 @@ import {
   adminVendorCandidatesQuerySchema,
   approveMarketJoinRequestSchema,
   createMarketSchema,
+  importMarketVendorsSchema,
   marketJoinRequestIdParamSchema,
   marketIdParamSchema,
   marketVendorParamSchema,
   updateMarketSchema,
 } from "../schemas/validation";
 import { MarketsService } from "../services/MarketsService";
+import { RestaurantsService } from "../../restaurants/services/RestaurantsService";
 
 const routes = new Hono<{ Bindings: Env }>();
 
@@ -225,6 +227,133 @@ routes.post(
     await sync.onMarketMembershipChanged(body.restaurantId);
 
     return c.json({ success: true, data: { membership } }, 201);
+  },
+);
+
+routes.post(
+  "/:id/vendor-imports",
+  validateParams(marketIdParamSchema),
+  validateBody(importMarketVendorsSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const { vendors } = c.get("validatedBody");
+    const marketsService = new MarketsService(c.env.DB, c.env.CACHE_KV);
+    const restaurantsService = new RestaurantsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+    const market = await marketsService.getMarketById(id);
+
+    if (!market || market.deletedAt) {
+      return c.json(
+        {
+          success: false,
+          error: { code: "MARKET_NOT_FOUND", message: "Market not found" },
+        },
+        404,
+      );
+    }
+
+    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    const results = [];
+    let createdRestaurants = 0;
+    let attachedVendors = 0;
+    let skipped = 0;
+
+    for (const vendor of vendors) {
+      let restaurantId = vendor.restaurantId;
+      let restaurantName = vendor.name;
+      let status: "attached" | "created" = "attached";
+
+      if (!restaurantId) {
+        const restaurant = await restaurantsService.createRestaurant({
+          name: vendor.name!,
+          type: vendor.type ?? "market_stall",
+          category: vendor.category ?? "food",
+          description: vendor.description,
+          address: vendor.address!,
+          district: vendor.district!,
+          city: vendor.city ?? market.city,
+          phone: vendor.phone ?? "00000000",
+          email: vendor.email,
+          website: vendor.website,
+          businessHours: market.openingHours ?? {},
+        });
+        restaurantId = restaurant.id;
+        restaurantName = restaurant.name;
+        status = "created";
+        createdRestaurants += 1;
+      } else {
+        const restaurant = await restaurantsService.getRestaurant(restaurantId);
+        if (!restaurant || !restaurant.isActive) {
+          skipped += 1;
+          results.push({
+            status: "skipped",
+            reason: "restaurant_not_found",
+            restaurantId,
+            restaurantName,
+            stallNumber: vendor.stallNumber ?? null,
+          });
+          continue;
+        }
+        restaurantName = restaurant.name;
+      }
+
+      const memberships =
+        await marketsService.listRestaurantMemberships(restaurantId);
+      if (
+        memberships.memberships.some((membership) => membership.marketId === id)
+      ) {
+        skipped += 1;
+        results.push({
+          status: "skipped",
+          reason: "already_attached",
+          restaurantId,
+          restaurantName,
+          stallNumber: vendor.stallNumber ?? null,
+        });
+        continue;
+      }
+
+      const membership = await marketsService.addVendor(id, {
+        restaurantId,
+        stallNumber: vendor.stallNumber,
+        isPrimary: vendor.isPrimary,
+      });
+
+      if (!membership) {
+        skipped += 1;
+        results.push({
+          status: "skipped",
+          reason: "market_not_found",
+          restaurantId,
+          restaurantName,
+          stallNumber: vendor.stallNumber ?? null,
+        });
+        continue;
+      }
+
+      await sync.onMarketMembershipChanged(restaurantId);
+      attachedVendors += 1;
+      results.push({
+        status,
+        restaurantId,
+        restaurantName,
+        membershipId: membership.id,
+        stallNumber: membership.stallNumber,
+      });
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        createdRestaurants,
+        attachedVendors,
+        skipped,
+        results,
+      },
+    });
   },
 );
 

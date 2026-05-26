@@ -91,6 +91,45 @@ export const addMarketVendorSchema = z.object({
   isPrimary: z.boolean().optional(),
 });
 
+const importMarketVendorSchema = z
+  .object({
+    restaurantId: z.string().min(1).max(120).optional(),
+    name: z.string().min(1).max(120).optional(),
+    type: z.string().min(1).max(50).optional(),
+    category: z.string().min(1).max(50).optional(),
+    description: z.string().max(1000).optional(),
+    address: z.string().min(1).max(200).optional(),
+    district: z.string().min(1).max(80).optional(),
+    city: z.string().min(1).max(80).optional(),
+    phone: z
+      .string()
+      .min(8)
+      .max(30)
+      .regex(/^[\d\s\-+()]+$/)
+      .optional(),
+    email: z.string().email().optional(),
+    website: urlSchema.optional(),
+    stallNumber: z.string().max(80).nullable().optional(),
+    isPrimary: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.restaurantId) return;
+
+    for (const key of ["name", "address", "district"] as const) {
+      if (!value[key]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: `${key} is required when restaurantId is omitted`,
+        });
+      }
+    }
+  });
+
+export const importMarketVendorsSchema = z.object({
+  vendors: z.array(importMarketVendorSchema).min(1).max(50),
+});
+
 export const createMarketJoinRequestSchema = z.object({
   marketId: z.string().min(1).max(120),
   message: z.string().trim().max(500).nullable().optional(),

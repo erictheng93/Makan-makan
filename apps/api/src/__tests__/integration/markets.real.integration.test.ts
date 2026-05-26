@@ -1003,6 +1003,157 @@ describe("Markets API — real integration", () => {
     expect(publicDetailRes.status).toBe(404);
   });
 
+  it("lets platform admins bulk import vendors into a market", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Vendor Import Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    const existingRestaurant = await seed.restaurant({
+      name: "Existing Import Vendor",
+      city: "台中市",
+      district: "西屯區",
+      address: "台中市西屯區既有攤位",
+      phone: "0211111111",
+    });
+    await seed.user({
+      id: 41,
+      username: "vendor-import-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const market = await seedMarket(testApp, {
+      slug: "bulk-import-market",
+    });
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+
+    const importRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/${market.id}/vendor-imports`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vendors: [
+              {
+                restaurantId: String(existingRestaurant.id),
+                stallNumber: "A-01",
+                isPrimary: true,
+              },
+              {
+                name: "新匯入蚵仔煎",
+                type: "street_food",
+                category: "food",
+                address: "台中市西屯區文華路 100 號",
+                district: "西屯區",
+                city: "台中市",
+                phone: "0222222222",
+                stallNumber: "B-02",
+              },
+            ],
+          }),
+        },
+      ),
+    );
+
+    expect(importRes.status).toBe(200);
+    const importJson: any = await importRes.json();
+    expect(importJson.data).toMatchObject({
+      createdRestaurants: 1,
+      attachedVendors: 2,
+      skipped: 0,
+    });
+    expect(importJson.data.results).toEqual([
+      expect.objectContaining({
+        status: "attached",
+        restaurantId: String(existingRestaurant.id),
+        stallNumber: "A-01",
+      }),
+      expect.objectContaining({
+        status: "created",
+        restaurantName: "新匯入蚵仔煎",
+        stallNumber: "B-02",
+      }),
+    ]);
+
+    const vendorsRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/bulk-import-market/vendors"),
+    );
+    expect(vendorsRes.status).toBe(200);
+    const vendorsJson: any = await vendorsRes.json();
+    expect(vendorsJson.data.total).toBe(2);
+    expect(vendorsJson.data.vendors.map((vendor: any) => vendor.name)).toEqual(
+      expect.arrayContaining(["Existing Import Vendor", "新匯入蚵仔煎"]),
+    );
+
+    const duplicateRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/${market.id}/vendor-imports`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vendors: [
+              {
+                restaurantId: String(existingRestaurant.id),
+                stallNumber: "A-01",
+              },
+            ],
+          }),
+        },
+      ),
+    );
+    expect(duplicateRes.status).toBe(200);
+    const duplicateJson: any = await duplicateRes.json();
+    expect(duplicateJson.data).toMatchObject({
+      createdRestaurants: 0,
+      attachedVendors: 0,
+      skipped: 1,
+    });
+    expect(duplicateJson.data.results[0]).toMatchObject({
+      status: "skipped",
+      reason: "already_attached",
+      restaurantId: String(existingRestaurant.id),
+    });
+
+    const missingRestaurantRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/${market.id}/vendor-imports`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vendors: [
+              {
+                restaurantId: "missing-import-restaurant",
+                stallNumber: "C-03",
+              },
+            ],
+          }),
+        },
+      ),
+    );
+    expect(missingRestaurantRes.status).toBe(200);
+    const missingRestaurantJson: any = await missingRestaurantRes.json();
+    expect(missingRestaurantJson.data).toMatchObject({
+      createdRestaurants: 0,
+      attachedVendors: 0,
+      skipped: 1,
+    });
+    expect(missingRestaurantJson.data.results[0]).toMatchObject({
+      status: "skipped",
+      reason: "restaurant_not_found",
+      restaurantId: "missing-import-restaurant",
+    });
+  });
+
   it("lets platform admins search restaurant candidates before attaching vendors", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Vendor Search Admin",

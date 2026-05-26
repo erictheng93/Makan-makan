@@ -51,6 +51,38 @@ export interface UpdateMarketPublicProfileInput {
   tags: string[] | null;
 }
 
+export interface ImportMarketVendorInput {
+  restaurantId?: string;
+  name?: string;
+  type?: string;
+  category?: string;
+  description?: string | null;
+  address?: string;
+  district?: string;
+  city?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  stallNumber?: string | null;
+  isPrimary?: boolean;
+}
+
+export interface ImportMarketVendorResult {
+  status: "attached" | "created" | "skipped";
+  reason?: "already_attached" | "market_not_found" | "restaurant_not_found";
+  restaurantId: string;
+  restaurantName?: string | null;
+  membershipId?: number;
+  stallNumber?: string | null;
+}
+
+export interface ImportMarketVendorsResult {
+  createdRestaurants: number;
+  attachedVendors: number;
+  skipped: number;
+  results: ImportMarketVendorResult[];
+}
+
 export interface RestaurantMarketMembership {
   id: number;
   restaurantId: string;
@@ -149,5 +181,16 @@ export const marketsService = {
       input,
     );
     return unwrapApiPayload<{ market: MarketListItem }>(response.data).market;
+  },
+
+  async importVendors(
+    marketId: string,
+    vendors: ImportMarketVendorInput[],
+  ): Promise<ImportMarketVendorsResult> {
+    const response = await api.post<ImportMarketVendorsResult>(
+      `/admin/markets/${marketId}/vendor-imports`,
+      { vendors },
+    );
+    return unwrapApiPayload<ImportMarketVendorsResult>(response.data);
   },
 };

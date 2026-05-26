@@ -9,6 +9,7 @@ vi.mock("@/services/marketsService", () => ({
   marketsService: {
     listPlatformReadiness: vi.fn(),
     updateMarketPublicProfile: vi.fn(),
+    importVendors: vi.fn(),
   },
 }));
 
@@ -97,6 +98,53 @@ describe("PlatformMarketsView", () => {
       name: "Settings",
       query: { tab: "contact" },
     });
+  });
+
+  it("imports vendors into the selected market from JSON", async () => {
+    vi.mocked(marketsService.importVendors).mockResolvedValue({
+      createdRestaurants: 1,
+      attachedVendors: 2,
+      skipped: 0,
+      results: [],
+    });
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "編輯");
+    expect(editButton).toBeDefined();
+    await editButton!.trigger("click");
+
+    await wrapper.get('[data-testid="vendor-import-json"]').setValue(
+      JSON.stringify([
+        {
+          restaurantId: "restaurant-1",
+          stallNumber: "A-01",
+        },
+        {
+          name: "新匯入店鋪",
+          address: "台中市西屯區文華路 100 號",
+          district: "西屯區",
+        },
+      ]),
+    );
+    await wrapper.get('[data-testid="vendor-import-submit"]').trigger("click");
+    await flushPromises();
+
+    expect(marketsService.importVendors).toHaveBeenCalledWith("market-1", [
+      {
+        restaurantId: "restaurant-1",
+        stallNumber: "A-01",
+      },
+      {
+        name: "新匯入店鋪",
+        address: "台中市西屯區文華路 100 號",
+        district: "西屯區",
+      },
+    ]);
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain("已建立 1 間店鋪");
   });
 });
 
