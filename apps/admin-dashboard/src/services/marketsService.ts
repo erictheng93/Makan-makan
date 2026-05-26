@@ -39,6 +39,19 @@ export interface MarketListItem {
   publicReadiness?: MarketPublicReadiness;
 }
 
+export interface MarketAreaReadinessSummary {
+  city: string;
+  district: string;
+  marketCount: number;
+  vendorCount: number;
+  searchableProductCount: number;
+  publicServiceCount: number;
+  vendorsMissingSearchableProducts: number;
+  vendorsMissingPublicServices: number;
+  totalCatalogGapVendors: number;
+  averageReadinessScore: number;
+}
+
 export interface UpdateMarketPublicProfileInput {
   description: string | null;
   address: string;
@@ -139,6 +152,15 @@ export const marketsService = {
     }>("/admin/markets/readiness");
     return unwrapApiPayload<{ markets: MarketListItem[] }>(response.data)
       .markets;
+  },
+
+  async listAreaReadiness(): Promise<MarketAreaReadinessSummary[]> {
+    const response = await api.get<{
+      areas: MarketAreaReadinessSummary[];
+    }>("/admin/markets/area-readiness");
+    return unwrapApiPayload<{ areas: MarketAreaReadinessSummary[] }>(
+      response.data,
+    ).areas;
   },
 
   async listRestaurantMemberships(

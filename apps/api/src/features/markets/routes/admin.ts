@@ -32,6 +32,12 @@ routes.get("/readiness", async (c) => {
   return c.json({ success: true, data });
 });
 
+routes.get("/area-readiness", async (c) => {
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
+  const data = await service.listAreaReadiness();
+  return c.json({ success: true, data });
+});
+
 routes.get(
   "/vendor-candidates",
   validateQuery(adminVendorCandidatesQuerySchema),

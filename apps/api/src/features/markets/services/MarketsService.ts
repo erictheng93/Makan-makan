@@ -77,6 +77,19 @@ export interface MarketCatalogGapVendor {
   stallNumber: string | null;
 }
 
+export interface MarketAreaReadinessSummary {
+  city: string;
+  district: string;
+  marketCount: number;
+  vendorCount: number;
+  searchableProductCount: number;
+  publicServiceCount: number;
+  vendorsMissingSearchableProducts: number;
+  vendorsMissingPublicServices: number;
+  totalCatalogGapVendors: number;
+  averageReadinessScore: number;
+}
+
 export type CreateMarketInput = typeof markets.$inferInsert;
 export type UpdateMarketInput = Partial<typeof markets.$inferInsert>;
 
@@ -109,6 +122,75 @@ export class MarketsService {
       includeVendorBreakdown: true,
     });
     return data;
+  }
+
+  async listAreaReadiness(limit = 50000) {
+    const data = await this.queryMarkets(
+      { limit },
+      { includeVendorBreakdown: true },
+    );
+    const summaries = new Map<string, MarketAreaReadinessSummary>();
+    const readinessTotals = new Map<
+      string,
+      { scoreTotal: number; scoredMarkets: number }
+    >();
+
+    for (const market of data.markets) {
+      const key = `${market.city}\u0000${market.district}`;
+      const coverage = market.catalogCoverage;
+      const summary =
+        summaries.get(key) ??
+        ({
+          city: market.city,
+          district: market.district,
+          marketCount: 0,
+          vendorCount: 0,
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsMissingSearchableProducts: 0,
+          vendorsMissingPublicServices: 0,
+          totalCatalogGapVendors: 0,
+          averageReadinessScore: 0,
+        } satisfies MarketAreaReadinessSummary);
+      const readinessTotal = readinessTotals.get(key) ?? {
+        scoreTotal: 0,
+        scoredMarkets: 0,
+      };
+
+      summary.marketCount += 1;
+      summary.vendorCount += market.vendorCount;
+      summary.searchableProductCount += coverage.searchableProductCount;
+      summary.publicServiceCount += coverage.publicServiceCount;
+      summary.vendorsMissingSearchableProducts +=
+        coverage.vendorsMissingSearchableProducts ?? 0;
+      summary.vendorsMissingPublicServices +=
+        coverage.vendorsMissingPublicServices ?? 0;
+      summary.totalCatalogGapVendors =
+        summary.vendorsMissingSearchableProducts +
+        summary.vendorsMissingPublicServices;
+
+      if (market.publicReadiness) {
+        readinessTotal.scoreTotal += market.publicReadiness.score;
+        readinessTotal.scoredMarkets += 1;
+        summary.averageReadinessScore = Math.round(
+          readinessTotal.scoreTotal / readinessTotal.scoredMarkets,
+        );
+      }
+
+      summaries.set(key, summary);
+      readinessTotals.set(key, readinessTotal);
+    }
+
+    return {
+      areas: Array.from(summaries.values()).sort((left, right) => {
+        const gapDelta =
+          right.totalCatalogGapVendors - left.totalCatalogGapVendors;
+        if (gapDelta !== 0) return gapDelta;
+        const cityDelta = left.city.localeCompare(right.city, "zh-Hant");
+        if (cityDelta !== 0) return cityDelta;
+        return left.district.localeCompare(right.district, "zh-Hant");
+      }),
+    };
   }
 
   async listSitemapEntries(limit = 50000) {
