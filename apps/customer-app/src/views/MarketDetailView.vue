@@ -205,10 +205,13 @@ async function startTakeaway(vendor: MarketVendor) {
 }
 
 async function startDishTakeaway(dish: DishSearchResult) {
-  await startTakeawayForRestaurant(dish.restaurantId);
+  await startTakeawayForRestaurant(dish.restaurantId, shopMenuItemQuery(dish));
 }
 
-async function startTakeawayForRestaurant(restaurantId: string) {
+async function startTakeawayForRestaurant(
+  restaurantId: string,
+  query: Record<string, string> = {},
+) {
   const result = await discoveryApi.getTakeawayEligibility(restaurantId);
   if (!result.eligible) {
     store.error = "目前無法從 Discovery 直接外帶。";
@@ -217,7 +220,7 @@ async function startTakeawayForRestaurant(restaurantId: string) {
   router.push({
     name: "OrderTypeLanding",
     params: { restaurantId },
-    query: { qr: result.shopQrCode },
+    query: { qr: result.shopQrCode, ...query },
   });
 }
 

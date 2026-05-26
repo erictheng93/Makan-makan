@@ -250,7 +250,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { apiClient } from "@/services/api";
 import type { Restaurant } from "@makanmakan/shared-types";
@@ -261,6 +261,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const route = useRoute();
 const { t } = useI18n();
 const restaurant = ref<Restaurant | null>(null);
 const phoneLastDigits = ref("");
@@ -376,6 +377,7 @@ const handleVerify = async () => {
           restaurantId: props.restaurantId,
         },
         query: {
+          ...route.query,
           phone: phoneLastDigits.value,
         },
       });
