@@ -2217,6 +2217,45 @@ describe("Discovery API — real integration", () => {
     expect(indexed).toEqual({ isAvailable: false });
   });
 
+  it("indexes menu item changes under private categories as unavailable", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Private Category Menu Sync Vendor",
+    });
+    const now = new Date();
+    const [hiddenCategory] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values({
+        restaurantId: String(restaurant.id),
+        name: "Hidden Sync Category",
+        sortOrder: 0,
+        isActive: true,
+        isVisible: false,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    const item = await seed.menuItem(String(restaurant.id), {
+      categoryId: hiddenCategory.id,
+      name: "Hidden Category Sync Bao",
+      price: 60,
+      isAvailable: true,
+    });
+
+    const sync = new SearchIndexSyncService(
+      testApp.testDb.bindings.DB,
+      testApp.testDb.bindings.CACHE_KV,
+    );
+    await sync.onMenuItemChanged(item.id);
+
+    const [indexed] = await testApp.testDb.drizzle
+      .select({ isAvailable: dishSearchIndex.isAvailable })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+
+    expect(indexed).toEqual({ isAvailable: false });
+  });
+
   it("syncs discovery index after menu item availability changes through menu API", async () => {
     const market = await seedMarket(testApp, {
       slug: "menu-sync-market",
@@ -2519,6 +2558,68 @@ describe("Discovery API — real integration", () => {
         dishName: "Active Reindex Bao",
       },
     ]);
+  });
+
+  it("marks private category dishes unavailable during full reindex", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Category Reindex Admin",
+    });
+    await seed.user({
+      id: 33,
+      username: "category-reindex-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+
+    const restaurant = await seed.restaurant({
+      name: "Private Category Reindex Vendor",
+    });
+    const now = new Date();
+    const [hiddenCategory] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values({
+        restaurantId: String(restaurant.id),
+        name: "Hidden Reindex Category",
+        sortOrder: 0,
+        isActive: true,
+        isVisible: false,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    const item = await seed.menuItem(String(restaurant.id), {
+      categoryId: hiddenCategory.id,
+      name: "Hidden Reindex Bao",
+      price: 60,
+      isAvailable: true,
+    });
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/reindex", {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+        }),
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const [indexed] = await testApp.testDb.drizzle
+      .select({
+        menuItemId: dishSearchIndex.menuItemId,
+        isAvailable: dishSearchIndex.isAvailable,
+      })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+
+    expect(indexed).toEqual({
+      menuItemId: item.id,
+      isAvailable: false,
+    });
   });
 
   // -------------------------------------------------------------------------

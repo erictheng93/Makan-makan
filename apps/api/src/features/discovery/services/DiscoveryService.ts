@@ -957,6 +957,9 @@ export class DiscoveryService {
         keywords: menuItems.keywords,
         deletedAtMs: menuItems.deletedAt,
         categoryName: categories.name,
+        categoryActive: categories.isActive,
+        categoryVisible: categories.isVisible,
+        categoryDeleted: categories.deletedAt,
         restaurantId: restaurants.id,
         district: restaurants.district,
         restaurantType: restaurants.type,
@@ -999,7 +1002,12 @@ export class DiscoveryService {
     const stmts: D1PreparedStatement[] = [];
     for (const item of items) {
       const isAvailable =
-        item.isAvailable && !item.deletedAtMs && !item.restaurantDeleted;
+        item.isAvailable &&
+        !item.deletedAtMs &&
+        item.categoryActive === true &&
+        item.categoryVisible === true &&
+        !item.categoryDeleted &&
+        !item.restaurantDeleted;
       const normalized = item.name.trim().toLowerCase().replace(/\s+/g, "");
       const itemTags = normalizeSearchTags(item.tags, item.keywords);
 

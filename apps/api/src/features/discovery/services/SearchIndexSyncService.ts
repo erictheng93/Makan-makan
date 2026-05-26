@@ -36,6 +36,9 @@ export class SearchIndexSyncService {
         deletedAt: menuItems.deletedAt,
         restaurantId: menuItems.restaurantId,
         categoryName: categories.name,
+        categoryActive: categories.isActive,
+        categoryVisible: categories.isVisible,
+        categoryDeleted: categories.deletedAt,
         district: restaurants.district,
         restaurantType: restaurants.type,
         supportsTakeaway: restaurants.supportsTakeaway,
@@ -82,6 +85,9 @@ export class SearchIndexSyncService {
     const isAvailable =
       item.isAvailable &&
       !item.deletedAt &&
+      item.categoryActive === true &&
+      item.categoryVisible === true &&
+      !item.categoryDeleted &&
       item.restaurantActive &&
       !item.restaurantDeleted;
     const normalized = item.name.trim().toLowerCase().replace(/\s+/g, "");
@@ -175,9 +181,13 @@ export class SearchIndexSyncService {
           isAvailable: sql<boolean>`EXISTS (
             SELECT 1
             FROM ${menuItems}
+            INNER JOIN ${categories} ON ${categories.id} = ${menuItems.categoryId}
             WHERE ${menuItems.id} = ${dishSearchIndex.menuItemId}
               AND ${menuItems.isAvailable} = 1
               AND ${menuItems.deletedAt} IS NULL
+              AND ${categories.isActive} = 1
+              AND ${categories.isVisible} = 1
+              AND ${categories.deletedAt} IS NULL
           )`,
           updatedAt: new Date(),
         })
