@@ -6,10 +6,12 @@ import {
 import { buildSeedHelpers } from "./helpers/seed-helper";
 import {
   dishSearchIndex,
+  menuItems,
   markets,
   restaurantMarketMemberships,
 } from "@makanmakan/database";
 import { eq } from "drizzle-orm";
+import { SearchIndexSyncService } from "../../features/discovery/services/SearchIndexSyncService";
 
 function withCsrf(
   headers: Record<string, string> = {},
@@ -514,6 +516,50 @@ describe("Discovery API — real integration", () => {
 
     expect(data.results.map((r: any) => r.menuItemId)).toEqual([marketItem.id]);
     expect(data.total).toBe(1);
+  });
+
+  it("serves fresh search results after search index sync changes cached dishes", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Cached Search Vendor",
+    });
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Cached Bao",
+      price: 60,
+      isAvailable: true,
+    });
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: item.id,
+        name: "Cached Bao",
+        price: 60,
+        isAvailable: true,
+      },
+    ]);
+
+    const firstRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/search?q=Cached+Bao"),
+    );
+    expect(firstRes.status).toBe(200);
+    const firstData = ((await firstRes.json()) as ApiTestResponse).data;
+    expect(firstData.results.map((r: any) => r.menuItemId)).toEqual([item.id]);
+
+    await testApp.testDb.drizzle
+      .update(menuItems)
+      .set({ isAvailable: false })
+      .where(eq(menuItems.id, item.id));
+    const sync = new SearchIndexSyncService(
+      testApp.testDb.bindings.DB,
+      testApp.testDb.bindings.CACHE_KV,
+    );
+    await sync.onMenuItemChanged(item.id);
+
+    const secondRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/search?q=Cached+Bao"),
+    );
+    expect(secondRes.status).toBe(200);
+    const secondData = ((await secondRes.json()) as ApiTestResponse).data;
+    expect(secondData.results).toEqual([]);
+    expect(secondData.total).toBe(0);
   });
 
   it("excludes inactive and deleted markets from full reindex market membership fields", async () => {

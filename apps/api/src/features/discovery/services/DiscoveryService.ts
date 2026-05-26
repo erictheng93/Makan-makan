@@ -35,6 +35,7 @@ import {
 
 const KV_SEARCH_TTL = 15 * 60; // 15 minutes
 const KV_RESTAURANT_TTL = 30 * 60; // 30 minutes
+const KV_SEARCH_VERSION_KEY = "search:query:version";
 
 export class DiscoveryService {
   private db;
@@ -55,7 +56,8 @@ export class DiscoveryService {
     if (!q) return { results: [], total: 0, page, limit };
 
     // 1. Check KV cache
-    const cacheKey = this.buildCacheKey("search:query", filters);
+    const searchVersion = await this.getSearchVersion();
+    const cacheKey = this.buildCacheKey("search:query", filters, searchVersion);
     const cached = await this.kv.get(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
@@ -673,6 +675,7 @@ export class DiscoveryService {
     await this.kv.put("search:tags:index", JSON.stringify(tagIndexMap), {
       expirationTtl: 30 * 60,
     });
+    await this.bumpSearchVersion();
 
     const duration_ms = Date.now() - start;
     return {
@@ -688,8 +691,13 @@ export class DiscoveryService {
     return query.trim().toLowerCase().replace(/\s+/g, "");
   }
 
-  private buildCacheKey(prefix: string, filters: SearchFilters): string {
+  private buildCacheKey(
+    prefix: string,
+    filters: SearchFilters,
+    version = "0",
+  ): string {
     const parts = [prefix];
+    parts.push(`v:${version}`);
     if (filters.q) parts.push(this.normalizeQuery(filters.q));
     if (filters.district) parts.push(`d:${filters.district}`);
     if (filters.priceMin) parts.push(`pmin:${filters.priceMin}`);
@@ -704,6 +712,14 @@ export class DiscoveryService {
     parts.push(`p:${filters.page || 1}`);
     parts.push(`l:${filters.limit || 20}`);
     return parts.join(":");
+  }
+
+  private async getSearchVersion(): Promise<string> {
+    return (await this.kv.get(KV_SEARCH_VERSION_KEY)) ?? "0";
+  }
+
+  private async bumpSearchVersion(): Promise<void> {
+    await this.kv.put(KV_SEARCH_VERSION_KEY, String(Date.now()));
   }
 
   private getGeoFilter(filters: SearchFilters) {

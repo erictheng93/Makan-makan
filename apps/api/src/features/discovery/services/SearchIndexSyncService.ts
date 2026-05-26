@@ -9,6 +9,8 @@ import {
 } from "@makanmakan/database";
 import { toCents } from "../../../shared/utils/money";
 
+const KV_SEARCH_VERSION_KEY = "search:query:version";
+
 export class SearchIndexSyncService {
   private db;
 
@@ -70,6 +72,7 @@ export class SearchIndexSyncService {
       await this.db
         .delete(dishSearchIndex)
         .where(eq(dishSearchIndex.menuItemId, menuItemId));
+      await this.bumpSearchVersion();
       return;
     }
 
@@ -110,6 +113,7 @@ export class SearchIndexSyncService {
       longitude: item.longitude,
       updatedAt: new Date(),
     });
+    await this.bumpSearchVersion();
   }
 
   async onRestaurantChanged(restaurantId: string): Promise<void> {
@@ -174,6 +178,7 @@ export class SearchIndexSyncService {
     }
 
     await this.kv.delete(`search:restaurants:district:${restaurant.district}`);
+    await this.bumpSearchVersion();
   }
 
   async onMarketMembershipChanged(restaurantId: string): Promise<void> {
@@ -196,5 +201,9 @@ export class SearchIndexSyncService {
         this.onRestaurantChanged(restaurantId),
       ),
     );
+  }
+
+  private async bumpSearchVersion(): Promise<void> {
+    await this.kv.put(KV_SEARCH_VERSION_KEY, String(Date.now()));
   }
 }
