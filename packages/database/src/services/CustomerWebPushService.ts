@@ -27,6 +27,8 @@ interface DeliveryResult {
   status: number;
 }
 
+type Bytes = Uint8Array<ArrayBuffer>;
+
 export interface CustomerPushDispatchResult {
   targeted: number;
   sent: number;
@@ -220,7 +222,7 @@ async function deliverWithFetch(
 async function encryptPayload(
   payload: string,
   subscription: DeliverySubscription,
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const receiverPublicKey = await crypto.subtle.importKey(
     "raw",
@@ -251,10 +253,7 @@ async function encryptPayload(
   const cek = await hkdfExpand(prk, "Content-Encoding: aes128gcm\0", 16);
   const nonce = await hkdfExpand(prk, "Content-Encoding: nonce\0", 12);
 
-  const plaintext = concatUint8Arrays(
-    textEncoder.encode(payload),
-    new Uint8Array([2]),
-  );
+  const plaintext = concatUint8Arrays(encodeUtf8(payload), new Uint8Array([2]));
   const aesKey = await crypto.subtle.importKey(
     "raw",
     cek,
@@ -285,10 +284,10 @@ async function createVapidToken(
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = base64UrlEncode(
-    textEncoder.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })),
+    encodeUtf8(JSON.stringify({ typ: "JWT", alg: "ES256" })),
   );
   const claims = base64UrlEncode(
-    textEncoder.encode(
+    encodeUtf8(
       JSON.stringify({
         aud: new URL(endpoint).origin,
         exp: now + 12 * 60 * 60,
@@ -302,7 +301,7 @@ async function createVapidToken(
     await crypto.subtle.sign(
       { name: "ECDSA", hash: "SHA-256" },
       key,
-      textEncoder.encode(unsigned),
+      encodeUtf8(unsigned),
     ),
   );
   return `${unsigned}.${base64UrlEncode(signature)}`;
@@ -338,10 +337,7 @@ async function importVapidPrivateKey(
   );
 }
 
-async function hmacSha256(
-  keyBytes: Uint8Array,
-  data: Uint8Array,
-): Promise<Uint8Array> {
+async function hmacSha256(keyBytes: Bytes, data: Bytes): Promise<Bytes> {
   const key = await crypto.subtle.importKey(
     "raw",
     keyBytes,
@@ -353,13 +349,13 @@ async function hmacSha256(
 }
 
 async function hkdfExpand(
-  prk: Uint8Array,
+  prk: Bytes,
   info: string,
   length: number,
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const block = await hmacSha256(
     prk,
-    concatUint8Arrays(textEncoder.encode(info), new Uint8Array([1])),
+    concatUint8Arrays(encodeUtf8(info), new Uint8Array([1])),
   );
   return block.slice(0, length);
 }
@@ -374,7 +370,7 @@ function normalizeVapidSubject(subject: string): string {
   return subject;
 }
 
-function base64UrlToUint8Array(value: string): Uint8Array {
+function base64UrlToUint8Array(value: string): Bytes {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
   const padded = base64.padEnd(base64.length + ((4 - base64.length) % 4), "=");
   const binary = atob(padded);
@@ -385,7 +381,7 @@ function base64UrlToUint8Array(value: string): Uint8Array {
   return bytes;
 }
 
-function base64UrlEncode(bytes: Uint8Array): string {
+function base64UrlEncode(bytes: Bytes): string {
   let binary = "";
   bytes.forEach((byte) => {
     binary += String.fromCharCode(byte);
@@ -396,13 +392,13 @@ function base64UrlEncode(bytes: Uint8Array): string {
     .replace(/=+$/g, "");
 }
 
-function uint32BigEndian(value: number): Uint8Array {
+function uint32BigEndian(value: number): Bytes {
   const bytes = new Uint8Array(4);
   new DataView(bytes.buffer).setUint32(0, value, false);
   return bytes;
 }
 
-function concatUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
+function concatUint8Arrays(...arrays: Bytes[]): Bytes {
   const length = arrays.reduce((sum, item) => sum + item.byteLength, 0);
   const output = new Uint8Array(length);
   let offset = 0;
@@ -411,6 +407,11 @@ function concatUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
     offset += array.byteLength;
   });
   return output;
+}
+
+function encodeUtf8(value: string): Bytes {
+  const encoded = textEncoder.encode(value);
+  return new Uint8Array(encoded);
 }
 
 export type { WebPushDelivery, DeliveryResult, DeliverySubscription };
