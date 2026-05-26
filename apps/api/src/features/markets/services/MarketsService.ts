@@ -115,7 +115,7 @@ export class MarketsService {
       );
     if (cached) return cached;
 
-    const data = await this.queryMarkets(filters);
+    const data = await this.queryMarkets(filters, { publicReadyOnly: true });
     await this.cache.set(cacheKey, data, CACHE_TTL.SHORT);
     return data;
   }
@@ -252,7 +252,10 @@ export class MarketsService {
 
   private async queryMarkets(
     filters: MarketFilters,
-    options: { includeVendorBreakdown?: boolean } = {},
+    options: {
+      includeVendorBreakdown?: boolean;
+      publicReadyOnly?: boolean;
+    } = {},
   ) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
@@ -272,6 +275,31 @@ export class MarketsService {
           like(markets.description, pattern),
           like(markets.tags, pattern),
         )!,
+      );
+    }
+    if (options.publicReadyOnly) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1
+          FROM restaurant_market_memberships rmm
+          INNER JOIN restaurants r ON r.id = rmm.restaurant_id
+          WHERE rmm.market_id = ${markets.id}
+            AND rmm.left_at_ms IS NULL
+            AND r.is_active = 1
+            AND r.deleted_at_ms IS NULL
+        )`,
+        sql`EXISTS (
+          SELECT 1
+          FROM dish_search_index dsi
+          INNER JOIN restaurants r ON r.id = dsi.restaurant_id
+          WHERE dsi.is_available = 1
+            AND r.is_active = 1
+            AND r.deleted_at_ms IS NULL
+            AND (
+              dsi.primary_market_id = ${markets.id}
+              OR dsi.market_ids LIKE '%' || '"' || ${markets.id} || '"' || '%'
+            )
+        )`,
       );
     }
 

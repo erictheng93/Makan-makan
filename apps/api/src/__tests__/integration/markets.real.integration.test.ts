@@ -203,6 +203,78 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("hides empty or productless markets from public market listings", async () => {
+    const readyMarket = await seedMarket(testApp, {
+      slug: "ready-public-market",
+      name: "Ready Public Market",
+    });
+    await seedMarket(testApp, {
+      slug: "empty-public-market",
+      name: "Empty Public Market",
+    });
+    const productlessMarket = await seedMarket(testApp, {
+      slug: "productless-public-market",
+      name: "Productless Public Market",
+    });
+    const readyRestaurant = await seed.restaurant({
+      name: "Ready Public Vendor",
+      city: "台中市",
+      district: "西屯區",
+      isActive: true,
+    });
+    const productlessRestaurant = await seed.restaurant({
+      name: "Productless Public Vendor",
+      city: "台中市",
+      district: "西屯區",
+      isActive: true,
+    });
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(readyRestaurant.id),
+        marketId: readyMarket.id,
+        isPrimary: true,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(productlessRestaurant.id),
+        marketId: productlessMarket.id,
+        isPrimary: true,
+        joinedAt: new Date(),
+      },
+    ]);
+    const menuItem = await seed.menuItem(String(readyRestaurant.id), {
+      name: "Ready Public Bao",
+      price: 95,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: menuItem.id,
+      restaurantId: String(readyRestaurant.id),
+      dishName: "Ready Public Bao",
+      dishNameNormalized: "readypublicbao",
+      price: 95,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: readyMarket.id,
+      marketIds: [readyMarket.id],
+      updatedAt: new Date(),
+    });
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/markets?q=Ready+Public&city=台中市&district=西屯區",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    expect(json.data.total).toBe(1);
+    expect(json.data.markets.map((market: any) => market.slug)).toEqual([
+      "ready-public-market",
+    ]);
+  });
+
   it("counts only active public vendors in market list and detail", async () => {
     const market = await seedMarket(testApp, {
       slug: "active-vendor-count-market",
@@ -255,6 +327,23 @@ describe("Markets API — real integration", () => {
         leftAt: new Date(),
       },
     ]);
+    const activeMenuItem = await seed.menuItem(String(activeRestaurant.id), {
+      name: "Active Count Bao",
+      price: 95,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: activeMenuItem.id,
+      restaurantId: String(activeRestaurant.id),
+      dishName: "Active Count Bao",
+      dishNameNormalized: "activecountbao",
+      price: 95,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      updatedAt: new Date(),
+    });
 
     const listRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets?q=active-vendor-count-market"),
@@ -324,6 +413,35 @@ describe("Markets API — real integration", () => {
       name: "逢甲夜市",
       description: "台中大型夜市與小吃聚落",
       tags: ["夜市", "雞排"],
+    });
+    const fengjiaRestaurant = await seed.restaurant({
+      name: "Fengjia Search Vendor",
+      city: "台中市",
+      district: "西屯區",
+      isActive: true,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(fengjiaRestaurant.id),
+      marketId: fengjia.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const fengjiaMenuItem = await seed.menuItem(String(fengjiaRestaurant.id), {
+      name: "Fengjia Search Chicken",
+      price: 95,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: fengjiaMenuItem.id,
+      restaurantId: String(fengjiaRestaurant.id),
+      dishName: "Fengjia Search Chicken",
+      dishNameNormalized: "fengjiasearchchicken",
+      price: 95,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: fengjia.id,
+      marketIds: [fengjia.id],
+      updatedAt: new Date(),
     });
     await seedMarket(testApp, {
       slug: "yizhong-commercial-area-search",
