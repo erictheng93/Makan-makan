@@ -1355,6 +1355,138 @@ describe("Markets API — real integration", () => {
     expect(publicDetailRes.status).toBe(404);
   });
 
+  it("syncs discovery search scope when admins add and remove market vendors", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Vendor Discovery Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 44,
+      username: "vendor-discovery-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+    const market = await seedMarket(testApp, {
+      slug: "vendor-discovery-sync-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Vendor Discovery Sync Stall",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1764,
+      longitude: 120.6466,
+    });
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Vendor Discovery Sync Bao",
+      price: 60,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: item.id,
+      restaurantId: String(restaurant.id),
+      dishName: "Vendor Discovery Sync Bao",
+      dishNameNormalized: "vendordiscoverysyncbao",
+      price: 60,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: null,
+      marketIds: [],
+      latitude: 24.1764,
+      longitude: 120.6466,
+      updatedAt: new Date(),
+    });
+
+    const cachedEmptyRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=Vendor+Discovery+Sync&marketId=${market.id}`,
+      ),
+    );
+    expect(cachedEmptyRes.status).toBe(200);
+    expect(((await cachedEmptyRes.json()) as any).data.total).toBe(0);
+
+    const addVendorRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/admin/markets/${market.id}/vendors`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          restaurantId: String(restaurant.id),
+          stallNumber: "B-01",
+          isPrimary: true,
+        }),
+      }),
+    );
+    expect(addVendorRes.status).toBe(201);
+
+    const [afterAddIndex] = await testApp.testDb.drizzle
+      .select({
+        primaryMarketId: dishSearchIndex.primaryMarketId,
+        marketIds: dishSearchIndex.marketIds,
+      })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+    expect(afterAddIndex).toEqual({
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+    });
+
+    const afterAddSearchRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=Vendor+Discovery+Sync&marketId=${market.id}`,
+      ),
+    );
+    expect(afterAddSearchRes.status).toBe(200);
+    const afterAddSearchJson: any = await afterAddSearchRes.json();
+    expect(
+      afterAddSearchJson.data.results.map((r: any) => r.menuItemId),
+    ).toEqual([item.id]);
+    expect(afterAddSearchJson.data.total).toBe(1);
+
+    const removeVendorRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/${market.id}/vendors/${restaurant.id}`,
+        {
+          method: "DELETE",
+          headers,
+        },
+      ),
+    );
+    expect(removeVendorRes.status).toBe(200);
+    expect(((await removeVendorRes.json()) as any).data.removed).toBe(true);
+
+    const [afterRemoveIndex] = await testApp.testDb.drizzle
+      .select({
+        primaryMarketId: dishSearchIndex.primaryMarketId,
+        marketIds: dishSearchIndex.marketIds,
+      })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+    expect(afterRemoveIndex).toEqual({
+      primaryMarketId: null,
+      marketIds: [],
+    });
+
+    const afterRemoveSearchRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=Vendor+Discovery+Sync&marketId=${market.id}`,
+      ),
+    );
+    expect(afterRemoveSearchRes.status).toBe(200);
+    const afterRemoveSearchJson: any = await afterRemoveSearchRes.json();
+    expect(afterRemoveSearchJson.data.results).toEqual([]);
+    expect(afterRemoveSearchJson.data.total).toBe(0);
+  });
+
   it("lets platform admins bulk import vendors into a market", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Vendor Import Admin",
