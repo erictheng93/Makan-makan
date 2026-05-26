@@ -34,6 +34,41 @@ describe("useMarketsStore", () => {
     expect(store.total).toBe(1);
   });
 
+  it("appends additional public markets for large directories", async () => {
+    setActivePinia(createPinia());
+    vi.mocked(marketsApi.listMarkets)
+      .mockResolvedValueOnce({
+        markets: [{ id: "m1", slug: "fengjia", name: "逢甲夜市" }],
+        total: 2,
+        page: 1,
+        limit: 1,
+      } as never)
+      .mockResolvedValueOnce({
+        markets: [{ id: "m2", slug: "yizhong", name: "一中商圈" }],
+        total: 2,
+        page: 2,
+        limit: 1,
+      } as never);
+
+    const store = useMarketsStore();
+    await store.loadMarkets({ q: "台中", limit: 1 });
+
+    expect(store.hasMoreMarkets).toBe(true);
+
+    await store.loadMoreMarkets({ q: "台中" });
+
+    expect(marketsApi.listMarkets).toHaveBeenLastCalledWith({
+      q: "台中",
+      page: 2,
+      limit: 1,
+    });
+    expect(store.markets.map((market) => market.name)).toEqual([
+      "逢甲夜市",
+      "一中商圈",
+    ]);
+    expect(store.hasMoreMarkets).toBe(false);
+  });
+
   it("loads selected market detail with vendors", async () => {
     setActivePinia(createPinia());
     vi.mocked(marketsApi.getMarket).mockResolvedValueOnce({

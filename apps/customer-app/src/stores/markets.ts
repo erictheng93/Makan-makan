@@ -11,6 +11,7 @@ import {
 } from "@/services/marketsApi";
 
 const DEFAULT_VENDOR_LIMIT = 20;
+const DEFAULT_MARKET_LIMIT = 20;
 
 export const useMarketsStore = defineStore("markets", () => {
   const markets = ref<MarketListItem[]>([]);
@@ -22,6 +23,7 @@ export const useMarketsStore = defineStore("markets", () => {
   const vendorLimit = ref(DEFAULT_VENDOR_LIMIT);
   const total = ref(0);
   const page = ref(1);
+  const marketLimit = ref(DEFAULT_MARKET_LIMIT);
   const loading = ref(false);
   const vendorsLoading = ref(false);
   const error = ref<string | null>(null);
@@ -29,6 +31,7 @@ export const useMarketsStore = defineStore("markets", () => {
   const hasMarkets = computed(
     () => markets.value.length > 0 || nearbyMarkets.value.length > 0,
   );
+  const hasMoreMarkets = computed(() => markets.value.length < total.value);
   const hasMoreVendors = computed(
     () => vendors.value.length < vendorCount.value,
   );
@@ -37,10 +40,39 @@ export const useMarketsStore = defineStore("markets", () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await marketsApi.listMarkets(params);
+      const response = await marketsApi.listMarkets({
+        ...params,
+        page: params.page ?? 1,
+        limit: params.limit ?? DEFAULT_MARKET_LIMIT,
+      });
       markets.value = response.markets;
       total.value = response.total;
       page.value = response.page;
+      marketLimit.value = response.limit;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load markets";
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function loadMoreMarkets(
+    params: Omit<ListMarketsParams, "page" | "limit"> = {},
+  ) {
+    if (!hasMoreMarkets.value || loading.value) return;
+
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await marketsApi.listMarkets({
+        ...params,
+        page: page.value + 1,
+        limit: marketLimit.value,
+      });
+      markets.value = [...markets.value, ...response.markets];
+      total.value = response.total;
+      page.value = response.page;
+      marketLimit.value = response.limit;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load markets";
     } finally {
@@ -139,11 +171,13 @@ export const useMarketsStore = defineStore("markets", () => {
     hasMoreVendors,
     total,
     page,
+    hasMoreMarkets,
     loading,
     vendorsLoading,
     error,
     hasMarkets,
     loadMarkets,
+    loadMoreMarkets,
     loadNearby,
     loadMarketDetail,
     loadVendors,

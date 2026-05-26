@@ -29,7 +29,9 @@ function marketsStore(overrides: Record<string, unknown> = {}) {
     loading: false,
     error: null,
     hasMarkets: false,
+    hasMoreMarkets: false,
     loadMarkets: vi.fn(),
+    loadMoreMarkets: vi.fn(),
     loadNearby: vi.fn(),
     ...overrides,
   };
@@ -91,6 +93,37 @@ describe("MarketsView", () => {
       q: "逢甲",
       city: undefined,
       district: undefined,
+    });
+  });
+
+  it("loads more markets with the active keyword and area filters", async () => {
+    vi.mocked(marketsApi.listAreas).mockResolvedValueOnce({
+      areas: [{ city: "台中市", districts: ["西屯區"] }],
+    } as never);
+    const store = marketsStore({
+      hasMarkets: true,
+      hasMoreMarkets: true,
+      loadMoreMarkets: vi.fn(),
+      markets: [{ id: "m1", slug: "fengjia", name: "逢甲夜市" }],
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("台中市");
+    });
+
+    await wrapper.get('[data-testid="markets-search-input"]').setValue("夜市");
+    await wrapper.get('[data-testid="markets-city-select"]').setValue("台中市");
+    await wrapper
+      .get('[data-testid="markets-district-select"]')
+      .setValue("西屯區");
+    await wrapper.get('[data-testid="markets-load-more"]').trigger("click");
+
+    expect(store.loadMoreMarkets).toHaveBeenCalledWith({
+      q: "夜市",
+      city: "台中市",
+      district: "西屯區",
     });
   });
 });

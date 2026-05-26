@@ -119,6 +119,16 @@
           >
             目前沒有符合條件的市場。
           </p>
+          <button
+            v-if="store.hasMoreMarkets"
+            type="button"
+            data-testid="markets-load-more"
+            class="h-10 w-full rounded-lg border border-ios-blue px-4 text-sm font-medium text-ios-blue disabled:border-gray-300 disabled:text-gray-400"
+            :disabled="store.loading"
+            @click="loadMoreMarkets"
+          >
+            {{ store.loading ? "載入中..." : "載入更多市場" }}
+          </button>
         </section>
       </template>
     </main>
@@ -157,6 +167,14 @@ const districts = computed(() => {
 
 function reloadList() {
   store.loadMarkets({
+    q: query.value.trim() || undefined,
+    city: city.value || undefined,
+    district: district.value || undefined,
+  });
+}
+
+function loadMoreMarkets() {
+  store.loadMoreMarkets({
     q: query.value.trim() || undefined,
     city: city.value || undefined,
     district: district.value || undefined,
