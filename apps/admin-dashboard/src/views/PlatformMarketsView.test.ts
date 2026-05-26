@@ -12,6 +12,7 @@ vi.mock("@/services/marketsService", () => ({
     listPlatformReadiness: vi.fn(),
     listAreaReadiness: vi.fn(),
     updateMarketPublicProfile: vi.fn(),
+    createMarket: vi.fn(),
     importVendors: vi.fn(),
     searchVendorCandidates: vi.fn(),
     addVendor: vi.fn(),
@@ -591,6 +592,46 @@ describe("PlatformMarketsView", () => {
     ]);
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已建立 1 間店鋪");
+  });
+
+  it("imports markets from CSV and refreshes platform readiness", async () => {
+    vi.mocked(marketsService.createMarket).mockResolvedValue({
+      id: "market-3",
+      slug: "miaokou",
+      name: "基隆廟口夜市",
+      type: "night_market",
+      city: "基隆市",
+      district: "仁愛區",
+    });
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="market-import-text"]')
+      .setValue(
+        [
+          "slug,name,type,city,district,address,latitude,longitude,tags",
+          '"miaokou","基隆廟口夜市","night_market","基隆市","仁愛區","仁三路",25.128,121.743,"夜市,海港"',
+        ].join("\n"),
+      );
+    expect(wrapper.text()).toContain("已解析 1 筆市場");
+
+    await wrapper.get('[data-testid="market-import-submit"]').trigger("click");
+    await flushPromises();
+
+    expect(marketsService.createMarket).toHaveBeenCalledWith({
+      slug: "miaokou",
+      name: "基隆廟口夜市",
+      type: "night_market",
+      city: "基隆市",
+      district: "仁愛區",
+      address: "仁三路",
+      latitude: 25.128,
+      longitude: 121.743,
+      tags: ["夜市", "海港"],
+    });
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain("已建立 1 個市場");
   });
 
   it("imports vendors into the selected market from CSV with a preview", async () => {

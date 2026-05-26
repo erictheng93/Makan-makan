@@ -108,6 +108,24 @@ export interface UpdateMarketPublicProfileInput {
   tags: string[] | null;
 }
 
+export interface CreateMarketInput {
+  slug: string;
+  name: string;
+  type: "night_market" | "commercial_district" | "food_court" | "event_venue";
+  description?: string | null;
+  city: string;
+  district: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  openingHours?: Record<string, unknown> | null;
+  bannerUrl?: string | null;
+  logoUrl?: string | null;
+  imageUrls?: string[] | null;
+  tags?: string[] | null;
+  isActive?: boolean;
+}
+
 export interface ImportMarketVendorInput {
   restaurantId?: string;
   name?: string;
@@ -270,6 +288,14 @@ export const marketsService = {
   ): Promise<MarketListItem> {
     const response = await api.put<{ market: MarketListItem }>(
       `/admin/markets/${marketId}`,
+      input,
+    );
+    return unwrapApiPayload<{ market: MarketListItem }>(response.data).market;
+  },
+
+  async createMarket(input: CreateMarketInput): Promise<MarketListItem> {
+    const response = await api.post<{ market: MarketListItem }>(
+      "/admin/markets",
       input,
     );
     return unwrapApiPayload<{ market: MarketListItem }>(response.data).market;

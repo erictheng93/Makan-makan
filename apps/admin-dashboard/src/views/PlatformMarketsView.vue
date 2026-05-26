@@ -52,6 +52,100 @@
       </div>
     </div>
 
+    <section class="rounded-lg bg-white p-4 shadow-ios-card">
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div>
+          <h2 class="text-base font-semibold text-gray-900">
+            批次匯入市場 / 商圈
+          </h2>
+          <p class="mt-1 text-sm text-gray-500">
+            貼上 CSV 或 JSON，一次建立夜市、商圈、商場或活動場域。
+          </p>
+        </div>
+        <button
+          type="button"
+          class="w-fit rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+          @click="loadMarketImportExample"
+        >
+          載入範例
+        </button>
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button
+          v-for="option in marketImportFormatOptions"
+          :key="option.value"
+          type="button"
+          class="rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          :class="
+            marketImportFormat === option.value
+              ? 'bg-primary-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          "
+          :data-testid="`market-import-format-${option.value}`"
+          @click="setMarketImportFormat(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+
+      <textarea
+        v-model="marketImportText"
+        rows="6"
+        data-testid="market-import-text"
+        class="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+        :placeholder="marketImportPlaceholder"
+      />
+
+      <div v-if="marketImportPreview.errors.length" class="mt-3 space-y-1">
+        <p
+          v-for="error in marketImportPreview.errors"
+          :key="error"
+          class="text-sm text-red-600"
+        >
+          {{ error }}
+        </p>
+      </div>
+      <p v-if="marketImportError" class="mt-3 text-sm text-red-600">
+        {{ marketImportError }}
+      </p>
+      <div
+        v-if="
+          marketImportText.trim() &&
+          !marketImportPreview.errors.length &&
+          marketImportPreview.markets.length
+        "
+        class="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800"
+      >
+        已解析 {{ marketImportPreview.markets.length }} 筆市場，準備匯入。
+      </div>
+      <div
+        v-if="marketImportResult"
+        class="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800"
+      >
+        已建立 {{ marketImportResult.created }} 個市場。
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <button
+          type="button"
+          data-testid="market-import-submit"
+          class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+          :disabled="
+            isImportingMarkets ||
+            !marketImportText.trim() ||
+            marketImportPreview.errors.length > 0 ||
+            marketImportPreview.markets.length === 0
+          "
+          @click="importMarkets"
+        >
+          {{ isImportingMarkets ? "匯入中..." : "匯入市場" }}
+        </button>
+      </div>
+    </section>
+
     <section
       v-if="areaReadiness.length > 0"
       class="rounded-lg bg-white p-4 shadow-ios-card"
@@ -931,6 +1025,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   marketsService,
+  type CreateMarketInput,
   type ImportMarketVendorInput,
   type ImportMarketVendorsResult,
   type MarketCatalogGapVendor,
@@ -964,6 +1059,11 @@ import {
   type MarketVendorImportFormat,
 } from "@/utils/marketVendorImport";
 import {
+  buildMarketImportTemplate,
+  parseMarketImport,
+  type MarketImportFormat,
+} from "@/utils/marketImport";
+import {
   buildMarketCatalogGapCsv,
   marketCatalogGapCsvFilename,
 } from "@/utils/marketCatalogGapExport";
@@ -992,6 +1092,11 @@ const query = ref("");
 const readinessFilter = ref<MarketReadinessFilter>("all");
 const editingMarket = ref<MarketListItem | null>(null);
 const formError = ref("");
+const isImportingMarkets = ref(false);
+const marketImportFormat = ref<MarketImportFormat>("csv");
+const marketImportText = ref("");
+const marketImportError = ref("");
+const marketImportResult = ref<{ created: number } | null>(null);
 const isImportingVendors = ref(false);
 const vendorImportFormat = ref<MarketVendorImportFormat>("csv");
 const vendorImportText = ref("");
@@ -1039,6 +1144,13 @@ const filterOptions: Array<{ value: MarketReadinessFilter; label: string }> = [
 ];
 const vendorImportFormatOptions: Array<{
   value: MarketVendorImportFormat;
+  label: string;
+}> = [
+  { value: "csv", label: "CSV" },
+  { value: "json", label: "JSON" },
+];
+const marketImportFormatOptions: Array<{
+  value: MarketImportFormat;
   label: string;
 }> = [
   { value: "csv", label: "CSV" },
@@ -1115,6 +1227,18 @@ const catalogGapRowCount = computed(() =>
       (market.catalogCoverage?.missingSearchEntrypointVendors?.length ?? 0),
     0,
   ),
+);
+const marketImportPreview = computed(() => {
+  if (!marketImportText.value.trim()) {
+    return { markets: [], errors: [] };
+  }
+
+  return parseMarketImport(marketImportFormat.value, marketImportText.value);
+});
+const marketImportPlaceholder = computed(() =>
+  marketImportFormat.value === "csv"
+    ? "slug,name,type,city,district,address,latitude,longitude,description,bannerUrl,logoUrl,imageUrls,tags,isActive"
+    : '[{"slug":"fengjia","name":"逢甲夜市","type":"night_market","city":"台中市","district":"西屯區","address":"台中市西屯區文華路","latitude":24.176,"longitude":120.646}]',
 );
 const vendorImportPreview = computed(() => {
   if (!vendorImportText.value.trim()) {
@@ -1206,6 +1330,77 @@ async function loadMarkets() {
     areaReadiness.value = [];
   } finally {
     isLoading.value = false;
+  }
+}
+
+function loadMarketImportExample() {
+  marketImportError.value = "";
+  marketImportText.value =
+    marketImportFormat.value === "csv"
+      ? buildMarketImportTemplate()
+      : JSON.stringify(
+          [
+            {
+              slug: "fengjia",
+              name: "逢甲夜市",
+              type: "night_market",
+              description: "台中指標夜市商圈",
+              city: "台中市",
+              district: "西屯區",
+              address: "台中市西屯區文華路",
+              latitude: 24.176,
+              longitude: 120.646,
+              tags: ["夜市", "小吃"],
+              isActive: true,
+            },
+          ],
+          null,
+          2,
+        );
+}
+
+function setMarketImportFormat(format: MarketImportFormat) {
+  marketImportFormat.value = format;
+  marketImportError.value = "";
+  marketImportResult.value = null;
+  marketImportText.value = "";
+}
+
+function parsedMarketsForImport(): CreateMarketInput[] {
+  const parsed = marketImportPreview.value;
+  if (!parsed.markets.length || parsed.errors.length) {
+    throw new Error(parsed.errors[0] ?? "請確認市場資料格式後再送出。");
+  }
+
+  return parsed.markets;
+}
+
+async function importMarkets() {
+  marketImportError.value = "";
+  marketImportResult.value = null;
+
+  let marketInputs: CreateMarketInput[];
+  try {
+    marketInputs = parsedMarketsForImport();
+  } catch (error) {
+    marketImportError.value =
+      error instanceof Error ? error.message : "市場資料格式不正確。";
+    return;
+  }
+
+  isImportingMarkets.value = true;
+  try {
+    for (const market of marketInputs) {
+      await marketsService.createMarket(market);
+    }
+    marketImportResult.value = { created: marketInputs.length };
+    marketImportText.value = "";
+    await loadMarkets();
+  } catch (error) {
+    console.error("Failed to import markets:", error);
+    marketImportError.value = "匯入失敗，請確認 slug 不重複且欄位格式正確。";
+  } finally {
+    isImportingMarkets.value = false;
   }
 }
 
