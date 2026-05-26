@@ -355,9 +355,10 @@ export class DiscoveryService {
     filters: SearchFilters,
   ): Promise<SearchResponse<RestaurantListItem>> {
     const { page = 1, limit = 20 } = filters;
+    const geoFilter = this.getGeoFilter(filters);
 
     // Check KV cache for district-based browse
-    if (filters.district && !filters.city && !filters.openNow) {
+    if (filters.district && !filters.city && !filters.openNow && !geoFilter) {
       const kvKey = `search:restaurants:district:${filters.district}`;
       const cached = await this.kv.get(kvKey);
       if (cached) {
@@ -381,6 +382,11 @@ export class DiscoveryService {
     }
 
     const offset = (page - 1) * limit;
+    const requiresPostFilterPagination = Boolean(filters.openNow || geoFilter);
+    const queryLimit = requiresPostFilterPagination
+      ? POST_FILTER_SCAN_LIMIT
+      : limit;
+    const queryOffset = requiresPostFilterPagination ? 0 : offset;
 
     const conditions: SQL[] = [
       eq(restaurants.isActive, true),
@@ -417,7 +423,6 @@ export class DiscoveryService {
           AND rmm.left_at_ms IS NULL
       )`);
     }
-    const geoFilter = this.getGeoFilter(filters);
     if (geoFilter) {
       conditions.push(
         gte(restaurants.latitude, geoFilter.box.southLat),
@@ -432,28 +437,36 @@ export class DiscoveryService {
         ? desc(restaurants.rating)
         : desc(restaurants.totalOrders);
 
-    const result = await this.db
-      .select({
-        id: restaurants.id,
-        name: restaurants.name,
-        type: restaurants.type,
-        category: restaurants.category,
-        district: restaurants.district,
-        city: restaurants.city,
-        priceRange: restaurants.priceRange,
-        rating: restaurants.rating,
-        businessHours: restaurants.businessHours,
-        supportsTakeaway: restaurants.supportsTakeaway,
-        supportsDelivery: restaurants.supportsDelivery,
-        logoUrl: restaurants.logoUrl,
-        latitude: restaurants.latitude,
-        longitude: restaurants.longitude,
-      })
-      .from(restaurants)
-      .where(and(...conditions))
-      .orderBy(orderByClause)
-      .limit(limit)
-      .offset(offset);
+    const [result, countRows] = await Promise.all([
+      this.db
+        .select({
+          id: restaurants.id,
+          name: restaurants.name,
+          type: restaurants.type,
+          category: restaurants.category,
+          district: restaurants.district,
+          city: restaurants.city,
+          priceRange: restaurants.priceRange,
+          rating: restaurants.rating,
+          businessHours: restaurants.businessHours,
+          supportsTakeaway: restaurants.supportsTakeaway,
+          supportsDelivery: restaurants.supportsDelivery,
+          logoUrl: restaurants.logoUrl,
+          latitude: restaurants.latitude,
+          longitude: restaurants.longitude,
+        })
+        .from(restaurants)
+        .where(and(...conditions))
+        .orderBy(orderByClause)
+        .limit(queryLimit)
+        .offset(queryOffset),
+      requiresPostFilterPagination
+        ? Promise.resolve([])
+        : this.db
+            .select({ count: sql<number>`count(*)` })
+            .from(restaurants)
+            .where(and(...conditions)),
+    ]);
 
     const restaurantList: RestaurantListItem[] = result.map((row) => ({
       restaurantId: row.id,
@@ -504,7 +517,17 @@ export class DiscoveryService {
       filtered = filtered.filter((r) => r.isOpen);
     }
 
-    return { results: filtered, total: filtered.length, page, limit };
+    const rawTotal = Number(countRows[0]?.count);
+    const total = requiresPostFilterPagination
+      ? filtered.length
+      : Number.isFinite(rawTotal) && rawTotal >= 0
+        ? rawTotal
+        : filtered.length;
+    const results = requiresPostFilterPagination
+      ? filtered.slice(offset, offset + limit)
+      : filtered;
+
+    return { results, total, page, limit };
   }
 
   async searchServices(

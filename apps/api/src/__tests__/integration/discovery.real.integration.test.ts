@@ -1321,6 +1321,56 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("filters open restaurant results before pagination", async () => {
+    const closedRestaurant = await seed.restaurant({
+      name: "Restaurant Open Scope Closed Vendor",
+      businessHours: closedAllWeek(),
+      totalOrders: 50,
+    });
+    const openRestaurant = await seed.restaurant({
+      name: "Restaurant Open Scope Fresh Vendor",
+      businessHours: openAllWeek(),
+      totalOrders: 10,
+    });
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/restaurants?q=Restaurant+Open+Scope&openNow=true&sortBy=popular&page=1&limit=1",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results).toHaveLength(1);
+    expect(data.results[0]).toMatchObject({
+      restaurantId: String(openRestaurant.id),
+      name: "Restaurant Open Scope Fresh Vendor",
+      isOpen: true,
+    });
+    expect(data.results[0].restaurantId).not.toBe(String(closedRestaurant.id));
+  });
+
+  it("returns restaurant browse totals independent of the current page slice", async () => {
+    for (let i = 0; i < 12; i += 1) {
+      await seed.restaurant({
+        name: `Restaurant Total Scope Vendor ${i}`,
+        totalOrders: 100 - i,
+      });
+    }
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/restaurants?q=Restaurant+Total+Scope&page=1&limit=10",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(12);
+    expect(data.results).toHaveLength(10);
+  });
+
   it("browses market dishes by category without a keyword", async () => {
     const market = await seedMarket(testApp, {
       name: "Browse Category Market",
