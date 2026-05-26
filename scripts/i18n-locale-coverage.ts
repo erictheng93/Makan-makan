@@ -38,10 +38,19 @@ const shouldExportHandoff = process.argv.includes("--export-handoff");
 const importHandoffArgIndex = process.argv.findIndex(
   (arg) => arg === "--import-handoff",
 );
+const checkHandoffArgIndex = process.argv.findIndex(
+  (arg) => arg === "--check-handoff",
+);
 const importHandoffPath =
   importHandoffArgIndex >= 0
     ? (process.argv
         .slice(importHandoffArgIndex + 1)
+        .find((arg) => arg !== "--") ?? "")
+    : "";
+const checkHandoffPath =
+  checkHandoffArgIndex >= 0
+    ? (process.argv
+        .slice(checkHandoffArgIndex + 1)
         .find((arg) => arg !== "--") ?? "")
     : "";
 const shouldFailOnMissing = process.argv.includes("--fail-on-missing");
@@ -175,9 +184,22 @@ function setNestedValue(
   current[parts[parts.length - 1]] = value;
 }
 
-async function importApprovedHandoff(csvPath: string): Promise<void> {
+interface HandoffLocaleOutput {
+  localeFile: string;
+  constantName: string;
+  messages: Record<string, unknown>;
+}
+
+interface HandoffValidationResult {
+  missingTranslations: string[];
+  localeOutputs: HandoffLocaleOutput[];
+}
+
+async function validateApprovedHandoff(
+  csvPath: string,
+): Promise<HandoffValidationResult> {
   if (!csvPath) {
-    throw new Error("--import-handoff requires a CSV path");
+    throw new Error("--check-handoff/--import-handoff requires a CSV path");
   }
 
   const rows = parseCsv(await readFile(path.resolve(csvPath), "utf8"));
@@ -196,12 +218,7 @@ async function importApprovedHandoff(csvPath: string): Promise<void> {
     );
   }
 
-  let hasMissingTranslation = false;
-  const localeOutputs: Array<{
-    localeFile: string;
-    constantName: string;
-    messages: Record<string, unknown>;
-  }> = [];
+  const localeOutputs: HandoffLocaleOutput[] = [];
   const missingTranslations: string[] = [];
 
   for (const app of APPS) {
@@ -215,14 +232,15 @@ async function importApprovedHandoff(csvPath: string): Promise<void> {
       const row = appRows.find((candidate) => candidate[keyIndex] === key);
 
       if (!row) {
-        hasMissingTranslation = true;
         warning(`${app.name}/${key} is missing from the handoff CSV`);
+        for (const locale of TARGET_LOCALES) {
+          missingTranslations.push(`${app.name}/${locale}/${key}`);
+        }
         continue;
       }
 
       for (const [index, locale] of TARGET_LOCALES.entries()) {
         if (!row[localeIndexes[index]]?.trim()) {
-          hasMissingTranslation = true;
           missingTranslations.push(`${app.name}/${locale}/${key}`);
         }
       }
@@ -248,7 +266,11 @@ async function importApprovedHandoff(csvPath: string): Promise<void> {
     }
   }
 
-  if (hasMissingTranslation) {
+  return { missingTranslations, localeOutputs };
+}
+
+function assertNoMissingTranslations(missingTranslations: string[]): void {
+  if (missingTranslations.length > 0) {
     for (const missingTranslation of missingTranslations.slice(0, 20)) {
       warning(`${missingTranslation} has no approved translation`);
     }
@@ -262,6 +284,19 @@ async function importApprovedHandoff(csvPath: string): Promise<void> {
 
     throw new Error("Handoff CSV has missing approved translations");
   }
+}
+
+async function checkApprovedHandoff(csvPath: string): Promise<void> {
+  const { missingTranslations } = await validateApprovedHandoff(csvPath);
+  assertNoMissingTranslations(missingTranslations);
+
+  console.log(`${csvPath} has complete approved translations`);
+}
+
+async function importApprovedHandoff(csvPath: string): Promise<void> {
+  const { missingTranslations, localeOutputs } =
+    await validateApprovedHandoff(csvPath);
+  assertNoMissingTranslations(missingTranslations);
 
   for (const { localeFile, constantName, messages } of localeOutputs) {
     const file = [
@@ -292,6 +327,11 @@ function warning(message: string): void {
 }
 
 async function main(): Promise<void> {
+  if (checkHandoffArgIndex >= 0) {
+    await checkApprovedHandoff(checkHandoffPath);
+    return;
+  }
+
   if (importHandoffArgIndex >= 0) {
     await importApprovedHandoff(importHandoffPath);
     return;

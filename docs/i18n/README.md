@@ -23,11 +23,13 @@ After the target columns have been reviewed and approved by translators, import
 the approved CSV:
 
 ```sh
+pnpm run i18n:check-handoff -- docs/i18n/locale-translator-handoff.csv
 pnpm run i18n:import-handoff -- docs/i18n/locale-translator-handoff.csv
 ```
 
-The import validates that every `zh-CN`, `vi-VN`, `ms-MY`, and `id-ID` cell is
-filled for every current source key before writing locale files.
+The check/import validates that every `zh-CN`, `vi-VN`, `ms-MY`, and `id-ID`
+cell is filled for every current source key. The check command is read-only; the
+import command performs the same validation before writing locale files.
 
 To check whether target locales still have fewer leaf keys than `zh-TW`:
 
@@ -42,3 +44,13 @@ before declaring the work complete:
 ```sh
 pnpm run check:i18n-locales:strict
 ```
+
+A locale stub replacement can be declared complete only after:
+
+1. The target columns in `locale-translator-handoff.csv` have explicit
+   translator approval.
+2. `pnpm run i18n:check-handoff -- docs/i18n/locale-translator-handoff.csv`
+   passes.
+3. `pnpm run i18n:import-handoff -- docs/i18n/locale-translator-handoff.csv`
+   has generated the target locale files.
+4. `pnpm run check:i18n-locales:strict` passes.

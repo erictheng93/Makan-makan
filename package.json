@@ -61,6 +61,7 @@
     "check:i18n-locales": "tsx scripts/i18n-locale-coverage.ts",
     "check:i18n-locales:strict": "tsx scripts/i18n-locale-coverage.ts --fail-on-missing",
     "i18n:export-handoff": "tsx scripts/i18n-locale-coverage.ts --export-handoff",
+    "i18n:check-handoff": "tsx scripts/i18n-locale-coverage.ts --check-handoff",
     "i18n:import-handoff": "tsx scripts/i18n-locale-coverage.ts --import-handoff",
     "deploy:staging": "pnpm run build && pnpm -r run deploy:staging",
     "deploy:prod": "pnpm run check:prod-config && pnpm run build && pnpm -r run deploy:prod",

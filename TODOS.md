@@ -27,6 +27,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 - Extract all unique keys from kitchen-display/zh-TW.ts, onboarding-app/zh-TW.ts, management-portal/zh-TW.ts — done in `scripts/i18n-locale-coverage.ts`
 - Deliver to translator in a format they can fill in — done in `docs/i18n/locale-translator-handoff.csv`; export preserves already-filled target cells on rerun
+- Validate approved handoff before import — automated via `pnpm run i18n:check-handoff -- docs/i18n/locale-translator-handoff.csv`
 - Import approved translations back into app locale files — automated via `pnpm run i18n:import-handoff -- docs/i18n/locale-translator-handoff.csv`
 - Add CI check that warns when a non-zh-TW locale has fewer leaf keys than zh-TW — done via `pnpm run check:i18n-locales`; strict completion gate available via `pnpm run check:i18n-locales:strict`
 
