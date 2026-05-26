@@ -983,6 +983,25 @@ describe("Markets API — real integration", () => {
       isPrimary: true,
       joinedAt: new Date(),
     });
+    const serviceVendor = await seed.restaurant({
+      name: "Key Cutting Booth",
+      type: "market_stall",
+      category: "services",
+      city: "台中市",
+      district: "北區",
+      businessHours: openAllWeek(),
+      latitude: 24.17655,
+      longitude: 120.64675,
+      supportsTakeaway: false,
+      supportsDelivery: false,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(serviceVendor.id),
+      marketId: nearMarket.id,
+      stallNumber: "R-88",
+      isPrimary: false,
+      joinedAt: new Date(),
+    });
     const menuItem = await seed.menuItem(String(vendor.id), {
       name: "Bubble Tea",
       price: 65,
@@ -1047,6 +1066,24 @@ describe("Markets API — real integration", () => {
       availableMenuItemCount: 1,
       publicServiceItemCount: 1,
     });
+
+    for (const query of ["R-88", "services", "北區"]) {
+      const searchRes = await testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/markets/near-market/vendors?q=${encodeURIComponent(query)}`,
+        ),
+      );
+      expect(searchRes.status).toBe(200);
+      const searchJson: any = await searchRes.json();
+      expect(searchJson.data.total).toBe(1);
+      expect(searchJson.data.vendors[0]).toMatchObject({
+        restaurantId: String(serviceVendor.id),
+        name: "Key Cutting Booth",
+        stallNumber: "R-88",
+        category: "services",
+        district: "北區",
+      });
+    }
 
     const nearbyRes = await testApp.app.fetch(
       new Request(

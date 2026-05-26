@@ -758,7 +758,18 @@ export class MarketsService {
       isNull(restaurants.deletedAt),
     ];
 
-    if (filters.q) conditions.push(like(restaurants.name, `%${filters.q}%`));
+    if (filters.q) {
+      const keyword = `%${filters.q}%`;
+      const searchCondition = or(
+        like(restaurants.name, keyword),
+        like(restaurants.type, keyword),
+        like(restaurants.category, keyword),
+        like(restaurants.city, keyword),
+        like(restaurants.district, keyword),
+        like(restaurantMarketMemberships.stallNumber, keyword),
+      );
+      if (searchCondition) conditions.push(searchCondition);
+    }
     if (filters.takeaway)
       conditions.push(eq(restaurants.supportsTakeaway, true));
     if (filters.delivery)
