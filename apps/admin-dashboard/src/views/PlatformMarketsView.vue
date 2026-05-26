@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-9">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-11">
       <div
         v-for="metric in metrics"
         :key="metric.label"
@@ -313,6 +313,23 @@
                 </span>
               </div>
               <div
+                v-if="hasCustomerEmptyStateGap(market)"
+                class="mt-3 max-w-md space-y-1 text-xs text-red-700"
+              >
+                <div
+                  v-if="marketHasNoVendors(market)"
+                  class="rounded bg-red-50 px-2 py-1"
+                >
+                  使用者會看到尚未收錄店鋪
+                </div>
+                <div
+                  v-if="marketHasNoSearchableCatalog(market)"
+                  class="rounded bg-red-50 px-2 py-1"
+                >
+                  使用者會看到尚未上架商品/服務
+                </div>
+              </div>
+              <div
                 v-if="hasCatalogGapVendors(market)"
                 class="mt-3 max-w-md space-y-2 text-xs text-gray-600"
               >
@@ -400,6 +417,7 @@
               <span
                 v-if="
                   !market.publicReadiness?.issues.length &&
+                  !hasCustomerEmptyStateGap(market) &&
                   !hasCatalogGapVendors(market)
                 "
                 class="text-sm text-gray-400"
@@ -916,6 +934,8 @@ import {
 import {
   filterMarketsByReadiness,
   marketCatalogGapPriority,
+  marketHasNoSearchableCatalog,
+  marketHasNoVendors,
   marketReadinessStats,
   sortMarketsByCatalogPriority,
   type MarketReadinessFilter,
@@ -1000,6 +1020,8 @@ const filterOptions: Array<{ value: MarketReadinessFilter; label: string }> = [
   { value: "missingServices", label: "缺服務" },
   { value: "missingStalls", label: "缺攤位號" },
   { value: "missingEntrypoints", label: "缺入口" },
+  { value: "emptyVendors", label: "無店鋪" },
+  { value: "emptyCatalog", label: "無搜尋內容" },
   { value: "unknown", label: "未知" },
 ];
 const vendorImportFormatOptions: Array<{
@@ -1058,6 +1080,16 @@ const metrics = computed(() => [
     label: "缺搜尋入口",
     value: stats.value.vendorsMissingSearchEntrypoints,
     class: "text-amber-600",
+  },
+  {
+    label: "無店鋪市場",
+    value: stats.value.marketsWithoutVendors,
+    class: "text-red-600",
+  },
+  {
+    label: "無搜尋內容市場",
+    value: stats.value.marketsWithoutSearchableCatalog,
+    class: "text-red-600",
   },
 ]);
 const catalogGapRowCount = computed(() =>
@@ -1185,6 +1217,10 @@ function hasCatalogGapVendors(market: MarketListItem) {
     Boolean(market.catalogCoverage?.missingStallNumberVendors?.length) ||
     Boolean(market.catalogCoverage?.missingSearchEntrypointVendors?.length)
   );
+}
+
+function hasCustomerEmptyStateGap(market: MarketListItem) {
+  return marketHasNoVendors(market) || marketHasNoSearchableCatalog(market);
 }
 
 function manageVendorGap(

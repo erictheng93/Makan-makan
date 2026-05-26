@@ -298,6 +298,85 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("缺服務市場");
   });
 
+  it("surfaces customer empty-state gaps and filters them for operators", async () => {
+    vi.mocked(marketsService.listPlatformReadiness).mockResolvedValue([
+      {
+        id: "market-empty-vendors",
+        slug: "empty-vendors",
+        name: "尚無店鋪市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        vendorCount: 0,
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsWithSearchableProducts: 0,
+          vendorsMissingSearchableProducts: 0,
+          vendorsWithPublicServices: 0,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 43,
+          completedCount: 3,
+          totalCount: 7,
+          issues: [{ key: "vendors", severity: "required" }],
+        },
+      },
+      {
+        id: "market-empty-catalog",
+        slug: "empty-catalog",
+        name: "尚無搜尋內容市場",
+        type: "commercial_district",
+        city: "台中市",
+        district: "北區",
+        vendorCount: 3,
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsWithSearchableProducts: 0,
+          vendorsMissingSearchableProducts: 3,
+          vendorsWithPublicServices: 0,
+          vendorsMissingPublicServices: 3,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 71,
+          completedCount: 5,
+          totalCount: 7,
+          issues: [{ key: "products", severity: "required" }],
+        },
+      },
+    ]);
+
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("無店鋪市場");
+    expect(wrapper.text()).toContain("無搜尋內容市場");
+    expect(wrapper.text()).toContain("使用者會看到尚未收錄店鋪");
+    expect(wrapper.text()).toContain("使用者會看到尚未上架商品/服務");
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "無店鋪")!
+      .trigger("click");
+    expect(wrapper.text()).toContain("尚無店鋪市場");
+    expect(wrapper.text()).not.toContain("尚無搜尋內容市場");
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "無搜尋內容")!
+      .trigger("click");
+    expect(wrapper.text()).toContain("尚無店鋪市場");
+    expect(wrapper.text()).toContain("尚無搜尋內容市場");
+  });
+
   it("shows catalog completion priority and sorts urgent markets first", async () => {
     vi.mocked(marketsService.listPlatformReadiness).mockResolvedValue([
       {
@@ -360,7 +439,7 @@ describe("PlatformMarketsView", () => {
     const rows = wrapper.findAll("tbody tr");
     expect(rows[0].text()).toContain("高缺口市場");
     expect(rows[0].get('[data-testid="catalog-priority"]').text()).toContain(
-      "18",
+      "24",
     );
     expect(rows[1].text()).toContain("低缺口市場");
   });

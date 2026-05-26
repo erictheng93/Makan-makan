@@ -70,6 +70,8 @@ describe("market public readiness workbench", () => {
       vendorsMissingServices: 18,
       vendorsMissingStallNumbers: 0,
       vendorsMissingSearchEntrypoints: 0,
+      marketsWithoutVendors: 0,
+      marketsWithoutSearchableCatalog: 0,
     });
   });
 
@@ -199,6 +201,63 @@ describe("market public readiness workbench", () => {
     ).toBe("entrypoints-gap");
   });
 
+  it("tracks and filters markets that would render customer empty states", () => {
+    const markets = [
+      market({
+        id: "empty-vendors",
+        slug: "empty-vendors",
+        vendorCount: 0,
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsMissingSearchableProducts: 0,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+      }),
+      market({
+        id: "empty-catalog",
+        slug: "empty-catalog",
+        vendorCount: 3,
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsMissingSearchableProducts: 3,
+          vendorsMissingPublicServices: 3,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+      }),
+      market({
+        id: "ready",
+        slug: "ready",
+        vendorCount: 2,
+        catalogCoverage: {
+          searchableProductCount: 4,
+          publicServiceCount: 1,
+          vendorsMissingSearchableProducts: 0,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+      }),
+    ];
+
+    expect(marketReadinessStats(markets)).toMatchObject({
+      marketsWithoutVendors: 1,
+      marketsWithoutSearchableCatalog: 2,
+    });
+    expect(filterMarketsByReadiness(markets, "emptyVendors")[0].slug).toBe(
+      "empty-vendors",
+    );
+    expect(
+      filterMarketsByReadiness(markets, "emptyCatalog").map(
+        (entry) => entry.slug,
+      ),
+    ).toEqual(["empty-vendors", "empty-catalog"]);
+  });
+
   it("summarizes vendor-level catalog readiness gaps", () => {
     const summary = marketReadinessStats([
       market(),
@@ -222,16 +281,19 @@ describe("market public readiness workbench", () => {
       vendorsMissingServices: 10,
       vendorsMissingStallNumbers: 0,
       vendorsMissingSearchEntrypoints: 0,
+      marketsWithoutVendors: 0,
+      marketsWithoutSearchableCatalog: 0,
     });
   });
 
-  it("scores catalog completion priority from missing products, services, and readiness", () => {
+  it("scores catalog completion priority from missing products, services, customer empties, and readiness", () => {
     expect(
       marketCatalogGapPriority(
         market({
+          vendorCount: 0,
           catalogCoverage: {
-            searchableProductCount: 3,
-            publicServiceCount: 1,
+            searchableProductCount: 0,
+            publicServiceCount: 0,
             vendorsMissingSearchableProducts: 2,
             vendorsMissingPublicServices: 3,
             missingProductVendors: [],
@@ -246,7 +308,7 @@ describe("market public readiness workbench", () => {
           },
         }),
       ),
-    ).toBe(15);
+    ).toBe(29);
   });
 
   it("sorts markets by catalog completion priority before name", () => {
