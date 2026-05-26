@@ -59,6 +59,7 @@ describe("MarketProductSearch", () => {
       supportsTakeaway: true,
       supportsDelivery: false,
       tags: ["熱門"],
+      marketVendor: null,
       ...overrides,
     };
   }
@@ -82,6 +83,7 @@ describe("MarketProductSearch", () => {
       district: "西屯區",
       city: "台中市",
       isOpen: true,
+      marketVendor: null,
       ...overrides,
     };
   }
@@ -122,6 +124,75 @@ describe("MarketProductSearch", () => {
     });
     expect(wrapper.text()).toContain("章魚燒");
     expect(wrapper.text()).toContain("一中章魚燒");
+  });
+
+  it("makes vendor and stall searches visible in market results", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [
+        dish({
+          dishName: "招牌甜甜圈",
+          restaurantName: "甜點攤",
+          marketVendor: {
+            marketId: "market-1",
+            stallNumber: "D-22",
+            isPrimary: true,
+          },
+        }),
+      ],
+      total: 1,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        service({
+          name: "代客切水果",
+          restaurantName: "水果攤",
+          marketVendor: {
+            marketId: "market-1",
+            stallNumber: "S-12",
+            isPrimary: false,
+          },
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    expect(
+      wrapper.get('[data-testid="market-product-search-title"]').text(),
+    ).toContain("搜尋商品、服務與店鋪");
+    expect(
+      wrapper
+        .get<HTMLInputElement>('[data-testid="market-product-search-input"]')
+        .attributes("placeholder"),
+    ).toContain("攤位號");
+
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("D-22");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchDishes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: "D-22",
+        marketId: "market-1",
+      }),
+    );
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: "D-22",
+        marketId: "market-1",
+      }),
+    );
+    expect(wrapper.text()).toContain("甜點攤");
+    expect(wrapper.text()).toContain("攤位 D-22");
+    expect(wrapper.text()).toContain("水果攤");
+    expect(wrapper.text()).toContain("攤位 S-12");
   });
 
   it("uses initial filters for shareable market product searches", async () => {

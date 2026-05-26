@@ -12,6 +12,11 @@ export interface DishSearchResult {
   supportsTakeaway: boolean;
   supportsDelivery: boolean;
   tags: string[];
+  marketVendor?: {
+    marketId: string;
+    stallNumber: string | null;
+    isPrimary: boolean;
+  } | null;
 }
 
 export interface RestaurantListItem {
@@ -43,6 +48,11 @@ export interface ServiceSearchResult {
   district: string | null;
   city: string | null;
   isOpen: boolean;
+  marketVendor?: {
+    marketId: string;
+    stallNumber: string | null;
+    isPrimary: boolean;
+  } | null;
 }
 
 export interface ServiceTypeFacet {

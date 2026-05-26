@@ -1,5 +1,17 @@
 <template>
   <section class="space-y-3">
+    <div>
+      <h2
+        data-testid="market-product-search-title"
+        class="text-base font-semibold text-gray-900"
+      >
+        搜尋商品、服務與店鋪
+      </h2>
+      <p class="mt-1 text-sm text-gray-500">
+        可輸入商品、服務、店名或攤位號，在這個市場內查找。
+      </p>
+    </div>
+
     <form class="space-y-3" @submit.prevent="submitSearch">
       <div class="flex items-center gap-2">
         <input
@@ -7,7 +19,7 @@
           data-testid="market-product-search-input"
           type="search"
           class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
-          placeholder="搜尋商品或服務"
+          placeholder="搜尋商品、服務、店名或攤位號"
         />
         <button
           type="submit"
@@ -169,6 +181,12 @@
             </div>
             <p class="mt-1 truncate text-sm text-gray-500">
               {{ service.restaurantName }}
+              <span
+                v-if="service.marketVendor?.stallNumber"
+                class="text-gray-400"
+              >
+                · 攤位 {{ service.marketVendor.stallNumber }}
+              </span>
             </p>
           </div>
           <span

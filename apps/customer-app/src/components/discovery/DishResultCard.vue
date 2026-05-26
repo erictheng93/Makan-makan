@@ -17,6 +17,9 @@
             <span v-if="dish.district" class="text-gray-400">
               · {{ dish.district }}
             </span>
+            <span v-if="dish.marketVendor?.stallNumber" class="text-gray-400">
+              · 攤位 {{ dish.marketVendor.stallNumber }}
+            </span>
           </p>
           <div class="mt-2 flex items-center gap-2">
             <span class="font-semibold text-ios-blue">
