@@ -8,6 +8,7 @@ import { useRouter } from "vue-router";
 vi.mock("@/services/marketsService", () => ({
   marketsService: {
     listPlatformReadiness: vi.fn(),
+    listAreaReadiness: vi.fn(),
     updateMarketPublicProfile: vi.fn(),
     importVendors: vi.fn(),
   },
@@ -79,6 +80,32 @@ describe("PlatformMarketsView", () => {
           totalCount: 7,
           issues: [{ key: "products", severity: "required" }],
         },
+      },
+    ]);
+    vi.mocked(marketsService.listAreaReadiness).mockResolvedValue([
+      {
+        city: "台中市",
+        district: "西屯區",
+        marketCount: 2,
+        vendorCount: 8,
+        searchableProductCount: 20,
+        publicServiceCount: 4,
+        vendorsMissingSearchableProducts: 3,
+        vendorsMissingPublicServices: 4,
+        totalCatalogGapVendors: 7,
+        averageReadinessScore: 72,
+      },
+      {
+        city: "台中市",
+        district: "北區",
+        marketCount: 1,
+        vendorCount: 3,
+        searchableProductCount: 8,
+        publicServiceCount: 1,
+        vendorsMissingSearchableProducts: 1,
+        vendorsMissingPublicServices: 1,
+        totalCatalogGapVendors: 2,
+        averageReadinessScore: 91,
       },
     ]);
   });
@@ -247,6 +274,21 @@ describe("PlatformMarketsView", () => {
       "18",
     );
     expect(rows[1].text()).toContain("低缺口市場");
+  });
+
+  it("shows area-level catalog gap rankings for operations planning", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    expect(marketsService.listAreaReadiness).toHaveBeenCalledOnce();
+
+    const areaRows = wrapper.findAll('[data-testid="area-readiness-row"]');
+    expect(areaRows).toHaveLength(2);
+    expect(areaRows[0].text()).toContain("台中市 · 西屯區");
+    expect(areaRows[0].text()).toContain("總缺口 7");
+    expect(areaRows[0].text()).toContain("缺商品 3");
+    expect(areaRows[0].text()).toContain("缺服務 4");
+    expect(areaRows[1].text()).toContain("台中市 · 北區");
   });
 
   it("downloads a CSV for currently visible catalog gaps", async () => {

@@ -43,6 +43,71 @@
       </div>
     </div>
 
+    <section
+      v-if="areaReadiness.length > 0"
+      class="rounded-lg bg-white p-4 shadow-ios-card"
+    >
+      <div
+        class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between"
+      >
+        <div>
+          <h2 class="text-base font-semibold text-gray-900">區域缺口排行</h2>
+          <p class="text-sm text-gray-500">
+            依城市與行政區彙總市場、店鋪、商品與服務缺口。
+          </p>
+        </div>
+        <span class="text-xs text-gray-400">依總缺口排序</span>
+      </div>
+      <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <article
+          v-for="area in areaReadiness.slice(0, 6)"
+          :key="`${area.city}-${area.district}`"
+          data-testid="area-readiness-row"
+          class="rounded-lg border border-gray-200 p-3"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-medium text-gray-900">
+                {{ area.city }} · {{ area.district }}
+              </h3>
+              <p class="mt-0.5 text-xs text-gray-500">
+                {{ area.marketCount }} 個市場 / {{ area.vendorCount }} 間店鋪
+              </p>
+            </div>
+            <span
+              class="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
+            >
+              總缺口 {{ area.totalCatalogGapVendors }}
+            </span>
+          </div>
+          <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-gray-600">
+            <div>
+              <div class="font-medium text-gray-900">
+                {{ area.searchableProductCount }}
+              </div>
+              <div>商品</div>
+            </div>
+            <div>
+              <div class="font-medium text-gray-900">
+                {{ area.publicServiceCount }}
+              </div>
+              <div>服務</div>
+            </div>
+            <div>
+              <div class="font-medium text-gray-900">
+                {{ area.averageReadinessScore }}%
+              </div>
+              <div>完整度</div>
+            </div>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2 text-xs text-amber-700">
+            <span>缺商品 {{ area.vendorsMissingSearchableProducts }}</span>
+            <span>缺服務 {{ area.vendorsMissingPublicServices }}</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <div class="rounded-lg bg-white p-4 shadow-ios-card">
       <div class="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
         <input
@@ -509,6 +574,7 @@ import {
   type ImportMarketVendorInput,
   type ImportMarketVendorsResult,
   type MarketCatalogGapVendor,
+  type MarketAreaReadinessSummary,
   type MarketListItem,
 } from "@/services/marketsService";
 import { useAuthStore } from "@/stores/auth";
@@ -541,6 +607,7 @@ import {
 const router = useRouter();
 const authStore = useAuthStore();
 const markets = ref<MarketListItem[]>([]);
+const areaReadiness = ref<MarketAreaReadinessSummary[]>([]);
 const isLoading = ref(true);
 const isSaving = ref(false);
 const query = ref("");
@@ -641,10 +708,16 @@ function readinessBadgeClass(market: MarketListItem) {
 async function loadMarkets() {
   isLoading.value = true;
   try {
-    markets.value = await marketsService.listPlatformReadiness();
+    const [marketRows, areaRows] = await Promise.all([
+      marketsService.listPlatformReadiness(),
+      marketsService.listAreaReadiness(),
+    ]);
+    markets.value = marketRows;
+    areaReadiness.value = areaRows;
   } catch (error) {
     console.error("Failed to load markets:", error);
     markets.value = [];
+    areaReadiness.value = [];
   } finally {
     isLoading.value = false;
   }
