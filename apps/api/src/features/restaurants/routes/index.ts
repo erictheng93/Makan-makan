@@ -35,10 +35,13 @@ const commonSchemas = {
 };
 
 function assertCanManageRestaurant(
-  user: { role: number; restaurantId?: string | null },
+  user: { role: number; restaurantId?: string | number | null },
   restaurantId: string,
 ) {
-  if (user.role === USER_ROLES.OWNER && user.restaurantId !== restaurantId) {
+  if (
+    user.role === USER_ROLES.OWNER &&
+    String(user.restaurantId) !== restaurantId
+  ) {
     throw forbidden("Access denied");
   }
 }
