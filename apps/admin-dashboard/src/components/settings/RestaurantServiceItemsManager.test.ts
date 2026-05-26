@@ -138,6 +138,56 @@ describe("RestaurantServiceItemsManager", () => {
       1,
     );
   });
+
+  it("imports service items from CSV", async () => {
+    vi.mocked(restaurantServiceItemsService.create).mockResolvedValue({
+      id: 2,
+      restaurantId: "restaurant-1",
+      name: "代客切水果",
+      serviceType: "general",
+      requiresBooking: false,
+      sortOrder: 1,
+      isActive: true,
+      isPublic: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+    const wrapper = mount(RestaurantServiceItemsManager, {
+      props: { restaurantId: "restaurant-1" },
+    });
+
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="service-import-csv"]')
+      .setValue(
+        [
+          "name,serviceType,description,priceCents,durationMinutes,requiresBooking,tags,sortOrder,isActive,isPublic",
+          '"代客切水果",general,"現場代切並分裝",5000,15,false,"水果;分裝",1,true,true',
+        ].join("\n"),
+      );
+    expect(wrapper.text()).toContain("已解析 1 筆服務");
+
+    await wrapper.get('[data-testid="service-import-submit"]').trigger("click");
+    await flushPromises();
+
+    expect(restaurantServiceItemsService.create).toHaveBeenCalledWith(
+      "restaurant-1",
+      expect.objectContaining({
+        name: "代客切水果",
+        serviceType: "general",
+        priceCents: 5000,
+        durationMinutes: 15,
+        requiresBooking: false,
+        tags: ["水果", "分裝"],
+        keywords: "水果 分裝",
+        sortOrder: 1,
+        isActive: true,
+        isPublic: true,
+      }),
+    );
+    expect(restaurantServiceItemsService.list).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain("已成功匯入 1 筆服務");
+  });
 });
 
 async function flushPromises() {

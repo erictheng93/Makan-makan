@@ -190,6 +190,78 @@
         </div>
       </form>
 
+      <section class="mt-6 border-t border-gray-200 pt-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
+          <div>
+            <h4 class="text-base font-semibold text-gray-900">批次匯入服務</h4>
+            <p class="mt-1 text-sm text-gray-500">
+              貼上 CSV，一次建立會顯示在市場搜尋裡的服務項目。
+            </p>
+          </div>
+          <button
+            type="button"
+            class="w-fit rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+            @click="loadServiceImportExample"
+          >
+            載入範例
+          </button>
+        </div>
+
+        <textarea
+          v-model="serviceImportText"
+          rows="7"
+          data-testid="service-import-csv"
+          class="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          placeholder="name,serviceType,description,priceCents,priceLabel,durationMinutes,requiresBooking,bookingUrl,tags,sortOrder,isActive,isPublic"
+        />
+
+        <div v-if="serviceImportPreview.errors.length" class="mt-3 space-y-1">
+          <p
+            v-for="importError in serviceImportPreview.errors"
+            :key="importError"
+            class="text-sm text-red-600"
+          >
+            {{ importError }}
+          </p>
+        </div>
+        <p v-if="serviceImportError" class="mt-3 text-sm text-red-600">
+          {{ serviceImportError }}
+        </p>
+        <div
+          v-if="
+            serviceImportText.trim() &&
+            !serviceImportPreview.errors.length &&
+            serviceImportPreview.items.length
+          "
+          class="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800"
+        >
+          已解析 {{ serviceImportPreview.items.length }} 筆服務，準備匯入。
+        </div>
+        <div
+          v-if="serviceImportResult"
+          class="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800"
+        >
+          已成功匯入 {{ serviceImportResult }} 筆服務。
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button
+            type="button"
+            data-testid="service-import-submit"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            :disabled="
+              isImportingServices ||
+              !serviceImportText.trim() ||
+              serviceImportPreview.errors.length > 0 ||
+              serviceImportPreview.items.length === 0
+            "
+            @click="importServices"
+          >
+            {{ isImportingServices ? "匯入中..." : "匯入服務" }}
+          </button>
+        </div>
+      </section>
+
       <div
         v-if="error"
         class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
@@ -276,12 +348,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import type {
   RestaurantServiceItem,
   RestaurantServiceType,
 } from "@makanmakan/shared-types";
 import { restaurantServiceItemsService } from "@/services/restaurantServiceItemsService";
+import {
+  buildRestaurantServiceItemImportTemplate,
+  parseRestaurantServiceItemImport,
+} from "@/utils/restaurantServiceItemImport";
 
 const props = defineProps<{
   restaurantId?: string | null;
@@ -293,6 +369,10 @@ const isSaving = ref(false);
 const error = ref<string | null>(null);
 const editingServiceId = ref<number | null>(null);
 const tagsText = ref("");
+const serviceImportText = ref("");
+const serviceImportError = ref("");
+const serviceImportResult = ref<number | null>(null);
+const isImportingServices = ref(false);
 
 const defaultForm = () => ({
   name: "",
@@ -309,6 +389,13 @@ const defaultForm = () => ({
 });
 
 const form = reactive(defaultForm());
+const serviceImportPreview = computed(() => {
+  if (!serviceImportText.value.trim()) {
+    return { items: [], errors: [] };
+  }
+
+  return parseRestaurantServiceItemImport(serviceImportText.value);
+});
 
 async function loadServices() {
   if (!props.restaurantId) return;
@@ -331,6 +418,12 @@ function resetForm() {
   Object.assign(form, defaultForm());
   tagsText.value = "";
   editingServiceId.value = null;
+}
+
+function resetServiceImport() {
+  serviceImportText.value = "";
+  serviceImportError.value = "";
+  serviceImportResult.value = null;
 }
 
 function servicePayload() {
@@ -385,6 +478,40 @@ async function saveService() {
       saveError instanceof Error ? saveError.message : "儲存服務項目失敗";
   } finally {
     isSaving.value = false;
+  }
+}
+
+function loadServiceImportExample() {
+  serviceImportError.value = "";
+  serviceImportResult.value = null;
+  serviceImportText.value = buildRestaurantServiceItemImportTemplate();
+}
+
+async function importServices() {
+  if (!props.restaurantId) return;
+
+  const parsed = serviceImportPreview.value;
+  if (!parsed.items.length || parsed.errors.length) {
+    serviceImportError.value =
+      parsed.errors[0] ?? "請確認匯入資料格式後再送出。";
+    return;
+  }
+
+  isImportingServices.value = true;
+  serviceImportError.value = "";
+  serviceImportResult.value = null;
+  try {
+    for (const item of parsed.items) {
+      await restaurantServiceItemsService.create(props.restaurantId, item);
+    }
+    serviceImportResult.value = parsed.items.length;
+    serviceImportText.value = "";
+    await loadServices();
+  } catch (importError) {
+    serviceImportError.value =
+      importError instanceof Error ? importError.message : "匯入服務項目失敗";
+  } finally {
+    isImportingServices.value = false;
   }
 }
 
@@ -447,6 +574,7 @@ watch(
   () => props.restaurantId,
   () => {
     resetForm();
+    resetServiceImport();
     loadServices();
   },
 );
