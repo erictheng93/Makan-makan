@@ -809,6 +809,8 @@
     "delivery": "Pengiriman",
     "city": "Kota",
     "allCities": "Semua Kota",
+    "category": "Kategori",
+    "allCategories": "Semua Kategori",
     "district": "Wilayah",
     "allDistricts": "Semua Wilayah"
   }

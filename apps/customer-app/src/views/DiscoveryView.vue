@@ -60,6 +60,7 @@
         :filters="store.filters"
         :cities="cities"
         :districts="districts"
+        :categories="categoryOptions"
         @update:filters="store.updateFilters($event)"
       />
 
@@ -161,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { useDiscoveryStore } from "@/stores/discovery";
@@ -182,6 +183,7 @@ const router = useRouter();
 const store = useDiscoveryStore();
 const marketOptions = ref<MarketListItem[]>([]);
 const marketAreas = ref<{ city: string; districts: string[] }[]>([]);
+const categoryOptions = ref<string[]>([]);
 
 const selectedMarketId = computed(() => store.filters.marketId);
 const selectedCity = computed(() => store.filters.city);
@@ -254,9 +256,38 @@ async function loadMarketOptions() {
   }
 }
 
+async function loadCategoryOptions() {
+  try {
+    const response = await discoveryApi.listCategories({
+      city: store.filters.city,
+      district: store.filters.district,
+      marketId: store.filters.marketId,
+      takeaway: store.filters.takeaway,
+      delivery: store.filters.delivery,
+    });
+    categoryOptions.value = response.categories;
+  } catch (error) {
+    console.error("Failed to load discovery categories:", error);
+  }
+}
+
 onMounted(() => {
   store.loadPopular();
   store.browseRestaurants();
   loadMarketOptions();
+  loadCategoryOptions();
 });
+
+watch(
+  () => [
+    store.filters.city,
+    store.filters.district,
+    store.filters.marketId,
+    store.filters.takeaway,
+    store.filters.delivery,
+  ],
+  () => {
+    loadCategoryOptions();
+  },
+);
 </script>

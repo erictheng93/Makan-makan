@@ -809,6 +809,8 @@
     "delivery": "外送",
     "city": "城市",
     "allCities": "所有城市",
+    "category": "分類",
+    "allCategories": "所有分類",
     "district": "地區",
     "allDistricts": "所有地區"
   }

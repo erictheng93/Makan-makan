@@ -29,7 +29,9 @@ export interface RestaurantListItem {
 
 export interface SearchFilters {
   q?: string;
+  city?: string;
   district?: string;
+  categoryName?: string;
   marketId?: string;
   lat?: number;
   lng?: number;
@@ -54,6 +56,13 @@ export const discoveryApi = {
   async browseRestaurants(filters: SearchFilters) {
     return apiClient.get<{ results: RestaurantListItem[]; total: number }>(
       "/discovery/restaurants",
+      filters,
+    );
+  },
+
+  async listCategories(filters: SearchFilters = {}) {
+    return apiClient.get<{ categories: string[] }>(
+      "/discovery/categories",
       filters,
     );
   },

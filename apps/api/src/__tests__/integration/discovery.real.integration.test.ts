@@ -88,6 +88,7 @@ async function seedSearchIndex(
     supportsTakeaway?: boolean;
     supportsDelivery?: boolean;
     tags?: string[];
+    categoryName?: string | null;
     marketIds?: string[];
     primaryMarketId?: string | null;
   }[],
@@ -102,6 +103,7 @@ async function seedSearchIndex(
       // Normalization mirrors DiscoveryService.normalizeQuery():
       // trim + lowercase + collapse whitespace
       dishNameNormalized: item.name.trim().toLowerCase().replace(/\s+/g, ""),
+      categoryName: item.categoryName,
       isAvailable: (item.isAvailable ?? true) as unknown as boolean,
       price: item.price,
       district: item.district,
@@ -421,6 +423,79 @@ describe("Discovery API — real integration", () => {
     expect(data.results.map((r: any) => r.restaurantName)).toEqual([
       "Taipei Zhongshan Vendor",
     ]);
+  });
+
+  it("filters dish search by category and lists scoped categories", async () => {
+    const market = await seedMarket(testApp, {
+      name: "Category Market",
+      city: "台中市",
+      district: "北區",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Category Vendor",
+      city: "台中市",
+      district: "北區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+
+    const snack = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Category Scope Bao",
+      price: 100,
+    });
+    const drink = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Category Scope Tea",
+      price: 80,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: snack.id,
+        name: "Category Scope Bao",
+        price: 100,
+        district: "北區",
+        categoryName: "小吃",
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+      {
+        menuItemId: drink.id,
+        name: "Category Scope Tea",
+        price: 80,
+        district: "北區",
+        categoryName: "飲品",
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+
+    const searchRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=Category+Scope&marketId=${market.id}&categoryName=%E5%B0%8F%E5%90%83&page=1&limit=10`,
+      ),
+    );
+    const categoriesRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/categories?marketId=${market.id}`,
+      ),
+    );
+
+    expect(searchRes.status).toBe(200);
+    const searchData = ((await searchRes.json()) as ApiTestResponse).data;
+    expect(searchData.total).toBe(1);
+    expect(searchData.results.map((r: any) => r.dishName)).toEqual([
+      "Category Scope Bao",
+    ]);
+
+    expect(categoriesRes.status).toBe(200);
+    const categoriesJson: any = await categoriesRes.json();
+    expect(categoriesJson.data.categories).toEqual(["小吃", "飲品"]);
   });
 
   // -------------------------------------------------------------------------

@@ -91,6 +91,26 @@
           <option v-for="d in districts" :key="d" :value="d">{{ d }}</option>
         </select>
       </div>
+      <div v-if="categories.length > 0">
+        <label class="text-xs font-medium text-gray-500 mb-1 block">
+          {{ t("discovery.category") }}
+        </label>
+        <select
+          :value="filters.categoryName || ''"
+          data-testid="discovery-category-select"
+          class="w-full text-sm bg-ios-bg rounded-xl px-3 py-2 focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
+          @change="onCategoryChange"
+        >
+          <option value="">{{ t("discovery.allCategories") }}</option>
+          <option
+            v-for="category in categories"
+            :key="category"
+            :value="category"
+          >
+            {{ category }}
+          </option>
+        </select>
+      </div>
     </div>
   </div>
 </template>
@@ -106,6 +126,7 @@ const props = defineProps<{
   filters: SearchFilters;
   cities: string[];
   districts: string[];
+  categories: string[];
 }>();
 
 const emit = defineEmits<{
@@ -135,6 +156,14 @@ function onCityChange(e: Event) {
     ...props.filters,
     city: target.value || undefined,
     district: undefined,
+  });
+}
+
+function onCategoryChange(e: Event) {
+  const target = e.target as HTMLSelectElement;
+  emit("update:filters", {
+    ...props.filters,
+    categoryName: target.value || undefined,
   });
 }
 </script>

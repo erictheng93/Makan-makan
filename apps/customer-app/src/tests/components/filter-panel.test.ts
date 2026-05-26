@@ -19,6 +19,7 @@ describe("FilterPanel", () => {
         filters: { city: "台中市", district: "西屯區" },
         cities: ["台中市", "台北市"],
         districts: ["北區", "西屯區"],
+        categories: ["小吃", "飲品"],
       },
     });
   }
@@ -36,6 +37,23 @@ describe("FilterPanel", () => {
     expect(wrapper.emitted("update:filters")?.at(-1)?.[0]).toEqual({
       city: "台北市",
       district: undefined,
+    });
+  });
+
+  it("emits category filter changes", async () => {
+    const wrapper = mountPanel();
+    await wrapper
+      .get('[data-testid="discovery-filter-toggle"]')
+      .trigger("click");
+
+    await wrapper
+      .get('[data-testid="discovery-category-select"]')
+      .setValue("飲品");
+
+    expect(wrapper.emitted("update:filters")?.at(-1)?.[0]).toEqual({
+      city: "台中市",
+      district: "西屯區",
+      categoryName: "飲品",
     });
   });
 });

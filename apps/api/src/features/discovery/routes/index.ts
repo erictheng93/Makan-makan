@@ -3,6 +3,7 @@ import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { validateQuery, validateParams } from "../../../middleware/validation";
 import { DiscoveryService } from "../services/DiscoveryService";
 import {
+  dishCategoryQuerySchema,
   dishSearchQuerySchema,
   restaurantBrowseQuerySchema,
   restaurantIdParamSchema,
@@ -19,6 +20,16 @@ routes.get("/search", validateQuery(dishSearchQuerySchema), async (c) => {
   const results = await service.searchDishes(query);
 
   return c.json({ success: true, data: results });
+});
+
+// GET /api/v1/discovery/categories — public
+routes.get("/categories", validateQuery(dishCategoryQuerySchema), async (c) => {
+  const query = c.get("validatedQuery");
+  const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+
+  const data = await service.listDishCategories(query);
+
+  return c.json({ success: true, data });
 });
 
 // GET /api/v1/discovery/restaurants — public

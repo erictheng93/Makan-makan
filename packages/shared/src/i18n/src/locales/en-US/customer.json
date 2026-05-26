@@ -809,6 +809,8 @@
     "delivery": "Delivery",
     "city": "City",
     "allCities": "All Cities",
+    "category": "Category",
+    "allCategories": "All Categories",
     "district": "District",
     "allDistricts": "All Districts"
   }

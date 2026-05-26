@@ -28,6 +28,7 @@ vi.mock("@/stores/discovery", () => ({
 vi.mock("@/services/discoveryApi", () => ({
   discoveryApi: {
     getTakeawayEligibility: vi.fn(),
+    listCategories: vi.fn(),
   },
 }));
 
@@ -83,11 +84,12 @@ function mountView() {
       stubs: {
         SearchBar: true,
         FilterPanel: {
-          props: ["cities", "districts"],
+          props: ["cities", "districts", "categories"],
           template: `
             <div>
               <div data-testid="city-filter-options">{{ cities.join(",") }}</div>
               <div data-testid="district-filter-options">{{ districts.join(",") }}</div>
+              <div data-testid="category-filter-options">{{ categories.join(",") }}</div>
             </div>
           `,
         },
@@ -125,6 +127,9 @@ describe("DiscoveryView", () => {
     } as never);
     vi.mocked(marketsApi.listAreas).mockResolvedValue({
       areas: [],
+    } as never);
+    vi.mocked(discoveryApi.listCategories).mockResolvedValue({
+      categories: [],
     } as never);
     vi.mocked(useDiscoveryStore).mockReturnValue(discoveryStore() as never);
   });
@@ -211,5 +216,30 @@ describe("DiscoveryView", () => {
     expect(
       wrapper.get('[data-testid="district-filter-options"]').text(),
     ).toContain("西屯區");
+  });
+
+  it("loads category filters with the selected market scope", async () => {
+    vi.mocked(discoveryApi.listCategories).mockResolvedValueOnce({
+      categories: ["小吃", "飲品"],
+    } as never);
+    const store = discoveryStore({
+      filters: { marketId: "market-1" },
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.get('[data-testid="category-filter-options"]').text(),
+      ).toContain("飲品");
+    });
+    expect(discoveryApi.listCategories).toHaveBeenCalledWith({
+      city: undefined,
+      district: undefined,
+      marketId: "market-1",
+      takeaway: undefined,
+      delivery: undefined,
+    });
   });
 });

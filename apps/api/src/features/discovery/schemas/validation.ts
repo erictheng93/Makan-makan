@@ -4,6 +4,7 @@ export const dishSearchQuerySchema = z.object({
   q: z.string().min(1).max(100),
   district: z.string().optional(),
   city: z.string().optional(),
+  categoryName: z.string().optional(),
   marketId: z.string().optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
@@ -15,6 +16,14 @@ export const dishSearchQuerySchema = z.object({
   delivery: z.coerce.boolean().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const dishCategoryQuerySchema = z.object({
+  district: z.string().optional(),
+  city: z.string().optional(),
+  marketId: z.string().optional(),
+  takeaway: z.coerce.boolean().optional(),
+  delivery: z.coerce.boolean().optional(),
 });
 
 export const restaurantBrowseQuerySchema = z.object({

@@ -809,6 +809,8 @@
     "delivery": "Giao hàng",
     "city": "Thành phố",
     "allCities": "Tất cả Thành phố",
+    "category": "Danh mục",
+    "allCategories": "Tất cả Danh mục",
     "district": "Khu vực",
     "allDistricts": "Tất cả Khu vực"
   }

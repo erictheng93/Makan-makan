@@ -78,6 +78,11 @@ export class DiscoveryService {
     if (filters.city) {
       baseConditions.push(eq(restaurants.city, filters.city));
     }
+    if (filters.categoryName) {
+      baseConditions.push(
+        eq(dishSearchIndex.categoryName, filters.categoryName),
+      );
+    }
     if (filters.priceMin !== undefined) {
       baseConditions.push(
         sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) >= ${toRequiredCents(filters.priceMin)}`,
@@ -262,6 +267,63 @@ export class DiscoveryService {
     );
 
     return response;
+  }
+
+  async listDishCategories(
+    filters: SearchFilters,
+  ): Promise<{ categories: string[] }> {
+    const searchVersion = await this.getSearchVersion();
+    const cacheKey = this.buildCacheKey(
+      "search:categories",
+      filters,
+      searchVersion,
+    );
+    const cached = await this.kv.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const conditions: SQL[] = [
+      eq(dishSearchIndex.isAvailable, true),
+      sql`${dishSearchIndex.categoryName} IS NOT NULL`,
+      sql`${dishSearchIndex.categoryName} != ''`,
+    ];
+    if (filters.district) {
+      conditions.push(eq(dishSearchIndex.district, filters.district));
+    }
+    if (filters.city) {
+      conditions.push(eq(restaurants.city, filters.city));
+    }
+    if (filters.takeaway) {
+      conditions.push(eq(dishSearchIndex.supportsTakeaway, true));
+    }
+    if (filters.delivery) {
+      conditions.push(eq(dishSearchIndex.supportsDelivery, true));
+    }
+    if (filters.marketId) {
+      conditions.push(
+        or(
+          eq(dishSearchIndex.primaryMarketId, filters.marketId),
+          like(dishSearchIndex.marketIds, `%"${filters.marketId}"%`),
+        )!,
+      );
+    }
+
+    const rows = await this.db
+      .select({ categoryName: dishSearchIndex.categoryName })
+      .from(dishSearchIndex)
+      .innerJoin(restaurants, eq(dishSearchIndex.restaurantId, restaurants.id))
+      .where(and(...conditions))
+      .groupBy(dishSearchIndex.categoryName)
+      .orderBy(asc(dishSearchIndex.categoryName));
+
+    const data = {
+      categories: rows
+        .map((row) => row.categoryName)
+        .filter((category): category is string => Boolean(category)),
+    };
+    await this.kv.put(cacheKey, JSON.stringify(data), {
+      expirationTtl: KV_SEARCH_TTL,
+    });
+    return data;
   }
 
   async browseRestaurants(
@@ -706,7 +768,9 @@ export class DiscoveryService {
     const parts = [prefix];
     parts.push(`v:${version}`);
     if (filters.q) parts.push(this.normalizeQuery(filters.q));
+    if (filters.city) parts.push(`c:${filters.city}`);
     if (filters.district) parts.push(`d:${filters.district}`);
+    if (filters.categoryName) parts.push(`cat:${filters.categoryName}`);
     if (filters.priceMin) parts.push(`pmin:${filters.priceMin}`);
     if (filters.priceMax) parts.push(`pmax:${filters.priceMax}`);
     if (filters.openNow) parts.push("open");

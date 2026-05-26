@@ -29,6 +29,22 @@
         />
         只看可外帶
       </label>
+      <select
+        v-if="categoryOptions.length > 0"
+        v-model="selectedCategory"
+        data-testid="market-product-category-select"
+        class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
+        @change="searchIfReady"
+      >
+        <option value="">全部分類</option>
+        <option
+          v-for="category in categoryOptions"
+          :key="category"
+          :value="category"
+        >
+          {{ category }}
+        </option>
+      </select>
     </form>
 
     <div
@@ -81,13 +97,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import DishResultCard from "@/components/discovery/DishResultCard.vue";
 import { discoveryApi, type DishSearchResult } from "@/services/discoveryApi";
 
-const props = defineProps<{
-  marketId: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    marketId: string;
+    categories?: string[];
+  }>(),
+  {
+    categories: () => [],
+  },
+);
 
 defineEmits<{
   select: [dish: DishSearchResult];
@@ -96,6 +118,8 @@ defineEmits<{
 
 const query = ref("");
 const takeawayOnly = ref(false);
+const selectedCategory = ref("");
+const loadedCategories = ref<string[]>([]);
 const results = ref<DishSearchResult[]>([]);
 const total = ref(0);
 const loading = ref(false);
@@ -105,6 +129,9 @@ const page = ref(1);
 const pageSize = 20;
 
 const hasMoreResults = computed(() => results.value.length < total.value);
+const categoryOptions = computed(() =>
+  props.categories.length > 0 ? props.categories : loadedCategories.value,
+);
 
 async function submitSearch() {
   const trimmed = query.value.trim();
@@ -135,6 +162,7 @@ async function fetchResults({ append }: { append: boolean }) {
     const response = await discoveryApi.searchDishes({
       q: trimmed,
       marketId: props.marketId,
+      categoryName: selectedCategory.value || undefined,
       takeaway: takeawayOnly.value ? true : undefined,
       page: page.value,
       limit: pageSize,
@@ -162,4 +190,28 @@ function searchIfReady() {
     submitSearch();
   }
 }
+
+async function loadCategories() {
+  if (props.categories.length > 0) return;
+
+  try {
+    const response = await discoveryApi.listCategories({
+      marketId: props.marketId,
+    });
+    loadedCategories.value = response.categories;
+  } catch (categoryError) {
+    console.error("Failed to load market product categories:", categoryError);
+  }
+}
+
+onMounted(loadCategories);
+
+watch(
+  () => props.marketId,
+  () => {
+    selectedCategory.value = "";
+    loadedCategories.value = [];
+    loadCategories();
+  },
+);
 </script>

@@ -31,6 +31,7 @@ export interface SearchFilters {
   q?: string;
   district?: string;
   city?: string;
+  categoryName?: string;
   marketId?: string;
   lat?: number;
   lng?: number;

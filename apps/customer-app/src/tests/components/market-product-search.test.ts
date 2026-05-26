@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
 import { discoveryApi, type DishSearchResult } from "@/services/discoveryApi";
@@ -22,10 +22,17 @@ vi.mock("@/composables/useCurrency", () => ({
 vi.mock("@/services/discoveryApi", () => ({
   discoveryApi: {
     searchDishes: vi.fn(),
+    listCategories: vi.fn(),
   },
 }));
 
 describe("MarketProductSearch", () => {
+  beforeEach(() => {
+    vi.mocked(discoveryApi.listCategories).mockResolvedValue({
+      categories: [],
+    } as never);
+  });
+
   function dish(overrides: Partial<DishSearchResult> = {}): DishSearchResult {
     return {
       menuItemId: 1,
@@ -52,17 +59,22 @@ describe("MarketProductSearch", () => {
     const wrapper = mount(MarketProductSearch, {
       props: {
         marketId: "market-1",
+        categories: ["小吃", "飲品"],
       },
     });
 
     await wrapper
       .get('[data-testid="market-product-search-input"]')
       .setValue("章魚燒");
+    await wrapper
+      .get('[data-testid="market-product-category-select"]')
+      .setValue("小吃");
     await wrapper.get("form").trigger("submit.prevent");
 
     expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
       q: "章魚燒",
       marketId: "market-1",
+      categoryName: "小吃",
       takeaway: undefined,
       page: 1,
       limit: 20,
@@ -110,6 +122,7 @@ describe("MarketProductSearch", () => {
     expect(discoveryApi.searchDishes).toHaveBeenLastCalledWith({
       q: "章魚燒",
       marketId: "market-1",
+      categoryName: undefined,
       takeaway: undefined,
       page: 2,
       limit: 20,
