@@ -553,6 +553,7 @@ describe("Discovery API — real integration", () => {
       {
         restaurantId: String(restaurant.id),
         marketId: market.id,
+        stallNumber: "S-12",
         joinedAt: new Date(),
       },
       {
@@ -611,6 +612,81 @@ describe("Discovery API — real integration", () => {
       priceCents: 3000,
       tags: ["水果", "分裝"],
     });
+
+    for (const query of ["Service Search Vendor", "general", "S-12"]) {
+      const contextRes = await testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/discovery/services?q=${encodeURIComponent(
+            query,
+          )}&marketId=${market.id}`,
+        ),
+      );
+      expect(contextRes.status).toBe(200);
+      const contextData = ((await contextRes.json()) as ApiTestResponse).data;
+      expect(contextData.total).toBe(1);
+      expect(contextData.results[0]).toMatchObject({
+        name: "代客切水果",
+        restaurantId: restaurant.id,
+      });
+    }
+  });
+
+  it("searches market dishes by vendor and category context", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "dish-context-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Context Dish Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "D-22",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "招牌甜甜圈",
+      price: 80,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: item.id,
+        name: "招牌甜甜圈",
+        price: 80,
+        categoryName: "甜點",
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+
+    for (const query of ["Context Dish Vendor", "D-22", "甜點"]) {
+      const res = await testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+            query,
+          )}&marketId=${market.id}`,
+        ),
+      );
+      expect(res.status).toBe(200);
+      const data = ((await res.json()) as ApiTestResponse).data;
+      expect(data.total).toBe(1);
+      expect(data.results[0]).toMatchObject({
+        menuItemId: item.id,
+        dishName: "招牌甜甜圈",
+        restaurantId: restaurant.id,
+        restaurantName: "Context Dish Vendor",
+        categoryName: "甜點",
+        marketVendor: {
+          marketId: market.id,
+          stallNumber: "D-22",
+          isPrimary: true,
+        },
+      });
+    }
   });
 
   it("ranks market dish name matches before cheaper tag-only matches", async () => {
@@ -1337,7 +1413,9 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const data = ((await res.json()) as ApiTestResponse).data;
+    const data = (
+      (await res.json()) as ApiTestResponse<{ services: ApiTestEntity[] }>
+    ).data;
     expect(data.services).toHaveLength(2);
     expect(data.services.map((service: any) => service.name)).toEqual([
       "公開外送協助",
@@ -1801,7 +1879,9 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const data = ((await res.json()) as ApiTestResponse).data;
+    const data = (
+      (await res.json()) as ApiTestResponse<{ dishes: ApiTestEntity[] }>
+    ).data;
     expect(data.dishes.map((dish: any) => dish.dishName)).toEqual([
       "Visible Popular Bao",
     ]);

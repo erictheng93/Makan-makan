@@ -135,13 +135,19 @@ export class DiscoveryService {
 
     const prefixConditions: SQL[] = [...baseConditions];
     if (normalized) {
-      const tagPattern = `%${q?.trim() ?? ""}%`;
-      prefixConditions.push(
-        or(
-          like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
-          like(dishSearchIndex.tags, tagPattern),
-        )!,
+      const rawQuery = q?.trim() ?? "";
+      const tagPattern = `%${rawQuery}%`;
+      const searchCondition = or(
+        like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
+        like(dishSearchIndex.tags, tagPattern),
+        like(dishSearchIndex.categoryName, tagPattern),
+        like(dishSearchIndex.district, tagPattern),
+        like(restaurants.name, tagPattern),
+        like(restaurants.city, tagPattern),
+        like(restaurants.district, tagPattern),
+        this.marketVendorKeywordCondition(tagPattern, filters.marketId),
       );
+      if (searchCondition) prefixConditions.push(searchCondition);
     }
     const whereClause = and(...prefixConditions);
     const [queryResult, countRows] = await Promise.all([
@@ -602,14 +608,18 @@ export class DiscoveryService {
     }
     if (q) {
       const pattern = `%${q.trim()}%`;
-      conditions.push(
-        or(
-          like(restaurantServiceItems.name, pattern),
-          like(restaurantServiceItems.description, pattern),
-          like(restaurantServiceItems.keywords, pattern),
-          like(restaurantServiceItems.tags, pattern),
-        )!,
+      const searchCondition = or(
+        like(restaurantServiceItems.name, pattern),
+        like(restaurantServiceItems.description, pattern),
+        like(restaurantServiceItems.keywords, pattern),
+        like(restaurantServiceItems.tags, pattern),
+        like(restaurantServiceItems.serviceType, pattern),
+        like(restaurants.name, pattern),
+        like(restaurants.city, pattern),
+        like(restaurants.district, pattern),
+        this.marketVendorKeywordCondition(pattern, filters.marketId),
       );
+      if (searchCondition) conditions.push(searchCondition);
     }
 
     const whereClause = and(...conditions);
@@ -1319,6 +1329,25 @@ export class DiscoveryService {
         AND ${restaurantMarketMemberships.leftAt} IS NULL
       LIMIT 1
     )`;
+  }
+
+  private marketVendorKeywordCondition(pattern: string, marketId?: string) {
+    return marketId
+      ? sql`EXISTS (
+          SELECT 1
+          FROM ${restaurantMarketMemberships}
+          WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+            AND ${restaurantMarketMemberships.marketId} = ${marketId}
+            AND ${restaurantMarketMemberships.leftAt} IS NULL
+            AND ${restaurantMarketMemberships.stallNumber} LIKE ${pattern}
+        )`
+      : sql`EXISTS (
+          SELECT 1
+          FROM ${restaurantMarketMemberships}
+          WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+            AND ${restaurantMarketMemberships.leftAt} IS NULL
+            AND ${restaurantMarketMemberships.stallNumber} LIKE ${pattern}
+        )`;
   }
 
   private marketVendorIsPrimary(marketId: string | undefined) {
