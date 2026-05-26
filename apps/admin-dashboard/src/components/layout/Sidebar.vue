@@ -113,6 +113,7 @@ import {
   Armchair,
   Activity,
   Globe,
+  MapPinned,
   UserPlus,
   Crown,
   MessageSquare,
@@ -138,6 +139,7 @@ const user = computed(() => authStore.user);
 // Platform-level routes that don't require restaurant context
 const platformItemNames = new Set([
   "platform",
+  "platform-markets",
   "monitoring",
   "settings",
   "account-management",
@@ -163,6 +165,13 @@ const navigationItems = computed(() => {
       path: "/dashboard/platform",
       label: t("nav.platform"),
       icon: Globe,
+      visible: authStore.isAdminRole,
+    },
+    {
+      name: "platform-markets",
+      path: "/dashboard/platform/markets",
+      label: "市場品質",
+      icon: MapPinned,
       visible: authStore.isAdminRole,
     },
     {
@@ -298,6 +307,7 @@ const navigationItems = computed(() => {
 const isActiveRoute = (path: string) => {
   if (path === "/dashboard" && route.path === "/dashboard") return true;
   if (path === "/dashboard") return false;
+  if (path === "/dashboard/platform") return route.path === path;
   return route.path === path || route.path.startsWith(path + "/");
 };
 
