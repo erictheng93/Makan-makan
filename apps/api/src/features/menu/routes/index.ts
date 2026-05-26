@@ -60,6 +60,10 @@ app.get(
       includeUnavailable: !!includeAll,
     });
 
+    if (!menu) {
+      throw notFound("Menu not found for restaurant", "MENU_NOT_FOUND");
+    }
+
     return c.json(createSuccessResponse(menu), HTTP_STATUS.OK);
   },
 );

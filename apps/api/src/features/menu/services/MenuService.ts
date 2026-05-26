@@ -6,7 +6,12 @@
 import type { Env } from "../../../shared/types";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { notFound, forbidden, conflict } from "../../../shared/utils/api-error";
-import { MenuService as DatabaseMenuService } from "@makanmakan/database";
+import {
+  MenuService as DatabaseMenuService,
+  restaurants,
+} from "@makanmakan/database";
+import { and, eq, isNull } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import type {
   MenuItem,
   Category,
@@ -29,10 +34,12 @@ import type {
 export class MenuService implements IMenuService {
   private readonly logger: ConsoleLogger;
   private readonly dbService: DatabaseMenuService;
+  private readonly db;
 
   constructor(private readonly env: Env) {
     this.logger = new ConsoleLogger("MenuService");
     this.dbService = new DatabaseMenuService(env.DB, env);
+    this.db = drizzle(env.DB);
   }
 
   async getMenu(
@@ -41,6 +48,22 @@ export class MenuService implements IMenuService {
   ): Promise<MenuStructure | null> {
     try {
       this.logger.info("Fetching complete menu", { restaurantId });
+      if (!options?.includeUnavailable) {
+        const [restaurant] = await this.db
+          .select({ id: restaurants.id })
+          .from(restaurants)
+          .where(
+            and(
+              eq(restaurants.id, restaurantId),
+              eq(restaurants.isActive, true),
+              isNull(restaurants.deletedAt),
+            ),
+          )
+          .limit(1);
+
+        if (!restaurant) return null;
+      }
+
       const menu = await this.dbService.getMenu(restaurantId, options);
       return menu ? this.transformMenuStructure(menu) : null;
     } catch (error) {

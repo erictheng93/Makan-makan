@@ -11,10 +11,10 @@ describe("Menu API — real integration", () => {
   beforeAll(async () => {
     testApp = await createRealIntegrationTestApp();
     seed = buildSeedHelpers(testApp.testDb);
-  });
+  }, 60000);
 
   afterAll(async () => {
-    await testApp.dispose();
+    await testApp?.dispose();
   });
 
   beforeEach(async () => {
@@ -106,5 +106,37 @@ describe("Menu API — real integration", () => {
     expect(availableFound).toBeTruthy();
     // Unavailable item should NOT appear in the public (unauthenticated) response.
     expect(unavailableFound).toBeUndefined();
+  });
+
+  it("does not expose public menus for inactive or deleted restaurants", async () => {
+    const inactiveRestaurant = await seed.restaurant({
+      name: "Inactive Public Menu Vendor",
+      isActive: false,
+    });
+    const deletedRestaurant = await seed.restaurant({
+      name: "Deleted Public Menu Vendor",
+      deletedAt: new Date(),
+    });
+
+    await seed.menuItem(inactiveRestaurant.id, {
+      isAvailable: true,
+      name: "Inactive Vendor Item",
+    });
+    await seed.menuItem(deletedRestaurant.id, {
+      isAvailable: true,
+      name: "Deleted Vendor Item",
+    });
+
+    const [inactiveRes, deletedRes] = await Promise.all([
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${inactiveRestaurant.id}`),
+      ),
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${deletedRestaurant.id}`),
+      ),
+    ]);
+
+    expect(inactiveRes.status).toBe(404);
+    expect(deletedRes.status).toBe(404);
   });
 });
