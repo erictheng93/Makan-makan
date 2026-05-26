@@ -51,9 +51,11 @@ function marketStore(overrides: Record<string, unknown> = {}) {
     vendorCount: 0,
     loading: false,
     vendorsLoading: false,
+    hasMoreVendors: false,
     error: null,
     loadMarketDetail: vi.fn().mockResolvedValue(undefined),
     loadVendors: vi.fn().mockResolvedValue(undefined),
+    loadMoreVendors: vi.fn().mockResolvedValue(undefined),
     resetSelectedMarket: vi.fn(),
     ...overrides,
   };
@@ -64,7 +66,28 @@ function mountView() {
     global: {
       stubs: {
         MarketDetailHero: true,
-        VendorListInMarket: true,
+        VendorListInMarket: {
+          props: ["vendors", "loading", "query", "takeawayOnly", "hasMore"],
+          emits: [
+            "update:query",
+            "update:takeawayOnly",
+            "selectVendor",
+            "takeaway",
+            "contactVendor",
+            "loadMore",
+          ],
+          template: `
+            <section data-testid="vendor-list">
+              <div data-testid="vendor-list-has-more">{{ hasMore }}</div>
+              <button
+                data-testid="vendor-list-load-more"
+                @click="$emit('loadMore')"
+              >
+                load more vendors
+              </button>
+            </section>
+          `,
+        },
         MarketProductSearch: {
           props: [
             "marketId",
@@ -248,5 +271,24 @@ describe("MarketDetailView", () => {
         returnLabel: "逢甲夜市",
       },
     });
+  });
+
+  it("loads more market vendors without losing the active filters", async () => {
+    const store = marketStore({
+      hasMoreVendors: true,
+      loadMoreVendors: vi.fn().mockResolvedValue(undefined),
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="vendor-list-load-more"]').trigger("click");
+
+    expect(store.loadMoreVendors).toHaveBeenCalledWith("fengjia", {
+      q: undefined,
+      takeaway: undefined,
+    });
+    expect(wrapper.get('[data-testid="vendor-list-has-more"]').text()).toBe(
+      "true",
+    );
   });
 });

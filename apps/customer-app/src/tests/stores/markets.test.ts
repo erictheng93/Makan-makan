@@ -55,4 +55,39 @@ describe("useMarketsStore", () => {
     expect(store.vendorCount).toBe(1);
     expect(store.vendors[0].name).toBe("雞排攤");
   });
+
+  it("appends additional vendors for large markets", async () => {
+    setActivePinia(createPinia());
+    vi.mocked(marketsApi.listVendors)
+      .mockResolvedValueOnce({
+        vendors: [{ restaurantId: "r1", name: "雞排攤" }],
+        total: 2,
+        page: 1,
+        limit: 1,
+      } as never)
+      .mockResolvedValueOnce({
+        vendors: [{ restaurantId: "r2", name: "甜點攤" }],
+        total: 2,
+        page: 2,
+        limit: 1,
+      } as never);
+
+    const store = useMarketsStore();
+    await store.loadVendors("fengjia", { q: "攤", limit: 1 });
+
+    expect(store.hasMoreVendors).toBe(true);
+
+    await store.loadMoreVendors("fengjia", { q: "攤" });
+
+    expect(marketsApi.listVendors).toHaveBeenLastCalledWith("fengjia", {
+      q: "攤",
+      page: 2,
+      limit: 1,
+    });
+    expect(store.vendors.map((vendor) => vendor.name)).toEqual([
+      "雞排攤",
+      "甜點攤",
+    ]);
+    expect(store.hasMoreVendors).toBe(false);
+  });
 });

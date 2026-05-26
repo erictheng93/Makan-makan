@@ -49,11 +49,13 @@
             :loading="store.vendorsLoading"
             :query="vendorQuery"
             :takeaway-only="takeawayOnly"
+            :has-more="store.hasMoreVendors"
             @update:query="onQueryChange"
             @update:takeaway-only="onTakeawayOnlyChange"
             @select-vendor="openVendor"
             @takeaway="startTakeaway"
             @contact-vendor="openContactProfile"
+            @load-more="loadMoreVendors"
           />
 
           <MarketProductSearch
@@ -242,6 +244,13 @@ const slug = () => String(route.params.slug);
 
 function loadVendors() {
   store.loadVendors(slug(), {
+    q: vendorQuery.value || undefined,
+    takeaway: takeawayOnly.value || undefined,
+  });
+}
+
+function loadMoreVendors() {
+  store.loadMoreVendors(slug(), {
     q: vendorQuery.value || undefined,
     takeaway: takeawayOnly.value || undefined,
   });

@@ -59,6 +59,16 @@
           </button>
         </div>
       </div>
+      <button
+        v-if="hasMore"
+        type="button"
+        data-testid="vendor-list-load-more"
+        class="h-10 w-full rounded-lg border border-ios-blue px-4 text-sm font-medium text-ios-blue disabled:border-gray-300 disabled:text-gray-400"
+        :disabled="loading"
+        @click="$emit('loadMore')"
+      >
+        {{ loading ? "載入中..." : "載入更多店鋪" }}
+      </button>
     </div>
   </section>
 </template>
@@ -72,6 +82,7 @@ defineProps<{
   loading: boolean;
   query: string;
   takeawayOnly: boolean;
+  hasMore?: boolean;
 }>();
 
 defineEmits<{
@@ -80,5 +91,6 @@ defineEmits<{
   selectVendor: [vendor: MarketVendor];
   takeaway: [vendor: MarketVendor];
   contactVendor: [vendor: MarketVendor];
+  loadMore: [];
 }>();
 </script>
