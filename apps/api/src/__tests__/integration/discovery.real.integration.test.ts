@@ -562,6 +562,76 @@ describe("Discovery API — real integration", () => {
     expect(secondData.total).toBe(0);
   });
 
+  it("syncs discovery index after menu item availability changes through menu API", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "menu-sync-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Menu Sync Vendor",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    await seed.user({
+      id: 41,
+      username: "menu-sync-admin",
+      role: 0,
+      restaurantId: String(restaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Menu Sync Bao",
+      price: 60,
+      isAvailable: true,
+    });
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: item.id,
+        name: "Menu Sync Bao",
+        price: 60,
+        isAvailable: true,
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+
+    const firstRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=Menu+Sync+Bao&marketId=${market.id}`,
+      ),
+    );
+    expect(firstRes.status).toBe(200);
+    const firstData = ((await firstRes.json()) as ApiTestResponse).data;
+    expect(firstData.results.map((r: any) => r.menuItemId)).toEqual([item.id]);
+
+    const updateRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/items/${item.id}`, {
+        method: "PUT",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({ isAvailable: false }),
+      }),
+    );
+    expect(updateRes.status).toBe(200);
+
+    const secondRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=Menu+Sync+Bao&marketId=${market.id}`,
+      ),
+    );
+    expect(secondRes.status).toBe(200);
+    const secondData = ((await secondRes.json()) as ApiTestResponse).data;
+    expect(secondData.results).toEqual([]);
+    expect(secondData.total).toBe(0);
+  });
+
   it("excludes inactive and deleted markets from full reindex market membership fields", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Discovery Reindex Admin",

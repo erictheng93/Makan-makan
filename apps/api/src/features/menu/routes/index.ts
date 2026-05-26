@@ -26,8 +26,17 @@ import { menuSchemas } from "../schemas/validation";
 
 // Import services
 import { MenuService } from "../services/MenuService";
+import { SearchIndexSyncService } from "../../discovery/services/SearchIndexSyncService";
 
 const app = new Hono<{ Bindings: Env }>();
+
+async function syncMenuItems(env: Env, menuItemIds: number[]): Promise<void> {
+  const uniqueIds = [...new Set(menuItemIds)];
+  if (uniqueIds.length === 0) return;
+
+  const sync = new SearchIndexSyncService(env.DB, env.CACHE_KV);
+  await Promise.all(uniqueIds.map((id) => sync.onMenuItemChanged(id)));
+}
 
 // Public Menu Routes (no authentication required)
 
@@ -175,6 +184,7 @@ app.post(
       ...data,
       restaurantId,
     });
+    await syncMenuItems(c.env, [item.id]);
 
     return c.json(
       createSuccessResponse(item, "Menu item created successfully"),
@@ -212,6 +222,7 @@ app.put(
     }
 
     const item = await service.updateMenuItem(id, data, existingItem);
+    await syncMenuItems(c.env, [id]);
 
     return c.json(
       createSuccessResponse(item, "Menu item updated successfully"),
@@ -249,6 +260,7 @@ app.delete(
     if (!deleted) {
       throw notFound("Menu item not found");
     }
+    await syncMenuItems(c.env, [id]);
 
     return c.json(
       createSuccessResponse(null, "Menu item deleted successfully"),
@@ -272,6 +284,10 @@ app.patch(
     const service = new MenuService(c.env);
 
     await service.batchUpdateAvailability(restaurantId, updates);
+    await syncMenuItems(
+      c.env,
+      updates.map((update) => update.id),
+    );
 
     return c.json(
       createSuccessResponse(
@@ -298,6 +314,10 @@ app.patch(
     const service = new MenuService(c.env);
 
     await service.batchUpdatePrices(restaurantId, updates);
+    await syncMenuItems(
+      c.env,
+      updates.map((update) => update.id),
+    );
 
     return c.json(
       createSuccessResponse(null, "Menu item prices updated successfully"),
@@ -321,6 +341,10 @@ app.patch(
     const service = new MenuService(c.env);
 
     await service.batchMoveItems(restaurantId, updates);
+    await syncMenuItems(
+      c.env,
+      updates.map((update) => update.id),
+    );
 
     return c.json(
       createSuccessResponse(
