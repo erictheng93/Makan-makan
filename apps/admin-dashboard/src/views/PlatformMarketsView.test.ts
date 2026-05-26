@@ -15,6 +15,9 @@ vi.mock("@/services/marketsService", () => ({
     importVendors: vi.fn(),
     searchVendorCandidates: vi.fn(),
     addVendor: vi.fn(),
+    listMarketVendors: vi.fn(),
+    updateVendor: vi.fn(),
+    removeVendor: vi.fn(),
   },
 }));
 
@@ -150,6 +153,7 @@ describe("PlatformMarketsView", () => {
       restaurants: [],
       total: 0,
     });
+    vi.mocked(marketsService.listMarketVendors).mockResolvedValue([]);
   });
 
   it("switches restaurant context before opening menu or service settings", async () => {
@@ -569,6 +573,76 @@ describe("PlatformMarketsView", () => {
     });
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已加入既有滷味攤");
+  });
+
+  it("loads attached vendors and lets admins update or remove them", async () => {
+    vi.mocked(marketsService.listMarketVendors).mockResolvedValue([
+      {
+        restaurantId: "restaurant-1",
+        name: "已加入雞排",
+        type: "market_stall",
+        category: "food",
+        city: "台中市",
+        district: "西屯區",
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        stallNumber: "A-01",
+        isPrimary: false,
+      },
+    ]);
+    vi.mocked(marketsService.updateVendor).mockResolvedValue({
+      id: 1,
+      restaurantId: "restaurant-1",
+      marketId: "market-1",
+      stallNumber: "A-02",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    vi.mocked(marketsService.removeVendor).mockResolvedValue(true);
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "編輯");
+    expect(editButton).toBeDefined();
+    await editButton!.trigger("click");
+    await flushPromises();
+
+    expect(marketsService.listMarketVendors).toHaveBeenCalledWith("fengjia", {
+      limit: 50,
+    });
+    expect(wrapper.text()).toContain("已加入雞排");
+
+    await wrapper
+      .get('[data-testid="attached-vendor-stall-restaurant-1"]')
+      .setValue("A-02");
+    await wrapper
+      .get('[data-testid="attached-vendor-primary-restaurant-1"]')
+      .setValue(true);
+    await wrapper
+      .get('[data-testid="attached-vendor-save-restaurant-1"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.updateVendor).toHaveBeenCalledWith(
+      "market-1",
+      "restaurant-1",
+      {
+        stallNumber: "A-02",
+        isPrimary: true,
+      },
+    );
+
+    await wrapper
+      .get('[data-testid="attached-vendor-remove-restaurant-1"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.removeVendor).toHaveBeenCalledWith(
+      "market-1",
+      "restaurant-1",
+    );
   });
 });
 

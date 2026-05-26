@@ -65,6 +65,19 @@ export interface MarketVendorCandidate {
   supportsDelivery: boolean;
 }
 
+export interface MarketVendor {
+  restaurantId: string;
+  name: string;
+  type?: string | null;
+  category?: string | null;
+  city?: string | null;
+  district?: string | null;
+  supportsTakeaway: boolean;
+  supportsDelivery: boolean;
+  stallNumber?: string | null;
+  isPrimary: boolean;
+}
+
 export interface MarketVendorCandidatesResult {
   restaurants: MarketVendorCandidate[];
   total: number;
@@ -137,6 +150,11 @@ export interface AddMarketVendorInput {
   isPrimary?: boolean;
 }
 
+export interface UpdateMarketVendorInput {
+  stallNumber?: string | null;
+  isPrimary?: boolean;
+}
+
 export interface MarketJoinRequest {
   id: number;
   restaurantId: string;
@@ -196,6 +214,19 @@ export const marketsService = {
     return unwrapApiPayload<{ memberships: RestaurantMarketMembership[] }>(
       response.data,
     ).memberships;
+  },
+
+  async listMarketVendors(
+    slug: string,
+    input: { limit?: number } = {},
+  ): Promise<MarketVendor[]> {
+    const response = await api.get<{
+      vendors: MarketVendor[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`/markets/${slug}/vendors`, { limit: input.limit ?? 50 });
+    return unwrapApiPayload<{ vendors: MarketVendor[] }>(response.data).vendors;
   },
 
   async requestJoin(
@@ -263,5 +294,26 @@ export const marketsService = {
     return unwrapApiPayload<{ membership: RestaurantMarketMembership }>(
       response.data,
     ).membership;
+  },
+
+  async updateVendor(
+    marketId: string,
+    restaurantId: string,
+    input: UpdateMarketVendorInput,
+  ): Promise<RestaurantMarketMembership> {
+    const response = await api.put<{ membership: RestaurantMarketMembership }>(
+      `/admin/markets/${marketId}/vendors/${restaurantId}`,
+      input,
+    );
+    return unwrapApiPayload<{ membership: RestaurantMarketMembership }>(
+      response.data,
+    ).membership;
+  },
+
+  async removeVendor(marketId: string, restaurantId: string): Promise<boolean> {
+    const response = await api.delete<{ removed: boolean }>(
+      `/admin/markets/${marketId}/vendors/${restaurantId}`,
+    );
+    return unwrapApiPayload<{ removed: boolean }>(response.data).removed;
   },
 };

@@ -601,6 +601,102 @@
           class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
         >
           <div>
+            <h3 class="text-base font-semibold text-gray-900">已加入店鋪</h3>
+            <p class="mt-1 text-sm text-gray-500">
+              維護攤位號與主要市場設定，或將店鋪從此市場移除。
+            </p>
+          </div>
+          <button
+            type="button"
+            class="w-fit rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+            :disabled="isLoadingAttachedVendors"
+            @click="loadAttachedVendors()"
+          >
+            {{ isLoadingAttachedVendors ? "讀取中..." : "重新整理" }}
+          </button>
+        </div>
+
+        <p v-if="attachedVendorError" class="mt-3 text-sm text-red-600">
+          {{ attachedVendorError }}
+        </p>
+
+        <div
+          v-if="attachedVendors.length > 0"
+          class="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200"
+        >
+          <div
+            v-for="vendor in attachedVendors"
+            :key="vendor.restaurantId"
+            :data-testid="`attached-vendor-row-${vendor.restaurantId}`"
+            class="grid gap-3 p-3 lg:grid-cols-[1fr_10rem_8rem_auto_auto]"
+          >
+            <div>
+              <div class="font-medium text-gray-900">
+                {{ vendor.name }}
+              </div>
+              <div class="mt-0.5 text-xs text-gray-500">
+                {{ vendor.city || "未填城市" }} ·
+                {{ vendor.district || "未填區域" }}
+              </div>
+              <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
+                <span v-if="vendor.type">{{ vendor.type }}</span>
+                <span v-if="vendor.category">{{ vendor.category }}</span>
+                <span v-if="vendor.supportsTakeaway">可外帶</span>
+                <span v-if="vendor.supportsDelivery">可外送</span>
+              </div>
+            </div>
+            <input
+              v-model="vendor.draftStallNumber"
+              type="text"
+              :data-testid="`attached-vendor-stall-${vendor.restaurantId}`"
+              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              placeholder="攤位號"
+            />
+            <label
+              class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+            >
+              <input
+                v-model="vendor.draftIsPrimary"
+                type="checkbox"
+                :data-testid="`attached-vendor-primary-${vendor.restaurantId}`"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              主要市場
+            </label>
+            <button
+              type="button"
+              :data-testid="`attached-vendor-save-${vendor.restaurantId}`"
+              class="h-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+              :disabled="vendor.isSaving || vendor.isRemoving"
+              @click="saveAttachedVendor(vendor)"
+            >
+              {{ vendor.isSaving ? "儲存中..." : "儲存" }}
+            </button>
+            <button
+              type="button"
+              :data-testid="`attached-vendor-remove-${vendor.restaurantId}`"
+              class="h-fit rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+              :disabled="vendor.isSaving || vendor.isRemoving"
+              @click="removeAttachedVendor(vendor)"
+            >
+              {{ vendor.isRemoving ? "移除中..." : "移除" }}
+            </button>
+          </div>
+        </div>
+
+        <p
+          v-else-if="!isLoadingAttachedVendors"
+          class="mt-3 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-500"
+        >
+          這個市場目前沒有已加入店鋪。
+        </p>
+      </section>
+
+      <section class="mt-6 border-t border-gray-200 pt-5">
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div>
             <h3 class="text-base font-semibold text-gray-900">加入既有店鋪</h3>
             <p class="mt-1 text-sm text-gray-500">
               搜尋已建立的店鋪，直接掛到這個市場或商圈。
@@ -710,6 +806,7 @@ import {
   type MarketCatalogGapVendor,
   type MarketAreaReadinessSummary,
   type MarketListItem,
+  type MarketVendor,
   type MarketVendorCandidate,
 } from "@/services/marketsService";
 import { useAuthStore } from "@/stores/auth";
@@ -744,6 +841,12 @@ import {
 } from "@/utils/marketAreaReadinessExport";
 
 type MarketAreaKey = Pick<MarketAreaReadinessSummary, "city" | "district">;
+type EditableMarketVendor = MarketVendor & {
+  draftStallNumber: string;
+  draftIsPrimary: boolean;
+  isSaving?: boolean;
+  isRemoving?: boolean;
+};
 
 const router = useRouter();
 const route = useRoute();
@@ -771,6 +874,9 @@ const vendorAttachMessage = ref("");
 const vendorCandidateSearched = ref(false);
 const isLoadingVendorCandidates = ref(false);
 const attachingVendorId = ref<string | null>(null);
+const attachedVendors = ref<EditableMarketVendor[]>([]);
+const attachedVendorError = ref("");
+const isLoadingAttachedVendors = ref(false);
 const editForm = reactive<MarketPublicProfileForm>({
   description: "",
   address: "",
@@ -972,7 +1078,9 @@ function startEditing(market: MarketListItem) {
   vendorImportResult.value = null;
   vendorImportText.value = "";
   resetVendorCandidateState();
+  resetAttachedVendorState();
   Object.assign(editForm, marketPublicProfileFormFromMarket(market));
+  void loadAttachedVendors(market);
 }
 
 function cancelEditing() {
@@ -982,6 +1090,7 @@ function cancelEditing() {
   vendorImportResult.value = null;
   vendorImportText.value = "";
   resetVendorCandidateState();
+  resetAttachedVendorState();
 }
 
 async function saveMarketProfile() {
@@ -1078,11 +1187,98 @@ async function importVendorsForMarket() {
     );
     vendorImportText.value = "";
     await loadMarkets();
+    await loadAttachedVendors();
   } catch (error) {
     console.error("Failed to import market vendors:", error);
     vendorImportError.value = "匯入失敗，請確認店鋪欄位與權限。";
   } finally {
     isImportingVendors.value = false;
+  }
+}
+
+function resetAttachedVendorState() {
+  attachedVendors.value = [];
+  attachedVendorError.value = "";
+  isLoadingAttachedVendors.value = false;
+}
+
+function editableMarketVendor(vendor: MarketVendor): EditableMarketVendor {
+  return {
+    ...vendor,
+    draftStallNumber: vendor.stallNumber ?? "",
+    draftIsPrimary: vendor.isPrimary,
+  };
+}
+
+async function loadAttachedVendors(market = editingMarket.value) {
+  if (!market) return;
+
+  attachedVendorError.value = "";
+  isLoadingAttachedVendors.value = true;
+
+  try {
+    const vendors = await marketsService.listMarketVendors(market.slug, {
+      limit: 50,
+    });
+    if (editingMarket.value?.id !== market.id) return;
+    attachedVendors.value = vendors.map(editableMarketVendor);
+  } catch (error) {
+    console.error("Failed to load attached market vendors:", error);
+    if (editingMarket.value?.id !== market.id) return;
+    attachedVendorError.value = "讀取已加入店鋪失敗，請稍後再試。";
+    attachedVendors.value = [];
+  } finally {
+    if (editingMarket.value?.id === market.id) {
+      isLoadingAttachedVendors.value = false;
+    }
+  }
+}
+
+async function saveAttachedVendor(vendor: EditableMarketVendor) {
+  if (!editingMarket.value) return;
+
+  vendor.isSaving = true;
+  attachedVendorError.value = "";
+
+  try {
+    await marketsService.updateVendor(
+      editingMarket.value.id,
+      vendor.restaurantId,
+      {
+        stallNumber: vendor.draftStallNumber.trim() || null,
+        isPrimary: vendor.draftIsPrimary,
+      },
+    );
+    await loadMarkets();
+    await loadAttachedVendors();
+  } catch (error) {
+    console.error("Failed to update attached market vendor:", error);
+    attachedVendorError.value = "儲存店鋪設定失敗，請確認權限後再試。";
+  } finally {
+    vendor.isSaving = false;
+  }
+}
+
+async function removeAttachedVendor(vendor: EditableMarketVendor) {
+  if (!editingMarket.value) return;
+
+  vendor.isRemoving = true;
+  attachedVendorError.value = "";
+
+  try {
+    await marketsService.removeVendor(
+      editingMarket.value.id,
+      vendor.restaurantId,
+    );
+    attachedVendors.value = attachedVendors.value.filter(
+      (item) => item.restaurantId !== vendor.restaurantId,
+    );
+    await loadMarkets();
+  } catch (error) {
+    console.error("Failed to remove attached market vendor:", error);
+    attachedVendorError.value = "移除店鋪失敗，請確認權限後再試。";
+  } finally {
+    vendor.isRemoving = false;
   }
 }
 
@@ -1151,6 +1347,7 @@ async function attachVendorCandidate(candidate: MarketVendorCandidate) {
     delete vendorCandidateStalls[candidate.id];
     delete vendorCandidatePrimary[candidate.id];
     await loadMarkets();
+    await loadAttachedVendors();
   } catch (error) {
     console.error("Failed to attach market vendor candidate:", error);
     vendorCandidateError.value = "加入失敗，可能已在此市場或權限不足。";

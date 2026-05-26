@@ -92,6 +92,11 @@ export const addMarketVendorSchema = z.object({
   isPrimary: z.boolean().optional(),
 });
 
+export const updateMarketVendorSchema = z.object({
+  stallNumber: z.string().max(80).nullable().optional(),
+  isPrimary: z.boolean().optional(),
+});
+
 const importMarketVendorSchema = z
   .object({
     restaurantId: z.string().min(1).max(120).optional(),

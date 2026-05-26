@@ -1608,6 +1608,29 @@ describe("Markets API — real integration", () => {
       code: "MARKET_VENDOR_ALREADY_ATTACHED",
     });
 
+    const updateVendorRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/${marketId}/vendors/${vendorJson.data.membership.restaurantId}`,
+        {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({
+            stallNumber: "A-02",
+            isPrimary: false,
+          }),
+        },
+      ),
+    );
+    expect(updateVendorRes.status).toBe(200);
+    expect(
+      ((await updateVendorRes.json()) as any).data.membership,
+    ).toMatchObject({
+      restaurantId: String(restaurant.id),
+      marketId,
+      stallNumber: "A-02",
+      isPrimary: false,
+    });
+
     const publicVendorsRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets/admin-created-market/vendors"),
     );

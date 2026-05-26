@@ -7,6 +7,7 @@ vi.mock("@/services/api", () => ({
     get: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
+    delete: vi.fn(),
   },
   unwrapApiPayload: (payload: { data?: unknown }) => payload.data ?? payload,
 }));
@@ -118,5 +119,88 @@ describe("marketsService", () => {
       restaurantId: "restaurant-1",
       marketId: "market-1",
     });
+  });
+
+  it("lists vendors attached to a public market", async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        data: {
+          vendors: [
+            {
+              restaurantId: "restaurant-1",
+              name: "已加入攤",
+              stallNumber: "A-01",
+              isPrimary: true,
+            },
+          ],
+        },
+      },
+    } as never);
+
+    const result = await marketsService.listMarketVendors("fengjia", {
+      limit: 50,
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/markets/fengjia/vendors", {
+      limit: 50,
+    });
+    expect(result[0]).toMatchObject({
+      restaurantId: "restaurant-1",
+      stallNumber: "A-01",
+    });
+  });
+
+  it("updates an existing market vendor membership", async () => {
+    vi.mocked(api.put).mockResolvedValueOnce({
+      data: {
+        data: {
+          membership: {
+            id: 1,
+            restaurantId: "restaurant-1",
+            marketId: "market-1",
+            stallNumber: "A-02",
+            isPrimary: true,
+          },
+        },
+      },
+    } as never);
+
+    const result = await marketsService.updateVendor(
+      "market-1",
+      "restaurant-1",
+      {
+        stallNumber: "A-02",
+        isPrimary: true,
+      },
+    );
+
+    expect(api.put).toHaveBeenCalledWith(
+      "/admin/markets/market-1/vendors/restaurant-1",
+      {
+        stallNumber: "A-02",
+        isPrimary: true,
+      },
+    );
+    expect(result).toMatchObject({
+      restaurantId: "restaurant-1",
+      stallNumber: "A-02",
+      isPrimary: true,
+    });
+  });
+
+  it("removes an existing market vendor membership", async () => {
+    vi.mocked(api.delete).mockResolvedValueOnce({
+      data: { data: { removed: true } },
+    } as never);
+
+    const result = await marketsService.removeVendor(
+      "market-1",
+      "restaurant-1",
+    );
+
+    expect(api.delete).toHaveBeenCalledWith(
+      "/admin/markets/market-1/vendors/restaurant-1",
+    );
+    expect(result).toBe(true);
   });
 });

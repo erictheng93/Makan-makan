@@ -18,6 +18,7 @@ import {
   marketJoinRequestIdParamSchema,
   marketIdParamSchema,
   marketVendorParamSchema,
+  updateMarketVendorSchema,
   updateMarketSchema,
 } from "../schemas/validation";
 import { MarketsService } from "../services/MarketsService";
@@ -434,6 +435,42 @@ routes.post(
     await sync.onMarketMembershipChanged(body.restaurantId);
 
     return c.json({ success: true, data: { membership } }, 201);
+  },
+);
+
+routes.put(
+  "/:id/vendors/:restaurantId",
+  validateParams(marketVendorParamSchema),
+  validateBody(updateMarketVendorSchema),
+  async (c) => {
+    const { id, restaurantId } = c.get("validatedParams");
+    const body = c.get("validatedBody");
+    const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
+    const existing = await service.getActiveVendorMembership(id, restaurantId);
+
+    if (!existing) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "MARKET_VENDOR_NOT_FOUND",
+            message: "Restaurant does not belong to this market",
+          },
+        },
+        404,
+      );
+    }
+
+    const membership = await service.addVendor(id, {
+      restaurantId,
+      stallNumber: body.stallNumber,
+      isPrimary: body.isPrimary,
+    });
+
+    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    await sync.onMarketMembershipChanged(restaurantId);
+
+    return c.json({ success: true, data: { membership } });
   },
 );
 
