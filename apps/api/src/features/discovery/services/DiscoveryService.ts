@@ -64,7 +64,8 @@ export class DiscoveryService {
     }
 
     // 2. Normalize query
-    const normalized = q ? this.normalizeQuery(q) : null;
+    const serviceIntent = q ? this.getServiceIntent(q) : null;
+    const normalized = q && !serviceIntent ? this.normalizeQuery(q) : null;
 
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
@@ -93,10 +94,10 @@ export class DiscoveryService {
         sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) <= ${toRequiredCents(filters.priceMax)}`,
       );
     }
-    if (filters.takeaway) {
+    if (filters.takeaway || serviceIntent === "takeaway") {
       baseConditions.push(eq(dishSearchIndex.supportsTakeaway, true));
     }
-    if (filters.delivery) {
+    if (filters.delivery || serviceIntent === "delivery") {
       baseConditions.push(eq(dishSearchIndex.supportsDelivery, true));
     }
     if (filters.marketId) {
@@ -761,6 +762,27 @@ export class DiscoveryService {
 
   private normalizeQuery(query: string): string {
     return query.trim().toLowerCase().replace(/\s+/g, "");
+  }
+
+  private getServiceIntent(query: string): "takeaway" | "delivery" | null {
+    const normalized = this.normalizeQuery(query);
+    if (
+      [
+        "外帶",
+        "自取",
+        "取餐",
+        "takeaway",
+        "takeout",
+        "pickup",
+        "togo",
+      ].includes(normalized)
+    ) {
+      return "takeaway";
+    }
+    if (["外送", "配送", "宅配", "delivery", "deliver"].includes(normalized)) {
+      return "delivery";
+    }
+    return null;
   }
 
   private buildCacheKey(

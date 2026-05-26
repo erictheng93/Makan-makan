@@ -63,6 +63,36 @@ describe("discovery takeaway buttons", () => {
     expect(wrapper.emitted("takeaway")?.[0]).toBeTruthy();
   });
 
+  it("shows available service labels on dish results", () => {
+    const wrapper = mount(DishResultCard, {
+      props: {
+        dish: {
+          menuItemId: 1,
+          dishName: "Market Bao",
+          price: 60,
+          categoryName: null,
+          restaurantId: "r1",
+          restaurantName: "包子攤",
+          district: "北區",
+          isOpen: true,
+          supportsTakeaway: true,
+          supportsDelivery: true,
+          tags: [],
+        },
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    });
+
+    expect(wrapper.get('[data-testid="dish-service-labels"]').text()).toContain(
+      "可外帶",
+    );
+    expect(wrapper.get('[data-testid="dish-service-labels"]').text()).toContain(
+      "可外送",
+    );
+  });
+
   it("hides immediate takeaway when restaurant is closed", () => {
     const wrapper = mount(RestaurantCard, {
       props: {
@@ -87,5 +117,34 @@ describe("discovery takeaway buttons", () => {
     expect(
       wrapper.find('[data-testid="restaurant-takeaway-button"]').exists(),
     ).toBe(false);
+  });
+
+  it("shows available service labels on restaurant results", () => {
+    const wrapper = mount(RestaurantCard, {
+      props: {
+        restaurant: {
+          restaurantId: "r1",
+          name: "雞排攤",
+          type: "snack",
+          district: "西屯區",
+          priceRange: 1,
+          rating: 4.5,
+          isOpen: true,
+          supportsTakeaway: true,
+          supportsDelivery: true,
+          imageUrl: null,
+        },
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    });
+
+    expect(
+      wrapper.get('[data-testid="restaurant-service-labels"]').text(),
+    ).toContain("可外帶");
+    expect(
+      wrapper.get('[data-testid="restaurant-service-labels"]').text(),
+    ).toContain("可外送");
   });
 });

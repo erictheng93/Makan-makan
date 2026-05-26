@@ -370,6 +370,94 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("treats takeaway service keywords as takeaway-capable dish searches", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Service Search Vendor",
+      supportsTakeaway: true,
+    });
+    const takeawayItem = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Service Search Bao",
+      price: 60,
+    });
+    const dineInOnlyItem = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Service Search Soup",
+      price: 80,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: takeawayItem.id,
+        name: "Service Search Bao",
+        price: 60,
+        supportsTakeaway: true,
+      },
+      {
+        menuItemId: dineInOnlyItem.id,
+        name: "Service Search Soup",
+        price: 80,
+        supportsTakeaway: false,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/search?q=外帶"),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+
+    expect(data.results.map((r: any) => r.menuItemId)).toEqual([
+      takeawayItem.id,
+    ]);
+    expect(data.total).toBe(1);
+  });
+
+  it("treats delivery service keywords as delivery-capable dish searches", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Delivery Service Vendor",
+      supportsDelivery: true,
+    });
+    const deliveryItem = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Delivery Service Tea",
+      price: 50,
+    });
+    const pickupOnlyItem = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Delivery Service Cake",
+      price: 90,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: deliveryItem.id,
+        name: "Delivery Service Tea",
+        price: 50,
+        supportsDelivery: true,
+      },
+      {
+        menuItemId: pickupOnlyItem.id,
+        name: "Delivery Service Cake",
+        price: 90,
+        supportsDelivery: false,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/search?q=外送"),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+
+    expect(data.results.map((r: any) => r.menuItemId)).toEqual([
+      deliveryItem.id,
+    ]);
+    expect(data.total).toBe(1);
+  });
+
   it("scopes dish search by city when districts have the same name", async () => {
     const taipeiRestaurant = await seed.restaurant({
       name: "Taipei Zhongshan Vendor",

@@ -59,6 +59,19 @@
               {{ restaurant.rating.toFixed(1) }}
             </span>
           </div>
+          <div
+            v-if="serviceLabels.length > 0"
+            data-testid="restaurant-service-labels"
+            class="mt-2 flex flex-wrap gap-1"
+          >
+            <span
+              v-for="label in serviceLabels"
+              :key="label"
+              class="rounded bg-gray-50 px-2 py-0.5 text-xs text-gray-500"
+            >
+              {{ label }}
+            </span>
+          </div>
         </div>
       </div>
     </button>
@@ -93,4 +106,11 @@ defineEmits<{
 const canTakeaway = computed(
   () => props.restaurant.isOpen && props.restaurant.supportsTakeaway,
 );
+
+const serviceLabels = computed(() => {
+  const labels: string[] = [];
+  if (props.restaurant.supportsTakeaway) labels.push("可外帶");
+  if (props.restaurant.supportsDelivery) labels.push("可外送");
+  return labels;
+});
 </script>

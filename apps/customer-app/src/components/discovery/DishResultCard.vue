@@ -35,6 +35,19 @@
               {{ t("discovery.closed") }}
             </span>
           </div>
+          <div
+            v-if="serviceLabels.length > 0"
+            data-testid="dish-service-labels"
+            class="mt-2 flex flex-wrap gap-1"
+          >
+            <span
+              v-for="label in serviceLabels"
+              :key="label"
+              class="rounded bg-ios-bg px-2 py-0.5 text-xs text-ios-secondary"
+            >
+              {{ label }}
+            </span>
+          </div>
         </div>
       </div>
       <div v-if="dish.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
@@ -80,4 +93,11 @@ defineEmits<{
 const canTakeaway = computed(
   () => props.dish.isOpen && props.dish.supportsTakeaway,
 );
+
+const serviceLabels = computed(() => {
+  const labels: string[] = [];
+  if (props.dish.supportsTakeaway) labels.push("可外帶");
+  if (props.dish.supportsDelivery) labels.push("可外送");
+  return labels;
+});
 </script>
