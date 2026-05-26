@@ -5,10 +5,16 @@ import { marketsApi } from "@/services/marketsApi";
 import { useMarketsStore } from "@/stores/markets";
 
 const routerPush = vi.hoisted(() => vi.fn());
+const routerReplace = vi.hoisted(() => vi.fn());
+const routeQuery = vi.hoisted(() => ({}) as Record<string, unknown>);
 
 vi.mock("vue-router", () => ({
+  useRoute: () => ({
+    query: routeQuery,
+  }),
   useRouter: () => ({
     push: routerPush,
+    replace: routerReplace,
   }),
 }));
 
@@ -50,6 +56,10 @@ function mountView() {
 describe("MarketsView", () => {
   beforeEach(() => {
     routerPush.mockReset();
+    routerReplace.mockReset();
+    for (const key of Object.keys(routeQuery)) {
+      delete routeQuery[key];
+    }
     vi.mocked(marketsApi.listAreas).mockResolvedValue({
       areas: [],
     } as never);
@@ -124,6 +134,46 @@ describe("MarketsView", () => {
       q: "夜市",
       city: "台中市",
       district: "西屯區",
+    });
+  });
+
+  it("initializes and syncs market directory filters through the URL", async () => {
+    routeQuery.q = "夜市";
+    routeQuery.city = "台中市";
+    routeQuery.district = "西屯區";
+    vi.mocked(marketsApi.listAreas).mockResolvedValueOnce({
+      areas: [{ city: "台中市", districts: ["西屯區", "北區"] }],
+    } as never);
+    const store = marketsStore();
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    expect(store.loadMarkets).toHaveBeenCalledWith({
+      q: "夜市",
+      city: "台中市",
+      district: "西屯區",
+    });
+    expect(
+      (
+        wrapper.get('[data-testid="markets-search-input"]')
+          .element as HTMLInputElement
+      ).value,
+    ).toBe("夜市");
+
+    await wrapper.get('[data-testid="markets-search-input"]').setValue("雞排");
+    await wrapper.get('[data-testid="markets-city-select"]').setValue("台中市");
+    await wrapper
+      .get('[data-testid="markets-district-select"]')
+      .setValue("北區");
+    await wrapper.get('[data-testid="markets-search-form"]').trigger("submit");
+
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: {
+        q: "雞排",
+        city: "台中市",
+        district: "北區",
+      },
     });
   });
 });

@@ -137,7 +137,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import MarketCard from "@/components/markets/MarketCard.vue";
 import { useMarketsStore } from "@/stores/markets";
 import {
@@ -147,10 +147,11 @@ import {
 } from "@/services/marketsApi";
 
 const router = useRouter();
+const route = useRoute();
 const store = useMarketsStore();
-const query = ref("");
-const city = ref("");
-const district = ref("");
+const query = ref(firstQueryString(route.query.q));
+const city = ref(firstQueryString(route.query.city));
+const district = ref(firstQueryString(route.query.district));
 const locating = ref(false);
 const marketAreas = ref<MarketArea[]>([]);
 
@@ -166,6 +167,7 @@ const districts = computed(() => {
 });
 
 function reloadList() {
+  syncDirectoryQuery();
   store.loadMarkets({
     q: query.value.trim() || undefined,
     city: city.value || undefined,
@@ -184,6 +186,24 @@ function loadMoreMarkets() {
 function onCityChange() {
   district.value = "";
   reloadList();
+}
+
+function firstQueryString(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === "string") ?? "";
+  }
+
+  return typeof value === "string" ? value : "";
+}
+
+function syncDirectoryQuery() {
+  router.replace({
+    query: {
+      ...(query.value.trim() ? { q: query.value.trim() } : {}),
+      ...(city.value ? { city: city.value } : {}),
+      ...(district.value ? { district: district.value } : {}),
+    },
+  });
 }
 
 async function loadAreas() {
