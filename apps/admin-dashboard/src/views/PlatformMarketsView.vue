@@ -59,11 +59,18 @@
         <span class="text-xs text-gray-400">依總缺口排序</span>
       </div>
       <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <article
+        <button
           v-for="area in areaReadiness.slice(0, 6)"
           :key="`${area.city}-${area.district}`"
+          type="button"
           data-testid="area-readiness-row"
-          class="rounded-lg border border-gray-200 p-3"
+          class="rounded-lg border p-3 text-left transition-colors"
+          :class="
+            isSelectedArea(area)
+              ? 'border-primary-500 bg-primary-50'
+              : 'border-gray-200 hover:border-primary-200 hover:bg-gray-50'
+          "
+          @click="selectArea(area)"
         >
           <div class="flex items-start justify-between gap-3">
             <div>
@@ -104,7 +111,7 @@
             <span>缺商品 {{ area.vendorsMissingSearchableProducts }}</span>
             <span>缺服務 {{ area.vendorsMissingPublicServices }}</span>
           </div>
-        </article>
+        </button>
       </div>
     </section>
 
@@ -132,6 +139,23 @@
             {{ option.label }}
           </button>
         </div>
+      </div>
+      <div
+        v-if="selectedArea"
+        data-testid="selected-area-filter"
+        class="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600"
+      >
+        <span>
+          目前區域：{{ selectedArea.city }} · {{ selectedArea.district }}
+        </span>
+        <button
+          type="button"
+          data-testid="clear-area-filter"
+          class="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
+          @click="selectedArea = null"
+        >
+          清除區域
+        </button>
       </div>
     </div>
 
@@ -604,10 +628,13 @@ import {
   marketCatalogGapCsvFilename,
 } from "@/utils/marketCatalogGapExport";
 
+type MarketAreaKey = Pick<MarketAreaReadinessSummary, "city" | "district">;
+
 const router = useRouter();
 const authStore = useAuthStore();
 const markets = ref<MarketListItem[]>([]);
 const areaReadiness = ref<MarketAreaReadinessSummary[]>([]);
+const selectedArea = ref<MarketAreaKey | null>(null);
 const isLoading = ref(true);
 const isSaving = ref(false);
 const query = ref("");
@@ -648,9 +675,22 @@ const vendorImportFormatOptions: Array<{
 ];
 
 const stats = computed(() => marketReadinessStats(markets.value));
+const areaFilteredMarkets = computed(() => {
+  if (!selectedArea.value) return markets.value;
+
+  return markets.value.filter(
+    (market) =>
+      market.city === selectedArea.value?.city &&
+      market.district === selectedArea.value?.district,
+  );
+});
 const filteredMarkets = computed(() =>
   sortMarketsByCatalogPriority(
-    filterMarketsByReadiness(markets.value, readinessFilter.value, query.value),
+    filterMarketsByReadiness(
+      areaFilteredMarkets.value,
+      readinessFilter.value,
+      query.value,
+    ),
   ),
 );
 const metrics = computed(() => [
@@ -703,6 +743,17 @@ function readinessBadgeClass(market: MarketListItem) {
   if (!market.publicReadiness) return "bg-gray-100 text-gray-600";
   if (market.publicReadiness.ready) return "bg-green-100 text-green-700";
   return "bg-amber-100 text-amber-800";
+}
+
+function isSelectedArea(area: MarketAreaKey) {
+  return (
+    selectedArea.value?.city === area.city &&
+    selectedArea.value?.district === area.district
+  );
+}
+
+function selectArea(area: MarketAreaKey) {
+  selectedArea.value = { city: area.city, district: area.district };
 }
 
 async function loadMarkets() {

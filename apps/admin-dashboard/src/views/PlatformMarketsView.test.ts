@@ -81,6 +81,32 @@ describe("PlatformMarketsView", () => {
           issues: [{ key: "products", severity: "required" }],
         },
       },
+      {
+        id: "market-2",
+        slug: "yizhong",
+        name: "一中商圈",
+        type: "commercial_district",
+        city: "台中市",
+        district: "北區",
+        vendorCount: 1,
+        catalogCoverage: {
+          searchableProductCount: 3,
+          publicServiceCount: 1,
+          vendorsWithSearchableProducts: 1,
+          vendorsMissingSearchableProducts: 0,
+          vendorsWithPublicServices: 1,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: true,
+          score: 100,
+          completedCount: 7,
+          totalCount: 7,
+          issues: [],
+        },
+      },
     ]);
     vi.mocked(marketsService.listAreaReadiness).mockResolvedValue([
       {
@@ -289,6 +315,29 @@ describe("PlatformMarketsView", () => {
     expect(areaRows[0].text()).toContain("缺商品 3");
     expect(areaRows[0].text()).toContain("缺服務 4");
     expect(areaRows[1].text()).toContain("台中市 · 北區");
+  });
+
+  it("filters the market list when selecting an area readiness row", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("逢甲夜市");
+    expect(wrapper.text()).toContain("一中商圈");
+
+    await wrapper
+      .findAll('[data-testid="area-readiness-row"]')[1]
+      .trigger("click");
+
+    expect(wrapper.text()).not.toContain("逢甲夜市");
+    expect(wrapper.text()).toContain("一中商圈");
+    expect(
+      wrapper.get('[data-testid="selected-area-filter"]').text(),
+    ).toContain("台中市 · 北區");
+
+    await wrapper.get('[data-testid="clear-area-filter"]').trigger("click");
+
+    expect(wrapper.text()).toContain("逢甲夜市");
+    expect(wrapper.text()).toContain("一中商圈");
   });
 
   it("downloads a CSV for currently visible catalog gaps", async () => {
