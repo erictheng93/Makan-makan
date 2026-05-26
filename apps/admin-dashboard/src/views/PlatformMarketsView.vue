@@ -21,6 +21,15 @@
         </button>
         <button
           type="button"
+          data-testid="export-area-readiness"
+          class="w-fit rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+          :disabled="isLoading || areaReadiness.length === 0"
+          @click="downloadAreaReadinessCsv"
+        >
+          匯出區域 CSV
+        </button>
+        <button
+          type="button"
           class="w-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
           :disabled="isLoading"
           @click="loadMarkets"
@@ -627,6 +636,10 @@ import {
   buildMarketCatalogGapCsv,
   marketCatalogGapCsvFilename,
 } from "@/utils/marketCatalogGapExport";
+import {
+  buildMarketAreaReadinessCsv,
+  marketAreaReadinessCsvFilename,
+} from "@/utils/marketAreaReadinessExport";
 
 type MarketAreaKey = Pick<MarketAreaReadinessSummary, "city" | "district">;
 
@@ -961,14 +974,27 @@ async function importVendorsForMarket() {
 }
 
 function downloadCatalogGapCsv() {
-  const csv = buildMarketCatalogGapCsv(filteredMarkets.value);
+  downloadCsv(
+    buildMarketCatalogGapCsv(filteredMarkets.value),
+    marketCatalogGapCsvFilename(),
+  );
+}
+
+function downloadAreaReadinessCsv() {
+  downloadCsv(
+    buildMarketAreaReadinessCsv(areaReadiness.value),
+    marketAreaReadinessCsvFilename(),
+  );
+}
+
+function downloadCsv(csv: string, filename: string) {
   const blob = new Blob([`\uFEFF${csv}`], {
     type: "text/csv;charset=utf-8;",
   });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = marketCatalogGapCsvFilename();
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
 }

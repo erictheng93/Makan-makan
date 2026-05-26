@@ -390,6 +390,19 @@ describe("PlatformMarketsView", () => {
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
   });
 
+  it("downloads a CSV for area-level readiness summaries", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper.get('[data-testid="export-area-readiness"]').trigger("click");
+
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    expect(blob.type).toBe("text/csv;charset=utf-8;");
+    expect(click).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
+  });
+
   it("imports vendors into the selected market from JSON", async () => {
     vi.mocked(marketsService.importVendors).mockResolvedValue({
       createdRestaurants: 1,
