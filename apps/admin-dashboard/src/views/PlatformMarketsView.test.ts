@@ -153,7 +153,12 @@ describe("PlatformMarketsView", () => {
       restaurants: [],
       total: 0,
     });
-    vi.mocked(marketsService.listMarketVendors).mockResolvedValue([]);
+    vi.mocked(marketsService.listMarketVendors).mockResolvedValue({
+      vendors: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+    });
   });
 
   it("switches restaurant context before opening menu or service settings", async () => {
@@ -576,20 +581,25 @@ describe("PlatformMarketsView", () => {
   });
 
   it("loads attached vendors and lets admins update or remove them", async () => {
-    vi.mocked(marketsService.listMarketVendors).mockResolvedValue([
-      {
-        restaurantId: "restaurant-1",
-        name: "已加入雞排",
-        type: "market_stall",
-        category: "food",
-        city: "台中市",
-        district: "西屯區",
-        supportsTakeaway: true,
-        supportsDelivery: false,
-        stallNumber: "A-01",
-        isPrimary: false,
-      },
-    ]);
+    vi.mocked(marketsService.listMarketVendors).mockResolvedValue({
+      vendors: [
+        {
+          restaurantId: "restaurant-1",
+          name: "已加入雞排",
+          type: "market_stall",
+          category: "food",
+          city: "台中市",
+          district: "西屯區",
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          stallNumber: "A-01",
+          isPrimary: false,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 10,
+    });
     vi.mocked(marketsService.updateVendor).mockResolvedValue({
       id: 1,
       restaurantId: "restaurant-1",
@@ -610,7 +620,9 @@ describe("PlatformMarketsView", () => {
     await flushPromises();
 
     expect(marketsService.listMarketVendors).toHaveBeenCalledWith("fengjia", {
-      limit: 50,
+      q: undefined,
+      page: 1,
+      limit: 10,
     });
     expect(wrapper.text()).toContain("已加入雞排");
 
@@ -643,6 +655,102 @@ describe("PlatformMarketsView", () => {
       "market-1",
       "restaurant-1",
     );
+  });
+
+  it("searches and paginates attached vendors for large markets", async () => {
+    vi.mocked(marketsService.listMarketVendors)
+      .mockResolvedValueOnce({
+        vendors: [
+          {
+            restaurantId: "restaurant-1",
+            name: "第一頁店鋪",
+            city: "台中市",
+            district: "西屯區",
+            supportsTakeaway: true,
+            supportsDelivery: false,
+            stallNumber: "A-01",
+            isPrimary: false,
+          },
+        ],
+        total: 21,
+        page: 1,
+        limit: 10,
+      })
+      .mockResolvedValueOnce({
+        vendors: [
+          {
+            restaurantId: "restaurant-11",
+            name: "第二頁雞排",
+            city: "台中市",
+            district: "西屯區",
+            supportsTakeaway: true,
+            supportsDelivery: false,
+            stallNumber: "B-11",
+            isPrimary: false,
+          },
+        ],
+        total: 21,
+        page: 2,
+        limit: 10,
+      })
+      .mockResolvedValueOnce({
+        vendors: [
+          {
+            restaurantId: "restaurant-search",
+            name: "搜尋雞排",
+            city: "台中市",
+            district: "西屯區",
+            supportsTakeaway: true,
+            supportsDelivery: false,
+            stallNumber: "C-01",
+            isPrimary: false,
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 10,
+      });
+
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "編輯");
+    await editButton!.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("第 1 / 3 頁");
+    await wrapper
+      .get('[data-testid="attached-vendor-next-page"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.listMarketVendors).toHaveBeenLastCalledWith(
+      "fengjia",
+      {
+        q: undefined,
+        page: 2,
+        limit: 10,
+      },
+    );
+    expect(wrapper.text()).toContain("第二頁雞排");
+
+    await wrapper.get('[data-testid="attached-vendor-query"]').setValue("雞排");
+    await wrapper
+      .get('[data-testid="attached-vendor-search"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.listMarketVendors).toHaveBeenLastCalledWith(
+      "fengjia",
+      {
+        q: "雞排",
+        page: 1,
+        limit: 10,
+      },
+    );
+    expect(wrapper.text()).toContain("搜尋雞排");
   });
 });
 

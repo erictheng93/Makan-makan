@@ -78,6 +78,13 @@ export interface MarketVendor {
   isPrimary: boolean;
 }
 
+export interface MarketVendorsResult {
+  vendors: MarketVendor[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface MarketVendorCandidatesResult {
   restaurants: MarketVendorCandidate[];
   total: number;
@@ -218,15 +225,17 @@ export const marketsService = {
 
   async listMarketVendors(
     slug: string,
-    input: { limit?: number } = {},
-  ): Promise<MarketVendor[]> {
-    const response = await api.get<{
-      vendors: MarketVendor[];
-      total: number;
-      page: number;
-      limit: number;
-    }>(`/markets/${slug}/vendors`, { limit: input.limit ?? 50 });
-    return unwrapApiPayload<{ vendors: MarketVendor[] }>(response.data).vendors;
+    input: { q?: string; page?: number; limit?: number } = {},
+  ): Promise<MarketVendorsResult> {
+    const response = await api.get<MarketVendorsResult>(
+      `/markets/${slug}/vendors`,
+      {
+        q: input.q,
+        page: input.page ?? 1,
+        limit: input.limit ?? 10,
+      },
+    );
+    return unwrapApiPayload<MarketVendorsResult>(response.data);
   },
 
   async requestJoin(

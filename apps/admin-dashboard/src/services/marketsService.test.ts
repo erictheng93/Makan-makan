@@ -133,21 +133,31 @@ describe("marketsService", () => {
               isPrimary: true,
             },
           ],
+          total: 23,
+          page: 2,
+          limit: 10,
         },
       },
     } as never);
 
     const result = await marketsService.listMarketVendors("fengjia", {
-      limit: 50,
+      q: "雞排",
+      page: 2,
+      limit: 10,
     });
 
     expect(api.get).toHaveBeenCalledWith("/markets/fengjia/vendors", {
-      limit: 50,
+      q: "雞排",
+      page: 2,
+      limit: 10,
     });
-    expect(result[0]).toMatchObject({
+    expect(result.vendors[0]).toMatchObject({
       restaurantId: "restaurant-1",
       stallNumber: "A-01",
     });
+    expect(result.total).toBe(23);
+    expect(result.page).toBe(2);
+    expect(result.limit).toBe(10);
   });
 
   it("updates an existing market vendor membership", async () => {

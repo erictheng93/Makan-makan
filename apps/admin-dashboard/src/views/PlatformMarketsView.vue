@@ -620,6 +620,26 @@
           {{ attachedVendorError }}
         </p>
 
+        <div class="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+          <input
+            v-model="attachedVendorQuery"
+            type="search"
+            data-testid="attached-vendor-query"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+            placeholder="搜尋已加入店鋪"
+            @keyup.enter="searchAttachedVendors"
+          />
+          <button
+            type="button"
+            data-testid="attached-vendor-search"
+            class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+            :disabled="isLoadingAttachedVendors"
+            @click="searchAttachedVendors"
+          >
+            搜尋
+          </button>
+        </div>
+
         <div
           v-if="attachedVendors.length > 0"
           class="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200"
@@ -684,8 +704,41 @@
           </div>
         </div>
 
+        <div
+          v-if="attachedVendorTotal > 0"
+          class="mt-3 flex flex-col gap-3 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <span>
+            共 {{ attachedVendorTotal }} 間店鋪，第 {{ attachedVendorPage }} /
+            {{ attachedVendorPageCount }} 頁
+          </span>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              data-testid="attached-vendor-prev-page"
+              class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+              :disabled="isLoadingAttachedVendors || attachedVendorPage <= 1"
+              @click="goToAttachedVendorPage(attachedVendorPage - 1)"
+            >
+              上一頁
+            </button>
+            <button
+              type="button"
+              data-testid="attached-vendor-next-page"
+              class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+              :disabled="
+                isLoadingAttachedVendors ||
+                attachedVendorPage >= attachedVendorPageCount
+              "
+              @click="goToAttachedVendorPage(attachedVendorPage + 1)"
+            >
+              下一頁
+            </button>
+          </div>
+        </div>
+
         <p
-          v-else-if="!isLoadingAttachedVendors"
+          v-else-if="!isLoadingAttachedVendors && !attachedVendorError"
           class="mt-3 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-500"
         >
           這個市場目前沒有已加入店鋪。
@@ -877,6 +930,10 @@ const attachingVendorId = ref<string | null>(null);
 const attachedVendors = ref<EditableMarketVendor[]>([]);
 const attachedVendorError = ref("");
 const isLoadingAttachedVendors = ref(false);
+const attachedVendorQuery = ref("");
+const attachedVendorPage = ref(1);
+const attachedVendorLimit = 10;
+const attachedVendorTotal = ref(0);
 const editForm = reactive<MarketPublicProfileForm>({
   description: "",
   address: "",
@@ -968,6 +1025,9 @@ const vendorImportPlaceholder = computed(() =>
   vendorImportFormat.value === "csv"
     ? "restaurantId,name,type,category,description,address,district,city,phone,email,website,stallNumber,isPrimary"
     : '[{"restaurantId":"restaurant-1","stallNumber":"A-01"},{"name":"新店鋪","address":"台中市西屯區文華路","district":"西屯區","stallNumber":"B-02"}]',
+);
+const attachedVendorPageCount = computed(() =>
+  Math.max(1, Math.ceil(attachedVendorTotal.value / attachedVendorLimit)),
 );
 
 function readinessBadgeClass(market: MarketListItem) {
@@ -1200,6 +1260,9 @@ function resetAttachedVendorState() {
   attachedVendors.value = [];
   attachedVendorError.value = "";
   isLoadingAttachedVendors.value = false;
+  attachedVendorQuery.value = "";
+  attachedVendorPage.value = 1;
+  attachedVendorTotal.value = 0;
 }
 
 function editableMarketVendor(vendor: MarketVendor): EditableMarketVendor {
@@ -1217,21 +1280,39 @@ async function loadAttachedVendors(market = editingMarket.value) {
   isLoadingAttachedVendors.value = true;
 
   try {
-    const vendors = await marketsService.listMarketVendors(market.slug, {
-      limit: 50,
+    const result = await marketsService.listMarketVendors(market.slug, {
+      q: attachedVendorQuery.value.trim() || undefined,
+      page: attachedVendorPage.value,
+      limit: attachedVendorLimit,
     });
     if (editingMarket.value?.id !== market.id) return;
-    attachedVendors.value = vendors.map(editableMarketVendor);
+    attachedVendors.value = result.vendors.map(editableMarketVendor);
+    attachedVendorTotal.value = result.total;
+    attachedVendorPage.value = result.page;
   } catch (error) {
     console.error("Failed to load attached market vendors:", error);
     if (editingMarket.value?.id !== market.id) return;
     attachedVendorError.value = "讀取已加入店鋪失敗，請稍後再試。";
     attachedVendors.value = [];
+    attachedVendorTotal.value = 0;
   } finally {
     if (editingMarket.value?.id === market.id) {
       isLoadingAttachedVendors.value = false;
     }
   }
+}
+
+function searchAttachedVendors() {
+  attachedVendorPage.value = 1;
+  void loadAttachedVendors();
+}
+
+function goToAttachedVendorPage(page: number) {
+  attachedVendorPage.value = Math.min(
+    Math.max(1, page),
+    attachedVendorPageCount.value,
+  );
+  void loadAttachedVendors();
 }
 
 async function saveAttachedVendor(vendor: EditableMarketVendor) {
@@ -1270,9 +1351,10 @@ async function removeAttachedVendor(vendor: EditableMarketVendor) {
       editingMarket.value.id,
       vendor.restaurantId,
     );
-    attachedVendors.value = attachedVendors.value.filter(
-      (item) => item.restaurantId !== vendor.restaurantId,
-    );
+    if (attachedVendors.value.length === 1 && attachedVendorPage.value > 1) {
+      attachedVendorPage.value -= 1;
+    }
+    await loadAttachedVendors();
     await loadMarkets();
   } catch (error) {
     console.error("Failed to remove attached market vendor:", error);
