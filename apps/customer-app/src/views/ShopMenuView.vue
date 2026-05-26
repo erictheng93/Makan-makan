@@ -351,7 +351,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
@@ -369,6 +369,7 @@ import type {
   MenuItem,
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
+import { applyShopMenuSeoMeta } from "@/utils/seoMeta";
 
 // Props
 const props = defineProps<{
@@ -379,6 +380,7 @@ const props = defineProps<{
 
 // Composables
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const { t, tWithParams } = useI18n();
 const appStore = useAppStore();
@@ -552,6 +554,21 @@ watch(restaurant, (newRestaurant) => {
     appStore.setRestaurantContext(newRestaurant, 0);
   }
 });
+
+watch(
+  [restaurant, menuStructure],
+  ([newRestaurant, newMenuStructure]) => {
+    if (!newRestaurant || !newMenuStructure) return;
+
+    applyShopMenuSeoMeta({
+      restaurant: newRestaurant,
+      categories: newMenuStructure.categories,
+      menuItems: newMenuStructure.menuItems,
+      path: route.path,
+    });
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

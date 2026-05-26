@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { applyMarketSeoMeta } from "@/utils/seoMeta";
+import { applyMarketSeoMeta, applyShopMenuSeoMeta } from "@/utils/seoMeta";
 import type { MarketDetail } from "@/services/marketsApi";
+import type { Category, MenuItem, Restaurant } from "@makanmakan/shared-types";
 
 function market(overrides: Partial<MarketDetail> = {}): MarketDetail {
   return {
@@ -40,6 +41,68 @@ function marketJsonLd() {
     'script[type="application/ld+json"][data-seo="market"]',
   );
   return script ? JSON.parse(script.textContent ?? "{}") : null;
+}
+
+function shopMenuJsonLd() {
+  const script = document.head.querySelector<HTMLScriptElement>(
+    'script[type="application/ld+json"][data-seo="shop-menu"]',
+  );
+  return script ? JSON.parse(script.textContent ?? "{}") : null;
+}
+
+function restaurant(overrides: Partial<Restaurant> = {}): Restaurant {
+  return {
+    id: "restaurant-1",
+    name: "阿明鹽酥雞",
+    type: "stall",
+    category: "food",
+    description: "夜市人氣炸物攤",
+    address: "台中市西屯區文華路100號",
+    district: "西屯區",
+    city: "台中市",
+    latitude: 24.1764,
+    longitude: 120.6466,
+    phone: "0212345678",
+    logoUrl: "/logo.jpg",
+    bannerUrl: null,
+    imageUrls: [],
+    isAvailable: true,
+    isActive: true,
+    status: 1,
+    planType: 1,
+    supportsTakeaway: true,
+    supportsDelivery: false,
+    ...overrides,
+  };
+}
+
+function category(overrides: Partial<Category> = {}): Category {
+  return {
+    id: 10,
+    restaurantId: "restaurant-1",
+    name: "招牌炸物",
+    sortOrder: 1,
+    status: 1,
+    ...overrides,
+  };
+}
+
+function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
+  return {
+    id: 101,
+    restaurantId: "restaurant-1",
+    categoryId: 10,
+    name: "鹽酥雞",
+    description: "現炸招牌鹽酥雞",
+    price: 7500,
+    spiceLevel: 0,
+    sortOrder: 1,
+    isAvailable: true,
+    isFeatured: true,
+    inventoryCount: -1,
+    orderCount: 20,
+    ...overrides,
+  };
 }
 
 describe("applyMarketSeoMeta", () => {
@@ -149,5 +212,108 @@ describe("applyMarketSeoMeta", () => {
       ),
     ).toHaveLength(1);
     expect(marketJsonLd()?.name).toBe("一中商圈");
+  });
+});
+
+describe("applyShopMenuSeoMeta", () => {
+  beforeEach(() => {
+    document.head.innerHTML = "";
+    document.title = "";
+  });
+
+  it("updates share metadata, canonical URL, and restaurant menu structured data", () => {
+    applyMarketSeoMeta({
+      market: market(),
+      vendorCount: 12,
+      path: "/markets/fengjia",
+      origin: "https://makanmakan.app",
+    });
+
+    applyShopMenuSeoMeta({
+      restaurant: restaurant(),
+      categories: [category()],
+      menuItems: [
+        menuItem(),
+        menuItem({
+          id: 102,
+          name: "地瓜薯條",
+          description: undefined,
+          price: 5000,
+        }),
+        menuItem({ id: 103, name: "售完雞排", isAvailable: false }),
+      ],
+      path: "/restaurant/restaurant-1/shop/menu?phone=1234",
+      origin: "https://makanmakan.app",
+    });
+
+    expect(document.title).toBe("阿明鹽酥雞菜單｜線上點餐｜MakanMakan");
+    expect(metaByName("description")).toContain("2 項可點餐商品");
+    expect(metaByProperty("og:type")).toBe("restaurant");
+    expect(metaByProperty("og:url")).toBe(
+      "https://makanmakan.app/restaurant/restaurant-1/shop/menu",
+    );
+    expect(metaByProperty("og:image")).toBe("https://makanmakan.app/logo.jpg");
+    expect(
+      document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+        ?.href,
+    ).toBe("https://makanmakan.app/restaurant/restaurant-1/shop/menu");
+    expect(marketJsonLd()).toBeNull();
+
+    const jsonLd = shopMenuJsonLd();
+
+    expect(jsonLd).toMatchObject({
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      name: "阿明鹽酥雞",
+      description: expect.stringContaining("2 項可點餐商品"),
+      url: "https://makanmakan.app/restaurant/restaurant-1/shop/menu",
+      image: "https://makanmakan.app/logo.jpg",
+      servesCuisine: "food",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "台中市西屯區文華路100號",
+        addressLocality: "西屯區",
+        addressRegion: "台中市",
+        addressCountry: "TW",
+      },
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: 24.1764,
+        longitude: 120.6466,
+      },
+    });
+    expect(jsonLd.potentialAction).toMatchObject({
+      "@type": "OrderAction",
+      target: "https://makanmakan.app/restaurant/restaurant-1/shop/menu",
+    });
+    expect(jsonLd.hasMenu.hasMenuSection).toEqual([
+      {
+        "@type": "MenuSection",
+        name: "招牌炸物",
+        hasMenuItem: [
+          {
+            "@type": "MenuItem",
+            name: "鹽酥雞",
+            description: "現炸招牌鹽酥雞",
+            offers: {
+              "@type": "Offer",
+              price: "75.00",
+              priceCurrency: "TWD",
+              availability: "https://schema.org/InStock",
+            },
+          },
+          {
+            "@type": "MenuItem",
+            name: "地瓜薯條",
+            offers: {
+              "@type": "Offer",
+              price: "50.00",
+              priceCurrency: "TWD",
+              availability: "https://schema.org/InStock",
+            },
+          },
+        ],
+      },
+    ]);
   });
 });
