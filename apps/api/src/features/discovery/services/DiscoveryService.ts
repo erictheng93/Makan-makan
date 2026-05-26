@@ -261,6 +261,10 @@ export class DiscoveryService {
       supportsTakeaway: row.supportsTakeaway,
       supportsDelivery: row.supportsDelivery,
       tags: row.tags ?? [],
+      detailUrl: this.restaurantDetailUrl(row.restaurantId),
+      menuUrl: this.restaurantMenuUrl(row.restaurantId),
+      menuItemUrl: this.menuItemUrl(row.menuItemId),
+      serviceItemsUrl: this.restaurantServiceItemsUrl(row.restaurantId),
     }));
 
     if (geoFilter) {
@@ -649,6 +653,9 @@ export class DiscoveryService {
       district: row.district,
       city: row.city,
       isOpen: isOpenNow(row.businessHours ?? null),
+      detailUrl: this.restaurantDetailUrl(row.restaurantId),
+      menuUrl: this.restaurantMenuUrl(row.restaurantId),
+      serviceItemsUrl: this.restaurantServiceItemsUrl(row.restaurantId),
     }));
 
     if (filters.openNow) {
@@ -814,6 +821,10 @@ export class DiscoveryService {
       supportsTakeaway: row.supportsTakeaway,
       supportsDelivery: row.supportsDelivery,
       tags: row.tags ?? [],
+      detailUrl: this.restaurantDetailUrl(row.restaurantId),
+      menuUrl: this.restaurantMenuUrl(row.restaurantId),
+      menuItemUrl: this.menuItemUrl(row.menuItemId),
+      serviceItemsUrl: this.restaurantServiceItemsUrl(row.restaurantId),
     }));
 
     const topRestaurants = await this.browseRestaurants({
@@ -1111,6 +1122,22 @@ export class DiscoveryService {
 
   private normalizeQuery(query: string): string {
     return query.trim().toLowerCase().replace(/\s+/g, "");
+  }
+
+  private restaurantDetailUrl(restaurantId: string): string {
+    return `/api/v1/restaurants/${restaurantId}`;
+  }
+
+  private restaurantMenuUrl(restaurantId: string): string {
+    return `/api/v1/menu/${restaurantId}`;
+  }
+
+  private restaurantServiceItemsUrl(restaurantId: string): string {
+    return `/api/v1/restaurants/${restaurantId}/service-items`;
+  }
+
+  private menuItemUrl(menuItemId: number): string {
+    return `/api/v1/menu/items/${menuItemId}`;
   }
 
   private getServiceIntent(query: string): "takeaway" | "delivery" | null {

@@ -10,6 +10,10 @@ export interface DishSearchResult {
   supportsTakeaway: boolean;
   supportsDelivery: boolean;
   tags: string[];
+  detailUrl: string;
+  menuUrl: string;
+  menuItemUrl: string;
+  serviceItemsUrl: string;
 }
 
 export interface RestaurantListItem {
@@ -43,6 +47,9 @@ export interface ServiceSearchResult {
   district: string | null;
   city: string | null;
   isOpen: boolean;
+  detailUrl: string;
+  menuUrl: string;
+  serviceItemsUrl: string;
 }
 
 export interface SearchFilters {

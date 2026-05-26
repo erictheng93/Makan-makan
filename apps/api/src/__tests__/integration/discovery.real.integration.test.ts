@@ -203,6 +203,64 @@ describe("Discovery API — real integration", () => {
     expect(data.total).toBe(12);
   });
 
+  it("returns openable store entrypoints from dish and service searches", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Openable Search Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    const menuItem = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Openable Bao",
+      price: 95,
+    });
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: menuItem.id,
+        name: "Openable Bao",
+        price: 95,
+        district: "西屯區",
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(restaurant.id),
+      name: "Openable Pickup",
+      serviceType: "pickup",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const dishRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/search?q=Openable"),
+    );
+    const serviceRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/services?q=Openable"),
+    );
+
+    expect(dishRes.status).toBe(200);
+    expect(serviceRes.status).toBe(200);
+    const dishData = ((await dishRes.json()) as any).data;
+    const serviceData = ((await serviceRes.json()) as any).data;
+
+    expect(dishData.results[0]).toMatchObject({
+      menuItemId: menuItem.id,
+      restaurantId: restaurant.id,
+      detailUrl: `/api/v1/restaurants/${restaurant.id}`,
+      menuUrl: `/api/v1/menu/${restaurant.id}`,
+      menuItemUrl: `/api/v1/menu/items/${menuItem.id}`,
+      serviceItemsUrl: `/api/v1/restaurants/${restaurant.id}/service-items`,
+    });
+    expect(serviceData.results[0]).toMatchObject({
+      restaurantId: restaurant.id,
+      detailUrl: `/api/v1/restaurants/${restaurant.id}`,
+      menuUrl: `/api/v1/menu/${restaurant.id}`,
+      serviceItemsUrl: `/api/v1/restaurants/${restaurant.id}/service-items`,
+    });
+  });
+
   // -------------------------------------------------------------------------
   // Pagination offset: page 2 should return the remaining items
   // -------------------------------------------------------------------------
