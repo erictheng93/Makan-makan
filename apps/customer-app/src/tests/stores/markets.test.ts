@@ -74,6 +74,26 @@ describe("useMarketsStore", () => {
     vi.mocked(marketsApi.getMarket).mockResolvedValueOnce({
       market: { id: "m1", slug: "fengjia", name: "逢甲夜市" },
       vendorCount: 1,
+      explorationSummary: {
+        dishSearchUrl: "/api/v1/discovery/search?marketId=m1",
+        serviceSearchUrl: "/api/v1/discovery/services?marketId=m1",
+        dishCategories: [
+          {
+            categoryName: "炸物",
+            count: 3,
+            searchUrl:
+              "/api/v1/discovery/search?marketId=m1&categoryName=%E7%82%B8%E7%89%A9",
+          },
+        ],
+        serviceTypes: [
+          {
+            serviceType: "pickup",
+            count: 2,
+            searchUrl:
+              "/api/v1/discovery/services?marketId=m1&serviceType=pickup",
+          },
+        ],
+      },
     } as never);
     vi.mocked(marketsApi.listVendors).mockResolvedValueOnce({
       vendors: [{ restaurantId: "r1", name: "雞排攤" }],
@@ -88,6 +108,10 @@ describe("useMarketsStore", () => {
 
     expect(store.selectedMarket?.slug).toBe("fengjia");
     expect(store.vendorCount).toBe(1);
+    expect(store.explorationSummary?.dishCategories[0]).toMatchObject({
+      categoryName: "炸物",
+      count: 3,
+    });
     expect(store.vendors[0].name).toBe("雞排攤");
   });
 

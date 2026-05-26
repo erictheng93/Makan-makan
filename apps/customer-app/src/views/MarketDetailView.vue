@@ -45,6 +45,56 @@
           :vendor-count="store.vendorCount"
         />
         <section class="space-y-4 px-4 py-4">
+          <section
+            v-if="hasExplorationShortcuts"
+            data-testid="market-exploration-shortcuts"
+            class="space-y-3 rounded-xl border border-gray-200 bg-white p-4"
+          >
+            <div>
+              <h2 class="text-base font-semibold text-gray-900">
+                探索這個市場
+              </h2>
+            </div>
+
+            <div v-if="dishCategoryFacets.length > 0" class="space-y-2">
+              <h3 class="text-sm font-medium text-gray-700">熱門分類</h3>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="facet in dishCategoryFacets"
+                  :key="facet.categoryName"
+                  type="button"
+                  :data-testid="`market-dish-facet-${facet.categoryName}`"
+                  class="rounded-full border border-ios-blue/30 bg-ios-blue/5 px-3 py-1.5 text-sm font-medium text-ios-blue"
+                  @click="applyDishCategoryShortcut(facet.categoryName)"
+                >
+                  {{ facet.categoryName }}
+                  <span class="ml-1 text-xs text-ios-blue/70">
+                    {{ facet.count }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="serviceTypeFacets.length > 0" class="space-y-2">
+              <h3 class="text-sm font-medium text-gray-700">店家服務</h3>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="facet in serviceTypeFacets"
+                  :key="facet.serviceType"
+                  type="button"
+                  :data-testid="`market-service-facet-${facet.serviceType}`"
+                  class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700"
+                  @click="applyServiceTypeShortcut(facet.serviceType)"
+                >
+                  {{ serviceTypeLabel(facet.serviceType) }}
+                  <span class="ml-1 text-xs text-emerald-600">
+                    {{ facet.count }}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </section>
+
           <VendorListInMarket
             :vendors="store.vendors"
             :loading="store.vendorsLoading"
@@ -62,6 +112,7 @@
           />
 
           <MarketProductSearch
+            :key="marketSearchKey"
             :market-id="store.selectedMarket.id"
             :initial-query="marketSearchState.q"
             :initial-category="marketSearchState.categoryName"
@@ -246,6 +297,7 @@ function marketSearchStateFromQuery(): MarketSearchState {
 }
 
 const marketSearchState = ref<MarketSearchState>(marketSearchStateFromQuery());
+const marketSearchKey = ref(0);
 const returnContext = computed(() => {
   const path = firstQueryString(route.query.returnPath).trim();
   if (!path || !path.startsWith("/") || path.startsWith("//")) return null;
@@ -253,6 +305,31 @@ const returnContext = computed(() => {
   const label = firstQueryString(route.query.returnLabel).trim() || "上一頁";
   return { path, label };
 });
+const dishCategoryFacets = computed(
+  () => store.explorationSummary?.dishCategories ?? [],
+);
+const serviceTypeFacets = computed(() =>
+  (store.explorationSummary?.serviceTypes ?? []).filter((facet) =>
+    isServiceType(facet.serviceType),
+  ),
+);
+const hasExplorationShortcuts = computed(
+  () =>
+    dishCategoryFacets.value.length > 0 || serviceTypeFacets.value.length > 0,
+);
+
+const serviceTypeLabels: Record<
+  NonNullable<SearchFilters["serviceType"]>,
+  string
+> = {
+  general: "一般服務",
+  booking: "預約",
+  pickup: "自取",
+  delivery: "外送",
+  consultation: "諮詢",
+  rental: "租借",
+  activity: "活動",
+};
 
 const slug = () => String(route.params.slug);
 
@@ -355,6 +432,41 @@ function syncMarketSearchState(state: MarketSearchState) {
       ...marketDirectoryReturnQuery(),
     },
   });
+}
+
+function applyDishCategoryShortcut(categoryName: string) {
+  syncShortcutSearchState({
+    q: "",
+    categoryName,
+    serviceType: "",
+    takeaway: false,
+    delivery: false,
+    sortBy: "price_asc",
+  });
+}
+
+function applyServiceTypeShortcut(
+  serviceType: NonNullable<SearchFilters["serviceType"]>,
+) {
+  syncShortcutSearchState({
+    q: "",
+    categoryName: "",
+    serviceType,
+    takeaway: false,
+    delivery: false,
+    sortBy: "price_asc",
+  });
+}
+
+function syncShortcutSearchState(state: MarketSearchState) {
+  syncMarketSearchState(state);
+  marketSearchKey.value += 1;
+}
+
+function serviceTypeLabel(
+  serviceType: NonNullable<SearchFilters["serviceType"]>,
+) {
+  return serviceTypeLabels[serviceType] ?? serviceType;
 }
 
 function marketReturnQuery() {

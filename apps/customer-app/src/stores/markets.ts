@@ -4,6 +4,7 @@ import {
   marketsApi,
   type ListMarketsParams,
   type MarketDetail,
+  type MarketExplorationSummary,
   type MarketListItem,
   type MarketVendor,
   type NearbyMarketsParams,
@@ -17,6 +18,7 @@ export const useMarketsStore = defineStore("markets", () => {
   const markets = ref<MarketListItem[]>([]);
   const nearbyMarkets = ref<Array<MarketListItem & { distanceKm: number }>>([]);
   const selectedMarket = ref<MarketDetail | null>(null);
+  const explorationSummary = ref<MarketExplorationSummary | null>(null);
   const vendors = ref<MarketVendor[]>([]);
   const vendorCount = ref(0);
   const vendorPage = ref(1);
@@ -101,9 +103,11 @@ export const useMarketsStore = defineStore("markets", () => {
       const response = await marketsApi.getMarket(slug);
       selectedMarket.value = response.market;
       vendorCount.value = response.vendorCount;
+      explorationSummary.value = response.explorationSummary ?? null;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load market";
       selectedMarket.value = null;
+      explorationSummary.value = null;
     } finally {
       loading.value = false;
     }
@@ -156,6 +160,7 @@ export const useMarketsStore = defineStore("markets", () => {
 
   function resetSelectedMarket() {
     selectedMarket.value = null;
+    explorationSummary.value = null;
     vendors.value = [];
     vendorCount.value = 0;
     vendorPage.value = 1;
@@ -166,6 +171,7 @@ export const useMarketsStore = defineStore("markets", () => {
     markets,
     nearbyMarkets,
     selectedMarket,
+    explorationSummary,
     vendors,
     vendorCount,
     hasMoreVendors,

@@ -51,6 +51,26 @@ function marketStore(overrides: Record<string, unknown> = {}) {
     },
     vendors: [],
     vendorCount: 0,
+    explorationSummary: {
+      dishSearchUrl: "/api/v1/discovery/search?marketId=market-1",
+      serviceSearchUrl: "/api/v1/discovery/services?marketId=market-1",
+      dishCategories: [
+        {
+          categoryName: "炸物",
+          count: 3,
+          searchUrl:
+            "/api/v1/discovery/search?marketId=market-1&categoryName=%E7%82%B8%E7%89%A9",
+        },
+      ],
+      serviceTypes: [
+        {
+          serviceType: "pickup",
+          count: 2,
+          searchUrl:
+            "/api/v1/discovery/services?marketId=market-1&serviceType=pickup",
+        },
+      ],
+    },
     loading: false,
     vendorsLoading: false,
     hasMoreVendors: false,
@@ -238,6 +258,43 @@ describe("MarketDetailView", () => {
         takeaway: "true",
         delivery: "true",
         sortBy: "popular",
+      },
+    });
+  });
+
+  it("renders market exploration shortcuts and applies them to product search", async () => {
+    const wrapper = mountView();
+
+    expect(
+      wrapper.get('[data-testid="market-dish-facet-炸物"]').text(),
+    ).toContain("炸物");
+    expect(
+      wrapper.get('[data-testid="market-service-facet-pickup"]').text(),
+    ).toContain("自取");
+
+    await wrapper
+      .get('[data-testid="market-dish-facet-炸物"]')
+      .trigger("click");
+
+    expect(
+      wrapper.get('[data-testid="market-product-search-props"]').text(),
+    ).toContain("|炸物||false|false|price_asc");
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: {
+        categoryName: "炸物",
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-service-facet-pickup"]')
+      .trigger("click");
+
+    expect(
+      wrapper.get('[data-testid="market-product-search-props"]').text(),
+    ).toContain("||pickup|false|false|price_asc");
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: {
+        serviceType: "pickup",
       },
     });
   });

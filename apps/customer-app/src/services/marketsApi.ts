@@ -31,6 +31,21 @@ export interface MarketDetail extends MarketListItem {
   imageUrls?: string[] | null;
 }
 
+export interface MarketExplorationSummary {
+  dishSearchUrl: string;
+  serviceSearchUrl: string;
+  dishCategories: Array<{
+    categoryName: string;
+    count: number;
+    searchUrl: string;
+  }>;
+  serviceTypes: Array<{
+    serviceType: string;
+    count: number;
+    searchUrl: string;
+  }>;
+}
+
 export interface MarketVendor extends RestaurantListItem {
   stallNumber: string | null;
   isPrimary: boolean;
@@ -84,9 +99,11 @@ export const marketsApi = {
   },
 
   async getMarket(slug: string) {
-    return apiClient.get<{ market: MarketDetail; vendorCount: number }>(
-      `/markets/${slug}`,
-    );
+    return apiClient.get<{
+      market: MarketDetail;
+      vendorCount: number;
+      explorationSummary?: MarketExplorationSummary;
+    }>(`/markets/${slug}`);
   },
 
   async listVendors(slug: string, params: VendorFilters = {}) {
