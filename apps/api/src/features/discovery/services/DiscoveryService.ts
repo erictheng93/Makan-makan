@@ -781,6 +781,51 @@ export class DiscoveryService {
       .orderBy(asc(categories.sortOrder), asc(menuItems.sortOrder));
   }
 
+  async getRestaurantServices(restaurantId: string) {
+    const rows = await this.db
+      .select({
+        id: restaurantServiceItems.id,
+        restaurantId: restaurantServiceItems.restaurantId,
+        name: restaurantServiceItems.name,
+        description: restaurantServiceItems.description,
+        serviceType: restaurantServiceItems.serviceType,
+        priceCents: restaurantServiceItems.priceCents,
+        priceLabel: restaurantServiceItems.priceLabel,
+        durationMinutes: restaurantServiceItems.durationMinutes,
+        requiresBooking: restaurantServiceItems.requiresBooking,
+        bookingUrl: restaurantServiceItems.bookingUrl,
+        availableHours: restaurantServiceItems.availableHours,
+        tags: restaurantServiceItems.tags,
+        keywords: restaurantServiceItems.keywords,
+        sortOrder: restaurantServiceItems.sortOrder,
+      })
+      .from(restaurantServiceItems)
+      .innerJoin(
+        restaurants,
+        eq(restaurantServiceItems.restaurantId, restaurants.id),
+      )
+      .where(
+        and(
+          eq(restaurantServiceItems.restaurantId, restaurantId),
+          eq(restaurantServiceItems.isActive, true),
+          eq(restaurantServiceItems.isPublic, true),
+          isNull(restaurantServiceItems.deletedAt),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
+      .orderBy(
+        asc(restaurantServiceItems.sortOrder),
+        asc(restaurantServiceItems.id),
+      );
+
+    return rows.map((row) => ({
+      ...row,
+      availableHours: row.availableHours ?? null,
+      tags: row.tags ?? [],
+    }));
+  }
+
   async getTakeawayEligibility(restaurantId: string): Promise<
     | { eligible: true; shopQrCode: string }
     | {

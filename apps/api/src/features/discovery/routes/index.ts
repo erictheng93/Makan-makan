@@ -86,6 +86,20 @@ routes.get(
   },
 );
 
+// GET /api/v1/discovery/restaurants/:id/services — public
+routes.get(
+  "/restaurants/:id/services",
+  validateParams(restaurantIdParamSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+
+    const services = await service.getRestaurantServices(id);
+
+    return c.json({ success: true, data: { services } });
+  },
+);
+
 // GET /api/v1/discovery/restaurants/:id/menu — public
 routes.get(
   "/restaurants/:id/menu",

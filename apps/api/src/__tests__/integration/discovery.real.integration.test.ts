@@ -1097,6 +1097,104 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("lists public services for a discovered restaurant", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Discovered Service Detail Vendor",
+    });
+    const otherRestaurant = await seed.restaurant({
+      name: "Other Service Detail Vendor",
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "公開預約導覽",
+        description: "可從店鋪服務入口查看",
+        serviceType: "booking",
+        priceCents: 5000,
+        priceLabel: "每場 NT$50",
+        durationMinutes: 20,
+        requiresBooking: true,
+        bookingUrl: "https://example.com/book",
+        tags: ["導覽"],
+        keywords: "導覽 預約",
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "公開外送協助",
+        serviceType: "delivery",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "內部服務",
+        serviceType: "general",
+        isPublic: false,
+        sortOrder: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "停用服務",
+        serviceType: "general",
+        isActive: false,
+        sortOrder: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "已刪除服務",
+        serviceType: "general",
+        deletedAt: new Date(),
+        sortOrder: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(otherRestaurant.id),
+        name: "其他店鋪服務",
+        serviceType: "general",
+        sortOrder: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants/${restaurant.id}/services`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.services).toHaveLength(2);
+    expect(data.services.map((service: any) => service.name)).toEqual([
+      "公開外送協助",
+      "公開預約導覽",
+    ]);
+    expect(data.services[1]).toMatchObject({
+      restaurantId: String(restaurant.id),
+      name: "公開預約導覽",
+      description: "可從店鋪服務入口查看",
+      serviceType: "booking",
+      priceCents: 5000,
+      priceLabel: "每場 NT$50",
+      durationMinutes: 20,
+      requiresBooking: true,
+      bookingUrl: "https://example.com/book",
+      tags: ["導覽"],
+      keywords: "導覽 預約",
+      sortOrder: 2,
+    });
+  });
+
   it("scopes dish search by city when districts have the same name", async () => {
     const taipeiRestaurant = await seed.restaurant({
       name: "Taipei Zhongshan Vendor",
