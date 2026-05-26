@@ -151,6 +151,7 @@ import type {
   RestaurantListItem,
 } from "@/services/discoveryApi";
 import { discoveryApi } from "@/services/discoveryApi";
+import { shopMenuItemQuery } from "@/utils/shopMenuDeepLink";
 
 const { t, tWithParams } = useI18n();
 const router = useRouter();
@@ -171,15 +172,21 @@ const districts = [
 ];
 
 function onDishSelect(dish: DishSearchResult) {
-  // Navigate to restaurant menu with this dish highlighted
-  router.push(`/restaurant/${dish.restaurantId}/shop/menu`);
+  router.push({
+    name: "ShopMenu",
+    params: { restaurantId: dish.restaurantId },
+    query: shopMenuItemQuery(dish),
+  });
 }
 
 function onRestaurantSelect(restaurant: RestaurantListItem) {
   router.push(`/restaurant/${restaurant.restaurantId}/shop/menu`);
 }
 
-async function startTakeaway(restaurantId: string) {
+async function startTakeaway(
+  restaurantId: string,
+  query: Record<string, string> = {},
+) {
   const result = await discoveryApi.getTakeawayEligibility(restaurantId);
   if (!result.eligible) {
     store.error = "目前無法從 Discovery 直接外帶。";
@@ -188,12 +195,12 @@ async function startTakeaway(restaurantId: string) {
   router.push({
     name: "OrderTypeLanding",
     params: { restaurantId },
-    query: { qr: result.shopQrCode },
+    query: { qr: result.shopQrCode, ...query },
   });
 }
 
 function onDishTakeaway(dish: DishSearchResult) {
-  startTakeaway(dish.restaurantId);
+  startTakeaway(dish.restaurantId, shopMenuItemQuery(dish));
 }
 
 function onRestaurantTakeaway(restaurant: RestaurantListItem) {
