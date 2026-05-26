@@ -34,6 +34,38 @@ const vendorStallNumber = ref("");
 const vendorIsPrimary = ref(false);
 const requestStallNumber = ref<Record<number, string>>({});
 const requestIsPrimary = ref<Record<number, boolean>>({});
+const tagsText = ref("");
+const imageUrlsText = ref("");
+
+const weekdays = [
+  { key: "monday", label: "Mon" },
+  { key: "tuesday", label: "Tue" },
+  { key: "wednesday", label: "Wed" },
+  { key: "thursday", label: "Thu" },
+  { key: "friday", label: "Fri" },
+  { key: "saturday", label: "Sat" },
+  { key: "sunday", label: "Sun" },
+] as const;
+
+type WeekdayKey = (typeof weekdays)[number]["key"];
+type OpeningHoursDraft = Record<
+  WeekdayKey,
+  { open: string; close: string; closed: boolean }
+>;
+
+function defaultOpeningHours(): OpeningHoursDraft {
+  return {
+    monday: { open: "17:00", close: "23:00", closed: false },
+    tuesday: { open: "17:00", close: "23:00", closed: false },
+    wednesday: { open: "17:00", close: "23:00", closed: false },
+    thursday: { open: "17:00", close: "23:00", closed: false },
+    friday: { open: "17:00", close: "23:30", closed: false },
+    saturday: { open: "16:00", close: "23:59", closed: false },
+    sunday: { open: "16:00", close: "23:00", closed: false },
+  };
+}
+
+const openingHoursDraft = reactive<OpeningHoursDraft>(defaultOpeningHours());
 
 const form = reactive<CreateMarketRequest>({
   slug: "",
@@ -45,8 +77,10 @@ const form = reactive<CreateMarketRequest>({
   address: "",
   latitude: 24.1477,
   longitude: 120.6736,
+  openingHours: defaultOpeningHours(),
   bannerUrl: "",
   logoUrl: "",
+  imageUrls: [],
   tags: [],
   isActive: true,
 });
@@ -65,9 +99,54 @@ function resetVendorSelection() {
   vendorIsPrimary.value = false;
 }
 
+function setOpeningHoursDraft(openingHours?: Record<string, unknown> | null) {
+  const defaults = defaultOpeningHours();
+  for (const day of weekdays) {
+    const value = openingHours?.[day.key] as
+      | { open?: unknown; close?: unknown; closed?: unknown }
+      | undefined;
+    openingHoursDraft[day.key] = {
+      open:
+        typeof value?.open === "string" ? value.open : defaults[day.key].open,
+      close:
+        typeof value?.close === "string"
+          ? value.close
+          : defaults[day.key].close,
+      closed:
+        typeof value?.closed === "boolean"
+          ? value.closed
+          : defaults[day.key].closed,
+    };
+  }
+}
+
+function parseDelimitedList(value: string) {
+  return value
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function serializeOpeningHours() {
+  return weekdays.reduce<
+    Record<string, { open: string; close: string; closed?: boolean }>
+  >((hours, day) => {
+    const value = openingHoursDraft[day.key];
+    hours[day.key] = {
+      open: value.open,
+      close: value.close,
+      ...(value.closed ? { closed: true } : {}),
+    };
+    return hours;
+  }, {});
+}
+
 function resetForm() {
   selectedMarketId.value = null;
   resetVendorSelection();
+  tagsText.value = "";
+  imageUrlsText.value = "";
+  setOpeningHoursDraft();
   Object.assign(form, {
     slug: "",
     name: "",
@@ -78,8 +157,10 @@ function resetForm() {
     address: "",
     latitude: 24.1477,
     longitude: 120.6736,
+    openingHours: defaultOpeningHours(),
     bannerUrl: "",
     logoUrl: "",
+    imageUrls: [],
     tags: [],
     isActive: true,
   });
@@ -98,11 +179,16 @@ function editMarket(market: Market) {
     address: market.address,
     latitude: market.latitude,
     longitude: market.longitude,
+    openingHours: market.openingHours ?? null,
     bannerUrl: market.bannerUrl ?? "",
     logoUrl: market.logoUrl ?? "",
+    imageUrls: market.imageUrls ?? [],
     tags: market.tags ?? [],
     isActive: market.isActive,
   });
+  tagsText.value = (market.tags ?? []).join(", ");
+  imageUrlsText.value = (market.imageUrls ?? []).join("\n");
+  setOpeningHoursDraft(market.openingHours ?? null);
 }
 
 async function loadMarkets() {
@@ -140,7 +226,9 @@ function normalizePayload(): CreateMarketRequest {
     description: form.description || null,
     bannerUrl: form.bannerUrl || null,
     logoUrl: form.logoUrl || null,
-    tags: Array.isArray(form.tags) ? form.tags.filter(Boolean) : [],
+    imageUrls: parseDelimitedList(imageUrlsText.value),
+    tags: parseDelimitedList(tagsText.value),
+    openingHours: serializeOpeningHours(),
     latitude: Number(form.latitude),
     longitude: Number(form.longitude),
   };
@@ -538,6 +626,57 @@ onMounted(loadDashboard);
             class="input"
             placeholder="Banner URL"
           />
+          <input v-model="form.logoUrl" class="input" placeholder="Logo URL" />
+          <textarea
+            v-model="imageUrlsText"
+            class="input min-h-24"
+            placeholder="Gallery image URLs, one per line"
+          />
+          <input
+            v-model="tagsText"
+            class="input"
+            placeholder="Tags, separated by commas"
+          />
+
+          <fieldset class="space-y-3">
+            <legend class="text-sm font-medium text-gray-900">
+              Opening hours
+            </legend>
+            <div class="space-y-2">
+              <div
+                v-for="day in weekdays"
+                :key="day.key"
+                class="grid items-center gap-2 sm:grid-cols-[44px_1fr_1fr_auto]"
+              >
+                <span class="text-sm font-medium text-gray-700">
+                  {{ day.label }}
+                </span>
+                <input
+                  v-model="openingHoursDraft[day.key].open"
+                  type="time"
+                  class="input"
+                  :disabled="openingHoursDraft[day.key].closed"
+                  :aria-label="`${day.label} open time`"
+                />
+                <input
+                  v-model="openingHoursDraft[day.key].close"
+                  type="time"
+                  class="input"
+                  :disabled="openingHoursDraft[day.key].closed"
+                  :aria-label="`${day.label} close time`"
+                />
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    v-model="openingHoursDraft[day.key].closed"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  Closed
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
           <textarea
             v-model="form.description"
             class="input min-h-24"

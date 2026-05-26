@@ -1,5 +1,21 @@
 import { z } from "zod";
 
+const decodeHtmlEntities = (value: string): string =>
+  value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/")
+    .replace(/&#x60;/g, "`")
+    .replace(/&#x3D;/g, "=");
+
+const urlSchema = z
+  .string()
+  .transform(decodeHtmlEntities)
+  .pipe(z.string().url());
+
 export const marketListQuerySchema = z.object({
   city: z.string().optional(),
   district: z.string().optional(),
@@ -60,9 +76,9 @@ export const createMarketSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   openingHours: z.record(z.any()).nullable().optional(),
-  bannerUrl: z.string().url().nullable().optional(),
-  logoUrl: z.string().url().nullable().optional(),
-  imageUrls: z.array(z.string().url()).nullable().optional(),
+  bannerUrl: urlSchema.nullable().optional(),
+  logoUrl: urlSchema.nullable().optional(),
+  imageUrls: z.array(urlSchema).nullable().optional(),
   tags: z.array(z.string().min(1).max(40)).nullable().optional(),
   isActive: z.boolean().optional(),
 });

@@ -277,6 +277,7 @@ export interface CreateMarketRequest {
   address: string;
   latitude: number;
   longitude: number;
+  openingHours?: Record<string, unknown> | null;
   bannerUrl?: string | null;
   logoUrl?: string | null;
   imageUrls?: string[] | null;

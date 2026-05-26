@@ -498,7 +498,17 @@ describe("Markets API — real integration", () => {
           address: "台中市中區測試路",
           latitude: 24.141,
           longitude: 120.683,
-          tags: ["夜市"],
+          openingHours: {
+            friday: { open: "17:00", close: "23:30" },
+            saturday: { open: "16:00", close: "23:59" },
+          },
+          bannerUrl: "https://example.com/admin-market-banner.jpg",
+          logoUrl: "https://example.com/admin-market-logo.jpg",
+          imageUrls: [
+            "https://example.com/admin-market-gallery-1.jpg",
+            "https://example.com/admin-market-gallery-2.jpg",
+          ],
+          tags: ["夜市", "親子"],
         }),
       }),
     );
@@ -508,6 +518,17 @@ describe("Markets API — real integration", () => {
       slug: "admin-created-market",
       name: "管理新增夜市",
       isActive: true,
+      bannerUrl: "https://example.com/admin-market-banner.jpg",
+      logoUrl: "https://example.com/admin-market-logo.jpg",
+      imageUrls: [
+        "https://example.com/admin-market-gallery-1.jpg",
+        "https://example.com/admin-market-gallery-2.jpg",
+      ],
+      tags: ["夜市", "親子"],
+    });
+    expect(createdJson.data.market.openingHours).toMatchObject({
+      friday: { open: "17:00", close: "23:30" },
+      saturday: { open: "16:00", close: "23:59" },
     });
 
     const marketId = createdJson.data.market.id as string;
@@ -518,6 +539,8 @@ describe("Markets API — real integration", () => {
         body: JSON.stringify({
           name: "更新後夜市",
           district: "西區",
+          imageUrls: ["https://example.com/admin-market-gallery-3.jpg"],
+          tags: ["美食", "宵夜"],
         }),
       }),
     );
@@ -527,6 +550,8 @@ describe("Markets API — real integration", () => {
       id: marketId,
       name: "更新後夜市",
       district: "西區",
+      imageUrls: ["https://example.com/admin-market-gallery-3.jpg"],
+      tags: ["美食", "宵夜"],
     });
 
     const addVendorRes = await testApp.app.fetch(
@@ -555,6 +580,27 @@ describe("Markets API — real integration", () => {
     expect(publicVendorsRes.status).toBe(200);
     const publicVendorsJson: any = await publicVendorsRes.json();
     expect(publicVendorsJson.data.total).toBe(1);
+
+    const publicDetailBeforeDeleteRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/admin-created-market"),
+    );
+    expect(publicDetailBeforeDeleteRes.status).toBe(200);
+    const publicDetailBeforeDeleteJson: any =
+      await publicDetailBeforeDeleteRes.json();
+    expect(publicDetailBeforeDeleteJson.data.market).toMatchObject({
+      slug: "admin-created-market",
+      name: "更新後夜市",
+      bannerUrl: "https://example.com/admin-market-banner.jpg",
+      logoUrl: "https://example.com/admin-market-logo.jpg",
+      imageUrls: ["https://example.com/admin-market-gallery-3.jpg"],
+      tags: ["美食", "宵夜"],
+    });
+    expect(publicDetailBeforeDeleteJson.data.market.openingHours).toMatchObject(
+      {
+        friday: { open: "17:00", close: "23:30" },
+        saturday: { open: "16:00", close: "23:59" },
+      },
+    );
 
     const removeVendorRes = await testApp.app.fetch(
       new Request(
