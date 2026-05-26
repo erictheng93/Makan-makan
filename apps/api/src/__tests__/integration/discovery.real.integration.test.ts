@@ -2288,6 +2288,86 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("removes inactive and deleted restaurant dishes during full reindex", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Restaurant Reindex Admin",
+    });
+    await seed.user({
+      id: 32,
+      username: "restaurant-reindex-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+
+    const activeRestaurant = await seed.restaurant({
+      name: "Active Reindex Vendor",
+    });
+    const inactiveRestaurant = await seed.restaurant({
+      name: "Inactive Reindex Vendor",
+      isActive: false,
+    });
+    const deletedRestaurant = await seed.restaurant({
+      name: "Deleted Reindex Vendor",
+      deletedAt: new Date(),
+    });
+
+    const activeItem = await seed.menuItem(String(activeRestaurant.id), {
+      name: "Active Reindex Bao",
+      price: 60,
+    });
+    const inactiveItem = await seed.menuItem(String(inactiveRestaurant.id), {
+      name: "Inactive Reindex Bao",
+      price: 70,
+    });
+    const deletedItem = await seed.menuItem(String(deletedRestaurant.id), {
+      name: "Deleted Reindex Bao",
+      price: 80,
+    });
+
+    await seedSearchIndex(testApp, String(inactiveRestaurant.id), [
+      {
+        menuItemId: inactiveItem.id,
+        name: "Inactive Reindex Bao",
+        price: 70,
+      },
+    ]);
+    await seedSearchIndex(testApp, String(deletedRestaurant.id), [
+      {
+        menuItemId: deletedItem.id,
+        name: "Deleted Reindex Bao",
+        price: 80,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/reindex", {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+        }),
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const rows = await testApp.testDb.drizzle
+      .select({
+        menuItemId: dishSearchIndex.menuItemId,
+        dishName: dishSearchIndex.dishName,
+      })
+      .from(dishSearchIndex)
+      .orderBy(dishSearchIndex.menuItemId);
+
+    expect(rows).toEqual([
+      {
+        menuItemId: activeItem.id,
+        dishName: "Active Reindex Bao",
+      },
+    ]);
+  });
+
   // -------------------------------------------------------------------------
   // Missing q param: validation error (not a 500)
   // -------------------------------------------------------------------------

@@ -981,7 +981,9 @@ export class DiscoveryService {
       .from(menuItems)
       .leftJoin(categories, eq(menuItems.categoryId, categories.id))
       .innerJoin(restaurants, eq(menuItems.restaurantId, restaurants.id))
-      .where(eq(restaurants.isActive, true));
+      .where(
+        and(eq(restaurants.isActive, true), isNull(restaurants.deletedAt)),
+      );
 
     // Build batch statements (D1 supports up to 100 per batch)
     // We keep the raw D1 reference for batch operations since Drizzle's batch API
@@ -1022,6 +1024,8 @@ export class DiscoveryService {
           ),
       );
     }
+
+    await this.db.delete(dishSearchIndex);
 
     // Execute in batches of 100
     for (let i = 0; i < stmts.length; i += 100) {
