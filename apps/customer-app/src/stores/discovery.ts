@@ -83,6 +83,8 @@ export const useDiscoveryStore = defineStore("discovery", () => {
               district: filters.value.district,
               marketId: filters.value.marketId,
               serviceType,
+              takeaway: filters.value.takeaway,
+              delivery: filters.value.delivery,
               page: page.value,
             })
           : Promise.resolve({ results: [], total: 0 }),

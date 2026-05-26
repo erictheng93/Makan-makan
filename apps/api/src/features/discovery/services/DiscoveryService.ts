@@ -530,6 +530,12 @@ export class DiscoveryService {
         eq(restaurantServiceItems.serviceType, filters.serviceType),
       );
     }
+    if (filters.takeaway) {
+      conditions.push(eq(restaurants.supportsTakeaway, true));
+    }
+    if (filters.delivery) {
+      conditions.push(eq(restaurants.supportsDelivery, true));
+    }
     if (q) {
       const pattern = `%${q.trim()}%`;
       conditions.push(

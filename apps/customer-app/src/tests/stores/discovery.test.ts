@@ -153,6 +153,36 @@ describe("useDiscoveryStore", () => {
     });
   });
 
+  it("passes fulfillment filters to service searches", async () => {
+    setActivePinia(createPinia());
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+
+    const store = useDiscoveryStore();
+    store.updateFilters({
+      marketId: "market-1",
+      takeaway: true,
+      delivery: true,
+    });
+    await store.searchDishes("代客");
+
+    expect(discoveryApi.searchServices).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        q: "代客",
+        marketId: "market-1",
+        takeaway: true,
+        delivery: true,
+        page: 1,
+      }),
+    );
+  });
+
   it("browses services when service type is the only selected filter", async () => {
     setActivePinia(createPinia());
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({

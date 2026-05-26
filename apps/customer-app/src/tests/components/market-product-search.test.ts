@@ -168,6 +168,7 @@ describe("MarketProductSearch", () => {
       q: "雞排",
       marketId: "market-1",
       serviceType: "delivery",
+      takeaway: true,
       page: 1,
       limit: 20,
     });
@@ -261,6 +262,36 @@ describe("MarketProductSearch", () => {
       serviceType: "delivery",
       takeaway: false,
       sortBy: "price_asc",
+    });
+  });
+
+  it("applies the takeaway filter to market services", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [service({ name: "可外帶代切" })],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper.get('input[type="checkbox"]').setValue(true);
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      serviceType: undefined,
+      takeaway: true,
+      page: 1,
+      limit: 20,
     });
   });
 

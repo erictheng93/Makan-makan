@@ -716,6 +716,101 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("filters public service items by fulfillment support within a market", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-fulfillment-filter-market",
+    });
+    const takeawayRestaurant = await seed.restaurant({
+      name: "Takeaway Service Vendor",
+      city: "台中市",
+      district: "西屯區",
+      supportsTakeaway: true,
+      supportsDelivery: false,
+    });
+    const deliveryRestaurant = await seed.restaurant({
+      name: "Delivery Service Vendor",
+      city: "台中市",
+      district: "西屯區",
+      supportsTakeaway: false,
+      supportsDelivery: true,
+    });
+    const dineInRestaurant = await seed.restaurant({
+      name: "Dine In Service Vendor",
+      city: "台中市",
+      district: "西屯區",
+      supportsTakeaway: false,
+      supportsDelivery: false,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(takeawayRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(deliveryRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(dineInRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(takeawayRestaurant.id),
+        name: "可外帶代切",
+        serviceType: "general",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(deliveryRestaurant.id),
+        name: "可外送代切",
+        serviceType: "general",
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(dineInRestaurant.id),
+        name: "現場限定代切",
+        serviceType: "general",
+        sortOrder: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const takeawayRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?marketId=${market.id}&takeaway=true`,
+      ),
+    );
+    const deliveryRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?marketId=${market.id}&delivery=true`,
+      ),
+    );
+
+    expect(takeawayRes.status).toBe(200);
+    const takeawayData = ((await takeawayRes.json()) as ApiTestResponse).data;
+    expect(takeawayData.total).toBe(1);
+    expect(takeawayData.results.map((result: any) => result.name)).toEqual([
+      "可外帶代切",
+    ]);
+
+    expect(deliveryRes.status).toBe(200);
+    const deliveryData = ((await deliveryRes.json()) as ApiTestResponse).data;
+    expect(deliveryData.total).toBe(1);
+    expect(deliveryData.results.map((result: any) => result.name)).toEqual([
+      "可外送代切",
+    ]);
+  });
+
   it("browses public service items by service type without a location scope", async () => {
     const deliveryRestaurant = await seed.restaurant({
       name: "Global Delivery Vendor",
