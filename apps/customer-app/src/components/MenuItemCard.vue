@@ -1,6 +1,6 @@
 <template>
   <div
-    :id="menuItemElementId(item.id)"
+    :id="resolvedAnchorId"
     class="bg-white rounded-2xl shadow-card overflow-hidden transition-transform duration-150 active:scale-[0.98]"
     :class="{ 'shadow-card-lg': isFeatured }"
   >
@@ -379,6 +379,7 @@ import { useI18n } from "@/composables/useI18n";
 const props = defineProps<{
   item: MenuItem;
   isFeatured?: boolean;
+  anchorId?: string | null;
 }>();
 
 // Emits
@@ -398,6 +399,12 @@ const { t, tWithParams } = useI18n();
 const { formatPrice } = useCurrency();
 
 // Computed
+const resolvedAnchorId = computed(() =>
+  props.anchorId === null
+    ? undefined
+    : (props.anchorId ?? menuItemElementId(props.item.id)),
+);
+
 const isOutOfStock = computed(() => {
   // inventoryCount === 0 means inventory tracking is not enabled (default).
   // Only treat as out-of-stock when inventory tracking is active (count was > 0)

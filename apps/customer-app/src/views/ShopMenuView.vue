@@ -305,6 +305,7 @@
                 :key="item.id"
                 :item="item"
                 :is-featured="true"
+                :anchor-id="null"
                 class="animate-slide-up min-w-[280px] md:min-w-[260px] snap-start flex-shrink-0"
                 :style="{
                   animationDelay: `${index * 50}ms`,
@@ -345,6 +346,7 @@
                 v-for="(item, index) in getItemsByCategory(category.id)"
                 :key="item.id"
                 :item="item"
+                :anchor-id="menuItemElementId(item.id)"
                 class="animate-slide-up"
                 :style="{
                   animationDelay: `${index * 50}ms`,

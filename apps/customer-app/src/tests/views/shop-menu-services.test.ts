@@ -6,6 +6,9 @@ import { menuApi } from "@/services/menuApi";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 
 const routerPush = vi.hoisted(() => vi.fn());
+const menuItemsFixture = vi.hoisted(() => ({
+  items: [] as Array<Record<string, unknown>>,
+}));
 
 vi.mock("vue-router", () => ({
   useRoute: () => ({ path: "/restaurant/restaurant-1/shop/menu" }),
@@ -53,7 +56,17 @@ vi.mock("@/utils/seoMeta", () => ({
 }));
 
 vi.mock("@/components/MenuItemCard.vue", () => ({
-  default: { template: "<div />" },
+  default: {
+    props: ["item", "isFeatured", "anchorId"],
+    template: `
+      <article
+        :id="anchorId === null ? undefined : anchorId"
+        :data-testid="isFeatured ? 'featured-menu-card' : 'menu-card'"
+      >
+        {{ item.name }}
+      </article>
+    `,
+  },
 }));
 
 vi.mock("@/components/MenuItemModal.vue", () => ({
@@ -99,23 +112,26 @@ vi.mock("@tanstack/vue-query", () => ({
               status: 1,
             },
           ],
-          menuItems: [
-            {
-              id: 42,
-              restaurantId: "restaurant-1",
-              categoryId: 10,
-              name: "章魚燒",
-              price: 8000,
-              spiceLevel: 0,
-              sortOrder: 1,
-              isAvailable: true,
-              isFeatured: false,
-              inventoryCount: -1,
-              orderCount: 0,
-              createdAt: "",
-              updatedAt: "",
-            },
-          ],
+          menuItems:
+            menuItemsFixture.items.length > 0
+              ? menuItemsFixture.items
+              : [
+                  {
+                    id: 42,
+                    restaurantId: "restaurant-1",
+                    categoryId: 10,
+                    name: "章魚燒",
+                    price: 8000,
+                    spiceLevel: 0,
+                    sortOrder: 1,
+                    isAvailable: true,
+                    isFeatured: false,
+                    inventoryCount: -1,
+                    orderCount: 0,
+                    createdAt: "",
+                    updatedAt: "",
+                  },
+                ],
         }),
         isLoading: ref(false),
         error: ref(null),
@@ -172,6 +188,7 @@ describe("ShopMenuView service items", () => {
 
   beforeEach(() => {
     routerPush.mockReset();
+    menuItemsFixture.items = [];
     scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
@@ -278,6 +295,44 @@ describe("ShopMenuView service items", () => {
     expect(
       wrapper.get('[data-testid="shop-menu-entry-context"]').text(),
     ).toContain("章魚燒");
+  });
+
+  it("keeps linked menu item anchors on category cards instead of featured duplicates", () => {
+    menuItemsFixture.items = [
+      {
+        id: 42,
+        restaurantId: "restaurant-1",
+        categoryId: 10,
+        name: "章魚燒",
+        price: 8000,
+        spiceLevel: 0,
+        sortOrder: 1,
+        isAvailable: true,
+        isFeatured: true,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1", linkedItemId: "42" },
+      global: {
+        stubs: {
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    expect(
+      wrapper.get('[data-testid="featured-menu-card"]').attributes("id"),
+    ).toBeUndefined();
+    expect(wrapper.get('[data-testid="menu-card"]').attributes("id")).toBe(
+      "menu-item-42",
+    );
   });
 
   it("ignores unsafe return paths", async () => {
