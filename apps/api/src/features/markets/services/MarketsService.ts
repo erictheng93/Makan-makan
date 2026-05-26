@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   gte,
+  inArray,
   isNull,
   like,
   lte,
@@ -16,8 +17,10 @@ import type { KVNamespace } from "@cloudflare/workers-types";
 import {
   dishSearchIndex,
   marketJoinRequests,
+  menuItems,
   markets,
   restaurantMarketMemberships,
+  restaurantServiceItems,
   restaurants,
 } from "@makanmakan/database";
 import {
@@ -694,13 +697,69 @@ export class MarketsService {
     const pagedVendors = filters.openNow
       ? vendors.slice(offset, offset + limit)
       : vendors;
+    const vendorsWithAccess = await this.withVendorAccess(pagedVendors);
 
     return {
-      vendors: pagedVendors,
+      vendors: vendorsWithAccess,
       total,
       page,
       limit,
     };
+  }
+
+  private async withVendorAccess<TVendor extends { restaurantId: string }>(
+    vendors: TVendor[],
+  ) {
+    if (vendors.length === 0) return vendors;
+
+    const restaurantIds = [...new Set(vendors.map((row) => row.restaurantId))];
+    const [menuCounts, serviceCounts] = await Promise.all([
+      this.db
+        .select({
+          restaurantId: menuItems.restaurantId,
+          count: sql<number>`count(*)`,
+        })
+        .from(menuItems)
+        .where(
+          and(
+            inArray(menuItems.restaurantId, restaurantIds),
+            eq(menuItems.isAvailable, true),
+            isNull(menuItems.deletedAt),
+          ),
+        )
+        .groupBy(menuItems.restaurantId),
+      this.db
+        .select({
+          restaurantId: restaurantServiceItems.restaurantId,
+          count: sql<number>`count(*)`,
+        })
+        .from(restaurantServiceItems)
+        .where(
+          and(
+            inArray(restaurantServiceItems.restaurantId, restaurantIds),
+            eq(restaurantServiceItems.isActive, true),
+            eq(restaurantServiceItems.isPublic, true),
+            isNull(restaurantServiceItems.deletedAt),
+          ),
+        )
+        .groupBy(restaurantServiceItems.restaurantId),
+    ]);
+    const menuCountByRestaurant = new Map(
+      menuCounts.map((row) => [row.restaurantId, Number(row.count)]),
+    );
+    const serviceCountByRestaurant = new Map(
+      serviceCounts.map((row) => [row.restaurantId, Number(row.count)]),
+    );
+
+    return vendors.map((row) => ({
+      ...row,
+      detailUrl: `/api/v1/restaurants/${row.restaurantId}`,
+      menuUrl: `/api/v1/menu/${row.restaurantId}`,
+      serviceItemsUrl: `/api/v1/restaurants/${row.restaurantId}/service-items`,
+      availableMenuItemCount: menuCountByRestaurant.get(row.restaurantId) ?? 0,
+      publicServiceItemCount:
+        serviceCountByRestaurant.get(row.restaurantId) ?? 0,
+    }));
   }
 
   async findNearby(lat: number, lng: number, radiusKm = 2, limit = 20) {

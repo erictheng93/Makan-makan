@@ -980,6 +980,14 @@ describe("Markets API — real integration", () => {
       longitude: 120.6467,
       updatedAt: new Date(),
     });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(vendor.id),
+      name: "外帶自取",
+      serviceType: "pickup",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+    });
     const productlessNearMarket = await seedMarket(testApp, {
       slug: "productless-near-market",
       latitude: 24.17645,
@@ -1011,6 +1019,11 @@ describe("Markets API — real integration", () => {
       name: "Bubble Tea Stand",
       stallNumber: "A-12",
       supportsTakeaway: true,
+      detailUrl: `/api/v1/restaurants/${vendor.id}`,
+      menuUrl: `/api/v1/menu/${vendor.id}`,
+      serviceItemsUrl: `/api/v1/restaurants/${vendor.id}/service-items`,
+      availableMenuItemCount: 1,
+      publicServiceItemCount: 1,
     });
 
     const nearbyRes = await testApp.app.fetch(
