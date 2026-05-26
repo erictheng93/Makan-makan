@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Completed maintainer-accepted AI-assisted locale copy for the previously stubbed `zh-CN`, `vi-VN`, `ms-MY`, and `id-ID` app locales in kitchen-display, onboarding-app, and management-portal. The approved handoff is recorded in `docs/i18n/locale-approval-manifest.json`, and `pnpm run check:i18n-locales:strict` now confirms all target locales match the `zh-TW` leaf-key coverage.
+
 ## [2.1.1] - 2026-04-14
 
 ### Added

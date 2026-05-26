@@ -286,7 +286,9 @@ and type safety can drift per app.
 
 **Files:** app-level locale files for `zh-CN`, `vi-VN`, `ms-MY`, and `id-ID`.
 
-**Impact:** Users selecting those locales may still see Traditional Chinese.
+**Impact:** Completed 2026-05-26. Users selecting those locales now receive
+maintainer-accepted AI-assisted localized copy instead of falling back to
+Traditional Chinese.
 
 **TODO:**
 
