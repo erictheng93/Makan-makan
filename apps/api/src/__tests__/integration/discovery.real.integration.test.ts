@@ -9,6 +9,7 @@ import {
   menuItems,
   markets,
   restaurantMarketMemberships,
+  restaurantServiceItems,
 } from "@makanmakan/database";
 import { eq } from "drizzle-orm";
 import { SearchIndexSyncService } from "../../features/discovery/services/SearchIndexSyncService";
@@ -456,6 +457,87 @@ describe("Discovery API — real integration", () => {
       deliveryItem.id,
     ]);
     expect(data.total).toBe(1);
+  });
+
+  it("searches public service items scoped to a market", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-search-market",
+    });
+    const otherMarket = await seedMarket(testApp, {
+      slug: "other-service-search-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Service Search Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    const otherRestaurant = await seed.restaurant({
+      name: "Other Service Search Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(restaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(otherRestaurant.id),
+        marketId: otherMarket.id,
+        joinedAt: new Date(),
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "代客切水果",
+        description: "現場代切並分裝",
+        serviceType: "general",
+        priceCents: 3000,
+        tags: ["水果", "分裝"],
+        keywords: "水果 分裝 切水果",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "內部切水果",
+        serviceType: "general",
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(otherRestaurant.id),
+        name: "其他市場切水果",
+        serviceType: "general",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?q=切水果&marketId=${market.id}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+
+    expect(data.total).toBe(1);
+    expect(data.results).toHaveLength(1);
+    expect(data.results[0]).toMatchObject({
+      name: "代客切水果",
+      restaurantId: restaurant.id,
+      restaurantName: "Service Search Vendor",
+      district: "西屯區",
+      serviceType: "general",
+      priceCents: 3000,
+      tags: ["水果", "分裝"],
+    });
   });
 
   it("scopes dish search by city when districts have the same name", async () => {

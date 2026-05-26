@@ -27,6 +27,24 @@ export interface RestaurantListItem {
   imageUrl: string | null;
 }
 
+export interface ServiceSearchResult {
+  serviceItemId: number;
+  name: string;
+  description: string | null;
+  serviceType: string;
+  priceCents: number | null;
+  priceLabel: string | null;
+  durationMinutes: number | null;
+  requiresBooking: boolean;
+  bookingUrl: string | null;
+  tags: string[];
+  restaurantId: string;
+  restaurantName: string;
+  district: string | null;
+  city: string | null;
+  isOpen: boolean;
+}
+
 export interface SearchFilters {
   q?: string;
   district?: string;

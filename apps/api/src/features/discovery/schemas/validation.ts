@@ -63,6 +63,28 @@ export const restaurantBrowseQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 
+export const serviceSearchQuerySchema = z
+  .object({
+    q: z.string().min(1).max(100).optional(),
+    district: z.string().optional(),
+    city: z.string().optional(),
+    marketId: z.string().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+  })
+  .superRefine((query, ctx) => {
+    const hasSearchScope =
+      query.q || query.marketId || query.city || query.district;
+
+    if (!hasSearchScope) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["q"],
+        message: "Required",
+      });
+    }
+  });
+
 export const restaurantIdParamSchema = z.object({
   id: z.string().min(1),
 });

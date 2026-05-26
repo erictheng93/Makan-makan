@@ -18,6 +18,7 @@ import {
   restaurants,
   menuItems,
   categories,
+  restaurantServiceItems,
 } from "@makanmakan/database";
 import { boundingBoxFromCircle, distanceKm } from "../../markets/services/geo";
 import type {
@@ -25,6 +26,7 @@ import type {
   RestaurantListItem,
   SearchFilters,
   SearchResponse,
+  ServiceSearchResult,
 } from "../types";
 import { isOpenNow } from "../utils/isOpenNow";
 import {
@@ -484,6 +486,113 @@ export class DiscoveryService {
     }
 
     return { results: filtered, total: filtered.length, page, limit };
+  }
+
+  async searchServices(
+    filters: SearchFilters,
+  ): Promise<SearchResponse<ServiceSearchResult>> {
+    const { q, page = 1, limit = 20 } = filters;
+    const offset = (page - 1) * limit;
+    const conditions: SQL[] = [
+      eq(restaurantServiceItems.isActive, true),
+      eq(restaurantServiceItems.isPublic, true),
+      isNull(restaurantServiceItems.deletedAt),
+      eq(restaurants.isActive, true),
+      isNull(restaurants.deletedAt),
+    ];
+
+    if (filters.city) {
+      conditions.push(eq(restaurants.city, filters.city));
+    }
+    if (filters.district) {
+      conditions.push(eq(restaurants.district, filters.district));
+    }
+    if (filters.marketId) {
+      conditions.push(sql`EXISTS (
+        SELECT 1
+        FROM restaurant_market_memberships rmm
+        WHERE rmm.restaurant_id = ${restaurants.id}
+          AND rmm.market_id = ${filters.marketId}
+          AND rmm.left_at_ms IS NULL
+      )`);
+    }
+    if (q) {
+      const pattern = `%${q.trim()}%`;
+      conditions.push(
+        or(
+          like(restaurantServiceItems.name, pattern),
+          like(restaurantServiceItems.description, pattern),
+          like(restaurantServiceItems.keywords, pattern),
+          like(restaurantServiceItems.tags, pattern),
+        )!,
+      );
+    }
+
+    const whereClause = and(...conditions);
+    const [rows, countRows] = await Promise.all([
+      this.db
+        .select({
+          serviceItemId: restaurantServiceItems.id,
+          name: restaurantServiceItems.name,
+          description: restaurantServiceItems.description,
+          serviceType: restaurantServiceItems.serviceType,
+          priceCents: restaurantServiceItems.priceCents,
+          priceLabel: restaurantServiceItems.priceLabel,
+          durationMinutes: restaurantServiceItems.durationMinutes,
+          requiresBooking: restaurantServiceItems.requiresBooking,
+          bookingUrl: restaurantServiceItems.bookingUrl,
+          tags: restaurantServiceItems.tags,
+          restaurantId: restaurantServiceItems.restaurantId,
+          restaurantName: restaurants.name,
+          district: restaurants.district,
+          city: restaurants.city,
+          businessHours: restaurants.businessHours,
+        })
+        .from(restaurantServiceItems)
+        .innerJoin(
+          restaurants,
+          eq(restaurantServiceItems.restaurantId, restaurants.id),
+        )
+        .where(whereClause)
+        .orderBy(
+          asc(restaurantServiceItems.sortOrder),
+          asc(restaurantServiceItems.id),
+        )
+        .limit(limit)
+        .offset(offset),
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(restaurantServiceItems)
+        .innerJoin(
+          restaurants,
+          eq(restaurantServiceItems.restaurantId, restaurants.id),
+        )
+        .where(whereClause),
+    ]);
+
+    const results: ServiceSearchResult[] = rows.map((row) => ({
+      serviceItemId: row.serviceItemId,
+      name: row.name,
+      description: row.description,
+      serviceType: row.serviceType,
+      priceCents: row.priceCents,
+      priceLabel: row.priceLabel,
+      durationMinutes: row.durationMinutes,
+      requiresBooking: row.requiresBooking,
+      bookingUrl: row.bookingUrl,
+      tags: row.tags ?? [],
+      restaurantId: row.restaurantId,
+      restaurantName: row.restaurantName,
+      district: row.district,
+      city: row.city,
+      isOpen: isOpenNow(row.businessHours ?? null),
+    }));
+
+    const rawTotal = Number(countRows[0]?.count);
+    const total =
+      Number.isFinite(rawTotal) && rawTotal >= 0 ? rawTotal : results.length;
+
+    return { results, total, page, limit };
   }
 
   async getPopular(): Promise<{
