@@ -141,6 +141,7 @@ const routes: RouteRecordRaw[] = [
       restaurantId: route.params.restaurantId,
       phoneLastDigits: route.query.phone as string,
       waitingTicketId: route.query.waitingTicketId as string | undefined,
+      linkedItemId: route.query.itemId,
     }),
     meta: {
       titleKey: "navigation.shopMenu",

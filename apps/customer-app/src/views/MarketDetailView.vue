@@ -160,6 +160,7 @@ import {
   type RestaurantContactProfile,
 } from "@/services/restaurantContactApi";
 import { applyMarketSeoMeta } from "@/utils/seoMeta";
+import { shopMenuItemQuery } from "@/utils/shopMenuDeepLink";
 
 const route = useRoute();
 const router = useRouter();
@@ -224,6 +225,7 @@ function openDishVendor(dish: DishSearchResult) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: dish.restaurantId },
+    query: shopMenuItemQuery(dish),
   });
 }
 

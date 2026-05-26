@@ -1,5 +1,6 @@
 <template>
   <div
+    :id="menuItemElementId(item.id)"
     class="bg-white rounded-2xl shadow-card overflow-hidden transition-transform duration-150 active:scale-[0.98]"
     :class="{ 'shadow-card-lg': isFeatured }"
   >
@@ -367,6 +368,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
+import { menuItemElementId } from "@/utils/shopMenuDeepLink";
 import type {
   MenuItem,
   SelectedCustomizations,

@@ -350,7 +350,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
@@ -370,12 +370,17 @@ import type {
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
 import { applyShopMenuSeoMeta } from "@/utils/seoMeta";
+import {
+  findMenuItemByQuery,
+  menuItemElementId,
+} from "@/utils/shopMenuDeepLink";
 
 // Props
 const props = defineProps<{
   restaurantId: string;
   phoneLastDigits?: string;
   waitingTicketId?: string;
+  linkedItemId?: string | string[] | null;
 }>();
 
 // Composables
@@ -396,6 +401,7 @@ const customizingItem = ref<MenuItem | null>(null);
 const showItemModal = ref(false);
 const showCustomizationModal = ref(false);
 const showCart = ref(false);
+const openedLinkedItemId = ref<number | null>(null);
 
 // 初始化店家購物車
 onMounted(() => {
@@ -513,6 +519,21 @@ const handleViewDetails = (item: MenuItem) => {
   showItemModal.value = true;
 };
 
+const openLinkedMenuItem = async () => {
+  const item = findMenuItemByQuery(menuItems.value, props.linkedItemId);
+  if (!item || openedLinkedItemId.value === item.id) return;
+
+  openedLinkedItemId.value = item.id;
+  activeCategoryId.value = item.categoryId;
+  await nextTick();
+
+  document.getElementById(menuItemElementId(item.id))?.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+  handleViewDetails(item);
+};
+
 // 監聽滾動位置更新活躍分類
 const updateActiveCategoryOnScroll = () => {
   const sections = categories.value.map((category: any) => ({
@@ -566,6 +587,14 @@ watch(
       menuItems: newMenuStructure.menuItems,
       path: route.path,
     });
+  },
+  { immediate: true },
+);
+
+watch(
+  [menuStructure, () => props.linkedItemId],
+  () => {
+    openLinkedMenuItem();
   },
   { immediate: true },
 );
