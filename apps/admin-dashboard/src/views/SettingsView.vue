@@ -386,6 +386,59 @@
 
       <div class="bg-white rounded-lg shadow p-6">
         <h3 class="text-lg font-semibold text-gray-900">
+          {{ t("settings.markets.requestsTitle") }}
+        </h3>
+        <p class="mt-1 text-sm text-gray-500">
+          {{ t("settings.markets.requestsSubtitle") }}
+        </p>
+
+        <div class="mt-6">
+          <div v-if="isLoadingMarkets" class="py-8 text-sm text-gray-500">
+            {{ t("settings.markets.loading") }}
+          </div>
+          <div
+            v-else-if="marketJoinRequests.length === 0"
+            class="rounded-lg border border-dashed border-gray-300 p-6 text-sm text-gray-500"
+          >
+            {{ t("settings.markets.noRequests") }}
+          </div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="request in marketJoinRequests"
+              :key="request.id"
+              class="rounded-lg border border-gray-200 p-4"
+            >
+              <div
+                class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+              >
+                <div>
+                  <div class="font-medium text-gray-900">
+                    {{ request.market.name }}
+                  </div>
+                  <div class="mt-1 text-sm text-gray-500">
+                    {{ request.market.city }} · {{ request.market.district }}
+                  </div>
+                  <p
+                    v-if="request.message"
+                    class="mt-2 text-sm leading-6 text-gray-600"
+                  >
+                    {{ request.message }}
+                  </p>
+                </div>
+                <span
+                  class="inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-medium"
+                  :class="marketJoinRequestStatusClass(request.status)"
+                >
+                  {{ t(`settings.markets.requestStatus.${request.status}`) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900">
           {{ t("settings.markets.requestTitle") }}
         </h3>
         <p class="mt-1 text-sm text-gray-500">
@@ -1641,6 +1694,7 @@ import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
 import {
   marketsService,
+  type MarketJoinRequest,
   type MarketListItem,
   type RestaurantMarketMembership,
 } from "@/services/marketsService";
@@ -1691,6 +1745,7 @@ const isLoadingMarkets = ref(false);
 const isSubmittingMarketRequest = ref(false);
 const availableMarkets = ref<MarketListItem[]>([]);
 const marketMemberships = ref<RestaurantMarketMembership[]>([]);
+const marketJoinRequests = ref<MarketJoinRequest[]>([]);
 const marketJoinForm = reactive({
   marketId: "",
   message: "",
@@ -1980,12 +2035,14 @@ const loadMarketSettings = async () => {
     if (!restaurantId) return;
 
     isLoadingMarkets.value = true;
-    const [markets, memberships] = await Promise.all([
+    const [markets, memberships, joinRequests] = await Promise.all([
       marketsService.listMarkets(),
       marketsService.listRestaurantMemberships(restaurantId),
+      marketsService.listJoinRequests(restaurantId),
     ]);
     availableMarkets.value = markets;
     marketMemberships.value = memberships;
+    marketJoinRequests.value = joinRequests;
   } catch (error) {
     console.error("Failed to load market settings:", error);
     toast.error(t("settings.markets.loadFailed"));
@@ -2007,12 +2064,19 @@ const submitMarketJoinRequest = async () => {
     toast.success(t("settings.markets.requestSuccess"));
     marketJoinForm.marketId = "";
     marketJoinForm.message = "";
+    await loadMarketSettings();
   } catch (error) {
     console.error("Failed to submit market join request:", error);
     toast.error(t("settings.markets.requestFailed"));
   } finally {
     isSubmittingMarketRequest.value = false;
   }
+};
+
+const marketJoinRequestStatusClass = (status: MarketJoinRequest["status"]) => {
+  if (status === "approved") return "bg-green-100 text-green-700";
+  if (status === "rejected") return "bg-red-100 text-red-700";
+  return "bg-amber-100 text-amber-800";
 };
 
 const addContactFaq = () => {

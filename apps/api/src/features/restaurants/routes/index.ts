@@ -295,6 +295,29 @@ app.get(
 );
 
 /**
+ * GET /:id/market-join-requests - Get market join request history
+ */
+app.get(
+  "/:id/market-join-requests",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const user = c.get("user");
+
+    if (user.role === USER_ROLES.OWNER && user.restaurantId !== id) {
+      throw forbidden("Access denied");
+    }
+
+    const service = new MarketsService(c.env.DB);
+    const data = await service.listRestaurantJoinRequests(id);
+
+    return c.json({ success: true, data }, HTTP_STATUS.OK);
+  },
+);
+
+/**
  * POST /:id/market-join-requests - Request joining an existing market
  */
 app.post(

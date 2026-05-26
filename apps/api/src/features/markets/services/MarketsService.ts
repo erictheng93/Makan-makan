@@ -481,6 +481,48 @@ export class MarketsService {
     };
   }
 
+  async listRestaurantJoinRequests(restaurantId: string) {
+    const rows = await this.db
+      .select({
+        id: marketJoinRequests.id,
+        restaurantId: marketJoinRequests.restaurantId,
+        marketId: marketJoinRequests.marketId,
+        status: marketJoinRequests.status,
+        message: marketJoinRequests.message,
+        requestedAt: marketJoinRequests.requestedAt,
+        resolvedAt: marketJoinRequests.resolvedAt,
+        marketSlug: markets.slug,
+        marketName: markets.name,
+        marketType: markets.type,
+        city: markets.city,
+        district: markets.district,
+      })
+      .from(marketJoinRequests)
+      .innerJoin(markets, eq(marketJoinRequests.marketId, markets.id))
+      .where(eq(marketJoinRequests.restaurantId, restaurantId))
+      .orderBy(desc(marketJoinRequests.requestedAt));
+
+    return {
+      requests: rows.map((row) => ({
+        id: row.id,
+        restaurantId: row.restaurantId,
+        marketId: row.marketId,
+        status: row.status,
+        message: row.message,
+        requestedAt: row.requestedAt,
+        resolvedAt: row.resolvedAt,
+        market: {
+          id: row.marketId,
+          slug: row.marketSlug,
+          name: row.marketName,
+          type: row.marketType,
+          city: row.city,
+          district: row.district,
+        },
+      })),
+    };
+  }
+
   async createJoinRequest(
     restaurantId: string,
     input: { marketId: string; message?: string | null },

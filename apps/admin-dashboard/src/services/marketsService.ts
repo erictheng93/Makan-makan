@@ -34,6 +34,15 @@ export interface MarketJoinRequest {
   status: "pending" | "approved" | "rejected";
   message?: string | null;
   requestedAt: string | number | Date;
+  resolvedAt?: string | number | Date | null;
+  market: {
+    id: string;
+    slug: string;
+    name: string;
+    type: string;
+    city: string;
+    district: string;
+  };
 }
 
 export const marketsService = {
@@ -69,5 +78,13 @@ export const marketsService = {
     );
     return unwrapApiPayload<{ request: MarketJoinRequest }>(response.data)
       .request;
+  },
+
+  async listJoinRequests(restaurantId: string): Promise<MarketJoinRequest[]> {
+    const response = await api.get<{
+      requests: MarketJoinRequest[];
+    }>(`/restaurants/${restaurantId}/market-join-requests`);
+    return unwrapApiPayload<{ requests: MarketJoinRequest[] }>(response.data)
+      .requests;
   },
 };

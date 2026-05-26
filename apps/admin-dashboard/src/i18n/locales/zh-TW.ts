@@ -2345,6 +2345,14 @@ const zhTW = {
       loadFailed: "載入市場資料失敗",
       requestSuccess: "已送出加入申請",
       requestFailed: "申請送出失敗，可能已存在待審申請",
+      requestsTitle: "加入申請狀態",
+      requestsSubtitle: "追蹤已送出的市場 / 商圈加入申請與審核狀態。",
+      noRequests: "尚未送出任何加入申請。",
+      requestStatus: {
+        pending: "審核中",
+        approved: "已通過",
+        rejected: "已拒絕",
+      },
     },
     contact: {
       title: "聯絡渠道與常見問題",

@@ -2306,6 +2306,15 @@ const enUS: Messages = {
       loadFailed: "Failed to load market data",
       requestSuccess: "Join request submitted",
       requestFailed: "Request failed. A pending request may already exist.",
+      requestsTitle: "Join Request Status",
+      requestsSubtitle:
+        "Track submitted market or district join requests and review status.",
+      noRequests: "No join requests have been submitted yet.",
+      requestStatus: {
+        pending: "Pending",
+        approved: "Approved",
+        rejected: "Rejected",
+      },
     },
     contact: {
       title: "Contact Channels & FAQ",

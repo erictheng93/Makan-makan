@@ -661,6 +661,28 @@ describe("Markets API — real integration", () => {
       message: "We sell late-night dumplings.",
     });
 
+    const requestsRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
+        {
+          headers: { authorization: `Bearer ${ownerToken}` },
+        },
+      ),
+    );
+    expect(requestsRes.status).toBe(200);
+    const requestsJson: any = await requestsRes.json();
+    expect(requestsJson.data.requests).toHaveLength(1);
+    expect(requestsJson.data.requests[0]).toMatchObject({
+      restaurantId: String(restaurant.id),
+      marketId: requestedMarket.id,
+      status: "pending",
+      message: "We sell late-night dumplings.",
+      market: {
+        slug: "owner-requested-market",
+        name: "Owner Requested Market",
+      },
+    });
+
     const duplicateRes = await testApp.app.fetch(
       new Request(
         `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
