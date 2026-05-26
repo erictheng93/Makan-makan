@@ -95,6 +95,21 @@ export interface MarketAreaReadinessSummary {
   averageReadinessScore: number;
 }
 
+export interface MarketExplorationSummary {
+  dishSearchUrl: string;
+  serviceSearchUrl: string;
+  dishCategories: Array<{
+    categoryName: string;
+    count: number;
+    searchUrl: string;
+  }>;
+  serviceTypes: Array<{
+    serviceType: string;
+    count: number;
+    searchUrl: string;
+  }>;
+}
+
 export type CreateMarketInput = typeof markets.$inferInsert;
 export type UpdateMarketInput = Partial<typeof markets.$inferInsert>;
 
@@ -422,18 +437,121 @@ export class MarketsService {
       );
 
     const vendorCount = Number(count);
-    const catalogCoverage = await this.countCatalogCoverage(market.id);
+    const [catalogCoverage, explorationSummary] = await Promise.all([
+      this.countCatalogCoverage(market.id),
+      this.getExplorationSummary(market.id),
+    ]);
 
     return {
       market,
       vendorCount,
       catalogCoverage,
+      explorationSummary,
       publicReadiness: evaluateMarketPublicReadiness({
         ...market,
         vendorCount,
         ...catalogCoverage,
       }),
     };
+  }
+
+  private async getExplorationSummary(
+    marketId: string,
+  ): Promise<MarketExplorationSummary> {
+    const [dishCategories, serviceTypes] = await Promise.all([
+      this.listDishCategoryFacets(marketId),
+      this.listServiceTypeFacets(marketId),
+    ]);
+
+    return {
+      dishSearchUrl: `/api/v1/discovery/search?marketId=${marketId}`,
+      serviceSearchUrl: `/api/v1/discovery/services?marketId=${marketId}`,
+      dishCategories: dishCategories.map((facet) => ({
+        ...facet,
+        searchUrl: `/api/v1/discovery/search?marketId=${marketId}&categoryName=${encodeURIComponent(
+          facet.categoryName,
+        )}`,
+      })),
+      serviceTypes: serviceTypes.map((facet) => ({
+        ...facet,
+        searchUrl: `/api/v1/discovery/services?marketId=${marketId}&serviceType=${encodeURIComponent(
+          facet.serviceType,
+        )}`,
+      })),
+    };
+  }
+
+  private async listDishCategoryFacets(marketId: string) {
+    const itemCount = sql<number>`count(*)`;
+    const rows = await this.db
+      .select({
+        categoryName: dishSearchIndex.categoryName,
+        count: itemCount,
+      })
+      .from(dishSearchIndex)
+      .innerJoin(restaurants, eq(dishSearchIndex.restaurantId, restaurants.id))
+      .where(
+        and(
+          eq(dishSearchIndex.isAvailable, true),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+          sql`${dishSearchIndex.categoryName} IS NOT NULL`,
+          or(
+            eq(dishSearchIndex.primaryMarketId, marketId),
+            like(dishSearchIndex.marketIds, `%"${marketId}"%`),
+          )!,
+        ),
+      )
+      .groupBy(dishSearchIndex.categoryName)
+      .orderBy(desc(itemCount), asc(dishSearchIndex.categoryName))
+      .limit(12);
+
+    return rows
+      .filter((row): row is { categoryName: string; count: number } =>
+        Boolean(row.categoryName),
+      )
+      .map((row) => ({
+        categoryName: row.categoryName,
+        count: Number(row.count),
+      }));
+  }
+
+  private async listServiceTypeFacets(marketId: string) {
+    const itemCount = sql<number>`count(*)`;
+    const rows = await this.db
+      .select({
+        serviceType: restaurantServiceItems.serviceType,
+        count: itemCount,
+      })
+      .from(restaurantServiceItems)
+      .innerJoin(
+        restaurants,
+        eq(restaurantServiceItems.restaurantId, restaurants.id),
+      )
+      .where(
+        and(
+          eq(restaurantServiceItems.isActive, true),
+          eq(restaurantServiceItems.isPublic, true),
+          isNull(restaurantServiceItems.deletedAt),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+          sql`EXISTS (
+            SELECT 1
+            FROM ${restaurantMarketMemberships}
+            WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+              AND ${restaurantMarketMemberships.marketId} = ${marketId}
+              AND ${restaurantMarketMemberships.leftAt} IS NULL
+          )`,
+        ),
+      )
+      .groupBy(restaurantServiceItems.serviceType)
+      .orderBy(desc(itemCount), asc(restaurantServiceItems.serviceType))
+      .limit(12);
+
+    return rows.map((row) => ({
+      serviceType: row.serviceType,
+      count: Number(row.count),
+    }));
   }
 
   private async countCatalogCoverage(

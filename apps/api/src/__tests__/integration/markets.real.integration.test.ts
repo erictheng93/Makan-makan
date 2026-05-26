@@ -178,6 +178,7 @@ describe("Markets API — real integration", () => {
       dishName: "Fengjia Chicken",
       dishNameNormalized: "fengjiachicken",
       price: 95,
+      categoryName: "炸物",
       isAvailable: true,
       tags: [],
       district: "西屯區",
@@ -239,6 +240,26 @@ describe("Markets API — real integration", () => {
     expect(detailJson.data.catalogCoverage).toEqual({
       searchableProductCount: 1,
       publicServiceCount: 1,
+    });
+    expect(detailJson.data.explorationSummary).toEqual({
+      dishSearchUrl: `/api/v1/discovery/search?marketId=${market.id}`,
+      serviceSearchUrl: `/api/v1/discovery/services?marketId=${market.id}`,
+      dishCategories: [
+        {
+          categoryName: "炸物",
+          count: 1,
+          searchUrl: `/api/v1/discovery/search?marketId=${market.id}&categoryName=${encodeURIComponent(
+            "炸物",
+          )}`,
+        },
+      ],
+      serviceTypes: [
+        {
+          serviceType: "pickup",
+          count: 1,
+          searchUrl: `/api/v1/discovery/services?marketId=${market.id}&serviceType=pickup`,
+        },
+      ],
     });
     expect(detailJson.data.publicReadiness).toMatchObject({
       ready: true,
