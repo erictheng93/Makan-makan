@@ -124,6 +124,55 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("一中章魚燒");
   });
 
+  it("uses initial filters for shareable market product searches", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [dish({ dishName: "分享雞排" })],
+      total: 1,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [service({ name: "分享外送", serviceType: "delivery" })],
+      total: 1,
+    } as never);
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
+      serviceTypes: [{ serviceType: "delivery", count: 1 }],
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        categories: ["小吃", "飲品"],
+        autoLoad: false,
+        initialQuery: "雞排",
+        initialCategory: "小吃",
+        initialServiceType: "delivery",
+        initialTakeaway: true,
+        initialSortBy: "popular",
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("外送 1");
+    });
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+      q: "雞排",
+      marketId: "market-1",
+      categoryName: "小吃",
+      sortBy: "popular",
+      takeaway: true,
+      page: 1,
+      limit: 20,
+    });
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+      q: "雞排",
+      marketId: "market-1",
+      serviceType: "delivery",
+      page: 1,
+      limit: 20,
+    });
+  });
+
   it("searches and renders service items within the selected market", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [dish()],
@@ -206,6 +255,13 @@ describe("MarketProductSearch", () => {
       limit: 20,
     });
     expect(wrapper.text()).toContain("市場外送");
+    expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
+      q: "",
+      categoryName: "",
+      serviceType: "delivery",
+      takeaway: false,
+      sortBy: "price_asc",
+    });
   });
 
   it("loads service type facets for the selected market", async () => {

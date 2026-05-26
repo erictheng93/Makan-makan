@@ -195,25 +195,46 @@ const props = withDefaults(
     marketId: string;
     categories?: string[];
     autoLoad?: boolean;
+    initialQuery?: string;
+    initialCategory?: string;
+    initialServiceType?: ServiceTypeFilter | "";
+    initialTakeaway?: boolean;
+    initialSortBy?: "price_asc" | "price_desc" | "popular";
   }>(),
   {
     categories: () => [],
     autoLoad: true,
+    initialQuery: "",
+    initialCategory: "",
+    initialServiceType: "",
+    initialTakeaway: false,
+    initialSortBy: "price_asc",
   },
 );
 
-defineEmits<{
+const emit = defineEmits<{
   select: [dish: DishSearchResult];
   takeaway: [dish: DishSearchResult];
   selectService: [service: ServiceSearchResult];
+  searchStateChange: [
+    state: {
+      q: string;
+      categoryName: string;
+      serviceType: ServiceTypeFilter | "";
+      takeaway: boolean;
+      sortBy: "price_asc" | "price_desc" | "popular";
+    },
+  ];
 }>();
 
 const { formatPrice } = useCurrency();
-const query = ref("");
-const takeawayOnly = ref(false);
-const selectedCategory = ref("");
-const selectedServiceType = ref<ServiceTypeFilter | "">("");
-const sortBy = ref<"price_asc" | "price_desc" | "popular">("price_asc");
+const query = ref(props.initialQuery);
+const takeawayOnly = ref(props.initialTakeaway);
+const selectedCategory = ref(props.initialCategory);
+const selectedServiceType = ref<ServiceTypeFilter | "">(
+  props.initialServiceType,
+);
+const sortBy = ref<"price_asc" | "price_desc" | "popular">(props.initialSortBy);
 const loadedCategories = ref<string[]>([]);
 const loadedServiceTypes = ref<ServiceTypeFacet[]>([]);
 const results = ref<DishSearchResult[]>([]);
@@ -283,6 +304,7 @@ async function submitSearch() {
   serviceResults.value = [];
   total.value = 0;
   serviceTotal.value = 0;
+  emitSearchState();
   await fetchResults({ append: false });
 }
 
@@ -350,6 +372,16 @@ function searchIfReady() {
   if (hasSearched.value && canSearch.value) {
     submitSearch();
   }
+}
+
+function emitSearchState() {
+  emit("searchStateChange", {
+    q: query.value.trim(),
+    categoryName: selectedCategory.value,
+    serviceType: selectedServiceType.value,
+    takeaway: takeawayOnly.value,
+    sortBy: sortBy.value,
+  });
 }
 
 async function loadCategories() {

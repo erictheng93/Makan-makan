@@ -58,8 +58,14 @@
 
           <MarketProductSearch
             :market-id="store.selectedMarket.id"
+            :initial-query="marketSearchState.q"
+            :initial-category="marketSearchState.categoryName"
+            :initial-service-type="marketSearchState.serviceType"
+            :initial-takeaway="marketSearchState.takeaway"
+            :initial-sort-by="marketSearchState.sortBy"
             @select="openDishVendor"
             @select-service="openServiceVendor"
+            @search-state-change="syncMarketSearchState"
             @takeaway="startDishTakeaway"
           />
 
@@ -156,6 +162,7 @@ import { useMarketsStore } from "@/stores/markets";
 import { discoveryApi } from "@/services/discoveryApi";
 import type {
   DishSearchResult,
+  SearchFilters,
   ServiceSearchResult,
 } from "@/services/discoveryApi";
 import type { MarketVendor } from "@/services/marketsApi";
@@ -180,6 +187,56 @@ const contactProfile = ref<RestaurantContactProfile | null>(null);
 const contactLoading = ref(false);
 const faqQuery = ref("");
 let queryTimer: ReturnType<typeof setTimeout> | undefined;
+type MarketSearchState = {
+  q: string;
+  categoryName: string;
+  serviceType: NonNullable<SearchFilters["serviceType"]> | "";
+  takeaway: boolean;
+  sortBy: "price_asc" | "price_desc" | "popular";
+};
+
+function firstQueryString(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === "string") ?? "";
+  }
+  return typeof value === "string" ? value : "";
+}
+
+function queryBoolean(value: unknown) {
+  return firstQueryString(value) === "true";
+}
+
+function isSortBy(value: string): value is MarketSearchState["sortBy"] {
+  return ["price_asc", "price_desc", "popular"].includes(value);
+}
+
+function isServiceType(
+  value: string,
+): value is NonNullable<SearchFilters["serviceType"]> {
+  return [
+    "general",
+    "booking",
+    "pickup",
+    "delivery",
+    "consultation",
+    "rental",
+    "activity",
+  ].includes(value);
+}
+
+function marketSearchStateFromQuery(): MarketSearchState {
+  const sortBy = firstQueryString(route.query.sortBy);
+  const serviceType = firstQueryString(route.query.serviceType);
+  return {
+    q: firstQueryString(route.query.q),
+    categoryName: firstQueryString(route.query.categoryName),
+    serviceType: isServiceType(serviceType) ? serviceType : "",
+    takeaway: queryBoolean(route.query.takeaway),
+    sortBy: isSortBy(sortBy) ? sortBy : "price_asc",
+  };
+}
+
+const marketSearchState = ref<MarketSearchState>(marketSearchStateFromQuery());
 
 const slug = () => String(route.params.slug);
 
@@ -251,6 +308,19 @@ function openServiceVendor(service: ServiceSearchResult) {
     query: {
       ...shopMenuServiceQuery(service),
       ...marketReturnQuery(),
+    },
+  });
+}
+
+function syncMarketSearchState(state: MarketSearchState) {
+  marketSearchState.value = state;
+  router.replace({
+    query: {
+      ...(state.q ? { q: state.q } : {}),
+      ...(state.categoryName ? { categoryName: state.categoryName } : {}),
+      ...(state.serviceType ? { serviceType: state.serviceType } : {}),
+      ...(state.takeaway ? { takeaway: "true" } : {}),
+      ...(state.sortBy !== "price_asc" ? { sortBy: state.sortBy } : {}),
     },
   });
 }

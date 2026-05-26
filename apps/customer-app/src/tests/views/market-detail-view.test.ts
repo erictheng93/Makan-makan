@@ -5,14 +5,18 @@ import { discoveryApi } from "@/services/discoveryApi";
 import { useMarketsStore } from "@/stores/markets";
 
 const routerPush = vi.hoisted(() => vi.fn());
+const routerReplace = vi.hoisted(() => vi.fn());
+const routeQuery = vi.hoisted(() => ({}) as Record<string, unknown>);
 
 vi.mock("vue-router", () => ({
   useRoute: () => ({
     params: { slug: "fengjia" },
     fullPath: "/markets/fengjia",
+    query: routeQuery,
   }),
   useRouter: () => ({
     push: routerPush,
+    replace: routerReplace,
   }),
 }));
 
@@ -62,10 +66,20 @@ function mountView() {
         MarketDetailHero: true,
         VendorListInMarket: true,
         MarketProductSearch: {
-          props: ["marketId"],
-          emits: ["select", "takeaway", "selectService"],
+          props: [
+            "marketId",
+            "initialQuery",
+            "initialCategory",
+            "initialServiceType",
+            "initialTakeaway",
+            "initialSortBy",
+          ],
+          emits: ["select", "takeaway", "selectService", "searchStateChange"],
           template: `
             <section data-testid="market-product-search">
+              <div data-testid="market-product-search-props">
+                {{ initialQuery }}|{{ initialCategory }}|{{ initialServiceType }}|{{ initialTakeaway }}|{{ initialSortBy }}
+              </div>
               <button
                 data-testid="select-dish"
                 @click="$emit('select', {
@@ -124,6 +138,18 @@ function mountView() {
               >
                 open service
               </button>
+              <button
+                data-testid="sync-market-search"
+                @click="$emit('searchStateChange', {
+                  q: '雞排',
+                  categoryName: '小吃',
+                  serviceType: 'delivery',
+                  takeaway: true,
+                  sortBy: 'popular'
+                })"
+              >
+                sync search
+              </button>
             </section>
           `,
         },
@@ -135,7 +161,41 @@ function mountView() {
 describe("MarketDetailView", () => {
   beforeEach(() => {
     routerPush.mockReset();
+    routerReplace.mockReset();
+    for (const key of Object.keys(routeQuery)) {
+      delete routeQuery[key];
+    }
     vi.mocked(useMarketsStore).mockReturnValue(marketStore() as never);
+  });
+
+  it("passes shareable query state into market product search", () => {
+    routeQuery.q = "雞排";
+    routeQuery.categoryName = "小吃";
+    routeQuery.serviceType = "delivery";
+    routeQuery.takeaway = "true";
+    routeQuery.sortBy = "popular";
+
+    const wrapper = mountView();
+
+    expect(
+      wrapper.get('[data-testid="market-product-search-props"]').text(),
+    ).toContain("雞排|小吃|delivery|true|popular");
+  });
+
+  it("syncs market product search state into the URL", async () => {
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="sync-market-search"]').trigger("click");
+
+    expect(routerReplace).toHaveBeenCalledWith({
+      query: {
+        q: "雞排",
+        categoryName: "小吃",
+        serviceType: "delivery",
+        takeaway: "true",
+        sortBy: "popular",
+      },
+    });
   });
 
   it("opens a market dish result in the shop menu with a stable item deep link", async () => {
