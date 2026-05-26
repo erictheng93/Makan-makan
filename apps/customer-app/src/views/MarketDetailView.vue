@@ -164,7 +164,10 @@ import {
   type RestaurantContactProfile,
 } from "@/services/restaurantContactApi";
 import { applyMarketSeoMeta } from "@/utils/seoMeta";
-import { shopMenuItemQuery } from "@/utils/shopMenuDeepLink";
+import {
+  shopMenuItemQuery,
+  shopMenuServiceQuery,
+} from "@/utils/shopMenuDeepLink";
 
 const route = useRoute();
 const router = useRouter();
@@ -240,7 +243,7 @@ function openServiceVendor(service: ServiceSearchResult) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: service.restaurantId },
-    query: { serviceItemId: String(service.serviceItemId) },
+    query: shopMenuServiceQuery(service),
   });
 }
 

@@ -143,6 +143,7 @@ const routes: RouteRecordRaw[] = [
       waitingTicketId: route.query.waitingTicketId as string | undefined,
       linkedItemId: route.query.itemId,
       linkedCategoryName: route.query.categoryName,
+      linkedServiceItemId: route.query.serviceItemId,
     }),
     meta: {
       titleKey: "navigation.shopMenu",

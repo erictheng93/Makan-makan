@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { computed, ref } from "vue";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ShopMenuView from "@/views/ShopMenuView.vue";
 import { menuApi } from "@/services/menuApi";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
@@ -150,6 +150,14 @@ vi.mock("@/composables/useCurrency", () => ({
 }));
 
 describe("ShopMenuView service items", () => {
+  let scrollIntoView: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+  });
+
   it("renders public restaurant service items beside the menu", () => {
     const wrapper = mount(ShopMenuView, {
       props: { restaurantId: "restaurant-1" },
@@ -175,5 +183,32 @@ describe("ShopMenuView service items", () => {
     expect(wrapper.get('[data-testid="shop-service-items"]').text()).toContain(
       "依距離報價",
     );
+  });
+
+  it("highlights and scrolls to a linked service item", async () => {
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1", linkedServiceItemId: "1" },
+      attachTo: document.body,
+      global: {
+        stubs: {
+          MenuItemCard: true,
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const service = wrapper.get("#service-item-1");
+    expect(service.classes()).toContain("border-ios-blue");
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "center",
+    });
+    wrapper.unmount();
   });
 });

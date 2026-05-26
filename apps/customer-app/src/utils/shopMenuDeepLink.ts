@@ -1,7 +1,12 @@
-import type { Category, MenuItem } from "@makanmakan/shared-types";
+import type {
+  Category,
+  MenuItem,
+  RestaurantServiceItem,
+} from "@makanmakan/shared-types";
 
 export const SHOP_MENU_ITEM_QUERY_KEY = "itemId";
 export const SHOP_MENU_CATEGORY_QUERY_KEY = "categoryName";
+export const SHOP_MENU_SERVICE_QUERY_KEY = "serviceItemId";
 
 export function shopMenuItemQuery(dish: {
   menuItemId: number;
@@ -15,12 +20,22 @@ export function shopMenuItemQuery(dish: {
   };
 }
 
+export function shopMenuServiceQuery(service: { serviceItemId: number }) {
+  return {
+    [SHOP_MENU_SERVICE_QUERY_KEY]: String(service.serviceItemId),
+  };
+}
+
 export function menuItemElementId(itemId: number | string) {
   return `menu-item-${itemId}`;
 }
 
 export function menuCategoryElementId(categoryId: number | string) {
   return `category-${categoryId}`;
+}
+
+export function serviceItemElementId(serviceItemId: number | string) {
+  return `service-item-${serviceItemId}`;
 }
 
 function queryValue(value: unknown) {
@@ -61,4 +76,19 @@ export function findMenuCategoryByQuery(
       (category) => category.name.trim().toLocaleLowerCase() === normalizedName,
     ) ?? null
   );
+}
+
+export function findServiceItemByQuery(
+  serviceItems: RestaurantServiceItem[],
+  value: unknown,
+): RestaurantServiceItem | null {
+  const rawValue = queryValue(value);
+  if (typeof rawValue !== "string" && typeof rawValue !== "number") {
+    return null;
+  }
+
+  const serviceItemId = Number(rawValue);
+  if (!Number.isInteger(serviceItemId) || serviceItemId <= 0) return null;
+
+  return serviceItems.find((service) => service.id === serviceItemId) ?? null;
 }

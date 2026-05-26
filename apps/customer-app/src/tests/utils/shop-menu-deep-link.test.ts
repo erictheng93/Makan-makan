@@ -2,11 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   findMenuCategoryByQuery,
   findMenuItemByQuery,
+  findServiceItemByQuery,
   menuCategoryElementId,
   menuItemElementId,
+  serviceItemElementId,
   shopMenuItemQuery,
+  shopMenuServiceQuery,
 } from "@/utils/shopMenuDeepLink";
-import type { Category, MenuItem } from "@makanmakan/shared-types";
+import type {
+  Category,
+  MenuItem,
+  RestaurantServiceItem,
+} from "@makanmakan/shared-types";
 
 function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
   return {
@@ -36,6 +43,23 @@ function category(overrides: Partial<Category> = {}): Category {
   };
 }
 
+function serviceItem(
+  overrides: Partial<RestaurantServiceItem> = {},
+): RestaurantServiceItem {
+  return {
+    id: 7,
+    restaurantId: "restaurant-1",
+    name: "代客切水果",
+    serviceType: "general",
+    sortOrder: 1,
+    isActive: true,
+    isPublic: true,
+    createdAt: "",
+    updatedAt: "",
+    ...overrides,
+  };
+}
+
 describe("shop menu deep links", () => {
   it("builds a stable itemId query for dish results", () => {
     expect(shopMenuItemQuery({ menuItemId: 42 })).toEqual({ itemId: "42" });
@@ -61,6 +85,16 @@ describe("shop menu deep links", () => {
     expect(menuCategoryElementId(10)).toBe("category-10");
   });
 
+  it("builds a stable serviceItemId query for service results", () => {
+    expect(shopMenuServiceQuery({ serviceItemId: 7 })).toEqual({
+      serviceItemId: "7",
+    });
+  });
+
+  it("builds stable DOM ids for service items", () => {
+    expect(serviceItemElementId(7)).toBe("service-item-7");
+  });
+
   it("finds a menu item from URL query values", () => {
     const items = [menuItem({ id: 41 }), menuItem({ id: 42 })];
 
@@ -80,5 +114,14 @@ describe("shop menu deep links", () => {
     expect(findMenuCategoryByQuery(categories, ["小吃"])?.id).toBe(10);
     expect(findMenuCategoryByQuery(categories, "甜點")).toBeNull();
     expect(findMenuCategoryByQuery(categories, undefined)).toBeNull();
+  });
+
+  it("finds a service item from URL query values", () => {
+    const services = [serviceItem({ id: 6 }), serviceItem({ id: 7 })];
+
+    expect(findServiceItemByQuery(services, "7")?.name).toBe("代客切水果");
+    expect(findServiceItemByQuery(services, ["7"])?.id).toBe(7);
+    expect(findServiceItemByQuery(services, "not-a-number")).toBeNull();
+    expect(findServiceItemByQuery(services, undefined)).toBeNull();
   });
 });

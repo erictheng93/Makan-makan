@@ -192,8 +192,14 @@
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
               <article
                 v-for="service in serviceItems"
+                :id="serviceItemElementId(service.id)"
                 :key="service.id"
-                class="rounded-xl border border-gray-100 bg-white p-4 shadow-[0_1px_4px_rgb(0,0,0,0.03)]"
+                class="rounded-xl border bg-white p-4 shadow-[0_1px_4px_rgb(0,0,0,0.03)]"
+                :class="
+                  linkedServiceId === service.id
+                    ? 'border-ios-blue ring-2 ring-ios-blue/20'
+                    : 'border-gray-100'
+                "
               >
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
@@ -458,8 +464,10 @@ import { applyShopMenuSeoMeta } from "@/utils/seoMeta";
 import {
   findMenuCategoryByQuery,
   findMenuItemByQuery,
+  findServiceItemByQuery,
   menuCategoryElementId,
   menuItemElementId,
+  serviceItemElementId,
 } from "@/utils/shopMenuDeepLink";
 
 // Props
@@ -469,6 +477,7 @@ const props = defineProps<{
   waitingTicketId?: string;
   linkedItemId?: string | string[] | null;
   linkedCategoryName?: string | string[] | null;
+  linkedServiceItemId?: string | string[] | null;
 }>();
 
 // Composables
@@ -491,6 +500,7 @@ const showCustomizationModal = ref(false);
 const showCart = ref(false);
 const openedLinkedItemId = ref<number | null>(null);
 const openedLinkedCategoryId = ref<number | null>(null);
+const openedLinkedServiceItemId = ref<number | null>(null);
 
 // 初始化店家購物車
 onMounted(() => {
@@ -531,6 +541,10 @@ const error = computed(() => menuError.value?.message || null);
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
 const serviceItems = computed(() => serviceItemsData.value || []);
+const linkedService = computed(() =>
+  findServiceItemByQuery(serviceItems.value, props.linkedServiceItemId),
+);
+const linkedServiceId = computed(() => linkedService.value?.id ?? null);
 
 const featuredItems = computed(() =>
   menuItems.value.filter((item: any) => item.isFeatured && item.isAvailable),
@@ -673,6 +687,22 @@ const openLinkedMenuItem = async () => {
   handleViewDetails(item);
 };
 
+const scrollToLinkedServiceItem = async () => {
+  const service = linkedService.value;
+  if (!service || openedLinkedServiceItemId.value === service.id) return;
+
+  await nextTick();
+
+  const element = document.getElementById(serviceItemElementId(service.id));
+  if (!element) return;
+
+  openedLinkedServiceItemId.value = service.id;
+  element.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+};
+
 // 監聽滾動位置更新活躍分類
 const updateActiveCategoryOnScroll = () => {
   const sections = categories.value.map((category: any) => ({
@@ -697,6 +727,7 @@ const updateActiveCategoryOnScroll = () => {
 
 onMounted(() => {
   window.addEventListener("scroll", updateActiveCategoryOnScroll);
+  scrollToLinkedServiceItem();
 
   // 設定餐廳上下文（店家模式）
   if (restaurant.value) {
@@ -734,6 +765,14 @@ watch(
   [menuStructure, () => props.linkedItemId, () => props.linkedCategoryName],
   () => {
     openLinkedMenuItem();
+  },
+  { immediate: true },
+);
+
+watch(
+  [serviceItems, () => props.linkedServiceItemId],
+  () => {
+    scrollToLinkedServiceItem();
   },
   { immediate: true },
 );
