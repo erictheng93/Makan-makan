@@ -10,6 +10,7 @@ import {
   lte,
   or,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import {
@@ -203,7 +204,13 @@ export class MarketsService {
         updatedAt: markets.updatedAt,
       })
       .from(markets)
-      .where(and(eq(markets.isActive, true), isNull(markets.deletedAt)))
+      .where(
+        and(
+          eq(markets.isActive, true),
+          isNull(markets.deletedAt),
+          ...this.publicReadyConditions(),
+        ),
+      )
       .orderBy(desc(markets.updatedAt), asc(markets.name))
       .limit(limit);
 
@@ -230,7 +237,13 @@ export class MarketsService {
         district: markets.district,
       })
       .from(markets)
-      .where(and(eq(markets.isActive, true), isNull(markets.deletedAt)))
+      .where(
+        and(
+          eq(markets.isActive, true),
+          isNull(markets.deletedAt),
+          ...this.publicReadyConditions(),
+        ),
+      )
       .groupBy(markets.city, markets.district)
       .orderBy(asc(markets.city), asc(markets.district));
 
@@ -278,29 +291,7 @@ export class MarketsService {
       );
     }
     if (options.publicReadyOnly) {
-      conditions.push(
-        sql`EXISTS (
-          SELECT 1
-          FROM restaurant_market_memberships rmm
-          INNER JOIN restaurants r ON r.id = rmm.restaurant_id
-          WHERE rmm.market_id = ${markets.id}
-            AND rmm.left_at_ms IS NULL
-            AND r.is_active = 1
-            AND r.deleted_at_ms IS NULL
-        )`,
-        sql`EXISTS (
-          SELECT 1
-          FROM dish_search_index dsi
-          INNER JOIN restaurants r ON r.id = dsi.restaurant_id
-          WHERE dsi.is_available = 1
-            AND r.is_active = 1
-            AND r.deleted_at_ms IS NULL
-            AND (
-              dsi.primary_market_id = ${markets.id}
-              OR dsi.market_ids LIKE '%' || '"' || ${markets.id} || '"' || '%'
-            )
-        )`,
-      );
+      conditions.push(...this.publicReadyConditions());
     }
 
     const whereClause = and(...conditions);
@@ -765,6 +756,7 @@ export class MarketsService {
           lte(markets.latitude, box.northLat),
           gte(markets.longitude, box.westLng),
           lte(markets.longitude, box.eastLng),
+          ...this.publicReadyConditions(),
         ),
       )
       .limit(100);
@@ -1256,6 +1248,32 @@ export class MarketsService {
 
   private async getPublicCacheVersion() {
     return (await this.kv?.get(MARKET_CACHE_VERSION_KEY)) ?? "1";
+  }
+
+  private publicReadyConditions(): SQL[] {
+    return [
+      sql`EXISTS (
+        SELECT 1
+        FROM restaurant_market_memberships rmm
+        INNER JOIN restaurants r ON r.id = rmm.restaurant_id
+        WHERE rmm.market_id = ${markets.id}
+          AND rmm.left_at_ms IS NULL
+          AND r.is_active = 1
+          AND r.deleted_at_ms IS NULL
+      )`,
+      sql`EXISTS (
+        SELECT 1
+        FROM dish_search_index dsi
+        INNER JOIN restaurants r ON r.id = dsi.restaurant_id
+        WHERE dsi.is_available = 1
+          AND r.is_active = 1
+          AND r.deleted_at_ms IS NULL
+          AND (
+            dsi.primary_market_id = ${markets.id}
+            OR dsi.market_ids LIKE '%' || '"' || ${markets.id} || '"' || '%'
+          )
+      )`,
+    ];
   }
 
   private async bumpPublicCacheVersion() {

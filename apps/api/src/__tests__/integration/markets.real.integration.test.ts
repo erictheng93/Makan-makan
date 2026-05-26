@@ -77,6 +77,51 @@ async function seedMarket(
   return market;
 }
 
+async function seedSearchableMarket(
+  testApp: RealIntegrationTestApp,
+  seed: ReturnType<typeof buildSeedHelpers>,
+  marketOverrides: Partial<typeof markets.$inferInsert> = {},
+  restaurantOverrides: Parameters<typeof seed.restaurant>[0] = {},
+) {
+  const market = await seedMarket(testApp, marketOverrides);
+  const restaurant = await seed.restaurant({
+    name: `${market.slug} Vendor`,
+    city: market.city,
+    district: market.district,
+    latitude: market.latitude,
+    longitude: market.longitude,
+    isActive: true,
+    ...restaurantOverrides,
+  });
+  await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+    restaurantId: String(restaurant.id),
+    marketId: market.id,
+    isPrimary: true,
+    joinedAt: new Date(),
+  });
+  const menuItem = await seed.menuItem(String(restaurant.id), {
+    name: `${market.name} Searchable Item`,
+    price: 95,
+  });
+  await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+    menuItemId: menuItem.id,
+    restaurantId: String(restaurant.id),
+    dishName: `${market.name} Searchable Item`,
+    dishNameNormalized: `${market.slug.replaceAll("-", "")}searchableitem`,
+    price: 95,
+    isAvailable: true,
+    tags: [],
+    district: market.district,
+    primaryMarketId: market.id,
+    marketIds: [market.id],
+    latitude: market.latitude,
+    longitude: market.longitude,
+    updatedAt: new Date(),
+  });
+
+  return { market, restaurant, menuItem };
+}
+
 describe("Markets API — real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;
@@ -369,19 +414,19 @@ describe("Markets API — real integration", () => {
   });
 
   it("lists active market cities and districts for customer filters", async () => {
-    await seedMarket(testApp, {
+    await seedSearchableMarket(testApp, seed, {
       slug: "fengjia-area",
       name: "逢甲夜市",
       city: "台中市",
       district: "西屯區",
     });
-    await seedMarket(testApp, {
+    await seedSearchableMarket(testApp, seed, {
       slug: "yizhong-area",
       name: "一中商圈",
       city: "台中市",
       district: "北區",
     });
-    await seedMarket(testApp, {
+    await seedSearchableMarket(testApp, seed, {
       slug: "ximending-area",
       name: "西門町商圈",
       city: "台北市",
@@ -393,6 +438,12 @@ describe("Markets API — real integration", () => {
       city: "基隆市",
       district: "仁愛區",
       isActive: false,
+    });
+    await seedMarket(testApp, {
+      slug: "productless-area",
+      name: "Productless Area",
+      city: "桃園市",
+      district: "中壢區",
     });
 
     const res = await testApp.app.fetch(
@@ -784,7 +835,7 @@ describe("Markets API — real integration", () => {
   });
 
   it("exposes market pages through sitemap.xml and robots.txt", async () => {
-    const activeMarket = await seedMarket(testApp, {
+    const { market: activeMarket } = await seedSearchableMarket(testApp, seed, {
       slug: "seo-night-market",
       name: "SEO Night Market",
       updatedAt: new Date("2026-05-20T12:00:00.000Z"),
@@ -794,6 +845,11 @@ describe("Markets API — real integration", () => {
       name: "Inactive Night Market",
       isActive: false,
       updatedAt: new Date("2026-05-21T12:00:00.000Z"),
+    });
+    await seedMarket(testApp, {
+      slug: "productless-night-market",
+      name: "Productless Night Market",
+      updatedAt: new Date("2026-05-22T12:00:00.000Z"),
     });
 
     const sitemapRes = await testApp.app.fetch(
@@ -807,6 +863,7 @@ describe("Markets API — real integration", () => {
     );
     expect(sitemapXml).toContain("<lastmod>2026-05-20</lastmod>");
     expect(sitemapXml).not.toContain("inactive-night-market");
+    expect(sitemapXml).not.toContain("productless-night-market");
     expect(sitemapXml).not.toContain(activeMarket.id);
 
     const robotsRes = await testApp.app.fetch(
@@ -902,6 +959,42 @@ describe("Markets API — real integration", () => {
       marketId: nearMarket.id,
       stallNumber: "A-12",
       isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const menuItem = await seed.menuItem(String(vendor.id), {
+      name: "Bubble Tea",
+      price: 65,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: menuItem.id,
+      restaurantId: String(vendor.id),
+      dishName: "Bubble Tea",
+      dishNameNormalized: "bubbletea",
+      price: 65,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: nearMarket.id,
+      marketIds: [nearMarket.id],
+      latitude: 24.1765,
+      longitude: 120.6467,
+      updatedAt: new Date(),
+    });
+    const productlessNearMarket = await seedMarket(testApp, {
+      slug: "productless-near-market",
+      latitude: 24.17645,
+      longitude: 120.64665,
+    });
+    const productlessVendor = await seed.restaurant({
+      name: "Productless Nearby Stand",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.17646,
+      longitude: 120.64666,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(productlessVendor.id),
+      marketId: productlessNearMarket.id,
       joinedAt: new Date(),
     });
 
