@@ -30,8 +30,8 @@
       <SearchBar
         v-model="store.searchQuery"
         :keywords="store.popularKeywords"
-        @search="store.searchDishes($event)"
-        @clear="store.clearSearch"
+        @search="searchAndSync($event)"
+        @clear="clearSearchAndSync"
       />
 
       <section v-if="marketOptions.length > 0" class="space-y-2">
@@ -62,7 +62,7 @@
         :districts="districts"
         :categories="categoryOptions"
         :service-types="serviceTypeOptions"
-        @update:filters="store.updateFilters($event)"
+        @update:filters="updateFiltersAndSync($event)"
       />
 
       <div v-if="store.loading" class="flex justify-center py-12">
@@ -238,6 +238,7 @@ import RestaurantCard from "@/components/discovery/RestaurantCard.vue";
 import type {
   DishSearchResult,
   RestaurantListItem,
+  SearchFilters,
   ServiceSearchResult,
   ServiceTypeFacet,
 } from "@/services/discoveryApi";
@@ -320,6 +321,90 @@ function servicePriceLabel(service: ServiceSearchResult) {
   return "";
 }
 
+function firstQueryString(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === "string") ?? "";
+  }
+  return typeof value === "string" ? value : "";
+}
+
+function queryBoolean(value: unknown) {
+  const rawValue = firstQueryString(value);
+  if (rawValue === "true") return true;
+  if (rawValue === "false") return false;
+  return undefined;
+}
+
+function isServiceType(
+  value: string,
+): value is NonNullable<SearchFilters["serviceType"]> {
+  return [
+    "general",
+    "booking",
+    "pickup",
+    "delivery",
+    "consultation",
+    "rental",
+    "activity",
+  ].includes(value);
+}
+
+function filtersFromRouteQuery() {
+  const serviceType = firstQueryString(route.query.serviceType);
+  return {
+    city: firstQueryString(route.query.city) || undefined,
+    district: firstQueryString(route.query.district) || undefined,
+    marketId: firstQueryString(route.query.marketId) || undefined,
+    categoryName: firstQueryString(route.query.categoryName) || undefined,
+    serviceType: isServiceType(serviceType) ? serviceType : undefined,
+    takeaway: queryBoolean(route.query.takeaway),
+    delivery: queryBoolean(route.query.delivery),
+  };
+}
+
+function queryFromFilters(filters = store.filters, query = store.searchQuery) {
+  return {
+    ...(filters.city ? { city: filters.city } : {}),
+    ...(filters.district ? { district: filters.district } : {}),
+    ...(filters.marketId ? { marketId: filters.marketId } : {}),
+    ...(filters.categoryName ? { categoryName: filters.categoryName } : {}),
+    ...(filters.serviceType ? { serviceType: filters.serviceType } : {}),
+    ...(filters.takeaway ? { takeaway: "true" } : {}),
+    ...(filters.delivery ? { delivery: "true" } : {}),
+    ...(query.trim() ? { q: query.trim() } : {}),
+  };
+}
+
+function syncUrl(filters = store.filters, query = store.searchQuery) {
+  router.replace({ query: queryFromFilters(filters, query) });
+}
+
+function hasDiscoverySearchScope(filters: SearchFilters, query: string) {
+  return Boolean(
+    query.trim() ||
+    filters.marketId ||
+    filters.categoryName ||
+    filters.city ||
+    filters.district,
+  );
+}
+
+function searchAndSync(query: string) {
+  store.searchDishes(query);
+  syncUrl(store.filters, query);
+}
+
+function clearSearchAndSync() {
+  store.clearSearch();
+  syncUrl(store.filters, "");
+}
+
+function updateFiltersAndSync(filters: SearchFilters) {
+  const nextFilters = { ...store.filters, ...filters };
+  store.updateFilters(filters);
+  syncUrl(nextFilters, store.searchQuery);
+}
+
 async function startTakeaway(
   restaurantId: string,
   query: Record<string, string> = {},
@@ -345,7 +430,7 @@ function onRestaurantTakeaway(restaurant: RestaurantListItem) {
 }
 
 function toggleMarketFilter(marketId: string) {
-  store.updateFilters({
+  updateFiltersAndSync({
     marketId: selectedMarketId.value === marketId ? undefined : marketId,
   });
 }
@@ -397,7 +482,24 @@ async function loadServiceTypeOptions() {
 
 onMounted(() => {
   store.loadPopular();
-  store.browseRestaurants();
+  const initialFilters = filtersFromRouteQuery();
+  const initialQuery = firstQueryString(route.query.q);
+  const hasInitialFilters = Object.values(initialFilters).some(
+    (value) => value !== undefined,
+  );
+
+  if (hasInitialFilters) {
+    store.filters = initialFilters;
+  }
+  if (initialQuery) {
+    store.searchQuery = initialQuery;
+  }
+
+  if (hasDiscoverySearchScope(initialFilters, initialQuery)) {
+    store.searchDishes(initialQuery);
+  } else {
+    store.browseRestaurants();
+  }
   loadMarketOptions();
   loadCategoryOptions();
   loadServiceTypeOptions();

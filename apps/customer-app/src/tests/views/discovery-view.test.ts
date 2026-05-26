@@ -6,13 +6,17 @@ import { marketsApi } from "@/services/marketsApi";
 import { useDiscoveryStore } from "@/stores/discovery";
 
 const routerPush = vi.hoisted(() => vi.fn());
+const routerReplace = vi.hoisted(() => vi.fn());
+const routeQuery = vi.hoisted(() => ({}) as Record<string, unknown>);
 
 vi.mock("vue-router", () => ({
   useRoute: () => ({
     fullPath: "/discover?q=%E5%A4%96%E9%80%81",
+    query: routeQuery,
   }),
   useRouter: () => ({
     push: routerPush,
+    replace: routerReplace,
   }),
 }));
 
@@ -133,6 +137,10 @@ function mountView() {
 describe("DiscoveryView", () => {
   beforeEach(() => {
     routerPush.mockReset();
+    routerReplace.mockReset();
+    for (const key of Object.keys(routeQuery)) {
+      delete routeQuery[key];
+    }
     vi.mocked(marketsApi.listMarkets).mockResolvedValue({
       markets: [],
       total: 0,
@@ -255,6 +263,75 @@ describe("DiscoveryView", () => {
 
     expect(store.updateFilters).toHaveBeenCalledWith({
       marketId: "market-1",
+    });
+    expect(routerReplace).toHaveBeenCalledWith({
+      query: { marketId: "market-1", q: "章魚燒" },
+    });
+  });
+
+  it("initializes a shareable search from the URL query", () => {
+    routeQuery.q = "外送";
+    routeQuery.marketId = "market-1";
+    routeQuery.categoryName = "小吃";
+    routeQuery.serviceType = "delivery";
+    routeQuery.takeaway = "true";
+    const store = discoveryStore({
+      searchQuery: "",
+      filters: {},
+      searchDishes: vi.fn(),
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    mountView();
+
+    expect(store.filters).toEqual({
+      marketId: "market-1",
+      categoryName: "小吃",
+      serviceType: "delivery",
+      takeaway: true,
+    });
+    expect(store.searchQuery).toBe("外送");
+    expect(store.searchDishes).toHaveBeenCalledWith("外送");
+    expect(store.browseRestaurants).not.toHaveBeenCalled();
+  });
+
+  it("does not search from a URL query that only has a service type", () => {
+    routeQuery.serviceType = "delivery";
+    const store = discoveryStore({
+      searchQuery: "",
+      filters: {},
+      searchDishes: vi.fn(),
+      browseRestaurants: vi.fn(),
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    mountView();
+
+    expect(store.filters).toEqual({ serviceType: "delivery" });
+    expect(store.searchDishes).not.toHaveBeenCalled();
+    expect(store.browseRestaurants).toHaveBeenCalled();
+  });
+
+  it("syncs text searches into the URL query", async () => {
+    const searchDishes = vi.fn();
+    const store = discoveryStore({
+      searchQuery: "章魚燒",
+      filters: { marketId: "market-1", serviceType: "delivery" },
+      searchDishes,
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    wrapper.getComponent({ name: "SearchBar" }).vm.$emit("search", "外送");
+
+    expect(searchDishes).toHaveBeenCalledWith("外送");
+    expect(routerReplace).toHaveBeenCalledWith({
+      query: {
+        marketId: "market-1",
+        serviceType: "delivery",
+        q: "外送",
+      },
     });
   });
 
