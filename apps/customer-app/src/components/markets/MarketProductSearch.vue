@@ -12,7 +12,7 @@
         <button
           type="submit"
           class="h-10 shrink-0 rounded-lg bg-ios-blue px-4 text-sm font-medium text-white disabled:bg-gray-300"
-          :disabled="loading || query.trim().length === 0"
+          :disabled="loading || !canSearch"
         >
           搜尋
         </button>
@@ -143,10 +143,12 @@ const hasMoreResults = computed(() => results.value.length < total.value);
 const categoryOptions = computed(() =>
   props.categories.length > 0 ? props.categories : loadedCategories.value,
 );
+const canSearch = computed(
+  () => query.value.trim().length > 0 || selectedCategory.value.length > 0,
+);
 
 async function submitSearch() {
-  const trimmed = query.value.trim();
-  if (!trimmed) return;
+  if (!canSearch.value) return;
 
   page.value = 1;
   results.value = [];
@@ -163,7 +165,7 @@ async function loadMore() {
 
 async function fetchResults({ append }: { append: boolean }) {
   const trimmed = query.value.trim();
-  if (!trimmed) return;
+  if (!canSearch.value) return;
 
   loading.value = true;
   error.value = null;
@@ -171,7 +173,7 @@ async function fetchResults({ append }: { append: boolean }) {
 
   try {
     const response = await discoveryApi.searchDishes({
-      q: trimmed,
+      q: trimmed || undefined,
       marketId: props.marketId,
       categoryName: selectedCategory.value || undefined,
       sortBy: sortBy.value,
@@ -198,7 +200,7 @@ async function fetchResults({ append }: { append: boolean }) {
 }
 
 function searchIfReady() {
-  if (hasSearched.value && query.value.trim()) {
+  if (hasSearched.value && canSearch.value) {
     submitSearch();
   }
 }

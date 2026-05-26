@@ -53,7 +53,6 @@ export class DiscoveryService {
     filters: SearchFilters,
   ): Promise<SearchResponse<DishSearchResult>> {
     const { q, page = 1, limit = 20 } = filters;
-    if (!q) return { results: [], total: 0, page, limit };
 
     // 1. Check KV cache
     const searchVersion = await this.getSearchVersion();
@@ -65,7 +64,7 @@ export class DiscoveryService {
     }
 
     // 2. Normalize query
-    const normalized = this.normalizeQuery(q);
+    const normalized = q ? this.normalizeQuery(q) : null;
 
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
@@ -118,10 +117,12 @@ export class DiscoveryService {
       );
     }
 
-    const prefixConditions: SQL[] = [
-      ...baseConditions,
-      like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
-    ];
+    const prefixConditions: SQL[] = [...baseConditions];
+    if (normalized) {
+      prefixConditions.push(
+        like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
+      );
+    }
     const whereClause = and(...prefixConditions);
     const [queryResult, countRows] = await Promise.all([
       this.db
@@ -167,15 +168,17 @@ export class DiscoveryService {
         : queryResult.length;
 
     // 4. KV tag index lookup
-    const tagIndex = await this.kv.get("search:tags:index");
     let tagMatches: number[] = [];
-    if (tagIndex) {
+    const tagIndex = normalized ? await this.kv.get("search:tags:index") : null;
+    if (tagIndex && normalized) {
       const index: Record<string, { menuItemId: number }[]> =
         JSON.parse(tagIndex);
-      if (index[normalized] || index[q]) {
-        tagMatches = (index[normalized] || index[q] || []).map(
-          (t) => t.menuItemId,
-        );
+      if (index[normalized] || (q && index[q])) {
+        tagMatches = (
+          index[normalized] ||
+          (q ? index[q] : undefined) ||
+          []
+        ).map((t) => t.menuItemId);
       }
     }
 

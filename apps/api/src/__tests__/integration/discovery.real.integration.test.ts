@@ -540,6 +540,62 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("browses market dishes by category without a keyword", async () => {
+    const market = await seedMarket(testApp, {
+      name: "Browse Category Market",
+    });
+    const restaurant = await seed.restaurant();
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+
+    const snack = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Browse Scope Bao",
+      price: 100,
+    });
+    const drink = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Browse Scope Tea",
+      price: 80,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: snack.id,
+        name: "Browse Scope Bao",
+        price: 100,
+        categoryName: "小吃",
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+      {
+        menuItemId: drink.id,
+        name: "Browse Scope Tea",
+        price: 80,
+        categoryName: "飲品",
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?marketId=${market.id}&categoryName=%E5%B0%8F%E5%90%83&page=1&limit=10`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results.map((r: any) => r.dishName)).toEqual([
+      "Browse Scope Bao",
+    ]);
+  });
+
   // -------------------------------------------------------------------------
   // Empty result: q with no matches returns empty results array
   // -------------------------------------------------------------------------

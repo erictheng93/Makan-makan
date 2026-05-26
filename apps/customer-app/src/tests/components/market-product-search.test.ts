@@ -136,6 +136,41 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("章魚燒 21");
   });
 
+  it("browses products by category without a keyword", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [
+        dish({
+          dishName: "珍珠奶茶",
+          categoryName: "飲品",
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        categories: ["小吃", "飲品"],
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-category-select"]')
+      .setValue("飲品");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      categoryName: "飲品",
+      sortBy: "price_asc",
+      takeaway: undefined,
+      page: 1,
+      limit: 20,
+    });
+    expect(wrapper.text()).toContain("珍珠奶茶");
+  });
+
   it("emits takeaway from a market-scoped product result", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [
