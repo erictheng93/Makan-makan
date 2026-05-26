@@ -35,6 +35,13 @@ function metaByProperty(property: string) {
   )?.content;
 }
 
+function marketJsonLd() {
+  const script = document.head.querySelector<HTMLScriptElement>(
+    'script[type="application/ld+json"][data-seo="market"]',
+  );
+  return script ? JSON.parse(script.textContent ?? "{}") : null;
+}
+
 describe("applyMarketSeoMeta", () => {
   beforeEach(() => {
     document.head.innerHTML = "";
@@ -83,5 +90,64 @@ describe("applyMarketSeoMeta", () => {
     expect(metaByProperty("og:image")).toBe(
       "https://makanmakan.app/market-gallery.jpg",
     );
+  });
+
+  it("adds structured data for the market page", () => {
+    applyMarketSeoMeta({
+      market: market({
+        openingHours: {
+          monday: { open: "17:00", close: "23:30" },
+          tuesday: { open: "17:00", close: "23:30", closed: true },
+        },
+      }),
+      vendorCount: 12,
+      path: "/markets/fengjia",
+      origin: "https://makanmakan.app",
+    });
+
+    const jsonLd = marketJsonLd();
+
+    expect(jsonLd).toMatchObject({
+      "@context": "https://schema.org",
+      "@type": "Place",
+      name: "逢甲夜市",
+      description: expect.stringContaining("12 間店家"),
+      url: "https://makanmakan.app/markets/fengjia",
+      image: "https://example.com/banner.jpg",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "台中市西屯區文華路",
+        addressLocality: "西屯區",
+        addressRegion: "台中市",
+        addressCountry: "TW",
+      },
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: 24.1764,
+        longitude: 120.6466,
+      },
+    });
+    expect(jsonLd.openingHoursSpecification).toEqual([
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: "https://schema.org/Monday",
+        opens: "17:00",
+        closes: "23:30",
+      },
+    ]);
+
+    applyMarketSeoMeta({
+      market: market({ name: "一中商圈" }),
+      vendorCount: 4,
+      path: "/markets/yizhong",
+      origin: "https://makanmakan.app",
+    });
+
+    expect(
+      document.head.querySelectorAll(
+        'script[type="application/ld+json"][data-seo="market"]',
+      ),
+    ).toHaveLength(1);
+    expect(marketJsonLd()?.name).toBe("一中商圈");
   });
 });
