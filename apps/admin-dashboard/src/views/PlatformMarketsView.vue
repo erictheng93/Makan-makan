@@ -386,7 +386,7 @@
           <div>
             <h3 class="text-base font-semibold text-gray-900">批次匯入店鋪</h3>
             <p class="mt-1 text-sm text-gray-500">
-              貼上店鋪 JSON 陣列；既有店鋪填 restaurantId，新店鋪至少填
+              貼上 CSV 或 JSON；既有店鋪填 restaurantId，新店鋪至少填
               name、address、district。
             </p>
           </div>
@@ -399,17 +399,54 @@
           </button>
         </div>
 
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            v-for="option in vendorImportFormatOptions"
+            :key="option.value"
+            type="button"
+            class="rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+            :class="
+              vendorImportFormat === option.value
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            "
+            :data-testid="`vendor-import-format-${option.value}`"
+            @click="setVendorImportFormat(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+
         <textarea
           v-model="vendorImportText"
           rows="8"
           data-testid="vendor-import-json"
           class="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-          placeholder='[{"restaurantId":"restaurant-1","stallNumber":"A-01"},{"name":"新店鋪","address":"台中市西屯區文華路","district":"西屯區","stallNumber":"B-02"}]'
+          :placeholder="vendorImportPlaceholder"
         />
 
+        <div v-if="vendorImportPreview.errors.length" class="mt-3 space-y-1">
+          <p
+            v-for="error in vendorImportPreview.errors"
+            :key="error"
+            class="text-sm text-red-600"
+          >
+            {{ error }}
+          </p>
+        </div>
         <p v-if="vendorImportError" class="mt-3 text-sm text-red-600">
           {{ vendorImportError }}
         </p>
+        <div
+          v-if="
+            vendorImportText.trim() &&
+            !vendorImportPreview.errors.length &&
+            vendorImportPreview.vendors.length
+          "
+          class="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800"
+        >
+          已解析 {{ vendorImportPreview.vendors.length }} 筆店鋪，準備匯入。
+        </div>
         <div
           v-if="vendorImportResult"
           class="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800"
@@ -424,7 +461,12 @@
             type="button"
             data-testid="vendor-import-submit"
             class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-            :disabled="isImportingVendors || !vendorImportText.trim()"
+            :disabled="
+              isImportingVendors ||
+              !vendorImportText.trim() ||
+              vendorImportPreview.errors.length > 0 ||
+              vendorImportPreview.vendors.length === 0
+            "
             @click="importVendorsForMarket"
           >
             {{ isImportingVendors ? "匯入中..." : "匯入店鋪" }}
@@ -460,6 +502,11 @@ import {
   marketPublicProfileFormFromMarket,
   type MarketPublicProfileForm,
 } from "@/utils/marketPublicProfileForm";
+import {
+  buildMarketVendorImportTemplate,
+  parseMarketVendorImport,
+  type MarketVendorImportFormat,
+} from "@/utils/marketVendorImport";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -471,6 +518,7 @@ const readinessFilter = ref<MarketReadinessFilter>("all");
 const editingMarket = ref<MarketListItem | null>(null);
 const formError = ref("");
 const isImportingVendors = ref(false);
+const vendorImportFormat = ref<MarketVendorImportFormat>("csv");
 const vendorImportText = ref("");
 const vendorImportError = ref("");
 const vendorImportResult = ref<ImportMarketVendorsResult | null>(null);
@@ -491,6 +539,13 @@ const filterOptions: Array<{ value: MarketReadinessFilter; label: string }> = [
   { value: "ready", label: "可上架" },
   { value: "blocked", label: "需補齊" },
   { value: "unknown", label: "未知" },
+];
+const vendorImportFormatOptions: Array<{
+  value: MarketVendorImportFormat;
+  label: string;
+}> = [
+  { value: "csv", label: "CSV" },
+  { value: "json", label: "JSON" },
 ];
 
 const stats = computed(() => marketReadinessStats(markets.value));
@@ -518,6 +573,21 @@ const metrics = computed(() => [
     class: "text-amber-600",
   },
 ]);
+const vendorImportPreview = computed(() => {
+  if (!vendorImportText.value.trim()) {
+    return { vendors: [], errors: [] };
+  }
+
+  return parseMarketVendorImport(
+    vendorImportFormat.value,
+    vendorImportText.value,
+  );
+});
+const vendorImportPlaceholder = computed(() =>
+  vendorImportFormat.value === "csv"
+    ? "restaurantId,name,type,category,description,address,district,city,phone,email,website,stallNumber,isPrimary"
+    : '[{"restaurantId":"restaurant-1","stallNumber":"A-01"},{"name":"新店鋪","address":"台中市西屯區文華路","district":"西屯區","stallNumber":"B-02"}]',
+);
 
 function readinessBadgeClass(market: MarketListItem) {
   if (!market.publicReadiness) return "bg-gray-100 text-gray-600";
@@ -612,54 +682,44 @@ async function saveMarketProfile() {
 
 function loadVendorImportExample() {
   vendorImportError.value = "";
-  vendorImportText.value = JSON.stringify(
-    [
-      {
-        restaurantId: "restaurant-1",
-        stallNumber: "A-01",
-        isPrimary: true,
-      },
-      {
-        name: "新店鋪",
-        type: "market_stall",
-        category: "food",
-        address: "台中市西屯區文華路 100 號",
-        district: "西屯區",
-        stallNumber: "B-02",
-      },
-    ],
-    null,
-    2,
-  );
+  vendorImportText.value =
+    vendorImportFormat.value === "csv"
+      ? buildMarketVendorImportTemplate()
+      : JSON.stringify(
+          [
+            {
+              restaurantId: "restaurant-1",
+              stallNumber: "A-01",
+              isPrimary: true,
+            },
+            {
+              name: "新店鋪",
+              type: "market_stall",
+              category: "food",
+              address: "台中市西屯區文華路 100 號",
+              district: "西屯區",
+              stallNumber: "B-02",
+            },
+          ],
+          null,
+          2,
+        );
 }
 
-function isVendorImportEnvelope(
-  value: unknown,
-): value is { vendors: unknown[] } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    Array.isArray((value as { vendors?: unknown }).vendors)
-  );
+function setVendorImportFormat(format: MarketVendorImportFormat) {
+  vendorImportFormat.value = format;
+  vendorImportError.value = "";
+  vendorImportResult.value = null;
+  vendorImportText.value = "";
 }
 
-function parseVendorImportText(): ImportMarketVendorInput[] {
-  const payload: unknown = JSON.parse(vendorImportText.value);
-  const vendors = Array.isArray(payload)
-    ? payload
-    : isVendorImportEnvelope(payload)
-      ? payload.vendors
-      : null;
-
-  if (!vendors?.length) {
-    throw new Error("請貼上至少一筆店鋪資料。");
+function parsedVendorsForImport(): ImportMarketVendorInput[] {
+  const parsed = vendorImportPreview.value;
+  if (!parsed.vendors.length || parsed.errors.length) {
+    throw new Error(parsed.errors[0] ?? "請確認匯入資料格式後再送出。");
   }
 
-  if (vendors.some((vendor) => typeof vendor !== "object" || vendor === null)) {
-    throw new Error("每一筆店鋪資料都必須是 JSON 物件。");
-  }
-
-  return vendors as ImportMarketVendorInput[];
+  return parsed.vendors;
 }
 
 async function importVendorsForMarket() {
@@ -670,10 +730,10 @@ async function importVendorsForMarket() {
 
   let vendors: ImportMarketVendorInput[];
   try {
-    vendors = parseVendorImportText();
+    vendors = parsedVendorsForImport();
   } catch (error) {
     vendorImportError.value =
-      error instanceof Error ? error.message : "店鋪 JSON 格式不正確。";
+      error instanceof Error ? error.message : "店鋪資料格式不正確。";
     return;
   }
 
