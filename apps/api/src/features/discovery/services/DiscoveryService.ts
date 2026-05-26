@@ -491,6 +491,9 @@ export class DiscoveryService {
       supportsTakeaway: row.supportsTakeaway,
       supportsDelivery: row.supportsDelivery,
       imageUrl: row.logoUrl,
+      detailUrl: this.restaurantDetailUrl(row.id),
+      menuUrl: this.restaurantMenuUrl(row.id),
+      serviceItemsUrl: this.restaurantServiceItemsUrl(row.id),
     }));
 
     // Cache district results in KV (only when no secondary filters and page=1 to avoid partial cache)

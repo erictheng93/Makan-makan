@@ -1942,6 +1942,39 @@ describe("Discovery API — real integration", () => {
     expect(data.results[0].restaurantId).not.toBe(String(closedRestaurant.id));
   });
 
+  it("returns openable store entrypoints from restaurant browse results and cache", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Restaurant Browse Entrypoint Vendor",
+      district: "Entry District",
+      totalOrders: 10,
+    });
+
+    const firstRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/restaurants?district=Entry+District&page=1&limit=10",
+      ),
+    );
+    const cachedRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/restaurants?district=Entry+District&page=1&limit=10",
+      ),
+    );
+
+    expect(firstRes.status).toBe(200);
+    expect(cachedRes.status).toBe(200);
+    const firstData = ((await firstRes.json()) as ApiTestResponse).data;
+    const cachedData = ((await cachedRes.json()) as ApiTestResponse).data;
+    const expectedEntryPoints = {
+      restaurantId: restaurant.id,
+      detailUrl: `/api/v1/restaurants/${restaurant.id}`,
+      menuUrl: `/api/v1/menu/${restaurant.id}`,
+      serviceItemsUrl: `/api/v1/restaurants/${restaurant.id}/service-items`,
+    };
+
+    expect(firstData.results[0]).toMatchObject(expectedEntryPoints);
+    expect(cachedData.results[0]).toMatchObject(expectedEntryPoints);
+  });
+
   it("returns restaurant browse totals independent of the current page slice", async () => {
     for (let i = 0; i < 12; i += 1) {
       await seed.restaurant({

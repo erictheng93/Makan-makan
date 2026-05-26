@@ -29,6 +29,9 @@ export interface RestaurantListItem {
   supportsTakeaway: boolean;
   supportsDelivery: boolean;
   imageUrl: string | null;
+  detailUrl: string;
+  menuUrl: string;
+  serviceItemsUrl: string;
 }
 
 export interface ServiceSearchResult {
