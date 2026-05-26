@@ -125,6 +125,34 @@ describe("useDiscoveryStore", () => {
     expect(store.total).toBe(1);
   });
 
+  it("passes service type only to service searches", async () => {
+    setActivePinia(createPinia());
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+
+    const store = useDiscoveryStore();
+    store.updateFilters({ marketId: "market-1", serviceType: "delivery" });
+    await store.searchDishes("外送");
+
+    expect(discoveryApi.searchDishes).toHaveBeenLastCalledWith({
+      q: "外送",
+      marketId: "market-1",
+      page: 1,
+    });
+    expect(discoveryApi.searchServices).toHaveBeenLastCalledWith({
+      q: "外送",
+      marketId: "market-1",
+      serviceType: "delivery",
+      page: 1,
+    });
+  });
+
   it("browses category dishes when selecting a category without a keyword", async () => {
     setActivePinia(createPinia());
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({

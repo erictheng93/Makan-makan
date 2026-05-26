@@ -46,9 +46,10 @@ export const useDiscoveryStore = defineStore("discovery", () => {
 
     try {
       const trimmedQuery = query.trim();
-      const searchFilters = {
+      const { serviceType, ...dishFilters } = filters.value;
+      const dishSearchFilters = {
         ...(trimmedQuery ? { q: trimmedQuery } : {}),
-        ...filters.value,
+        ...dishFilters,
         page: page.value,
       };
       const canSearchServices = Boolean(
@@ -58,13 +59,14 @@ export const useDiscoveryStore = defineStore("discovery", () => {
         filters.value.district,
       );
       const [dishResult, serviceResult] = await Promise.all([
-        discoveryApi.searchDishes(searchFilters),
+        discoveryApi.searchDishes(dishSearchFilters),
         canSearchServices
           ? discoveryApi.searchServices({
               q: trimmedQuery || undefined,
               city: filters.value.city,
               district: filters.value.district,
               marketId: filters.value.marketId,
+              serviceType,
               page: page.value,
             })
           : Promise.resolve({ results: [], total: 0 }),

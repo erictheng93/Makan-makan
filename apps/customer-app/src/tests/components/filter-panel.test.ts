@@ -20,6 +20,10 @@ describe("FilterPanel", () => {
         cities: ["台中市", "台北市"],
         districts: ["北區", "西屯區"],
         categories: ["小吃", "飲品"],
+        serviceTypes: [
+          { serviceType: "delivery", count: 2 },
+          { serviceType: "booking", count: 1 },
+        ],
       },
     });
   }
@@ -55,5 +59,24 @@ describe("FilterPanel", () => {
       district: "西屯區",
       categoryName: "飲品",
     });
+  });
+
+  it("emits service type filter changes", async () => {
+    const wrapper = mountPanel();
+    await wrapper
+      .get('[data-testid="discovery-filter-toggle"]')
+      .trigger("click");
+
+    await wrapper
+      .get('[data-testid="discovery-service-type-select"]')
+      .setValue("delivery");
+
+    expect(wrapper.emitted("update:filters")?.at(-1)?.[0]).toEqual({
+      city: "台中市",
+      district: "西屯區",
+      serviceType: "delivery",
+    });
+    expect(wrapper.text()).toContain("外送 2");
+    expect(wrapper.text()).toContain("預約 1");
   });
 });

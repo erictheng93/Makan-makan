@@ -61,6 +61,7 @@
         :cities="cities"
         :districts="districts"
         :categories="categoryOptions"
+        :service-types="serviceTypeOptions"
         @update:filters="store.updateFilters($event)"
       />
 
@@ -238,6 +239,7 @@ import type {
   DishSearchResult,
   RestaurantListItem,
   ServiceSearchResult,
+  ServiceTypeFacet,
 } from "@/services/discoveryApi";
 import { discoveryApi } from "@/services/discoveryApi";
 import { marketsApi, type MarketListItem } from "@/services/marketsApi";
@@ -254,6 +256,7 @@ const { formatPrice } = useCurrency();
 const marketOptions = ref<MarketListItem[]>([]);
 const marketAreas = ref<{ city: string; districts: string[] }[]>([]);
 const categoryOptions = ref<string[]>([]);
+const serviceTypeOptions = ref<ServiceTypeFacet[]>([]);
 
 const selectedMarketId = computed(() => store.filters.marketId);
 const selectedCity = computed(() => store.filters.city);
@@ -357,11 +360,26 @@ async function loadCategoryOptions() {
   }
 }
 
+async function loadServiceTypeOptions() {
+  try {
+    const response = await discoveryApi.listServiceTypes({
+      city: store.filters.city,
+      district: store.filters.district,
+      marketId: store.filters.marketId,
+    });
+    serviceTypeOptions.value = response.serviceTypes;
+  } catch (error) {
+    console.error("Failed to load discovery service types:", error);
+    serviceTypeOptions.value = [];
+  }
+}
+
 onMounted(() => {
   store.loadPopular();
   store.browseRestaurants();
   loadMarketOptions();
   loadCategoryOptions();
+  loadServiceTypeOptions();
 });
 
 watch(
@@ -374,6 +392,7 @@ watch(
   ],
   () => {
     loadCategoryOptions();
+    loadServiceTypeOptions();
   },
 );
 </script>

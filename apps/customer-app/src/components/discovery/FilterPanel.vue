@@ -111,14 +111,34 @@
           </option>
         </select>
       </div>
+      <div v-if="serviceTypeOptions.length > 0">
+        <label class="text-xs font-medium text-gray-500 mb-1 block">
+          服務類型
+        </label>
+        <select
+          :value="filters.serviceType || ''"
+          data-testid="discovery-service-type-select"
+          class="w-full text-sm bg-ios-bg rounded-xl px-3 py-2 focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
+          @change="onServiceTypeChange"
+        >
+          <option value="">全部服務</option>
+          <option
+            v-for="option in serviceTypeOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }} {{ option.count }}
+          </option>
+        </select>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import type { SearchFilters } from "@/services/discoveryApi";
+import type { SearchFilters, ServiceTypeFacet } from "@/services/discoveryApi";
 
 const { t } = useI18n();
 
@@ -127,6 +147,7 @@ const props = defineProps<{
   cities: string[];
   districts: string[];
   categories: string[];
+  serviceTypes: ServiceTypeFacet[];
 }>();
 
 const emit = defineEmits<{
@@ -134,6 +155,25 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = ref(false);
+const serviceTypeLabels = new Map<
+  NonNullable<SearchFilters["serviceType"]>,
+  string
+>([
+  ["general", "一般服務"],
+  ["booking", "預約"],
+  ["pickup", "自取"],
+  ["delivery", "外送"],
+  ["consultation", "諮詢"],
+  ["rental", "租借"],
+  ["activity", "活動"],
+]);
+const serviceTypeOptions = computed(() =>
+  props.serviceTypes.map((facet) => ({
+    value: facet.serviceType,
+    label: serviceTypeLabels.get(facet.serviceType) ?? facet.serviceType,
+    count: facet.count,
+  })),
+);
 
 function toggle(key: "openNow" | "takeaway" | "delivery") {
   emit("update:filters", {
@@ -164,6 +204,14 @@ function onCategoryChange(e: Event) {
   emit("update:filters", {
     ...props.filters,
     categoryName: target.value || undefined,
+  });
+}
+
+function onServiceTypeChange(e: Event) {
+  const target = e.target as HTMLSelectElement;
+  emit("update:filters", {
+    ...props.filters,
+    serviceType: (target.value || undefined) as SearchFilters["serviceType"],
   });
 }
 </script>

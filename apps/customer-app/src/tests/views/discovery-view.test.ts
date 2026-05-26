@@ -35,6 +35,7 @@ vi.mock("@/services/discoveryApi", () => ({
   discoveryApi: {
     getTakeawayEligibility: vi.fn(),
     listCategories: vi.fn(),
+    listServiceTypes: vi.fn(),
   },
 }));
 
@@ -91,12 +92,15 @@ function mountView() {
       stubs: {
         SearchBar: true,
         FilterPanel: {
-          props: ["cities", "districts", "categories"],
+          props: ["cities", "districts", "categories", "serviceTypes"],
           template: `
             <div>
               <div data-testid="city-filter-options">{{ cities.join(",") }}</div>
               <div data-testid="district-filter-options">{{ districts.join(",") }}</div>
               <div data-testid="category-filter-options">{{ categories.join(",") }}</div>
+              <div data-testid="service-type-filter-options">
+                {{ serviceTypes.map((facet) => facet.serviceType + ':' + facet.count).join(',') }}
+              </div>
             </div>
           `,
         },
@@ -137,6 +141,9 @@ describe("DiscoveryView", () => {
     } as never);
     vi.mocked(discoveryApi.listCategories).mockResolvedValue({
       categories: [],
+    } as never);
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValue({
+      serviceTypes: [],
     } as never);
     vi.mocked(useDiscoveryStore).mockReturnValue(discoveryStore() as never);
   });
@@ -284,6 +291,32 @@ describe("DiscoveryView", () => {
       marketId: "market-1",
       takeaway: undefined,
       delivery: undefined,
+    });
+  });
+
+  it("loads service type filters with the selected market scope", async () => {
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
+      serviceTypes: [
+        { serviceType: "delivery", count: 2 },
+        { serviceType: "booking", count: 1 },
+      ],
+    } as never);
+    const store = discoveryStore({
+      filters: { marketId: "market-1" },
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.get('[data-testid="service-type-filter-options"]').text(),
+      ).toContain("delivery:2");
+    });
+    expect(discoveryApi.listServiceTypes).toHaveBeenCalledWith({
+      city: undefined,
+      district: undefined,
+      marketId: "market-1",
     });
   });
 });
