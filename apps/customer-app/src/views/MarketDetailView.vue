@@ -338,6 +338,7 @@ function syncMarketSearchState(state: MarketSearchState) {
       ...(state.serviceType ? { serviceType: state.serviceType } : {}),
       ...(state.takeaway ? { takeaway: "true" } : {}),
       ...(state.sortBy !== "price_asc" ? { sortBy: state.sortBy } : {}),
+      ...marketDirectoryReturnQuery(),
     },
   });
 }
@@ -347,6 +348,15 @@ function marketReturnQuery() {
     path: route.fullPath,
     label: store.selectedMarket?.name ?? "市場",
   });
+}
+
+function marketDirectoryReturnQuery() {
+  if (!returnContext.value) return {};
+
+  return {
+    returnPath: returnContext.value.path,
+    returnLabel: returnContext.value.label,
+  };
 }
 
 function goBack() {

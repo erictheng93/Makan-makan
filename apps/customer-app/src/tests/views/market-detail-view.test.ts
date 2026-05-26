@@ -224,6 +224,26 @@ describe("MarketDetailView", () => {
     });
   });
 
+  it("preserves directory return context while syncing market search state", async () => {
+    routeQuery.returnPath = "/markets?q=夜市&city=台中市";
+    routeQuery.returnLabel = "夜市與商圈";
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="sync-market-search"]').trigger("click");
+
+    expect(routerReplace).toHaveBeenCalledWith({
+      query: {
+        q: "雞排",
+        categoryName: "小吃",
+        serviceType: "delivery",
+        takeaway: "true",
+        sortBy: "popular",
+        returnPath: "/markets?q=夜市&city=台中市",
+        returnLabel: "夜市與商圈",
+      },
+    });
+  });
+
   it("opens a market dish result in the shop menu with a stable item deep link", async () => {
     const wrapper = mountView();
 
