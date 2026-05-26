@@ -17,7 +17,6 @@ import {
   marketJoinRequests,
   markets,
   restaurantMarketMemberships,
-  restaurantServiceItems,
   restaurants,
 } from "@makanmakan/database";
 import {
@@ -33,6 +32,7 @@ import { evaluateMarketPublicReadiness } from "../utils/publicReadiness";
 const MARKET_CACHE_VERSION_KEY = "markets:version";
 
 export interface MarketFilters {
+  q?: string;
   city?: string;
   district?: string;
   type?: string;
@@ -95,11 +95,13 @@ export type UpdateMarketInput = Partial<typeof markets.$inferInsert>;
 
 export class MarketsService {
   private db;
+  private d1: D1Database;
   private cache: CacheService;
   private kv?: KVNamespace;
 
   constructor(d1: D1Database, kv?: KVNamespace) {
     this.db = drizzle(d1);
+    this.d1 = d1;
     this.kv = kv;
     this.cache = kv ? new KVCacheService(kv) : new NoopCacheService();
   }
@@ -260,6 +262,17 @@ export class MarketsService {
     if (filters.district)
       conditions.push(eq(markets.district, filters.district));
     if (filters.type) conditions.push(eq(markets.type, filters.type));
+    if (filters.q) {
+      const pattern = `%${filters.q.trim()}%`;
+      conditions.push(
+        or(
+          like(markets.name, pattern),
+          like(markets.slug, pattern),
+          like(markets.description, pattern),
+          like(markets.tags, pattern),
+        )!,
+      );
+    }
 
     const whereClause = and(...conditions);
     const rows = await this.db
@@ -385,7 +398,7 @@ export class MarketsService {
   private async countCatalogCoverage(
     marketId: string,
   ): Promise<MarketCatalogCoverage> {
-    const [productRows, serviceRows] = await Promise.all([
+    const [productRows, serviceCount] = await Promise.all([
       this.db
         .select({ count: sql<number>`count(*)` })
         .from(dishSearchIndex)
@@ -404,38 +417,35 @@ export class MarketsService {
             ),
           ),
         ),
-      this.db
-        .select({
-          count: sql<number>`count(distinct ${restaurantServiceItems.id})`,
-        })
-        .from(restaurantServiceItems)
-        .innerJoin(
-          restaurants,
-          eq(restaurantServiceItems.restaurantId, restaurants.id),
-        )
-        .innerJoin(
-          restaurantMarketMemberships,
-          and(
-            eq(restaurantMarketMemberships.restaurantId, restaurants.id),
-            eq(restaurantMarketMemberships.marketId, marketId),
-            isNull(restaurantMarketMemberships.leftAt),
-          ),
-        )
-        .where(
-          and(
-            eq(restaurantServiceItems.isActive, true),
-            eq(restaurantServiceItems.isPublic, true),
-            isNull(restaurantServiceItems.deletedAt),
-            eq(restaurants.isActive, true),
-            isNull(restaurants.deletedAt),
-          ),
-        ),
+      this.countPublicServicesForMarket(marketId),
     ]);
 
     return {
       searchableProductCount: Number(productRows[0]?.count ?? 0),
-      publicServiceCount: Number(serviceRows[0]?.count ?? 0),
+      publicServiceCount: serviceCount,
     };
+  }
+
+  private async countPublicServicesForMarket(marketId: string) {
+    const row = await this.d1
+      .prepare(
+        `SELECT count(distinct rsi.id) as count
+         FROM restaurant_service_items rsi
+         INNER JOIN restaurants r ON rsi.restaurant_id = r.id
+         INNER JOIN restaurant_market_memberships rmm
+           ON rmm.restaurant_id = r.id
+          AND rmm.market_id = ?
+          AND rmm.left_at_ms IS NULL
+         WHERE rsi.is_active = 1
+           AND rsi.is_public = 1
+           AND rsi.deleted_at_ms IS NULL
+           AND r.is_active = 1
+           AND r.deleted_at_ms IS NULL`,
+      )
+      .bind(marketId)
+      .first<{ count: number }>();
+
+    return Number(row?.count ?? 0);
   }
 
   private async catalogCoverageWithVendorBreakdown(
@@ -496,33 +506,7 @@ export class MarketsService {
       )
       .groupBy(dishSearchIndex.restaurantId);
 
-    const serviceRows = await this.db
-      .select({
-        restaurantId: restaurantServiceItems.restaurantId,
-      })
-      .from(restaurantServiceItems)
-      .innerJoin(
-        restaurants,
-        eq(restaurantServiceItems.restaurantId, restaurants.id),
-      )
-      .innerJoin(
-        restaurantMarketMemberships,
-        and(
-          eq(restaurantMarketMemberships.restaurantId, restaurants.id),
-          eq(restaurantMarketMemberships.marketId, marketId),
-          isNull(restaurantMarketMemberships.leftAt),
-        ),
-      )
-      .where(
-        and(
-          eq(restaurantServiceItems.isActive, true),
-          eq(restaurantServiceItems.isPublic, true),
-          isNull(restaurantServiceItems.deletedAt),
-          eq(restaurants.isActive, true),
-          isNull(restaurants.deletedAt),
-        ),
-      )
-      .groupBy(restaurantServiceItems.restaurantId);
+    const serviceRows = await this.listVendorIdsWithPublicServices(marketId);
 
     const vendorsWithProducts = new Set(
       productRows.map((row) => row.restaurantId),
@@ -560,6 +544,29 @@ export class MarketsService {
       missingProductVendors,
       missingServiceVendors,
     };
+  }
+
+  private async listVendorIdsWithPublicServices(marketId: string) {
+    const result = await this.d1
+      .prepare(
+        `SELECT rsi.restaurant_id as restaurantId
+         FROM restaurant_service_items rsi
+         INNER JOIN restaurants r ON rsi.restaurant_id = r.id
+         INNER JOIN restaurant_market_memberships rmm
+           ON rmm.restaurant_id = r.id
+          AND rmm.market_id = ?
+          AND rmm.left_at_ms IS NULL
+         WHERE rsi.is_active = 1
+           AND rsi.is_public = 1
+           AND rsi.deleted_at_ms IS NULL
+           AND r.is_active = 1
+           AND r.deleted_at_ms IS NULL
+         GROUP BY rsi.restaurant_id`,
+      )
+      .bind(marketId)
+      .all<{ restaurantId: string }>();
+
+    return result.results ?? [];
   }
 
   async listVendors(slug: string, filters: VendorFilters) {

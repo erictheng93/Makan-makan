@@ -229,6 +229,40 @@ describe("Markets API — real integration", () => {
     ]);
   });
 
+  it("searches public markets by keyword across name, slug, description, and tags", async () => {
+    const fengjia = await seedMarket(testApp, {
+      slug: "fengjia-night-market-search",
+      name: "逢甲夜市",
+      description: "台中大型夜市與小吃聚落",
+      tags: ["夜市", "雞排"],
+    });
+    await seedMarket(testApp, {
+      slug: "yizhong-commercial-area-search",
+      name: "一中商圈",
+      description: "台中學生商圈",
+      tags: ["商圈", "飲品"],
+    });
+
+    const nameRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets?q=逢甲"),
+    );
+    expect(nameRes.status).toBe(200);
+    const nameJson: any = await nameRes.json();
+    expect(nameJson.data.markets).toHaveLength(1);
+    expect(nameJson.data.markets[0]).toMatchObject({
+      id: fengjia.id,
+      slug: "fengjia-night-market-search",
+    });
+
+    const tagRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets?q=雞排"),
+    );
+    const tagJson: any = await tagRes.json();
+    expect(tagJson.data.markets.map((market: any) => market.id)).toEqual([
+      fengjia.id,
+    ]);
+  });
+
   it("reports public readiness issues for incomplete market pages", async () => {
     await seedMarket(testApp, {
       slug: "incomplete-market",

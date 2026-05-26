@@ -28,6 +28,25 @@
 
     <main class="mx-auto max-w-md space-y-4 px-4 py-4">
       <section class="space-y-3">
+        <form
+          data-testid="markets-search-form"
+          class="flex gap-2"
+          @submit.prevent="reloadList"
+        >
+          <input
+            v-model="query"
+            data-testid="markets-search-input"
+            type="search"
+            class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
+            placeholder="搜尋夜市、商圈或標籤"
+          />
+          <button
+            type="submit"
+            class="h-10 shrink-0 rounded-lg bg-ios-blue px-4 text-sm font-medium text-white"
+          >
+            搜尋
+          </button>
+        </form>
         <div class="flex gap-2">
           <select
             v-model="city"
@@ -119,6 +138,7 @@ import {
 
 const router = useRouter();
 const store = useMarketsStore();
+const query = ref("");
 const city = ref("");
 const district = ref("");
 const locating = ref(false);
@@ -137,6 +157,7 @@ const districts = computed(() => {
 
 function reloadList() {
   store.loadMarkets({
+    q: query.value.trim() || undefined,
     city: city.value || undefined,
     district: district.value || undefined,
   });

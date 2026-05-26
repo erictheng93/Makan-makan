@@ -77,4 +77,20 @@ describe("MarketsView", () => {
       district: undefined,
     });
   });
+
+  it("reloads the market list with a keyword filter", async () => {
+    const store = marketsStore();
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="markets-search-input"]').setValue("逢甲");
+    await wrapper.get('[data-testid="markets-search-form"]').trigger("submit");
+
+    expect(store.loadMarkets).toHaveBeenLastCalledWith({
+      q: "逢甲",
+      city: undefined,
+      district: undefined,
+    });
+  });
 });

@@ -17,6 +17,7 @@ const urlSchema = z
   .pipe(z.string().url());
 
 export const marketListQuerySchema = z.object({
+  q: z.string().trim().min(1).max(100).optional(),
   city: z.string().optional(),
   district: z.string().optional(),
   type: z

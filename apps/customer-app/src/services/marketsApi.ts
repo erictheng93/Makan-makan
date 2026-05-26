@@ -42,6 +42,7 @@ export interface MarketArea {
 }
 
 export interface ListMarketsParams {
+  q?: string;
   city?: string;
   district?: string;
   type?: string;

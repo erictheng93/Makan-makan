@@ -29,6 +29,21 @@ describe("marketsApi", () => {
     });
   });
 
+  it("lists markets with a keyword filter", async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      markets: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    });
+
+    await marketsApi.listMarkets({ q: "逢甲" });
+
+    expect(apiClient.get).toHaveBeenCalledWith("/markets", {
+      q: "逢甲",
+    });
+  });
+
   it("lists available market areas for dynamic filters", async () => {
     vi.mocked(apiClient.get).mockResolvedValueOnce({
       areas: [{ city: "台中市", districts: ["西屯區"] }],
