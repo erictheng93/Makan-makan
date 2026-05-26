@@ -19,7 +19,7 @@
       </button>
     </div>
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
       <div
         v-for="metric in metrics"
         :key="metric.label"
@@ -135,6 +135,27 @@
               <div class="mt-1 whitespace-nowrap text-xs text-gray-500">
                 服務 {{ market.catalogCoverage?.publicServiceCount ?? 0 }}
               </div>
+              <div
+                v-if="
+                  market.catalogCoverage?.vendorsMissingSearchableProducts ||
+                  market.catalogCoverage?.vendorsMissingPublicServices
+                "
+                class="mt-2 space-y-1 text-xs text-amber-700"
+              >
+                <div>
+                  缺商品店鋪
+                  {{
+                    market.catalogCoverage?.vendorsMissingSearchableProducts ??
+                    0
+                  }}
+                </div>
+                <div>
+                  缺服務店鋪
+                  {{
+                    market.catalogCoverage?.vendorsMissingPublicServices ?? 0
+                  }}
+                </div>
+              </div>
             </td>
             <td class="px-4 py-4">
               <span
@@ -157,7 +178,40 @@
                   {{ publicReadinessIssueLabel(issue.key) }}
                 </span>
               </div>
-              <span v-else class="text-sm text-gray-400">-</span>
+              <div
+                v-if="
+                  market.catalogCoverage?.missingProductVendors?.length ||
+                  market.catalogCoverage?.missingServiceVendors?.length
+                "
+                class="mt-3 max-w-md space-y-2 text-xs text-gray-600"
+              >
+                <div
+                  v-if="market.catalogCoverage?.missingProductVendors?.length"
+                >
+                  <span class="font-medium text-gray-700">缺商品：</span>
+                  {{
+                    vendorGapNames(market.catalogCoverage.missingProductVendors)
+                  }}
+                </div>
+                <div
+                  v-if="market.catalogCoverage?.missingServiceVendors?.length"
+                >
+                  <span class="font-medium text-gray-700">缺服務：</span>
+                  {{
+                    vendorGapNames(market.catalogCoverage.missingServiceVendors)
+                  }}
+                </div>
+              </div>
+              <span
+                v-if="
+                  !market.publicReadiness?.issues.length &&
+                  !market.catalogCoverage?.missingProductVendors?.length &&
+                  !market.catalogCoverage?.missingServiceVendors?.length
+                "
+                class="text-sm text-gray-400"
+              >
+                -
+              </span>
             </td>
             <td class="px-4 py-4 text-right">
               <button
@@ -360,6 +414,16 @@ const metrics = computed(() => [
     value: `${stats.value.averageScore}%`,
     class: "text-primary-600",
   },
+  {
+    label: "缺商品店鋪",
+    value: stats.value.vendorsMissingProducts,
+    class: "text-amber-600",
+  },
+  {
+    label: "缺服務店鋪",
+    value: stats.value.vendorsMissingServices,
+    class: "text-amber-600",
+  },
 ]);
 
 function readinessBadgeClass(market: MarketListItem) {
@@ -371,13 +435,27 @@ function readinessBadgeClass(market: MarketListItem) {
 async function loadMarkets() {
   isLoading.value = true;
   try {
-    markets.value = await marketsService.listMarkets();
+    markets.value = await marketsService.listPlatformReadiness();
   } catch (error) {
     console.error("Failed to load markets:", error);
     markets.value = [];
   } finally {
     isLoading.value = false;
   }
+}
+
+function vendorGapNames(
+  vendors: NonNullable<
+    NonNullable<MarketListItem["catalogCoverage"]>["missingProductVendors"]
+  >,
+) {
+  return vendors
+    .map((vendor) =>
+      vendor.stallNumber
+        ? `${vendor.name} (${vendor.stallNumber})`
+        : vendor.name,
+    )
+    .join("、");
 }
 
 function startEditing(market: MarketListItem) {

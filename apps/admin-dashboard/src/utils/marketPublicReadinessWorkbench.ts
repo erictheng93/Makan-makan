@@ -20,6 +20,16 @@ export function marketReadinessStats(markets: MarketListItem[]) {
             0,
           ) / scoredMarkets.length,
         );
+  const vendorsMissingProducts = markets.reduce(
+    (total, market) =>
+      total + (market.catalogCoverage?.vendorsMissingSearchableProducts ?? 0),
+    0,
+  );
+  const vendorsMissingServices = markets.reduce(
+    (total, market) =>
+      total + (market.catalogCoverage?.vendorsMissingPublicServices ?? 0),
+    0,
+  );
 
   return {
     total: markets.length,
@@ -27,6 +37,8 @@ export function marketReadinessStats(markets: MarketListItem[]) {
     blocked,
     unknown,
     averageScore,
+    vendorsMissingProducts,
+    vendorsMissingServices,
   };
 }
 

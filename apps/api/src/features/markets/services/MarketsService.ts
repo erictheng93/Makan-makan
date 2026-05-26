@@ -63,6 +63,18 @@ export interface AdminVendorCandidateFilters {
 export interface MarketCatalogCoverage {
   searchableProductCount: number;
   publicServiceCount: number;
+  vendorsWithSearchableProducts?: number;
+  vendorsMissingSearchableProducts?: number;
+  vendorsWithPublicServices?: number;
+  vendorsMissingPublicServices?: number;
+  missingProductVendors?: MarketCatalogGapVendor[];
+  missingServiceVendors?: MarketCatalogGapVendor[];
+}
+
+export interface MarketCatalogGapVendor {
+  restaurantId: string;
+  name: string;
+  stallNumber: string | null;
 }
 
 export type CreateMarketInput = typeof markets.$inferInsert;
@@ -89,6 +101,13 @@ export class MarketsService {
 
     const data = await this.queryMarkets(filters);
     await this.cache.set(cacheKey, data, CACHE_TTL.SHORT);
+    return data;
+  }
+
+  async listAdminReadiness(filters: MarketFilters) {
+    const data = await this.queryMarkets(filters, {
+      includeVendorBreakdown: true,
+    });
     return data;
   }
 
@@ -146,7 +165,10 @@ export class MarketsService {
     return { areas };
   }
 
-  private async queryMarkets(filters: MarketFilters) {
+  private async queryMarkets(
+    filters: MarketFilters,
+    options: { includeVendorBreakdown?: boolean } = {},
+  ) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const offset = (page - 1) * limit;
@@ -200,7 +222,9 @@ export class MarketsService {
     const marketsWithCoverage = await Promise.all(
       rows.map(async (row) => {
         const vendorCount = Number(row.vendorCount);
-        const catalogCoverage = await this.countCatalogCoverage(row.id);
+        const catalogCoverage = options.includeVendorBreakdown
+          ? await this.catalogCoverageWithVendorBreakdown(row.id)
+          : await this.countCatalogCoverage(row.id);
 
         return {
           ...row,
@@ -329,6 +353,130 @@ export class MarketsService {
     return {
       searchableProductCount: Number(productRows[0]?.count ?? 0),
       publicServiceCount: Number(serviceRows[0]?.count ?? 0),
+    };
+  }
+
+  private async catalogCoverageWithVendorBreakdown(
+    marketId: string,
+  ): Promise<Required<MarketCatalogCoverage>> {
+    const [coverage, vendorRows] = await Promise.all([
+      this.countCatalogCoverage(marketId),
+      this.db
+        .select({
+          restaurantId: restaurants.id,
+          name: restaurants.name,
+          stallNumber: restaurantMarketMemberships.stallNumber,
+        })
+        .from(restaurantMarketMemberships)
+        .innerJoin(
+          restaurants,
+          eq(restaurantMarketMemberships.restaurantId, restaurants.id),
+        )
+        .where(
+          and(
+            eq(restaurantMarketMemberships.marketId, marketId),
+            isNull(restaurantMarketMemberships.leftAt),
+            eq(restaurants.isActive, true),
+            isNull(restaurants.deletedAt),
+          ),
+        )
+        .orderBy(asc(restaurants.name)),
+    ]);
+
+    if (vendorRows.length === 0) {
+      return {
+        ...coverage,
+        vendorsWithSearchableProducts: 0,
+        vendorsMissingSearchableProducts: 0,
+        vendorsWithPublicServices: 0,
+        vendorsMissingPublicServices: 0,
+        missingProductVendors: [],
+        missingServiceVendors: [],
+      };
+    }
+
+    const productRows = await this.db
+      .select({
+        restaurantId: dishSearchIndex.restaurantId,
+      })
+      .from(dishSearchIndex)
+      .innerJoin(restaurants, eq(dishSearchIndex.restaurantId, restaurants.id))
+      .where(
+        and(
+          eq(dishSearchIndex.isAvailable, true),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+          or(
+            eq(dishSearchIndex.primaryMarketId, marketId),
+            like(dishSearchIndex.marketIds, `%"${marketId}"%`),
+          ),
+        ),
+      )
+      .groupBy(dishSearchIndex.restaurantId);
+
+    const serviceRows = await this.db
+      .select({
+        restaurantId: restaurantServiceItems.restaurantId,
+      })
+      .from(restaurantServiceItems)
+      .innerJoin(
+        restaurants,
+        eq(restaurantServiceItems.restaurantId, restaurants.id),
+      )
+      .innerJoin(
+        restaurantMarketMemberships,
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurants.id),
+          eq(restaurantMarketMemberships.marketId, marketId),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      )
+      .where(
+        and(
+          eq(restaurantServiceItems.isActive, true),
+          eq(restaurantServiceItems.isPublic, true),
+          isNull(restaurantServiceItems.deletedAt),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
+      .groupBy(restaurantServiceItems.restaurantId);
+
+    const vendorsWithProducts = new Set(
+      productRows.map((row) => row.restaurantId),
+    );
+    const vendorsWithServices = new Set(
+      serviceRows.map((row) => row.restaurantId),
+    );
+    const vendorsWithSearchableProductsCount = vendorRows.filter((vendor) =>
+      vendorsWithProducts.has(vendor.restaurantId),
+    ).length;
+    const vendorsWithPublicServicesCount = vendorRows.filter((vendor) =>
+      vendorsWithServices.has(vendor.restaurantId),
+    ).length;
+    const missingProductVendors = vendorRows
+      .filter((vendor) => !vendorsWithProducts.has(vendor.restaurantId))
+      .map((vendor) => ({
+        restaurantId: vendor.restaurantId,
+        name: vendor.name,
+        stallNumber: vendor.stallNumber,
+      }));
+    const missingServiceVendors = vendorRows
+      .filter((vendor) => !vendorsWithServices.has(vendor.restaurantId))
+      .map((vendor) => ({
+        restaurantId: vendor.restaurantId,
+        name: vendor.name,
+        stallNumber: vendor.stallNumber,
+      }));
+
+    return {
+      ...coverage,
+      vendorsWithSearchableProducts: vendorsWithSearchableProductsCount,
+      vendorsMissingSearchableProducts: missingProductVendors.length,
+      vendorsWithPublicServices: vendorsWithPublicServicesCount,
+      vendorsMissingPublicServices: missingServiceVendors.length,
+      missingProductVendors: missingProductVendors.slice(0, 5),
+      missingServiceVendors: missingServiceVendors.slice(0, 5),
     };
   }
 

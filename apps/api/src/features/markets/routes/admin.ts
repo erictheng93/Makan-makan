@@ -24,6 +24,12 @@ const routes = new Hono<{ Bindings: Env }>();
 
 routes.use("*", requireRole([0]));
 
+routes.get("/readiness", async (c) => {
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
+  const data = await service.listAdminReadiness({ limit: 100 });
+  return c.json({ success: true, data });
+});
+
 routes.get(
   "/vendor-candidates",
   validateQuery(adminVendorCandidatesQuerySchema),

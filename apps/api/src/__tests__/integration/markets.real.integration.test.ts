@@ -263,6 +263,118 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("lets platform admins inspect vendor-level catalog readiness gaps", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Catalog Readiness Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 31,
+      username: "catalog-readiness-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const market = await seedMarket(testApp, {
+      slug: "catalog-readiness-market",
+    });
+    const completeVendor = await seed.restaurant({
+      name: "Complete Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1765,
+      longitude: 120.6467,
+    });
+    const missingVendor = await seed.restaurant({
+      name: "Missing Catalog Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1768,
+      longitude: 120.6469,
+    });
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(completeVendor.id),
+        marketId: market.id,
+        stallNumber: "A-01",
+        isPrimary: true,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(missingVendor.id),
+        marketId: market.id,
+        stallNumber: "B-02",
+        isPrimary: false,
+        joinedAt: new Date(),
+      },
+    ]);
+    const completeItem = await seed.menuItem(String(completeVendor.id), {
+      name: "Ready Bao",
+      price: 70,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: completeItem.id,
+      restaurantId: String(completeVendor.id),
+      dishName: "Ready Bao",
+      dishNameNormalized: "readybao",
+      price: 70,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: 24.1765,
+      longitude: 120.6467,
+      updatedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(completeVendor.id),
+      name: "現場預約",
+      serviceType: "booking",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+    });
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/admin/markets/readiness", {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    const readinessMarket = json.data.markets.find(
+      (item: any) => item.id === market.id,
+    );
+    expect(readinessMarket.catalogCoverage).toMatchObject({
+      searchableProductCount: 1,
+      publicServiceCount: 1,
+      vendorsWithSearchableProducts: 1,
+      vendorsMissingSearchableProducts: 1,
+      vendorsWithPublicServices: 1,
+      vendorsMissingPublicServices: 1,
+    });
+    expect(readinessMarket.catalogCoverage.missingProductVendors).toEqual([
+      {
+        restaurantId: String(missingVendor.id),
+        name: "Missing Catalog Vendor",
+        stallNumber: "B-02",
+      },
+    ]);
+    expect(readinessMarket.catalogCoverage.missingServiceVendors).toEqual([
+      {
+        restaurantId: String(missingVendor.id),
+        name: "Missing Catalog Vendor",
+        stallNumber: "B-02",
+      },
+    ]);
+  });
+
   it("exposes market pages through sitemap.xml and robots.txt", async () => {
     const activeMarket = await seedMarket(testApp, {
       slug: "seo-night-market",

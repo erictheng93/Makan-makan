@@ -24,6 +24,18 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
     catalogCoverage: {
       searchableProductCount: 18,
       publicServiceCount: 4,
+      vendorsWithSearchableProducts: 10,
+      vendorsMissingSearchableProducts: 2,
+      vendorsWithPublicServices: 6,
+      vendorsMissingPublicServices: 6,
+      missingProductVendors: [
+        {
+          restaurantId: "vendor-1",
+          name: "缺商品攤位",
+          stallNumber: "A-01",
+        },
+      ],
+      missingServiceVendors: [],
     },
     ...overrides,
   };
@@ -52,6 +64,8 @@ describe("market public readiness workbench", () => {
       blocked: 1,
       unknown: 1,
       averageScore: 72,
+      vendorsMissingProducts: 6,
+      vendorsMissingServices: 18,
     });
   });
 
@@ -78,5 +92,29 @@ describe("market public readiness workbench", () => {
     expect(filterMarketsByReadiness(markets, "all", "北區")[0].slug).toBe(
       "yizhong",
     );
+  });
+
+  it("summarizes vendor-level catalog readiness gaps", () => {
+    const summary = marketReadinessStats([
+      market(),
+      market({
+        id: "market-2",
+        catalogCoverage: {
+          searchableProductCount: 8,
+          publicServiceCount: 1,
+          vendorsWithSearchableProducts: 4,
+          vendorsMissingSearchableProducts: 1,
+          vendorsWithPublicServices: 1,
+          vendorsMissingPublicServices: 4,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+      }),
+    ]);
+
+    expect(summary).toMatchObject({
+      vendorsMissingProducts: 3,
+      vendorsMissingServices: 10,
+    });
   });
 });

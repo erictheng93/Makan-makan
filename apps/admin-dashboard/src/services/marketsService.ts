@@ -1,6 +1,23 @@
 import { api, unwrapApiPayload } from "@/services/api";
 import type { MarketPublicReadiness } from "@/utils/marketPublicReadiness";
 
+export interface MarketCatalogGapVendor {
+  restaurantId: string;
+  name: string;
+  stallNumber?: string | null;
+}
+
+export interface MarketCatalogCoverage {
+  searchableProductCount: number;
+  publicServiceCount: number;
+  vendorsWithSearchableProducts?: number;
+  vendorsMissingSearchableProducts?: number;
+  vendorsWithPublicServices?: number;
+  vendorsMissingPublicServices?: number;
+  missingProductVendors?: MarketCatalogGapVendor[];
+  missingServiceVendors?: MarketCatalogGapVendor[];
+}
+
 export interface MarketListItem {
   id: string;
   slug: string;
@@ -18,10 +35,7 @@ export interface MarketListItem {
   imageUrls?: string[] | null;
   tags?: string[] | null;
   vendorCount?: number;
-  catalogCoverage?: {
-    searchableProductCount: number;
-    publicServiceCount: number;
-  };
+  catalogCoverage?: MarketCatalogCoverage;
   publicReadiness?: MarketPublicReadiness;
 }
 
@@ -80,6 +94,17 @@ export const marketsService = {
       page: number;
       limit: number;
     }>("/markets", { limit: 100 });
+    return unwrapApiPayload<{ markets: MarketListItem[] }>(response.data)
+      .markets;
+  },
+
+  async listPlatformReadiness(): Promise<MarketListItem[]> {
+    const response = await api.get<{
+      markets: MarketListItem[];
+      total: number;
+      page: number;
+      limit: number;
+    }>("/admin/markets/readiness");
     return unwrapApiPayload<{ markets: MarketListItem[] }>(response.data)
       .markets;
   },
