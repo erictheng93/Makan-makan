@@ -369,12 +369,15 @@ routes.post(
       });
     }
 
+    const catalogReadiness = await marketsService.getCatalogReadiness(id);
+
     return c.json({
       success: true,
       data: {
         createdRestaurants,
         attachedVendors,
         skipped,
+        catalogReadiness,
         results,
       },
     });

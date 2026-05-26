@@ -131,6 +131,10 @@ export class MarketsService {
     return data;
   }
 
+  async getCatalogReadiness(marketId: string) {
+    return this.catalogCoverageWithVendorBreakdown(marketId);
+  }
+
   async listAreaReadiness(limit = 50000) {
     const data = await this.queryMarkets(
       { limit },

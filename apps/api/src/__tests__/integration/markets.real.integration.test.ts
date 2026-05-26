@@ -1777,6 +1777,14 @@ describe("Markets API — real integration", () => {
       createdRestaurants: 1,
       attachedVendors: 2,
       skipped: 0,
+      catalogReadiness: {
+        searchableProductCount: 0,
+        publicServiceCount: 0,
+        vendorsWithSearchableProducts: 0,
+        vendorsMissingSearchableProducts: 2,
+        vendorsWithPublicServices: 0,
+        vendorsMissingPublicServices: 2,
+      },
     });
     expect(importJson.data.results).toEqual([
       expect.objectContaining({
@@ -1790,6 +1798,32 @@ describe("Markets API — real integration", () => {
         stallNumber: "B-02",
       }),
     ]);
+    expect(importJson.data.catalogReadiness.missingProductVendors).toEqual(
+      expect.arrayContaining([
+        {
+          restaurantId: String(existingRestaurant.id),
+          name: "Existing Import Vendor",
+          stallNumber: "A-01",
+        },
+        expect.objectContaining({
+          name: "新匯入蚵仔煎",
+          stallNumber: "B-02",
+        }),
+      ]),
+    );
+    expect(importJson.data.catalogReadiness.missingServiceVendors).toEqual(
+      expect.arrayContaining([
+        {
+          restaurantId: String(existingRestaurant.id),
+          name: "Existing Import Vendor",
+          stallNumber: "A-01",
+        },
+        expect.objectContaining({
+          name: "新匯入蚵仔煎",
+          stallNumber: "B-02",
+        }),
+      ]),
+    );
 
     const vendorsRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets/bulk-import-market/vendors"),
