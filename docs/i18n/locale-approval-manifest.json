@@ -1,0 +1,9 @@
+{
+  "handoff": "docs/i18n/locale-translator-handoff.csv",
+  "sha256": "",
+  "approvedAt": "",
+  "approvedBy": [],
+  "apps": ["kitchen-display", "onboarding-app", "management-portal"],
+  "locales": ["zh-CN", "vi-VN", "ms-MY", "id-ID"],
+  "notes": "Fill sha256 with the approved locale-translator-handoff.csv SHA-256 after translator approval. Current handoff SHA-256 is 1b14c23e4e25c65335905106e9cbed125a53635312489e7b6a0902ea1930414e."
+}

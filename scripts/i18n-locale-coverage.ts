@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -55,6 +56,9 @@ const checkHandoffPath =
     : "";
 const shouldFailOnMissing = process.argv.includes("--fail-on-missing");
 const handoffPath = path.resolve("docs/i18n/locale-translator-handoff.csv");
+const approvalManifestPath = path.resolve(
+  "docs/i18n/locale-approval-manifest.json",
+);
 
 function flattenMessages(
   messages: Messages,
@@ -195,6 +199,22 @@ interface HandoffValidationResult {
   localeOutputs: HandoffLocaleOutput[];
 }
 
+interface ApprovalReviewer {
+  name?: string;
+  role?: string;
+  locales?: Locale[];
+}
+
+interface ApprovalManifest {
+  handoff?: string;
+  sha256?: string;
+  approvedAt?: string;
+  approvedBy?: ApprovalReviewer[];
+  apps?: string[];
+  locales?: Locale[];
+  notes?: string;
+}
+
 async function validateApprovedHandoff(
   csvPath: string,
 ): Promise<HandoffValidationResult> {
@@ -269,6 +289,75 @@ async function validateApprovedHandoff(
   return { missingTranslations, localeOutputs };
 }
 
+async function sha256File(filePath: string): Promise<string> {
+  return createHash("sha256")
+    .update(await readFile(path.resolve(filePath)))
+    .digest("hex");
+}
+
+async function validateApprovalManifest(csvPath: string): Promise<void> {
+  let manifest: ApprovalManifest;
+
+  try {
+    manifest = JSON.parse(
+      await readFile(approvalManifestPath, "utf8"),
+    ) as ApprovalManifest;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(
+        `Approval manifest is missing: ${path.relative(process.cwd(), approvalManifestPath)}`,
+      );
+    }
+
+    throw error;
+  }
+
+  const issues: string[] = [];
+  const expectedHash = await sha256File(csvPath);
+
+  if (
+    manifest.handoff !== path.relative(process.cwd(), path.resolve(csvPath))
+  ) {
+    issues.push(
+      `handoff must be ${path.relative(process.cwd(), path.resolve(csvPath))}`,
+    );
+  }
+
+  if (manifest.sha256 !== expectedHash) {
+    issues.push(`sha256 must match current handoff file (${expectedHash})`);
+  }
+
+  if (!manifest.approvedAt || Number.isNaN(Date.parse(manifest.approvedAt))) {
+    issues.push("approvedAt must be an ISO-8601 date string");
+  }
+
+  if (!manifest.approvedBy?.some((reviewer) => reviewer.name?.trim())) {
+    issues.push("approvedBy must include at least one named reviewer");
+  }
+
+  const appNames = APPS.map((app) => app.name);
+  const missingApps = appNames.filter((app) => !manifest.apps?.includes(app));
+  const missingLocales = TARGET_LOCALES.filter(
+    (locale) => !manifest.locales?.includes(locale),
+  );
+
+  if (missingApps.length > 0) {
+    issues.push(`apps is missing: ${missingApps.join(", ")}`);
+  }
+
+  if (missingLocales.length > 0) {
+    issues.push(`locales is missing: ${missingLocales.join(", ")}`);
+  }
+
+  if (issues.length > 0) {
+    for (const issue of issues) {
+      warning(`Approval manifest invalid: ${issue}`);
+    }
+
+    throw new Error("Approval manifest is incomplete or stale");
+  }
+}
+
 function assertNoMissingTranslations(missingTranslations: string[]): void {
   if (missingTranslations.length > 0) {
     for (const missingTranslation of missingTranslations.slice(0, 20)) {
@@ -289,14 +378,16 @@ function assertNoMissingTranslations(missingTranslations: string[]): void {
 async function checkApprovedHandoff(csvPath: string): Promise<void> {
   const { missingTranslations } = await validateApprovedHandoff(csvPath);
   assertNoMissingTranslations(missingTranslations);
+  await validateApprovalManifest(csvPath);
 
-  console.log(`${csvPath} has complete approved translations`);
+  console.log(`${csvPath} has complete approved translations and approval`);
 }
 
 async function importApprovedHandoff(csvPath: string): Promise<void> {
   const { missingTranslations, localeOutputs } =
     await validateApprovedHandoff(csvPath);
   assertNoMissingTranslations(missingTranslations);
+  await validateApprovalManifest(csvPath);
 
   for (const { localeFile, constantName, messages } of localeOutputs) {
     const file = [
