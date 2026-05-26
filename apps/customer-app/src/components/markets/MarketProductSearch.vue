@@ -45,6 +45,16 @@
           {{ category }}
         </option>
       </select>
+      <select
+        v-model="sortBy"
+        data-testid="market-product-sort-select"
+        class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
+        @change="searchIfReady"
+      >
+        <option value="price_asc">價格低到高</option>
+        <option value="price_desc">價格高到低</option>
+        <option value="popular">熱門優先</option>
+      </select>
     </form>
 
     <div
@@ -119,6 +129,7 @@ defineEmits<{
 const query = ref("");
 const takeawayOnly = ref(false);
 const selectedCategory = ref("");
+const sortBy = ref<"price_asc" | "price_desc" | "popular">("price_asc");
 const loadedCategories = ref<string[]>([]);
 const results = ref<DishSearchResult[]>([]);
 const total = ref(0);
@@ -163,6 +174,7 @@ async function fetchResults({ append }: { append: boolean }) {
       q: trimmed,
       marketId: props.marketId,
       categoryName: selectedCategory.value || undefined,
+      sortBy: sortBy.value,
       takeaway: takeawayOnly.value ? true : undefined,
       page: page.value,
       limit: pageSize,

@@ -41,6 +41,7 @@ export interface SearchFilters {
   openNow?: boolean;
   takeaway?: boolean;
   delivery?: boolean;
+  sortBy?: "price_asc" | "price_desc" | "popular";
   page?: number;
   limit?: number;
 }

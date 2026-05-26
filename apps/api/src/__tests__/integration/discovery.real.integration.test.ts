@@ -498,6 +498,48 @@ describe("Discovery API — real integration", () => {
     expect(categoriesJson.data.categories).toEqual(["小吃", "飲品"]);
   });
 
+  it("sorts dish search results by popularity when requested", async () => {
+    const restaurant = await seed.restaurant();
+    const lowDemand = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Popular Scope Rice",
+      price: 100,
+      orderCount: 2,
+    });
+    const highDemand = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Popular Scope Noodles",
+      price: 120,
+      orderCount: 40,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: lowDemand.id,
+        name: "Popular Scope Rice",
+        price: 100,
+      },
+      {
+        menuItemId: highDemand.id,
+        name: "Popular Scope Noodles",
+        price: 120,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/search?q=Popular+Scope&sortBy=popular&page=1&limit=10",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.results.map((r: any) => r.dishName)).toEqual([
+      "Popular Scope Noodles",
+      "Popular Scope Rice",
+    ]);
+  });
+
   // -------------------------------------------------------------------------
   // Empty result: q with no matches returns empty results array
   // -------------------------------------------------------------------------

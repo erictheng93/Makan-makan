@@ -69,6 +69,7 @@ export class DiscoveryService {
 
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
+    const effectivePrice = sql<number>`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer))`;
 
     const baseConditions: SQL[] = [eq(dishSearchIndex.isAvailable, true)];
 
@@ -145,12 +146,9 @@ export class DiscoveryService {
           restaurants,
           eq(dishSearchIndex.restaurantId, restaurants.id),
         )
+        .innerJoin(menuItems, eq(dishSearchIndex.menuItemId, menuItems.id))
         .where(whereClause)
-        .orderBy(
-          asc(
-            sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer))`,
-          ),
-        )
+        .orderBy(...this.getDishSearchOrderBy(filters, effectivePrice))
         .limit(limit)
         .offset(offset),
       this.db
@@ -211,12 +209,14 @@ export class DiscoveryService {
             restaurants,
             eq(dishSearchIndex.restaurantId, restaurants.id),
           )
+          .innerJoin(menuItems, eq(dishSearchIndex.menuItemId, menuItems.id))
           .where(
             and(
               ...baseConditions,
               inArray(dishSearchIndex.menuItemId, missingIds),
             ),
           )
+          .orderBy(...this.getDishSearchOrderBy(filters, effectivePrice))
           .limit(50);
         allRows.push(...tagResults);
       }
@@ -771,6 +771,7 @@ export class DiscoveryService {
     if (filters.city) parts.push(`c:${filters.city}`);
     if (filters.district) parts.push(`d:${filters.district}`);
     if (filters.categoryName) parts.push(`cat:${filters.categoryName}`);
+    if (filters.sortBy) parts.push(`s:${filters.sortBy}`);
     if (filters.priceMin) parts.push(`pmin:${filters.priceMin}`);
     if (filters.priceMax) parts.push(`pmax:${filters.priceMax}`);
     if (filters.openNow) parts.push("open");
@@ -802,5 +803,18 @@ export class DiscoveryService {
       radiusKm,
       box: boundingBoxFromCircle(filters.lat, filters.lng, radiusKm),
     };
+  }
+
+  private getDishSearchOrderBy(
+    filters: SearchFilters,
+    effectivePrice: SQL<number>,
+  ) {
+    if (filters.sortBy === "popular") {
+      return [desc(menuItems.orderCount), asc(effectivePrice)];
+    }
+    if (filters.sortBy === "price_desc") {
+      return [desc(effectivePrice)];
+    }
+    return [asc(effectivePrice)];
   }
 }

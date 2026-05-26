@@ -69,12 +69,16 @@ describe("MarketProductSearch", () => {
     await wrapper
       .get('[data-testid="market-product-category-select"]')
       .setValue("小吃");
+    await wrapper
+      .get('[data-testid="market-product-sort-select"]')
+      .setValue("popular");
     await wrapper.get("form").trigger("submit.prevent");
 
     expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
       q: "章魚燒",
       marketId: "market-1",
       categoryName: "小吃",
+      sortBy: "popular",
       takeaway: undefined,
       page: 1,
       limit: 20,
@@ -123,6 +127,7 @@ describe("MarketProductSearch", () => {
       q: "章魚燒",
       marketId: "market-1",
       categoryName: undefined,
+      sortBy: "price_asc",
       takeaway: undefined,
       page: 2,
       limit: 20,

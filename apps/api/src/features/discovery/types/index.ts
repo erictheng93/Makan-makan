@@ -43,7 +43,7 @@ export interface SearchFilters {
   delivery?: boolean;
   cuisineType?: string;
   priceRange?: number;
-  sortBy?: "rating" | "popular";
+  sortBy?: "rating" | "popular" | "price_asc" | "price_desc";
   page?: number;
   limit?: number;
 }
