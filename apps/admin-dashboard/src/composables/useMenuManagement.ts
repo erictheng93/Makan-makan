@@ -3,6 +3,7 @@ import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
+import type { MenuItemImportInput } from "@/utils/menuItemImport";
 
 export interface CategoryData {
   id: number;
@@ -201,6 +202,23 @@ export function useMenuManagement() {
     }
   };
 
+  const importMenuItems = async (items: MenuItemImportInput[]) => {
+    if (!authStore.restaurantId || items.length === 0) return;
+    try {
+      for (const item of items) {
+        await api.post(`/menu/${authStore.restaurantId}/items`, item);
+      }
+      toast.success(`已匯入 ${items.length} 個商品`);
+      await fetchMenu();
+    } catch (error: any) {
+      console.error("Failed to import menu items:", error);
+      toast.error(
+        error.response?.data?.error?.message || t("menu.errors.saveFailed"),
+      );
+      throw error;
+    }
+  };
+
   const deleteMenuItem = async (item: MenuItemData) => {
     try {
       await api.delete(`/menu/items/${item.id}`);
@@ -247,6 +265,7 @@ export function useMenuManagement() {
     deleteCategory,
     reorderCategories,
     saveMenuItem,
+    importMenuItems,
     deleteMenuItem,
     toggleMenuItemStatus,
   };

@@ -121,6 +121,83 @@
           </div>
         </div>
 
+        <section
+          class="mb-4 rounded-2xl bg-white px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+        >
+          <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
+            <div>
+              <h3 class="text-[15px] font-bold text-[#1C1C1E]">批次匯入商品</h3>
+              <p class="mt-1 text-[13px] text-[#8E8E93]">
+                貼上 CSV，一次補齊會進入夜市/商圈搜尋的商品資料。
+              </p>
+            </div>
+            <button
+              type="button"
+              class="w-fit rounded-full bg-[#F2F2F7] px-3.5 py-2 text-[13px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+              @click="loadMenuItemImportExample"
+            >
+              載入範例
+            </button>
+          </div>
+
+          <textarea
+            v-model="menuItemImportText"
+            rows="6"
+            data-testid="menu-item-import-csv"
+            class="mt-3 w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2 font-mono text-[13px] text-[#1C1C1E] outline-none focus:ring-2 focus:ring-ios-primary/30"
+            placeholder="name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,tags,keywords"
+          />
+
+          <div
+            v-if="menuItemImportPreview.errors.length"
+            class="mt-3 space-y-1"
+          >
+            <p
+              v-for="importError in menuItemImportPreview.errors"
+              :key="importError"
+              class="text-[13px] text-ios-error"
+            >
+              {{ importError }}
+            </p>
+          </div>
+          <p v-if="menuItemImportError" class="mt-3 text-[13px] text-ios-error">
+            {{ menuItemImportError }}
+          </p>
+          <div
+            v-if="
+              menuItemImportText.trim() &&
+              !menuItemImportPreview.errors.length &&
+              menuItemImportPreview.items.length
+            "
+            class="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-[13px] text-blue-800"
+          >
+            已解析 {{ menuItemImportPreview.items.length }} 筆商品，準備匯入。
+          </div>
+          <div
+            v-if="menuItemImportResult"
+            class="mt-3 rounded-xl bg-green-50 px-3 py-2 text-[13px] text-green-800"
+          >
+            已成功匯入 {{ menuItemImportResult }} 筆商品。
+          </div>
+
+          <div class="mt-4 flex justify-end">
+            <button
+              type="button"
+              data-testid="menu-item-import-submit"
+              class="rounded-full bg-[#0066D6] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_4px_14px_rgba(0,122,255,0.25)] disabled:opacity-50"
+              :disabled="
+                isImportingMenuItems ||
+                !menuItemImportText.trim() ||
+                menuItemImportPreview.errors.length > 0 ||
+                menuItemImportPreview.items.length === 0
+              "
+              @click="importMenuItemsFromCsv"
+            >
+              {{ isImportingMenuItems ? "匯入中..." : "匯入商品" }}
+            </button>
+          </div>
+        </section>
+
         <!-- VirtualMenuGrid -->
         <VirtualMenuGrid
           v-if="filteredItems.length > 0"
@@ -430,6 +507,10 @@ import {
   CakeIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/vue/24/outline";
+import {
+  buildMenuItemImportTemplate,
+  parseMenuItemImport,
+} from "@/utils/menuItemImport";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -445,6 +526,7 @@ const {
   deleteCategory,
   reorderCategories,
   saveMenuItem,
+  importMenuItems,
   deleteMenuItem,
   toggleMenuItemStatus,
 } = useMenuManagement();
@@ -458,6 +540,10 @@ const showMenuItemModal = ref(false);
 const editingMenuItem = ref<MenuItemData | null>(null);
 const menuGridRef = ref<InstanceType<typeof VirtualMenuGrid> | null>(null);
 const highlightedItemId = ref<number | null>(null);
+const menuItemImportText = ref("");
+const menuItemImportError = ref("");
+const menuItemImportResult = ref<number | null>(null);
+const isImportingMenuItems = ref(false);
 
 const menuItemForm = ref({
   name: "",
@@ -513,6 +599,13 @@ const filteredItems = computed(() => {
 const availableCount = computed(
   () => menuItems.value.filter((i) => i.isAvailable).length,
 );
+const menuItemImportPreview = computed(() => {
+  if (!menuItemImportText.value.trim()) {
+    return { items: [], errors: [] };
+  }
+
+  return parseMenuItemImport(menuItemImportText.value, categories.value);
+});
 
 // ── Category Panel Handlers ──
 const startAddCategory = () => {
@@ -636,6 +729,37 @@ const handleSaveMenuItem = async () => {
     editingMenuItem.value?.id,
   );
   closeMenuItemModal();
+};
+
+const loadMenuItemImportExample = () => {
+  menuItemImportError.value = "";
+  menuItemImportResult.value = null;
+  menuItemImportText.value = buildMenuItemImportTemplate(
+    currentCategoryName.value,
+  );
+};
+
+const importMenuItemsFromCsv = async () => {
+  const parsed = menuItemImportPreview.value;
+  if (!parsed.items.length || parsed.errors.length) {
+    menuItemImportError.value =
+      parsed.errors[0] ?? "請確認匯入資料格式後再送出。";
+    return;
+  }
+
+  isImportingMenuItems.value = true;
+  menuItemImportError.value = "";
+  menuItemImportResult.value = null;
+  try {
+    await importMenuItems(parsed.items);
+    menuItemImportResult.value = parsed.items.length;
+    menuItemImportText.value = "";
+  } catch (error) {
+    menuItemImportError.value =
+      error instanceof Error ? error.message : "匯入商品失敗";
+  } finally {
+    isImportingMenuItems.value = false;
+  }
 };
 
 const handleDeleteMenuItem = (item: MenuItemData) => {
