@@ -138,7 +138,7 @@ app.get(
       priceRange,
       spiceLevel: query.spiceLevel,
       dietaryPreferences,
-      isAvailable: query.isAvailable,
+      isAvailable: true,
       isFeatured: query.isFeatured,
       search: query.search,
       page: query.page,

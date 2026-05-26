@@ -109,6 +109,45 @@ describe("Menu API — real integration", () => {
     expect(unavailableFound).toBeUndefined();
   });
 
+  it("filters unavailable items from public menu search by default", async () => {
+    const restaurant = await seed.restaurant();
+
+    await seed.menuItem(restaurant.id, {
+      isAvailable: true,
+      name: "Searchable Available Item",
+    });
+    await seed.menuItem(restaurant.id, {
+      isAvailable: false,
+      name: "Searchable Hidden Item",
+    });
+
+    const [defaultRes, unavailableQueryRes] = await Promise.all([
+      testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/menu/${restaurant.id}/search?search=Searchable`,
+        ),
+      ),
+      testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/menu/${restaurant.id}/search?search=Searchable&isAvailable=false`,
+        ),
+      ),
+    ]);
+
+    expect([defaultRes.status, unavailableQueryRes.status]).toEqual([200, 200]);
+    const responses = await Promise.all([
+      defaultRes.json() as Promise<any>,
+      unavailableQueryRes.json() as Promise<any>,
+    ]);
+
+    for (const json of responses) {
+      expect(json.success).toBe(true);
+      expect(json.data.map((item: any) => item.name)).toEqual([
+        "Searchable Available Item",
+      ]);
+    }
+  });
+
   it("hides public menu items that belong to private categories", async () => {
     const restaurant = await seed.restaurant();
     const now = new Date();
