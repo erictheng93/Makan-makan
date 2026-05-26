@@ -625,6 +625,8 @@ describe("Discovery API — real integration", () => {
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
       restaurantId: String(restaurant.id),
       marketId: market.id,
+      stallNumber: "A-12",
+      isPrimary: true,
       joinedAt: new Date(),
     });
     const exactItem = await seed.menuItem(String(restaurant.id), {
@@ -680,6 +682,11 @@ describe("Discovery API — real integration", () => {
       "滷肉飯便當",
       "招牌套餐",
     ]);
+    expect(data.results[0].marketVendor).toEqual({
+      marketId: market.id,
+      stallNumber: "A-12",
+      isPrimary: true,
+    });
   });
 
   it("ranks market service name matches before lower-sort keyword matches", async () => {
@@ -694,6 +701,8 @@ describe("Discovery API — real integration", () => {
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
       restaurantId: String(restaurant.id),
       marketId: market.id,
+      stallNumber: "S-08",
+      isPrimary: false,
       joinedAt: new Date(),
     });
     await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
@@ -740,6 +749,11 @@ describe("Discovery API — real integration", () => {
       "切水果外送",
       "攤位代辦",
     ]);
+    expect(data.results[0].marketVendor).toEqual({
+      marketId: market.id,
+      stallNumber: "S-08",
+      isPrimary: false,
+    });
   });
 
   it("filters public service items by service type within a market", async () => {

@@ -18,6 +18,7 @@ import {
   restaurants,
   menuItems,
   categories,
+  restaurantMarketMemberships,
   restaurantServiceItems,
 } from "@makanmakan/database";
 import { boundingBoxFromCircle, distanceKm } from "../../markets/services/geo";
@@ -159,6 +160,11 @@ export class DiscoveryService {
           tags: dishSearchIndex.tags,
           latitude: dishSearchIndex.latitude,
           longitude: dishSearchIndex.longitude,
+          marketVendorMarketId: this.marketVendorMarketId(filters.marketId),
+          marketVendorStallNumber: this.marketVendorStallNumber(
+            filters.marketId,
+          ),
+          marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
         })
         .from(dishSearchIndex)
         .innerJoin(
@@ -226,6 +232,11 @@ export class DiscoveryService {
             tags: dishSearchIndex.tags,
             latitude: dishSearchIndex.latitude,
             longitude: dishSearchIndex.longitude,
+            marketVendorMarketId: this.marketVendorMarketId(filters.marketId),
+            marketVendorStallNumber: this.marketVendorStallNumber(
+              filters.marketId,
+            ),
+            marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
           })
           .from(dishSearchIndex)
           .innerJoin(
@@ -265,6 +276,7 @@ export class DiscoveryService {
       menuUrl: this.restaurantMenuUrl(row.restaurantId),
       menuItemUrl: this.menuItemUrl(row.menuItemId),
       serviceItemsUrl: this.restaurantServiceItemsUrl(row.restaurantId),
+      marketVendor: this.marketVendorContext(row),
     }));
 
     if (geoFilter) {
@@ -618,6 +630,11 @@ export class DiscoveryService {
           district: restaurants.district,
           city: restaurants.city,
           businessHours: restaurants.businessHours,
+          marketVendorMarketId: this.marketVendorMarketId(filters.marketId),
+          marketVendorStallNumber: this.marketVendorStallNumber(
+            filters.marketId,
+          ),
+          marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
         })
         .from(restaurantServiceItems)
         .innerJoin(
@@ -659,6 +676,7 @@ export class DiscoveryService {
       detailUrl: this.restaurantDetailUrl(row.restaurantId),
       menuUrl: this.restaurantMenuUrl(row.restaurantId),
       serviceItemsUrl: this.restaurantServiceItemsUrl(row.restaurantId),
+      marketVendor: this.marketVendorContext(row),
     }));
 
     if (filters.openNow) {
@@ -1206,6 +1224,59 @@ export class DiscoveryService {
       lng: filters.lng,
       radiusKm,
       box: boundingBoxFromCircle(filters.lat, filters.lng, radiusKm),
+    };
+  }
+
+  private marketVendorMarketId(marketId: string | undefined) {
+    if (!marketId) return sql<null>`NULL`;
+
+    return sql<string | null>`(
+      SELECT ${restaurantMarketMemberships.marketId}
+      FROM ${restaurantMarketMemberships}
+      WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+        AND ${restaurantMarketMemberships.marketId} = ${marketId}
+        AND ${restaurantMarketMemberships.leftAt} IS NULL
+      LIMIT 1
+    )`;
+  }
+
+  private marketVendorStallNumber(marketId: string | undefined) {
+    if (!marketId) return sql<null>`NULL`;
+
+    return sql<string | null>`(
+      SELECT ${restaurantMarketMemberships.stallNumber}
+      FROM ${restaurantMarketMemberships}
+      WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+        AND ${restaurantMarketMemberships.marketId} = ${marketId}
+        AND ${restaurantMarketMemberships.leftAt} IS NULL
+      LIMIT 1
+    )`;
+  }
+
+  private marketVendorIsPrimary(marketId: string | undefined) {
+    if (!marketId) return sql<null>`NULL`;
+
+    return sql<boolean | null>`(
+      SELECT ${restaurantMarketMemberships.isPrimary}
+      FROM ${restaurantMarketMemberships}
+      WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+        AND ${restaurantMarketMemberships.marketId} = ${marketId}
+        AND ${restaurantMarketMemberships.leftAt} IS NULL
+      LIMIT 1
+    )`;
+  }
+
+  private marketVendorContext(row: {
+    marketVendorMarketId: string | null;
+    marketVendorStallNumber: string | null;
+    marketVendorIsPrimary: boolean | number | null;
+  }) {
+    if (!row.marketVendorMarketId) return undefined;
+
+    return {
+      marketId: row.marketVendorMarketId,
+      stallNumber: row.marketVendorStallNumber,
+      isPrimary: Boolean(row.marketVendorIsPrimary),
     };
   }
 

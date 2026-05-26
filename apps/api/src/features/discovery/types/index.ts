@@ -14,6 +14,7 @@ export interface DishSearchResult {
   menuUrl: string;
   menuItemUrl: string;
   serviceItemsUrl: string;
+  marketVendor?: MarketVendorContext;
 }
 
 export interface RestaurantListItem {
@@ -53,6 +54,13 @@ export interface ServiceSearchResult {
   detailUrl: string;
   menuUrl: string;
   serviceItemsUrl: string;
+  marketVendor?: MarketVendorContext;
+}
+
+export interface MarketVendorContext {
+  marketId: string;
+  stallNumber: string | null;
+  isPrimary: boolean;
 }
 
 export interface SearchFilters {
