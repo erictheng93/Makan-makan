@@ -177,9 +177,11 @@ const props = withDefaults(
   defineProps<{
     marketId: string;
     categories?: string[];
+    autoLoad?: boolean;
   }>(),
   {
     categories: () => [],
+    autoLoad: true,
   },
 );
 
@@ -218,7 +220,10 @@ const categoryOptions = computed(() =>
   props.categories.length > 0 ? props.categories : loadedCategories.value,
 );
 const canSearch = computed(
-  () => query.value.trim().length > 0 || selectedCategory.value.length > 0,
+  () =>
+    props.marketId.length > 0 ||
+    query.value.trim().length > 0 ||
+    selectedCategory.value.length > 0,
 );
 
 async function submitSearch() {
@@ -258,9 +263,9 @@ async function fetchResults({ append }: { append: boolean }) {
         page: page.value,
         limit: pageSize,
       }),
-      trimmed
+      trimmed || props.marketId
         ? discoveryApi.searchServices({
-            q: trimmed,
+            q: trimmed || undefined,
             marketId: props.marketId,
             page: page.value,
             limit: pageSize,
@@ -319,6 +324,11 @@ function servicePriceLabel(service: ServiceSearchResult) {
 }
 
 onMounted(loadCategories);
+onMounted(() => {
+  if (props.autoLoad) {
+    submitSearch();
+  }
+});
 
 watch(
   () => props.marketId,
@@ -326,6 +336,9 @@ watch(
     selectedCategory.value = "";
     loadedCategories.value = [];
     loadCategories();
+    if (props.autoLoad) {
+      submitSearch();
+    }
   },
 );
 </script>

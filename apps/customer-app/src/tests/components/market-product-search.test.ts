@@ -92,6 +92,7 @@ describe("MarketProductSearch", () => {
       props: {
         marketId: "market-1",
         categories: ["小吃", "飲品"],
+        autoLoad: false,
       },
     });
 
@@ -132,6 +133,7 @@ describe("MarketProductSearch", () => {
     const wrapper = mount(MarketProductSearch, {
       props: {
         marketId: "market-1",
+        autoLoad: false,
       },
     });
 
@@ -155,6 +157,52 @@ describe("MarketProductSearch", () => {
     expect(wrapper.emitted("selectService")?.[0][0]).toMatchObject({
       restaurantId: "service-r1",
       name: "代客切水果",
+    });
+  });
+
+  it("browses all market products and services before entering a keyword", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [
+        dish({
+          dishName: "市場雞排",
+          categoryName: "小吃",
+        }),
+      ],
+      total: 1,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        service({
+          name: "市場代客切水果",
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+        q: undefined,
+        marketId: "market-1",
+        categoryName: undefined,
+        sortBy: "price_asc",
+        takeaway: undefined,
+        page: 1,
+        limit: 20,
+      });
+      expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+        q: undefined,
+        marketId: "market-1",
+        page: 1,
+        limit: 20,
+      });
+      expect(wrapper.text()).toContain("市場雞排");
+      expect(wrapper.text()).toContain("市場代客切水果");
     });
   });
 
@@ -182,6 +230,7 @@ describe("MarketProductSearch", () => {
     const wrapper = mount(MarketProductSearch, {
       props: {
         marketId: "market-1",
+        autoLoad: false,
       },
     });
 
@@ -222,6 +271,7 @@ describe("MarketProductSearch", () => {
       props: {
         marketId: "market-1",
         categories: ["小吃", "飲品"],
+        autoLoad: false,
       },
     });
 
@@ -265,6 +315,7 @@ describe("MarketProductSearch", () => {
     const wrapper = mount(MarketProductSearch, {
       props: {
         marketId: "market-1",
+        autoLoad: false,
       },
     });
 

@@ -540,6 +540,81 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("browses public service items by market without a keyword", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-browse-market",
+    });
+    const otherMarket = await seedMarket(testApp, {
+      slug: "other-service-browse-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Service Browse Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    const otherRestaurant = await seed.restaurant({
+      name: "Other Service Browse Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(restaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(otherRestaurant.id),
+        marketId: otherMarket.id,
+        joinedAt: new Date(),
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "市場瀏覽外送",
+        serviceType: "delivery",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "市場瀏覽內部服務",
+        serviceType: "general",
+        isPublic: false,
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(otherRestaurant.id),
+        name: "其他市場外送",
+        serviceType: "delivery",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?marketId=${market.id}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results).toHaveLength(1);
+    expect(data.results[0]).toMatchObject({
+      name: "市場瀏覽外送",
+      restaurantId: restaurant.id,
+      restaurantName: "Service Browse Vendor",
+      serviceType: "delivery",
+    });
+  });
+
   it("scopes dish search by city when districts have the same name", async () => {
     const taipeiRestaurant = await seed.restaurant({
       name: "Taipei Zhongshan Vendor",
