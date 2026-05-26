@@ -698,6 +698,43 @@ export class DiscoveryService {
       conditions.push(eq(restaurants.supportsDelivery, true));
     }
 
+    if (filters.openNow) {
+      const rows = await this.db
+        .select({
+          serviceType: restaurantServiceItems.serviceType,
+          businessHours: restaurants.businessHours,
+        })
+        .from(restaurantServiceItems)
+        .innerJoin(
+          restaurants,
+          eq(restaurantServiceItems.restaurantId, restaurants.id),
+        )
+        .where(and(...conditions));
+
+      const counts = new Map<
+        NonNullable<SearchFilters["serviceType"]>,
+        number
+      >();
+
+      for (const row of rows) {
+        if (!isOpenNow(row.businessHours ?? null)) {
+          continue;
+        }
+
+        counts.set(row.serviceType, (counts.get(row.serviceType) ?? 0) + 1);
+      }
+
+      return {
+        serviceTypes: Array.from(counts, ([serviceType, count]) => ({
+          serviceType,
+          count,
+        })).sort(
+          (a, b) =>
+            b.count - a.count || a.serviceType.localeCompare(b.serviceType),
+        ),
+      };
+    }
+
     const itemCount = sql<number>`count(*)`;
     const rows = await this.db
       .select({

@@ -1071,6 +1071,47 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("filters service type facets by open public vendors", async () => {
+    const closedRestaurant = await seed.restaurant({
+      name: "Closed Service Facet Vendor",
+      city: "台中市",
+      district: "西屯區",
+      businessHours: closedAllWeek(),
+    });
+    const openRestaurant = await seed.restaurant({
+      name: "Open Service Facet Vendor",
+      city: "台中市",
+      district: "西屯區",
+      businessHours: openAllWeek(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(closedRestaurant.id),
+        name: "關店外送",
+        serviceType: "delivery",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(openRestaurant.id),
+        name: "營業預約",
+        serviceType: "booking",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/service-types?city=台中市&district=西屯區&openNow=true",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.serviceTypes).toEqual([{ serviceType: "booking", count: 1 }]);
+  });
+
   it("browses public service items by market without a keyword", async () => {
     const market = await seedMarket(testApp, {
       slug: "service-browse-market",
