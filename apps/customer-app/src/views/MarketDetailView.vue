@@ -56,6 +56,12 @@
             @contact-vendor="openContactProfile"
           />
 
+          <MarketProductSearch
+            :market-id="store.selectedMarket.id"
+            @select="openDishVendor"
+            @takeaway="startDishTakeaway"
+          />
+
           <section
             v-if="selectedContactVendor"
             class="rounded-xl border border-gray-200 bg-white p-4"
@@ -143,9 +149,11 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import MarketDetailHero from "@/components/markets/MarketDetailHero.vue";
+import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
 import VendorListInMarket from "@/components/markets/VendorListInMarket.vue";
 import { useMarketsStore } from "@/stores/markets";
 import { discoveryApi } from "@/services/discoveryApi";
+import type { DishSearchResult } from "@/services/discoveryApi";
 import type { MarketVendor } from "@/services/marketsApi";
 import {
   restaurantContactApi,
@@ -191,15 +199,30 @@ function openVendor(vendor: MarketVendor) {
 }
 
 async function startTakeaway(vendor: MarketVendor) {
-  const result = await discoveryApi.getTakeawayEligibility(vendor.restaurantId);
+  await startTakeawayForRestaurant(vendor.restaurantId);
+}
+
+async function startDishTakeaway(dish: DishSearchResult) {
+  await startTakeawayForRestaurant(dish.restaurantId);
+}
+
+async function startTakeawayForRestaurant(restaurantId: string) {
+  const result = await discoveryApi.getTakeawayEligibility(restaurantId);
   if (!result.eligible) {
     store.error = "目前無法從 Discovery 直接外帶。";
     return;
   }
   router.push({
     name: "OrderTypeLanding",
-    params: { restaurantId: vendor.restaurantId },
+    params: { restaurantId },
     query: { qr: result.shopQrCode },
+  });
+}
+
+function openDishVendor(dish: DishSearchResult) {
+  router.push({
+    name: "ShopMenu",
+    params: { restaurantId: dish.restaurantId },
   });
 }
 

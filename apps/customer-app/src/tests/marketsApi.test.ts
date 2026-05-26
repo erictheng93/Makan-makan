@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "@/services/api";
 import { marketsApi } from "@/services/marketsApi";
 
@@ -9,6 +9,10 @@ vi.mock("@/services/api", () => ({
 }));
 
 describe("marketsApi", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("lists markets with area filters", async () => {
     vi.mocked(apiClient.get).mockResolvedValueOnce({
       markets: [],
