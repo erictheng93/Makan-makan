@@ -217,6 +217,24 @@ routes.post(
     const { id } = c.get("validatedParams");
     const body = c.get("validatedBody");
     const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
+    const existing = await service.getActiveVendorMembership(
+      id,
+      body.restaurantId,
+    );
+
+    if (existing) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "MARKET_VENDOR_ALREADY_ATTACHED",
+            message: "Restaurant already belongs to this market",
+          },
+        },
+        409,
+      );
+    }
+
     const membership = await service.addVendor(id, body);
 
     if (!membership) {

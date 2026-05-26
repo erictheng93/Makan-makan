@@ -799,16 +799,35 @@ export class MarketsService {
     const market = await this.getMarketById(marketId);
     if (!market || market.deletedAt) return null;
 
-    if (input.isPrimary) {
-      await this.db
+    const existing = await this.getActiveVendorMembership(
+      marketId,
+      input.restaurantId,
+    );
+    if (existing) {
+      if (input.isPrimary) {
+        await this.clearPrimaryMembership(input.restaurantId);
+      }
+
+      const [membership] = await this.db
         .update(restaurantMarketMemberships)
-        .set({ isPrimary: false })
-        .where(
-          and(
-            eq(restaurantMarketMemberships.restaurantId, input.restaurantId),
-            isNull(restaurantMarketMemberships.leftAt),
-          ),
-        );
+        .set({
+          stallNumber:
+            input.stallNumber !== undefined
+              ? input.stallNumber
+              : existing.stallNumber,
+          isPrimary:
+            input.isPrimary !== undefined
+              ? input.isPrimary
+              : existing.isPrimary,
+        })
+        .where(eq(restaurantMarketMemberships.id, existing.id))
+        .returning();
+      await this.bumpPublicCacheVersion();
+      return membership ?? existing;
+    }
+
+    if (input.isPrimary) {
+      await this.clearPrimaryMembership(input.restaurantId);
     }
 
     const [membership] = await this.db
@@ -823,6 +842,34 @@ export class MarketsService {
       .returning();
     await this.bumpPublicCacheVersion();
     return membership;
+  }
+
+  async getActiveVendorMembership(marketId: string, restaurantId: string) {
+    const [membership] = await this.db
+      .select()
+      .from(restaurantMarketMemberships)
+      .where(
+        and(
+          eq(restaurantMarketMemberships.marketId, marketId),
+          eq(restaurantMarketMemberships.restaurantId, restaurantId),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      )
+      .limit(1);
+
+    return membership ?? null;
+  }
+
+  private async clearPrimaryMembership(restaurantId: string) {
+    await this.db
+      .update(restaurantMarketMemberships)
+      .set({ isPrimary: false })
+      .where(
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurantId),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      );
   }
 
   async removeVendor(marketId: string, restaurantId: string) {

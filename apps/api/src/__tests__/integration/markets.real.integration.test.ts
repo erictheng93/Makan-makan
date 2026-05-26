@@ -10,7 +10,7 @@ import {
   restaurantServiceItems,
   restaurantMarketMemberships,
 } from "@makanmakan/database";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 const CSRF_HEADERS = {
   host: "test",
@@ -1149,6 +1149,21 @@ describe("Markets API — real integration", () => {
       isPrimary: true,
     });
 
+    const duplicateVendorRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/admin/markets/${marketId}/vendors`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          restaurantId: String(restaurant.id),
+          stallNumber: "A-01",
+        }),
+      }),
+    );
+    expect(duplicateVendorRes.status).toBe(409);
+    expect(((await duplicateVendorRes.json()) as any).error).toMatchObject({
+      code: "MARKET_VENDOR_ALREADY_ATTACHED",
+    });
+
     const publicVendorsRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets/admin-created-market/vendors"),
     );
@@ -1559,6 +1574,90 @@ describe("Markets API — real integration", () => {
       id: rejectedRequestJson.data.request.id,
       status: "rejected",
     });
+  });
+
+  it("approves a pending join request when the vendor was already attached", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Already Attached Join Vendor",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 24,
+      username: "already-attached-join-admin",
+      role: 0,
+      restaurantId: String(restaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+    const market = await seedMarket(testApp, {
+      slug: "already-attached-join-market",
+      name: "Already Attached Join Market",
+    });
+
+    const requestRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ marketId: market.id }),
+        },
+      ),
+    );
+    expect(requestRes.status).toBe(201);
+    const requestJson: any = await requestRes.json();
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "B-12",
+      joinedAt: new Date(),
+    });
+
+    const approveRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/join-requests/${requestJson.data.request.id}/approve`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            stallNumber: "B-12",
+            isPrimary: true,
+          }),
+        },
+      ),
+    );
+    expect(approveRes.status).toBe(200);
+    const approveJson: any = await approveRes.json();
+    expect(approveJson.data.request).toMatchObject({
+      id: requestJson.data.request.id,
+      status: "approved",
+    });
+    expect(approveJson.data.membership).toMatchObject({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "B-12",
+      isPrimary: true,
+    });
+
+    const memberships = await testApp.testDb.drizzle
+      .select({ id: restaurantMarketMemberships.id })
+      .from(restaurantMarketMemberships)
+      .where(
+        and(
+          eq(restaurantMarketMemberships.restaurantId, String(restaurant.id)),
+          eq(restaurantMarketMemberships.marketId, market.id),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      );
+    expect(memberships).toHaveLength(1);
   });
 
   it("lets restaurant owners view memberships and request to join a market", async () => {
