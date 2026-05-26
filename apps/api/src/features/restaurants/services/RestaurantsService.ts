@@ -8,6 +8,7 @@ import { asc, eq, isNull, and } from "drizzle-orm";
 import {
   RestaurantService as DatabaseRestaurantService,
   restaurantFaqs,
+  restaurantServiceItems,
   restaurants,
 } from "@makanmakan/database";
 import { KVCacheService, type CacheService } from "../../../core/cache";
@@ -76,6 +77,29 @@ export interface RestaurantContactProfile {
     displayOrder: number;
     isActive: boolean;
   }>;
+}
+
+export interface PublicRestaurantServiceItem {
+  id: number;
+  restaurantId: string;
+  name: string;
+  description: string | null;
+  serviceType: string;
+  priceCents: number | null;
+  priceLabel: string | null;
+  durationMinutes: number | null;
+  requiresBooking: boolean;
+  bookingUrl: string | null;
+  availableHours: {
+    start?: string;
+    end?: string;
+    days?: number[];
+  } | null;
+  tags: string[];
+  keywords: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  isPublic: boolean;
 }
 
 class NoopCacheService implements CacheService {
@@ -392,6 +416,59 @@ export class RestaurantsService {
     await this.invalidateListCaches();
 
     return this.getContactProfile(id);
+  }
+
+  async listPublicServiceItems(
+    id: string,
+  ): Promise<PublicRestaurantServiceItem[] | null> {
+    const [restaurant] = await this.db
+      .select({ id: restaurants.id })
+      .from(restaurants)
+      .where(
+        and(
+          eq(restaurants.id, id),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!restaurant) return null;
+
+    const rows = await this.db
+      .select()
+      .from(restaurantServiceItems)
+      .where(
+        and(
+          eq(restaurantServiceItems.restaurantId, id),
+          eq(restaurantServiceItems.isActive, true),
+          eq(restaurantServiceItems.isPublic, true),
+          isNull(restaurantServiceItems.deletedAt),
+        ),
+      )
+      .orderBy(
+        asc(restaurantServiceItems.sortOrder),
+        asc(restaurantServiceItems.id),
+      );
+
+    return rows.map((item) => ({
+      id: item.id,
+      restaurantId: item.restaurantId,
+      name: item.name,
+      description: item.description,
+      serviceType: item.serviceType,
+      priceCents: item.priceCents,
+      priceLabel: item.priceLabel,
+      durationMinutes: item.durationMinutes,
+      requiresBooking: item.requiresBooking,
+      bookingUrl: item.bookingUrl,
+      availableHours: item.availableHours ?? null,
+      tags: item.tags ?? [],
+      keywords: item.keywords,
+      sortOrder: item.sortOrder,
+      isActive: item.isActive,
+      isPublic: item.isPublic,
+    }));
   }
 
   /**

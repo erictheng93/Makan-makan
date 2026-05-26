@@ -1,4 +1,5 @@
 import { apiClient } from "./api";
+import type { RestaurantServiceItem } from "@makanmakan/shared-types";
 
 export interface MessagingChannels {
   line?: string;
@@ -26,6 +27,12 @@ export const restaurantContactApi = {
   async getContactProfile(restaurantId: string) {
     return apiClient.get<RestaurantContactProfile>(
       `/restaurants/${restaurantId}/contact-profile`,
+    );
+  },
+
+  async listServiceItems(restaurantId: string) {
+    return apiClient.get<RestaurantServiceItem[]>(
+      `/restaurants/${restaurantId}/service-items`,
     );
   },
 };

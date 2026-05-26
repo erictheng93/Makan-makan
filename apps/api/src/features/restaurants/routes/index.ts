@@ -241,6 +241,38 @@ app.put(
 );
 
 /**
+ * GET /:id/service-items - Get public service items for a restaurant
+ * Parameters: id
+ */
+app.get(
+  "/:id/service-items",
+  optionalAuth,
+  validateParams(commonSchemas.idParam),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const restaurantsService = new RestaurantsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+
+    const serviceItems = await restaurantsService.listPublicServiceItems(id);
+
+    if (!serviceItems) {
+      throw notFound("Restaurant not found");
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: serviceItems,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
  * GET /:id - Get restaurant details (public API)
  * Parameters: id
  */
