@@ -31,6 +31,8 @@ function vendor(overrides: Partial<MarketVendor> = {}): MarketVendor {
     imageUrl: null,
     stallNumber: "A-01",
     isPrimary: true,
+    availableMenuItemCount: 3,
+    publicServiceItemCount: 2,
     ...overrides,
   };
 }
@@ -104,5 +106,41 @@ describe("VendorListInMarket", () => {
       .trigger("click");
 
     expect(wrapper.emitted("selectVendor")?.[0]).toEqual([vendor()]);
+  });
+
+  it("shows menu and service availability before opening a vendor", () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [
+          vendor({
+            restaurantId: "restaurant-1",
+            availableMenuItemCount: 3,
+            publicServiceItemCount: 2,
+          }),
+          vendor({
+            restaurantId: "restaurant-2",
+            name: "空資料攤",
+            availableMenuItemCount: 0,
+            publicServiceItemCount: 0,
+          }),
+        ],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    const readyVendor = wrapper.get(
+      '[data-testid="vendor-availability-restaurant-1"]',
+    );
+    const emptyVendor = wrapper.get(
+      '[data-testid="vendor-availability-restaurant-2"]',
+    );
+
+    expect(readyVendor.text()).toContain("菜單 3 項");
+    expect(readyVendor.text()).toContain("服務 2 項");
+    expect(emptyVendor.text()).toContain("尚無菜單");
+    expect(emptyVendor.text()).toContain("尚無服務");
   });
 });

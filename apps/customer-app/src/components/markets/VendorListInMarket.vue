@@ -82,6 +82,39 @@
             主要店鋪
           </span>
         </div>
+        <div
+          class="flex flex-wrap gap-2 border-t border-gray-100 px-4 py-3"
+          :data-testid="`vendor-availability-${vendor.restaurantId}`"
+        >
+          <span
+            class="rounded px-2 py-0.5 text-xs font-medium"
+            :class="
+              vendor.availableMenuItemCount > 0
+                ? 'bg-ios-blue/10 text-ios-blue'
+                : 'bg-gray-50 text-gray-500'
+            "
+          >
+            {{
+              vendor.availableMenuItemCount > 0
+                ? `菜單 ${vendor.availableMenuItemCount} 項`
+                : "尚無菜單"
+            }}
+          </span>
+          <span
+            class="rounded px-2 py-0.5 text-xs font-medium"
+            :class="
+              vendor.publicServiceItemCount > 0
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-gray-50 text-gray-500'
+            "
+          >
+            {{
+              vendor.publicServiceItemCount > 0
+                ? `服務 ${vendor.publicServiceItemCount} 項`
+                : "尚無服務"
+            }}
+          </span>
+        </div>
         <div class="grid grid-cols-2 gap-2 border-t border-gray-100 px-4 py-3">
           <button
             type="button"

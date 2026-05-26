@@ -49,6 +49,11 @@ export interface MarketExplorationSummary {
 export interface MarketVendor extends RestaurantListItem {
   stallNumber: string | null;
   isPrimary: boolean;
+  detailUrl?: string;
+  menuUrl?: string;
+  serviceItemsUrl?: string;
+  availableMenuItemCount: number;
+  publicServiceItemCount: number;
 }
 
 export interface MarketArea {
