@@ -47,4 +47,76 @@ describe("marketsService", () => {
       totalCatalogGapVendors: 7,
     });
   });
+
+  it("searches vendor candidates excluding the selected market", async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        data: {
+          restaurants: [
+            {
+              id: "restaurant-1",
+              name: "可加入店家",
+              city: "台中市",
+              district: "西屯區",
+              address: "台中市西屯區文華路",
+              type: "market_stall",
+              category: "food",
+              isAvailable: true,
+              supportsTakeaway: true,
+              supportsDelivery: false,
+            },
+          ],
+          total: 1,
+        },
+      },
+    } as never);
+
+    const result = await marketsService.searchVendorCandidates({
+      q: "可加入",
+      marketId: "market-1",
+      limit: 8,
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/admin/markets/vendor-candidates", {
+      q: "可加入",
+      marketId: "market-1",
+      limit: 8,
+    });
+    expect(result.restaurants[0]).toMatchObject({
+      id: "restaurant-1",
+      name: "可加入店家",
+    });
+  });
+
+  it("adds an existing vendor to a market", async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        data: {
+          membership: {
+            id: 1,
+            restaurantId: "restaurant-1",
+            marketId: "market-1",
+            stallNumber: "A-01",
+            isPrimary: true,
+          },
+        },
+      },
+    } as never);
+
+    const result = await marketsService.addVendor("market-1", {
+      restaurantId: "restaurant-1",
+      stallNumber: "A-01",
+      isPrimary: true,
+    });
+
+    expect(api.post).toHaveBeenCalledWith("/admin/markets/market-1/vendors", {
+      restaurantId: "restaurant-1",
+      stallNumber: "A-01",
+      isPrimary: true,
+    });
+    expect(result).toMatchObject({
+      restaurantId: "restaurant-1",
+      marketId: "market-1",
+    });
+  });
 });

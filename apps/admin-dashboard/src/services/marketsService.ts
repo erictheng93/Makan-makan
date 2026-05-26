@@ -52,6 +52,24 @@ export interface MarketAreaReadinessSummary {
   averageReadinessScore: number;
 }
 
+export interface MarketVendorCandidate {
+  id: string;
+  name: string;
+  city: string;
+  district: string;
+  address: string;
+  type: string;
+  category: string;
+  isAvailable: boolean;
+  supportsTakeaway: boolean;
+  supportsDelivery: boolean;
+}
+
+export interface MarketVendorCandidatesResult {
+  restaurants: MarketVendorCandidate[];
+  total: number;
+}
+
 export interface UpdateMarketPublicProfileInput {
   description: string | null;
   address: string;
@@ -111,6 +129,12 @@ export interface RestaurantMarketMembership {
     city: string;
     district: string;
   };
+}
+
+export interface AddMarketVendorInput {
+  restaurantId: string;
+  stallNumber?: string | null;
+  isPrimary?: boolean;
 }
 
 export interface MarketJoinRequest {
@@ -214,5 +238,30 @@ export const marketsService = {
       { vendors },
     );
     return unwrapApiPayload<ImportMarketVendorsResult>(response.data);
+  },
+
+  async searchVendorCandidates(input: {
+    q?: string;
+    marketId?: string;
+    limit?: number;
+  }): Promise<MarketVendorCandidatesResult> {
+    const response = await api.get<MarketVendorCandidatesResult>(
+      "/admin/markets/vendor-candidates",
+      input,
+    );
+    return unwrapApiPayload<MarketVendorCandidatesResult>(response.data);
+  },
+
+  async addVendor(
+    marketId: string,
+    input: AddMarketVendorInput,
+  ): Promise<RestaurantMarketMembership> {
+    const response = await api.post<{ membership: RestaurantMarketMembership }>(
+      `/admin/markets/${marketId}/vendors`,
+      input,
+    );
+    return unwrapApiPayload<{ membership: RestaurantMarketMembership }>(
+      response.data,
+    ).membership;
   },
 };

@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import PlatformMarketsView from "./PlatformMarketsView.vue";
@@ -11,6 +13,8 @@ vi.mock("@/services/marketsService", () => ({
     listAreaReadiness: vi.fn(),
     updateMarketPublicProfile: vi.fn(),
     importVendors: vi.fn(),
+    searchVendorCandidates: vi.fn(),
+    addVendor: vi.fn(),
   },
 }));
 
@@ -142,6 +146,10 @@ describe("PlatformMarketsView", () => {
         averageReadinessScore: 91,
       },
     ]);
+    vi.mocked(marketsService.searchVendorCandidates).mockResolvedValue({
+      restaurants: [],
+      total: 0,
+    });
   });
 
   it("switches restaurant context before opening menu or service settings", async () => {
@@ -491,6 +499,73 @@ describe("PlatformMarketsView", () => {
         isPrimary: true,
       },
     ]);
+  });
+
+  it("searches existing vendors and attaches one to the selected market", async () => {
+    vi.mocked(marketsService.searchVendorCandidates).mockResolvedValue({
+      restaurants: [
+        {
+          id: "restaurant-candidate",
+          name: "既有滷味攤",
+          city: "台中市",
+          district: "西屯區",
+          address: "台中市西屯區文華路 12 號",
+          type: "market_stall",
+          category: "food",
+          isAvailable: true,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+        },
+      ],
+      total: 1,
+    });
+    vi.mocked(marketsService.addVendor).mockResolvedValue({
+      id: 8,
+      restaurantId: "restaurant-candidate",
+      marketId: "market-1",
+      stallNumber: "D-08",
+      isPrimary: false,
+      joinedAt: new Date(),
+    });
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "編輯");
+    expect(editButton).toBeDefined();
+    await editButton!.trigger("click");
+
+    await wrapper
+      .get('[data-testid="vendor-candidate-query"]')
+      .setValue("滷味");
+    await wrapper
+      .get('[data-testid="vendor-candidate-search"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.searchVendorCandidates).toHaveBeenCalledWith({
+      q: "滷味",
+      marketId: "market-1",
+      limit: 10,
+    });
+    expect(wrapper.text()).toContain("既有滷味攤");
+
+    await wrapper
+      .get('[data-testid="vendor-candidate-stall-restaurant-candidate"]')
+      .setValue("D-08");
+    await wrapper
+      .get('[data-testid="vendor-candidate-attach-restaurant-candidate"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.addVendor).toHaveBeenCalledWith("market-1", {
+      restaurantId: "restaurant-candidate",
+      stallNumber: "D-08",
+      isPrimary: false,
+    });
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain("已加入既有滷味攤");
   });
 });
 

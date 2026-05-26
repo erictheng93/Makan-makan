@@ -595,6 +595,96 @@
           </button>
         </div>
       </section>
+
+      <section class="mt-6 border-t border-gray-200 pt-5">
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div>
+            <h3 class="text-base font-semibold text-gray-900">加入既有店鋪</h3>
+            <p class="mt-1 text-sm text-gray-500">
+              搜尋已建立的店鋪，直接掛到這個市場或商圈。
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+          <input
+            v-model="vendorCandidateQuery"
+            type="search"
+            data-testid="vendor-candidate-query"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+            placeholder="搜尋店名、地址、城市或行政區"
+            @keyup.enter="loadVendorCandidates"
+          />
+          <button
+            type="button"
+            data-testid="vendor-candidate-search"
+            class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+            :disabled="isLoadingVendorCandidates"
+            @click="loadVendorCandidates"
+          >
+            {{ isLoadingVendorCandidates ? "搜尋中..." : "搜尋店鋪" }}
+          </button>
+        </div>
+
+        <p v-if="vendorCandidateError" class="mt-3 text-sm text-red-600">
+          {{ vendorCandidateError }}
+        </p>
+        <p v-if="vendorAttachMessage" class="mt-3 text-sm text-green-700">
+          {{ vendorAttachMessage }}
+        </p>
+
+        <div
+          v-if="vendorCandidates.length > 0"
+          class="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200"
+        >
+          <div
+            v-for="candidate in vendorCandidates"
+            :key="candidate.id"
+            class="grid gap-3 p-3 lg:grid-cols-[1fr_10rem_auto]"
+          >
+            <div>
+              <div class="font-medium text-gray-900">
+                {{ candidate.name }}
+              </div>
+              <div class="mt-0.5 text-xs text-gray-500">
+                {{ candidate.city }} · {{ candidate.district }} ·
+                {{ candidate.address }}
+              </div>
+              <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
+                <span>{{ candidate.type }}</span>
+                <span>{{ candidate.category }}</span>
+                <span v-if="candidate.supportsTakeaway">可外帶</span>
+                <span v-if="candidate.supportsDelivery">可外送</span>
+              </div>
+            </div>
+            <input
+              v-model="vendorCandidateStalls[candidate.id]"
+              type="text"
+              :data-testid="`vendor-candidate-stall-${candidate.id}`"
+              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              placeholder="攤位號"
+            />
+            <button
+              type="button"
+              :data-testid="`vendor-candidate-attach-${candidate.id}`"
+              class="h-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+              :disabled="attachingVendorId === candidate.id"
+              @click="attachVendorCandidate(candidate)"
+            >
+              {{ attachingVendorId === candidate.id ? "加入中..." : "加入" }}
+            </button>
+          </div>
+        </div>
+
+        <p
+          v-else-if="vendorCandidateSearched && !isLoadingVendorCandidates"
+          class="mt-3 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-500"
+        >
+          沒有可加入的既有店鋪。
+        </p>
+      </section>
     </div>
   </div>
 </template>
@@ -609,6 +699,7 @@ import {
   type MarketCatalogGapVendor,
   type MarketAreaReadinessSummary,
   type MarketListItem,
+  type MarketVendorCandidate,
 } from "@/services/marketsService";
 import { useAuthStore } from "@/stores/auth";
 import {
@@ -660,6 +751,14 @@ const vendorImportFormat = ref<MarketVendorImportFormat>("csv");
 const vendorImportText = ref("");
 const vendorImportError = ref("");
 const vendorImportResult = ref<ImportMarketVendorsResult | null>(null);
+const vendorCandidateQuery = ref("");
+const vendorCandidates = ref<MarketVendorCandidate[]>([]);
+const vendorCandidateStalls = reactive<Record<string, string>>({});
+const vendorCandidateError = ref("");
+const vendorAttachMessage = ref("");
+const vendorCandidateSearched = ref(false);
+const isLoadingVendorCandidates = ref(false);
+const attachingVendorId = ref<string | null>(null);
 const editForm = reactive<MarketPublicProfileForm>({
   description: "",
   address: "",
@@ -860,6 +959,7 @@ function startEditing(market: MarketListItem) {
   vendorImportError.value = "";
   vendorImportResult.value = null;
   vendorImportText.value = "";
+  resetVendorCandidateState();
   Object.assign(editForm, marketPublicProfileFormFromMarket(market));
 }
 
@@ -869,6 +969,7 @@ function cancelEditing() {
   vendorImportError.value = "";
   vendorImportResult.value = null;
   vendorImportText.value = "";
+  resetVendorCandidateState();
 }
 
 async function saveMarketProfile() {
@@ -970,6 +1071,74 @@ async function importVendorsForMarket() {
     vendorImportError.value = "匯入失敗，請確認店鋪欄位與權限。";
   } finally {
     isImportingVendors.value = false;
+  }
+}
+
+function resetVendorCandidateState() {
+  vendorCandidateQuery.value = "";
+  vendorCandidates.value = [];
+  vendorCandidateError.value = "";
+  vendorAttachMessage.value = "";
+  vendorCandidateSearched.value = false;
+  Object.keys(vendorCandidateStalls).forEach((key) => {
+    delete vendorCandidateStalls[key];
+  });
+}
+
+async function loadVendorCandidates() {
+  if (!editingMarket.value) return;
+
+  vendorCandidateError.value = "";
+  vendorAttachMessage.value = "";
+  isLoadingVendorCandidates.value = true;
+  vendorCandidateSearched.value = true;
+
+  try {
+    const result = await marketsService.searchVendorCandidates({
+      q: vendorCandidateQuery.value.trim() || undefined,
+      marketId: editingMarket.value.id,
+      limit: 10,
+    });
+    vendorCandidates.value = result.restaurants;
+    Object.keys(vendorCandidateStalls).forEach((key) => {
+      if (!result.restaurants.some((candidate) => candidate.id === key)) {
+        delete vendorCandidateStalls[key];
+      }
+    });
+  } catch (error) {
+    console.error("Failed to load market vendor candidates:", error);
+    vendorCandidateError.value = "搜尋失敗，請稍後再試。";
+    vendorCandidates.value = [];
+  } finally {
+    isLoadingVendorCandidates.value = false;
+  }
+}
+
+async function attachVendorCandidate(candidate: MarketVendorCandidate) {
+  if (!editingMarket.value) return;
+
+  vendorCandidateError.value = "";
+  vendorAttachMessage.value = "";
+  attachingVendorId.value = candidate.id;
+
+  try {
+    const stallNumber = vendorCandidateStalls[candidate.id]?.trim();
+    await marketsService.addVendor(editingMarket.value.id, {
+      restaurantId: candidate.id,
+      stallNumber: stallNumber || null,
+      isPrimary: false,
+    });
+    vendorAttachMessage.value = `已加入${candidate.name}`;
+    vendorCandidates.value = vendorCandidates.value.filter(
+      (item) => item.id !== candidate.id,
+    );
+    delete vendorCandidateStalls[candidate.id];
+    await loadMarkets();
+  } catch (error) {
+    console.error("Failed to attach market vendor candidate:", error);
+    vendorCandidateError.value = "加入失敗，可能已在此市場或權限不足。";
+  } finally {
+    attachingVendorId.value = null;
   }
 }
 
