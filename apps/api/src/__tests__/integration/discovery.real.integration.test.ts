@@ -540,6 +540,135 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("ranks market dish name matches before cheaper tag-only matches", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "dish-relevance-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Dish Relevance Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      joinedAt: new Date(),
+    });
+    const exactItem = await seed.menuItem(String(restaurant.id), {
+      name: "滷肉飯",
+      price: 100,
+    });
+    const prefixItem = await seed.menuItem(String(restaurant.id), {
+      name: "滷肉飯便當",
+      price: 50,
+    });
+    const tagOnlyItem = await seed.menuItem(String(restaurant.id), {
+      name: "招牌套餐",
+      price: 10,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: tagOnlyItem.id,
+        name: "招牌套餐",
+        price: 10,
+        tags: ["滷肉飯"],
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+      {
+        menuItemId: prefixItem.id,
+        name: "滷肉飯便當",
+        price: 50,
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+      {
+        menuItemId: exactItem.id,
+        name: "滷肉飯",
+        price: 100,
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "滷肉飯",
+        )}&marketId=${market.id}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.results.map((result: any) => result.dishName)).toEqual([
+      "滷肉飯",
+      "滷肉飯便當",
+      "招牌套餐",
+    ]);
+  });
+
+  it("ranks market service name matches before lower-sort keyword matches", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-relevance-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Service Relevance Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      joinedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "攤位代辦",
+        description: "可協助現場需求",
+        serviceType: "general",
+        keywords: "切水果",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "切水果",
+        serviceType: "general",
+        sortOrder: 10,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "切水果外送",
+        serviceType: "delivery",
+        sortOrder: 20,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?q=${encodeURIComponent(
+          "切水果",
+        )}&marketId=${market.id}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.results.map((result: any) => result.name)).toEqual([
+      "切水果",
+      "切水果外送",
+      "攤位代辦",
+    ]);
+  });
+
   it("browses public service items by market without a keyword", async () => {
     const market = await seedMarket(testApp, {
       slug: "service-browse-market",

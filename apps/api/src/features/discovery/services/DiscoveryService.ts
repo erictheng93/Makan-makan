@@ -157,7 +157,9 @@ export class DiscoveryService {
         )
         .innerJoin(menuItems, eq(dishSearchIndex.menuItemId, menuItems.id))
         .where(whereClause)
-        .orderBy(...this.getDishSearchOrderBy(filters, effectivePrice))
+        .orderBy(
+          ...this.getDishSearchOrderBy(filters, effectivePrice, normalized),
+        )
         .limit(limit)
         .offset(offset),
       this.db
@@ -227,7 +229,9 @@ export class DiscoveryService {
               inArray(dishSearchIndex.menuItemId, missingIds),
             ),
           )
-          .orderBy(...this.getDishSearchOrderBy(filters, effectivePrice))
+          .orderBy(
+            ...this.getDishSearchOrderBy(filters, effectivePrice, normalized),
+          )
           .limit(50);
         allRows.push(...tagResults);
       }
@@ -559,10 +563,7 @@ export class DiscoveryService {
           eq(restaurantServiceItems.restaurantId, restaurants.id),
         )
         .where(whereClause)
-        .orderBy(
-          asc(restaurantServiceItems.sortOrder),
-          asc(restaurantServiceItems.id),
-        )
+        .orderBy(...this.getServiceSearchOrderBy(q))
         .limit(limit)
         .offset(offset),
       this.db
@@ -944,6 +945,7 @@ export class DiscoveryService {
   private getDishSearchOrderBy(
     filters: SearchFilters,
     effectivePrice: SQL<number>,
+    normalizedQuery: string | null,
   ) {
     if (filters.sortBy === "popular") {
       return [desc(menuItems.orderCount), asc(effectivePrice)];
@@ -951,6 +953,44 @@ export class DiscoveryService {
     if (filters.sortBy === "price_desc") {
       return [desc(effectivePrice)];
     }
+    if (normalizedQuery) {
+      const rawQuery = filters.q?.trim() ?? "";
+      const tagPattern = `%${rawQuery}%`;
+      const relevance = sql<number>`CASE
+        WHEN ${dishSearchIndex.dishNameNormalized} = ${normalizedQuery} THEN 0
+        WHEN ${dishSearchIndex.dishNameNormalized} LIKE ${`${normalizedQuery}%`} THEN 1
+        WHEN ${dishSearchIndex.tags} LIKE ${tagPattern} THEN 2
+        ELSE 3
+      END`;
+      return [asc(relevance), asc(effectivePrice)];
+    }
     return [asc(effectivePrice)];
+  }
+
+  private getServiceSearchOrderBy(query: string | undefined) {
+    const trimmedQuery = query?.trim();
+    if (!trimmedQuery) {
+      return [
+        asc(restaurantServiceItems.sortOrder),
+        asc(restaurantServiceItems.id),
+      ];
+    }
+
+    const pattern = `%${trimmedQuery}%`;
+    const relevance = sql<number>`CASE
+      WHEN lower(${restaurantServiceItems.name}) = lower(${trimmedQuery}) THEN 0
+      WHEN lower(${restaurantServiceItems.name}) LIKE lower(${`${trimmedQuery}%`}) THEN 1
+      WHEN ${restaurantServiceItems.name} LIKE ${pattern} THEN 2
+      WHEN ${restaurantServiceItems.keywords} LIKE ${pattern}
+        OR ${restaurantServiceItems.tags} LIKE ${pattern} THEN 3
+      WHEN ${restaurantServiceItems.description} LIKE ${pattern} THEN 4
+      ELSE 5
+    END`;
+
+    return [
+      asc(relevance),
+      asc(restaurantServiceItems.sortOrder),
+      asc(restaurantServiceItems.id),
+    ];
   }
 }
