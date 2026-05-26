@@ -657,6 +657,8 @@ export class MarketsService {
         category: restaurants.category,
         district: restaurants.district,
         city: restaurants.city,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
         priceRange: restaurants.priceRange,
         rating: restaurants.rating,
         businessHours: restaurants.businessHours,

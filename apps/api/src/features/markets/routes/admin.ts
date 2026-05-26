@@ -34,12 +34,13 @@ type VendorImportIssue = {
   code:
     | "already_attached"
     | "city_defaulted"
+    | "coordinates_missing"
     | "duplicate_in_payload"
     | "phone_defaulted"
     | "restaurant_not_found";
   severity: "blocking" | "warning";
   message: string;
-  field?: "city" | "phone";
+  field?: "city" | "coordinates" | "phone";
   restaurantId?: string;
   restaurantName?: string;
 };
@@ -108,6 +109,19 @@ async function dryRunVendorImport(input: {
           severity: "warning",
           field: "city",
           message: `City is missing and would default to ${input.marketCity}`,
+          restaurantName: vendor.name,
+        });
+      }
+      if (
+        typeof vendor.latitude !== "number" ||
+        typeof vendor.longitude !== "number"
+      ) {
+        issues.push({
+          index,
+          code: "coordinates_missing",
+          severity: "warning",
+          field: "coordinates",
+          message: "Coordinates are missing and map-based discovery is weaker",
           restaurantName: vendor.name,
         });
       }
@@ -482,6 +496,8 @@ routes.post(
           phone: vendor.phone ?? "00000000",
           email: vendor.email,
           website: vendor.website,
+          latitude: vendor.latitude ?? null,
+          longitude: vendor.longitude ?? null,
           businessHours: market.openingHours ?? {},
         });
         restaurantId = restaurant.id;

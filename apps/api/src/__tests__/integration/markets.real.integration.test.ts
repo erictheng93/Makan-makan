@@ -1764,6 +1764,8 @@ describe("Markets API — real integration", () => {
                 district: "西屯區",
                 city: "台中市",
                 phone: "0222222222",
+                latitude: 24.1791,
+                longitude: 120.6479,
                 stallNumber: "B-02",
               },
             ],
@@ -1835,6 +1837,13 @@ describe("Markets API — real integration", () => {
     expect(vendorsJson.data.vendors.map((vendor: any) => vendor.name)).toEqual(
       expect.arrayContaining(["Existing Import Vendor", "新匯入蚵仔煎"]),
     );
+    const importedVendor = vendorsJson.data.vendors.find(
+      (vendor: any) => vendor.name === "新匯入蚵仔煎",
+    );
+    expect(importedVendor).toMatchObject({
+      latitude: 24.1791,
+      longitude: 120.6479,
+    });
 
     const duplicateRes = await testApp.app.fetch(
       new Request(
@@ -2028,6 +2037,12 @@ describe("Markets API — real integration", () => {
           code: "city_defaulted",
           severity: "warning",
           field: "city",
+        }),
+        expect.objectContaining({
+          index: 2,
+          code: "coordinates_missing",
+          severity: "warning",
+          field: "coordinates",
         }),
         expect.objectContaining({
           index: 3,

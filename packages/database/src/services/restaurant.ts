@@ -15,6 +15,8 @@ export interface CreateRestaurantData {
   email?: string;
   website?: string;
   businessHours?: any;
+  latitude?: number | null;
+  longitude?: number | null;
   logoUrl?: string;
   bannerUrl?: string;
 }

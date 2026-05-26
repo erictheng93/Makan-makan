@@ -102,6 +102,8 @@ const importMarketVendorSchema = z
     address: z.string().min(1).max(200).optional(),
     district: z.string().min(1).max(80).optional(),
     city: z.string().min(1).max(80).optional(),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
     phone: z
       .string()
       .min(8)
