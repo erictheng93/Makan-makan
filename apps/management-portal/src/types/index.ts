@@ -237,6 +237,19 @@ export interface MarketVendorMembership {
   leftAt?: string | number | null;
 }
 
+export interface MarketVendorCandidate {
+  id: string;
+  name: string;
+  city: string;
+  district: string;
+  address: string;
+  type: string;
+  category: string;
+  isAvailable: boolean;
+  supportsTakeaway: boolean;
+  supportsDelivery: boolean;
+}
+
 export interface MarketJoinRequest {
   id: number;
   restaurantId: string;

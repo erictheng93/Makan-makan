@@ -22,6 +22,7 @@ import type {
   GenerateLicenseRequest,
   Market,
   MarketJoinRequest,
+  MarketVendorCandidate,
   MarketVendorMembership,
   CreateMarketRequest,
   UpdateMarketRequest,
@@ -342,6 +343,17 @@ export const marketsApi = {
     await apiClient.delete(
       `/admin/markets/${marketId}/vendors/${restaurantId}`,
     );
+  },
+
+  async listVendorCandidates(params?: {
+    q?: string;
+    marketId?: string;
+    limit?: number;
+  }): Promise<{ restaurants: MarketVendorCandidate[]; total: number }> {
+    const { data } = await apiClient.get<
+      ApiResponse<{ restaurants: MarketVendorCandidate[]; total: number }>
+    >("/admin/markets/vendor-candidates", { params });
+    return data.data!;
   },
 
   async listJoinRequests(params?: {

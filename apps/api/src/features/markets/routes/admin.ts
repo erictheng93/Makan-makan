@@ -10,6 +10,7 @@ import { SearchIndexSyncService } from "../../discovery/services/SearchIndexSync
 import {
   addMarketVendorSchema,
   adminMarketJoinRequestsQuerySchema,
+  adminVendorCandidatesQuerySchema,
   approveMarketJoinRequestSchema,
   createMarketSchema,
   marketJoinRequestIdParamSchema,
@@ -22,6 +23,17 @@ import { MarketsService } from "../services/MarketsService";
 const routes = new Hono<{ Bindings: Env }>();
 
 routes.use("*", requireRole([0]));
+
+routes.get(
+  "/vendor-candidates",
+  validateQuery(adminVendorCandidatesQuerySchema),
+  async (c) => {
+    const query = c.get("validatedQuery");
+    const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
+    const data = await service.listVendorCandidates(query);
+    return c.json({ success: true, data });
+  },
+);
 
 routes.get(
   "/join-requests",

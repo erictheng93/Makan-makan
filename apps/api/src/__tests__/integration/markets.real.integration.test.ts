@@ -583,6 +583,72 @@ describe("Markets API — real integration", () => {
     expect(publicDetailRes.status).toBe(404);
   });
 
+  it("lets platform admins search restaurant candidates before attaching vendors", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Vendor Search Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 22,
+      username: "vendor-search-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+    const market = await seedMarket(testApp, {
+      slug: "vendor-search-market",
+      name: "Vendor Search Market",
+    });
+    const candidate = await seed.restaurant({
+      name: "Searchable Bao Stand",
+      city: "台中市",
+      district: "西屯區",
+      address: "Candidate Road 1",
+    });
+    const activeMember = await seed.restaurant({
+      name: "Searchable Existing Member",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(activeMember.id),
+      marketId: market.id,
+      joinedAt: new Date(),
+    });
+    await seed.restaurant({
+      name: "Unrelated Noodle Shop",
+      city: "台中市",
+      district: "北區",
+    });
+
+    const candidatesRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/vendor-candidates?q=Searchable&marketId=${market.id}`,
+        { headers },
+      ),
+    );
+    expect(candidatesRes.status).toBe(200);
+    const candidatesJson: any = await candidatesRes.json();
+    expect(candidatesJson.data.restaurants).toEqual([
+      expect.objectContaining({
+        id: String(candidate.id),
+        name: "Searchable Bao Stand",
+        city: "台中市",
+        district: "西屯區",
+        address: "Candidate Road 1",
+      }),
+    ]);
+    expect(candidatesJson.data.total).toBe(1);
+  });
+
   it("lets platform admins review, approve, and reject market join requests", async () => {
     const restaurant = await seed.restaurant({
       name: "Join Review Vendor",

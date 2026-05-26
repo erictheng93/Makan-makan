@@ -1,5 +1,16 @@
 import { drizzle } from "drizzle-orm/d1";
-import { and, asc, desc, eq, gte, isNull, like, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  isNull,
+  like,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import {
   marketJoinRequests,
@@ -38,6 +49,12 @@ export interface VendorFilters {
 
 export interface AdminJoinRequestFilters {
   status?: "pending" | "approved" | "rejected";
+}
+
+export interface AdminVendorCandidateFilters {
+  q?: string;
+  marketId?: string;
+  limit?: number;
 }
 
 export type CreateMarketInput = typeof markets.$inferInsert;
@@ -585,6 +602,56 @@ export class MarketsService {
         },
       })),
     };
+  }
+
+  async listVendorCandidates(filters: AdminVendorCandidateFilters = {}) {
+    const limit = filters.limit ?? 10;
+    const conditions = [
+      eq(restaurants.isActive, true),
+      isNull(restaurants.deletedAt),
+    ];
+
+    const query = filters.q?.trim();
+    if (query) {
+      const pattern = `%${query}%`;
+      const searchCondition = or(
+        like(restaurants.name, pattern),
+        like(restaurants.address, pattern),
+        like(restaurants.district, pattern),
+        like(restaurants.city, pattern),
+      );
+      if (searchCondition) conditions.push(searchCondition);
+    }
+
+    if (filters.marketId) {
+      conditions.push(sql`not exists (
+        select 1
+        from restaurant_market_memberships
+        where restaurant_market_memberships.restaurant_id = ${restaurants.id}
+          and restaurant_market_memberships.market_id = ${filters.marketId}
+          and restaurant_market_memberships.left_at_ms is null
+      )`);
+    }
+
+    const rows = await this.db
+      .select({
+        id: restaurants.id,
+        name: restaurants.name,
+        city: restaurants.city,
+        district: restaurants.district,
+        address: restaurants.address,
+        type: restaurants.type,
+        category: restaurants.category,
+        isAvailable: restaurants.isAvailable,
+        supportsTakeaway: restaurants.supportsTakeaway,
+        supportsDelivery: restaurants.supportsDelivery,
+      })
+      .from(restaurants)
+      .where(and(...conditions))
+      .orderBy(asc(restaurants.name))
+      .limit(limit);
+
+    return { restaurants: rows, total: rows.length };
   }
 
   async approveJoinRequest(

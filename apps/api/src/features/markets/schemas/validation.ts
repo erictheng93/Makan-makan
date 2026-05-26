@@ -84,6 +84,18 @@ export const adminMarketJoinRequestsQuerySchema = z.object({
   status: z.enum(["pending", "approved", "rejected"]).optional(),
 });
 
+export const adminVendorCandidatesQuerySchema = z.object({
+  q: z.string().trim().max(80).optional(),
+  marketId: z.string().min(1).max(120).optional(),
+  limit: z
+    .string()
+    .transform(Number)
+    .refine((value) => Number.isInteger(value) && value > 0 && value <= 20, {
+      message: "Limit must be a positive integer up to 20",
+    })
+    .optional(),
+});
+
 export const marketJoinRequestIdParamSchema = z.object({
   requestId: z.coerce.number().int().min(1),
 });

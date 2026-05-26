@@ -6,9 +6,15 @@ import {
   PlusIcon,
   ArrowPathIcon,
   TrashIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/vue/24/outline";
 import { marketsApi } from "@/services/api";
-import type { CreateMarketRequest, Market, MarketJoinRequest } from "@/types";
+import type {
+  CreateMarketRequest,
+  Market,
+  MarketJoinRequest,
+  MarketVendorCandidate,
+} from "@/types";
 
 const toast = useToast();
 const markets = ref<Market[]>([]);
@@ -20,7 +26,10 @@ const reviewingRequestId = ref<number | null>(null);
 const selectedMarketId = ref<string | null>(null);
 const cityFilter = ref("台中市");
 const districtFilter = ref("");
-const vendorRestaurantId = ref("");
+const vendorSearchQuery = ref("");
+const vendorCandidates = ref<MarketVendorCandidate[]>([]);
+const selectedVendorCandidate = ref<MarketVendorCandidate | null>(null);
+const searchingVendors = ref(false);
 const vendorStallNumber = ref("");
 const vendorIsPrimary = ref(false);
 const requestStallNumber = ref<Record<number, string>>({});
@@ -48,8 +57,17 @@ const selectedMarket = computed(
     null,
 );
 
+function resetVendorSelection() {
+  vendorSearchQuery.value = "";
+  vendorCandidates.value = [];
+  selectedVendorCandidate.value = null;
+  vendorStallNumber.value = "";
+  vendorIsPrimary.value = false;
+}
+
 function resetForm() {
   selectedMarketId.value = null;
+  resetVendorSelection();
   Object.assign(form, {
     slug: "",
     name: "",
@@ -69,6 +87,7 @@ function resetForm() {
 
 function editMarket(market: Market) {
   selectedMarketId.value = market.id;
+  resetVendorSelection();
   Object.assign(form, {
     slug: market.slug,
     name: market.name,
@@ -153,28 +172,62 @@ async function deleteMarket(market: Market) {
 }
 
 async function addVendor() {
-  if (!selectedMarket.value || !vendorRestaurantId.value.trim()) return;
+  if (!selectedMarket.value || !selectedVendorCandidate.value) return;
   await marketsApi.addVendor(selectedMarket.value.id, {
-    restaurantId: vendorRestaurantId.value.trim(),
+    restaurantId: selectedVendorCandidate.value.id,
     stallNumber: vendorStallNumber.value.trim() || null,
     isPrimary: vendorIsPrimary.value,
   });
   toast.success("Vendor attached");
-  vendorRestaurantId.value = "";
+  selectedVendorCandidate.value = null;
   vendorStallNumber.value = "";
   vendorIsPrimary.value = false;
-  await loadMarkets();
+  await Promise.all([loadMarkets(), searchVendorCandidates()]);
 }
 
 async function removeVendor() {
-  if (!selectedMarket.value || !vendorRestaurantId.value.trim()) return;
+  if (!selectedMarket.value || !selectedVendorCandidate.value) return;
   await marketsApi.removeVendor(
     selectedMarket.value.id,
-    vendorRestaurantId.value.trim(),
+    selectedVendorCandidate.value.id,
   );
   toast.success("Vendor removed");
-  vendorRestaurantId.value = "";
-  await loadMarkets();
+  selectedVendorCandidate.value = null;
+  await Promise.all([loadMarkets(), searchVendorCandidates()]);
+}
+
+async function searchVendorCandidates() {
+  if (!selectedMarket.value) return;
+  const query = vendorSearchQuery.value.trim();
+  if (query.length < 2) {
+    vendorCandidates.value = [];
+    selectedVendorCandidate.value = null;
+    return;
+  }
+
+  searchingVendors.value = true;
+  try {
+    const response = await marketsApi.listVendorCandidates({
+      q: query,
+      marketId: selectedMarket.value.id,
+      limit: 10,
+    });
+    vendorCandidates.value = response.restaurants;
+    if (
+      selectedVendorCandidate.value &&
+      !response.restaurants.some(
+        (restaurant) => restaurant.id === selectedVendorCandidate.value?.id,
+      )
+    ) {
+      selectedVendorCandidate.value = null;
+    }
+  } finally {
+    searchingVendors.value = false;
+  }
+}
+
+function selectVendorCandidate(candidate: MarketVendorCandidate) {
+  selectedVendorCandidate.value = candidate;
 }
 
 async function approveJoinRequest(request: MarketJoinRequest) {
@@ -505,27 +558,90 @@ onMounted(loadDashboard);
               Vendor membership
             </h2>
             <p class="mt-1 text-sm text-gray-500">
-              Select a market above, then attach or remove a restaurant by ID.
+              Select a market above, then search and attach a restaurant.
             </p>
           </div>
-          <input
-            v-model="vendorRestaurantId"
-            class="input"
-            placeholder="Restaurant ID"
-            :disabled="!selectedMarket"
-          />
+
+          <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <input
+              v-model="vendorSearchQuery"
+              class="input"
+              placeholder="Search restaurant name or area"
+              :disabled="!selectedMarket"
+              @keyup.enter="searchVendorCandidates"
+            />
+            <button
+              type="button"
+              class="btn btn-secondary"
+              :disabled="!selectedMarket || searchingVendors"
+              @click="searchVendorCandidates"
+            >
+              <MagnifyingGlassIcon class="mr-2 h-5 w-5" />
+              Search
+            </button>
+          </div>
+
+          <div
+            v-if="searchingVendors"
+            class="py-4 text-center text-sm text-gray-500"
+          >
+            Searching restaurants...
+          </div>
+          <div
+            v-else-if="
+              vendorSearchQuery.trim().length >= 2 &&
+              vendorCandidates.length === 0
+            "
+            class="py-4 text-center text-sm text-gray-500"
+          >
+            No matching restaurants available for this market.
+          </div>
+          <div v-else class="divide-y divide-gray-200 rounded-md border">
+            <button
+              v-for="candidate in vendorCandidates"
+              :key="candidate.id"
+              type="button"
+              class="block w-full px-3 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+              :class="{
+                'bg-primary-50': selectedVendorCandidate?.id === candidate.id,
+              }"
+              @click="selectVendorCandidate(candidate)"
+            >
+              <span class="block font-medium text-gray-900">
+                {{ candidate.name }}
+              </span>
+              <span class="mt-1 block text-sm text-gray-500">
+                {{ candidate.city }} {{ candidate.district }} ·
+                {{ candidate.address }}
+              </span>
+            </button>
+          </div>
+
+          <div
+            v-if="selectedVendorCandidate"
+            class="rounded-md bg-gray-50 p-3 text-sm text-gray-600"
+          >
+            Selected:
+            <span class="font-medium text-gray-900">
+              {{ selectedVendorCandidate.name }}
+            </span>
+            <span class="mt-1 block text-xs text-gray-500">
+              {{ selectedVendorCandidate.id }}
+            </span>
+          </div>
+
           <input
             v-model="vendorStallNumber"
             class="input"
             placeholder="Stall number"
-            :disabled="!selectedMarket"
+            :disabled="!selectedMarket || !selectedVendorCandidate"
           />
           <label class="flex items-center gap-2 text-sm text-gray-700">
             <input
               v-model="vendorIsPrimary"
               type="checkbox"
               class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              :disabled="!selectedMarket"
+              :disabled="!selectedMarket || !selectedVendorCandidate"
             />
             Primary market for this restaurant
           </label>
@@ -533,7 +649,7 @@ onMounted(loadDashboard);
             <button
               type="button"
               class="btn btn-secondary"
-              :disabled="!selectedMarket"
+              :disabled="!selectedMarket || !selectedVendorCandidate"
               @click="addVendor"
             >
               Attach
@@ -541,7 +657,7 @@ onMounted(loadDashboard);
             <button
               type="button"
               class="btn btn-secondary"
-              :disabled="!selectedMarket"
+              :disabled="!selectedMarket || !selectedVendorCandidate"
               @click="removeVendor"
             >
               Remove
