@@ -29,6 +29,7 @@ import type {
   ServiceSearchResult,
 } from "../types";
 import { isOpenNow } from "../utils/isOpenNow";
+import { normalizeSearchTags } from "../utils/search-normalization";
 import {
   fromCents,
   toCents,
@@ -122,8 +123,12 @@ export class DiscoveryService {
 
     const prefixConditions: SQL[] = [...baseConditions];
     if (normalized) {
+      const tagPattern = `%${q?.trim() ?? ""}%`;
       prefixConditions.push(
-        like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
+        or(
+          like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
+          like(dishSearchIndex.tags, tagPattern),
+        )!,
       );
     }
     const whereClause = and(...prefixConditions);
@@ -768,10 +773,7 @@ export class DiscoveryService {
       const isAvailable =
         item.isAvailable && !item.deletedAtMs && !item.restaurantDeleted;
       const normalized = item.name.trim().toLowerCase().replace(/\s+/g, "");
-      const itemTags: string[] = [
-        ...((item.tags as string[] | null) ?? []),
-        ...(item.keywords ? JSON.parse(item.keywords) : []),
-      ];
+      const itemTags = normalizeSearchTags(item.tags, item.keywords);
 
       stmts.push(
         this.d1

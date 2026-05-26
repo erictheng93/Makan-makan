@@ -8,6 +8,7 @@ import {
   restaurantMarketMemberships,
 } from "@makanmakan/database";
 import { toCents } from "../../../shared/utils/money";
+import { normalizeSearchTags } from "../utils/search-normalization";
 
 const KV_SEARCH_VERSION_KEY = "search:query:version";
 const MARKET_CACHE_VERSION_KEY = "markets:version";
@@ -80,14 +81,7 @@ export class SearchIndexSyncService {
     const isAvailable =
       item.isAvailable && !item.deletedAt && !item.restaurantDeleted;
     const normalized = item.name.trim().toLowerCase().replace(/\s+/g, "");
-    const tags = [
-      ...(item.tags ?? []),
-      ...(item.keywords
-        ? typeof item.keywords === "string"
-          ? JSON.parse(item.keywords)
-          : []
-        : []),
-    ];
+    const tags = normalizeSearchTags(item.tags, item.keywords);
 
     // Delete existing + insert (replaces INSERT OR REPLACE without needing unique constraint)
     await this.db

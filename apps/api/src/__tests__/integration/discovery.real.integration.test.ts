@@ -1030,6 +1030,79 @@ describe("Discovery API — real integration", () => {
     expect(secondData.total).toBe(0);
   });
 
+  it("syncs market-scoped discovery after menu items are created through menu API", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "menu-create-sync-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Menu Create Sync Vendor",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+
+    const categoryRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/categories`, {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({
+          name: "市場小吃",
+        }),
+      }),
+    );
+    expect(categoryRes.status).toBe(201);
+    const categoryJson: any = await categoryRes.json();
+
+    const createRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({
+          categoryId: categoryJson.data.id,
+          name: "API 建立市場雞排",
+          description: "剛建立後就應該可被市場搜尋",
+          price: 88,
+          tags: ["雞排", "夜市"],
+          keywords: "雞排 夜市",
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+
+    const searchRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "雞排",
+        )}&marketId=${market.id}`,
+      ),
+    );
+
+    expect(searchRes.status).toBe(200);
+    const data = ((await searchRes.json()) as ApiTestResponse).data;
+    expect(data.results.map((r: any) => r.menuItemId)).toEqual([
+      createJson.data.id,
+    ]);
+    expect(data.results[0]).toMatchObject({
+      restaurantId: restaurant.id,
+      restaurantName: "Menu Create Sync Vendor",
+      dishName: "API 建立市場雞排",
+    });
+    expect(data.total).toBe(1);
+  });
+
   it("excludes inactive and deleted markets from full reindex market membership fields", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Discovery Reindex Admin",
