@@ -642,7 +642,7 @@
           <div
             v-for="candidate in vendorCandidates"
             :key="candidate.id"
-            class="grid gap-3 p-3 lg:grid-cols-[1fr_10rem_auto]"
+            class="grid gap-3 p-3 lg:grid-cols-[1fr_10rem_8rem_auto]"
           >
             <div>
               <div class="font-medium text-gray-900">
@@ -666,6 +666,17 @@
               class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
               placeholder="攤位號"
             />
+            <label
+              class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+            >
+              <input
+                v-model="vendorCandidatePrimary[candidate.id]"
+                type="checkbox"
+                :data-testid="`vendor-candidate-primary-${candidate.id}`"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              主要市場
+            </label>
             <button
               type="button"
               :data-testid="`vendor-candidate-attach-${candidate.id}`"
@@ -754,6 +765,7 @@ const vendorImportResult = ref<ImportMarketVendorsResult | null>(null);
 const vendorCandidateQuery = ref("");
 const vendorCandidates = ref<MarketVendorCandidate[]>([]);
 const vendorCandidateStalls = reactive<Record<string, string>>({});
+const vendorCandidatePrimary = reactive<Record<string, boolean>>({});
 const vendorCandidateError = ref("");
 const vendorAttachMessage = ref("");
 const vendorCandidateSearched = ref(false);
@@ -1083,6 +1095,9 @@ function resetVendorCandidateState() {
   Object.keys(vendorCandidateStalls).forEach((key) => {
     delete vendorCandidateStalls[key];
   });
+  Object.keys(vendorCandidatePrimary).forEach((key) => {
+    delete vendorCandidatePrimary[key];
+  });
 }
 
 async function loadVendorCandidates() {
@@ -1103,6 +1118,7 @@ async function loadVendorCandidates() {
     Object.keys(vendorCandidateStalls).forEach((key) => {
       if (!result.restaurants.some((candidate) => candidate.id === key)) {
         delete vendorCandidateStalls[key];
+        delete vendorCandidatePrimary[key];
       }
     });
   } catch (error) {
@@ -1126,13 +1142,14 @@ async function attachVendorCandidate(candidate: MarketVendorCandidate) {
     await marketsService.addVendor(editingMarket.value.id, {
       restaurantId: candidate.id,
       stallNumber: stallNumber || null,
-      isPrimary: false,
+      isPrimary: Boolean(vendorCandidatePrimary[candidate.id]),
     });
     vendorAttachMessage.value = `已加入${candidate.name}`;
     vendorCandidates.value = vendorCandidates.value.filter(
       (item) => item.id !== candidate.id,
     );
     delete vendorCandidateStalls[candidate.id];
+    delete vendorCandidatePrimary[candidate.id];
     await loadMarkets();
   } catch (error) {
     console.error("Failed to attach market vendor candidate:", error);

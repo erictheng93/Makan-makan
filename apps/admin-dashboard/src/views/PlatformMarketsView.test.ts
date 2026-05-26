@@ -555,6 +555,9 @@ describe("PlatformMarketsView", () => {
       .get('[data-testid="vendor-candidate-stall-restaurant-candidate"]')
       .setValue("D-08");
     await wrapper
+      .get('[data-testid="vendor-candidate-primary-restaurant-candidate"]')
+      .setValue(true);
+    await wrapper
       .get('[data-testid="vendor-candidate-attach-restaurant-candidate"]')
       .trigger("click");
     await flushPromises();
@@ -562,7 +565,7 @@ describe("PlatformMarketsView", () => {
     expect(marketsService.addVendor).toHaveBeenCalledWith("market-1", {
       restaurantId: "restaurant-candidate",
       stallNumber: "D-08",
-      isPrimary: false,
+      isPrimary: true,
     });
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已加入既有滷味攤");
