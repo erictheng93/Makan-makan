@@ -152,7 +152,7 @@
           type="button"
           data-testid="clear-area-filter"
           class="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
-          @click="selectedArea = null"
+          @click="clearArea"
         >
           清除區域
         </button>
@@ -592,7 +592,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import {
   marketsService,
   type ImportMarketVendorInput,
@@ -631,10 +631,11 @@ import {
 type MarketAreaKey = Pick<MarketAreaReadinessSummary, "city" | "district">;
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const markets = ref<MarketListItem[]>([]);
 const areaReadiness = ref<MarketAreaReadinessSummary[]>([]);
-const selectedArea = ref<MarketAreaKey | null>(null);
+const selectedArea = ref<MarketAreaKey | null>(areaFromQuery());
 const isLoading = ref(true);
 const isSaving = ref(false);
 const query = ref("");
@@ -754,6 +755,45 @@ function isSelectedArea(area: MarketAreaKey) {
 
 function selectArea(area: MarketAreaKey) {
   selectedArea.value = { city: area.city, district: area.district };
+  syncAreaQuery();
+}
+
+function clearArea() {
+  selectedArea.value = null;
+  syncAreaQuery();
+}
+
+function areaFromQuery(): MarketAreaKey | null {
+  const city = firstQueryString(route.query.areaCity);
+  const district = firstQueryString(route.query.areaDistrict);
+
+  return city && district ? { city, district } : null;
+}
+
+function firstQueryString(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === "string");
+  }
+
+  return typeof value === "string" ? value : undefined;
+}
+
+function syncAreaQuery() {
+  const {
+    areaCity: _areaCity,
+    areaDistrict: _areaDistrict,
+    ...query
+  } = route.query;
+
+  router.replace({
+    query: selectedArea.value
+      ? {
+          ...query,
+          areaCity: selectedArea.value.city,
+          areaDistrict: selectedArea.value.district,
+        }
+      : query,
+  });
 }
 
 async function loadMarkets() {

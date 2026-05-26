@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import PlatformMarketsView from "./PlatformMarketsView.vue";
 import { marketsService } from "@/services/marketsService";
 import { useAuthStore } from "@/stores/auth";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 vi.mock("@/services/marketsService", () => ({
   marketsService: {
@@ -19,15 +19,18 @@ vi.mock("@/stores/auth", () => ({
 }));
 
 vi.mock("vue-router", () => ({
+  useRoute: vi.fn(),
   useRouter: vi.fn(),
 }));
 
 describe("PlatformMarketsView", () => {
   const selectRestaurant = vi.fn();
   const push = vi.fn();
+  const replace = vi.fn();
   const createObjectURL = vi.fn(() => "blob:market-catalog-gaps");
   const revokeObjectURL = vi.fn();
   const click = vi.fn();
+  const routeQuery = {} as Record<string, unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,8 +42,13 @@ describe("PlatformMarketsView", () => {
     vi.mocked(useAuthStore).mockReturnValue({
       selectRestaurant,
     } as unknown as ReturnType<typeof useAuthStore>);
+    Object.keys(routeQuery).forEach((key) => delete routeQuery[key]);
+    vi.mocked(useRoute).mockReturnValue({
+      query: routeQuery,
+    } as unknown as ReturnType<typeof useRoute>);
     vi.mocked(useRouter).mockReturnValue({
       push,
+      replace,
     } as unknown as ReturnType<typeof useRouter>);
     vi.mocked(marketsService.listPlatformReadiness).mockResolvedValue([
       {
@@ -338,6 +346,35 @@ describe("PlatformMarketsView", () => {
 
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(wrapper.text()).toContain("一中商圈");
+  });
+
+  it("initializes and syncs the selected area through the URL query", async () => {
+    routeQuery.areaCity = "台中市";
+    routeQuery.areaDistrict = "北區";
+
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain("逢甲夜市");
+    expect(wrapper.text()).toContain("一中商圈");
+    expect(
+      wrapper.get('[data-testid="selected-area-filter"]').text(),
+    ).toContain("台中市 · 北區");
+
+    await wrapper
+      .findAll('[data-testid="area-readiness-row"]')[0]
+      .trigger("click");
+
+    expect(replace).toHaveBeenLastCalledWith({
+      query: {
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
+      },
+    });
+
+    await wrapper.get('[data-testid="clear-area-filter"]').trigger("click");
+
+    expect(replace).toHaveBeenLastCalledWith({ query: {} });
   });
 
   it("downloads a CSV for currently visible catalog gaps", async () => {
