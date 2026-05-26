@@ -6,6 +6,7 @@ import { useMarketsStore } from "@/stores/markets";
 
 const routerPush = vi.hoisted(() => vi.fn());
 const routerReplace = vi.hoisted(() => vi.fn());
+const routerBack = vi.hoisted(() => vi.fn());
 const routeQuery = vi.hoisted(() => ({}) as Record<string, unknown>);
 
 vi.mock("vue-router", () => ({
@@ -17,6 +18,7 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({
     push: routerPush,
     replace: routerReplace,
+    back: routerBack,
   }),
 }));
 
@@ -185,6 +187,7 @@ describe("MarketDetailView", () => {
   beforeEach(() => {
     routerPush.mockReset();
     routerReplace.mockReset();
+    routerBack.mockReset();
     for (const key of Object.keys(routeQuery)) {
       delete routeQuery[key];
     }
@@ -290,5 +293,27 @@ describe("MarketDetailView", () => {
     expect(wrapper.get('[data-testid="vendor-list-has-more"]').text()).toBe(
       "true",
     );
+  });
+
+  it("returns to the market directory context when provided", async () => {
+    routeQuery.returnPath = "/markets?q=夜市&city=台中市";
+    routeQuery.returnLabel = "夜市與商圈";
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="market-detail-back"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith("/markets?q=夜市&city=台中市");
+    expect(routerBack).not.toHaveBeenCalled();
+  });
+
+  it("ignores unsafe external return paths", async () => {
+    routeQuery.returnPath = "https://example.com/phishing";
+    routeQuery.returnLabel = "外部網站";
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="market-detail-back"]').trigger("click");
+
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(routerBack).toHaveBeenCalledTimes(1);
   });
 });

@@ -236,7 +236,14 @@ function loadNearby() {
 }
 
 function openMarket(market: MarketListItem) {
-  router.push({ name: "MarketDetail", params: { slug: market.slug } });
+  router.push({
+    name: "MarketDetail",
+    params: { slug: market.slug },
+    query: {
+      returnPath: route.fullPath,
+      returnLabel: "夜市與商圈",
+    },
+  });
 }
 
 onMounted(() => {

@@ -4,9 +4,10 @@
       <div class="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
         <button
           type="button"
+          data-testid="market-detail-back"
           class="text-gray-500 hover:text-gray-700"
           aria-label="返回"
-          @click="$router.back()"
+          @click="goBack"
         >
           <svg
             class="h-6 w-6"
@@ -239,6 +240,13 @@ function marketSearchStateFromQuery(): MarketSearchState {
 }
 
 const marketSearchState = ref<MarketSearchState>(marketSearchStateFromQuery());
+const returnContext = computed(() => {
+  const path = firstQueryString(route.query.returnPath).trim();
+  if (!path || !path.startsWith("/") || path.startsWith("//")) return null;
+
+  const label = firstQueryString(route.query.returnLabel).trim() || "上一頁";
+  return { path, label };
+});
 
 const slug = () => String(route.params.slug);
 
@@ -339,6 +347,15 @@ function marketReturnQuery() {
     path: route.fullPath,
     label: store.selectedMarket?.name ?? "市場",
   });
+}
+
+function goBack() {
+  if (returnContext.value) {
+    router.push(returnContext.value.path);
+    return;
+  }
+
+  router.back();
 }
 
 async function openContactProfile(vendor: MarketVendor) {

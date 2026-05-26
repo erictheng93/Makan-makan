@@ -10,6 +10,7 @@ const routeQuery = vi.hoisted(() => ({}) as Record<string, unknown>);
 
 vi.mock("vue-router", () => ({
   useRoute: () => ({
+    fullPath: "/markets?q=夜市&city=台中市&district=西屯區",
     query: routeQuery,
   }),
   useRouter: () => ({
@@ -47,7 +48,19 @@ function mountView() {
   return mount(MarketsView, {
     global: {
       stubs: {
-        MarketCard: true,
+        MarketCard: {
+          props: ["market"],
+          emits: ["select"],
+          template: `
+            <button
+              type="button"
+              data-testid="market-card"
+              @click="$emit('select', market)"
+            >
+              {{ market.name }}
+            </button>
+          `,
+        },
       },
     },
   });
@@ -173,6 +186,26 @@ describe("MarketsView", () => {
         q: "雞排",
         city: "台中市",
         district: "北區",
+      },
+    });
+  });
+
+  it("opens a market detail with directory return context", async () => {
+    const store = marketsStore({
+      hasMarkets: true,
+      markets: [{ id: "m1", slug: "fengjia", name: "逢甲夜市" }],
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="market-card"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "MarketDetail",
+      params: { slug: "fengjia" },
+      query: {
+        returnPath: "/markets?q=夜市&city=台中市&district=西屯區",
+        returnLabel: "夜市與商圈",
       },
     });
   });
