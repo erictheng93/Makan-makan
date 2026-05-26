@@ -824,6 +824,55 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("filters open public service results before pagination", async () => {
+    const closedRestaurant = await seed.restaurant({
+      name: "Closed Service Open Scope Vendor",
+      city: "台中市",
+      district: "西屯區",
+      businessHours: closedAllWeek(),
+    });
+    const openRestaurant = await seed.restaurant({
+      name: "Open Service Open Scope Vendor",
+      city: "台中市",
+      district: "西屯區",
+      businessHours: openAllWeek(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(closedRestaurant.id),
+        name: "Open Scope Closed Service",
+        serviceType: "general",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(openRestaurant.id),
+        name: "Open Scope Fresh Service",
+        serviceType: "general",
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/services?q=Open+Scope&openNow=true&page=1&limit=1",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results).toHaveLength(1);
+    expect(data.results[0]).toMatchObject({
+      name: "Open Scope Fresh Service",
+      restaurantId: String(openRestaurant.id),
+      isOpen: true,
+    });
+  });
+
   it("browses public service items by service type without a location scope", async () => {
     const deliveryRestaurant = await seed.restaurant({
       name: "Global Delivery Vendor",

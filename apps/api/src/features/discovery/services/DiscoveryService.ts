@@ -535,6 +535,11 @@ export class DiscoveryService {
   ): Promise<SearchResponse<ServiceSearchResult>> {
     const { q, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
+    const requiresPostFilterPagination = Boolean(filters.openNow);
+    const queryLimit = requiresPostFilterPagination
+      ? POST_FILTER_SCAN_LIMIT
+      : limit;
+    const queryOffset = requiresPostFilterPagination ? 0 : offset;
     const conditions: SQL[] = [
       eq(restaurantServiceItems.isActive, true),
       eq(restaurantServiceItems.isPublic, true),
@@ -608,19 +613,21 @@ export class DiscoveryService {
         )
         .where(whereClause)
         .orderBy(...this.getServiceSearchOrderBy(q))
-        .limit(limit)
-        .offset(offset),
-      this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(restaurantServiceItems)
-        .innerJoin(
-          restaurants,
-          eq(restaurantServiceItems.restaurantId, restaurants.id),
-        )
-        .where(whereClause),
+        .limit(queryLimit)
+        .offset(queryOffset),
+      requiresPostFilterPagination
+        ? Promise.resolve([])
+        : this.db
+            .select({ count: sql<number>`count(*)` })
+            .from(restaurantServiceItems)
+            .innerJoin(
+              restaurants,
+              eq(restaurantServiceItems.restaurantId, restaurants.id),
+            )
+            .where(whereClause),
     ]);
 
-    const results: ServiceSearchResult[] = rows.map((row) => ({
+    let results: ServiceSearchResult[] = rows.map((row) => ({
       serviceItemId: row.serviceItemId,
       name: row.name,
       description: row.description,
@@ -638,9 +645,19 @@ export class DiscoveryService {
       isOpen: isOpenNow(row.businessHours ?? null),
     }));
 
+    if (filters.openNow) {
+      results = results.filter((result) => result.isOpen);
+    }
+
     const rawTotal = Number(countRows[0]?.count);
-    const total =
-      Number.isFinite(rawTotal) && rawTotal >= 0 ? rawTotal : results.length;
+    const total = requiresPostFilterPagination
+      ? results.length
+      : Number.isFinite(rawTotal) && rawTotal >= 0
+        ? rawTotal
+        : results.length;
+    if (requiresPostFilterPagination) {
+      results = results.slice(offset, offset + limit);
+    }
 
     return { results, total, page, limit };
   }
