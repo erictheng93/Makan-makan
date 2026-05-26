@@ -85,4 +85,24 @@ describe("VendorListInMarket", () => {
 
     expect(wrapper.emitted("update:deliveryOnly")).toEqual([[true]]);
   });
+
+  it("shows stall numbers and exposes a direct menu and service entry point", async () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [vendor()],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    expect(wrapper.text()).toContain("攤位 A-01");
+
+    await wrapper
+      .get('[data-testid="open-vendor-menu-restaurant-1"]')
+      .trigger("click");
+
+    expect(wrapper.emitted("selectVendor")?.[0]).toEqual([vendor()]);
+  });
 });

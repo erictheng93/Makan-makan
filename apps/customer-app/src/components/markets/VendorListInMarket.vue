@@ -66,10 +66,34 @@
           @select="$emit('selectVendor', vendor)"
           @takeaway="$emit('takeaway', vendor)"
         />
-        <div class="border-t border-gray-100 px-4 py-3">
+        <div
+          class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm"
+        >
+          <div class="min-w-0 text-gray-500">
+            <span v-if="vendor.stallNumber">
+              攤位 {{ vendor.stallNumber }}
+            </span>
+            <span v-else>未標示攤位</span>
+          </div>
+          <span
+            v-if="vendor.isPrimary"
+            class="shrink-0 rounded bg-ios-blue/10 px-2 py-0.5 text-xs font-medium text-ios-blue"
+          >
+            主要店鋪
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 border-t border-gray-100 px-4 py-3">
           <button
             type="button"
-            class="w-full rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
+            class="rounded-lg bg-ios-blue px-3 py-2 text-sm font-medium text-white"
+            :data-testid="`open-vendor-menu-${vendor.restaurantId}`"
+            @click="$emit('selectVendor', vendor)"
+          >
+            查看菜單與服務
+          </button>
+          <button
+            type="button"
+            class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
             @click="$emit('contactVendor', vendor)"
           >
             聯絡店家

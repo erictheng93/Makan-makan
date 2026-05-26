@@ -110,6 +110,25 @@ function mountView() {
             <section data-testid="vendor-list">
               <div data-testid="vendor-list-has-more">{{ hasMore }}</div>
               <button
+                data-testid="open-market-vendor"
+                @click="$emit('selectVendor', {
+                  restaurantId: 'restaurant-1',
+                  name: '雞排攤',
+                  type: 'market_stall',
+                  district: '西屯區',
+                  priceRange: null,
+                  rating: null,
+                  isOpen: true,
+                  supportsTakeaway: true,
+                  supportsDelivery: false,
+                  imageUrl: null,
+                  stallNumber: 'A-01',
+                  isPrimary: true
+                })"
+              >
+                open vendor
+              </button>
+              <button
                 data-testid="vendor-list-load-more"
                 @click="$emit('loadMore')"
               >
@@ -331,6 +350,21 @@ describe("MarketDetailView", () => {
       query: {
         itemId: "42",
         categoryName: "小吃",
+        returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
+  it("opens a market vendor in the shop menu with market return context", async () => {
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="open-market-vendor"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "restaurant-1" },
+      query: {
         returnPath: "/markets/fengjia",
         returnLabel: "逢甲夜市",
       },
