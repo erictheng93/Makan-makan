@@ -264,6 +264,125 @@ describe("MarketProductSearch", () => {
     });
   });
 
+  it("summarizes active market search filters", async () => {
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
+      serviceTypes: [{ serviceType: "delivery", count: 2 }],
+    } as never);
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [dish({ dishName: "雞排便當" })],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        categories: ["小吃", "飲品"],
+        autoLoad: false,
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("外送 2");
+    });
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("雞排");
+    await wrapper
+      .get('[data-testid="market-product-category-select"]')
+      .setValue("小吃");
+    await wrapper
+      .get('[data-testid="market-service-type-select"]')
+      .setValue("delivery");
+    await wrapper.get('input[type="checkbox"]').setValue(true);
+    await wrapper
+      .get('[data-testid="market-product-sort-select"]')
+      .setValue("popular");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    const summary = wrapper.get(
+      '[data-testid="market-product-search-summary"]',
+    );
+
+    expect(summary.text()).toContain("關鍵字：雞排");
+    expect(summary.text()).toContain("分類：小吃");
+    expect(summary.text()).toContain("服務：外送");
+    expect(summary.text()).toContain("只看可外帶");
+    expect(summary.text()).toContain("排序：熱門優先");
+  });
+
+  it("clears filters from an empty market search", async () => {
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
+      serviceTypes: [{ serviceType: "delivery", count: 1 }],
+    } as never);
+    vi.mocked(discoveryApi.searchDishes)
+      .mockResolvedValueOnce({
+        results: [],
+        total: 0,
+      } as never)
+      .mockResolvedValueOnce({
+        results: [dish({ dishName: "市場雞排" })],
+        total: 1,
+      } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValue({
+      results: [],
+      total: 0,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        categories: ["小吃", "飲品"],
+        autoLoad: false,
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("外送 1");
+    });
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("不存在");
+    await wrapper
+      .get('[data-testid="market-product-category-select"]')
+      .setValue("小吃");
+    await wrapper
+      .get('[data-testid="market-service-type-select"]')
+      .setValue("delivery");
+    await wrapper.get('input[type="checkbox"]').setValue(true);
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(wrapper.text()).toContain("目前沒有符合條件的商品或服務。");
+
+    await wrapper
+      .get('[data-testid="market-product-clear-filters"]')
+      .trigger("click");
+
+    expect(discoveryApi.searchDishes).toHaveBeenLastCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      categoryName: undefined,
+      sortBy: "price_asc",
+      takeaway: undefined,
+      page: 1,
+      limit: 20,
+    });
+    expect(discoveryApi.searchServices).toHaveBeenLastCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      serviceType: undefined,
+      page: 1,
+      limit: 20,
+    });
+    expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
+      q: "",
+      categoryName: "",
+      serviceType: "",
+      takeaway: false,
+      sortBy: "price_asc",
+    });
+    expect(wrapper.text()).toContain("市場雞排");
+  });
+
   it("loads service type facets for the selected market", async () => {
     vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
       serviceTypes: [

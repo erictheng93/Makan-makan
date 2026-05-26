@@ -73,6 +73,38 @@
       </select>
     </form>
 
+    <section
+      v-if="hasSearched || hasActiveFilters"
+      data-testid="market-product-search-summary"
+      class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-xs font-medium text-gray-500">目前條件</p>
+        <button
+          v-if="hasActiveFilters"
+          type="button"
+          data-testid="market-product-clear-filters"
+          class="h-8 shrink-0 rounded-lg border border-gray-300 px-3 text-xs font-medium text-gray-700"
+          @click="clearFilters"
+        >
+          清除條件
+        </button>
+      </div>
+      <div
+        v-if="activeFilterLabels.length > 0"
+        class="mt-2 flex flex-wrap gap-1.5"
+      >
+        <span
+          v-for="label in activeFilterLabels"
+          :key="label"
+          class="rounded-full bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-gray-200"
+        >
+          {{ label }}
+        </span>
+      </div>
+      <p v-else class="mt-1 text-sm text-gray-600">瀏覽此市場所有商品與服務</p>
+    </section>
+
     <div
       v-if="loading && combinedResultCount === 0"
       class="py-8 text-center text-sm text-gray-500"
@@ -87,9 +119,12 @@
     </div>
     <div
       v-else-if="hasSearched && combinedResultCount === 0"
-      class="py-8 text-center text-sm text-gray-500"
+      class="space-y-3 py-8 text-center text-sm text-gray-500"
     >
-      目前沒有符合條件的商品或服務。
+      <p>目前沒有符合條件的商品或服務。</p>
+      <p v-if="hasActiveFilters" class="text-xs text-gray-400">
+        可清除條件或改用更寬的關鍵字。
+      </p>
     </div>
     <div v-else-if="combinedResultCount > 0" class="space-y-2">
       <p class="text-sm text-gray-500">
@@ -269,6 +304,11 @@ const serviceTypeDefinitions: Array<{
 const serviceTypeLabels = new Map(
   serviceTypeDefinitions.map((option) => [option.value, option.label]),
 );
+const sortLabels: Record<"price_asc" | "price_desc" | "popular", string> = {
+  price_asc: "價格低到高",
+  price_desc: "價格高到低",
+  popular: "熱門優先",
+};
 
 const combinedResultCount = computed(
   () => results.value.length + serviceResults.value.length,
@@ -295,6 +335,26 @@ const canSearch = computed(
     query.value.trim().length > 0 ||
     selectedCategory.value.length > 0,
 );
+const activeFilterLabels = computed(() => {
+  const labels: string[] = [];
+  const trimmed = query.value.trim();
+
+  if (trimmed.length > 0) labels.push(`關鍵字：${trimmed}`);
+  if (selectedCategory.value.length > 0) {
+    labels.push(`分類：${selectedCategory.value}`);
+  }
+  const serviceType = selectedServiceType.value;
+  if (serviceType !== "") {
+    labels.push(`服務：${serviceTypeLabels.get(serviceType) ?? serviceType}`);
+  }
+  if (takeawayOnly.value) labels.push("只看可外帶");
+  if (sortBy.value !== "price_asc") {
+    labels.push(`排序：${sortLabels[sortBy.value]}`);
+  }
+
+  return labels;
+});
+const hasActiveFilters = computed(() => activeFilterLabels.value.length > 0);
 
 async function submitSearch() {
   if (!canSearch.value) return;
@@ -372,6 +432,15 @@ function searchIfReady() {
   if (hasSearched.value && canSearch.value) {
     submitSearch();
   }
+}
+
+function clearFilters() {
+  query.value = "";
+  takeawayOnly.value = false;
+  selectedCategory.value = "";
+  selectedServiceType.value = "";
+  sortBy.value = "price_asc";
+  submitSearch();
 }
 
 function emitSearchState() {
