@@ -198,6 +198,19 @@ export class SearchIndexSyncService {
     await this.bumpSearchVersion();
   }
 
+  async onCategoryChanged(categoryId: number): Promise<void> {
+    const items = await this.db
+      .select({ id: menuItems.id })
+      .from(menuItems)
+      .where(eq(menuItems.categoryId, categoryId));
+
+    await Promise.all(items.map((item) => this.onMenuItemChanged(item.id)));
+
+    if (items.length === 0) {
+      await this.bumpSearchVersion();
+    }
+  }
+
   async onMarketMembershipChanged(restaurantId: string): Promise<void> {
     await this.onRestaurantChanged(restaurantId);
   }

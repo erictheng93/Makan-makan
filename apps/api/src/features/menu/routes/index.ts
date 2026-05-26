@@ -38,6 +38,11 @@ async function syncMenuItems(env: Env, menuItemIds: number[]): Promise<void> {
   await Promise.all(uniqueIds.map((id) => sync.onMenuItemChanged(id)));
 }
 
+async function syncCategoryItems(env: Env, categoryId: number): Promise<void> {
+  const sync = new SearchIndexSyncService(env.DB, env.CACHE_KV);
+  await sync.onCategoryChanged(categoryId);
+}
+
 // Public Menu Routes (no authentication required)
 
 // GET /:restaurantId - Get complete menu (public API, optionally includes unavailable items for admins)
@@ -427,6 +432,7 @@ app.put(
     }
 
     const category = await service.updateCategory(id, data);
+    await syncCategoryItems(c.env, id);
 
     return c.json(
       createSuccessResponse(category, "Category updated successfully"),
@@ -487,6 +493,7 @@ app.delete(
     if (!deleted) {
       throw notFound("Category not found or cannot be deleted");
     }
+    await syncCategoryItems(c.env, id);
 
     return c.json(
       createSuccessResponse(null, "Category deleted successfully"),

@@ -2399,6 +2399,101 @@ describe("Discovery API — real integration", () => {
     expect(data.total).toBe(1);
   });
 
+  it("syncs discovery index after categories are hidden through menu API", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "category-hide-sync-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Category Hide Sync Vendor",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+
+    const categoryRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/categories`, {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({
+          name: "同步分類",
+        }),
+      }),
+    );
+    expect(categoryRes.status).toBe(201);
+    const categoryJson: any = await categoryRes.json();
+
+    const createRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({
+          categoryId: categoryJson.data.id,
+          name: "分類同步雞排",
+          description: "分類隱藏後應該立即從搜尋移除",
+          price: 88,
+          tags: ["分類同步"],
+          keywords: "分類同步 雞排",
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+
+    const beforeRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "分類同步",
+        )}&marketId=${market.id}`,
+      ),
+    );
+    expect(beforeRes.status).toBe(200);
+    const beforeData = ((await beforeRes.json()) as ApiTestResponse).data;
+    expect(beforeData.results.map((r: any) => r.menuItemId)).toEqual([
+      createJson.data.id,
+    ]);
+
+    const updateCategoryRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/menu/categories/${categoryJson.data.id}`,
+        {
+          method: "PUT",
+          headers: withCsrf({
+            authorization: `Bearer ${adminToken}`,
+            "content-type": "application/json",
+          }),
+          body: JSON.stringify({
+            isVisible: false,
+          }),
+        },
+      ),
+    );
+    expect(updateCategoryRes.status).toBe(200);
+
+    const afterRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "分類同步",
+        )}&marketId=${market.id}`,
+      ),
+    );
+    expect(afterRes.status).toBe(200);
+    const afterData = ((await afterRes.json()) as ApiTestResponse).data;
+    expect(afterData.results).toEqual([]);
+    expect(afterData.total).toBe(0);
+  });
+
   it("excludes inactive and deleted markets from full reindex market membership fields", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Discovery Reindex Admin",
