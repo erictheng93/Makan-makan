@@ -9,6 +9,7 @@ import { relations } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { categories } from "./categories";
 import { menuItems } from "./menu-items";
+import { restaurantServiceItems } from "./restaurant-service-items";
 import { tables } from "./tables";
 import { orders } from "./orders";
 import { users } from "./users";
@@ -132,6 +133,7 @@ export const restaurants = sqliteTable(
 export const restaurantRelations = relations(restaurants, ({ many }) => ({
   categories: many(categories),
   menuItems: many(menuItems),
+  serviceItems: many(restaurantServiceItems),
   tables: many(tables),
   orders: many(orders),
   users: many(users), // 餐廳員工

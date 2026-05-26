@@ -4,6 +4,7 @@ export * from "./api";
 export * from "./user";
 export * from "./restaurant";
 export * from "./menu";
+export * from "./service";
 export * from "./order";
 export * from "./table";
 export * from "./seat";
