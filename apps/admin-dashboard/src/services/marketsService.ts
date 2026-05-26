@@ -143,18 +143,45 @@ export interface ImportMarketVendorInput {
 }
 
 export interface ImportMarketVendorResult {
-  status: "attached" | "created" | "skipped";
-  reason?: "already_attached" | "market_not_found" | "restaurant_not_found";
-  restaurantId: string;
+  status: "attached" | "created" | "skipped" | "would_attach" | "would_create";
+  reason?:
+    | "already_attached"
+    | "duplicate_in_payload"
+    | "market_not_found"
+    | "restaurant_not_found";
+  restaurantId?: string;
   restaurantName?: string | null;
   membershipId?: number;
   stallNumber?: string | null;
 }
 
+export interface ImportMarketVendorIssue {
+  index: number;
+  code:
+    | "already_attached"
+    | "city_defaulted"
+    | "coordinates_missing"
+    | "duplicate_in_payload"
+    | "phone_defaulted"
+    | "restaurant_not_found";
+  severity: "blocking" | "warning";
+  message: string;
+  field?: "city" | "coordinates" | "phone";
+  restaurantId?: string;
+  restaurantName?: string;
+}
+
 export interface ImportMarketVendorsResult {
-  createdRestaurants: number;
-  attachedVendors: number;
+  dryRun?: boolean;
+  createdRestaurants?: number;
+  attachedVendors?: number;
   skipped: number;
+  wouldCreateRestaurants?: number;
+  wouldAttachVendors?: number;
+  issueCount?: number;
+  blockingIssueCount?: number;
+  warningIssueCount?: number;
+  issues?: ImportMarketVendorIssue[];
   results: ImportMarketVendorResult[];
 }
 
@@ -304,10 +331,11 @@ export const marketsService = {
   async importVendors(
     marketId: string,
     vendors: ImportMarketVendorInput[],
+    options: { dryRun?: boolean } = {},
   ): Promise<ImportMarketVendorsResult> {
     const response = await api.post<ImportMarketVendorsResult>(
       `/admin/markets/${marketId}/vendor-imports`,
-      { vendors },
+      { vendors, ...(options.dryRun ? { dryRun: true } : {}) },
     );
     return unwrapApiPayload<ImportMarketVendorsResult>(response.data);
   },

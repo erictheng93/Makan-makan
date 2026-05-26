@@ -594,6 +594,73 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("已建立 1 間店鋪");
   });
 
+  it("dry-runs vendor imports before committing them", async () => {
+    vi.mocked(marketsService.importVendors).mockResolvedValue({
+      dryRun: true,
+      wouldCreateRestaurants: 1,
+      wouldAttachVendors: 1,
+      skipped: 1,
+      issueCount: 1,
+      blockingIssueCount: 1,
+      warningIssueCount: 0,
+      issues: [
+        {
+          index: 0,
+          code: "already_attached",
+          severity: "blocking",
+          message: "Restaurant already belongs to this market",
+          restaurantId: "restaurant-1",
+          restaurantName: "既有雞排",
+        },
+      ],
+      results: [],
+    });
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "編輯");
+    expect(editButton).toBeDefined();
+    await editButton!.trigger("click");
+
+    await wrapper
+      .get('[data-testid="vendor-import-json"]')
+      .setValue(
+        [
+          "restaurantId,name,address,district,stallNumber,isPrimary",
+          '"restaurant-1",,,,"A-01",true',
+          ',"CSV 匯入店鋪","台中市西屯區文華路 100 號","西屯區","C-01",true',
+        ].join("\n"),
+      );
+    await wrapper.get('[data-testid="vendor-import-dry-run"]').trigger("click");
+    await flushPromises();
+
+    expect(marketsService.importVendors).toHaveBeenCalledWith(
+      "market-1",
+      [
+        {
+          restaurantId: "restaurant-1",
+          stallNumber: "A-01",
+          isPrimary: true,
+        },
+        {
+          name: "CSV 匯入店鋪",
+          address: "台中市西屯區文華路 100 號",
+          district: "西屯區",
+          stallNumber: "C-01",
+          isPrimary: true,
+        },
+      ],
+      { dryRun: true },
+    );
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(1);
+    expect(wrapper.text()).toContain("預檢結果");
+    expect(wrapper.text()).toContain("會建立 1 間");
+    expect(wrapper.text()).toContain("阻擋 1");
+    expect(wrapper.text()).toContain("既有雞排");
+  });
+
   it("imports markets from CSV and refreshes platform readiness", async () => {
     vi.mocked(marketsService.createMarket).mockResolvedValue({
       id: "market-3",

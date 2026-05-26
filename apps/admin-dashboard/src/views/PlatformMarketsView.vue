@@ -744,12 +744,58 @@
           v-if="vendorImportResult"
           class="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800"
         >
-          已建立 {{ vendorImportResult.createdRestaurants }} 間店鋪，加入
-          {{ vendorImportResult.attachedVendors }} 間，略過
+          已建立 {{ vendorImportResult.createdRestaurants ?? 0 }} 間店鋪，加入
+          {{ vendorImportResult.attachedVendors ?? 0 }} 間，略過
           {{ vendorImportResult.skipped }} 筆。
         </div>
+        <div
+          v-if="vendorImportDryRunResult"
+          data-testid="vendor-import-dry-run-result"
+          class="mt-3 space-y-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        >
+          <p class="font-medium">預檢結果</p>
+          <p>
+            會建立
+            {{
+              vendorImportDryRunResult.wouldCreateRestaurants ?? 0
+            }}
+            間，會加入
+            {{ vendorImportDryRunResult.wouldAttachVendors ?? 0 }} 間，略過
+            {{ vendorImportDryRunResult.skipped }} 筆；阻擋
+            {{ vendorImportDryRunResult.blockingIssueCount ?? 0 }}，提醒
+            {{ vendorImportDryRunResult.warningIssueCount ?? 0 }}。
+          </p>
+          <ul
+            v-if="vendorImportDryRunResult.issues?.length"
+            class="list-disc space-y-1 pl-5 text-xs"
+          >
+            <li
+              v-for="issue in vendorImportDryRunResult.issues"
+              :key="`${issue.index}-${issue.code}-${issue.restaurantId ?? issue.restaurantName ?? ''}`"
+            >
+              第 {{ issue.index + 1 }} 筆：
+              {{ issue.restaurantName || issue.restaurantId || "新店鋪" }} -
+              {{ issue.message }}
+            </li>
+          </ul>
+        </div>
 
-        <div class="mt-4 flex justify-end">
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            data-testid="vendor-import-dry-run"
+            class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+            :disabled="
+              isDryRunningVendors ||
+              isImportingVendors ||
+              !vendorImportText.trim() ||
+              vendorImportPreview.errors.length > 0 ||
+              vendorImportPreview.vendors.length === 0
+            "
+            @click="dryRunVendorsForMarket"
+          >
+            {{ isDryRunningVendors ? "預檢中..." : "預檢匯入" }}
+          </button>
           <button
             type="button"
             data-testid="vendor-import-submit"
@@ -1098,10 +1144,12 @@ const marketImportText = ref("");
 const marketImportError = ref("");
 const marketImportResult = ref<{ created: number } | null>(null);
 const isImportingVendors = ref(false);
+const isDryRunningVendors = ref(false);
 const vendorImportFormat = ref<MarketVendorImportFormat>("csv");
 const vendorImportText = ref("");
 const vendorImportError = ref("");
 const vendorImportResult = ref<ImportMarketVendorsResult | null>(null);
+const vendorImportDryRunResult = ref<ImportMarketVendorsResult | null>(null);
 const vendorCandidateQuery = ref("");
 const vendorCandidates = ref<MarketVendorCandidate[]>([]);
 const vendorCandidateStalls = reactive<Record<string, string>>({});
@@ -1449,6 +1497,7 @@ function startEditing(market: MarketListItem) {
   formError.value = "";
   vendorImportError.value = "";
   vendorImportResult.value = null;
+  vendorImportDryRunResult.value = null;
   vendorImportText.value = "";
   resetVendorCandidateState();
   resetAttachedVendorState();
@@ -1461,6 +1510,7 @@ function cancelEditing() {
   formError.value = "";
   vendorImportError.value = "";
   vendorImportResult.value = null;
+  vendorImportDryRunResult.value = null;
   vendorImportText.value = "";
   resetVendorCandidateState();
   resetAttachedVendorState();
@@ -1525,6 +1575,7 @@ function setVendorImportFormat(format: MarketVendorImportFormat) {
   vendorImportFormat.value = format;
   vendorImportError.value = "";
   vendorImportResult.value = null;
+  vendorImportDryRunResult.value = null;
   vendorImportText.value = "";
 }
 
@@ -1537,11 +1588,42 @@ function parsedVendorsForImport(): ImportMarketVendorInput[] {
   return parsed.vendors;
 }
 
+async function dryRunVendorsForMarket() {
+  if (!editingMarket.value) return;
+
+  vendorImportError.value = "";
+  vendorImportResult.value = null;
+
+  let vendors: ImportMarketVendorInput[];
+  try {
+    vendors = parsedVendorsForImport();
+  } catch (error) {
+    vendorImportError.value =
+      error instanceof Error ? error.message : "店鋪資料格式不正確。";
+    return;
+  }
+
+  isDryRunningVendors.value = true;
+  try {
+    vendorImportDryRunResult.value = await marketsService.importVendors(
+      editingMarket.value.id,
+      vendors,
+      { dryRun: true },
+    );
+  } catch (error) {
+    console.error("Failed to dry-run market vendors:", error);
+    vendorImportError.value = "預檢失敗，請確認店鋪欄位與權限。";
+  } finally {
+    isDryRunningVendors.value = false;
+  }
+}
+
 async function importVendorsForMarket() {
   if (!editingMarket.value) return;
 
   vendorImportError.value = "";
   vendorImportResult.value = null;
+  vendorImportDryRunResult.value = null;
 
   let vendors: ImportMarketVendorInput[];
   try {
