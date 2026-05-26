@@ -177,6 +177,89 @@
             </svg>
           </div>
 
+          <!-- 店家服務 -->
+          <section
+            v-if="serviceItems.length > 0"
+            data-testid="shop-service-items"
+            class="space-y-3"
+          >
+            <div>
+              <h2 class="text-xl font-semibold text-ios-text">店家服務</h2>
+              <p class="mt-0.5 text-sm text-ios-secondary">
+                查看此店鋪提供的預約、外送或其他現場服務
+              </p>
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <article
+                v-for="service in serviceItems"
+                :key="service.id"
+                class="rounded-xl border border-gray-100 bg-white p-4 shadow-[0_1px_4px_rgb(0,0,0,0.03)]"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3 class="font-medium text-ios-text">
+                        {{ service.name }}
+                      </h3>
+                      <span
+                        class="rounded bg-ios-blue/10 px-2 py-0.5 text-xs font-medium text-ios-blue"
+                      >
+                        {{ serviceTypeLabel(service.serviceType) }}
+                      </span>
+                    </div>
+                    <p
+                      v-if="service.description"
+                      class="mt-1 text-sm text-ios-secondary"
+                    >
+                      {{ service.description }}
+                    </p>
+                  </div>
+                  <span
+                    v-if="service.requiresBooking"
+                    class="shrink-0 rounded bg-ios-orange/15 px-2 py-0.5 text-xs font-medium text-ios-orange"
+                  >
+                    需預約
+                  </span>
+                </div>
+                <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                  <span
+                    v-if="servicePriceLabel(service)"
+                    class="font-semibold text-ios-text"
+                  >
+                    {{ servicePriceLabel(service) }}
+                  </span>
+                  <span
+                    v-if="service.durationMinutes"
+                    class="text-ios-secondary"
+                  >
+                    約 {{ service.durationMinutes }} 分鐘
+                  </span>
+                </div>
+                <div
+                  v-if="service.tags?.length"
+                  class="mt-3 flex flex-wrap gap-1"
+                >
+                  <span
+                    v-for="tag in service.tags.slice(0, 4)"
+                    :key="tag"
+                    class="rounded bg-gray-50 px-2 py-0.5 text-xs text-gray-500"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+                <a
+                  v-if="service.bookingUrl"
+                  :href="service.bookingUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-3 inline-flex text-sm font-medium text-ios-blue"
+                >
+                  開啟預約
+                </a>
+              </article>
+            </div>
+          </section>
+
           <!-- 推薦菜品 -->
           <section v-if="featuredItems.length > 0" class="mb-8">
             <h2 class="text-xl font-semibold text-ios-text mb-4">
@@ -364,9 +447,11 @@ import ShopCartModal from "@/components/ShopCartModal.vue";
 import DesktopCartPanel from "@/components/DesktopCartPanel.vue";
 import { useIsDesktop } from "@/composables/useBreakpoint";
 import { menuApi } from "@/services/menuApi";
+import { restaurantContactApi } from "@/services/restaurantContactApi";
 import { useCurrency } from "@/composables/useCurrency";
 import type {
   MenuItem,
+  RestaurantServiceItem,
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
 import { applyShopMenuSeoMeta } from "@/utils/seoMeta";
@@ -431,6 +516,12 @@ const {
   refetchOnWindowFocus: true,
 });
 
+const { data: serviceItemsData } = useQuery({
+  queryKey: ["restaurant-service-items", props.restaurantId],
+  queryFn: () => restaurantContactApi.listServiceItems(props.restaurantId),
+  staleTime: 5 * 60 * 1000,
+});
+
 // Computed
 const isLoading = computed(
   () => isLoadingRestaurant.value || isLoadingMenu.value,
@@ -439,6 +530,7 @@ const error = computed(() => menuError.value?.message || null);
 
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
+const serviceItems = computed(() => serviceItemsData.value || []);
 
 const featuredItems = computed(() =>
   menuItems.value.filter((item: any) => item.isFeatured && item.isAvailable),
@@ -478,6 +570,27 @@ const getItemsByCategory = (categoryId: number) => {
   }
 
   return items.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+};
+
+const serviceTypeLabel = (type: RestaurantServiceItem["serviceType"]) => {
+  const labels: Record<RestaurantServiceItem["serviceType"], string> = {
+    general: "一般服務",
+    booking: "預約",
+    pickup: "自取",
+    delivery: "外送",
+    consultation: "諮詢",
+    rental: "租借",
+    activity: "活動",
+  };
+  return labels[type] ?? "服務";
+};
+
+const servicePriceLabel = (service: RestaurantServiceItem) => {
+  if (service.priceLabel) return service.priceLabel;
+  if (typeof service.priceCents === "number") {
+    return formatPrice(service.priceCents / 100);
+  }
+  return "";
 };
 
 const scrollToCategory = (categoryId: number) => {
