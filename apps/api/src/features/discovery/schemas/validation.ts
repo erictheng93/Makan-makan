@@ -7,6 +7,7 @@ export const dishSearchQuerySchema = z
     city: z.string().optional(),
     categoryName: z.string().optional(),
     marketId: z.string().optional(),
+    marketSlug: z.string().min(1).max(120).optional(),
     lat: z.coerce.number().min(-90).max(90).optional(),
     lng: z.coerce.number().min(-180).max(180).optional(),
     radiusKm: z.coerce.number().min(0.1).max(10).optional(),
@@ -23,6 +24,7 @@ export const dishSearchQuerySchema = z
     const hasSearchScope =
       query.q ||
       query.marketId ||
+      query.marketSlug ||
       query.categoryName ||
       query.city ||
       query.district ||
@@ -41,6 +43,7 @@ export const dishCategoryQuerySchema = z.object({
   district: z.string().optional(),
   city: z.string().optional(),
   marketId: z.string().optional(),
+  marketSlug: z.string().min(1).max(120).optional(),
   takeaway: z.coerce.boolean().optional(),
   delivery: z.coerce.boolean().optional(),
 });
@@ -49,6 +52,7 @@ export const serviceTypeFacetQuerySchema = z.object({
   district: z.string().optional(),
   city: z.string().optional(),
   marketId: z.string().optional(),
+  marketSlug: z.string().min(1).max(120).optional(),
   openNow: z.coerce.boolean().optional(),
   takeaway: z.coerce.boolean().optional(),
   delivery: z.coerce.boolean().optional(),
@@ -59,6 +63,7 @@ export const restaurantBrowseQuerySchema = z.object({
   district: z.string().optional(),
   city: z.string().optional(),
   marketId: z.string().optional(),
+  marketSlug: z.string().min(1).max(120).optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
   radiusKm: z.coerce.number().min(0.1).max(10).optional(),
@@ -78,6 +83,7 @@ export const serviceSearchQuerySchema = z
     district: z.string().optional(),
     city: z.string().optional(),
     marketId: z.string().optional(),
+    marketSlug: z.string().min(1).max(120).optional(),
     serviceType: z
       .enum([
         "general",
@@ -100,6 +106,7 @@ export const serviceSearchQuerySchema = z
     const hasSearchScope =
       query.q ||
       query.marketId ||
+      query.marketSlug ||
       query.city ||
       query.district ||
       query.serviceType;

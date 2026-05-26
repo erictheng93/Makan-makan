@@ -242,13 +242,14 @@ describe("Markets API — real integration", () => {
       publicServiceCount: 1,
     });
     expect(detailJson.data.explorationSummary).toEqual({
-      dishSearchUrl: `/api/v1/discovery/search?marketId=${market.id}`,
-      serviceSearchUrl: `/api/v1/discovery/services?marketId=${market.id}`,
+      dishSearchUrl: "/api/v1/discovery/search?marketSlug=fengjia-night-market",
+      serviceSearchUrl:
+        "/api/v1/discovery/services?marketSlug=fengjia-night-market",
       dishCategories: [
         {
           categoryName: "炸物",
           count: 1,
-          searchUrl: `/api/v1/discovery/search?marketId=${market.id}&categoryName=${encodeURIComponent(
+          searchUrl: `/api/v1/discovery/search?marketSlug=fengjia-night-market&categoryName=${encodeURIComponent(
             "炸物",
           )}`,
         },
@@ -257,7 +258,8 @@ describe("Markets API — real integration", () => {
         {
           serviceType: "pickup",
           count: 1,
-          searchUrl: `/api/v1/discovery/services?marketId=${market.id}&serviceType=pickup`,
+          searchUrl:
+            "/api/v1/discovery/services?marketSlug=fengjia-night-market&serviceType=pickup",
         },
       ],
     });
@@ -1286,7 +1288,7 @@ describe("Markets API — real integration", () => {
 
     const marketRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/discovery/search?q=Market+Bao&marketId=${market.id}`,
+        "https://test/api/v1/discovery/search?q=Market+Bao&marketSlug=near-market",
       ),
     );
     expect(marketRes.status).toBe(200);

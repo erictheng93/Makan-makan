@@ -58,6 +58,7 @@ export class DiscoveryService {
   async searchDishes(
     filters: SearchFilters,
   ): Promise<SearchResponse<DishSearchResult>> {
+    filters = await this.resolveMarketSlug(filters);
     const { q, page = 1, limit = 20 } = filters;
 
     // 1. Check KV cache
@@ -324,6 +325,7 @@ export class DiscoveryService {
   async listDishCategories(
     filters: SearchFilters,
   ): Promise<{ categories: string[] }> {
+    filters = await this.resolveMarketSlug(filters);
     const searchVersion = await this.getSearchVersion();
     const cacheKey = this.buildCacheKey(
       "search:categories",
@@ -383,6 +385,7 @@ export class DiscoveryService {
   async browseRestaurants(
     filters: SearchFilters,
   ): Promise<SearchResponse<RestaurantListItem>> {
+    filters = await this.resolveMarketSlug(filters);
     const { page = 1, limit = 20 } = filters;
     const geoFilter = this.getGeoFilter(filters);
 
@@ -565,6 +568,7 @@ export class DiscoveryService {
   async searchServices(
     filters: SearchFilters,
   ): Promise<SearchResponse<ServiceSearchResult>> {
+    filters = await this.resolveMarketSlug(filters);
     const { q, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
     const requiresPostFilterPagination = Boolean(filters.openNow);
@@ -713,6 +717,7 @@ export class DiscoveryService {
       count: number;
     }>;
   }> {
+    filters = await this.resolveMarketSlug(filters);
     const conditions: SQL[] = [
       eq(restaurantServiceItems.isActive, true),
       eq(restaurantServiceItems.isPublic, true),
@@ -1229,6 +1234,27 @@ export class DiscoveryService {
 
   private restaurantServiceItemsUrl(restaurantId: string): string {
     return `/api/v1/restaurants/${restaurantId}/service-items`;
+  }
+
+  private async resolveMarketSlug(filters: SearchFilters) {
+    if (!filters.marketSlug || filters.marketId) return filters;
+
+    const [market] = await this.db
+      .select({ id: markets.id })
+      .from(markets)
+      .where(
+        and(
+          eq(markets.slug, filters.marketSlug),
+          eq(markets.isActive, true),
+          isNull(markets.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return {
+      ...filters,
+      marketId: market?.id ?? "__missing_market__",
+    };
   }
 
   private marketDetailUrl(slug: string): string {

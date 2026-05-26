@@ -456,7 +456,7 @@ export class MarketsService {
     const vendorCount = Number(count);
     const [catalogCoverage, explorationSummary] = await Promise.all([
       this.countCatalogCoverage(market.id),
-      this.getExplorationSummary(market.id),
+      this.getExplorationSummary(market.id, market.slug),
     ]);
 
     return {
@@ -474,6 +474,7 @@ export class MarketsService {
 
   private async getExplorationSummary(
     marketId: string,
+    marketSlug: string,
   ): Promise<MarketExplorationSummary> {
     const [dishCategories, serviceTypes] = await Promise.all([
       this.listDishCategoryFacets(marketId),
@@ -481,19 +482,23 @@ export class MarketsService {
     ]);
 
     return {
-      dishSearchUrl: `/api/v1/discovery/search?marketId=${marketId}`,
-      serviceSearchUrl: `/api/v1/discovery/services?marketId=${marketId}`,
+      dishSearchUrl: `/api/v1/discovery/search?marketSlug=${encodeURIComponent(
+        marketSlug,
+      )}`,
+      serviceSearchUrl: `/api/v1/discovery/services?marketSlug=${encodeURIComponent(
+        marketSlug,
+      )}`,
       dishCategories: dishCategories.map((facet) => ({
         ...facet,
-        searchUrl: `/api/v1/discovery/search?marketId=${marketId}&categoryName=${encodeURIComponent(
-          facet.categoryName,
-        )}`,
+        searchUrl: `/api/v1/discovery/search?marketSlug=${encodeURIComponent(
+          marketSlug,
+        )}&categoryName=${encodeURIComponent(facet.categoryName)}`,
       })),
       serviceTypes: serviceTypes.map((facet) => ({
         ...facet,
-        searchUrl: `/api/v1/discovery/services?marketId=${marketId}&serviceType=${encodeURIComponent(
-          facet.serviceType,
-        )}`,
+        searchUrl: `/api/v1/discovery/services?marketSlug=${encodeURIComponent(
+          marketSlug,
+        )}&serviceType=${encodeURIComponent(facet.serviceType)}`,
       })),
     };
   }

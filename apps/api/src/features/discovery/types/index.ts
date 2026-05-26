@@ -69,6 +69,7 @@ export interface SearchFilters {
   city?: string;
   categoryName?: string;
   marketId?: string;
+  marketSlug?: string;
   lat?: number;
   lng?: number;
   radiusKm?: number;

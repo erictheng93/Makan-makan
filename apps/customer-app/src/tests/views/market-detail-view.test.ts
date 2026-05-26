@@ -52,14 +52,14 @@ function marketStore(overrides: Record<string, unknown> = {}) {
     vendors: [],
     vendorCount: 0,
     explorationSummary: {
-      dishSearchUrl: "/api/v1/discovery/search?marketId=market-1",
-      serviceSearchUrl: "/api/v1/discovery/services?marketId=market-1",
+      dishSearchUrl: "/api/v1/discovery/search?marketSlug=fengjia",
+      serviceSearchUrl: "/api/v1/discovery/services?marketSlug=fengjia",
       dishCategories: [
         {
           categoryName: "炸物",
           count: 3,
           searchUrl:
-            "/api/v1/discovery/search?marketId=market-1&categoryName=%E7%82%B8%E7%89%A9",
+            "/api/v1/discovery/search?marketSlug=fengjia&categoryName=%E7%82%B8%E7%89%A9",
         },
       ],
       serviceTypes: [
@@ -67,7 +67,7 @@ function marketStore(overrides: Record<string, unknown> = {}) {
           serviceType: "pickup",
           count: 2,
           searchUrl:
-            "/api/v1/discovery/services?marketId=market-1&serviceType=pickup",
+            "/api/v1/discovery/services?marketSlug=fengjia&serviceType=pickup",
         },
       ],
     },

@@ -81,6 +81,7 @@ export interface SearchFilters {
   district?: string;
   categoryName?: string;
   marketId?: string;
+  marketSlug?: string;
   serviceType?:
     | "general"
     | "booking"
