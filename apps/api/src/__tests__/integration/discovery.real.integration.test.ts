@@ -8,6 +8,7 @@ import {
   dishSearchIndex,
   menuItems,
   markets,
+  restaurants,
   restaurantMarketMemberships,
   restaurantServiceItems,
 } from "@makanmakan/database";
@@ -2062,6 +2063,69 @@ describe("Discovery API — real integration", () => {
     const secondData = ((await secondRes.json()) as ApiTestResponse).data;
     expect(secondData.results).toEqual([]);
     expect(secondData.total).toBe(0);
+  });
+
+  it("marks indexed dishes unavailable when a restaurant is deactivated", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Restaurant Sync Disabled Vendor",
+    });
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Restaurant Sync Disabled Bao",
+      price: 60,
+      isAvailable: true,
+    });
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: item.id,
+        name: "Restaurant Sync Disabled Bao",
+        price: 60,
+        isAvailable: true,
+      },
+    ]);
+
+    await testApp.testDb.drizzle
+      .update(restaurants)
+      .set({ isActive: false })
+      .where(eq(restaurants.id, String(restaurant.id)));
+    const sync = new SearchIndexSyncService(
+      testApp.testDb.bindings.DB,
+      testApp.testDb.bindings.CACHE_KV,
+    );
+    await sync.onRestaurantChanged(String(restaurant.id));
+
+    const [indexed] = await testApp.testDb.drizzle
+      .select({ isAvailable: dishSearchIndex.isAvailable })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+
+    expect(indexed).toEqual({ isAvailable: false });
+  });
+
+  it("indexes menu item changes under inactive restaurants as unavailable", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Inactive Menu Sync Vendor",
+      isActive: false,
+    });
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Inactive Menu Sync Bao",
+      price: 60,
+      isAvailable: true,
+    });
+
+    const sync = new SearchIndexSyncService(
+      testApp.testDb.bindings.DB,
+      testApp.testDb.bindings.CACHE_KV,
+    );
+    await sync.onMenuItemChanged(item.id);
+
+    const [indexed] = await testApp.testDb.drizzle
+      .select({ isAvailable: dishSearchIndex.isAvailable })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+
+    expect(indexed).toEqual({ isAvailable: false });
   });
 
   it("syncs discovery index after menu item availability changes through menu API", async () => {

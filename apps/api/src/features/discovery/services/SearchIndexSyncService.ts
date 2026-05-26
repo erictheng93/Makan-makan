@@ -40,6 +40,7 @@ export class SearchIndexSyncService {
         restaurantType: restaurants.type,
         supportsTakeaway: restaurants.supportsTakeaway,
         supportsDelivery: restaurants.supportsDelivery,
+        restaurantActive: restaurants.isActive,
         restaurantDeleted: restaurants.deletedAt,
         latitude: restaurants.latitude,
         longitude: restaurants.longitude,
@@ -79,7 +80,10 @@ export class SearchIndexSyncService {
     }
 
     const isAvailable =
-      item.isAvailable && !item.deletedAt && !item.restaurantDeleted;
+      item.isAvailable &&
+      !item.deletedAt &&
+      item.restaurantActive &&
+      !item.restaurantDeleted;
     const normalized = item.name.trim().toLowerCase().replace(/\s+/g, "");
     const tags = normalizeSearchTags(item.tags, item.keywords);
 
@@ -120,6 +124,7 @@ export class SearchIndexSyncService {
         supportsDelivery: restaurants.supportsDelivery,
         latitude: restaurants.latitude,
         longitude: restaurants.longitude,
+        isActive: restaurants.isActive,
         marketIds: sql<string | null>`(
           SELECT json_group_array(rmm.market_id)
           FROM restaurant_market_memberships rmm
@@ -148,7 +153,7 @@ export class SearchIndexSyncService {
 
     if (!restaurant) return;
 
-    if (restaurant.deletedAt) {
+    if (!restaurant.isActive || restaurant.deletedAt) {
       await this.db
         .update(dishSearchIndex)
         .set({ isAvailable: false, updatedAt: new Date() })
@@ -167,6 +172,13 @@ export class SearchIndexSyncService {
             : [],
           latitude: restaurant.latitude,
           longitude: restaurant.longitude,
+          isAvailable: sql<boolean>`EXISTS (
+            SELECT 1
+            FROM ${menuItems}
+            WHERE ${menuItems.id} = ${dishSearchIndex.menuItemId}
+              AND ${menuItems.isAvailable} = 1
+              AND ${menuItems.deletedAt} IS NULL
+          )`,
           updatedAt: new Date(),
         })
         .where(eq(dishSearchIndex.restaurantId, restaurantId));
