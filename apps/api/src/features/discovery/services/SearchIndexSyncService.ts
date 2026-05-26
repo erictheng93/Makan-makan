@@ -1,10 +1,11 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   dishSearchIndex,
   menuItems,
   categories,
   restaurants,
+  restaurantMarketMemberships,
 } from "@makanmakan/database";
 import { toCents } from "../../../shared/utils/money";
 
@@ -41,15 +42,21 @@ export class SearchIndexSyncService {
         marketIds: sql<string | null>`(
           SELECT json_group_array(rmm.market_id)
           FROM restaurant_market_memberships rmm
-          WHERE rmm.restaurant_id = ${restaurants.id}
+          INNER JOIN markets m ON m.id = rmm.market_id
+          WHERE rmm.restaurant_id = restaurants.id
             AND rmm.left_at_ms IS NULL
+            AND m.is_active = 1
+            AND m.deleted_at_ms IS NULL
         )`,
         primaryMarketId: sql<string | null>`(
           SELECT rmm.market_id
           FROM restaurant_market_memberships rmm
-          WHERE rmm.restaurant_id = ${restaurants.id}
+          INNER JOIN markets m ON m.id = rmm.market_id
+          WHERE rmm.restaurant_id = restaurants.id
             AND rmm.left_at_ms IS NULL
             AND rmm.is_primary = 1
+            AND m.is_active = 1
+            AND m.deleted_at_ms IS NULL
           LIMIT 1
         )`,
       })
@@ -117,15 +124,21 @@ export class SearchIndexSyncService {
         marketIds: sql<string | null>`(
           SELECT json_group_array(rmm.market_id)
           FROM restaurant_market_memberships rmm
-          WHERE rmm.restaurant_id = ${restaurants.id}
+          INNER JOIN markets m ON m.id = rmm.market_id
+          WHERE rmm.restaurant_id = restaurants.id
             AND rmm.left_at_ms IS NULL
+            AND m.is_active = 1
+            AND m.deleted_at_ms IS NULL
         )`,
         primaryMarketId: sql<string | null>`(
           SELECT rmm.market_id
           FROM restaurant_market_memberships rmm
-          WHERE rmm.restaurant_id = ${restaurants.id}
+          INNER JOIN markets m ON m.id = rmm.market_id
+          WHERE rmm.restaurant_id = restaurants.id
             AND rmm.left_at_ms IS NULL
             AND rmm.is_primary = 1
+            AND m.is_active = 1
+            AND m.deleted_at_ms IS NULL
           LIMIT 1
         )`,
         deletedAt: restaurants.deletedAt,
@@ -165,5 +178,23 @@ export class SearchIndexSyncService {
 
   async onMarketMembershipChanged(restaurantId: string): Promise<void> {
     await this.onRestaurantChanged(restaurantId);
+  }
+
+  async onMarketChanged(marketId: string): Promise<void> {
+    const memberships = await this.db
+      .select({ restaurantId: restaurantMarketMemberships.restaurantId })
+      .from(restaurantMarketMemberships)
+      .where(
+        and(
+          eq(restaurantMarketMemberships.marketId, marketId),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      );
+
+    await Promise.all(
+      memberships.map(({ restaurantId }) =>
+        this.onRestaurantChanged(restaurantId),
+      ),
+    );
   }
 }

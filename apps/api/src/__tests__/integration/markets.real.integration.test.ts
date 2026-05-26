@@ -536,6 +536,85 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("syncs discovery index when market public availability changes", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Market Sync Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 21,
+      username: "market-sync-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const market = await seedMarket(testApp, {
+      slug: "sync-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Indexed Market Vendor",
+      latitude: 24.1491,
+      longitude: 120.6842,
+      supportsTakeaway: true,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Indexed Market Bao",
+      price: 60,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: item.id,
+      restaurantId: String(restaurant.id),
+      dishName: "Indexed Market Bao",
+      dishNameNormalized: "indexedmarketbao",
+      price: 60,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      supportsTakeaway: true,
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: 24.1491,
+      longitude: 120.6842,
+      updatedAt: new Date(),
+    });
+
+    const updateRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/admin/markets/${market.id}`, {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+          ...CSRF_HEADERS,
+        },
+        body: JSON.stringify({ isActive: false }),
+      }),
+    );
+    expect(updateRes.status).toBe(200);
+
+    const [indexed] = await testApp.testDb.drizzle
+      .select({
+        primaryMarketId: dishSearchIndex.primaryMarketId,
+        marketIds: dishSearchIndex.marketIds,
+      })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+
+    expect(indexed).toEqual({
+      primaryMarketId: null,
+      marketIds: [],
+    });
+  });
+
   it("allows re-joining a market after soft leave but rejects duplicate active membership", async () => {
     const restaurant = await seed.restaurant();
     const market = await seedMarket(testApp);

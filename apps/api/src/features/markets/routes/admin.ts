@@ -167,6 +167,9 @@ routes.put(
       );
     }
 
+    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    await sync.onMarketChanged(id);
+
     return c.json({ success: true, data: { market } });
   },
 );
@@ -185,6 +188,9 @@ routes.delete("/:id", validateParams(marketIdParamSchema), async (c) => {
       404,
     );
   }
+
+  const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+  await sync.onMarketChanged(id);
 
   return c.json({ success: true, data: { deleted } });
 });
