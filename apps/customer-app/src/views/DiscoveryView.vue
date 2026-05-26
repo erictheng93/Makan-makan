@@ -58,6 +58,7 @@
 
       <FilterPanel
         :filters="store.filters"
+        :cities="cities"
         :districts="districts"
         @update:filters="store.updateFilters($event)"
       />
@@ -183,11 +184,17 @@ const marketOptions = ref<MarketListItem[]>([]);
 const marketAreas = ref<{ city: string; districts: string[] }[]>([]);
 
 const selectedMarketId = computed(() => store.filters.marketId);
-const districts = computed(() =>
-  Array.from(new Set(marketAreas.value.flatMap((area) => area.districts))).sort(
+const selectedCity = computed(() => store.filters.city);
+const cities = computed(() => marketAreas.value.map((area) => area.city));
+const districts = computed(() => {
+  const areas = selectedCity.value
+    ? marketAreas.value.filter((area) => area.city === selectedCity.value)
+    : marketAreas.value;
+
+  return Array.from(new Set(areas.flatMap((area) => area.districts))).sort(
     (left, right) => left.localeCompare(right, "zh-Hant"),
-  ),
-);
+  );
+});
 
 function onDishSelect(dish: DishSearchResult) {
   router.push({

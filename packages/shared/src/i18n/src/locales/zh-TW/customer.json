@@ -807,6 +807,8 @@
     "openNow": "營業中",
     "takeaway": "外帶",
     "delivery": "外送",
+    "city": "城市",
+    "allCities": "所有城市",
     "district": "地區",
     "allDistricts": "所有地區"
   }

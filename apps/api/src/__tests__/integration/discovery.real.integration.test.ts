@@ -368,6 +368,61 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("scopes dish search by city when districts have the same name", async () => {
+    const taipeiRestaurant = await seed.restaurant({
+      name: "Taipei Zhongshan Vendor",
+      city: "台北市",
+      district: "中山區",
+    });
+    const kaohsiungRestaurant = await seed.restaurant({
+      name: "Kaohsiung Zhongshan Vendor",
+      city: "高雄市",
+      district: "中山區",
+    });
+
+    const taipeiItem = await seed.menuItem(String(taipeiRestaurant.id), {
+      isAvailable: true,
+      name: "City Scope Noodles",
+      price: 100,
+    });
+    const kaohsiungItem = await seed.menuItem(String(kaohsiungRestaurant.id), {
+      isAvailable: true,
+      name: "City Scope Noodles",
+      price: 120,
+    });
+
+    await seedSearchIndex(testApp, String(taipeiRestaurant.id), [
+      {
+        menuItemId: taipeiItem.id,
+        name: "City Scope Noodles",
+        price: 100,
+        district: "中山區",
+      },
+    ]);
+    await seedSearchIndex(testApp, String(kaohsiungRestaurant.id), [
+      {
+        menuItemId: kaohsiungItem.id,
+        name: "City Scope Noodles",
+        price: 120,
+        district: "中山區",
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/search?q=City+Scope&city=%E5%8F%B0%E5%8C%97%E5%B8%82&district=%E4%B8%AD%E5%B1%B1%E5%8D%80&page=1&limit=10",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+
+    expect(data.total).toBe(1);
+    expect(data.results.map((r: any) => r.restaurantName)).toEqual([
+      "Taipei Zhongshan Vendor",
+    ]);
+  });
+
   // -------------------------------------------------------------------------
   // Empty result: q with no matches returns empty results array
   // -------------------------------------------------------------------------

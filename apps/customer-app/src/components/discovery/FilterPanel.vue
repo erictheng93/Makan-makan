@@ -3,6 +3,7 @@
     class="bg-ios-card rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] overflow-hidden"
   >
     <button
+      data-testid="discovery-filter-toggle"
       class="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-gray-700"
       @click="isOpen = !isOpen"
     >
@@ -61,6 +62,22 @@
           {{ t("discovery.delivery") }}
         </button>
       </div>
+      <div v-if="cities.length > 0">
+        <label class="text-xs font-medium text-gray-500 mb-1 block">
+          {{ t("discovery.city") }}
+        </label>
+        <select
+          :value="filters.city || ''"
+          data-testid="discovery-city-select"
+          class="w-full text-sm bg-ios-bg rounded-xl px-3 py-2 focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
+          @change="onCityChange"
+        >
+          <option value="">{{ t("discovery.allCities") }}</option>
+          <option v-for="city in cities" :key="city" :value="city">
+            {{ city }}
+          </option>
+        </select>
+      </div>
       <div v-if="districts.length > 0">
         <label class="text-xs font-medium text-gray-500 mb-1 block">
           {{ t("discovery.district") }}
@@ -87,6 +104,7 @@ const { t } = useI18n();
 
 const props = defineProps<{
   filters: SearchFilters;
+  cities: string[];
   districts: string[];
 }>();
 
@@ -108,6 +126,15 @@ function onDistrictChange(e: Event) {
   emit("update:filters", {
     ...props.filters,
     district: target.value || undefined,
+  });
+}
+
+function onCityChange(e: Event) {
+  const target = e.target as HTMLSelectElement;
+  emit("update:filters", {
+    ...props.filters,
+    city: target.value || undefined,
+    district: undefined,
   });
 }
 </script>

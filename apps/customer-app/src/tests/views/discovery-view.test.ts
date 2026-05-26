@@ -83,8 +83,13 @@ function mountView() {
       stubs: {
         SearchBar: true,
         FilterPanel: {
-          props: ["districts"],
-          template: `<div data-testid="district-filter-options">{{ districts.join(",") }}</div>`,
+          props: ["cities", "districts"],
+          template: `
+            <div>
+              <div data-testid="city-filter-options">{{ cities.join(",") }}</div>
+              <div data-testid="district-filter-options">{{ districts.join(",") }}</div>
+            </div>
+          `,
         },
         DishResultCard: {
           props: ["dish"],
@@ -185,7 +190,7 @@ describe("DiscoveryView", () => {
     });
   });
 
-  it("builds district filters from public market areas", async () => {
+  it("builds city and district filters from public market areas", async () => {
     vi.mocked(marketsApi.listAreas).mockResolvedValueOnce({
       areas: [
         { city: "台中市", districts: ["西屯區", "北區"] },
@@ -196,6 +201,9 @@ describe("DiscoveryView", () => {
     const wrapper = mountView();
 
     await vi.waitFor(() => {
+      expect(
+        wrapper.get('[data-testid="city-filter-options"]').text(),
+      ).toContain("台北市");
       expect(
         wrapper.get('[data-testid="district-filter-options"]').text(),
       ).toContain("萬華區");

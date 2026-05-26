@@ -75,6 +75,9 @@ export class DiscoveryService {
     if (filters.district) {
       baseConditions.push(eq(dishSearchIndex.district, filters.district));
     }
+    if (filters.city) {
+      baseConditions.push(eq(restaurants.city, filters.city));
+    }
     if (filters.priceMin !== undefined) {
       baseConditions.push(
         sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) >= ${toRequiredCents(filters.priceMin)}`,
@@ -148,6 +151,10 @@ export class DiscoveryService {
       this.db
         .select({ count: sql<number>`count(*)` })
         .from(dishSearchIndex)
+        .innerJoin(
+          restaurants,
+          eq(dishSearchIndex.restaurantId, restaurants.id),
+        )
         .where(whereClause),
     ]);
     const rawTotal = Number(countRows[0]?.count);
@@ -263,7 +270,7 @@ export class DiscoveryService {
     const { page = 1, limit = 20 } = filters;
 
     // Check KV cache for district-based browse
-    if (filters.district && !filters.openNow) {
+    if (filters.district && !filters.city && !filters.openNow) {
       const kvKey = `search:restaurants:district:${filters.district}`;
       const cached = await this.kv.get(kvKey);
       if (cached) {
