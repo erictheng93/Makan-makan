@@ -2257,6 +2257,46 @@ const enUS: Messages = {
       requestTitle: "Request Market Access",
       requestSubtitle:
         "A platform admin reviews the request and attaches the shop.",
+      readinessTitle: "Marketplace Data Readiness",
+      readinessSubtitle:
+        "Complete location, takeaway, shop mode, contact, FAQ, and market membership data so customers can find and use this vendor from a market page.",
+      ready: "Ready",
+      notReady: "Needs setup",
+      completed: "Complete",
+      required: "Required",
+      recommended: "Recommended",
+      readiness: {
+        location: {
+          title: "Address & GPS",
+          description:
+            "City, district, address, latitude, and longitude are required for nearby discovery.",
+        },
+        fulfillment: {
+          title: "Takeaway",
+          description:
+            "Takeaway must be enabled before customers can order from discovery.",
+        },
+        shopMode: {
+          title: "Shop Mode QR",
+          description:
+            "Shop mode and a QR token are required for direct takeaway ordering.",
+        },
+        contact: {
+          title: "Public Contact Channel",
+          description:
+            "Set at least one LINE, WhatsApp, Instagram, or Telegram link.",
+        },
+        faq: {
+          title: "FAQ",
+          description:
+            "Add common pickup, payment, preorder, or service answers.",
+        },
+        market: {
+          title: "Market Membership",
+          description:
+            "Join at least one market or district to appear on that market page.",
+        },
+      },
       selectMarket: "Select Market",
       selectPlaceholder: "Choose a market or district",
       message: "Request Note",

@@ -2300,6 +2300,42 @@ const zhTW = {
       no: "否",
       requestTitle: "申請加入市場",
       requestSubtitle: "送出後由平台管理員審核並掛載店家。",
+      readinessTitle: "Marketplace 資料完整度",
+      readinessSubtitle:
+        "補齊定位、外帶、店家模式、聯絡資料與市場歸屬後，顧客才能在夜市 / 商圈中順利找到並使用服務。",
+      ready: "可上架",
+      notReady: "尚需補齊",
+      completed: "已完成",
+      required: "必要",
+      recommended: "建議",
+      readiness: {
+        location: {
+          title: "地址與 GPS",
+          description: "需有城市、行政區、地址、經緯度，才能支援附近搜尋。",
+        },
+        fulfillment: {
+          title: "外帶能力",
+          description: "需啟用外帶，顧客才可從商圈探索直接開始訂購。",
+        },
+        shopMode: {
+          title: "店家模式 QR",
+          description:
+            "需啟用店家模式並生成 QR token，才能承接免掃碼外帶流程。",
+        },
+        contact: {
+          title: "公開聯絡渠道",
+          description:
+            "至少設定一個 LINE、WhatsApp、Instagram 或 Telegram 連結。",
+        },
+        faq: {
+          title: "常見問題",
+          description: "提供取餐、付款、預訂等常見回答，降低顧客詢問成本。",
+        },
+        market: {
+          title: "市場 / 商圈歸屬",
+          description: "至少加入一個市場或商圈，才會出現在該場域頁面。",
+        },
+      },
       selectMarket: "選擇市場",
       selectPlaceholder: "請選擇市場或商圈",
       message: "申請備註",

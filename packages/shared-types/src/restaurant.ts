@@ -8,6 +8,8 @@ export interface Restaurant extends UUIDEntity {
   address?: string;
   district?: string;
   city?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   phone?: string;
   email?: string;
   website?: string;
@@ -20,6 +22,8 @@ export interface Restaurant extends UUIDEntity {
   rating?: number;
   reviewCount?: number;
   totalOrders?: number;
+  supportsTakeaway?: boolean;
+  supportsDelivery?: boolean;
   status: Status;
   planType: PlanType;
   settings?: RestaurantSettings;

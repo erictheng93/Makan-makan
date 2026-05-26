@@ -9,6 +9,7 @@ import {
   markets,
   restaurantMarketMemberships,
 } from "@makanmakan/database";
+import { eq } from "drizzle-orm";
 
 const CSRF_HEADERS = {
   host: "test",
@@ -358,6 +359,81 @@ describe("Markets API — real integration", () => {
     expect(disabledJson.data).toEqual({
       eligible: false,
       reason: "takeaway_disabled",
+    });
+  });
+
+  it("syncs discovery index when marketplace-critical restaurant data changes", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Sync Vendor",
+      latitude: 24.1491,
+      longitude: 120.6842,
+      supportsTakeaway: true,
+      supportsDelivery: false,
+    });
+    await seed.user({
+      id: 20,
+      username: "sync-owner",
+      role: 1,
+      restaurantId: String(restaurant.id),
+    });
+    const ownerToken = await testApp.authHelper.ownerToken(
+      20,
+      String(restaurant.id),
+    );
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Sync Bao",
+      price: 60,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: item.id,
+      restaurantId: String(restaurant.id),
+      dishName: "Sync Bao",
+      dishNameNormalized: "syncbao",
+      price: 60,
+      isAvailable: true,
+      tags: [],
+      district: "北區",
+      supportsTakeaway: true,
+      supportsDelivery: false,
+      latitude: 24.1491,
+      longitude: 120.6842,
+      updatedAt: new Date(),
+    });
+
+    const updateRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/restaurants/${restaurant.id}`, {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${ownerToken}`,
+          "content-type": "application/json",
+          ...CSRF_HEADERS,
+        },
+        body: JSON.stringify({
+          latitude: 24.15,
+          longitude: 120.69,
+          supportsTakeaway: false,
+          supportsDelivery: true,
+        }),
+      }),
+    );
+    expect(updateRes.status).toBe(200);
+
+    const [indexed] = await testApp.testDb.drizzle
+      .select({
+        supportsTakeaway: dishSearchIndex.supportsTakeaway,
+        supportsDelivery: dishSearchIndex.supportsDelivery,
+        latitude: dishSearchIndex.latitude,
+        longitude: dishSearchIndex.longitude,
+      })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+
+    expect(indexed).toMatchObject({
+      supportsTakeaway: false,
+      supportsDelivery: true,
+      latitude: 24.15,
+      longitude: 120.69,
     });
   });
 

@@ -39,6 +39,10 @@ export interface CreateRestaurantData {
 export interface UpdateRestaurantData extends Partial<CreateRestaurantData> {
   isAvailable?: boolean;
   isActive?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+  supportsTakeaway?: boolean;
+  supportsDelivery?: boolean;
   settings?: Partial<RestaurantSettings>;
 }
 

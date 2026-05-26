@@ -562,6 +562,8 @@ export class RestaurantService extends BaseService {
       address: restaurant.address,
       district: restaurant.district,
       city: restaurant.city,
+      latitude: restaurant.latitude,
+      longitude: restaurant.longitude,
       phone: restaurant.phone,
       email: restaurant.email,
       website: restaurant.website,
@@ -575,6 +577,8 @@ export class RestaurantService extends BaseService {
       rating: restaurant.rating,
       reviewCount: restaurant.reviewCount,
       totalOrders: restaurant.totalOrders,
+      supportsTakeaway: restaurant.supportsTakeaway,
+      supportsDelivery: restaurant.supportsDelivery,
       status: restaurant.isActive ? 1 : 0, // Status.ACTIVE : Status.INACTIVE
       planType: restaurant.planType || 0,
       // 店家 QR Code 相关字段

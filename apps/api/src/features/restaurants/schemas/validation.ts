@@ -170,6 +170,10 @@ const createRestaurantSchema = z.object({
 const updateRestaurantSchema = createRestaurantSchema.partial().extend({
   isAvailable: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+  supportsTakeaway: z.boolean().optional(),
+  supportsDelivery: z.boolean().optional(),
   settings: restaurantSettingsSchema.optional(),
 });
 

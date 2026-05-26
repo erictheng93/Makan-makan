@@ -222,6 +222,82 @@
         >
           <div>
             <h3 class="text-lg font-semibold text-gray-900">
+              {{ t("settings.markets.readinessTitle") }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500">
+              {{ t("settings.markets.readinessSubtitle") }}
+            </p>
+          </div>
+          <div class="text-left sm:text-right">
+            <div class="text-2xl font-semibold text-gray-900">
+              {{ marketplaceReadiness.score }}%
+            </div>
+            <div
+              class="text-sm"
+              :class="
+                marketplaceReadiness.ready ? 'text-green-700' : 'text-amber-700'
+              "
+            >
+              {{
+                marketplaceReadiness.ready
+                  ? t("settings.markets.ready")
+                  : t("settings.markets.notReady")
+              }}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 grid gap-3 md:grid-cols-2">
+          <div
+            v-for="issue in marketplaceReadinessItems"
+            :key="issue.key"
+            class="rounded-lg border px-4 py-3"
+            :class="
+              issue.done
+                ? 'border-green-200 bg-green-50'
+                : issue.severity === 'required'
+                  ? 'border-amber-200 bg-amber-50'
+                  : 'border-gray-200 bg-gray-50'
+            "
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="font-medium text-gray-900">
+                  {{ t(`settings.markets.readiness.${issue.key}.title`) }}
+                </div>
+                <p class="mt-1 text-sm text-gray-600">
+                  {{ t(`settings.markets.readiness.${issue.key}.description`) }}
+                </p>
+              </div>
+              <span
+                class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
+                :class="
+                  issue.done
+                    ? 'bg-green-100 text-green-700'
+                    : issue.severity === 'required'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-gray-200 text-gray-700'
+                "
+              >
+                {{
+                  issue.done
+                    ? t("settings.markets.completed")
+                    : issue.severity === "required"
+                      ? t("settings.markets.required")
+                      : t("settings.markets.recommended")
+                }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">
               {{ t("settings.markets.title") }}
             </h3>
             <p class="mt-1 text-sm text-gray-500">
@@ -1555,7 +1631,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { computed, ref, reactive, onMounted } from "vue";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
 import { useI18n } from "@/i18n";
@@ -1568,6 +1644,10 @@ import {
   type MarketListItem,
   type RestaurantMarketMembership,
 } from "@/services/marketsService";
+import {
+  evaluateMarketplaceReadiness,
+  type MarketplaceReadinessIssueKey,
+} from "@/utils/marketplaceReadiness";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
 import type { CurrencyCode } from "@makanmakan/shared-types";
 
@@ -1672,6 +1752,10 @@ const settings = reactive({
     name: "",
     phone: "",
     address: "",
+    city: "",
+    district: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
     openTime: "08:00",
     closeTime: "22:00",
     timezone: "Asia/Kuala_Lumpur",
@@ -1731,6 +1815,47 @@ const deliverySettings = reactive({
   estimatedPrepTimeMax: 20,
 });
 
+const marketplaceReadiness = computed(() =>
+  evaluateMarketplaceReadiness({
+    city: settings.restaurant.city,
+    district: settings.restaurant.district,
+    address: settings.restaurant.address,
+    latitude: settings.restaurant.latitude,
+    longitude: settings.restaurant.longitude,
+    takeawayEnabled: deliverySettings.enableTakeaway,
+    shopModeEnabled: shopQR.enabled,
+    shopQrCode: shopQR.qrCode,
+    contactChannelCount: Object.values(contactProfile.messagingChannels).filter(
+      (value) => value.trim().length > 0,
+    ).length,
+    activeFaqCount: contactProfile.faqs.filter((faq) => faq.isActive).length,
+    marketMembershipCount: marketMemberships.value.length,
+  }),
+);
+
+const marketplaceReadinessItems = computed(() => {
+  const issues = new Map(
+    marketplaceReadiness.value.issues.map((issue) => [issue.key, issue]),
+  );
+  const keys: MarketplaceReadinessIssueKey[] = [
+    "location",
+    "fulfillment",
+    "shopMode",
+    "contact",
+    "faq",
+    "market",
+  ];
+
+  return keys.map((key) => {
+    const issue = issues.get(key);
+    return {
+      key,
+      done: !issue,
+      severity: issue?.severity ?? "recommended",
+    };
+  });
+});
+
 // 預設設定
 const defaultSettings = { ...settings };
 
@@ -1740,6 +1865,8 @@ const saveSettings = async () => {
     const restaurantId = authStore.restaurantId;
     if (restaurantId) {
       await api.put(`/restaurants/${restaurantId}`, {
+        supportsTakeaway: deliverySettings.enableTakeaway,
+        supportsDelivery: deliverySettings.enableDelivery,
         settings: {
           currency: settings.system.currency,
           enableDineIn: deliverySettings.enableDineIn,
@@ -1783,6 +1910,11 @@ const loadSettings = async () => {
         name?: string;
         phone?: string;
         address?: string;
+        city?: string;
+        district?: string;
+        latitude?: number | null;
+        longitude?: number | null;
+        supportsTakeaway?: boolean;
         settings?: {
           currency?: string;
           enableDineIn?: boolean;
@@ -1798,6 +1930,17 @@ const loadSettings = async () => {
         if (data.name) settings.restaurant.name = data.name;
         if (data.phone) settings.restaurant.phone = data.phone;
         if (data.address) settings.restaurant.address = data.address;
+        if (data.city) settings.restaurant.city = data.city;
+        if (data.district) settings.restaurant.district = data.district;
+        if (data.latitude !== undefined) {
+          settings.restaurant.latitude = data.latitude;
+        }
+        if (data.longitude !== undefined) {
+          settings.restaurant.longitude = data.longitude;
+        }
+        if (data.supportsTakeaway !== undefined) {
+          deliverySettings.enableTakeaway = data.supportsTakeaway;
+        }
       }
       if (data?.settings) {
         if (data.settings.currency) {
