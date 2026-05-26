@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
-import { discoveryApi } from "@/services/discoveryApi";
+import { discoveryApi, type DishSearchResult } from "@/services/discoveryApi";
 
 vi.mock("vue-i18n", async (importOriginal) => {
   const actual = await importOriginal<typeof import("vue-i18n")>();
@@ -26,23 +26,26 @@ vi.mock("@/services/discoveryApi", () => ({
 }));
 
 describe("MarketProductSearch", () => {
+  function dish(overrides: Partial<DishSearchResult> = {}): DishSearchResult {
+    return {
+      menuItemId: 1,
+      dishName: "章魚燒",
+      price: 80,
+      categoryName: "小吃",
+      restaurantId: "r1",
+      restaurantName: "一中章魚燒",
+      district: "北區",
+      isOpen: true,
+      supportsTakeaway: true,
+      supportsDelivery: false,
+      tags: ["熱門"],
+      ...overrides,
+    };
+  }
+
   it("searches products within the selected market", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
-      results: [
-        {
-          menuItemId: 1,
-          dishName: "章魚燒",
-          price: 80,
-          categoryName: "小吃",
-          restaurantId: "r1",
-          restaurantName: "一中章魚燒",
-          district: "北區",
-          isOpen: true,
-          supportsTakeaway: true,
-          supportsDelivery: false,
-          tags: ["熱門"],
-        },
-      ],
+      results: [dish()],
       total: 1,
     } as never);
 
@@ -68,10 +71,57 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("一中章魚燒");
   });
 
+  it("loads additional market-scoped product results", async () => {
+    vi.mocked(discoveryApi.searchDishes)
+      .mockResolvedValueOnce({
+        results: Array.from({ length: 20 }, (_, index) =>
+          dish({
+            menuItemId: index + 1,
+            dishName: `章魚燒 ${index + 1}`,
+          }),
+        ),
+        total: 25,
+      } as never)
+      .mockResolvedValueOnce({
+        results: [
+          dish({
+            menuItemId: 21,
+            dishName: "章魚燒 21",
+          }),
+        ],
+        total: 25,
+      } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("章魚燒");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    await wrapper
+      .get('[data-testid="market-product-load-more"]')
+      .trigger("click");
+
+    expect(discoveryApi.searchDishes).toHaveBeenLastCalledWith({
+      q: "章魚燒",
+      marketId: "market-1",
+      takeaway: undefined,
+      page: 2,
+      limit: 20,
+    });
+    expect(wrapper.text()).toContain("章魚燒 1");
+    expect(wrapper.text()).toContain("章魚燒 21");
+  });
+
   it("emits takeaway from a market-scoped product result", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [
-        {
+        dish({
           menuItemId: 2,
           dishName: "地瓜球",
           price: 50,
@@ -83,7 +133,7 @@ describe("MarketProductSearch", () => {
           supportsTakeaway: true,
           supportsDelivery: false,
           tags: [],
-        },
+        }),
       ],
       total: 1,
     } as never);

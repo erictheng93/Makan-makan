@@ -31,10 +31,16 @@
       </label>
     </form>
 
-    <div v-if="loading" class="py-8 text-center text-sm text-gray-500">
+    <div
+      v-if="loading && results.length === 0"
+      class="py-8 text-center text-sm text-gray-500"
+    >
       搜尋商品中...
     </div>
-    <div v-else-if="error" class="py-6 text-center text-sm text-red-500">
+    <div
+      v-else-if="error && results.length === 0"
+      class="py-6 text-center text-sm text-red-500"
+    >
       {{ error }}
     </div>
     <div
@@ -44,7 +50,9 @@
       目前沒有符合條件的商品或服務。
     </div>
     <div v-else-if="results.length > 0" class="space-y-2">
-      <p class="text-sm text-gray-500">找到 {{ total }} 項商品或服務</p>
+      <p class="text-sm text-gray-500">
+        顯示 {{ results.length }} / {{ total }} 項商品或服務
+      </p>
       <DishResultCard
         v-for="dish in results"
         :key="dish.menuItemId"
@@ -52,12 +60,28 @@
         @select="$emit('select', dish)"
         @takeaway="$emit('takeaway', dish)"
       />
+      <p
+        v-if="error"
+        class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600"
+      >
+        {{ error }}
+      </p>
+      <button
+        v-if="hasMoreResults"
+        type="button"
+        data-testid="market-product-load-more"
+        class="h-10 w-full rounded-lg border border-ios-blue px-4 text-sm font-medium text-ios-blue disabled:border-gray-300 disabled:text-gray-400"
+        :disabled="loading"
+        @click="loadMore"
+      >
+        {{ loading ? "載入中..." : "載入更多" }}
+      </button>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import DishResultCard from "@/components/discovery/DishResultCard.vue";
 import { discoveryApi, type DishSearchResult } from "@/services/discoveryApi";
 
@@ -77,8 +101,29 @@ const total = ref(0);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const hasSearched = ref(false);
+const page = ref(1);
+const pageSize = 20;
+
+const hasMoreResults = computed(() => results.value.length < total.value);
 
 async function submitSearch() {
+  const trimmed = query.value.trim();
+  if (!trimmed) return;
+
+  page.value = 1;
+  results.value = [];
+  total.value = 0;
+  await fetchResults({ append: false });
+}
+
+async function loadMore() {
+  if (!hasMoreResults.value || loading.value) return;
+
+  page.value += 1;
+  await fetchResults({ append: true });
+}
+
+async function fetchResults({ append }: { append: boolean }) {
   const trimmed = query.value.trim();
   if (!trimmed) return;
 
@@ -91,16 +136,22 @@ async function submitSearch() {
       q: trimmed,
       marketId: props.marketId,
       takeaway: takeawayOnly.value ? true : undefined,
-      page: 1,
-      limit: 20,
+      page: page.value,
+      limit: pageSize,
     });
-    results.value = response.results;
+    results.value = append
+      ? [...results.value, ...response.results]
+      : response.results;
     total.value = response.total;
   } catch (searchError) {
     error.value =
       searchError instanceof Error ? searchError.message : "搜尋商品失敗";
-    results.value = [];
-    total.value = 0;
+    if (append) {
+      page.value -= 1;
+    } else {
+      results.value = [];
+      total.value = 0;
+    }
   } finally {
     loading.value = false;
   }
