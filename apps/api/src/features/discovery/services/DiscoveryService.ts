@@ -80,7 +80,11 @@ export class DiscoveryService {
     const queryOffset = requiresPostFilterPagination ? 0 : offset;
     const effectivePrice = sql<number>`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer))`;
 
-    const baseConditions: SQL[] = [eq(dishSearchIndex.isAvailable, true)];
+    const baseConditions: SQL[] = [
+      eq(dishSearchIndex.isAvailable, true),
+      eq(restaurants.isActive, true),
+      isNull(restaurants.deletedAt),
+    ];
 
     if (filters.district) {
       baseConditions.push(eq(dishSearchIndex.district, filters.district));

@@ -1517,6 +1517,71 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("excludes dish search results from inactive or deleted restaurants", async () => {
+    const activeRestaurant = await seed.restaurant({
+      name: "Active Search Vendor",
+    });
+    const inactiveRestaurant = await seed.restaurant({
+      name: "Inactive Search Vendor",
+      isActive: false,
+    });
+    const deletedRestaurant = await seed.restaurant({
+      name: "Deleted Search Vendor",
+      deletedAt: new Date(),
+    });
+
+    const activeDish = await seed.menuItem(String(activeRestaurant.id), {
+      isAvailable: true,
+      name: "Public Gate Bao",
+      price: 100,
+    });
+    const inactiveDish = await seed.menuItem(String(inactiveRestaurant.id), {
+      isAvailable: true,
+      name: "Public Gate Hidden Inactive Bao",
+      price: 110,
+    });
+    const deletedDish = await seed.menuItem(String(deletedRestaurant.id), {
+      isAvailable: true,
+      name: "Public Gate Hidden Deleted Bao",
+      price: 120,
+    });
+
+    await seedSearchIndex(testApp, String(activeRestaurant.id), [
+      {
+        menuItemId: activeDish.id,
+        name: "Public Gate Bao",
+        price: 100,
+      },
+    ]);
+    await seedSearchIndex(testApp, String(inactiveRestaurant.id), [
+      {
+        menuItemId: inactiveDish.id,
+        name: "Public Gate Hidden Inactive Bao",
+        price: 110,
+      },
+    ]);
+    await seedSearchIndex(testApp, String(deletedRestaurant.id), [
+      {
+        menuItemId: deletedDish.id,
+        name: "Public Gate Hidden Deleted Bao",
+        price: 120,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/search?q=Public+Gate&page=1&limit=10",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results.map((result: any) => result.dishName)).toEqual([
+      "Public Gate Bao",
+    ]);
+  });
+
   it("filters open dish results before pagination", async () => {
     const closedRestaurant = await seed.restaurant({
       name: "Closed Discovery Vendor",
