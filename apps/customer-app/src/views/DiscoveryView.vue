@@ -77,7 +77,10 @@
       <template v-else>
         <!-- Search results (dishes) -->
         <div
-          v-if="store.isSearchMode && store.dishResults.length > 0"
+          v-if="
+            store.isSearchMode &&
+            (store.dishResults.length > 0 || store.serviceResults.length > 0)
+          "
           class="space-y-3"
         >
           <p class="text-sm text-gray-500">
@@ -90,6 +93,66 @@
             @select="onDishSelect"
             @takeaway="onDishTakeaway"
           />
+          <article
+            v-for="service in store.serviceResults"
+            :key="service.serviceItemId"
+            class="rounded-lg border border-gray-200 bg-white p-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <h3 class="truncate text-sm font-semibold text-gray-900">
+                    {{ service.name }}
+                  </h3>
+                  <span
+                    class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                  >
+                    服務
+                  </span>
+                </div>
+                <p class="mt-1 truncate text-sm text-gray-500">
+                  {{ service.restaurantName }}
+                </p>
+              </div>
+              <span
+                v-if="servicePriceLabel(service)"
+                class="shrink-0 text-sm font-semibold text-gray-900"
+              >
+                {{ servicePriceLabel(service) }}
+              </span>
+            </div>
+            <p
+              v-if="service.description"
+              class="mt-2 line-clamp-2 text-sm leading-5 text-gray-600"
+            >
+              {{ service.description }}
+            </p>
+            <div
+              v-if="service.tags.length > 0"
+              class="mt-2 flex flex-wrap gap-1"
+            >
+              <span
+                v-for="tag in service.tags.slice(0, 4)"
+                :key="tag"
+                class="rounded-full bg-ios-blue/10 px-2 py-0.5 text-xs text-ios-blue"
+              >
+                {{ tag }}
+              </span>
+            </div>
+            <div class="mt-3 flex items-center justify-between gap-2">
+              <p class="text-xs text-gray-500">
+                {{ service.isOpen ? "目前營業中" : "目前未營業" }}
+              </p>
+              <button
+                type="button"
+                data-testid="select-service"
+                class="h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
+                @click="onServiceSelect(service)"
+              >
+                查看店鋪
+              </button>
+            </div>
+          </article>
         </div>
 
         <!-- Browse mode (restaurants) -->
@@ -150,6 +213,7 @@
           v-if="
             store.isSearchMode &&
             store.dishResults.length === 0 &&
+            store.serviceResults.length === 0 &&
             store.searchQuery
           "
           class="text-center py-12"
@@ -173,14 +237,20 @@ import RestaurantCard from "@/components/discovery/RestaurantCard.vue";
 import type {
   DishSearchResult,
   RestaurantListItem,
+  ServiceSearchResult,
 } from "@/services/discoveryApi";
 import { discoveryApi } from "@/services/discoveryApi";
 import { marketsApi, type MarketListItem } from "@/services/marketsApi";
-import { shopMenuItemQuery } from "@/utils/shopMenuDeepLink";
+import {
+  shopMenuItemQuery,
+  shopMenuServiceQuery,
+} from "@/utils/shopMenuDeepLink";
+import { useCurrency } from "@/composables/useCurrency";
 
 const { t, tWithParams } = useI18n();
 const router = useRouter();
 const store = useDiscoveryStore();
+const { formatPrice } = useCurrency();
 const marketOptions = ref<MarketListItem[]>([]);
 const marketAreas = ref<{ city: string; districts: string[] }[]>([]);
 const categoryOptions = ref<string[]>([]);
@@ -208,6 +278,22 @@ function onDishSelect(dish: DishSearchResult) {
 
 function onRestaurantSelect(restaurant: RestaurantListItem) {
   router.push(`/restaurant/${restaurant.restaurantId}/shop/menu`);
+}
+
+function onServiceSelect(service: ServiceSearchResult) {
+  router.push({
+    name: "ShopMenu",
+    params: { restaurantId: service.restaurantId },
+    query: shopMenuServiceQuery(service),
+  });
+}
+
+function servicePriceLabel(service: ServiceSearchResult) {
+  if (service.priceLabel) return service.priceLabel;
+  if (typeof service.priceCents === "number") {
+    return formatPrice(service.priceCents / 100);
+  }
+  return "";
 }
 
 async function startTakeaway(

@@ -5,6 +5,7 @@ import {
   type DishSearchResult,
   type RestaurantListItem,
   type SearchFilters,
+  type ServiceSearchResult,
 } from "@/services/discoveryApi";
 
 export const useDiscoveryStore = defineStore("discovery", () => {
@@ -12,6 +13,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
   const searchQuery = ref("");
   const filters = ref<SearchFilters>({});
   const dishResults = ref<DishSearchResult[]>([]);
+  const serviceResults = ref<ServiceSearchResult[]>([]);
   const restaurantResults = ref<RestaurantListItem[]>([]);
   const popularKeywords = ref<string[]>([]);
   const popularDishes = ref<DishSearchResult[]>([]);
@@ -24,7 +26,10 @@ export const useDiscoveryStore = defineStore("discovery", () => {
 
   // Computed
   const hasResults = computed(
-    () => dishResults.value.length > 0 || restaurantResults.value.length > 0,
+    () =>
+      dishResults.value.length > 0 ||
+      serviceResults.value.length > 0 ||
+      restaurantResults.value.length > 0,
   );
   const isSearchMode = computed(() => mode.value === "search");
 
@@ -41,13 +46,32 @@ export const useDiscoveryStore = defineStore("discovery", () => {
 
     try {
       const trimmedQuery = query.trim();
-      const result = await discoveryApi.searchDishes({
+      const searchFilters = {
         ...(trimmedQuery ? { q: trimmedQuery } : {}),
         ...filters.value,
         page: page.value,
-      });
-      dishResults.value = result.results;
-      total.value = result.total;
+      };
+      const canSearchServices = Boolean(
+        trimmedQuery ||
+        filters.value.marketId ||
+        filters.value.city ||
+        filters.value.district,
+      );
+      const [dishResult, serviceResult] = await Promise.all([
+        discoveryApi.searchDishes(searchFilters),
+        canSearchServices
+          ? discoveryApi.searchServices({
+              q: trimmedQuery || undefined,
+              city: filters.value.city,
+              district: filters.value.district,
+              marketId: filters.value.marketId,
+              page: page.value,
+            })
+          : Promise.resolve({ results: [], total: 0 }),
+      ]);
+      dishResults.value = dishResult.results;
+      serviceResults.value = serviceResult.results;
+      total.value = dishResult.total + serviceResult.total;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Search failed";
     } finally {
@@ -65,6 +89,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
         ...filters.value,
         page: page.value,
       });
+      serviceResults.value = [];
       restaurantResults.value = result.results;
       total.value = result.total;
     } catch (e) {
@@ -106,6 +131,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
   function clearSearch() {
     searchQuery.value = "";
     dishResults.value = [];
+    serviceResults.value = [];
     mode.value = "browse";
     page.value = 1;
   }
@@ -114,6 +140,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
     searchQuery.value = "";
     filters.value = {};
     dishResults.value = [];
+    serviceResults.value = [];
     restaurantResults.value = [];
     error.value = null;
     total.value = 0;
@@ -125,6 +152,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
     searchQuery,
     filters,
     dishResults,
+    serviceResults,
     restaurantResults,
     popularKeywords,
     popularDishes,

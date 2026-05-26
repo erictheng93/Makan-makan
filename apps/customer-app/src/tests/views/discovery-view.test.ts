@@ -21,6 +21,12 @@ vi.mock("@/composables/useI18n", () => ({
   }),
 }));
 
+vi.mock("@/composables/useCurrency", () => ({
+  useCurrency: () => ({
+    formatPrice: (amount: number) => `NT$${amount}`,
+  }),
+}));
+
 vi.mock("@/stores/discovery", () => ({
   useDiscoveryStore: vi.fn(),
 }));
@@ -64,6 +70,7 @@ function discoveryStore(overrides: Record<string, unknown> = {}) {
     error: null,
     isSearchMode: true,
     dishResults: [dish()],
+    serviceResults: [],
     restaurantResults: [],
     popularDishes: [],
     popularRestaurants: [],
@@ -162,6 +169,43 @@ describe("DiscoveryView", () => {
       name: "OrderTypeLanding",
       params: { restaurantId: "restaurant-1" },
       query: { qr: "SHOP-restaurant-1", itemId: "42", categoryName: "小吃" },
+    });
+  });
+
+  it("opens a service result in the shop menu with a stable service deep link", async () => {
+    const store = discoveryStore({
+      dishResults: [],
+      serviceResults: [
+        {
+          serviceItemId: 7,
+          name: "代客切水果",
+          description: "現場代切並分裝",
+          serviceType: "general",
+          priceCents: 3000,
+          priceLabel: null,
+          durationMinutes: null,
+          requiresBooking: false,
+          bookingUrl: null,
+          tags: ["水果"],
+          restaurantId: "service-restaurant-1",
+          restaurantName: "水果攤",
+          district: "西屯區",
+          city: "台中市",
+          isOpen: true,
+        },
+      ],
+      total: 1,
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    expect(wrapper.text()).toContain("代客切水果");
+    await wrapper.get('[data-testid="select-service"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "service-restaurant-1" },
+      query: { serviceItemId: "7" },
     });
   });
 

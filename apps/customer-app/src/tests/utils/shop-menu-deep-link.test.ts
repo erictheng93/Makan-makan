@@ -28,6 +28,8 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     isFeatured: false,
     inventoryCount: -1,
     orderCount: 0,
+    createdAt: "",
+    updatedAt: "",
     ...overrides,
   };
 }
@@ -39,6 +41,8 @@ function category(overrides: Partial<Category> = {}): Category {
     name: "小吃",
     sortOrder: 1,
     status: 1,
+    createdAt: "",
+    updatedAt: "",
     ...overrides,
   };
 }
@@ -51,6 +55,7 @@ function serviceItem(
     restaurantId: "restaurant-1",
     name: "代客切水果",
     serviceType: "general",
+    requiresBooking: false,
     sortOrder: 1,
     isActive: true,
     isPublic: true,

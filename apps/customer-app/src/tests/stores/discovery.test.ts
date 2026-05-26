@@ -6,6 +6,7 @@ import { discoveryApi } from "@/services/discoveryApi";
 vi.mock("@/services/discoveryApi", () => ({
   discoveryApi: {
     searchDishes: vi.fn(),
+    searchServices: vi.fn(),
     browseRestaurants: vi.fn(),
     getPopular: vi.fn(),
   },
@@ -14,8 +15,13 @@ vi.mock("@/services/discoveryApi", () => ({
 describe("useDiscoveryStore", () => {
   beforeEach(() => {
     vi.mocked(discoveryApi.searchDishes).mockReset();
+    vi.mocked(discoveryApi.searchServices).mockReset();
     vi.mocked(discoveryApi.browseRestaurants).mockReset();
     vi.mocked(discoveryApi.getPopular).mockReset();
+    vi.mocked(discoveryApi.searchServices).mockResolvedValue({
+      results: [],
+      total: 0,
+    } as never);
   });
 
   it("passes selected market scope to dish search", async () => {
@@ -72,7 +78,51 @@ describe("useDiscoveryStore", () => {
     });
     expect(discoveryApi.browseRestaurants).not.toHaveBeenCalled();
     expect(store.isSearchMode).toBe(true);
-    expect(store.dishResults).toHaveLength(1);
+    await vi.waitFor(() => {
+      expect(store.dishResults).toHaveLength(1);
+    });
+  });
+
+  it("searches matching services together with market dish results", async () => {
+    setActivePinia(createPinia());
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        {
+          serviceItemId: 7,
+          name: "代客切水果",
+          description: "現場代切並分裝",
+          serviceType: "general",
+          priceCents: 3000,
+          priceLabel: null,
+          durationMinutes: null,
+          requiresBooking: false,
+          bookingUrl: null,
+          tags: ["水果"],
+          restaurantId: "service-restaurant-1",
+          restaurantName: "水果攤",
+          district: "西屯區",
+          city: "台中市",
+          isOpen: true,
+        },
+      ],
+      total: 1,
+    } as never);
+
+    const store = useDiscoveryStore();
+    store.updateFilters({ marketId: "market-1" });
+    await store.searchDishes("切水果");
+
+    expect(discoveryApi.searchServices).toHaveBeenLastCalledWith({
+      q: "切水果",
+      marketId: "market-1",
+      page: 1,
+    });
+    expect(store.serviceResults).toHaveLength(1);
+    expect(store.total).toBe(1);
   });
 
   it("browses category dishes when selecting a category without a keyword", async () => {

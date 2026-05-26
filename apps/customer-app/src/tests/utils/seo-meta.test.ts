@@ -64,7 +64,7 @@ function restaurant(overrides: Partial<Restaurant> = {}): Restaurant {
     longitude: 120.6466,
     phone: "0212345678",
     logoUrl: "/logo.jpg",
-    bannerUrl: null,
+    bannerUrl: undefined,
     imageUrls: [],
     isAvailable: true,
     isActive: true,
@@ -72,6 +72,8 @@ function restaurant(overrides: Partial<Restaurant> = {}): Restaurant {
     planType: 1,
     supportsTakeaway: true,
     supportsDelivery: false,
+    createdAt: "",
+    updatedAt: "",
     ...overrides,
   };
 }
@@ -83,6 +85,8 @@ function category(overrides: Partial<Category> = {}): Category {
     name: "招牌炸物",
     sortOrder: 1,
     status: 1,
+    createdAt: "",
+    updatedAt: "",
     ...overrides,
   };
 }
@@ -101,6 +105,8 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     isFeatured: true,
     inventoryCount: -1,
     orderCount: 20,
+    createdAt: "",
+    updatedAt: "",
     ...overrides,
   };
 }
