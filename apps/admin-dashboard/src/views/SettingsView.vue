@@ -496,6 +496,18 @@
                   {{ publicReadinessIssueLabel(issue.key) }}
                 </span>
               </div>
+              <div class="mt-2 flex flex-wrap gap-3 text-xs">
+                <span>
+                  商品
+                  {{
+                    selectedMarket?.catalogCoverage?.searchableProductCount ?? 0
+                  }}
+                </span>
+                <span>
+                  服務
+                  {{ selectedMarket?.catalogCoverage?.publicServiceCount ?? 0 }}
+                </span>
+              </div>
             </div>
           </div>
           <div>

@@ -13,9 +13,11 @@ import {
 } from "drizzle-orm";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import {
+  dishSearchIndex,
   marketJoinRequests,
   markets,
   restaurantMarketMemberships,
+  restaurantServiceItems,
   restaurants,
 } from "@makanmakan/database";
 import {
@@ -56,6 +58,11 @@ export interface AdminVendorCandidateFilters {
   q?: string;
   marketId?: string;
   limit?: number;
+}
+
+export interface MarketCatalogCoverage {
+  searchableProductCount: number;
+  publicServiceCount: number;
 }
 
 export type CreateMarketInput = typeof markets.$inferInsert;
@@ -190,15 +197,26 @@ export class MarketsService {
       .from(markets)
       .where(whereClause);
 
-    return {
-      markets: rows.map((row) => ({
-        ...row,
-        vendorCount: Number(row.vendorCount),
-        publicReadiness: evaluateMarketPublicReadiness({
+    const marketsWithCoverage = await Promise.all(
+      rows.map(async (row) => {
+        const vendorCount = Number(row.vendorCount);
+        const catalogCoverage = await this.countCatalogCoverage(row.id);
+
+        return {
           ...row,
-          vendorCount: Number(row.vendorCount),
-        }),
-      })),
+          vendorCount,
+          catalogCoverage,
+          publicReadiness: evaluateMarketPublicReadiness({
+            ...row,
+            vendorCount,
+            ...catalogCoverage,
+          }),
+        };
+      }),
+    );
+
+    return {
+      markets: marketsWithCoverage,
       total: Number(count),
       page,
       limit,
@@ -244,14 +262,73 @@ export class MarketsService {
       );
 
     const vendorCount = Number(count);
+    const catalogCoverage = await this.countCatalogCoverage(market.id);
 
     return {
       market,
       vendorCount,
+      catalogCoverage,
       publicReadiness: evaluateMarketPublicReadiness({
         ...market,
         vendorCount,
+        ...catalogCoverage,
       }),
+    };
+  }
+
+  private async countCatalogCoverage(
+    marketId: string,
+  ): Promise<MarketCatalogCoverage> {
+    const [productRows, serviceRows] = await Promise.all([
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(dishSearchIndex)
+        .innerJoin(
+          restaurants,
+          eq(dishSearchIndex.restaurantId, restaurants.id),
+        )
+        .where(
+          and(
+            eq(dishSearchIndex.isAvailable, true),
+            eq(restaurants.isActive, true),
+            isNull(restaurants.deletedAt),
+            or(
+              eq(dishSearchIndex.primaryMarketId, marketId),
+              like(dishSearchIndex.marketIds, `%"${marketId}"%`),
+            ),
+          ),
+        ),
+      this.db
+        .select({
+          count: sql<number>`count(distinct ${restaurantServiceItems.id})`,
+        })
+        .from(restaurantServiceItems)
+        .innerJoin(
+          restaurants,
+          eq(restaurantServiceItems.restaurantId, restaurants.id),
+        )
+        .innerJoin(
+          restaurantMarketMemberships,
+          and(
+            eq(restaurantMarketMemberships.restaurantId, restaurants.id),
+            eq(restaurantMarketMemberships.marketId, marketId),
+            isNull(restaurantMarketMemberships.leftAt),
+          ),
+        )
+        .where(
+          and(
+            eq(restaurantServiceItems.isActive, true),
+            eq(restaurantServiceItems.isPublic, true),
+            isNull(restaurantServiceItems.deletedAt),
+            eq(restaurants.isActive, true),
+            isNull(restaurants.deletedAt),
+          ),
+        ),
+    ]);
+
+    return {
+      searchableProductCount: Number(productRows[0]?.count ?? 0),
+      publicServiceCount: Number(serviceRows[0]?.count ?? 0),
     };
   }
 

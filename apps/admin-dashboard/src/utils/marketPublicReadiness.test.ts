@@ -7,12 +7,14 @@ import {
 
 const incomplete: MarketPublicReadiness = {
   ready: false,
-  score: 40,
+  score: 29,
   completedCount: 2,
-  totalCount: 5,
+  totalCount: 7,
   issues: [
     { key: "openingHours", severity: "required" },
     { key: "image", severity: "recommended" },
+    { key: "products", severity: "required" },
+    { key: "services", severity: "recommended" },
   ],
 };
 
@@ -22,8 +24,8 @@ describe("market public readiness formatting", () => {
       marketPublicReadinessSummary({
         ready: true,
         score: 100,
-        completedCount: 5,
-        totalCount: 5,
+        completedCount: 7,
+        totalCount: 7,
         issues: [],
       }),
     ).toEqual({
@@ -33,7 +35,7 @@ describe("market public readiness formatting", () => {
 
     expect(marketPublicReadinessSummary(incomplete)).toEqual({
       tone: "blocked",
-      text: "公開頁完整度 40%",
+      text: "公開頁完整度 29%",
     });
   });
 
@@ -43,5 +45,7 @@ describe("market public readiness formatting", () => {
     expect(publicReadinessIssueLabel("openingHours")).toBe("缺少營業時間");
     expect(publicReadinessIssueLabel("image")).toBe("建議補上圖片");
     expect(publicReadinessIssueLabel("vendors")).toBe("尚未加入店鋪");
+    expect(publicReadinessIssueLabel("products")).toBe("尚無可搜尋商品");
+    expect(publicReadinessIssueLabel("services")).toBe("建議補上公開服務");
   });
 });

@@ -97,6 +97,11 @@
             <th
               class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
             >
+              商品 / 服務
+            </th>
+            <th
+              class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+            >
               公開頁狀態
             </th>
             <th
@@ -122,6 +127,14 @@
             </td>
             <td class="px-4 py-4 text-sm text-gray-700">
               {{ market.vendorCount ?? 0 }}
+            </td>
+            <td class="px-4 py-4 text-sm text-gray-700">
+              <div class="whitespace-nowrap">
+                商品 {{ market.catalogCoverage?.searchableProductCount ?? 0 }}
+              </div>
+              <div class="mt-1 whitespace-nowrap text-xs text-gray-500">
+                服務 {{ market.catalogCoverage?.publicServiceCount ?? 0 }}
+              </div>
             </td>
             <td class="px-4 py-4">
               <span

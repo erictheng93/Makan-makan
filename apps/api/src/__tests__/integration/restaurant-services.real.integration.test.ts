@@ -166,6 +166,9 @@ describe("Restaurant service items API — real integration", () => {
       isActive: true,
       isPublic: true,
     });
+    await expect(
+      testApp.testDb.bindings.CACHE_KV.get("markets:version"),
+    ).resolves.toBe("1");
 
     const updateRes = await testApp.app.fetch(
       new Request(
@@ -195,6 +198,9 @@ describe("Restaurant service items API — real integration", () => {
       requiresBooking: true,
       isPublic: false,
     });
+    await expect(
+      testApp.testDb.bindings.CACHE_KV.get("markets:version"),
+    ).resolves.toBe("2");
 
     const publicRes = await testApp.app.fetch(
       new Request(
@@ -222,6 +228,9 @@ describe("Restaurant service items API — real integration", () => {
       .from(restaurantServiceItems);
     expect(deletedRows[0].deletedAt).toBeInstanceOf(Date);
     expect(deletedRows[0].isActive).toBe(false);
+    await expect(
+      testApp.testDb.bindings.CACHE_KV.get("markets:version"),
+    ).resolves.toBe("3");
   });
 
   it("prevents an owner from managing service items for another restaurant", async () => {

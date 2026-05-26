@@ -26,6 +26,8 @@ import type {
   RestaurantEvent,
 } from "../types";
 
+const MARKET_CACHE_VERSION_KEY = "markets:version";
+
 interface RestaurantListResult {
   restaurants: Restaurant[];
   pagination: {
@@ -522,6 +524,7 @@ export class RestaurantsService {
       .returning();
 
     await this.cache.delete(`restaurant:${restaurantId}:service-items`);
+    await this.bumpMarketPublicCacheVersion();
     return this.mapServiceItem(row);
   }
 
@@ -555,6 +558,7 @@ export class RestaurantsService {
     if (!row) return null;
 
     await this.cache.delete(`restaurant:${restaurantId}:service-items`);
+    await this.bumpMarketPublicCacheVersion();
     return this.mapServiceItem(row);
   }
 
@@ -581,6 +585,7 @@ export class RestaurantsService {
     if (!row) return false;
 
     await this.cache.delete(`restaurant:${restaurantId}:service-items`);
+    await this.bumpMarketPublicCacheVersion();
     return true;
   }
 
@@ -802,6 +807,15 @@ export class RestaurantsService {
     for (const pattern of patterns) {
       await this.cache.clear(pattern);
     }
+  }
+
+  private async bumpMarketPublicCacheVersion(): Promise<void> {
+    const kv = this.env.CACHE_KV;
+    if (!kv) return;
+
+    const current = Number(await kv.get(MARKET_CACHE_VERSION_KEY));
+    const next = Number.isFinite(current) ? current + 1 : Date.now();
+    await kv.put(MARKET_CACHE_VERSION_KEY, String(next));
   }
 
   /**

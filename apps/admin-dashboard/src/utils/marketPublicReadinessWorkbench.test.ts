@@ -17,9 +17,13 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
     publicReadiness: {
       ready: true,
       score: 100,
-      completedCount: 5,
-      totalCount: 5,
+      completedCount: 7,
+      totalCount: 7,
       issues: [],
+    },
+    catalogCoverage: {
+      searchableProductCount: 18,
+      publicServiceCount: 4,
     },
     ...overrides,
   };
@@ -34,10 +38,10 @@ describe("market public readiness workbench", () => {
           id: "market-2",
           publicReadiness: {
             ready: false,
-            score: 60,
+            score: 43,
             completedCount: 3,
-            totalCount: 5,
-            issues: [{ key: "vendors", severity: "required" }],
+            totalCount: 7,
+            issues: [{ key: "products", severity: "required" }],
           },
         }),
         market({ id: "market-3", publicReadiness: undefined }),
@@ -47,7 +51,7 @@ describe("market public readiness workbench", () => {
       ready: 1,
       blocked: 1,
       unknown: 1,
-      averageScore: 80,
+      averageScore: 72,
     });
   });
 
@@ -61,10 +65,10 @@ describe("market public readiness workbench", () => {
         district: "北區",
         publicReadiness: {
           ready: false,
-          score: 60,
+          score: 43,
           completedCount: 3,
-          totalCount: 5,
-          issues: [{ key: "vendors", severity: "required" }],
+          totalCount: 7,
+          issues: [{ key: "products", severity: "required" }],
         },
       }),
     ];

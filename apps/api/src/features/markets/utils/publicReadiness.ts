@@ -3,7 +3,9 @@ export type MarketPublicReadinessIssueKey =
   | "location"
   | "openingHours"
   | "image"
-  | "vendors";
+  | "vendors"
+  | "products"
+  | "services";
 
 export interface MarketPublicReadinessIssue {
   key: MarketPublicReadinessIssueKey;
@@ -22,6 +24,8 @@ export interface MarketPublicReadinessInput {
   logoUrl?: string | null;
   imageUrls?: string[] | null;
   vendorCount: number;
+  searchableProductCount?: number;
+  publicServiceCount?: number;
 }
 
 export interface MarketPublicReadinessResult {
@@ -68,6 +72,16 @@ export function evaluateMarketPublicReadiness(
       key: "vendors" as const,
       severity: "required" as const,
       passed: input.vendorCount > 0,
+    },
+    {
+      key: "products" as const,
+      severity: "required" as const,
+      passed: (input.searchableProductCount ?? 0) > 0,
+    },
+    {
+      key: "services" as const,
+      severity: "recommended" as const,
+      passed: (input.publicServiceCount ?? 0) > 0,
     },
   ];
 

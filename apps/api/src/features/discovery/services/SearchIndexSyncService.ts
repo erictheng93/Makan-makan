@@ -10,6 +10,7 @@ import {
 import { toCents } from "../../../shared/utils/money";
 
 const KV_SEARCH_VERSION_KEY = "search:query:version";
+const MARKET_CACHE_VERSION_KEY = "markets:version";
 
 export class SearchIndexSyncService {
   private db;
@@ -205,5 +206,12 @@ export class SearchIndexSyncService {
 
   private async bumpSearchVersion(): Promise<void> {
     await this.kv.put(KV_SEARCH_VERSION_KEY, String(Date.now()));
+    await this.bumpMarketPublicCacheVersion();
+  }
+
+  private async bumpMarketPublicCacheVersion(): Promise<void> {
+    const current = Number(await this.kv.get(MARKET_CACHE_VERSION_KEY));
+    const next = Number.isFinite(current) ? current + 1 : Date.now();
+    await this.kv.put(MARKET_CACHE_VERSION_KEY, String(next));
   }
 }

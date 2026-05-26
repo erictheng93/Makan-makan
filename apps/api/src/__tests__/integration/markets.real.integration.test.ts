@@ -7,6 +7,7 @@ import { buildSeedHelpers } from "./helpers/seed-helper";
 import {
   dishSearchIndex,
   markets,
+  restaurantServiceItems,
   restaurantMarketMemberships,
 } from "@makanmakan/database";
 import { eq } from "drizzle-orm";
@@ -108,6 +109,33 @@ describe("Markets API — real integration", () => {
       isPrimary: true,
       joinedAt: new Date(),
     });
+    const menuItem = await seed.menuItem(String(restaurant.id), {
+      name: "Fengjia Chicken",
+      price: 95,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: menuItem.id,
+      restaurantId: String(restaurant.id),
+      dishName: "Fengjia Chicken",
+      dishNameNormalized: "fengjiachicken",
+      price: 95,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: 24.1765,
+      longitude: 120.6467,
+      updatedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(restaurant.id),
+      name: "外帶預訂",
+      serviceType: "pickup",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+    });
 
     const listRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets?city=台中市&district=西屯區"),
@@ -121,6 +149,10 @@ describe("Markets API — real integration", () => {
       slug: "fengjia-night-market",
       name: "逢甲夜市",
       vendorCount: 1,
+      catalogCoverage: {
+        searchableProductCount: 1,
+        publicServiceCount: 1,
+      },
       imageUrls: [
         "https://example.com/fengjia-gallery-1.jpg",
         "https://example.com/fengjia-gallery-2.jpg",
@@ -133,8 +165,8 @@ describe("Markets API — real integration", () => {
     expect(listJson.data.markets[0].publicReadiness).toMatchObject({
       ready: true,
       score: 100,
-      completedCount: 5,
-      totalCount: 5,
+      completedCount: 7,
+      totalCount: 7,
       issues: [],
     });
 
@@ -145,11 +177,15 @@ describe("Markets API — real integration", () => {
     const detailJson: any = await detailRes.json();
     expect(detailJson.data.market.slug).toBe("fengjia-night-market");
     expect(detailJson.data.vendorCount).toBe(1);
+    expect(detailJson.data.catalogCoverage).toEqual({
+      searchableProductCount: 1,
+      publicServiceCount: 1,
+    });
     expect(detailJson.data.publicReadiness).toMatchObject({
       ready: true,
       score: 100,
-      completedCount: 5,
-      totalCount: 5,
+      completedCount: 7,
+      totalCount: 7,
       issues: [],
     });
   });
@@ -214,13 +250,15 @@ describe("Markets API — real integration", () => {
       ready: false,
       score: 0,
       completedCount: 0,
-      totalCount: 5,
+      totalCount: 7,
       issues: [
         { key: "description", severity: "required" },
         { key: "location", severity: "required" },
         { key: "openingHours", severity: "required" },
         { key: "image", severity: "recommended" },
         { key: "vendors", severity: "required" },
+        { key: "products", severity: "required" },
+        { key: "services", severity: "recommended" },
       ],
     });
   });
@@ -537,6 +575,9 @@ describe("Markets API — real integration", () => {
       longitude: 120.6842,
       updatedAt: new Date(),
     });
+    const initialMarketCacheVersion = Number(
+      (await testApp.testDb.bindings.CACHE_KV.get("markets:version")) ?? 0,
+    );
 
     const updateRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/restaurants/${restaurant.id}`, {
@@ -573,6 +614,10 @@ describe("Markets API — real integration", () => {
       latitude: 24.15,
       longitude: 120.69,
     });
+    const nextMarketCacheVersion = Number(
+      await testApp.testDb.bindings.CACHE_KV.get("markets:version"),
+    );
+    expect(nextMarketCacheVersion).toBeGreaterThan(initialMarketCacheVersion);
   });
 
   it("syncs discovery index when market public availability changes", async () => {
