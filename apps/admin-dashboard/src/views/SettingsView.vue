@@ -465,6 +465,38 @@
                 {{ market.name }} · {{ market.city }} {{ market.district }}
               </option>
             </select>
+            <div
+              v-if="selectedMarketReadiness"
+              class="mt-3 rounded-lg border p-3 text-sm"
+              :class="
+                selectedMarketReadiness.ready
+                  ? 'border-green-200 bg-green-50 text-green-800'
+                  : 'border-amber-200 bg-amber-50 text-amber-900'
+              "
+            >
+              <div class="flex items-center justify-between gap-3">
+                <span class="font-medium">
+                  {{ selectedMarketReadinessSummary.text }}
+                </span>
+                <span class="text-xs">
+                  {{ selectedMarketReadiness.completedCount }}/{{
+                    selectedMarketReadiness.totalCount
+                  }}
+                </span>
+              </div>
+              <div
+                v-if="selectedMarketReadiness.issues.length > 0"
+                class="mt-2 flex flex-wrap gap-2"
+              >
+                <span
+                  v-for="issue in selectedMarketReadiness.issues"
+                  :key="issue.key"
+                  class="rounded-full bg-white/80 px-2 py-0.5 text-xs"
+                >
+                  {{ publicReadinessIssueLabel(issue.key) }}
+                </span>
+              </div>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -1702,6 +1734,10 @@ import {
   evaluateMarketplaceReadiness,
   type MarketplaceReadinessIssueKey,
 } from "@/utils/marketplaceReadiness";
+import {
+  marketPublicReadinessSummary,
+  publicReadinessIssueLabel,
+} from "@/utils/marketPublicReadiness";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
 import type { CurrencyCode } from "@makanmakan/shared-types";
 
@@ -1910,6 +1946,20 @@ const marketplaceReadinessItems = computed(() => {
     };
   });
 });
+
+const selectedMarket = computed(() =>
+  availableMarkets.value.find(
+    (market) => market.id === marketJoinForm.marketId,
+  ),
+);
+
+const selectedMarketReadiness = computed(
+  () => selectedMarket.value?.publicReadiness,
+);
+
+const selectedMarketReadinessSummary = computed(() =>
+  marketPublicReadinessSummary(selectedMarketReadiness.value),
+);
 
 // 預設設定
 const defaultSettings = { ...settings };

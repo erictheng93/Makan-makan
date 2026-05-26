@@ -1,4 +1,5 @@
 import { api, unwrapApiPayload } from "@/services/api";
+import type { MarketPublicReadiness } from "@/utils/marketPublicReadiness";
 
 export interface MarketListItem {
   id: string;
@@ -8,6 +9,7 @@ export interface MarketListItem {
   city: string;
   district: string;
   vendorCount?: number;
+  publicReadiness?: MarketPublicReadiness;
 }
 
 export interface RestaurantMarketMembership {
