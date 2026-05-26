@@ -393,9 +393,9 @@ function editService(service: RestaurantServiceItem) {
   form.name = service.name;
   form.description = service.description ?? "";
   form.serviceType = service.serviceType;
-  form.priceCents = service.priceCents;
+  form.priceCents = service.priceCents ?? undefined;
   form.priceLabel = service.priceLabel ?? "";
-  form.durationMinutes = service.durationMinutes;
+  form.durationMinutes = service.durationMinutes ?? undefined;
   form.requiresBooking = service.requiresBooking;
   form.bookingUrl = service.bookingUrl ?? "";
   form.sortOrder = service.sortOrder;

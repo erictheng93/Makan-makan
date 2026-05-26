@@ -123,13 +123,19 @@ async function handleExport() {
     exportProgress.value = 100;
 
     if (result.success) {
-      emit("exported", result.filename);
+      if (result.filename) {
+        emit("exported", result.filename);
+      }
       setTimeout(() => {
         emit("close");
       }, 1000);
     } else {
       console.error("Export failed:", result.error);
-      toast.error(t("exportReport.exportFailed", { error: result.error }));
+      toast.error(
+        t("exportReport.exportFailed", {
+          error: result.error ?? t("exportReport.exportError"),
+        }),
+      );
     }
   } catch (error) {
     console.error("Export error:", error);

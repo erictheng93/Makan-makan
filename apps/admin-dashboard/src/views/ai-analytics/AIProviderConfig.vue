@@ -355,7 +355,9 @@ const handleSaveConfig = async () => {
               >
                 {{
                   testResult.success
-                    ? t("aiConfig.responseLatency", { ms: testResult.latency })
+                    ? t("aiConfig.responseLatency", {
+                        ms: testResult.latency ?? 0,
+                      })
                     : testResult.error || t("aiConfig.checkApiKeyAndNetwork")
                 }}
               </div>

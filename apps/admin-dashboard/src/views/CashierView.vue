@@ -721,7 +721,7 @@
           <p class="text-gray-600 mb-6">
             {{
               t("cashier.orderCompleted", {
-                orderNumber: completedOrder?.orderNumber,
+                orderNumber: completedOrder?.orderNumber ?? "",
               })
             }}
           </p>

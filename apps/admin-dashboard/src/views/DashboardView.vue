@@ -7,7 +7,7 @@
           {{ t("dashboard.title") }}
         </h1>
         <p class="text-gray-600">
-          {{ t("dashboard.welcome", { username: user?.username }) }}
+          {{ t("dashboard.welcome", { username: user?.username ?? "" }) }}
         </p>
       </div>
       <div class="flex items-center space-x-3">
