@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, count, sql } from "drizzle-orm";
+import { eq, and, desc, asc, count, sql, isNull } from "drizzle-orm";
 import { BaseService } from "./base";
 import { restaurants, categories, menuItems } from "../schema";
 import type {
@@ -91,6 +91,12 @@ const DIETARY_PREFERENCE_KEYS = [
   "localSource",
 ] as const;
 
+const publicCategoryConditions = [
+  eq(categories.isActive, true),
+  eq(categories.isVisible, true),
+  isNull(categories.deletedAt),
+];
+
 export class MenuService extends BaseService {
   // 獲取完整菜單結構
   async getMenu(
@@ -113,10 +119,7 @@ export class MenuService extends BaseService {
             where: eq(restaurants.id, restaurantId),
             with: {
               categories: {
-                where: and(
-                  eq(categories.isActive, true),
-                  eq(categories.isVisible, true),
-                ),
+                where: and(...publicCategoryConditions),
                 orderBy: asc(categories.sortOrder),
                 with: {
                   menuItems: {
@@ -173,11 +176,13 @@ export class MenuService extends BaseService {
       const items = await this.db
         .select(menuItemSelectColumns)
         .from(menuItems)
+        .innerJoin(categories, eq(menuItems.categoryId, categories.id))
         .where(
           and(
             eq(menuItems.restaurantId, restaurantId),
             eq(menuItems.isFeatured, true),
             eq(menuItems.isAvailable, true),
+            ...publicCategoryConditions,
           ),
         )
         .orderBy(desc(menuItems.orderCount), desc(menuItems.rating))
@@ -198,10 +203,12 @@ export class MenuService extends BaseService {
       const items = await this.db
         .select(menuItemSelectColumns)
         .from(menuItems)
+        .innerJoin(categories, eq(menuItems.categoryId, categories.id))
         .where(
           and(
             eq(menuItems.restaurantId, restaurantId),
             eq(menuItems.isAvailable, true),
+            ...publicCategoryConditions,
           ),
         )
         .orderBy(desc(menuItems.orderCount), desc(menuItems.rating))
@@ -222,7 +229,10 @@ export class MenuService extends BaseService {
   ) {
     try {
       const { offset } = this.createPagination(page, limit);
-      const conditions = [eq(menuItems.restaurantId, restaurantId)];
+      const conditions = [
+        eq(menuItems.restaurantId, restaurantId),
+        ...publicCategoryConditions,
+      ];
 
       // 建構查詢條件
       if (filters.categoryId) {
@@ -276,6 +286,7 @@ export class MenuService extends BaseService {
       const items = await this.db
         .select(menuItemSelectColumns)
         .from(menuItems)
+        .innerJoin(categories, eq(menuItems.categoryId, categories.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(
           desc(menuItems.isFeatured),
@@ -289,6 +300,7 @@ export class MenuService extends BaseService {
       const countResult = await this.db
         .select({ totalCount: count() })
         .from(menuItems)
+        .innerJoin(categories, eq(menuItems.categoryId, categories.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined);
 
       const totalCount = countResult?.[0]?.totalCount ?? 0;

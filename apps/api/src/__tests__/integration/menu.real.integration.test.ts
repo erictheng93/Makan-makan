@@ -4,6 +4,7 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { categories } from "@makanmakan/database";
 describe("Menu API — real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;
@@ -106,6 +107,125 @@ describe("Menu API — real integration", () => {
     expect(availableFound).toBeTruthy();
     // Unavailable item should NOT appear in the public (unauthenticated) response.
     expect(unavailableFound).toBeUndefined();
+  });
+
+  it("hides public menu items that belong to private categories", async () => {
+    const restaurant = await seed.restaurant();
+    const now = new Date();
+    const [visibleCategory, inactiveCategory, hiddenCategory, deletedCategory] =
+      await testApp.testDb.drizzle
+        .insert(categories)
+        .values([
+          {
+            restaurantId: String(restaurant.id),
+            name: "Visible Public Category",
+            sortOrder: 0,
+            isActive: true,
+            isVisible: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "Inactive Private Category",
+            sortOrder: 1,
+            isActive: false,
+            isVisible: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "Hidden Private Category",
+            sortOrder: 2,
+            isActive: true,
+            isVisible: false,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "Deleted Private Category",
+            sortOrder: 3,
+            isActive: true,
+            isVisible: true,
+            deletedAt: now,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ])
+        .returning();
+
+    await seed.menuItem(restaurant.id, {
+      categoryId: visibleCategory.id,
+      name: "Public Category Item",
+      isAvailable: true,
+      isFeatured: true,
+      orderCount: 10,
+    });
+    await seed.menuItem(restaurant.id, {
+      categoryId: inactiveCategory.id,
+      name: "Inactive Category Item",
+      isAvailable: true,
+      isFeatured: true,
+      orderCount: 40,
+    });
+    await seed.menuItem(restaurant.id, {
+      categoryId: hiddenCategory.id,
+      name: "Hidden Category Item",
+      isAvailable: true,
+      isFeatured: true,
+      orderCount: 30,
+    });
+    await seed.menuItem(restaurant.id, {
+      categoryId: deletedCategory.id,
+      name: "Deleted Category Item",
+      isAvailable: true,
+      isFeatured: true,
+      orderCount: 20,
+    });
+
+    const [menuRes, featuredRes, popularRes, searchRes] = await Promise.all([
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}`),
+      ),
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}/featured`),
+      ),
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}/popular`),
+      ),
+      testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/menu/${restaurant.id}/search?search=Category+Item`,
+        ),
+      ),
+    ]);
+
+    expect([
+      menuRes.status,
+      featuredRes.status,
+      popularRes.status,
+      searchRes.status,
+    ]).toEqual([200, 200, 200, 200]);
+
+    const menuJson: any = await menuRes.json();
+    const featuredJson: any = await featuredRes.json();
+    const popularJson: any = await popularRes.json();
+    const searchJson: any = await searchRes.json();
+
+    expect(menuJson.data.menuItems.map((item: any) => item.name)).toEqual([
+      "Public Category Item",
+    ]);
+    expect(featuredJson.data.map((item: any) => item.name)).toEqual([
+      "Public Category Item",
+    ]);
+    expect(popularJson.data.map((item: any) => item.name)).toEqual([
+      "Public Category Item",
+    ]);
+    expect(searchJson.data.map((item: any) => item.name)).toEqual([
+      "Public Category Item",
+    ]);
   });
 
   it("does not expose public menus for inactive or deleted restaurants", async () => {
