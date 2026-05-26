@@ -538,6 +538,8 @@ const filterOptions: Array<{ value: MarketReadinessFilter; label: string }> = [
   { value: "all", label: "全部" },
   { value: "ready", label: "可上架" },
   { value: "blocked", label: "需補齊" },
+  { value: "missingProducts", label: "缺商品" },
+  { value: "missingServices", label: "缺服務" },
   { value: "unknown", label: "未知" },
 ];
 const vendorImportFormatOptions: Array<{

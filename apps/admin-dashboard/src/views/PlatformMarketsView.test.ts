@@ -100,6 +100,80 @@ describe("PlatformMarketsView", () => {
     });
   });
 
+  it("filters readiness rows by product or service catalog gaps", async () => {
+    vi.mocked(marketsService.listPlatformReadiness).mockResolvedValue([
+      {
+        id: "market-products",
+        slug: "products-gap",
+        name: "缺商品市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        vendorCount: 1,
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 1,
+          vendorsWithSearchableProducts: 0,
+          vendorsMissingSearchableProducts: 1,
+          vendorsWithPublicServices: 1,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 71,
+          completedCount: 5,
+          totalCount: 7,
+          issues: [{ key: "products", severity: "required" }],
+        },
+      },
+      {
+        id: "market-services",
+        slug: "services-gap",
+        name: "缺服務市場",
+        type: "commercial_district",
+        city: "台中市",
+        district: "北區",
+        vendorCount: 1,
+        catalogCoverage: {
+          searchableProductCount: 1,
+          publicServiceCount: 0,
+          vendorsWithSearchableProducts: 1,
+          vendorsMissingSearchableProducts: 0,
+          vendorsWithPublicServices: 0,
+          vendorsMissingPublicServices: 1,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 71,
+          completedCount: 5,
+          totalCount: 7,
+          issues: [{ key: "services", severity: "recommended" }],
+        },
+      },
+    ]);
+
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "缺商品")!
+      .trigger("click");
+    expect(wrapper.text()).toContain("缺商品市場");
+    expect(wrapper.text()).not.toContain("缺服務市場");
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "缺服務")!
+      .trigger("click");
+    expect(wrapper.text()).not.toContain("缺商品市場");
+    expect(wrapper.text()).toContain("缺服務市場");
+  });
+
   it("imports vendors into the selected market from JSON", async () => {
     vi.mocked(marketsService.importVendors).mockResolvedValue({
       createdRestaurants: 1,

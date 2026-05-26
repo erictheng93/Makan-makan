@@ -1,6 +1,12 @@
 import type { MarketListItem } from "@/services/marketsService";
 
-export type MarketReadinessFilter = "all" | "ready" | "blocked" | "unknown";
+export type MarketReadinessFilter =
+  | "all"
+  | "ready"
+  | "blocked"
+  | "unknown"
+  | "missingProducts"
+  | "missingServices";
 
 export function marketReadinessStats(markets: MarketListItem[]) {
   const ready = markets.filter(
@@ -54,7 +60,11 @@ export function filterMarketsByReadiness(
       filter === "all" ||
       (filter === "ready" && market.publicReadiness?.ready === true) ||
       (filter === "blocked" && market.publicReadiness?.ready === false) ||
-      (filter === "unknown" && !market.publicReadiness);
+      (filter === "unknown" && !market.publicReadiness) ||
+      (filter === "missingProducts" &&
+        (market.catalogCoverage?.vendorsMissingSearchableProducts ?? 0) > 0) ||
+      (filter === "missingServices" &&
+        (market.catalogCoverage?.vendorsMissingPublicServices ?? 0) > 0);
 
     if (!readinessMatches) return false;
     if (!normalizedQuery) return true;

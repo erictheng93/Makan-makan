@@ -94,6 +94,63 @@ describe("market public readiness workbench", () => {
     );
   });
 
+  it("filters markets by catalog gap type", () => {
+    const markets = [
+      market({
+        id: "market-products",
+        slug: "products-gap",
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 3,
+          vendorsWithSearchableProducts: 0,
+          vendorsMissingSearchableProducts: 4,
+          vendorsWithPublicServices: 4,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+      }),
+      market({
+        id: "market-services",
+        slug: "services-gap",
+        catalogCoverage: {
+          searchableProductCount: 10,
+          publicServiceCount: 0,
+          vendorsWithSearchableProducts: 4,
+          vendorsMissingSearchableProducts: 0,
+          vendorsWithPublicServices: 0,
+          vendorsMissingPublicServices: 4,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+      }),
+      market({
+        id: "market-complete",
+        slug: "complete",
+        catalogCoverage: {
+          searchableProductCount: 10,
+          publicServiceCount: 3,
+          vendorsWithSearchableProducts: 4,
+          vendorsMissingSearchableProducts: 0,
+          vendorsWithPublicServices: 4,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+      }),
+    ];
+
+    expect(filterMarketsByReadiness(markets, "missingProducts")).toHaveLength(
+      1,
+    );
+    expect(filterMarketsByReadiness(markets, "missingProducts")[0].slug).toBe(
+      "products-gap",
+    );
+    expect(filterMarketsByReadiness(markets, "missingServices")[0].slug).toBe(
+      "services-gap",
+    );
+  });
+
   it("summarizes vendor-level catalog readiness gaps", () => {
     const summary = marketReadinessStats([
       market(),
