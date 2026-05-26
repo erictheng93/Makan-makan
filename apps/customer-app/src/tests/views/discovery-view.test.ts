@@ -176,6 +176,42 @@ describe("DiscoveryView", () => {
     });
   });
 
+  it("uses the selected market name as shop menu return context", async () => {
+    vi.mocked(marketsApi.listMarkets).mockResolvedValueOnce({
+      markets: [
+        {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    } as never);
+    const store = discoveryStore({
+      filters: { marketId: "market-1" },
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("逢甲夜市");
+    });
+    await wrapper.get('[data-testid="select-dish"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "restaurant-1" },
+      query: {
+        itemId: "42",
+        categoryName: "小吃",
+        returnPath: "/discover?q=%E5%A4%96%E9%80%81",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
   it("starts takeaway for a dish result with the item deep link preserved", async () => {
     vi.mocked(discoveryApi.getTakeawayEligibility).mockResolvedValueOnce({
       eligible: true,
@@ -232,6 +268,62 @@ describe("DiscoveryView", () => {
         serviceItemId: "7",
         returnPath: "/discover?q=%E5%A4%96%E9%80%81",
         returnLabel: "搜尋結果",
+      },
+    });
+  });
+
+  it("uses the selected market name when opening a service result", async () => {
+    vi.mocked(marketsApi.listMarkets).mockResolvedValueOnce({
+      markets: [
+        {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    } as never);
+    const store = discoveryStore({
+      filters: { marketId: "market-1", serviceType: "pickup" },
+      dishResults: [],
+      serviceResults: [
+        {
+          serviceItemId: 7,
+          name: "代客切水果",
+          description: "現場代切並分裝",
+          serviceType: "pickup",
+          priceCents: 3000,
+          priceLabel: null,
+          durationMinutes: null,
+          requiresBooking: false,
+          bookingUrl: null,
+          tags: ["水果"],
+          restaurantId: "service-restaurant-1",
+          restaurantName: "水果攤",
+          district: "西屯區",
+          city: "台中市",
+          isOpen: true,
+        },
+      ],
+      total: 1,
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("逢甲夜市");
+    });
+    await wrapper.get('[data-testid="select-service"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "service-restaurant-1" },
+      query: {
+        serviceItemId: "7",
+        returnPath: "/discover?q=%E5%A4%96%E9%80%81",
+        returnLabel: "逢甲夜市",
       },
     });
   });

@@ -262,6 +262,13 @@ const categoryOptions = ref<string[]>([]);
 const serviceTypeOptions = ref<ServiceTypeFacet[]>([]);
 
 const selectedMarketId = computed(() => store.filters.marketId);
+const selectedMarketName = computed(() => {
+  const marketId = selectedMarketId.value;
+  if (!marketId) return "";
+  return (
+    marketOptions.value.find((market) => market.id === marketId)?.name ?? ""
+  );
+});
 const selectedCity = computed(() => store.filters.city);
 const cities = computed(() => marketAreas.value.map((area) => area.city));
 const districts = computed(() => {
@@ -282,7 +289,7 @@ function onDishSelect(dish: DishSearchResult) {
       ...shopMenuItemQuery(dish),
       ...shopMenuReturnQuery({
         path: route.fullPath,
-        label: "搜尋結果",
+        label: discoveryReturnLabel.value,
       }),
     },
   });
@@ -294,7 +301,7 @@ function onRestaurantSelect(restaurant: RestaurantListItem) {
     params: { restaurantId: restaurant.restaurantId },
     query: shopMenuReturnQuery({
       path: route.fullPath,
-      label: "搜尋結果",
+      label: discoveryReturnLabel.value,
     }),
   });
 }
@@ -307,11 +314,15 @@ function onServiceSelect(service: ServiceSearchResult) {
       ...shopMenuServiceQuery(service),
       ...shopMenuReturnQuery({
         path: route.fullPath,
-        label: "搜尋結果",
+        label: discoveryReturnLabel.value,
       }),
     },
   });
 }
+
+const discoveryReturnLabel = computed(
+  () => selectedMarketName.value || "搜尋結果",
+);
 
 function servicePriceLabel(service: ServiceSearchResult) {
   if (service.priceLabel) return service.priceLabel;
