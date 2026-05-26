@@ -42,6 +42,22 @@ export class MenuService implements IMenuService {
     this.db = drizzle(env.DB);
   }
 
+  async isPublicRestaurantAvailable(restaurantId: string): Promise<boolean> {
+    const [restaurant] = await this.db
+      .select({ id: restaurants.id })
+      .from(restaurants)
+      .where(
+        and(
+          eq(restaurants.id, restaurantId),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return Boolean(restaurant);
+  }
+
   async getMenu(
     restaurantId: string,
     options?: { includeUnavailable?: boolean },
@@ -49,19 +65,8 @@ export class MenuService implements IMenuService {
     try {
       this.logger.info("Fetching complete menu", { restaurantId });
       if (!options?.includeUnavailable) {
-        const [restaurant] = await this.db
-          .select({ id: restaurants.id })
-          .from(restaurants)
-          .where(
-            and(
-              eq(restaurants.id, restaurantId),
-              eq(restaurants.isActive, true),
-              isNull(restaurants.deletedAt),
-            ),
-          )
-          .limit(1);
-
-        if (!restaurant) return null;
+        const isPublic = await this.isPublicRestaurantAvailable(restaurantId);
+        if (!isPublic) return null;
       }
 
       const menu = await this.dbService.getMenu(restaurantId, options);

@@ -78,6 +78,10 @@ app.get(
     const { limit } = c.get("validatedQuery");
     const service = new MenuService(c.env);
 
+    if (!(await service.isPublicRestaurantAvailable(restaurantId))) {
+      throw notFound("Menu not found for restaurant", "MENU_NOT_FOUND");
+    }
+
     const items = await service.getFeaturedItems(restaurantId, limit);
 
     return c.json(createSuccessResponse(items), HTTP_STATUS.OK);
@@ -94,6 +98,10 @@ app.get(
     const { limit } = c.get("validatedQuery");
     const service = new MenuService(c.env);
 
+    if (!(await service.isPublicRestaurantAvailable(restaurantId))) {
+      throw notFound("Menu not found for restaurant", "MENU_NOT_FOUND");
+    }
+
     const items = await service.getPopularItems(restaurantId, limit);
 
     return c.json(createSuccessResponse(items), HTTP_STATUS.OK);
@@ -109,6 +117,10 @@ app.get(
     const { restaurantId } = c.get("validatedParams");
     const query = c.get("validatedQuery");
     const service = new MenuService(c.env);
+
+    if (!(await service.isPublicRestaurantAvailable(restaurantId))) {
+      throw notFound("Menu not found for restaurant", "MENU_NOT_FOUND");
+    }
 
     // Process price range
     const priceRange =

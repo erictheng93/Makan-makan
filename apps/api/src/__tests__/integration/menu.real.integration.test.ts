@@ -139,4 +139,45 @@ describe("Menu API — real integration", () => {
     expect(inactiveRes.status).toBe(404);
     expect(deletedRes.status).toBe(404);
   });
+
+  it("does not expose public menu helper endpoints for inactive or deleted restaurants", async () => {
+    const inactiveRestaurant = await seed.restaurant({
+      name: "Inactive Public Menu Helper Vendor",
+      isActive: false,
+    });
+    const deletedRestaurant = await seed.restaurant({
+      name: "Deleted Public Menu Helper Vendor",
+      deletedAt: new Date(),
+    });
+
+    await seed.menuItem(inactiveRestaurant.id, {
+      isAvailable: true,
+      isFeatured: true,
+      isPopular: true,
+      name: "Inactive Helper Item",
+    });
+    await seed.menuItem(deletedRestaurant.id, {
+      isAvailable: true,
+      isFeatured: true,
+      isPopular: true,
+      name: "Deleted Helper Item",
+    });
+
+    const urls = [
+      `https://test/api/v1/menu/${inactiveRestaurant.id}/featured`,
+      `https://test/api/v1/menu/${inactiveRestaurant.id}/popular`,
+      `https://test/api/v1/menu/${inactiveRestaurant.id}/search?search=Helper`,
+      `https://test/api/v1/menu/${deletedRestaurant.id}/featured`,
+      `https://test/api/v1/menu/${deletedRestaurant.id}/popular`,
+      `https://test/api/v1/menu/${deletedRestaurant.id}/search?search=Helper`,
+    ];
+
+    const responses = await Promise.all(
+      urls.map((url) => testApp.app.fetch(new Request(url))),
+    );
+
+    expect(responses.map((res) => res.status)).toEqual([
+      404, 404, 404, 404, 404, 404,
+    ]);
+  });
 });
