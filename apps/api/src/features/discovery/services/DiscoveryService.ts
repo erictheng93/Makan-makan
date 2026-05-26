@@ -845,6 +845,14 @@ export class DiscoveryService {
           isNull(menuItems.deletedAt),
           eq(restaurants.isActive, true),
           isNull(restaurants.deletedAt),
+          or(
+            isNull(menuItems.categoryId),
+            and(
+              eq(categories.isActive, true),
+              eq(categories.isVisible, true),
+              isNull(categories.deletedAt),
+            ),
+          ),
         ),
       )
       .orderBy(asc(categories.sortOrder), asc(menuItems.sortOrder));

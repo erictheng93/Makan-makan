@@ -5,6 +5,7 @@ import {
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
 import {
+  categories,
   dishSearchIndex,
   menuItems,
   markets,
@@ -1346,6 +1347,94 @@ describe("Discovery API — real integration", () => {
     ]);
     expect(inactiveData.items).toEqual([]);
     expect(deletedData.items).toEqual([]);
+  });
+
+  it("excludes discovery menu items from inactive hidden or deleted categories", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Category Gated Discovery Menu Vendor",
+    });
+    const now = new Date();
+    const [visibleCategory, inactiveCategory, hiddenCategory, deletedCategory] =
+      await testApp.testDb.drizzle
+        .insert(categories)
+        .values([
+          {
+            restaurantId: String(restaurant.id),
+            name: "公開分類",
+            sortOrder: 0,
+            isActive: true,
+            isVisible: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "停用分類",
+            sortOrder: 1,
+            isActive: false,
+            isVisible: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "隱藏分類",
+            sortOrder: 2,
+            isActive: true,
+            isVisible: false,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "刪除分類",
+            sortOrder: 3,
+            isActive: true,
+            isVisible: true,
+            deletedAt: now,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ])
+        .returning();
+
+    await seed.menuItem(String(restaurant.id), {
+      name: "公開分類雞排",
+      categoryId: visibleCategory.id,
+      isAvailable: true,
+      sortOrder: 1,
+    });
+    await seed.menuItem(String(restaurant.id), {
+      name: "停用分類雞排",
+      categoryId: inactiveCategory.id,
+      isAvailable: true,
+      sortOrder: 1,
+    });
+    await seed.menuItem(String(restaurant.id), {
+      name: "隱藏分類雞排",
+      categoryId: hiddenCategory.id,
+      isAvailable: true,
+      sortOrder: 1,
+    });
+    await seed.menuItem(String(restaurant.id), {
+      name: "刪除分類雞排",
+      categoryId: deletedCategory.id,
+      isAvailable: true,
+      sortOrder: 1,
+    });
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants/${restaurant.id}/menu`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.items.map((item: any) => item.name)).toEqual(["公開分類雞排"]);
+    expect(data.items[0]).toMatchObject({
+      category_name: "公開分類",
+    });
   });
 
   it("scopes dish search by city when districts have the same name", async () => {
