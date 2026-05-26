@@ -1285,6 +1285,68 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("only exposes discovery menu items for active public restaurants", async () => {
+    const activeRestaurant = await seed.restaurant({
+      name: "Active Discovery Menu Vendor",
+    });
+    const inactiveRestaurant = await seed.restaurant({
+      name: "Inactive Discovery Menu Vendor",
+      isActive: false,
+    });
+    const deletedRestaurant = await seed.restaurant({
+      name: "Deleted Discovery Menu Vendor",
+      deletedAt: new Date(),
+    });
+
+    await seed.menuItem(String(activeRestaurant.id), {
+      name: "公開菜單雞排",
+      isAvailable: true,
+      sortOrder: 1,
+    });
+    await seed.menuItem(String(inactiveRestaurant.id), {
+      name: "停用店家雞排",
+      isAvailable: true,
+      sortOrder: 1,
+    });
+    await seed.menuItem(String(deletedRestaurant.id), {
+      name: "刪除店家雞排",
+      isAvailable: true,
+      sortOrder: 1,
+    });
+
+    const [activeRes, inactiveRes, deletedRes] = await Promise.all([
+      testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/discovery/restaurants/${activeRestaurant.id}/menu`,
+        ),
+      ),
+      testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/discovery/restaurants/${inactiveRestaurant.id}/menu`,
+        ),
+      ),
+      testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/discovery/restaurants/${deletedRestaurant.id}/menu`,
+        ),
+      ),
+    ]);
+
+    expect(activeRes.status).toBe(200);
+    expect(inactiveRes.status).toBe(200);
+    expect(deletedRes.status).toBe(200);
+
+    const activeData = ((await activeRes.json()) as ApiTestResponse).data;
+    const inactiveData = ((await inactiveRes.json()) as ApiTestResponse).data;
+    const deletedData = ((await deletedRes.json()) as ApiTestResponse).data;
+
+    expect(activeData.items.map((item: any) => item.name)).toEqual([
+      "公開菜單雞排",
+    ]);
+    expect(inactiveData.items).toEqual([]);
+    expect(deletedData.items).toEqual([]);
+  });
+
   it("scopes dish search by city when districts have the same name", async () => {
     const taipeiRestaurant = await seed.restaurant({
       name: "Taipei Zhongshan Vendor",

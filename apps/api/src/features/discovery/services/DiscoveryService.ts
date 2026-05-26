@@ -824,12 +824,15 @@ export class DiscoveryService {
         category_name: categories.name,
       })
       .from(menuItems)
+      .innerJoin(restaurants, eq(menuItems.restaurantId, restaurants.id))
       .leftJoin(categories, eq(menuItems.categoryId, categories.id))
       .where(
         and(
           eq(menuItems.restaurantId, restaurantId),
           eq(menuItems.isAvailable, true),
           isNull(menuItems.deletedAt),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
         ),
       )
       .orderBy(asc(categories.sortOrder), asc(menuItems.sortOrder));
