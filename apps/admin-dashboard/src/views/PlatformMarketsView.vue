@@ -192,6 +192,19 @@
                   {{
                     vendorGapNames(market.catalogCoverage.missingProductVendors)
                   }}
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <button
+                      v-for="vendor in market.catalogCoverage
+                        .missingProductVendors"
+                      :key="`product-${vendor.restaurantId}`"
+                      type="button"
+                      class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                      :data-testid="`manage-products-${vendor.restaurantId}`"
+                      @click="manageVendorGap(vendor, 'products')"
+                    >
+                      補商品
+                    </button>
+                  </div>
                 </div>
                 <div
                   v-if="market.catalogCoverage?.missingServiceVendors?.length"
@@ -200,6 +213,19 @@
                   {{
                     vendorGapNames(market.catalogCoverage.missingServiceVendors)
                   }}
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <button
+                      v-for="vendor in market.catalogCoverage
+                        .missingServiceVendors"
+                      :key="`service-${vendor.restaurantId}`"
+                      type="button"
+                      class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                      :data-testid="`manage-services-${vendor.restaurantId}`"
+                      @click="manageVendorGap(vendor, 'services')"
+                    >
+                      補服務
+                    </button>
+                  </div>
                 </div>
               </div>
               <span
@@ -358,7 +384,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { marketsService, type MarketListItem } from "@/services/marketsService";
+import { useRouter } from "vue-router";
+import {
+  marketsService,
+  type MarketCatalogGapVendor,
+  type MarketListItem,
+} from "@/services/marketsService";
+import { useAuthStore } from "@/stores/auth";
 import {
   marketPublicReadinessSummary,
   publicReadinessIssueLabel,
@@ -374,6 +406,8 @@ import {
   type MarketPublicProfileForm,
 } from "@/utils/marketPublicProfileForm";
 
+const router = useRouter();
+const authStore = useAuthStore();
 const markets = ref<MarketListItem[]>([]);
 const isLoading = ref(true);
 const isSaving = ref(false);
@@ -456,6 +490,19 @@ function vendorGapNames(
         : vendor.name,
     )
     .join("、");
+}
+
+function manageVendorGap(
+  vendor: MarketCatalogGapVendor,
+  target: "products" | "services",
+) {
+  authStore.selectRestaurant(vendor.restaurantId, vendor.name);
+  if (target === "products") {
+    router.push({ name: "Menu" });
+    return;
+  }
+
+  router.push({ name: "Settings", query: { tab: "contact" } });
 }
 
 function startEditing(market: MarketListItem) {

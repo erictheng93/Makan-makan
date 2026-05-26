@@ -168,6 +168,7 @@ export const useAuthStore = defineStore("auth", () => {
         UserRole.CASHIER,
       ],
       PlatformOverview: [UserRole.ADMIN],
+      PlatformMarkets: [UserRole.ADMIN],
       Orders: [
         UserRole.ADMIN,
         UserRole.OWNER,

@@ -470,6 +470,7 @@ router.beforeEach(async (to, _, next) => {
   // Admin without restaurant context → redirect to platform overview
   const platformRoutes = [
     "PlatformOverview",
+    "PlatformMarkets",
     "Monitoring",
     "Settings",
     "AccountManagement",

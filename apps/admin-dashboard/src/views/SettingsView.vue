@@ -1730,7 +1730,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive, onMounted } from "vue";
+import { computed, ref, reactive, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
 import RestaurantServiceItemsManager from "@/components/settings/RestaurantServiceItemsManager.vue";
@@ -1760,6 +1761,7 @@ const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
+const route = useRoute();
 
 // 分頁選項
 const tabs = [
@@ -1773,7 +1775,12 @@ const tabs = [
   { id: "integrations", name: t("settings.tabs.integrations") },
 ];
 
-const activeTab = ref("general");
+const tabIds = tabs.map((tab) => tab.id);
+const activeTab = ref(
+  typeof route.query.tab === "string" && tabIds.includes(route.query.tab)
+    ? route.query.tab
+    : "general",
+);
 const showSuccessMessage = ref(false);
 
 // Shop QR 狀態
@@ -1910,6 +1917,15 @@ const settings = reactive({
     },
   },
 });
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (typeof tab === "string" && tabIds.includes(tab)) {
+      activeTab.value = tab;
+    }
+  },
+);
 
 // 外帶/外送設定
 const deliverySettings = reactive({
