@@ -4,7 +4,67 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-import { dishSearchIndex } from "@makanmakan/database";
+import {
+  dishSearchIndex,
+  markets,
+  restaurantMarketMemberships,
+} from "@makanmakan/database";
+import { eq } from "drizzle-orm";
+
+function withCsrf(
+  headers: Record<string, string> = {},
+): Record<string, string> {
+  const csrfToken = "c".repeat(64);
+  return {
+    host: "test",
+    origin: "https://test",
+    "x-csrf-token": csrfToken,
+    cookie: `csrf_token=${csrfToken}`,
+    ...headers,
+  };
+}
+
+function openAllWeek() {
+  const day = { open: "00:00", close: "23:59" };
+  return {
+    monday: day,
+    tuesday: day,
+    wednesday: day,
+    thursday: day,
+    friday: day,
+    saturday: day,
+    sunday: day,
+  };
+}
+
+async function seedMarket(
+  testApp: RealIntegrationTestApp,
+  overrides: Partial<typeof markets.$inferInsert> = {},
+) {
+  const now = new Date();
+  const [market] = await testApp.testDb.drizzle
+    .insert(markets)
+    .values({
+      id: `market-${crypto.randomUUID()}`,
+      slug: `discovery-market-${crypto.randomUUID()}`,
+      name: "Discovery Test Market",
+      type: "night_market",
+      description: "Discovery integration market",
+      city: "台中市",
+      district: "西屯區",
+      address: "台中市西屯區文華路",
+      latitude: 24.1764,
+      longitude: 120.6466,
+      openingHours: openAllWeek(),
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    })
+    .returning();
+  return market;
+}
+
 // ---------------------------------------------------------------------------
 // Helper: seed entries directly into dish_search_index.
 //
@@ -384,6 +444,87 @@ describe("Discovery API — real integration", () => {
 
     expect(foundAvailable).toBeTruthy();
     expect(foundUnavailable).toBeUndefined();
+  });
+
+  it("excludes inactive and deleted markets from full reindex market membership fields", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Discovery Reindex Admin",
+    });
+    await seed.user({
+      id: 31,
+      username: "discovery-reindex-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const restaurant = await seed.restaurant({
+      name: "Inactive Market Vendor",
+      district: "西屯區",
+      city: "台中市",
+      latitude: 24.1491,
+      longitude: 120.6842,
+      supportsTakeaway: true,
+    });
+    const activeMarket = await seedMarket(testApp, {
+      slug: "active-reindex-market",
+    });
+    const inactiveMarket = await seedMarket(testApp, {
+      slug: "inactive-reindex-market",
+      isActive: false,
+    });
+    const deletedMarket = await seedMarket(testApp, {
+      slug: "deleted-reindex-market",
+      deletedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(restaurant.id),
+        marketId: activeMarket.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        marketId: inactiveMarket.id,
+        isPrimary: true,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        marketId: deletedMarket.id,
+        joinedAt: new Date(),
+      },
+    ]);
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Reindex Market Bao",
+      price: 60,
+      priceCents: 6000,
+    });
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/reindex", {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+        }),
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const [indexed] = await testApp.testDb.drizzle
+      .select({
+        primaryMarketId: dishSearchIndex.primaryMarketId,
+        marketIds: dishSearchIndex.marketIds,
+      })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id))
+      .limit(1);
+
+    expect(indexed).toEqual({
+      primaryMarketId: null,
+      marketIds: [activeMarket.id],
+    });
   });
 
   // -------------------------------------------------------------------------

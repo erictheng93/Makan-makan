@@ -549,15 +549,21 @@ export class DiscoveryService {
         marketIds: sql<string | null>`(
           SELECT json_group_array(rmm.market_id)
           FROM restaurant_market_memberships rmm
-          WHERE rmm.restaurant_id = ${restaurants.id}
+          INNER JOIN markets m ON m.id = rmm.market_id
+          WHERE rmm.restaurant_id = restaurants.id
             AND rmm.left_at_ms IS NULL
+            AND m.is_active = 1
+            AND m.deleted_at_ms IS NULL
         )`,
         primaryMarketId: sql<string | null>`(
           SELECT rmm.market_id
           FROM restaurant_market_memberships rmm
-          WHERE rmm.restaurant_id = ${restaurants.id}
+          INNER JOIN markets m ON m.id = rmm.market_id
+          WHERE rmm.restaurant_id = restaurants.id
             AND rmm.left_at_ms IS NULL
             AND rmm.is_primary = 1
+            AND m.is_active = 1
+            AND m.deleted_at_ms IS NULL
           LIMIT 1
         )`,
       })
