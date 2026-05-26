@@ -31,7 +31,17 @@ const logger = new ConsoleLogger("RestaurantsRoutes");
 // Common schemas for parameters (reusing from validation middleware)
 const commonSchemas = {
   idParam: restaurantSchemas.params,
+  serviceItemParam: restaurantSchemas.serviceItemParams,
 };
+
+function assertCanManageRestaurant(
+  user: { role: number; restaurantId?: string | null },
+  restaurantId: string,
+) {
+  if (user.role === USER_ROLES.OWNER && user.restaurantId !== restaurantId) {
+    throw forbidden("Access denied");
+  }
+}
 
 /**
  * GET / - Get restaurants list (public API)
@@ -250,13 +260,19 @@ app.get(
   validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams");
+    const user = c.get("user");
+    const canManage =
+      user?.role === USER_ROLES.ADMIN ||
+      (user?.role === USER_ROLES.OWNER && user.restaurantId === id);
     const restaurantsService = new RestaurantsService(
       c.env.DB,
       c.env,
       c.env.CACHE_KV,
     );
 
-    const serviceItems = await restaurantsService.listPublicServiceItems(id);
+    const serviceItems = canManage
+      ? await restaurantsService.listManageableServiceItems(id)
+      : await restaurantsService.listPublicServiceItems(id);
 
     if (!serviceItems) {
       throw notFound("Restaurant not found");
@@ -266,6 +282,119 @@ app.get(
       {
         success: true,
         data: serviceItems,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
+ * POST /:id/service-items - Create a service item for a restaurant
+ */
+app.post(
+  "/:id/service-items",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam),
+  validateBody(restaurantSchemas.createServiceItem),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const body = c.get("validatedBody");
+    const user = c.get("user");
+    assertCanManageRestaurant(user, id);
+
+    const restaurantsService = new RestaurantsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+    const serviceItem = await restaurantsService.createServiceItem(id, body);
+
+    if (!serviceItem) {
+      throw notFound("Restaurant not found");
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: serviceItem,
+      },
+      HTTP_STATUS.CREATED,
+    );
+  },
+);
+
+/**
+ * PUT /:id/service-items/:serviceItemId - Update a restaurant service item
+ */
+app.put(
+  "/:id/service-items/:serviceItemId",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.serviceItemParam),
+  validateBody(restaurantSchemas.updateServiceItem),
+  async (c) => {
+    const { id, serviceItemId } = c.get("validatedParams");
+    const body = c.get("validatedBody");
+    const user = c.get("user");
+    assertCanManageRestaurant(user, id);
+
+    const restaurantsService = new RestaurantsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+    const serviceItem = await restaurantsService.updateServiceItem(
+      id,
+      serviceItemId,
+      body,
+    );
+
+    if (!serviceItem) {
+      throw notFound("Service item not found");
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: serviceItem,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
+ * DELETE /:id/service-items/:serviceItemId - Soft-delete a service item
+ */
+app.delete(
+  "/:id/service-items/:serviceItemId",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.serviceItemParam),
+  async (c) => {
+    const { id, serviceItemId } = c.get("validatedParams");
+    const user = c.get("user");
+    assertCanManageRestaurant(user, id);
+
+    const restaurantsService = new RestaurantsService(
+      c.env.DB,
+      c.env,
+      c.env.CACHE_KV,
+    );
+    const deleted = await restaurantsService.deleteServiceItem(
+      id,
+      serviceItemId,
+    );
+
+    if (!deleted) {
+      throw notFound("Service item not found");
+    }
+
+    return c.json(
+      {
+        success: true,
+        message: "Service item deleted successfully",
       },
       HTTP_STATUS.OK,
     );

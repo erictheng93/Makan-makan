@@ -6,6 +6,19 @@ import {
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
 
+function withCsrf(
+  headers: Record<string, string> = {},
+): Record<string, string> {
+  const csrfToken = "b".repeat(64);
+  return {
+    host: "test",
+    origin: "https://test",
+    "x-csrf-token": csrfToken,
+    cookie: `csrf_token=${csrfToken}`,
+    ...headers,
+  };
+}
+
 describe("Restaurant service items API — real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;
@@ -104,5 +117,142 @@ describe("Restaurant service items API — real integration", () => {
     );
 
     expect(res.status).toBe(404);
+  });
+
+  it("lets an owner manage service items for their restaurant", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Owner Managed Services",
+    });
+    const owner = await seed.user({
+      role: 1,
+      restaurantId: String(restaurant.id),
+    });
+    const token = await testApp.authHelper.ownerToken(
+      owner.id,
+      String(restaurant.id),
+    );
+
+    const createRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/service-items`,
+        {
+          method: "POST",
+          headers: withCsrf({
+            authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          }),
+          body: JSON.stringify({
+            name: "代客切水果",
+            description: "現場代切並分裝",
+            serviceType: "general",
+            priceCents: 3000,
+            tags: ["水果", "分裝"],
+            keywords: "水果 分裝 切水果",
+            sortOrder: 1,
+            isPublic: true,
+          }),
+        },
+      ),
+    );
+
+    expect(createRes.status).toBe(201);
+    const createdJson: any = await createRes.json();
+    expect(createdJson.data).toMatchObject({
+      restaurantId: restaurant.id,
+      name: "代客切水果",
+      serviceType: "general",
+      priceCents: 3000,
+      tags: ["水果", "分裝"],
+      isActive: true,
+      isPublic: true,
+    });
+
+    const updateRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/service-items/${createdJson.data.id}`,
+        {
+          method: "PUT",
+          headers: withCsrf({
+            authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          }),
+          body: JSON.stringify({
+            name: "預約切水果",
+            priceLabel: "依份量報價",
+            requiresBooking: true,
+            isPublic: false,
+          }),
+        },
+      ),
+    );
+
+    expect(updateRes.status).toBe(200);
+    const updatedJson: any = await updateRes.json();
+    expect(updatedJson.data).toMatchObject({
+      id: createdJson.data.id,
+      name: "預約切水果",
+      priceLabel: "依份量報價",
+      requiresBooking: true,
+      isPublic: false,
+    });
+
+    const publicRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/service-items`,
+      ),
+    );
+    const publicJson: any = await publicRes.json();
+    expect(publicJson.data).toEqual([]);
+
+    const deleteRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/service-items/${createdJson.data.id}`,
+        {
+          method: "DELETE",
+          headers: withCsrf({
+            authorization: `Bearer ${token}`,
+          }),
+        },
+      ),
+    );
+
+    expect(deleteRes.status).toBe(200);
+    const deletedRows = await testApp.testDb.drizzle
+      .select()
+      .from(restaurantServiceItems);
+    expect(deletedRows[0].deletedAt).toBeInstanceOf(Date);
+    expect(deletedRows[0].isActive).toBe(false);
+  });
+
+  it("prevents an owner from managing service items for another restaurant", async () => {
+    const ownRestaurant = await seed.restaurant({ name: "Owned Vendor" });
+    const otherRestaurant = await seed.restaurant({ name: "Other Vendor" });
+    const owner = await seed.user({
+      role: 1,
+      restaurantId: String(ownRestaurant.id),
+    });
+    const token = await testApp.authHelper.ownerToken(
+      owner.id,
+      String(ownRestaurant.id),
+    );
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${otherRestaurant.id}/service-items`,
+        {
+          method: "POST",
+          headers: withCsrf({
+            authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          }),
+          body: JSON.stringify({
+            name: "越權服務",
+            serviceType: "general",
+          }),
+        },
+      ),
+    );
+
+    expect(res.status).toBe(403);
   });
 });

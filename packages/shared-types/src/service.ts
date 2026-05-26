@@ -12,13 +12,13 @@ export type RestaurantServiceType =
 export interface RestaurantServiceItem extends BaseEntity {
   restaurantId: string;
   name: string;
-  description?: string;
+  description?: string | null;
   serviceType: RestaurantServiceType;
-  priceCents?: number;
-  priceLabel?: string;
-  durationMinutes?: number;
+  priceCents?: number | null;
+  priceLabel?: string | null;
+  durationMinutes?: number | null;
   requiresBooking: boolean;
-  bookingUrl?: string;
+  bookingUrl?: string | null;
   availableHours?: {
     start?: string;
     end?: string;
@@ -35,13 +35,13 @@ export interface RestaurantServiceItem extends BaseEntity {
 export interface CreateRestaurantServiceItemRequest {
   restaurantId: string;
   name: string;
-  description?: string;
+  description?: string | null;
   serviceType?: RestaurantServiceType;
-  priceCents?: number;
-  priceLabel?: string;
-  durationMinutes?: number;
+  priceCents?: number | null;
+  priceLabel?: string | null;
+  durationMinutes?: number | null;
   requiresBooking?: boolean;
-  bookingUrl?: string;
+  bookingUrl?: string | null;
   availableHours?: RestaurantServiceItem["availableHours"];
   tags?: string[];
   keywords?: string;

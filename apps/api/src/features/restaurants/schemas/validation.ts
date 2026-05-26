@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { RESTAURANT_SERVICE_TYPES } from "@makanmakan/database";
 import { VALIDATION_LIMITS } from "../../../shared/constants";
 
 const decodeHtmlEntities = (value: string): string =>
@@ -102,9 +103,65 @@ const updateContactProfileSchema = z.object({
   faqs: z.array(restaurantFaqInputSchema).max(50).optional().default([]),
 });
 
+const restaurantServiceItemInputSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Service name is required")
+    .max(100)
+    .transform(sanitizeFreeText),
+  description: z
+    .string()
+    .max(1000)
+    .transform(sanitizeFreeText)
+    .nullable()
+    .optional(),
+  serviceType: z.enum(RESTAURANT_SERVICE_TYPES).optional().default("general"),
+  priceCents: z.number().int().min(0).nullable().optional(),
+  priceLabel: z
+    .string()
+    .max(80)
+    .transform(sanitizeFreeText)
+    .nullable()
+    .optional(),
+  durationMinutes: z.number().int().min(1).max(1440).nullable().optional(),
+  requiresBooking: z.boolean().optional().default(false),
+  bookingUrl: z.string().url().nullable().optional(),
+  availableHours: z
+    .object({
+      start: z.string().optional(),
+      end: z.string().optional(),
+      days: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+    })
+    .nullable()
+    .optional(),
+  tags: z
+    .array(z.string().min(1).max(50).transform(sanitizeFreeText))
+    .max(20)
+    .optional(),
+  keywords: z
+    .string()
+    .max(500)
+    .transform(sanitizeFreeText)
+    .nullable()
+    .optional(),
+  sortOrder: z.number().int().min(0).max(1000).optional(),
+  isActive: z.boolean().optional(),
+  isPublic: z.boolean().optional(),
+});
+
+const updateRestaurantServiceItemSchema = restaurantServiceItemInputSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field is required",
+  });
+
 // Common parameter schemas
 const idParam = z.object({
   id: z.string().min(1, "ID is required"),
+});
+
+const serviceItemParam = idParam.extend({
+  serviceItemId: z.coerce.number().int().min(1),
 });
 
 const districtParam = z.object({
@@ -264,6 +321,7 @@ const qrCodeParam = z.object({
 export const restaurantSchemas = {
   // Parameters
   params: idParam,
+  serviceItemParams: serviceItemParam,
   districtParams: districtParam,
   qrCodeParams: qrCodeParam,
 
@@ -281,6 +339,8 @@ export const restaurantSchemas = {
   uploadQrImage: uploadQrImageSchema,
   shopQrSettings: shopQrSettingsSchema,
   updateContactProfile: updateContactProfileSchema,
+  createServiceItem: restaurantServiceItemInputSchema,
+  updateServiceItem: updateRestaurantServiceItemSchema,
 
   // Component schemas (for reuse)
   businessHours: businessHoursSchema,

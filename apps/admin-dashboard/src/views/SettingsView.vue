@@ -667,6 +667,8 @@
           </div>
         </div>
       </div>
+
+      <RestaurantServiceItemsManager :restaurant-id="authStore.restaurantId" />
     </div>
 
     <!-- 訂單設定 -->
@@ -1719,6 +1721,7 @@
 import { computed, ref, reactive, onMounted } from "vue";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
+import RestaurantServiceItemsManager from "@/components/settings/RestaurantServiceItemsManager.vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";

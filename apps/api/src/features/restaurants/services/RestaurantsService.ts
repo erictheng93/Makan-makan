@@ -7,6 +7,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { asc, eq, isNull, and } from "drizzle-orm";
 import {
   RestaurantService as DatabaseRestaurantService,
+  type RestaurantServiceType,
   restaurantFaqs,
   restaurantServiceItems,
   restaurants,
@@ -100,6 +101,27 @@ export interface PublicRestaurantServiceItem {
   sortOrder: number;
   isActive: boolean;
   isPublic: boolean;
+}
+
+export interface RestaurantServiceItemInput {
+  name: string;
+  description?: string | null;
+  serviceType?: RestaurantServiceType;
+  priceCents?: number | null;
+  priceLabel?: string | null;
+  durationMinutes?: number | null;
+  requiresBooking?: boolean;
+  bookingUrl?: string | null;
+  availableHours?: {
+    start?: string;
+    end?: string;
+    days?: number[];
+  } | null;
+  tags?: string[];
+  keywords?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  isPublic?: boolean;
 }
 
 class NoopCacheService implements CacheService {
@@ -421,17 +443,7 @@ export class RestaurantsService {
   async listPublicServiceItems(
     id: string,
   ): Promise<PublicRestaurantServiceItem[] | null> {
-    const [restaurant] = await this.db
-      .select({ id: restaurants.id })
-      .from(restaurants)
-      .where(
-        and(
-          eq(restaurants.id, id),
-          eq(restaurants.isActive, true),
-          isNull(restaurants.deletedAt),
-        ),
-      )
-      .limit(1);
+    const restaurant = await this.findActiveRestaurant(id);
 
     if (!restaurant) return null;
 
@@ -451,7 +463,149 @@ export class RestaurantsService {
         asc(restaurantServiceItems.id),
       );
 
-    return rows.map((item) => ({
+    return rows.map((item) => this.mapServiceItem(item));
+  }
+
+  async listManageableServiceItems(
+    id: string,
+  ): Promise<PublicRestaurantServiceItem[] | null> {
+    const restaurant = await this.findActiveRestaurant(id);
+
+    if (!restaurant) return null;
+
+    const rows = await this.db
+      .select()
+      .from(restaurantServiceItems)
+      .where(
+        and(
+          eq(restaurantServiceItems.restaurantId, id),
+          isNull(restaurantServiceItems.deletedAt),
+        ),
+      )
+      .orderBy(
+        asc(restaurantServiceItems.sortOrder),
+        asc(restaurantServiceItems.id),
+      );
+
+    return rows.map((item) => this.mapServiceItem(item));
+  }
+
+  async createServiceItem(
+    restaurantId: string,
+    input: RestaurantServiceItemInput,
+  ): Promise<PublicRestaurantServiceItem | null> {
+    const restaurant = await this.findActiveRestaurant(restaurantId);
+    if (!restaurant) return null;
+
+    const now = new Date();
+    const [row] = await this.db
+      .insert(restaurantServiceItems)
+      .values({
+        restaurantId,
+        name: input.name,
+        description: input.description,
+        serviceType: input.serviceType ?? "general",
+        priceCents: input.priceCents,
+        priceLabel: input.priceLabel,
+        durationMinutes: input.durationMinutes,
+        requiresBooking: input.requiresBooking ?? false,
+        bookingUrl: input.bookingUrl,
+        availableHours: input.availableHours,
+        tags: input.tags ?? [],
+        keywords: input.keywords,
+        sortOrder: input.sortOrder ?? 0,
+        isActive: input.isActive ?? true,
+        isPublic: input.isPublic ?? true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    await this.cache.delete(`restaurant:${restaurantId}:service-items`);
+    return this.mapServiceItem(row);
+  }
+
+  async updateServiceItem(
+    restaurantId: string,
+    serviceItemId: number,
+    input: Partial<RestaurantServiceItemInput>,
+  ): Promise<PublicRestaurantServiceItem | null> {
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    for (const [key, value] of Object.entries(input)) {
+      if (typeof value !== "undefined") {
+        updateData[key] = value;
+      }
+    }
+
+    const [row] = await this.db
+      .update(restaurantServiceItems)
+      .set(updateData)
+      .where(
+        and(
+          eq(restaurantServiceItems.id, serviceItemId),
+          eq(restaurantServiceItems.restaurantId, restaurantId),
+          isNull(restaurantServiceItems.deletedAt),
+        ),
+      )
+      .returning();
+
+    if (!row) return null;
+
+    await this.cache.delete(`restaurant:${restaurantId}:service-items`);
+    return this.mapServiceItem(row);
+  }
+
+  async deleteServiceItem(
+    restaurantId: string,
+    serviceItemId: number,
+  ): Promise<boolean> {
+    const [row] = await this.db
+      .update(restaurantServiceItems)
+      .set({
+        isActive: false,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(restaurantServiceItems.id, serviceItemId),
+          eq(restaurantServiceItems.restaurantId, restaurantId),
+          isNull(restaurantServiceItems.deletedAt),
+        ),
+      )
+      .returning({ id: restaurantServiceItems.id });
+
+    if (!row) return false;
+
+    await this.cache.delete(`restaurant:${restaurantId}:service-items`);
+    return true;
+  }
+
+  private async findActiveRestaurant(
+    id: string,
+  ): Promise<{ id: string } | null> {
+    const [restaurant] = await this.db
+      .select({ id: restaurants.id })
+      .from(restaurants)
+      .where(
+        and(
+          eq(restaurants.id, id),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return restaurant ?? null;
+  }
+
+  private mapServiceItem(
+    item: typeof restaurantServiceItems.$inferSelect,
+  ): PublicRestaurantServiceItem {
+    return {
       id: item.id,
       restaurantId: item.restaurantId,
       name: item.name,
@@ -468,7 +622,7 @@ export class RestaurantsService {
       sortOrder: item.sortOrder,
       isActive: item.isActive,
       isPublic: item.isPublic,
-    }));
+    };
   }
 
   /**
