@@ -36,6 +36,11 @@ export interface MarketVendor extends RestaurantListItem {
   isPrimary: boolean;
 }
 
+export interface MarketArea {
+  city: string;
+  districts: string[];
+}
+
 export interface ListMarketsParams {
   city?: string;
   district?: string;
@@ -69,6 +74,12 @@ export const marketsApi = {
       page: number;
       limit: number;
     }>("/markets", params);
+  },
+
+  async listAreas() {
+    return apiClient.get<{
+      areas: MarketArea[];
+    }>("/markets/areas");
   },
 
   async getMarket(slug: string) {

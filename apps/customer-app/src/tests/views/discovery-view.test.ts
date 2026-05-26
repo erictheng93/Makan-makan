@@ -34,6 +34,7 @@ vi.mock("@/services/discoveryApi", () => ({
 vi.mock("@/services/marketsApi", () => ({
   marketsApi: {
     listMarkets: vi.fn(),
+    listAreas: vi.fn(),
   },
 }));
 
@@ -81,7 +82,10 @@ function mountView() {
     global: {
       stubs: {
         SearchBar: true,
-        FilterPanel: true,
+        FilterPanel: {
+          props: ["districts"],
+          template: `<div data-testid="district-filter-options">{{ districts.join(",") }}</div>`,
+        },
         DishResultCard: {
           props: ["dish"],
           emits: ["select", "takeaway"],
@@ -113,6 +117,9 @@ describe("DiscoveryView", () => {
       total: 0,
       page: 1,
       limit: 20,
+    } as never);
+    vi.mocked(marketsApi.listAreas).mockResolvedValue({
+      areas: [],
     } as never);
     vi.mocked(useDiscoveryStore).mockReturnValue(discoveryStore() as never);
   });
@@ -176,5 +183,25 @@ describe("DiscoveryView", () => {
     expect(store.updateFilters).toHaveBeenCalledWith({
       marketId: "market-1",
     });
+  });
+
+  it("builds district filters from public market areas", async () => {
+    vi.mocked(marketsApi.listAreas).mockResolvedValueOnce({
+      areas: [
+        { city: "台中市", districts: ["西屯區", "北區"] },
+        { city: "台北市", districts: ["萬華區"] },
+      ],
+    } as never);
+
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.get('[data-testid="district-filter-options"]').text(),
+      ).toContain("萬華區");
+    });
+    expect(
+      wrapper.get('[data-testid="district-filter-options"]').text(),
+    ).toContain("西屯區");
   });
 });

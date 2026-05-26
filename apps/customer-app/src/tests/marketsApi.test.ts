@@ -29,6 +29,16 @@ describe("marketsApi", () => {
     });
   });
 
+  it("lists available market areas for dynamic filters", async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      areas: [{ city: "台中市", districts: ["西屯區"] }],
+    });
+
+    await marketsApi.listAreas();
+
+    expect(apiClient.get).toHaveBeenCalledWith("/markets/areas");
+  });
+
   it("loads market detail and vendors by slug", async () => {
     vi.mocked(apiClient.get)
       .mockResolvedValueOnce({ market: { slug: "fengjia" }, vendorCount: 2 })

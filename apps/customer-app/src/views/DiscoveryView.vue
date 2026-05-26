@@ -180,22 +180,14 @@ const { t, tWithParams } = useI18n();
 const router = useRouter();
 const store = useDiscoveryStore();
 const marketOptions = ref<MarketListItem[]>([]);
+const marketAreas = ref<{ city: string; districts: string[] }[]>([]);
 
 const selectedMarketId = computed(() => store.filters.marketId);
-
-// TODO: Load from API or config
-const districts = [
-  "西屯區",
-  "北屯區",
-  "南屯區",
-  "中區",
-  "東區",
-  "西區",
-  "南區",
-  "北區",
-  "豐原區",
-  "大里區",
-];
+const districts = computed(() =>
+  Array.from(new Set(marketAreas.value.flatMap((area) => area.districts))).sort(
+    (left, right) => left.localeCompare(right, "zh-Hant"),
+  ),
+);
 
 function onDishSelect(dish: DishSearchResult) {
   router.push({
@@ -244,7 +236,14 @@ async function loadMarketOptions() {
     const response = await marketsApi.listMarkets({ limit: 20 });
     marketOptions.value = response.markets;
   } catch (error) {
-    console.error("Failed to load discovery market filters:", error);
+    console.error("Failed to load discovery markets:", error);
+  }
+
+  try {
+    const response = await marketsApi.listAreas();
+    marketAreas.value = response.areas;
+  } catch (error) {
+    console.error("Failed to load discovery market areas:", error);
   }
 }
 

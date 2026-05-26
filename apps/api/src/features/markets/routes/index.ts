@@ -25,6 +25,12 @@ routes.get("/nearby", validateQuery(nearbyMarketsQuerySchema), async (c) => {
   return c.json({ success: true, data });
 });
 
+routes.get("/areas", async (c) => {
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
+  const data = await service.listAreas();
+  return c.json({ success: true, data });
+});
+
 routes.get(
   "/:slug/vendors",
   validateParams(marketSlugParamSchema),

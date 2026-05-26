@@ -31,13 +31,22 @@
         <div class="flex gap-2">
           <select
             v-model="city"
+            data-testid="markets-city-select"
             class="h-10 flex-1 rounded-lg border border-gray-300 px-3 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
-            @change="reloadList"
+            @change="onCityChange"
           >
-            <option value="台中市">台中市</option>
+            <option value="">全部城市</option>
+            <option
+              v-for="area in marketAreas"
+              :key="area.city"
+              :value="area.city"
+            >
+              {{ area.city }}
+            </option>
           </select>
           <select
             v-model="district"
+            data-testid="markets-district-select"
             class="h-10 flex-1 rounded-lg border border-gray-300 px-3 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
             @change="reloadList"
           >
@@ -98,36 +107,53 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import MarketCard from "@/components/markets/MarketCard.vue";
 import { useMarketsStore } from "@/stores/markets";
-import type { MarketListItem } from "@/services/marketsApi";
+import {
+  marketsApi,
+  type MarketArea,
+  type MarketListItem,
+} from "@/services/marketsApi";
 
 const router = useRouter();
 const store = useMarketsStore();
-const city = ref("台中市");
+const city = ref("");
 const district = ref("");
 const locating = ref(false);
+const marketAreas = ref<MarketArea[]>([]);
 
-const districts = [
-  "西屯區",
-  "北屯區",
-  "南屯區",
-  "中區",
-  "東區",
-  "西區",
-  "南區",
-  "北區",
-  "豐原區",
-  "大里區",
-];
+const districts = computed(() => {
+  const areas =
+    city.value === ""
+      ? marketAreas.value
+      : marketAreas.value.filter((area) => area.city === city.value);
+
+  return Array.from(new Set(areas.flatMap((area) => area.districts))).sort(
+    (left, right) => left.localeCompare(right, "zh-Hant"),
+  );
+});
 
 function reloadList() {
   store.loadMarkets({
-    city: city.value,
+    city: city.value || undefined,
     district: district.value || undefined,
   });
+}
+
+function onCityChange() {
+  district.value = "";
+  reloadList();
+}
+
+async function loadAreas() {
+  try {
+    const response = await marketsApi.listAreas();
+    marketAreas.value = response.areas;
+  } catch (error) {
+    console.error("Failed to load market area filters:", error);
+  }
 }
 
 function loadNearby() {
@@ -154,5 +180,8 @@ function openMarket(market: MarketListItem) {
   router.push({ name: "MarketDetail", params: { slug: market.slug } });
 }
 
-onMounted(reloadList);
+onMounted(() => {
+  loadAreas();
+  reloadList();
+});
 </script>

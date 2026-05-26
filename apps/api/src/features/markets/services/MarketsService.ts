@@ -99,6 +99,46 @@ export class MarketsService {
     return rows;
   }
 
+  async listAreas() {
+    const cacheKey = await this.publicCacheKey("areas", "all");
+    const cached =
+      await this.cache.get<Awaited<ReturnType<MarketsService["queryAreas"]>>>(
+        cacheKey,
+      );
+    if (cached) return cached;
+
+    const data = await this.queryAreas();
+    await this.cache.set(cacheKey, data, CACHE_TTL.SHORT);
+    return data;
+  }
+
+  private async queryAreas() {
+    const rows = await this.db
+      .select({
+        city: markets.city,
+        district: markets.district,
+      })
+      .from(markets)
+      .where(and(eq(markets.isActive, true), isNull(markets.deletedAt)))
+      .groupBy(markets.city, markets.district)
+      .orderBy(asc(markets.city), asc(markets.district));
+
+    const areas = rows.reduce<{ city: string; districts: string[] }[]>(
+      (acc, row) => {
+        let area = acc.find((entry) => entry.city === row.city);
+        if (!area) {
+          area = { city: row.city, districts: [] };
+          acc.push(area);
+        }
+        area.districts.push(row.district);
+        return acc;
+      },
+      [],
+    );
+
+    return { areas };
+  }
+
   private async queryMarkets(filters: MarketFilters) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;

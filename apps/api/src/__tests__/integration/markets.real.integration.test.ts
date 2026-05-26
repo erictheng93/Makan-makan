@@ -154,6 +154,45 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("lists active market cities and districts for customer filters", async () => {
+    await seedMarket(testApp, {
+      slug: "fengjia-area",
+      name: "逢甲夜市",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await seedMarket(testApp, {
+      slug: "yizhong-area",
+      name: "一中商圈",
+      city: "台中市",
+      district: "北區",
+    });
+    await seedMarket(testApp, {
+      slug: "ximending-area",
+      name: "西門町商圈",
+      city: "台北市",
+      district: "萬華區",
+    });
+    await seedMarket(testApp, {
+      slug: "inactive-area",
+      name: "Inactive Area",
+      city: "基隆市",
+      district: "仁愛區",
+      isActive: false,
+    });
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/areas"),
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    expect(json.data.areas).toEqual([
+      { city: "台中市", districts: ["北區", "西屯區"] },
+      { city: "台北市", districts: ["萬華區"] },
+    ]);
+  });
+
   it("reports public readiness issues for incomplete market pages", async () => {
     await seedMarket(testApp, {
       slug: "incomplete-market",
