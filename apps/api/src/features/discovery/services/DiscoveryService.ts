@@ -312,6 +312,8 @@ export class DiscoveryService {
 
     const conditions: SQL[] = [
       eq(dishSearchIndex.isAvailable, true),
+      eq(restaurants.isActive, true),
+      isNull(restaurants.deletedAt),
       sql`${dishSearchIndex.categoryName} IS NOT NULL`,
       sql`${dishSearchIndex.categoryName} != ''`,
     ];
@@ -789,7 +791,13 @@ export class DiscoveryService {
       .from(dishSearchIndex)
       .innerJoin(restaurants, eq(dishSearchIndex.restaurantId, restaurants.id))
       .innerJoin(menuItems, eq(dishSearchIndex.menuItemId, menuItems.id))
-      .where(eq(dishSearchIndex.isAvailable, true))
+      .where(
+        and(
+          eq(dishSearchIndex.isAvailable, true),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
       .orderBy(desc(menuItems.orderCount))
       .limit(10);
 

@@ -1475,6 +1475,69 @@ describe("Discovery API — real integration", () => {
     expect(categoriesJson.data.categories).toEqual(["小吃", "飲品"]);
   });
 
+  it("excludes categories from inactive or deleted restaurants", async () => {
+    const activeRestaurant = await seed.restaurant({
+      name: "Active Category Vendor",
+    });
+    const inactiveRestaurant = await seed.restaurant({
+      name: "Inactive Category Vendor",
+      isActive: false,
+    });
+    const deletedRestaurant = await seed.restaurant({
+      name: "Deleted Category Vendor",
+      deletedAt: new Date(),
+    });
+
+    const activeDish = await seed.menuItem(String(activeRestaurant.id), {
+      isAvailable: true,
+      name: "Visible Category Bao",
+      price: 100,
+    });
+    const inactiveDish = await seed.menuItem(String(inactiveRestaurant.id), {
+      isAvailable: true,
+      name: "Hidden Inactive Category Bao",
+      price: 110,
+    });
+    const deletedDish = await seed.menuItem(String(deletedRestaurant.id), {
+      isAvailable: true,
+      name: "Hidden Deleted Category Bao",
+      price: 120,
+    });
+
+    await seedSearchIndex(testApp, String(activeRestaurant.id), [
+      {
+        menuItemId: activeDish.id,
+        name: "Visible Category Bao",
+        price: 100,
+        categoryName: "公開分類",
+      },
+    ]);
+    await seedSearchIndex(testApp, String(inactiveRestaurant.id), [
+      {
+        menuItemId: inactiveDish.id,
+        name: "Hidden Inactive Category Bao",
+        price: 110,
+        categoryName: "停用分類",
+      },
+    ]);
+    await seedSearchIndex(testApp, String(deletedRestaurant.id), [
+      {
+        menuItemId: deletedDish.id,
+        name: "Hidden Deleted Category Bao",
+        price: 120,
+        categoryName: "刪除分類",
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/categories"),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.categories).toEqual(["公開分類"]);
+  });
+
   it("sorts dish search results by popularity when requested", async () => {
     const restaurant = await seed.restaurant();
     const lowDemand = await seed.menuItem(String(restaurant.id), {
@@ -1514,6 +1577,71 @@ describe("Discovery API — real integration", () => {
     expect(data.results.map((r: any) => r.dishName)).toEqual([
       "Popular Scope Noodles",
       "Popular Scope Rice",
+    ]);
+  });
+
+  it("excludes popular dishes from inactive or deleted restaurants", async () => {
+    const activeRestaurant = await seed.restaurant({
+      name: "Active Popular Vendor",
+    });
+    const inactiveRestaurant = await seed.restaurant({
+      name: "Inactive Popular Vendor",
+      isActive: false,
+    });
+    const deletedRestaurant = await seed.restaurant({
+      name: "Deleted Popular Vendor",
+      deletedAt: new Date(),
+    });
+
+    const activeDish = await seed.menuItem(String(activeRestaurant.id), {
+      isAvailable: true,
+      name: "Visible Popular Bao",
+      price: 100,
+      orderCount: 1,
+    });
+    const inactiveDish = await seed.menuItem(String(inactiveRestaurant.id), {
+      isAvailable: true,
+      name: "Hidden Inactive Popular Bao",
+      price: 110,
+      orderCount: 100,
+    });
+    const deletedDish = await seed.menuItem(String(deletedRestaurant.id), {
+      isAvailable: true,
+      name: "Hidden Deleted Popular Bao",
+      price: 120,
+      orderCount: 90,
+    });
+
+    await seedSearchIndex(testApp, String(activeRestaurant.id), [
+      {
+        menuItemId: activeDish.id,
+        name: "Visible Popular Bao",
+        price: 100,
+      },
+    ]);
+    await seedSearchIndex(testApp, String(inactiveRestaurant.id), [
+      {
+        menuItemId: inactiveDish.id,
+        name: "Hidden Inactive Popular Bao",
+        price: 110,
+      },
+    ]);
+    await seedSearchIndex(testApp, String(deletedRestaurant.id), [
+      {
+        menuItemId: deletedDish.id,
+        name: "Hidden Deleted Popular Bao",
+        price: 120,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/popular"),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.dishes.map((dish: any) => dish.dishName)).toEqual([
+      "Visible Popular Bao",
     ]);
   });
 
