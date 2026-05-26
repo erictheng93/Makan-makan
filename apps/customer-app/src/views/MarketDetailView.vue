@@ -159,6 +159,7 @@ import {
   restaurantContactApi,
   type RestaurantContactProfile,
 } from "@/services/restaurantContactApi";
+import { applyMarketSeoMeta } from "@/utils/seoMeta";
 
 const route = useRoute();
 const router = useRouter();
@@ -282,6 +283,13 @@ const filteredFaqs = computed(() => {
 
 onMounted(async () => {
   await store.loadMarketDetail(slug());
+  if (store.selectedMarket) {
+    applyMarketSeoMeta({
+      market: store.selectedMarket,
+      vendorCount: store.vendorCount,
+      path: route.fullPath,
+    });
+  }
   await store.loadVendors(slug());
 });
 
