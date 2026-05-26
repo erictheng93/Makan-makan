@@ -39,6 +39,7 @@ import {
 const KV_SEARCH_TTL = 15 * 60; // 15 minutes
 const KV_RESTAURANT_TTL = 30 * 60; // 30 minutes
 const KV_SEARCH_VERSION_KEY = "search:query:version";
+const POST_FILTER_SCAN_LIMIT = 50000;
 
 export class DiscoveryService {
   private db;
@@ -72,6 +73,11 @@ export class DiscoveryService {
 
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
+    const requiresPostFilterPagination = Boolean(filters.openNow);
+    const queryLimit = requiresPostFilterPagination
+      ? POST_FILTER_SCAN_LIMIT
+      : limit;
+    const queryOffset = requiresPostFilterPagination ? 0 : offset;
     const effectivePrice = sql<number>`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer))`;
 
     const baseConditions: SQL[] = [eq(dishSearchIndex.isAvailable, true)];
@@ -160,8 +166,8 @@ export class DiscoveryService {
         .orderBy(
           ...this.getDishSearchOrderBy(filters, effectivePrice, normalized),
         )
-        .limit(limit)
-        .offset(offset),
+        .limit(queryLimit)
+        .offset(queryOffset),
       this.db
         .select({ count: sql<number>`count(*)` })
         .from(dishSearchIndex)
@@ -273,6 +279,10 @@ export class DiscoveryService {
     // 6. Cache and return
     if (tagMatches.length > 0 && total < results.length) {
       total = results.length;
+    }
+    if (requiresPostFilterPagination) {
+      total = results.length;
+      results = results.slice(offset, offset + limit);
     }
     const response = { results, total, page, limit };
     await this.kv.put(

@@ -40,6 +40,19 @@ function openAllWeek() {
   };
 }
 
+function closedAllWeek() {
+  const day = { open: "00:00", close: "00:00", closed: true };
+  return {
+    monday: day,
+    tuesday: day,
+    wednesday: day,
+    thursday: day,
+    friday: day,
+    saturday: day,
+    sunday: day,
+  };
+}
+
 async function seedMarket(
   testApp: RealIntegrationTestApp,
   overrides: Partial<typeof markets.$inferInsert> = {},
@@ -125,10 +138,10 @@ describe("Discovery API — real integration", () => {
   beforeAll(async () => {
     testApp = await createRealIntegrationTestApp();
     seed = buildSeedHelpers(testApp.testDb);
-  });
+  }, 60000);
 
   afterAll(async () => {
-    await testApp.dispose();
+    await testApp?.dispose();
   });
 
   beforeEach(async () => {
@@ -1252,6 +1265,60 @@ describe("Discovery API — real integration", () => {
       "Popular Scope Noodles",
       "Popular Scope Rice",
     ]);
+  });
+
+  it("filters open dish results before pagination", async () => {
+    const closedRestaurant = await seed.restaurant({
+      name: "Closed Discovery Vendor",
+      businessHours: closedAllWeek(),
+    });
+    const openRestaurant = await seed.restaurant({
+      name: "Open Discovery Vendor",
+      businessHours: openAllWeek(),
+    });
+    const closedDish = await seed.menuItem(String(closedRestaurant.id), {
+      isAvailable: true,
+      name: "Open Scope Closed Bestseller",
+      price: 120,
+      orderCount: 50,
+    });
+    const openDish = await seed.menuItem(String(openRestaurant.id), {
+      isAvailable: true,
+      name: "Open Scope Fresh Bao",
+      price: 100,
+      orderCount: 10,
+    });
+
+    await seedSearchIndex(testApp, String(closedRestaurant.id), [
+      {
+        menuItemId: closedDish.id,
+        name: "Open Scope Closed Bestseller",
+        price: 120,
+      },
+    ]);
+    await seedSearchIndex(testApp, String(openRestaurant.id), [
+      {
+        menuItemId: openDish.id,
+        name: "Open Scope Fresh Bao",
+        price: 100,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/search?q=Open+Scope&openNow=true&sortBy=popular&page=1&limit=1",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results).toHaveLength(1);
+    expect(data.results[0]).toMatchObject({
+      menuItemId: openDish.id,
+      dishName: "Open Scope Fresh Bao",
+      isOpen: true,
+    });
   });
 
   it("browses market dishes by category without a keyword", async () => {
