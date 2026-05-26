@@ -473,6 +473,8 @@ async function loadServiceTypeOptions() {
       city: store.filters.city,
       district: store.filters.district,
       marketId: store.filters.marketId,
+      takeaway: store.filters.takeaway,
+      delivery: store.filters.delivery,
     });
     serviceTypeOptions.value = response.serviceTypes;
   } catch (error) {

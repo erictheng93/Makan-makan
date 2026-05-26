@@ -25,7 +25,7 @@
           v-model="takeawayOnly"
           type="checkbox"
           class="rounded border-gray-300 text-ios-blue focus:ring-ios-blue"
-          @change="searchIfReady"
+          @change="onTakeawayOnlyChange"
         />
         只看可外帶
       </label>
@@ -435,12 +435,20 @@ function searchIfReady() {
   }
 }
 
+function onTakeawayOnlyChange() {
+  loadCategories();
+  loadServiceTypes();
+  searchIfReady();
+}
+
 function clearFilters() {
   query.value = "";
   takeawayOnly.value = false;
   selectedCategory.value = "";
   selectedServiceType.value = "";
   sortBy.value = "price_asc";
+  loadCategories();
+  loadServiceTypes();
   submitSearch();
 }
 
@@ -460,6 +468,7 @@ async function loadCategories() {
   try {
     const response = await discoveryApi.listCategories({
       marketId: props.marketId,
+      takeaway: takeawayOnly.value ? true : undefined,
     });
     loadedCategories.value = response.categories;
   } catch (categoryError) {
@@ -471,6 +480,7 @@ async function loadServiceTypes() {
   try {
     const response = await discoveryApi.listServiceTypes({
       marketId: props.marketId,
+      takeaway: takeawayOnly.value ? true : undefined,
     });
     loadedServiceTypes.value = response.serviceTypes;
   } catch (serviceTypeError) {

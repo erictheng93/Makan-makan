@@ -404,6 +404,10 @@ describe("MarketProductSearch", () => {
       page: 1,
       limit: 20,
     });
+    expect(discoveryApi.listServiceTypes).toHaveBeenLastCalledWith({
+      marketId: "market-1",
+      takeaway: undefined,
+    });
     expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
       q: "",
       categoryName: "",
@@ -436,6 +440,50 @@ describe("MarketProductSearch", () => {
       expect(wrapper.text()).toContain("外送 2");
       expect(wrapper.text()).toContain("預約 1");
       expect(wrapper.text()).not.toContain("租借");
+    });
+  });
+
+  it("reloads market facets with the takeaway filter", async () => {
+    vi.mocked(discoveryApi.listCategories)
+      .mockResolvedValueOnce({
+        categories: ["小吃", "飲品"],
+      } as never)
+      .mockResolvedValueOnce({
+        categories: ["小吃"],
+      } as never);
+    vi.mocked(discoveryApi.listServiceTypes)
+      .mockResolvedValueOnce({
+        serviceTypes: [{ serviceType: "booking", count: 1 }],
+      } as never)
+      .mockResolvedValueOnce({
+        serviceTypes: [{ serviceType: "delivery", count: 1 }],
+      } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.listServiceTypes).toHaveBeenCalledWith({
+        marketId: "market-1",
+      });
+    });
+
+    await wrapper.get('input[type="checkbox"]').setValue(true);
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.listCategories).toHaveBeenLastCalledWith({
+        marketId: "market-1",
+        takeaway: true,
+      });
+      expect(discoveryApi.listServiceTypes).toHaveBeenLastCalledWith({
+        marketId: "market-1",
+        takeaway: true,
+      });
+      expect(wrapper.text()).toContain("外送 1");
     });
   });
 

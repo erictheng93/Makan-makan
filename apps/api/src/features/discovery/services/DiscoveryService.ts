@@ -641,6 +641,12 @@ export class DiscoveryService {
           AND rmm.left_at_ms IS NULL
       )`);
     }
+    if (filters.takeaway) {
+      conditions.push(eq(restaurants.supportsTakeaway, true));
+    }
+    if (filters.delivery) {
+      conditions.push(eq(restaurants.supportsDelivery, true));
+    }
 
     const itemCount = sql<number>`count(*)`;
     const rows = await this.db

@@ -919,6 +919,96 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("filters service type facets by fulfillment support within a market", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-type-fulfillment-facet-market",
+    });
+    const takeawayRestaurant = await seed.restaurant({
+      name: "Takeaway Facet Vendor",
+      city: "台中市",
+      district: "西屯區",
+      supportsTakeaway: true,
+      supportsDelivery: false,
+    });
+    const deliveryRestaurant = await seed.restaurant({
+      name: "Delivery Facet Vendor",
+      city: "台中市",
+      district: "西屯區",
+      supportsTakeaway: false,
+      supportsDelivery: true,
+    });
+    const dineInRestaurant = await seed.restaurant({
+      name: "Dine In Facet Vendor",
+      city: "台中市",
+      district: "西屯區",
+      supportsTakeaway: false,
+      supportsDelivery: false,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(takeawayRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(deliveryRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(dineInRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(takeawayRestaurant.id),
+        name: "外帶預約",
+        serviceType: "booking",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(deliveryRestaurant.id),
+        name: "外送服務",
+        serviceType: "delivery",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(dineInRestaurant.id),
+        name: "現場租借",
+        serviceType: "rental",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const takeawayRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/service-types?marketId=${market.id}&takeaway=true`,
+      ),
+    );
+    const deliveryRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/service-types?marketId=${market.id}&delivery=true`,
+      ),
+    );
+
+    expect(takeawayRes.status).toBe(200);
+    const takeawayData = ((await takeawayRes.json()) as ApiTestResponse).data;
+    expect(takeawayData.serviceTypes).toEqual([
+      { serviceType: "booking", count: 1 },
+    ]);
+
+    expect(deliveryRes.status).toBe(200);
+    const deliveryData = ((await deliveryRes.json()) as ApiTestResponse).data;
+    expect(deliveryData.serviceTypes).toEqual([
+      { serviceType: "delivery", count: 1 },
+    ]);
+  });
+
   it("browses public service items by market without a keyword", async () => {
     const market = await seedMarket(testApp, {
       slug: "service-browse-market",

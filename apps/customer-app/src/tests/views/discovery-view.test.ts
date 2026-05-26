@@ -406,6 +406,34 @@ describe("DiscoveryView", () => {
       city: undefined,
       district: undefined,
       marketId: "market-1",
+      takeaway: undefined,
+      delivery: undefined,
+    });
+  });
+
+  it("loads service type filters with selected fulfillment filters", async () => {
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
+      serviceTypes: [{ serviceType: "delivery", count: 1 }],
+    } as never);
+    const store = discoveryStore({
+      filters: {
+        marketId: "market-1",
+        takeaway: true,
+        delivery: true,
+      },
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    mountView();
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.listServiceTypes).toHaveBeenCalledWith({
+        city: undefined,
+        district: undefined,
+        marketId: "market-1",
+        takeaway: true,
+        delivery: true,
+      });
     });
   });
 });
