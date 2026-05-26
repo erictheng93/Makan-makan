@@ -375,6 +375,65 @@ describe("Markets API — real integration", () => {
     ]);
   });
 
+  it("returns the full admin catalog gap vendor list", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Full Catalog Gap Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    await seed.user({
+      id: 32,
+      username: "full-catalog-gap-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const market = await seedMarket(testApp, {
+      slug: "full-catalog-gap-market",
+    });
+    const missingVendors = await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        seed.restaurant({
+          name: `Missing Catalog Vendor ${index + 1}`,
+          city: "台中市",
+          district: "西屯區",
+          latitude: 24.176 + index / 10000,
+          longitude: 120.646 + index / 10000,
+        }),
+      ),
+    );
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values(
+      missingVendors.map((vendor, index) => ({
+        restaurantId: String(vendor.id),
+        marketId: market.id,
+        stallNumber: `G-${String(index + 1).padStart(2, "0")}`,
+        isPrimary: index === 0,
+        joinedAt: new Date(),
+      })),
+    );
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/admin/markets/readiness", {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    const readinessMarket = json.data.markets.find(
+      (item: any) => item.id === market.id,
+    );
+    expect(readinessMarket.catalogCoverage.missingProductVendors).toHaveLength(
+      6,
+    );
+    expect(readinessMarket.catalogCoverage.missingServiceVendors).toHaveLength(
+      6,
+    );
+  });
+
   it("exposes market pages through sitemap.xml and robots.txt", async () => {
     const activeMarket = await seedMarket(testApp, {
       slug: "seo-night-market",

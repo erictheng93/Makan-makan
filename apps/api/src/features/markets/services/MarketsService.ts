@@ -475,8 +475,8 @@ export class MarketsService {
       vendorsMissingSearchableProducts: missingProductVendors.length,
       vendorsWithPublicServices: vendorsWithPublicServicesCount,
       vendorsMissingPublicServices: missingServiceVendors.length,
-      missingProductVendors: missingProductVendors.slice(0, 5),
-      missingServiceVendors: missingServiceVendors.slice(0, 5),
+      missingProductVendors,
+      missingServiceVendors,
     };
   }
 

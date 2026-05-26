@@ -9,14 +9,25 @@
           集中檢查夜市、商圈與活動場域的公開頁資料是否足以上架。
         </p>
       </div>
-      <button
-        type="button"
-        class="w-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
-        :disabled="isLoading"
-        @click="loadMarkets"
-      >
-        重新整理
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          data-testid="export-catalog-gaps"
+          class="w-fit rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+          :disabled="isLoading || catalogGapRowCount === 0"
+          @click="downloadCatalogGapCsv"
+        >
+          匯出缺口 CSV
+        </button>
+        <button
+          type="button"
+          class="w-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+          :disabled="isLoading"
+          @click="loadMarkets"
+        >
+          重新整理
+        </button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
@@ -507,6 +518,10 @@ import {
   parseMarketVendorImport,
   type MarketVendorImportFormat,
 } from "@/utils/marketVendorImport";
+import {
+  buildMarketCatalogGapCsv,
+  marketCatalogGapCsvFilename,
+} from "@/utils/marketCatalogGapExport";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -575,6 +590,15 @@ const metrics = computed(() => [
     class: "text-amber-600",
   },
 ]);
+const catalogGapRowCount = computed(() =>
+  filteredMarkets.value.reduce(
+    (total, market) =>
+      total +
+      (market.catalogCoverage?.missingProductVendors?.length ?? 0) +
+      (market.catalogCoverage?.missingServiceVendors?.length ?? 0),
+    0,
+  ),
+);
 const vendorImportPreview = computed(() => {
   if (!vendorImportText.value.trim()) {
     return { vendors: [], errors: [] };
@@ -753,6 +777,19 @@ async function importVendorsForMarket() {
   } finally {
     isImportingVendors.value = false;
   }
+}
+
+function downloadCatalogGapCsv() {
+  const csv = buildMarketCatalogGapCsv(filteredMarkets.value);
+  const blob = new Blob([`\uFEFF${csv}`], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = marketCatalogGapCsvFilename();
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 onMounted(() => {

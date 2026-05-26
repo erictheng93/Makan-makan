@@ -24,9 +24,17 @@ vi.mock("vue-router", () => ({
 describe("PlatformMarketsView", () => {
   const selectRestaurant = vi.fn();
   const push = vi.fn();
+  const createObjectURL = vi.fn(() => "blob:market-catalog-gaps");
+  const revokeObjectURL = vi.fn();
+  const click = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("URL", {
+      createObjectURL,
+      revokeObjectURL,
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(click);
     vi.mocked(useAuthStore).mockReturnValue({
       selectRestaurant,
     } as unknown as ReturnType<typeof useAuthStore>);
@@ -172,6 +180,19 @@ describe("PlatformMarketsView", () => {
       .trigger("click");
     expect(wrapper.text()).not.toContain("缺商品市場");
     expect(wrapper.text()).toContain("缺服務市場");
+  });
+
+  it("downloads a CSV for currently visible catalog gaps", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper.get('[data-testid="export-catalog-gaps"]').trigger("click");
+
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    expect(blob.type).toBe("text/csv;charset=utf-8;");
+    expect(click).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
   });
 
   it("imports vendors into the selected market from JSON", async () => {
