@@ -653,7 +653,7 @@ export class DiscoveryService {
           eq(restaurantServiceItems.restaurantId, restaurants.id),
         )
         .where(whereClause)
-        .orderBy(...this.getServiceSearchOrderBy(q))
+        .orderBy(...this.getServiceSearchOrderBy(filters))
         .limit(queryLimit)
         .offset(queryOffset),
       requiresPostFilterPagination
@@ -1402,7 +1402,26 @@ export class DiscoveryService {
     return [asc(effectivePrice)];
   }
 
-  private getServiceSearchOrderBy(query: string | undefined) {
+  private getServiceSearchOrderBy(filters: SearchFilters) {
+    const query = filters.q;
+    const priceMissing = sql<number>`CASE WHEN ${restaurantServiceItems.priceCents} IS NULL THEN 1 ELSE 0 END`;
+    if (filters.sortBy === "price_desc") {
+      return [
+        asc(priceMissing),
+        desc(restaurantServiceItems.priceCents),
+        asc(restaurantServiceItems.sortOrder),
+        asc(restaurantServiceItems.id),
+      ];
+    }
+    if (filters.sortBy === "price_asc") {
+      return [
+        asc(priceMissing),
+        asc(restaurantServiceItems.priceCents),
+        asc(restaurantServiceItems.sortOrder),
+        asc(restaurantServiceItems.id),
+      ];
+    }
+
     const trimmedQuery = query?.trim();
     if (!trimmedQuery) {
       return [

@@ -1337,6 +1337,55 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("sorts market service searches by price when requested", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-sort-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Service Sort Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      joinedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "平價寄物",
+        serviceType: "general",
+        priceCents: 3000,
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "高價導覽",
+        serviceType: "general",
+        priceCents: 12000,
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?marketId=${market.id}&sortBy=price_desc`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.results.map((result: { name: string }) => result.name)).toEqual(
+      ["高價導覽", "平價寄物"],
+    );
+  });
+
   it("lists public services for a discovered restaurant", async () => {
     const restaurant = await seed.restaurant({
       name: "Discovered Service Detail Vendor",

@@ -92,6 +92,7 @@ export const serviceSearchQuerySchema = z
     takeaway: z.coerce.boolean().optional(),
     delivery: z.coerce.boolean().optional(),
     openNow: z.coerce.boolean().optional(),
+    sortBy: z.enum(["price_asc", "price_desc", "popular"]).optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })

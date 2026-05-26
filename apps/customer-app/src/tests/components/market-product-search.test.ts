@@ -239,6 +239,7 @@ describe("MarketProductSearch", () => {
       q: "雞排",
       marketId: "market-1",
       serviceType: "delivery",
+      sortBy: "popular",
       takeaway: true,
       page: 1,
       limit: 20,
@@ -271,6 +272,7 @@ describe("MarketProductSearch", () => {
       q: "切水果",
       marketId: "market-1",
       serviceType: undefined,
+      sortBy: "price_asc",
       page: 1,
       limit: 20,
     });
@@ -323,6 +325,7 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: "delivery",
+      sortBy: "price_asc",
       page: 1,
       limit: 20,
     });
@@ -361,6 +364,7 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: undefined,
+      sortBy: "price_asc",
       takeaway: true,
       page: 1,
       limit: 20,
@@ -406,6 +410,7 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: undefined,
+      sortBy: "price_asc",
       delivery: true,
       page: 1,
       limit: 20,
@@ -522,6 +527,7 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: undefined,
+      sortBy: "price_asc",
       page: 1,
       limit: 20,
     });
@@ -705,6 +711,7 @@ describe("MarketProductSearch", () => {
         q: undefined,
         marketId: "market-1",
         serviceType: undefined,
+        sortBy: "price_asc",
         page: 1,
         limit: 20,
       });

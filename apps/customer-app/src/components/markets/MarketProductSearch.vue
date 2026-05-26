@@ -447,8 +447,9 @@ async function fetchResults({ append }: { append: boolean }) {
             q: trimmed || undefined,
             marketId: props.marketId,
             serviceType: selectedServiceType.value || undefined,
-            takeaway: takeawayOnly.value ? true : undefined,
-            delivery: deliveryOnly.value ? true : undefined,
+            sortBy: sortBy.value,
+            ...(takeawayOnly.value ? { takeaway: true } : {}),
+            ...(deliveryOnly.value ? { delivery: true } : {}),
             page: page.value,
             limit: pageSize,
           })
