@@ -97,13 +97,14 @@ function mountView() {
             "initialCategory",
             "initialServiceType",
             "initialTakeaway",
+            "initialDelivery",
             "initialSortBy",
           ],
           emits: ["select", "takeaway", "selectService", "searchStateChange"],
           template: `
             <section data-testid="market-product-search">
               <div data-testid="market-product-search-props">
-                {{ initialQuery }}|{{ initialCategory }}|{{ initialServiceType }}|{{ initialTakeaway }}|{{ initialSortBy }}
+                {{ initialQuery }}|{{ initialCategory }}|{{ initialServiceType }}|{{ initialTakeaway }}|{{ initialDelivery }}|{{ initialSortBy }}
               </div>
               <button
                 data-testid="select-dish"
@@ -170,6 +171,7 @@ function mountView() {
                   categoryName: '小吃',
                   serviceType: 'delivery',
                   takeaway: true,
+                  delivery: true,
                   sortBy: 'popular'
                 })"
               >
@@ -199,13 +201,14 @@ describe("MarketDetailView", () => {
     routeQuery.categoryName = "小吃";
     routeQuery.serviceType = "delivery";
     routeQuery.takeaway = "true";
+    routeQuery.delivery = "true";
     routeQuery.sortBy = "popular";
 
     const wrapper = mountView();
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("雞排|小吃|delivery|true|popular");
+    ).toContain("雞排|小吃|delivery|true|true|popular");
   });
 
   it("syncs market product search state into the URL", async () => {
@@ -219,6 +222,7 @@ describe("MarketDetailView", () => {
         categoryName: "小吃",
         serviceType: "delivery",
         takeaway: "true",
+        delivery: "true",
         sortBy: "popular",
       },
     });
@@ -237,6 +241,7 @@ describe("MarketDetailView", () => {
         categoryName: "小吃",
         serviceType: "delivery",
         takeaway: "true",
+        delivery: "true",
         sortBy: "popular",
         returnPath: "/markets?q=夜市&city=台中市",
         returnLabel: "夜市與商圈",

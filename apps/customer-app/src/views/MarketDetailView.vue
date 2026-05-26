@@ -65,6 +65,7 @@
             :initial-category="marketSearchState.categoryName"
             :initial-service-type="marketSearchState.serviceType"
             :initial-takeaway="marketSearchState.takeaway"
+            :initial-delivery="marketSearchState.delivery"
             :initial-sort-by="marketSearchState.sortBy"
             @select="openDishVendor"
             @select-service="openServiceVendor"
@@ -195,6 +196,7 @@ type MarketSearchState = {
   categoryName: string;
   serviceType: NonNullable<SearchFilters["serviceType"]> | "";
   takeaway: boolean;
+  delivery: boolean;
   sortBy: "price_asc" | "price_desc" | "popular";
 };
 
@@ -235,6 +237,7 @@ function marketSearchStateFromQuery(): MarketSearchState {
     categoryName: firstQueryString(route.query.categoryName),
     serviceType: isServiceType(serviceType) ? serviceType : "",
     takeaway: queryBoolean(route.query.takeaway),
+    delivery: queryBoolean(route.query.delivery),
     sortBy: isSortBy(sortBy) ? sortBy : "price_asc",
   };
 }
@@ -337,6 +340,7 @@ function syncMarketSearchState(state: MarketSearchState) {
       ...(state.categoryName ? { categoryName: state.categoryName } : {}),
       ...(state.serviceType ? { serviceType: state.serviceType } : {}),
       ...(state.takeaway ? { takeaway: "true" } : {}),
+      ...(state.delivery ? { delivery: "true" } : {}),
       ...(state.sortBy !== "price_asc" ? { sortBy: state.sortBy } : {}),
       ...marketDirectoryReturnQuery(),
     },

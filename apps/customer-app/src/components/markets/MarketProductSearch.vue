@@ -23,11 +23,24 @@
       >
         <input
           v-model="takeawayOnly"
+          data-testid="market-product-takeaway-filter"
           type="checkbox"
           class="rounded border-gray-300 text-ios-blue focus:ring-ios-blue"
-          @change="onTakeawayOnlyChange"
+          @change="onFulfillmentFilterChange"
         />
         只看可外帶
+      </label>
+      <label
+        class="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-700"
+      >
+        <input
+          v-model="deliveryOnly"
+          data-testid="market-product-delivery-filter"
+          type="checkbox"
+          class="rounded border-gray-300 text-ios-blue focus:ring-ios-blue"
+          @change="onFulfillmentFilterChange"
+        />
+        只看可外送
       </label>
       <select
         v-if="categoryOptions.length > 0"
@@ -234,6 +247,7 @@ const props = withDefaults(
     initialCategory?: string;
     initialServiceType?: ServiceTypeFilter | "";
     initialTakeaway?: boolean;
+    initialDelivery?: boolean;
     initialSortBy?: "price_asc" | "price_desc" | "popular";
   }>(),
   {
@@ -243,6 +257,7 @@ const props = withDefaults(
     initialCategory: "",
     initialServiceType: "",
     initialTakeaway: false,
+    initialDelivery: false,
     initialSortBy: "price_asc",
   },
 );
@@ -257,6 +272,7 @@ const emit = defineEmits<{
       categoryName: string;
       serviceType: ServiceTypeFilter | "";
       takeaway: boolean;
+      delivery: boolean;
       sortBy: "price_asc" | "price_desc" | "popular";
     },
   ];
@@ -265,6 +281,7 @@ const emit = defineEmits<{
 const { formatPrice } = useCurrency();
 const query = ref(props.initialQuery);
 const takeawayOnly = ref(props.initialTakeaway);
+const deliveryOnly = ref(props.initialDelivery);
 const selectedCategory = ref(props.initialCategory);
 const selectedServiceType = ref<ServiceTypeFilter | "">(
   props.initialServiceType,
@@ -348,6 +365,7 @@ const activeFilterLabels = computed(() => {
     labels.push(`服務：${serviceTypeLabels.get(serviceType) ?? serviceType}`);
   }
   if (takeawayOnly.value) labels.push("只看可外帶");
+  if (deliveryOnly.value) labels.push("只看可外送");
   if (sortBy.value !== "price_asc") {
     labels.push(`排序：${sortLabels[sortBy.value]}`);
   }
@@ -391,6 +409,7 @@ async function fetchResults({ append }: { append: boolean }) {
         categoryName: selectedCategory.value || undefined,
         sortBy: sortBy.value,
         takeaway: takeawayOnly.value ? true : undefined,
+        delivery: deliveryOnly.value ? true : undefined,
         page: page.value,
         limit: pageSize,
       }),
@@ -400,6 +419,7 @@ async function fetchResults({ append }: { append: boolean }) {
             marketId: props.marketId,
             serviceType: selectedServiceType.value || undefined,
             takeaway: takeawayOnly.value ? true : undefined,
+            delivery: deliveryOnly.value ? true : undefined,
             page: page.value,
             limit: pageSize,
           })
@@ -435,7 +455,7 @@ function searchIfReady() {
   }
 }
 
-function onTakeawayOnlyChange() {
+function onFulfillmentFilterChange() {
   loadCategories();
   loadServiceTypes();
   searchIfReady();
@@ -444,6 +464,7 @@ function onTakeawayOnlyChange() {
 function clearFilters() {
   query.value = "";
   takeawayOnly.value = false;
+  deliveryOnly.value = false;
   selectedCategory.value = "";
   selectedServiceType.value = "";
   sortBy.value = "price_asc";
@@ -458,6 +479,7 @@ function emitSearchState() {
     categoryName: selectedCategory.value,
     serviceType: selectedServiceType.value,
     takeaway: takeawayOnly.value,
+    delivery: deliveryOnly.value,
     sortBy: sortBy.value,
   });
 }
@@ -469,6 +491,7 @@ async function loadCategories() {
     const response = await discoveryApi.listCategories({
       marketId: props.marketId,
       takeaway: takeawayOnly.value ? true : undefined,
+      delivery: deliveryOnly.value ? true : undefined,
     });
     loadedCategories.value = response.categories;
   } catch (categoryError) {
@@ -481,6 +504,7 @@ async function loadServiceTypes() {
     const response = await discoveryApi.listServiceTypes({
       marketId: props.marketId,
       takeaway: takeawayOnly.value ? true : undefined,
+      delivery: deliveryOnly.value ? true : undefined,
     });
     loadedServiceTypes.value = response.serviceTypes;
   } catch (serviceTypeError) {

@@ -261,6 +261,7 @@ describe("MarketProductSearch", () => {
       categoryName: "",
       serviceType: "delivery",
       takeaway: false,
+      delivery: false,
       sortBy: "price_asc",
     });
   });
@@ -290,6 +291,51 @@ describe("MarketProductSearch", () => {
       marketId: "market-1",
       serviceType: undefined,
       takeaway: true,
+      page: 1,
+      limit: 20,
+    });
+  });
+
+  it("applies the delivery filter to market services", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [service({ name: "可外送代切", serviceType: "delivery" })],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-delivery-filter"]')
+      .setValue(true);
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.listCategories).toHaveBeenLastCalledWith({
+      marketId: "market-1",
+      delivery: true,
+    });
+    expect(discoveryApi.listServiceTypes).toHaveBeenLastCalledWith({
+      marketId: "market-1",
+      delivery: true,
+    });
+    expect(discoveryApi.searchDishes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        delivery: true,
+      }),
+    );
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      serviceType: undefined,
+      delivery: true,
       page: 1,
       limit: 20,
     });
@@ -326,6 +372,9 @@ describe("MarketProductSearch", () => {
       .setValue("delivery");
     await wrapper.get('input[type="checkbox"]').setValue(true);
     await wrapper
+      .get('[data-testid="market-product-delivery-filter"]')
+      .setValue(true);
+    await wrapper
       .get('[data-testid="market-product-sort-select"]')
       .setValue("popular");
     await wrapper.get("form").trigger("submit.prevent");
@@ -338,6 +387,7 @@ describe("MarketProductSearch", () => {
     expect(summary.text()).toContain("分類：小吃");
     expect(summary.text()).toContain("服務：外送");
     expect(summary.text()).toContain("只看可外帶");
+    expect(summary.text()).toContain("只看可外送");
     expect(summary.text()).toContain("排序：熱門優先");
   });
 
@@ -413,6 +463,7 @@ describe("MarketProductSearch", () => {
       categoryName: "",
       serviceType: "",
       takeaway: false,
+      delivery: false,
       sortBy: "price_asc",
     });
     expect(wrapper.text()).toContain("市場雞排");
