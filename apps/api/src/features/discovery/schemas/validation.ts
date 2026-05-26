@@ -91,7 +91,11 @@ export const serviceSearchQuerySchema = z
   })
   .superRefine((query, ctx) => {
     const hasSearchScope =
-      query.q || query.marketId || query.city || query.district;
+      query.q ||
+      query.marketId ||
+      query.city ||
+      query.district ||
+      query.serviceType;
 
     if (!hasSearchScope) {
       ctx.addIssue({

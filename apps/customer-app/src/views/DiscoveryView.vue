@@ -385,7 +385,8 @@ function hasDiscoverySearchScope(filters: SearchFilters, query: string) {
     filters.marketId ||
     filters.categoryName ||
     filters.city ||
-    filters.district,
+    filters.district ||
+    filters.serviceType,
   );
 }
 

@@ -33,8 +33,14 @@ export const useDiscoveryStore = defineStore("discovery", () => {
   );
   const isSearchMode = computed(() => mode.value === "search");
 
-  function hasProductBrowseScope(searchFilters: SearchFilters) {
-    return Boolean(searchFilters.marketId || searchFilters.categoryName);
+  function hasDiscoverySearchScope(searchFilters: SearchFilters) {
+    return Boolean(
+      searchFilters.marketId ||
+      searchFilters.categoryName ||
+      searchFilters.city ||
+      searchFilters.district ||
+      searchFilters.serviceType,
+    );
   }
 
   // Actions
@@ -52,14 +58,24 @@ export const useDiscoveryStore = defineStore("discovery", () => {
         ...dishFilters,
         page: page.value,
       };
+      const canSearchDishes = Boolean(
+        trimmedQuery ||
+        filters.value.marketId ||
+        filters.value.categoryName ||
+        filters.value.city ||
+        filters.value.district,
+      );
       const canSearchServices = Boolean(
         trimmedQuery ||
         filters.value.marketId ||
         filters.value.city ||
-        filters.value.district,
+        filters.value.district ||
+        serviceType,
       );
       const [dishResult, serviceResult] = await Promise.all([
-        discoveryApi.searchDishes(dishSearchFilters),
+        canSearchDishes
+          ? discoveryApi.searchDishes(dishSearchFilters)
+          : Promise.resolve({ results: [], total: 0 }),
         canSearchServices
           ? discoveryApi.searchServices({
               q: trimmedQuery || undefined,
@@ -122,7 +138,7 @@ export const useDiscoveryStore = defineStore("discovery", () => {
     page.value = 1;
     if (
       (mode.value === "search" && searchQuery.value) ||
-      hasProductBrowseScope(filters.value)
+      hasDiscoverySearchScope(filters.value)
     ) {
       searchDishes(searchQuery.value);
     } else {

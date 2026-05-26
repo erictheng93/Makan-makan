@@ -295,7 +295,7 @@ describe("DiscoveryView", () => {
     expect(store.browseRestaurants).not.toHaveBeenCalled();
   });
 
-  it("does not search from a URL query that only has a service type", () => {
+  it("searches service results from a URL query that only has a service type", () => {
     routeQuery.serviceType = "delivery";
     const store = discoveryStore({
       searchQuery: "",
@@ -308,8 +308,8 @@ describe("DiscoveryView", () => {
     mountView();
 
     expect(store.filters).toEqual({ serviceType: "delivery" });
-    expect(store.searchDishes).not.toHaveBeenCalled();
-    expect(store.browseRestaurants).toHaveBeenCalled();
+    expect(store.searchDishes).toHaveBeenCalledWith("");
+    expect(store.browseRestaurants).not.toHaveBeenCalled();
   });
 
   it("syncs text searches into the URL query", async () => {

@@ -153,6 +153,53 @@ describe("useDiscoveryStore", () => {
     });
   });
 
+  it("browses services when service type is the only selected filter", async () => {
+    setActivePinia(createPinia());
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        {
+          serviceItemId: 8,
+          name: "全站外送",
+          description: null,
+          serviceType: "delivery",
+          priceCents: null,
+          priceLabel: null,
+          durationMinutes: null,
+          requiresBooking: false,
+          bookingUrl: null,
+          tags: [],
+          restaurantId: "service-restaurant-2",
+          restaurantName: "外送攤",
+          district: "西屯區",
+          city: "台中市",
+          isOpen: true,
+        },
+      ],
+      total: 1,
+    } as never);
+
+    const store = useDiscoveryStore();
+    store.updateFilters({ serviceType: "delivery" });
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+        serviceType: "delivery",
+        page: 1,
+      });
+    });
+    expect(discoveryApi.browseRestaurants).not.toHaveBeenCalled();
+    expect(discoveryApi.searchDishes).not.toHaveBeenCalled();
+    expect(store.isSearchMode).toBe(true);
+    await vi.waitFor(() => {
+      expect(store.serviceResults).toHaveLength(1);
+      expect(store.total).toBe(1);
+    });
+  });
+
   it("browses category dishes when selecting a category without a keyword", async () => {
     setActivePinia(createPinia());
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
