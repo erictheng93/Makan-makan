@@ -7,6 +7,8 @@ import type {
 export const SHOP_MENU_ITEM_QUERY_KEY = "itemId";
 export const SHOP_MENU_CATEGORY_QUERY_KEY = "categoryName";
 export const SHOP_MENU_SERVICE_QUERY_KEY = "serviceItemId";
+export const SHOP_MENU_RETURN_PATH_QUERY_KEY = "returnPath";
+export const SHOP_MENU_RETURN_LABEL_QUERY_KEY = "returnLabel";
 
 export function shopMenuItemQuery(dish: {
   menuItemId: number;
@@ -23,6 +25,13 @@ export function shopMenuItemQuery(dish: {
 export function shopMenuServiceQuery(service: { serviceItemId: number }) {
   return {
     [SHOP_MENU_SERVICE_QUERY_KEY]: String(service.serviceItemId),
+  };
+}
+
+export function shopMenuReturnQuery(source: { path: string; label: string }) {
+  return {
+    [SHOP_MENU_RETURN_PATH_QUERY_KEY]: source.path,
+    [SHOP_MENU_RETURN_LABEL_QUERY_KEY]: source.label,
   };
 }
 

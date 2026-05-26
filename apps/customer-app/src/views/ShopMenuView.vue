@@ -9,8 +9,9 @@
         <div class="px-5 py-3">
           <div class="flex items-center justify-between">
             <button
+              data-testid="shop-menu-back"
               class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
-              @click="router.back()"
+              @click="goBack"
             >
               <svg
                 class="w-5 h-5"
@@ -176,6 +177,31 @@
               />
             </svg>
           </div>
+
+          <section
+            v-if="linkedTargetLabel || returnContext"
+            data-testid="shop-menu-entry-context"
+            class="rounded-xl border border-ios-blue/20 bg-ios-blue/5 px-4 py-3"
+          >
+            <p
+              v-if="linkedTargetLabel"
+              class="text-sm font-medium text-ios-text"
+            >
+              已定位到 {{ linkedTargetLabel }}
+            </p>
+            <p v-else class="text-sm font-medium text-ios-text">
+              正在查看此店鋪菜單與服務
+            </p>
+            <button
+              v-if="returnContext"
+              type="button"
+              data-testid="shop-menu-return-context"
+              class="mt-2 inline-flex text-sm font-medium text-ios-blue"
+              @click="goToReturnContext"
+            >
+              返回{{ returnContext.label }}
+            </button>
+          </section>
 
           <!-- 店家服務 -->
           <section
@@ -478,6 +504,8 @@ const props = defineProps<{
   linkedItemId?: string | string[] | null;
   linkedCategoryName?: string | string[] | null;
   linkedServiceItemId?: string | string[] | null;
+  returnPath?: string | null;
+  returnLabel?: string | null;
 }>();
 
 // Composables
@@ -541,10 +569,25 @@ const error = computed(() => menuError.value?.message || null);
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
 const serviceItems = computed(() => serviceItemsData.value || []);
+const linkedMenuItem = computed(() =>
+  findMenuItemByQuery(menuItems.value, props.linkedItemId),
+);
 const linkedService = computed(() =>
   findServiceItemByQuery(serviceItems.value, props.linkedServiceItemId),
 );
 const linkedServiceId = computed(() => linkedService.value?.id ?? null);
+const returnContext = computed(() => {
+  const path = props.returnPath?.trim();
+  if (!path || !path.startsWith("/") || path.startsWith("//")) return null;
+
+  const label = props.returnLabel?.trim() || "上一頁";
+  return { path, label };
+});
+const linkedTargetLabel = computed(() => {
+  if (linkedService.value) return `服務：${linkedService.value.name}`;
+  if (linkedMenuItem.value) return `商品：${linkedMenuItem.value.name}`;
+  return "";
+});
 
 const featuredItems = computed(() =>
   menuItems.value.filter((item: any) => item.isFeatured && item.isAvailable),
@@ -618,6 +661,19 @@ const scrollToCategory = (categoryId: number) => {
   }
 };
 
+const goToReturnContext = () => {
+  if (!returnContext.value) return;
+  router.push(returnContext.value.path);
+};
+
+const goBack = () => {
+  if (returnContext.value) {
+    goToReturnContext();
+    return;
+  }
+  router.back();
+};
+
 const handleAddToCart = (data: {
   item: MenuItem;
   quantity: number;
@@ -668,7 +724,7 @@ const scrollToLinkedCategory = async () => {
 };
 
 const openLinkedMenuItem = async () => {
-  const item = findMenuItemByQuery(menuItems.value, props.linkedItemId);
+  const item = linkedMenuItem.value;
   if (!item) {
     await scrollToLinkedCategory();
     return;

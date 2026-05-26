@@ -166,6 +166,7 @@ import {
 import { applyMarketSeoMeta } from "@/utils/seoMeta";
 import {
   shopMenuItemQuery,
+  shopMenuReturnQuery,
   shopMenuServiceQuery,
 } from "@/utils/shopMenuDeepLink";
 
@@ -204,6 +205,7 @@ function openVendor(vendor: MarketVendor) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: vendor.restaurantId },
+    query: marketReturnQuery(),
   });
 }
 
@@ -235,7 +237,10 @@ function openDishVendor(dish: DishSearchResult) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: dish.restaurantId },
-    query: shopMenuItemQuery(dish),
+    query: {
+      ...shopMenuItemQuery(dish),
+      ...marketReturnQuery(),
+    },
   });
 }
 
@@ -243,7 +248,17 @@ function openServiceVendor(service: ServiceSearchResult) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: service.restaurantId },
-    query: shopMenuServiceQuery(service),
+    query: {
+      ...shopMenuServiceQuery(service),
+      ...marketReturnQuery(),
+    },
+  });
+}
+
+function marketReturnQuery() {
+  return shopMenuReturnQuery({
+    path: route.fullPath,
+    label: store.selectedMarket?.name ?? "市場",
   });
 }
 

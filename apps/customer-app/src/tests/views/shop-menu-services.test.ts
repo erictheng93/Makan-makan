@@ -5,9 +5,11 @@ import ShopMenuView from "@/views/ShopMenuView.vue";
 import { menuApi } from "@/services/menuApi";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 
+const routerPush = vi.hoisted(() => vi.fn());
+
 vi.mock("vue-router", () => ({
   useRoute: () => ({ path: "/restaurant/restaurant-1/shop/menu" }),
-  useRouter: () => ({ back: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ back: vi.fn(), push: routerPush }),
 }));
 
 vi.mock("vue-toastification", () => ({
@@ -97,7 +99,23 @@ vi.mock("@tanstack/vue-query", () => ({
               status: 1,
             },
           ],
-          menuItems: [],
+          menuItems: [
+            {
+              id: 42,
+              restaurantId: "restaurant-1",
+              categoryId: 10,
+              name: "章魚燒",
+              price: 8000,
+              spiceLevel: 0,
+              sortOrder: 1,
+              isAvailable: true,
+              isFeatured: false,
+              inventoryCount: -1,
+              orderCount: 0,
+              createdAt: "",
+              updatedAt: "",
+            },
+          ],
         }),
         isLoading: ref(false),
         error: ref(null),
@@ -153,6 +171,7 @@ describe("ShopMenuView service items", () => {
   let scrollIntoView: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    routerPush.mockReset();
     scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
@@ -210,5 +229,77 @@ describe("ShopMenuView service items", () => {
       block: "center",
     });
     wrapper.unmount();
+  });
+
+  it("shows the linked service target and returns to the search context", async () => {
+    const wrapper = mount(ShopMenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        linkedServiceItemId: "1",
+        returnPath: "/discover?q=%E5%A4%96%E9%80%81",
+        returnLabel: "搜尋結果",
+      },
+      global: {
+        stubs: {
+          MenuItemCard: true,
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    const context = wrapper.get('[data-testid="shop-menu-entry-context"]');
+    expect(context.text()).toContain("預約外送");
+    expect(context.text()).toContain("搜尋結果");
+
+    await wrapper
+      .get('[data-testid="shop-menu-return-context"]')
+      .trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith("/discover?q=%E5%A4%96%E9%80%81");
+  });
+
+  it("shows the linked menu item target when opening from a dish result", () => {
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1", linkedItemId: "42" },
+      global: {
+        stubs: {
+          MenuItemCard: true,
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    expect(
+      wrapper.get('[data-testid="shop-menu-entry-context"]').text(),
+    ).toContain("章魚燒");
+  });
+
+  it("ignores unsafe return paths", async () => {
+    const wrapper = mount(ShopMenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        returnPath: "https://example.com/phishing",
+        returnLabel: "外部網站",
+      },
+      global: {
+        stubs: {
+          MenuItemCard: true,
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    expect(
+      wrapper.find('[data-testid="shop-menu-return-context"]').exists(),
+    ).toBe(false);
   });
 });

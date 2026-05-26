@@ -228,7 +228,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { useDiscoveryStore } from "@/stores/discovery";
 import SearchBar from "@/components/discovery/SearchBar.vue";
@@ -245,12 +245,14 @@ import { discoveryApi } from "@/services/discoveryApi";
 import { marketsApi, type MarketListItem } from "@/services/marketsApi";
 import {
   shopMenuItemQuery,
+  shopMenuReturnQuery,
   shopMenuServiceQuery,
 } from "@/utils/shopMenuDeepLink";
 import { useCurrency } from "@/composables/useCurrency";
 
 const { t, tWithParams } = useI18n();
 const router = useRouter();
+const route = useRoute();
 const store = useDiscoveryStore();
 const { formatPrice } = useCurrency();
 const marketOptions = ref<MarketListItem[]>([]);
@@ -275,19 +277,38 @@ function onDishSelect(dish: DishSearchResult) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: dish.restaurantId },
-    query: shopMenuItemQuery(dish),
+    query: {
+      ...shopMenuItemQuery(dish),
+      ...shopMenuReturnQuery({
+        path: route.fullPath,
+        label: "搜尋結果",
+      }),
+    },
   });
 }
 
 function onRestaurantSelect(restaurant: RestaurantListItem) {
-  router.push(`/restaurant/${restaurant.restaurantId}/shop/menu`);
+  router.push({
+    name: "ShopMenu",
+    params: { restaurantId: restaurant.restaurantId },
+    query: shopMenuReturnQuery({
+      path: route.fullPath,
+      label: "搜尋結果",
+    }),
+  });
 }
 
 function onServiceSelect(service: ServiceSearchResult) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: service.restaurantId },
-    query: shopMenuServiceQuery(service),
+    query: {
+      ...shopMenuServiceQuery(service),
+      ...shopMenuReturnQuery({
+        path: route.fullPath,
+        label: "搜尋結果",
+      }),
+    },
   });
 }
 

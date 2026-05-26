@@ -146,7 +146,12 @@ describe("MarketDetailView", () => {
     expect(routerPush).toHaveBeenCalledWith({
       name: "ShopMenu",
       params: { restaurantId: "restaurant-1" },
-      query: { itemId: "42", categoryName: "小吃" },
+      query: {
+        itemId: "42",
+        categoryName: "小吃",
+        returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
     });
   });
 
@@ -177,7 +182,11 @@ describe("MarketDetailView", () => {
     expect(routerPush).toHaveBeenCalledWith({
       name: "ShopMenu",
       params: { restaurantId: "service-restaurant-1" },
-      query: { serviceItemId: "7" },
+      query: {
+        serviceItemId: "7",
+        returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
     });
   });
 });

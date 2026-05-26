@@ -8,6 +8,9 @@ import { useDiscoveryStore } from "@/stores/discovery";
 const routerPush = vi.hoisted(() => vi.fn());
 
 vi.mock("vue-router", () => ({
+  useRoute: () => ({
+    fullPath: "/discover?q=%E5%A4%96%E9%80%81",
+  }),
   useRouter: () => ({
     push: routerPush,
   }),
@@ -156,7 +159,12 @@ describe("DiscoveryView", () => {
     expect(routerPush).toHaveBeenCalledWith({
       name: "ShopMenu",
       params: { restaurantId: "restaurant-1" },
-      query: { itemId: "42", categoryName: "小吃" },
+      query: {
+        itemId: "42",
+        categoryName: "小吃",
+        returnPath: "/discover?q=%E5%A4%96%E9%80%81",
+        returnLabel: "搜尋結果",
+      },
     });
   });
 
@@ -212,7 +220,11 @@ describe("DiscoveryView", () => {
     expect(routerPush).toHaveBeenCalledWith({
       name: "ShopMenu",
       params: { restaurantId: "service-restaurant-1" },
-      query: { serviceItemId: "7" },
+      query: {
+        serviceItemId: "7",
+        returnPath: "/discover?q=%E5%A4%96%E9%80%81",
+        returnLabel: "搜尋結果",
+      },
     });
   });
 

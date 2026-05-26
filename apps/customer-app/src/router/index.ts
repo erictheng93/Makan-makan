@@ -3,6 +3,13 @@ import type { RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { translate } from "@/utils/i18n";
 
+function firstQueryString(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === "string");
+  }
+  return typeof value === "string" ? value : undefined;
+}
+
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
@@ -144,6 +151,8 @@ const routes: RouteRecordRaw[] = [
       linkedItemId: route.query.itemId,
       linkedCategoryName: route.query.categoryName,
       linkedServiceItemId: route.query.serviceItemId,
+      returnPath: firstQueryString(route.query.returnPath),
+      returnLabel: firstQueryString(route.query.returnLabel),
     }),
     meta: {
       titleKey: "navigation.shopMenu",
