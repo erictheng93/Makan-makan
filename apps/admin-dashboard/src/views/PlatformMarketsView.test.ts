@@ -182,6 +182,73 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("缺服務市場");
   });
 
+  it("shows catalog completion priority and sorts urgent markets first", async () => {
+    vi.mocked(marketsService.listPlatformReadiness).mockResolvedValue([
+      {
+        id: "market-low",
+        slug: "low-gap",
+        name: "低缺口市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        vendorCount: 3,
+        catalogCoverage: {
+          searchableProductCount: 8,
+          publicServiceCount: 2,
+          vendorsWithSearchableProducts: 3,
+          vendorsMissingSearchableProducts: 0,
+          vendorsWithPublicServices: 2,
+          vendorsMissingPublicServices: 1,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: true,
+          score: 100,
+          completedCount: 7,
+          totalCount: 7,
+          issues: [],
+        },
+      },
+      {
+        id: "market-high",
+        slug: "high-gap",
+        name: "高缺口市場",
+        type: "night_market",
+        city: "台中市",
+        district: "北區",
+        vendorCount: 5,
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsWithSearchableProducts: 2,
+          vendorsMissingSearchableProducts: 3,
+          vendorsWithPublicServices: 3,
+          vendorsMissingPublicServices: 2,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 50,
+          completedCount: 4,
+          totalCount: 7,
+          issues: [{ key: "products", severity: "required" }],
+        },
+      },
+    ]);
+
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const rows = wrapper.findAll("tbody tr");
+    expect(rows[0].text()).toContain("高缺口市場");
+    expect(rows[0].get('[data-testid="catalog-priority"]').text()).toContain(
+      "18",
+    );
+    expect(rows[1].text()).toContain("低缺口市場");
+  });
+
   it("downloads a CSV for currently visible catalog gaps", async () => {
     const wrapper = mount(PlatformMarketsView);
     await flushPromises();

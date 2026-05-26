@@ -113,6 +113,11 @@
             <th
               class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
             >
+              補齊優先
+            </th>
+            <th
+              class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+            >
               公開頁狀態
             </th>
             <th
@@ -167,6 +172,14 @@
                   }}
                 </div>
               </div>
+            </td>
+            <td class="px-4 py-4">
+              <span
+                data-testid="catalog-priority"
+                class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
+              >
+                {{ marketCatalogGapPriority(market) }}
+              </span>
             </td>
             <td class="px-4 py-4">
               <span
@@ -505,7 +518,9 @@ import {
 } from "@/utils/marketPublicReadiness";
 import {
   filterMarketsByReadiness,
+  marketCatalogGapPriority,
   marketReadinessStats,
+  sortMarketsByCatalogPriority,
   type MarketReadinessFilter,
 } from "@/utils/marketPublicReadinessWorkbench";
 import {
@@ -567,7 +582,9 @@ const vendorImportFormatOptions: Array<{
 
 const stats = computed(() => marketReadinessStats(markets.value));
 const filteredMarkets = computed(() =>
-  filterMarketsByReadiness(markets.value, readinessFilter.value, query.value),
+  sortMarketsByCatalogPriority(
+    filterMarketsByReadiness(markets.value, readinessFilter.value, query.value),
+  ),
 );
 const metrics = computed(() => [
   { label: "總數", value: stats.value.total, class: "text-gray-900" },

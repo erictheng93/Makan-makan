@@ -74,3 +74,25 @@ export function filterMarketsByReadiness(
       .some((value) => value.toLowerCase().includes(normalizedQuery));
   });
 }
+
+export function marketCatalogGapPriority(market: MarketListItem) {
+  const missingProducts =
+    market.catalogCoverage?.vendorsMissingSearchableProducts ?? 0;
+  const missingServices =
+    market.catalogCoverage?.vendorsMissingPublicServices ?? 0;
+  const readinessGap = Math.ceil(
+    Math.max(0, 100 - (market.publicReadiness?.score ?? 0)) / 10,
+  );
+
+  return missingProducts * 3 + missingServices * 2 + readinessGap;
+}
+
+export function sortMarketsByCatalogPriority(markets: MarketListItem[]) {
+  return [...markets].sort((left, right) => {
+    const priorityDelta =
+      marketCatalogGapPriority(right) - marketCatalogGapPriority(left);
+    if (priorityDelta !== 0) return priorityDelta;
+
+    return left.name.localeCompare(right.name, "zh-Hant");
+  });
+}

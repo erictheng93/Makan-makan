@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   filterMarketsByReadiness,
+  marketCatalogGapPriority,
   marketReadinessStats,
+  sortMarketsByCatalogPriority,
 } from "./marketPublicReadinessWorkbench";
 import type { MarketListItem } from "@/services/marketsService";
 
@@ -173,5 +175,76 @@ describe("market public readiness workbench", () => {
       vendorsMissingProducts: 3,
       vendorsMissingServices: 10,
     });
+  });
+
+  it("scores catalog completion priority from missing products, services, and readiness", () => {
+    expect(
+      marketCatalogGapPriority(
+        market({
+          catalogCoverage: {
+            searchableProductCount: 3,
+            publicServiceCount: 1,
+            vendorsMissingSearchableProducts: 2,
+            vendorsMissingPublicServices: 3,
+            missingProductVendors: [],
+            missingServiceVendors: [],
+          },
+          publicReadiness: {
+            ready: false,
+            score: 70,
+            completedCount: 5,
+            totalCount: 7,
+            issues: [],
+          },
+        }),
+      ),
+    ).toBe(15);
+  });
+
+  it("sorts markets by catalog completion priority before name", () => {
+    const sorted = sortMarketsByCatalogPriority([
+      market({
+        id: "low",
+        slug: "low",
+        name: "低缺口市場",
+        catalogCoverage: {
+          searchableProductCount: 10,
+          publicServiceCount: 3,
+          vendorsMissingSearchableProducts: 0,
+          vendorsMissingPublicServices: 1,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: true,
+          score: 100,
+          completedCount: 7,
+          totalCount: 7,
+          issues: [],
+        },
+      }),
+      market({
+        id: "high",
+        slug: "high",
+        name: "高缺口市場",
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsMissingSearchableProducts: 3,
+          vendorsMissingPublicServices: 2,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 50,
+          completedCount: 4,
+          totalCount: 7,
+          issues: [],
+        },
+      }),
+    ]);
+
+    expect(sorted.map((entry) => entry.slug)).toEqual(["high", "low"]);
   });
 });
