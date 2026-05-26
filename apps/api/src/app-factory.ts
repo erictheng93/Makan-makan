@@ -586,6 +586,8 @@ export function createApp(
   // 掛載 API 路由
   app.route("/api/v1", apiV1);
 
+  app.route("/", marketsFeature.seoRoutes);
+
   // 根路徑重定向到 API 資訊
   app.get("/", (c) => {
     return c.redirect("/info");

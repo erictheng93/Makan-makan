@@ -84,6 +84,20 @@ export class MarketsService {
     return data;
   }
 
+  async listSitemapEntries(limit = 50000) {
+    const rows = await this.db
+      .select({
+        slug: markets.slug,
+        updatedAt: markets.updatedAt,
+      })
+      .from(markets)
+      .where(and(eq(markets.isActive, true), isNull(markets.deletedAt)))
+      .orderBy(desc(markets.updatedAt), asc(markets.name))
+      .limit(limit);
+
+    return rows;
+  }
+
   private async queryMarkets(filters: MarketFilters) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
@@ -113,6 +127,7 @@ export class MarketsService {
         logoUrl: markets.logoUrl,
         imageUrls: markets.imageUrls,
         tags: markets.tags,
+        updatedAt: markets.updatedAt,
         vendorCount: sql<number>`count(${restaurantMarketMemberships.id})`,
       })
       .from(markets)
