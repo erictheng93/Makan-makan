@@ -203,6 +203,82 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("counts only active public vendors in market list and detail", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "active-vendor-count-market",
+    });
+    const activeRestaurant = await seed.restaurant({
+      name: "Active Count Vendor",
+      city: "台中市",
+      district: "西屯區",
+      isActive: true,
+    });
+    const inactiveRestaurant = await seed.restaurant({
+      name: "Inactive Count Vendor",
+      city: "台中市",
+      district: "西屯區",
+      isActive: false,
+    });
+    const deletedRestaurant = await seed.restaurant({
+      name: "Deleted Count Vendor",
+      city: "台中市",
+      district: "西屯區",
+      deletedAt: new Date(),
+    });
+    const leftRestaurant = await seed.restaurant({
+      name: "Left Count Vendor",
+      city: "台中市",
+      district: "西屯區",
+      isActive: true,
+    });
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(activeRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(inactiveRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(deletedRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(leftRestaurant.id),
+        marketId: market.id,
+        joinedAt: new Date(Date.now() - 60_000),
+        leftAt: new Date(),
+      },
+    ]);
+
+    const listRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets?q=active-vendor-count-market"),
+    );
+    expect(listRes.status).toBe(200);
+    const listJson: any = await listRes.json();
+    expect(listJson.data.markets).toHaveLength(1);
+    expect(listJson.data.markets[0]).toMatchObject({
+      id: market.id,
+      vendorCount: 1,
+    });
+
+    const detailRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/active-vendor-count-market"),
+    );
+    expect(detailRes.status).toBe(200);
+    const detailJson: any = await detailRes.json();
+    expect(detailJson.data.vendorCount).toBe(1);
+    expect(detailJson.data.publicReadiness.issues).not.toContainEqual({
+      key: "vendors",
+      severity: "required",
+    });
+  });
+
   it("lists active market cities and districts for customer filters", async () => {
     await seedMarket(testApp, {
       slug: "fengjia-area",

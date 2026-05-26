@@ -294,7 +294,7 @@ export class MarketsService {
         imageUrls: markets.imageUrls,
         tags: markets.tags,
         updatedAt: markets.updatedAt,
-        vendorCount: sql<number>`count(${restaurantMarketMemberships.id})`,
+        vendorCount: sql<number>`count(${restaurants.id})`,
       })
       .from(markets)
       .leftJoin(
@@ -302,6 +302,14 @@ export class MarketsService {
         and(
           eq(restaurantMarketMemberships.marketId, markets.id),
           isNull(restaurantMarketMemberships.leftAt),
+        ),
+      )
+      .leftJoin(
+        restaurants,
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurants.id),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
         ),
       )
       .where(whereClause)
@@ -374,10 +382,16 @@ export class MarketsService {
     const [{ count = 0 } = { count: 0 }] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(restaurantMarketMemberships)
+      .innerJoin(
+        restaurants,
+        eq(restaurantMarketMemberships.restaurantId, restaurants.id),
+      )
       .where(
         and(
           eq(restaurantMarketMemberships.marketId, market.id),
           isNull(restaurantMarketMemberships.leftAt),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
         ),
       );
 
