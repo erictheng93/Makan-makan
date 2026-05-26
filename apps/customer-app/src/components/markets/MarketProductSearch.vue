@@ -58,26 +58,26 @@
     </form>
 
     <div
-      v-if="loading && results.length === 0"
+      v-if="loading && combinedResultCount === 0"
       class="py-8 text-center text-sm text-gray-500"
     >
       搜尋商品中...
     </div>
     <div
-      v-else-if="error && results.length === 0"
+      v-else-if="error && combinedResultCount === 0"
       class="py-6 text-center text-sm text-red-500"
     >
       {{ error }}
     </div>
     <div
-      v-else-if="hasSearched && results.length === 0"
+      v-else-if="hasSearched && combinedResultCount === 0"
       class="py-8 text-center text-sm text-gray-500"
     >
       目前沒有符合條件的商品或服務。
     </div>
-    <div v-else-if="results.length > 0" class="space-y-2">
+    <div v-else-if="combinedResultCount > 0" class="space-y-2">
       <p class="text-sm text-gray-500">
-        顯示 {{ results.length }} / {{ total }} 項商品或服務
+        顯示 {{ combinedResultCount }} / {{ combinedTotal }} 項商品或服務
       </p>
       <DishResultCard
         v-for="dish in results"
@@ -86,6 +86,63 @@
         @select="$emit('select', dish)"
         @takeaway="$emit('takeaway', dish)"
       />
+      <article
+        v-for="service in serviceResults"
+        :key="service.serviceItemId"
+        class="rounded-lg border border-gray-200 bg-white p-3"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h3 class="truncate text-sm font-semibold text-gray-900">
+                {{ service.name }}
+              </h3>
+              <span
+                class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+              >
+                服務
+              </span>
+            </div>
+            <p class="mt-1 truncate text-sm text-gray-500">
+              {{ service.restaurantName }}
+            </p>
+          </div>
+          <span
+            v-if="servicePriceLabel(service)"
+            class="shrink-0 text-sm font-semibold text-gray-900"
+          >
+            {{ servicePriceLabel(service) }}
+          </span>
+        </div>
+        <p
+          v-if="service.description"
+          class="mt-2 line-clamp-2 text-sm leading-5 text-gray-600"
+        >
+          {{ service.description }}
+        </p>
+        <div v-if="service.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
+          <span
+            v-for="tag in service.tags.slice(0, 4)"
+            :key="tag"
+            class="rounded-full bg-ios-blue/10 px-2 py-0.5 text-xs text-ios-blue"
+          >
+            {{ tag }}
+          </span>
+        </div>
+        <div class="mt-3 flex items-center justify-between gap-2">
+          <p class="text-xs text-gray-500">
+            {{ service.isOpen ? "目前營業中" : "目前未營業" }}
+          </p>
+          <button
+            type="button"
+            data-testid="service-result-open"
+            class="h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
+            @click="$emit('selectService', service)"
+          >
+            查看店鋪
+          </button>
+        </div>
+      </article>
       <p
         v-if="error"
         class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600"
@@ -109,7 +166,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import DishResultCard from "@/components/discovery/DishResultCard.vue";
-import { discoveryApi, type DishSearchResult } from "@/services/discoveryApi";
+import { useCurrency } from "@/composables/useCurrency";
+import {
+  discoveryApi,
+  type DishSearchResult,
+  type ServiceSearchResult,
+} from "@/services/discoveryApi";
 
 const props = withDefaults(
   defineProps<{
@@ -124,22 +186,34 @@ const props = withDefaults(
 defineEmits<{
   select: [dish: DishSearchResult];
   takeaway: [dish: DishSearchResult];
+  selectService: [service: ServiceSearchResult];
 }>();
 
+const { formatPrice } = useCurrency();
 const query = ref("");
 const takeawayOnly = ref(false);
 const selectedCategory = ref("");
 const sortBy = ref<"price_asc" | "price_desc" | "popular">("price_asc");
 const loadedCategories = ref<string[]>([]);
 const results = ref<DishSearchResult[]>([]);
+const serviceResults = ref<ServiceSearchResult[]>([]);
 const total = ref(0);
+const serviceTotal = ref(0);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const hasSearched = ref(false);
 const page = ref(1);
 const pageSize = 20;
 
-const hasMoreResults = computed(() => results.value.length < total.value);
+const combinedResultCount = computed(
+  () => results.value.length + serviceResults.value.length,
+);
+const combinedTotal = computed(() => total.value + serviceTotal.value);
+const hasMoreResults = computed(
+  () =>
+    results.value.length < total.value ||
+    serviceResults.value.length < serviceTotal.value,
+);
 const categoryOptions = computed(() =>
   props.categories.length > 0 ? props.categories : loadedCategories.value,
 );
@@ -152,7 +226,9 @@ async function submitSearch() {
 
   page.value = 1;
   results.value = [];
+  serviceResults.value = [];
   total.value = 0;
+  serviceTotal.value = 0;
   await fetchResults({ append: false });
 }
 
@@ -172,19 +248,33 @@ async function fetchResults({ append }: { append: boolean }) {
   hasSearched.value = true;
 
   try {
-    const response = await discoveryApi.searchDishes({
-      q: trimmed || undefined,
-      marketId: props.marketId,
-      categoryName: selectedCategory.value || undefined,
-      sortBy: sortBy.value,
-      takeaway: takeawayOnly.value ? true : undefined,
-      page: page.value,
-      limit: pageSize,
-    });
+    const [response, serviceResponse] = await Promise.all([
+      discoveryApi.searchDishes({
+        q: trimmed || undefined,
+        marketId: props.marketId,
+        categoryName: selectedCategory.value || undefined,
+        sortBy: sortBy.value,
+        takeaway: takeawayOnly.value ? true : undefined,
+        page: page.value,
+        limit: pageSize,
+      }),
+      trimmed
+        ? discoveryApi.searchServices({
+            q: trimmed,
+            marketId: props.marketId,
+            page: page.value,
+            limit: pageSize,
+          })
+        : Promise.resolve({ results: [], total: 0 }),
+    ]);
     results.value = append
       ? [...results.value, ...response.results]
       : response.results;
+    serviceResults.value = append
+      ? [...serviceResults.value, ...serviceResponse.results]
+      : serviceResponse.results;
     total.value = response.total;
+    serviceTotal.value = serviceResponse.total;
   } catch (searchError) {
     error.value =
       searchError instanceof Error ? searchError.message : "搜尋商品失敗";
@@ -192,7 +282,9 @@ async function fetchResults({ append }: { append: boolean }) {
       page.value -= 1;
     } else {
       results.value = [];
+      serviceResults.value = [];
       total.value = 0;
+      serviceTotal.value = 0;
     }
   } finally {
     loading.value = false;
@@ -216,6 +308,14 @@ async function loadCategories() {
   } catch (categoryError) {
     console.error("Failed to load market product categories:", categoryError);
   }
+}
+
+function servicePriceLabel(service: ServiceSearchResult) {
+  if (service.priceLabel) return service.priceLabel;
+  if (typeof service.priceCents === "number") {
+    return formatPrice(service.priceCents / 100);
+  }
+  return "";
 }
 
 onMounted(loadCategories);

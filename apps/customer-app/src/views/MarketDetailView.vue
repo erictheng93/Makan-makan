@@ -59,6 +59,7 @@
           <MarketProductSearch
             :market-id="store.selectedMarket.id"
             @select="openDishVendor"
+            @select-service="openServiceVendor"
             @takeaway="startDishTakeaway"
           />
 
@@ -153,7 +154,10 @@ import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
 import VendorListInMarket from "@/components/markets/VendorListInMarket.vue";
 import { useMarketsStore } from "@/stores/markets";
 import { discoveryApi } from "@/services/discoveryApi";
-import type { DishSearchResult } from "@/services/discoveryApi";
+import type {
+  DishSearchResult,
+  ServiceSearchResult,
+} from "@/services/discoveryApi";
 import type { MarketVendor } from "@/services/marketsApi";
 import {
   restaurantContactApi,
@@ -229,6 +233,14 @@ function openDishVendor(dish: DishSearchResult) {
     name: "ShopMenu",
     params: { restaurantId: dish.restaurantId },
     query: shopMenuItemQuery(dish),
+  });
+}
+
+function openServiceVendor(service: ServiceSearchResult) {
+  router.push({
+    name: "ShopMenu",
+    params: { restaurantId: service.restaurantId },
+    query: { serviceItemId: String(service.serviceItemId) },
   });
 }
 

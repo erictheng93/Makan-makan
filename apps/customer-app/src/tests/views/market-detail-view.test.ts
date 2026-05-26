@@ -63,7 +63,7 @@ function mountView() {
         VendorListInMarket: true,
         MarketProductSearch: {
           props: ["marketId"],
-          emits: ["select", "takeaway"],
+          emits: ["select", "takeaway", "selectService"],
           template: `
             <section data-testid="market-product-search">
               <button
@@ -101,6 +101,28 @@ function mountView() {
                 })"
               >
                 takeaway dish
+              </button>
+              <button
+                data-testid="select-service"
+                @click="$emit('selectService', {
+                  serviceItemId: 7,
+                  name: '代客切水果',
+                  description: '現場代切並分裝',
+                  serviceType: 'general',
+                  priceCents: 3000,
+                  priceLabel: null,
+                  durationMinutes: null,
+                  requiresBooking: false,
+                  bookingUrl: null,
+                  tags: [],
+                  restaurantId: 'service-restaurant-1',
+                  restaurantName: '水果攤',
+                  district: '西屯區',
+                  city: '台中市',
+                  isOpen: true
+                })"
+              >
+                open service
               </button>
             </section>
           `,
@@ -144,6 +166,18 @@ describe("MarketDetailView", () => {
       name: "OrderTypeLanding",
       params: { restaurantId: "restaurant-1" },
       query: { qr: "SHOP-restaurant-1", itemId: "42", categoryName: "小吃" },
+    });
+  });
+
+  it("opens a market service result in the shop menu", async () => {
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="select-service"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "service-restaurant-1" },
+      query: { serviceItemId: "7" },
     });
   });
 });
