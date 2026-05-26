@@ -69,6 +69,17 @@ export const serviceSearchQuerySchema = z
     district: z.string().optional(),
     city: z.string().optional(),
     marketId: z.string().optional(),
+    serviceType: z
+      .enum([
+        "general",
+        "booking",
+        "pickup",
+        "delivery",
+        "consultation",
+        "rental",
+        "activity",
+      ])
+      .optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })

@@ -46,6 +46,21 @@
         </option>
       </select>
       <select
+        v-model="selectedServiceType"
+        data-testid="market-service-type-select"
+        class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
+        @change="searchIfReady"
+      >
+        <option value="">全部服務</option>
+        <option
+          v-for="option in serviceTypeOptions"
+          :key="option.value"
+          :value="option.value"
+        >
+          {{ option.label }}
+        </option>
+      </select>
+      <select
         v-model="sortBy"
         data-testid="market-product-sort-select"
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
@@ -195,6 +210,7 @@ const { formatPrice } = useCurrency();
 const query = ref("");
 const takeawayOnly = ref(false);
 const selectedCategory = ref("");
+const selectedServiceType = ref<ServiceTypeFilter | "">("");
 const sortBy = ref<"price_asc" | "price_desc" | "popular">("price_asc");
 const loadedCategories = ref<string[]>([]);
 const results = ref<DishSearchResult[]>([]);
@@ -206,6 +222,26 @@ const error = ref<string | null>(null);
 const hasSearched = ref(false);
 const page = ref(1);
 const pageSize = 20;
+type ServiceTypeFilter =
+  | "general"
+  | "booking"
+  | "pickup"
+  | "delivery"
+  | "consultation"
+  | "rental"
+  | "activity";
+const serviceTypeOptions: Array<{
+  value: ServiceTypeFilter;
+  label: string;
+}> = [
+  { value: "general", label: "一般服務" },
+  { value: "booking", label: "預約" },
+  { value: "pickup", label: "自取" },
+  { value: "delivery", label: "外送" },
+  { value: "consultation", label: "諮詢" },
+  { value: "rental", label: "租借" },
+  { value: "activity", label: "活動" },
+];
 
 const combinedResultCount = computed(
   () => results.value.length + serviceResults.value.length,
@@ -267,6 +303,7 @@ async function fetchResults({ append }: { append: boolean }) {
         ? discoveryApi.searchServices({
             q: trimmed || undefined,
             marketId: props.marketId,
+            serviceType: selectedServiceType.value || undefined,
             page: page.value,
             limit: pageSize,
           })
@@ -334,6 +371,7 @@ watch(
   () => props.marketId,
   () => {
     selectedCategory.value = "";
+    selectedServiceType.value = "";
     loadedCategories.value = [];
     loadCategories();
     if (props.autoLoad) {

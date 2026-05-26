@@ -145,6 +145,7 @@ describe("MarketProductSearch", () => {
     expect(discoveryApi.searchServices).toHaveBeenCalledWith({
       q: "切水果",
       marketId: "market-1",
+      serviceType: undefined,
       page: 1,
       limit: 20,
     });
@@ -158,6 +159,43 @@ describe("MarketProductSearch", () => {
       restaurantId: "service-r1",
       name: "代客切水果",
     });
+  });
+
+  it("filters market services by service type", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        service({
+          name: "市場外送",
+          serviceType: "delivery",
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-service-type-select"]')
+      .setValue("delivery");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      serviceType: "delivery",
+      page: 1,
+      limit: 20,
+    });
+    expect(wrapper.text()).toContain("市場外送");
   });
 
   it("browses all market products and services before entering a keyword", async () => {
@@ -198,6 +236,7 @@ describe("MarketProductSearch", () => {
       expect(discoveryApi.searchServices).toHaveBeenCalledWith({
         q: undefined,
         marketId: "market-1",
+        serviceType: undefined,
         page: 1,
         limit: 20,
       });

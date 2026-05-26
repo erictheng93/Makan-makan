@@ -59,6 +59,14 @@ export interface SearchFilters {
   openNow?: boolean;
   takeaway?: boolean;
   delivery?: boolean;
+  serviceType?:
+    | "general"
+    | "booking"
+    | "pickup"
+    | "delivery"
+    | "consultation"
+    | "rental"
+    | "activity";
   cuisineType?: string;
   priceRange?: number;
   sortBy?: "rating" | "popular" | "price_asc" | "price_desc";

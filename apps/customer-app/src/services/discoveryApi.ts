@@ -51,6 +51,14 @@ export interface SearchFilters {
   district?: string;
   categoryName?: string;
   marketId?: string;
+  serviceType?:
+    | "general"
+    | "booking"
+    | "pickup"
+    | "delivery"
+    | "consultation"
+    | "rental"
+    | "activity";
   lat?: number;
   lng?: number;
   radiusKm?: number;

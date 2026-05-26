@@ -525,6 +525,11 @@ export class DiscoveryService {
           AND rmm.left_at_ms IS NULL
       )`);
     }
+    if (filters.serviceType) {
+      conditions.push(
+        eq(restaurantServiceItems.serviceType, filters.serviceType),
+      );
+    }
     if (q) {
       const pattern = `%${q.trim()}%`;
       conditions.push(

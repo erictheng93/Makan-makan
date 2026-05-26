@@ -669,6 +669,53 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("filters public service items by service type within a market", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-type-filter-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Service Type Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      joinedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "市場外送",
+        serviceType: "delivery",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "市場預約",
+        serviceType: "booking",
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?marketId=${market.id}&serviceType=delivery`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results.map((result: any) => result.name)).toEqual([
+      "市場外送",
+    ]);
+  });
+
   it("browses public service items by market without a keyword", async () => {
     const market = await seedMarket(testApp, {
       slug: "service-browse-market",
