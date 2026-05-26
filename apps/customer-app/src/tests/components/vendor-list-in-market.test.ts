@@ -43,6 +43,7 @@ describe("VendorListInMarket", () => {
         loading: false,
         query: "",
         takeawayOnly: false,
+        deliveryOnly: false,
         hasMore: true,
       },
     });
@@ -59,6 +60,7 @@ describe("VendorListInMarket", () => {
         loading: false,
         query: "",
         takeawayOnly: false,
+        deliveryOnly: false,
         hasMore: false,
       },
     });
@@ -66,5 +68,21 @@ describe("VendorListInMarket", () => {
     expect(wrapper.find('[data-testid="vendor-list-load-more"]').exists()).toBe(
       false,
     );
+  });
+
+  it("emits delivery filter changes for market vendors", async () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [vendor({ supportsDelivery: true })],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    await wrapper.get('[data-testid="vendor-delivery-filter"]').setValue(true);
+
+    expect(wrapper.emitted("update:deliveryOnly")).toEqual([[true]]);
   });
 });

@@ -26,6 +26,23 @@
         />
         外帶
       </label>
+      <label
+        class="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-700"
+      >
+        <input
+          :checked="deliveryOnly"
+          data-testid="vendor-delivery-filter"
+          type="checkbox"
+          class="rounded border-gray-300 text-ios-blue focus:ring-ios-blue"
+          @change="
+            $emit(
+              'update:deliveryOnly',
+              ($event.target as HTMLInputElement).checked,
+            )
+          "
+        />
+        外送
+      </label>
     </div>
 
     <div v-if="loading" class="py-8 text-center text-sm text-gray-500">
@@ -82,12 +99,14 @@ defineProps<{
   loading: boolean;
   query: string;
   takeawayOnly: boolean;
+  deliveryOnly: boolean;
   hasMore?: boolean;
 }>();
 
 defineEmits<{
   "update:query": [query: string];
   "update:takeawayOnly": [value: boolean];
+  "update:deliveryOnly": [value: boolean];
   selectVendor: [vendor: MarketVendor];
   takeaway: [vendor: MarketVendor];
   contactVendor: [vendor: MarketVendor];

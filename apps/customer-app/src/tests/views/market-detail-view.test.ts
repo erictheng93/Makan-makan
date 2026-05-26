@@ -69,10 +69,18 @@ function mountView() {
       stubs: {
         MarketDetailHero: true,
         VendorListInMarket: {
-          props: ["vendors", "loading", "query", "takeawayOnly", "hasMore"],
+          props: [
+            "vendors",
+            "loading",
+            "query",
+            "takeawayOnly",
+            "deliveryOnly",
+            "hasMore",
+          ],
           emits: [
             "update:query",
             "update:takeawayOnly",
+            "update:deliveryOnly",
             "selectVendor",
             "takeaway",
             "contactVendor",
@@ -86,6 +94,12 @@ function mountView() {
                 @click="$emit('loadMore')"
               >
                 load more vendors
+              </button>
+              <button
+                data-testid="vendor-list-delivery"
+                @click="$emit('update:deliveryOnly', true)"
+              >
+                delivery
               </button>
             </section>
           `,
@@ -314,10 +328,25 @@ describe("MarketDetailView", () => {
     expect(store.loadMoreVendors).toHaveBeenCalledWith("fengjia", {
       q: undefined,
       takeaway: undefined,
+      delivery: undefined,
     });
     expect(wrapper.get('[data-testid="vendor-list-has-more"]').text()).toBe(
       "true",
     );
+  });
+
+  it("filters market vendors by delivery support", async () => {
+    const store = marketStore();
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="vendor-list-delivery"]').trigger("click");
+
+    expect(store.loadVendors).toHaveBeenCalledWith("fengjia", {
+      q: undefined,
+      takeaway: undefined,
+      delivery: true,
+    });
   });
 
   it("returns to the market directory context when provided", async () => {

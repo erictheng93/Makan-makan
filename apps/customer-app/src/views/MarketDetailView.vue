@@ -50,9 +50,11 @@
             :loading="store.vendorsLoading"
             :query="vendorQuery"
             :takeaway-only="takeawayOnly"
+            :delivery-only="deliveryOnly"
             :has-more="store.hasMoreVendors"
             @update:query="onQueryChange"
             @update:takeaway-only="onTakeawayOnlyChange"
+            @update:delivery-only="onDeliveryOnlyChange"
             @select-vendor="openVendor"
             @takeaway="startTakeaway"
             @contact-vendor="openContactProfile"
@@ -186,6 +188,7 @@ const router = useRouter();
 const store = useMarketsStore();
 const vendorQuery = ref("");
 const takeawayOnly = ref(false);
+const deliveryOnly = ref(false);
 const selectedContactVendor = ref<MarketVendor | null>(null);
 const contactProfile = ref<RestaurantContactProfile | null>(null);
 const contactLoading = ref(false);
@@ -257,6 +260,7 @@ function loadVendors() {
   store.loadVendors(slug(), {
     q: vendorQuery.value || undefined,
     takeaway: takeawayOnly.value || undefined,
+    delivery: deliveryOnly.value || undefined,
   });
 }
 
@@ -264,6 +268,7 @@ function loadMoreVendors() {
   store.loadMoreVendors(slug(), {
     q: vendorQuery.value || undefined,
     takeaway: takeawayOnly.value || undefined,
+    delivery: deliveryOnly.value || undefined,
   });
 }
 
@@ -275,6 +280,11 @@ function onQueryChange(value: string) {
 
 function onTakeawayOnlyChange(value: boolean) {
   takeawayOnly.value = value;
+  loadVendors();
+}
+
+function onDeliveryOnlyChange(value: boolean) {
+  deliveryOnly.value = value;
   loadVendors();
 }
 
