@@ -26,6 +26,7 @@ import {
 import { CACHE_TTL } from "../../../shared/constants";
 import { isOpenNow } from "../../discovery/utils/isOpenNow";
 import { boundingBoxFromCircle, distanceKm } from "./geo";
+import { evaluateMarketPublicReadiness } from "../utils/publicReadiness";
 
 const MARKET_CACHE_VERSION_KEY = "markets:version";
 
@@ -153,6 +154,10 @@ export class MarketsService {
       markets: rows.map((row) => ({
         ...row,
         vendorCount: Number(row.vendorCount),
+        publicReadiness: evaluateMarketPublicReadiness({
+          ...row,
+          vendorCount: Number(row.vendorCount),
+        }),
       })),
       total: Number(count),
       page,
@@ -198,7 +203,16 @@ export class MarketsService {
         ),
       );
 
-    return { market, vendorCount: Number(count) };
+    const vendorCount = Number(count);
+
+    return {
+      market,
+      vendorCount,
+      publicReadiness: evaluateMarketPublicReadiness({
+        ...market,
+        vendorCount,
+      }),
+    };
   }
 
   async listVendors(slug: string, filters: VendorFilters) {

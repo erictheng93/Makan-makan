@@ -130,6 +130,13 @@ describe("Markets API — real integration", () => {
       friday: { open: "17:00", close: "23:30" },
       saturday: { open: "16:00", close: "23:59" },
     });
+    expect(listJson.data.markets[0].publicReadiness).toMatchObject({
+      ready: true,
+      score: 100,
+      completedCount: 5,
+      totalCount: 5,
+      issues: [],
+    });
 
     const detailRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets/fengjia-night-market"),
@@ -138,6 +145,45 @@ describe("Markets API — real integration", () => {
     const detailJson: any = await detailRes.json();
     expect(detailJson.data.market.slug).toBe("fengjia-night-market");
     expect(detailJson.data.vendorCount).toBe(1);
+    expect(detailJson.data.publicReadiness).toMatchObject({
+      ready: true,
+      score: 100,
+      completedCount: 5,
+      totalCount: 5,
+      issues: [],
+    });
+  });
+
+  it("reports public readiness issues for incomplete market pages", async () => {
+    await seedMarket(testApp, {
+      slug: "incomplete-market",
+      description: "",
+      address: "",
+      openingHours: null,
+      bannerUrl: null,
+      logoUrl: null,
+      imageUrls: null,
+    });
+
+    const detailRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/incomplete-market"),
+    );
+
+    expect(detailRes.status).toBe(200);
+    const detailJson: any = await detailRes.json();
+    expect(detailJson.data.publicReadiness).toEqual({
+      ready: false,
+      score: 0,
+      completedCount: 0,
+      totalCount: 5,
+      issues: [
+        { key: "description", severity: "required" },
+        { key: "location", severity: "required" },
+        { key: "openingHours", severity: "required" },
+        { key: "image", severity: "recommended" },
+        { key: "vendors", severity: "required" },
+      ],
+    });
   });
 
   it("exposes market pages through sitemap.xml and robots.txt", async () => {
