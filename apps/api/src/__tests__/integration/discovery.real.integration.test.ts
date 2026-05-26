@@ -716,6 +716,70 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("lists service type facets for public service items within a market", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-type-facet-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Service Facet Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      joinedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "外送 A",
+        serviceType: "delivery",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "外送 B",
+        serviceType: "delivery",
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "預約服務",
+        serviceType: "booking",
+        sortOrder: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "內部租借",
+        serviceType: "rental",
+        isPublic: false,
+        sortOrder: 4,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/service-types?marketId=${market.id}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.serviceTypes).toEqual([
+      { serviceType: "delivery", count: 2 },
+      { serviceType: "booking", count: 1 },
+    ]);
+  });
+
   it("browses public service items by market without a keyword", async () => {
     const market = await seedMarket(testApp, {
       slug: "service-browse-market",

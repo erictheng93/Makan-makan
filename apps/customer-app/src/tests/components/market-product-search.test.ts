@@ -28,6 +28,7 @@ vi.mock("@/services/discoveryApi", () => ({
     searchDishes: vi.fn(),
     searchServices: vi.fn(),
     listCategories: vi.fn(),
+    listServiceTypes: vi.fn(),
   },
 }));
 
@@ -35,6 +36,9 @@ describe("MarketProductSearch", () => {
   beforeEach(() => {
     vi.mocked(discoveryApi.listCategories).mockResolvedValue({
       categories: [],
+    } as never);
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValue({
+      serviceTypes: [],
     } as never);
     vi.mocked(discoveryApi.searchServices).mockResolvedValue({
       results: [],
@@ -162,6 +166,9 @@ describe("MarketProductSearch", () => {
   });
 
   it("filters market services by service type", async () => {
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
+      serviceTypes: [{ serviceType: "delivery", count: 2 }],
+    } as never);
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [],
       total: 0,
@@ -183,6 +190,9 @@ describe("MarketProductSearch", () => {
       },
     });
 
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("外送 2");
+    });
     await wrapper
       .get('[data-testid="market-service-type-select"]')
       .setValue("delivery");
@@ -196,6 +206,31 @@ describe("MarketProductSearch", () => {
       limit: 20,
     });
     expect(wrapper.text()).toContain("市場外送");
+  });
+
+  it("loads service type facets for the selected market", async () => {
+    vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
+      serviceTypes: [
+        { serviceType: "delivery", count: 2 },
+        { serviceType: "booking", count: 1 },
+      ],
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.listServiceTypes).toHaveBeenCalledWith({
+        marketId: "market-1",
+      });
+      expect(wrapper.text()).toContain("外送 2");
+      expect(wrapper.text()).toContain("預約 1");
+      expect(wrapper.text()).not.toContain("租借");
+    });
   });
 
   it("browses all market products and services before entering a keyword", async () => {

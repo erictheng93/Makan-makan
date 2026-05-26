@@ -45,6 +45,11 @@ export interface ServiceSearchResult {
   isOpen: boolean;
 }
 
+export interface ServiceTypeFacet {
+  serviceType: NonNullable<SearchFilters["serviceType"]>;
+  count: number;
+}
+
 export interface SearchFilters {
   q?: string;
   city?: string;
@@ -97,6 +102,13 @@ export const discoveryApi = {
   async listCategories(filters: SearchFilters = {}) {
     return apiClient.get<{ categories: string[] }>(
       "/discovery/categories",
+      filters,
+    );
+  },
+
+  async listServiceTypes(filters: SearchFilters = {}) {
+    return apiClient.get<{ serviceTypes: ServiceTypeFacet[] }>(
+      "/discovery/service-types",
       filters,
     );
   },

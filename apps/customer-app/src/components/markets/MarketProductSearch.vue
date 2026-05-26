@@ -46,6 +46,7 @@
         </option>
       </select>
       <select
+        v-if="serviceTypeOptions.length > 0"
         v-model="selectedServiceType"
         data-testid="market-service-type-select"
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
@@ -57,7 +58,7 @@
           :key="option.value"
           :value="option.value"
         >
-          {{ option.label }}
+          {{ option.label }} {{ option.count }}
         </option>
       </select>
       <select
@@ -185,6 +186,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import {
   discoveryApi,
   type DishSearchResult,
+  type ServiceTypeFacet,
   type ServiceSearchResult,
 } from "@/services/discoveryApi";
 
@@ -213,6 +215,7 @@ const selectedCategory = ref("");
 const selectedServiceType = ref<ServiceTypeFilter | "">("");
 const sortBy = ref<"price_asc" | "price_desc" | "popular">("price_asc");
 const loadedCategories = ref<string[]>([]);
+const loadedServiceTypes = ref<ServiceTypeFacet[]>([]);
 const results = ref<DishSearchResult[]>([]);
 const serviceResults = ref<ServiceSearchResult[]>([]);
 const total = ref(0);
@@ -230,7 +233,7 @@ type ServiceTypeFilter =
   | "consultation"
   | "rental"
   | "activity";
-const serviceTypeOptions: Array<{
+const serviceTypeDefinitions: Array<{
   value: ServiceTypeFilter;
   label: string;
 }> = [
@@ -242,6 +245,9 @@ const serviceTypeOptions: Array<{
   { value: "rental", label: "租借" },
   { value: "activity", label: "活動" },
 ];
+const serviceTypeLabels = new Map(
+  serviceTypeDefinitions.map((option) => [option.value, option.label]),
+);
 
 const combinedResultCount = computed(
   () => results.value.length + serviceResults.value.length,
@@ -254,6 +260,13 @@ const hasMoreResults = computed(
 );
 const categoryOptions = computed(() =>
   props.categories.length > 0 ? props.categories : loadedCategories.value,
+);
+const serviceTypeOptions = computed(() =>
+  loadedServiceTypes.value.map((facet) => ({
+    value: facet.serviceType,
+    label: serviceTypeLabels.get(facet.serviceType) ?? facet.serviceType,
+    count: facet.count,
+  })),
 );
 const canSearch = computed(
   () =>
@@ -352,6 +365,18 @@ async function loadCategories() {
   }
 }
 
+async function loadServiceTypes() {
+  try {
+    const response = await discoveryApi.listServiceTypes({
+      marketId: props.marketId,
+    });
+    loadedServiceTypes.value = response.serviceTypes;
+  } catch (serviceTypeError) {
+    console.error("Failed to load market service types:", serviceTypeError);
+    loadedServiceTypes.value = [];
+  }
+}
+
 function servicePriceLabel(service: ServiceSearchResult) {
   if (service.priceLabel) return service.priceLabel;
   if (typeof service.priceCents === "number") {
@@ -361,6 +386,7 @@ function servicePriceLabel(service: ServiceSearchResult) {
 }
 
 onMounted(loadCategories);
+onMounted(loadServiceTypes);
 onMounted(() => {
   if (props.autoLoad) {
     submitSearch();
@@ -373,7 +399,9 @@ watch(
     selectedCategory.value = "";
     selectedServiceType.value = "";
     loadedCategories.value = [];
+    loadedServiceTypes.value = [];
     loadCategories();
+    loadServiceTypes();
     if (props.autoLoad) {
       submitSearch();
     }

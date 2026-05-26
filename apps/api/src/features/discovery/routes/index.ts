@@ -8,6 +8,7 @@ import {
   restaurantBrowseQuerySchema,
   restaurantIdParamSchema,
   serviceSearchQuerySchema,
+  serviceTypeFacetQuerySchema,
 } from "../schemas/validation";
 import type { Env } from "../../../shared/types";
 
@@ -42,6 +43,20 @@ routes.get("/services", validateQuery(serviceSearchQuerySchema), async (c) => {
 
   return c.json({ success: true, data: results });
 });
+
+// GET /api/v1/discovery/service-types — public
+routes.get(
+  "/service-types",
+  validateQuery(serviceTypeFacetQuerySchema),
+  async (c) => {
+    const query = c.get("validatedQuery");
+    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+
+    const data = await service.listServiceTypes(query);
+
+    return c.json({ success: true, data });
+  },
+);
 
 // GET /api/v1/discovery/restaurants — public
 routes.get(

@@ -606,6 +606,59 @@ export class DiscoveryService {
     return { results, total, page, limit };
   }
 
+  async listServiceTypes(filters: SearchFilters): Promise<{
+    serviceTypes: Array<{
+      serviceType: NonNullable<SearchFilters["serviceType"]>;
+      count: number;
+    }>;
+  }> {
+    const conditions: SQL[] = [
+      eq(restaurantServiceItems.isActive, true),
+      eq(restaurantServiceItems.isPublic, true),
+      isNull(restaurantServiceItems.deletedAt),
+      eq(restaurants.isActive, true),
+      isNull(restaurants.deletedAt),
+    ];
+
+    if (filters.city) {
+      conditions.push(eq(restaurants.city, filters.city));
+    }
+    if (filters.district) {
+      conditions.push(eq(restaurants.district, filters.district));
+    }
+    if (filters.marketId) {
+      conditions.push(sql`EXISTS (
+        SELECT 1
+        FROM restaurant_market_memberships rmm
+        WHERE rmm.restaurant_id = ${restaurants.id}
+          AND rmm.market_id = ${filters.marketId}
+          AND rmm.left_at_ms IS NULL
+      )`);
+    }
+
+    const itemCount = sql<number>`count(*)`;
+    const rows = await this.db
+      .select({
+        serviceType: restaurantServiceItems.serviceType,
+        count: itemCount,
+      })
+      .from(restaurantServiceItems)
+      .innerJoin(
+        restaurants,
+        eq(restaurantServiceItems.restaurantId, restaurants.id),
+      )
+      .where(and(...conditions))
+      .groupBy(restaurantServiceItems.serviceType)
+      .orderBy(desc(itemCount), asc(restaurantServiceItems.serviceType));
+
+    return {
+      serviceTypes: rows.map((row) => ({
+        serviceType: row.serviceType,
+        count: Number(row.count),
+      })),
+    };
+  }
+
   async getPopular(): Promise<{
     keywords: string[];
     dishes: DishSearchResult[];

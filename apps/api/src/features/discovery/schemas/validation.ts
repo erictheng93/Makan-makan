@@ -45,6 +45,12 @@ export const dishCategoryQuerySchema = z.object({
   delivery: z.coerce.boolean().optional(),
 });
 
+export const serviceTypeFacetQuerySchema = z.object({
+  district: z.string().optional(),
+  city: z.string().optional(),
+  marketId: z.string().optional(),
+});
+
 export const restaurantBrowseQuerySchema = z.object({
   q: z.string().min(1).max(100).optional(),
   district: z.string().optional(),
