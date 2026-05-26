@@ -68,32 +68,29 @@ export class DiscoveryService {
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
 
-    const conditions: SQL[] = [
-      eq(dishSearchIndex.isAvailable, true),
-      like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
-    ];
+    const baseConditions: SQL[] = [eq(dishSearchIndex.isAvailable, true)];
 
     if (filters.district) {
-      conditions.push(eq(dishSearchIndex.district, filters.district));
+      baseConditions.push(eq(dishSearchIndex.district, filters.district));
     }
     if (filters.priceMin !== undefined) {
-      conditions.push(
+      baseConditions.push(
         sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) >= ${toRequiredCents(filters.priceMin)}`,
       );
     }
     if (filters.priceMax !== undefined) {
-      conditions.push(
+      baseConditions.push(
         sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) <= ${toRequiredCents(filters.priceMax)}`,
       );
     }
     if (filters.takeaway) {
-      conditions.push(eq(dishSearchIndex.supportsTakeaway, true));
+      baseConditions.push(eq(dishSearchIndex.supportsTakeaway, true));
     }
     if (filters.delivery) {
-      conditions.push(eq(dishSearchIndex.supportsDelivery, true));
+      baseConditions.push(eq(dishSearchIndex.supportsDelivery, true));
     }
     if (filters.marketId) {
-      conditions.push(
+      baseConditions.push(
         or(
           eq(dishSearchIndex.primaryMarketId, filters.marketId),
           like(dishSearchIndex.marketIds, `%"${filters.marketId}"%`),
@@ -102,7 +99,7 @@ export class DiscoveryService {
     }
     const geoFilter = this.getGeoFilter(filters);
     if (geoFilter) {
-      conditions.push(
+      baseConditions.push(
         gte(dishSearchIndex.latitude, geoFilter.box.southLat),
         lte(dishSearchIndex.latitude, geoFilter.box.northLat),
         gte(dishSearchIndex.longitude, geoFilter.box.westLng),
@@ -110,7 +107,11 @@ export class DiscoveryService {
       );
     }
 
-    const whereClause = and(...conditions);
+    const prefixConditions: SQL[] = [
+      ...baseConditions,
+      like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
+    ];
+    const whereClause = and(...prefixConditions);
     const [queryResult, countRows] = await Promise.all([
       this.db
         .select({
@@ -148,7 +149,7 @@ export class DiscoveryService {
         .where(whereClause),
     ]);
     const rawTotal = Number(countRows[0]?.count);
-    const total =
+    let total =
       Number.isFinite(rawTotal) && rawTotal >= 0
         ? rawTotal
         : queryResult.length;
@@ -198,7 +199,7 @@ export class DiscoveryService {
           )
           .where(
             and(
-              eq(dishSearchIndex.isAvailable, true),
+              ...baseConditions,
               inArray(dishSearchIndex.menuItemId, missingIds),
             ),
           )
@@ -241,6 +242,9 @@ export class DiscoveryService {
     }
 
     // 6. Cache and return
+    if (tagMatches.length > 0 && total < results.length) {
+      total = results.length;
+    }
     const response = { results, total, page, limit };
     await this.kv.put(
       cacheKey,

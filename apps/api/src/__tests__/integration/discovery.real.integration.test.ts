@@ -85,6 +85,9 @@ async function seedSearchIndex(
     district?: string;
     supportsTakeaway?: boolean;
     supportsDelivery?: boolean;
+    tags?: string[];
+    marketIds?: string[];
+    primaryMarketId?: string | null;
   }[],
 ): Promise<void> {
   // D1/miniflare can reject large multi-row inserts if the combined SQL variable
@@ -102,7 +105,9 @@ async function seedSearchIndex(
       district: item.district,
       supportsTakeaway: (item.supportsTakeaway ?? false) as unknown as boolean,
       supportsDelivery: (item.supportsDelivery ?? false) as unknown as boolean,
-      tags: [] as string[],
+      tags: item.tags ?? [],
+      marketIds: item.marketIds ?? [],
+      primaryMarketId: item.primaryMarketId ?? null,
       updatedAt: new Date(),
     });
   }
@@ -444,6 +449,71 @@ describe("Discovery API — real integration", () => {
 
     expect(foundAvailable).toBeTruthy();
     expect(foundUnavailable).toBeUndefined();
+  });
+
+  it("keeps tag matched dish results scoped to the requested market", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "tag-scoped-market",
+    });
+    const otherMarket = await seedMarket(testApp, {
+      slug: "other-tag-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Market Tag Vendor",
+    });
+    const otherRestaurant = await seed.restaurant({
+      name: "Other Market Vendor",
+    });
+    const marketItem = await seed.menuItem(String(restaurant.id), {
+      name: "Market Bao",
+      price: 60,
+    });
+    const otherItem = await seed.menuItem(String(otherRestaurant.id), {
+      name: "Other Bao",
+      price: 70,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: marketItem.id,
+        name: "Market Bao",
+        price: 60,
+        tags: ["signature"],
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+    await seedSearchIndex(testApp, String(otherRestaurant.id), [
+      {
+        menuItemId: otherItem.id,
+        name: "Other Bao",
+        price: 70,
+        tags: ["signature"],
+        marketIds: [otherMarket.id],
+        primaryMarketId: otherMarket.id,
+      },
+    ]);
+    await testApp.testDb.bindings.CACHE_KV.put(
+      "search:tags:index",
+      JSON.stringify({
+        signature: [
+          { menuItemId: marketItem.id },
+          { menuItemId: otherItem.id },
+        ],
+      }),
+    );
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=signature&marketId=${market.id}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+
+    expect(data.results.map((r: any) => r.menuItemId)).toEqual([marketItem.id]);
+    expect(data.total).toBe(1);
   });
 
   it("excludes inactive and deleted markets from full reindex market membership fields", async () => {
