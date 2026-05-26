@@ -1,8 +1,337 @@
 import type { Messages } from "../types";
 
-/**
- * Bahasa Indonesia — falls back to zh-TW until fully translated
- */
-const idID: Messages = {};
+const idID: Messages = {
+  common: {
+    actions: "Tindakan",
+    appName: "MakanMakan",
+    cancel: "Batalkan",
+    generate: "Hasilkan",
+    loading: "Memuat...",
+    manage: "Kelola",
+    pleaseSelect: "Silakan Pilih",
+    processing: "Memproses...",
+    selectAll: "Pilih Semua",
+    unknown: "Tidak diketahui",
+    view: "Lihat",
+    viewAll: "Lihat Semua",
+    viewDetails: "Lihat Detail",
+  },
+  dashboard: {
+    health: {
+      healthyRunning: "Sehat",
+      title: "Status Kesehatan",
+    },
+    pending: {
+      empty: "Tidak ada item yang tertunda",
+      handle: "Tangani",
+      serviceDegraded: "Pelayanan Terdegradasi",
+      serviceDown: "Layanan Turun",
+      title: "Item yang Tertunda",
+      waitingProvision: "Menunggu penyediaan",
+    },
+    recentTenants: {
+      title: "Penyewa Terbaru",
+    },
+    stats: {
+      active: "Aktif",
+      pending: "Tertunda",
+      totalTenants: "Jumlah Penyewa",
+      unhealthy: "Tidak sehat",
+    },
+    subtitle: "Ikhtisar status platform manajemen",
+    title: "Ikhtisar",
+  },
+  deployments: {
+    batch: {
+      currentVersionLabel: "Versi saat ini:",
+      deploying: "Menyebarkan...",
+      deployWithCount: "Menerapkan ({count})",
+      notDeployed: "Tidak dikerahkan",
+      selectTenants: "Pilih Penyewa",
+      targetVersion: "Versi Sasaran",
+      title: "Penerapan Batch",
+      versionPlaceholder: "misalnya 1.2.0",
+    },
+    recent: {
+      empty: "Tidak ada catatan penerapan",
+      title: "Penerapan Terbaru",
+    },
+    status: {
+      completed: "Selesai",
+      failed: "Gagal",
+      inProgress: "Sedang Berlangsung",
+      pending: "Tertunda",
+      rolledBack: "Digulung Kembali",
+    },
+    subtitle: "Penerapan batch dan pembaruan versi",
+    title: "Manajemen Penerapan",
+    toast: {
+      batchFailed: "Penerapan batch gagal",
+      failedCount: "Penerapan penyewa {count} gagal",
+      queuedCount: "Tugas penerapan {count} dalam antrean",
+    },
+    validation: {
+      enterVersion: "Silakan masukkan versi target",
+      selectTenant: "Silakan pilih setidaknya satu penyewa",
+    },
+  },
+  health: {
+    all: {
+      empty: "Tidak ada data pemeriksaan kesehatan",
+      title: "Semua Penyewa",
+    },
+    attention: {
+      serviceDegraded: "Pelayanan Terdegradasi",
+      serviceDown: "Layanan Turun",
+      title: "Perlu Perhatian",
+    },
+    avgResponseTime: "Waktu Respons Rata-rata",
+    column: {
+      api: "API",
+      cache: "Tembolok",
+      checkedAt: "Diperiksa Pada",
+      database: "Basis data",
+      responseTime: "Waktu Respons",
+      status: "Status",
+      storage: "Penyimpanan",
+      tenant: "Penyewa",
+    },
+    lastUpdated: "Terakhir diperbarui:",
+    overall: "Status Keseluruhan",
+    refresh: "Segarkan",
+    refreshing: "Menyegarkan...",
+    status: {
+      degraded: "Terdegradasi",
+      down: "Turun",
+      healthy: "Sehat",
+    },
+    subtitle: "Pantau status runtime di semua penyewa",
+    title: "Pemantauan Kesehatan",
+  },
+  layout: {
+    managementPortal: "Portal Manajemen",
+    version: "Versi {version}",
+  },
+  licenses: {
+    column: {
+      createdAt: "Dibuat Pada",
+      licenseKey: "Kunci Lisensi",
+      status: "Status",
+      tenant: "Penyewa",
+      tier: "Tingkat",
+      validity: "Validitas",
+    },
+    empty: "Tidak ada catatan lisensi",
+    generate: "Hasilkan Lisensi",
+    modal: {
+      expiresAt: "Kedaluwarsa Pada (Opsional)",
+      expiresAtHint: "Biarkan kosong untuk lisensi permanen",
+      selectTenant: "Pilih Penyewa",
+      tier: "Tingkat Lisensi",
+      tierOption: {
+        enterprise: "Perusahaan - Kustom",
+        professional: "Profesional - $299/bln",
+        standard: "Standar - $149/bln",
+      },
+      title: "Hasilkan Lisensi",
+    },
+    permanent: "Permanen",
+    permanentValid: "Permanen",
+    revoked: "Dicabut",
+    stats: {
+      active: "Lisensi Aktif",
+    },
+    subtitle: "Kelola kunci lisensi penyewa",
+    tier: {
+      enterprise: "Perusahaan",
+      professional: "Profesional",
+      standard: "Standar",
+    },
+    title: "Manajemen Lisensi",
+    toast: {
+      generateFailed: "Gagal membuat lisensi",
+      generateSuccess: "Lisensi berhasil dibuat",
+    },
+    upgrade: "Tingkatkan",
+    valid: "Sah",
+    validation: {
+      selectTenant: "Silakan pilih penyewa",
+    },
+    validUntil: "Berlaku Sampai",
+  },
+  nav: {
+    dashboard: "Ikhtisar",
+    deployments: "Penerapan",
+    health: "Kesehatan",
+    licenses: "Lisensi",
+    markets: "Pasar",
+    tenants: "Penyewa",
+  },
+  notFound: {
+    backHome: "Kembali ke Rumah",
+    description:
+      "Halaman yang Anda kunjungi mungkin telah dihapus atau untuk sementara tidak tersedia",
+    title: "Halaman Tidak Ditemukan",
+  },
+  tenantDetail: {
+    backToList: "Kembali ke Penyewa",
+    basicInfo: {
+      businessName: "Nama Bisnis",
+      contactEmail: "Hubungi Email",
+      contactPhone: "Telepon",
+      createdAt: "Dibuat Pada",
+      customDomain: "Domain Khusus",
+      subdomain: "Subdomain",
+      title: "Informasi Dasar",
+    },
+    deployInfo: {
+      cfAccount: "Akun Cloudflare",
+      connected: "Terhubung",
+      currentVersion: "Versi Saat Ini",
+      itemSuffix: "個",
+      lastDeploy: "Penerapan Terakhir",
+      notConnected: "Tidak terhubung",
+      notDeployed: "Tidak dikerahkan",
+      resourceCount: "Jumlah Sumber Daya",
+      title: "Info Penerapan",
+    },
+    deploying: "Menyebarkan...",
+    deployments: {
+      empty: "Tidak ada catatan penerapan",
+      title: "Sejarah Penerapan",
+      type: {
+        initial: "Penerapan Awal",
+        rollback: "Kembalikan",
+        update: "Pembaruan Versi",
+      },
+    },
+    health: {
+      empty: "Tidak ada catatan pemeriksaan kesehatan",
+      title: "Status Kesehatan",
+    },
+    license: {
+      empty: "Tidak ada catatan lisensi",
+      title: "Informasi Lisensi",
+    },
+    provisioning: "Penyediaan...",
+    provisionResources: "Sumber Daya Penyediaan",
+    redeploy: "Penerapan ulang",
+    resource: {
+      type: {
+        d1: "Basis Data D1",
+        kv: "Penyimpanan KV",
+        pages: "Halaman",
+        r2: "Penyimpanan Objek R2",
+        worker: "Pekerja",
+      },
+    },
+    resources: {
+      column: {
+        createdAt: "Dibuat Pada",
+        id: "tanda pengenal",
+        name: "Nama",
+        status: "Status",
+        type: "Ketik",
+      },
+      empty: "Tidak ada sumber daya yang disediakan",
+      status: {
+        failed: "Gagal",
+        pending: "Tertunda",
+        provisioned: "Disediakan",
+      },
+      title: "Sumber Daya Cloudflare",
+    },
+    tabs: {
+      deployments: "Penerapan",
+      health: "Kesehatan",
+      license: "Lisensi",
+      overview: "Ikhtisar",
+      resources: "Sumber daya",
+    },
+    toast: {
+      deployFailed: "Penerapan gagal",
+      deployStarted: "Penerapan dimulai",
+      loadFailed: "Gagal memuat penyewa",
+      provisionFailed: "Penyediaan sumber daya gagal",
+      provisionSuccess: "Sumber daya berhasil disediakan",
+    },
+  },
+  tenants: {
+    column: {
+      businessName: "Nama Bisnis",
+      contactEmail: "Hubungi Email",
+      createdAt: "Dibuat Pada",
+      deployedVersion: "Versi yang Dikerahkan",
+      status: "Status",
+      subdomain: "Subdomain",
+      version: "Versi",
+    },
+    create: "Buat Penyewa",
+    createModal: {
+      creating: "Membuat...",
+      error: {
+        createFailed: "Gagal membuat penyewa. Silakan coba lagi nanti.",
+      },
+      field: {
+        businessName: "Nama Bisnis",
+        businessNamePlaceholder: "misalnya Dapur Kerajaan",
+        contactEmail: "Hubungi Email",
+        contactEmailPlaceholder: "pemilik@restaurant.com",
+        contactPhone: "Telepon",
+        contactPhonePlaceholder: "+1-234-567-8900",
+        selectPlan: "Pilih Paket",
+        subdomain: "Subdomain",
+        subdomainHint: "Biarkan kosong untuk menghasilkan secara otomatis",
+        subdomainPlaceholder: "dapur kerajaan",
+        subdomainSuffix: ".makanmakan.app",
+      },
+      plan: {
+        enterprise: {
+          description: "Restoran tanpa batas, dukungan khusus",
+          label: "Perusahaan - Kustom",
+        },
+        professional: {
+          description: "3 restoran, fitur lengkap",
+          label: "Profesional - $299/bln",
+        },
+        standard: {
+          description: "1 restoran, fitur dasar",
+          label: "Standar - $149/bln",
+        },
+      },
+      submit: "Buat Penyewa",
+      title: "Buat Penyewa",
+      validation: {
+        businessNameRequired: "Silakan masukkan nama bisnis",
+        emailInvalid: "Silakan masukkan email yang valid",
+        emailRequired: "Silakan masukkan email kontak",
+        subdomainFormat:
+          "Subdomain hanya boleh berisi huruf kecil, angka, dan tanda hubung",
+      },
+    },
+    empty: {
+      createFirst: "Klik Buat untuk menambahkan penyewa pertama Anda",
+      none: "Tidak ada penyewa",
+      noResults: "Tidak ada penyewa yang cocok",
+      tryAdjust: "Coba sesuaikan pencarian Anda",
+    },
+    filter: {
+      allStatuses: "Semua Status",
+      searchPlaceholder: "Cari berdasarkan nama, email, subdomain...",
+    },
+    status: {
+      active: "Aktif",
+      pending: "Tertunda",
+      provisioning: "Penyediaan",
+      suspended: "Ditangguhkan",
+      terminated: "Dihentikan",
+    },
+    subtitle: "Kelola semua penyewa restoran yang dihosting sendiri",
+    title: "Manajemen Penyewa",
+    toast: {
+      createSuccess: "Penyewa berhasil dibuat",
+    },
+  },
+};
 
 export default idID;

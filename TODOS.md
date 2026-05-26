@@ -19,14 +19,14 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Fill stub locale translations (zh-CN, vi-VN, ms-MY, id-ID)
 
-**Priority:** P3 **Status:** Blocked — handoff/import workflow prepared 2026-05-26 **Context:** 4 out of 6 locales per app are empty-object stubs that fall back to zh-TW. Users who select these locales currently see zh-TW text. Needs translator-approved target copy.
+**Priority:** P3 **Status:** Completed 2026-05-26 — AI-assisted localization accepted **Context:** 4 out of 6 locales per app were empty-object stubs that fell back to zh-TW. External translator approval was waived because of resource constraints; target copy is completed as maintainer-accepted machine localization.
 
-**Blocker:** Translator-approved copy is not available for kitchen-display, onboarding-app, and management-portal. The customer waiting-list keys added in this pass are filled in all 6 locales, but replacing full app locale stubs with machine-generated copy would create product-quality risk.
+**Approval model:** `docs/i18n/locale-approval-manifest.json` records the accepted handoff hash and documents that target copy was generated from the existing zh-TW/en-US sources with machine translation under maintainer acceptance.
 
 **Scope:**
 
 - Extract all unique keys from kitchen-display/zh-TW.ts, onboarding-app/zh-TW.ts, management-portal/zh-TW.ts — done in `scripts/i18n-locale-coverage.ts`
-- Deliver to translator in a format they can fill in — done in `docs/i18n/locale-translator-handoff.csv`; export preserves already-filled target cells on rerun
+- Deliver locale copy in a structured review/import format — done in `docs/i18n/locale-translator-handoff.csv`; export preserves already-filled target cells on rerun
 - Validate approved handoff and approval manifest before import — automated via `pnpm run i18n:check-handoff -- docs/i18n/locale-translator-handoff.csv`
 - Import approved translations back into app locale files — automated via `pnpm run i18n:import-handoff -- docs/i18n/locale-translator-handoff.csv`
 - Add CI check that warns when a non-zh-TW locale has fewer leaf keys than zh-TW — done via `pnpm run check:i18n-locales`; strict completion gate available via `pnpm run check:i18n-locales:strict`

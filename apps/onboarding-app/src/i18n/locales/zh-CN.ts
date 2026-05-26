@@ -1,8 +1,214 @@
 import type { Messages } from "../types";
 
-/**
- * 简体中文 — falls back to zh-TW until fully translated
- */
-const zhCN: Messages = {};
+const zhCN: Messages = {
+  app: {
+    footer: {
+      copyright: "© 2024 MakanMakan. All rights reserved.",
+    },
+    tagline: {
+      selfHosted: "独立部署",
+    },
+  },
+  apply: {
+    form: {
+      businessName: {
+        label: "餐厅名称",
+        placeholder: "例如：御膳房",
+      },
+      contactEmail: {
+        label: "Email",
+        placeholder: "your@email.com",
+      },
+      contactName: {
+        label: "联络人姓名",
+        placeholder: "您的姓名",
+      },
+      contactPhone: {
+        label: "联络电话",
+        placeholder: "02-1234-5678",
+      },
+      location: {
+        failure: "无法取得目前位置，请确认定位权限或手动输入座标",
+        help: "用于夜市 / 商圈探索与附近搜寻。请使用店面或摊位的实际座标。",
+        label: "餐厅位置",
+        latitudePlaceholder: "纬度，例如 24.147736",
+        locating: "定位中...",
+        longitudePlaceholder: "经度，例如 120.673648",
+        unsupported: "此浏览器不支援定位功能，请手动输入座标",
+        useCurrent: "使用目前位置",
+      },
+      next: "下一步",
+      subdomain: {
+        available: "此网址可以使用",
+        emptyHint: "留空将自动生成",
+        invalidFormat: "只能包含小写字母、数字和连字符",
+        label: "期望的网址 (选填)",
+        placeholder: "yourrestaurant",
+        suggestionsLabel: "建议的替代网址：",
+        taken: "此网址已被使用",
+      },
+      submitting: "提交中...",
+    },
+    title: "填写申请资料",
+    toast: {
+      submitFailureFallback: "提交失败，请稍后再试",
+      submitSuccess: "申请资料已提交",
+    },
+    validation: {
+      businessNameRequired: "请输入餐厅名称",
+      contactNameRequired: "请输入联络人姓名",
+      emailInvalid: "请输入有效的 Email",
+      emailRequired: "请输入 Email",
+      latitudeInvalid: "纬度需介于 -90 到 90 之间",
+      latitudeRequired: "请输入餐厅纬度",
+      longitudeInvalid: "经度需介于 -180 到 180 之间",
+      longitudeRequired: "请输入餐厅经度",
+      phoneRequired: "请输入联络电话",
+      subdomainInvalidFormat: "只能包含小写字母、数字和连字符",
+      subdomainTaken: "此网址已被使用",
+      subdomainTooShort: "至少需要 3 个字元",
+    },
+  },
+  common: {
+    back: "返回",
+    cancel: "取消",
+    loading: "载入中...",
+    submit: "提交",
+    toast: {
+      copiedToClipboard: "已复制到剪贴簿",
+    },
+  },
+  connect: {
+    assignedSubdomainLabel: "您的专属网址：",
+    button: {
+      complete: "完成申请",
+      completing: "处理中...",
+      verify: "验证连接",
+      verifying: "验证中...",
+    },
+    form: {
+      accountId: {
+        label: "Cloudflare Account ID",
+        placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      },
+      apiToken: {
+        label: "API Token",
+        placeholder: "••••••••••••••••••••••••••••••••",
+      },
+    },
+    help: {
+      linkText: "联系我们安排视讯辅导",
+      prompt: "需要协助？",
+    },
+    info: {
+      description:
+        "MakanMakan 独立部署使用您自己的 Cloudflare 帐号来运行，这确保您对所有资料拥有完整控制权。资源费用已包含在订阅费中。",
+      title: "为什么需要 Cloudflare 帐号？",
+    },
+    permissions: {
+      pagesOptional: "Pages (选用)",
+      titleSuccess: "权限检查通过",
+      titleWarning: "权限检查结果",
+    },
+    steps: {
+      heading: "操作步骤：",
+      step1Prefix: "前往",
+      step1Suffix: "（如果没有帐号，请先注册）",
+      step2: "点击右上角的头像 → 选择「My Profile」",
+      step3ClipboardText: "Account ID 位于 Dashboard 右侧栏",
+      step3Prefix: "复制您的",
+      step4: "前往「API Tokens」→ 点击「Create Token」",
+      step5: "选择「Edit Cloudflare Workers」模板",
+      step6: "复制生成的 API Token",
+    },
+    title: "连接 Cloudflare 帐号",
+    toast: {
+      completeFailureFallback: "完成申请失败，请稍后再试",
+      completeSuccess: "申请已完成！",
+      verifyFailureFallback: "验证失败，请检查您的资讯",
+      verifySuccess: "Cloudflare 帐号验证成功！",
+    },
+    validation: {
+      accountIdLength: "Account ID 应为 32 位字元",
+      accountIdRequired: "请输入 Account ID",
+      apiTokenFormat: "API Token 格式不正确",
+      apiTokenRequired: "请输入 API Token",
+    },
+    verifiedMessage: "Cloudflare 帐号已成功连接！",
+  },
+  home: {
+    cta: {
+      button: "开始申请",
+      subtitle: "填写申请表单，我们将在 24 小时内与您联系",
+      title: "准备好开始了吗？",
+    },
+    features: {
+      fast: {
+        description: "自动化部署流程，最快 24 小时内完成上线",
+        title: "快速部署",
+      },
+      isolated: {
+        description: "完全隔离的云端环境，数据 100% 归您所有",
+        title: "独立环境",
+      },
+      secure: {
+        description: "基于 Cloudflare 全球边缘网络，企业级安全防护",
+        title: "安全可靠",
+      },
+    },
+    hero: {
+      ctaApply: "立即申请",
+      ctaDemo: "查看演示 →",
+      subtitle: "独立部署 · 数据安全 · 24 小时内完成上线",
+      titleLine1: "为您的餐厅打造",
+      titleLine2: "专属管理系统",
+    },
+  },
+  plans: {
+    enterprise: "企业版",
+    professional: "专业版",
+    standard: "标准版",
+  },
+  success: {
+    button: {
+      backHome: "返回首页",
+      goToAdmin: "前往管理后台",
+    },
+    contact: {
+      prompt: "有任何问题？请联系",
+    },
+    nextSteps: {
+      deploy: {
+        description:
+          "您的专属系统正在部署中，通常在几分钟内完成。完成后会发送登入资讯。",
+        title: "系统部署",
+      },
+      email: {
+        prefix: "我们已发送确认邮件至",
+        suffix: "，请查收。",
+        title: "确认邮件",
+      },
+      start: {
+        description: "收到登入资讯后，您可以立即登入管理后台开始设定您的餐厅。",
+        title: "开始使用",
+      },
+      title: "接下来会发生什么？",
+    },
+    subtitleLine1: "恭喜您！您的 MakanMakan 独立部署已建立完成。",
+    subtitleLine2: "系统正在为您准备专属环境。",
+    summary: {
+      applicationId: "申请编号",
+      businessName: "餐厅名称",
+      cloudflare: "Cloudflare 帐号",
+      connected: "已连接 ✓",
+      contactEmail: "联络 Email",
+      plan: "选择方案",
+      subdomain: "专属网址",
+      tenantId: "租户编号",
+      title: "申请摘要",
+    },
+    title: "申请已完成！",
+  },
+};
 
 export default zhCN;

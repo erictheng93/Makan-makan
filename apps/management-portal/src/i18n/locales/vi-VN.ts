@@ -1,8 +1,337 @@
 import type { Messages } from "../types";
 
-/**
- * Tiếng Việt — falls back to zh-TW until fully translated
- */
-const viVN: Messages = {};
+const viVN: Messages = {
+  common: {
+    actions: "hành động",
+    appName: "MakanMakan",
+    cancel: "Hủy bỏ",
+    generate: "Tạo",
+    loading: "Đang tải...",
+    manage: "Quản lý",
+    pleaseSelect: "Vui lòng chọn",
+    processing: "Đang xử lý...",
+    selectAll: "Chọn tất cả",
+    unknown: "Không xác định",
+    view: "Xem",
+    viewAll: "Xem tất cả",
+    viewDetails: "Xem chi tiết",
+  },
+  dashboard: {
+    health: {
+      healthyRunning: "khỏe mạnh",
+      title: "Tình trạng sức khỏe",
+    },
+    pending: {
+      empty: "Không có mục nào đang chờ xử lý",
+      handle: "Xử lý",
+      serviceDegraded: "Dịch vụ xuống cấp",
+      serviceDown: "Dịch vụ ngừng hoạt động",
+      title: "Các mục đang chờ xử lý",
+      waitingProvision: "Đang chờ cung cấp",
+    },
+    recentTenants: {
+      title: "Người thuê gần đây",
+    },
+    stats: {
+      active: "Đang hoạt động",
+      pending: "Đang chờ xử lý",
+      totalTenants: "Tổng số người thuê nhà",
+      unhealthy: "Không tốt cho sức khỏe",
+    },
+    subtitle: "Tổng quan về trạng thái nền tảng quản lý",
+    title: "Tổng quan",
+  },
+  deployments: {
+    batch: {
+      currentVersionLabel: "Phiên bản hiện tại:",
+      deploying: "Đang triển khai...",
+      deployWithCount: "Triển khai ({count})",
+      notDeployed: "Chưa triển khai",
+      selectTenants: "Chọn người thuê nhà",
+      targetVersion: "Phiên bản mục tiêu",
+      title: "Triển khai hàng loạt",
+      versionPlaceholder: "ví dụ: 1.2.0",
+    },
+    recent: {
+      empty: "Không có hồ sơ triển khai",
+      title: "Triển khai gần đây",
+    },
+    status: {
+      completed: "Đã hoàn thành",
+      failed: "thất bại",
+      inProgress: "Đang tiến hành",
+      pending: "Đang chờ xử lý",
+      rolledBack: "cuộn lại",
+    },
+    subtitle: "Triển khai hàng loạt và cập nhật phiên bản",
+    title: "Quản lý triển khai",
+    toast: {
+      batchFailed: "Triển khai hàng loạt không thành công",
+      failedCount: "Triển khai đối tượng thuê {count} không thành công",
+      queuedCount: "Các tác vụ triển khai {count} được xếp hàng đợi",
+    },
+    validation: {
+      enterVersion: "Vui lòng nhập phiên bản mục tiêu",
+      selectTenant: "Vui lòng chọn ít nhất một người thuê nhà",
+    },
+  },
+  health: {
+    all: {
+      empty: "Không có dữ liệu kiểm tra sức khỏe",
+      title: "Tất cả người thuê nhà",
+    },
+    attention: {
+      serviceDegraded: "Dịch vụ xuống cấp",
+      serviceDown: "Dịch vụ ngừng hoạt động",
+      title: "Cần chú ý",
+    },
+    avgResponseTime: "Thời gian phản hồi trung bình",
+    column: {
+      api: "API",
+      cache: "Bộ nhớ đệm",
+      checkedAt: "Đã kiểm tra tại",
+      database: "Cơ sở dữ liệu",
+      responseTime: "Thời gian đáp ứng",
+      status: "Trạng thái",
+      storage: "Lưu trữ",
+      tenant: "người thuê nhà",
+    },
+    lastUpdated: "Cập nhật lần cuối:",
+    overall: "Tình trạng chung",
+    refresh: "Làm mới",
+    refreshing: "Đang làm mới...",
+    status: {
+      degraded: "xuống cấp",
+      down: "xuống",
+      healthy: "khỏe mạnh",
+    },
+    subtitle: "Theo dõi trạng thái thời gian chạy của tất cả đối tượng thuê",
+    title: "Theo dõi sức khỏe",
+  },
+  layout: {
+    managementPortal: "Cổng thông tin quản lý",
+    version: "Phiên bản {version}",
+  },
+  licenses: {
+    column: {
+      createdAt: "Được tạo tại",
+      licenseKey: "Khóa cấp phép",
+      status: "Trạng thái",
+      tenant: "người thuê nhà",
+      tier: "cấp",
+      validity: "hiệu lực",
+    },
+    empty: "Không có hồ sơ giấy phép",
+    generate: "Tạo giấy phép",
+    modal: {
+      expiresAt: "Hết hạn vào (Tùy chọn)",
+      expiresAtHint: "Để trống để có giấy phép vĩnh viễn",
+      selectTenant: "Chọn người thuê",
+      tier: "Cấp giấy phép",
+      tierOption: {
+        enterprise: "Doanh nghiệp - Tùy chỉnh",
+        professional: "Chuyên nghiệp - $299/tháng",
+        standard: "Tiêu chuẩn - $149/tháng",
+      },
+      title: "Tạo giấy phép",
+    },
+    permanent: "vĩnh viễn",
+    permanentValid: "vĩnh viễn",
+    revoked: "Đã thu hồi",
+    stats: {
+      active: "Giấy phép hoạt động",
+    },
+    subtitle: "Quản lý khóa cấp phép của người thuê",
+    tier: {
+      enterprise: "Doanh nghiệp",
+      professional: "chuyên nghiệp",
+      standard: "Tiêu chuẩn",
+    },
+    title: "Quản lý giấy phép",
+    toast: {
+      generateFailed: "Không tạo được giấy phép",
+      generateSuccess: "Giấy phép được tạo thành công",
+    },
+    upgrade: "Nâng cấp",
+    valid: "hợp lệ",
+    validation: {
+      selectTenant: "Vui lòng chọn người thuê nhà",
+    },
+    validUntil: "Có hiệu lực cho đến khi",
+  },
+  nav: {
+    dashboard: "Tổng quan",
+    deployments: "Triển khai",
+    health: "sức khỏe",
+    licenses: "Giấy phép",
+    markets: "Thị trường",
+    tenants: "Người thuê nhà",
+  },
+  notFound: {
+    backHome: "Quay lại trang chủ",
+    description:
+      "Trang bạn truy cập có thể đã bị xóa hoặc tạm thời không khả dụng",
+    title: "Không tìm thấy trang",
+  },
+  tenantDetail: {
+    backToList: "Quay lại Người thuê nhà",
+    basicInfo: {
+      businessName: "Tên doanh nghiệp",
+      contactEmail: "Email liên hệ",
+      contactPhone: "Điện thoại",
+      createdAt: "Được tạo tại",
+      customDomain: "Tên miền tùy chỉnh",
+      subdomain: "Tên miền phụ",
+      title: "Thông tin cơ bản",
+    },
+    deployInfo: {
+      cfAccount: "Tài khoản đám mây",
+      connected: "Đã kết nối",
+      currentVersion: "Phiên bản hiện tại",
+      itemSuffix: "個",
+      lastDeploy: "Triển khai lần cuối",
+      notConnected: "Không được kết nối",
+      notDeployed: "Chưa triển khai",
+      resourceCount: "Số lượng tài nguyên",
+      title: "Thông tin triển khai",
+    },
+    deploying: "Đang triển khai...",
+    deployments: {
+      empty: "Không có hồ sơ triển khai",
+      title: "Lịch sử triển khai",
+      type: {
+        initial: "Triển khai ban đầu",
+        rollback: "Khôi phục",
+        update: "Cập nhật phiên bản",
+      },
+    },
+    health: {
+      empty: "Không có hồ sơ khám sức khỏe",
+      title: "Tình trạng sức khỏe",
+    },
+    license: {
+      empty: "Không có hồ sơ giấy phép",
+      title: "Thông tin giấy phép",
+    },
+    provisioning: "Đang cung cấp...",
+    provisionResources: "Tài nguyên cung cấp",
+    redeploy: "Triển khai lại",
+    resource: {
+      type: {
+        d1: "Cơ sở dữ liệu D1",
+        kv: "Lưu trữ KV",
+        pages: "Trang",
+        r2: "Lưu trữ đối tượng R2",
+        worker: "công nhân",
+      },
+    },
+    resources: {
+      column: {
+        createdAt: "Được tạo tại",
+        id: "ID",
+        name: "Tên",
+        status: "Trạng thái",
+        type: "Loại",
+      },
+      empty: "Không có tài nguyên nào được cung cấp",
+      status: {
+        failed: "thất bại",
+        pending: "Đang chờ xử lý",
+        provisioned: "Được cung cấp",
+      },
+      title: "Tài nguyên đám mây",
+    },
+    tabs: {
+      deployments: "Triển khai",
+      health: "sức khỏe",
+      license: "Giấy phép",
+      overview: "Tổng quan",
+      resources: "Tài nguyên",
+    },
+    toast: {
+      deployFailed: "Triển khai không thành công",
+      deployStarted: "Đã bắt đầu triển khai",
+      loadFailed: "Không thể tải đối tượng thuê",
+      provisionFailed: "Cung cấp tài nguyên không thành công",
+      provisionSuccess: "Tài nguyên được cung cấp thành công",
+    },
+  },
+  tenants: {
+    column: {
+      businessName: "Tên doanh nghiệp",
+      contactEmail: "Email liên hệ",
+      createdAt: "Được tạo tại",
+      deployedVersion: "Phiên bản đã triển khai",
+      status: "Trạng thái",
+      subdomain: "Tên miền phụ",
+      version: "Phiên bản",
+    },
+    create: "Tạo người thuê",
+    createModal: {
+      creating: "Đang tạo...",
+      error: {
+        createFailed: "Không tạo được đối tượng thuê. Vui lòng thử lại sau.",
+      },
+      field: {
+        businessName: "Tên doanh nghiệp",
+        businessNamePlaceholder: "ví dụ: Bếp Hoàng Gia",
+        contactEmail: "Email liên hệ",
+        contactEmailPlaceholder: "owner@restaurant.com",
+        contactPhone: "Điện thoại",
+        contactPhonePlaceholder: "+1-234-567-8900",
+        selectPlan: "Chọn gói",
+        subdomain: "Tên miền phụ",
+        subdomainHint: "Để trống để tự động tạo",
+        subdomainPlaceholder: "nhà bếp hoàng gia",
+        subdomainSuffix: ".makanmakan.app",
+      },
+      plan: {
+        enterprise: {
+          description: "Nhà hàng không giới hạn, hỗ trợ tùy chỉnh",
+          label: "Doanh nghiệp - Tùy chỉnh",
+        },
+        professional: {
+          description: "3 nhà hàng, đầy đủ tính năng",
+          label: "Chuyên nghiệp - $299/tháng",
+        },
+        standard: {
+          description: "1 nhà hàng, tính năng cơ bản",
+          label: "Tiêu chuẩn - $149/tháng",
+        },
+      },
+      submit: "Tạo người thuê",
+      title: "Tạo người thuê",
+      validation: {
+        businessNameRequired: "Vui lòng nhập tên doanh nghiệp",
+        emailInvalid: "Vui lòng nhập email hợp lệ",
+        emailRequired: "Vui lòng nhập email liên hệ",
+        subdomainFormat:
+          "Tên miền phụ chỉ có thể chứa chữ cái viết thường, số và dấu gạch nối",
+      },
+    },
+    empty: {
+      createFirst: "Nhấp vào Tạo để thêm đối tượng thuê đầu tiên của bạn",
+      none: "Không có người thuê nhà",
+      noResults: "Không có người thuê phù hợp",
+      tryAdjust: "Hãy thử điều chỉnh tìm kiếm của bạn",
+    },
+    filter: {
+      allStatuses: "Tất cả trạng thái",
+      searchPlaceholder: "Tìm kiếm theo tên, email, tên miền phụ...",
+    },
+    status: {
+      active: "Đang hoạt động",
+      pending: "Đang chờ xử lý",
+      provisioning: "Cung cấp",
+      suspended: "Bị đình chỉ",
+      terminated: "Đã chấm dứt",
+    },
+    subtitle: "Quản lý tất cả người thuê nhà hàng tự quản lý",
+    title: "Quản lý người thuê nhà",
+    toast: {
+      createSuccess: "Đã tạo thành công đối tượng thuê",
+    },
+  },
+};
 
 export default viVN;
