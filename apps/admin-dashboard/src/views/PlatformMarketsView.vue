@@ -72,9 +72,7 @@
         >
           <p class="leading-5">
             已回到
-            {{
-              returnedMarket.name
-            }}
+            {{ returnedMarket.name }}
             的公開品質工作台。剛補完商品或服務後，請重建搜尋索引，讓顧客搜尋立即更新。
           </p>
           <button
@@ -939,6 +937,30 @@
         </button>
       </div>
 
+      <div
+        v-if="marketVendorReindexNotice"
+        data-testid="market-vendor-reindex-next-step"
+        class="mt-5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900"
+      >
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p class="leading-5">
+            {{ marketVendorReindexNotice }}
+            請重建搜尋索引，讓前台市場搜尋、攤位號與店鋪入口立即更新。
+          </p>
+          <button
+            type="button"
+            data-testid="market-vendor-reindex"
+            class="w-fit rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            :disabled="isReindexingDiscovery"
+            @click="reindexDiscovery"
+          >
+            {{ isReindexingDiscovery ? "重建中..." : "重建搜尋索引" }}
+          </button>
+        </div>
+      </div>
+
       <section
         ref="vendorImportSection"
         data-testid="vendor-import-section"
@@ -1464,6 +1486,7 @@ const vendorImportText = ref("");
 const vendorImportError = ref("");
 const vendorImportResult = ref<ImportMarketVendorsResult | null>(null);
 const vendorImportDryRunResult = ref<ImportMarketVendorsResult | null>(null);
+const marketVendorReindexNotice = ref("");
 const vendorCandidateQuery = ref("");
 const vendorCandidates = ref<MarketVendorCandidate[]>([]);
 const vendorCandidateStalls = reactive<Record<string, string>>({});
@@ -1789,6 +1812,7 @@ async function reindexDiscovery() {
   isReindexingDiscovery.value = true;
   try {
     discoveryReindexResult.value = await discoveryService.reindex();
+    marketVendorReindexNotice.value = "";
     await loadMarkets();
   } catch (error) {
     console.error("Failed to reindex discovery:", error);
@@ -1969,6 +1993,7 @@ function startEditing(market: MarketListItem) {
   vendorImportError.value = "";
   vendorImportResult.value = null;
   vendorImportDryRunResult.value = null;
+  marketVendorReindexNotice.value = "";
   vendorImportText.value = "";
   resetVendorCandidateState();
   resetAttachedVendorState();
@@ -1994,6 +2019,7 @@ function cancelEditing() {
   vendorImportError.value = "";
   vendorImportResult.value = null;
   vendorImportDryRunResult.value = null;
+  marketVendorReindexNotice.value = "";
   vendorImportText.value = "";
   resetVendorCandidateState();
   resetAttachedVendorState();
@@ -2124,6 +2150,7 @@ async function importVendorsForMarket() {
       vendors,
     );
     vendorImportText.value = "";
+    markMarketVendorSearchIndexStale("店鋪匯入已完成。");
     await loadMarkets();
     await loadAttachedVendors();
   } catch (error) {
@@ -2208,6 +2235,7 @@ async function saveAttachedVendor(vendor: EditableMarketVendor) {
         isPrimary: vendor.draftIsPrimary,
       },
     );
+    markMarketVendorSearchIndexStale("攤位號或店鋪關聯已更新。");
     await loadMarkets();
     await loadAttachedVendors();
   } catch (error) {
@@ -2232,6 +2260,7 @@ async function removeAttachedVendor(vendor: EditableMarketVendor) {
     if (attachedVendors.value.length === 1 && attachedVendorPage.value > 1) {
       attachedVendorPage.value -= 1;
     }
+    markMarketVendorSearchIndexStale("店鋪已從市場移除。");
     await loadAttachedVendors();
     await loadMarkets();
   } catch (error) {
@@ -2306,6 +2335,7 @@ async function attachVendorCandidate(candidate: MarketVendorCandidate) {
     );
     delete vendorCandidateStalls[candidate.id];
     delete vendorCandidatePrimary[candidate.id];
+    markMarketVendorSearchIndexStale("店鋪已加入市場。");
     await loadMarkets();
     await loadAttachedVendors();
   } catch (error) {
@@ -2314,6 +2344,12 @@ async function attachVendorCandidate(candidate: MarketVendorCandidate) {
   } finally {
     attachingVendorId.value = null;
   }
+}
+
+function markMarketVendorSearchIndexStale(message: string) {
+  marketVendorReindexNotice.value = message;
+  discoveryReindexResult.value = null;
+  discoveryReindexError.value = "";
 }
 
 function downloadCatalogGapCsv() {

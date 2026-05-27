@@ -1372,6 +1372,69 @@ describe("PlatformMarketsView", () => {
     );
   });
 
+  it("prompts reindex after updating attached vendor market metadata", async () => {
+    vi.mocked(marketsService.listMarketVendors).mockResolvedValue({
+      vendors: [
+        {
+          restaurantId: "restaurant-1",
+          name: "已加入雞排",
+          type: "market_stall",
+          category: "food",
+          city: "台中市",
+          district: "西屯區",
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          stallNumber: "",
+          isPrimary: false,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 10,
+    });
+    vi.mocked(marketsService.updateVendor).mockResolvedValue({
+      id: 1,
+      restaurantId: "restaurant-1",
+      marketId: "market-1",
+      stallNumber: "A-02",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "編輯");
+    expect(editButton).toBeDefined();
+    await editButton!.trigger("click");
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="attached-vendor-stall-restaurant-1"]')
+      .setValue("A-02");
+    await wrapper
+      .get('[data-testid="attached-vendor-primary-restaurant-1"]')
+      .setValue(true);
+    await wrapper
+      .get('[data-testid="attached-vendor-save-restaurant-1"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="market-vendor-reindex-next-step"]').text(),
+    ).toContain("攤位號或店鋪關聯已更新");
+    expect(
+      wrapper.get('[data-testid="market-vendor-reindex-next-step"]').text(),
+    ).toContain("重建搜尋索引");
+
+    await wrapper.get('[data-testid="market-vendor-reindex"]').trigger("click");
+    await flushPromises();
+
+    expect(discoveryService.reindex).toHaveBeenCalledOnce();
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(3);
+  });
+
   it("searches and paginates attached vendors for large markets", async () => {
     vi.mocked(marketsService.listMarketVendors)
       .mockResolvedValueOnce({
