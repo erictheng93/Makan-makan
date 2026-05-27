@@ -987,9 +987,7 @@ onMounted(loadDashboard);
                 </div>
                 <div class="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
                   <div class="rounded-md bg-gray-50 p-2">
-                    <span class="block text-gray-500">
-                      Searchable products
-                    </span>
+                    <span class="block text-gray-500"> Searchable items </span>
                     <span class="text-base font-semibold text-gray-900">
                       {{
                         vendorImportResult.catalogReadiness
@@ -1006,7 +1004,9 @@ onMounted(loadDashboard);
                     </span>
                   </div>
                   <div class="rounded-md bg-gray-50 p-2">
-                    <span class="block text-gray-500">Missing products</span>
+                    <span class="block text-gray-500">
+                      Missing searchable items
+                    </span>
                     <span class="text-base font-semibold text-gray-900">
                       {{
                         vendorImportResult.catalogReadiness

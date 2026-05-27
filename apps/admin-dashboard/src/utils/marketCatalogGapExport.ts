@@ -76,7 +76,7 @@ function gapRowsForMarket(
 }
 
 function actionForGapType(gapType: MarketCatalogGapType) {
-  if (gapType === "products") return "補商品";
+  if (gapType === "products") return "補商品或服務";
   if (gapType === "services") return "補服務";
   if (gapType === "stallNumbers") return "補攤位號";
   return "補商品或服務";

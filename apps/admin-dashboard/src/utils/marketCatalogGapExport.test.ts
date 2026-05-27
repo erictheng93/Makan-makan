@@ -59,7 +59,7 @@ describe("market catalog gap export", () => {
     expect(buildMarketCatalogGapCsv([market()])).toBe(
       [
         "marketId,marketSlug,marketName,city,district,gapType,action,restaurantId,vendorName,stallNumber",
-        "market-1,fengjia,逢甲夜市,台中市,西屯區,products,補商品,restaurant-1,缺商品攤,A-01",
+        "market-1,fengjia,逢甲夜市,台中市,西屯區,products,補商品或服務,restaurant-1,缺商品攤,A-01",
         'market-1,fengjia,逢甲夜市,台中市,西屯區,services,補服務,restaurant-2,"缺服務,攤",',
         'market-1,fengjia,逢甲夜市,台中市,西屯區,stallNumbers,補攤位號,restaurant-2,"缺服務,攤",',
         "market-1,fengjia,逢甲夜市,台中市,西屯區,searchEntrypoints,補商品或服務,restaurant-1,缺商品攤,A-01",

@@ -165,9 +165,9 @@ describe("MarketsView", () => {
     const readiness = wrapper.get(
       '[data-testid="market-vendor-catalog-readiness"]',
     );
-    expect(readiness.text()).toContain("Searchable products 4");
+    expect(readiness.text()).toContain("Searchable items 4");
     expect(readiness.text()).toContain("Public services1");
-    expect(readiness.text()).toContain("Missing products1");
+    expect(readiness.text()).toContain("Missing searchable items 1");
     expect(readiness.text()).toContain("Missing services2");
     expect(readiness.text()).toContain("Missing stall numbers 1");
     expect(readiness.text()).toContain("No search entrypoint 1");

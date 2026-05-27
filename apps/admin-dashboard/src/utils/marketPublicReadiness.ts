@@ -50,7 +50,7 @@ export function publicReadinessIssueLabel(key: MarketPublicReadinessIssueKey) {
     openingHours: "缺少營業時間",
     image: "建議補上圖片",
     vendors: "尚未加入店鋪",
-    products: "尚無可搜尋商品",
+    products: "尚無可搜尋商品或服務",
     services: "建議補上公開服務",
   };
 

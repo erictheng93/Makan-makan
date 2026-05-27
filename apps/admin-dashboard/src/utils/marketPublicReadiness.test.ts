@@ -45,7 +45,7 @@ describe("market public readiness formatting", () => {
     expect(publicReadinessIssueLabel("openingHours")).toBe("缺少營業時間");
     expect(publicReadinessIssueLabel("image")).toBe("建議補上圖片");
     expect(publicReadinessIssueLabel("vendors")).toBe("尚未加入店鋪");
-    expect(publicReadinessIssueLabel("products")).toBe("尚無可搜尋商品");
+    expect(publicReadinessIssueLabel("products")).toBe("尚無可搜尋商品或服務");
     expect(publicReadinessIssueLabel("services")).toBe("建議補上公開服務");
   });
 });
