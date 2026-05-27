@@ -369,6 +369,48 @@ describe("DiscoveryView", () => {
     });
   });
 
+  it("shows a direct booking link for service search results", async () => {
+    const store = discoveryStore({
+      dishResults: [],
+      serviceResults: [
+        {
+          serviceItemId: 7,
+          name: "代客切水果",
+          description: "現場代切並分裝",
+          serviceType: "booking",
+          priceCents: 3000,
+          priceLabel: null,
+          durationMinutes: null,
+          requiresBooking: true,
+          bookingUrl: "https://booking.example/service-7",
+          tags: ["水果"],
+          restaurantId: "service-restaurant-1",
+          restaurantName: "水果攤",
+          district: "西屯區",
+          city: "台中市",
+          isOpen: true,
+        },
+      ],
+      total: 1,
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    const bookingLink = wrapper.get<HTMLAnchorElement>(
+      '[data-testid="discovery-service-booking"]',
+    );
+    expect(bookingLink.text()).toContain("直接預約");
+    expect(bookingLink.attributes("href")).toBe(
+      "https://booking.example/service-7",
+    );
+    expect(bookingLink.attributes("target")).toBe("_blank");
+    expect(bookingLink.attributes("rel")).toContain("noopener");
+    expect(wrapper.get('[data-testid="select-service"]').text()).toContain(
+      "查看服務",
+    );
+  });
+
   it("uses the selected market name when opening a service result", async () => {
     vi.mocked(marketsApi.listMarkets).mockResolvedValueOnce({
       markets: [
