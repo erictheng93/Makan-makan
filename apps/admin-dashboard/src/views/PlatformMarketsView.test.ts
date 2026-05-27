@@ -28,6 +28,7 @@ vi.mock("@/services/marketsService", () => ({
 
 vi.mock("@/services/discoveryService", () => ({
   discoveryService: {
+    getIndexStatus: vi.fn(),
     reindex: vi.fn(),
   },
 }));
@@ -197,6 +198,13 @@ describe("PlatformMarketsView", () => {
       dishes: 12,
       restaurants: 4,
       duration_ms: 250,
+    });
+    vi.mocked(discoveryService.getIndexStatus).mockResolvedValue({
+      version: "1779870000000",
+      lastReindexedAt: "2026-05-27T08:00:00.000Z",
+      indexedDishCount: 12,
+      availableDishCount: 10,
+      indexedRestaurantCount: 4,
     });
   });
 
@@ -935,6 +943,17 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("已重建 12 筆商品索引");
     expect(wrapper.text()).toContain("4 間店鋪");
     expect(wrapper.text()).toContain("250ms");
+  });
+
+  it("shows discovery index status for operations", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const status = wrapper.get('[data-testid="discovery-index-status"]');
+    expect(discoveryService.getIndexStatus).toHaveBeenCalledOnce();
+    expect(status.text()).toContain("1779870000000");
+    expect(status.text()).toContain("10 / 12");
+    expect(status.text()).toContain("4");
   });
 
   it("imports vendors into the selected market from JSON", async () => {

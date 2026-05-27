@@ -107,6 +107,44 @@
           {{ isReindexingDiscovery ? "重建中..." : "重建索引" }}
         </button>
       </div>
+      <div
+        v-if="discoveryIndexStatus"
+        data-testid="discovery-index-status"
+        class="mt-4 grid gap-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700 sm:grid-cols-4"
+      >
+        <div>
+          <div class="text-xs font-medium text-gray-500">版本</div>
+          <div class="mt-1 font-semibold text-gray-900">
+            {{ discoveryIndexStatus.version }}
+          </div>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-gray-500">最後完整重建</div>
+          <div class="mt-1 font-semibold text-gray-900">
+            {{ formatIndexStatusTime(discoveryIndexStatus.lastReindexedAt) }}
+          </div>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-gray-500">可搜尋商品</div>
+          <div class="mt-1 font-semibold text-gray-900">
+            {{ discoveryIndexStatus.availableDishCount }} /
+            {{ discoveryIndexStatus.indexedDishCount }}
+          </div>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-gray-500">已索引店鋪</div>
+          <div class="mt-1 font-semibold text-gray-900">
+            {{ discoveryIndexStatus.indexedRestaurantCount }}
+          </div>
+        </div>
+      </div>
+      <p
+        v-else-if="discoveryIndexStatusError"
+        data-testid="discovery-index-status-error"
+        class="mt-3 text-sm text-amber-700"
+      >
+        {{ discoveryIndexStatusError }}
+      </p>
       <p v-if="discoveryReindexError" class="mt-3 text-sm text-red-600">
         {{ discoveryReindexError }}
       </p>
@@ -1413,6 +1451,7 @@ import {
 } from "@/services/marketsService";
 import {
   discoveryService,
+  type DiscoveryIndexStatus,
   type DiscoveryReindexResult,
 } from "@/services/discoveryService";
 import { useAuthStore } from "@/stores/auth";
@@ -1492,6 +1531,8 @@ const selectedArea = ref<MarketAreaKey | null>(areaFromQuery());
 const isLoading = ref(true);
 const isSaving = ref(false);
 const isReindexingDiscovery = ref(false);
+const discoveryIndexStatus = ref<DiscoveryIndexStatus | null>(null);
+const discoveryIndexStatusError = ref("");
 const discoveryReindexResult = ref<DiscoveryReindexResult | null>(null);
 const discoveryReindexError = ref("");
 const query = ref(firstQueryString(route.query.marketSlug) ?? "");
@@ -1762,6 +1803,17 @@ async function loadMarkets() {
   }
 }
 
+async function loadDiscoveryIndexStatus() {
+  discoveryIndexStatusError.value = "";
+  try {
+    discoveryIndexStatus.value = await discoveryService.getIndexStatus();
+  } catch (error) {
+    console.error("Failed to load discovery index status:", error);
+    discoveryIndexStatus.value = null;
+    discoveryIndexStatusError.value = "搜尋索引狀態暫時無法載入。";
+  }
+}
+
 async function loadJoinRequests() {
   isLoadingJoinRequests.value = true;
   joinRequestError.value = "";
@@ -1837,13 +1889,26 @@ async function reindexDiscovery() {
   try {
     discoveryReindexResult.value = await discoveryService.reindex();
     marketVendorReindexNotice.value = "";
-    await loadMarkets();
+    await Promise.all([loadMarkets(), loadDiscoveryIndexStatus()]);
   } catch (error) {
     console.error("Failed to reindex discovery:", error);
     discoveryReindexError.value = "重建搜尋索引失敗，請稍後再試。";
   } finally {
     isReindexingDiscovery.value = false;
   }
+}
+
+function formatIndexStatusTime(value: string | null) {
+  if (!value) return "尚未完整重建";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("zh-TW", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function loadMarketImportExample() {
@@ -2411,6 +2476,7 @@ function downloadCsv(csv: string, filename: string) {
 
 onMounted(() => {
   loadMarkets();
+  loadDiscoveryIndexStatus();
   loadJoinRequests();
 });
 </script>

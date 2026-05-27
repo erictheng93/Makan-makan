@@ -14,6 +14,15 @@ import type { Env } from "../../../shared/types";
 
 const routes = new Hono<{ Bindings: Env }>();
 
+// GET /api/v1/discovery/index-status — admin only (role 0)
+routes.get("/index-status", authMiddleware, requireRole([0]), async (c) => {
+  const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+
+  const result = await service.getIndexStatus();
+
+  return c.json({ success: true, data: result });
+});
+
 // GET /api/v1/discovery/search — public
 routes.get("/search", validateQuery(dishSearchQuerySchema), async (c) => {
   const query = c.get("validatedQuery");

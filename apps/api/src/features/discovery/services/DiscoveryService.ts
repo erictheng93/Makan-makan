@@ -43,6 +43,7 @@ import {
 const KV_SEARCH_TTL = 15 * 60; // 15 minutes
 const KV_RESTAURANT_TTL = 30 * 60; // 30 minutes
 const KV_SEARCH_VERSION_KEY = "search:query:version";
+const KV_SEARCH_REINDEXED_AT_KEY = "search:last_reindexed_at";
 const POST_FILTER_SCAN_LIMIT = 50000;
 
 export class DiscoveryService {
@@ -1285,12 +1286,43 @@ export class DiscoveryService {
       expirationTtl: 30 * 60,
     });
     await this.bumpSearchVersion();
+    await this.kv.put(KV_SEARCH_REINDEXED_AT_KEY, new Date().toISOString());
 
     const duration_ms = Date.now() - start;
     return {
       dishes: dishCount,
       restaurants: items.length,
       duration_ms,
+    };
+  }
+
+  async getIndexStatus(): Promise<{
+    version: string;
+    lastReindexedAt: string | null;
+    indexedDishCount: number;
+    availableDishCount: number;
+    indexedRestaurantCount: number;
+  }> {
+    const [version, lastReindexedAt, countRows] = await Promise.all([
+      this.getSearchVersion(),
+      this.kv.get(KV_SEARCH_REINDEXED_AT_KEY, "text"),
+      this.db
+        .select({
+          indexedDishCount: sql<number>`count(*)`,
+          availableDishCount: sql<number>`sum(case when ${dishSearchIndex.isAvailable} = 1 then 1 else 0 end)`,
+          indexedRestaurantCount: sql<number>`count(distinct ${dishSearchIndex.restaurantId})`,
+        })
+        .from(dishSearchIndex),
+    ]);
+    const row = countRows[0];
+
+    return {
+      version: String(version),
+      lastReindexedAt:
+        lastReindexedAt === null ? null : String(lastReindexedAt),
+      indexedDishCount: Number(row?.indexedDishCount ?? 0),
+      availableDishCount: Number(row?.availableDishCount ?? 0),
+      indexedRestaurantCount: Number(row?.indexedRestaurantCount ?? 0),
     };
   }
 
@@ -1518,7 +1550,7 @@ export class DiscoveryService {
   }
 
   private async getSearchVersion(): Promise<string> {
-    return (await this.kv.get(KV_SEARCH_VERSION_KEY)) ?? "0";
+    return (await this.kv.get(KV_SEARCH_VERSION_KEY, "text")) ?? "0";
   }
 
   private async bumpSearchVersion(): Promise<void> {

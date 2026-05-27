@@ -6,10 +6,25 @@ export interface DiscoveryReindexResult {
   duration_ms: number;
 }
 
+export interface DiscoveryIndexStatus {
+  version: string;
+  lastReindexedAt: string | null;
+  indexedDishCount: number;
+  availableDishCount: number;
+  indexedRestaurantCount: number;
+}
+
 export const discoveryService = {
   async reindex(): Promise<DiscoveryReindexResult> {
     const response =
       await api.post<DiscoveryReindexResult>("/discovery/reindex");
     return unwrapApiPayload<DiscoveryReindexResult>(response.data);
+  },
+
+  async getIndexStatus(): Promise<DiscoveryIndexStatus> {
+    const response = await api.get<DiscoveryIndexStatus>(
+      "/discovery/index-status",
+    );
+    return unwrapApiPayload<DiscoveryIndexStatus>(response.data);
   },
 };

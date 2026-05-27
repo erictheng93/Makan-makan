@@ -3245,6 +3245,53 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("returns discovery index status after an admin reindex", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Index Status Vendor",
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    await seed.menuItem(String(restaurant.id), {
+      name: "Index Status Bao",
+      price: 60,
+    });
+    await seed.menuItem(String(restaurant.id), {
+      name: "Hidden Index Status Bao",
+      price: 70,
+      isAvailable: false,
+    });
+
+    const reindexRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/reindex", {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+        }),
+      }),
+    );
+    expect(reindexRes.status).toBe(200);
+
+    const statusRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/index-status", {
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+        },
+      }),
+    );
+
+    expect(statusRes.status).toBe(200);
+    const json: any = await statusRes.json();
+    expect(json.success).toBe(true);
+    expect(json.data).toMatchObject({
+      indexedDishCount: 2,
+      availableDishCount: 1,
+      indexedRestaurantCount: 1,
+    });
+    expect(Number(json.data.version)).toBeGreaterThan(0);
+    expect(Date.parse(json.data.lastReindexedAt)).not.toBeNaN();
+  });
+
   it("removes inactive and deleted restaurant dishes during full reindex", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Restaurant Reindex Admin",
