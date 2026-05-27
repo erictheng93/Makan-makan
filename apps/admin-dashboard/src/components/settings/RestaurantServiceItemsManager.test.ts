@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import RestaurantServiceItemsManager from "./RestaurantServiceItemsManager.vue";
 import { restaurantServiceItemsService } from "@/services/restaurantServiceItemsService";
 
+const push = vi.fn();
+
 vi.mock("@/services/restaurantServiceItemsService", () => ({
   restaurantServiceItemsService: {
     list: vi.fn(),
@@ -12,6 +14,10 @@ vi.mock("@/services/restaurantServiceItemsService", () => ({
     update: vi.fn(),
     remove: vi.fn(),
   },
+}));
+
+vi.mock("vue-router", () => ({
+  useRouter: () => ({ push }),
 }));
 
 describe("RestaurantServiceItemsManager", () => {
@@ -276,6 +282,49 @@ describe("RestaurantServiceItemsManager", () => {
     expect(
       wrapper.get('[data-testid="market-service-gap-next-step"]').text(),
     ).toContain("重建搜尋索引");
+  });
+
+  it("returns to the filtered market workbench after fixing service gaps", async () => {
+    vi.mocked(restaurantServiceItemsService.create).mockResolvedValue({
+      id: 2,
+      restaurantId: "restaurant-1",
+      name: "代客切水果",
+      serviceType: "general",
+      requiresBooking: false,
+      sortOrder: 1,
+      isActive: true,
+      isPublic: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+    const wrapper = mount(RestaurantServiceItemsManager, {
+      props: {
+        restaurantId: "restaurant-1",
+        isMarketServiceGapContext: true,
+        marketGapName: "逢甲夜市",
+        marketGapSlug: "fengjia",
+      },
+    });
+
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="service-import-csv"]')
+      .setValue(
+        [
+          "name,serviceType,description,requiresBooking,sortOrder,isActive,isPublic",
+          '"代客切水果",general,"現場代切並分裝",false,1,true,true',
+        ].join("\n"),
+      );
+    await wrapper.get('[data-testid="service-import-submit"]').trigger("click");
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="market-service-gap-return"]')
+      .trigger("click");
+
+    expect(push).toHaveBeenCalledWith({
+      name: "PlatformMarkets",
+      query: { marketSlug: "fengjia" },
+    });
   });
 });
 

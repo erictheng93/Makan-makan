@@ -726,6 +726,18 @@ describe("PlatformMarketsView", () => {
     expect(replace).toHaveBeenLastCalledWith({ query: {} });
   });
 
+  it("initializes the market search from a market slug query", async () => {
+    routeQuery.marketSlug = "fengjia";
+
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    expect(
+      wrapper.get<HTMLInputElement>('[data-testid="platform-market-query"]')
+        .element.value,
+    ).toBe("fengjia");
+  });
+
   it("downloads a CSV for currently visible catalog gaps", async () => {
     const wrapper = mount(PlatformMarketsView);
     await flushPromises();

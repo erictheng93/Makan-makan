@@ -453,6 +453,7 @@
         <input
           v-model="query"
           type="search"
+          data-testid="platform-market-query"
           class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
           placeholder="搜尋市場、slug、城市或區域"
         />
@@ -1421,7 +1422,7 @@ const isSaving = ref(false);
 const isReindexingDiscovery = ref(false);
 const discoveryReindexResult = ref<DiscoveryReindexResult | null>(null);
 const discoveryReindexError = ref("");
-const query = ref("");
+const query = ref(firstQueryString(route.query.marketSlug) ?? "");
 const readinessFilter = ref<MarketReadinessFilter>("all");
 const editingMarket = ref<MarketListItem | null>(null);
 const formError = ref("");

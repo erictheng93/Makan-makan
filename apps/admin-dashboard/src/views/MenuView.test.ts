@@ -8,6 +8,7 @@ import MenuView from "./MenuView.vue";
 const importMenuItems = vi.fn();
 const saveMenuItem = vi.fn();
 const fetchMenu = vi.fn();
+const push = vi.fn();
 const routeQuery = {} as Record<string, unknown>;
 const categories = ref([
   { id: 1, name: "主食", sortOrder: 0 },
@@ -25,6 +26,7 @@ vi.mock("@/i18n", () => ({
 
 vi.mock("vue-router", () => ({
   useRoute: () => ({ query: routeQuery }),
+  useRouter: () => ({ push }),
 }));
 
 vi.mock("@/composables/useCurrency", () => ({
@@ -231,6 +233,44 @@ describe("MenuView", () => {
     expect(
       wrapper.get('[data-testid="market-product-gap-next-step"]').text(),
     ).toContain("重建搜尋索引");
+  });
+
+  it("returns to the filtered market workbench after fixing product gaps", async () => {
+    routeQuery.source = "market-gap";
+    routeQuery.gap = "products";
+    routeQuery.marketName = "逢甲夜市";
+    routeQuery.marketSlug = "fengjia";
+    const wrapper = mount(MenuView, {
+      global: {
+        stubs: {
+          CategoryPanel: true,
+          CategoryEditForm: true,
+          MenuItemCard: true,
+          VirtualMenuGrid: true,
+        },
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="menu-item-import-csv"]')
+      .setValue(
+        [
+          "name,category,price,description,isAvailable,keywords",
+          '"蚵仔煎","主食",7000,"招牌小吃",true,"蚵仔煎 夜市 逢甲夜市"',
+        ].join("\n"),
+      );
+    await wrapper
+      .get('[data-testid="menu-item-import-submit"]')
+      .trigger("click");
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="market-product-gap-return"]')
+      .trigger("click");
+
+    expect(push).toHaveBeenCalledWith({
+      name: "PlatformMarkets",
+      query: { marketSlug: "fengjia" },
+    });
   });
 });
 

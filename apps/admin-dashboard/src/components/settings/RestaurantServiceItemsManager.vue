@@ -263,6 +263,14 @@
           已補齊
           {{ marketGapName || "夜市/商圈" }}
           的服務資料。請回到市場公開品質並重建搜尋索引，讓顧客搜尋立即包含這批服務。
+          <button
+            type="button"
+            data-testid="market-service-gap-return"
+            class="mt-2 block rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-200"
+            @click="returnToMarketReadiness"
+          >
+            回市場公開品質
+          </button>
         </div>
 
         <div class="mt-4 flex justify-end">
@@ -370,6 +378,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import type {
   RestaurantServiceItem,
   RestaurantServiceType,
@@ -384,8 +393,10 @@ const props = defineProps<{
   restaurantId?: string | null;
   isMarketServiceGapContext?: boolean;
   marketGapName?: string;
+  marketGapSlug?: string;
 }>();
 
+const router = useRouter();
 const services = ref<RestaurantServiceItem[]>([]);
 const isLoading = ref(false);
 const isSaving = ref(false);
@@ -544,6 +555,13 @@ async function importServices() {
   } finally {
     isImportingServices.value = false;
   }
+}
+
+function returnToMarketReadiness() {
+  router.push({
+    name: "PlatformMarkets",
+    query: props.marketGapSlug ? { marketSlug: props.marketGapSlug } : {},
+  });
 }
 
 function editService(service: RestaurantServiceItem) {

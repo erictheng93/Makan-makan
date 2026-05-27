@@ -198,6 +198,14 @@
             已補齊
             {{ marketGapName || "夜市/商圈" }}
             的商品資料。請回到市場公開品質並重建搜尋索引，讓顧客搜尋立即包含這批商品。
+            <button
+              type="button"
+              data-testid="market-product-gap-return"
+              class="mt-2 block rounded-lg bg-blue-100 px-3 py-1.5 text-[12px] font-semibold text-blue-900 hover:bg-blue-200"
+              @click="returnToMarketReadiness"
+            >
+              回市場公開品質
+            </button>
           </div>
 
           <div class="mt-4 flex justify-end">
@@ -529,7 +537,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useMenuManagement } from "@/composables/useMenuManagement";
 import type {
@@ -553,6 +561,7 @@ import {
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const {
   categories,
   menuItems,
@@ -644,6 +653,7 @@ const isMarketProductGapContext = computed(
   () => route.query.source === "market-gap" && route.query.gap === "products",
 );
 const marketGapName = computed(() => firstQueryString(route.query.marketName));
+const marketGapSlug = computed(() => firstQueryString(route.query.marketSlug));
 const showMarketProductGapNextStep = computed(
   () => isMarketProductGapContext.value && hasCompletedMarketProductGap.value,
 );
@@ -799,6 +809,13 @@ function firstQueryString(value: unknown) {
     return value.find((item) => typeof item === "string") ?? "";
   }
   return typeof value === "string" ? value : "";
+}
+
+function returnToMarketReadiness() {
+  router.push({
+    name: "PlatformMarkets",
+    query: marketGapSlug.value ? { marketSlug: marketGapSlug.value } : {},
+  });
 }
 
 const importMenuItemsFromCsv = async () => {

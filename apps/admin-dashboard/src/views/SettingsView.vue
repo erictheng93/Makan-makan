@@ -703,6 +703,7 @@
           :restaurant-id="authStore.restaurantId"
           :is-market-service-gap-context="isMarketServiceGapContext"
           :market-gap-name="marketServiceGapName"
+          :market-gap-slug="marketServiceGapSlug"
         />
       </div>
     </div>
@@ -1813,6 +1814,9 @@ const isMarketServiceGapContext = computed(
 );
 const marketServiceGapName = computed(() =>
   firstQueryString(route.query.marketName),
+);
+const marketServiceGapSlug = computed(() =>
+  firstQueryString(route.query.marketSlug),
 );
 
 // Shop QR 狀態
