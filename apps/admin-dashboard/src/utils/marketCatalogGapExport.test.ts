@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildMarketVendorImportWorklistCsv,
   buildMarketCatalogGapCsv,
   marketCatalogGapCsvFilename,
 } from "./marketCatalogGapExport";
@@ -125,6 +126,38 @@ describe("market catalog gap export", () => {
   it("builds a dated filename", () => {
     expect(marketCatalogGapCsvFilename(new Date("2026-05-26"))).toBe(
       "market-catalog-gaps-2026-05-26.csv",
+    );
+  });
+
+  it("builds a vendor import worklist for market-level and stall gaps", () => {
+    expect(
+      buildMarketVendorImportWorklistCsv([
+        market({
+          id: "market-empty",
+          slug: "empty-market",
+          name: "空白夜市",
+          vendorCount: 0,
+          catalogCoverage: {
+            searchableProductCount: 0,
+            publicServiceCount: 0,
+            vendorsMissingSearchableProducts: 0,
+            vendorsMissingPublicServices: 0,
+            vendorsMissingStallNumbers: 0,
+            vendorsMissingSearchEntrypoints: 0,
+            missingProductVendors: [],
+            missingServiceVendors: [],
+            missingStallNumberVendors: [],
+            missingSearchEntrypointVendors: [],
+          },
+        }),
+        market(),
+      ]),
+    ).toBe(
+      [
+        "marketId,marketSlug,marketName,restaurantId,name,type,category,description,address,district,city,latitude,longitude,phone,email,website,stallNumber,isPrimary",
+        "market-empty,empty-market,空白夜市,,新店鋪,market_stall,,,請填入店鋪地址,西屯區,台中市,,,,,,,false",
+        'market-1,fengjia,逢甲夜市,restaurant-2,"缺服務,攤",,,,,西屯區,台中市,,,,,,,true',
+      ].join("\r\n"),
     );
   });
 });

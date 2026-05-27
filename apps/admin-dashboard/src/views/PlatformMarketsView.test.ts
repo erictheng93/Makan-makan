@@ -724,6 +724,56 @@ describe("PlatformMarketsView", () => {
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
   });
 
+  it("downloads a vendor import worklist for currently visible setup gaps", async () => {
+    vi.mocked(marketsService.listPlatformReadiness).mockResolvedValueOnce([
+      {
+        id: "market-empty",
+        slug: "empty-market",
+        name: "空白夜市",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        vendorCount: 0,
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          vendorsWithSearchableProducts: 0,
+          vendorsMissingSearchableProducts: 0,
+          vendorsWithPublicServices: 0,
+          vendorsMissingPublicServices: 0,
+          vendorsMissingStallNumbers: 0,
+          vendorsMissingSearchEntrypoints: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+          missingStallNumberVendors: [],
+          missingSearchEntrypointVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 40,
+          completedCount: 2,
+          totalCount: 7,
+          issues: [{ key: "vendors", severity: "required" }],
+        },
+      },
+    ]);
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const exportButton = wrapper.get(
+      '[data-testid="export-vendor-import-worklist"]',
+    );
+    expect(exportButton.attributes("disabled")).toBeUndefined();
+
+    await exportButton.trigger("click");
+
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    expect(blob.type).toBe("text/csv;charset=utf-8;");
+    expect(click).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
+  });
+
   it("exports market-level gaps even when no vendor gap rows exist", async () => {
     vi.mocked(marketsService.listPlatformReadiness).mockResolvedValueOnce([
       {

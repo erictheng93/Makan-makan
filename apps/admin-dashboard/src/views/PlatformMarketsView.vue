@@ -21,6 +21,15 @@
         </button>
         <button
           type="button"
+          data-testid="export-vendor-import-worklist"
+          class="w-fit rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+          :disabled="isLoading || vendorImportWorklistRowCount === 0"
+          @click="downloadVendorImportWorklistCsv"
+        >
+          匯出店鋪模板
+        </button>
+        <button
+          type="button"
           data-testid="export-area-readiness"
           class="w-fit rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
           :disabled="isLoading || areaReadiness.length === 0"
@@ -1365,8 +1374,11 @@ import {
 } from "@/utils/marketImport";
 import {
   buildMarketCatalogGapCsv,
+  buildMarketVendorImportWorklistCsv,
   countMarketCatalogGapRows,
+  countMarketVendorImportWorklistRows,
   marketCatalogGapCsvFilename,
+  marketVendorImportWorklistCsvFilename,
 } from "@/utils/marketCatalogGapExport";
 import {
   buildMarketAreaReadinessCsv,
@@ -1548,6 +1560,9 @@ const metrics = computed(() => [
 ]);
 const catalogGapRowCount = computed(() =>
   countMarketCatalogGapRows(filteredMarkets.value),
+);
+const vendorImportWorklistRowCount = computed(() =>
+  countMarketVendorImportWorklistRows(filteredMarkets.value),
 );
 const marketImportPreview = computed(() => {
   if (!marketImportText.value.trim()) {
@@ -2245,6 +2260,13 @@ function downloadCatalogGapCsv() {
   downloadCsv(
     buildMarketCatalogGapCsv(filteredMarkets.value),
     marketCatalogGapCsvFilename(),
+  );
+}
+
+function downloadVendorImportWorklistCsv() {
+  downloadCsv(
+    buildMarketVendorImportWorklistCsv(filteredMarkets.value),
+    marketVendorImportWorklistCsvFilename(),
   );
 }
 

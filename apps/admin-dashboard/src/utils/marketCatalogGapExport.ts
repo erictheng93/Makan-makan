@@ -16,6 +16,26 @@ const csvFields = [
   "vendorName",
   "stallNumber",
 ] as const;
+const vendorImportWorklistFields = [
+  "marketId",
+  "marketSlug",
+  "marketName",
+  "restaurantId",
+  "name",
+  "type",
+  "category",
+  "description",
+  "address",
+  "district",
+  "city",
+  "latitude",
+  "longitude",
+  "phone",
+  "email",
+  "website",
+  "stallNumber",
+  "isPrimary",
+] as const;
 
 type MarketCatalogGapType =
   | "products"
@@ -25,6 +45,10 @@ type MarketCatalogGapType =
   | "marketVendors"
   | "searchableCatalog";
 type MarketCatalogGapCsvRow = Record<(typeof csvFields)[number], string>;
+type MarketVendorImportWorklistRow = Record<
+  (typeof vendorImportWorklistFields)[number],
+  string
+>;
 
 export function buildMarketCatalogGapCsv(markets: MarketListItem[]) {
   return Papa.unparse({
@@ -68,8 +92,26 @@ export function countMarketCatalogGapRows(markets: MarketListItem[]) {
   );
 }
 
+export function buildMarketVendorImportWorklistCsv(markets: MarketListItem[]) {
+  return Papa.unparse({
+    fields: [...vendorImportWorklistFields],
+    data: markets.flatMap(vendorImportWorklistRows),
+  }).replace(/\r?\n$/, "");
+}
+
+export function countMarketVendorImportWorklistRows(markets: MarketListItem[]) {
+  return markets.reduce(
+    (total, market) => total + vendorImportWorklistRows(market).length,
+    0,
+  );
+}
+
 export function marketCatalogGapCsvFilename(date = new Date()) {
   return `market-catalog-gaps-${date.toISOString().slice(0, 10)}.csv`;
+}
+
+export function marketVendorImportWorklistCsvFilename(date = new Date()) {
+  return `market-vendor-import-worklist-${date.toISOString().slice(0, 10)}.csv`;
 }
 
 function marketLevelGapRows(market: MarketListItem): MarketCatalogGapCsvRow[] {
@@ -125,6 +167,61 @@ function gapRowsForMarket(
     vendorName: vendor.name,
     stallNumber: vendor.stallNumber ?? "",
   }));
+}
+
+function vendorImportWorklistRows(
+  market: MarketListItem,
+): MarketVendorImportWorklistRow[] {
+  const rows: MarketVendorImportWorklistRow[] = [];
+
+  if ((market.vendorCount ?? 0) === 0) {
+    rows.push({
+      marketId: market.id,
+      marketSlug: market.slug,
+      marketName: market.name,
+      restaurantId: "",
+      name: "新店鋪",
+      type: "market_stall",
+      category: "",
+      description: "",
+      address: "請填入店鋪地址",
+      district: market.district,
+      city: market.city,
+      latitude: "",
+      longitude: "",
+      phone: "",
+      email: "",
+      website: "",
+      stallNumber: "",
+      isPrimary: "false",
+    });
+  }
+
+  for (const vendor of market.catalogCoverage?.missingStallNumberVendors ??
+    []) {
+    rows.push({
+      marketId: market.id,
+      marketSlug: market.slug,
+      marketName: market.name,
+      restaurantId: vendor.restaurantId,
+      name: vendor.name,
+      type: "",
+      category: "",
+      description: "",
+      address: "",
+      district: market.district,
+      city: market.city,
+      latitude: "",
+      longitude: "",
+      phone: "",
+      email: "",
+      website: "",
+      stallNumber: "",
+      isPrimary: "true",
+    });
+  }
+
+  return rows;
 }
 
 function actionForGapType(gapType: MarketCatalogGapType) {
