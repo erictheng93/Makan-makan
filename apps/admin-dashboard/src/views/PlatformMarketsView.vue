@@ -1980,12 +1980,20 @@ async function reindexDiscovery() {
     discoveryReindexResult.value = await discoveryService.reindex();
     marketVendorReindexNotice.value = "";
     await Promise.all([loadMarkets(), loadDiscoveryIndexStatus()]);
+    clearReturnedMarketReindexPrompt();
   } catch (error) {
     console.error("Failed to reindex discovery:", error);
     discoveryReindexError.value = "重建搜尋索引失敗，請稍後再試。";
   } finally {
     isReindexingDiscovery.value = false;
   }
+}
+
+function clearReturnedMarketReindexPrompt() {
+  if (!returnedMarketSlug.value) return;
+
+  const { marketSlug: _marketSlug, ...query } = route.query;
+  router.replace({ query });
 }
 
 function formatIndexStatusTime(value: string | null) {

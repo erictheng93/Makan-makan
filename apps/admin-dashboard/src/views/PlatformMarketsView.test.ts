@@ -787,6 +787,8 @@ describe("PlatformMarketsView", () => {
 
   it("prompts operators to reindex after returning from a market gap fix", async () => {
     routeQuery.marketSlug = "fengjia";
+    routeQuery.areaCity = "台中市";
+    routeQuery.areaDistrict = "西屯區";
 
     const wrapper = mount(PlatformMarketsView);
     await flushPromises();
@@ -806,6 +808,13 @@ describe("PlatformMarketsView", () => {
     expect(discoveryService.reindex).toHaveBeenCalledOnce();
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(marketsService.listAreaReadiness).toHaveBeenCalledTimes(2);
+    expect(discoveryService.getIndexStatus).toHaveBeenCalledTimes(2);
+    expect(replace).toHaveBeenLastCalledWith({
+      query: {
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
+      },
+    });
   });
 
   it("downloads a CSV for currently visible catalog gaps", async () => {
