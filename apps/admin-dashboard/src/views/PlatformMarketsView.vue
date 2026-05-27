@@ -1904,7 +1904,10 @@ function manageVendorGap(
     return;
   }
 
-  router.push({ name: "Settings", query: { tab: "contact" } });
+  router.push({
+    name: "Settings",
+    query: { tab: "contact", section: "services" },
+  });
 }
 
 function startEditing(market: MarketListItem) {

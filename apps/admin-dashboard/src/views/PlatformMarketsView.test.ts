@@ -221,7 +221,7 @@ describe("PlatformMarketsView", () => {
     );
     expect(push).toHaveBeenLastCalledWith({
       name: "Settings",
-      query: { tab: "contact" },
+      query: { tab: "contact", section: "services" },
     });
   });
 

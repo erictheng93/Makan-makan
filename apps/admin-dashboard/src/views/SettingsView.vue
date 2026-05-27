@@ -695,7 +695,14 @@
         </div>
       </div>
 
-      <RestaurantServiceItemsManager :restaurant-id="authStore.restaurantId" />
+      <div
+        ref="serviceItemsSection"
+        data-testid="settings-service-items-section"
+      >
+        <RestaurantServiceItemsManager
+          :restaurant-id="authStore.restaurantId"
+        />
+      </div>
     </div>
 
     <!-- 訂單設定 -->
@@ -1745,7 +1752,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive, onMounted, watch } from "vue";
+import { computed, nextTick, ref, reactive, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
@@ -1797,6 +1804,7 @@ const activeTab = ref(
     ? route.query.tab
     : "general",
 );
+const serviceItemsSection = ref<HTMLElement | null>(null);
 const showSuccessMessage = ref(false);
 
 // Shop QR 狀態
@@ -1940,9 +1948,25 @@ watch(
   (tab) => {
     if (typeof tab === "string" && tabIds.includes(tab)) {
       activeTab.value = tab;
+      focusRequestedSection();
     }
   },
 );
+watch(
+  () => route.query.section,
+  () => focusRequestedSection(),
+);
+
+async function focusRequestedSection() {
+  if (route.query.section !== "services") return;
+  if (activeTab.value !== "contact") return;
+
+  await nextTick();
+  serviceItemsSection.value?.scrollIntoView({
+    block: "start",
+    behavior: "smooth",
+  });
+}
 
 // 外帶/外送設定
 const deliverySettings = reactive({
@@ -2433,6 +2457,7 @@ onMounted(() => {
   loadShopQRInfo();
   loadMarketSettings();
   loadContactProfile();
+  focusRequestedSection();
 });
 </script>
 
