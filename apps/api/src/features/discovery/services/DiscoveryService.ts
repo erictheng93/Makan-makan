@@ -653,7 +653,8 @@ export class DiscoveryService {
     }
     if (q) {
       const pattern = `%${q.trim()}%`;
-      const searchCondition = or(
+      const serviceTypeIntent = this.getServiceTypeIntent(q);
+      const searchConditions: SQL[] = [
         like(restaurantServiceItems.name, pattern),
         like(restaurantServiceItems.description, pattern),
         like(restaurantServiceItems.keywords, pattern),
@@ -663,7 +664,13 @@ export class DiscoveryService {
         like(restaurants.city, pattern),
         like(restaurants.district, pattern),
         this.marketVendorKeywordCondition(pattern, filters.marketId),
-      );
+      ];
+      if (serviceTypeIntent) {
+        searchConditions.push(
+          eq(restaurantServiceItems.serviceType, serviceTypeIntent),
+        );
+      }
+      const searchCondition = or(...searchConditions);
       if (searchCondition) conditions.push(searchCondition);
     }
 
@@ -1406,6 +1413,42 @@ export class DiscoveryService {
       return "delivery";
     }
     return null;
+  }
+
+  private getServiceTypeIntent(
+    query: string,
+  ): NonNullable<SearchFilters["serviceType"]> | null {
+    const normalized = this.normalizeQuery(query);
+    const aliases: Record<string, NonNullable<SearchFilters["serviceType"]>> = {
+      一般: "general",
+      一般服務: "general",
+      服務: "general",
+      預約: "booking",
+      預訂: "booking",
+      訂位: "booking",
+      booking: "booking",
+      reservation: "booking",
+      自取: "pickup",
+      取貨: "pickup",
+      取餐: "pickup",
+      pickup: "pickup",
+      外送: "delivery",
+      配送: "delivery",
+      宅配: "delivery",
+      delivery: "delivery",
+      諮詢: "consultation",
+      諮商: "consultation",
+      詢問: "consultation",
+      consultation: "consultation",
+      租借: "rental",
+      租賃: "rental",
+      rental: "rental",
+      活動: "activity",
+      體驗: "activity",
+      activity: "activity",
+    };
+
+    return aliases[normalized] ?? null;
   }
 
   private buildCacheKey(

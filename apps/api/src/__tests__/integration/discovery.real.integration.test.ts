@@ -657,6 +657,81 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("matches zh-TW service type aliases in market service search", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-alias-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Alias Service Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "A-19",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "Market Tour Slot",
+        description: "Book a guided market visit.",
+        serviceType: "booking",
+        priceCents: 5000,
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "Market Equipment Desk",
+        description: "Borrow equipment on site.",
+        serviceType: "rental",
+        priceCents: 2000,
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const bookingRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?q=${encodeURIComponent(
+          "預約",
+        )}&marketId=${market.id}`,
+      ),
+    );
+    const rentalRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?q=${encodeURIComponent(
+          "租借",
+        )}&marketId=${market.id}`,
+      ),
+    );
+
+    expect(bookingRes.status).toBe(200);
+    expect(rentalRes.status).toBe(200);
+    const bookingData = ((await bookingRes.json()) as ApiTestResponse).data;
+    const rentalData = ((await rentalRes.json()) as ApiTestResponse).data;
+
+    expect(bookingData.total).toBe(1);
+    expect(bookingData.results[0]).toMatchObject({
+      name: "Market Tour Slot",
+      serviceType: "booking",
+      marketVendor: {
+        marketId: market.id,
+        stallNumber: "A-19",
+      },
+    });
+    expect(rentalData.total).toBe(1);
+    expect(rentalData.results[0]).toMatchObject({
+      name: "Market Equipment Desk",
+      serviceType: "rental",
+    });
+  });
+
   it("searches market dishes by vendor and category context", async () => {
     const market = await seedMarket(testApp, {
       slug: "dish-context-market",
