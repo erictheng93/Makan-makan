@@ -268,6 +268,7 @@ export class DiscoveryService {
 
     // 5. Map results + openNow filter
     let results: DishSearchResult[] = allRows.map((row) => ({
+      resultType: "menu_item",
       menuItemId: row.menuItemId,
       dishName: row.dishName,
       price:
@@ -673,6 +674,7 @@ export class DiscoveryService {
     ]);
 
     let results: ServiceSearchResult[] = rows.map((row) => ({
+      resultType: "service",
       serviceItemId: row.serviceItemId,
       name: row.name,
       description: row.description,
@@ -846,6 +848,7 @@ export class DiscoveryService {
       .limit(10);
 
     const dishes: DishSearchResult[] = topDishes.map((row) => ({
+      resultType: "menu_item",
       menuItemId: row.menuItemId,
       dishName: row.dishName,
       price:

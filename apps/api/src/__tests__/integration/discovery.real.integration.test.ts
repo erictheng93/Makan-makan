@@ -246,6 +246,7 @@ describe("Discovery API — real integration", () => {
     const serviceData = ((await serviceRes.json()) as any).data;
 
     expect(dishData.results[0]).toMatchObject({
+      resultType: "menu_item",
       menuItemId: menuItem.id,
       restaurantId: restaurant.id,
       detailUrl: `/api/v1/restaurants/${restaurant.id}`,
@@ -254,6 +255,7 @@ describe("Discovery API — real integration", () => {
       serviceItemsUrl: `/api/v1/restaurants/${restaurant.id}/service-items`,
     });
     expect(serviceData.results[0]).toMatchObject({
+      resultType: "service",
       restaurantId: restaurant.id,
       detailUrl: `/api/v1/restaurants/${restaurant.id}`,
       menuUrl: `/api/v1/menu/${restaurant.id}`,

@@ -1,4 +1,5 @@
 export interface DishSearchResult {
+  resultType: "menu_item";
   menuItemId: number;
   dishName: string;
   price: number;
@@ -36,6 +37,7 @@ export interface RestaurantListItem {
 }
 
 export interface ServiceSearchResult {
+  resultType: "service";
   serviceItemId: number;
   name: string;
   description: string | null;

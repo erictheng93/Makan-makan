@@ -9,9 +9,18 @@
     >
       <div class="flex items-start justify-between">
         <div class="min-w-0 flex-1">
-          <h4 class="truncate font-medium text-gray-900">
-            {{ dish.dishName }}
-          </h4>
+          <div class="flex items-center gap-2">
+            <h4 class="truncate font-medium text-gray-900">
+              {{ dish.dishName }}
+            </h4>
+            <span
+              v-if="resultTypeLabel"
+              data-testid="dish-result-type"
+              class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+            >
+              {{ resultTypeLabel }}
+            </span>
+          </div>
           <p class="mt-0.5 truncate text-sm text-gray-500">
             {{ dish.restaurantName }}
             <span v-if="dish.district" class="text-gray-400">
@@ -70,7 +79,7 @@
         class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
         @click="$emit('select', dish)"
       >
-        查看菜單
+        {{ openActionLabel }}
       </button>
       <button
         v-if="canTakeaway"
@@ -113,4 +122,12 @@ const serviceLabels = computed(() => {
   if (props.dish.supportsDelivery) labels.push("可外送");
   return labels;
 });
+
+const resultTypeLabel = computed(() =>
+  props.dish.resultType === "menu_item" ? "商品" : "",
+);
+
+const openActionLabel = computed(() =>
+  props.dish.resultType === "menu_item" ? "查看商品" : "查看菜單",
+);
 </script>
