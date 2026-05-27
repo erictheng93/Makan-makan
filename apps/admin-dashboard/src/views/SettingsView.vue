@@ -450,21 +450,36 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">
               {{ t("settings.markets.selectMarket") }}
             </label>
+            <input
+              v-model="marketJoinSearchQuery"
+              type="search"
+              data-testid="market-join-search"
+              class="mb-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              :placeholder="t('settings.markets.searchPlaceholder')"
+            />
             <select
               v-model="marketJoinForm.marketId"
+              data-testid="market-join-select"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">
                 {{ t("settings.markets.selectPlaceholder") }}
               </option>
               <option
-                v-for="market in availableMarkets"
+                v-for="market in joinableMarketOptions"
                 :key="market.id"
                 :value="market.id"
               >
                 {{ market.name }} · {{ market.city }} {{ market.district }}
               </option>
             </select>
+            <p
+              v-if="joinableMarketOptions.length === 0"
+              data-testid="market-join-empty-options"
+              class="mt-2 text-sm text-gray-500"
+            >
+              {{ t("settings.markets.noMatchingMarkets") }}
+            </p>
             <div
               v-if="selectedMarketReadiness"
               class="mt-3 rounded-lg border p-3 text-sm"
@@ -1754,6 +1769,7 @@ import {
   marketPublicReadinessSummary,
   publicReadinessIssueLabel,
 } from "@/utils/marketPublicReadiness";
+import { filterMarketJoinRequestOptions } from "@/utils/marketJoinRequestOptions";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
 import type { CurrencyCode } from "@makanmakan/shared-types";
 
@@ -1804,6 +1820,7 @@ const isSubmittingMarketRequest = ref(false);
 const availableMarkets = ref<MarketListItem[]>([]);
 const marketMemberships = ref<RestaurantMarketMembership[]>([]);
 const marketJoinRequests = ref<MarketJoinRequest[]>([]);
+const marketJoinSearchQuery = ref("");
 const marketJoinForm = reactive({
   marketId: "",
   message: "",
@@ -1984,6 +2001,24 @@ const selectedMarket = computed(() =>
   ),
 );
 
+const joinableMarketOptions = computed(() =>
+  filterMarketJoinRequestOptions(
+    availableMarkets.value,
+    marketMemberships.value,
+    marketJoinRequests.value,
+    marketJoinSearchQuery.value,
+  ),
+);
+
+watch(joinableMarketOptions, (options) => {
+  if (
+    marketJoinForm.marketId &&
+    !options.some((market) => market.id === marketJoinForm.marketId)
+  ) {
+    marketJoinForm.marketId = "";
+  }
+});
+
 const selectedMarketReadiness = computed(
   () => selectedMarket.value?.publicReadiness,
 );
@@ -2145,6 +2180,7 @@ const submitMarketJoinRequest = async () => {
     toast.success(t("settings.markets.requestSuccess"));
     marketJoinForm.marketId = "";
     marketJoinForm.message = "";
+    marketJoinSearchQuery.value = "";
     await loadMarketSettings();
   } catch (error) {
     console.error("Failed to submit market join request:", error);
