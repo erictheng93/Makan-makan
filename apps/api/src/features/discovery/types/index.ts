@@ -94,7 +94,7 @@ export interface SearchFilters {
     | "activity";
   cuisineType?: string;
   priceRange?: number;
-  sortBy?: "rating" | "popular" | "price_asc" | "price_desc";
+  sortBy?: "rating" | "popular" | "price_asc" | "price_desc" | "open_now";
   page?: number;
   limit?: number;
 }

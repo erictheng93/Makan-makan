@@ -128,7 +128,7 @@ export interface SearchFilters {
   openNow?: boolean;
   takeaway?: boolean;
   delivery?: boolean;
-  sortBy?: "price_asc" | "price_desc" | "popular";
+  sortBy?: "price_asc" | "price_desc" | "popular" | "open_now";
   page?: number;
   limit?: number;
 }

@@ -85,7 +85,9 @@ export class DiscoveryService {
 
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
-    const requiresPostFilterPagination = Boolean(filters.openNow);
+    const requiresPostFilterPagination = Boolean(
+      filters.openNow || filters.sortBy === "open_now",
+    );
     const queryLimit = requiresPostFilterPagination
       ? POST_FILTER_SCAN_LIMIT
       : limit;
@@ -334,13 +336,18 @@ export class DiscoveryService {
     if (filters.openNow) {
       results = results.filter((r) => r.isOpen);
     }
+    if (filters.sortBy === "open_now") {
+      results = this.sortOpenResultsFirst(results);
+    }
 
     // 6. Cache and return
     if (tagMatches.length > 0 && total < results.length) {
       total = results.length;
     }
     if (requiresPostFilterPagination) {
-      total = results.length;
+      if (filters.openNow) {
+        total = results.length;
+      }
       results = results.slice(offset, offset + limit);
     }
     const scope = await this.getSearchScopeMetadata(filters);
@@ -449,7 +456,9 @@ export class DiscoveryService {
     }
 
     const offset = (page - 1) * limit;
-    const requiresPostFilterPagination = Boolean(filters.openNow || geoFilter);
+    const requiresPostFilterPagination = Boolean(
+      filters.openNow || geoFilter || filters.sortBy === "open_now",
+    );
     const queryLimit = requiresPostFilterPagination
       ? POST_FILTER_SCAN_LIMIT
       : limit;
@@ -537,12 +546,10 @@ export class DiscoveryService {
         .orderBy(orderByClause)
         .limit(queryLimit)
         .offset(queryOffset),
-      requiresPostFilterPagination
-        ? Promise.resolve([])
-        : this.db
-            .select({ count: sql<number>`count(*)` })
-            .from(restaurants)
-            .where(and(...conditions)),
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(restaurants)
+        .where(and(...conditions)),
     ]);
 
     const marketVendorByRestaurant = await this.restaurantBrowseMarketVendors(
@@ -607,13 +614,17 @@ export class DiscoveryService {
     if (filters.openNow) {
       filtered = filtered.filter((r) => r.isOpen);
     }
+    if (filters.sortBy === "open_now") {
+      filtered = this.sortOpenResultsFirst(filtered);
+    }
 
     const rawTotal = Number(countRows[0]?.count);
-    const total = requiresPostFilterPagination
-      ? filtered.length
-      : Number.isFinite(rawTotal) && rawTotal >= 0
-        ? rawTotal
-        : filtered.length;
+    const total =
+      filters.openNow || geoFilter
+        ? filtered.length
+        : Number.isFinite(rawTotal) && rawTotal >= 0
+          ? rawTotal
+          : filtered.length;
     const results = requiresPostFilterPagination
       ? filtered.slice(offset, offset + limit)
       : filtered;
@@ -627,7 +638,9 @@ export class DiscoveryService {
     filters = await this.resolveMarketSlug(filters);
     const { q, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
-    const requiresPostFilterPagination = Boolean(filters.openNow);
+    const requiresPostFilterPagination = Boolean(
+      filters.openNow || filters.sortBy === "open_now",
+    );
     const queryLimit = requiresPostFilterPagination
       ? POST_FILTER_SCAN_LIMIT
       : limit;
@@ -723,16 +736,14 @@ export class DiscoveryService {
         .orderBy(...this.getServiceSearchOrderBy(filters))
         .limit(queryLimit)
         .offset(queryOffset),
-      requiresPostFilterPagination
-        ? Promise.resolve([])
-        : this.db
-            .select({ count: sql<number>`count(*)` })
-            .from(restaurantServiceItems)
-            .innerJoin(
-              restaurants,
-              eq(restaurantServiceItems.restaurantId, restaurants.id),
-            )
-            .where(whereClause),
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(restaurantServiceItems)
+        .innerJoin(
+          restaurants,
+          eq(restaurantServiceItems.restaurantId, restaurants.id),
+        )
+        .where(whereClause),
     ]);
 
     let results: ServiceSearchResult[] = rows.map((row) => ({
@@ -761,9 +772,12 @@ export class DiscoveryService {
     if (filters.openNow) {
       results = results.filter((result) => result.isOpen);
     }
+    if (filters.sortBy === "open_now") {
+      results = this.sortOpenResultsFirst(results);
+    }
 
     const rawTotal = Number(countRows[0]?.count);
-    const total = requiresPostFilterPagination
+    const total = filters.openNow
       ? results.length
       : Number.isFinite(rawTotal) && rawTotal >= 0
         ? rawTotal
@@ -1795,5 +1809,9 @@ export class DiscoveryService {
       asc(restaurantServiceItems.sortOrder),
       asc(restaurantServiceItems.id),
     ];
+  }
+
+  private sortOpenResultsFirst<T extends { isOpen: boolean }>(results: T[]) {
+    return [...results].sort((a, b) => Number(b.isOpen) - Number(a.isOpen));
   }
 }

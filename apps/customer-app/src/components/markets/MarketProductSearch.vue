@@ -124,6 +124,7 @@
         <option value="price_asc">價格低到高</option>
         <option value="price_desc">價格高到低</option>
         <option value="popular">熱門優先</option>
+        <option value="open_now">營業中優先</option>
       </select>
     </form>
 
@@ -407,7 +408,7 @@ const props = withDefaults(
     initialResultKind?: ResultKind;
     initialTakeaway?: boolean;
     initialDelivery?: boolean;
-    initialSortBy?: "price_asc" | "price_desc" | "popular";
+    initialSortBy?: "price_asc" | "price_desc" | "popular" | "open_now";
   }>(),
   {
     categories: () => [],
@@ -436,7 +437,7 @@ const emit = defineEmits<{
       resultKind: ResultKind;
       takeaway: boolean;
       delivery: boolean;
-      sortBy: "price_asc" | "price_desc" | "popular";
+      sortBy: "price_asc" | "price_desc" | "popular" | "open_now";
     },
   ];
 }>();
@@ -450,7 +451,7 @@ const selectedServiceType = ref<ServiceTypeFilter | "">(
   props.initialServiceType,
 );
 const resultKind = ref<ResultKind>(props.initialResultKind);
-const sortBy = ref<"price_asc" | "price_desc" | "popular">(
+const sortBy = ref<"price_asc" | "price_desc" | "popular" | "open_now">(
   props.initialResultKind === "vendor" ? "price_asc" : props.initialSortBy,
 );
 const loadedCategories = ref<string[]>([]);
@@ -505,10 +506,14 @@ const serviceTypeDefinitions: Array<{
 const serviceTypeLabels = new Map(
   serviceTypeDefinitions.map((option) => [option.value, option.label]),
 );
-const sortLabels: Record<"price_asc" | "price_desc" | "popular", string> = {
+const sortLabels: Record<
+  "price_asc" | "price_desc" | "popular" | "open_now",
+  string
+> = {
   price_asc: "價格低到高",
   price_desc: "價格高到低",
   popular: "熱門優先",
+  open_now: "營業中優先",
 };
 
 const combinedResultCount = computed(

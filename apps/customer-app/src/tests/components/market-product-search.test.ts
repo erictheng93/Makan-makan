@@ -480,6 +480,54 @@ describe("MarketProductSearch", () => {
     });
   });
 
+  it("sorts market catalog and service results by open status", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [dish({ dishName: "營業中雞排" })],
+      total: 1,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [service({ name: "營業中代切" })],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-sort-select"]')
+      .setValue("open_now");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      categoryName: undefined,
+      sortBy: "open_now",
+      takeaway: undefined,
+      delivery: undefined,
+      page: 1,
+      limit: 20,
+    });
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      serviceType: undefined,
+      sortBy: "open_now",
+      page: 1,
+      limit: 20,
+    });
+    expect(
+      wrapper.get('[data-testid="market-product-search-summary"]').text(),
+    ).toContain("排序：營業中優先");
+    expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toMatchObject({
+      sortBy: "open_now",
+    });
+  });
+
   it("filters market catalog results to products", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [

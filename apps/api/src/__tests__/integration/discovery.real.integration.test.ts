@@ -1124,6 +1124,74 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("sorts market service results by open status without filtering closed services", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "open-sort-service-market",
+    });
+    const closedRestaurant = await seed.restaurant({
+      name: "Closed Open Sort Vendor",
+      city: "台中市",
+      district: "西屯區",
+      businessHours: closedAllWeek(),
+    });
+    const openRestaurant = await seed.restaurant({
+      name: "Open Open Sort Vendor",
+      city: "台中市",
+      district: "西屯區",
+      businessHours: openAllWeek(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(closedRestaurant.id),
+        marketId: market.id,
+        stallNumber: "C-01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(openRestaurant.id),
+        marketId: market.id,
+        stallNumber: "O-01",
+        joinedAt: new Date(),
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(closedRestaurant.id),
+        name: "Open Sort Closed Service",
+        serviceType: "general",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(openRestaurant.id),
+        name: "Open Sort Fresh Service",
+        serviceType: "general",
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?q=Open+Sort&marketId=${market.id}&sortBy=open_now`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(2);
+    expect(data.results.map((result: any) => result.name)).toEqual([
+      "Open Sort Fresh Service",
+      "Open Sort Closed Service",
+    ]);
+    expect(data.results.map((result: any) => result.isOpen)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
   it("browses public service items by service type without a location scope", async () => {
     const deliveryRestaurant = await seed.restaurant({
       name: "Global Delivery Vendor",

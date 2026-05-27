@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { dishCategoryQuerySchema, dishSearchQuerySchema } from "./validation";
+import {
+  dishCategoryQuerySchema,
+  dishSearchQuerySchema,
+  serviceSearchQuerySchema,
+} from "./validation";
 
 describe("discovery query validation", () => {
   it("accepts catalog type filters for market product search", () => {
@@ -31,5 +35,27 @@ describe("discovery query validation", () => {
         catalogType: "service",
       }),
     ).toThrow();
+  });
+
+  it("accepts open status sorting for market catalog and service search", () => {
+    expect(
+      dishSearchQuerySchema.parse({
+        marketId: "market-1",
+        sortBy: "open_now",
+      }),
+    ).toMatchObject({
+      marketId: "market-1",
+      sortBy: "open_now",
+    });
+
+    expect(
+      serviceSearchQuerySchema.parse({
+        marketId: "market-1",
+        sortBy: "open_now",
+      }),
+    ).toMatchObject({
+      marketId: "market-1",
+      sortBy: "open_now",
+    });
   });
 });

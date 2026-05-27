@@ -17,7 +17,9 @@ export const dishSearchQuerySchema = z
     openNow: z.coerce.boolean().optional(),
     takeaway: z.coerce.boolean().optional(),
     delivery: z.coerce.boolean().optional(),
-    sortBy: z.enum(["price_asc", "price_desc", "popular"]).optional(),
+    sortBy: z
+      .enum(["price_asc", "price_desc", "popular", "open_now"])
+      .optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })
@@ -74,7 +76,7 @@ export const restaurantBrowseQuerySchema = z.object({
   openNow: z.coerce.boolean().optional(),
   takeaway: z.coerce.boolean().optional(),
   delivery: z.coerce.boolean().optional(),
-  sortBy: z.enum(["rating", "popular"]).optional(),
+  sortBy: z.enum(["rating", "popular", "open_now"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
@@ -100,7 +102,9 @@ export const serviceSearchQuerySchema = z
     takeaway: z.coerce.boolean().optional(),
     delivery: z.coerce.boolean().optional(),
     openNow: z.coerce.boolean().optional(),
-    sortBy: z.enum(["price_asc", "price_desc", "popular"]).optional(),
+    sortBy: z
+      .enum(["price_asc", "price_desc", "popular", "open_now"])
+      .optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })
