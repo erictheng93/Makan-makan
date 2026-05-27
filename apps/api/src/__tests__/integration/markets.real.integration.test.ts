@@ -904,6 +904,20 @@ describe("Markets API — real integration", () => {
       latitude: 24.1771,
       longitude: 120.6471,
     });
+    const productOnlyVendor = await seed.restaurant({
+      name: "Product Only Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1773,
+      longitude: 120.6473,
+    });
+    const serviceOnlyVendor = await seed.restaurant({
+      name: "Service Only Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1775,
+      longitude: 120.6475,
+    });
 
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
       {
@@ -924,6 +938,20 @@ describe("Markets API — real integration", () => {
         restaurantId: String(missingStallVendor.id),
         marketId: market.id,
         stallNumber: null,
+        isPrimary: false,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(productOnlyVendor.id),
+        marketId: market.id,
+        stallNumber: "C-03",
+        isPrimary: false,
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(serviceOnlyVendor.id),
+        marketId: market.id,
+        stallNumber: "D-04",
         isPrimary: false,
         joinedAt: new Date(),
       },
@@ -985,6 +1013,33 @@ describe("Markets API — real integration", () => {
       isPublic: true,
       sortOrder: 1,
     });
+    const productOnlyItem = await seed.menuItem(String(productOnlyVendor.id), {
+      name: "Product Only Snack",
+      price: 60,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: productOnlyItem.id,
+      restaurantId: String(productOnlyVendor.id),
+      dishName: "Product Only Snack",
+      dishNameNormalized: "productonlysnack",
+      price: 60,
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: 24.1773,
+      longitude: 120.6473,
+      updatedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(serviceOnlyVendor.id),
+      name: "純服務入口",
+      serviceType: "booking",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+    });
 
     const res = await testApp.app.fetch(
       new Request("https://test/api/v1/admin/markets/readiness", {
@@ -998,29 +1053,43 @@ describe("Markets API — real integration", () => {
       (item: any) => item.id === market.id,
     );
     expect(readinessMarket.catalogCoverage).toMatchObject({
-      searchableProductCount: 2,
-      publicServiceCount: 2,
-      vendorsWithSearchableProducts: 2,
-      vendorsMissingSearchableProducts: 1,
-      vendorsWithPublicServices: 2,
-      vendorsMissingPublicServices: 1,
+      searchableProductCount: 3,
+      publicServiceCount: 3,
+      vendorsWithSearchableProducts: 3,
+      vendorsMissingSearchableProducts: 2,
+      vendorsWithPublicServices: 3,
+      vendorsMissingPublicServices: 2,
       vendorsMissingStallNumbers: 1,
       vendorsMissingSearchEntrypoints: 1,
     });
-    expect(readinessMarket.catalogCoverage.missingProductVendors).toEqual([
-      {
-        restaurantId: String(missingVendor.id),
-        name: "Missing Catalog Vendor",
-        stallNumber: "B-02",
-      },
-    ]);
-    expect(readinessMarket.catalogCoverage.missingServiceVendors).toEqual([
-      {
-        restaurantId: String(missingVendor.id),
-        name: "Missing Catalog Vendor",
-        stallNumber: "B-02",
-      },
-    ]);
+    expect(readinessMarket.catalogCoverage.missingProductVendors).toEqual(
+      expect.arrayContaining([
+        {
+          restaurantId: String(missingVendor.id),
+          name: "Missing Catalog Vendor",
+          stallNumber: "B-02",
+        },
+        {
+          restaurantId: String(serviceOnlyVendor.id),
+          name: "Service Only Vendor",
+          stallNumber: "D-04",
+        },
+      ]),
+    );
+    expect(readinessMarket.catalogCoverage.missingServiceVendors).toEqual(
+      expect.arrayContaining([
+        {
+          restaurantId: String(missingVendor.id),
+          name: "Missing Catalog Vendor",
+          stallNumber: "B-02",
+        },
+        {
+          restaurantId: String(productOnlyVendor.id),
+          name: "Product Only Vendor",
+          stallNumber: "C-03",
+        },
+      ]),
+    );
     expect(readinessMarket.catalogCoverage.missingStallNumberVendors).toEqual([
       {
         restaurantId: String(missingStallVendor.id),
