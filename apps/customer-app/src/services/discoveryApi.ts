@@ -74,6 +74,21 @@ export interface ServiceTypeFacet {
   count: number;
 }
 
+export interface MarketSearchScopeMetadata {
+  marketId: string;
+  hasSearchableCatalog: boolean;
+  searchableProductCount: number;
+  publicServiceCount: number;
+}
+
+export interface SearchResponse<T> {
+  results: T[];
+  total: number;
+  scope?: {
+    market?: MarketSearchScopeMetadata;
+  };
+}
+
 export interface RestaurantMarketMembership {
   marketId: string;
   stallNumber: string | null;
@@ -120,7 +135,7 @@ export interface SearchFilters {
 
 export const discoveryApi = {
   async searchDishes(filters: SearchFilters) {
-    return apiClient.get<{ results: DishSearchResult[]; total: number }>(
+    return apiClient.get<SearchResponse<DishSearchResult>>(
       "/discovery/search",
       filters,
     );
@@ -134,7 +149,7 @@ export const discoveryApi = {
   },
 
   async searchServices(filters: SearchFilters) {
-    return apiClient.get<{ results: ServiceSearchResult[]; total: number }>(
+    return apiClient.get<SearchResponse<ServiceSearchResult>>(
       "/discovery/services",
       filters,
     );

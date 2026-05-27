@@ -855,6 +855,40 @@ describe("MarketProductSearch", () => {
     ).toBe(false);
   });
 
+  it("explains catalog sync gaps when market scope has catalog coverage", async () => {
+    const scope = {
+      market: {
+        marketId: "market-1",
+        hasSearchableCatalog: true,
+        searchableProductCount: 4,
+        publicServiceCount: 2,
+      },
+    };
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+      scope,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [],
+      total: 0,
+      scope,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(
+      wrapper.get('[data-testid="market-product-empty-state"]').text(),
+    ).toContain("這個市場的商品與服務正在同步搜尋索引");
+  });
+
   it("explains filtered empty market catalog searches", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [],

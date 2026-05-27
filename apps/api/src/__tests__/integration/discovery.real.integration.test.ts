@@ -2335,6 +2335,76 @@ describe("Discovery API — real integration", () => {
     expect(json.data.total).toBe(0);
   });
 
+  it("returns market catalog scope metadata for empty scoped searches", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "empty-scope-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Empty Scope Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "E-12",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const item = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Scope Metadata Bao",
+      price: 100,
+    });
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: item.id,
+        name: "Scope Metadata Bao",
+        price: 100,
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(restaurant.id),
+      name: "Scope Metadata Pickup",
+      serviceType: "pickup",
+      isActive: true,
+      isPublic: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const dishRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=not-found&marketId=${market.id}`,
+      ),
+    );
+    const serviceRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?q=not-found&marketId=${market.id}`,
+      ),
+    );
+
+    expect(dishRes.status).toBe(200);
+    expect(serviceRes.status).toBe(200);
+    const dishData = ((await dishRes.json()) as ApiTestResponse).data;
+    const serviceData = ((await serviceRes.json()) as ApiTestResponse).data;
+
+    const expectedScope = {
+      market: {
+        marketId: market.id,
+        hasSearchableCatalog: true,
+        searchableProductCount: 1,
+        publicServiceCount: 1,
+      },
+    };
+    expect(dishData.results).toEqual([]);
+    expect(serviceData.results).toEqual([]);
+    expect(dishData.scope).toEqual(expectedScope);
+    expect(serviceData.scope).toEqual(expectedScope);
+  });
+
   // -------------------------------------------------------------------------
   // Availability filter: unavailable items do not surface in search
   // -------------------------------------------------------------------------

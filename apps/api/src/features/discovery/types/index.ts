@@ -104,6 +104,16 @@ export interface SearchResponse<T> {
   total: number;
   page: number;
   limit: number;
+  scope?: {
+    market?: MarketSearchScopeMetadata;
+  };
+}
+
+export interface MarketSearchScopeMetadata {
+  marketId: string;
+  hasSearchableCatalog: boolean;
+  searchableProductCount: number;
+  publicServiceCount: number;
 }
 
 export interface BusinessHours {

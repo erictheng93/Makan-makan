@@ -177,18 +177,10 @@
       class="space-y-3 py-8 text-center text-sm text-gray-500"
     >
       <p class="font-medium text-gray-700">
-        {{
-          hasActiveFilters
-            ? "沒有符合目前條件的店鋪、商品或服務"
-            : "這個市場尚未上架可搜尋的店鋪、商品或服務"
-        }}
+        {{ emptyStateTitle }}
       </p>
       <p class="text-xs text-gray-400">
-        {{
-          hasActiveFilters
-            ? "可清除條件或改用更寬的關鍵字。"
-            : "店鋪補齊菜單或公開服務後，會在這裡顯示。"
-        }}
+        {{ emptyStateDescription }}
       </p>
     </div>
     <div v-else-if="combinedResultCount > 0" class="space-y-2">
@@ -378,6 +370,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import {
   discoveryApi,
   type DishSearchResult,
+  type MarketSearchScopeMetadata,
   type RestaurantListItem,
   type ServiceTypeFacet,
   type ServiceSearchResult,
@@ -448,6 +441,7 @@ const vendorResults = ref<RestaurantListItem[]>([]);
 const total = ref(0);
 const serviceTotal = ref(0);
 const vendorTotal = ref(0);
+const marketSearchScope = ref<MarketSearchScopeMetadata | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const hasSearched = ref(false);
@@ -566,6 +560,27 @@ const activeFilterLabels = computed(() => {
   return labels;
 });
 const hasActiveFilters = computed(() => activeFilterLabels.value.length > 0);
+const hasSyncedMarketCatalog = computed(
+  () => marketSearchScope.value?.hasSearchableCatalog === true,
+);
+const emptyStateTitle = computed(() => {
+  if (hasActiveFilters.value) {
+    return "沒有符合目前條件的店鋪、商品或服務";
+  }
+  if (hasSyncedMarketCatalog.value) {
+    return "這個市場的商品與服務正在同步搜尋索引";
+  }
+  return "這個市場尚未上架可搜尋的店鋪、商品或服務";
+});
+const emptyStateDescription = computed(() => {
+  if (hasActiveFilters.value) {
+    return "可清除條件或改用更寬的關鍵字。";
+  }
+  if (hasSyncedMarketCatalog.value) {
+    return "可先改用店名或攤位號搜尋，或稍後再試。";
+  }
+  return "店鋪補齊菜單或公開服務後，會在這裡顯示。";
+});
 
 async function submitSearch() {
   if (!canSearch.value) return;
@@ -577,6 +592,7 @@ async function submitSearch() {
   total.value = 0;
   serviceTotal.value = 0;
   vendorTotal.value = 0;
+  marketSearchScope.value = null;
   emitSearchState();
   await fetchResults({ append: false });
 }
@@ -649,6 +665,8 @@ async function fetchResults({ append }: { append: boolean }) {
     total.value = response.total;
     serviceTotal.value = serviceResponse.total;
     vendorTotal.value = vendorResponse.total;
+    marketSearchScope.value =
+      response.scope?.market ?? serviceResponse.scope?.market ?? null;
   } catch (searchError) {
     error.value =
       searchError instanceof Error ? searchError.message : "搜尋商品失敗";
@@ -661,6 +679,7 @@ async function fetchResults({ append }: { append: boolean }) {
       total.value = 0;
       serviceTotal.value = 0;
       vendorTotal.value = 0;
+      marketSearchScope.value = null;
     }
   } finally {
     loading.value = false;
@@ -780,6 +799,7 @@ watch(
     resultKind.value = "all";
     loadedCategories.value = [];
     loadedServiceTypes.value = [];
+    marketSearchScope.value = null;
     loadCategories();
     loadServiceTypes();
     if (props.autoLoad) {

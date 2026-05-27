@@ -25,6 +25,7 @@ import {
 import { boundingBoxFromCircle, distanceKm } from "../../markets/services/geo";
 import type {
   DishSearchResult,
+  MarketSearchScopeMetadata,
   RestaurantListItem,
   SearchFilters,
   SearchResponse,
@@ -68,7 +69,13 @@ export class DiscoveryService {
     const cached = await this.kv.get(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      return { results: parsed.results, total: parsed.total, page, limit };
+      return {
+        results: parsed.results,
+        total: parsed.total,
+        page,
+        limit,
+        scope: parsed.scope ?? (await this.getSearchScopeMetadata(filters)),
+      };
     }
 
     // 2. Normalize query
@@ -321,10 +328,11 @@ export class DiscoveryService {
       total = results.length;
       results = results.slice(offset, offset + limit);
     }
-    const response = { results, total, page, limit };
+    const scope = await this.getSearchScopeMetadata(filters);
+    const response = { results, total, page, limit, scope };
     await this.kv.put(
       cacheKey,
-      JSON.stringify({ results, total, cachedAt: Date.now() }),
+      JSON.stringify({ results, total, scope, cachedAt: Date.now() }),
       { expirationTtl: KV_SEARCH_TTL },
     );
 
@@ -742,7 +750,13 @@ export class DiscoveryService {
       results = results.slice(offset, offset + limit);
     }
 
-    return { results, total, page, limit };
+    return {
+      results,
+      total,
+      page,
+      limit,
+      scope: await this.getSearchScopeMetadata(filters),
+    };
   }
 
   async listServiceTypes(filters: SearchFilters): Promise<{
@@ -1295,6 +1309,73 @@ export class DiscoveryService {
     return {
       ...filters,
       marketId: market?.id ?? "__missing_market__",
+    };
+  }
+
+  private async getSearchScopeMetadata(
+    filters: SearchFilters,
+  ): Promise<{ market?: MarketSearchScopeMetadata } | undefined> {
+    if (!filters.marketId) return undefined;
+
+    const [productRows, serviceRows] = await Promise.all([
+      this.db
+        .select({
+          count: sql<number>`count(distinct ${dishSearchIndex.menuItemId})`,
+        })
+        .from(dishSearchIndex)
+        .innerJoin(
+          restaurants,
+          eq(dishSearchIndex.restaurantId, restaurants.id),
+        )
+        .where(
+          and(
+            eq(dishSearchIndex.isAvailable, true),
+            eq(restaurants.isActive, true),
+            isNull(restaurants.deletedAt),
+            or(
+              eq(dishSearchIndex.primaryMarketId, filters.marketId),
+              like(dishSearchIndex.marketIds, `%"${filters.marketId}"%`),
+            )!,
+          ),
+        ),
+      this.db
+        .select({
+          count: sql<number>`count(distinct ${restaurantServiceItems.id})`,
+        })
+        .from(restaurantServiceItems)
+        .innerJoin(
+          restaurants,
+          eq(restaurantServiceItems.restaurantId, restaurants.id),
+        )
+        .where(
+          and(
+            eq(restaurantServiceItems.isActive, true),
+            eq(restaurantServiceItems.isPublic, true),
+            isNull(restaurantServiceItems.deletedAt),
+            eq(restaurants.isActive, true),
+            isNull(restaurants.deletedAt),
+            sql`EXISTS (
+              SELECT 1
+              FROM restaurant_market_memberships rmm
+              WHERE rmm.restaurant_id = ${restaurants.id}
+                AND rmm.market_id = ${filters.marketId}
+                AND rmm.left_at_ms IS NULL
+            )`,
+          ),
+        ),
+    ]);
+
+    const searchableProductCount = Number(productRows[0]?.count ?? 0);
+    const publicServiceCount = Number(serviceRows[0]?.count ?? 0);
+
+    return {
+      market: {
+        marketId: filters.marketId,
+        searchableProductCount,
+        publicServiceCount,
+        hasSearchableCatalog:
+          searchableProductCount > 0 || publicServiceCount > 0,
+      },
     };
   }
 
