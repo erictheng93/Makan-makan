@@ -612,7 +612,15 @@
                   v-if="marketHasNoVendors(market)"
                   class="rounded bg-red-50 px-2 py-1"
                 >
-                  使用者會看到尚未收錄店鋪
+                  <div>使用者會看到尚未收錄店鋪</div>
+                  <button
+                    type="button"
+                    :data-testid="`import-vendors-${market.id}`"
+                    class="mt-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-200"
+                    @click="startVendorImport(market)"
+                  >
+                    匯入店鋪
+                  </button>
                 </div>
                 <div
                   v-if="marketHasNoSearchableCatalog(market)"
@@ -857,7 +865,11 @@
         </button>
       </div>
 
-      <section class="mt-6 border-t border-gray-200 pt-5">
+      <section
+        ref="vendorImportSection"
+        data-testid="vendor-import-section"
+        class="mt-6 border-t border-gray-200 pt-5"
+      >
         <div
           class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
         >
@@ -1265,7 +1277,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, nextTick, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   marketsService,
@@ -1396,6 +1408,7 @@ const isLoadingJoinRequests = ref(false);
 const joinRequestError = ref("");
 const resolvingJoinRequestId = ref<number | null>(null);
 const joinRequestDrafts = reactive<Record<number, JoinRequestDraft>>({});
+const vendorImportSection = ref<HTMLElement | null>(null);
 const editForm = reactive<MarketPublicProfileForm>({
   description: "",
   address: "",
@@ -1843,6 +1856,18 @@ function startEditing(market: MarketListItem) {
   resetAttachedVendorState();
   Object.assign(editForm, marketPublicProfileFormFromMarket(market));
   void loadAttachedVendors(market);
+}
+
+async function startVendorImport(market: MarketListItem) {
+  startEditing(market);
+  await nextTick();
+  const scrollIntoView = vendorImportSection.value?.scrollIntoView;
+  if (typeof scrollIntoView === "function") {
+    scrollIntoView.call(vendorImportSection.value, {
+      behavior: "smooth",
+      block: "start",
+    });
+  }
 }
 
 function cancelEditing() {

@@ -437,6 +437,24 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("補菜單/服務或重建索引");
 
     await wrapper
+      .get('[data-testid="import-vendors-market-empty-vendors"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("編輯公開資料：尚無店鋪市場");
+    expect(
+      wrapper.get('[data-testid="vendor-import-section"]').text(),
+    ).toContain("批次匯入店鋪");
+    expect(marketsService.listMarketVendors).toHaveBeenLastCalledWith(
+      "empty-vendors",
+      {
+        q: undefined,
+        page: 1,
+        limit: 10,
+      },
+    );
+
+    await wrapper
       .findAll("button")
       .find((button) => button.text() === "無店鋪")!
       .trigger("click");
