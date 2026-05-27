@@ -338,6 +338,11 @@ describe("DiscoveryView", () => {
           district: "西屯區",
           city: "台中市",
           isOpen: true,
+          marketVendor: {
+            marketId: "market-1",
+            stallNumber: "S-12",
+            isPrimary: true,
+          },
         },
       ],
       total: 1,
@@ -346,6 +351,10 @@ describe("DiscoveryView", () => {
     const wrapper = mountView();
 
     expect(wrapper.text()).toContain("代客切水果");
+    expect(wrapper.text()).toContain("攤位 S-12");
+    expect(wrapper.get('[data-testid="select-service"]').text()).toContain(
+      "查看服務",
+    );
     await wrapper.get('[data-testid="select-service"]').trigger("click");
 
     expect(routerPush).toHaveBeenCalledWith({

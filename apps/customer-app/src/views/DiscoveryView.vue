@@ -113,6 +113,12 @@
                 </div>
                 <p class="mt-1 truncate text-sm text-gray-500">
                   {{ service.restaurantName }}
+                  <span
+                    v-if="service.marketVendor?.stallNumber"
+                    class="text-gray-400"
+                  >
+                    · 攤位 {{ service.marketVendor.stallNumber }}
+                  </span>
                 </p>
               </div>
               <span
@@ -150,7 +156,7 @@
                 class="h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
                 @click="onServiceSelect(service)"
               >
-                查看店鋪
+                查看服務
               </button>
             </div>
           </article>
