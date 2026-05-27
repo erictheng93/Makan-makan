@@ -63,15 +63,25 @@
         </span>
       </div>
     </button>
-    <button
-      v-if="canTakeaway"
-      type="button"
-      data-testid="dish-takeaway-button"
-      class="mt-3 w-full rounded-lg bg-ios-blue px-3 py-2 text-sm font-medium text-white"
-      @click="$emit('takeaway', dish)"
-    >
-      立即外帶
-    </button>
+    <div class="mt-3 grid gap-2" :class="canTakeaway ? 'grid-cols-2' : ''">
+      <button
+        type="button"
+        data-testid="dish-result-open-menu"
+        class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
+        @click="$emit('select', dish)"
+      >
+        查看菜單
+      </button>
+      <button
+        v-if="canTakeaway"
+        type="button"
+        data-testid="dish-takeaway-button"
+        class="rounded-lg bg-ios-blue px-3 py-2 text-sm font-medium text-white"
+        @click="$emit('takeaway', dish)"
+      >
+        立即外帶
+      </button>
+    </div>
   </article>
 </template>
 

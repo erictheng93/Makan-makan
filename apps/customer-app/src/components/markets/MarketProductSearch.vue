@@ -232,7 +232,7 @@
             class="h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
             @click="$emit('selectService', service)"
           >
-            查看店鋪
+            查看服務
           </button>
         </div>
       </article>

@@ -124,6 +124,17 @@ describe("MarketProductSearch", () => {
     });
     expect(wrapper.text()).toContain("章魚燒");
     expect(wrapper.text()).toContain("一中章魚燒");
+
+    const openMenuButton = wrapper.get('[data-testid="dish-result-open-menu"]');
+    expect(openMenuButton.text()).toContain("查看菜單");
+
+    await openMenuButton.trigger("click");
+
+    expect(wrapper.emitted("select")?.[0][0]).toMatchObject({
+      menuItemId: 1,
+      restaurantId: "r1",
+      dishName: "章魚燒",
+    });
   });
 
   it("makes vendor and stall searches visible in market results", async () => {
@@ -280,7 +291,12 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("水果攤");
     expect(wrapper.text()).toContain("$30");
 
-    await wrapper.get('[data-testid="service-result-open"]').trigger("click");
+    const openServiceButton = wrapper.get(
+      '[data-testid="service-result-open"]',
+    );
+    expect(openServiceButton.text()).toContain("查看服務");
+
+    await openServiceButton.trigger("click");
 
     expect(wrapper.emitted("selectService")?.[0][0]).toMatchObject({
       restaurantId: "service-r1",
