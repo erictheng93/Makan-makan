@@ -17,6 +17,8 @@ const csvFields = [
   "address",
   "district",
   "city",
+  "latitude",
+  "longitude",
   "phone",
   "email",
   "website",
@@ -56,6 +58,8 @@ export function buildMarketVendorImportTemplate() {
       "台中市西屯區文華路 100 號",
       "西屯區",
       "台中市",
+      "24.176",
+      "120.646",
       "0222222222",
       "",
       "",
@@ -161,6 +165,8 @@ function csvRowToVendor(row: CsvRow): ImportMarketVendorInput {
 
     if (field === "isPrimary") {
       vendor.isPrimary = parseBoolean(value);
+    } else if (field === "latitude" || field === "longitude") {
+      vendor[field] = Number(value);
     } else {
       vendor[field] = value;
     }
@@ -191,6 +197,31 @@ function validateVendorImportRow(
   if (vendor.phone && !phonePattern.test(vendor.phone)) {
     errors.push(`第 ${line} 列：phone 只能包含數字、空白、+、-、括號。`);
   }
+  if (
+    typeof vendor.latitude === "number" &&
+    !isCoordinate(vendor.latitude, -90, 90)
+  ) {
+    errors.push(`第 ${line} 列：latitude 必須是 -90 到 90 之間的數字。`);
+  }
+  if (
+    typeof vendor.longitude === "number" &&
+    !isCoordinate(vendor.longitude, -180, 180)
+  ) {
+    errors.push(`第 ${line} 列：longitude 必須是 -180 到 180 之間的數字。`);
+  }
 
   return errors;
+}
+
+function isCoordinate(
+  value: number | undefined,
+  minimum: number,
+  maximum: number,
+) {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= minimum &&
+    value <= maximum
+  );
 }

@@ -9,9 +9,9 @@ describe("market vendor import parsing", () => {
     const result = parseMarketVendorImport(
       "csv",
       [
-        "restaurantId,name,address,district,city,stallNumber,isPrimary",
-        'restaurant-1,,,"",,A-01,true',
-        ',"新匯入店鋪","台中市西屯區文華路 100 號","西屯區","台中市","B-02",false',
+        "restaurantId,name,address,district,city,latitude,longitude,stallNumber,isPrimary",
+        "restaurant-1,,,,,,,A-01,true",
+        ',"新匯入店鋪","台中市西屯區文華路 100 號","西屯區","台中市",24.176,120.646,"B-02",false',
       ].join("\n"),
     );
 
@@ -27,9 +27,27 @@ describe("market vendor import parsing", () => {
         address: "台中市西屯區文華路 100 號",
         district: "西屯區",
         city: "台中市",
+        latitude: 24.176,
+        longitude: 120.646,
         stallNumber: "B-02",
         isPrimary: false,
       },
+    ]);
+  });
+
+  it("rejects invalid coordinates before import", () => {
+    const result = parseMarketVendorImport(
+      "csv",
+      [
+        "name,address,district,latitude,longitude",
+        '"座標錯誤店鋪","台中市西屯區文華路","西屯區",91,181',
+      ].join("\n"),
+    );
+
+    expect(result.vendors).toEqual([]);
+    expect(result.errors).toEqual([
+      "第 2 列：latitude 必須是 -90 到 90 之間的數字。",
+      "第 2 列：longitude 必須是 -180 到 180 之間的數字。",
     ]);
   });
 
@@ -88,7 +106,7 @@ describe("market vendor import parsing", () => {
 
   it("builds a spreadsheet-friendly CSV template", () => {
     expect(buildMarketVendorImportTemplate()).toContain(
-      "restaurantId,name,type,category,description,address,district,city,phone,email,website,stallNumber,isPrimary",
+      "restaurantId,name,type,category,description,address,district,city,latitude,longitude,phone,email,website,stallNumber,isPrimary",
     );
     expect(buildMarketVendorImportTemplate()).toContain("新店鋪");
   });

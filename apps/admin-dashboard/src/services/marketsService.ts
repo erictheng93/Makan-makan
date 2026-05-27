@@ -135,6 +135,8 @@ export interface ImportMarketVendorInput {
   address?: string;
   district?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
   phone?: string;
   email?: string;
   website?: string;
