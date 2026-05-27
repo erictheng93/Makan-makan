@@ -157,6 +157,7 @@
             @select-services="openVendorServices"
             @takeaway="startTakeaway"
             @contact-vendor="openContactProfile"
+            @use-location="sortVendorsByLocation"
             @load-more="loadMoreVendors"
           />
 
@@ -296,6 +297,11 @@ const store = useMarketsStore();
 const vendorQuery = ref("");
 const takeawayOnly = ref(false);
 const deliveryOnly = ref(false);
+const vendorLocation = ref<{
+  lat: number;
+  lng: number;
+  radiusKm: number;
+} | null>(null);
 const selectedContactVendor = ref<MarketVendor | null>(null);
 const contactProfile = ref<RestaurantContactProfile | null>(null);
 const contactLoading = ref(false);
@@ -473,19 +479,27 @@ const serviceTypeLabels: Record<
 const slug = () => String(route.params.slug);
 
 function loadVendors() {
-  store.loadVendors(slug(), {
+  store.loadVendors(slug(), vendorFilters());
+}
+
+function vendorFilters() {
+  return {
     q: vendorQuery.value || undefined,
     takeaway: takeawayOnly.value || undefined,
     delivery: deliveryOnly.value || undefined,
-  });
+    ...(vendorLocation.value
+      ? {
+          sortBy: "distance" as const,
+          lat: vendorLocation.value.lat,
+          lng: vendorLocation.value.lng,
+          radiusKm: vendorLocation.value.radiusKm,
+        }
+      : {}),
+  };
 }
 
 function loadMoreVendors() {
-  store.loadMoreVendors(slug(), {
-    q: vendorQuery.value || undefined,
-    takeaway: takeawayOnly.value || undefined,
-    delivery: deliveryOnly.value || undefined,
-  });
+  store.loadMoreVendors(slug(), vendorFilters());
 }
 
 function onQueryChange(value: string) {
@@ -502,6 +516,26 @@ function onTakeawayOnlyChange(value: boolean) {
 function onDeliveryOnlyChange(value: boolean) {
   deliveryOnly.value = value;
   loadVendors();
+}
+
+function sortVendorsByLocation() {
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      vendorLocation.value = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        radiusKm: 2,
+      };
+      loadVendors();
+    },
+    () => {
+      vendorLocation.value = null;
+      loadVendors();
+    },
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
+  );
 }
 
 function openVendor(vendor: { restaurantId: string }) {

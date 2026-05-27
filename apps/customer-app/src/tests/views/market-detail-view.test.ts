@@ -132,6 +132,7 @@ function mountView() {
             "takeaway",
             "contactVendor",
             "loadMore",
+            "useLocation",
           ],
           template: `
             <section data-testid="vendor-list">
@@ -187,6 +188,12 @@ function mountView() {
                 @click="$emit('update:deliveryOnly', true)"
               >
                 delivery
+              </button>
+              <button
+                data-testid="vendor-list-use-location"
+                @click="$emit('useLocation')"
+              >
+                use location
               </button>
             </section>
           `,
@@ -732,6 +739,39 @@ describe("MarketDetailView", () => {
       q: undefined,
       takeaway: undefined,
       delivery: true,
+    });
+  });
+
+  it("sorts market vendors by current distance", async () => {
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn((success) =>
+          success({
+            coords: {
+              latitude: 24.1764,
+              longitude: 120.6466,
+            },
+          }),
+        ),
+      },
+    });
+    const store = marketStore();
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+    const wrapper = mountView();
+
+    await wrapper
+      .get('[data-testid="vendor-list-use-location"]')
+      .trigger("click");
+
+    expect(store.loadVendors).toHaveBeenCalledWith("fengjia", {
+      q: undefined,
+      takeaway: undefined,
+      delivery: undefined,
+      sortBy: "distance",
+      lat: 24.1764,
+      lng: 120.6466,
+      radiusKm: 2,
     });
   });
 

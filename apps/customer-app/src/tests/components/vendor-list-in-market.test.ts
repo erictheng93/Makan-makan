@@ -88,6 +88,22 @@ describe("VendorListInMarket", () => {
     expect(wrapper.emitted("update:deliveryOnly")).toEqual([[true]]);
   });
 
+  it("emits a location sort request for market vendors", async () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [vendor()],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    await wrapper.get('[data-testid="vendor-use-location"]').trigger("click");
+
+    expect(wrapper.emitted("useLocation")).toHaveLength(1);
+  });
+
   it("shows stall numbers and exposes direct menu and service entry points", async () => {
     const wrapper = mount(VendorListInMarket, {
       props: {

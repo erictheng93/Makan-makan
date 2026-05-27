@@ -50,7 +50,10 @@ export interface VendorFilters {
   takeaway?: boolean;
   delivery?: boolean;
   q?: string;
-  sortBy?: "rating" | "popular";
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  sortBy?: "rating" | "popular" | "distance";
   page?: number;
   limit?: number;
 }
@@ -953,6 +956,19 @@ export class MarketsService {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const offset = (page - 1) * limit;
+    const geoFilter =
+      filters.lat != null && filters.lng != null
+        ? {
+            lat: filters.lat,
+            lng: filters.lng,
+            radiusKm: Math.min(Math.max(filters.radiusKm ?? 2, 0.1), 10),
+            box: boundingBoxFromCircle(
+              filters.lat,
+              filters.lng,
+              Math.min(Math.max(filters.radiusKm ?? 2, 0.1), 10),
+            ),
+          }
+        : null;
     const conditions = [
       eq(restaurantMarketMemberships.marketId, marketDetail.market.id),
       isNull(restaurantMarketMemberships.leftAt),
@@ -976,10 +992,23 @@ export class MarketsService {
       conditions.push(eq(restaurants.supportsTakeaway, true));
     if (filters.delivery)
       conditions.push(eq(restaurants.supportsDelivery, true));
+    if (geoFilter) {
+      conditions.push(
+        gte(restaurants.latitude, geoFilter.box.southLat),
+        lte(restaurants.latitude, geoFilter.box.northLat),
+        gte(restaurants.longitude, geoFilter.box.westLng),
+        lte(restaurants.longitude, geoFilter.box.eastLng),
+      );
+    }
 
     const whereClause = and(...conditions);
-    const queryLimit = filters.openNow ? OPEN_NOW_VENDOR_SCAN_LIMIT : limit;
-    const queryOffset = filters.openNow ? 0 : offset;
+    const requiresPostFilterPagination = Boolean(
+      filters.openNow || geoFilter || filters.sortBy === "distance",
+    );
+    const queryLimit = requiresPostFilterPagination
+      ? OPEN_NOW_VENDOR_SCAN_LIMIT
+      : limit;
+    const queryOffset = requiresPostFilterPagination ? 0 : offset;
     const rows = await this.db
       .select({
         restaurantId: restaurants.id,
@@ -1005,20 +1034,36 @@ export class MarketsService {
         eq(restaurantMarketMemberships.restaurantId, restaurants.id),
       )
       .where(whereClause)
-      .orderBy(
-        filters.sortBy === "rating"
-          ? desc(restaurants.rating)
-          : desc(restaurants.totalOrders),
-      )
+      .orderBy(...this.vendorOrderBy(filters))
       .limit(queryLimit)
       .offset(queryOffset);
 
     let vendors = rows.map((row) => ({
       ...row,
       isOpen: isOpenNow(row.businessHours ?? null),
+      ...(geoFilter
+        ? {
+            distanceKm: Number(
+              distanceKm(
+                { lat: geoFilter.lat, lng: geoFilter.lng },
+                { lat: row.latitude, lng: row.longitude },
+              ).toFixed(3),
+            ),
+          }
+        : {}),
     }));
+    if (geoFilter) {
+      vendors = vendors.filter(
+        (row) => row.distanceKm != null && row.distanceKm <= geoFilter.radiusKm,
+      );
+    }
     if (filters.openNow) {
       vendors = vendors.filter((row) => row.isOpen);
+    }
+    if (filters.sortBy === "distance") {
+      vendors = [...vendors].sort(
+        (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
+      );
     }
 
     const [{ count = 0 } = { count: 0 }] = await this.db
@@ -1030,8 +1075,8 @@ export class MarketsService {
       )
       .where(whereClause);
 
-    const total = filters.openNow ? vendors.length : Number(count);
-    const pagedVendors = filters.openNow
+    const total = filters.openNow || geoFilter ? vendors.length : Number(count);
+    const pagedVendors = requiresPostFilterPagination
       ? vendors.slice(offset, offset + limit)
       : vendors;
     const vendorsWithAccess = await this.withVendorAccess(pagedVendors);
@@ -1042,6 +1087,13 @@ export class MarketsService {
       page,
       limit,
     };
+  }
+
+  private vendorOrderBy(filters: VendorFilters): SQL[] {
+    if (filters.sortBy === "rating") {
+      return [desc(restaurants.rating)];
+    }
+    return [desc(restaurants.totalOrders)];
   }
 
   private async withVendorAccess<TVendor extends { restaurantId: string }>(

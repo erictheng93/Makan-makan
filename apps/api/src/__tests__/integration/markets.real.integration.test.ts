@@ -1624,6 +1624,78 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("sorts market vendors by distance and returns distance metadata", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "distance-vendor-market",
+    });
+    const nearVendor = await seed.restaurant({
+      name: "Near Vendor Stand",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1765,
+      longitude: 120.6467,
+      totalOrders: 1,
+    });
+    const farVendor = await seed.restaurant({
+      name: "Far Vendor Stand",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.19,
+      longitude: 120.66,
+      totalOrders: 100,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(nearVendor.id),
+        marketId: market.id,
+        stallNumber: "N-01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(farVendor.id),
+        marketId: market.id,
+        stallNumber: "F-01",
+        joinedAt: new Date(),
+      },
+    ]);
+    const nearVendorItem = await seed.menuItem(String(nearVendor.id), {
+      name: "Near Vendor Searchable Item",
+      price: 80,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: nearVendorItem.id,
+      restaurantId: String(nearVendor.id),
+      dishName: "Near Vendor Searchable Item",
+      dishNameNormalized: "nearvendorsearchableitem",
+      price: 80,
+      isAvailable: true,
+      tags: [],
+      district: market.district,
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: market.latitude,
+      longitude: market.longitude,
+      updatedAt: new Date(),
+    });
+
+    const vendorsRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/markets/distance-vendor-market/vendors?lat=24.1764&lng=120.6466&radiusKm=5&sortBy=distance",
+      ),
+    );
+
+    expect(vendorsRes.status).toBe(200);
+    const vendorsJson: any = await vendorsRes.json();
+    expect(vendorsJson.data.total).toBe(2);
+    expect(vendorsJson.data.vendors.map((vendor: any) => vendor.name)).toEqual([
+      "Near Vendor Stand",
+      "Far Vendor Stand",
+    ]);
+    expect(vendorsJson.data.vendors[0].distanceKm).toBeLessThan(
+      vendorsJson.data.vendors[1].distanceKm,
+    );
+  });
+
   it("scopes dish search by market and GPS filters", async () => {
     const market = await seedMarket(testApp, { slug: "yizhong" });
     const inside = await seed.restaurant({

@@ -43,6 +43,14 @@
         />
         外送
       </label>
+      <button
+        type="button"
+        data-testid="vendor-use-location"
+        class="h-10 shrink-0 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
+        @click="$emit('useLocation')"
+      >
+        離我最近
+      </button>
     </div>
 
     <div v-if="loading" class="py-8 text-center text-sm text-gray-500">
@@ -177,6 +185,7 @@ defineEmits<{
   selectServices: [vendor: MarketVendor];
   takeaway: [vendor: MarketVendor];
   contactVendor: [vendor: MarketVendor];
+  useLocation: [];
   loadMore: [];
 }>();
 </script>

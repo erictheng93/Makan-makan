@@ -38,15 +38,31 @@ export const marketSlugParamSchema = z.object({
   slug: z.string().min(1).max(120),
 });
 
-export const marketVendorsQuerySchema = z.object({
-  openNow: z.coerce.boolean().optional(),
-  takeaway: z.coerce.boolean().optional(),
-  delivery: z.coerce.boolean().optional(),
-  q: z.string().min(1).max(100).optional(),
-  sortBy: z.enum(["rating", "popular"]).optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
-});
+export const marketVendorsQuerySchema = z
+  .object({
+    openNow: z.coerce.boolean().optional(),
+    takeaway: z.coerce.boolean().optional(),
+    delivery: z.coerce.boolean().optional(),
+    q: z.string().min(1).max(100).optional(),
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
+    radiusKm: z.coerce.number().min(0.1).max(10).optional(),
+    sortBy: z.enum(["rating", "popular", "distance"]).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+  })
+  .superRefine((query, ctx) => {
+    if (
+      query.sortBy === "distance" &&
+      (query.lat == null || query.lng == null)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sortBy"],
+        message: "distance sorting requires lat and lng",
+      });
+    }
+  });
 
 export const marketIdParamSchema = z.object({
   id: z.string().min(1).max(120),

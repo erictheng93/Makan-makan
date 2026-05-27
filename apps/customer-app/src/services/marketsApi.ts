@@ -118,7 +118,10 @@ export interface VendorFilters {
   takeaway?: boolean;
   delivery?: boolean;
   q?: string;
-  sortBy?: "rating" | "popular";
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  sortBy?: "rating" | "popular" | "distance";
   page?: number;
   limit?: number;
 }

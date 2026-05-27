@@ -41,6 +41,9 @@
             <span v-if="restaurant.district" class="text-gray-400">
               · {{ restaurant.district }}
             </span>
+            <span v-if="distanceLabel" class="text-gray-400">
+              · {{ distanceLabel }}
+            </span>
           </p>
           <div class="mt-1 flex items-center gap-2">
             <span
@@ -113,4 +116,10 @@ const serviceLabels = computed(() => {
   if (props.restaurant.supportsDelivery) labels.push("可外送");
   return labels;
 });
+
+const distanceLabel = computed(() =>
+  typeof props.restaurant.distanceKm === "number"
+    ? `${props.restaurant.distanceKm.toFixed(1)} km`
+    : "",
+);
 </script>

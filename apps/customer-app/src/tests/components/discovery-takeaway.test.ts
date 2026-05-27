@@ -239,4 +239,29 @@ describe("discovery takeaway buttons", () => {
       wrapper.get('[data-testid="restaurant-service-labels"]').text(),
     ).toContain("可外送");
   });
+
+  it("shows distance metadata on restaurant results", () => {
+    const wrapper = mount(RestaurantCard, {
+      props: {
+        restaurant: {
+          restaurantId: "r1",
+          name: "雞排攤",
+          type: "snack",
+          district: "西屯區",
+          priceRange: 1,
+          rating: 4.5,
+          isOpen: true,
+          supportsTakeaway: true,
+          supportsDelivery: true,
+          imageUrl: null,
+          distanceKm: 0.32,
+        },
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    });
+
+    expect(wrapper.text()).toContain("0.3 km");
+  });
 });
