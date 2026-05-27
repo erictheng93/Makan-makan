@@ -601,6 +601,28 @@ describe("MarketDetailView", () => {
     });
   });
 
+  it("keeps market product filters in the shop menu return path", async () => {
+    routeQuery.q = "雞排";
+    routeQuery.categoryName = "小吃";
+    routeQuery.resultKind = "menu_item";
+    routeQuery.sortBy = "popular";
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="select-dish"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "restaurant-1" },
+      query: {
+        itemId: "42",
+        categoryName: "小吃",
+        returnPath:
+          "/markets/fengjia?q=%E9%9B%9E%E6%8E%92&categoryName=%E5%B0%8F%E5%90%83&resultKind=menu_item&sortBy=popular",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
   it("opens a market vendor in the shop menu with market return context", async () => {
     const wrapper = mountView();
 
@@ -692,6 +714,26 @@ describe("MarketDetailView", () => {
       query: {
         serviceItemId: "7",
         returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
+  it("keeps market service filters in the shop menu return path", async () => {
+    routeQuery.serviceType = "pickup";
+    routeQuery.resultKind = "service";
+    routeQuery.sortBy = "open_now";
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="select-service"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "service-restaurant-1" },
+      query: {
+        serviceItemId: "7",
+        returnPath:
+          "/markets/fengjia?serviceType=pickup&resultKind=service&sortBy=open_now",
         returnLabel: "逢甲夜市",
       },
     });
