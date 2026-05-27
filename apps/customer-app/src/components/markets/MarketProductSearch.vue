@@ -182,6 +182,26 @@
       <p class="text-xs text-gray-400">
         {{ emptyStateDescription }}
       </p>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <button
+          v-if="resultKind !== 'vendor'"
+          type="button"
+          data-testid="market-empty-browse-vendors"
+          class="h-10 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
+          @click="browseFallback('vendor')"
+        >
+          查看店鋪列表
+        </button>
+        <button
+          v-if="resultKind !== 'service'"
+          type="button"
+          data-testid="market-empty-browse-services"
+          class="h-10 rounded-lg border border-emerald-500 px-3 text-sm font-medium text-emerald-700"
+          @click="browseFallback('service')"
+        >
+          查看可用服務
+        </button>
+      </div>
     </div>
     <div v-else-if="combinedResultCount > 0" class="space-y-2">
       <p class="text-sm text-gray-500">
@@ -725,6 +745,19 @@ function clearFilters() {
   selectedCategory.value = "";
   selectedServiceType.value = "";
   resultKind.value = "all";
+  sortBy.value = "price_asc";
+  loadCategories();
+  loadServiceTypes();
+  submitSearch();
+}
+
+function browseFallback(kind: "service" | "vendor") {
+  query.value = "";
+  takeawayOnly.value = false;
+  deliveryOnly.value = false;
+  selectedCategory.value = "";
+  selectedServiceType.value = "";
+  resultKind.value = kind;
   sortBy.value = "price_asc";
   loadCategories();
   loadServiceTypes();
