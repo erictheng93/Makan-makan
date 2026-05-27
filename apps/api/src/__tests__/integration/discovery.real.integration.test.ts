@@ -554,6 +554,7 @@ describe("Discovery API — real integration", () => {
         restaurantId: String(restaurant.id),
         marketId: market.id,
         stallNumber: "S-12",
+        isPrimary: true,
         joinedAt: new Date(),
       },
       {
@@ -629,6 +630,24 @@ describe("Discovery API — real integration", () => {
         restaurantId: restaurant.id,
       });
     }
+
+    const slugRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/services?q=切水果&marketSlug=service-search-market",
+      ),
+    );
+    expect(slugRes.status).toBe(200);
+    const slugData = ((await slugRes.json()) as ApiTestResponse).data;
+    expect(slugData.total).toBe(1);
+    expect(slugData.results[0]).toMatchObject({
+      name: "代客切水果",
+      restaurantId: restaurant.id,
+      marketVendor: {
+        marketId: market.id,
+        stallNumber: "S-12",
+        isPrimary: true,
+      },
+    });
   });
 
   it("searches market dishes by vendor and category context", async () => {
@@ -1126,6 +1145,18 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.serviceTypes).toEqual([
+      { serviceType: "delivery", count: 2 },
+      { serviceType: "booking", count: 1 },
+    ]);
+
+    const slugRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/discovery/service-types?marketSlug=service-type-facet-market",
+      ),
+    );
+    expect(slugRes.status).toBe(200);
+    const slugData = ((await slugRes.json()) as ApiTestResponse).data;
+    expect(slugData.serviceTypes).toEqual([
       { serviceType: "delivery", count: 2 },
       { serviceType: "booking", count: 1 },
     ]);
