@@ -953,6 +953,108 @@ onMounted(loadDashboard);
                   Row {{ issue.index + 1 }}: {{ issue.message }}
                 </li>
               </ul>
+              <div
+                v-if="vendorImportResult.catalogReadiness"
+                data-testid="market-vendor-catalog-readiness"
+                class="space-y-3 rounded-md border border-gray-200 bg-white p-3"
+              >
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-900">
+                    Search readiness after import
+                  </h3>
+                  <p class="mt-1 text-xs text-gray-500">
+                    Use these gaps to prioritize menu, product, service, and
+                    stall number cleanup.
+                  </p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                  <div class="rounded-md bg-gray-50 p-2">
+                    <span class="block text-gray-500">
+                      Searchable products
+                    </span>
+                    <span class="text-base font-semibold text-gray-900">
+                      {{
+                        vendorImportResult.catalogReadiness
+                          .searchableProductCount
+                      }}
+                    </span>
+                  </div>
+                  <div class="rounded-md bg-gray-50 p-2">
+                    <span class="block text-gray-500">Public services</span>
+                    <span class="text-base font-semibold text-gray-900">
+                      {{
+                        vendorImportResult.catalogReadiness.publicServiceCount
+                      }}
+                    </span>
+                  </div>
+                  <div class="rounded-md bg-gray-50 p-2">
+                    <span class="block text-gray-500">Missing products</span>
+                    <span class="text-base font-semibold text-gray-900">
+                      {{
+                        vendorImportResult.catalogReadiness
+                          .vendorsMissingSearchableProducts
+                      }}
+                    </span>
+                  </div>
+                  <div class="rounded-md bg-gray-50 p-2">
+                    <span class="block text-gray-500">Missing services</span>
+                    <span class="text-base font-semibold text-gray-900">
+                      {{
+                        vendorImportResult.catalogReadiness
+                          .vendorsMissingPublicServices
+                      }}
+                    </span>
+                  </div>
+                  <div class="rounded-md bg-gray-50 p-2">
+                    <span class="block text-gray-500">
+                      Missing stall numbers
+                    </span>
+                    <span class="text-base font-semibold text-gray-900">
+                      {{
+                        vendorImportResult.catalogReadiness
+                          .vendorsMissingStallNumbers
+                      }}
+                    </span>
+                  </div>
+                  <div class="rounded-md bg-gray-50 p-2">
+                    <span class="block text-gray-500">
+                      No search entrypoint
+                    </span>
+                    <span class="text-base font-semibold text-gray-900">
+                      {{
+                        vendorImportResult.catalogReadiness
+                          .vendorsMissingSearchEntrypoints
+                      }}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  v-if="
+                    vendorImportResult.catalogReadiness
+                      .missingSearchEntrypointVendors.length > 0
+                  "
+                  class="rounded-md bg-amber-50 p-2 text-xs text-amber-800"
+                >
+                  <p class="font-medium">
+                    Vendors without searchable products or services
+                  </p>
+                  <p class="mt-1">
+                    {{
+                      vendorImportResult.catalogReadiness.missingSearchEntrypointVendors
+                        .slice(0, 5)
+                        .map(
+                          (vendor) =>
+                            `${vendor.name}${
+                              vendor.stallNumber
+                                ? ` (${vendor.stallNumber})`
+                                : ""
+                            }`,
+                        )
+                        .join(", ")
+                    }}
+                  </p>
+                </div>
+              </div>
             </div>
           </template>
         </section>

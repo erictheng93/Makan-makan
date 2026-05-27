@@ -278,6 +278,27 @@ export interface MarketVendorImportIssue {
   restaurantName?: string;
 }
 
+export interface MarketCatalogGapVendor {
+  restaurantId: string;
+  name: string;
+  stallNumber: string | null;
+}
+
+export interface MarketCatalogReadiness {
+  searchableProductCount: number;
+  publicServiceCount: number;
+  vendorsWithSearchableProducts: number;
+  vendorsMissingSearchableProducts: number;
+  vendorsWithPublicServices: number;
+  vendorsMissingPublicServices: number;
+  vendorsMissingStallNumbers: number;
+  vendorsMissingSearchEntrypoints: number;
+  missingProductVendors: MarketCatalogGapVendor[];
+  missingServiceVendors: MarketCatalogGapVendor[];
+  missingStallNumberVendors: MarketCatalogGapVendor[];
+  missingSearchEntrypointVendors: MarketCatalogGapVendor[];
+}
+
 export interface MarketVendorImportResult {
   dryRun?: boolean;
   wouldCreateRestaurants?: number;
@@ -289,7 +310,7 @@ export interface MarketVendorImportResult {
   blockingIssueCount?: number;
   warningIssueCount?: number;
   issues?: MarketVendorImportIssue[];
-  catalogReadiness?: unknown;
+  catalogReadiness?: MarketCatalogReadiness;
   results: Array<{
     status: string;
     reason?: string;

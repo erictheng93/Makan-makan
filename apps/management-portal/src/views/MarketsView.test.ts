@@ -67,6 +67,38 @@ describe("MarketsView", () => {
         createdRestaurants: 1,
         attachedVendors: 2,
         skipped: 0,
+        catalogReadiness: {
+          searchableProductCount: 4,
+          publicServiceCount: 1,
+          vendorsWithSearchableProducts: 2,
+          vendorsMissingSearchableProducts: 1,
+          vendorsWithPublicServices: 1,
+          vendorsMissingPublicServices: 2,
+          vendorsMissingStallNumbers: 1,
+          vendorsMissingSearchEntrypoints: 1,
+          missingProductVendors: [
+            {
+              restaurantId: "restaurant-456",
+              name: "缺商品攤",
+              stallNumber: "C-01",
+            },
+          ],
+          missingServiceVendors: [],
+          missingStallNumberVendors: [
+            {
+              restaurantId: "restaurant-789",
+              name: "缺攤號攤",
+              stallNumber: null,
+            },
+          ],
+          missingSearchEntrypointVendors: [
+            {
+              restaurantId: "restaurant-456",
+              name: "缺商品攤",
+              stallNumber: "C-01",
+            },
+          ],
+        },
         results: [],
       });
 
@@ -130,5 +162,15 @@ describe("MarketsView", () => {
     expect(
       wrapper.get('[data-testid="market-vendor-import-result"]').text(),
     ).toContain("Created 1 restaurants and attached 2 vendors");
+    const readiness = wrapper.get(
+      '[data-testid="market-vendor-catalog-readiness"]',
+    );
+    expect(readiness.text()).toContain("Searchable products 4");
+    expect(readiness.text()).toContain("Public services1");
+    expect(readiness.text()).toContain("Missing products1");
+    expect(readiness.text()).toContain("Missing services2");
+    expect(readiness.text()).toContain("Missing stall numbers 1");
+    expect(readiness.text()).toContain("No search entrypoint 1");
+    expect(readiness.text()).toContain("缺商品攤");
   });
 });
