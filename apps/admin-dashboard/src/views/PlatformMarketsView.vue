@@ -784,6 +784,30 @@
                       market.catalogCoverage.missingSearchEntrypointVendors,
                     )
                   }}
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <template
+                      v-for="vendor in market.catalogCoverage
+                        .missingSearchEntrypointVendors"
+                      :key="`entrypoint-${vendor.restaurantId}`"
+                    >
+                      <button
+                        type="button"
+                        class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                        :data-testid="`manage-entrypoint-products-${vendor.restaurantId}`"
+                        @click="manageVendorGap(vendor, 'products', market)"
+                      >
+                        補商品
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-200"
+                        :data-testid="`manage-entrypoint-services-${vendor.restaurantId}`"
+                        @click="manageVendorGap(vendor, 'services', market)"
+                      >
+                        補服務
+                      </button>
+                    </template>
+                  </div>
                 </div>
               </div>
               <span

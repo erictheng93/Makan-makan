@@ -247,6 +247,7 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("缺攤位號");
     expect(wrapper.text()).toContain("缺搜尋入口");
     expect(wrapper.text()).toContain("缺攤位號攤");
+    expect(wrapper.text()).toContain("缺商品攤");
 
     await wrapper
       .get('[data-testid="manage-stall-restaurant-2"]')
@@ -260,6 +261,44 @@ describe("PlatformMarketsView", () => {
         limit: 10,
       },
     );
+
+    await wrapper
+      .get('[data-testid="manage-entrypoint-products-restaurant-1"]')
+      .trigger("click");
+
+    expect(selectRestaurant).toHaveBeenLastCalledWith(
+      "restaurant-1",
+      "缺商品攤",
+    );
+    expect(push).toHaveBeenLastCalledWith({
+      name: "Menu",
+      query: {
+        source: "market-gap",
+        gap: "products",
+        marketName: "逢甲夜市",
+        marketSlug: "fengjia",
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="manage-entrypoint-services-restaurant-1"]')
+      .trigger("click");
+
+    expect(selectRestaurant).toHaveBeenLastCalledWith(
+      "restaurant-1",
+      "缺商品攤",
+    );
+    expect(push).toHaveBeenLastCalledWith({
+      name: "Settings",
+      query: {
+        source: "market-gap",
+        gap: "services",
+        tab: "contact",
+        section: "services",
+        marketName: "逢甲夜市",
+        marketSlug: "fengjia",
+      },
+    });
   });
 
   it("lets platform operators approve pending market join requests", async () => {
