@@ -350,10 +350,94 @@ describe("MarketProductSearch", () => {
       q: "",
       categoryName: "",
       serviceType: "delivery",
+      resultKind: "all",
       takeaway: false,
       delivery: false,
       sortBy: "price_asc",
     });
+  });
+
+  it("filters market catalog results to products", async () => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [
+        dish({
+          resultType: "product",
+          dishName: "造型手機殼",
+          categoryName: "配件",
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-result-kind-product"]')
+      .trigger("click");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      catalogType: "product",
+      categoryName: undefined,
+      sortBy: "price_asc",
+      takeaway: undefined,
+      page: 1,
+      limit: 20,
+    });
+    expect(discoveryApi.searchServices).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("造型手機殼");
+    expect(
+      wrapper.get('[data-testid="market-product-search-summary"]').text(),
+    ).toContain("類型：商品");
+    expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
+      q: "",
+      categoryName: "",
+      serviceType: "",
+      resultKind: "product",
+      takeaway: false,
+      delivery: false,
+      sortBy: "price_asc",
+    });
+  });
+
+  it("filters market results to services without querying catalog items", async () => {
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [service({ name: "代客包裝" })],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-result-kind-service"]')
+      .trigger("click");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchDishes).not.toHaveBeenCalled();
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      serviceType: undefined,
+      sortBy: "price_asc",
+      page: 1,
+      limit: 20,
+    });
+    expect(wrapper.text()).toContain("代客包裝");
+    expect(
+      wrapper.get('[data-testid="market-product-search-summary"]').text(),
+    ).toContain("類型：服務");
   });
 
   it("applies the takeaway filter to market services", async () => {
@@ -555,6 +639,7 @@ describe("MarketProductSearch", () => {
       q: "",
       categoryName: "",
       serviceType: "",
+      resultKind: "all",
       takeaway: false,
       delivery: false,
       sortBy: "price_asc",

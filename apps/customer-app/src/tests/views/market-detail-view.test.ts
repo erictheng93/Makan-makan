@@ -149,6 +149,7 @@ function mountView() {
             "initialQuery",
             "initialCategory",
             "initialServiceType",
+            "initialResultKind",
             "initialTakeaway",
             "initialDelivery",
             "initialSortBy",
@@ -157,7 +158,7 @@ function mountView() {
           template: `
             <section data-testid="market-product-search">
               <div data-testid="market-product-search-props">
-                {{ initialQuery }}|{{ initialCategory }}|{{ initialServiceType }}|{{ initialTakeaway }}|{{ initialDelivery }}|{{ initialSortBy }}
+                {{ initialQuery }}|{{ initialCategory }}|{{ initialServiceType }}|{{ initialResultKind }}|{{ initialTakeaway }}|{{ initialDelivery }}|{{ initialSortBy }}
               </div>
               <button
                 data-testid="select-dish"
@@ -223,6 +224,7 @@ function mountView() {
                   q: '雞排',
                   categoryName: '小吃',
                   serviceType: 'delivery',
+                  resultKind: 'product',
                   takeaway: true,
                   delivery: true,
                   sortBy: 'popular'
@@ -253,6 +255,7 @@ describe("MarketDetailView", () => {
     routeQuery.q = "雞排";
     routeQuery.categoryName = "小吃";
     routeQuery.serviceType = "delivery";
+    routeQuery.resultKind = "product";
     routeQuery.takeaway = "true";
     routeQuery.delivery = "true";
     routeQuery.sortBy = "popular";
@@ -261,7 +264,7 @@ describe("MarketDetailView", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("雞排|小吃|delivery|true|true|popular");
+    ).toContain("雞排|小吃|delivery|product|true|true|popular");
   });
 
   it("syncs market product search state into the URL", async () => {
@@ -274,6 +277,7 @@ describe("MarketDetailView", () => {
         q: "雞排",
         categoryName: "小吃",
         serviceType: "delivery",
+        resultKind: "product",
         takeaway: "true",
         delivery: "true",
         sortBy: "popular",
@@ -297,10 +301,11 @@ describe("MarketDetailView", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("|炸物||false|false|price_asc");
+    ).toContain("|炸物||menu_item|false|false|price_asc");
     expect(routerReplace).toHaveBeenLastCalledWith({
       query: {
         categoryName: "炸物",
+        resultKind: "menu_item",
       },
     });
 
@@ -310,10 +315,11 @@ describe("MarketDetailView", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("||pickup|false|false|price_asc");
+    ).toContain("||pickup|service|false|false|price_asc");
     expect(routerReplace).toHaveBeenLastCalledWith({
       query: {
         serviceType: "pickup",
+        resultKind: "service",
       },
     });
   });
@@ -330,6 +336,7 @@ describe("MarketDetailView", () => {
         q: "雞排",
         categoryName: "小吃",
         serviceType: "delivery",
+        resultKind: "product",
         takeaway: "true",
         delivery: "true",
         sortBy: "popular",

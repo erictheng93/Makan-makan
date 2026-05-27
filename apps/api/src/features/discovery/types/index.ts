@@ -72,6 +72,7 @@ export interface SearchFilters {
   district?: string;
   city?: string;
   categoryName?: string;
+  catalogType?: "menu_item" | "product";
   marketId?: string;
   marketSlug?: string;
   lat?: number;

@@ -117,6 +117,7 @@
             :initial-query="marketSearchState.q"
             :initial-category="marketSearchState.categoryName"
             :initial-service-type="marketSearchState.serviceType"
+            :initial-result-kind="marketSearchState.resultKind"
             :initial-takeaway="marketSearchState.takeaway"
             :initial-delivery="marketSearchState.delivery"
             :initial-sort-by="marketSearchState.sortBy"
@@ -249,10 +250,12 @@ type MarketSearchState = {
   q: string;
   categoryName: string;
   serviceType: NonNullable<SearchFilters["serviceType"]> | "";
+  resultKind: MarketSearchResultKind;
   takeaway: boolean;
   delivery: boolean;
   sortBy: "price_asc" | "price_desc" | "popular";
 };
+type MarketSearchResultKind = "all" | "menu_item" | "product" | "service";
 
 function firstQueryString(value: unknown) {
   if (Array.isArray(value)) {
@@ -283,13 +286,21 @@ function isServiceType(
   ].includes(value);
 }
 
+function isMarketSearchResultKind(
+  value: string,
+): value is MarketSearchResultKind {
+  return ["all", "menu_item", "product", "service"].includes(value);
+}
+
 function marketSearchStateFromQuery(): MarketSearchState {
   const sortBy = firstQueryString(route.query.sortBy);
   const serviceType = firstQueryString(route.query.serviceType);
+  const resultKind = firstQueryString(route.query.resultKind);
   return {
     q: firstQueryString(route.query.q),
     categoryName: firstQueryString(route.query.categoryName),
     serviceType: isServiceType(serviceType) ? serviceType : "",
+    resultKind: isMarketSearchResultKind(resultKind) ? resultKind : "all",
     takeaway: queryBoolean(route.query.takeaway),
     delivery: queryBoolean(route.query.delivery),
     sortBy: isSortBy(sortBy) ? sortBy : "price_asc",
@@ -426,6 +437,7 @@ function syncMarketSearchState(state: MarketSearchState) {
       ...(state.q ? { q: state.q } : {}),
       ...(state.categoryName ? { categoryName: state.categoryName } : {}),
       ...(state.serviceType ? { serviceType: state.serviceType } : {}),
+      ...(state.resultKind !== "all" ? { resultKind: state.resultKind } : {}),
       ...(state.takeaway ? { takeaway: "true" } : {}),
       ...(state.delivery ? { delivery: "true" } : {}),
       ...(state.sortBy !== "price_asc" ? { sortBy: state.sortBy } : {}),
@@ -439,6 +451,7 @@ function applyDishCategoryShortcut(categoryName: string) {
     q: "",
     categoryName,
     serviceType: "",
+    resultKind: "menu_item",
     takeaway: false,
     delivery: false,
     sortBy: "price_asc",
@@ -452,6 +465,7 @@ function applyServiceTypeShortcut(
     q: "",
     categoryName: "",
     serviceType,
+    resultKind: "service",
     takeaway: false,
     delivery: false,
     sortBy: "price_asc",

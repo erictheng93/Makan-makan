@@ -101,6 +101,9 @@ export class DiscoveryService {
         eq(dishSearchIndex.categoryName, filters.categoryName),
       );
     }
+    if (filters.catalogType) {
+      baseConditions.push(eq(dishSearchIndex.catalogType, filters.catalogType));
+    }
     if (filters.priceMin !== undefined) {
       baseConditions.push(
         sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) >= ${toRequiredCents(filters.priceMin)}`,
@@ -353,6 +356,9 @@ export class DiscoveryService {
     }
     if (filters.city) {
       conditions.push(eq(restaurants.city, filters.city));
+    }
+    if (filters.catalogType) {
+      conditions.push(eq(dishSearchIndex.catalogType, filters.catalogType));
     }
     if (filters.takeaway) {
       conditions.push(eq(dishSearchIndex.supportsTakeaway, true));

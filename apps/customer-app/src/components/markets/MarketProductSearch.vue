@@ -30,6 +30,27 @@
         </button>
       </div>
 
+      <div
+        data-testid="market-result-kind-control"
+        class="grid grid-cols-4 gap-1 rounded-lg bg-gray-100 p-1"
+      >
+        <button
+          v-for="option in resultKindOptions"
+          :key="option.value"
+          type="button"
+          :data-testid="`market-result-kind-${option.value}`"
+          class="h-9 rounded-md px-2 text-sm font-medium transition-colors"
+          :class="
+            resultKind === option.value
+              ? 'bg-white text-ios-blue shadow-sm'
+              : 'text-gray-600'
+          "
+          @click="selectResultKind(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+
       <label
         class="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-700"
       >
@@ -55,7 +76,7 @@
         只看可外送
       </label>
       <select
-        v-if="categoryOptions.length > 0"
+        v-if="resultKind !== 'service' && categoryOptions.length > 0"
         v-model="selectedCategory"
         data-testid="market-product-category-select"
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
@@ -71,7 +92,10 @@
         </option>
       </select>
       <select
-        v-if="serviceTypeOptions.length > 0"
+        v-if="
+          (resultKind === 'all' || resultKind === 'service') &&
+          serviceTypeOptions.length > 0
+        "
         v-model="selectedServiceType"
         data-testid="market-service-type-select"
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
@@ -275,6 +299,7 @@ const props = withDefaults(
     initialQuery?: string;
     initialCategory?: string;
     initialServiceType?: ServiceTypeFilter | "";
+    initialResultKind?: ResultKind;
     initialTakeaway?: boolean;
     initialDelivery?: boolean;
     initialSortBy?: "price_asc" | "price_desc" | "popular";
@@ -285,6 +310,7 @@ const props = withDefaults(
     initialQuery: "",
     initialCategory: "",
     initialServiceType: "",
+    initialResultKind: "all",
     initialTakeaway: false,
     initialDelivery: false,
     initialSortBy: "price_asc",
@@ -300,6 +326,7 @@ const emit = defineEmits<{
       q: string;
       categoryName: string;
       serviceType: ServiceTypeFilter | "";
+      resultKind: ResultKind;
       takeaway: boolean;
       delivery: boolean;
       sortBy: "price_asc" | "price_desc" | "popular";
@@ -315,6 +342,7 @@ const selectedCategory = ref(props.initialCategory);
 const selectedServiceType = ref<ServiceTypeFilter | "">(
   props.initialServiceType,
 );
+const resultKind = ref<ResultKind>(props.initialResultKind);
 const sortBy = ref<"price_asc" | "price_desc" | "popular">(props.initialSortBy);
 const loadedCategories = ref<string[]>([]);
 const loadedServiceTypes = ref<ServiceTypeFacet[]>([]);
@@ -335,6 +363,19 @@ type ServiceTypeFilter =
   | "consultation"
   | "rental"
   | "activity";
+type ResultKind = "all" | "menu_item" | "product" | "service";
+const resultKindOptions: Array<{ value: ResultKind; label: string }> = [
+  { value: "all", label: "全部" },
+  { value: "menu_item", label: "餐點" },
+  { value: "product", label: "商品" },
+  { value: "service", label: "服務" },
+];
+const resultKindLabels: Record<ResultKind, string> = {
+  all: "全部",
+  menu_item: "餐點",
+  product: "商品",
+  service: "服務",
+};
 const serviceTypeDefinitions: Array<{
   value: ServiceTypeFilter;
   label: string;
@@ -375,6 +416,15 @@ const serviceTypeOptions = computed(() =>
     count: facet.count,
   })),
 );
+const shouldSearchCatalog = computed(() => resultKind.value !== "service");
+const shouldSearchServices = computed(
+  () => resultKind.value === "all" || resultKind.value === "service",
+);
+const selectedCatalogType = computed<"menu_item" | "product" | undefined>(() =>
+  resultKind.value === "menu_item" || resultKind.value === "product"
+    ? resultKind.value
+    : undefined,
+);
 const canSearch = computed(
   () =>
     props.marketId.length > 0 ||
@@ -385,6 +435,9 @@ const activeFilterLabels = computed(() => {
   const labels: string[] = [];
   const trimmed = query.value.trim();
 
+  if (resultKind.value !== "all") {
+    labels.push(`類型：${resultKindLabels[resultKind.value]}`);
+  }
   if (trimmed.length > 0) labels.push(`關鍵字：${trimmed}`);
   if (selectedCategory.value.length > 0) {
     labels.push(`分類：${selectedCategory.value}`);
@@ -432,17 +485,22 @@ async function fetchResults({ append }: { append: boolean }) {
 
   try {
     const [response, serviceResponse] = await Promise.all([
-      discoveryApi.searchDishes({
-        q: trimmed || undefined,
-        marketId: props.marketId,
-        categoryName: selectedCategory.value || undefined,
-        sortBy: sortBy.value,
-        takeaway: takeawayOnly.value ? true : undefined,
-        delivery: deliveryOnly.value ? true : undefined,
-        page: page.value,
-        limit: pageSize,
-      }),
-      trimmed || props.marketId
+      shouldSearchCatalog.value
+        ? discoveryApi.searchDishes({
+            q: trimmed || undefined,
+            marketId: props.marketId,
+            ...(selectedCatalogType.value
+              ? { catalogType: selectedCatalogType.value }
+              : {}),
+            categoryName: selectedCategory.value || undefined,
+            sortBy: sortBy.value,
+            takeaway: takeawayOnly.value ? true : undefined,
+            delivery: deliveryOnly.value ? true : undefined,
+            page: page.value,
+            limit: pageSize,
+          })
+        : Promise.resolve({ results: [], total: 0 }),
+      shouldSearchServices.value && (trimmed || props.marketId)
         ? discoveryApi.searchServices({
             q: trimmed || undefined,
             marketId: props.marketId,
@@ -491,12 +549,26 @@ function onFulfillmentFilterChange() {
   searchIfReady();
 }
 
+function selectResultKind(nextKind: ResultKind) {
+  resultKind.value = nextKind;
+  if (nextKind === "service") {
+    selectedCategory.value = "";
+  }
+  if (nextKind === "menu_item" || nextKind === "product") {
+    selectedServiceType.value = "";
+  }
+  loadCategories();
+  loadServiceTypes();
+  searchIfReady();
+}
+
 function clearFilters() {
   query.value = "";
   takeawayOnly.value = false;
   deliveryOnly.value = false;
   selectedCategory.value = "";
   selectedServiceType.value = "";
+  resultKind.value = "all";
   sortBy.value = "price_asc";
   loadCategories();
   loadServiceTypes();
@@ -508,6 +580,7 @@ function emitSearchState() {
     q: query.value.trim(),
     categoryName: selectedCategory.value,
     serviceType: selectedServiceType.value,
+    resultKind: resultKind.value,
     takeaway: takeawayOnly.value,
     delivery: deliveryOnly.value,
     sortBy: sortBy.value,
@@ -522,6 +595,9 @@ async function loadCategories() {
       marketId: props.marketId,
       takeaway: takeawayOnly.value ? true : undefined,
       delivery: deliveryOnly.value ? true : undefined,
+      ...(selectedCatalogType.value
+        ? { catalogType: selectedCatalogType.value }
+        : {}),
     });
     loadedCategories.value = response.categories;
   } catch (categoryError) {
@@ -564,6 +640,7 @@ watch(
   () => {
     selectedCategory.value = "";
     selectedServiceType.value = "";
+    resultKind.value = "all";
     loadedCategories.value = [];
     loadedServiceTypes.value = [];
     loadCategories();

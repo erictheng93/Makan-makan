@@ -6,6 +6,7 @@ export const dishSearchQuerySchema = z
     district: z.string().optional(),
     city: z.string().optional(),
     categoryName: z.string().optional(),
+    catalogType: z.enum(["menu_item", "product"]).optional(),
     marketId: z.string().optional(),
     marketSlug: z.string().min(1).max(120).optional(),
     lat: z.coerce.number().min(-90).max(90).optional(),
@@ -42,6 +43,7 @@ export const dishSearchQuerySchema = z
 export const dishCategoryQuerySchema = z.object({
   district: z.string().optional(),
   city: z.string().optional(),
+  catalogType: z.enum(["menu_item", "product"]).optional(),
   marketId: z.string().optional(),
   marketSlug: z.string().min(1).max(120).optional(),
   takeaway: z.coerce.boolean().optional(),
