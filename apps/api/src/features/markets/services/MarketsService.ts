@@ -1577,14 +1577,31 @@ export class MarketsService {
       )`,
       sql`EXISTS (
         SELECT 1
-        FROM dish_search_index dsi
-        INNER JOIN restaurants r ON r.id = dsi.restaurant_id
-        WHERE dsi.is_available = 1
+        FROM restaurants r
+        INNER JOIN restaurant_market_memberships rmm ON rmm.restaurant_id = r.id
+        WHERE rmm.market_id = ${markets.id}
+          AND rmm.left_at_ms IS NULL
           AND r.is_active = 1
           AND r.deleted_at_ms IS NULL
           AND (
-            dsi.primary_market_id = ${markets.id}
-            OR dsi.market_ids LIKE '%' || '"' || ${markets.id} || '"' || '%'
+            EXISTS (
+              SELECT 1
+              FROM dish_search_index dsi
+              WHERE dsi.restaurant_id = r.id
+                AND dsi.is_available = 1
+                AND (
+                  dsi.primary_market_id = ${markets.id}
+                  OR dsi.market_ids LIKE '%' || '"' || ${markets.id} || '"' || '%'
+                )
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM restaurant_service_items rsi
+              WHERE rsi.restaurant_id = r.id
+                AND rsi.is_active = 1
+                AND rsi.is_public = 1
+                AND rsi.deleted_at_ms IS NULL
+            )
           )
       )`,
     ];

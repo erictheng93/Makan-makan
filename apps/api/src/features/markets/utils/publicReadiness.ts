@@ -76,7 +76,9 @@ export function evaluateMarketPublicReadiness(
     {
       key: "products" as const,
       severity: "required" as const,
-      passed: (input.searchableProductCount ?? 0) > 0,
+      passed:
+        (input.searchableProductCount ?? 0) > 0 ||
+        (input.publicServiceCount ?? 0) > 0,
     },
     {
       key: "services" as const,

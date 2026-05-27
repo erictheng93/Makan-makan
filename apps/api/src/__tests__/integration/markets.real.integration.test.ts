@@ -396,6 +396,60 @@ describe("Markets API — real integration", () => {
     ]);
   });
 
+  it("lists service-only markets as public exploration entrypoints", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-only-market",
+      name: "Service Only Market",
+      city: "台中市",
+      district: "西屯區",
+    });
+    const vendor = await seed.restaurant({
+      name: "Service Only Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1765,
+      longitude: 120.6467,
+      isActive: true,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(vendor.id),
+      marketId: market.id,
+      stallNumber: "S-01",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(vendor.id),
+      name: "代客切水果",
+      serviceType: "general",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+    });
+
+    const res = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/markets?q=Service+Only&city=台中市&district=西屯區",
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    expect(json.data.total).toBe(1);
+    expect(json.data.markets[0]).toMatchObject({
+      id: market.id,
+      slug: "service-only-market",
+      vendorCount: 1,
+      catalogCoverage: {
+        searchableProductCount: 0,
+        publicServiceCount: 1,
+      },
+      publicReadiness: {
+        ready: true,
+      },
+    });
+  });
+
   it("counts only active public vendors in market list and detail", async () => {
     const market = await seedMarket(testApp, {
       slug: "active-vendor-count-market",
@@ -1348,7 +1402,7 @@ describe("Markets API — real integration", () => {
 
     const marketRes = await testApp.app.fetch(
       new Request(
-        "https://test/api/v1/discovery/search?q=Market+Bao&marketSlug=near-market",
+        "https://test/api/v1/discovery/search?q=Market+Bao&marketSlug=yizhong",
       ),
     );
     expect(marketRes.status).toBe(200);
