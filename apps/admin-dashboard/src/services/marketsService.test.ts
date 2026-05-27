@@ -217,4 +217,60 @@ describe("marketsService", () => {
     );
     expect(result).toBe(true);
   });
+
+  it("lists pending platform market join requests", async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        data: {
+          requests: [
+            {
+              id: 7,
+              restaurantId: "restaurant-1",
+              marketId: "market-1",
+              status: "pending",
+              restaurant: { id: "restaurant-1", name: "雞排攤" },
+              market: { id: "market-1", name: "逢甲夜市" },
+            },
+          ],
+        },
+      },
+    } as never);
+
+    const result = await marketsService.listAdminJoinRequests({
+      status: "pending",
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/admin/markets/join-requests", {
+      status: "pending",
+    });
+    expect(result[0]).toMatchObject({
+      id: 7,
+      restaurant: { name: "雞排攤" },
+      market: { name: "逢甲夜市" },
+    });
+  });
+
+  it("approves and rejects platform market join requests", async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: { data: {} } } as never);
+
+    await marketsService.approveJoinRequest(7, {
+      stallNumber: "A-12",
+      isPrimary: true,
+    });
+    await marketsService.rejectJoinRequest(8);
+
+    expect(api.post).toHaveBeenNthCalledWith(
+      1,
+      "/admin/markets/join-requests/7/approve",
+      {
+        stallNumber: "A-12",
+        isPrimary: true,
+      },
+    );
+    expect(api.post).toHaveBeenNthCalledWith(
+      2,
+      "/admin/markets/join-requests/8/reject",
+      {},
+    );
+  });
 });

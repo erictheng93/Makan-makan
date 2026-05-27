@@ -93,6 +93,104 @@
         class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
       >
         <div>
+          <h2 class="text-base font-semibold text-gray-900">店家加入申請</h2>
+          <p class="mt-1 text-sm text-gray-500">
+            審核店家申請加入市場或商圈；核准後會建立攤位關聯並更新公開搜尋索引。
+          </p>
+        </div>
+        <button
+          type="button"
+          class="w-fit rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+          :disabled="isLoadingJoinRequests"
+          @click="loadJoinRequests"
+        >
+          {{ isLoadingJoinRequests ? "讀取中..." : "重新整理申請" }}
+        </button>
+      </div>
+
+      <p v-if="joinRequestError" class="mt-3 text-sm text-red-600">
+        {{ joinRequestError }}
+      </p>
+
+      <div
+        v-if="pendingJoinRequests.length > 0"
+        class="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200"
+      >
+        <div
+          v-for="request in pendingJoinRequests"
+          :key="request.id"
+          class="grid gap-3 p-3 lg:grid-cols-[1fr_10rem_8rem_auto_auto]"
+        >
+          <div>
+            <div class="font-medium text-gray-900">
+              {{ request.restaurant.name }}
+            </div>
+            <div class="mt-0.5 text-xs text-gray-500">
+              {{ request.restaurant.city || "未填城市" }} ·
+              {{ request.restaurant.district || "未填區域" }}
+            </div>
+            <div class="mt-1 text-sm text-gray-700">
+              申請加入 {{ request.market.name }}
+            </div>
+            <p
+              v-if="request.message"
+              class="mt-1 text-sm leading-5 text-gray-600"
+            >
+              {{ request.message }}
+            </p>
+          </div>
+          <input
+            v-model="joinRequestDrafts[request.id].stallNumber"
+            type="text"
+            :data-testid="`join-request-stall-${request.id}`"
+            class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+            placeholder="攤位號"
+          />
+          <label
+            class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+          >
+            <input
+              v-model="joinRequestDrafts[request.id].isPrimary"
+              type="checkbox"
+              :data-testid="`join-request-primary-${request.id}`"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            主要市場
+          </label>
+          <button
+            type="button"
+            :data-testid="`approve-join-request-${request.id}`"
+            class="h-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            :disabled="resolvingJoinRequestId === request.id"
+            @click="approveJoinRequest(request)"
+          >
+            {{ resolvingJoinRequestId === request.id ? "處理中..." : "核准" }}
+          </button>
+          <button
+            type="button"
+            :data-testid="`reject-join-request-${request.id}`"
+            class="h-fit rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+            :disabled="resolvingJoinRequestId === request.id"
+            @click="rejectJoinRequest(request)"
+          >
+            拒絕
+          </button>
+        </div>
+      </div>
+
+      <p
+        v-else-if="!isLoadingJoinRequests && !joinRequestError"
+        class="mt-3 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-500"
+      >
+        目前沒有待審加入申請。
+      </p>
+    </section>
+
+    <section class="rounded-lg bg-white p-4 shadow-ios-card">
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div>
           <h2 class="text-base font-semibold text-gray-900">
             批次匯入市場 / 商圈
           </h2>
@@ -1156,6 +1254,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   marketsService,
+  type AdminMarketJoinRequest,
   type CreateMarketInput,
   type ImportMarketVendorInput,
   type ImportMarketVendorsResult,
@@ -1228,6 +1327,10 @@ type MarketImportResult = {
   failed: number;
   items: MarketImportItemResult[];
 };
+type JoinRequestDraft = {
+  stallNumber: string;
+  isPrimary: boolean;
+};
 
 const router = useRouter();
 const route = useRoute();
@@ -1272,6 +1375,11 @@ const attachedVendorQuery = ref("");
 const attachedVendorPage = ref(1);
 const attachedVendorLimit = 10;
 const attachedVendorTotal = ref(0);
+const pendingJoinRequests = ref<AdminMarketJoinRequest[]>([]);
+const isLoadingJoinRequests = ref(false);
+const joinRequestError = ref("");
+const resolvingJoinRequestId = ref<number | null>(null);
+const joinRequestDrafts = reactive<Record<number, JoinRequestDraft>>({});
 const editForm = reactive<MarketPublicProfileForm>({
   description: "",
   address: "",
@@ -1484,6 +1592,74 @@ async function loadMarkets() {
     areaReadiness.value = [];
   } finally {
     isLoading.value = false;
+  }
+}
+
+async function loadJoinRequests() {
+  isLoadingJoinRequests.value = true;
+  joinRequestError.value = "";
+  try {
+    pendingJoinRequests.value = await marketsService.listAdminJoinRequests({
+      status: "pending",
+    });
+    syncJoinRequestDrafts();
+  } catch (error) {
+    console.error("Failed to load market join requests:", error);
+    pendingJoinRequests.value = [];
+    joinRequestError.value = "載入加入申請失敗，請稍後再試。";
+  } finally {
+    isLoadingJoinRequests.value = false;
+  }
+}
+
+function syncJoinRequestDrafts() {
+  const requestIds = new Set(pendingJoinRequests.value.map(({ id }) => id));
+  Object.keys(joinRequestDrafts).forEach((id) => {
+    if (!requestIds.has(Number(id))) {
+      delete joinRequestDrafts[Number(id)];
+    }
+  });
+
+  pendingJoinRequests.value.forEach((request) => {
+    joinRequestDrafts[request.id] ??= {
+      stallNumber: "",
+      isPrimary: false,
+    };
+  });
+}
+
+async function approveJoinRequest(request: AdminMarketJoinRequest) {
+  const draft = joinRequestDrafts[request.id] ?? {
+    stallNumber: "",
+    isPrimary: false,
+  };
+  resolvingJoinRequestId.value = request.id;
+  joinRequestError.value = "";
+  try {
+    await marketsService.approveJoinRequest(request.id, {
+      stallNumber: draft.stallNumber.trim() || null,
+      isPrimary: draft.isPrimary,
+    });
+    await Promise.all([loadJoinRequests(), loadMarkets()]);
+  } catch (error) {
+    console.error("Failed to approve market join request:", error);
+    joinRequestError.value = "核准加入申請失敗，請確認申請仍在待審狀態。";
+  } finally {
+    resolvingJoinRequestId.value = null;
+  }
+}
+
+async function rejectJoinRequest(request: AdminMarketJoinRequest) {
+  resolvingJoinRequestId.value = request.id;
+  joinRequestError.value = "";
+  try {
+    await marketsService.rejectJoinRequest(request.id);
+    await loadJoinRequests();
+  } catch (error) {
+    console.error("Failed to reject market join request:", error);
+    joinRequestError.value = "拒絕加入申請失敗，請確認申請仍在待審狀態。";
+  } finally {
+    resolvingJoinRequestId.value = null;
   }
 }
 
@@ -2017,5 +2193,6 @@ function downloadCsv(csv: string, filename: string) {
 
 onMounted(() => {
   loadMarkets();
+  loadJoinRequests();
 });
 </script>

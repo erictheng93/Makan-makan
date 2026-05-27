@@ -231,6 +231,15 @@ export interface MarketJoinRequest {
   };
 }
 
+export interface AdminMarketJoinRequest extends MarketJoinRequest {
+  restaurant: {
+    id: string;
+    name: string;
+    city?: string | null;
+    district?: string | null;
+  };
+}
+
 export const marketsService = {
   async listMarkets(): Promise<MarketListItem[]> {
     const response = await api.get<{
@@ -307,6 +316,30 @@ export const marketsService = {
     }>(`/restaurants/${restaurantId}/market-join-requests`);
     return unwrapApiPayload<{ requests: MarketJoinRequest[] }>(response.data)
       .requests;
+  },
+
+  async listAdminJoinRequests(
+    input: {
+      status?: MarketJoinRequest["status"];
+    } = {},
+  ): Promise<AdminMarketJoinRequest[]> {
+    const response = await api.get<{
+      requests: AdminMarketJoinRequest[];
+    }>("/admin/markets/join-requests", input);
+    return unwrapApiPayload<{ requests: AdminMarketJoinRequest[] }>(
+      response.data,
+    ).requests;
+  },
+
+  async approveJoinRequest(
+    requestId: number,
+    input: { stallNumber?: string | null; isPrimary?: boolean } = {},
+  ): Promise<void> {
+    await api.post(`/admin/markets/join-requests/${requestId}/approve`, input);
+  },
+
+  async rejectJoinRequest(requestId: number): Promise<void> {
+    await api.post(`/admin/markets/join-requests/${requestId}/reject`, {});
   },
 
   async updateMarketPublicProfile(

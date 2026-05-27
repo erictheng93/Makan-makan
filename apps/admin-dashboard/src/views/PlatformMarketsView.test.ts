@@ -20,6 +20,9 @@ vi.mock("@/services/marketsService", () => ({
     listMarketVendors: vi.fn(),
     updateVendor: vi.fn(),
     removeVendor: vi.fn(),
+    listAdminJoinRequests: vi.fn(),
+    approveJoinRequest: vi.fn(),
+    rejectJoinRequest: vi.fn(),
   },
 }));
 
@@ -187,6 +190,9 @@ describe("PlatformMarketsView", () => {
       page: 1,
       limit: 10,
     });
+    vi.mocked(marketsService.listAdminJoinRequests).mockResolvedValue([]);
+    vi.mocked(marketsService.approveJoinRequest).mockResolvedValue(undefined);
+    vi.mocked(marketsService.rejectJoinRequest).mockResolvedValue(undefined);
     vi.mocked(discoveryService.reindex).mockResolvedValue({
       dishes: 12,
       restaurants: 4,
@@ -239,6 +245,56 @@ describe("PlatformMarketsView", () => {
         limit: 10,
       },
     );
+  });
+
+  it("lets platform operators approve pending market join requests", async () => {
+    vi.mocked(marketsService.listAdminJoinRequests).mockResolvedValue([
+      {
+        id: 7,
+        restaurantId: "restaurant-join-1",
+        marketId: "market-1",
+        status: "pending",
+        message: "A-12，每週五六日營業",
+        requestedAt: "2026-05-27T01:00:00.000Z",
+        resolvedAt: null,
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          type: "night_market",
+          city: "台中市",
+          district: "西屯區",
+        },
+        restaurant: {
+          id: "restaurant-join-1",
+          name: "新加入雞排",
+          city: "台中市",
+          district: "西屯區",
+        },
+      },
+    ]);
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    expect(marketsService.listAdminJoinRequests).toHaveBeenCalledWith({
+      status: "pending",
+    });
+    expect(wrapper.text()).toContain("新加入雞排");
+    expect(wrapper.text()).toContain("逢甲夜市");
+
+    await wrapper.get('[data-testid="join-request-stall-7"]').setValue("A-12");
+    await wrapper.get('[data-testid="join-request-primary-7"]').setValue(true);
+    await wrapper
+      .get('[data-testid="approve-join-request-7"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.approveJoinRequest).toHaveBeenCalledWith(7, {
+      stallNumber: "A-12",
+      isPrimary: true,
+    });
+    expect(marketsService.listAdminJoinRequests).toHaveBeenCalledTimes(2);
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
   });
 
   it("filters readiness rows by product or service catalog gaps", async () => {
