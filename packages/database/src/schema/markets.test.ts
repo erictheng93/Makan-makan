@@ -1,6 +1,11 @@
 import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { describe, expect, it } from "vitest";
-import { dishSearchIndex, markets, restaurantMarketMemberships } from "./index";
+import {
+  dishSearchIndex,
+  markets,
+  menuItems,
+  restaurantMarketMemberships,
+} from "./index";
 
 function columnNames(table: Parameters<typeof getTableConfig>[0]): string[] {
   return getTableConfig(table).columns.map((column) => column.name);
@@ -74,5 +79,12 @@ describe("market discovery schema", () => {
         "longitude",
       ]),
     );
+  });
+
+  it("tracks catalog item types for market-wide product discovery", () => {
+    expect(columnNames(menuItems)).toContain("catalog_type");
+    expect(columnNames(dishSearchIndex)).toContain("catalog_type");
+    expect(columnSqlType(menuItems, "catalog_type")).toBe("text");
+    expect(columnSqlType(dishSearchIndex, "catalog_type")).toBe("text");
   });
 });

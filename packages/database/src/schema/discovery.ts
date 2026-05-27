@@ -20,6 +20,10 @@ export const dishSearchIndex = sqliteTable(
     categoryName: text("category_name"),
     price: real("price"),
     priceCents: integer("price_cents"),
+    catalogType: text("catalog_type")
+      .$type<"menu_item" | "product">()
+      .notNull()
+      .default("menu_item"),
     isAvailable: integer("is_available", { mode: "boolean" })
       .notNull()
       .default(true),
@@ -60,6 +64,10 @@ export const dishSearchIndex = sqliteTable(
     primaryMarketAvailableIdx: index(
       "dish_search_primary_market_available_idx",
     ).on(table.primaryMarketId, table.isAvailable),
+    catalogAvailableIdx: index("dish_search_catalog_available_idx").on(
+      table.catalogType,
+      table.isAvailable,
+    ),
   }),
 );
 

@@ -4,6 +4,7 @@ import type { CategoryData } from "@/composables/useMenuManagement";
 export interface MenuItemImportInput {
   name: string;
   categoryId: number;
+  catalogType: "menu_item" | "product";
   price: number;
   description?: string;
   imageUrl?: string | null;
@@ -28,6 +29,7 @@ const csvFields = [
   "isFeatured",
   "isAvailable",
   "sortOrder",
+  "catalogType",
   "tags",
   "keywords",
 ] as const;
@@ -47,6 +49,7 @@ export function buildMenuItemImportTemplate(categoryName = "主食") {
       "true",
       "true",
       "1",
+      "menu_item",
       "小吃;招牌",
       "蚵仔煎 夜市",
     ].join(","),
@@ -59,6 +62,7 @@ export function buildMenuItemImportTemplate(categoryName = "主食") {
       "false",
       "true",
       "2",
+      "menu_item",
       "飲料",
       "",
     ].join(","),
@@ -118,6 +122,7 @@ function csvRowToMenuItem(
   const item: MenuItemImportInput = {
     name: normalizeCell(row.name) ?? "",
     categoryId,
+    catalogType: parseCatalogType(row.catalogType) ?? "menu_item",
     price: parseOptionalInteger(row.price) ?? 0,
     isFeatured: parseBoolean(row.isFeatured, false),
     isAvailable: parseBoolean(row.isAvailable, true),
@@ -219,7 +224,19 @@ function validateMenuItemImportRow(
     errors.push(`第 ${line} 列：sortOrder 必須是 0 以上整數。`);
   }
 
+  if (normalizeCell(row.catalogType) && !parseCatalogType(row.catalogType)) {
+    errors.push(`第 ${line} 列：catalogType 必須是 menu_item 或 product。`);
+  }
+
   return errors;
+}
+
+function parseCatalogType(value: string | undefined) {
+  const normalized = normalizeCell(value);
+  if (normalized === "menu_item" || normalized === "product") {
+    return normalized;
+  }
+  return undefined;
 }
 
 function isOptionalIntegerInRange(value: number | undefined, min: number) {

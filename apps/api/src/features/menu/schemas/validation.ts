@@ -121,6 +121,7 @@ const availableHoursSchema = z.object({
 // Menu Item Schemas
 export const createMenuItemSchema = z.object({
   categoryId: positiveInteger,
+  catalogType: z.enum(["menu_item", "product"]).optional(),
   name: nonEmptyString.max(100),
   description: z.string().max(500).optional(),
   ingredients: z.string().max(200).optional(),

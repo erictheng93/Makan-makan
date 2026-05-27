@@ -11,7 +11,12 @@ const PRODUCT_TAGS = new Set([
 
 export function catalogResultTypeFromTags(
   tags: string[] | null | undefined,
+  catalogType?: CatalogResultType | string | null,
 ): CatalogResultType {
+  if (catalogType === "menu_item" || catalogType === "product") {
+    return catalogType;
+  }
+
   return (tags ?? []).some((tag) => PRODUCT_TAGS.has(tag.trim().toLowerCase()))
     ? "product"
     : "menu_item";

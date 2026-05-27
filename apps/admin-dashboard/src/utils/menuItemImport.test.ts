@@ -13,9 +13,9 @@ describe("menu item import parsing", () => {
   it("parses CSV rows into create menu item inputs", () => {
     const result = parseMenuItemImport(
       [
-        "name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,tags,keywords",
-        '"蚵仔煎","主食",7000,"招牌小吃",,true,true,1,"小吃;招牌","蚵仔煎 夜市"',
-        '"紅茶","2",2500,"古早味紅茶",https://example.com/tea.jpg,false,true,2,"飲料",""',
+        "name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,catalogType,tags,keywords",
+        '"蚵仔煎","主食",7000,"招牌小吃",,true,true,1,menu_item,"小吃;招牌","蚵仔煎 夜市"',
+        '"手機殼","2",2500,"現貨配件",https://example.com/case.jpg,false,true,2,product,"配件",""',
       ].join("\n"),
       categories,
     );
@@ -30,20 +30,22 @@ describe("menu item import parsing", () => {
         isFeatured: true,
         isAvailable: true,
         sortOrder: 1,
+        catalogType: "menu_item",
         tags: ["小吃", "招牌"],
         keywords: "蚵仔煎 夜市",
       },
       {
-        name: "紅茶",
+        name: "手機殼",
         categoryId: 2,
         price: 2500,
-        description: "古早味紅茶",
-        imageUrl: "https://example.com/tea.jpg",
+        description: "現貨配件",
+        imageUrl: "https://example.com/case.jpg",
         isFeatured: false,
         isAvailable: true,
         sortOrder: 2,
-        tags: ["飲料"],
-        keywords: "飲料",
+        catalogType: "product",
+        tags: ["配件"],
+        keywords: "配件",
       },
     ]);
   });
@@ -67,11 +69,25 @@ describe("menu item import parsing", () => {
     ]);
   });
 
+  it("reports invalid catalog types before import", () => {
+    const result = parseMenuItemImport(
+      ["name,category,price,catalogType", '"紀念品","主食",1000,invalid'].join(
+        "\n",
+      ),
+      categories,
+    );
+
+    expect(result.items).toEqual([]);
+    expect(result.errors).toEqual([
+      "第 2 列：catalogType 必須是 menu_item 或 product。",
+    ]);
+  });
+
   it("builds a spreadsheet-friendly CSV template", () => {
     const template = buildMenuItemImportTemplate("主食");
 
     expect(template).toContain(
-      "name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,tags,keywords",
+      "name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,catalogType,tags,keywords",
     );
     expect(template).toContain("蚵仔煎");
     expect(template).toContain("主食");

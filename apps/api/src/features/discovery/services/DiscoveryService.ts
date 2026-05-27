@@ -159,6 +159,7 @@ export class DiscoveryService {
           dishName: dishSearchIndex.dishName,
           price: dishSearchIndex.price,
           priceCents: dishSearchIndex.priceCents,
+          catalogType: dishSearchIndex.catalogType,
           categoryName: dishSearchIndex.categoryName,
           restaurantId: dishSearchIndex.restaurantId,
           restaurantName: restaurants.name,
@@ -231,6 +232,7 @@ export class DiscoveryService {
             dishName: dishSearchIndex.dishName,
             price: dishSearchIndex.price,
             priceCents: dishSearchIndex.priceCents,
+            catalogType: dishSearchIndex.catalogType,
             categoryName: dishSearchIndex.categoryName,
             restaurantId: dishSearchIndex.restaurantId,
             restaurantName: restaurants.name,
@@ -269,7 +271,7 @@ export class DiscoveryService {
 
     // 5. Map results + openNow filter
     let results: DishSearchResult[] = allRows.map((row) => ({
-      resultType: catalogResultTypeFromTags(row.tags),
+      resultType: catalogResultTypeFromTags(row.tags, row.catalogType),
       menuItemId: row.menuItemId,
       dishName: row.dishName,
       price:
@@ -827,6 +829,7 @@ export class DiscoveryService {
         dishName: dishSearchIndex.dishName,
         price: dishSearchIndex.price,
         priceCents: dishSearchIndex.priceCents,
+        catalogType: dishSearchIndex.catalogType,
         categoryName: dishSearchIndex.categoryName,
         restaurantId: dishSearchIndex.restaurantId,
         restaurantName: restaurants.name,
@@ -851,7 +854,7 @@ export class DiscoveryService {
       .limit(10);
 
     const dishes: DishSearchResult[] = topDishes.map((row) => ({
-      resultType: catalogResultTypeFromTags(row.tags),
+      resultType: catalogResultTypeFromTags(row.tags, row.catalogType),
       menuItemId: row.menuItemId,
       dishName: row.dishName,
       price:
@@ -1071,6 +1074,7 @@ export class DiscoveryService {
         name: menuItems.name,
         price: menuItems.price,
         priceCents: menuItems.priceCents,
+        catalogType: menuItems.catalogType,
         isAvailable: menuItems.isAvailable,
         tags: menuItems.tags,
         keywords: menuItems.keywords,
@@ -1134,8 +1138,8 @@ export class DiscoveryService {
         this.d1
           .prepare(
             `INSERT OR REPLACE INTO dish_search_index
-             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, price_cents, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, primary_market_id, market_ids, latitude, longitude, updated_at_ms)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, price_cents, catalog_type, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, primary_market_id, market_ids, latitude, longitude, updated_at_ms)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             item.menuItemId,
@@ -1145,6 +1149,7 @@ export class DiscoveryService {
             item.categoryName,
             item.price,
             item.priceCents ?? toCents(item.price),
+            item.catalogType ?? "menu_item",
             isAvailable ? 1 : 0,
             JSON.stringify(itemTags),
             item.district,

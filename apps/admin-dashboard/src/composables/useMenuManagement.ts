@@ -19,6 +19,7 @@ export interface CategoryData {
 export interface MenuItemData {
   id: number;
   categoryId: number;
+  catalogType: "menu_item" | "product";
   name: string;
   nameEn?: string;
   description?: string;
@@ -81,6 +82,7 @@ export function useMenuManagement() {
           .map((item: any) => ({
             ...item,
             nameEn: item.nameEn || "",
+            catalogType: item.catalogType ?? "menu_item",
             isFeatured: !!item.isFeatured,
             isAvailable: !!item.isAvailable,
           }));
@@ -171,6 +173,7 @@ export function useMenuManagement() {
       description?: string;
       price: number;
       categoryId: number;
+      catalogType?: "menu_item" | "product";
       imageUrl?: string | null;
       isFeatured: boolean;
       isAvailable: boolean;

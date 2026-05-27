@@ -145,7 +145,7 @@
             rows="6"
             data-testid="menu-item-import-csv"
             class="mt-3 w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2 font-mono text-[13px] text-[#1C1C1E] outline-none focus:ring-2 focus:ring-ios-primary/30"
-            placeholder="name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,tags,keywords"
+            placeholder="name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,catalogType,tags,keywords"
           />
 
           <div
@@ -392,6 +392,22 @@
                   </select>
                 </div>
 
+                <!-- Catalog type -->
+                <div>
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
+                    類型
+                  </label>
+                  <select
+                    v-model="menuItemForm.catalogType"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                  >
+                    <option value="menu_item">餐點</option>
+                    <option value="product">商品</option>
+                  </select>
+                </div>
+
                 <!-- Image URL -->
                 <div>
                   <label
@@ -551,6 +567,7 @@ const menuItemForm = ref({
   description: "",
   price: 0,
   categoryId: "" as string | number,
+  catalogType: "menu_item" as "menu_item" | "product",
   imageUrl: "",
   isFeatured: false,
   isAvailable: true,
@@ -684,6 +701,7 @@ const openAddItemModal = () => {
     description: "",
     price: 0,
     categoryId: selectedCategoryId.value ?? "",
+    catalogType: "menu_item",
     imageUrl: "",
     isFeatured: false,
     isAvailable: true,
@@ -700,6 +718,7 @@ const editMenuItem = (item: MenuItemData) => {
     description: item.description ?? "",
     price: item.price,
     categoryId: item.categoryId,
+    catalogType: item.catalogType ?? "menu_item",
     imageUrl: item.imageUrl ?? "",
     isFeatured: item.isFeatured,
     isAvailable: item.isAvailable,
@@ -721,6 +740,7 @@ const handleSaveMenuItem = async () => {
       description: menuItemForm.value.description || undefined,
       price: Number(menuItemForm.value.price),
       categoryId: Number(menuItemForm.value.categoryId),
+      catalogType: menuItemForm.value.catalogType,
       imageUrl: menuItemForm.value.imageUrl || null,
       isFeatured: menuItemForm.value.isFeatured,
       isAvailable: menuItemForm.value.isAvailable,

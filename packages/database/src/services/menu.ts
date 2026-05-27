@@ -11,6 +11,7 @@ import { amountFromCents, toCents, toRequiredCents } from "../utils/money";
 export interface CreateMenuItemData {
   restaurantId: string;
   categoryId: number;
+  catalogType?: "menu_item" | "product";
   name: string;
   description?: string | null;
   ingredients?: string | null;
@@ -56,6 +57,7 @@ const menuItemSelectColumns = {
   id: menuItems.id,
   restaurantId: menuItems.restaurantId,
   categoryId: menuItems.categoryId,
+  catalogType: menuItems.catalogType,
   name: menuItems.name,
   description: menuItems.description,
   ingredients: menuItems.ingredients,
@@ -614,6 +616,7 @@ export class MenuService extends BaseService {
       id: item.id,
       restaurantId: item.restaurantId,
       categoryId: item.categoryId,
+      catalogType: item.catalogType ?? "menu_item",
       name: item.name,
       description: item.description,
       ingredients: item.ingredients,

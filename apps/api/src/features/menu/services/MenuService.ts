@@ -662,6 +662,7 @@ export class MenuService implements IMenuService {
     return {
       id: item.id,
       name: item.name,
+      catalogType: item.catalogType ?? "menu_item",
       description: item.description,
       ingredients: item.ingredients,
       price: item.price,

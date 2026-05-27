@@ -18,6 +18,7 @@ export interface Category extends BaseEntity {
 export interface MenuItem extends BaseEntity {
   restaurantId: string;
   categoryId: number;
+  catalogType: "menu_item" | "product";
   name: string;
   description?: string;
   ingredients?: string;
@@ -83,6 +84,7 @@ export interface UpdateCategoryRequest extends Partial<CreateCategoryRequest> {}
 export interface CreateMenuItemRequest {
   restaurantId: string;
   categoryId: number;
+  catalogType?: "menu_item" | "product";
   name: string;
   description?: string;
   price: number; // in cents

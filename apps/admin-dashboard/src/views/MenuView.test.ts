@@ -23,6 +23,12 @@ vi.mock("vue-router", () => ({
   useRoute: () => ({ query: {} }),
 }));
 
+vi.mock("@/composables/useCurrency", () => ({
+  useCurrency: () => ({
+    formatPrice: (value: number) => `$${value}`,
+  }),
+}));
+
 vi.mock("@/composables/useMenuManagement", () => ({
   useMenuManagement: () => ({
     categories,
@@ -82,6 +88,7 @@ describe("MenuView", () => {
       expect.objectContaining({
         name: "蚵仔煎",
         categoryId: 1,
+        catalogType: "menu_item",
         price: 7000,
         description: "招牌小吃",
         isFeatured: true,

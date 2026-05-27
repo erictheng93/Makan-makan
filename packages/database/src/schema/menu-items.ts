@@ -42,6 +42,10 @@ export const menuItems = sqliteTable(
     }>(),
 
     // 狀態設定
+    catalogType: text("catalog_type")
+      .$type<"menu_item" | "product">()
+      .notNull()
+      .default("menu_item"),
     isAvailable: integer("is_available", { mode: "boolean" })
       .notNull()
       .default(true),
@@ -167,6 +171,11 @@ export const menuItems = sqliteTable(
     availabilityIdx: index("menu_items_availability_idx").on(
       table.isAvailable,
       table.inventoryCount,
+    ),
+    restaurantCatalogIdx: index("menu_items_restaurant_catalog_idx").on(
+      table.restaurantId,
+      table.catalogType,
+      table.isAvailable,
     ),
   }),
 );
