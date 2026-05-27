@@ -1913,6 +1913,94 @@ describe("Discovery API — real integration", () => {
     expect(categoriesJson.data.categories).toEqual(["小吃", "飲品"]);
   });
 
+  it("matches zh-TW catalog aliases in market dish search", async () => {
+    const market = await seedMarket(testApp, {
+      name: "Catalog Alias Market",
+      city: "台中市",
+      district: "西屯區",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Catalog Alias Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "G-08",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const giftBox = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Pineapple Gift Box",
+      price: 320,
+    });
+    const tea = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Honey Black Tea",
+      price: 60,
+    });
+
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: giftBox.id,
+        name: "Pineapple Gift Box",
+        price: 320,
+        categoryName: "禮盒",
+        tags: ["名產"],
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+      {
+        menuItemId: tea.id,
+        name: "Honey Black Tea",
+        price: 60,
+        categoryName: "飲品",
+        tags: ["茶飲"],
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+
+    const giftRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "伴手禮",
+        )}&marketId=${market.id}`,
+      ),
+    );
+    const drinkRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "飲料",
+        )}&marketId=${market.id}`,
+      ),
+    );
+
+    expect(giftRes.status).toBe(200);
+    expect(drinkRes.status).toBe(200);
+    const giftData = ((await giftRes.json()) as ApiTestResponse).data;
+    const drinkData = ((await drinkRes.json()) as ApiTestResponse).data;
+
+    expect(giftData.total).toBe(1);
+    expect(giftData.results[0]).toMatchObject({
+      menuItemId: giftBox.id,
+      dishName: "Pineapple Gift Box",
+      categoryName: "禮盒",
+      marketVendor: {
+        marketId: market.id,
+        stallNumber: "G-08",
+      },
+    });
+    expect(drinkData.total).toBe(1);
+    expect(drinkData.results[0]).toMatchObject({
+      menuItemId: tea.id,
+      dishName: "Honey Black Tea",
+      categoryName: "飲品",
+    });
+  });
+
   it("excludes categories from inactive or deleted restaurants", async () => {
     const activeRestaurant = await seed.restaurant({
       name: "Active Category Vendor",

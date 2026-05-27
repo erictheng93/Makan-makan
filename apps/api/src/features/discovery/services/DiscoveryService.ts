@@ -149,10 +149,24 @@ export class DiscoveryService {
     if (normalized) {
       const rawQuery = q?.trim() ?? "";
       const tagPattern = `%${rawQuery}%`;
+      const catalogAliasConditions = this.getCatalogQueryAliases(rawQuery)
+        .filter((alias) => alias !== rawQuery)
+        .flatMap((alias) => {
+          const aliasPattern = `%${alias}%`;
+          return [
+            like(
+              dishSearchIndex.dishNameNormalized,
+              `${this.normalizeQuery(alias)}%`,
+            ),
+            like(dishSearchIndex.tags, aliasPattern),
+            like(dishSearchIndex.categoryName, aliasPattern),
+          ];
+        });
       const searchCondition = or(
         like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
         like(dishSearchIndex.tags, tagPattern),
         like(dishSearchIndex.categoryName, tagPattern),
+        ...catalogAliasConditions,
         like(dishSearchIndex.district, tagPattern),
         like(restaurants.name, tagPattern),
         like(restaurants.city, tagPattern),
@@ -1449,6 +1463,31 @@ export class DiscoveryService {
     };
 
     return aliases[normalized] ?? null;
+  }
+
+  private getCatalogQueryAliases(query: string): string[] {
+    const normalized = this.normalizeQuery(query);
+    const aliases: Record<string, string[]> = {
+      伴手禮: ["伴手禮", "伴手礼", "禮盒", "礼盒", "名產", "名产", "土產"],
+      伴手礼: ["伴手禮", "伴手礼", "禮盒", "礼盒", "名產", "名产", "土產"],
+      禮盒: ["伴手禮", "伴手礼", "禮盒", "礼盒", "名產", "名产"],
+      礼盒: ["伴手禮", "伴手礼", "禮盒", "礼盒", "名產", "名产"],
+      名產: ["伴手禮", "伴手礼", "禮盒", "礼盒", "名產", "名产"],
+      名产: ["伴手禮", "伴手礼", "禮盒", "礼盒", "名產", "名产"],
+      飲料: ["飲料", "飲品", "茶飲", "茶", "果汁"],
+      飲品: ["飲料", "飲品", "茶飲", "茶", "果汁"],
+      茶飲: ["飲料", "飲品", "茶飲", "茶"],
+      小吃: ["小吃", "點心", "點心類", "街邊小吃", "streetfood"],
+      點心: ["小吃", "點心", "點心類", "街邊小吃"],
+      甜點: ["甜點", "甜品", "甜食", "dessert"],
+      甜品: ["甜點", "甜品", "甜食", "dessert"],
+      冰品: ["冰品", "剉冰", "刨冰", "冰淇淋"],
+      冰: ["冰品", "剉冰", "刨冰", "冰淇淋"],
+      素食: ["素食", "蔬食", "全素", "蛋奶素"],
+      蔬食: ["素食", "蔬食", "全素", "蛋奶素"],
+    };
+
+    return aliases[normalized] ?? [query];
   }
 
   private buildCacheKey(
