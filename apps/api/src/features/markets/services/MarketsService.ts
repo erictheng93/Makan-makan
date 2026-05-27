@@ -857,6 +857,7 @@ export class MarketsService {
   private async queryVendors(slug: string, filters: VendorFilters) {
     const marketDetail = await this.getMarketBySlug(slug);
     if (!marketDetail) return null;
+    if (!marketDetail.publicReadiness.ready) return null;
 
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;

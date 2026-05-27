@@ -832,6 +832,39 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("does not expose vendors for incomplete public markets", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "incomplete-market-vendors",
+      description: "",
+      address: "",
+      openingHours: null,
+    });
+    const vendor = await seed.restaurant({
+      name: "Incomplete Public Vendor",
+      city: market.city,
+      district: market.district,
+      isActive: true,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(vendor.id),
+      marketId: market.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+
+    const vendorsRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/markets/incomplete-market-vendors/vendors",
+      ),
+    );
+
+    expect(vendorsRes.status).toBe(404);
+    const vendorsJson: any = await vendorsRes.json();
+    expect(vendorsJson.error).toMatchObject({
+      code: "MARKET_NOT_FOUND",
+    });
+  });
+
   it("lets platform admins inspect vendor-level catalog readiness gaps", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Catalog Readiness Admin",
@@ -1473,6 +1506,25 @@ describe("Markets API — real integration", () => {
         joinedAt: new Date(),
       },
     ]);
+    const openVendorItem = await seed.menuItem(String(openVendor.id), {
+      name: "Open Vendor Searchable Item",
+      price: 80,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: openVendorItem.id,
+      restaurantId: String(openVendor.id),
+      dishName: "Open Vendor Searchable Item",
+      dishNameNormalized: "openvendorsearchableitem",
+      price: 80,
+      isAvailable: true,
+      tags: [],
+      district: market.district,
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: market.latitude,
+      longitude: market.longitude,
+      updatedAt: new Date(),
+    });
 
     const vendorsRes = await testApp.app.fetch(
       new Request(
