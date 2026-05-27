@@ -1176,6 +1176,7 @@ import {
   type MarketVendorImportFormat,
 } from "@/utils/marketVendorImport";
 import {
+  buildMarketImportRetryText,
   buildMarketImportTemplate,
   parseMarketImport,
   type MarketImportFormat,
@@ -1200,6 +1201,7 @@ type MarketImportItemResult = {
   slug: string;
   name: string;
   status: "created" | "failed";
+  market: CreateMarketInput;
   message?: string;
 };
 type MarketImportResult = {
@@ -1546,6 +1548,7 @@ async function importMarkets() {
           slug: market.slug,
           name: market.name,
           status: "created",
+          market,
         });
       } catch (error) {
         console.error("Failed to import market:", error);
@@ -1553,6 +1556,7 @@ async function importMarkets() {
           slug: market.slug,
           name: market.name,
           status: "failed",
+          market,
           message: marketImportFailureMessage(error),
         });
       }
@@ -1565,6 +1569,13 @@ async function importMarkets() {
     }
     if (failed === 0) {
       marketImportText.value = "";
+    } else {
+      marketImportText.value = buildMarketImportRetryText(
+        marketImportFormat.value,
+        items
+          .filter((item) => item.status === "failed")
+          .map((item) => item.market),
+      );
     }
   } finally {
     isImportingMarkets.value = false;

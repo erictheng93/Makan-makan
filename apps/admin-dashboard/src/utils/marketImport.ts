@@ -59,6 +59,22 @@ export function buildMarketImportTemplate() {
   ].join("\n");
 }
 
+export function buildMarketImportRetryText(
+  format: MarketImportFormat,
+  markets: CreateMarketInput[],
+) {
+  if (format === "json") {
+    return JSON.stringify(markets, null, 2);
+  }
+
+  return Papa.unparse(
+    markets.map((market) => marketToCsvRow(market)),
+    {
+      columns: [...csvFields],
+    },
+  );
+}
+
 export function parseMarketImport(
   format: MarketImportFormat,
   text: string,
@@ -185,6 +201,21 @@ function csvRowToMarket(row: CsvRow): CreateMarketInput {
     }
   }
   return market as CreateMarketInput;
+}
+
+function marketToCsvRow(market: CreateMarketInput): CsvRow {
+  const row = {} as CsvRow;
+  for (const field of csvFields) {
+    const value = market[field];
+    if (value === undefined || value === null) continue;
+
+    if (Array.isArray(value)) {
+      row[field] = value.join(",");
+    } else {
+      row[field] = String(value);
+    }
+  }
+  return row;
 }
 
 function normalizeCell(value: string | undefined) {

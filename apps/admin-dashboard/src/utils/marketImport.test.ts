@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildMarketImportTemplate, parseMarketImport } from "./marketImport";
+import {
+  buildMarketImportRetryText,
+  buildMarketImportTemplate,
+  parseMarketImport,
+} from "./marketImport";
 
 describe("market import parsing", () => {
   it("parses CSV with headers into market create inputs", () => {
@@ -145,5 +149,69 @@ describe("market import parsing", () => {
     expect(
       parseMarketImport("csv", buildMarketImportTemplate()).errors,
     ).toEqual([]);
+  });
+
+  it("builds retry text for failed CSV market imports", () => {
+    const retryText = buildMarketImportRetryText("csv", [
+      {
+        slug: "existing-market",
+        name: "既有市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        address: "福星路",
+        latitude: 24.179,
+        longitude: 120.645,
+        tags: ["夜市", "商圈"],
+        isActive: true,
+      },
+    ]);
+
+    expect(retryText).toContain("slug,name,type,city,district,address");
+    expect(retryText).toContain("existing-market");
+    expect(retryText).not.toContain("created-market");
+    expect(parseMarketImport("csv", retryText).markets).toEqual([
+      {
+        slug: "existing-market",
+        name: "既有市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        address: "福星路",
+        latitude: 24.179,
+        longitude: 120.645,
+        tags: ["夜市", "商圈"],
+        isActive: true,
+      },
+    ]);
+  });
+
+  it("builds retry text for failed JSON market imports", () => {
+    const retryText = buildMarketImportRetryText("json", [
+      {
+        slug: "existing-market",
+        name: "既有市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        address: "福星路",
+        latitude: 24.179,
+        longitude: 120.645,
+      },
+    ]);
+
+    expect(JSON.parse(retryText)).toEqual([
+      {
+        slug: "existing-market",
+        name: "既有市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        address: "福星路",
+        latitude: 24.179,
+        longitude: 120.645,
+      },
+    ]);
+    expect(parseMarketImport("json", retryText).errors).toEqual([]);
   });
 });

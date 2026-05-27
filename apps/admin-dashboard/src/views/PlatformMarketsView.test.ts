@@ -777,6 +777,10 @@ describe("PlatformMarketsView", () => {
         wrapper.get<HTMLTextAreaElement>('[data-testid="market-import-text"]')
           .element.value,
       ).toContain("existing-market");
+      expect(
+        wrapper.get<HTMLTextAreaElement>('[data-testid="market-import-text"]')
+          .element.value,
+      ).not.toContain("created-market");
     } finally {
       errorSpy.mockRestore();
     }
