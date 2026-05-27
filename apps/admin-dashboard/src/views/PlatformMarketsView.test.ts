@@ -1136,6 +1136,45 @@ describe("PlatformMarketsView", () => {
     ]);
   });
 
+  it("imports only rows for the selected market from a vendor worklist CSV", async () => {
+    vi.mocked(marketsService.importVendors).mockResolvedValue({
+      createdRestaurants: 0,
+      attachedVendors: 1,
+      skipped: 0,
+      results: [],
+    });
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "編輯");
+    expect(editButton).toBeDefined();
+    await editButton!.trigger("click");
+
+    await wrapper
+      .get('[data-testid="vendor-import-json"]')
+      .setValue(
+        [
+          "marketId,marketSlug,marketName,restaurantId,name,address,district,stallNumber,isPrimary",
+          "market-1,fengjia,逢甲夜市,restaurant-1,,,,A-01,true",
+          "market-2,yizhong,一中商圈,restaurant-2,,,,B-01,true",
+        ].join("\n"),
+      );
+    expect(wrapper.text()).toContain("已解析 1 筆店鋪");
+
+    await wrapper.get('[data-testid="vendor-import-submit"]').trigger("click");
+    await flushPromises();
+
+    expect(marketsService.importVendors).toHaveBeenCalledWith("market-1", [
+      {
+        restaurantId: "restaurant-1",
+        stallNumber: "A-01",
+        isPrimary: true,
+      },
+    ]);
+  });
+
   it("searches existing vendors and attaches one to the selected market", async () => {
     vi.mocked(marketsService.searchVendorCandidates).mockResolvedValue({
       restaurants: [

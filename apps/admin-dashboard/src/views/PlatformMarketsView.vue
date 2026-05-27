@@ -1584,6 +1584,10 @@ const vendorImportPreview = computed(() => {
   return parseMarketVendorImport(
     vendorImportFormat.value,
     vendorImportText.value,
+    {
+      marketId: editingMarket.value?.id,
+      marketSlug: editingMarket.value?.slug,
+    },
   );
 });
 const vendorImportPlaceholder = computed(() =>

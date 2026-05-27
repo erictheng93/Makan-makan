@@ -35,6 +35,43 @@ describe("market vendor import parsing", () => {
     ]);
   });
 
+  it("filters exported worklist CSV rows to the target market", () => {
+    const result = parseMarketVendorImport(
+      "csv",
+      [
+        "marketId,marketSlug,marketName,restaurantId,name,address,district,stallNumber,isPrimary",
+        "market-1,fengjia,逢甲夜市,restaurant-1,,,,A-01,true",
+        "market-2,yizhong,一中商圈,,請忽略店鋪,請忽略地址,北區,B-01,false",
+      ].join("\n"),
+      { marketId: "market-1", marketSlug: "fengjia" },
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.vendors).toEqual([
+      {
+        restaurantId: "restaurant-1",
+        stallNumber: "A-01",
+        isPrimary: true,
+      },
+    ]);
+  });
+
+  it("reports when a worklist CSV has no rows for the target market", () => {
+    expect(
+      parseMarketVendorImport(
+        "csv",
+        [
+          "marketId,marketSlug,marketName,restaurantId,name,address,district,stallNumber,isPrimary",
+          "market-2,yizhong,一中商圈,restaurant-2,,,,B-01,true",
+        ].join("\n"),
+        { marketId: "market-1", marketSlug: "fengjia" },
+      ),
+    ).toEqual({
+      vendors: [],
+      errors: ["這份店鋪 worklist 沒有符合目前市場的列。"],
+    });
+  });
+
   it("rejects invalid coordinates before import", () => {
     const result = parseMarketVendorImport(
       "csv",

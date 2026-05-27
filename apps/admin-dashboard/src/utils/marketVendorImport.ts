@@ -8,6 +8,11 @@ export interface MarketVendorImportParseResult {
   errors: string[];
 }
 
+export interface MarketVendorImportParseOptions {
+  marketId?: string;
+  marketSlug?: string;
+}
+
 const csvFields = [
   "restaurantId",
   "name",
@@ -25,9 +30,11 @@ const csvFields = [
   "stallNumber",
   "isPrimary",
 ] as const;
+const worklistContextFields = ["marketId", "marketSlug"] as const;
 
 type CsvField = (typeof csvFields)[number];
-type CsvRow = Record<CsvField, string | undefined>;
+type WorklistContextField = (typeof worklistContextFields)[number];
+type CsvRow = Record<CsvField | WorklistContextField, string | undefined>;
 
 const phonePattern = /^[\d\s\-+()]+$/;
 
@@ -72,6 +79,7 @@ export function buildMarketVendorImportTemplate() {
 export function parseMarketVendorImport(
   format: MarketVendorImportFormat,
   text: string,
+  options: MarketVendorImportParseOptions = {},
 ): MarketVendorImportParseResult {
   if (!text.trim()) {
     return { vendors: [], errors: ["請貼上要匯入的店鋪資料。"] };
@@ -81,7 +89,7 @@ export function parseMarketVendorImport(
     return parseJsonImport(text);
   }
 
-  return parseCsvImport(text);
+  return parseCsvImport(text, options);
 }
 
 function parseJsonImport(text: string): MarketVendorImportParseResult {
@@ -125,7 +133,10 @@ function isVendorImportEnvelope(
   );
 }
 
-function parseCsvImport(text: string): MarketVendorImportParseResult {
+function parseCsvImport(
+  text: string,
+  options: MarketVendorImportParseOptions,
+): MarketVendorImportParseResult {
   const parsed = Papa.parse<CsvRow>(text, {
     header: true,
     skipEmptyLines: "greedy",
@@ -139,8 +150,17 @@ function parseCsvImport(text: string): MarketVendorImportParseResult {
       } 列：CSV 格式不正確 (${error.message})。`,
   );
   const vendors: ImportMarketVendorInput[] = [];
+  const hasWorklistContext = parsed.meta.fields?.some((field) =>
+    worklistContextFields.includes(field as WorklistContextField),
+  );
+  let matchedWorklistRows = 0;
 
   parsed.data.forEach((row, index) => {
+    if (hasWorklistContext && optionsHasMarketContext(options)) {
+      if (!rowMatchesTargetMarket(row, options)) return;
+      matchedWorklistRows += 1;
+    }
+
     const vendor = csvRowToVendor(row);
     const rowErrors = validateVendorImportRow(vendor, `第 ${index + 2} 列`);
     errors.push(...rowErrors);
@@ -148,6 +168,15 @@ function parseCsvImport(text: string): MarketVendorImportParseResult {
       vendors.push(vendor);
     }
   });
+
+  if (
+    hasWorklistContext &&
+    optionsHasMarketContext(options) &&
+    matchedWorklistRows === 0 &&
+    errors.length === 0
+  ) {
+    errors.push("這份店鋪 worklist 沒有符合目前市場的列。");
+  }
 
   if (vendors.length === 0 && errors.length === 0) {
     errors.push("請貼上至少一筆店鋪資料。");
@@ -157,6 +186,23 @@ function parseCsvImport(text: string): MarketVendorImportParseResult {
     vendors: errors.length > 0 ? [] : vendors,
     errors,
   };
+}
+
+function optionsHasMarketContext(options: MarketVendorImportParseOptions) {
+  return Boolean(options.marketId || options.marketSlug);
+}
+
+function rowMatchesTargetMarket(
+  row: CsvRow,
+  options: MarketVendorImportParseOptions,
+) {
+  const rowMarketId = normalizeCell(row.marketId);
+  const rowMarketSlug = normalizeCell(row.marketSlug);
+
+  return (
+    (rowMarketId && rowMarketId === options.marketId) ||
+    (rowMarketSlug && rowMarketSlug === options.marketSlug)
+  );
 }
 
 function csvRowToVendor(row: CsvRow): ImportMarketVendorInput {
