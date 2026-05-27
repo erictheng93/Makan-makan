@@ -554,14 +554,55 @@ function sortVendorsByLocation() {
 }
 
 function syncVendorQueryState() {
+  router.replace({
+    query: {
+      ...currentMarketQuery(),
+      ...marketDirectoryReturnQuery(),
+    },
+  });
+}
+
+function currentMarketQuery() {
   const query = { ...route.query };
-  delete query.vendorQ;
-  delete query.vendorTakeaway;
-  delete query.vendorDelivery;
-  delete query.vendorSortBy;
-  delete query.vendorLat;
-  delete query.vendorLng;
-  delete query.vendorRadiusKm;
+  for (const key of [
+    "q",
+    "categoryName",
+    "serviceType",
+    "resultKind",
+    "takeaway",
+    "delivery",
+    "sortBy",
+    "lat",
+    "lng",
+    "radiusKm",
+    "vendorQ",
+    "vendorTakeaway",
+    "vendorDelivery",
+    "vendorSortBy",
+    "vendorLat",
+    "vendorLng",
+    "vendorRadiusKm",
+  ]) {
+    delete query[key];
+  }
+
+  const state = marketSearchState.value;
+  if (state.q) query.q = state.q;
+  if (state.categoryName) query.categoryName = state.categoryName;
+  if (state.serviceType) query.serviceType = state.serviceType;
+  if (state.resultKind !== "all") query.resultKind = state.resultKind;
+  if (state.takeaway) query.takeaway = "true";
+  if (state.delivery) query.delivery = "true";
+  if (state.sortBy !== "price_asc") query.sortBy = state.sortBy;
+  if (state.sortBy === "distance" && state.lat != null) {
+    query.lat = String(state.lat);
+  }
+  if (state.sortBy === "distance" && state.lng != null) {
+    query.lng = String(state.lng);
+  }
+  if (state.sortBy === "distance" && state.radiusKm != null) {
+    query.radiusKm = String(state.radiusKm);
+  }
 
   const vendorSearch = vendorQuery.value.trim();
   if (vendorSearch) query.vendorQ = vendorSearch;
@@ -574,12 +615,7 @@ function syncVendorQueryState() {
     query.vendorRadiusKm = String(vendorLocation.value.radiusKm);
   }
 
-  router.replace({
-    query: {
-      ...query,
-      ...marketDirectoryReturnQuery(),
-    },
-  });
+  return query;
 }
 
 function openVendor(vendor: { restaurantId: string }) {
@@ -654,22 +690,7 @@ function syncMarketSearchState(state: MarketSearchState) {
   marketSearchState.value = state;
   router.replace({
     query: {
-      ...(state.q ? { q: state.q } : {}),
-      ...(state.categoryName ? { categoryName: state.categoryName } : {}),
-      ...(state.serviceType ? { serviceType: state.serviceType } : {}),
-      ...(state.resultKind !== "all" ? { resultKind: state.resultKind } : {}),
-      ...(state.takeaway ? { takeaway: "true" } : {}),
-      ...(state.delivery ? { delivery: "true" } : {}),
-      ...(state.sortBy !== "price_asc" ? { sortBy: state.sortBy } : {}),
-      ...(state.sortBy === "distance" && state.lat != null
-        ? { lat: String(state.lat) }
-        : {}),
-      ...(state.sortBy === "distance" && state.lng != null
-        ? { lng: String(state.lng) }
-        : {}),
-      ...(state.sortBy === "distance" && state.radiusKm != null
-        ? { radiusKm: String(state.radiusKm) }
-        : {}),
+      ...currentMarketQuery(),
       ...marketDirectoryReturnQuery(),
     },
   });
@@ -735,9 +756,22 @@ function serviceTypeLabel(
 
 function marketReturnQuery() {
   return shopMenuReturnQuery({
-    path: route.fullPath,
+    path: currentMarketPath(),
     label: store.selectedMarket?.name ?? "市場",
   });
+}
+
+function currentMarketPath() {
+  const query = {
+    ...currentMarketQuery(),
+    ...marketDirectoryReturnQuery(),
+  };
+  const searchParams = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (typeof value === "string") searchParams.set(key, value);
+  });
+  const queryString = searchParams.toString();
+  return `/markets/${slug()}${queryString ? `?${queryString}` : ""}`;
 }
 
 function marketDirectoryReturnQuery() {

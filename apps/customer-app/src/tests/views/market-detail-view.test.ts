@@ -616,6 +616,28 @@ describe("MarketDetailView", () => {
     });
   });
 
+  it("keeps market vendor filters in the shop menu return path", async () => {
+    routeQuery.vendorQ = "A-12";
+    routeQuery.vendorDelivery = "true";
+    routeQuery.vendorSortBy = "distance";
+    routeQuery.vendorLat = "24.1764";
+    routeQuery.vendorLng = "120.6466";
+    routeQuery.vendorRadiusKm = "2";
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="open-market-vendor"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "restaurant-1" },
+      query: {
+        returnPath:
+          "/markets/fengjia?vendorQ=A-12&vendorDelivery=true&vendorSortBy=distance&vendorLat=24.1764&vendorLng=120.6466&vendorRadiusKm=2",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
   it("opens a market vendor service section in the shop menu", async () => {
     const wrapper = mountView();
 
