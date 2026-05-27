@@ -1472,6 +1472,7 @@ async function reindexDiscovery() {
   isReindexingDiscovery.value = true;
   try {
     discoveryReindexResult.value = await discoveryService.reindex();
+    await loadMarkets();
   } catch (error) {
     console.error("Failed to reindex discovery:", error);
     discoveryReindexError.value = "重建搜尋索引失敗，請稍後再試。";

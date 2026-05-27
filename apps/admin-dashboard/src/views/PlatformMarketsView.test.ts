@@ -564,6 +564,8 @@ describe("PlatformMarketsView", () => {
     await flushPromises();
 
     expect(discoveryService.reindex).toHaveBeenCalledOnce();
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
+    expect(marketsService.listAreaReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已重建 12 筆商品索引");
     expect(wrapper.text()).toContain("4 間店鋪");
     expect(wrapper.text()).toContain("250ms");
