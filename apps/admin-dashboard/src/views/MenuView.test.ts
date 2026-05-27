@@ -63,6 +63,7 @@ describe("MenuView", () => {
   it("shows market search context when opened from a product gap", () => {
     routeQuery.source = "market-gap";
     routeQuery.gap = "products";
+    routeQuery.marketName = "逢甲夜市";
 
     const wrapper = mount(MenuView, {
       global: {
@@ -78,6 +79,35 @@ describe("MenuView", () => {
     expect(
       wrapper.get('[data-testid="market-product-gap-context"]').text(),
     ).toContain("市場搜尋缺商品");
+    expect(
+      wrapper.get('[data-testid="market-product-gap-context"]').text(),
+    ).toContain("逢甲夜市");
+  });
+
+  it("includes market context in the product gap import example", async () => {
+    routeQuery.source = "market-gap";
+    routeQuery.gap = "products";
+    routeQuery.marketName = "逢甲夜市";
+    const wrapper = mount(MenuView, {
+      global: {
+        stubs: {
+          CategoryPanel: true,
+          CategoryEditForm: true,
+          MenuItemCard: true,
+          VirtualMenuGrid: true,
+        },
+      },
+    });
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "載入範例")!
+      .trigger("click");
+
+    expect(
+      wrapper.get<HTMLTextAreaElement>('[data-testid="menu-item-import-csv"]')
+        .element.value,
+    ).toContain("逢甲夜市");
   });
 
   it("imports menu items from CSV with a preview", async () => {

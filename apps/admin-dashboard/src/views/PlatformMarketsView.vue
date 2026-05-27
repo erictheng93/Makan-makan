@@ -695,7 +695,7 @@
                       type="button"
                       class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
                       :data-testid="`manage-products-${vendor.restaurantId}`"
-                      @click="manageVendorGap(vendor, 'products')"
+                      @click="manageVendorGap(vendor, 'products', market)"
                     >
                       補商品
                     </button>
@@ -716,7 +716,7 @@
                       type="button"
                       class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
                       :data-testid="`manage-services-${vendor.restaurantId}`"
-                      @click="manageVendorGap(vendor, 'services')"
+                      @click="manageVendorGap(vendor, 'services', market)"
                     >
                       補服務
                     </button>
@@ -1897,19 +1897,30 @@ function hasCustomerEmptyStateGap(market: MarketListItem) {
 function manageVendorGap(
   vendor: MarketCatalogGapVendor,
   target: "products" | "services",
+  market: MarketListItem,
 ) {
   authStore.selectRestaurant(vendor.restaurantId, vendor.name);
   if (target === "products") {
     router.push({
       name: "Menu",
-      query: { source: "market-gap", gap: "products" },
+      query: {
+        source: "market-gap",
+        gap: "products",
+        marketName: market.name,
+        marketSlug: market.slug,
+      },
     });
     return;
   }
 
   router.push({
     name: "Settings",
-    query: { tab: "contact", section: "services" },
+    query: {
+      tab: "contact",
+      section: "services",
+      marketName: market.name,
+      marketSlug: market.slug,
+    },
   });
 }
 

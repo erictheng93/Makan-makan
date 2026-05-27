@@ -211,7 +211,12 @@ describe("PlatformMarketsView", () => {
     expect(selectRestaurant).toHaveBeenCalledWith("restaurant-1", "缺商品攤");
     expect(push).toHaveBeenCalledWith({
       name: "Menu",
-      query: { source: "market-gap", gap: "products" },
+      query: {
+        source: "market-gap",
+        gap: "products",
+        marketName: "逢甲夜市",
+        marketSlug: "fengjia",
+      },
     });
 
     await wrapper
@@ -224,7 +229,12 @@ describe("PlatformMarketsView", () => {
     );
     expect(push).toHaveBeenLastCalledWith({
       name: "Settings",
-      query: { tab: "contact", section: "services" },
+      query: {
+        tab: "contact",
+        section: "services",
+        marketName: "逢甲夜市",
+        marketSlug: "fengjia",
+      },
     });
   });
 

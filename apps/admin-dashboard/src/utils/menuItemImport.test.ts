@@ -92,4 +92,10 @@ describe("menu item import parsing", () => {
     expect(template).toContain("蚵仔煎");
     expect(template).toContain("主食");
   });
+
+  it("adds market keywords to the spreadsheet template when provided", () => {
+    expect(buildMenuItemImportTemplate("主食", "逢甲夜市")).toContain(
+      "蚵仔煎 夜市 逢甲夜市",
+    );
+  });
 });

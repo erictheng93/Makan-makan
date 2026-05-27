@@ -131,7 +131,8 @@
           >
             <h3 class="text-[15px] font-bold text-amber-900">市場搜尋缺商品</h3>
             <p class="mt-1 text-[13px] leading-5 text-amber-800">
-              新增可販售餐點或商品並保持上架後，這間店鋪會更容易出現在夜市/商圈搜尋結果。
+              新增可販售餐點或商品並保持上架後，這間店鋪會更容易出現在
+              {{ marketGapName || "夜市/商圈" }} 搜尋結果。
             </p>
           </div>
           <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
@@ -629,6 +630,7 @@ const availableCount = computed(
 const isMarketProductGapContext = computed(
   () => route.query.source === "market-gap" && route.query.gap === "products",
 );
+const marketGapName = computed(() => firstQueryString(route.query.marketName));
 const menuItemImportPreview = computed(() => {
   if (!menuItemImportText.value.trim()) {
     return { items: [], errors: [] };
@@ -769,8 +771,16 @@ const loadMenuItemImportExample = () => {
   menuItemImportResult.value = null;
   menuItemImportText.value = buildMenuItemImportTemplate(
     currentCategoryName.value,
+    marketGapName.value,
   );
 };
+
+function firstQueryString(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === "string") ?? "";
+  }
+  return typeof value === "string" ? value : "";
+}
 
 const importMenuItemsFromCsv = async () => {
   const parsed = menuItemImportPreview.value;

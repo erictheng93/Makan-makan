@@ -37,7 +37,11 @@ const csvFields = [
 type CsvField = (typeof csvFields)[number];
 type CsvRow = Record<CsvField, string | undefined>;
 
-export function buildMenuItemImportTemplate(categoryName = "主食") {
+export function buildMenuItemImportTemplate(
+  categoryName = "主食",
+  marketKeyword = "",
+) {
+  const keywords = ["蚵仔煎", "夜市", marketKeyword].filter(Boolean).join(" ");
   return [
     csvFields.join(","),
     [
@@ -51,7 +55,7 @@ export function buildMenuItemImportTemplate(categoryName = "主食") {
       "1",
       "menu_item",
       "小吃;招牌",
-      "蚵仔煎 夜市",
+      keywords,
     ].join(","),
     [
       "紅茶",
