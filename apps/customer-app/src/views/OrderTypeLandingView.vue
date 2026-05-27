@@ -237,7 +237,10 @@ function handleContinue() {
     router.push({
       name: "ShopMenu",
       params: { restaurantId: props.restaurantId },
-      query: { fulfillmentType: selectedType.value },
+      query: {
+        ...route.query,
+        fulfillmentType: selectedType.value,
+      },
     });
     return;
   }
