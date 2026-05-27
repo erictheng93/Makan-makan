@@ -507,7 +507,16 @@ routes.post(
         marketsService,
         restaurantsService,
       });
-      return c.json({ success: true, data });
+      const publicReadiness = await marketsService.getPublicReadiness(id, {
+        additionalVendorCount: data.wouldAttachVendors,
+      });
+      return c.json({
+        success: true,
+        data: {
+          ...data,
+          publicReadiness,
+        },
+      });
     }
 
     const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);

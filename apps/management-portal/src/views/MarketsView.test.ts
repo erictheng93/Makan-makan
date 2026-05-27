@@ -61,6 +61,13 @@ describe("MarketsView", () => {
         issueCount: 0,
         blockingIssueCount: 0,
         warningIssueCount: 0,
+        publicReadiness: {
+          ready: false,
+          score: 71,
+          completedCount: 5,
+          totalCount: 7,
+          issues: [{ key: "products", severity: "required" }],
+        },
         results: [],
       })
       .mockResolvedValueOnce({
@@ -155,6 +162,9 @@ describe("MarketsView", () => {
     expect(
       wrapper.get('[data-testid="market-vendor-import-result"]').text(),
     ).toContain("Would create 1 restaurants and attach 2 vendors");
+    expect(
+      wrapper.get('[data-testid="market-vendor-import-result"]').text(),
+    ).toContain("Projected public page needs setup (71%).");
 
     await wrapper
       .get('[data-testid="market-vendor-import-submit"]')

@@ -169,7 +169,10 @@ export class MarketsService {
     return this.catalogCoverageWithVendorBreakdown(marketId);
   }
 
-  async getPublicReadiness(marketId: string) {
+  async getPublicReadiness(
+    marketId: string,
+    options: { additionalVendorCount?: number } = {},
+  ) {
     const market = await this.getMarketById(marketId);
     if (!market) return null;
 
@@ -192,7 +195,7 @@ export class MarketsService {
 
     return evaluateMarketPublicReadiness({
       ...market,
-      vendorCount: Number(count),
+      vendorCount: Number(count) + (options.additionalVendorCount ?? 0),
       ...catalogCoverage,
     });
   }

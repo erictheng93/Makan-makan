@@ -2381,6 +2381,16 @@ describe("Markets API — real integration", () => {
       wouldCreateRestaurants: 1,
       wouldAttachVendors: 1,
       skipped: 3,
+      publicReadiness: {
+        ready: false,
+        score: 71,
+        completedCount: 5,
+        totalCount: 7,
+        issues: [
+          { key: "products", severity: "required" },
+          { key: "services", severity: "recommended" },
+        ],
+      },
     });
     expect(dryRunJson.data.results).toEqual([
       expect.objectContaining({

@@ -695,6 +695,13 @@ describe("PlatformMarketsView", () => {
       issueCount: 1,
       blockingIssueCount: 1,
       warningIssueCount: 0,
+      publicReadiness: {
+        ready: false,
+        score: 71,
+        completedCount: 5,
+        totalCount: 7,
+        issues: [{ key: "products", severity: "required" }],
+      },
       issues: [
         {
           index: 0,
@@ -749,6 +756,7 @@ describe("PlatformMarketsView", () => {
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(1);
     expect(wrapper.text()).toContain("預檢結果");
     expect(wrapper.text()).toContain("會建立 1 間");
+    expect(wrapper.text()).toContain("預估公開頁狀態： 公開頁完整度 71%");
     expect(wrapper.text()).toContain("阻擋 1");
     expect(wrapper.text()).toContain("既有雞排");
   });

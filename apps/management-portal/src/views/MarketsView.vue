@@ -954,7 +954,11 @@ onMounted(loadDashboard);
               </p>
               <p>Skipped {{ vendorImportResult.skipped }} rows.</p>
               <p v-if="vendorImportResult.publicReadiness">
-                Public page
+                {{
+                  vendorImportResult.dryRun
+                    ? "Projected public page"
+                    : "Public page"
+                }}
                 {{
                   vendorImportResult.publicReadiness.ready
                     ? "ready after import"

@@ -955,6 +955,14 @@
             {{ vendorImportDryRunResult.blockingIssueCount ?? 0 }}，提醒
             {{ vendorImportDryRunResult.warningIssueCount ?? 0 }}。
           </p>
+          <p v-if="vendorImportDryRunResult.publicReadiness">
+            預估公開頁狀態：
+            {{
+              marketPublicReadinessSummary(
+                vendorImportDryRunResult.publicReadiness,
+              ).text
+            }}
+          </p>
           <ul
             v-if="vendorImportDryRunResult.issues?.length"
             class="list-disc space-y-1 pl-5 text-xs"
