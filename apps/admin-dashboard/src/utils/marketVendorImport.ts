@@ -106,7 +106,10 @@ function parseJsonImport(text: string): MarketVendorImportParseResult {
       };
     }
 
-    return { vendors: vendors as ImportMarketVendorInput[], errors: [] };
+    return validateVendorImportRows(
+      vendors as ImportMarketVendorInput[],
+      (index) => `第 ${index + 1} 筆`,
+    );
   } catch {
     return { vendors: [], errors: ["店鋪 JSON 格式不正確。"] };
   }
@@ -138,9 +141,8 @@ function parseCsvImport(text: string): MarketVendorImportParseResult {
   const vendors: ImportMarketVendorInput[] = [];
 
   parsed.data.forEach((row, index) => {
-    const line = index + 2;
     const vendor = csvRowToVendor(row);
-    const rowErrors = validateVendorImportRow(vendor, line);
+    const rowErrors = validateVendorImportRow(vendor, `第 ${index + 2} 列`);
     errors.push(...rowErrors);
     if (rowErrors.length === 0) {
       vendors.push(vendor);
@@ -183,31 +185,52 @@ function parseBoolean(value: string) {
   return ["true", "1", "yes", "y", "是"].includes(value.toLowerCase());
 }
 
+function validateVendorImportRows(
+  vendors: ImportMarketVendorInput[],
+  rowLabel: (index: number) => string,
+): MarketVendorImportParseResult {
+  const errors: string[] = [];
+  const validVendors: ImportMarketVendorInput[] = [];
+
+  vendors.forEach((vendor, index) => {
+    const rowErrors = validateVendorImportRow(vendor, rowLabel(index));
+    errors.push(...rowErrors);
+    if (rowErrors.length === 0) {
+      validVendors.push(vendor);
+    }
+  });
+
+  return {
+    vendors: errors.length > 0 ? [] : validVendors,
+    errors,
+  };
+}
+
 function validateVendorImportRow(
   vendor: ImportMarketVendorInput,
-  line: number,
+  rowLabel: string,
 ) {
   const errors: string[] = [];
   if (!vendor.restaurantId) {
     if (!vendor.name || !vendor.address || !vendor.district) {
-      errors.push(`第 ${line} 列：新店鋪需要 name、address、district。`);
+      errors.push(`${rowLabel}：新店鋪需要 name、address、district。`);
     }
   }
 
   if (vendor.phone && !phonePattern.test(vendor.phone)) {
-    errors.push(`第 ${line} 列：phone 只能包含數字、空白、+、-、括號。`);
+    errors.push(`${rowLabel}：phone 只能包含數字、空白、+、-、括號。`);
   }
   if (
     typeof vendor.latitude === "number" &&
     !isCoordinate(vendor.latitude, -90, 90)
   ) {
-    errors.push(`第 ${line} 列：latitude 必須是 -90 到 90 之間的數字。`);
+    errors.push(`${rowLabel}：latitude 必須是 -90 到 90 之間的數字。`);
   }
   if (
     typeof vendor.longitude === "number" &&
     !isCoordinate(vendor.longitude, -180, 180)
   ) {
-    errors.push(`第 ${line} 列：longitude 必須是 -180 到 180 之間的數字。`);
+    errors.push(`${rowLabel}：longitude 必須是 -180 到 180 之間的數字。`);
   }
 
   return errors;

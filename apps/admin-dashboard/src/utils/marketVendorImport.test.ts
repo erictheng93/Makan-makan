@@ -97,6 +97,29 @@ describe("market vendor import parsing", () => {
     });
   });
 
+  it("validates JSON rows before import", () => {
+    const result = parseMarketVendorImport(
+      "json",
+      JSON.stringify([
+        {
+          name: "缺地址店鋪",
+          district: "西屯區",
+          latitude: 91,
+          longitude: 181,
+          phone: "abc",
+        },
+      ]),
+    );
+
+    expect(result.vendors).toEqual([]);
+    expect(result.errors).toEqual([
+      "第 1 筆：新店鋪需要 name、address、district。",
+      "第 1 筆：phone 只能包含數字、空白、+、-、括號。",
+      "第 1 筆：latitude 必須是 -90 到 90 之間的數字。",
+      "第 1 筆：longitude 必須是 -180 到 180 之間的數字。",
+    ]);
+  });
+
   it("rejects JSON rows that are not objects", () => {
     expect(parseMarketVendorImport("json", "[1]")).toEqual({
       vendors: [],
