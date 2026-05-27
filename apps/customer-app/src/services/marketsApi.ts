@@ -40,6 +40,19 @@ export interface MarketExplorationSummary {
   serviceSearchUrl: string;
   dishCategories: Array<{
     categoryName: string;
+    catalogType?: "menu_item" | "product";
+    count: number;
+    searchUrl: string;
+  }>;
+  menuItemCategories?: Array<{
+    categoryName: string;
+    catalogType: "menu_item";
+    count: number;
+    searchUrl: string;
+  }>;
+  productCategories?: Array<{
+    categoryName: string;
+    catalogType: "product";
     count: number;
     searchUrl: string;
   }>;

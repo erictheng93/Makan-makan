@@ -56,11 +56,11 @@
               </h2>
             </div>
 
-            <div v-if="dishCategoryFacets.length > 0" class="space-y-2">
-              <h3 class="text-sm font-medium text-gray-700">熱門分類</h3>
+            <div v-if="menuItemCategoryFacets.length > 0" class="space-y-2">
+              <h3 class="text-sm font-medium text-gray-700">熱門餐點</h3>
               <div class="flex flex-wrap gap-2">
                 <button
-                  v-for="facet in dishCategoryFacets"
+                  v-for="facet in menuItemCategoryFacets"
                   :key="facet.categoryName"
                   type="button"
                   :data-testid="`market-dish-facet-${facet.categoryName}`"
@@ -69,6 +69,25 @@
                 >
                   {{ facet.categoryName }}
                   <span class="ml-1 text-xs text-ios-blue/70">
+                    {{ facet.count }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="productCategoryFacets.length > 0" class="space-y-2">
+              <h3 class="text-sm font-medium text-gray-700">熱門商品</h3>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="facet in productCategoryFacets"
+                  :key="facet.categoryName"
+                  type="button"
+                  :data-testid="`market-product-facet-${facet.categoryName}`"
+                  class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800"
+                  @click="applyProductCategoryShortcut(facet.categoryName)"
+                >
+                  {{ facet.categoryName }}
+                  <span class="ml-1 text-xs text-amber-700">
                     {{ facet.count }}
                   </span>
                 </button>
@@ -316,8 +335,19 @@ const returnContext = computed(() => {
   const label = firstQueryString(route.query.returnLabel).trim() || "上一頁";
   return { path, label };
 });
-const dishCategoryFacets = computed(
-  () => store.explorationSummary?.dishCategories ?? [],
+const menuItemCategoryFacets = computed(
+  () =>
+    store.explorationSummary?.menuItemCategories ??
+    (store.explorationSummary?.dishCategories ?? []).filter(
+      (facet) => facet.catalogType !== "product",
+    ),
+);
+const productCategoryFacets = computed(
+  () =>
+    store.explorationSummary?.productCategories ??
+    (store.explorationSummary?.dishCategories ?? []).filter(
+      (facet) => facet.catalogType === "product",
+    ),
 );
 const serviceTypeFacets = computed(() =>
   (store.explorationSummary?.serviceTypes ?? []).filter((facet) =>
@@ -326,7 +356,9 @@ const serviceTypeFacets = computed(() =>
 );
 const hasExplorationShortcuts = computed(
   () =>
-    dishCategoryFacets.value.length > 0 || serviceTypeFacets.value.length > 0,
+    menuItemCategoryFacets.value.length > 0 ||
+    productCategoryFacets.value.length > 0 ||
+    serviceTypeFacets.value.length > 0,
 );
 
 const serviceTypeLabels: Record<
@@ -452,6 +484,18 @@ function applyDishCategoryShortcut(categoryName: string) {
     categoryName,
     serviceType: "",
     resultKind: "menu_item",
+    takeaway: false,
+    delivery: false,
+    sortBy: "price_asc",
+  });
+}
+
+function applyProductCategoryShortcut(categoryName: string) {
+  syncShortcutSearchState({
+    q: "",
+    categoryName,
+    serviceType: "",
+    resultKind: "product",
     takeaway: false,
     delivery: false,
     sortBy: "price_asc",

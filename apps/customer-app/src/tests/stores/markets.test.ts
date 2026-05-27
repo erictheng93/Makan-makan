@@ -80,9 +80,35 @@ describe("useMarketsStore", () => {
         dishCategories: [
           {
             categoryName: "炸物",
+            catalogType: "menu_item",
             count: 3,
             searchUrl:
-              "/api/v1/discovery/search?marketSlug=fengjia&categoryName=%E7%82%B8%E7%89%A9",
+              "/api/v1/discovery/search?marketSlug=fengjia&catalogType=menu_item&categoryName=%E7%82%B8%E7%89%A9",
+          },
+          {
+            categoryName: "配件",
+            catalogType: "product",
+            count: 2,
+            searchUrl:
+              "/api/v1/discovery/search?marketSlug=fengjia&catalogType=product&categoryName=%E9%85%8D%E4%BB%B6",
+          },
+        ],
+        menuItemCategories: [
+          {
+            categoryName: "炸物",
+            catalogType: "menu_item",
+            count: 3,
+            searchUrl:
+              "/api/v1/discovery/search?marketSlug=fengjia&catalogType=menu_item&categoryName=%E7%82%B8%E7%89%A9",
+          },
+        ],
+        productCategories: [
+          {
+            categoryName: "配件",
+            catalogType: "product",
+            count: 2,
+            searchUrl:
+              "/api/v1/discovery/search?marketSlug=fengjia&catalogType=product&categoryName=%E9%85%8D%E4%BB%B6",
           },
         ],
         serviceTypes: [
@@ -110,7 +136,13 @@ describe("useMarketsStore", () => {
     expect(store.vendorCount).toBe(1);
     expect(store.explorationSummary?.dishCategories[0]).toMatchObject({
       categoryName: "炸物",
+      catalogType: "menu_item",
       count: 3,
+    });
+    expect(store.explorationSummary?.productCategories[0]).toMatchObject({
+      categoryName: "配件",
+      catalogType: "product",
+      count: 2,
     });
     expect(store.vendors[0].name).toBe("雞排攤");
   });

@@ -106,6 +106,19 @@ export interface MarketExplorationSummary {
   serviceSearchUrl: string;
   dishCategories: Array<{
     categoryName: string;
+    catalogType: "menu_item" | "product";
+    count: number;
+    searchUrl: string;
+  }>;
+  menuItemCategories: Array<{
+    categoryName: string;
+    catalogType: "menu_item";
+    count: number;
+    searchUrl: string;
+  }>;
+  productCategories: Array<{
+    categoryName: string;
+    catalogType: "product";
     count: number;
     searchUrl: string;
   }>;
@@ -476,10 +489,13 @@ export class MarketsService {
     marketId: string,
     marketSlug: string,
   ): Promise<MarketExplorationSummary> {
-    const [dishCategories, serviceTypes] = await Promise.all([
-      this.listDishCategoryFacets(marketId),
-      this.listServiceTypeFacets(marketId),
-    ]);
+    const [menuItemCategories, productCategories, serviceTypes] =
+      await Promise.all([
+        this.listDishCategoryFacets(marketId, "menu_item"),
+        this.listDishCategoryFacets(marketId, "product"),
+        this.listServiceTypeFacets(marketId),
+      ]);
+    const dishCategories = [...productCategories, ...menuItemCategories];
 
     return {
       dishSearchUrl: `/api/v1/discovery/search?marketSlug=${encodeURIComponent(
@@ -492,7 +508,25 @@ export class MarketsService {
         ...facet,
         searchUrl: `/api/v1/discovery/search?marketSlug=${encodeURIComponent(
           marketSlug,
-        )}&categoryName=${encodeURIComponent(facet.categoryName)}`,
+        )}&catalogType=${facet.catalogType}&categoryName=${encodeURIComponent(
+          facet.categoryName,
+        )}`,
+      })),
+      menuItemCategories: menuItemCategories.map((facet) => ({
+        ...facet,
+        searchUrl: `/api/v1/discovery/search?marketSlug=${encodeURIComponent(
+          marketSlug,
+        )}&catalogType=menu_item&categoryName=${encodeURIComponent(
+          facet.categoryName,
+        )}`,
+      })),
+      productCategories: productCategories.map((facet) => ({
+        ...facet,
+        searchUrl: `/api/v1/discovery/search?marketSlug=${encodeURIComponent(
+          marketSlug,
+        )}&catalogType=product&categoryName=${encodeURIComponent(
+          facet.categoryName,
+        )}`,
       })),
       serviceTypes: serviceTypes.map((facet) => ({
         ...facet,
@@ -503,7 +537,10 @@ export class MarketsService {
     };
   }
 
-  private async listDishCategoryFacets(marketId: string) {
+  private async listDishCategoryFacets(
+    marketId: string,
+    catalogType: "menu_item" | "product",
+  ) {
     const itemCount = sql<number>`count(*)`;
     const rows = await this.db
       .select({
@@ -515,6 +552,7 @@ export class MarketsService {
       .where(
         and(
           eq(dishSearchIndex.isAvailable, true),
+          eq(dishSearchIndex.catalogType, catalogType),
           eq(restaurants.isActive, true),
           isNull(restaurants.deletedAt),
           sql`${dishSearchIndex.categoryName} IS NOT NULL`,
@@ -534,6 +572,7 @@ export class MarketsService {
       )
       .map((row) => ({
         categoryName: row.categoryName,
+        catalogType,
         count: Number(row.count),
       }));
   }

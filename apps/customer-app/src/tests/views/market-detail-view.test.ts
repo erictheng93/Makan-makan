@@ -57,9 +57,35 @@ function marketStore(overrides: Record<string, unknown> = {}) {
       dishCategories: [
         {
           categoryName: "炸物",
+          catalogType: "menu_item",
           count: 3,
           searchUrl:
-            "/api/v1/discovery/search?marketSlug=fengjia&categoryName=%E7%82%B8%E7%89%A9",
+            "/api/v1/discovery/search?marketSlug=fengjia&catalogType=menu_item&categoryName=%E7%82%B8%E7%89%A9",
+        },
+        {
+          categoryName: "配件",
+          catalogType: "product",
+          count: 4,
+          searchUrl:
+            "/api/v1/discovery/search?marketSlug=fengjia&catalogType=product&categoryName=%E9%85%8D%E4%BB%B6",
+        },
+      ],
+      menuItemCategories: [
+        {
+          categoryName: "炸物",
+          catalogType: "menu_item",
+          count: 3,
+          searchUrl:
+            "/api/v1/discovery/search?marketSlug=fengjia&catalogType=menu_item&categoryName=%E7%82%B8%E7%89%A9",
+        },
+      ],
+      productCategories: [
+        {
+          categoryName: "配件",
+          catalogType: "product",
+          count: 4,
+          searchUrl:
+            "/api/v1/discovery/search?marketSlug=fengjia&catalogType=product&categoryName=%E9%85%8D%E4%BB%B6",
         },
       ],
       serviceTypes: [
@@ -292,6 +318,9 @@ describe("MarketDetailView", () => {
       wrapper.get('[data-testid="market-dish-facet-炸物"]').text(),
     ).toContain("炸物");
     expect(
+      wrapper.get('[data-testid="market-product-facet-配件"]').text(),
+    ).toContain("配件");
+    expect(
       wrapper.get('[data-testid="market-service-facet-pickup"]').text(),
     ).toContain("自取");
 
@@ -320,6 +349,20 @@ describe("MarketDetailView", () => {
       query: {
         serviceType: "pickup",
         resultKind: "service",
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-facet-配件"]')
+      .trigger("click");
+
+    expect(
+      wrapper.get('[data-testid="market-product-search-props"]').text(),
+    ).toContain("|配件||product|false|false|price_asc");
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: {
+        categoryName: "配件",
+        resultKind: "product",
       },
     });
   });

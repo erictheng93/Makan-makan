@@ -172,13 +172,36 @@ describe("Markets API — real integration", () => {
       name: "Fengjia Chicken",
       price: 95,
     });
+    const productItem = await seed.menuItem(String(restaurant.id), {
+      name: "Phone Charm",
+      price: 120,
+      catalogType: "product",
+    });
     await testApp.testDb.drizzle.insert(dishSearchIndex).values({
       menuItemId: menuItem.id,
       restaurantId: String(restaurant.id),
       dishName: "Fengjia Chicken",
       dishNameNormalized: "fengjiachicken",
       price: 95,
+      catalogType: "menu_item",
       categoryName: "炸物",
+      isAvailable: true,
+      tags: [],
+      district: "西屯區",
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: 24.1765,
+      longitude: 120.6467,
+      updatedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: productItem.id,
+      restaurantId: String(restaurant.id),
+      dishName: "Phone Charm",
+      dishNameNormalized: "phonecharm",
+      price: 120,
+      catalogType: "product",
+      categoryName: "配件",
       isAvailable: true,
       tags: [],
       district: "西屯區",
@@ -210,7 +233,7 @@ describe("Markets API — real integration", () => {
       name: "逢甲夜市",
       vendorCount: 1,
       catalogCoverage: {
-        searchableProductCount: 1,
+        searchableProductCount: 2,
         publicServiceCount: 1,
       },
       imageUrls: [
@@ -238,7 +261,7 @@ describe("Markets API — real integration", () => {
     expect(detailJson.data.market.slug).toBe("fengjia-night-market");
     expect(detailJson.data.vendorCount).toBe(1);
     expect(detailJson.data.catalogCoverage).toEqual({
-      searchableProductCount: 1,
+      searchableProductCount: 2,
       publicServiceCount: 1,
     });
     expect(detailJson.data.explorationSummary).toEqual({
@@ -247,10 +270,39 @@ describe("Markets API — real integration", () => {
         "/api/v1/discovery/services?marketSlug=fengjia-night-market",
       dishCategories: [
         {
-          categoryName: "炸物",
+          categoryName: "配件",
+          catalogType: "product",
           count: 1,
-          searchUrl: `/api/v1/discovery/search?marketSlug=fengjia-night-market&categoryName=${encodeURIComponent(
+          searchUrl: `/api/v1/discovery/search?marketSlug=fengjia-night-market&catalogType=product&categoryName=${encodeURIComponent(
+            "配件",
+          )}`,
+        },
+        {
+          categoryName: "炸物",
+          catalogType: "menu_item",
+          count: 1,
+          searchUrl: `/api/v1/discovery/search?marketSlug=fengjia-night-market&catalogType=menu_item&categoryName=${encodeURIComponent(
             "炸物",
+          )}`,
+        },
+      ],
+      menuItemCategories: [
+        {
+          categoryName: "炸物",
+          catalogType: "menu_item",
+          count: 1,
+          searchUrl: `/api/v1/discovery/search?marketSlug=fengjia-night-market&catalogType=menu_item&categoryName=${encodeURIComponent(
+            "炸物",
+          )}`,
+        },
+      ],
+      productCategories: [
+        {
+          categoryName: "配件",
+          catalogType: "product",
+          count: 1,
+          searchUrl: `/api/v1/discovery/search?marketSlug=fengjia-night-market&catalogType=product&categoryName=${encodeURIComponent(
+            "配件",
           )}`,
         },
       ],
