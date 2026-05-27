@@ -126,12 +126,14 @@ const serviceLabels = computed(() => {
   return labels;
 });
 
-const resultTypeLabel = computed(() =>
-  props.dish.resultType === "menu_item" ? "商品" : "",
-);
+const resultTypeLabel = computed(() => {
+  if (props.dish.resultType === "product") return "商品";
+  if (props.dish.resultType === "menu_item") return "餐點";
+  return "";
+});
 
 const openActionLabel = computed(() =>
-  props.dish.resultType === "menu_item" ? "查看商品" : "查看菜單",
+  props.dish.resultType === "product" ? "查看商品" : "查看菜單",
 );
 
 const productPriceLabel = computed(() => {

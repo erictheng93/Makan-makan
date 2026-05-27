@@ -31,6 +31,7 @@ import type {
   ServiceSearchResult,
 } from "../types";
 import { isOpenNow } from "../utils/isOpenNow";
+import { catalogResultTypeFromTags } from "../utils/catalog-result-type";
 import { normalizeSearchTags } from "../utils/search-normalization";
 import {
   fromCents,
@@ -268,7 +269,7 @@ export class DiscoveryService {
 
     // 5. Map results + openNow filter
     let results: DishSearchResult[] = allRows.map((row) => ({
-      resultType: "menu_item",
+      resultType: catalogResultTypeFromTags(row.tags),
       menuItemId: row.menuItemId,
       dishName: row.dishName,
       price:
@@ -850,7 +851,7 @@ export class DiscoveryService {
       .limit(10);
 
     const dishes: DishSearchResult[] = topDishes.map((row) => ({
-      resultType: "menu_item",
+      resultType: catalogResultTypeFromTags(row.tags),
       menuItemId: row.menuItemId,
       dishName: row.dishName,
       price:

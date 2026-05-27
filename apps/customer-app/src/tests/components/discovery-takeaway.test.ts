@@ -93,11 +93,11 @@ describe("discovery takeaway buttons", () => {
     );
   });
 
-  it("distinguishes searchable menu items as products", () => {
+  it("shows product result labels and action text", () => {
     const wrapper = mount(DishResultCard, {
       props: {
         dish: {
-          resultType: "menu_item",
+          resultType: "product",
           menuItemId: 1,
           dishName: "手機殼",
           price: 199,
@@ -124,11 +124,42 @@ describe("discovery takeaway buttons", () => {
     );
   });
 
-  it("uses explicit product price labels when provided", () => {
+  it("keeps menu item result labels distinct from products", () => {
     const wrapper = mount(DishResultCard, {
       props: {
         dish: {
           resultType: "menu_item",
+          menuItemId: 1,
+          dishName: "雞排",
+          price: 85,
+          categoryName: "小吃",
+          restaurantId: "r1",
+          restaurantName: "雞排攤",
+          district: "西屯區",
+          isOpen: true,
+          supportsTakeaway: false,
+          supportsDelivery: false,
+          tags: [],
+        },
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    });
+
+    expect(wrapper.get('[data-testid="dish-result-type"]').text()).toContain(
+      "餐點",
+    );
+    expect(wrapper.get('[data-testid="dish-result-open-menu"]').text()).toBe(
+      "查看菜單",
+    );
+  });
+
+  it("uses explicit product price labels when provided", () => {
+    const wrapper = mount(DishResultCard, {
+      props: {
+        dish: {
+          resultType: "product",
           menuItemId: 1,
           dishName: "客製手機殼",
           price: 0,

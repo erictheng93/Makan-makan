@@ -1,7 +1,7 @@
 import { apiClient } from "./api";
 
 export interface DishSearchResult {
-  resultType?: "menu_item";
+  resultType?: "menu_item" | "product";
   menuItemId: number;
   dishName: string;
   price: number;
