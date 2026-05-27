@@ -742,6 +742,31 @@ describe("MarketDetailView", () => {
     });
   });
 
+  it("restores market vendor filters from the URL", async () => {
+    routeQuery.vendorQ = "A-12";
+    routeQuery.vendorDelivery = "true";
+    routeQuery.vendorSortBy = "distance";
+    routeQuery.vendorLat = "24.1764";
+    routeQuery.vendorLng = "120.6466";
+    routeQuery.vendorRadiusKm = "2";
+    const store = marketStore();
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    mountView();
+
+    await vi.waitFor(() => {
+      expect(store.loadVendors).toHaveBeenCalledWith("fengjia", {
+        q: "A-12",
+        takeaway: undefined,
+        delivery: true,
+        sortBy: "distance",
+        lat: 24.1764,
+        lng: 120.6466,
+        radiusKm: 2,
+      });
+    });
+  });
+
   it("sorts market vendors by current distance", async () => {
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,
@@ -772,6 +797,14 @@ describe("MarketDetailView", () => {
       lat: 24.1764,
       lng: 120.6466,
       radiusKm: 2,
+    });
+    expect(routerReplace).toHaveBeenCalledWith({
+      query: {
+        vendorSortBy: "distance",
+        vendorLat: "24.1764",
+        vendorLng: "120.6466",
+        vendorRadiusKm: "2",
+      },
     });
   });
 

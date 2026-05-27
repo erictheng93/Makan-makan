@@ -294,14 +294,24 @@ import {
 const route = useRoute();
 const router = useRouter();
 const store = useMarketsStore();
-const vendorQuery = ref("");
-const takeawayOnly = ref(false);
-const deliveryOnly = ref(false);
+const vendorQuery = ref(firstQueryString(route.query.vendorQ));
+const takeawayOnly = ref(queryBoolean(route.query.vendorTakeaway));
+const deliveryOnly = ref(queryBoolean(route.query.vendorDelivery));
+const initialVendorLocation =
+  firstQueryString(route.query.vendorSortBy) === "distance" &&
+  queryNumber(route.query.vendorLat) != null &&
+  queryNumber(route.query.vendorLng) != null
+    ? {
+        lat: queryNumber(route.query.vendorLat) as number,
+        lng: queryNumber(route.query.vendorLng) as number,
+        radiusKm: queryNumber(route.query.vendorRadiusKm) ?? 2,
+      }
+    : null;
 const vendorLocation = ref<{
   lat: number;
   lng: number;
   radiusKm: number;
-} | null>(null);
+} | null>(initialVendorLocation);
 const selectedContactVendor = ref<MarketVendor | null>(null);
 const contactProfile = ref<RestaurantContactProfile | null>(null);
 const contactLoading = ref(false);
@@ -504,17 +514,20 @@ function loadMoreVendors() {
 
 function onQueryChange(value: string) {
   vendorQuery.value = value;
+  syncVendorQueryState();
   if (queryTimer) clearTimeout(queryTimer);
   queryTimer = setTimeout(loadVendors, 250);
 }
 
 function onTakeawayOnlyChange(value: boolean) {
   takeawayOnly.value = value;
+  syncVendorQueryState();
   loadVendors();
 }
 
 function onDeliveryOnlyChange(value: boolean) {
   deliveryOnly.value = value;
+  syncVendorQueryState();
   loadVendors();
 }
 
@@ -528,14 +541,45 @@ function sortVendorsByLocation() {
         lng: position.coords.longitude,
         radiusKm: 2,
       };
+      syncVendorQueryState();
       loadVendors();
     },
     () => {
       vendorLocation.value = null;
+      syncVendorQueryState();
       loadVendors();
     },
     { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
   );
+}
+
+function syncVendorQueryState() {
+  const query = { ...route.query };
+  delete query.vendorQ;
+  delete query.vendorTakeaway;
+  delete query.vendorDelivery;
+  delete query.vendorSortBy;
+  delete query.vendorLat;
+  delete query.vendorLng;
+  delete query.vendorRadiusKm;
+
+  const vendorSearch = vendorQuery.value.trim();
+  if (vendorSearch) query.vendorQ = vendorSearch;
+  if (takeawayOnly.value) query.vendorTakeaway = "true";
+  if (deliveryOnly.value) query.vendorDelivery = "true";
+  if (vendorLocation.value) {
+    query.vendorSortBy = "distance";
+    query.vendorLat = String(vendorLocation.value.lat);
+    query.vendorLng = String(vendorLocation.value.lng);
+    query.vendorRadiusKm = String(vendorLocation.value.radiusKm);
+  }
+
+  router.replace({
+    query: {
+      ...query,
+      ...marketDirectoryReturnQuery(),
+    },
+  });
 }
 
 function openVendor(vendor: { restaurantId: string }) {
@@ -777,7 +821,7 @@ onMounted(async () => {
       path: route.fullPath,
     });
   }
-  await store.loadVendors(slug());
+  loadVendors();
 });
 
 onBeforeUnmount(() => {
