@@ -268,6 +268,39 @@ describe("MarketsView", () => {
     });
   });
 
+  it("restores nearby market searches from the URL", async () => {
+    routeQuery.nearbyLat = "24.1763";
+    routeQuery.nearbyLng = "120.6465";
+    routeQuery.nearbyRadiusKm = "2";
+    const store = marketsStore({
+      hasMarkets: true,
+      nearbyMarkets: [
+        { id: "m1", slug: "fengjia", name: "逢甲夜市", distanceKm: 0.2 },
+      ],
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    expect(store.loadNearby).toHaveBeenCalledWith({
+      lat: 24.1763,
+      lng: 120.6465,
+      radiusKm: 2,
+    });
+
+    await wrapper.get('[data-testid="market-card"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "MarketDetail",
+      params: { slug: "fengjia" },
+      query: {
+        returnPath:
+          "/markets?nearbyLat=24.1763&nearbyLng=120.6465&nearbyRadiusKm=2",
+        returnLabel: "夜市與商圈",
+      },
+    });
+  });
+
   it("explains empty market directories before any filters are applied", () => {
     const store = marketsStore({
       hasMarkets: false,

@@ -188,6 +188,7 @@ const query = ref(firstQueryString(route.query.q));
 const city = ref(firstQueryString(route.query.city));
 const district = ref(firstQueryString(route.query.district));
 const marketType = ref(marketTypeFromQuery(route.query.type));
+const nearbyLocation = ref(nearbyLocationFromQuery());
 const locating = ref(false);
 const marketAreas = ref<MarketArea[]>([]);
 const hasDirectoryFilters = computed(
@@ -195,7 +196,8 @@ const hasDirectoryFilters = computed(
     query.value.trim().length > 0 ||
     city.value.length > 0 ||
     district.value.length > 0 ||
-    marketType.value.length > 0,
+    marketType.value.length > 0 ||
+    nearbyLocation.value != null,
 );
 
 const districts = computed(() => {
@@ -238,6 +240,7 @@ function clearFilters() {
   city.value = "";
   district.value = "";
   marketType.value = "";
+  nearbyLocation.value = null;
   reloadList();
 }
 
@@ -247,6 +250,14 @@ function firstQueryString(value: unknown) {
   }
 
   return typeof value === "string" ? value : "";
+}
+
+function queryNumber(value: unknown) {
+  const rawValue = firstQueryString(value);
+  if (!rawValue) return undefined;
+
+  const numberValue = Number(rawValue);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
 }
 
 function marketTypeFromQuery(value: unknown) {
@@ -261,6 +272,18 @@ function marketTypeFromQuery(value: unknown) {
     : "";
 }
 
+function nearbyLocationFromQuery() {
+  const lat = queryNumber(route.query.nearbyLat);
+  const lng = queryNumber(route.query.nearbyLng);
+  if (lat == null || lng == null) return null;
+
+  return {
+    lat,
+    lng,
+    radiusKm: queryNumber(route.query.nearbyRadiusKm) ?? 2,
+  };
+}
+
 function syncDirectoryQuery() {
   router.replace({
     query: currentDirectoryQuery(),
@@ -273,6 +296,13 @@ function currentDirectoryQuery() {
     ...(city.value ? { city: city.value } : {}),
     ...(district.value ? { district: district.value } : {}),
     ...(marketType.value ? { type: marketType.value } : {}),
+    ...(nearbyLocation.value
+      ? {
+          nearbyLat: String(nearbyLocation.value.lat),
+          nearbyLng: String(nearbyLocation.value.lng),
+          nearbyRadiusKm: String(nearbyLocation.value.radiusKm),
+        }
+      : {}),
   };
 }
 
@@ -300,11 +330,13 @@ function loadNearby() {
   navigator.geolocation.getCurrentPosition(
     (position) => {
       locating.value = false;
-      store.loadNearby({
+      nearbyLocation.value = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
         radiusKm: 2,
-      });
+      };
+      syncDirectoryQuery();
+      store.loadNearby(nearbyLocation.value);
     },
     () => {
       locating.value = false;
@@ -312,6 +344,11 @@ function loadNearby() {
     },
     { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
   );
+}
+
+function loadNearbyFromQuery() {
+  if (!nearbyLocation.value) return;
+  store.loadNearby(nearbyLocation.value);
 }
 
 function openMarket(market: MarketListItem) {
@@ -327,6 +364,7 @@ function openMarket(market: MarketListItem) {
 
 onMounted(() => {
   loadAreas();
+  loadNearbyFromQuery();
   reloadList();
 });
 </script>
