@@ -53,6 +53,49 @@ const newVendorDuplicateKey = (vendor: ImportMarketVendorInput) =>
         vendor.address?.trim().toLowerCase() ?? ""
       }`;
 
+function addNewVendorDefaultIssues(
+  issues: VendorImportIssue[],
+  input: {
+    index: number;
+    vendor: ImportMarketVendorInput;
+    marketCity: string;
+  },
+) {
+  if (!input.vendor.phone) {
+    issues.push({
+      index: input.index,
+      code: "phone_defaulted",
+      severity: "warning",
+      field: "phone",
+      message: "Phone is missing and defaults to 00000000",
+      restaurantName: input.vendor.name,
+    });
+  }
+  if (!input.vendor.city) {
+    issues.push({
+      index: input.index,
+      code: "city_defaulted",
+      severity: "warning",
+      field: "city",
+      message: `City is missing and defaults to ${input.marketCity}`,
+      restaurantName: input.vendor.name,
+    });
+  }
+  if (
+    typeof input.vendor.latitude !== "number" ||
+    typeof input.vendor.longitude !== "number"
+  ) {
+    issues.push({
+      index: input.index,
+      code: "coordinates_missing",
+      severity: "warning",
+      field: "coordinates",
+      message: "Coordinates are missing and map-based discovery is weaker",
+      restaurantName: input.vendor.name,
+    });
+  }
+}
+
 async function dryRunVendorImport(input: {
   vendors: ImportMarketVendorInput[];
   marketId: string;
@@ -93,39 +136,11 @@ async function dryRunVendorImport(input: {
     if (!vendor.restaurantId) {
       wouldCreateRestaurants += 1;
       wouldAttachVendors += 1;
-      if (!vendor.phone) {
-        issues.push({
-          index,
-          code: "phone_defaulted",
-          severity: "warning",
-          field: "phone",
-          message: "Phone is missing and would default to 00000000",
-          restaurantName: vendor.name,
-        });
-      }
-      if (!vendor.city) {
-        issues.push({
-          index,
-          code: "city_defaulted",
-          severity: "warning",
-          field: "city",
-          message: `City is missing and would default to ${input.marketCity}`,
-          restaurantName: vendor.name,
-        });
-      }
-      if (
-        typeof vendor.latitude !== "number" ||
-        typeof vendor.longitude !== "number"
-      ) {
-        issues.push({
-          index,
-          code: "coordinates_missing",
-          severity: "warning",
-          field: "coordinates",
-          message: "Coordinates are missing and map-based discovery is weaker",
-          restaurantName: vendor.name,
-        });
-      }
+      addNewVendorDefaultIssues(issues, {
+        index,
+        vendor,
+        marketCity: input.marketCity,
+      });
       results.push({
         status: "would_create",
         restaurantName: vendor.name,
@@ -555,6 +570,11 @@ routes.post(
       let status: "attached" | "created" = "attached";
 
       if (!restaurantId) {
+        addNewVendorDefaultIssues(issues, {
+          index,
+          vendor,
+          marketCity: market.city,
+        });
         const restaurant = await restaurantsService.createRestaurant({
           name: vendor.name!,
           type: vendor.type ?? "market_stall",
@@ -578,6 +598,14 @@ routes.post(
         const restaurant = await restaurantsService.getRestaurant(restaurantId);
         if (!restaurant || !restaurant.isActive) {
           skipped += 1;
+          issues.push({
+            index,
+            code: "restaurant_not_found",
+            severity: "blocking",
+            message: "Restaurant was not found or is inactive",
+            restaurantId,
+            restaurantName,
+          });
           results.push({
             status: "skipped",
             reason: "restaurant_not_found",
@@ -596,6 +624,14 @@ routes.post(
         memberships.memberships.some((membership) => membership.marketId === id)
       ) {
         skipped += 1;
+        issues.push({
+          index,
+          code: "already_attached",
+          severity: "blocking",
+          message: "Restaurant already belongs to this market",
+          restaurantId,
+          restaurantName,
+        });
         results.push({
           status: "skipped",
           reason: "already_attached",

@@ -2716,6 +2716,153 @@ describe("Markets API — real integration", () => {
     expect(createdRestaurant).toBeUndefined();
   });
 
+  it("reports live vendor import issues for skipped and defaulted rows", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Vendor Import Issue Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    const existingRestaurant = await seed.restaurant({
+      name: "Existing Issue Import Vendor",
+      city: "台中市",
+      district: "西屯區",
+      address: "台中市西屯區既有問題攤位",
+      phone: "0233333333",
+    });
+    await seed.user({
+      id: 47,
+      username: "vendor-import-issue-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const market = await seedMarket(testApp, {
+      slug: "bulk-import-issue-market",
+      city: "台中市",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(existingRestaurant.id),
+      marketId: market.id,
+      stallNumber: "A-01",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+
+    const importRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/${market.id}/vendor-imports`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vendors: [
+              {
+                restaurantId: String(existingRestaurant.id),
+                stallNumber: "A-01",
+              },
+              {
+                restaurantId: "missing-live-import-restaurant",
+                stallNumber: "B-02",
+              },
+              {
+                name: "正式匯入待補資料攤商",
+                type: "street_food",
+                category: "food",
+                address: "台中市西屯區文華路 400 號",
+                district: "西屯區",
+                stallNumber: "C-03",
+              },
+            ],
+          }),
+        },
+      ),
+    );
+
+    expect(importRes.status).toBe(200);
+    const importJson: any = await importRes.json();
+    expect(importJson.data).toMatchObject({
+      createdRestaurants: 1,
+      attachedVendors: 1,
+      skipped: 2,
+      issueCount: 5,
+      blockingIssueCount: 2,
+      warningIssueCount: 3,
+    });
+    expect(importJson.data.results).toEqual([
+      expect.objectContaining({
+        status: "skipped",
+        reason: "already_attached",
+        restaurantId: String(existingRestaurant.id),
+      }),
+      expect.objectContaining({
+        status: "skipped",
+        reason: "restaurant_not_found",
+        restaurantId: "missing-live-import-restaurant",
+      }),
+      expect.objectContaining({
+        status: "created",
+        restaurantName: "正式匯入待補資料攤商",
+        stallNumber: "C-03",
+      }),
+    ]);
+    expect(importJson.data.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          index: 0,
+          code: "already_attached",
+          severity: "blocking",
+        }),
+        expect.objectContaining({
+          index: 1,
+          code: "restaurant_not_found",
+          severity: "blocking",
+        }),
+        expect.objectContaining({
+          index: 2,
+          code: "phone_defaulted",
+          severity: "warning",
+          field: "phone",
+        }),
+        expect.objectContaining({
+          index: 2,
+          code: "city_defaulted",
+          severity: "warning",
+          field: "city",
+        }),
+        expect.objectContaining({
+          index: 2,
+          code: "coordinates_missing",
+          severity: "warning",
+          field: "coordinates",
+        }),
+      ]),
+    );
+
+    const [createdRestaurant] = await testApp.testDb.drizzle
+      .select({
+        city: restaurants.city,
+        phone: restaurants.phone,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
+      })
+      .from(restaurants)
+      .where(eq(restaurants.name, "正式匯入待補資料攤商"))
+      .limit(1);
+    expect(createdRestaurant).toEqual({
+      city: "台中市",
+      phone: "00000000",
+      latitude: null,
+      longitude: null,
+    });
+  });
+
   it("skips duplicate vendors in a live bulk import payload", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Vendor Duplicate Import Admin",
@@ -2795,8 +2942,9 @@ describe("Markets API — real integration", () => {
       createdRestaurants: 1,
       attachedVendors: 2,
       skipped: 2,
-      issueCount: 2,
+      issueCount: 3,
       blockingIssueCount: 2,
+      warningIssueCount: 1,
     });
     expect(importJson.data.results).toEqual([
       expect.objectContaining({
@@ -2833,6 +2981,12 @@ describe("Markets API — real integration", () => {
           index: 3,
           code: "duplicate_in_payload",
           severity: "blocking",
+        }),
+        expect.objectContaining({
+          index: 2,
+          code: "coordinates_missing",
+          severity: "warning",
+          field: "coordinates",
         }),
       ]),
     );
