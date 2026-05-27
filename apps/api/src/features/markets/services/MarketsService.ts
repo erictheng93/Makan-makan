@@ -1589,6 +1589,19 @@ export class MarketsService {
 
   private publicReadyConditions(): SQL[] {
     return [
+      sql`trim(coalesce(${markets.description}, '')) <> ''`,
+      sql`trim(coalesce(${markets.city}, '')) <> ''`,
+      sql`trim(coalesce(${markets.district}, '')) <> ''`,
+      sql`trim(coalesce(${markets.address}, '')) <> ''`,
+      sql`${markets.latitude} IS NOT NULL`,
+      sql`${markets.longitude} IS NOT NULL`,
+      sql`EXISTS (
+        SELECT 1
+        FROM json_each(${markets.openingHours}) day
+        WHERE coalesce(json_extract(day.value, '$.closed'), 0) != 1
+          AND trim(coalesce(json_extract(day.value, '$.open'), '')) <> ''
+          AND trim(coalesce(json_extract(day.value, '$.close'), '')) <> ''
+      )`,
       sql`EXISTS (
         SELECT 1
         FROM restaurant_market_memberships rmm

@@ -469,6 +469,13 @@ describe("Markets API — real integration", () => {
       slug: "productless-public-market",
       name: "Productless Public Market",
     });
+    await seedSearchableMarket(testApp, seed, {
+      slug: "incomplete-profile-public-market",
+      name: "Incomplete Profile Public Market",
+      description: "",
+      address: "",
+      openingHours: null,
+    });
     const readyRestaurant = await seed.restaurant({
       name: "Ready Public Vendor",
       city: "台中市",
@@ -526,6 +533,14 @@ describe("Markets API — real integration", () => {
     expect(json.data.markets.map((market: any) => market.slug)).toEqual([
       "ready-public-market",
     ]);
+
+    const incompleteRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/markets?q=Incomplete+Profile&city=台中市&district=西屯區",
+      ),
+    );
+    const incompleteJson: any = await incompleteRes.json();
+    expect(incompleteJson.data.markets).toEqual([]);
   });
 
   it("lists service-only markets as public exploration entrypoints", async () => {
