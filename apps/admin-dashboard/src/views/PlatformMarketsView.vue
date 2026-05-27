@@ -425,6 +425,12 @@
               <div class="mt-1 whitespace-nowrap text-xs text-gray-500">
                 服務 {{ market.catalogCoverage?.publicServiceCount ?? 0 }}
               </div>
+              <p
+                v-if="marketHasNoSearchableCatalog(market)"
+                class="mt-2 max-w-48 text-xs text-amber-700"
+              >
+                補菜單/服務或重建索引，避免前台搜尋沒有內容。
+              </p>
               <div
                 v-if="
                   market.catalogCoverage?.vendorsMissingSearchableProducts ||

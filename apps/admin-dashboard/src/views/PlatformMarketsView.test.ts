@@ -378,6 +378,7 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("無搜尋內容市場");
     expect(wrapper.text()).toContain("使用者會看到尚未收錄店鋪");
     expect(wrapper.text()).toContain("使用者會看到尚未上架商品/服務");
+    expect(wrapper.text()).toContain("補菜單/服務或重建索引");
 
     await wrapper
       .findAll("button")
