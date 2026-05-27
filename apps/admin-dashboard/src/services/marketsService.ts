@@ -10,14 +10,18 @@ export interface MarketCatalogGapVendor {
 export interface MarketCatalogCoverage {
   searchableProductCount: number;
   publicServiceCount: number;
+  bookingRequiredServiceCount?: number;
+  bookingUrlMissingServiceCount?: number;
   vendorsWithSearchableProducts?: number;
   vendorsMissingSearchableProducts?: number;
   vendorsWithPublicServices?: number;
   vendorsMissingPublicServices?: number;
+  vendorsMissingBookingUrls?: number;
   vendorsMissingStallNumbers?: number;
   vendorsMissingSearchEntrypoints?: number;
   missingProductVendors?: MarketCatalogGapVendor[];
   missingServiceVendors?: MarketCatalogGapVendor[];
+  missingBookingUrlVendors?: MarketCatalogGapVendor[];
   missingStallNumberVendors?: MarketCatalogGapVendor[];
   missingSearchEntrypointVendors?: MarketCatalogGapVendor[];
 }

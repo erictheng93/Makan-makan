@@ -1036,6 +1036,7 @@ describe("Markets API — real integration", () => {
       restaurantId: String(serviceOnlyVendor.id),
       name: "純服務入口",
       serviceType: "booking",
+      requiresBooking: true,
       isActive: true,
       isPublic: true,
       sortOrder: 1,
@@ -1059,6 +1060,9 @@ describe("Markets API — real integration", () => {
       vendorsMissingSearchableProducts: 2,
       vendorsWithPublicServices: 3,
       vendorsMissingPublicServices: 2,
+      bookingRequiredServiceCount: 1,
+      bookingUrlMissingServiceCount: 1,
+      vendorsMissingBookingUrls: 1,
       vendorsMissingStallNumbers: 1,
       vendorsMissingSearchEntrypoints: 1,
     });
@@ -1104,6 +1108,13 @@ describe("Markets API — real integration", () => {
         restaurantId: String(missingVendor.id),
         name: "Missing Catalog Vendor",
         stallNumber: "B-02",
+      },
+    ]);
+    expect(readinessMarket.catalogCoverage.missingBookingUrlVendors).toEqual([
+      {
+        restaurantId: String(serviceOnlyVendor.id),
+        name: "Service Only Vendor",
+        stallNumber: "D-04",
       },
     ]);
   });

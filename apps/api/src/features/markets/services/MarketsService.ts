@@ -68,14 +68,18 @@ export interface AdminVendorCandidateFilters {
 export interface MarketCatalogCoverage {
   searchableProductCount: number;
   publicServiceCount: number;
+  bookingRequiredServiceCount?: number;
+  bookingUrlMissingServiceCount?: number;
   vendorsWithSearchableProducts?: number;
   vendorsMissingSearchableProducts?: number;
   vendorsWithPublicServices?: number;
   vendorsMissingPublicServices?: number;
+  vendorsMissingBookingUrls?: number;
   vendorsMissingStallNumbers?: number;
   vendorsMissingSearchEntrypoints?: number;
   missingProductVendors?: MarketCatalogGapVendor[];
   missingServiceVendors?: MarketCatalogGapVendor[];
+  missingBookingUrlVendors?: MarketCatalogGapVendor[];
   missingStallNumberVendors?: MarketCatalogGapVendor[];
   missingSearchEntrypointVendors?: MarketCatalogGapVendor[];
 }
@@ -641,31 +645,35 @@ export class MarketsService {
   private async countCatalogCoverage(
     marketId: string,
   ): Promise<MarketCatalogCoverage> {
-    const [productRows, serviceCount] = await Promise.all([
-      this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(dishSearchIndex)
-        .innerJoin(
-          restaurants,
-          eq(dishSearchIndex.restaurantId, restaurants.id),
-        )
-        .where(
-          and(
-            eq(dishSearchIndex.isAvailable, true),
-            eq(restaurants.isActive, true),
-            isNull(restaurants.deletedAt),
-            or(
-              eq(dishSearchIndex.primaryMarketId, marketId),
-              like(dishSearchIndex.marketIds, `%"${marketId}"%`),
+    const [productRows, serviceCount, bookingActionability] = await Promise.all(
+      [
+        this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(dishSearchIndex)
+          .innerJoin(
+            restaurants,
+            eq(dishSearchIndex.restaurantId, restaurants.id),
+          )
+          .where(
+            and(
+              eq(dishSearchIndex.isAvailable, true),
+              eq(restaurants.isActive, true),
+              isNull(restaurants.deletedAt),
+              or(
+                eq(dishSearchIndex.primaryMarketId, marketId),
+                like(dishSearchIndex.marketIds, `%"${marketId}"%`),
+              ),
             ),
           ),
-        ),
-      this.countPublicServicesForMarket(marketId),
-    ]);
+        this.countPublicServicesForMarket(marketId),
+        this.countBookingActionabilityForMarket(marketId),
+      ],
+    );
 
     return {
       searchableProductCount: Number(productRows[0]?.count ?? 0),
       publicServiceCount: serviceCount,
+      ...bookingActionability,
     };
   }
 
@@ -689,6 +697,47 @@ export class MarketsService {
       .first<{ count: number }>();
 
     return Number(row?.count ?? 0);
+  }
+
+  private async countBookingActionabilityForMarket(marketId: string) {
+    const row = await this.d1
+      .prepare(
+        `SELECT
+           count(distinct CASE WHEN rsi.requires_booking = 1 THEN rsi.id END)
+             as booking_required_service_count,
+           count(
+             distinct CASE
+               WHEN rsi.requires_booking = 1
+                AND (rsi.booking_url IS NULL OR trim(rsi.booking_url) = '')
+               THEN rsi.id
+             END
+           ) as booking_url_missing_service_count
+         FROM restaurant_service_items rsi
+         INNER JOIN restaurants r ON rsi.restaurant_id = r.id
+         INNER JOIN restaurant_market_memberships rmm
+           ON rmm.restaurant_id = r.id
+          AND rmm.market_id = ?
+          AND rmm.left_at_ms IS NULL
+         WHERE rsi.is_active = 1
+           AND rsi.is_public = 1
+           AND rsi.deleted_at_ms IS NULL
+           AND r.is_active = 1
+           AND r.deleted_at_ms IS NULL`,
+      )
+      .bind(marketId)
+      .first<{
+        booking_required_service_count: number | null;
+        booking_url_missing_service_count: number | null;
+      }>();
+
+    return {
+      bookingRequiredServiceCount: Number(
+        row?.booking_required_service_count ?? 0,
+      ),
+      bookingUrlMissingServiceCount: Number(
+        row?.booking_url_missing_service_count ?? 0,
+      ),
+    };
   }
 
   private async catalogCoverageWithVendorBreakdown(
@@ -725,10 +774,12 @@ export class MarketsService {
         vendorsMissingSearchableProducts: 0,
         vendorsWithPublicServices: 0,
         vendorsMissingPublicServices: 0,
+        vendorsMissingBookingUrls: 0,
         vendorsMissingStallNumbers: 0,
         vendorsMissingSearchEntrypoints: 0,
         missingProductVendors: [],
         missingServiceVendors: [],
+        missingBookingUrlVendors: [],
         missingStallNumberVendors: [],
         missingSearchEntrypointVendors: [],
       };
@@ -753,13 +804,19 @@ export class MarketsService {
       )
       .groupBy(dishSearchIndex.restaurantId);
 
-    const serviceRows = await this.listVendorIdsWithPublicServices(marketId);
+    const [serviceRows, bookingGapRows] = await Promise.all([
+      this.listVendorIdsWithPublicServices(marketId),
+      this.listVendorIdsMissingBookingUrls(marketId),
+    ]);
 
     const vendorsWithProducts = new Set(
       productRows.map((row) => row.restaurantId),
     );
     const vendorsWithServices = new Set(
       serviceRows.map((row) => row.restaurantId),
+    );
+    const vendorsWithBookingUrlGaps = new Set(
+      bookingGapRows.map((row) => row.restaurantId),
     );
     const vendorsWithSearchableProductsCount = vendorRows.filter((vendor) =>
       vendorsWithProducts.has(vendor.restaurantId),
@@ -776,6 +833,13 @@ export class MarketsService {
       }));
     const missingServiceVendors = vendorRows
       .filter((vendor) => !vendorsWithServices.has(vendor.restaurantId))
+      .map((vendor) => ({
+        restaurantId: vendor.restaurantId,
+        name: vendor.name,
+        stallNumber: vendor.stallNumber,
+      }));
+    const missingBookingUrlVendors = vendorRows
+      .filter((vendor) => vendorsWithBookingUrlGaps.has(vendor.restaurantId))
       .map((vendor) => ({
         restaurantId: vendor.restaurantId,
         name: vendor.name,
@@ -806,10 +870,12 @@ export class MarketsService {
       vendorsMissingSearchableProducts: missingProductVendors.length,
       vendorsWithPublicServices: vendorsWithPublicServicesCount,
       vendorsMissingPublicServices: missingServiceVendors.length,
+      vendorsMissingBookingUrls: missingBookingUrlVendors.length,
       vendorsMissingStallNumbers: missingStallNumberVendors.length,
       vendorsMissingSearchEntrypoints: missingSearchEntrypointVendors.length,
       missingProductVendors,
       missingServiceVendors,
+      missingBookingUrlVendors,
       missingStallNumberVendors,
       missingSearchEntrypointVendors,
     };
@@ -827,6 +893,31 @@ export class MarketsService {
           AND rmm.left_at_ms IS NULL
          WHERE rsi.is_active = 1
            AND rsi.is_public = 1
+           AND rsi.deleted_at_ms IS NULL
+           AND r.is_active = 1
+           AND r.deleted_at_ms IS NULL
+         GROUP BY rsi.restaurant_id`,
+      )
+      .bind(marketId)
+      .all<{ restaurantId: string }>();
+
+    return result.results ?? [];
+  }
+
+  private async listVendorIdsMissingBookingUrls(marketId: string) {
+    const result = await this.d1
+      .prepare(
+        `SELECT rsi.restaurant_id as restaurantId
+         FROM restaurant_service_items rsi
+         INNER JOIN restaurants r ON rsi.restaurant_id = r.id
+         INNER JOIN restaurant_market_memberships rmm
+           ON rmm.restaurant_id = r.id
+          AND rmm.market_id = ?
+          AND rmm.left_at_ms IS NULL
+         WHERE rsi.is_active = 1
+           AND rsi.is_public = 1
+           AND rsi.requires_booking = 1
+           AND (rsi.booking_url IS NULL OR trim(rsi.booking_url) = '')
            AND rsi.deleted_at_ms IS NULL
            AND r.is_active = 1
            AND r.deleted_at_ms IS NULL

@@ -656,6 +656,7 @@
                 v-if="
                   market.catalogCoverage?.vendorsMissingSearchableProducts ||
                   market.catalogCoverage?.vendorsMissingPublicServices ||
+                  market.catalogCoverage?.vendorsMissingBookingUrls ||
                   market.catalogCoverage?.vendorsMissingStallNumbers ||
                   market.catalogCoverage?.vendorsMissingSearchEntrypoints
                 "
@@ -673,6 +674,10 @@
                   {{
                     market.catalogCoverage?.vendorsMissingPublicServices ?? 0
                   }}
+                </div>
+                <div>
+                  缺預約連結
+                  {{ market.catalogCoverage?.vendorsMissingBookingUrls ?? 0 }}
                 </div>
                 <div>
                   缺攤位號
@@ -792,6 +797,31 @@
                       @click="manageVendorGap(vendor, 'services', market)"
                     >
                       補服務
+                    </button>
+                  </div>
+                </div>
+                <div
+                  v-if="
+                    market.catalogCoverage?.missingBookingUrlVendors?.length
+                  "
+                >
+                  <span class="font-medium text-gray-700">缺預約連結：</span>
+                  {{
+                    vendorGapNames(
+                      market.catalogCoverage.missingBookingUrlVendors,
+                    )
+                  }}
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <button
+                      v-for="vendor in market.catalogCoverage
+                        .missingBookingUrlVendors"
+                      :key="`booking-url-${vendor.restaurantId}`"
+                      type="button"
+                      class="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-200"
+                      :data-testid="`manage-booking-url-${vendor.restaurantId}`"
+                      @click="manageVendorGap(vendor, 'services', market)"
+                    >
+                      補預約連結
                     </button>
                   </div>
                 </div>
@@ -2143,6 +2173,7 @@ function hasCatalogGapVendors(market: MarketListItem) {
   return (
     Boolean(market.catalogCoverage?.missingProductVendors?.length) ||
     Boolean(market.catalogCoverage?.missingServiceVendors?.length) ||
+    Boolean(market.catalogCoverage?.missingBookingUrlVendors?.length) ||
     Boolean(market.catalogCoverage?.missingStallNumberVendors?.length) ||
     Boolean(market.catalogCoverage?.missingSearchEntrypointVendors?.length)
   );
@@ -2154,6 +2185,7 @@ function hasCatalogCoverageGapVendors(
   return (
     Boolean(coverage?.missingProductVendors?.length) ||
     Boolean(coverage?.missingServiceVendors?.length) ||
+    Boolean(coverage?.missingBookingUrlVendors?.length) ||
     Boolean(coverage?.missingSearchEntrypointVendors?.length)
   );
 }

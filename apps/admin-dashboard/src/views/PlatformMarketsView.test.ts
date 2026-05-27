@@ -85,6 +85,9 @@ describe("PlatformMarketsView", () => {
           vendorsMissingSearchableProducts: 1,
           vendorsWithPublicServices: 0,
           vendorsMissingPublicServices: 1,
+          bookingRequiredServiceCount: 1,
+          bookingUrlMissingServiceCount: 1,
+          vendorsMissingBookingUrls: 1,
           vendorsMissingStallNumbers: 1,
           vendorsMissingSearchEntrypoints: 1,
           missingProductVendors: [
@@ -99,6 +102,13 @@ describe("PlatformMarketsView", () => {
               restaurantId: "restaurant-1",
               name: "缺商品攤",
               stallNumber: "A-01",
+            },
+          ],
+          missingBookingUrlVendors: [
+            {
+              restaurantId: "restaurant-3",
+              name: "缺預約連結攤",
+              stallNumber: "A-03",
             },
           ],
           missingStallNumberVendors: [
@@ -263,8 +273,10 @@ describe("PlatformMarketsView", () => {
 
     expect(wrapper.text()).toContain("缺攤位號");
     expect(wrapper.text()).toContain("缺搜尋入口");
+    expect(wrapper.text()).toContain("缺預約連結");
     expect(wrapper.text()).toContain("缺攤位號攤");
     expect(wrapper.text()).toContain("缺商品攤");
+    expect(wrapper.text()).toContain("缺預約連結攤");
 
     await wrapper
       .get('[data-testid="manage-stall-restaurant-2"]')
@@ -306,6 +318,28 @@ describe("PlatformMarketsView", () => {
     expect(selectRestaurant).toHaveBeenLastCalledWith(
       "restaurant-1",
       "缺商品攤",
+    );
+    expect(push).toHaveBeenLastCalledWith({
+      name: "Settings",
+      query: {
+        source: "market-gap",
+        gap: "services",
+        tab: "contact",
+        section: "services",
+        marketName: "逢甲夜市",
+        marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="manage-booking-url-restaurant-3"]')
+      .trigger("click");
+
+    expect(selectRestaurant).toHaveBeenLastCalledWith(
+      "restaurant-3",
+      "缺預約連結攤",
     );
     expect(push).toHaveBeenLastCalledWith({
       name: "Settings",
