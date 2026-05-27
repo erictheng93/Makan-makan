@@ -701,6 +701,8 @@
       >
         <RestaurantServiceItemsManager
           :restaurant-id="authStore.restaurantId"
+          :is-market-service-gap-context="isMarketServiceGapContext"
+          :market-gap-name="marketServiceGapName"
         />
       </div>
     </div>
@@ -1806,6 +1808,12 @@ const activeTab = ref(
 );
 const serviceItemsSection = ref<HTMLElement | null>(null);
 const showSuccessMessage = ref(false);
+const isMarketServiceGapContext = computed(
+  () => route.query.source === "market-gap" && route.query.gap === "services",
+);
+const marketServiceGapName = computed(() =>
+  firstQueryString(route.query.marketName),
+);
 
 // Shop QR 狀態
 const shopQR = reactive({
@@ -1966,6 +1974,13 @@ async function focusRequestedSection() {
     block: "start",
     behavior: "smooth",
   });
+}
+
+function firstQueryString(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === "string") ?? "";
+  }
+  return typeof value === "string" ? value : "";
 }
 
 // 外帶/外送設定

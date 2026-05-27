@@ -19,6 +19,18 @@
     </div>
 
     <div
+      v-if="isMarketServiceGapContext"
+      data-testid="market-service-gap-context"
+      class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3"
+    >
+      <h4 class="text-sm font-semibold text-amber-900">市場搜尋缺服務</h4>
+      <p class="mt-1 text-sm leading-5 text-amber-800">
+        新增公開且啟用的服務後，這間店鋪會更完整地出現在
+        {{ marketGapName || "夜市/商圈" }} 服務搜尋結果。
+      </p>
+    </div>
+
+    <div
       v-if="!restaurantId"
       class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
     >
@@ -243,6 +255,17 @@
         >
           已成功匯入 {{ serviceImportResult }} 筆服務。
         </div>
+        <div
+          v-if="showMarketServiceGapNextStep"
+          data-testid="market-service-gap-next-step"
+          class="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm leading-5 text-blue-800"
+        >
+          已補齊
+          {{
+            marketGapName || "夜市/商圈"
+          }}
+          的服務資料。請回到市場公開品質並重建搜尋索引，讓顧客搜尋立即包含這批服務。
+        </div>
 
         <div class="mt-4 flex justify-end">
           <button
@@ -361,6 +384,8 @@ import {
 
 const props = defineProps<{
   restaurantId?: string | null;
+  isMarketServiceGapContext?: boolean;
+  marketGapName?: string;
 }>();
 
 const services = ref<RestaurantServiceItem[]>([]);
@@ -373,6 +398,9 @@ const serviceImportText = ref("");
 const serviceImportError = ref("");
 const serviceImportResult = ref<number | null>(null);
 const isImportingServices = ref(false);
+const showMarketServiceGapNextStep = computed(
+  () => props.isMarketServiceGapContext && serviceImportResult.value !== null,
+);
 
 const defaultForm = () => ({
   name: "",

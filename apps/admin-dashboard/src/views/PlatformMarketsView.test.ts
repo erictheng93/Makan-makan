@@ -230,6 +230,8 @@ describe("PlatformMarketsView", () => {
     expect(push).toHaveBeenLastCalledWith({
       name: "Settings",
       query: {
+        source: "market-gap",
+        gap: "services",
         tab: "contact",
         section: "services",
         marketName: "逢甲夜市",

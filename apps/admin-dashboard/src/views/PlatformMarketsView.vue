@@ -1916,6 +1916,8 @@ function manageVendorGap(
   router.push({
     name: "Settings",
     query: {
+      source: "market-gap",
+      gap: "services",
       tab: "contact",
       section: "services",
       marketName: market.name,

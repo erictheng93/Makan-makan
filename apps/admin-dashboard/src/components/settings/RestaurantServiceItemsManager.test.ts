@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RestaurantServiceItemsManager from "./RestaurantServiceItemsManager.vue";
@@ -187,6 +189,52 @@ describe("RestaurantServiceItemsManager", () => {
     );
     expect(restaurantServiceItemsService.list).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已成功匯入 1 筆服務");
+  });
+
+  it("shows market gap context and reindex next step after service import", async () => {
+    vi.mocked(restaurantServiceItemsService.create).mockResolvedValue({
+      id: 2,
+      restaurantId: "restaurant-1",
+      name: "代客切水果",
+      serviceType: "general",
+      requiresBooking: false,
+      sortOrder: 1,
+      isActive: true,
+      isPublic: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+    const wrapper = mount(RestaurantServiceItemsManager, {
+      props: {
+        restaurantId: "restaurant-1",
+        isMarketServiceGapContext: true,
+        marketGapName: "逢甲夜市",
+      },
+    });
+
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="market-service-gap-context"]').text(),
+    ).toContain("逢甲夜市");
+
+    await wrapper
+      .get('[data-testid="service-import-csv"]')
+      .setValue(
+        [
+          "name,serviceType,description,requiresBooking,sortOrder,isActive,isPublic",
+          '"代客切水果",general,"現場代切並分裝",false,1,true,true',
+        ].join("\n"),
+      );
+    await wrapper.get('[data-testid="service-import-submit"]').trigger("click");
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="market-service-gap-next-step"]').text(),
+    ).toContain("重建搜尋索引");
+    expect(
+      wrapper.get('[data-testid="market-service-gap-next-step"]').text(),
+    ).toContain("逢甲夜市");
   });
 });
 
