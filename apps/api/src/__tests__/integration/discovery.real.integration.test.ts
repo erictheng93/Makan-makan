@@ -98,6 +98,7 @@ async function seedSearchIndex(
   items: {
     name: string;
     price: number;
+    priceCents?: number | null;
     menuItemId: number;
     isAvailable?: boolean;
     district?: string;
@@ -122,6 +123,7 @@ async function seedSearchIndex(
       categoryName: item.categoryName,
       isAvailable: (item.isAvailable ?? true) as unknown as boolean,
       price: item.price,
+      priceCents: item.priceCents ?? null,
       district: item.district,
       supportsTakeaway: (item.supportsTakeaway ?? false) as unknown as boolean,
       supportsDelivery: (item.supportsDelivery ?? false) as unknown as boolean,
@@ -219,6 +221,7 @@ describe("Discovery API — real integration", () => {
         menuItemId: menuItem.id,
         name: "Openable Bao",
         price: 95,
+        priceCents: 9500,
         district: "西屯區",
       },
     ]);
@@ -248,6 +251,8 @@ describe("Discovery API — real integration", () => {
     expect(dishData.results[0]).toMatchObject({
       resultType: "menu_item",
       menuItemId: menuItem.id,
+      priceCents: 9500,
+      priceLabel: null,
       restaurantId: restaurant.id,
       detailUrl: `/api/v1/restaurants/${restaurant.id}`,
       menuUrl: `/api/v1/menu/${restaurant.id}`,

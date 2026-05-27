@@ -124,6 +124,36 @@ describe("discovery takeaway buttons", () => {
     );
   });
 
+  it("uses explicit product price labels when provided", () => {
+    const wrapper = mount(DishResultCard, {
+      props: {
+        dish: {
+          resultType: "menu_item",
+          menuItemId: 1,
+          dishName: "客製手機殼",
+          price: 0,
+          priceCents: null,
+          priceLabel: "依規格報價",
+          categoryName: "配件",
+          restaurantId: "r1",
+          restaurantName: "配件攤",
+          district: "西屯區",
+          isOpen: true,
+          supportsTakeaway: false,
+          supportsDelivery: false,
+          tags: [],
+        },
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    });
+
+    expect(wrapper.get('[data-testid="dish-result-price"]').text()).toBe(
+      "依規格報價",
+    );
+  });
+
   it("hides immediate takeaway when restaurant is closed", () => {
     const wrapper = mount(RestaurantCard, {
       props: {

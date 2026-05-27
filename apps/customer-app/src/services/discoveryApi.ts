@@ -5,6 +5,8 @@ export interface DishSearchResult {
   menuItemId: number;
   dishName: string;
   price: number;
+  priceCents?: number | null;
+  priceLabel?: string | null;
   categoryName: string | null;
   restaurantId: string;
   restaurantName: string;

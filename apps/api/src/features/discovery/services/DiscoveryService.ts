@@ -273,6 +273,8 @@ export class DiscoveryService {
       dishName: row.dishName,
       price:
         row.priceCents != null ? fromCents(row.priceCents) : (row.price ?? 0),
+      priceCents: row.priceCents,
+      priceLabel: null,
       categoryName: row.categoryName,
       restaurantId: row.restaurantId,
       restaurantName: row.restaurantName,
@@ -853,6 +855,8 @@ export class DiscoveryService {
       dishName: row.dishName,
       price:
         row.priceCents != null ? fromCents(row.priceCents) : (row.price ?? 0),
+      priceCents: row.priceCents,
+      priceLabel: null,
       categoryName: row.categoryName,
       restaurantId: row.restaurantId,
       restaurantName: row.restaurantName,

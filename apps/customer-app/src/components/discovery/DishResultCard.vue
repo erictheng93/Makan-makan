@@ -31,8 +31,11 @@
             </span>
           </p>
           <div class="mt-2 flex items-center gap-2">
-            <span class="font-semibold text-ios-blue">
-              {{ formatPrice(dish.price) }}
+            <span
+              data-testid="dish-result-price"
+              class="font-semibold text-ios-blue"
+            >
+              {{ productPriceLabel }}
             </span>
             <span
               v-if="dish.isOpen"
@@ -130,4 +133,9 @@ const resultTypeLabel = computed(() =>
 const openActionLabel = computed(() =>
   props.dish.resultType === "menu_item" ? "查看商品" : "查看菜單",
 );
+
+const productPriceLabel = computed(() => {
+  if (props.dish.priceLabel) return props.dish.priceLabel;
+  return formatPrice(props.dish.price);
+});
 </script>
