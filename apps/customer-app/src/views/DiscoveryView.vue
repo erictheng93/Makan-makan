@@ -35,7 +35,16 @@
       />
 
       <section v-if="marketOptions.length > 0" class="space-y-2">
-        <h2 class="text-sm font-medium text-gray-700">選擇夜市或商圈</h2>
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-sm font-medium text-gray-700">選擇夜市或商圈</h2>
+          <router-link
+            to="/markets"
+            data-testid="discovery-market-directory-link"
+            class="shrink-0 text-xs font-medium text-ios-blue"
+          >
+            查看全部夜市與商圈
+          </router-link>
+        </div>
         <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
           <button
             v-for="market in marketOptions"

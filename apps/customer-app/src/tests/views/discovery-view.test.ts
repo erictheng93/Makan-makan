@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, RouterLinkStub } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DiscoveryView from "@/views/DiscoveryView.vue";
 import { discoveryApi } from "@/services/discoveryApi";
@@ -130,6 +130,7 @@ function mountView() {
           `,
         },
         RestaurantCard: true,
+        RouterLink: RouterLinkStub,
       },
     },
   });
@@ -456,6 +457,35 @@ describe("DiscoveryView", () => {
     expect(routerReplace).toHaveBeenCalledWith({
       query: { marketSlug: "fengjia", q: "章魚燒" },
     });
+  });
+
+  it("links from discovery market chips to the full market directory", async () => {
+    vi.mocked(marketsApi.listMarkets).mockResolvedValueOnce({
+      markets: [
+        {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    } as never);
+    vi.mocked(useDiscoveryStore).mockReturnValue(discoveryStore() as never);
+
+    const wrapper = mountView();
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("逢甲夜市");
+    });
+
+    const link = wrapper.get('[data-testid="discovery-market-directory-link"]');
+    expect(link.text()).toContain("查看全部夜市與商圈");
+    expect(
+      wrapper
+        .findAllComponents(RouterLinkStub)
+        .some((routerLink) => routerLink.props("to") === "/markets"),
+    ).toBe(true);
   });
 
   it("initializes a shareable search from the URL query", () => {
