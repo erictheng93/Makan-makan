@@ -236,6 +236,47 @@ describe("RestaurantServiceItemsManager", () => {
       wrapper.get('[data-testid="market-service-gap-next-step"]').text(),
     ).toContain("逢甲夜市");
   });
+
+  it("shows market gap reindex next step after manually adding a service", async () => {
+    vi.mocked(restaurantServiceItemsService.create).mockResolvedValue({
+      id: 2,
+      restaurantId: "restaurant-1",
+      name: "代客切水果",
+      serviceType: "general",
+      requiresBooking: false,
+      sortOrder: 0,
+      isActive: true,
+      isPublic: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+    const wrapper = mount(RestaurantServiceItemsManager, {
+      props: {
+        restaurantId: "restaurant-1",
+        isMarketServiceGapContext: true,
+        marketGapName: "逢甲夜市",
+      },
+    });
+
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="service-name-input"]')
+      .setValue("代客切水果");
+    await wrapper.get("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(restaurantServiceItemsService.create).toHaveBeenCalledWith(
+      "restaurant-1",
+      expect.objectContaining({
+        name: "代客切水果",
+        isPublic: true,
+        isActive: true,
+      }),
+    );
+    expect(
+      wrapper.get('[data-testid="market-service-gap-next-step"]').text(),
+    ).toContain("重建搜尋索引");
+  });
 });
 
 async function flushPromises() {

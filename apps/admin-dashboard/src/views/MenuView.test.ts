@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import MenuView from "./MenuView.vue";
 
 const importMenuItems = vi.fn();
+const saveMenuItem = vi.fn();
 const fetchMenu = vi.fn();
 const routeQuery = {} as Record<string, unknown>;
 const categories = ref([
@@ -45,7 +46,7 @@ vi.mock("@/composables/useMenuManagement", () => ({
     saveCategory: vi.fn(),
     deleteCategory: vi.fn(),
     reorderCategories: vi.fn(),
-    saveMenuItem: vi.fn(),
+    saveMenuItem,
     importMenuItems,
     deleteMenuItem: vi.fn(),
     toggleMenuItemStatus: vi.fn(),
@@ -190,6 +191,46 @@ describe("MenuView", () => {
     expect(
       wrapper.get('[data-testid="market-product-gap-next-step"]').text(),
     ).toContain("逢甲夜市");
+  });
+
+  it("shows a market search reindex next step after manually adding a product gap item", async () => {
+    routeQuery.source = "market-gap";
+    routeQuery.gap = "products";
+    routeQuery.marketName = "逢甲夜市";
+    const wrapper = mount(MenuView, {
+      global: {
+        stubs: {
+          CategoryPanel: true,
+          CategoryEditForm: true,
+          MenuItemCard: true,
+          VirtualMenuGrid: true,
+        },
+      },
+    });
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+    await wrapper
+      .get('[data-testid="menu-item-name-input"]')
+      .setValue("蚵仔煎");
+    await wrapper.get('[data-testid="menu-item-price-input"]').setValue(7000);
+    await wrapper.get('[data-testid="menu-item-category-select"]').setValue(1);
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(saveMenuItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "蚵仔煎",
+        categoryId: 1,
+        isAvailable: true,
+      }),
+      undefined,
+    );
+    expect(
+      wrapper.get('[data-testid="market-product-gap-next-step"]').text(),
+    ).toContain("重建搜尋索引");
   });
 });
 

@@ -196,9 +196,7 @@
             class="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[13px] leading-5 text-blue-800"
           >
             已補齊
-            {{
-              marketGapName || "夜市/商圈"
-            }}
+            {{ marketGapName || "夜市/商圈" }}
             的商品資料。請回到市場公開品質並重建搜尋索引，讓顧客搜尋立即包含這批商品。
           </div>
 
@@ -350,6 +348,7 @@
                   </label>
                   <input
                     v-model="menuItemForm.name"
+                    data-testid="menu-item-name-input"
                     type="text"
                     required
                     class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
@@ -380,6 +379,7 @@
                   </label>
                   <input
                     v-model.number="menuItemForm.price"
+                    data-testid="menu-item-price-input"
                     type="number"
                     step="0.01"
                     min="0"
@@ -398,6 +398,7 @@
                   </label>
                   <select
                     v-model="menuItemForm.categoryId"
+                    data-testid="menu-item-category-select"
                     required
                     class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   >
@@ -582,6 +583,7 @@ const menuItemImportText = ref("");
 const menuItemImportError = ref("");
 const menuItemImportResult = ref<number | null>(null);
 const isImportingMenuItems = ref(false);
+const hasCompletedMarketProductGap = ref(false);
 
 const menuItemForm = ref({
   name: "",
@@ -643,7 +645,7 @@ const isMarketProductGapContext = computed(
 );
 const marketGapName = computed(() => firstQueryString(route.query.marketName));
 const showMarketProductGapNextStep = computed(
-  () => isMarketProductGapContext.value && menuItemImportResult.value !== null,
+  () => isMarketProductGapContext.value && hasCompletedMarketProductGap.value,
 );
 const menuItemImportPreview = computed(() => {
   if (!menuItemImportText.value.trim()) {
@@ -777,6 +779,9 @@ const handleSaveMenuItem = async () => {
     },
     editingMenuItem.value?.id,
   );
+  if (isMarketProductGapContext.value) {
+    hasCompletedMarketProductGap.value = true;
+  }
   closeMenuItemModal();
 };
 
@@ -810,6 +815,7 @@ const importMenuItemsFromCsv = async () => {
   try {
     await importMenuItems(parsed.items);
     menuItemImportResult.value = parsed.items.length;
+    hasCompletedMarketProductGap.value = true;
     menuItemImportText.value = "";
   } catch (error) {
     menuItemImportError.value =

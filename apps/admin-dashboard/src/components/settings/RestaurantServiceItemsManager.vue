@@ -261,9 +261,7 @@
           class="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm leading-5 text-blue-800"
         >
           已補齊
-          {{
-            marketGapName || "夜市/商圈"
-          }}
+          {{ marketGapName || "夜市/商圈" }}
           的服務資料。請回到市場公開品質並重建搜尋索引，讓顧客搜尋立即包含這批服務。
         </div>
 
@@ -398,8 +396,9 @@ const serviceImportText = ref("");
 const serviceImportError = ref("");
 const serviceImportResult = ref<number | null>(null);
 const isImportingServices = ref(false);
+const hasCompletedMarketServiceGap = ref(false);
 const showMarketServiceGapNextStep = computed(
-  () => props.isMarketServiceGapContext && serviceImportResult.value !== null,
+  () => props.isMarketServiceGapContext && hasCompletedMarketServiceGap.value,
 );
 
 const defaultForm = () => ({
@@ -499,6 +498,9 @@ async function saveService() {
         servicePayload(),
       );
     }
+    if (props.isMarketServiceGapContext) {
+      hasCompletedMarketServiceGap.value = true;
+    }
     resetForm();
     await loadServices();
   } catch (saveError) {
@@ -533,6 +535,7 @@ async function importServices() {
       await restaurantServiceItemsService.create(props.restaurantId, item);
     }
     serviceImportResult.value = parsed.items.length;
+    hasCompletedMarketServiceGap.value = true;
     serviceImportText.value = "";
     await loadServices();
   } catch (importError) {
@@ -603,6 +606,7 @@ watch(
   () => {
     resetForm();
     resetServiceImport();
+    hasCompletedMarketServiceGap.value = false;
     loadServices();
   },
 );
