@@ -52,6 +52,25 @@
             {{ todayHoursLabel }}
           </span>
         </div>
+        <div
+          v-if="catalogCoverage"
+          data-testid="market-card-catalog"
+          class="flex flex-wrap gap-2 text-xs"
+        >
+          <template v-if="hasSearchableCatalog">
+            <span
+              class="rounded-full bg-ios-blue/10 px-2.5 py-1 font-medium text-ios-blue"
+            >
+              商品 {{ catalogCoverage.searchableProductCount }}
+            </span>
+            <span
+              class="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700"
+            >
+              服務 {{ catalogCoverage.publicServiceCount }}
+            </span>
+          </template>
+          <span v-else class="text-gray-500"> 店鋪補齊後可搜尋商品與服務 </span>
+        </div>
         <p
           v-if="market.description"
           class="line-clamp-2 text-sm leading-5 text-gray-600"
@@ -90,6 +109,12 @@ const heroImageUrl = computed(
     props.market.logoUrl ||
     props.market.imageUrls?.[0] ||
     "",
+);
+const catalogCoverage = computed(() => props.market.catalogCoverage ?? null);
+const hasSearchableCatalog = computed(
+  () =>
+    (catalogCoverage.value?.searchableProductCount ?? 0) > 0 ||
+    (catalogCoverage.value?.publicServiceCount ?? 0) > 0,
 );
 
 const weekdayKeys = [

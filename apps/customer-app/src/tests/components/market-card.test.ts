@@ -62,4 +62,38 @@ describe("MarketCard", () => {
 
     expect(wrapper.text()).toContain("今日休息");
   });
+
+  it("shows searchable product and service coverage", () => {
+    const wrapper = mount(MarketCard, {
+      props: {
+        market: market({
+          catalogCoverage: {
+            searchableProductCount: 36,
+            publicServiceCount: 5,
+          },
+        }),
+      },
+    });
+
+    const coverage = wrapper.get('[data-testid="market-card-catalog"]');
+    expect(coverage.text()).toContain("商品 36");
+    expect(coverage.text()).toContain("服務 5");
+  });
+
+  it("explains markets that are listed before searchable catalogs are ready", () => {
+    const wrapper = mount(MarketCard, {
+      props: {
+        market: market({
+          catalogCoverage: {
+            searchableProductCount: 0,
+            publicServiceCount: 0,
+          },
+        }),
+      },
+    });
+
+    expect(wrapper.get('[data-testid="market-card-catalog"]').text()).toContain(
+      "店鋪補齊後可搜尋商品與服務",
+    );
+  });
 });

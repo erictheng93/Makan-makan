@@ -21,6 +21,10 @@ export interface MarketListItem {
   imageUrls?: string[] | null;
   tags: string[] | null;
   vendorCount: number;
+  catalogCoverage?: {
+    searchableProductCount: number;
+    publicServiceCount: number;
+  };
 }
 
 export interface MarketDetail extends MarketListItem {
