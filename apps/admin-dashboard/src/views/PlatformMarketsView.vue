@@ -1225,6 +1225,32 @@
             </div>
             <div
               v-if="
+                vendorImportResult.catalogReadiness?.missingBookingUrlVendors
+                  ?.length
+              "
+            >
+              <span class="font-medium">缺預約連結：</span>
+              {{
+                vendorGapNames(
+                  vendorImportResult.catalogReadiness.missingBookingUrlVendors,
+                )
+              }}
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <button
+                  v-for="vendor in vendorImportResult.catalogReadiness
+                    .missingBookingUrlVendors"
+                  :key="`import-booking-url-${vendor.restaurantId}`"
+                  type="button"
+                  :data-testid="`vendor-import-manage-booking-url-${vendor.restaurantId}`"
+                  class="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-200"
+                  @click="manageImportedVendorGap(vendor, 'services')"
+                >
+                  補預約連結
+                </button>
+              </div>
+            </div>
+            <div
+              v-if="
                 vendorImportResult.catalogReadiness
                   ?.missingSearchEntrypointVendors?.length
               "

@@ -1055,10 +1055,13 @@ describe("PlatformMarketsView", () => {
       catalogReadiness: {
         searchableProductCount: 0,
         publicServiceCount: 0,
+        bookingRequiredServiceCount: 1,
+        bookingUrlMissingServiceCount: 1,
         vendorsWithSearchableProducts: 0,
         vendorsMissingSearchableProducts: 1,
         vendorsWithPublicServices: 0,
         vendorsMissingPublicServices: 1,
+        vendorsMissingBookingUrls: 1,
         vendorsMissingSearchEntrypoints: 1,
         missingProductVendors: [
           {
@@ -1072,6 +1075,13 @@ describe("PlatformMarketsView", () => {
             restaurantId: "imported-vendor-1",
             name: "匯入缺商品攤",
             stallNumber: "B-01",
+          },
+        ],
+        missingBookingUrlVendors: [
+          {
+            restaurantId: "imported-vendor-2",
+            name: "匯入缺預約連結攤",
+            stallNumber: "B-02",
           },
         ],
         missingSearchEntrypointVendors: [
@@ -1143,8 +1153,10 @@ describe("PlatformMarketsView", () => {
     );
     expect(catalogGaps.text()).toContain("缺商品");
     expect(catalogGaps.text()).toContain("缺服務");
+    expect(catalogGaps.text()).toContain("缺預約連結");
     expect(catalogGaps.text()).toContain("缺搜尋入口");
     expect(catalogGaps.text()).toContain("匯入缺商品攤 (B-01)");
+    expect(catalogGaps.text()).toContain("匯入缺預約連結攤 (B-02)");
 
     await wrapper
       .get('[data-testid="vendor-import-manage-products-imported-vendor-1"]')
@@ -1159,6 +1171,28 @@ describe("PlatformMarketsView", () => {
       query: {
         source: "market-gap",
         gap: "products",
+        marketName: "逢甲夜市",
+        marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="vendor-import-manage-booking-url-imported-vendor-2"]')
+      .trigger("click");
+
+    expect(selectRestaurant).toHaveBeenLastCalledWith(
+      "imported-vendor-2",
+      "匯入缺預約連結攤",
+    );
+    expect(push).toHaveBeenLastCalledWith({
+      name: "Settings",
+      query: {
+        source: "market-gap",
+        gap: "services",
+        tab: "contact",
+        section: "services",
         marketName: "逢甲夜市",
         marketSlug: "fengjia",
         areaCity: "台中市",
