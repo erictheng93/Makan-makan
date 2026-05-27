@@ -1,0 +1,134 @@
+import { mount } from "@vue/test-utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import MarketsView from "./MarketsView.vue";
+import { marketsApi } from "@/services/api";
+
+vi.mock("vue-toastification", () => ({
+  useToast: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
+
+vi.mock("@/services/api", () => ({
+  marketsApi: {
+    list: vi.fn(),
+    listJoinRequests: vi.fn(),
+    update: vi.fn(),
+    create: vi.fn(),
+    delete: vi.fn(),
+    addVendor: vi.fn(),
+    removeVendor: vi.fn(),
+    listVendorCandidates: vi.fn(),
+    approveJoinRequest: vi.fn(),
+    rejectJoinRequest: vi.fn(),
+    importVendors: vi.fn(),
+  },
+}));
+
+describe("MarketsView", () => {
+  beforeEach(() => {
+    vi.mocked(marketsApi.list).mockResolvedValue({
+      markets: [
+        {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          type: "night_market",
+          city: "台中市",
+          district: "西屯區",
+          address: "文華路",
+          latitude: 24.179,
+          longitude: 120.646,
+          isActive: true,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+    vi.mocked(marketsApi.listJoinRequests).mockResolvedValue([]);
+    vi.mocked(marketsApi.importVendors).mockReset();
+  });
+
+  it("previews and imports market vendors from CSV", async () => {
+    vi.mocked(marketsApi.importVendors)
+      .mockResolvedValueOnce({
+        dryRun: true,
+        wouldCreateRestaurants: 1,
+        wouldAttachVendors: 2,
+        skipped: 0,
+        issueCount: 0,
+        blockingIssueCount: 0,
+        warningIssueCount: 0,
+        results: [],
+      })
+      .mockResolvedValueOnce({
+        createdRestaurants: 1,
+        attachedVendors: 2,
+        skipped: 0,
+        results: [],
+      });
+
+    const wrapper = mount(MarketsView);
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("逢甲夜市");
+    });
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Edit");
+    expect(editButton).toBeDefined();
+    await editButton!.trigger("click");
+    await wrapper
+      .get('[data-testid="market-vendor-import-text"]')
+      .setValue(
+        [
+          "restaurantId,name,address,district,city,stallNumber,isPrimary",
+          ",逢甲雞排攤,台中市西屯區文華路100號,西屯區,台中市,A-18,true",
+          "restaurant-123,,,,,B-02,false",
+        ].join("\n"),
+      );
+    await wrapper
+      .get('[data-testid="market-vendor-import-preview"]')
+      .trigger("click");
+
+    await vi.waitFor(() => {
+      expect(marketsApi.importVendors).toHaveBeenCalledWith("market-1", {
+        dryRun: true,
+        vendors: [
+          {
+            name: "逢甲雞排攤",
+            address: "台中市西屯區文華路100號",
+            district: "西屯區",
+            city: "台中市",
+            stallNumber: "A-18",
+            isPrimary: true,
+          },
+          {
+            restaurantId: "restaurant-123",
+            stallNumber: "B-02",
+            isPrimary: false,
+          },
+        ],
+      });
+    });
+    expect(
+      wrapper.get('[data-testid="market-vendor-import-result"]').text(),
+    ).toContain("Would create 1 restaurants and attach 2 vendors");
+
+    await wrapper
+      .get('[data-testid="market-vendor-import-submit"]')
+      .trigger("click");
+
+    await vi.waitFor(() => {
+      expect(marketsApi.importVendors).toHaveBeenLastCalledWith("market-1", {
+        dryRun: false,
+        vendors: expect.any(Array),
+      });
+    });
+    expect(
+      wrapper.get('[data-testid="market-vendor-import-result"]').text(),
+    ).toContain("Created 1 restaurants and attached 2 vendors");
+  });
+});

@@ -250,6 +250,56 @@ export interface MarketVendorCandidate {
   supportsDelivery: boolean;
 }
 
+export interface MarketVendorImportInput {
+  restaurantId?: string;
+  name?: string;
+  type?: string;
+  category?: string;
+  description?: string;
+  address?: string;
+  district?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  phone?: string;
+  email?: string;
+  website?: string;
+  stallNumber?: string | null;
+  isPrimary?: boolean;
+}
+
+export interface MarketVendorImportIssue {
+  index: number;
+  code: string;
+  severity: "blocking" | "warning";
+  message: string;
+  field?: string;
+  restaurantId?: string;
+  restaurantName?: string;
+}
+
+export interface MarketVendorImportResult {
+  dryRun?: boolean;
+  wouldCreateRestaurants?: number;
+  wouldAttachVendors?: number;
+  createdRestaurants?: number;
+  attachedVendors?: number;
+  skipped: number;
+  issueCount?: number;
+  blockingIssueCount?: number;
+  warningIssueCount?: number;
+  issues?: MarketVendorImportIssue[];
+  catalogReadiness?: unknown;
+  results: Array<{
+    status: string;
+    reason?: string;
+    restaurantId?: string;
+    restaurantName?: string;
+    membershipId?: number;
+    stallNumber?: string | null;
+  }>;
+}
+
 export interface MarketJoinRequest {
   id: number;
   restaurantId: string;

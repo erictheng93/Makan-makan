@@ -23,6 +23,8 @@ import type {
   Market,
   MarketJoinRequest,
   MarketVendorCandidate,
+  MarketVendorImportInput,
+  MarketVendorImportResult,
   MarketVendorMembership,
   CreateMarketRequest,
   UpdateMarketRequest,
@@ -343,6 +345,19 @@ export const marketsApi = {
     await apiClient.delete(
       `/admin/markets/${marketId}/vendors/${restaurantId}`,
     );
+  },
+
+  async importVendors(
+    marketId: string,
+    request: {
+      dryRun?: boolean;
+      vendors: MarketVendorImportInput[];
+    },
+  ): Promise<MarketVendorImportResult> {
+    const { data } = await apiClient.post<
+      ApiResponse<MarketVendorImportResult>
+    >(`/admin/markets/${marketId}/vendor-imports`, request);
+    return data.data!;
   },
 
   async listVendorCandidates(params?: {

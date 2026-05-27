@@ -14,7 +14,12 @@ import type {
   Market,
   MarketJoinRequest,
   MarketVendorCandidate,
+  MarketVendorImportResult,
 } from "@/types";
+import {
+  buildMarketVendorImportTemplate,
+  parseMarketVendorImport,
+} from "@/utils/marketVendorImport";
 
 const toast = useToast();
 const markets = ref<Market[]>([]);
@@ -36,6 +41,10 @@ const requestStallNumber = ref<Record<number, string>>({});
 const requestIsPrimary = ref<Record<number, boolean>>({});
 const tagsText = ref("");
 const imageUrlsText = ref("");
+const vendorImportText = ref("");
+const importingVendors = ref(false);
+const vendorImportResult = ref<MarketVendorImportResult | null>(null);
+const vendorImportErrors = ref<string[]>([]);
 
 const weekdays = [
   { key: "monday", label: "Mon" },
@@ -97,6 +106,8 @@ function resetVendorSelection() {
   selectedVendorCandidate.value = null;
   vendorStallNumber.value = "";
   vendorIsPrimary.value = false;
+  vendorImportResult.value = null;
+  vendorImportErrors.value = [];
 }
 
 function setOpeningHoursDraft(openingHours?: Record<string, unknown> | null) {
@@ -282,6 +293,40 @@ async function removeVendor() {
   toast.success("Vendor removed");
   selectedVendorCandidate.value = null;
   await Promise.all([loadMarkets(), searchVendorCandidates()]);
+}
+
+function loadVendorImportTemplate() {
+  vendorImportText.value = buildMarketVendorImportTemplate();
+  vendorImportResult.value = null;
+  vendorImportErrors.value = [];
+}
+
+async function importVendors(dryRun: boolean) {
+  if (!selectedMarket.value) return;
+
+  const parsed = parseMarketVendorImport(vendorImportText.value);
+  vendorImportErrors.value = parsed.errors;
+  vendorImportResult.value = null;
+  if (parsed.errors.length > 0) return;
+
+  importingVendors.value = true;
+  try {
+    vendorImportResult.value = await marketsApi.importVendors(
+      selectedMarket.value.id,
+      {
+        dryRun,
+        vendors: parsed.vendors,
+      },
+    );
+    if (dryRun) {
+      toast.success("Vendor import preview ready");
+      return;
+    }
+    toast.success("Vendors imported");
+    await loadMarkets();
+  } finally {
+    importingVendors.value = false;
+  }
 }
 
 async function searchVendorCandidates() {
@@ -802,6 +847,114 @@ onMounted(loadDashboard);
               Remove
             </button>
           </div>
+        </section>
+
+        <section class="card space-y-4">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">
+              Vendor CSV import
+            </h2>
+            <p class="mt-1 text-sm text-gray-500">
+              Bulk create or attach market vendors for the selected market.
+            </p>
+          </div>
+
+          <div
+            v-if="!selectedMarket"
+            class="rounded-md bg-gray-50 p-3 text-sm text-gray-500"
+          >
+            Select a market first.
+          </div>
+          <template v-else>
+            <div class="rounded-md bg-primary-50 p-3 text-sm text-primary-700">
+              Importing into
+              <span class="font-medium">{{ selectedMarket.name }}</span>
+            </div>
+            <textarea
+              v-model="vendorImportText"
+              data-testid="market-vendor-import-text"
+              class="input min-h-40 font-mono text-xs"
+              placeholder="restaurantId,name,address,district,city,stallNumber,isPrimary,phone,email,latitude,longitude"
+            />
+            <div class="grid gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                @click="loadVendorImportTemplate"
+              >
+                Template
+              </button>
+              <button
+                type="button"
+                data-testid="market-vendor-import-preview"
+                class="btn btn-secondary"
+                :disabled="importingVendors"
+                @click="importVendors(true)"
+              >
+                Preview
+              </button>
+              <button
+                type="button"
+                data-testid="market-vendor-import-submit"
+                class="btn btn-primary"
+                :disabled="
+                  importingVendors ||
+                  !vendorImportResult?.dryRun ||
+                  (vendorImportResult.blockingIssueCount ?? 0) > 0
+                "
+                @click="importVendors(false)"
+              >
+                {{ importingVendors ? "Importing..." : "Import" }}
+              </button>
+            </div>
+
+            <div
+              v-if="vendorImportErrors.length > 0"
+              data-testid="market-vendor-import-errors"
+              class="space-y-1 rounded-md bg-red-50 p-3 text-sm text-red-700"
+            >
+              <p v-for="error in vendorImportErrors" :key="error">
+                {{ error }}
+              </p>
+            </div>
+
+            <div
+              v-if="vendorImportResult"
+              data-testid="market-vendor-import-result"
+              class="space-y-2 rounded-md bg-gray-50 p-3 text-sm text-gray-700"
+            >
+              <p v-if="vendorImportResult.dryRun">
+                Would create
+                {{ vendorImportResult.wouldCreateRestaurants ?? 0 }}
+                restaurants and attach
+                {{ vendorImportResult.wouldAttachVendors ?? 0 }} vendors.
+              </p>
+              <p v-else>
+                Created {{ vendorImportResult.createdRestaurants ?? 0 }}
+                restaurants and attached
+                {{ vendorImportResult.attachedVendors ?? 0 }} vendors.
+              </p>
+              <p>Skipped {{ vendorImportResult.skipped }} rows.</p>
+              <p v-if="vendorImportResult.issueCount">
+                Issues: {{ vendorImportResult.issueCount }} ({{
+                  vendorImportResult.blockingIssueCount ?? 0
+                }}
+                blocking,
+                {{ vendorImportResult.warningIssueCount ?? 0 }} warning)
+              </p>
+              <ul
+                v-if="vendorImportResult.issues?.length"
+                class="list-disc space-y-1 pl-5 text-xs text-gray-600"
+              >
+                <li
+                  v-for="issue in vendorImportResult.issues.slice(0, 5)"
+                  :key="`${issue.index}-${issue.code}`"
+                >
+                  Row {{ issue.index + 1 }}: {{ issue.message }}
+                </li>
+              </ul>
+            </div>
+          </template>
         </section>
       </aside>
     </div>
