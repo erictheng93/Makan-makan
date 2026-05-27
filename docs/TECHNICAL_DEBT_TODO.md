@@ -60,33 +60,40 @@ PRs.
 
 ### Payment Audit Trail Is Still Not Persisted
 
-**Priority:** P1
+**Priority:** P1 — Resolved 2026-05-27 (superseded by active payment path)
 
-**File:** `apps/api/src/services/PaymentOrchestrator.ts`
+**Original file (now removed):** `apps/api/src/services/PaymentOrchestrator.ts`
 
-**Evidence:**
+**Resolution:** The original `PaymentOrchestrator` was scaffolding for an
+external payment-gateway integration (Stripe / ECPay / LinePay / iPay88 /
+TouchNGo / VNPay) that was never wired into routes — every provider was
+commented out and nothing imported the orchestrator. Audit-trail persistence
+already runs through the active payment path:
 
-- `logPaymentAttempt()` still only documents a TODO to record payment attempts
-  in a database table or monitoring system.
-- `logRefundAttempt()` still only documents a TODO to record refund attempts.
-- `docs/deployment/PRE_LAUNCH_CHECKLIST.md` also lists payment audit trail as
-  a launch checklist item, though that checklist has encoding damage and should
-  not be treated as the canonical source.
+- `packages/database/src/schema/payment-audit-log.ts` defines an append-only
+  `payment_audit_log` table with `INSERT OR IGNORE` guarded by a unique
+  `(provider, provider_event_id)` index.
+- `apps/api/src/features/billing/services/PaymentAuditService.ts` is the
+  single writer, used by:
+  - `apps/api/src/features/payments/services/PaymentService.ts` emits
+    `ATTEMPT`, `SUCCESS`, and `FAILURE` events on every order payment.
+  - `apps/api/src/features/billing/services/BillingCycleService.ts` emits
+    cycle close / trial downgrade / plan change events.
+  - `apps/api/src/features/billing/services/BillingWebhookService.ts` emits
+    `WEBHOOK_RECEIVED` and downstream provider events.
 
-**Impact:** Payment and refund events can be processed without a durable
-append-only audit trail, weakening incident investigation, reconciliation, and
-compliance review.
+The 2026-05-27 cleanup removed the dead orchestrator, its dead wrapper
+`apps/api/src/services/PaymentService.ts`, and `PaymentConfigManager.ts`.
+`docs/deployment/PRE_LAUNCH_CHECKLIST.md` still lists payment audit trail as a
+launch checklist item but is encoding-damaged and not canonical.
 
-**TODO:**
+**Outstanding follow-ups (track separately, not P1):**
 
-- [ ] Define the payment/refund audit log schema, retention policy, and
-      redaction rules.
-- [ ] Persist every payment attempt, success, failure, refund attempt, and
-      provider error with request correlation IDs.
-- [ ] Ensure audit writes are append-only and cannot be silently overwritten by
-      normal application code.
-- [ ] Add tests proving audit rows are written for success, provider failure,
-      validation failure, and refund paths.
+- [ ] No refund path exists in `features/payments/PaymentService` — when refund
+      support is added, ensure it emits `REFUND` audit events through
+      `PaymentAuditService.append()`.
+- [ ] Add explicit tests for the active payment path proving audit rows are
+      written for success, failure, and (future) refund.
 
 ### Authentication Flows Were Exposed But Partially Stubbed
 
