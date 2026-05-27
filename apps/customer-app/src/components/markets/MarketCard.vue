@@ -28,9 +28,17 @@
             <h2 class="truncate text-base font-semibold text-gray-900">
               {{ market.name }}
             </h2>
-            <p class="mt-0.5 text-sm text-gray-500">
-              {{ market.city }} · {{ market.district }}
-            </p>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+              <span
+                data-testid="market-card-type"
+                class="rounded-full bg-ios-blue/10 px-2 py-0.5 text-xs font-medium text-ios-blue"
+              >
+                {{ typeLabel }}
+              </span>
+              <span class="text-sm text-gray-500">
+                {{ market.city }} · {{ market.district }}
+              </span>
+            </div>
           </div>
           <span class="shrink-0 text-sm font-medium text-ios-blue">
             {{ vendorLabel }}
@@ -117,6 +125,13 @@ defineEmits<{
 }>();
 
 const vendorLabel = computed(() => `${props.market.vendorCount ?? 0} 攤`);
+const typeLabels: Record<string, string> = {
+  night_market: "夜市",
+  commercial_district: "商圈",
+  food_court: "美食街",
+  event_venue: "活動場域",
+};
+const typeLabel = computed(() => typeLabels[props.market.type] ?? "場域");
 const distanceLabel = computed(() =>
   props.market.distanceKm == null
     ? ""

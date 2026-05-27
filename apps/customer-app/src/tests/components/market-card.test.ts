@@ -26,6 +26,19 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
 }
 
 describe("MarketCard", () => {
+  it("shows the venue type for mixed market directories", () => {
+    const wrapper = mount(MarketCard, {
+      props: {
+        market: market({
+          name: "精明商圈",
+          type: "commercial_district",
+        }),
+      },
+    });
+
+    expect(wrapper.get('[data-testid="market-card-type"]').text()).toBe("商圈");
+  });
+
   it("uses gallery image fallback and shows open status", () => {
     vi.setSystemTime(new Date("2026-05-22T18:30:00+08:00"));
 
