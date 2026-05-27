@@ -120,6 +120,27 @@ describe("market vendor import parsing", () => {
     ]);
   });
 
+  it("rejects JSON coordinate strings before import", () => {
+    const result = parseMarketVendorImport(
+      "json",
+      JSON.stringify([
+        {
+          name: "字串座標店鋪",
+          address: "台中市西屯區文華路",
+          district: "西屯區",
+          latitude: "24.176",
+          longitude: "120.646",
+        },
+      ]),
+    );
+
+    expect(result.vendors).toEqual([]);
+    expect(result.errors).toEqual([
+      "第 1 筆：latitude 必須是 -90 到 90 之間的數字。",
+      "第 1 筆：longitude 必須是 -180 到 180 之間的數字。",
+    ]);
+  });
+
   it("rejects JSON rows that are not objects", () => {
     expect(parseMarketVendorImport("json", "[1]")).toEqual({
       vendors: [],

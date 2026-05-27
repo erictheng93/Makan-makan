@@ -221,13 +221,13 @@ function validateVendorImportRow(
     errors.push(`${rowLabel}：phone 只能包含數字、空白、+、-、括號。`);
   }
   if (
-    typeof vendor.latitude === "number" &&
+    vendor.latitude !== undefined &&
     !isCoordinate(vendor.latitude, -90, 90)
   ) {
     errors.push(`${rowLabel}：latitude 必須是 -90 到 90 之間的數字。`);
   }
   if (
-    typeof vendor.longitude === "number" &&
+    vendor.longitude !== undefined &&
     !isCoordinate(vendor.longitude, -180, 180)
   ) {
     errors.push(`${rowLabel}：longitude 必須是 -180 到 180 之間的數字。`);
@@ -236,11 +236,7 @@ function validateVendorImportRow(
   return errors;
 }
 
-function isCoordinate(
-  value: number | undefined,
-  minimum: number,
-  maximum: number,
-) {
+function isCoordinate(value: unknown, minimum: number, maximum: number) {
   return (
     typeof value === "number" &&
     Number.isFinite(value) &&
