@@ -61,6 +61,7 @@ export interface ServiceSearchResult {
   detailUrl: string;
   menuUrl: string;
   serviceItemsUrl: string;
+  distanceKm?: number;
   marketVendor?: MarketVendorContext;
 }
 

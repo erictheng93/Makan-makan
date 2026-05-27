@@ -74,6 +74,18 @@ describe("discovery query validation", () => {
     });
 
     expect(
+      serviceSearchQuerySchema.parse({
+        marketId: "market-1",
+        lat: 24.1764,
+        lng: 120.6466,
+        sortBy: "distance",
+      }),
+    ).toMatchObject({
+      marketId: "market-1",
+      sortBy: "distance",
+    });
+
+    expect(
       restaurantBrowseQuerySchema.parse({
         marketId: "market-1",
         lat: 24.1764,
@@ -89,6 +101,13 @@ describe("discovery query validation", () => {
   it("rejects distance sorting without GPS coordinates", () => {
     expect(() =>
       dishSearchQuerySchema.parse({
+        marketId: "market-1",
+        sortBy: "distance",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      serviceSearchQuerySchema.parse({
         marketId: "market-1",
         sortBy: "distance",
       }),

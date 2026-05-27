@@ -1196,6 +1196,73 @@ describe("Discovery API — real integration", () => {
     ]);
   });
 
+  it("sorts market service results by distance and returns distance metadata", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "distance-service-market",
+    });
+    const nearRestaurant = await seed.restaurant({
+      name: "Near Distance Service Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1765,
+      longitude: 120.6467,
+    });
+    const farRestaurant = await seed.restaurant({
+      name: "Far Distance Service Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.19,
+      longitude: 120.66,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(nearRestaurant.id),
+        marketId: market.id,
+        stallNumber: "N-03",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(farRestaurant.id),
+        marketId: market.id,
+        stallNumber: "F-03",
+        joinedAt: new Date(),
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(nearRestaurant.id),
+        name: "Distance Service Near Pickup",
+        serviceType: "pickup",
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(farRestaurant.id),
+        name: "Distance Service Far Pickup",
+        serviceType: "pickup",
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?q=Distance+Service&marketId=${market.id}&lat=24.1764&lng=120.6466&radiusKm=5&sortBy=distance`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(2);
+    expect(data.results.map((result: any) => result.name)).toEqual([
+      "Distance Service Near Pickup",
+      "Distance Service Far Pickup",
+    ]);
+    expect(data.results[0].distanceKm).toBeLessThan(data.results[1].distanceKm);
+  });
+
   it("browses public service items by service type without a location scope", async () => {
     const deliveryRestaurant = await seed.restaurant({
       name: "Global Delivery Vendor",

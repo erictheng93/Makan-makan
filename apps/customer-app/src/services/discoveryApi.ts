@@ -64,6 +64,7 @@ export interface ServiceSearchResult {
   district: string | null;
   city: string | null;
   isOpen: boolean;
+  distanceKm?: number;
   marketVendor?: {
     marketId: string;
     stallNumber: string | null;

@@ -669,8 +669,12 @@ export class DiscoveryService {
     filters = await this.resolveMarketSlug(filters);
     const { q, page = 1, limit = 20 } = filters;
     const offset = (page - 1) * limit;
+    const geoFilter = this.getGeoFilter(filters);
     const requiresPostFilterPagination = Boolean(
-      filters.openNow || filters.sortBy === "open_now",
+      filters.openNow ||
+      geoFilter ||
+      filters.sortBy === "open_now" ||
+      filters.sortBy === "distance",
     );
     const queryLimit = requiresPostFilterPagination
       ? POST_FILTER_SCAN_LIMIT
@@ -709,6 +713,14 @@ export class DiscoveryService {
     }
     if (filters.delivery) {
       conditions.push(eq(restaurants.supportsDelivery, true));
+    }
+    if (geoFilter) {
+      conditions.push(
+        gte(restaurants.latitude, geoFilter.box.southLat),
+        lte(restaurants.latitude, geoFilter.box.northLat),
+        gte(restaurants.longitude, geoFilter.box.westLng),
+        lte(restaurants.longitude, geoFilter.box.eastLng),
+      );
     }
     if (q) {
       const pattern = `%${q.trim()}%`;
@@ -751,6 +763,8 @@ export class DiscoveryService {
           restaurantName: restaurants.name,
           district: restaurants.district,
           city: restaurants.city,
+          latitude: restaurants.latitude,
+          longitude: restaurants.longitude,
           businessHours: restaurants.businessHours,
           marketVendorMarketId: this.marketVendorMarketId(filters.marketId),
           marketVendorStallNumber: this.marketVendorStallNumber(
@@ -797,22 +811,38 @@ export class DiscoveryService {
       detailUrl: this.restaurantDetailUrl(row.restaurantId),
       menuUrl: this.restaurantMenuUrl(row.restaurantId),
       serviceItemsUrl: this.restaurantServiceItemsUrl(row.restaurantId),
+      ...(geoFilter && row.latitude != null && row.longitude != null
+        ? {
+            distanceKm: this.resultDistanceKm(geoFilter, {
+              latitude: row.latitude,
+              longitude: row.longitude,
+            }),
+          }
+        : {}),
       marketVendor: this.marketVendorContext(row),
     }));
 
+    if (geoFilter) {
+      results = results.filter((result) => result.distanceKm != null);
+    }
+
     if (filters.openNow) {
       results = results.filter((result) => result.isOpen);
+    }
+    if (filters.sortBy === "distance") {
+      results = this.sortDistanceResultsFirst(results);
     }
     if (filters.sortBy === "open_now") {
       results = this.sortOpenResultsFirst(results);
     }
 
     const rawTotal = Number(countRows[0]?.count);
-    const total = filters.openNow
-      ? results.length
-      : Number.isFinite(rawTotal) && rawTotal >= 0
-        ? rawTotal
-        : results.length;
+    const total =
+      filters.openNow || geoFilter
+        ? results.length
+        : Number.isFinite(rawTotal) && rawTotal >= 0
+          ? rawTotal
+          : results.length;
     if (requiresPostFilterPagination) {
       results = results.slice(offset, offset + limit);
     }

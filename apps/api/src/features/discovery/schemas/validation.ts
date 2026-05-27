@@ -112,6 +112,9 @@ export const serviceSearchQuerySchema = z
     city: z.string().optional(),
     marketId: z.string().optional(),
     marketSlug: z.string().min(1).max(120).optional(),
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
+    radiusKm: z.coerce.number().min(0.1).max(10).optional(),
     serviceType: z
       .enum([
         "general",
@@ -127,19 +130,31 @@ export const serviceSearchQuerySchema = z
     delivery: z.coerce.boolean().optional(),
     openNow: z.coerce.boolean().optional(),
     sortBy: z
-      .enum(["price_asc", "price_desc", "popular", "open_now"])
+      .enum(["price_asc", "price_desc", "popular", "open_now", "distance"])
       .optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })
   .superRefine((query, ctx) => {
+    if (
+      query.sortBy === "distance" &&
+      (query.lat == null || query.lng == null)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sortBy"],
+        message: "distance sorting requires lat and lng",
+      });
+    }
+
     const hasSearchScope =
       query.q ||
       query.marketId ||
       query.marketSlug ||
       query.city ||
       query.district ||
-      query.serviceType;
+      query.serviceType ||
+      (query.lat != null && query.lng != null);
 
     if (!hasSearchScope) {
       ctx.addIssue({
