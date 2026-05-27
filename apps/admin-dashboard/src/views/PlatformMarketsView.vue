@@ -159,9 +159,42 @@
       </div>
       <div
         v-if="marketImportResult"
-        class="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800"
+        class="mt-3 rounded-lg px-3 py-2 text-sm"
+        :class="
+          marketImportResult.failed > 0
+            ? 'bg-amber-50 text-amber-900'
+            : 'bg-green-50 text-green-800'
+        "
       >
-        已建立 {{ marketImportResult.created }} 個市場。
+        <p>
+          已建立 {{ marketImportResult.created }} 個市場
+          <span v-if="marketImportResult.failed > 0">
+            ，匯入失敗 {{ marketImportResult.failed }} 筆
+          </span>
+          。
+        </p>
+        <ul
+          v-if="marketImportResult.items.length"
+          class="mt-2 space-y-1"
+          data-testid="market-import-result-items"
+        >
+          <li
+            v-for="item in marketImportResult.items"
+            :key="`${item.slug}-${item.status}`"
+            class="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2"
+          >
+            <span class="font-medium">
+              {{ item.name }}（{{ item.slug }}）
+            </span>
+            <span
+              :class="
+                item.status === 'created' ? 'text-green-700' : 'text-red-700'
+              "
+            >
+              {{ item.status === "created" ? "已建立" : item.message }}
+            </span>
+          </li>
+        </ul>
       </div>
 
       <div class="mt-4 flex justify-end">
@@ -1163,6 +1196,17 @@ type EditableMarketVendor = MarketVendor & {
   isSaving?: boolean;
   isRemoving?: boolean;
 };
+type MarketImportItemResult = {
+  slug: string;
+  name: string;
+  status: "created" | "failed";
+  message?: string;
+};
+type MarketImportResult = {
+  created: number;
+  failed: number;
+  items: MarketImportItemResult[];
+};
 
 const router = useRouter();
 const route = useRoute();
@@ -1183,7 +1227,7 @@ const isImportingMarkets = ref(false);
 const marketImportFormat = ref<MarketImportFormat>("csv");
 const marketImportText = ref("");
 const marketImportError = ref("");
-const marketImportResult = ref<{ created: number } | null>(null);
+const marketImportResult = ref<MarketImportResult | null>(null);
 const isImportingVendors = ref(false);
 const isDryRunningVendors = ref(false);
 const vendorImportFormat = ref<MarketVendorImportFormat>("csv");
@@ -1493,18 +1537,43 @@ async function importMarkets() {
 
   isImportingMarkets.value = true;
   try {
+    const items: MarketImportItemResult[] = [];
     for (const market of marketInputs) {
-      await marketsService.createMarket(market);
+      try {
+        await marketsService.createMarket(market);
+        items.push({
+          slug: market.slug,
+          name: market.name,
+          status: "created",
+        });
+      } catch (error) {
+        console.error("Failed to import market:", error);
+        items.push({
+          slug: market.slug,
+          name: market.name,
+          status: "failed",
+          message: marketImportFailureMessage(error),
+        });
+      }
     }
-    marketImportResult.value = { created: marketInputs.length };
-    marketImportText.value = "";
-    await loadMarkets();
-  } catch (error) {
-    console.error("Failed to import markets:", error);
-    marketImportError.value = "匯入失敗，請確認 slug 不重複且欄位格式正確。";
+    const created = items.filter((item) => item.status === "created").length;
+    const failed = items.length - created;
+    marketImportResult.value = { created, failed, items };
+    if (created > 0) {
+      await loadMarkets();
+    }
+    if (failed === 0) {
+      marketImportText.value = "";
+    }
   } finally {
     isImportingMarkets.value = false;
   }
+}
+
+function marketImportFailureMessage(error: unknown) {
+  return error instanceof Error && error.message
+    ? error.message
+    : "建立失敗，請確認 slug 不重複且欄位格式正確。";
 }
 
 function vendorGapNames(

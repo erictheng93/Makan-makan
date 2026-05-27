@@ -726,6 +726,60 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("已建立 1 個市場");
   });
 
+  it("reports per-market import failures without hiding created markets", async () => {
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      vi.mocked(marketsService.createMarket).mockImplementation(
+        async (market) => {
+          if (market.slug === "created-market") {
+            return {
+              id: "market-3",
+              slug: market.slug,
+              name: market.name,
+              type: market.type,
+              city: market.city,
+              district: market.district,
+            };
+          }
+
+          throw new Error("slug 已存在");
+        },
+      );
+      const wrapper = mount(PlatformMarketsView);
+      await flushPromises();
+
+      await wrapper
+        .get('[data-testid="market-import-text"]')
+        .setValue(
+          [
+            "slug,name,type,city,district,address,latitude,longitude",
+            '"created-market","成功市場","night_market","台中市","西屯區","文華路",24.176,120.646',
+            '"existing-market","既有市場","night_market","台中市","西屯區","福星路",24.179,120.645',
+          ].join("\n"),
+        );
+
+      await wrapper
+        .get('[data-testid="market-import-submit"]')
+        .trigger("click");
+      await flushPromises();
+
+      expect(marketsService.createMarket).toHaveBeenCalledTimes(2);
+      expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
+      expect(wrapper.text()).toContain("已建立 1 個市場");
+      expect(wrapper.text()).toContain("匯入失敗 1 筆");
+      expect(wrapper.text()).toContain("既有市場");
+      expect(wrapper.text()).toContain("slug 已存在");
+      expect(
+        wrapper.get<HTMLTextAreaElement>('[data-testid="market-import-text"]')
+          .element.value,
+      ).toContain("existing-market");
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it("imports vendors into the selected market from CSV with a preview", async () => {
     vi.mocked(marketsService.importVendors).mockResolvedValue({
       createdRestaurants: 1,
